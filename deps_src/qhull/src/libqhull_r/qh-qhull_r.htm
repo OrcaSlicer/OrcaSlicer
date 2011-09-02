@@ -1,0 +1,279 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>libqhull_r.c -- top-level functions and basic data types</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149; <a href="qh-globa_r.htm">Global</a>
+&#149; <a href="qh-io_r.htm">Io</a> &#149; <a href="qh-mem_r.htm">Mem</a>
+&#149; <a href="qh-merge_r.htm">Merge</a> &#149; <a href="qh-poly_r.htm">Poly</a>
+&#149; <a href="qh-qhull_r.htm#TOC">Qhull</a> &#149; <a href="qh-set_r.htm">Set</a>
+&#149; <a href="qh-stat_r.htm">Stat</a> &#149; <a href="qh-user_r.htm">User</a>
+</p>
+<hr>
+
+<h2>libqhull_r.c -- top-level functions and basic data types</h2>
+<blockquote>
+<p>Qhull implements the Quickhull algorithm for computing
+the convex hull. The Quickhull algorithm combines two
+well-known algorithms: the 2-d quickhull algorithm and
+the n-d beneath-beyond algorithm. See
+<a href="../../html/index.htm#description">Description of Qhull</a>. </p>
+<p>This section provides an index to the top-level
+functions and base data types.  The top-level header file, <tt>libqhull_r.h</tt>,
+contains prototypes for these functions.</p>
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom_r.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <a href="qh-globa_r.htm#TOC">Global</a>
+&#149; <a href="qh-io_r.htm#TOC">Io</a> &#149; <a href="qh-mem_r.htm#TOC">Mem</a>
+&#149; <a href="qh-merge_r.htm#TOC">Merge</a> &#149; <a href="qh-poly_r.htm#TOC">Poly</a>
+&#149; <b>Qhull</b> &#149; <a href="qh-set_r.htm#TOC">Set</a>
+&#149; <a href="qh-stat_r.htm#TOC">Stat</a> &#149; <a href="qh-user_r.htm#TOC">User</a>
+</p>
+<h3>Index to <a href="libqhull_r.c">libqhull_r.c</a>,
+<a href="libqhull_r.h">libqhull_r.h</a>, and
+<a href="../qhull/unix_r.c">unix_r.c</a></h3>
+<ul>
+<li><a href="#qtype">libqhull_r.h and unix_r.c data types and
+constants</a> </li>
+<li><a href="#qmacro">libqhull_r.h other macros</a> </li>
+<li><a href="#qfunc">Quickhull routines in call order</a> </li>
+<li><a href="#qinit">Top-level routines for initializing and terminating Qhull</a></li>
+<li><a href="#qin">Top-level routines for reading and modifying the input</a></li>
+<li><a href="#qcall">Top-level routines for calling Qhull</a></li>
+<li><a href="#qout">Top-level routines for returning results</a></li>
+<li><a href="#qtest">Top-level routines for testing and debugging</a></li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qtype">libqhull_r.h and unix_r.c
+data types and constants</a></h3>
+<ul>
+<li><a href="libqhull_r.h#flagT">flagT</a> Boolean flag as
+a bit </li>
+<li><a href="libqhull_r.h#boolT">boolT</a> boolean value,
+either True or False </li>
+<li><a href="libqhull_r.h#CENTERtype">CENTERtype</a> to
+distinguish facet-&gt;center </li>
+<li><a href="libqhull_r.h#qh_PRINT">qh_PRINT</a> output
+formats for printing (qh.PRINTout) </li>
+<li><a href="libqhull_r.h#qh_ALL">qh_ALL</a> argument flag
+for selecting everything </li>
+<li><a href="libqhull_r.h#qh_ERR">qh_ERR</a> Qhull exit
+codes for indicating errors </li>
+<li><a href="libqhull_r.h#qh_FILEstderr">qh_FILEstderr</a> Fake stderr
+to distinguish error output from normal output [C++ only]</li>
+<li><a href="../qhull/unix_r.c#prompt">qh_prompt</a> version and long prompt for Qhull</li>
+<li><a href="../qhull/unix_r.c#prompt2">qh_prompt2</a> synopsis for Qhull</li>
+<li><a href="../qhull/unix_r.c#prompt3">qh_prompt3</a> concise prompt for Qhull</li>
+<li><a href="global_r.c#qh_version">qh_version</a> version stamp</li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qmacro">libqhull_r.h other
+macros</a></h3>
+<ul>
+<li><a href="qhull_ra.h#traceN">traceN</a> print trace
+message if <em>qh.IStracing &gt;= N</em>. </li>
+<li><a href="qhull_ra.h#QHULL_UNUSED">QHULL_UNUSED</a> declare an
+ unused variable to avoid warnings. </li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qfunc">Quickhull
+routines in call order</a></h3>
+<ul>
+<li><a href="../qhull/unix_r.c#main">main</a> processes the
+command line, calls qhull() to do the work, and
+exits </li>
+<li><a href="libqhull_r.c#qhull">qh_qhull</a> construct
+the convex hull of a set of points </li>
+<li><a href="libqhull_r.c#build_withrestart">qh_build_withrestart</a>
+allow restarts while calling qh_buildhull</li>
+<li><a href="poly2_r.c#initbuild">qh_initbuild</a>
+initialize hull and outside sets with point array</li>
+<li><a href="libqhull_r.c#partitionall">qh_partitionall</a>
+partition all points into outside sets </li>
+<li><a href="libqhull_r.c#buildhull">qh_buildhull</a>
+construct a convex hull by adding points one at a
+time </li>
+<li><a href="libqhull_r.c#nextfurthest">qh_nextfurthest</a>
+return next furthest point for processing </li>
+<li><a href="libqhull_r.c#buildtracing">qh_buildtracing</a>
+trace an iteration of buildhull </li>
+<li><a href="libqhull_r.c#addpoint">qh_addpoint</a> add a
+point to the convex hull </li>
+<li><a href="libqhull_r.c#findhorizon">qh_findhorizon</a>
+find the horizon and visible facets for a point </li>
+<li><a href="libqhull_r.c#partitionvisible">qh_partitionvisible</a>
+partition points from facets in qh.visible_list
+to facets in qh.newfacet_list </li>
+<li><a href="libqhull_r.c#partitionpoint">qh_partitionpoint</a>
+partition a point as inside, coplanar with, or
+outside a facet </li>
+<li><a href="libqhull_r.c#partitioncoplanar">qh_partitioncoplanar</a>
+partition coplanar point into a facet </li>
+<li><a href="libqhull_r.c#precision">qh_precision</a> restart on precision errors if not merging and if 'QJn'</li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qinit">Top-level routines for initializing and terminating Qhull (in other modules)</a></h3>
+<ul>
+<li><a href="global_r.c#freebuild">qh_freebuild</a>
+free memory used by qh_initbuild and qh_buildhull
+</li>
+<li><a href="global_r.c#checkflags">qh_checkflags</a>
+check flags for multiple frontends to qhull
+<li><a href="global_r.c#freeqhull">qh_freeqhull</a>
+free memory used by qhull </li>
+<li><a href="global_r.c#init_A">qh_init_A</a> called
+before error handling initialized </li>
+<li><a href="global_r.c#init_B">qh_init_B</a> called
+after points are defined </li>
+<li><a href="global_r.c#initflags">qh_initflags</a> set
+flags and constants from command line </li>
+<li><a href="rboxlib_r.c#rboxpoints">qh_rboxpoints</a>
+generate points for qhull </li>
+<li><a href="global_r.c#restore_qhull">qh_restore_qhull</a>
+restores a saved qhull </li>
+<li><a href="global_r.c#save_qhull">qh_save_qhull</a>
+saves qhull for later restoring </li>
+<li><a href="user_r.c#user_memsizes">qh_user_memsizes</a>
+define additional quick allocation sizes
+</li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qin">Top-level routines for reading and modifying the input (in other modules)</a></h3>
+<ul>
+<li><a href="geom2_r.c#gram_schmidt">qh_gram_schmidt</a>
+implements Gram-Schmidt orthogonalization by rows </li>
+<li><a href="geom2_r.c#projectinput">qh_projectinput</a>
+project input along one or more dimensions +
+Delaunay projection </li>
+<li><a href="geom2_r.c#randommatrix">qh_randommatrix</a>
+generate a random dimXdim matrix in range (-1,1) </li>
+<li><a href="io_r.c#readpoints">qh_readpoints</a> read
+points from input </li>
+<li><a href="geom2_r.c#rotateinput">qh_rotateinput</a> rotate
+input points using row matrix </li>
+<li><a href="geom2_r.c#scaleinput">qh_scaleinput</a> scale
+input points using qh low_bound/high_bound </li>
+<li><a href="geom2_r.c#setdelaunay">qh_setdelaunay</a> project
+points to paraboloid for Delaunay triangulation </li>
+<li><a href="geom2_r.c#sethalfspace_all">qh_sethalfspace_all</a>
+generate dual for halfspace intersection with interior
+point </li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qcall">Top-level routines for calling Qhull (in other modules)</a></h3>
+<ul>
+<li><a href="libqhull_r.c#addpoint">qh_addpoint</a> add
+point to convex hull </li>
+<li><a href="poly2_r.c#findbestfacet">qh_findbestfacet</a>
+find facet that is furthest below a point </li>
+<li><a href="poly2_r.c#findfacet_all">qh_findfacet_all</a>
+exhaustive search for facet below a point </li>
+<li><a href="libqhull_r.c#qhull">qh_qhull</a> construct
+the convex hull of a set of points </li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qout">Top-level routines for returning results (in other modules)</a></h3>
+<ul>
+<li><a href="stat_r.c#collectstatistics">qh_collectstatistics</a>
+collect statistics for qh.facet_list </li>
+<li><a href="poly2_r.c#nearvertex">qh_nearvertex</a>
+return nearest vertex to point </li>
+<li><a href="poly2_r.c#point">qh_point</a> return point
+for a point ID </li>
+<li><a href="poly2_r.c#pointfacet">qh_pointfacet</a>
+return temporary set of facets indexed by point
+ID </li>
+<li><a href="poly_r.c#pointid">qh_pointid</a> return ID
+for a point</li>
+<li><a href="poly2_r.c#pointvertex">qh_pointvertex</a>
+return vertices (if any) for all points</li>
+<li><a href="stat_r.c#printallstatistics">qh_printallstatistics</a>
+print all statistics </li>
+<li><a href="io_r.c#printneighborhood">qh_printneighborhood</a>
+print neighborhood of one or two facets </li>
+<li><a href="libqhull_r.c#printsummary">qh_printsummary</a>
+print summary </li>
+<li><a href="io_r.c#produce_output">qh_produce_output</a>
+print the results of qh_qhull() </li>
+<li><a href="poly2_r.c#setvoronoi_all">qh_setvoronoi_all</a>
+compute Voronoi centers for all facets </li>
+</ul>
+
+<h3><a href="qh-qhull_r.htm#TOC">&#187;</a><a name="qtest">Top-level routines for testing and debugging (in other modules)</a></h3>
+<ul>
+<li><a href="io_r.c#dfacet">dfacet</a> print facet by
+ID from debugger </li>
+<li><a href="io_r.c#dvertex">dvertex</a> print vertex
+by ID from debugger </li>
+<li><a href="poly2_r.c#check_output">qh_check_output</a>
+check output </li>
+<li><a href="poly2_r.c#check_points">qh_check_points</a>
+verify that all points are inside the convex hull
+</li>
+<li><a href="user_r.c#errexit">qh_errexit</a> report
+error with a facet and a ridge</li>
+<li><a href="libqhull_r.c#errexit2">qh_errexit2</a> report
+error with two facets </li>
+<li><a href="user_r.c#errprint">qh_errprint</a> print
+erroneous facets, ridge, and vertex </li>
+<li><a href="user_r.c#printfacetlist">qh_printfacetlist</a>
+print all fields for a list of facets </li>
+</ul>
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149;
+<a href="qh-globa_r.htm">Global</a> &#149; <a href="qh-io_r.htm">Io</a>
+&#149; <a href="qh-mem_r.htm">Mem</a> &#149; <a href="qh-merge_r.htm">Merge</a>
+&#149; <a href="qh-poly_r.htm">Poly</a> &#149; <a href="qh-qhull_r.htm#TOC">Qhull</a>
+&#149; <a href="qh-set_r.htm">Set</a> &#149; <a href="qh-stat_r.htm">Stat</a>
+&#149; <a href="qh-user_r.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

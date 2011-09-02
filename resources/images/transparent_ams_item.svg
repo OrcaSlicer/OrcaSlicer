@@ -1,0 +1,21 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="48" height="48" transform="matrix(1 0 0 -1 0 48)" fill="#FEFFFE"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 0 8)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 0 24)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 0 40)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 8 0)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 8 16)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 8 32)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 16 8)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 16 24)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 16 40)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 24 0)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 24 16)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 24 32)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 32 8)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 32 24)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 32 40)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 40 0)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 40 16)" fill="#D9D9D9"/>
+<rect width="8" height="8" transform="matrix(0 1 1 0 40 32)" fill="#D9D9D9"/>
+</svg>

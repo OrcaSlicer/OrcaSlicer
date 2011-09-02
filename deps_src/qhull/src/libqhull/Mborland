@@ -1,0 +1,206 @@
+#########################################################################
+#  Borland C++ 4.02 for Win32 and DOS Power Pack			#
+#  Makefile for qhull and rbox					        #
+#								        #
+#       make -fMborland all       to produce qconvex, qhull, and rbox   #
+#       make -fMborland user_eg   to produce user_eg		        #
+#       make -fMborland user_eg2  to produce user_eg2		        #
+#       make -fMborland new       to rebuild qhull and rbox from source #
+#       make -fMborland clean     to remove object files		#
+#       make -fMborland cleanall  to remove all generated files	        #
+#       make -fMborland test      to test rbox and qhull		#
+#								        #
+#  Author: D. Zwick of Germany, C.B. Barber			        #
+#########################################################################
+
+CC      = bcc32    # 32 bit compiler for DOS
+		   # bcc32i - Intel's compiler
+LINKER  = $(CC)    # bcc calls tlink32 with needed options
+CFLAGS  = -w- -A -O2   
+		    # -w- no warnings, bcc doesn't handle assigns in conditions
+			# -A Ansi standard
+			# -X no auto-dependency outputs
+			# -v debugging, use CCOPTS for both 
+			# -O2 optimization   
+!if $d(_DPMI)
+LFLAGS  = -WX -w-   # -WX loads DPMI library
+!else
+LFLAGS  = -lap -lx -lc
+					# -lap 32-bit console application
+					# -lx no map file
+					# -lc case is significant 
+!endif
+
+EXERB = rbox
+EXEQH = qhull
+EXEQC = qconvex
+EXEQD = qdelaunay
+EXEQV = qvoronoi
+EXEQF = qhalf
+EXEEG = user_eg
+EXEEG2 = user_eg2
+
+TMPFILE = BCC32tmp.cfg
+
+OBJS1 =   global.obj stat.obj geom2.obj poly2.obj merge.obj
+OBJS2 =   libqhull.obj geom.obj poly.obj qset.obj mem.obj 
+OBJS3 =   random.obj usermem.obj userprintf.obj io.obj user.obj
+OBJS4 =   rboxlib.obj random.obj usermem.obj userprintf_rbox.obj
+
+HFILES1 = libqhull.h stat.h qhull_a.h user.h
+
+
+# General rules
+
+.c.obj:
+	$(CC) -c $(CFLAGS) $<
+
+# Default
+
+all:	  $(EXERB) $(EXEQH) $(EXEQC) $(EXEQD) $(EXEQV) $(EXEQF) test
+
+help:
+	@echo  USAGE:
+	@echo  "make all       to produce qhull, rbox, qconvex, qdelaun, qvoronoi, qhalf"
+	@echo  "make user_eg   to produce user_eg"
+	@echo  "make user_eg2  to produce user_eg2"
+	@echo  "make new       to rebuild qhull and rbox from source"
+	@echo  "make clean     to remove object files"
+	@echo  "make cleanall  to remove all generated file"
+	@echo  "make test      to test rbox and qhull"
+	@echo  OPTIONS (default is 32-bit console app):
+	@echo  "-D_DPMI	for C++ 4.01 and DOS Power Pack"
+
+# Executables
+
+$(EXEQH):     ..\..\bin\$(EXEQH).exe
+	@echo Made ..\..\bin\$(EXEQH).exe
+
+unix.obj: ..\qhull\unix.c 
+..\..\bin\$(EXEQH).exe: unix.obj $(OBJS1) $(OBJS2) $(OBJS3)
+	@echo unix.obj > $(TMPFILE)
+	@echo $(OBJS1) >> $(TMPFILE)
+	@echo $(OBJS2) >> $(TMPFILE)
+	@echo $(OBJS3) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+$(EXEQC):     ..\..\bin\$(EXEQC).exe
+	@echo Made ..\..\bin\$(EXEQC).exe
+
+qconvex.obj: ..\qconvex\qconvex.c
+..\..\bin\$(EXEQC).exe: qconvex.obj $(OBJS1) $(OBJS2) $(OBJS3)
+	@echo qconvex.obj > $(TMPFILE)
+	@echo $(OBJS1) >> $(TMPFILE)
+	@echo $(OBJS2) >> $(TMPFILE)
+	@echo $(OBJS3) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+$(EXEQD):     ..\..\bin\$(EXEQD).exe
+	@echo Made ..\..\bin\$(EXEQD).exe
+
+qdelaun.obj: ..\qdelaunay\qdelaun.c
+..\..\bin\$(EXEQD).exe: qdelaun.obj $(OBJS1) $(OBJS2) $(OBJS3)
+	@echo qdelaun.obj > $(TMPFILE)
+	@echo $(OBJS1) >> $(TMPFILE)
+	@echo $(OBJS2) >> $(TMPFILE)
+	@echo $(OBJS3) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+$(EXEQV):     ..\..\bin\$(EXEQV).exe
+	@echo Made ..\..\bin\$(EXEQV).exe
+
+qvoronoi.obj: ..\qvoronoi\qvoronoi.c
+..\..\bin\$(EXEQV).exe: qvoronoi.obj $(OBJS1) $(OBJS2) $(OBJS3)
+	@echo qvoronoi.obj > $(TMPFILE)
+	@echo $(OBJS1) >> $(TMPFILE)
+	@echo $(OBJS2) >> $(TMPFILE)
+	@echo $(OBJS3) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+$(EXEQF):     ..\..\bin\$(EXEQF).exe
+	@echo Made ..\..\bin\$(EXEQF).exe
+
+qhalf.obj: ..\qhalf\qhalf.c
+..\..\bin\$(EXEQF).exe:  qhalf.obj $(OBJS1) $(OBJS2) $(OBJS3)
+	@echo qhalf.obj > $(TMPFILE)
+	@echo $(OBJS1) >> $(TMPFILE)
+	@echo $(OBJS2) >> $(TMPFILE)
+	@echo $(OBJS3) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+$(EXEEG):     ..\..\bin\$(EXEEG).exe
+	@echo Made ..\..\bin\$(EXEEG).exe
+
+user_eg.obj: ..\user_eg\user_eg.c
+..\..\bin\$(EXEEG).exe: user_eg.obj $(OBJS1) $(OBJS2) $(OBJS3)
+	@echo user_eg.obj > $(TMPFILE)
+	@echo $(OBJS1) >> $(TMPFILE)
+	@echo $(OBJS2) >> $(TMPFILE)
+	@echo $(OBJS3) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+$(EXEEG2):     ..\..\bin\$(EXEEG2).exe
+	@echo Made ..\..\bin\$(EXEEG2).exe
+
+user_eg2.obj: ..\user_eg2\user_eg2.c
+..\..\bin\$(EXEEG2).exe: user_eg2.obj $(OBJS1) $(OBJS2) $(OBJS3)
+	@echo user_eg2.obj > $(TMPFILE)
+	@echo $(OBJS1) >> $(TMPFILE)
+	@echo $(OBJS2) >> $(TMPFILE)
+	@echo $(OBJS3) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+$(EXERB):     ..\..\bin\$(EXERB).exe
+	@echo Made ..\..\bin\$(EXERB).exe
+
+rbox.obj: ..\rbox\rbox.c 
+..\..\bin\$(EXERB).exe: rbox.obj $(OBJS4)
+	@echo rbox.obj > $(TMPFILE)
+	@echo $(OBJS4) >> $(TMPFILE)
+	$(LINKER) -e$@ $(CFLAGS) $(LFLAGS) @$(TMPFILE)
+
+# Test rbox and qhull
+
+test:   
+	@..\..\bin\rbox D4 > test.x
+	@..\..\bin\qhull <test.x
+	@del test.x
+
+# Clean up
+
+clean:
+	@del *.obj
+	@del $(TMPFILE) 
+
+cleanall: clean
+	@del ..\..\bin\$(EXERB).exe
+	@del ..\..\bin\$(EXEQC).exe
+	@del ..\..\bin\$(EXEQD).exe
+	@del ..\..\bin\$(EXEQF).exe
+	@del ..\..\bin\$(EXEQH).exe
+	@del ..\..\bin\$(EXEQV).exe
+	@del ..\..\bin\$(EXEEG).exe
+	@del ..\..\bin\$(EXEEG2).exe
+	@del ..\q_test.x
+	@del ..\q_test.log.1
+
+# Clean up and rebuild all
+
+new:      cleanall all
+
+# Header file dependencies
+
+libqhull.obj stat.obj user.obj global.obj usermem.obj userprintf.obj: $(HFILES1)
+random.obj:  libqhull.h random.h
+geom.obj geom2.obj:  $(HFILES1) geom.h
+poly.obj poly2.obj:  $(HFILES1) poly.h
+io.obj:     $(HFILES1) io.h
+merge.obj:  $(HFILES1) merge.h
+mem.obj:    mem.h
+qset.obj:   qset.h mem.h
+unix.obj:   libqhull.h user.h
+qconvex.obj:   libqhull.h user.h
+qdelaun.obj:   libqhull.h user.h
+qhalf.obj:   libqhull.h user.h
+qvoronoi.obj:   libqhull.h user.h
+rbox.obj:   user.h

@@ -1,0 +1,24 @@
+Derived from 
+https://cgit.freedesktop.org/mesa/glu/
+commit 0bf42e41c8b63fc2488dd8d41f696310b5a5a6a7
+Fri Jun 10 05:30:00 2016
+
+This directory contains just the libtess tesselation library to be statically compilable without OpenGL dependencies.
+Only the following functions are provided, and mangled:
+
+mgluNewTess
+mgluDeleteTess
+mgluTessBeginPolygon
+mgluTessBeginContour
+mgluTessVertex
+mgluTessEndPolygon
+mgluTessEndContour
+mgluTessProperty
+mgluTessNormal
+mgluTessCallback
+mgluGetTessProperty
+mgluBeginPolygon
+mgluNextContour
+mgluEndPolygon
+
+Do include gl.h, glu.h or glut.h together with glu-libtess.h, you would get symbol clashes!

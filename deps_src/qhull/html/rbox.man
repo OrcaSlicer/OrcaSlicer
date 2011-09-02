@@ -1,0 +1,176 @@
+.\"  This is the Unix manual page for rbox, written in nroff, the standard
+.\"  manual formatter for Unix systems.  To format it, type
+.\"
+.\"  nroff -man rbox.man
+.\"
+.\"  This will print a formatted copy to standard output.  If you want
+.\"  to ensure that the output is plain ascii, free of any control
+.\"  characters that nroff uses for underlining etc, pipe the output
+.\"  through "col -b":
+.\"
+.\"  nroff -man rbox.man | col -b
+.\"
+.TH rbox 1 "August 10, 1998" "Geometry Center"
+.SH NAME
+rbox \- generate point distributions for qhull
+.SH SYNOPSIS
+Command "rbox" (w/o arguments) lists the options.
+.SH DESCRIPTION
+.PP
+rbox generates random or regular points according to the options given, and 
+outputs
+the points to stdout. The points are generated in a cube, unless 's' or  'k' 
+option is
+given. The format of the output is the following: first line
+contains the dimension and a comment, 
+second line contains the number of points, and the 
+following lines contain the points, one point per line. Points are represented
+by their coordinate values.
+.SH EXAMPLES
+.TP
+rbox 10
+10 random points in the unit cube centered at the origin.
+.TP
+rbox 10 s D2
+10 random points on a 2\[hy]d circle.
+.TP
+rbox 100 W0
+100 random points on the surface of a cube.
+.TP
+rbox 1000 s D4
+1000 random points on a 4\[hy]d sphere.
+.TP
+rbox c D5 O0.5
+a 5\[hy]d hypercube with one corner at the origin.
+.TP
+rbox d D10
+a 10\[hy]d diamond.
+.TP 
+rbox x 1000 r W0
+100 random points on the surface of a fixed simplex 
+.TP
+rbox y D12
+a 12\[hy]d simplex.
+.TP
+rbox l 10
+10 random points along a spiral
+.TP
+rbox l 10 r
+10 regular points along a spiral plus two end points
+.TP
+rbox 1000 L10000 D4 s
+1000 random points on the surface of a narrow lens.
+.TP
+rbox c G2 d G3
+a cube with coordinates +2/\-2 and a diamond with coordinates +3/\-3.
+.TP
+rbox 64 M3,4 z
+a rotated, {0,1,2,3} x {0,1,2,3} x {0,1,2,3} lattice (Mesh) of integer
+points. 'rbox 64 M1,0' is orthogonal.
+.TP
+rbox P0 P0 P0 P0 P0
+5 copies of the origin in 3\-d.  Try 'rbox P0 P0 P0 P0 P0 | qhull QJ'.
+.TP
+r 100 s Z1 G0.1
+two cospherical 100\-gons plus another cospherical point.
+.TP
+100 s Z1
+a cone of points.
+.TP 
+100 s Z1e\-7
+a narrow cone of points with many precision errors.
+.SH OPTIONS
+.TP
+n
+number of points
+.TP
+Dn
+dimension n\[hy]d (default 3\[hy]d)
+.TP
+Bn
+bounding box coordinates (default 0.5)
+.TP
+l
+spiral distribution, available only in 3\[hy]d
+.TP
+Ln
+lens distribution of radius n.  May be used with 's', 'r', 'G', and 'W'.
+.TP
+Mn,m,r
+lattice (Mesh) rotated by {[n,\-m,0], [m,n,0], [0,0,r], ...}.  
+Use 'Mm,n' for a rigid rotation with r = sqrt(n^2+m^2).  'M1,0' is an 
+orthogonal lattice.  For example, '27 M1,0' is {0,1,2} x {0,1,2} x 
+{0,1,2}. '27 M3,4 z' is a rotated integer lattice.
+.TP
+s
+cospherical points randomly generated in a cube and projected to the unit sphere
+.TP
+x
+simplicial distribution.  It is fixed for option 'r'.  May be used with 'W'.
+.TP
+y
+simplicial distribution plus a simplex.  Both 'x' and 'y' generate the same points.
+.TP
+Wn
+restrict points to distance n of the surface of a sphere or a cube
+.TP
+c
+add a unit cube to the output
+.TP
+c Gm
+add a cube with all combinations of +m and \-m to the output
+.TP
+d
+add a unit diamond to the output.
+.TP
+d Gm
+add a diamond made of 0, +m and \-m to the output
+.TP
+Cn,r,m  
+add n nearly coincident points within radius r of m points
+.TP
+Pn,m,r
+add point [n,m,r] to the output first.  Pad coordinates with 0.0.
+.TP
+n
+Remove the command line from the first line of output.
+.TP
+On
+offset the data by adding n to each coordinate.
+.TP
+t
+use time in seconds as the random number seed (default is command line).
+.TP
+tn
+set the random number seed to n.
+.TP
+z
+generate integer coordinates.  Use 'Bn' to change the range.  
+The default is 'B1e6' for six\[hy]digit coordinates.  In R^4, seven\[hy]digit
+coordinates will overflow hyperplane normalization.
+.TP
+Zn s
+restrict points to a disk about the z+ axis and the sphere (default Z1.0). 
+Includes the opposite pole.  'Z1e\-6' generates degenerate points under
+single precision.
+.TP
+Zn Gm s
+same as Zn with an empty center (default G0.5). 
+.TP
+r s D2
+generate a regular polygon
+.TP
+r s Z1 G0.1
+generate a regular cone
+.SH BUGS
+Some combinations of arguments generate odd results.
+
+Report bugs to qhull_bug@qhull.org, other correspondence to qhull@qhull.org 
+.SH SEE ALSO
+qhull(1)
+.SH AUTHOR
+.nf
+C. Bradford Barber
+bradb@shore.net
+.fi
+

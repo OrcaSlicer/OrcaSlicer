@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+if [ $# -eq 0 ]; then
+    echo "No arguments supplied"
+    exit 1
+fi
+
+DEVICE=$(basename $(findmnt -oSOURCE -n "$@") )
+
+exec /usr/bin/gdbus call -y -d org.freedesktop.UDisks2 -o /org/freedesktop/UDisks2/block_devices/$DEVICE -m org.freedesktop.UDisks2.Filesystem.Unmount "{'b': <'false'>}" 1> /dev/null
+

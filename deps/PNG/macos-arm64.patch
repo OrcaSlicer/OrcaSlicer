@@ -1,0 +1,90 @@
+Based on https://github.com/vespakoen/libpng to work around until
+https://github.com/glennrp/libpng/pull/354 is resolved.
+also added patch from PS2.4 (PNG.pach) in pngrutil.c
+---
+ CMakeLists.txt | 28 ++++++++++++++++++++--------
+ pngrutil.c     |  7 -------
+ 2 files changed, 20 insertions(+), 15 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 4db9bb87d..9099d1edf 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -82,10 +82,22 @@ option(PNG_HARDWARE_OPTIMIZATIONS "Enable Hardware Optimizations" ON)
+ set(PNG_PREFIX "" CACHE STRING "Prefix to add to the API function names")
+ set(DFA_XTRA "" CACHE FILEPATH "File containing extra configuration settings")
+ 
++# CMake currently sets CMAKE_SYSTEM_PROCESSOR to one of x86_64 or arm64 on macOS,
++# based upon the OS architecture, not the target architecture. As such, we need
++# to check CMAKE_OSX_ARCHITECTURES to identify which hardware-specific flags to
++# enable. Note that this will fail if you attempt to build a universal binary in
++# a single cmake invokation.
++if (APPLE AND CMAKE_OSX_ARCHITECTURES)
++  set(TARGET_ARCH ${CMAKE_OSX_ARCHITECTURES})
++else()
++  set(TARGET_ARCH ${CMAKE_SYSTEM_PROCESSOR})
++endif()
++
++
+ if(PNG_HARDWARE_OPTIMIZATIONS)
+ # set definitions and sources for arm
+-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" OR
+-  CMAKE_SYSTEM_PROCESSOR MATCHES "^aarch64")
++if(TARGET_ARCH MATCHES "^arm" OR
++   TARGET_ARCH MATCHES "^aarch64")
+   set(PNG_ARM_NEON_POSSIBLE_VALUES check on off)
+   set(PNG_ARM_NEON "check" CACHE STRING "Enable ARM NEON optimizations:
+      check: (default) use internal checking code;
+@@ -114,8 +126,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^arm" OR
+ endif()
+ 
+ # set definitions and sources for powerpc
+-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^powerpc*" OR
+-	CMAKE_SYSTEM_PROCESSOR MATCHES "^ppc64*" )
++if(TARGET_ARCH MATCHES "^powerpc*" OR
++       TARGET_ARCH MATCHES "^ppc64*" )
+   set(PNG_POWERPC_VSX_POSSIBLE_VALUES on off)
+   set(PNG_POWERPC_VSX "on" CACHE STRING "Enable POWERPC VSX optimizations:
+      off: disable the optimizations.")
+@@ -138,8 +150,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^powerpc*" OR
+ endif()
+ 
+ # set definitions and sources for intel
+-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^i?86" OR
+-	CMAKE_SYSTEM_PROCESSOR MATCHES "^x86_64*" )
++if(TARGET_ARCH MATCHES "^i?86" OR
++       TARGET_ARCH MATCHES "^x86_64*" )
+   set(PNG_INTEL_SSE_POSSIBLE_VALUES on off)
+   set(PNG_INTEL_SSE "on" CACHE STRING "Enable INTEL_SSE optimizations:
+      off: disable the optimizations")
+@@ -162,8 +174,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^i?86" OR
+ endif()
+ 
+ # set definitions and sources for MIPS
+-if(CMAKE_SYSTEM_PROCESSOR MATCHES "mipsel*" OR
+-	CMAKE_SYSTEM_PROCESSOR MATCHES "mips64el*" )
++if(TARGET_ARCH MATCHES "mipsel*" OR
++        TARGET_ARCH MATCHES "mips64el*" )
+   set(PNG_MIPS_MSA_POSSIBLE_VALUES on off)
+   set(PNG_MIPS_MSA "on" CACHE STRING "Enable MIPS_MSA optimizations:
+      off: disable the optimizations")
+diff --git a/pngrutil.c b/pngrutil.c
+index 7001f1976..91930f1f2 100644
+--- a/pngrutil.c
++++ b/pngrutil.c
+@@ -422,13 +422,6 @@ png_inflate_claim(png_structrp png_ptr, png_uint_32 owner)
+             png_ptr->flags |= PNG_FLAG_ZSTREAM_INITIALIZED;
+       }
+ 
+-#if ZLIB_VERNUM >= 0x1290 && \
+-   defined(PNG_SET_OPTION_SUPPORTED) && defined(PNG_IGNORE_ADLER32)
+-      if (((png_ptr->options >> PNG_IGNORE_ADLER32) & 3) == PNG_OPTION_ON)
+-         /* Turn off validation of the ADLER32 checksum in IDAT chunks */
+-         ret = inflateValidate(&png_ptr->zstream, 0);
+-#endif
+-
+       if (ret == Z_OK)
+          png_ptr->zowner = owner;
+ 
+-- 
+2.33.0.windows.1

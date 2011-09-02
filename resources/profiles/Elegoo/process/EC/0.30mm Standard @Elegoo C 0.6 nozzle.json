@@ -1,0 +1,13 @@
+{
+	"type": "process",
+	"name": "0.30mm Standard @Elegoo C 0.6 nozzle",
+	"inherits": "fdm_process_ecc_06030",
+	"from": "system",
+	"setting_id": "PEC06030",
+	"instantiation": "true",
+	"sparse_infill_pattern": "zig-zag",
+	"filename_format": "EC_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
+	"compatible_printers": [
+		"Elegoo Centauri 0.6 nozzle"
+	]
+}

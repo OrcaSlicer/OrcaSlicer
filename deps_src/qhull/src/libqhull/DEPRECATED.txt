@@ -1,0 +1,29 @@
+
+qhull/src/libqhull
+
+    This directory contains the non-reentrant version of qhull, libqhull.
+    
+    New code should use the reentrant version of qhull (libqhull_r).
+    It allows multiple instances of qhull to run at the same time. On 
+    modern architectures, it is nearly as fast as libqhull.   
+    
+    Qhull programs may be built with either library.  Each program has a
+    reentrant version (e.g., qconvex_r.c) and a non-reentrant 
+    version (qconvex.c).   The programs, rbox, qconvex, qdelaunay, qhalf, 
+    and qvoronoi, are built with libqhull.  The qhull program is built 
+    with libqhull_r.
+
+    Qhull's C++ interface requires libqhull_r.  If you previously used the 
+    C++ interface, you will need to update your code.   See Changes.txt for 
+    suggestions.
+     
+    The C code in libqhull looks unusual because of the 'qh' macro.  The 'qh'
+    macro controls access to Qhull's global data structure, qhT.  If 
+    'qh_QHpointer' is defined, 'qh' is 'qh_qh->' and 'qh_qh' is defined as
+    'qhT *qh_qh', otherwise 'qh' is 'qh_qh.' and 'qh_qh' is defined as
+    'qhT qh_qh'.
+
+    libqhull will be supported indefinitely.  The qh_QHpointer variation
+    of libqhull will be not be retested each release.  It is replaced by 
+    libqhull_r.
+ 

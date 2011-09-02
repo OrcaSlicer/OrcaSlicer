@@ -1,0 +1,167 @@
+name: Check profiles
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - 'resources/profiles/**'
+    - ".github/workflows/check_profiles.yml"
+
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+
+permissions:
+  contents: read
+
+
+jobs:
+  check_profiles:
+    name: Check profiles
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run extra JSON check
+        id: extra_json_check
+        continue-on-error: true
+        run: |
+          set +e
+          python3 ./scripts/orca_extra_profile_check.py 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Check profile indentation
+        id: indentation_check
+        continue-on-error: true
+        run: |
+          set +e
+          python3 - <<'PY' 2>&1 | tee ${{ runner.temp }}/indentation_check.log
+          import re
+          from pathlib import Path
+          import sys
+
+          profiles_root = Path("resources/profiles")
+          invalid_files = []
+
+          for file_path in sorted(profiles_root.rglob("*.json")):
+            try:
+              for line_number, line in enumerate(file_path.read_text(encoding="utf-8").splitlines(), start=1):
+                if not line.strip():
+                  continue
+                leading_ws = re.match(r"^[ \t]*", line).group(0)
+                if " " in leading_ws:
+                  invalid_files.append((file_path, line_number))
+                  break
+            except Exception as exc:
+              print(f"[ERROR] Unable to read {file_path}: {exc}")
+              invalid_files.append((file_path, 0))
+
+          if invalid_files:
+            for path, line in invalid_files:
+              if line > 0:
+                print(f"[ERROR] Space indentation found in {path}:{line}")
+              else:
+                print(f"[ERROR] Could not validate indentation in {path}")
+            print("Use tab indentation in profile JSON files (1 tab per indentation level).")
+            print("Tip: run python3 ./scripts/orca_filament_lib.py --fix --force to normalize formatting.")
+            sys.exit(1)
+
+          print("All profile JSON files use tab-only indentation.")
+          PY
+          exit ${PIPESTATUS[0]}
+
+      # download
+      - name: Download
+        working-directory: ${{ github.workspace }}
+        run: |
+          curl -LJO https://github.com/SoftFever/Orca_tools/releases/download/1/OrcaSlicer_profile_validator
+          chmod +x ./OrcaSlicer_profile_validator
+
+      # validate profiles
+      - name: validate system profiles
+        id: validate_system
+        continue-on-error: true
+        run: |
+          set +e
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
+          exit ${PIPESTATUS[0]}
+
+      - name: validate custom presets
+        id: validate_custom
+        continue-on-error: true
+        working-directory: ${{ github.workspace }}
+        run: |
+          set +e
+          curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
+          unzip -q ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Prepare comment artifact
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        run: |
+          mkdir -p ${{ runner.temp }}/profile-check-results
+
+          {
+            echo "## :x: Profile Validation Errors"
+            echo ""
+
+            if [ "${{ steps.extra_json_check.outcome }}" = "failure" ]; then
+              echo "### Extra JSON Check Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/extra_json_check.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.indentation_check.outcome }}" = "failure" ]; then
+              echo "### Indentation Check Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/indentation_check.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.validate_system.outcome }}" = "failure" ]; then
+              echo "### System Profile Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_system.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.validate_custom.outcome }}" = "failure" ]; then
+              echo "### Custom Preset Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_custom.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            echo "---"
+            echo "*Please fix the above errors and push a new commit.*"
+          } > ${{ runner.temp }}/profile-check-results/pr_comment.md
+
+          echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
+
+      - name: Upload comment artifact
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: profile-check-results
+          path: ${{ runner.temp }}/profile-check-results/
+          retention-days: 1
+
+      - name: Fail if any check failed
+        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.indentation_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        run: |
+          echo "One or more profile checks failed. See above for details."
+          exit 1

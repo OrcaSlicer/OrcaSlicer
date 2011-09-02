@@ -1,0 +1,15 @@
+#import <Cocoa/Cocoa.h>
+
+class wxEvtHandler;
+
+@interface RetinaHelperImpl : NSObject
+{
+	NSView *view;
+	wxEvtHandler* handler;
+}
+
+-(id)initWithView:(NSView *)view handler:(wxEvtHandler *)handler;
+-(void)setViewWantsBestResolutionOpenGLSurface:(BOOL)value;
+-(BOOL)getViewWantsBestResolutionOpenGLSurface;
+-(float)getBackingScaleFactor;
+@end

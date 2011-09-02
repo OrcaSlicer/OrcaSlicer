@@ -1,0 +1,28 @@
+// This file is part of libigl, a simple c++ geometry processing library.
+//
+// Copyright (C) 2013 Alec Jacobson <alecjacobson@gmail.com>
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
+// obtain one at http://mozilla.org/MPL/2.0/.
+#ifndef IGL_IO
+#define IGL_IO
+// Input and output functions
+#include "read_triangle_mesh.h"
+#include "readDMAT.h"
+#include "readMESH.h"
+#include "readNODE.h"
+#include "readOBJ.h"
+#include "readOFF.h"
+#include "readTGF.h"
+#include "readWRL.h"
+#include "readCSV.h"
+#include "file_contents_as_string.h"
+#include "write_triangle_mesh.h"
+#include "writeDMAT.h"
+#include "writeMESH.h"
+#include "writeOBJ.h"
+#include "writeOFF.h"
+#include "writeTGF.h"
+
+#endif

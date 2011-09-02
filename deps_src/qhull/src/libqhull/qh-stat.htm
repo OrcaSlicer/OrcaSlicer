@@ -1,0 +1,163 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>stat.c -- statistical operations</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149; <a href="qh-globa.htm">Global</a>
+&#149; <a href="qh-io.htm">Io</a> &#149; <a href="qh-mem.htm">Mem</a>
+&#149; <a href="qh-merge.htm">Merge</a> &#149; <a href="qh-poly.htm">Poly</a>
+&#149; <a href="qh-qhull.htm">Qhull</a> &#149; <a href="qh-set.htm">Set</a>
+&#149; <a href="qh-stat.htm#TOC">Stat</a> &#149; <a href="qh-user.htm">User</a>
+</p>
+<hr>
+
+<h2>stat.c -- statistical operations</h2>
+<blockquote>
+<p>Qhull records many statistics. These functions and
+macros make it inexpensive to add a statistic.
+<p>As with Qhull's global variables, the statistics data structure is
+accessed by a macro, 'qhstat'.  If qh_QHpointer is defined, the macro
+is 'qh_qhstat->', otherwise the macro is 'qh_qhstat.'.
+Statistics
+may be turned off in user.h. If so, all but the 'zz'
+statistics are ignored.</p>
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <a href="qh-globa.htm#TOC">Global</a>
+&#149; <a href="qh-io.htm#TOC">Io</a> &#149; <a href="qh-mem.htm#TOC">Mem</a>
+&#149; <a href="qh-merge.htm#TOC">Merge</a> &#149; <a href="qh-poly.htm#TOC">Poly</a>
+&#149; <a href="qh-qhull.htm#TOC">Qhull</a> &#149; <a href="qh-set.htm#TOC">Set</a>
+&#149; <b>Stat</b> &#149; <a href="qh-user.htm#TOC">User</a>
+</p>
+<h3>Index to <a href="stat.c">stat.c</a> and
+<a href="stat.h">stat.h</a></h3>
+<ul>
+<li><a href="#ttype">stat.h types</a> </li>
+<li><a href="#tconst">stat.h constants</a> </li>
+<li><a href="#tmacro">stat.h macros</a> </li>
+<li><a href="#tfunc">stat.c functions</a> </li>
+</ul>
+
+<h3><a href="qh-stat.htm#TOC">&#187;</a><a name="ttype">stat.h types</a></h3>
+<ul>
+<li><a href="stat.h#intrealT">intrealT</a> union of
+integer and real</li>
+<li><a href="stat.h#qhstat">qhstat</a> global data
+structure for statistics </li>
+</ul>
+<h3><a href="qh-stat.htm#TOC">&#187;</a><a name="tconst">stat.h
+constants</a></h3>
+<ul>
+<li><a href="stat.h#KEEPstatistics">qh_KEEPstatistics</a> 0 turns off most statistics</li>
+<li><a href="stat.h#statistics">Z..., W...</a> integer (Z) and real (W) statistics
+</li>
+<li><a href="stat.h#ZZstat">ZZstat</a> Z.../W... statistics that
+remain defined if qh_KEEPstatistics=0
+</li>
+<li><a href="stat.h#ztype">ztype</a> zdoc, zinc, etc.
+for definining statistics </li>
+</ul>
+<h3><a href="qh-stat.htm#TOC">&#187;</a><a name="tmacro">stat.h macros</a></h3>
+<ul>
+<li><a href="stat.h#MAYdebugx">MAYdebugx</a> called
+frequently for error trapping </li>
+<li><a href="stat.h#zadd_">zadd_/wadd_</a> add value
+to an integer or real statistic </li>
+<li><a href="stat.h#zdef_">zdef_</a> define a
+statistic </li>
+<li><a href="stat.h#zinc_">zinc_</a> increment an
+integer statistic </li>
+<li><a href="stat.h#zmax_">zmax_/wmax_</a> update
+integer or real maximum statistic </li>
+<li><a href="stat.h#zmin_">zmin_/wmin_</a> update
+integer or real minimum statistic </li>
+<li><a href="stat.h#zval_">zval_/wval_</a> set or
+return value of a statistic </li>
+</ul>
+
+<h3><a href="qh-stat.htm#TOC">&#187;</a><a name="tfunc">stat.c
+functions</a></h3>
+<ul>
+<li><a href="stat.c#allstatA">qh_allstatA</a> define
+statistics in groups of 20 </li>
+<li><a href="stat.c#allstatistics">qh_allstatistics</a>
+reset printed flag for all statistics </li>
+<li><a href="stat.c#collectstatistics">qh_collectstatistics</a>
+collect statistics for qh.facet_list </li>
+<li><a href="stat.c#freestatistics">qh_freestatistics</a>
+free memory used for statistics </li>
+<li><a href="stat.c#initstatistics">qh_initstatistics</a>
+allocate and initialize statistics </li>
+<li><a href="stat.c#newstats">qh_newstats</a> returns
+True if statistics for zdoc </li>
+<li><a href="stat.c#nostatistic">qh_nostatistic</a>
+true if no statistic to print </li>
+<li><a href="stat.c#printallstatistics">qh_printallstatistics</a>
+print all statistics </li>
+<li><a href="stat.c#printstatistics">qh_printstatistics</a>
+print statistics to a file </li>
+<li><a href="stat.c#printstatlevel">qh_printstatlevel</a>
+print level information for a statistic </li>
+<li><a href="stat.c#printstats">qh_printstats</a>
+print statistics for a zdoc group </li>
+<li><a href="stat.c#stddev">qh_stddev</a> compute the
+standard deviation and average from statistics </li>
+</ul>
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149;
+<a href="qh-globa.htm">Global</a> &#149; <a href="qh-io.htm">Io</a>
+&#149; <a href="qh-mem.htm">Mem</a> &#149; <a href="qh-merge.htm">Merge</a>
+&#149; <a href="qh-poly.htm">Poly</a> &#149; <a href="qh-qhull.htm#TOC">Qhull</a>
+&#149; <a href="qh-set.htm">Set</a> &#149; <a href="qh-stat.htm">Stat</a>
+&#149; <a href="qh-user.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

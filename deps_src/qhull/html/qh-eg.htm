@@ -1,0 +1,693 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<title>Examples of Qhull</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a href="http://www.qhull.org">Home
+page</a> for Qhull <br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To: </b><a href="#TOC">Qhull examples: Table of Contents</a> (please wait
+while loading)<br>
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/half.html"><img
+src="qh--half.gif" alt="[halfspace]" align="middle" width="100"
+height="100"></a> Examples of Qhull</h1>
+
+<p>This section of the Qhull manual will introduce you to Qhull
+and its options. Each example is a file for viewing with <a
+href="index.htm#geomview">Geomview</a>.  You will need to
+use a Unix computer with a copy of Geomview.
+<p>
+If you are not running Unix, you can view <a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/welcome.html">pictures</a>
+for some of the examples.  To understand Qhull without Geomview, try the
+examples in <a href="qh-quick.htm#programs">Programs</a> and
+<a href="qh-quick.htm#programs">Programs/input</a>.  You can also try small
+examples that you compute by hand.  Use <a href="rbox.htm">rbox</a>
+to generate examples.
+<p>
+To generate the Geomview examples, execute the shell script <tt>eg/q_eg</tt>.
+It uses <tt>rbox</tt>.  The shell script <tt>eg/q_egtest</tt> generates
+test examples, and <tt>eg/q_test</tt> exercises the code. If you
+find yourself viewing the inside of a 3-d example, use Geomview's
+normalization option on the 'obscure' menu.</p>
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<hr>
+
+<h2><a href="#TOP">&#187;</a><a name="TOC">Qhull examples: Table of
+Contents </a></h2>
+
+<ul>
+    <li><a href="#2d">2-d and 3-d examples</a></li>
+    <li><a href="#how">How Qhull adds a point</a></li>
+    <li><a href="#joggle">Triangulated output or joggled input</a></li>
+    <li><a href="#delaunay">Delaunay and Voronoi diagrams</a></li>
+    <li><a href="#merge">Facet merging for imprecision</a></li>
+    <li><a href="#4d">4-d objects</a></li>
+    <li><a href="#half">Halfspace intersections</a></li>
+</ul>
+
+<hr>
+<ul>
+    <li><a href="#TOC">&#187;</a><a name="2d">2-d and 3-d examples</a><ul>
+            <li><a href="#01">eg.01.cube</a></li>
+            <li><a href="#02">eg.02.diamond.cube</a></li>
+            <li><a href="#03">eg.03.sphere</a></li>
+            <li><a href="#04">eg.04.circle</a></li>
+            <li><a href="#05">eg.05.spiral</a></li>
+            <li><a href="#06">eg.06.merge.square</a></li>
+            <li><a href="#07">eg.07.box</a></li>
+            <li><a href="#08a">eg.08a.cube.sphere</a></li>
+            <li><a href="#08b">eg.08b.diamond.sphere</a></li>
+            <li><a href="#09">eg.09.lens</a></li>
+        </ul>
+    </li>
+    <li><a href="#TOC">&#187;</a><a name="how">How Qhull adds a point</a><ul>
+            <li><a href="#10a">eg.10a.sphere.visible</a></li>
+            <li><a href="#10b">eg.10b.sphere.beyond</a></li>
+            <li><a href="#10c">eg.10c.sphere.horizon</a></li>
+            <li><a href="#10d">eg.10d.sphere.cone</a></li>
+            <li><a href="#10e">eg.10e.sphere.new</a></li>
+            <li><a href="#14">eg.14.sphere.corner</a></li>
+        </ul>
+    </li>
+    <li><a href="#TOC">&#187;</a> <a name="joggle">Triangulated output or joggled input</a>
+        <ul>
+            <li><a href="#15a">eg.15a.surface</a></li>
+            <li><a href="#15b">eg.15b.triangle</a></li>
+            <li><a href="#15c">eg.15c.joggle</a></li>
+        </ul>
+    <li><a href="#TOC">&#187;</a><a name="delaunay"> Delaunay and
+        Voronoi diagrams</a><ul>
+            <li><a href="#17a">eg.17a.delaunay.2</a></li>
+            <li><a href="#17b">eg.17b.delaunay.2i</a></li>
+            <li><a href="#17c">eg.17c.delaunay.2-3</a></li>
+            <li><a href="#17d">eg.17d.voronoi.2</a></li>
+            <li><a href="#17e">eg.17e.voronoi.2i</a></li>
+            <li><a href="#17f">eg.17f.delaunay.3</a></li>
+            <li><a href="#18a">eg.18a.furthest.2-3</a></li>
+            <li><a href="#18b">eg.18b.furthest-up.2-3</a></li>
+            <li><a href="#18c">eg.18c.furthest.2</a></li>
+            <li><a href="#19">eg.19.voronoi.region.3</a></li>
+        </ul>
+    </li>
+    <li><a href="#TOC">&#187;</a><a name="merge">Facet merging for
+        imprecision </a><ul>
+            <li><a href="#20">eg.20.cone</a></li>
+            <li><a href="#21a">eg.21a.roundoff.errors</a></li>
+            <li><a href="#21b">eg.21b.roundoff.fixed</a></li>
+            <li><a href="#22a">eg.22a.merge.sphere.01</a></li>
+            <li><a href="#22b">eg.22b.merge.sphere.-01</a></li>
+            <li><a href="#22c">eg.22c.merge.sphere.05</a></li>
+            <li><a href="#22d">eg.22d.merge.sphere.-05</a></li>
+            <li><a href="#23">eg.23.merge.cube</a></li>
+        </ul>
+    </li>
+    <li><a href="#TOC">&#187;</a><a name="4d">4-d objects</a><ul>
+            <li><a href="#24">eg.24.merge.cube.4d-in-3d</a></li>
+            <li><a href="#30">eg.30.4d.merge.cube</a></li>
+            <li><a href="#31">eg.31.4d.delaunay</a></li>
+            <li><a href="#32">eg.32.4d.octant</a></li>
+        </ul>
+    </li>
+    <li><a href="#TOC">&#187;</a><a name="half">Halfspace
+        intersections</a><ul>
+            <li><a href="#33a">eg.33a.cone</a></li>
+            <li><a href="#33b">eg.33b.cone.dual</a></li>
+            <li><a href="#33c">eg.33c.cone.halfspace</a></li>
+        </ul>
+    </li>
+</ul>
+
+<hr>
+
+<h2><a href="#TOC">&#187;</a>2-d and 3-d examples</h2>
+
+<h3><a href="#2d">&#187;</a><a name="01">rbox c D3 | qconvex G
+&gt;eg.01.cube </a></h3>
+
+<p>The first example is a cube in 3-d. The color of each facet
+indicates its normal. For example, normal [0,0,1] along the Z
+axis is (r=0.5, g=0.5, b=1.0). With the 'Dn' option in <tt>rbox</tt>,
+you can generate hypercubes in any dimension. Above 7-d the
+number of intermediate facets grows rapidly. Use '<a
+href="qh-optt.htm#TFn">TFn</a>' to track qconvex's progress. Note
+that each facet is a square that qconvex merged from coplanar
+triangles.</p>
+
+<h3><a href="#2d">&#187;</a><a name="02">rbox c d G3.0 | qconvex G
+&gt;eg.02.diamond.cube </a></h3>
+
+<p>The second example is a cube plus a diamond ('d') scaled by <tt>rbox</tt>'s
+'G' option. In higher dimensions, diamonds are much simpler than
+hypercubes. </p>
+
+<h3><a href="#2d">&#187;</a><a name="03">rbox s 100 D3 | qconvex G
+&gt;eg.03.sphere </a></h3>
+
+<p>The <tt>rbox s</tt> option generates random points and
+projects them to the d-sphere. All points should be on the convex
+hull. Notice that random points look more clustered than you
+might expect. You can get a smoother distribution by merging
+facets and printing the vertices, e.g.,<i> rbox 1000 s | qconvex
+A-0.95 p | qconvex G &gt;eg.99</i>.</p>
+
+<h3><a href="#2d">&#187;</a><a name="04">rbox s 100 D2 | qconvex G
+&gt;eg.04.circle </a></h3>
+
+<p>In 2-d, there are many ways to generate a convex hull. One of
+the earliest algorithms, and one of the fastest, is the 2-d
+Quickhull algorithm [c.f., Preparata &amp; Shamos <a
+href="index.htm#pre-sha85">'85</a>]. It was the model for
+Qhull.</p>
+
+<h3><a href="#2d">&#187;</a><a name="05">rbox 10 l | qconvex G
+&gt;eg.05.spiral </a></h3>
+
+<p>One rotation of a spiral.</p>
+
+<h3><a href="#2d">&#187;</a><a name="06">rbox 1000 D2 | qconvex C-0.03
+Qc Gapcv &gt;eg.06.merge.square</a></h3>
+
+<p>This demonstrates how Qhull handles precision errors. Option '<a
+href="qh-optc.htm#Cn">C-0.03</a>' requires a clearly convex angle
+between adjacent facets. Otherwise, Qhull merges the facets. </p>
+
+<p>This is the convex hull of random points in a square. The
+facets have thickness because they must be outside all points and
+must include their vertices. The colored lines represent the
+original points and the spheres represent the vertices. Floating
+in the middle of each facet is the centrum. Each centrum is at
+least 0.03 below the planes of its neighbors. This guarantees
+that the facets are convex.</p>
+
+<h3><a href="#2d">&#187;</a><a name="07">rbox 1000 D3 | qconvex G
+&gt;eg.07.box </a></h3>
+
+<p>Here's the same distribution but in 3-d with Qhull handling
+machine roundoff errors. Note the large number of facets. </p>
+
+<h3><a href="#2d">&#187;</a><a name="08a">rbox c G0.4 s 500 | qconvex G
+&gt;eg.08a.cube.sphere </a></h3>
+
+<p>The sphere is just barely poking out of the cube. Try the same
+distribution with randomization turned on ('<a
+href="qh-optq.htm#Qr">Qr</a>'). This turns Qhull into a
+randomized incremental algorithm. To compare Qhull and
+randomization, look at the number of hyperplanes created and the
+number of points partitioned. Don't compare CPU times since Qhull's
+implementation of randomization is inefficient. The number of
+hyperplanes and partitionings indicate the dominant costs for
+Qhull. With randomization, you'll notice that the number of
+facets created is larger than before. This is especially true as
+you increase the number of points. It is because the randomized
+algorithm builds most of the sphere before it adds the cube's
+vertices.</p>
+
+<h3><a href="#2d">&#187;</a><a name="08b">rbox d G0.6 s 500 | qconvex G
+&gt;eg.08b.diamond.sphere </a></h3>
+
+<p>This is a combination of the diamond distribution and the
+sphere.</p>
+
+<h3><a href="#2d">&#187;</a><a name="09">rbox 100 L3 G0.5 s | qconvex
+G &gt;eg.09.lens </a></h3>
+
+<p>Each half of the lens distribution lies on a sphere of radius
+three. A directed search for the furthest facet below a point
+(e.g., qh_findbest in <tt>geom.c</tt>) may fail if started from
+an arbitrary facet. For example, if the first facet is on the
+opposite side of the lens, a directed search will report that the
+point is inside the convex hull even though it is outside. This
+problem occurs whenever the curvature of the convex hull is less
+than a sphere centered at the test point. </p>
+
+<p>To prevent this problem, Qhull does not use directed search
+all the time. When Qhull processes a point on the edge of the
+lens, it partitions the remaining points with an exhaustive
+search instead of a directed search (see qh_findbestnew in <tt>geom2.c</tt>).
+</p>
+
+<h2><a href="#TOC">&#187;</a>How Qhull adds a point</h2>
+
+<h3><a href="#how">&#187;</a><a name="10a">rbox 100 s P0.5,0.5,0.5 |
+qconvex Ga QG0 &gt;eg.10a.sphere.visible</a></h3>
+
+<p>The next 4 examples show how Qhull adds a point. The point
+[0.5,0.5,0.5] is at one corner of the bounding box. Qhull adds a
+point using the beneath-beyond algorithm. First Qhull finds all
+of the facets that are visible from the point. Qhull will replace
+these facets with new facets.</p>
+
+<h3><a href="#how">&#187;</a><a name="10b">rbox 100 s
+P0.5,0.5,0.5|qconvex Ga QG-0 &gt;eg.10b.sphere.beyond </a></h3>
+
+<p>These are the facets that are not visible from the point.
+Qhull will keep these facets.</p>
+
+<h3><a href="#how">&#187;</a><a name="10c">rbox 100 s P0.5,0.5,0.5 |
+qconvex PG Ga QG0 &gt;eg.10c.sphere.horizon </a></h3>
+
+<p>These facets are the horizon facets; they border the visible
+facets. The inside edges are the horizon ridges. Each horizon
+ridge will form the base for a new facet.</p>
+
+<h3><a href="#how">&#187;</a><a name="10d">rbox 100 s P0.5,0.5,0.5 |
+qconvex Ga QV0 PgG &gt;eg.10d.sphere.cone </a></h3>
+
+<p>This is the cone of points from the new point to the horizon
+facets.  Try combining this image with <tt>eg.10c.sphere.horizon</tt>
+and <tt>eg.10a.sphere.visible</tt>.
+</p>
+
+<h3><a href="#how">&#187;</a><a name="10e">rbox 100 s P0.5,0.5,0.5 |
+qconvex Ga &gt;eg.10e.sphere.new</a></h3>
+
+<p>This is the convex hull after [0.5,0.5,0.5] has been added.
+Note that in actual practice, the above sequence would never
+happen. Unlike the randomized algorithms, Qhull always processes
+a point that is furthest in an outside set. A point like
+[0.5,0.5,0.5] would be one of the first points processed.</p>
+
+<h3><a href="#how">&#187;</a><a name="14">rbox 100 s P0.5,0.5,0.5 |
+qhull Ga QV0g Q0 &gt;eg.14.sphere.corner</a></h3>
+
+<p>The '<a href="qh-optq.htm#QVn">QVn</a>', '<a
+href="qh-optq.htm#QGn">QGn </a>' and '<a href="qh-optp.htm#Pdk">Pdk</a>'
+options define good facets for Qhull. In this case '<a
+href="qh-optq.htm#QVn">QV0</a>' defines the 0'th point
+[0.5,0.5,0.5] as the good vertex, and '<a href="qh-optq.htm#Qg">Qg</a>'
+tells Qhull to only build facets that might be part of a good
+facet. This technique reduces output size in low dimensions. It
+does not work with facet merging.</p>
+
+<h2><a href="#TOC">&#187;</a>Triangulated output or joggled input</h2>
+
+<h3><a href="#joggle">&#187;</a><a name="15a">rbox 500 W0 | qconvex QR0 Qc Gvp &gt;eg.15a.surface</a></h3>
+
+<p>This is the convex hull of 500 points on the surface of
+a cube.  Note the large, non-simplicial facet for each face.
+Qhull merges non-convex facets.
+
+<p>If the facets were not merged, Qhull
+would report precision problems.  For example, turn off facet merging
+with option '<a href="qh-optq.htm#Q0">Q0</a>'.  Qhull may report concave
+facets, flipped facets, or other precision errors:
+<blockquote>
+rbox 500 W0 | qhull QR0 Q0
+</blockquote>
+
+<p>
+<h3><a href="#joggle">&#187;</a><a name="15b">rbox 500 W0 | qconvex QR0 Qt Qc Gvp &gt;eg.15b.triangle</a></h3>
+
+<p>Like the previous examples, this is the convex hull of 500 points on the
+surface of a cube.  Option '<a href="qh-optq.htm#Qt">Qt</a>' triangulates the
+non-simplicial facets.  Triangulated output is
+particularly helpful for Delaunay triangulations.
+
+<p>
+<h3><a href="#joggle">&#187;</a><a name="15c">rbox 500 W0 | qconvex QR0 QJ5e-2 Qc Gvp &gt;eg.15c.joggle</a></h3>
+
+<p>This is the convex hull of 500 joggled points on the surface of
+a cube.  The option '<a href="qh-optq.htm#QJn">QJ5e-2</a>'
+sets a very large joggle to make the effect visible.  Notice
+that all of the facets are triangles.  If you rotate the cube,
+you'll see red-yellow lines for coplanar points.
+<p>
+With option '<a href="qh-optq.htm#QJn">QJ</a>', Qhull joggles the
+input to avoid precision problems.  It adds a small random number
+to each input coordinate.  If a precision
+error occurs, it increases the joggle and tries again.  It repeats
+this process until no precision problems occur.
+<p>
+Joggled input is a simple solution to precision problems in
+computational geometry.  Qhull can also merge facets to handle
+precision problems.  See <a href="qh-impre.htm#joggle">Merged facets or joggled input</a>.
+
+<h2><a href="#TOC">&#187;</a>Delaunay and Voronoi diagrams</h2>
+
+<h3><a href="#delaunay">&#187;</a><a name="17a">qdelaunay Qt
+&lt;eg.data.17 GnraD2 &gt;eg.17a.delaunay.2</a></h3>
+
+<p>
+The input file, <tt>eg.data.17</tt>, consists of a square, 15 random
+points within the outside half of the square, and 6 co-circular
+points centered on the square.
+
+<p>The Delaunay triangulation is the triangulation with empty
+circumcircles.  The input for this example is unusual because it
+includes six co-circular points.  Every triangular subset of these
+points has the same circumcircle.  Option '<a href="qh-optq.htm#Qt">Qt</a>'
+triangulates the co-circular facet.</p>
+
+<h3><a href="#delaunay">&#187;</a><a name="17b">qdelaunay &lt;eg.data.17
+GnraD2 &gt;eg.17b.delaunay.2i</a></h3>
+
+<p>This is the same example without triangulated output ('<a href="qh-optq.htm#Qt">Qt</a>').  qdelaunay
+merges the non-unique Delaunay triangles into a hexagon.</p>
+
+<h3><a href="#delaunay">&#187;</a><a name="17c">qdelaunay &lt;eg.data.17
+Ga &gt;eg.17c.delaunay.2-3 </a></h3>
+
+<p>This is how Qhull generated both diagrams. Use Geomview's
+'obscure' menu to turn off normalization, and Geomview's
+'cameras' menu to turn off perspective. Then load this <a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/delaunay.html">object</a>
+with one of the previous diagrams.</p>
+
+<p>The points are lifted to a paraboloid by summing the squares
+of each coordinate. These are the light blue points. Then the
+convex hull is taken. That's what you see here. If you look up
+the Z-axis, you'll see that points and edges coincide.</p>
+
+<h3><a href="#delaunay">&#187;</a><a name="17d">qvoronoi QJ
+&lt;eg.data.17 Gna &gt;eg.17d.voronoi.2</a></h3>
+
+<p>The Voronoi diagram is the dual of the Delaunay triangulation.
+Here you see the original sites and the Voronoi vertices.
+Notice the each
+vertex is equidistant from three sites. The edges indicate the
+Voronoi region for a site. Qhull does not draw the unbounded
+edges. Instead, it draws extra edges to close the unbounded
+Voronoi regions. You may find it helpful to enclose the input
+points in a square.  You can compute the unbounded
+rays from option '<a href="qh-optf.htm#Fo2">Fo</a>'.
+</p>
+
+<p>Instead
+of triangulated output ('<a href="qh-optq.htm#Qt">Qt</a>'), this
+example uses joggled input ('<a href="qh-optq.htm#QJn">QJ</a>').
+Normally, you should use neither 'QJ' nor 'Qt' for Voronoi diagrams.
+
+<h3><a href="#delaunay">&#187;</a><a name="17e">qvoronoi &lt;eg.data.17
+Gna &gt;eg.17e.voronoi.2i </a></h3>
+
+<p>This looks the same as the previous diagrams, but take a look
+at the data.  Run 'qvoronoi p &lt;eg/eg.data.17'.  This prints
+the Voronoi vertices.
+
+<p>With 'QJ', there are four nearly identical Voronoi vertices
+within 10^-11 of the origin.  Option 'QJ' joggled the input.  After the joggle,
+the cocircular
+input sites are no longer cocircular.  The corresponding Voronoi vertices are
+similar but not identical.
+
+<p>This example does not use options 'Qt' or 'QJ'.  The cocircular
+input sites define one Voronoi vertex near the origin. </p>
+
+<p>Option 'Qt' would triangulate the corresponding Delaunay region into
+four triangles.  Each triangle is assigned the same Voronoi vertex.</p>
+
+<h3><a href="#delaunay">&#187;</a><a name="17f"> rbox c G0.1 d |
+qdelaunay Gt Qz &lt;eg.17f.delaunay.3 </a></h3>
+
+<p>This is the 3-d Delaunay triangulation of a small cube inside
+a prism. Since the outside ridges are transparent, it shows the
+interior of the outermost facets. If you slice open the
+triangulation with Geomview's ginsu, you will see that the innermost
+facet is a cube. Note the use of '<a href="qh-optq.htm#Qz">Qz</a>'
+to add a point &quot;at infinity&quot;. This avoids a degenerate
+input due to cospherical points.</p>
+
+<h3><a href="#delaunay">&#187;</a><a name="18a">rbox 10 D2 d | qdelaunay
+Qu G &gt;eg.18a.furthest.2-3 </a></h3>
+
+<p>The furthest-site Voronoi diagram contains Voronoi regions for
+points that are <i>furthest </i>from an input site. It is the
+dual of the furthest-site Delaunay triangulation. You can
+determine the furthest-site Delaunay triangulation from the
+convex hull of the lifted points (<a href="#17c">eg.17c.delaunay.2-3</a>).
+The upper convex hull (blue) generates the furthest-site Delaunay
+triangulation. </p>
+
+<h3><a href="#delaunay">&#187;</a><a name="18b">rbox 10 D2 d | qdelaunay
+Qu Pd2 G &gt;eg.18b.furthest-up.2-3</a></h3>
+
+<p>This is the upper convex hull of the preceding example. The
+furthest-site Delaunay triangulation is the projection of the
+upper convex hull back to the input points. The furthest-site
+Voronoi vertices are the circumcenters of the furthest-site
+Delaunay triangles. </p>
+
+<h3><a href="#delaunay">&#187;</a><a name="18c">rbox 10 D2 d | qvoronoi
+Qu Gv &gt;eg.18c.furthest.2</a></h3>
+
+<p>This shows an incomplete furthest-site Voronoi diagram. It
+only shows regions with more than two vertices. The regions are
+artificially truncated. The actual regions are unbounded. You can
+print the regions' vertices with 'qvoronoi Qu <a
+href="qh-opto.htm#o">o</a>'. </p>
+
+<p>Use Geomview's 'obscure' menu to turn off normalization, and
+Geomview's 'cameras' menu to turn off perspective. Then load this
+with the upper convex hull.</p>
+
+<h3><a href="#delaunay">&#187;</a><a name="19">rbox 10 D3 | qvoronoi QV5
+p | qconvex G &gt;eg.19.voronoi.region.3 </a></h3>
+
+<p>This shows the Voronoi region for input site 5 of a 3-d
+Voronoi diagram.</p>
+
+<h2><a href="#TOC">&#187;</a>Facet merging for imprecision</h2>
+
+<h3><a href="#merge">&#187;</a><a name="20">rbox r s 20 Z1 G0.2 |
+qconvex G &gt;eg.20.cone </a></h3>
+
+<p>There are two things unusual about this <a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/cone.html">cone</a>.
+One is the large flat disk at one end and the other is the
+rectangles about the middle. That's how the points were
+generated, and if those points were exact, this is the correct
+hull. But <tt>rbox</tt> used floating point arithmetic to
+generate the data. So the precise convex hull should have been
+triangles instead of rectangles. By requiring convexity, Qhull
+has recovered the original design.</p>
+
+<h3><a href="#merge">&#187;</a><a name="21a">rbox 200 s | qhull Q0
+R0.01 Gav Po &gt;eg.21a.roundoff.errors </a></h3>
+
+<p>This is the convex hull of 200 cospherical points with
+precision errors ignored ('<a href="qh-optq.htm#Q0">Q0</a>'). To
+demonstrate the effect of roundoff error, we've added a random
+perturbation ('<a href="qh-optc.htm#Rn">R0.01</a>') to every
+distance and hyperplane calculation. Qhull, like all other convex
+hull algorithms with floating point arithmetic, makes
+inconsistent decisions and generates wildly wrong results. In
+this case, one or more facets are flipped over. These facets have
+the wrong color. You can also turn on 'normals' in Geomview's
+appearances menu and turn off 'facing normals'. There should be
+some white lines pointing in the wrong direction. These
+correspond to flipped facets. </p>
+
+<p>Different machines may not produce this picture. If your
+machine generated a long error message, decrease the number of
+points or the random perturbation ('<a href="qh-optc.htm#Rn">R0.01</a>').
+If it did not report flipped facets, increase the number of
+points or perturbation.</p>
+
+<h3><a href="#merge">&#187;</a><a name="21b">rbox 200 s | qconvex Qc
+R0.01 Gpav &gt;eg.21b.roundoff.fixed </a></h3>
+
+<p>Qhull handles the random perturbations and returns an
+imprecise <a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/fixed.html">sphere</a>.
+In this case, the output is a weak approximation to the points.
+This is because a random perturbation of '<a
+href="qh-optc.htm#Rn">R0.01 </a>' is equivalent to losing all but
+1.8 digits of precision. The outer planes float above the points
+because Qhull needs to allow for the maximum roundoff error. </p>
+<p>
+If you start with a smaller random perturbation, you
+can use joggle ('<a href="qh-optq.htm#QJn">QJn</a>') to avoid
+precision problems.  You need to set <i>n</i> significantly
+larger than the random perturbation.  For example, try
+'rbox 200 s | qconvex Qc R1e-4 QJ1e-1'.
+
+<h3><a href="#merge">&#187;</a><a name="22a">rbox 1000 s| qconvex C0.01
+Qc Gcrp &gt;eg.22a.merge.sphere.01</a></h3>
+
+<h3><a href="#merge">&#187;</a><a name="22b">rbox 1000 s| qconvex
+C-0.01 Qc Gcrp &gt;eg.22b.merge.sphere.-01</a></h3>
+
+<h3><a href="#merge">&#187;</a><a name="22c">rbox 1000 s| qconvex C0.05
+Qc Gcrpv &gt;eg.22c.merge.sphere.05</a></h3>
+
+<h3><a href="#merge">&#187;</a><a name="22d">rbox 1000 s| qconvex
+C-0.05 Qc Gcrpv &gt;eg.22d.merge.sphere.-05</a></h3>
+
+<p>The next four examples compare post-merging and pre-merging ('<a
+href="qh-optc.htm#Cn2">Cn</a>' vs. '<a href="qh-optc.htm#Cn">C-n</a>').
+Qhull uses '-' as a flag to indicate pre-merging.</p>
+
+<p>Post-merging happens after the convex hull is built. During
+post-merging, Qhull repeatedly merges an independent set of
+non-convex facets. For a given set of parameters, the result is
+about as good as one can hope for.</p>
+
+<p>Pre-merging does the same thing as post-merging, except that
+it happens after adding each point to the convex hull. With
+pre-merging, Qhull guarantees a convex hull, but the facets are
+wider than those from post-merging. If a pre-merge option is not
+specified, Qhull handles machine round-off errors.</p>
+
+<p>You may see coplanar points appearing slightly outside
+the facets of the last example.  This is becomes Geomview moves
+line segments forward toward the viewer.  You can avoid the
+effect by setting 'lines closer' to '0' in Geomview's camera menu.
+
+<h3><a href="#merge">&#187;</a><a name="23">rbox 1000 | qconvex s
+Gcprvah C0.1 Qc &gt;eg.23.merge.cube</a></h3>
+
+<p>Here's the 3-d imprecise cube with all of the Geomview
+options. There's spheres for the vertices, radii for the coplanar
+points, dots for the interior points, hyperplane intersections,
+centrums, and inner and outer planes.  The radii are shorter than
+the spheres because this uses post-merging ('<a href="qh-optc.htm#Cn2">C0.1</a>')
+instead of pre-merging.
+
+<h2><a href="#TOC">&#187;</a>4-d objects</h2>
+
+<p>With Qhull and Geomview you can develop an intuitive sense of
+4-d surfaces. When you get into trouble, think of viewing the
+surface of a 3-d sphere in a 2-d plane.</p>
+
+<h3><a href="#4d">&#187;</a><a name="24">rbox 5000 D4 | qconvex s GD0v
+Pd0:0.5 C-0.02 C0.1 &gt;eg.24.merge.cube.4d-in-3d</a></h3>
+
+<p>Here's one facet of the imprecise cube in 4-d. It's projected
+into 3-d (the '<a href="qh-optg.htm#GDn">GDn</a>' option drops
+dimension n). Each ridge consists of two triangles between this
+facet and the neighboring facet. In this case, Geomview displays
+the topological ridges, i.e., as triangles between three
+vertices. That is why the cube looks lopsided.</p>
+
+<h3><a href="#4d">&#187;</a><a name="30">rbox 5000 D4 | qconvex s
+C-0.02 C0.1 Gh &gt;eg.30.4d.merge.cube </a></h3>
+
+<p><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/4dcube.html">Here</a>
+is the equivalent in 4-d of the imprecise <a href="#06">square</a>
+and imprecise <a href="#23">cube</a>. It's the imprecise convex
+hull of 5000 random points in a hypercube. It's a full 4-d object
+so Geomview's <tt>ginsu </tt>does not work. If you view it in
+Geomview, you'll be inside the hypercube. To view 4-d objects
+directly, either load the <tt>4dview</tt> module or the <tt>ndview
+</tt>module. For <tt>4dview</tt>, you must have started Geomview
+in the same directory as the object. For <tt>ndview</tt>,
+initialize a set of windows with the prefab menu, and load the
+object through Geomview. The <tt>4dview</tt> module includes an
+option for slicing along any hyperplane. If you do this in the x,
+y, or z plane, you'll see the inside of a hypercube.</p>
+
+<p>The '<a href="qh-optg.htm#Gh">Gh</a>' option prints the
+geometric intersections between adjacent facets. Note the strong
+convexity constraint for post-merging ('<a href="qh-optc.htm#Cn2">C0.1</a>').
+It deletes the small facets.</p>
+
+<h3><a href="#4d">&#187;</a><a name="31">rbox 20 D3 | qdelaunay G
+&gt;eg.31.4d.delaunay </a></h3>
+
+<p>The Delaunay triangulation of 3-d sites corresponds to a 4-d
+convex hull. You can't see 4-d directly but each facet is a 3-d
+object that you can project to 3-d. This is exactly the same as
+projecting a 2-d facet of a soccer ball onto a plane.</p>
+
+<p>Here we see all of the facets together. You can use Geomview's
+<tt>ndview</tt> to look at the object from several directions.
+Try turning on edges in the appearance menu. You'll notice that
+some edges seem to disappear. That's because the object is
+actually two sets of overlapping facets.</p>
+
+<p>You can slice the object apart using Geomview's <tt>4dview</tt>.
+With <tt>4dview</tt>, try slicing along the w axis to get a
+single set of facets and then slice along the x axis to look
+inside. Another interesting picture is to slice away the equator
+in the w dimension.</p>
+
+<h3><a href="#4d">&#187;</a><a name="32">rbox 30 s D4 | qconvex s G
+Pd0d1d2D3</a></h3>
+
+<p>This is the positive octant of the convex hull of 30 4-d
+points. When looking at 4-d, it's easier to look at just a few
+facets at once. If you picked a facet that was directly above
+you, then that facet looks exactly the same in 3-d as it looks in
+4-d. If you pick several facets, then you need to imagine that
+the space of a facet is rotated relative to its neighbors. Try
+Geomview's <tt>ndview</tt> on this example.</p>
+
+<h2><a href="#TOC">&#187;</a>Halfspace intersections</h2>
+
+<h3><a href="#half">&#187;</a><a name="33a">rbox 10 r s Z1 G0.3 |
+qconvex G &gt;eg.33a.cone </a></h3>
+
+<h3><a href="#half">&#187;</a><a name="33b">rbox 10 r s Z1 G0.3 |
+qconvex FV n | qhalf G &gt;eg.33b.cone.dual</a></h3>
+
+<h3><a href="#half">&#187;</a><a name="33c">rbox 10 r s Z1 G0.3 |
+qconvex FV n | qhalf Fp | qconvex G &gt;eg.33c.cone.halfspace</a></h3>
+
+<p>These examples illustrate halfspace intersection. The first
+picture is the convex hull of two 20-gons plus an apex. The
+second picture is the dual of the first. Try loading <a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/half.html">both</a>
+at once. Each vertex of the second picture corresponds to a facet
+or halfspace of the first. The vertices with four edges
+correspond to a facet with four neighbors. Similarly the facets
+correspond to vertices. A facet's normal coefficients divided by
+its negative offset is the vertice's coordinates. The coordinates
+are the intersection of the original halfspaces. </p>
+
+<p>The third picture shows how Qhull can go back and forth
+between equivalent representations. It starts with a cone,
+generates the halfspaces that define each facet of the cone, and
+then intersects these halfspaces. Except for roundoff error, the
+third picture is a duplicate of the first. </p>
+<!-- Navigation links -->
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home
+page for Qhull</a> <br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual: Table of Contents</a><br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To: </b><a href="#TOC">Qhull examples: Table of Contents</a> (please wait
+while loading)<br>
+<!-- GC common information -->
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

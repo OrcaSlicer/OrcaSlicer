@@ -1,0 +1,308 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>qset_r.c -- set data type and operations</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149; <a href="qh-globa_r.htm">Global</a>
+&#149; <a href="qh-io_r.htm">Io</a> &#149; <a href="qh-mem_r.htm">Mem</a>
+&#149; <a href="qh-merge_r.htm">Merge</a> &#149; <a href="qh-poly_r.htm">Poly</a>
+&#149; <a href="qh-qhull_r.htm">Qhull</a> &#149; <a href="qh-set_r.htm#TOC">Set</a>
+&#149; <a href="qh-stat_r.htm">Stat</a> &#149; <a href="qh-user_r.htm">User</a>
+</p>
+<hr>
+
+<h2>qset_r.c -- set data type and operations</h2>
+<blockquote>
+<p>Qhull's data structures are constructed from sets. The
+functions and macros in qset_r.c construct, iterate, and
+modify these sets. They are the most frequently called
+functions in Qhull. For this reason, efficiency is the
+primary concern. </p>
+<p>In Qhull, a <i>set</i> is represented by an unordered
+array of pointers with a maximum size and a NULL
+terminator (<a href="qset_r.h#setT">setT</a>).
+Most sets correspond to mathematical sets
+(i.e., the pointers are unique). Some sets are sorted to
+enforce uniqueness. Some sets are ordered. For example,
+the order of vertices in a ridge determine the ridge's
+orientation. If you reverse the order of adjacent
+vertices, the orientation reverses. Some sets are not
+mathematical sets. They may be indexed as an array and
+they may include NULL pointers. </p>
+<p>The most common operation on a set is to iterate its
+members. This is done with a 'FOREACH...' macro. Each set
+has a custom macro. For example, 'FOREACHvertex_'
+iterates over a set of vertices. Each vertex is assigned
+to the variable 'vertex' from the pointer 'vertexp'. </p>
+<p>Most sets are constructed by appending elements to the
+set. The last element of a set is either NULL or the
+index of the terminating NULL for a partially full set.
+If a set is full, appending an element copies the set to
+a larger array. </p>
+
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom_r.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <a href="qh-globa_r.htm#TOC">Global</a> &#149;
+<a href="qh-io_r.htm#TOC">Io</a> &#149; <a href="qh-mem_r.htm#TOC">Mem</a> &#149;
+<a href="qh-merge_r.htm#TOC">Merge</a> &#149; <a href="qh-poly_r.htm#TOC">Poly</a>
+&#149; <a href="qh-qhull_r.htm#TOC">Qhull</a> &#149; <b>Set</b>
+&#149; <a href="qh-stat_r.htm#TOC">Stat</a> &#149; <a href="qh-user_r.htm#TOC">User</a>
+</p>
+<h3>Index to <a href="qset_r.c">qset_r.c</a> and
+<a href="qset_r.h">qset_r.h</a></h3>
+<ul>
+<li><a href="#stype">Data types and constants</a> </li>
+<li><a href="#seach">FOREACH macros</a> </li>
+<li><a href="#saccess">access and size macros</a> </li>
+<li><a href="#sint">internal macros</a> </li>
+<li><a href="#saddr">address macros</a><p>&nbsp;</li>
+
+<li><a href="#snew">Allocation and deallocation functions</a> </li>
+<li><a href="#spred">Access and predicate functions</a>
+</li>
+<li><a href="#sadd">Add functions</a> </li>
+<li><a href="#scheck">Check and print functions</a></li>
+<li><a href="#scopy">Copy, compact, and zero functions</a></li>
+<li><a href="#sdel">Delete functions</a> </li>
+<li><a href="#stemp">Temporary set functions</a> </li>
+</ul>
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="stype">Data types and
+constants</a></h3>
+<ul>
+<li><a href="qset_r.h#SETelemsize">SETelemsize</a> size
+of a set element in bytes </li>
+<li><a href="qset_r.h#setT">setT</a> a set with a
+maximum size and a current size</li>
+<li><a href="libqhull_r.h#qh-set">qh global sets</a>
+global sets for temporary sets, etc. </li>
+</ul>
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="seach">FOREACH macros</a></h3>
+<ul>
+<li><a href="qset_r.h#FOREACHelem_">FOREACHelem_</a>
+assign 'elem' to each element in a set </li>
+<li><a href="qset_r.h#FOREACHset_">FOREACHset_</a>
+assign 'set' to each set in a set of sets </li>
+<li><a href="qset_r.h#FOREACHsetelement_">FOREACHsetelement_</a>
+define a FOREACH iterator </li>
+<li><a href="qset_r.h#FOREACHsetelement_i_">FOREACHsetelement_i_</a>
+define an indexed FOREACH iterator </li>
+<li><a href="qset_r.h#FOREACHsetelementreverse_">FOREACHsetelementreverse_</a>
+define a reversed FOREACH iterator </li>
+<li><a href="qset_r.h#FOREACHsetelementreverse12_">FOREACHsetelementreverse12_</a>
+define a FOREACH iterator with e[1] and e[0]
+reversed </li>
+</ul>
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="saccess">Access and
+size macros</a></h3>
+<ul>
+<li><a href="qset_r.h#SETelem_">SETelem_</a> return the
+n'th element of set </li>
+<li><a href="qset_r.h#SETelemt_">SETelemt_</a> return
+the n'th element of set as a type</li>
+<li><a href="qset_r.h#SETempty_">SETempty_</a> return
+true (1) if set is empty </li>
+<li><a href="qset_r.h#SETfirst_">SETfirst_</a> return
+first element of set </li>
+<li><a href="qset_r.h#SETfirstt_">SETfirstt_</a> return
+first element of set as a type</li>
+<li><a href="qset_r.h#SETindex_">SETindex_</a> return
+index of elem in set </li>
+<li><a href="qset_r.h#SETreturnsize_">SETreturnsize_</a>
+return size of a set (normally use <a href="qset_r.c#setsize">qh_setsize</a>) </li>
+<li><a href="qset_r.h#SETsecond_">SETsecond_</a> return
+second element of set </li>
+<li><a href="qset_r.h#SETsecondt_">SETsecondt_</a>
+return second element of set as a type</li>
+<li><a href="qset_r.h#SETtruncate_">SETtruncate_</a>
+truncate set to size, i.e., qh_settruncate()</li>
+</ul>
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="sint">Internal macros</a></h3>
+<ul>
+<li><a href="qset_r.c#SETsizeaddr_">SETsizeaddr_</a>
+return pointer to end element of a set (indicates
+current size) </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="saddr">address macros</a></h3>
+<ul>
+<li><a href="qset_r.h#SETaddr_">SETaddr_</a> return
+address of a set's elements </li>
+<li><a href="qset_r.h#SETelemaddr_">SETelemaddr_</a>
+return address of the n'th element of a set </li>
+<li><a href="qset_r.h#SETref_">SETref_</a> l_r.h.s. for
+modifying the current element in a FOREACH
+iteration </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="snew">Allocation and
+deallocation functions</a></h3>
+<ul>
+<li><a href="qset_r.c#setfree">qh_setfree</a> free the
+space occupied by a set </li>
+<li><a href="qset_r.c#setfree2">qh_setfree2</a> free a
+set and its elements </li>
+<li><a href="qset_r.c#setfreelong">qh_setfreelong</a>
+free a set only if it is in long memory </li>
+<li><a href="qset_r.c#setnew">qh_setnew</a> create a new
+set </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="spred">Access and
+predicate functions </a></h3>
+<ul>
+<li><a href="qset_r.c#setendpointer">qh_setendpointer</a> return
+pointer to NULL terminator of a set</li>
+<li><a href="qset_r.c#setequal">qh_setequal</a> return 1
+if two sorted sets are equal </li>
+<li><a href="qset_r.c#setequal_except">qh_setequal_except</a>
+return 1 if two sorted sets are equal except for
+an element </li>
+<li><a href="qset_r.c#setequal_skip">qh_setequal_skip</a>
+return 1 if two sorted sets are equal except for
+a pair of skipped elements </li>
+<li><a href="qset_r.c#setequal_skip">qh_setequal_skip</a>
+return 1 if two sorted sets are equal except for
+a pair of skipped elements </li>
+<li><a href="qset_r.c#setin">qh_setin</a> return 1 if an
+element is in a set </li>
+<li><a href="qset_r.c#setindex">qh_setindex</a> return
+the index of an element in a set </li>
+<li><a href="qset_r.c#setlast">qh_setlast</a> return
+last element of a set</li>
+<li><a href="qset_r.c#setsize">qh_setsize</a> returns
+the size of a set </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="sadd">Add functions</a></h3>
+<ul>
+<li><a href="qset_r.c#setaddnth">qh_setaddnth</a> add a
+element as n'th element of sorted or unsorted set
+</li>
+<li><a href="qset_r.c#setaddsorted">qh_setaddsorted</a>
+add an element to a sorted set </li>
+<li><a href="qset_r.c#setappend">qh_setappend</a> append
+an element to a set </li>
+<li><a href="qset_r.c#setappend_set">qh_setappend_set</a>
+append a set of elements to a set </li>
+<li><a href="qset_r.c#setappend2ndlast">qh_setappend2ndlast</a>
+add an element as the next to the last element in
+a set </li>
+<li><a href="qset_r.c#setlarger">qh_setlarger</a> return
+a larger set with the same elements</li>
+<li><a href="qset_r.c#setreplace">qh_setreplace</a>
+replace one element with another in a set</li>
+<li><a href="qset_r.c#setunique">qh_setunique</a> add an
+element if it is not already in a set </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="scheck">Check and print functions</a></h3>
+<ul>
+<li><a href="qset_r.c#setcheck">qh_setcheck</a> check a
+set for validity </li>
+<li><a href="qset_r.c#setprint">qh_setprint</a> print a
+set's elements to fp </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="scopy">Copy, compact, and zero functions</a></h3>
+<ul>
+<li><a href="qset_r.c#setcompact">qh_setcompact</a>
+compact NULLs from an unsorted set </li>
+<li><a href="qset_r.c#setcopy">qh_setcopy</a> make a
+copy of a sorted or unsorted set </li>
+<li><a href="qset_r.c#setduplicate">qh_setduplicate</a>
+duplicate a set and its elements </li>
+<li><a href="qset_r.c#settruncate">qh_settruncate</a>
+truncate a set to size elements </li>
+<li><a href="qset_r.c#setzero">qh_setzero</a> zero the
+remainder of a set </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="sdel">Delete functions</a></h3>
+<ul>
+<li><a href="qset_r.c#setdel">qh_setdel</a> delete an
+element from an unsorted set. </li>
+<li><a href="qset_r.c#setdellast">qh_setdellast</a>
+delete and return last element from a set</li>
+<li><a href="qset_r.c#setdelnth">qh_setdelnth</a> delete
+and return nth element from an unsorted set </li>
+<li><a href="qset_r.c#setdelnthsorted">qh_setdelnthsorted</a>
+delete and return nth element from a sorted set </li>
+<li><a href="qset_r.c#setdelsorted">qh_setdelsorted</a>
+delete an element from a sorted set </li>
+<li><a href="qset_r.c#setnew_delnthsorted">qh_setnew_delnthsorted</a>
+create a sorted set not containing the nth
+element </li>
+</ul>
+
+<h3><a href="qh-set_r.htm#TOC">&#187;</a><a name="stemp">Temporary set functions</a></h3>
+<ul>
+<li><a href="qset_r.c#settemp">qh_settemp</a> return a
+temporary set and append it qhmem.tempstack</li>
+<li><a href="qset_r.c#settempfree">qh_settempfree</a>
+free and pop a set from qhmem.tempstack</li>
+<li><a href="qset_r.c#settempfree_all">qh_settempfree_all</a>
+free all sets in qhmem.tempstack </li>
+<li><a href="qset_r.c#settemppop">qh_settemppop</a> pop
+a set from qhmem.tempstack (makes it permanent) </li>
+<li><a href="qset_r.c#settemppush">qh_settemppush</a>
+push a set unto qhmem.tempstack (makes it
+temporary) </li>
+</ul>
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149;
+<a href="qh-globa_r.htm">Global</a> &#149; <a href="qh-io_r.htm">Io</a>
+&#149; <a href="qh-mem_r.htm">Mem</a> &#149; <a href="qh-merge_r.htm">Merge</a>
+&#149; <a href="qh-poly_r.htm">Poly</a> &#149; <a href="qh-qhull_r.htm#TOC">Qhull</a>
+&#149; <a href="qh-set_r.htm">Set</a> &#149; <a href="qh-stat_r.htm">Stat</a>
+&#149; <a href="qh-user_r.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

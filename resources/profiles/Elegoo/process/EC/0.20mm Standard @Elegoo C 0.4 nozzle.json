@@ -1,0 +1,15 @@
+{
+	"type": "process",
+	"name": "0.20mm Standard @Elegoo C 0.4 nozzle",
+	"inherits": "fdm_process_ecc_04020",
+	"from": "system",
+	"setting_id": "PEC04020",
+	"instantiation": "true",
+	"bottom_shell_layers": "3",
+	"bottom_shell_thickness": "0.6",
+	"sparse_infill_pattern": "zig-zag",
+	"filename_format": "EC_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
+	"compatible_printers": [
+		"Elegoo Centauri 0.4 nozzle"
+	]
+}

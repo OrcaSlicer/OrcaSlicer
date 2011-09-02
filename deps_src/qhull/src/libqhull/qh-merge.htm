@@ -1,0 +1,366 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>merge.c -- facet merge operations</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149; <a href="qh-globa.htm">Global</a>
+&#149; <a href="qh-io.htm">Io</a> &#149; <a href="qh-mem.htm">Mem</a>
+&#149; <a href="qh-merge.htm#TOC">Merge</a> &#149; <a href="qh-poly.htm">Poly</a>
+&#149; <a href="qh-qhull.htm">Qhull</a> &#149; <a href="qh-set.htm">Set</a>
+&#149; <a href="qh-stat.htm">Stat</a> &#149; <a href="qh-user.htm">User</a>
+</p>
+<hr>
+
+<h2>merge.c -- facet merge operations</h2>
+<blockquote>
+<p>Qhull handles precision problems by merged facets or joggled input.
+Except for redundant vertices, it corrects a problem by
+merging two facets. When done, all facets are clearly
+convex. See <a href="../../html/qh-impre.htm">Imprecision in Qhull</a>
+for further information. </p>
+<p>Users may joggle the input ('<a href="../../html/qh-optq.htm#QJn">QJn</a>')
+instead of merging facets. </p>
+<p>Qhull detects and corrects the following problems: </p>
+<ul>
+<li><b>More than two facets meeting at a ridge. </b>When
+Qhull creates facets, it creates an even number
+of facets for each ridge. A convex hull always
+has two facets for each ridge. More than two
+facets may be created if non-adjacent facets
+share a vertex. This is called a <em>duplicate
+ridge</em>. In 2-d, a duplicate ridge would
+create a loop of facets. </li>
+</ul>
+<ul>
+<li><b>A facet contained in another facet. </b>Facet
+merging may leave all vertices of one facet as a
+subset of the vertices of another facet. This is
+called a <em>redundant facet</em>. </li>
+</ul>
+<ul>
+<li><b>A facet with fewer than three neighbors. </b>Facet
+merging may leave a facet with one or two
+neighbors. This is called a <em>degenerate facet</em>.
+</li>
+</ul>
+<ul>
+<li><b>A facet with flipped orientation. </b>A
+facet's hyperplane may define a halfspace that
+does not include the interior point.This is
+called a <em>flipped facet</em>. </li>
+</ul>
+<ul>
+<li><strong>A coplanar horizon facet.</strong> A
+newly processed point may be coplanar with an
+horizon facet. Qhull creates a new facet without
+a hyperplane. It links new facets for the same
+horizon facet together. This is called a <em>samecycle</em>.
+The new facet or samecycle is merged into the
+horizon facet. </li>
+</ul>
+<ul>
+<li><b>Concave facets. </b>A facet's centrum may be
+above a neighboring facet. If so, the facets meet
+at a concave angle. </li>
+</ul>
+<ul>
+<li><b>Coplanar facets. </b>A facet's centrum may be
+coplanar with a neighboring facet (i.e., it is
+neither clearly below nor clearly above the
+facet's hyperplane). Qhull removes coplanar
+facets in independent sets sorted by angle.</li>
+</ul>
+<ul>
+<li><b>Redundant vertex. </b>A vertex may have fewer
+than three neighboring facets. If so, it is
+redundant and may be renamed to an adjacent
+vertex without changing the topological
+structure.This is called a <em>redundant vertex</em>.
+</li>
+</ul>
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <a href="qh-globa.htm#TOC">Global</a>
+&#149; <a href="qh-io.htm#TOC">Io</a> &#149; <a href="qh-mem.htm#TOC">Mem</a>
+&#149; <b>Merge</b> &#149; <a href="qh-poly.htm#TOC">Poly</a>
+&#149; <a href="qh-qhull.htm#TOC">Qhull</a> &#149; <a href="qh-set.htm#TOC">Set</a>
+&#149; <a href="qh-stat.htm#TOC">Stat</a> &#149; <a href="qh-user.htm#TOC">User</a>
+</p>
+<h3>Index to <a href="merge.c">merge.c</a> and
+<a href="merge.h">merge.h</a></h3>
+<ul>
+<li><a href="#mtype">merge.h data types, macros, and
+global sets</a> </li>
+<li><a href="#mconst">merge.h constants</a> </li>
+</ul>
+<ul>
+<li><a href="#mtop">top-level merge functions</a> </li>
+<li><a href="#mset">functions for identifying merges</a></li>
+<li><a href="#mbest">functions for determining the
+best merge</a> </li>
+<li><a href="#mmerge">functions for merging facets</a>
+</li>
+<li><a href="#mcycle">functions for merging a cycle
+of facets</a> </li>
+<li><a href="#mrename">functions for renaming a
+vertex</a> </li>
+<li><a href="#mvertex">functions for identifying
+vertices for renaming</a> </li>
+<li><a href="#mcheck">functions for check and trace</a> </li>
+</ul>
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mtype">merge.h data
+types, macros, and global sets</a></h3>
+<ul>
+<li><a href="merge.h#mergeT">mergeT</a> structure to
+identify a merge of two facets</li>
+<li><a href="merge.h#FOREACHmerge_">FOREACHmerge_</a>
+assign 'merge' to each merge in merges </li>
+<li><a href="libqhull.h#qh-set">qh global sets</a>
+qh.facet_mergeset contains non-convex merges
+while qh.degen_mergeset contains degenerate and
+redundant facets</li>
+</ul>
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mconst">merge.h
+constants</a></h3>
+<ul>
+<li><a href="libqhull.h#qh-prec">qh precision constants</a>
+precision constants for Qhull </li>
+<li><a href="merge.h#MRG">MRG...</a> indicates the
+type of a merge (mergeT-&gt;type)</li>
+<li><a href="merge.h#qh_ANGLEredundant">qh_ANGLEredundant</a>
+indicates redundant merge in mergeT-&gt;angle </li>
+<li><a href="merge.h#qh_ANGLEdegen">qh_ANGLEdegen</a>
+indicates degenerate facet in mergeT-&gt;angle </li>
+<li><a href="merge.h#qh_ANGLEconcave">qh_ANGLEconcave</a>
+offset to indicate concave facets in
+mergeT-&gt;angle </li>
+<li><a href="merge.h#qh_MERGEapex">qh_MERGEapex</a>
+flag for qh_mergefacet() to indicate an apex
+merge </li>
+</ul>
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mtop">top-level merge
+functions</a></h3>
+<ul>
+<li><a href="merge.c#all_merges">qh_all_merges</a>
+merge all non-convex facets </li>
+<li><a href="merge.c#checkzero">qh_checkzero</a>
+check that facets are clearly convex </li>
+<li><a href="merge.c#flippedmerges">qh_flippedmerges</a>
+merge flipped facets into best neighbor </li>
+<li><a href="merge.c#forcedmerges">qh_forcedmerges</a>
+merge all duplicate ridges </li>
+<li><a href="merge.c#merge_degenredundant">qh_merge_degenredundant</a>
+merge degenerate and redundant facets </li>
+<li><a href="merge.c#merge_nonconvex">qh_merge_nonconvex</a>
+merge a non-convex ridge </li>
+<li><a href="merge.c#premerge">qh_premerge</a>
+pre-merge non-convex facets </li>
+<li><a href="merge.c#postmerge">qh_postmerge</a>
+post-merge nonconvex facets as defined by
+maxcentrum/maxangle </li>
+</ul>
+
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mset">functions for
+identifying merges</a></h3>
+<ul>
+<li><a href="merge.c#appendmergeset">qh_appendmergeset</a>
+appends an entry to qh.facet_mergeset</li>
+<li><a href="merge.c#compareangle">qh_compareangle</a>
+used by qsort() to order merges </li>
+<li><a href="merge.c#comparemerge">qh_comparemerge</a>
+used by qsort() to order merges </li>
+<li><a href="merge.c#degen_redundant_facet">qh_degen_redundant_facet</a>
+check for a degenerate and redundant facet</li>
+<li><a href="merge.c#degen_redundant_neighbors">qh_degen_redundant_neighbors</a>
+append degenerate and redundant neighbors to
+qh.degen_mergeset </li>
+<li><a href="merge.c#getmergeset_initial">qh_getmergeset_initial</a>
+build initial qh.facet_mergeset </li>
+<li><a href="merge.c#getmergeset">qh_getmergeset</a>
+update qh.facet_mergeset </li>
+<li><a href="merge.c#mark_dupridges">qh_mark_dupridges</a>
+add duplicated ridges to qh.facet_mergeset</li>
+<li><a href="merge.c#maydropneighbor">qh_maydropneighbor</a>
+drop neighbor relationship if no ridge between
+facet and neighbor </li>
+<li><a href="merge.c#test_appendmerge">qh_test_appendmerge</a>
+test a pair of facets for convexity and append to
+qh.facet_mergeset if non-convex </li>
+<li><a href="merge.c#test_vneighbors">qh_test_vneighbors</a>
+test vertex neighbors for convexity </li>
+</ul>
+
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mbest">functions for
+determining the best merge</a></h3>
+<ul>
+<li><a href="merge.c#findbest_test">qh_findbest_test</a>
+test neighbor for best merge </li>
+<li><a href="merge.c#findbestneighbor">qh_findbestneighbor</a>
+finds best neighbor of a facet for merging (i.e.,
+closest hyperplane) </li>
+</ul>
+
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mmerge">functions for
+merging facets</a></h3>
+<ul>
+<li><a href="merge.c#copynonconvex">qh_copynonconvex</a>
+copy non-convex flag to another ridge for the
+same neighbor </li>
+<li><a href="merge.c#makeridges">qh_makeridges</a>
+creates explicit ridges between simplicial facets
+</li>
+<li><a href="merge.c#mergefacet">qh_mergefacet</a>
+merges one facet into another facet</li>
+<li><a href="merge.c#mergeneighbors">qh_mergeneighbors</a>
+merges the neighbors of two facets </li>
+<li><a href="merge.c#mergeridges">qh_mergeridges</a>
+merges the ridge sets of two facets </li>
+<li><a href="merge.c#mergesimplex">qh_mergesimplex</a>
+merge a simplicial facet into another simplicial
+facet </li>
+<li><a href="merge.c#mergevertex_del">qh_mergevertex_del</a>
+delete a vertex due to merging one facet into
+another facet </li>
+<li><a href="merge.c#mergevertex_neighbors">qh_mergevertex_neighbors</a>
+merge the vertex neighbors of two facets </li>
+<li><a href="merge.c#mergevertices">qh_mergevertices</a>
+merge the vertex sets of two facets </li>
+<li><a href="merge.c#newvertices">qh_newvertices</a>
+register all vertices as new vertices </li>
+<li><a href="merge.c#updatetested">qh_updatetested</a>
+clear tested flags and centrums involved in a
+merge </li>
+<li><a href="merge.c#willdelete">qh_willdelete</a>
+moves facet to qh.visible_list; sets replacement
+or NULL </li>
+</ul>
+
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mcycle">functions for
+merging a cycle of facets</a></h3>
+<p>If a point is coplanar with an horizon facet, the
+corresponding new facets are linked together (a <em>samecycle</em>)
+for merging.</p>
+<ul>
+<li><a href="merge.c#basevertices">qh_basevertices</a>
+return temporary set of base vertices for a
+samecycle </li>
+<li><a href="merge.c#mergecycle">qh_mergecycle</a>
+merge a samecycle into a horizon facet </li>
+<li><a href="merge.c#mergecycle_all">qh_mergecycle_all</a>
+merge all samecycles into horizon facets</li>
+<li><a href="merge.c#mergecycle_facets">qh_mergecycle_facets</a>
+finish merge of samecycle </li>
+<li><a href="merge.c#mergecycle_neighbors">qh_mergecycle_neighbors</a>
+merge neighbor sets for samecycle </li>
+<li><a href="merge.c#mergecycle_ridges">qh_mergecycle_ridges</a>
+merge ridge sets for samecycle </li>
+<li><a href="merge.c#mergecycle_vneighbors">qh_mergecycle_vneighbors</a>
+merge vertex neighbor sets for samecycle </li>
+</ul>
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mrename">functions
+for renaming a vertex</a></h3>
+<ul>
+<li><a href="merge.c#comparevisit">qh_comparevisit</a>
+used by qsort() to order vertices by visitid</li>
+<li><a href="merge.c#reducevertices">qh_reducevertices</a>
+reduce vertex sets </li>
+<li><a href="merge.c#redundant_vertex">qh_redundant_vertex</a>
+returns true if detect and rename redundant
+vertex </li>
+<li><a href="merge.c#rename_sharedvertex">qh_rename_sharedvertex</a>
+detect and rename a shared vertex </li>
+<li><a href="merge.c#renameridgevertex">qh_renameridgevertex</a>
+rename oldvertex to newvertex in a ridge </li>
+<li><a href="merge.c#renamevertex">qh_renamevertex</a>
+rename oldvertex to newvertex in ridges </li>
+<li><a href="merge.c#remove_extravertices">qh_remove_extravertices</a>
+remove extra vertices in non-simplicial facets </li>
+</ul>
+
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mvertex">functions
+for identifying vertices for renaming</a></h3>
+<ul>
+<li><a href="merge.c#find_newvertex">qh_find_newvertex</a>
+locate new vertex for renaming old vertex </li>
+<li><a href="merge.c#hashridge">qh_hashridge</a> add
+ridge to hashtable </li>
+<li><a href="merge.c#hashridge_find">qh_hashridge_find</a>
+returns matching ridge in hashtable</li>
+<li><a href="merge.c#neighbor_intersections">qh_neighbor_intersections</a>
+return intersection of vertex sets for
+neighboring facets </li>
+<li><a href="merge.c#vertexridges">qh_vertexridges</a>
+return temporary set of ridges adjacent to a
+vertex </li>
+<li><a href="merge.c#vertexridges_facet">qh_vertexridges_facet</a>
+add adjacent ridges for a vertex in facet </li>
+</ul>
+
+<h3><a href="qh-merge.htm#TOC">&#187;</a><a name="mcheck">functions for check and
+trace</a></h3>
+<ul>
+<li><a href="merge.c#checkconnect">qh_checkconnect</a>
+check that new facets are connected </li>
+<li><a href="merge.c#tracemerge">qh_tracemerge</a>
+print trace message after merge </li>
+<li><a href="merge.c#tracemerging">qh_tracemerging</a>
+print trace message during post-merging </li>
+</ul>
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149;
+<a href="qh-globa.htm">Global</a> &#149; <a href="qh-io.htm">Io</a>
+&#149; <a href="qh-mem.htm">Mem</a> &#149; <a href="qh-merge.htm">Merge</a>
+&#149; <a href="qh-poly.htm">Poly</a> &#149; <a href="qh-qhull.htm#TOC">Qhull</a>
+&#149; <a href="qh-set.htm">Set</a> &#149; <a href="qh-stat.htm">Stat</a>
+&#149; <a href="qh-user.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

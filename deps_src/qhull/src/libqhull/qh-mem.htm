@@ -1,0 +1,145 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>mem.c -- memory operations</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149; <a href="qh-globa.htm">Global</a>
+&#149; <a href="qh-io.htm">Io</a> &#149; <a href="qh-mem.htm#TOC">Mem</a>
+&#149; <a href="qh-merge.htm">Merge</a> &#149; <a href="qh-poly.htm">Poly</a>
+&#149; <a href="qh-qhull.htm">Qhull</a> &#149; <a href="qh-set.htm">Set</a>
+&#149; <a href="qh-stat.htm">Stat</a> &#149; <a href="qh-user.htm">User</a>
+</p>
+<hr>
+
+<h2>mem.c -- memory operations</h2>
+<blockquote>
+<p>Qhull uses quick-fit memory allocation. It maintains a
+set of free lists for a variety of small allocations. A
+small request returns a block from the best fitting free
+list. If the free list is empty, Qhull allocates a block
+from a reserved buffer. </p>
+<p>Use 'T5' to trace memory allocations.</p>
+
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <a href="qh-globa.htm#TOC">Global</a> &#149;
+<a href="qh-io.htm#TOC">Io</a> &#149; <b>Mem</b>
+&#149; <a href="qh-merge.htm#TOC">Merge</a> &#149; <a href="qh-poly.htm#TOC">Poly</a>
+&#149; <a href="qh-qhull.htm#TOC">Qhull</a> &#149; <a href="qh-set.htm#TOC">Set</a>
+&#149; <a href="qh-stat.htm#TOC">Stat</a> &#149; <a href="qh-user.htm#TOC">User</a>
+</p>
+<h3>Index to <a href="mem.c">mem.c</a> and
+<a href="mem.h">mem.h</a></h3>
+<ul>
+<li><a href="#etype">mem.h data types</a> </li>
+<li><a href="#emacro">mem.h macros</a> </li>
+<li><a href="#efunc">User level functions</a> </li>
+</ul>
+<h3><a href="qh-mem.htm#TOC">&#187;</a><a name="etype">mem.h data types and constants</a></h3>
+<ul>
+<li><a href="mem.h#ptr_intT">ptr_intT</a> for casting
+a void* to an integer-type </li>
+<li><a href="mem.h#qhmemT">qhmemT</a> global memory
+structure for mem.c </li>
+<li><a href="mem.h#NOmem">qh_NOmem</a> disable memory allocation</li>
+</ul>
+<h3><a href="qh-mem.htm#TOC">&#187;</a><a name="emacro">mem.h macros</a></h3>
+<ul>
+<li><a href="mem.h#memalloc_">qh_memalloc_</a>
+allocate memory</li>
+<li><a href="mem.h#memfree_">qh_memfree_</a> free
+memory</li>
+</ul>
+<h3><a href="qh-mem.htm#TOC">&#187;</a><a name="efunc">User level
+functions</a></h3>
+<ul>
+<li><a href="mem.c#memalloc">qh_memalloc</a> allocate
+memory </li>
+<li><a href="mem.c#memcheck">qh_memcheck</a>
+quick check of memory for internal consistency</li>
+<li><a href="mem.c#memfree">qh_memfree</a> free
+memory </li>
+<li><a href="mem.c#meminit">qh_meminit</a> initialize
+memory </li>
+<li><a href="mem.c#memstatistics">qh_memstatistics</a>
+print memory statistics </li>
+<li><a href="mem.c#meminit">qh_memtotlong</a> return total, allocated long memory</li>
+<li><a href="mem.c#NOmem">qh_NOmem</a> allocation routines with malloc() and free()
+</ul>
+
+<h3><a href="qh-mem.htm#TOC">&#187;</a><a name="m">Initialization and
+termination functions</a></h3>
+<ul>
+<li><a href="mem.c#intcompare">qh_intcompare</a> used by
+qsort and bsearch to compare two integers </li>
+<li><a href="mem.c#memfreeshort">qh_memfreeshort</a>
+frees up all short and qhmem memory allocations </li>
+<li><a href="mem.c#meminit">qh_meminit</a> initialize
+memory </li>
+<li><a href="mem.c#meminitbuffers">qh_meminitbuffers</a>
+initialize qhmem </li>
+<li><a href="mem.c#memsetup">qh_memsetup</a> set up
+memory after running memsize() </li>
+<li><a href="mem.c#memsize">qh_memsize</a> define a free
+list for this size </li>
+<li><a href="mem.c#memstatistics">qh_memstatistics</a>
+print out memory statistics </li>
+</ul>
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149;
+<a href="qh-globa.htm">Global</a> &#149; <a href="qh-io.htm">Io</a>
+&#149; <a href="qh-mem.htm">Mem</a> &#149; <a href="qh-merge.htm">Merge</a>
+&#149; <a href="qh-poly.htm">Poly</a> &#149; <a href="qh-qhull.htm#TOC">Qhull</a>
+&#149; <a href="qh-set.htm">Set</a> &#149; <a href="qh-stat.htm">Stat</a>
+&#149; <a href="qh-user.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

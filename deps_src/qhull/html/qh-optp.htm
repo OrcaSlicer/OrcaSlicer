@@ -1,0 +1,253 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<title>Qhull print options (P)</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/delaunay.html"><img
+src="qh--dt.gif" alt="[delaunay]" align="middle" width="100"
+height="100"></a> Qhull print options (P)</h1>
+
+This section lists the print options for Qhull. These options are
+indicated by 'P' followed by a letter.  See
+<a href="qh-opto.htm#output">Output</a>, <a href="qh-optg.htm#geomview">Geomview</a>,
+and <a href="qh-optf.htm#format">Format</a> for other output options.
+
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<hr>
+
+<p><a href="index.htm#TOC">&#187;</a> <a href="qh-quick.htm#programs">Programs</a>
+<a name="format">&#149;</a> <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<h2>Print options</h2>
+<blockquote>
+<dl compact>
+    <dt>&nbsp;</dt>
+    <dd><b>General</b></dd>
+    <dt><a href="#Pp">Pp</a></dt>
+    <dd>do not report precision problems </dd>
+    <dt><a href="#Po">Po</a></dt>
+    <dd>force output despite precision problems</dd>
+    <dt><a href="#Po2">Po</a></dt>
+    <dd>if error, output neighborhood of facet</dd>
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>Select</b></dd>
+    <dt><a href="#Pdk">Pdk:n</a></dt>
+    <dd>print facets with normal[k] &gt;= n (default 0.0)</dd>
+    <dt><a href="#PDk">PDk:n</a></dt>
+    <dd>print facets with normal[k] &lt;= n </dd>
+    <dt><a href="#PFn">PFn</a></dt>
+    <dd>print facets whose area is at least n</dd>
+    <dt><a href="#Pg">Pg</a></dt>
+    <dd>print good facets only (needs '<a href="qh-optq.htm#QGn">QGn</a>'
+        or '<a href="qh-optq.htm#QVn">QVn </a>')</dd>
+    <dt><a href="#PMn">PMn</a></dt>
+    <dd>print n facets with most merges</dd>
+    <dt><a href="#PAn">PAn</a></dt>
+    <dd>print n largest facets by area</dd>
+    <dt><a href="#PG">PG</a></dt>
+    <dd>print neighbors of good facets</dd>
+</dl>
+</blockquote>
+<hr>
+
+<h3><a href="#print">&#187;</a><a name="PAn">PAn - keep n largest
+facets by area</a></h3>
+
+<p>The <i>n</i> largest facets are marked good for printing. This
+may be useful for <a href="qh-impre.htm#approximate">approximating
+a hull</a>. Unless '<a href="#PG">PG</a>' is set, '<a href="#Pg">Pg</a>'
+is automatically set. </p>
+
+<h3><a href="#print">&#187;</a><a name="Pdk">Pdk:n - print facet if
+normal[k] &gt;= n </a></h3>
+
+<p>For a given output, print only those facets with <i>normal[k] &gt;= n</i>
+and <i>drop</i> the others.  For example, 'Pd0:0.5' prints facets with <i>normal[0]
+&gt;= 0.5 </i>. The default value of <i>n</i> is zero. For
+example in 3-d, 'Pd0d1d2' prints facets in the positive octant.
+<p>
+If no facets match, the closest facet is returned.</p>
+<p>
+On Windows 95, do not combine multiple options.  A 'd' is considered
+part of a number.  For example, use 'Pd0:0.5 Pd1:0.5' instead of
+'Pd0:0.5d1:0.5'.
+
+<h3><a href="#print">&#187;</a><a name="PDk">PDk:n - print facet if
+normal[k] &lt;= n</a></h3>
+
+<p>For a given output, print only those facets with <i>normal[k] &lt;= n</i>
+and <i>drop</i> the others.
+For example, 'PD0:0.5' prints facets with <i>normal[0]
+&lt;= 0.5 </i>. The default value of <i>n</i> is zero. For
+example in 3-d, 'PD0D1D2' displays facets in the negative octant.
+<p>
+If no facets match, the closest facet is returned.</p>
+
+<p>In 2-d, 'd G PD2' displays the Delaunay triangulation instead
+of the corresponding paraboloid. </p>
+
+<p>Be careful of placing 'Dk' or 'dk' immediately after a real
+number. Some compilers treat the 'D' as a double precision
+exponent. </p>
+
+<h3><a href="#print">&#187;</a><a name="PFn">PFn - keep facets whose
+area is at least n</a></h3>
+
+<p>The facets with area at least <i>n</i> are marked good for
+printing. This may be useful for <a
+href="qh-impre.htm#approximate">approximating a hull</a>. Unless
+'<a href="#PG">PG</a>' is set, '<a href="#Pg">Pg</a>' is
+automatically set. </p>
+
+<h3><a href="#print">&#187;</a><a name="Pg">Pg - print good facets </a></h3>
+
+<p>Qhull can mark facets as &quot;good&quot;. This is used to</p>
+
+<ul>
+    <li>mark the lower convex hull for Delaunay triangulations
+        and Voronoi diagrams</li>
+    <li>mark the facets that are visible from a point (the '<a
+        href="qh-optq.htm#QGn">QGn </a>' option)</li>
+    <li>mark the facets that contain a point (the '<a
+        href="qh-optq.htm#QVn">QVn</a>' option).</li>
+    <li>indicate facets with a large enough area (options '<a
+        href="#PAn">PAn</a>' and '<a href="#PFn">PFn</a>')</li>
+</ul>
+
+<p>Option '<a href="#Pg">Pg</a>' only prints good facets that
+also meet '<a href="#Pdk">Pdk</a>' and '<a href="#PDk">PDk</a>'
+options. It is automatically set for options '<a href="#PAn">PAn</a>',
+'<a href="#PFn">PFn </a>', '<a href="qh-optq.htm#QGn">QGn</a>',
+and '<a href="qh-optq.htm#QVn">QVn</a>'.</p>
+
+<h3><a href="#print">&#187;</a><a name="PG">PG - print neighbors of
+good facets</a></h3>
+
+<p>Option 'PG' can be used with or without option '<a href="#Pg">Pg</a>'
+to print the neighbors of good facets. For example, options '<a
+href="qh-optq.htm#QGn">QGn</a>' and '<a href="qh-optq.htm#QVn">QVn</a>'
+print the horizon facets for point <i>n. </i></p>
+
+<h3><a href="#print">&#187;</a><a name="PMn">PMn - keep n facets with
+most merges</a></h3>
+
+<p>The n facets with the most merges are marked good for
+printing. This may be useful for <a
+href="qh-impre.htm#approximate">approximating a hull</a>. Unless
+'<a href="#PG">PG</a>' is set, '<a href="#Pg">Pg</a>' is
+automatically set. </p>
+
+<p>Use option '<a href="qh-optf.htm#Fm">Fm</a>' to print merges
+per facet.
+
+<h3><a href="#print">&#187;</a><a name="Po">Po - force output despite
+precision problems</a></h3>
+
+<p>Use options 'Po' and '<a href="qh-optq.htm#Q0">Q0</a>' if you
+can not merge facets, triangulate the output ('<a href="qh-optq.htm#Qt">Qt</a>'),
+or joggle the input (<a href="qh-optq.htm#QJn">QJ</a>).
+
+<p>Option 'Po' can not force output when
+duplicate ridges or duplicate facets occur. It may produce
+erroneous results. For these reasons, merged facets, joggled input, or <a
+href="qh-impre.htm#exact">exact arithmetic</a> are better.</p>
+
+<p>If you need a simplicial Delaunay triangulation, use
+joggled input '<a href="qh-optq.htm#QJn">QJ</a>' or triangulated
+output '<a
+href="qh-optf.htm#Ft">Ft</a>'.
+
+<p>Option 'Po' may be used without '<a href="qh-optq.htm#Q0">Q0</a>'
+to remove some steps from Qhull or to output the neighborhood of
+an error.</p>
+
+<p>Option 'Po' may be used with option '<a href="qh-optq.htm#Q5">Q5</a>')
+to skip qh_check_maxout (i.e., do not determine the maximum outside distance).
+This can save a significant amount of time.
+
+<p>If option 'Po' is used,</p>
+
+<ul>
+    <li>most precision errors allow Qhull to continue. </li>
+    <li>verify ('<a href="qh-optt.htm#Tv">Tv</a>') does not check
+        coplanar points.</li>
+    <li>points are not partitioned into flipped facets and a
+        flipped facet is always visible to a point. This may
+        delete flipped facets from the output. </li>
+</ul>
+
+<h3><a href="#print">&#187;</a><a name="Po2">Po - if error, output
+neighborhood of facet</a></h3>
+
+<p>If an error occurs before the completion of Qhull and tracing
+is not active, 'Po' outputs a neighborhood of the erroneous
+facets (if any). It uses the current output options.</p>
+
+<p>See '<a href="qh-optp.htm#Po">Po</a>' - force output despite
+precision problems.
+
+<h3><a href="#print">&#187;</a><a name="Pp">Pp - do not report
+precision problems </a></h3>
+
+<p>With option 'Pp', Qhull does not print statistics about
+precision problems, and it removes some of the warnings.  It
+removes the narrow hull warning.</p>
+
+<!-- Navigation links -->
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+<!-- GC common information -->
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

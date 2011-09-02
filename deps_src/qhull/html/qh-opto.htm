@@ -1,0 +1,353 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<title>Qhull output options</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/delaunay.html"><img
+src="qh--dt.gif" alt="[delaunay]" align="middle" width="100"
+height="100"></a> Qhull output options</h1>
+
+<p>This section lists the output options for Qhull. These options
+are indicated by lower case characters. See <a
+href="qh-optf.htm#format">Formats</a>, <a
+href="qh-optp.htm#print">Print</a>, and <a
+href="qh-optg.htm#geomview">Geomview</a> for other output
+options. </p>
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<hr>
+
+<p><a href="index.htm#TOC">&#187;</a> <a href="qh-quick.htm#programs">Programs</a>
+<a name="output">&#149;</a> <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<h2>Output options</h2>
+
+<p>Qhull prints its output to standard out. All output is printed
+text. The default output is a summary (option '<a href="#s">s</a>').
+Other outputs may be specified as follows. </p>
+
+<dl compact>
+    <dt><a href="#f">f</a></dt>
+    <dd>print all fields of all facets</dd>
+    <dt><a href="#n">n</a></dt>
+    <dd>print hyperplane normals with offsets</dd>
+    <dt><a href="#m">m</a></dt>
+    <dd>print Mathematica output (2-d and 3-d)</dd>
+    <dt><a href="#o">o</a></dt>
+    <dd>print OFF file format (dim, points and facets)</dd>
+    <dt><a href="#s">s</a></dt>
+    <dd>print summary to stderr</dd>
+    <dt><a href="#p">p</a></dt>
+    <dd>print vertex and point coordinates</dd>
+    <dt><a href="#i">i</a></dt>
+    <dd>print vertices incident to each facet </dd>
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>Related options</b></dd>
+    <dt><a href="qh-optf.htm#format">F</a></dt>
+    <dd>additional input/output formats</dd>
+    <dt><a href="qh-optg.htm#geomview">G</a></dt>
+    <dd>Geomview output</dd>
+    <dt><a href="qh-optp.htm#print">P</a></dt>
+    <dd>Print options</dd>
+    <dt><a href="qh-optf.htm#Ft">Ft</a></dt>
+    <dd>print triangulation with added points</dd>
+    <dt>&nbsp;</dt>
+</dl>
+
+<hr>
+
+<h3><a href="#output">&#187;</a><a name="f">f - print all fields of
+all facets </a></h3>
+
+<p>Print <a href=../src/libqhull.h#facetT>all fields</a> of all facets.
+The facet is the primary <a href=index.htm#structure>data structure</a> for
+Qhull.
+
+<p>Option 'f' is for
+debugging. Most of the fields are available via the '<a
+href="qh-optf.htm#format">F</a>' options. If you need specialized
+information from Qhull, you can use the <a
+href="qh-code.htm#library">Qhull library</a> or <a
+href="qh-code.htm#cpp">C++ interface</a>.</p>
+
+<p>Use the '<a href="qh-optf.htm#FF">FF</a>' option to print the
+facets but not the ridges. </p>
+
+<h3><a href="#output">&#187;</a><a name="i">i - print vertices
+incident to each facet </a></h3>
+
+<p>The first line is the number of facets. The remaining lines
+list the vertices for each facet, one facet per line. The indices
+are 0-relative indices of the corresponding input points. The
+facets are oriented. Option '<a href="qh-optf.htm#Fv">Fv</a>'
+displays an unoriented list of vertices with a vertex count per
+line. Options '<a href="qh-opto.htm#o">o</a>' and '<a
+href="qh-optf.htm#Ft">Ft</a>' displays coordinates for each
+vertex prior to the vertices for each facet. </p>
+
+<p>Simplicial facets (e.g., triangles in 3-d) consist of <i>d</i>
+vertices. Non-simplicial facets in 3-d consist of 4 or more
+vertices. For example, a facet of a cube consists of 4 vertices.
+Use option '<a href="qh-optq.htm#Qt">Qt</a>' to triangulate non-simplicial facets.</p>
+
+<p>For 4-d and higher convex hulls and 3-d and higher Delaunay
+triangulations, <i>d</i> vertices are listed for all facets. A
+non-simplicial facet is triangulated with its centrum and each
+ridge. The index of the centrum is higher than any input point.
+Use option '<a href="qh-optf.htm#Fv">Fv</a>' to list the vertices
+of non-simplicial facets as is. Use option '<a
+href="qh-optf.htm#Ft">Ft</a>' to print the coordinates of the
+centrums as well as those of the input points. </p>
+
+<h3><a href="#output">&#187;</a><a name="m">m - print Mathematica
+output </a></h3>
+
+<p>Qhull writes a Mathematica file for 2-d and 3-d convex hulls,
+2-d and 3-d halfspace intersections,
+and 2-d Delaunay triangulations. Qhull produces a list of
+objects that you can assign to a variable in Mathematica, for
+example: &quot;<tt>list= &lt;&lt; &lt;outputfilename&gt; </tt>&quot;.
+If the object is 2-d, it can be visualized by &quot;<tt>Show[Graphics[list]]
+</tt>&quot;. For 3-d objects the command is &quot;<tt>Show[Graphics3D[list]]
+</tt>&quot;. Now the object can be manipulated by commands of the
+form <tt>&quot;Show[%, &lt;parametername&gt; -&gt;
+&lt;newvalue&gt;]</tt>&quot;. </p>
+
+<p>For Delaunay triangulation orthogonal projection is better.
+This can be specified, for example, by &quot;<tt>BoxRatios:
+Show[%, BoxRatios -&gt; {1, 1, 1e-8}]</tt>&quot;. To see the
+meaningful side of the 3-d object used to visualize 2-d Delaunay,
+you need to change the viewpoint: &quot;<tt>Show[%, ViewPoint
+-&gt; {0, 0, -1}]</tt>&quot;. By specifying different viewpoints
+you can slowly rotate objects. </p>
+
+<p>For halfspace intersections, Qhull produces the dual
+convex hull.
+
+<p>See <a href="qh-faq.htm#math">Is Qhull available for Mathematica?</a>
+for URLs.
+
+<h3><a href="#output">&#187;</a><a name="n">n - print hyperplane
+normals with offsets </a></h3>
+
+<p>The first line is the dimension plus one. The second line is
+the number of facets. The remaining lines are the normals for
+each facet, one normal per line. The facet's offset follows its
+normal coefficients.</p>
+
+<p>The normals point outward, i.e., the convex hull satisfies <i>Ax
+&lt;= -b </i>where <i>A</i> is the matrix of coefficients and <i>b</i>
+is the vector of offsets.</p>
+
+<p>A point is <i>inside</i> or <i>below</i> a hyperplane if its distance
+to the hyperplane is negative.  A point is <i>outside</i> or <i>above</i> a hyperplane
+if its distance to the hyperplane is positive.  Otherwise a point is <i>on</i> or
+<i>coplanar to</i> the hyperplane.
+
+<p>If cdd output is specified ('<a href="qh-optf.htm#FD">FD</a>'),
+Qhull prints the command line, the keyword &quot;begin&quot;, the
+number of facets, the dimension (plus one), the keyword
+&quot;real&quot;, and the normals for each facet. The facet's
+negative offset precedes its normal coefficients (i.e., if the
+origin is an interior point, the offset is positive). Qhull ends
+the output with the keyword &quot;end&quot;. </p>
+
+<h3><a href="#output">&#187;</a><a name="o">o - print OFF file format
+</a></h3>
+
+<p>The output is: </p>
+
+<ul>
+    <li>The first line is the dimension </li>
+    <li>The second line is the number of points, the number of
+        facets, and the number of ridges. </li>
+    <li>All of the input points follow, one per line. </li>
+    <li>Then Qhull prints the vertices for each facet. Each facet
+        is on a separate line. The first number is the number of
+        vertices. The remainder is the indices of the
+        corresponding points. The vertices are oriented in 2-d,
+        3-d, and in simplicial facets. </li>
+</ul>
+
+<p>Option '<a href="qh-optf.htm#Ft">Ft</a>' prints the same
+information with added points for non-simplicial facets.</p>
+
+<p>Option '<a href="qh-opto.htm#i">i</a>' displays vertices
+without the point coordinates. Option '<a href="qh-opto.htm#p">p</a>'
+displays the point coordinates without vertex and facet information.</p>
+
+<p>In 3-d, Geomview can load the file directly if you delete the
+first line (e.g., by piping through '<tt>tail +2</tt>').</p>
+
+<p>For Voronoi diagrams (<a href=qvoronoi.htm>qvoronoi</a>), option
+'o' prints Voronoi vertices and Voronoi regions instead of input
+points and facets. The first vertex is the infinity vertex
+[-10.101, -10.101, ...]. Then, option 'o' lists the vertices in
+the Voronoi region for each input site. The regions appear in
+site ID order. In 2-d, the vertices of a Voronoi region are
+sorted by adjacency (non-oriented). In 3-d and higher, the
+Voronoi vertices are sorted by index. See the '<a
+href="qh-optf.htm#FN">FN</a>' option for listing Voronoi regions
+without listing Voronoi vertices.</p>
+
+<p>If you are using the Qhull library, options 'v o' have the
+side effect of reordering the neighbors for a vertex.</p>
+
+<h3><a href="#output">&#187;</a><a name="p">p - print vertex and
+point coordinates </a></h3>
+
+<p>The first line is the dimension. The second line is the number
+of vertices. The remaining lines are the vertices, one vertex per
+line. A vertex consists of its point coordinates</p>
+
+<p>With the '<a href="qh-optg.htm#Gc">Gc</a>' and '<a
+href="qh-optg.htm#Gi">Gi</a>' options, option 'p' also prints
+coplanar and interior points respectively.</p>
+
+<p>For <a href=qvoronoi.htm>qvoronoi</a>, it prints the
+coordinates of each Voronoi vertex.</p>
+
+<p>For <a href=qdelaun.htm>qdelaunay</a>, it prints the
+input sites as lifted to a paraboloid.  For <a href=qhalf.htm>qhalf</a>
+it prints the dual points.  For both, option 'p' is the same as the first
+section of option '<a href="qh-opto.htm#o">o</a>'.</p>
+
+<p>Use '<a href="qh-optf.htm#Fx">Fx</a>' to list the point ids of
+the extreme points (i.e., vertices). </p>
+
+<p>If a subset of the facets is selected ('<a
+href="qh-optp.htm#Pdk">Pdk</a>', '<a href="qh-optp.htm#PDk">PDk</a>',
+'<a href="qh-optp.htm#Pg">Pg</a>' options), option 'p' only
+prints vertices and points associated with those facets.</p>
+
+<p>If cdd-output format is selected ('<a href="qh-optf.htm#FD">FD</a>'),
+the first line is &quot;begin&quot;. The second line is the
+number of vertices, the dimension plus one, and &quot;real&quot;.
+The vertices follow with a leading &quot;1&quot;. Output ends
+with &quot;end&quot;. </p>
+
+<h3><a href="#output">&#187;</a><a name="s">s - print summary to
+stderr </a></h3>
+
+<p>The default output of Qhull is a summary to stderr. Options '<a
+href="qh-optf.htm#FS">FS</a>' and '<a href="qh-optf.htm#Fs">Fs</a>'
+produce the same information for programs.  <b>Note</b>: Windows 95 and 98
+treats stderr the same as stdout.  Use option '<a href="qh-optt.htm#TO">TO file</a>' to separate
+stderr and stdout.</p>
+
+<p>The summary lists the number of input points, the dimension,
+the number of vertices in the convex hull, and the number of
+facets in the convex hull. It lists the number of selected
+(&quot;good&quot;) facets for options '<a href="qh-optp.htm#Pg">Pg</a>',
+'<a href="qh-optp.htm#Pdk">Pdk</a>', <a href=qdelaun.htm>qdelaunay</a>,
+or <a href=qvoronoi.htm>qvoronoi</a> (Delaunay triangulations only
+use the lower half of a convex hull). It lists the number of
+coplanar points. For Delaunay triangulations without '<a
+href="qh-optq.htm#Qc">Qc</a>', it lists the total number of
+coplanar points. It lists the number of simplicial facets in
+the output.</p>
+
+<p>The terminology depends on the output structure. </p>
+
+<p>The summary lists these statistics:</p>
+
+<ul>
+    <li>number of points processed by Qhull </li>
+    <li>number of hyperplanes created</li>
+    <li>number of distance tests (not counting statistics,
+        summary, and checking) </li>
+    <li>number of merged facets (if any)</li>
+    <li>number of distance tests for merging (if any)</li>
+    <li>CPU seconds to compute the hull</li>
+    <li>the maximum joggle for '<a href="qh-optq.htm#QJn">QJ</a>'<br>
+        or, the probability of precision errors for '<a
+        href="qh-optq.htm#QJn">QJ</a> <a href="qh-optt.htm#TRn">TRn</a>'
+    </li>
+    <li>total area and volume (if computed, see '<a
+        href="qh-optf.htm#FS">FS</a>' '<a href="qh-optf.htm#FA">FA</a>'
+        '<a href="qh-optf.htm#Fa">Fa</a>' '<a
+        href="qh-optp.htm#PAn">PAn</a>')</li>
+    <li>max. distance of a point above a facet (if non-zero)</li>
+    <li>max. distance of a vertex below a facet (if non-zero)</li>
+</ul>
+
+<p>The statistics include intermediate hulls. For example 'rbox d
+D4 | qhull' reports merged facets even though the final hull is
+simplicial. </p>
+
+<p>Qhull starts counting CPU seconds after it has read and
+projected the input points. It stops counting before producing
+output. In the code, CPU seconds measures the execution time of
+function qhull() in <tt>libqhull.c</tt>. If the number of CPU
+seconds is clearly wrong, check qh_SECticks in <tt>user.h</tt>. </p>
+
+<p>The last two figures measure the maximum distance from a point
+or vertex to a facet. They are not printed if less than roundoff
+or if not merging. They account for roundoff error in computing
+the distance (c.f., option '<a href="qh-optc.htm#Rn">Rn</a>').
+Use '<a href="qh-optf.htm#Fs">Fs</a>' to report the maximum outer
+and inner plane. </p>
+
+<p>A number may appear in parentheses after the maximum distance
+(e.g., 2.1x). It is the ratio between the maximum distance and
+the worst-case distance due to merging two simplicial facets. It
+should be small for 2-d, 3-d, and 4-d, and for higher dimensions
+with '<a href="qh-optq.htm#Qx">Qx</a>'. It is not printed if less
+than 0.05. </p>
+<!-- Navigation links -->
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+<!-- GC common information -->
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

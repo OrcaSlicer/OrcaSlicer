@@ -1,0 +1,495 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<title>Qhull quick reference</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOC"><b>Up:</b></a> <a href="http://www.qhull.org">Home
+page for Qhull</a> <br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a> <br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="qh-code.htm#TOC">Qhull internals</a><br>
+<b>To:</b> <a href="../src/libqhull/index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="../src/libqhull/index.htm#TOC">Qhull files</a><br>
+<b>To:</b> <a href="../src/libqhull/qh-geom.htm">Geom</a> &#149; <a href="../src/libqhull/qh-globa.htm">Global</a>
+&#149; <a href="../src/libqhull/qh-io.htm">Io</a> &#149; <a href="../src/libqhull/qh-mem.htm">Mem</a>
+&#149; <a href="../src/libqhull/qh-merge.htm">Merge</a> &#149; <a href="../src/libqhull/qh-poly.htm">Poly</a>
+&#149; <a href="../src/libqhull/qh-qhull.htm">Qhull</a> &#149; <a href="../src/libqhull/qh-set.htm">Set</a>
+&#149; <a href="../src/libqhull/qh-stat.htm">Stat</a> &#149; <a href="../src/libqhull/qh-user.htm">User</a>
+</p>
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/cone.html"><img
+src="qh--cone.gif" alt="[cone]" align="middle" width="100"
+height="100"></a> Qhull quick reference</h1>
+
+This section lists all programs and options in Qhull.
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<p>
+<a name="programs">&nbsp;</a>
+<hr>
+<b>Qhull programs</b>
+<p><a href="#TOC">&#187;</a> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<dl>
+    <dt><a href="qconvex.htm">qconvex</a> -- convex hull</dt>
+    <dd><a href="qconvex.htm#synopsis">sy</a>nopsis &#149; <a
+            href="qconvex.htm#input">in</a>put &#149; <a
+        href="qconvex.htm#outputs">ou</a>tputs &#149; <a
+        href="qconvex.htm#controls">co</a>ntrols &#149; <a
+        href="qconvex.htm#graphics">gr</a>aphics &#149; <a
+        href="qconvex.htm#notes">no</a>tes &#149; <a
+        href="qconvex.htm#conventions">co</a>nventions &#149; <a
+                href="qconvex.htm#options">op</a>tions</dd>
+    <dt>&nbsp;</dt>
+    <dt><a href="qdelaun.htm">qdelaunay</a> -- Delaunay triangulation</dt>
+    <dd><a href="qdelaun.htm#synopsis">sy</a>nopsis &#149; <a
+            href="qdelaun.htm#input">in</a>put &#149; <a
+        href="qdelaun.htm#outputs">ou</a>tputs &#149; <a
+                 href="qdelaun.htm#controls">co</a>ntrols &#149; <a
+        href="qdelaun.htm#graphics">gr</a>aphics &#149; <a
+        href="qdelaun.htm#notes">no</a>tes &#149; <a
+                href="qdelaun.htm#conventions">co</a>nventions &#149; <a
+            href="qdelaun.htm#options">op</a>tions</dd>
+    <dt>&nbsp;</dt>
+    <dt><a href="qdelau_f.htm">qdelaunay Qu</a> -- furthest-site Delaunay triangulation</dt>
+    <dd><a href="qdelau_f.htm#synopsis">sy</a>nopsis &#149; <a
+            href="qdelau_f.htm#input">in</a>put &#149; <a
+        href="qdelau_f.htm#outputs">ou</a>tputs &#149; <a
+                 href="qdelau_f.htm#controls">co</a>ntrols &#149; <a
+        href="qdelau_f.htm#graphics">gr</a>aphics &#149; <a
+        href="qdelau_f.htm#notes">no</a>tes &#149; <a
+                href="qdelau_f.htm#conventions">co</a>nventions &#149; <a
+            href="qdelau_f.htm#options">op</a>tions</dd>
+    <dt>&nbsp;</dt>
+    <dt><a href="qhalf.htm">qhalf</a> -- halfspace intersection about a point</dt>
+    <dd><a href="qhalf.htm#synopsis">sy</a>nopsis &#149; <a
+            href="qhalf.htm#input">in</a>put &#149; <a
+        href="qhalf.htm#outputs">ou</a>tputs &#149; <a
+        href="qhalf.htm#controls">co</a>ntrols &#149; <a
+        href="qhalf.htm#graphics">gr</a>aphics &#149; <a
+        href="qhalf.htm#notes">no</a>tes &#149; <a
+        href="qhalf.htm#conventions">co</a>nventions &#149; <a
+                href="qhalf.htm#options">op</a>tions</dd>
+    <dt>&nbsp;</dt>
+    <dt><a href="qvoronoi.htm">qvoronoi</a> -- Voronoi diagram</dt>
+    <dd><a href="qvoronoi.htm#synopsis">sy</a>nopsis &#149; <a
+            href="qvoronoi.htm#input">in</a>put &#149; <a
+            href="qvoronoi.htm#outputs">ou</a>tputs &#149;
+        <a href="qvoronoi.htm#controls">co</a>ntrols &#149; <a
+        href="qvoronoi.htm#graphics">gr</a>aphics &#149; <a
+        href="qvoronoi.htm#notes">no</a>tes  &#149; <a
+            href="qvoronoi.htm#conventions">co</a>nventions &#149; <a
+            href="qvoronoi.htm#options">op</a>tions</dd>
+    <dt>&nbsp;</dt>
+    <dt><a href="qvoron_f.htm">qvoronoi Qu</a> -- furthest-site Voronoi diagram</dt>
+    <dd><a href="qvoron_f.htm#synopsis">sy</a>nopsis &#149; <a
+            href="qvoron_f.htm#input">in</a>put &#149; <a
+        href="qvoron_f.htm#outputs">ou</a>tputs &#149; <a
+                 href="qvoron_f.htm#controls">co</a>ntrols &#149; <a
+        href="qvoron_f.htm#graphics">gr</a>aphics &#149; <a
+        href="qvoron_f.htm#notes">no</a>tes &#149; <a
+                href="qvoron_f.htm#conventions">co</a>nventions &#149; <a
+            href="qvoron_f.htm#options">op</a>tions</dd>
+    <dt>&nbsp;</dt>
+    <dt><a href="rbox.htm">rbox</a> -- generate point distributions for qhull</dt>
+    <dd><a href="rbox.htm#synopsis">sy</a>nopsis &#149; <a
+                href="rbox.htm#outputs">ou</a>tputs &#149; <a
+        href="rbox.htm#examples">ex</a>amples &#149; <a
+        href="rbox.htm#notes">no</a>tes &#149; <a
+                href="rbox.htm#options">op</a>tions</dd>
+    <dt>&nbsp;</dt>
+    <dt><a href="qhull.htm">qhull</a> -- convex hull and related structures</dt>
+    <dd><a href="qhull.htm#synopsis">sy</a>nopsis &#149; <a
+            href="qhull.htm#input">in</a>put &#149; <a
+        href="qhull.htm#outputs">ou</a>tputs &#149; <a
+        href="qhull.htm#controls">co</a>ntrols &#149; <a
+                href="qhull.htm#options">op</a>tions</dd>
+    </dl>
+<a name="options">&nbsp;</a>
+<hr>
+<b>Qhull options</b>
+
+<p><a href="#TOC">&#187;</a> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<p><table>
+<!-- Note: keep all lines the same for easy reorganization -->
+<tr>
+<td><nobr>'<a href=qh-optf.htm#Fa>Fa</a>'
+Farea
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fa>FA</a>'
+FArea-total
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fc>Fc</a>'
+Fcoplanars
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FC>FC</a>'
+FCentrums
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optf.htm#Fd>Fd</a>'
+Fd-cdd-in
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FD>FD</a>'
+FD-cdd-out
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FF>FF</a>'
+FF-dump-xridge
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fi>Fi</a>'
+Finner
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optf.htm#Fi2>Fi</a>'
+Finner_bounded
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FI>FI</a>'
+FIDs
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fm>Fm</a>'
+Fmerges
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FM>FM</a>'
+FMaple
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optf.htm#Fn>Fn</a>'
+Fneighbors
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FN>FN</a>'
+FNeigh-vertex
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fo>Fo</a>'
+Fouter
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fo2>Fo</a>'
+Fouter_unbounded
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optf.htm#FO>FO</a>'
+FOptions
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fp>Fp</a>'
+Fpoint-intersect
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FP>FP</a>'
+FPoint_near
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FQ>FQ</a>'
+FQhull
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optf.htm#Fs>Fs</a>'
+Fsummary
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FS>FS</a>'
+FSize
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Ft>Ft</a>'
+Ftriangles
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fv>Fv</a>'
+Fvertices
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optf.htm#Fv2>Fv</a>'
+Fvoronoi
+</nobr></td><td><nobr>'<a href=qh-optf.htm#FV>FV</a>'
+FVertex-ave
+</nobr></td><td><nobr>'<a href=qh-optf.htm#Fx>Fx</a>'
+Fxtremes
+</nobr></td><td colspan=2><nobr>
+<a href=qh-impre.htm#joggle>Merged facets or joggled input</a>
+
+</nobr></td></tr>
+<tr><td>&nbsp;</td></tr><tr>
+<td><nobr>'<a href=qh-optp.htm#PAn>PAn</a>'
+PArea-keep
+</nobr></td><td><nobr>'<a href=qh-optp.htm#Pdk>Pdk:n</a>'
+Pdrop_low
+</nobr></td><td><nobr>'<a href=qh-optp.htm#PDk>PDk:n</a>'
+Pdrop_high
+</nobr></td><td><nobr>'<a href=qh-optp.htm#Pg>Pg</a>'
+Pgood
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optp.htm#PFn>PFn</a>'
+PFacet_area_keep
+</nobr></td><td><nobr>'<a href=qh-optp.htm#PG>PG</a>'
+PGood_neighbors
+</nobr></td><td><nobr>'<a href=qh-optp.htm#PMn>PMn</a>'
+PMerge-keep
+</nobr></td><td><nobr>'<a href=qh-optp.htm#Po>Po</a>'
+Poutput_forced
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optp.htm#Po2>Po</a>'
+Poutput_error
+</nobr></td><td><nobr>'<a href=qh-optp.htm#Pp>Pp</a>'
+Pprecision_not
+
+</nobr></td></tr>
+<tr><td>&nbsp;</td></tr><tr>
+<td><nobr>'<a href=qhull.htm#outputs>d</a>'
+delaunay
+</nobr></td><td><nobr>'<a href=qhull.htm#outputs>v</a>'
+voronoi
+</nobr></td><td><nobr>'<a href=qh-optg.htm>G</a>'
+Geomview
+</nobr></td><td><nobr>'<a href=qhull.htm#outputs>H</a>'
+Halfspace
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-opto.htm#f>f</a>'
+facet_dump
+</nobr></td><td><nobr>'<a href=qh-opto.htm#i>i</a>'
+incidences
+</nobr></td><td><nobr>'<a href=qh-opto.htm#m>m</a>'
+mathematica
+</nobr></td><td><nobr>'<a href=qh-opto.htm#n>n</a>'
+normals
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-opto.htm#o>o</a>'
+OFF_format
+</nobr></td><td><nobr>'<a href=qh-opto.htm#p>p</a>'
+points
+</nobr></td><td><nobr>'<a href=qh-opto.htm#s>s</a>'
+summary
+
+</nobr></td></tr>
+<tr><td>&nbsp;</td></tr><tr>
+<td><nobr>'<a href=qh-optg.htm#Gv>Gv</a>'
+Gvertices
+</nobr></td><td><nobr>'<a href=qh-optg.htm#Gp>Gp</a>'
+Gpoints
+</nobr></td><td><nobr>'<a href=qh-optg.htm#Ga>Ga</a>'
+Gall_points
+</nobr></td><td><nobr>'<a href=qh-optg.htm#Gn>Gn</a>'
+Gno_planes
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optg.htm#Gi>Gi</a>'
+Ginner
+</nobr></td><td><nobr>'<a href=qh-optg.htm#Gc>Gc</a>'
+Gcentrums
+</nobr></td><td><nobr>'<a href=qh-optg.htm#Gh>Gh</a>'
+Ghyperplanes
+</nobr></td><td><nobr>'<a href=qh-optg.htm#Gr>Gr</a>'
+Gridges
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optg.htm#Go>Go</a>'
+Gouter
+</nobr></td><td><nobr>'<a href=qh-optg.htm#GDn>GDn</a>'
+GDrop_dim
+</nobr></td><td><nobr>'<a href=qh-optg.htm#Gt>Gt</a>'
+Gtransparent
+
+</nobr></td></tr>
+<tr><td>&nbsp;</td></tr><tr>
+<td><nobr>'<a href=qh-optt.htm#Tn>T4</a>'
+T4_trace
+</nobr></td><td><nobr>'<a href=qh-optt.htm#Tc>Tc</a>'
+Tcheck_often
+</nobr></td><td><nobr>'<a href=qh-optt.htm#Ts>Ts</a>'
+Tstatistics
+</nobr></td><td><nobr>'<a href=qh-optt.htm#Tv>Tv</a>'
+Tverify
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optt.htm#Tz>Tz</a>'
+Tz_stdout
+</nobr></td><td><nobr>'<a href=qh-optt.htm#TFn>TFn</a>'
+TFacet_log
+<td><nobr>'<a href=qh-optt.htm#TI>TI file</a>'
+TInput_file
+</nobr></td><td><nobr>'<a href=qh-optt.htm#TPn>TPn</a>'
+TPoint_trace
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optt.htm#TMn>TMn</a>'
+TMerge_trace
+</nobr></td><td><nobr>'<a href=qh-optt.htm#TO>TO file</a>'
+TOutput_file
+</nobr></td><td><nobr>'<a href=qh-optt.htm#TRn>TRn</a>'
+TRerun
+</nobr></td><td><nobr>'<a href=qh-optt.htm#TWn>TWn</a>'
+TWide_trace
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optt.htm#TVn>TV-n</a>'
+TVertex_stop_before
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optt.htm#TVn2>TVn</a>'
+TVertex_stop_after
+</nobr></td><td><nobr>'<a href=qh-optt.htm#TCn>TCn</a>'
+TCone_stop_after
+
+</nobr></td></tr>
+<tr><td>&nbsp;</td></tr><tr>
+<td><nobr>'<a href=qh-optc.htm#An>A-n</a>'
+Angle_max_pre
+</nobr></td><td><nobr>'<a href=qh-optc.htm#An2>An</a>'
+Angle_max_post
+</nobr></td><td><nobr>'<a href=qh-optc.htm#C0>C-0</a>'
+Centrum_roundoff
+</nobr></td><td><nobr>'<a href=qh-optc.htm#Cn>C-n</a>'
+Centrum_size_pre
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optc.htm#Cn2>Cn</a>'
+Centrum_size_post
+</nobr></td><td><nobr>'<a href=qh-optc.htm#En>En</a>'
+Error_round
+</nobr></td><td><nobr>'<a href=qh-optc.htm#Rn>Rn</a>'
+Random_dist
+</nobr></td><td><nobr>'<a href=qh-optc.htm#Vn>Vn</a>'
+Visible_min
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optc.htm#Un>Un</a>'
+Ucoplanar_max
+</nobr></td><td><nobr>'<a href=qh-optc.htm#Wn>Wn</a>'
+Wide_outside
+
+</nobr></td></tr>
+<tr><td>&nbsp;</td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Qbk>Qbk:n</a>'
+Qbound_low
+</nobr></td><td><nobr>'<a href=qh-optq.htm#QBk>QBk:n</a>'
+QBound_high
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qb0>Qbk:0Bk:0</a>'
+Qbound_drop
+</nobr></td><td><nobr>'<a href=qh-optq.htm#QbB>QbB</a>'
+QbB-scale-box
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Qbb>Qbb</a>'
+Qbb-scale-last
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qc>Qc</a>'
+Qcoplanar
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qf>Qf</a>'
+Qfurthest
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qg>Qg</a>'
+Qgood_only
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#QGn>QGn</a>'
+QGood_point
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qi>Qi</a>'
+Qinterior
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qm>Qm</a>'
+Qmax_out
+</nobr></td><td><nobr>'<a href=qh-optq.htm#QJn>QJn</a>'
+QJoggle
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Qr>Qr</a>'
+Qrandom
+</nobr></td><td><nobr>'<a href=qh-optq.htm#QRn>QRn</a>'
+QRotate
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qs>Qs</a>'
+Qsearch_1st
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qt>Qt</a>'
+Qtriangulate
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Qu>Qu</a>'
+QupperDelaunay
+</nobr><td><nobr>'<a href=qh-optq.htm#QVn>QVn</a>'
+QVertex_good
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qv>Qv</a>'
+Qvneighbors
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Qx>Qx</a>'
+Qxact_merge
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Qz>Qz</a>'
+Qzinfinite
+
+</nobr></td></tr>
+<tr><td>&nbsp;</td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Q0>Q0</a>'
+Q0_no_premerge
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q1>Q1</a>'
+Q1_no_angle
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q2>Q2</a>'
+Q2_no_independ
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q3>Q3</a>'
+Q3_no_redundant
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Q4>Q4</a>'
+Q4_no_old
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q5>Q5</a>'
+Q5_no_check_out
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q6>Q6</a>'
+Q6_no_concave
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q7>Q7</a>'
+Q7_depth_first
+
+</nobr></td></tr><tr>
+<td><nobr>'<a href=qh-optq.htm#Q8>Q8</a>'
+Q8_no_near_in
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q9>Q9</a>'
+Q9_pick_furthest
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q10>Q10</a>'
+Q10_no_narrow
+</nobr></td><td><nobr>'<a href=qh-optq.htm#Q11>Q11</a>'
+Q11_trinormals
+</td></tr></table>
+
+<!-- Navigation links -->
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home
+page for Qhull</a> <br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a> <br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="qh-code.htm#TOC">Qhull internals</a><br>
+<b>To:</b> <a href="../src/libqhull/index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="../src/libqhull/index.htm#TOC">Qhull files</a><br>
+<b>To:</b> <a href="../src/libqhull/qh-geom.htm">Geom</a> &#149; <a href="../src/libqhull/qh-globa.htm">Global</a>
+&#149; <a href="../src/libqhull/qh-io.htm">Io</a> &#149; <a href="../src/libqhull/qh-mem.htm">Mem</a>
+&#149; <a href="../src/libqhull/qh-merge.htm">Merge</a> &#149; <a href="../src/libqhull/qh-poly.htm">Poly</a>
+&#149; <a href="../src/libqhull/qh-qhull.htm">Qhull</a> &#149; <a href="../src/libqhull/qh-set.htm">Set</a>
+&#149; <a href="../src/libqhull/qh-stat.htm">Stat</a> &#149; <a href="../src/libqhull/qh-user.htm">User</a><br>
+<!-- GC common information -->
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

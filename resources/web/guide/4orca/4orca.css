@@ -1,0 +1,33 @@
+
+#Content
+{
+	padding:0%  15%;
+}
+
+#FeatureText
+{
+	line-height: 30px;
+	margin-top: 10mm;
+}
+
+
+#CheckArea
+{
+	margin-top:10mm;
+	line-height: 30px;
+}
+/* ORCA brokes shape of custom css checkbox
+#StealthMode
+{
+	width: 30px;
+}
+*/
+#RestartText
+{
+	padding-left:30px;
+}
+
+.TextPoint
+{
+	font-size:14px;
+}

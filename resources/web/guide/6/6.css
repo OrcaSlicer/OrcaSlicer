@@ -1,0 +1,138 @@
+*
+{
+	padding: 0;
+	border: 0;
+	margin: 0;		
+    font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;	
+}
+
+html,body
+{
+	font-size: 14px;
+	height:100%;
+}
+
+.LinkBtn
+{
+	color: #1200FF;	
+	cursor: pointer;
+}
+
+.LinkBtn:hover
+{
+	text-decoration:underline;
+}
+
+.Btn_Green
+{
+	padding: 1.5mm 6mm;
+	font-size: 14px;
+	text-align: center;
+	background-color: #009688;
+	border-radius: 6px;
+	color: #fff;
+	cursor: pointer;
+	display: inline-block;	
+	border: 1px solid #02c7b3;
+}
+
+.Btn_Green:hover
+{
+	background-color:#4db6ac;
+
+}
+
+
+#DownBlock
+{
+	height: 60%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+#DownArea
+{
+	width:80%;
+	height: 50%;
+	line-height: 50px;
+	display: inline;
+}
+
+#DownText
+{
+	display: flex;
+	align-items: center;
+}
+
+#RetryBtn
+{
+	background-image:url("restart.png");
+	background-size: 100%  100%;
+	width: 20px;
+	height: 20px;
+	margin-left: 20px;
+	display: none;
+}
+
+
+#DownPercent
+{
+	height:20px;
+}
+
+#PercentBkg
+{
+	height:20px;
+	background-color:#CFCFCF;
+	border-radius: 20px;	
+}
+
+#PercentTip
+{
+	float: left;
+	height:20px;
+	width: 0%;
+	background-color:#009688;
+	border-radius: 20px;		
+}
+
+#DownSuccessTip
+{
+	width:80%;
+	display: none;
+	text-align: center;
+}
+
+#InstallFailedTip
+{
+	display:none;
+	height: auto;
+}
+
+
+/*------Btn Area------*/
+
+#BtnBlock
+{
+	height:40%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+#CancelBtn
+{
+	display: inline;
+}
+
+#RestartBtn
+{
+	display: none;
+}
+
+#CloseBtn
+{
+	display: none;
+}

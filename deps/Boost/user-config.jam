@@ -1,0 +1,1 @@
+using gcc : : @CMAKE_CXX_COMPILER@ ;

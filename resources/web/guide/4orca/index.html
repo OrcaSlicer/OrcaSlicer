@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="max-age=7200" />
+<title>引导_P1</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
+<link rel="stylesheet" type="text/css" href="../css/common.css" />	
+<link rel="stylesheet" type="text/css" href="../css/dark.css" />		
+<link rel="stylesheet" type="text/css" href="4orca.css" />
+<script type="text/javascript" src="../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../js/json2.js"></script>	
+<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="4orca.js"></script>	
+</head>
+<body onLoad="OnInit()">
+<div id="Title">
+	<div class="trans" tid="orca3">Stealth Mode</div>
+</div>
+<div id="Content">
+
+    <div id="FeatureText">
+		<div><a tid="orca4" class="trans TextS1">This stops the transmission of data to Bambu's cloud services. Users who don't use BBL machines or use LAN mode only can safely turn on this function.</a></div>
+    </div>
+	
+	
+	<!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
+	<label id="CheckArea"><input id="StealthMode" onClick="SendStealthModeCheck()" type="checkbox"><a tid="orca5" class="trans TextS1">Enable Stealth Mode.</a></label>
+	<div id="RestartText" tid="t70" class="trans" ></div>
+	
+</div>
+<div id="AcceptArea">
+	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t8" id="PreBtn"  onclick="window.history.back()">Back</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t9" id="GotoNetPluginBtn"  onclick="GotoNetPluginPage()">Next</div>	
+</div>	
+</body>
+</html>

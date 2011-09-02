@@ -1,0 +1,101 @@
+cmake_minimum_required(VERSION 3.0)
+
+project(OpenCSG)
+
+if (NOT BUILD_SHARED_LIBS)
+  set(GLEW_USE_STATIC_LIBS ON)
+elseif (MSVC)
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+find_package(OpenGL REQUIRED)
+
+set(GLEW_VERBOSE ON)
+find_package(GLEW 1.13.0 REQUIRED)
+
+set(_srcfiles 
+    src/area.cpp
+    src/batch.cpp
+    src/context.cpp
+    src/channelManager.cpp
+    src/frameBufferObject.cpp
+    src/frameBufferObjectExt.cpp
+    src/occlusionQuery.cpp
+    src/opencsgRender.cpp
+    src/openglHelper.cpp
+    src/pBufferTexture.cpp
+    src/primitive.cpp
+    src/primitiveHelper.cpp
+    src/renderGoldfeather.cpp
+    src/renderSCS.cpp
+    src/scissorMemo.cpp
+    src/settings.cpp
+    src/stencilManager.cpp
+    RenderTexture/RenderTexture.cpp
+    include/opencsg.h
+    src/opencsgConfig.h
+    src/area.h
+    src/batch.h
+    src/context.h
+    src/channelManager.h
+    src/frameBufferObject.h
+    src/frameBufferObjectExt.h
+    src/occlusionQuery.h
+    src/offscreenBuffer.h
+    src/opencsgRender.h
+    src/openglHelper.h
+    src/pBufferTexture.h
+    src/primitiveHelper.h
+    src/scissorMemo.h
+    src/settings.h
+    src/stencilManager.h
+)
+
+add_library(opencsg ${_srcfiles})
+target_include_directories(opencsg PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+target_include_directories(opencsg PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
+target_link_libraries(opencsg PRIVATE GLEW::GLEW OpenGL::GL)
+
+include(CMakePackageConfigHelpers)
+
+include(GNUInstallDirs)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"     
+    VERSION 1.4.2
+    COMPATIBILITY AnyNewerVersion
+)
+
+install(TARGETS opencsg 
+  EXPORT ${PROJECT_NAME}Targets
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} 
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+export(EXPORT ${PROJECT_NAME}Targets 
+       FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" 
+       NAMESPACE ${PROJECT_NAME}:: )
+
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+install(EXPORT ${PROJECT_NAME}Targets
+  FILE
+    "${PROJECT_NAME}Config.cmake"
+  NAMESPACE
+    ${PROJECT_NAME}::
+  DESTINATION
+    ${ConfigPackageLocation}
+)
+install(
+    FILES
+      ${PROJECT_SOURCE_DIR}/include/opencsg.h 
+    DESTINATION
+      ${CMAKE_INSTALL_INCLUDEDIR}/opencsg
+)
+install(
+    FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+    DESTINATION
+      ${ConfigPackageLocation}
+)

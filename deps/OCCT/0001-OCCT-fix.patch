@@ -1,0 +1,221 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d98acc0f..28eb8eb4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -225,7 +225,7 @@ if (NOT DEFINED INSTALL_DIR_BIN)
+   if ("${INSTALL_DIR_LAYOUT}" STREQUAL "Unix")
+     set (INSTALL_DIR_BIN "bin" CACHE PATH "${INSTALL_DIR_BIN_DESCR}")
+   else()
+-    set (INSTALL_DIR_BIN "${OS_WITH_BIT}/${COMPILER}/bin" CACHE PATH "${INSTALL_DIR_BIN_DESCR}")
++    set (INSTALL_DIR_BIN "bin/occt" CACHE PATH "${INSTALL_DIR_BIN_DESCR}")
+   endif()
+ endif()
+ 
+@@ -243,11 +243,11 @@ if (NOT DEFINED INSTALL_DIR_LIB)
+   if ("${INSTALL_DIR_LAYOUT}" STREQUAL "Unix")
+     set (INSTALL_DIR_LIB "lib" CACHE PATH "${INSTALL_DIR_LIB_DESCR}")
+   else()
+-    set (INSTALL_DIR_LIB "${OS_WITH_BIT}/${COMPILER}/lib" CACHE PATH "${INSTALL_DIR_LIB_DESCR}")
++    set (INSTALL_DIR_LIB "lib/occt" CACHE PATH "${INSTALL_DIR_LIB_DESCR}")
+   endif()
+ endif()
+ 
+-# OCCT headers: <prefix>/inc for windows,
++# OCCT headers: <prefix>/include for windows,
+ #               <prefix>/include/opencascade-7.0.0 for unix
+ if (NOT DEFINED INSTALL_DIR_INCLUDE)
+   if ("${INSTALL_DIR_LAYOUT}" STREQUAL "Unix")
+@@ -256,7 +256,7 @@ if (NOT DEFINED INSTALL_DIR_INCLUDE)
+       set (INSTALL_DIR_INCLUDE "include/opencascade-${OCC_VERSION_STRING_EXT}" CACHE PATH "${INSTALL_DIR_INCLUDE_DESCR}" FORCE)
+     endif()
+   else()
+-    set (INSTALL_DIR_INCLUDE "inc" CACHE PATH "${INSTALL_DIR_INCLUDE_DESCR}")
++    set (INSTALL_DIR_INCLUDE "include/occt" CACHE PATH "${INSTALL_DIR_INCLUDE_DESCR}")
+   endif()
+ endif()
+ 
+@@ -330,7 +330,7 @@ if (NOT DEFINED INSTALL_DIR_CMAKE)
+       set (INSTALL_DIR_CMAKE "lib/cmake/opencascade" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
+     endif()
+   else()
+-    set (INSTALL_DIR_CMAKE "cmake" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
++    set (INSTALL_DIR_CMAKE "lib/cmake/occt" CACHE PATH "${INSTALL_DIR_CMAKE_DESCR}")
+   endif()
+ endif()
+ 
+@@ -338,13 +338,13 @@ endif()
+ OCCT_INCLUDE_CMAKE_FILE ("adm/cmake/occt_resources")
+ 
+ # install LICENSE_LGPL_21.txt and OCCT_LGPL_EXCEPTION.txt files
+-if ("${INSTALL_DIR_LAYOUT}" STREQUAL "Unix")
+-  OCCT_INSTALL_FILE_OR_DIR ("LICENSE_LGPL_21.txt" "${INSTALL_DIR_DOC}")
+-  OCCT_INSTALL_FILE_OR_DIR ("OCCT_LGPL_EXCEPTION.txt" "${INSTALL_DIR_DOC}")
+-else()
+-  OCCT_INSTALL_FILE_OR_DIR ("LICENSE_LGPL_21.txt" ".")
+-  OCCT_INSTALL_FILE_OR_DIR ("OCCT_LGPL_EXCEPTION.txt" ".")
+-endif()
++#if ("${INSTALL_DIR_LAYOUT}" STREQUAL "Unix")
++#  OCCT_INSTALL_FILE_OR_DIR ("LICENSE_LGPL_21.txt" "${INSTALL_DIR_DOC}")
++#  OCCT_INSTALL_FILE_OR_DIR ("OCCT_LGPL_EXCEPTION.txt" "${INSTALL_DIR_DOC}")
++#else()
++#  OCCT_INSTALL_FILE_OR_DIR ("LICENSE_LGPL_21.txt" ".")
++#  OCCT_INSTALL_FILE_OR_DIR ("OCCT_LGPL_EXCEPTION.txt" ".")
++#endif()
+ 
+ if(APPLE)
+   set (INSTALL_NAME_DIR "" CACHE STRING "install_name library suffix on OS X (e.g. @executable_path/../Frameworks)")
+@@ -850,34 +850,34 @@ endif()
+ 
+ # build directories
+ if (SINGLE_GENERATOR)
+-  set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/lib${BIN_LETTER}")
+-  set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bin${BIN_LETTER}")
+-  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/lib${BIN_LETTER}")
++  set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/occt")
++  set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/occt")
++  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/occt")
+   if (WIN32)
+-    set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bin${BIN_LETTER}")
++    set (CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/occt")
+   endif()
+ endif()
+ 
+-set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/lib")
+-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bin")
+-set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/lib")
++set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib/occt")
++set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/occt")
++set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/lib/occt")
+ 
+-set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/libi")
+-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bini")
+-set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/libi")
++set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/lib/occt/RelWithDebInfo")
++set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin/occt/RelWithDebInfo")
++set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/lib/occt/RelWithDebInfo")
+ 
+-set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/libd")
+-set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bind")
+-set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/libd")
++set (CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/lib/occt/Debug")
++set (CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/occt/Debug")
++set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/lib/occt/Debug")
+ 
+ if (WIN32)
+-  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE        "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bin")
+-  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bini")
+-  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG          "${CMAKE_BINARY_DIR}/${OS_WITH_BIT}/${COMPILER}/bind")
++  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE        "${CMAKE_BINARY_DIR}/bin/occt")
++  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin/occt/RelWithDebInfo")
++  set (CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG          "${CMAKE_BINARY_DIR}/bin/occt/Debug")
+ endif()
+ 
+ string(TIMESTAMP CURRENT_TIME "%H:%M:%S")
+-message (STATUS "\nInfo: \(${CURRENT_TIME}\) Start collecting all OCCT header files into ${CMAKE_BINARY_DIR}/inc ...")
++message (STATUS "\nInfo: \(${CURRENT_TIME}\) Start collecting all OCCT header files into ${CMAKE_BINARY_DIR}/include/occt ...")
+ 
+ # collect all the headers to <binary dir>/inc folder
+ COLLECT_AND_INSTALL_OCCT_HEADER_FILES ("${CMAKE_BINARY_DIR}" "${BUILD_TOOLKITS}" "${CMAKE_SOURCE_DIR}/src" "${INSTALL_DIR_INCLUDE}")
+@@ -984,9 +984,9 @@ if (EXISTS "${INSTALL_DIR}/${INSTALL_DIR_SCRIPT}/custom.${SCRIPT_EXT}")
+ 
+   set (CUSTOM_CONTENT "${CUSTOM_CONTENT} ${ADDITIONAL_CUSTOM_CONTENT}")
+ 
+-  file (WRITE "${INSTALL_DIR}/${INSTALL_DIR_SCRIPT}/custom.${SCRIPT_EXT}" "${CUSTOM_CONTENT}")
++  #file (WRITE "${INSTALL_DIR}/${INSTALL_DIR_SCRIPT}/custom.${SCRIPT_EXT}" "${CUSTOM_CONTENT}")
+ else()
+-  OCCT_CONFIGURE_AND_INSTALL ("adm/templates/custom.${SCRIPT_EXT}.main" "custom.${SCRIPT_EXT}" "custom.${SCRIPT_EXT}" "${INSTALL_DIR_SCRIPT}")
++  #OCCT_CONFIGURE_AND_INSTALL ("adm/templates/custom.${SCRIPT_EXT}.main" "custom.${SCRIPT_EXT}" "custom.${SCRIPT_EXT}" "${INSTALL_DIR_SCRIPT}")
+ endif()
+ 
+ if (WIN32)
+@@ -1007,7 +1007,7 @@ endforeach()
+ 
+ # write current custom.bat/sh (for install directory)
+ set (SUB_CUSTOM_BUILD_NAME "custom_${COMPILER}_${COMPILER_BITNESS}.install.${SCRIPT_EXT}")
+-OCCT_CONFIGURE_AND_INSTALL ("adm/templates/custom.install.${SCRIPT_EXT}.in" "${SUB_CUSTOM_BUILD_NAME}" "${SUB_CUSTOM_NAME}" "${INSTALL_DIR_SCRIPT}")
++#OCCT_CONFIGURE_AND_INSTALL ("adm/templates/custom.install.${SCRIPT_EXT}.in" "${SUB_CUSTOM_BUILD_NAME}" "${SUB_CUSTOM_NAME}" "${INSTALL_DIR_SCRIPT}")
+ 
+ # write current custom.bat/sh (for build directory)
+ OCCT_CONFIGURE ("adm/templates/custom.build.${SCRIPT_EXT}.in" "${SUB_CUSTOM_NAME}")
+@@ -1019,9 +1019,9 @@ endif()
+ 
+ if (WIN32)
+   # env script for draw in building environment
+-  OCCT_CONFIGURE ("adm/templates/env.${SCRIPT_EXT}.in" "env.${SCRIPT_EXT}")
++  #OCCT_CONFIGURE ("adm/templates/env.${SCRIPT_EXT}.in" "env.${SCRIPT_EXT}")
+   # install env script
+-  install (FILES "${CMAKE_BINARY_DIR}/env.${SCRIPT_EXT}" DESTINATION "${INSTALL_DIR_SCRIPT}")
++  #install (FILES "${CMAKE_BINARY_DIR}/env.${SCRIPT_EXT}" DESTINATION "${INSTALL_DIR_SCRIPT}")
+   # copy build.bat and install.bat scripts to CMake binary folder
+   OCCT_COPY_FILE_OR_DIR ("adm/templates/build.bat" "${CMAKE_BINARY_DIR}")
+   OCCT_COPY_FILE_OR_DIR ("adm/templates/install.bat" "${CMAKE_BINARY_DIR}")
+@@ -1043,12 +1043,12 @@ endif()
+ FILE_TO_LIST ("adm/RESOURCES" RESOURCES)
+ foreach(RESOURCE ${RESOURCES})
+   get_filename_component(RESOURCE_FOLDER ${RESOURCE} DIRECTORY)
+-  if(NOT "${RESOURCE_FOLDER}" STREQUAL "")
+-    get_filename_component(RESOURCE_FOLDER ${RESOURCE_FOLDER} NAME)
+-    OCCT_INSTALL_FILE_OR_DIR ("src/${RESOURCE}" "${INSTALL_DIR_RESOURCE}/${RESOURCE_FOLDER}")
+-  else()
+-    OCCT_INSTALL_FILE_OR_DIR ("src/${RESOURCE}" "${INSTALL_DIR_RESOURCE}")
+-  endif()
++  #if(NOT "${RESOURCE_FOLDER}" STREQUAL "")
++  #  get_filename_component(RESOURCE_FOLDER ${RESOURCE_FOLDER} NAME)
++  #  OCCT_INSTALL_FILE_OR_DIR ("src/${RESOURCE}" "${INSTALL_DIR_RESOURCE}/${RESOURCE_FOLDER}")
++  #else()
++  #  OCCT_INSTALL_FILE_OR_DIR ("src/${RESOURCE}" "${INSTALL_DIR_RESOURCE}")
++  #endif()
+ endforeach()
+ 
+ if (BUILD_SAMPLES_QT)
+diff --git a/src/Font/Font_FTFont.cxx b/src/Font/Font_FTFont.cxx
+index 5ae9899f..0a17372b 100644
+--- a/src/Font/Font_FTFont.cxx
++++ b/src/Font/Font_FTFont.cxx
+@@ -103,9 +103,11 @@ bool Font_FTFont::Init (const Handle(NCollection_Buffer)& theData,
+   {
+     throw Standard_ProgramError ("Font_FTFont, Light and Normal hinting styles are mutually exclusive");
+   }
++#ifdef HAVE_FREETYPE
+   setLoadFlag (FT_LOAD_TARGET_LIGHT,   (theParams.FontHinting & Font_Hinting_Light) != 0);
+   setLoadFlag (FT_LOAD_NO_HINTING,     (theParams.FontHinting & Font_Hinting_Normal) == 0
+                                     && (theParams.FontHinting & Font_Hinting_Light)  == 0);
++#endif
+ 
+   // manage native / autohinting
+   if ((theParams.FontHinting & Font_Hinting_ForceAutohint) != 0
+@@ -113,8 +115,10 @@ bool Font_FTFont::Init (const Handle(NCollection_Buffer)& theData,
+   {
+     throw Standard_ProgramError ("Font_FTFont, ForceAutohint and NoAutohint are mutually exclusive");
+   }
++#ifdef HAVE_FREETYPE
+   setLoadFlag (FT_LOAD_FORCE_AUTOHINT, (theParams.FontHinting & Font_Hinting_ForceAutohint) != 0);
+   setLoadFlag (FT_LOAD_NO_AUTOHINT,    (theParams.FontHinting & Font_Hinting_NoAutohint) != 0);
++#endif
+ 
+   if (!myFTLib->IsValid())
+   {
+From 7236e83dcc1e7284e66dc61e612154617ef715d6 Mon Sep 17 00:00:00 2001
+From: dpasukhi <dpasukhi@opencascade.com>
+Date: Tue, 27 Aug 2024 11:33:29 +0100
+Subject: [PATCH] 0033808: Coding - FreeType Use unsigned point and contour
+ indexing in `FT_Outline`
+
+Changes to auto instead of specific type
+---
+ src/StdPrs/StdPrs_BRepFont.cxx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/StdPrs/StdPrs_BRepFont.cxx b/src/StdPrs/StdPrs_BRepFont.cxx
+index ab2d9b3c9f..cd701879b1 100644
+--- a/src/StdPrs/StdPrs_BRepFont.cxx
++++ b/src/StdPrs/StdPrs_BRepFont.cxx
+@@ -457,7 +457,7 @@ Standard_Boolean StdPrs_BRepFont::renderGlyph (const Standard_Utf32Char theChar,
+   for (short aContour = 0, aStartIndex = 0; aContour < anOutline->n_contours; ++aContour)
+   {
+     const FT_Vector* aPntList = &anOutline->points[aStartIndex];
+-    const char* aTags      = &anOutline->tags[aStartIndex];
++    const auto* aTags      = &anOutline->tags[aStartIndex];
+     const short anEndIndex = anOutline->contours[aContour];
+     const short aPntsNb    = (anEndIndex - aStartIndex) + 1;
+     aStartIndex = anEndIndex + 1;

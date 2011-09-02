@@ -1,0 +1,396 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<title>qvoronoi Qu -- furthest-site Voronoi diagram</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<a name="TOP"><b>Up</b></a><b>:</b>
+<a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="#synopsis">sy</a>nopsis
+&#149; <a href="#input">in</a>put &#149; <a href="#outputs">ou</a>tputs
+&#149; <a href="#controls">co</a>ntrols &#149; <a href="#graphics">gr</a>aphics
+&#149; <a href="#notes">no</a>tes &#149; <a href="#conventions">co</a>nventions
+&#149; <a href="#options">op</a>tions
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/delaunay.html"><img
+src="qh--dt.gif" alt="[delaunay]" align="middle" width="100"
+height="100"></a>qvoronoi Qu -- furthest-site Voronoi diagram</h1>
+
+<p>The furthest-site Voronoi diagram is the furthest-neighbor map for a set of
+points. Each region contains those points that are further
+from one input site than any other input site.  See the
+survey article by Aurenhammer [<a href="index.htm#aure91">'91</a>]
+and the brief introduction by O'Rourke [<a
+href="index.htm#orou94">'94</a>].  The furthest-site Voronoi diagram is the dual of the <a
+href="qdelau_f.htm">furthest-site Delaunay triangulation</a>.
+</p>
+
+<blockquote>
+<dl>
+    <dt><b>Example:</b> rbox 10 D2 | qvoronoi <a
+        href="qh-optq.htm#Qu">Qu</a>  <a href="qh-opto.htm#s">s</a>
+        <a href="qh-opto.htm#o">o</a> <a href="qh-optt.htm#TO">TO
+        result</a></dt>
+    <dd>Compute the 2-d, furthest-site Voronoi diagram of 10
+        random points. Write a summary to the console and the Voronoi
+        regions and vertices to 'result'. The first vertex of the
+        result indicates unbounded regions. Almost all regions
+        are unbounded.</dd>
+</dl>
+
+<dl>
+    <dt><b>Example:</b> rbox r y c G1 D2 | qvoronoi <a
+        href="qh-optq.htm#Qu">Qu</a>
+        <a href="qh-opto.htm#s">s</a>
+        <a href="qh-optf.htm#Fn">Fn</a> <a href="qh-optt.htm#TO">TO
+        result</a></dt>
+    <dd>Compute the 2-d furthest-site Voronoi diagram of a square
+        and a small triangle. Write a summary to the console and the Voronoi
+        vertices for each input site to 'result'.
+        The origin is the only furthest-site Voronoi vertex.  The
+                negative indices indicate vertices-at-infinity.</dd>
+</dl>
+</blockquote>
+
+<p>
+Qhull computes the furthest-site Voronoi diagram via the <a href="qdelau_f.htm">
+furthest-site Delaunay triangulation</a>.
+Each furthest-site Voronoi vertex is the circumcenter of an upper
+facet of the Delaunay triangulation. Each furthest-site Voronoi
+region corresponds to a vertex of the Delaunay triangulation
+(i.e., an input site).</p>
+
+<p>See <a href="http://www.qhull.org/html/qh-faq.htm#TOC">Qhull FAQ</a> - Delaunay and
+Voronoi diagram questions.</p>
+
+<p>The 'qvonoroi' program is equivalent to
+'<a href=qhull.htm#outputs>qhull v</a> <a href=qh-optq.htm#Qbb>Qbb</a>' in 2-d to 3-d, and
+'<a href=qhull.htm#outputs>qhull v</a> <a href=qh-optq.htm#Qbb>Qbb</a> <a href=qh-optq.htm#Qx>Qx</a>'
+in 4-d and higher.  It disables the following Qhull
+<a href=qh-quick.htm#options>options</a>: <i>d n m v H U Qb
+QB Qc Qf Qg Qi Qm Qr QR Qv Qx TR E V Fa FA FC Fp FS Ft FV Gt Q0,etc</i>.
+
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<hr>
+<h3><a href="#TOP">&#187;</a><a name="synopsis">furthest-site qvoronoi synopsis</a></h3>
+<blockquote>
+
+See <a href="qvoronoi.htm#synopsis">qvoronoi synopsis</a>.  The same
+program is used for both constructions.  Use option '<a href="qh-optq.htm#Qu">Qu</a>'
+for furthest-site Voronoi diagrams.
+
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="input">furthest-site qvoronoi
+input</a></h3>
+<blockquote>
+<p>The input data on <tt>stdin</tt> consists of:</p>
+<ul>
+    <li>dimension
+    <li>number of points</li>
+    <li>point coordinates</li>
+</ul>
+
+<p>Use I/O redirection (e.g., qvoronoi Qu &lt; data.txt), a pipe (e.g., rbox 10 | qvoronoi Qu),
+or the '<a href=qh-optt.htm#TI>TI</a>' option (e.g., qvoronoi TI data.txt Qu).
+
+<p>For example, this is a square containing four random points.
+Its furthest-site Voronoi diagram has on vertex and four unbounded,
+separating hyperplanes (i.e., the coordinate axes)
+<p>
+<blockquote>
+<tt>rbox c 4 D2 &gt; data</tt>
+<blockquote><pre>
+2 RBOX c 4 D2
+8
+-0.4999921736307369 -0.3684622117955817
+0.2556053225468894 -0.0413498678629751
+0.0327672376602583 -0.2810408135699488
+-0.452955383763607 0.17886471718444
+  -0.5   -0.5
+  -0.5    0.5
+   0.5   -0.5
+   0.5    0.5
+</pre></blockquote>
+
+<p><tt>qvoronoi Qu s Fo &lt; data</tt>
+<blockquote><pre>
+
+Furthest-site Voronoi vertices by the convex hull of 8 points in 3-d:
+
+  Number of Voronoi regions: 8
+  Number of Voronoi vertices: 1
+  Number of non-simplicial Voronoi vertices: 1
+
+Statistics for: RBOX c 4 D2 | QVORONOI Qu s Fo
+
+  Number of points processed: 8
+  Number of hyperplanes created: 20
+  Number of facets in hull: 11
+  Number of distance tests for qhull: 34
+  Number of merged facets: 1
+  Number of distance tests for merging: 107
+  CPU seconds to compute hull (after input):  0
+
+4
+5 4 5      0      1      0
+5 4 6      1      0      0
+5 5 7      1      0      0
+5 6 7      0      1      0
+</pre></blockquote>
+</blockquote>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a> <a name="outputs">furthest-site qvoronoi
+outputs</a></h3>
+<blockquote>
+
+<p>These options control the output of furthest-site Voronoi diagrams.</p>
+<blockquote>
+
+<dl compact>
+    <dt>&nbsp;</dt>
+    <dd><b>furthest-site Voronoi vertices</b></dd>
+    <dt><a href="qh-opto.htm#p">p</a></dt>
+    <dd>print the coordinates of the furthest-site Voronoi vertices.  The first line
+        is the dimension.  The second line is the number of vertices.  Each
+        remaining line is a furthest-site Voronoi vertex.  The points-in-square example
+        has one furthest-site Voronoi vertex at the origin.</dd>
+    <dt><a href="qh-optf.htm#Fn">Fn</a></dt>
+    <dd>list the neighboring furthest-site Voronoi vertices for each furthest-site Voronoi
+        vertex.  The first line is the number of Voronoi vertices.  Each
+                remaining line starts with the number of neighboring vertices.  Negative indices (e.g., <em>-1</em>) indicate vertices
+        outside of the Voronoi diagram.  In the points-in-square example, the
+                Voronoi vertex at the origin has four neighbors-at-infinity.</dd>
+    <dt><a href="qh-optf.htm#FN">FN</a></dt>
+    <dd>list the furthest-site Voronoi vertices for each furthest-site Voronoi region.  The first line is
+        the number of Voronoi regions.  Each remaining line starts with the
+        number of Voronoi vertices.  Negative indices (e.g., <em>-1</em>) indicate vertices
+        outside of the Voronoi diagram.
+        In the points-in-square example, all regions share the Voronoi vertex
+        at the origin.</dd>
+
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>furthest-site Voronoi regions</b></dd>
+    <dt><a href="qh-opto.htm#o">o</a></dt>
+    <dd>print the furthest-site Voronoi regions in OFF format.  The first line is the
+        dimension.  The second line is the number of vertices, the number
+        of input sites, and "1".  The third line represents the vertex-at-infinity.
+        Its coordinates are "-10.101".  The next lines are the coordinates
+        of the furthest-site Voronoi vertices.  Each remaining line starts with the number
+        of Voronoi vertices in a Voronoi region.  In 2-d, the vertices are
+listed in adjacency order (unoriented). In 3-d and higher, the
+vertices are listed in numeric order.  In the points-in-square
+        example, each unbounded region includes the Voronoi vertex at
+        the origin.  Lines consisting of <em>0</em> indicate
+        interior input sites.  </dd>
+    <dt><a href="qh-optf.htm#Fi2">Fi</a></dt>
+    <dd>print separating hyperplanes for inner, bounded furthest-site Voronoi
+        regions.  The first number is the number of separating
+                hyperplanes.  Each remaining line starts with <i>3+dim</i>.  The
+                next two numbers are adjacent input sites.  The next <i>dim</i>
+                numbers are the coefficients of the separating hyperplane.  The
+                last number is its offset.  The are no bounded, separating hyperplanes
+                for the points-in-square example.</dd>
+    <dt><a href="qh-optf.htm#Fo2">Fo</a></dt>
+    <dd>print separating hyperplanes for outer, unbounded furthest-site Voronoi
+        regions.  The first number is the number of separating
+                hyperplanes.  Each remaining line starts with <i>3+dim</i>.  The
+                next two numbers are adjacent input sites on the convex hull.  The
+                next <i>dim</i>
+                numbers are the coefficients of the separating hyperplane.  The
+                last number is its offset.  The points-in-square example has four
+                unbounded, separating hyperplanes.</dd>
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>Input sites</b></dd>
+    <dt><a href="qh-optf.htm#Fv2">Fv</a></dt>
+    <dd>list ridges of furthest-site Voronoi vertices for pairs of input sites.  The
+        first line is the number of ridges.  Each remaining line starts with
+        two plus the number of Voronoi vertices in the ridge.  The next
+        two numbers are two adjacent input sites.  The remaining numbers list
+        the Voronoi vertices.  As with option 'o', a <em>0</em> indicates
+        the vertex-at-infinity
+        and an unbounded, separating hyperplane.
+        The perpendicular bisector (separating hyperplane)
+        of the input sites is a flat through these vertices.
+        In the points-in-square example, the ridge for each edge of the square
+        is unbounded.</dd>
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>General</b></dd>
+    <dt><a href="qh-opto.htm#s">s</a></dt>
+    <dd>print summary of the furthest-site Voronoi diagram. Use '<a
+        href="qh-optf.htm#Fs">Fs</a>' for numeric data.</dd>
+    <dt><a href="qh-opto.htm#i">i</a></dt>
+    <dd>list input sites for each <a href=qdelau_f.htm>furthest-site Delaunay region</a>.  Use option '<a href="qh-optp.htm#Pp">Pp</a>'
+        to avoid the warning.  The first line is the number of regions.  The
+        remaining lines list the input sites for each region.  The regions are
+        oriented.  In the points-in-square example, the square region has four
+        input sites.  In 3-d and higher, report cospherical sites by adding extra points.
+        </dd>
+    <dt><a href="qh-optg.htm#G">G</a></dt>
+    <dd>Geomview output for 2-d furthest-site Voronoi diagrams.</dd>
+        </dl>
+</blockquote>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a> <a name="controls">furthest-site qvoronoi
+controls</a></h3>
+<blockquote>
+
+<p>These options provide additional control:</p>
+<blockquote>
+
+<dl compact>
+   <dt><a href="qh-optq.htm#Qu">Qu</a></dt>
+    <dd>must be used.</dd>
+    <dt><a href="qh-optq.htm#QVn">QVn</a></dt>
+    <dd>select furthest-site Voronoi vertices for input site <em>n</em> </dd>
+    <dt><a href="qh-optt.htm#Tv">Tv</a></dt>
+    <dd>verify result</dd>
+    <dt><a href="qh-optt.htm#TO">TI file</a></dt>
+    <dd>input data from file.  The filename may not use spaces or quotes.</dd>
+    <dt><a href="qh-optt.htm#TO">TO file</a></dt>
+    <dd>output results to file.  Use single quotes if the filename
+        contains spaces (e.g., <tt>TO 'file with spaces.txt'</tt></dd>
+    <dt><a href="qh-optt.htm#TFn">TFn</a></dt>
+    <dd>report progress after constructing <em>n</em> facets</dd>
+    <dt><a href="qh-optp.htm#PDk">PDk:1</a></dt>
+    <dd>include upper and lower facets in the output.  Set <em>k</em>
+        to the last dimension (e.g., 'PD2:1' for 2-d inputs). </dd>
+    <dt><a href="qh-opto.htm#f">f </a></dt>
+    <dd>facet dump.  Print the data structure for each facet (i.e.,
+        furthest-site Voronoi vertex).</dd>
+</dl>
+
+</blockquote>
+</blockquote>
+<h3><a href="#TOP">&#187;</a> <a name="graphics">furthest-site qvoronoi
+graphics</a></h3>
+<blockquote>
+<p>In 2-d, Geomview output ('<a href="qh-optg.htm#G">G</a>')
+displays a furthest-site Voronoi diagram with extra edges to
+close the unbounded furthest-site Voronoi regions. All regions
+will be unbounded.  Since the points-in-box example has only
+one furthest-site Voronoi vertex, the Geomview output is one
+point.</p>
+
+<p>See the <a href="qh-eg.htm#delaunay">Delaunay and Voronoi
+examples</a> for a 2-d example. Turn off normalization (on
+Geomview's 'obscure' menu) when comparing the furthest-site
+Voronoi diagram with the corresponding Voronoi diagram. </p>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="notes">furthest-site qvoronoi
+notes</a></h3>
+<blockquote>
+
+<p>See <a href="qvoronoi.htm#notes">Voronoi notes</a>.</p>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="conventions">furthest-site qvoronoi conventions</a></h3>
+<blockquote>
+
+<p>The following terminology is used for furthest-site Voronoi
+diagrams in Qhull. The underlying structure is a furthest-site
+Delaunay triangulation from a convex hull in one higher
+dimension. Upper facets of the Delaunay triangulation correspond
+to vertices of the furthest-site Voronoi diagram. Vertices of the
+furthest-site Delaunay triangulation correspond to input sites.
+They also define regions of the furthest-site Voronoi diagram.
+All vertices are extreme points of the input sites. See <a
+href="qconvex.htm#conventions">qconvex conventions</a>, <a
+href="qdelau_f.htm#conventions">furthest-site delaunay
+conventions</a>, and <a href="index.htm#structure">Qhull's data structures</a>.</p>
+
+<ul>
+    <li><em>input site</em> - a point in the input (one dimension
+        lower than a point on the convex hull)</li>
+    <li><em>point</em> - a point has <i>d+1</i> coordinates. The
+        last coordinate is the sum of the squares of the input
+        site's coordinates</li>
+    <li><em>vertex</em> - a point on the upper facets of the
+        paraboloid. It corresponds to a unique input site. </li>
+    <li><em>furthest-site Delaunay facet</em> - an upper facet of the
+        paraboloid. The last coefficient of its normal is
+                clearly positive.</li>
+    <li><em>furthest-site Voronoi vertex</em> - the circumcenter
+        of a furthest-site Delaunay facet</li>
+    <li><em>furthest-site Voronoi region</em> - the region of
+        Euclidean space further from an input site than any other
+        input site. Qhull lists the furthest-site Voronoi
+        vertices that define each furthest-site Voronoi region.</li>
+    <li><em>furthest-site Voronoi diagram</em> - the graph of the
+        furthest-site Voronoi regions with the ridges (edges)
+        between the regions.</li>
+    <li><em>infinity vertex</em> - the Voronoi vertex for
+        unbounded furthest-site Voronoi regions in '<a
+        href="qh-opto.htm#o">o</a>' output format. Its
+        coordinates are <em>-10.101</em>.</li>
+    <li><em>good facet</em> - an furthest-site Voronoi vertex with
+        optional restrictions by '<a href="qh-optq.htm#QVn">QVn</a>',
+        etc.</li>
+</ul>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="options">furthest-site qvoronoi options</a></h3>
+<blockquote>
+
+See <a href="qvoronoi.htm#options">qvoronoi options</a>.    The same
+program is used for both constructions.  Use option '<a href="qh-optq.htm#Qu">Qu</a>'
+for furthest-site Voronoi diagrams.
+</blockquote>
+
+<!-- Navigation links -->
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="#synopsis">sy</a>nopsis
+&#149; <a href="#input">in</a>put &#149; <a href="#outputs">ou</a>tputs
+&#149; <a href="#controls">co</a>ntrols &#149; <a href="#graphics">gr</a>aphics
+&#149; <a href="#notes">no</a>tes &#149; <a href="#conventions">co</a>nventions
+&#149; <a href="#options">op</a>tions
+<!-- GC common information -->
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>
