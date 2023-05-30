@@ -1288,8 +1288,7 @@ void GCodeProcessor::process_file(const std::string& filename, std::function<voi
     // process gcode
     m_result.filename = filename;
     m_result.id = ++s_result_id;
-    // 1st move must be a dummy move
-    m_result.moves.emplace_back(GCodeProcessorResult::MoveVertex());
+    initialize_result_moves();
     size_t parse_line_callback_cntr = 10000;
     m_parser.parse_file(filename, [this, cancel_callback, &parse_line_callback_cntr](GCodeReader& reader, const GCodeReader::GCodeLine& line) {
         if (-- parse_line_callback_cntr == 0) {
@@ -1312,8 +1311,6 @@ void GCodeProcessor::initialize(const std::string& filename)
     // process gcode
     m_result.filename = filename;
     m_result.id = ++s_result_id;
-    // 1st move must be a dummy move
-    m_result.moves.emplace_back(GCodeProcessorResult::MoveVertex());
 }
 
 void GCodeProcessor::process_buffer(const std::string &buffer)
