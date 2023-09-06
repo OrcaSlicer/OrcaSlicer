@@ -1,0 +1,183 @@
+{
+    "name": "TM3D Vivedino",
+    "version": "01.00.00.00",
+    "force_update": "0",
+    "description": "Vivedino configurations",
+    "machine_model_list": [
+        {
+            "name": "Vivedino Troodon 2.0 350",
+            "sub_path": "machine/Vivedino Troodon 2.0 350.json"
+        },
+        {
+            "name": "Vivedino Troodon 1.0 300",
+            "sub_path": "machine/Vivedino Troodon 1.0 300.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_vivedino_common",
+            "sub_path": "process/fdm_process_Vivedino_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @Vivedino",
+            "sub_path": "process/0.08mm Extra Fine @Vivedino.json"
+        },
+        {
+            "name": "0.12mm Fine @Vivedino",
+            "sub_path": "process/0.12mm Fine @Vivedino.json"
+        },
+        {
+            "name": "0.15mm Optimal @Vivedino",
+            "sub_path": "process/0.15mm Optimal @Vivedino.json"
+        },
+        {
+            "name": "0.20mm Standard @Vivedino",
+            "sub_path": "process/0.20mm Standard @Vivedino.json"
+        },
+        {
+            "name": "0.20mm Fast @Vivedino",
+            "sub_path": "process/0.20mm Fast @Vivedino.json"
+        },
+        {
+            "name": "0.20mm Strong @Vivedino",
+            "sub_path": "process/0.20mm Strong @Vivedino.json"
+        },
+        {
+            "name": "0.20mm Strong Fast HF-ONLY@Vivedino",
+            "sub_path": "process/0.20mm Strong Fast HF-ONLY@Vivedino.json"
+        },
+        {
+            "name": "0.24mm Draft @Vivedino",
+            "sub_path": "process/0.24mm Draft @Vivedino.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Vivedino",
+            "sub_path": "process/0.28mm Extra Draft @Vivedino.json"
+        }
+       
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "Vivedino Generic PLA",
+            "sub_path": "filament/Vivedino Generic PLA.json"
+        },
+        {
+            "name": "Vivedino Generic PLA-CF",
+            "sub_path": "filament/Vivedino Generic PLA-CF.json"
+        },
+        {
+            "name": "Vivedino Generic PETG",
+            "sub_path": "filament/Vivedino Generic PETG.json"
+        },
+        {
+            "name": "Vivedino Generic ABS",
+            "sub_path": "filament/Vivedino Generic ABS.json"
+        },
+        {
+            "name": "Vivedino Generic TPU",
+            "sub_path": "filament/Vivedino Generic TPU.json"
+        },
+        {
+            "name": "Vivedino Generic ASA",
+            "sub_path": "filament/Vivedino Generic ASA.json"
+        },
+        {
+            "name": "Vivedino Generic PC",
+            "sub_path": "filament/Vivedino Generic PC.json"
+        },
+        {
+            "name": "Vivedino Generic PVA",
+            "sub_path": "filament/Vivedino Generic PVA.json"
+        },
+        {
+            "name": "Vivedino Generic PA",
+            "sub_path": "filament/Vivedino Generic PA.json"
+        },
+        {
+            "name": "Vivedino Generic PA-CF",
+            "sub_path": "filament/Vivedino Generic PA-CF.json"
+        },
+        {
+            "name": "KVP ABS HF",
+            "sub_path": "filament/KVP ABS HF.json"
+        },
+        {
+            "name": "KVP ABS SF",
+            "sub_path": "filament/KVP ABS SF.json"
+        },
+		  {
+            "name": "Polymaker ABS SF",
+            "sub_path": "filament/Polymaker ABS SF.json"
+        },
+        {
+            "name": "Polymaker ABS HF",
+            "sub_path": "filament/Polymaker ABS HF.json"
+        },
+        {
+            "name": "Polymaker Polylite PLA HF",
+            "sub_path": "filament/Polymaker Polylite PLA HF.json"
+        },
+        {
+            "name": "Polymaker Polylite PLA SF",
+            "sub_path": "filament/Polymaker Polylite PLA SF.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "Vivedino Troodon 2.0 350 0.4 nozzle",
+            "sub_path": "machine/Vivedino Troodon 2.0 350 0.4 nozzle.json"
+        },
+        {
+            "name": "Vivedino Troodon 1.0 300 0.4 nozzle",
+            "sub_path": "machine/Vivedino Troodon 1.0 300 0.4 nozzle.json"
+        }
+     ]
+}

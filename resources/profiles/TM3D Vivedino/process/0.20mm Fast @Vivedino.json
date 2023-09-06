@@ -1,0 +1,22 @@
+{
+    "type": "process",
+    "setting_id": "GP004",
+    "name": "0.20mm Fast @Vivedino",
+    "from": "system",
+    "inherits": "0.20mm Standard @Vivedino",
+    "instantiation": "true",
+    "layer_height": "0.2",
+    "accel_to_decel_enable": "1",
+    "default_acceleration": "3000",
+    "inner_wall_acceleration": "2000",
+    "initial_layer_infill_speed": "50",
+    "initial_layer_print_height": "0.25",
+    "initial_layer_speed": "30",
+    "bottom_shell_layers": "3",
+    "top_shell_layers": "4",
+    "outer_wall_acceleration": "1500",
+    "outer_wall_speed": "100",
+    "print_settings_id": "0.20mm Fast @Vivedino",
+    "top_surface_acceleration": "1000",
+    "travel_acceleration": "4000"
+}

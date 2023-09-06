@@ -1,0 +1,141 @@
+{
+  "type": "machine",
+  "name": "fdm_klipper_common",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "fdm_machine_common",
+  "gcode_flavor": "klipper",
+  "machine_max_acceleration_e": [
+    "5000",
+    "5000"
+  ],
+  "machine_max_acceleration_extruding": [
+    "20000",
+    "20000"
+  ],
+  "machine_max_acceleration_retracting": [
+    "5000",
+    "5000"
+  ],
+  "machine_max_acceleration_travel": [
+    "9000",
+    "9000"
+  ],
+  "machine_max_acceleration_x": [
+    "10000",
+    "10000"
+  ],
+  "machine_max_acceleration_y": [
+    "6000",
+    "6000"
+  ],
+  "machine_max_acceleration_z": [
+    "500",
+    "200"
+  ],
+  "machine_max_speed_e": [
+    "25",
+    "25"
+  ],
+  "machine_max_speed_x": [
+    "400",
+    "400"
+  ],
+  "machine_max_speed_y": [
+    "350 ",
+    "350"
+  ],
+  "machine_max_speed_z": [
+    "12",
+    "12"
+  ],
+  "machine_max_jerk_e": [
+    "2.5",
+    "2.5"
+  ],
+  "machine_max_jerk_x": [
+    "9",
+    "9"
+  ],
+  "machine_max_jerk_y": [
+    "9",
+    "9"
+  ],
+  "machine_max_jerk_z": [
+    "0.2",
+    "0.4"
+  ],
+  "machine_min_extruding_rate": [
+    "0",
+    "0"
+  ],
+  "machine_min_travel_rate": [
+    "0",
+    "0"
+  ],
+  "max_layer_height": [
+    "0.28"
+  ],
+  "min_layer_height": [
+    "0.08"
+  ],
+  "printable_height": "250",
+  "extruder_clearance_radius": "65",
+  "extruder_clearance_height_to_rod": "36",
+  "extruder_clearance_height_to_lid": "140",
+  "printer_settings_id": "",
+  "printer_technology": "FFF",
+  "printer_variant": "0.4",
+  "retraction_minimum_travel": [
+    "1"
+  ],
+  "retract_before_wipe": [
+    "70%"
+  ],
+  "retract_when_changing_layer": [
+    "1"
+  ],
+  "retraction_length": [
+    "0.8"
+  ],
+  "retract_length_toolchange": [
+    "2"
+  ],
+  "z_hop": [
+    "0.4"
+  ],
+  "retract_restart_extra": [
+    "0"
+  ],
+  "retract_restart_extra_toolchange": [
+    "0"
+  ],
+  "retraction_speed": [
+    "35"
+  ],
+  "deretraction_speed": [
+    "40"
+  ],
+  "z_hop_types": "Normal Lift",
+  "silent_mode": "0",
+  "single_extruder_multi_material": "1",
+  "change_filament_gcode": "",
+  "machine_pause_gcode": "PAUSE\n",
+  "wipe": [
+    "1"
+  ],
+  "default_filament_profile": [
+    "Vivedino Generic PLA"
+  ],
+  "default_print_profile": "0.20mm Standard @Vivedino",
+  "bed_exclude_area": [
+    "0x0"
+  ],
+  "machine_start_gcode": "M140 S[bed_temperature_initial_layer_single]\nPRINT_START HOTEND=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single] CHAMBER=[chamber_temperature]\nPRIME_NOZZLE\n",
+  "machine_end_gcode": "PRINT_END",
+  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+  "scan_first_layer": "0",
+  "nozzle_type": "undefine",
+  "auxiliary_fan": "0"
+}

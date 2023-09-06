@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "setting_id": "GP004",
+    "name": "0.20mm Standard @Vivedino",
+    "from": "system",
+    "inherits": "fdm_process_vivedino_common",
+    "instantiation": "true",
+    "layer_height": "0.2",
+    "initial_layer_infill_speed": "50",
+    "initial_layer_print_height": "0.25",
+    "initial_layer_speed": "30",
+    "bottom_shell_layers": "3",
+    "top_shell_layers": "4"
+}

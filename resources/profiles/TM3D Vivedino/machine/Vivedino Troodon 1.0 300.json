@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Vivedino Troodon 1.0 300",
+    "model_id": "Vivedino Troodon 1.0 300",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Vivedino",
+    "bed_model": "",
+    "bed_texture": "TM3D_Vivedino_Logo.png",
+    "hotend_model": "hotend.stl",
+    "default_materials": "Vivedino Generic ABS;Vivedino Generic PLA;Vivedino Generic PLA-CF;Vivedino Generic PETG;Vivedino Generic TPU;Vivedino Generic ASA;Vivedino Generic PC;Vivedino Generic PVA;Vivedino Generic PA;Vivedino Generic PA-CF"
+}

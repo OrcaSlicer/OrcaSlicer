@@ -1,0 +1,16 @@
+{
+    "type": "process",
+    "setting_id": "GP004",
+    "name": "0.20mm Strong @Vivedino",
+    "from": "system",
+    "inherits": "fdm_process_vivedino_common",
+    "instantiation": "true",
+    "layer_height": "0.2",
+    "wall_loops": "5",
+    "bottom_shell_layers": "5",
+    "top_shell_layers": "5",
+    "sparse_infill_density": "40%",
+    "sparse_infill_line_width": "0.45",
+    "sparse_infill_pattern": "tri-hexagon",
+    "sparse_infill_speed": "200"
+}

@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "filament_id": "GFL98",
+    "setting_id": "GFSA04",
+    "name": "Vivedino Generic PLA-CF",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pla",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_type": [
+        "PLA-CF"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+"compatible_printers": [
+      "Vivedino Troodon 2.0 350 0.4 nozzle",
+      "Vivedino Troodon 1.0 300 0.4 nozzle"
+    ]
+}

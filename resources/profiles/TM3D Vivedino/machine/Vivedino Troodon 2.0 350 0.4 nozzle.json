@@ -1,0 +1,33 @@
+{
+  "type": "machine",
+  "setting_id": "GM001",
+  "name": "Vivedino Troodon 2.0 350 0.4 nozzle",
+  "from": "system",
+  "instantiation": "true",
+  "inherits": "fdm_klipper_common",
+  "printer_model": "Vivedino Troodon 2.0 350",
+  "nozzle_diameter": [
+    "0.4"
+],
+"retraction_length": [
+    "0.6"
+],
+"retraction_speed": [
+    "40"
+],
+"version": "1.0.0.0",
+"z_hop": [
+    "0"
+],  
+  "printable_area": [
+    "0x0",
+    "350x0",
+    "350x350",
+    "0x350"
+  ],
+  "printable_height": "325",
+  "printable_height": "375",
+  "upward_compatible_machine":[
+    "Vivedino Troodon 2.0 350 0.4 nozzle"
+  ]
+}

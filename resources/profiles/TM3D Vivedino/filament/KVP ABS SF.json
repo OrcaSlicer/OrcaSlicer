@@ -1,0 +1,57 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "from": "system",
+    "instantiation": "true",
+    "default_filament_colour": [
+        "#FF0000"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "filament_flow_ratio": [
+        "0.925"
+    ],
+    "filament_max_volumetric_speed": [
+        "14"
+    ],
+    "filament_settings_id": [
+        "KVP ABS SF"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nSET_PRESSURE_ADVANCE EXTRUDER=extruder ADVANCE=0.015\n"
+    ],
+    "filament_type": [
+        "ABS"
+    ],
+    "from": "User",
+    "hot_plate_temp": [
+        "110"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "inherits": "Vivedino Generic PLA",
+    "is_custom_defined": "0",
+    "name": "KVP ABS SF",
+    "nozzle_temperature": [
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "nozzle_temperature_range_high": [
+        "260"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "version": "1.0.0.0",
+    "compatible_printers": [
+        "Vivedino Troodon 2.0 350 0.4 nozzle",
+        "Vivedino Troodon 1.0 300 0.4 nozzle"
+      ]
+}

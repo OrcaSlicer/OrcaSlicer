@@ -1,0 +1,34 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "from": "system",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "filament_settings_id": [
+        "Polymaker Polylite PLA HF"
+    ],
+    "from": "User",
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "inherits": "Vivedino Generic PLA",
+    "is_custom_defined": "0",
+    "name": "Polymaker Polylite PLA HF",
+    "nozzle_temperature": [
+        "215"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "version": "1.0.0.0",
+    "compatible_printers": [
+        "Vivedino Troodon 2.0 350 0.4 nozzle",
+        "Vivedino Troodon 1.0 300 0.4 nozzle"
+    ]
+    
+}

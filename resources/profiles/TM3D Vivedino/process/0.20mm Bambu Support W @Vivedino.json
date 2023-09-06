@@ -1,0 +1,30 @@
+{
+    "type": "process",
+    "setting_id": "GP004",
+    "name": "0.20mm Bambu Support W @Vivedino",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_bbl_0.20",
+    "enable_support": "1",
+    "support_interface_top_layers": "3",
+    "support_top_z_distance": "0.2",
+    "support_interface_loop_pattern": "1",
+    "support_interface_spacing": "0",
+    "support_interface_speed": "80",
+    "support_filament": "0",
+    "support_interface_filament": "0",
+    "enable_prime_tower": "1",
+    "initial_layer_speed": "50",
+    "initial_layer_infill_speed": "105",
+    "outer_wall_speed": "120",
+    "inner_wall_speed": "200",
+    "sparse_infill_speed": "300",
+    "internal_solid_infill_speed": "200",
+    "top_surface_speed": "100",
+    "gap_infill_speed": "100",
+    "travel_speed": "350",
+    "compatible_printers": [
+      "Vivedino Troodon 2.0 350 0.4 nozzle",
+      "Vivedino Troodon 1.0 300 0.4 nozzle"
+    ]
+}

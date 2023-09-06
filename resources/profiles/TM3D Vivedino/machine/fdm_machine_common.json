@@ -1,0 +1,116 @@
+{
+    "type": "machine",
+    "name": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "printer_technology": "FFF",
+    "deretraction_speed": [
+        "40"
+    ],
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "gcode_flavor": "marlin",
+    "silent_mode": "0",
+    "machine_max_acceleration_e": [
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "10000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_acceleration_x": [
+        "10000"
+    ],
+    "machine_max_acceleration_y": [
+        "10000"
+    ],
+    "machine_max_acceleration_z": [
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printable_height": "250",
+    "extruder_clearance_radius": "65",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_height_to_lid": "140",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_settings_id": "",
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "5"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "60"
+    ],
+    "single_extruder_multi_material": "0",
+    "change_filament_gcode": "",
+    "wipe": [
+        "1"
+    ],
+    "default_print_profile": "0.16mm Optimal @Bambu Lab X1 Carbon 0.4 nozzle",
+    "machine_start_gcode": "G0 Z20 F9000\nG92 E0; G1 E-10 F1200\nG28\nM970 Q1 A10 B10 C130 K0\nM970 Q1 A10 B131 C250 K1\nM974 Q1 S1 P0\nM970 Q0 A10 B10 C130 H20 K0\nM970 Q0 A10 B131 C250 K1\nM974 Q0 S1 P0\nM220 S100 ;Reset Feedrate\nM221 S100 ;Reset Flowrate\nG29 ;Home\nG90;\nG92 E0 ;Reset Extruder \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 X10.1 Y20 Z0.28 F5000.0 ;Move to start position\nM109 S205;\nG1 X10.1 Y200.0 Z0.28 F1500.0 E15 ;Draw the first line\nG1 X10.4 Y200.0 Z0.28 F5000.0 ;Move to side a little\nG1 X10.4 Y20 Z0.28 F1500.0 E30 ;Draw the second line\nG92 E0 ;Reset Extruder \nG1 X110 Y110 Z2.0 F3000 ;Move Z Axis up",
+    "machine_end_gcode": "M400 ; wait for buffer to clear\nG92 E0 ; zero the extruder\nG1 E-4.0 F3600; retract \nG91\nG1 Z3;\nM104 S0 ; turn off hotend\nM140 S0 ; turn off bed\nM106 S0 ; turn off fan\nG90 \nG0 X110 Y200 F3600 \nprint_end"
+}

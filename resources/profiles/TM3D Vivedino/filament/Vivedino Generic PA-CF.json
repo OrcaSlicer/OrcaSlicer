@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "filament_id": "GFN98",
+    "setting_id": "GFSA04",
+    "name": "Vivedino Generic PA-CF",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pa",
+    "filament_type": [
+        "PA-CF"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+"compatible_printers": [
+      "Vivedino Troodon 2.0 350 0.4 nozzle",
+      "Vivedino Troodon 1.0 300 0.4 nozzle"
+    ]
+}

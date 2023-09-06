@@ -1,0 +1,144 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_common",
+    "from": "system",
+    "instantiation": "false",
+    "cool_plate_temp" : [
+        "60"
+    ],
+    "eng_plate_temp" : [
+        "60"
+    ],
+    "hot_plate_temp" : [
+        "60"
+    ],
+    "textured_plate_temp" : [
+        "60"
+    ],
+    "cool_plate_temp_initial_layer" : [
+        "60"
+    ],
+    "eng_plate_temp_initial_layer" : [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer" : [
+        "60"
+    ],
+    "textured_plate_temp_initial_layer" : [
+        "60"
+    ],
+    "overhang_fan_threshold": [
+        "95%"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "fan_cooling_layer_time": [
+        "60"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "filament_density": [
+        "0"
+    ],
+    "filament_deretraction_speed": [
+        "nil"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_max_volumetric_speed": [
+        "0"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_retraction_minimum_travel": [
+        "nil"
+    ],
+    "filament_retract_before_wipe": [
+        "nil"
+    ],
+    "filament_retract_when_changing_layer": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "nil"
+    ],
+    "filament_z_hop": [
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
+        "nil"
+    ],
+    "filament_retraction_speed": [
+        "nil"
+    ],
+    "filament_settings_id": [
+        ""
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
+    "filament_vendor": [
+        "Generic"
+    ],
+    "filament_wipe": [
+        "nil"
+    ],
+    "filament_wipe_distance": [
+        "nil"
+    ],
+    "bed_type": [
+        "Cool Plate"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "200"
+    ],
+    "full_fan_speed_layer": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "35"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\n"
+    ],
+    "nozzle_temperature": [
+        "200"
+    ],
+    "temperature_vitrification": [
+        "100"
+    ]
+}

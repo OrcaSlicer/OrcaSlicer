@@ -1,0 +1,12 @@
+{
+    "type": "process",
+    "setting_id": "GP004",
+    "name": "0.24mm Draft @Vivedino",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_vivedino_common",
+    "layer_height": "0.24",
+    "top_surface_line_width": "0.45",
+    "bottom_shell_layers": "3",
+    "top_shell_layers": "4"
+}
