@@ -340,9 +340,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 char buff[1024];
 
                 append_table_row(_u8L("Type"), [&vertex]() {
-                    std::string text = _u8L(to_string(vertex.type));
+                    ImGuiWrapper::text(_u8L(to_string(vertex.type)));
+                });
+                append_table_row(_u8L("Feature type"), [&vertex]() {
+                    std::string text;
                     if (vertex.is_extrusion())
-                        text += " (" + _u8L(to_string(vertex.role)) + ")";
+                        text = _u8L(to_string(vertex.role));
+                    else
+                        text = _u8L("N/A");
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Width") + " (" + _u8L("mm") + ")", [&vertex, &buff]() {
@@ -370,7 +375,6 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
-#if !ENABLE_ACTUAL_SPEED_DEBUG
                 append_table_row(_u8L("Speed") + " (" + _u8L("mm/s") + ")", [&vertex, &buff]() {
                     std::string text;
                     if (vertex.is_extrusion()) {
@@ -381,17 +385,16 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                         text = _u8L("N/A");
                     ImGuiWrapper::text(text);
                 });
-                append_table_row(_u8L("Actual speed") + " (" + _u8L("mm/s") + ")", [&vertex, &buff]() {
+                  append_table_row(_u8L("Volumetric flow rate") + " (" + _u8L("mm³/s") + ")", [&vertex, &buff]() {
                     std::string text;
                     if (vertex.is_extrusion()) {
-                        sprintf(buff, "%.1f", vertex.actual_feedrate);
+                        sprintf(buff, "%.3f", vertex.volumetric_rate());
                         text = std::string(buff);
                     }
                     else
                         text = _u8L("N/A");
                     ImGuiWrapper::text(text);
-                });
-#endif // !ENABLE_ACTUAL_SPEED_DEBUG
+                  });
                 append_table_row(_u8L("Fan speed") + " (" + _u8L("%") + ")", [&vertex, &buff]() {
                     std::string text;
                     if (vertex.is_extrusion()) {
@@ -3979,7 +3982,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                                                                                   ImGui::CalcTextSize(cgcode_unknown_str.c_str()).x))))
 
         );
-       
+
         ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
         ImGui::Dummy({window_padding, window_padding});
         ImGui::SameLine();
