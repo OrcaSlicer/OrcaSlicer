@@ -1188,7 +1188,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     m_filament_selection = evt.GetSelection();
 
     //reset cali
-    int cali_select_idx;
+    int cali_select_idx = -1;
 
     if ( !this->obj || m_filament_selection < 0) {
         m_input_k_val->Enable(false);

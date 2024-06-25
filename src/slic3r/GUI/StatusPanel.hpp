@@ -817,7 +817,7 @@ public:
     long           last_read_done_bits{ -1 };
     long           last_reading_bits { -1 };
     long           last_ams_version { -1 };
-    int            last_cali_version{-1};
+    std::optional<int> last_cali_version;
 
     enum ThumbnailState task_thumbnail_state {ThumbnailState::PLACE_HOLDER};
     std::vector<int> last_stage_list_info;
