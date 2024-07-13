@@ -98,7 +98,7 @@ PrintObject::PrintObject(Print* print, ModelObject* model_object, const Transfor
 	// snug height and an approximate bounding box in XY.
     BoundingBoxf3  bbox        = model_object->raw_bounding_box();
     Vec3d 		   bbox_center = bbox.center();
-    
+
 	// We may need to rotate the bbox / bbox_center from the original instance to the current instance.
 	double z_diff = Geometry::rotation_diff_z(model_object->instances.front()->get_rotation(), instances.front().model_instance->get_rotation());
 	if (std::abs(z_diff) > EPSILON) {
@@ -2257,7 +2257,7 @@ void PrintObject::discover_vertical_shells()
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
                     Flow         solid_infill_flow   = layerm->flow(frSolidInfill);
-                    coord_t      infill_line_spacing = solid_infill_flow.scaled_spacing(); 
+                    coord_t      infill_line_spacing = solid_infill_flow.scaled_spacing();
                     // Find a union of perimeters below / above this surface to guarantee a minimum shell thickness.
                     Polygons shell;
                     Polygons holes;
@@ -2299,7 +2299,7 @@ void PrintObject::discover_vertical_shells()
                             shell = std::move(shells2);
                         else if (! shells2.empty()) {
                             polygons_append(shell, shells2);
-                            // Running the union_ using the Clipper library piece by piece is cheaper 
+                            // Running the union_ using the Clipper library piece by piece is cheaper
                             // than running the union_ all at once.
                             shell = union_(shell);
                         }
@@ -2366,12 +2366,12 @@ void PrintObject::discover_vertical_shells()
         				Slic3r::SVG svg(debug_out_path("discover_vertical_shells-perimeters-before-union-%d.svg", debug_idx), get_extents(shell));
                         svg.draw(shell);
                         svg.draw_outline(shell, "black", scale_(0.05));
-                        svg.Close(); 
+                        svg.Close();
                     }
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 #if 0
 //                    shell = union_(shell, true);
-                    shell = union_(shell, false); 
+                    shell = union_(shell, false);
 #endif
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
                     shell_ex = union_safety_offset_ex(shell);
@@ -2675,7 +2675,7 @@ void PrintObject::bridge_over_infill()
         }
     }
 
-    // LIGHTNING INFILL SECTION - If lightning infill is used somewhere, we check the areas that are going to be bridges, and those that rely on the 
+    // LIGHTNING INFILL SECTION - If lightning infill is used somewhere, we check the areas that are going to be bridges, and those that rely on the
     // lightning infill under them get expanded. This somewhat helps to ensure that most of the extrusions are anchored to the lightning infill at the ends.
     // It requires modifying this instance of print object in a specific way, so that we do not invalidate the pointers in our surfaces_by_layer structure.
     if (has_lightning_infill) {
@@ -3650,13 +3650,13 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
         opt.value = 1;
 }
 
-PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders)
+PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index)
 {
     PrintObjectConfig config = default_object_config;
     {
         DynamicPrintConfig src_normalized(object.config.get());
         src_normalized.normalize_fdm();
-        config.apply(src_normalized, true);
+        update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
@@ -3684,7 +3684,7 @@ struct FeatureFilamentOverrideMask
     bool inner_wall_filament_id    = false;
 };
 
-static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides)
+static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides, std::vector<int>& variant_index)
 {
     // 1) Explicit feature filament values take precedence over base extruder fallback.
     auto *opt_extruder = in.opt<ConfigOptionInt>(key_extruder);
@@ -3725,8 +3725,18 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                         else if (it->first == "inner_wall_filament_id")
                             feature_overrides.inner_wall_filament_id = false;
                     }
-                } else
-                    my_opt->set(it->second.get());
+                } else {
+                    if (*my_opt != *(it->second)) {
+                        if (my_opt->is_scalar() || variant_index.empty() || (print_options_with_variant.find(it->first) == print_options_with_variant.end()))
+                            my_opt->set(it->second.get());
+                            //my_opt->set(it->second.get());
+                        else {
+                            ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(my_opt);
+                            const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(it->second.get());
+                            opt_vec_src->set_to_index(opt_vec_dest, variant_index, 1);
+                        }
+                    }
+                }
             }
 
     // 3) Apply base extruder only to features that were not explicitly overridden.
@@ -3746,7 +3756,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
     }
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders)
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index)
 {
     PrintRegionConfig config = default_or_parent_region_config;
     FeatureFilamentOverrideMask feature_overrides;
@@ -3764,17 +3774,17 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     if (volume.is_model_part()) {
         // default_or_parent_region_config contains the Print's PrintRegionConfig.
         // Override with ModelObject's PrintRegionConfig values.
-        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides);
+        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides, variant_index);
     } else {
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
-    apply_to_print_region_config(config, volume.config.get(), feature_overrides);
+    apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
     if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides);
+        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());
-    	apply_to_print_region_config(config, *layer_range_config, feature_overrides);
+    	apply_to_print_region_config(config, *layer_range_config, feature_overrides, variant_index);
     }
     // Resolve feature defaults and clamp invalid extruders to index 1.
     clamp_feature_filament_to_valid(config.sparse_infill_filament_id, num_extruders);
@@ -3824,7 +3834,7 @@ void PrintObject::update_slicing_parameters()
 }
 
 // Orca: XYZ shrinkage compensation has introduced the const Vec3d &object_shrinkage_compensation parameter to the function below
-SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation)
+SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation, std::vector<int> variant_index)
 {
 	PrintConfig         print_config;
 	PrintObjectConfig   object_config;
@@ -3834,14 +3844,14 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 	default_region_config.apply(full_config, true);
     // BBS
 	size_t              filament_extruders = print_config.filament_diameter.size();
-	object_config = object_config_from_model_object(object_config, model_object, filament_extruders);
+	object_config = object_config_from_model_object(object_config, model_object, filament_extruders, variant_index);
 
 	std::vector<unsigned int> object_extruders;
 	for (const ModelVolume* model_volume : model_object.volumes)
 		if (model_volume->is_model_part()) {
 			PrintRegion::collect_object_printing_extruders(
 				print_config,
-				region_config_from_model_volume(default_region_config, nullptr, *model_volume, filament_extruders),
+				region_config_from_model_volume(default_region_config, nullptr, *model_volume, filament_extruders, variant_index),
                 object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 				object_extruders);
 			for (const std::pair<const t_layer_height_range, ModelConfig> &range_and_config : model_object.layer_config_ranges)
@@ -3853,7 +3863,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 					range_and_config.second.has("bottom_surface_filament_id"))
 					PrintRegion::collect_object_printing_extruders(
 						print_config,
-						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders),
+						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders, variant_index),
                         object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 						object_extruders);
 		}
