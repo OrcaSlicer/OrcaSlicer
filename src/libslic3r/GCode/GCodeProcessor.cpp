@@ -398,14 +398,14 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
 
     assert(keep_last_n_blocks <= blocks.size());
 
-    // forward_pass
-    for (size_t i = 0; i + 1 < blocks.size(); ++i) {
-        planner_forward_pass_kernel(blocks[i], blocks[i + 1]);
-    }
-
     // reverse_pass
     for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i) {
         planner_reverse_pass_kernel(blocks[i - 1], blocks[i]);
+    }
+
+    // forward_pass
+    for (size_t i = 0; i + 1 < blocks.size(); ++i) {
+        planner_forward_pass_kernel(blocks[i], blocks[i + 1]);
     }
 
     recalculate_trapezoids(blocks);
@@ -1874,7 +1874,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     size_t filament_count = config.filament_diameter.values.size();
     m_result.filaments_count = filament_count;
 
-    // Orca: 
+    // Orca:
     m_is_XL_printer = is_XL_printer(config);
     m_preheat_time = config.preheat_time;
     m_preheat_steps = config.preheat_steps;
@@ -3023,7 +3023,7 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
             float filament_diameter = (static_cast<size_t>(filament_id) < m_result.filament_diameters.size()) ?  m_result.filament_diameters[filament_id] : m_result.filament_diameters.back();
             float filament_radius = 0.5f * filament_diameter;
             float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
-            
+
             float dE = std::stof(match.str());
             float volume_extruded_filament = area_filament_cross_section * dE;
             m_used_filaments.update_flush_per_filament(filament_id, volume_extruded_filament);
