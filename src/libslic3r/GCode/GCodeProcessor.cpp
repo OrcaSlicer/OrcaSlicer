@@ -522,10 +522,20 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
             it_stop_time->elapsed_time = time;
     }
 
-    if (keep_last_n_blocks)
+    if (keep_last_n_blocks) {
         blocks.erase(blocks.begin(), blocks.begin() + n_blocks_process);
-    else
+
+        // Ensure that the new first block's entry speed will be preserved to prevent discontinuity
+        // between the erased blocks' exit speed and the new first block's entry speed.
+        // Otherwise, the first block's entry speed could be recalculated on the next pass without
+        // considering that there are no more blocks before this first block. This could lead
+        // to discontinuity between the exit speed (of already processed blocks) and the entry
+        // speed of the first block.
+        TimeBlock &first_block = blocks.front();
+        first_block.max_entry_speed = first_block.feedrate_profile.entry;
+    } else {
         blocks.clear();
+    }
 }
 
 void GCodeProcessor::TimeProcessor::reset()
