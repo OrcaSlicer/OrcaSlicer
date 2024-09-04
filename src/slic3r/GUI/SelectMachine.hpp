@@ -88,7 +88,9 @@ enum PrintDialogStatus {
     PrintStatusNotSupportedPrintAll,
     PrintStatusBlankPlate,
     PrintStatusUnsupportedPrinter,
-    PrintStatusTimelapseWarning
+    PrintStatusTimelapseWarning,
+    PrintStatusPublicInitFailed,
+    PrintStatusPublicUploadFiled
 };
 
 class Material
