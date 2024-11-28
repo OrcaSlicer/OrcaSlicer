@@ -1449,18 +1449,14 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     if (validation_mode)
         dir = (boost::filesystem::path(data_dir())).make_preferred();
 
-    PresetsConfigSubstitutions  substitutions;
-    std::string                 errors_cummulative;
-    bool                        first = true;
+    // Gather all vendors
     std::vector<std::string> vendor_names;
-    // store all vendor names in vendor_names
     for (auto& dir_entry : boost::filesystem::directory_iterator(dir)) {
         std::string vendor_file = dir_entry.path().string();
         if (!Slic3r::is_json_file(vendor_file))
             continue;
 
         std::string vendor_name = dir_entry.path().filename().string();
-
         // Remove the .json suffix.
         vendor_name.erase(vendor_name.size() - 5);
         vendor_names.push_back(vendor_name);
@@ -1473,39 +1469,76 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         }
     }
 
-    for (auto &vendor_name : vendor_names)
-    {
-        if (validation_mode && !vendor_to_validate.empty() && vendor_name != vendor_to_validate && vendor_name != ORCA_FILAMENT_LIBRARY)
-            continue;
+    // Load the config bundle, flatten it.
+    PresetsConfigSubstitutions  substitutions;
+    std::string                 errors_cummulative;
 
+    // Reset this PresetBundle and load the first vendor config.
+    bool                        first = true;
+    auto vendor_name = vendor_names.begin();
+    for (; vendor_name != vendor_names.end() && first; ++vendor_name) {
+        if (validation_mode && !vendor_to_validate.empty() && *vendor_name != vendor_to_validate && *vendor_name != ORCA_FILAMENT_LIBRARY)
+            continue;
         try {
-            // Load the config bundle, flatten it.
-            if (first) {
-                // Reset this PresetBundle and load the first vendor config.
-                append(substitutions, this->load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem, compatibility_rule).first);
-                first = false;
-            } else {
-                // Load the other vendor configs, merge them with this PresetBundle.
-                // Report duplicate profiles.
-                PresetBundle other;
-                append(substitutions, other.load_vendor_configs_from_json(dir.string(), vendor_name, PresetBundle::LoadSystem, compatibility_rule, this).first);
-                std::vector<std::string> duplicates = this->merge_presets(std::move(other));
-                if (!duplicates.empty()) {
-                    errors_cummulative += "Found duplicated settings in vendor " + vendor_name + "'s json file lists: ";
-                    for (size_t i = 0; i < duplicates.size(); ++i) {
-                        if (i > 0)
-                            errors_cummulative += ", ";
-                        errors_cummulative += duplicates[i];
-                        ++m_errors;
-                        BOOST_LOG_TRIVIAL(error) << "Found duplicated preset: " + duplicates[i] + " in vendor: " + vendor_name + ": ";
-                    }
-                }
-            }
+            append(substitutions, this->load_vendor_configs_from_json(dir.string(), *vendor_name, PresetBundle::LoadSystem, compatibility_rule).first);
+            first = false;
         } catch (const std::runtime_error &err) {
             if (validation_mode)
                 throw err;
             else {
                 errors_cummulative += err.what();
+                errors_cummulative += "\n";
+            }
+        }
+    }
+    if (!first && vendor_name != vendor_names.end()) {
+        // Load the other vendor configs in parallel
+        struct LoadCtx
+        {
+            size_t                     idx;
+            PresetBundle               bundle;
+            bool                       succeed = false;
+            PresetsConfigSubstitutions substitutions;
+            std::string                err;
+        };
+        std::vector<LoadCtx> ctxs(vendor_names.end() - vendor_name);
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, ctxs.size()), [&ctxs, validation_mode = validation_mode, dir = dir.string(),
+                                                                       &vendor_name,
+                                                                       compatibility_rule, vendor_to_validate = vendor_to_validate](const tbb::blocked_range<size_t>& range) {
+            for (size_t idx = range.begin(); idx < range.end(); ++idx) {
+                auto& ctx = ctxs[idx];
+                if (validation_mode && !vendor_to_validate.empty() && vendor_name[idx] != vendor_to_validate && vendor_name[idx] != ORCA_FILAMENT_LIBRARY)
+                    continue;
+                try {
+                    ctx.substitutions = std::move(ctx.bundle.load_vendor_configs_from_json(dir, vendor_name[idx], PresetBundle::LoadSystem, compatibility_rule).first);
+                    ctx.idx     = idx;
+                    ctx.succeed = true;
+                } catch (const std::runtime_error& err) {
+                    if (validation_mode)
+                        throw err;
+                    else {
+                        ctx.err = err.what();
+                    }
+                }
+            }
+        });
+
+        // Merge them with this PresetBundle.
+        // Report duplicate profiles.
+        for (auto& ctx : ctxs) {
+            if (ctx.succeed) {
+                append(substitutions, std::move(ctx.substitutions));
+                std::vector<std::string> duplicates = this->merge_presets(std::move(ctx.bundle));
+                if (! duplicates.empty()) {
+                    errors_cummulative += "Found duplicated settings in vendor " + (vendor_name[ctx.idx]) + "'s json file lists: ";
+                    for (size_t i = 0; i < duplicates.size(); ++ i) {
+                        if (i > 0)
+                            errors_cummulative += ", ";
+                        errors_cummulative += duplicates[i];
+                    }
+                }
+            } else if (!ctx.err.empty()) {
+                errors_cummulative += ctx.err;
                 errors_cummulative += "\n";
             }
         }
@@ -1652,77 +1685,68 @@ std::vector<std::string> PresetBundle::merge_presets(PresetBundle &&other)
     append(duplicate_prints, std::move(duplicate_sla_materials));
     append(duplicate_prints, std::move(duplicate_printers));
     m_errors += other.m_errors;
-    return duplicate_prints;
-}
-
-void PresetBundle::update_system_maps()
-{
-    this->prints 	   .update_map_system_profile_renamed();
-    this->sla_prints   .update_map_system_profile_renamed();
-    this->filaments    .update_map_system_profile_renamed();
-    this->sla_materials.update_map_system_profile_renamed();
-    this->printers     .update_map_system_profile_renamed();
-
-    this->prints       .update_map_alias_to_profile_name();
-    this->sla_prints   .update_map_alias_to_profile_name();
-    this->filaments    .update_map_alias_to_profile_name();
-    this->sla_materials.update_map_alias_to_profile_name();
-
-    this->filaments.update_library_profile_excluded_from();
-}
-
-static inline std::string remove_ini_suffix(const std::string &name)
-{
-    std::string out = name;
-    if (boost::iends_with(out, ".ini"))
-        out.erase(out.end() - 4, out.end());
-    return out;
-}
-
-// Set the "enabled" flag for printer vendors, printer models and printer variants
-// based on the user configuration.
-// If the "vendor" section is missing, enable all models and variants of the particular vendor.
-void PresetBundle::load_installed_printers(const AppConfig &config)
-{
-	this->update_system_maps();
-    for (auto &preset : printers)
-        preset.set_visible_from_appconfig(config);
-}
-
-const std::string& PresetBundle::get_preset_name_by_alias( const Preset::Type& preset_type, const std::string& alias) const
-{
-    // there are not aliases for Printers profiles
-    if (preset_type == Preset::TYPE_PRINTER || preset_type == Preset::TYPE_INVALID)
-        return alias;
-
-    const PresetCollection& presets = preset_type == Preset::TYPE_PRINT     ? prints :
-                                      preset_type == Preset::TYPE_SLA_PRINT ? sla_prints :
-                                      preset_type == Preset::TYPE_FILAMENT  ? filaments :
-                                      sla_materials;
-
-    return presets.get_preset_name_by_alias(alias);
-}
-
-//BBS: get filament required hrc by filament type
-const int PresetBundle::get_required_hrc_by_filament_type(const std::string& filament_type) const
-{
-    static std::unordered_map<std::string, int>filament_type_to_hrc;
-    if (filament_type_to_hrc.empty()) {
-        for (auto iter = filaments.m_presets.begin(); iter != filaments.m_presets.end(); iter++) {
-            if (iter->vendor && iter->vendor->id == "BBL") {
-                if (iter->config.has("filament_type") && iter->config.has("required_nozzle_HRC")) {
-                    auto type = iter->config.opt_string("filament_type", 0);
-                    auto hrc = iter->config.opt_int("required_nozzle_HRC", 0);
-                    filament_type_to_hrc[type] = hrc;
-                }
+            // Remove the .json suffix.
+            vendor_name.erase(vendor_name.size() - 5);
+            vendor_names.push_back(vendor_name);
+        }
+        // Move ORCA_FILAMENT_LIBRARY to the beginning of the list
+        for (size_t i = 0; i < vendor_names.size(); ++ i) {
+            if (vendor_names[i] == ORCA_FILAMENT_LIBRARY) {
+                std::swap(vendor_names[0], vendor_names[i]);
+                break;
             }
         }
+
+        // Load the config bundle, flatten it.
+        PresetsConfigSubstitutions  substitutions;
+        std::string                 errors_cummulative;
+
+        // Reset this PresetBundle and load the first vendor config.
+        bool                        first = true;
+        auto vendor_name = vendor_names.begin();
+        for (; vendor_name != vendor_names.end() && first; ++vendor_name) {
+            if (validation_mode && !vendor_to_validate.empty() && *vendor_name != vendor_to_validate && *vendor_name != ORCA_FILAMENT_LIBRARY)
+                continue;
+            try {
+                /* Lines 1529-1531 omitted */
+            } catch (const std::runtime_error &err) {
+                /* Lines 1532-1538 omitted */
+            }
+        }
+        if (!first && vendor_name != vendor_names.end()) {
+            // Load the other vendor configs in parallel
+            struct LoadCtx
+            {
+                size_t                     idx;
+                PresetBundle               bundle;
+                bool                       succeed = false;
+                PresetsConfigSubstitutions substitutions;
+                std::string                err;
+            };
+            std::vector<LoadCtx> ctxs(vendor_names.end() - vendor_name);
+            tbb::parallel_for(tbb::blocked_range<size_t>(0, ctxs.size()), [&ctxs, validation_mode = validation_mode, dir = dir.string(),
+                                                                           &vendor_name,
+                                                                           compatibility_rule, vendor_to_validate = vendor_to_validate](const tbb::blocked_range<size_t>& range) {
+                /* Lines 1554-1568 omitted */
+            });
+
+            // Merge them with this PresetBundle.
+            // Report duplicate profiles.
+            for (auto& ctx : ctxs) {
+                /* Lines 1573-1589 omitted */
+            }
+        }
+
+        if (first) {
+    		// No config bundle loaded, reset.
+    		this->reset(false);
+    	}
+
+    	this->update_system_maps();
+        //BBS: add config related logs
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, errors_cummulative %1%")%errors_cummulative;
+        return std::make_pair(std::move(substitutions), errors_cummulative);
     }
-    auto iter = filament_type_to_hrc.find(filament_type);
-    if (iter != filament_type_to_hrc.end())
-        return iter->second;
-    else
-        return 0;
 }
 
 //BBS: add project embedded preset logic
