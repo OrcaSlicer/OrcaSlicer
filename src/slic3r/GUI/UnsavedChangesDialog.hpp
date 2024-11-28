@@ -421,6 +421,9 @@ class DiffPresetDialog : public DPIDialog
     std::unique_ptr<PresetBundle>   m_preset_bundle_left;
     std::unique_ptr<PresetBundle>   m_preset_bundle_right;
 
+    bool inited{false};
+    void ensure_inited();
+
     void create_buttons();
     void create_edit_sizer();
     void complete_dialog_creation();
