@@ -396,7 +396,7 @@ static void migrate_flatpak_legacy_datadir(const boost::filesystem::path &data_d
 {
     if(!boost::filesystem::exists("/.flatpak-info"))
         return; // Not running as a Flatpak, nothing to migrate.
-    
+
     namespace fs = boost::filesystem;
 
     if (fs::exists(data_dir_path)){
@@ -901,7 +901,7 @@ void GUI_App::post_init()
         show_network_plugin_download_dialog(false);
     }
 
-    // Start preset sync after project opened, otherwise we could have preset change during project opening which could cause crash 
+    // Start preset sync after project opened, otherwise we could have preset change during project opening which could cause crash
     if (app_config->get("sync_user_preset") == "true") {
         // BBS loading user preset
         // Always async, not such startup step
@@ -931,7 +931,10 @@ void GUI_App::post_init()
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
             }
 
-            this->check_new_version_sf();
+            if (this->preset_updater->version_check_enabled()) {
+                this->check_new_version_sf();
+            }
+
             const auto cloud_provider = get_printer_cloud_provider();
             if (is_user_login(cloud_provider) && !app_config->get_stealth_mode()) {
               // this->check_privacy_version(0);
@@ -2364,14 +2367,14 @@ void GUI_App::init_app_config()
     BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % GIT_COMMIT_HASH;
 
     //BBS: remove GCodeViewer as seperate APP logic
-	if (!app_config)
+    if (!app_config)
         app_config = new AppConfig();
         //app_config = new AppConfig(is_editor() ? AppConfig::EAppMode::Editor : AppConfig::EAppMode::GCodeViewer);
 
     m_config_corrupted = false;
-	// load settings
-	m_app_conf_exists = app_config->exists();
-	if (m_app_conf_exists) {
+    // load settings
+    m_app_conf_exists = app_config->exists();
+    if (m_app_conf_exists) {
         std::string error = app_config->load();
         if (!error.empty()) {
             // Orca: if the config file is corrupted, we will show a error dialog and create a default config file.
@@ -2654,7 +2657,7 @@ bool GUI_App::on_init_inner()
     init_label_colours();
     init_fonts();
     wxGetApp().Update_dark_mode_flag();
-    
+
 #if defined(__WINDOWS__)
     HMODULE hKernel32 = GetModuleHandleW(L"kernel32.dll");
     m_is_arm64 = false;
@@ -4430,7 +4433,7 @@ bool GUI_App::is_user_login(const std::string& provider/* = ORCA_CLOUD_PROVIDER*
 const std::string& GUI_App::get_printer_cloud_provider() const
 {
     // Orca todo: this need to be revisted. currently it is mainly used for device manager and related clausses and only bambu machines use them.
-    // 
+    //
     return BBL_CLOUD_PROVIDER;
 }
 
@@ -4752,17 +4755,17 @@ std::string GUI_App::handle_web_request(std::string cmd)
                 if (path.has_value()) {
                     wxLaunchDefaultBrowser(path.value());
                 }
-            } 
+            }
             else if (command_str.compare("homepage_makerlab_get") == 0) {
                 //if (mainframe->m_webview) { mainframe->m_webview->SendMakerlabList(); }
             }
-            else if (command_str.compare("makerworld_model_open") == 0) 
+            else if (command_str.compare("makerworld_model_open") == 0)
             {
                 if (root.get_child_optional("model") != boost::none) {
                     pt::ptree                    data_node = root.get_child("model");
                     boost::optional<std::string> path      = data_node.get_optional<std::string>("url");
-                    if (path.has_value()) 
-                    { 
+                    if (path.has_value())
+                    {
                         wxString realurl = from_u8(url_decode(path.value()));
                         wxGetApp().request_model_download(realurl);
                     }
@@ -6255,7 +6258,7 @@ void GUI_App::add_pending_vendor_preset(const std::pair<std::string, std::map<st
             model_name.erase(model_name.rfind(' '));
             if(need_add_vendors[vendor_name].find(model_name) == need_add_vendors[vendor_name].end())
                 need_add_vendors[vendor_name][model_name] = std::set<std::string>();
-            
+
             need_add_vendors[vendor_name][model_name].insert(nozzle_diameter);
         }
     }
@@ -6467,28 +6470,28 @@ void GUI_App::update_single_bundle(wxCommandEvent& evt)
             preset_bundle->bundles.ReadUnlock();
 
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : CallAfter from update_single_bundle function actually updating subscribed presets";
-            
+
             preset_bundle->bundles.WriteLock();
-            
+
             preset_bundle->update_subscribed_presets(*app_config, bundle_presets, remote_metadata, ForwardCompatibilitySubstitutionRule::Enable);
 
             preset_bundle->bundles.WriteUnlock();
-            
+
             std::string text = format(_L("%s updated from %s to %s"), remote_metadata.name, initial_version, remote_metadata.version);
             wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,NotificationManager::NotificationLevel::RegularNotificationLevel,text);
-            
-            auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);                                                                                                                                                       
-            // evt->SetString(wxString::FromUTF8(bundle_id));               
-            if (m_preset_bundle_dlg)                                                                                                                                                                                                                                                          
-                wxQueueEvent(m_preset_bundle_dlg, evt);                                                                                                                                                                                                                                       
-            else                                                                                                                                                                                                                                                                                 
-                delete evt;                                                                                                                                                                           
+
+            auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);
+            // evt->SetString(wxString::FromUTF8(bundle_id));
+            if (m_preset_bundle_dlg)
+                wxQueueEvent(m_preset_bundle_dlg, evt);
+            else
+                delete evt;
             // wxQueueEvent(&wxGetApp(), evt); //  GUI_App -> dialog
-        
+
             if (mainframe)
                 mainframe->update_side_preset_ui();
             BOOST_LOG_TRIVIAL(info) << "sync_bundle: successfully updated bundle " << bundle_id;
-            
+
         }
     });
 }
@@ -6518,7 +6521,7 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
         // Check if remote version is newer using Semver comparison
         auto local_version = Semver::parse(bundle_it->second.version);
         auto remote_version = Semver::parse(version);
-        
+
         BOOST_LOG_TRIVIAL(info) << "sync_bundle: comparing local version: " << local_version << " to remote version: " << remote_version;
 
         if (!local_version || !remote_version) {
@@ -6543,7 +6546,7 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
         is_new = true;
     }
 
-    preset_bundle->bundles.ReadUnlock(); // yield the read lock after checking for updates 
+    preset_bundle->bundles.ReadUnlock(); // yield the read lock after checking for updates
 
     // if it is an update, we will lock and write
     std::string ver;
@@ -6556,8 +6559,8 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
         preset_bundle->bundles.WriteUnlock();
     }
 
-    if(app_config->get_bool("preset_bundle_auto_update") == true || is_new) 
-    {  
+    if(app_config->get_bool("preset_bundle_auto_update") == true || is_new)
+    {
         // Fetch the latest bundle data from cloud
         std::map<std::string, std::map<std::string, std::string>> bundle_presets;
         BundleMetadata remote_metadata;
@@ -6579,12 +6582,12 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
                 }
                 load_pending_vendors();
 
-                // if(!preset_bundle->bundles.pauseReads.load()) // check again if we can actually update so as to not block the main thread 
+                // if(!preset_bundle->bundles.pauseReads.load()) // check again if we can actually update so as to not block the main thread
                 // {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : CallAfter from sync_bundle function actually updating subscribed presets";
-                    
+
                     preset_bundle->bundles.WriteLock();
-                    
+
                     preset_bundle->update_subscribed_presets(*app_config, bundle_presets, remote_metadata, ForwardCompatibilitySubstitutionRule::Enable);
 
                     preset_bundle->bundles.WriteUnlock();
@@ -6600,13 +6603,13 @@ void GUI_App::sync_bundle(std::string bundle_id, std::string version)
                         wxGetApp().plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,NotificationManager::NotificationLevel::RegularNotificationLevel,text);
                     }
 
-                    auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);                                                                                                                                                       
-                    // evt->SetString(wxString::FromUTF8(bundle_id));               
-                    if (m_preset_bundle_dlg)                                                                                                                                                                                                                                                          
-                        wxQueueEvent(m_preset_bundle_dlg, evt);                                                                                                                                                                                                                                       
-                    else                                                                                                                                                                                                                                                                                 
+                    auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);
+                    // evt->SetString(wxString::FromUTF8(bundle_id));
+                    if (m_preset_bundle_dlg)
+                        wxQueueEvent(m_preset_bundle_dlg, evt);
+                    else
                         delete evt;
-                
+
                     if (mainframe)
                         mainframe->update_side_preset_ui();
                     BOOST_LOG_TRIVIAL(info) << "sync_bundle: successfully updated bundle " << bundle_id;
@@ -6890,7 +6893,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         bundles_synced.clear();
                         std::vector<std::string> not_found;
                         std::vector<std::string> unauthorized;
-                        
+
                         int result = orca_agent->get_subscribed_bundles(&bundles_to_sync, not_found, unauthorized);
                         if (result != 0) {
                             BOOST_LOG_TRIVIAL(warning) << "start_sync_user_preset: failed to fetch subscribed bundles, result=" << result;
@@ -6919,35 +6922,35 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                                 preset_bundle->bundles.ReadUnlock();
                             }
                         }
-                        
+
                             // Iterate over the bundles, and update/create
                         for (const auto& bundle_entry : bundles_to_sync) {
 
                             bundles_synced.insert(bundle_entry.first);
                                 // Sync each bundle individually
                                 // if(!preset_bundle->bundles.pauseReads.load()) // if pause is true we will skip updating this frame altogether
-                                // {   
+                                // {
                                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : Update thread syncing bundles";
                                     sync_bundle(bundle_entry.first, bundle_entry.second);
                                 // }
                                 // Small delay between bundle syncs to avoid overwhelming the server
                                 boost::this_thread::sleep_for(boost::chrono::milliseconds(100));
-                            
+
                         }
-                        
+
                         std::vector<BundleMetadata> to_delete;
                         preset_bundle->bundles.ReadLock();
-                        for (const auto& [id, bundle] : preset_bundle->bundles.m_bundles) {                                                                                                                                                    
-                            if (bundle.bundle_type != BundleType::Subscribed)                                                                                                                                                                                         
-                                continue;                                                                                                                                                                                                      
-                            if (bundles_synced.find(id) != bundles_synced.end())                                                                                                                                                               
+                        for (const auto& [id, bundle] : preset_bundle->bundles.m_bundles) {
+                            if (bundle.bundle_type != BundleType::Subscribed)
+                                continue;
+                            if (bundles_synced.find(id) != bundles_synced.end())
                                 continue;
                             if(bundle.unauthorized && bundle.is_subscribed)
                                 continue;
-                            
+
                             to_delete.push_back(bundle);
                         }
-                        preset_bundle->bundles.ReadUnlock();  
+                        preset_bundle->bundles.ReadUnlock();
 
                         bool has_deletion = false;
                         for (const auto& bundle : to_delete) {
@@ -6983,11 +6986,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                                     preset_bundle->update_multi_material_filament_presets();
                                     mainframe->update_side_preset_ui();
 
-                                    auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);                                                                                                                                                       
-                                    // evt->SetString(wxString::FromUTF8(bundle_id));               
-                                    if (m_preset_bundle_dlg)                                                                                                                                                                                                                                                          
-                                        wxQueueEvent(m_preset_bundle_dlg, evt);                                                                                                                                                                                                                                       
-                                    else                                                                                                                                                                                                                                                                                 
+                                    auto* evt = new wxCommandEvent(EVT_UPDATE_BUNDLE_COMPLETE);
+                                    // evt->SetString(wxString::FromUTF8(bundle_id));
+                                    if (m_preset_bundle_dlg)
+                                        wxQueueEvent(m_preset_bundle_dlg, evt);
+                                    else
                                         delete evt;
                                 }
                         });
@@ -7832,18 +7835,18 @@ void GUI_App::open_presetbundledialog(size_t open_on_tab, const std::string& hig
             return;
         }
         m_preset_bundle_dlg = new PresetBundleDialog(mainframe, open_on_tab, highlight_option);
-        m_preset_bundle_dlg->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent&) {                                                                                                                                                                                                          
-            if (m_preset_bundle_dlg)                                                                                                                                                                                                                                           
-                m_preset_bundle_dlg = nullptr;                                                                                                                                                                                                                                                
+        m_preset_bundle_dlg->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent&) {
+            if (m_preset_bundle_dlg)
+                m_preset_bundle_dlg = nullptr;
         });
         // PresetBundleDialog dlg(mainframe, open_on_tab, highlight_option);
         m_preset_bundle_dlg->ShowModal();
-        if (m_preset_bundle_dlg) {                                                                                                                                                                                                                                             
-            m_preset_bundle_dlg->Destroy();                                                                                                                                                                                                                                                              
-            m_preset_bundle_dlg = nullptr;                                                                                                                                                                                                                                            
+        if (m_preset_bundle_dlg) {
+            m_preset_bundle_dlg->Destroy();
+            m_preset_bundle_dlg = nullptr;
         }
         this->plater_->get_current_canvas3D()->force_set_focus();
-        
+
     }
 }
 void GUI_App::open_exportpresetbundledialog(size_t open_on_tab, const std::string& highlight_option)
