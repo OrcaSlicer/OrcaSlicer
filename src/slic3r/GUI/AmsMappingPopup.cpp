@@ -231,7 +231,7 @@ void MaterialItem::render(wxDC &dc)
 
 
 
-    dc.SetTextForeground(wxColour(0x26, 0x2E, 0x30));
+    dc.SetTextForeground(StateColor::darkModeColorFor(wxColour(0x26, 0x2E, 0x30)));
     dc.SetFont(::Label::Head_12);
 
     auto mapping_txt_size = wxSize(0, 0);
