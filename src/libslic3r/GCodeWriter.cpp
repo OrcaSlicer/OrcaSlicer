@@ -528,6 +528,71 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     return w.string();
 }
 
+/*  If this method is called more than once before calling unlift(),
+it will not perform subsequent lifts, even if Z was raised manually
+(i.e. with travel_to_z()) and thus _lifted was reduced. */
+std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
+{
+    // check whether the above/below conditions are met
+    double target_lift = 0;
+    {
+        //BBS
+        int extruder_id = filament()->extruder_id();
+        int filament_id = filament()->id();
+        double above = this->config.retract_lift_above.get_at(extruder_id);
+        double below = this->config.retract_lift_below.get_at(extruder_id);
+        if (m_pos.z() >= above && m_pos.z() <= below)
+            target_lift = this->config.z_hop.get_at(filament_id);
+    }
+    // BBS
+    if (m_lifted == 0 && m_to_lift == 0 && target_lift > 0) {
+        if (spiral_vase) {
+            m_lifted = target_lift;
+            return this->_travel_to_z(m_pos(2) + target_lift, "lift Z");
+        }
+        else {
+            m_to_lift = target_lift;
+            m_to_lift_type = lift_type;
+        }
+    }
+    return "";
+}
+
+// BBS: immediately execute an undelayed lift move with a spiral lift pattern
+// designed specifically for subsequent gcode injection (e.g. timelapse) 
+std::string GCodeWriter::eager_lift(const LiftType type) {
+    std::string lift_move;
+    double target_lift = 0;
+    {
+        //BBS
+        int extruder_id = filament()->extruder_id();
+        int filament_id = filament()->id();
+        double above = this->config.retract_lift_above.get_at(extruder_id);
+        double below = this->config.retract_lift_below.get_at(extruder_id);
+        if (m_pos.z() >= above && m_pos.z() <= below)
+            target_lift = this->config.z_hop.get_at(filament_id);
+    }
+
+    // BBS: spiral lift only safe with known position
+    // TODO: check the arc will move within bed area
+    if (type == LiftType::SpiralLift && this->is_current_position_clear()) {
+        double radius = target_lift / (2 * PI * atan(filament()->travel_slope()));
+        // static spiral alignment when no move in x,y plane.
+        // spiral centra is a radius distance to the right (y=0) 
+        Vec2d ij_offset = { radius, 0 };
+        if (target_lift > 0) {
+            lift_move = this->_spiral_travel_to_z(m_pos(2) + target_lift, ij_offset, "spiral lift Z");
+        }
+    }
+    //BBS: if position is unknown use normal lift
+    else if (target_lift > 0) {
+        lift_move = _travel_to_z(m_pos(2) + target_lift, "normal lift Z");
+    }
+    m_lifted = target_lift;
+    m_to_lift = 0;
+    return lift_move;
+}
+
 std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &comment, bool force_z)
 {
     // FIXME: This function was not being used when travel_speed_z was separated (bd6badf).
@@ -573,8 +638,8 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 ij_offset = { -ij_offset(1), ij_offset(0) };
                 slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
             }
-            //BBS: LazyLift
-            else if (m_to_lift_type == LiftType::LazyLift &&
+            //BBS: SlopeLift
+            else if (m_to_lift_type == LiftType::SlopeLift &&
                 this->is_current_position_clear() &&
                 atan2(delta(2), delta_no_z.norm()) < this->filament()->travel_slope()) {
                 //BBS: check whether we can make a travel like
@@ -871,34 +936,6 @@ std::string GCodeWriter::unretract()
     return gcode;
 }
 
-/*  If this method is called more than once before calling unlift(),
-    it will not perform subsequent lifts, even if Z was raised manually
-    (i.e. with travel_to_z()) and thus _lifted was reduced. */
-std::string GCodeWriter::lift(LiftType lift_type, bool spiral_vase)
-{
-    // check whether the above/below conditions are met
-    double target_lift = 0;
-    {
-        int extruder_id = filament()->extruder_id();
-        int filament_id = filament()->id();
-        double above = this->config.retract_lift_above.get_at(extruder_id);
-        double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos(2) >= above && (below == 0 || m_pos(2) <= below))
-            target_lift = this->config.z_hop.get_at(filament_id);
-    }
-    // BBS
-    if (m_lifted == 0 && m_to_lift == 0 && target_lift > 0) {
-        if (spiral_vase) {
-            m_lifted = target_lift;
-            return this->_travel_to_z(m_pos(2) + target_lift, "lift Z");
-        }
-        else {
-            m_to_lift = target_lift;
-            m_to_lift_type = lift_type;
-        }
-    }
-    return "";
-}
 
 std::string GCodeWriter::unlift()
 {

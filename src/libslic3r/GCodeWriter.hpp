@@ -83,7 +83,10 @@ public:
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
     std::string unretract();
-    std::string lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
+    // do lift instantly
+    std::string eager_lift(const LiftType type);
+    // record a lift request, do realy lift in next travel
+    std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
     std::string unlift();
     const Vec3d& get_position() const { return m_pos; }
     Vec3d&       get_position() { return m_pos; }

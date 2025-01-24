@@ -789,7 +789,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             auto_lift_type = LiftType::SpiralLift;
 
         // BBS: should be placed before toolchange parsing
-        std::string toolchange_retract_str = gcodegen.retract(tcr.is_tool_change && !is_nozzle_change, false, auto_lift_type);
+        std::string toolchange_retract_str = gcodegen.retract(tcr.is_tool_change && !is_nozzle_change, false, auto_lift_type, true);
         check_add_eol(toolchange_retract_str);
 
         //BBS: if needed, write the gcode_label_objects_end then priming tower, if the retract, didn't did it.
@@ -817,7 +817,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcodegen.m_wipe.reset_path();
             for (const Vec2f& wipe_pt : tcr.nozzle_change_result.wipe_path)
                 gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(wipe_pt) + plate_origin_2d));
-            nozzle_change_gcode_trans += gcodegen.retract(tcr.is_tool_change, false, auto_lift_type);
+            nozzle_change_gcode_trans += gcodegen.retract(tcr.is_tool_change, false, auto_lift_type, true);
             end_filament_gcode_str = nozzle_change_gcode_trans + end_filament_gcode_str;
         }
 
@@ -1064,7 +1064,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcodegen.m_wipe.reset_path();
             for (const Vec2f &wipe_pt : tcr.wipe_path)
                 gcodegen.m_wipe.path.points.emplace_back(wipe_tower_point_to_object_point(gcodegen, transform_wt_pt(wipe_pt)));
-            gcode += gcodegen.retract(false, false, auto_lift_type);
+            gcode += gcodegen.retract(false, false, auto_lift_type, true);
         }
 
         // Let the planner know we are traveling between objects.
@@ -4776,7 +4776,7 @@ LayerResult GCode::process_layer(
 
     if (!need_insert_timelapse_gcode_for_traditional) { // Equivalent to the timelapse gcode placed in layer_change_gcode
         if (FILAMENT_CONFIG(retract_when_changing_layer)) {
-            gcode += this->retract(false, false, auto_lift_type);
+            gcode += this->retract(false, false, auto_lift_type, true);
         }
         gcode += insert_timelapse_gcode();
     }
@@ -4833,7 +4833,7 @@ LayerResult GCode::process_layer(
                     }
 
                     if (should_insert) {
-                        gcode += this->retract(false, false, auto_lift_type);
+                        gcode += this->retract(false, false, auto_lift_type, true);
                         m_writer.add_object_change_labels(gcode);
 
                         gcode += insert_timelapse_gcode();
@@ -4842,7 +4842,7 @@ LayerResult GCode::process_layer(
                 }
 
                 if (print.config().enable_wrapping_detection && !has_insert_wrapping_detection_gcode) {
-                    gcode += this->retract(false, false, auto_lift_type);
+                    gcode += this->retract(false, false, auto_lift_type, true);
                     gcode += insert_wrapping_detection_gcode();
                     has_insert_wrapping_detection_gcode = true;
                 }
@@ -4855,7 +4855,7 @@ LayerResult GCode::process_layer(
                 m_config.nozzle_diameter.values.size() == 2 &&
                 writer().filament() &&
                 (get_extruder_id(writer().filament()->id()) == most_used_extruder)) {
-                gcode += this->retract(false, false, auto_lift_type);
+                gcode += this->retract(false, false, auto_lift_type, true);
                 m_writer.add_object_change_labels(gcode);
 
                 gcode += insert_timelapse_gcode();
@@ -4863,7 +4863,7 @@ LayerResult GCode::process_layer(
             }
 
             if (print.config().enable_wrapping_detection && !has_insert_wrapping_detection_gcode) {
-                gcode += this->retract(false, false, auto_lift_type);
+                gcode += this->retract(false, false, auto_lift_type, true);
                 gcode += insert_wrapping_detection_gcode();
                 has_insert_wrapping_detection_gcode = true;
             }
@@ -5068,7 +5068,7 @@ LayerResult GCode::process_layer(
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, false);
                         if (!has_wipe_tower && need_insert_timelapse_gcode_for_traditional && printer_structure == PrinterStructure::psI3
                             && !has_insert_timelapse_gcode && has_infill(by_region_specific)) {
-                            gcode += this->retract(false, false, auto_lift_type);
+                            gcode += this->retract(false, false, auto_lift_type, true);
 
                             gcode += insert_timelapse_gcode();
                             has_insert_timelapse_gcode = true;
@@ -5153,7 +5153,7 @@ LayerResult GCode::process_layer(
             m_support_traditional_timelapse = false;
         }
         if (FILAMENT_CONFIG(retract_when_changing_layer)) {
-        gcode += this->retract(false, false, auto_lift_type);
+            gcode += this->retract(false, false, auto_lift_type, true);
         }
         m_writer.add_object_change_labels(gcode);
 
@@ -6890,7 +6890,7 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
             m_wipe.reset_path();*/
 
         Point last_post_before_retract = this->last_pos();
-        gcode += this->retract(false, false, lift_type, role);
+        gcode += this->retract(false, false, lift_type, false, role);
         // When "Wipe while retracting" is enabled, then extruder moves to another position, and travel from this position can cross perimeters.
         // Because of it, it is necessary to call avoid crossing perimeters again with new starting point after calling retraction()
         // FIXME Lukas H.: Try to predict if this second calling of avoid crossing perimeters will be needed or not. It could save computations.
@@ -6969,7 +6969,7 @@ LiftType GCode::to_lift_type(ZHopType z_hop_types) {
     case ZHopType::zhtNormal:
         return LiftType::NormalLift;
     case ZHopType::zhtSlope:
-        return LiftType::LazyLift;
+        return LiftType::SlopeLift;
     case ZHopType::zhtSpiral:
         return LiftType::SpiralLift;
     default:
@@ -7060,7 +7060,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
     //Better way is judging whether the travel move direction is same with last extrusion move.
     if (is_perimeter(m_last_processor_extrusion_role) && m_last_processor_extrusion_role != erPerimeter) {
         if (ZHopType(FILAMENT_CONFIG(z_hop_types)) == ZHopType::zhtAuto) {
-            lift_type = is_through_overhang(clipped_travel) ? LiftType::SpiralLift : LiftType::LazyLift;
+            lift_type = is_through_overhang(clipped_travel) ? LiftType::SpiralLift : LiftType::SlopeLift;
         }
         else {
             lift_type = to_lift_type(ZHopType(FILAMENT_CONFIG(z_hop_types)));
@@ -7094,7 +7094,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
 
     // retract if reduce_infill_retraction is disabled or doesn't apply when role is perimeter
     if (ZHopType(FILAMENT_CONFIG(z_hop_types)) == ZHopType::zhtAuto) {
-        lift_type = is_through_overhang(clipped_travel) ? LiftType::SpiralLift : LiftType::LazyLift;
+        lift_type = is_through_overhang(clipped_travel) ? LiftType::SpiralLift : LiftType::SlopeLift;
     }
     else {
         lift_type = to_lift_type(ZHopType(FILAMENT_CONFIG(z_hop_types)));
@@ -7102,7 +7102,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
     return true;
 }
 
-std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType lift_type, ExtrusionRole role)
+std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType lift_type, bool apply_instantly, ExtrusionRole role)
 {
     std::string gcode;
 
@@ -7151,7 +7151,10 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
     }
 
     if (needs_lift && can_lift) {
-        gcode += m_writer.lift(lift_type, m_spiral_vase != nullptr);
+        if (apply_instantly)
+            gcode += m_writer.eager_lift(lift_type);
+        else
+            gcode += m_writer.lazy_lift(lift_type, m_spiral_vase != nullptr);
     }
 
     return gcode;
@@ -7371,7 +7374,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     std::string change_filament_gcode = m_config.change_filament_gcode.value;
 
     // Move the lift gcode here which is in the change_filament_gcode originally
-    change_filament_gcode = this->retract(false, false, LiftType::SpiralLift) + change_filament_gcode;
+    change_filament_gcode = this->retract(false, false, LiftType::SpiralLift, true) + change_filament_gcode;
 
     std::string toolchange_gcode_parsed;
     //Orca: Ignore change_filament_gcode if is the first call for a tool change and manual_filament_change is enabled
