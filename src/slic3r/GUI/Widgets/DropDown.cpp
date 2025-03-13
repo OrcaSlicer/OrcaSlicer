@@ -423,7 +423,7 @@ int DropDown::hoverIndex()
         return hover_item;
     int index = -1;
     std::set<wxString> groups;
-    for (size_t i = 0; i < items.size(); ++i) {
+    for (int i = 0; i < items.size(); ++i) {
         auto &item = items[i];
         // Skip by group
         if (group.IsEmpty()) {

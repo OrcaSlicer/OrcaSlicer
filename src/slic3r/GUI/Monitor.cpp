@@ -160,7 +160,7 @@ void MonitorPanel::init_timer()
     m_refresh_timer = new wxTimer();
     m_refresh_timer->SetOwner(this);
     m_refresh_timer->Start(REFRESH_INTERVAL);
-    wxPostEvent(this, wxTimerEvent());
+    if (update_flag) { update_all();}
 }
 
 void MonitorPanel::init_tabpanel()
@@ -411,7 +411,7 @@ bool MonitorPanel::Show(bool show)
         m_refresh_timer->Stop();
         m_refresh_timer->SetOwner(this);
         m_refresh_timer->Start(REFRESH_INTERVAL);
-        wxPostEvent(this, wxTimerEvent());
+        if (update_flag) { update_all(); }
 
         if (dev) {
             //set a default machine when obj is null

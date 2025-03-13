@@ -2186,7 +2186,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> ne
 }
 void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 {
-    int old_filament_count = this->filament_presets.size();
+    unsigned old_filament_count = this->filament_presets.size();
     if (n > old_filament_count && old_filament_count != 0)
         filament_presets.resize(n, filament_presets.back());
     else {
@@ -2205,7 +2205,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     //BBS set new filament color to new_color
     if (old_filament_count < n) {
         if (!new_color.empty()) {
-            for (int i = old_filament_count; i < n; i++) {
+            for (unsigned i = old_filament_count; i < n; i++) {
                 filament_color->values[i] = new_color;
                 filament_multi_color->values[i] = new_color;
                 filament_color_type->values[i]  = "1";  // default color type
@@ -2218,7 +2218,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
 
 void PresetBundle::update_num_filaments(unsigned int to_del_flament_id)
 {
-    int old_filament_count = this->filament_presets.size();
+    unsigned old_filament_count = this->filament_presets.size();
     assert(to_del_flament_id < old_filament_count);
     filament_presets.erase(filament_presets.begin() + to_del_flament_id);
 
@@ -2778,7 +2778,7 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
 //BBS: check whether this is the only edited filament
 bool PresetBundle::is_the_only_edited_filament(unsigned int filament_index)
 {
-    int n = this->filament_presets.size();
+    unsigned n = this->filament_presets.size();
     if (filament_index >= n)
         return false;
 
@@ -2787,7 +2787,7 @@ bool PresetBundle::is_the_only_edited_filament(unsigned int filament_index)
     if (edited_preset.name != name)
         return false;
 
-    int index = 0;
+    unsigned index = 0;
     while (index < n)
     {
         if (index == filament_index) {
