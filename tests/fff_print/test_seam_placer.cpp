@@ -162,7 +162,7 @@ std::vector<Vec2d> placed_seams(const SeamPlacer &placer, const PrintObject &obj
         REQUIRE(loop != nullptr);
         ExtrusionLoop copy = *loop;
         float overhang = 0.0f;
-        placer.place_seam(layer, copy, Point(0, 0), overhang);
+        placer.place_seam(layer, copy, Point(0, 0), overhang, false);
         starts.push_back(unscale(copy.first_point()));
     }
     return starts;
