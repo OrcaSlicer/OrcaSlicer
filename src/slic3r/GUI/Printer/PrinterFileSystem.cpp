@@ -1232,7 +1232,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
     if (m_session.owner == nullptr)
         return;
     json r;
-    while (!m_callbacks.empty()) {
+    while(!m_callbacks.empty()) {
         auto c = m_callbacks.front();
         m_callbacks.pop_front();
         ++m_sequence;
@@ -1245,6 +1245,8 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
         while (m_stopped) {
             if (m_session.owner == nullptr)
                 return;
+            m_status = Status::Stopped;
+            SendChangedEvent(EVT_STATUS_CHANGED, m_status);
             m_cond.wait(l);
         }
         wxLogMessage("PrinterFileSystem::Reconnect Initializing");
@@ -1271,6 +1273,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
             Bambu_Tunnel tunnel = nullptr;
             int ret = Bambu_Create(&tunnel, url.c_str());
             if (ret == 0) {
+
                 Bambu_SetLogger(tunnel, DumpLog, this);
                 ret = Bambu_Open(tunnel);
             }
@@ -1297,6 +1300,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
         }
         wxLogMessage("PrinterFileSystem::Reconnect Failed");
         m_status = Status::Failed;
+
         SendChangedEvent(EVT_STATUS_CHANGED, m_status, "", url.size() < 2 ? 1 : m_last_error);
         m_cond.timed_wait(l, boost::posix_time::seconds(10));
     }

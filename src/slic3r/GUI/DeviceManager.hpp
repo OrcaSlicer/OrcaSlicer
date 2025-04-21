@@ -509,6 +509,7 @@ public:
     int         subscribe_counter{3};
     std::string dev_connection_type;    /* lan | cloud */
     std::string connection_type() { return dev_connection_type; }
+
     std::string dev_connection_name;    /* lan | eth */
     void set_dev_ip(std::string ip) {dev_ip = ip;}
     std::string get_ftp_folder();
@@ -520,6 +521,7 @@ public:
     void erase_user_access_code();
     std::string get_user_access_code() const;
     bool is_lan_mode_printer() const;
+    std::string convertToIp(long long ip);
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */

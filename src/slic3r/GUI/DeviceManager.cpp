@@ -535,6 +535,13 @@ bool MachineObject::is_lan_mode_printer() const
     return result;
 }
 
+std::string MachineObject::convertToIp(long long ip)
+{
+    std::stringstream ss;
+    ss << ((ip >> 0) & 0xFF) << "." << ((ip >> 8) & 0xFF) << "." << ((ip >> 16) & 0xFF) << "." << ((ip >> 24) & 0xFF);
+    return ss.str();
+}
+
 PrinterSeries MachineObject::get_printer_series() const
 {
     std::string series =  DeviceManager::get_printer_series(printer_type);
@@ -3423,8 +3430,24 @@ int MachineObject::parse_json(std::string payload, bool key_field_only)
                             if (jj["net"].contains("conf")) {
                                 network_wired = (jj["net"]["conf"].get<int>() & (0x1)) != 0;
                             }
+                            if (jj["net"].contains("info")) {
+                                for (auto info_item = jj["net"]["info"].begin(); info_item != jj["net"]["info"].end(); info_item++) {
+
+                                    if (info_item->contains("ip")) {
+                                        auto tmp_dev_ip = (*info_item)["ip"].get<int64_t>();
+                                        if (tmp_dev_ip == 0)
+                                            continue ;
+                                        else {
+                                           set_dev_ip(convertToIp(tmp_dev_ip));
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
+
 #pragma endregion
 
 #pragma region online
