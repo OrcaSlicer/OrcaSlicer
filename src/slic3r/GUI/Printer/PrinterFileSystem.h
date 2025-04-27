@@ -170,7 +170,7 @@ public:
         ListSyncing,
         ListReady,
         Failed,
-        Stopped,
+        Reconnecting,
     };
     
     Status GetStatus() const { return m_status; }
