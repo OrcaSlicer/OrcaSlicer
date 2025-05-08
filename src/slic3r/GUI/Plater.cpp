@@ -253,20 +253,6 @@ static std::map<BedType, std::string> bed_type_thumbnails = {
     {BedType::btSuperTack, "bed_cool_supertack"}
 };
 
-// print_model_id
-static std::map<std::string, std::string> printer_thumbnails = {
-    {"N1", "printer_preview_N1"},
-    {"N2S", "printer_preview_N2S"},
-    {"C11", "printer_preview_C11"},
-    {"C12", "printer_preview_C12"},
-    {"C13", "printer_preview_C13"},
-    {"BL-P001", "printer_preview_BL-P001"},
-    {"BL-P002", "printer_preview_BL-P002"},
-    {"O1D", "printer_preview_O1D"},
-    {"O1E", "printer_preview_O1E"},
-    {"O1S", "printer_preview_O1S"}
-};
-
 enum SlicedInfoIdx
 {
     siFilament_m,
@@ -3583,14 +3569,24 @@ std::string& Sidebar::get_search_line()
     return p->searcher.search_string();
 }
 
+static std::map<std::string, std::string> printer_thumbnails = {};
+
 void Sidebar::update_printer_thumbnail()
 {
     auto& preset_bundle = wxGetApp().preset_bundle;
     Preset & selected_preset = preset_bundle->printers.get_edited_preset();
     std::string printer_type    = selected_preset.get_current_printer_type(preset_bundle);
-    if (printer_thumbnails.find(printer_type) != printer_thumbnails.end())
+    if (printer_thumbnails.find(printer_type) != printer_thumbnails.end()) // Use known cache first
         p->image_printer->SetBitmap(create_scaled_bitmap(printer_thumbnails[printer_type], this, 48));
     else {
+        try {
+            // No cache, try dedicated printer preview
+            p->image_printer->SetBitmap(create_scaled_bitmap("printer_preview_" + printer_type, this, 48));
+            // Success, cache it
+            printer_thumbnails[printer_type] = "printer_preview_" + printer_type;
+            return;
+        } catch (...) {}
+
         // Orca: try to use the printer model cover as the thumbnail
         const auto model_name = selected_preset.config.opt_string("printer_model");
         std::string cover_file = model_name + "_cover.png";
