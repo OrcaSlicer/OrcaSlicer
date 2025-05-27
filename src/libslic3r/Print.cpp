@@ -178,7 +178,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "z_hop",
         "travel_slope",
         "retract_lift_above",
-        "retract_lift_below", 
+        "retract_lift_below",
         "retract_lift_enforce",
         "retract_restart_extra",
         "retract_restart_extra_toolchange",
@@ -212,7 +212,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "accel_to_decel_factor",
         "wipe_on_loops",
         "gcode_comments",
-        "gcode_label_objects", 
+        "gcode_label_objects",
         "exclude_object",
         "support_material_interface_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
@@ -1275,7 +1275,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 
             Vec3d test =this->shrinkage_compensation();
             const double shrinkage_compensation_z = this->shrinkage_compensation().z();
-            
+
             if (shrinkage_compensation_z != 1. && layers.back() > (this->config().printable_height / shrinkage_compensation_z + EPSILON)) {
                 // The object exceeds the maximum build volume height because of shrinkage compensation.
                 return StringObjectException{
@@ -1298,14 +1298,14 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     }
 
     // Some of the objects has variable layer height applied by painting or by a table.
-    bool has_custom_layering = std::find_if(m_objects.begin(), m_objects.end(), 
-        [](const PrintObject *object) { return object->model_object()->has_custom_layering(); }) 
+    bool has_custom_layering = std::find_if(m_objects.begin(), m_objects.end(),
+        [](const PrintObject *object) { return object->model_object()->has_custom_layering(); })
         != m_objects.end();
 
     // Custom layering is not allowed for tree supports as of now.
     for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx)
         if (const PrintObject &print_object = *m_objects[print_object_idx];
-            print_object.has_support_material() && is_tree(print_object.config().support_type.value) && (print_object.config().support_style.value == smsTreeOrganic || 
+            print_object.has_support_material() && is_tree(print_object.config().support_type.value) && (print_object.config().support_style.value == smsTreeOrganic ||
                 // Orca: use organic as default
                 print_object.config().support_style.value == smsDefault) &&
             print_object.model_object()->has_custom_layering()) {
@@ -1336,7 +1336,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 
         if (m_config.ooze_prevention && m_config.single_extruder_multi_material)
             return {L("Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off.")};
-            
+
 #if 0
         if (m_config.gcode_flavor != gcfRepRapSprinter && m_config.gcode_flavor != gcfRepRapFirmware &&
             m_config.gcode_flavor != gcfRepetier && m_config.gcode_flavor != gcfMarlinLegacy && m_config.gcode_flavor != gcfMarlinFirmware)
@@ -1394,7 +1394,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             if (has_custom_layering) {
                 std::vector<std::vector<coordf_t>> layer_z_series;
                 layer_z_series.assign(m_objects.size(), std::vector<coordf_t>());
-               
+
                 for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
                     layer_z_series[idx_object] = generate_object_layers(m_objects[idx_object]->slicing_parameters(), layer_height_profiles[idx_object], m_objects[idx_object]->config().precise_z_height.value);
                 }
@@ -1571,7 +1571,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
     assert(bed_type_def != nullptr);
 
-	    if (is_BBL_printer()) {
+	    // if (is_BBL_printer()) {  // ORCA: Why not for others too?
 	    const t_config_enum_values* bed_type_keys_map = bed_type_def->enum_keys_map;
 	    for (unsigned int extruder_id : extruders) {
 	        const ConfigOptionInts* bed_temp_opt = m_config.option<ConfigOptionInts>(get_bed_temp_key(m_config.curr_bed_type));
@@ -1598,7 +1598,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
 	           }
             }
         }
-    }
+    // }  // BBL Printer
 
     // check if print speed/accel/jerk is higher than the maximum speed of the printer
     if (warning) {
@@ -1665,7 +1665,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                                       "machine_max_junction_deviation value in your printer's configuration to get higher limits.");
                 warning->opt_key = warning_key;
             }
-            
+
             // check acceleration
             const auto max_accel = m_config.machine_max_acceleration_extruding.values[0];
             if (warning_key.empty() && m_default_object_config.default_acceleration > 0 && max_accel > 0) {
@@ -3048,9 +3048,9 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
                 max_wipe_volumes.emplace_back(*std::max_element(v.begin(), v.end()));
             float maximum = std::accumulate(max_wipe_volumes.begin(), max_wipe_volumes.end(), 0.f);
             maximum       = maximum * filaments_cnt / max_wipe_volumes.size();
-            
+
             // Orca: it's overshooting a bit, so let's reduce it a bit
-            maximum *= 0.6; 
+            maximum *= 0.6;
             const_cast<Print *>(this)->m_wipe_tower_data.depth = maximum / (layer_height * width);
         } else {
             double depth = volume / (layer_height * width) * extra_spacing;
@@ -3438,7 +3438,7 @@ std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
 {
     if (config().skirt_loops == 0 || config().skirt_type != stPerObject)
         return std::make_tuple(0, 0);
-    
+
     float max_nozzle_diameter = *std::max_element(m_config.nozzle_diameter.values.begin(), m_config.nozzle_diameter.values.end());
     float max_layer_height    = *std::max_element(config().max_layer_height.values.begin(), config().max_layer_height.values.end());
     float line_width = m_config.initial_layer_line_width.get_abs_value(max_nozzle_diameter);
