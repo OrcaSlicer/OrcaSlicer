@@ -2446,7 +2446,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     //resize
     first_non_support_filaments.resize(print.config().nozzle_diameter.size(), -1);
     first_filaments.resize(print.config().nozzle_diameter.size(), -1);
-
+    float max_additional_fan = 0.f;
     if (print.config().print_sequence == PrintSequence::ByObject) {
         // Order object instances for sequential print.
         print_object_instances_ordering = sort_object_instances_by_model_order(print);
@@ -2459,6 +2459,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             tool_ordering = ToolOrdering(*(*print_object_instance_sequential_active)->print_object, initial_extruder_id);
 
             tool_ordering.sort_and_build_data(*(*print_object_instance_sequential_active)->print_object,initial_extruder_id);
+            float temp_max_additional_fan = tool_ordering.cal_max_additional_fan(print.config());
+            if(temp_max_additional_fan > max_additional_fan )
+                        max_additional_fan = temp_max_additional_fan;
             if (!find_fist_non_support_filament && tool_ordering.first_extruder() != (unsigned int) -1) {
                 //BBS: try to find the non-support filament extruder if is multi color and initial_extruder is support filament
                 if (initial_extruder_id == (unsigned int) -1) {
@@ -2482,6 +2485,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // If the tool ordering has been pre-calculated by Print class for wipe tower already, reuse it.
         tool_ordering = print.tool_ordering();
         tool_ordering.assign_custom_gcodes(print);
+        float temp_max_additional_fan = tool_ordering.cal_max_additional_fan(print.config());
+        if(temp_max_additional_fan > max_additional_fan )
+                        max_additional_fan = temp_max_additional_fan;
         if (tool_ordering.all_extruders().empty())
             // No object to print was found, cancel the G-code export.
             throw Slic3r::SlicingError(_(L("No object can be printed. Maybe too small")));
@@ -2578,6 +2584,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("long_retractions_when_cut",new ConfigOptionBools(m_config.long_retractions_when_cut));
     this->placeholder_parser().set("retraction_distances_when_ec", new ConfigOptionFloatsNullable(m_config.retraction_distances_when_ec));
     this->placeholder_parser().set("long_retractions_when_ec",new ConfigOptionBoolsNullable(m_config.long_retractions_when_ec));
+
+    this->placeholder_parser().set("max_additional_fan", max_additional_fan);
 
     auto flush_v_speed = m_config.filament_flush_volumetric_speed.values;
     auto flush_temps = m_config.filament_flush_temp.values;
@@ -3117,6 +3125,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         //BBS
         config.set_key_value("layer_z",   new ConfigOptionFloat(m_writer.get_position()(2) - m_config.z_offset.value));
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
+
         if (print.config().single_extruder_multi_material) {
             // Process the filament_end_gcode for the active filament only.
             int extruder_id = m_writer.filament()->id();
