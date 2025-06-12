@@ -10,7 +10,7 @@ static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
 // the local HMS info
-static unordered_set<string> package_dev_id_types {"094", "239", "093"};
+static unordered_set<string> package_dev_id_types {"094", "239", "093", "22E"};
 
 namespace Slic3r {
 namespace GUI {
