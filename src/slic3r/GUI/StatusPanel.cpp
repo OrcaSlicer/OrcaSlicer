@@ -3638,23 +3638,18 @@ void StatusPanel::update_subtask(MachineObject *obj)
                 int width = m_project_task_panel->get_bitmap_thumbnail()->GetSize().x;
                 int height = m_project_task_panel->get_bitmap_thumbnail()->GetSize().y;
                 if (m_calib_method == CALI_METHOD_AUTO) {
+                    std::string image_name = obj->get_auto_pa_cali_thumbnail_img_str();
                     if (m_calib_mode == CalibMode::Calib_PA_Line) {
                         if (obj->is_multi_extruders()) {
                             int cur_ext_id = obj->GetExtderSystem()->GetCurrentExtderId();
                             if (cur_ext_id == 0) {
-                                png_path = (boost::format("%1%/images/fd_calibration_auto_multi_extruders_right.png") % resources_dir()).str();
+                                image_name += "_right";
                             }
                             else {
-                                assert(cur_ext_id == 1);
-                                png_path = (boost::format("%1%/images/fd_calibration_auto_multi_extruders_left.png") % resources_dir()).str();
+                                image_name += "_left";
                             }
                         }
-                        else if (obj->get_printer_arch() == PrinterArch::ARCH_I3)
-                            png_path = (boost::format("%1%/images/fd_calibration_auto_i3.png") % resources_dir()).str();
-                        else if (obj->is_series_o())
-                            png_path = (boost::format("%1%/images/fd_calibration_auto_single_o.png") % resources_dir()).str();
-                        else
-                            png_path = (boost::format("%1%/images/fd_calibration_auto.png") % resources_dir()).str();
+                        png_path = (boost::format("%1%/images/%2%.png") % resources_dir() % image_name).str();
                     }
                     else if (m_calib_mode == CalibMode::Calib_Flow_Rate) {
                         png_path = (boost::format("%1%/images/flow_rate_calibration_auto.png") % resources_dir()).str();

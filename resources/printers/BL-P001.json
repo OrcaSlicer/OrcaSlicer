@@ -52,6 +52,7 @@
 		"compatible_machine": [ "BL-P002", "C11", "C12", "C13" ],
 		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
 		"support_wrapping_detection": false,
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto",
 		"printer_type": "3DPrinter-X1-Carbon",
 		"printer_thumbnail_image": "printer_thumbnail",
 		"printer_connect_help_image": "input_access_code_x1",

@@ -45,6 +45,7 @@
 		},
 		"model_id": "C11",
 		"support_wrapping_detection": false,
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto",
 		"compatible_machine": [ "BL-P001", "BL-P002", "C12", "C13" ],
 		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
 		"printer_type": "C11",

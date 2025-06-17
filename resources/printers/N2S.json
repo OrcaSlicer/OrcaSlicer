@@ -47,6 +47,7 @@
 		"compatible_machine": [],
 		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
 		"support_wrapping_detection": false,
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_i3",
 		"printer_type": "N2S",
 		"ftp_folder": "sdcard/",
 		"printer_thumbnail_image": "printer_thumbnail_n2s",
