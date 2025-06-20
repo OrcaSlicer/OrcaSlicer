@@ -22,6 +22,7 @@ wxDECLARE_EVENT(EVT_FILE_CHANGED, wxCommandEvent);
 wxDECLARE_EVENT(EVT_SELECT_CHANGED, wxCommandEvent);
 wxDECLARE_EVENT(EVT_THUMBNAIL, wxCommandEvent);
 wxDECLARE_EVENT(EVT_DOWNLOAD, wxCommandEvent);
+wxDECLARE_EVENT(EVT_RAMDOWNLOAD, wxCommandEvent);
 
 class PrinterFileSystem : public wxEvtHandler, public boost::enable_shared_from_this<PrinterFileSystem>, BambuLib
 {
@@ -138,6 +139,17 @@ public:
 
     void DownloadFiles(size_t index, std::string const &path);
 
+    void GetPickImage(int id, const std::string &local_path, const std::string &path);
+
+    void GetPickImages(const std::vector<std::string> &local_paths, const std::vector<std::string> &targetpaths);
+
+
+    void DownloadRamFile(int index, const std::string &local_path, const std::string &param);
+
+    void SendExistedFile();
+
+    void SendConnectFail();
+
     void DownloadCheckFiles(std::string const &path);
 
     bool DownloadCheckFile(size_t index);
@@ -218,8 +230,7 @@ private:
 
     typedef std::function<int(int, json const &resp, unsigned char const *data)> callback_t2;
 
-    template <typename T>
-    boost::uint32_t SendRequest(int type, json const& req, Translator<T> const& translator, Callback<T> const& callback)
+    template<typename T> boost::uint32_t SendRequest(int type, json const &req, Translator<T> const &translator, Callback<T> const &callback, const std::string &param = "")
     {
         auto c = [translator, callback, this](int result, json const &resp, unsigned char const *data) -> int
         {
@@ -236,7 +247,7 @@ private:
             PostCallback<T>(callback, result, t);
             return result;
         };
-        return SendRequest(type, req, c);
+        return SendRequest(type, req, c, param);
     }
 
     template<typename T> using Applier = std::function<void(T const &)>;
@@ -266,7 +277,7 @@ private:
         InstallNotify(type, c);
     }
 
-    boost::uint32_t SendRequest(int type, json const &req, callback_t2 const &callback);
+    boost::uint32_t SendRequest(int type, json const &req, callback_t2 const &callback, const std::string &param = "");
 
     void InstallNotify(int type, callback_t2 const &callback);
 

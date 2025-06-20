@@ -278,6 +278,20 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
 
     bSizer_task_btn->Add(FromDIP(10), 0, 0);
 
+    StateColor white_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Pressed),
+                          std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
+                          std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
+    m_button_partskip = new Button(m_panel_progress, "");
+    m_button_partskip->Enable(false);
+    m_button_partskip->SetBackgroundColor(white_bg);
+    m_button_partskip->SetIcon("print_control_partskip_disable");
+    m_button_partskip->SetBorderColor(*wxWHITE);
+    m_button_partskip->SetFont(Label::Body_12);
+    m_button_partskip->SetCornerRadius(0);
+    m_button_partskip->SetToolTip(_L("Parts Skip"));
+    m_button_partskip->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) { m_button_partskip->SetIcon("print_control_partskip"); });
+    m_button_partskip->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { m_button_partskip->SetIcon("print_control_partskip"); });
+
     m_button_pause_resume = new ScalableButton(m_panel_progress, wxID_ANY, "print_control_pause", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER,true);
 
     m_button_pause_resume->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) {
@@ -314,6 +328,8 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
 
     m_sizer_progressbar->Add(m_gauge_progress, 1, wxALIGN_CENTER_VERTICAL, 0);
     m_sizer_progressbar->Add(0, 0, 0, wxEXPAND|wxLEFT, FromDIP(18));
+    m_sizer_progressbar->Add(m_button_partskip, 0, wxALL, FromDIP(5));
+    m_sizer_progressbar->Add(0, 0, 0, wxEXPAND | wxLEFT, FromDIP(18));
     m_sizer_progressbar->Add(m_button_pause_resume, 0, wxALL, FromDIP(5));
     m_sizer_progressbar->Add(0, 0, 0, wxEXPAND|wxLEFT, FromDIP(18));
     m_sizer_progressbar->Add(m_button_abort, 0, wxALL, FromDIP(5));
@@ -636,6 +652,22 @@ void PrintingTaskPanel::reset_printing_value()
 {
     this->set_thumbnail_img(m_thumbnail_placeholder.bmp());
     this->set_plate_index(-1);
+}
+
+void PrintingTaskPanel::update_machine_object(MachineObject* obj){
+    if(obj) m_obj = obj;
+}
+
+void PrintingTaskPanel::enable_partskip_button(bool enable)
+{
+    if (!enable) {
+        m_button_partskip->Enable(false);
+        m_button_partskip->SetLabel("");
+        m_button_partskip->SetIcon("print_control_partskip_disable");
+    }else if(m_obj && m_obj->is_support_brtc){
+        m_button_partskip->Enable(true);
+        m_button_partskip->SetIcon("print_control_partskip");   
+    }
 }
 
 void PrintingTaskPanel::enable_pause_resume_button(bool enable, std::string type)
@@ -1731,6 +1763,7 @@ StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, co
     m_switch_cham_fan->SetValue(false);
 
     /* set default enable state */
+    m_project_task_panel->enable_partskip_button(false);
     m_project_task_panel->enable_pause_resume_button(false, "resume_disable");
     m_project_task_panel->enable_abort_button(false);
 
@@ -1751,6 +1784,7 @@ StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, co
 
     // Connect Events
     m_project_task_panel->get_bitmap_thumbnail()->Connect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::refresh_thumbnail_webrequest), NULL, this);
+    m_project_task_panel->get_partskip_button()->Connect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_subtask_partskip), NULL, this);
     m_project_task_panel->get_pause_resume_button()->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_pause_resume), NULL, this);
     m_project_task_panel->get_abort_button()->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_abort), NULL, this);
     m_project_task_panel->get_market_scoring_button()->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_market_scoring), NULL, this);
@@ -1810,6 +1844,7 @@ StatusPanel::~StatusPanel()
 {
     // Disconnect Events
     m_project_task_panel->get_bitmap_thumbnail()->Disconnect(wxEVT_LEFT_DOWN, wxMouseEventHandler(StatusPanel::refresh_thumbnail_webrequest), NULL, this);
+    m_project_task_panel->get_partskip_button()->Disconnect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_subtask_partskip), NULL, this);
     m_project_task_panel->get_pause_resume_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_pause_resume), NULL, this);
     m_project_task_panel->get_abort_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_subtask_abort), NULL, this);
     m_project_task_panel->get_market_scoring_button()->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_market_scoring), NULL, this);
@@ -1938,6 +1973,17 @@ void StatusPanel::on_market_retry(wxCommandEvent &event)
     } else {
         BOOST_LOG_TRIVIAL(info)<< __FUNCTION__ << "retury failed";
     }
+}
+
+void StatusPanel::on_subtask_partskip(wxCommandEvent &event)
+{
+    if (m_partskip_dlg == nullptr) {
+        m_partskip_dlg = new PartSkipDialog(this->GetParent());
+    }
+    
+    auto dm = GUI::wxGetApp().getDeviceManager();
+    m_partskip_dlg->InitSchedule(dm->get_selected_machine());
+    m_partskip_dlg->ShowModal();
 }
 
 void StatusPanel::on_subtask_pause_resume(wxCommandEvent &event)
@@ -3089,9 +3135,12 @@ void StatusPanel::update_subtask(MachineObject *obj)
         || obj->is_in_calibration()) {
         reset_printing_values();
     } else if (obj->is_in_printing() || obj->print_status == "FINISH") {
+        update_partskip_subtask(obj);
+
         if (obj->is_in_prepare() || obj->print_status == "SLICING") {
             m_project_task_panel->market_scoring_hide();
             m_project_task_panel->get_request_failed_panel()->Hide();
+            m_project_task_panel->enable_partskip_button(false);
             m_project_task_panel->enable_abort_button(false);
             m_project_task_panel->enable_pause_resume_button(false, "pause_disable");
             wxString prepare_text;
@@ -3133,7 +3182,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
             } else {
                  m_project_task_panel->enable_pause_resume_button(true, "pause");
             }
-
+            m_project_task_panel->enable_partskip_button(true);
             // update printing stage
             m_project_task_panel->update_left_time(obj->mc_left_time);
             if (obj->subtask_) {
@@ -3150,6 +3199,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
             if (obj->is_printing_finished()) {
                 obj->update_model_task();
                 m_project_task_panel->enable_abort_button(false);
+                m_project_task_panel->enable_partskip_button(false);
                 m_project_task_panel->enable_pause_resume_button(false, "resume_disable");
                 // is makeworld subtask
                 if (wxGetApp().has_model_mall() && obj->is_makeworld_subtask()) {
@@ -3217,6 +3267,26 @@ void StatusPanel::update_subtask(MachineObject *obj)
     Layout();
 }
 
+void StatusPanel::update_partskip_subtask(MachineObject *obj){
+    if (!obj) return;
+    if (!obj->subtask_) return;
+
+    m_project_task_panel->update_machine_object(obj);
+
+    auto partskip_button = m_project_task_panel->get_partskip_button();
+    if (partskip_button) { 
+        int part_cnt = obj->m_partskip_ids.size();
+        if (part_cnt > 0)
+            partskip_button->SetLabel(wxString::Format(_L("(%d)"), part_cnt));
+        else 
+            partskip_button->SetLabel("");
+    }
+
+    if(m_partskip_dlg && m_partskip_dlg->IsShown()) {
+        m_partskip_dlg->UpdatePartsStateFromPrinter(obj);
+    }
+}
+
 void StatusPanel::update_cloud_subtask(MachineObject *obj)
 {
     if (!obj) return;
@@ -3281,6 +3351,7 @@ void StatusPanel::update_sdcard_subtask(MachineObject *obj)
 
 void StatusPanel::reset_printing_values()
 {
+    m_project_task_panel->enable_partskip_button(false);
     m_project_task_panel->enable_pause_resume_button(false, "pause_disable");
     m_project_task_panel->enable_abort_button(false);
     m_project_task_panel->reset_printing_value();

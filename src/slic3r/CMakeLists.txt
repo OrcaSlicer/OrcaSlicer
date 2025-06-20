@@ -373,6 +373,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/SavePresetDialog.hpp
     GUI/SceneRaycaster.cpp
     GUI/SceneRaycaster.hpp
+    GUI/PartSkipCommon.hpp
+    GUI/PartSkipDialog.cpp
+    GUI/PartSkipDialog.hpp
+    GUI/SkipPartCanvas.cpp
+    GUI/SkipPartCanvas.hpp
     GUI/Search.cpp
     GUI/Search.hpp
     GUI/Selection.cpp

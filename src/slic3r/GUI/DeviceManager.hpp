@@ -833,6 +833,9 @@ public:
     int  xcam_filament_tangle_detect_count = 0;
     int  ams_print_option_count = 0;
 
+    // part skip
+    std::vector<int> m_partskip_ids;
+
     //supported features
     bool is_support_chamber_edit{false};
     bool is_support_extrusion_cali{false};
@@ -955,6 +958,7 @@ public:
     int command_control_fan_val(FanType fan_type, int val);
     int command_task_abort();
     /* cancelled the job_id */
+    int command_task_partskip(std::vector<int> part_ids);
     int command_task_cancel(std::string job_id);
     int command_task_pause();
     int command_task_resume();

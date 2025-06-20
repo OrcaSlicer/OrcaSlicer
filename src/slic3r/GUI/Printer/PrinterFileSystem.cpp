@@ -39,6 +39,7 @@ wxDEFINE_EVENT(EVT_FILE_CHANGED, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SELECT_CHANGED, wxCommandEvent);
 wxDEFINE_EVENT(EVT_THUMBNAIL, wxCommandEvent);
 wxDEFINE_EVENT(EVT_DOWNLOAD, wxCommandEvent);
+wxDEFINE_EVENT(EVT_RAMDOWNLOAD, wxCommandEvent);
 
 wxDEFINE_EVENT(EVT_FILE_CALLBACK, wxCommandEvent);
 
@@ -248,6 +249,131 @@ struct PrinterFileSystem::Download : Progress
     boost::uuids::detail::md5   boost_md5;
 };
 
+
+void PrinterFileSystem::GetPickImages(const std::vector<std::string> &local_paths, const std::vector<std::string> &targetpaths)
+{
+
+    GetPickImage(1, local_paths[0], targetpaths[0]);
+    GetPickImage(2, local_paths[1], targetpaths[1]);
+    GetPickImage(3, local_paths[2], targetpaths[2]);
+
+}
+
+void PrinterFileSystem::GetPickImage(int id, const std::string &local_path, const std::string &targetpath)
+{
+    json j;
+
+    j["sequence_id"]   = id; 
+    j["version"]       = 1;
+    j["peer_host"]     = "studio";
+    j["command"]       = "get_project_file";
+    j["file_rel_path"] = targetpath;
+
+    std::string param = j.dump();
+
+    DownloadRamFile(16, local_path, param);
+}
+
+
+void PrinterFileSystem::DownloadRamFile(int index, const std::string &local_path, const std::string & param)
+{
+    std::shared_ptr<Download> download(new Download);
+    download->local_path = local_path;
+
+    json req;
+    req["path"]              = "mem:/" + std::to_string(index);
+    req["offset"] = 0;
+    req["mem_dl_param_size"] = param.size();
+
+    m_download_seq = SendRequest<Progress>(
+        FILE_DOWNLOAD, req,
+        [download](json const &resp, Progress &prog, unsigned char const *data) -> int {
+            size_t size = resp.value("size", 0);
+            prog.size   = resp["offset"];
+            prog.total  = resp["total"];
+
+            if (resp.contains("mem_dl_param_size")) {
+                size_t s = resp["mem_dl_param_size"].get<size_t>();
+                std::string json_str(reinterpret_cast<const char *>(data), s);
+                // OutputDebugStringA(json_str.c_str());
+                // OutputDebugStringA("\n");
+                json        mem_dl_json = json::parse(json_str);
+                //  download->mem_dl_param_size = size;
+                if (!mem_dl_json.contains("result") || mem_dl_json["result"] == 1 ) {
+                        wxLogWarning("Download failed: result = 1");
+                    return ERROR_JSON;
+                    }
+                return CONTINUE;
+            }
+
+            if (prog.size == 0 ) {
+                download->ofs.open(download->local_path, std::ios::binary);
+                if (!download->ofs) {
+                    download->error = last_system_error();
+                    wxLogWarning("DownloadImageFromRam open error: %s\n", wxString::FromUTF8(download->error));
+                    return FILE_OPEN_ERR;
+                }
+            }
+
+            download->ofs.write(reinterpret_cast<const char *>(data), size);
+            if (!download->ofs) {
+                download->error = last_system_error();
+                wxLogWarning("DownloadImageFromRam write error: %s\n", wxString::FromUTF8(download->error));
+                return FILE_READ_WRITE_ERR;
+            }
+
+            download->boost_md5.process_bytes(data, size);
+
+            prog.size += size;
+            download->total = prog.total;
+            download->size  = prog.size;
+
+            if (prog.size < prog.total) {
+                return 0;
+            }
+            download->ofs.close();
+
+            std::string                     md5 = resp["file_md5"];
+            boost::uuids::detail::md5::digest_type digest;
+            download->boost_md5.get_digest(digest);
+            for (int i = 0; i < 4; ++i) digest[i] = boost::endian::endian_reverse(digest[i]);
+            std::string str_md5;
+            const auto  char_digest = reinterpret_cast<const char *>(&digest[0]);
+            boost::algorithm::hex(char_digest, char_digest + sizeof(digest), std::back_inserter(str_md5));
+            if (!boost::iequals(str_md5, md5)) {
+                wxLogWarning("DownloadImageFromRam checksum error: %s != %s\n", str_md5, md5);
+                boost::system::error_code ec;
+                boost::filesystem::rename(download->local_path, download->local_path + ".tmp", ec);
+                return FILE_CHECK_ERR;
+            }
+            return SUCCESS;
+        },
+
+        [this, download](int result, Progress const &data) {
+            //OutputDebugStringA(std::to_string(result).c_str());
+            //OutputDebugStringA("\n");
+            if (result == CONTINUE) { return; }
+            std::string msg;
+            if (result == SUCCESS) {
+                wxLogMessage("DownloadImageFromRam finished: %s", download->local_path);
+                msg = "SUCCESS";
+                SendChangedEvent(EVT_RAMDOWNLOAD, result, result ? download->error : download->local_path);
+            } else if (result != CONTINUE) {
+                wxLogWarning("DownloadImageFromRam failed: %s", download->error);
+                msg = "ERROR";
+                SendChangedEvent(EVT_RAMDOWNLOAD, result, result ? download->error : download->local_path);
+            }
+        },param);
+}
+
+void PrinterFileSystem::SendExistedFile(){
+    SendChangedEvent(EVT_RAMDOWNLOAD, SUCCESS);
+}
+void PrinterFileSystem::SendConnectFail(){
+    SendChangedEvent(EVT_RAMDOWNLOAD, ERROR_PIPE);
+}
+
+
 void PrinterFileSystem::DownloadFiles(size_t index, std::string const &path)
 {
     if (index == (size_t) -1) {
@@ -280,6 +406,10 @@ void PrinterFileSystem::DownloadFiles(size_t index, std::string const &path)
     if ((m_task_flags & FF_DOWNLOAD) == 0)
         DownloadNextFile();
 }
+
+
+
+
 
 void PrinterFileSystem::DownloadCheckFiles(std::string const &path)
 {
@@ -706,7 +836,7 @@ void PrinterFileSystem::DownloadNextFile()
                         file.download.reset(), file.flags &= ~FF_DOWNLOAD;
                     else // FAILED
                         file.download.reset();
-                    if (&file_index.first == &m_file_list)
+                    if (&file_index.first == &m_file_list) 
                         SendChangedEvent(EVT_DOWNLOAD, download->index, result ? download->error : file.local_path, result);
                 }
             }
@@ -1030,7 +1160,7 @@ void PrinterFileSystem::DumpLog(void * thiz, int, tchar const *msg)
     static_cast<PrinterFileSystem*>(thiz)->Bambu_FreeLogMsg(msg);
 }
 
-boost::uint32_t PrinterFileSystem::SendRequest(int type, json const &req, callback_t2 const &callback)
+boost::uint32_t PrinterFileSystem::SendRequest(int type, json const &req, callback_t2 const &callback,const std::string& param)
 {
     if (m_session.tunnel == nullptr) {
         Retry();
@@ -1044,6 +1174,13 @@ boost::uint32_t PrinterFileSystem::SendRequest(int type, json const &req, callba
     root["req"] = req;
     std::ostringstream oss;
     oss << root;
+
+    if (!param.empty()) {
+        oss << "\n\n";
+        oss << param;
+    }
+    // OutputDebugStringA(oss.str().c_str());
+    // OutputDebugStringA("\n");
     auto msg = oss.str();
     boost::unique_lock l(m_mutex);
     m_messages.push_back(msg);
