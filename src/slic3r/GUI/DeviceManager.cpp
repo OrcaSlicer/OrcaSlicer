@@ -5609,6 +5609,7 @@ void MachineObject::parse_new_info(json print)
         is_support_upgrade_kit = get_flag_bits(cfg, 14);
         is_support_command_homing = get_flag_bits(fun, 32);
         is_support_brtc = get_flag_bits(fun, 31);
+        is_support_partskip = get_flag_bits(fun, 49);
     }
 
     /*aux*/

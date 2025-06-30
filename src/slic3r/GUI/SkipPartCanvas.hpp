@@ -23,7 +23,6 @@ using FloatPoint = std::array<Coord, 2>;
 
 
 struct ObjectInfo {
-    int id{-1};
     std::string name{""};
     int identify_id{-1};
     PartState state{psUnCheck};
@@ -107,7 +106,7 @@ private:
     inline wxPoint ViewPtToImagePt(const wxPoint& view_pt) const;
     uint32_t GetIdAtImagePt(const wxPoint& image_pt) const;
     inline uint32_t GetIdAtViewPt(const wxPoint& view_pt) const;
-    
+
     void ProcessHover(const wxPoint& mouse_pt);
     void AutoSetCursor();
     void StartDrag(const wxPoint& mouse_pt);
@@ -136,16 +135,11 @@ class ModelSettingHelper : public _BBS_3MF_Base {
     struct ParseContext{
         std::vector<ObjectInfo> objects;
         ObjectInfo temp_object;
-
-        std::stack<std::string> node_name;
-        int current_object_id{-1};
-        int current_instance_identify_id{-1};
-        int current_instance_object_id{-1};
     };
 
 public:
     ModelSettingHelper(const std::string& path);
-    
+
 
     bool Parse();
     std::vector<ObjectInfo> GetResults();

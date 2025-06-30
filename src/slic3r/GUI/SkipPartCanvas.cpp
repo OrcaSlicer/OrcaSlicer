@@ -33,8 +33,11 @@ SkipPartCanvas::SkipPartCanvas(wxWindow *parent, const wxGLAttributes& dispAttrs
 void SkipPartCanvas::LoadPickImage(const std::string & path)
 {
     parts_state_.clear();
+    pick_parts_.clear();
+    parts_triangles_.clear();
     int preffered_w{FromDIP(400)}, preffered_h{FromDIP(400)};
     cv::Mat src_image = cv::imread(path, cv::IMREAD_UNCHANGED);
+    cv::cvtColor(src_image, src_image, cv::COLOR_BGRA2BGR); // remove alpha
     float zoom_x{static_cast<float>(preffered_w) / src_image.cols};
     float zoom_y{static_cast<float>(preffered_h) / src_image.rows};
     float image_scale{0};
@@ -42,12 +45,12 @@ void SkipPartCanvas::LoadPickImage(const std::string & path)
         image_scale = zoom_x;
     else
         image_scale = zoom_y;
-    cv::resize(src_image, pick_image_, cv::Size(), image_scale, image_scale);
+    cv::resize(src_image, pick_image_, cv::Size(), image_scale, image_scale, cv::INTER_NEAREST);
     std::vector<cv::Mat> channels;
-    cv::split(pick_image_, channels); // channels[3] 是 Alpha
-    cv::Mat alpha = channels[3];
-    cv::Mat mask;
-    cv::threshold(alpha, mask, 0, 255, cv::THRESH_BINARY);
+    cv::Mat gray; // convert to gray
+    cv::cvtColor(pick_image_, gray, cv::COLOR_BGR2GRAY);
+    cv::Mat mask; // convery to binary
+    cv::threshold(gray, mask, 0, 255, cv::THRESH_BINARY);
     std::vector<std::vector<cv::Point>> pick_counters;
     cv::findContours(mask, pick_counters, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_TC89_KCOS);
     std::vector<std::vector<FloatPoint>> polygon;
@@ -328,7 +331,7 @@ uint32_t SkipPartCanvas::GetIdAtImagePt(const wxPoint& image_pt) const
     if (image_pt.x >= 0 && image_pt.x < pick_image_.cols
         && image_pt.y >= 0 && image_pt.y < pick_image_.rows) {
         // at(row, col)=>at(y, x)
-        cv::Vec4b bgr = pick_image_.at<cv::Vec4b>(image_pt.y, image_pt.x);
+        cv::Vec3b bgr = pick_image_.at<cv::Vec3b>(image_pt.y, image_pt.x);
         SkipIdHelper helper{bgr[2], bgr[1], bgr[0]};
         helper.reverse();
         return helper.value;
@@ -392,7 +395,7 @@ void SkipPartCanvas::ProcessHover(const wxPoint& mouse_pt)
     int new_hover_id { -1 };
     auto part_state = parts_state_.find(id_at_mouse);
     if (part_state != parts_state_.end() && part_state->second == psUnCheck) {
-        new_hover_id = id_at_mouse;        
+        new_hover_id = id_at_mouse;
     };
     if (new_hover_id != this->hover_id_) {
         this->hover_id_ = new_hover_id;
@@ -457,9 +460,9 @@ void SkipPartCanvas::OnMouseLeftUp(wxMouseEvent& event)
     left_down_ = false;
     if (fixed_draging_)
         EndDrag();
-    else {        
+    else {
         Refresh();
-    }    
+    }
 }
 
 void SkipPartCanvas::OnMouseRightDown(wxMouseEvent& event)
@@ -556,44 +559,19 @@ bool ModelSettingHelper::Parse()
     return true;
 }
 
-std::vector<ObjectInfo> ModelSettingHelper::GetResults() { return context_.objects; }
-
+std::vector<ObjectInfo> ModelSettingHelper::GetResults() {
+    return context_.objects;
+}
 
 void XMLCALL ModelSettingHelper::StartElementHandler(void *userData, const XML_Char *name, const XML_Char **atts)
 {
     ModelSettingHelper* self = static_cast<ModelSettingHelper*>(userData);
     if (strcmp(name, "object") == 0) {
         for (int i = 0; atts[i]; i += 2) {
-            if (strcmp(atts[i], "id") == 0) {
-                self->context_.current_object_id = atoi(atts[i+1]);
-            }
-        }
-    } else if ((self->context_.current_object_id != -1)
-        && (strcmp(name, "metadata") == 0)
-        && (self->context_.node_name.top() == "object")) {
-        const XML_Char *key{nullptr}, *value{nullptr};
-        for (int i = 0; atts[i]; i += 2) {
-            if (strcmp(atts[i], "key") == 0) key = atts[i+1];
-            if (strcmp(atts[i], "value") == 0) value = atts[i+1];
-        }
-        if (key && value && (strcmp(key, "name") == 0)) {
-            self->context_.temp_object.id = self->context_.current_object_id;
-            self->context_.temp_object.name = std::string(value);
-        }
-    } else if ((strcmp(name, "metadata") == 0)
-        && (self->context_.node_name.top() == "model_instance")) {
-        const XML_Char *key{nullptr}, *value{nullptr};
-        for (int i = 0; atts[i]; i += 2) {
-            if (strcmp(atts[i], "key") == 0) key = atts[i+1];
-            if (strcmp(atts[i], "value") == 0) value = atts[i+1];
-        }
-        if (key && value && (strcmp(key, "object_id") == 0)) {
-            self->context_.current_instance_object_id = atoi(value);
-        } else if (key && value && (strcmp(key, "identify_id") == 0)) {
-            self->context_.current_instance_identify_id = atoi(value);
+            if (strcmp(atts[i], "identify_id") == 0) { self->context_.temp_object.identify_id = atoi(atts[i + 1]); }
+            if (strcmp(atts[i], "name") == 0) { self->context_.temp_object.name = std::string(atts[i + 1]); }
         }
     }
-    self->context_.node_name.push(std::string(name));
 }
 
 void XMLCALL ModelSettingHelper::EndElementHandler(void *userData, const XML_Char *name)
@@ -601,23 +579,7 @@ void XMLCALL ModelSettingHelper::EndElementHandler(void *userData, const XML_Cha
     ModelSettingHelper* self = static_cast<ModelSettingHelper*>(userData);
     if (strcmp(name, "object") == 0) {
         self->context_.objects.push_back(self->context_.temp_object);
-        self->context_.current_object_id = -1;
     }
-    else if ((strcmp(name, "model_instance") == 0)
-        && (self->context_.current_instance_identify_id != -1)
-        && (self->context_.current_instance_object_id != -1)) {
-        for (auto& obj : self->context_.objects) {
-            if (obj.id == self->context_.current_instance_object_id) {
-                obj.identify_id = self->context_.current_instance_identify_id;
-                break;
-            }
-        }
-        self->context_.current_instance_identify_id = -1;
-        self->context_.current_instance_object_id = -1;
-    } else if (strcmp(name, "object") == 0) {
-        self->context_.current_object_id = -1;
-    }
-    self->context_.node_name.pop();
 }
 
 void ModelSettingHelper::DataHandler(const XML_Char *s, int len)

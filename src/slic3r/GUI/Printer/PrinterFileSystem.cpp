@@ -263,7 +263,7 @@ void PrinterFileSystem::GetPickImage(int id, const std::string &local_path, cons
 {
     json j;
 
-    j["sequence_id"]   = id; 
+    j["sequence_id"]   = id;
     j["version"]       = 1;
     j["peer_host"]     = "studio";
     j["command"]       = "get_project_file";
@@ -836,7 +836,7 @@ void PrinterFileSystem::DownloadNextFile()
                         file.download.reset(), file.flags &= ~FF_DOWNLOAD;
                     else // FAILED
                         file.download.reset();
-                    if (&file_index.first == &m_file_list) 
+                    if (&file_index.first == &m_file_list)
                         SendChangedEvent(EVT_DOWNLOAD, download->index, result ? download->error : file.local_path, result);
                 }
             }

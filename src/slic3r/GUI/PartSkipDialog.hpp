@@ -29,8 +29,8 @@ namespace Slic3r { namespace GUI {
 
 class SkipPartCanvas;
 
-enum URL_STATE { 
-    URL_TCP, 
+enum URL_STATE {
+    URL_TCP,
     URL_TUTK,
 };
 
@@ -78,13 +78,15 @@ public:
     Button*         m_switch_drag_btn;
     CheckBox*       m_all_checkbox;
     Button*         m_percent_label;
-    Label *         m_all_label;
+    Label*          m_all_label;
     wxPanel*        m_line;
+    wxPanel*        m_line_top;
     wxScrolledWindow* m_list_view;
-    
+
+    wxPanel* m_dlg_placeholder;
     Label* m_cnt_label;
     Label* m_tot_label;
-    
+
     Button* m_apply_btn;
 
     Label* m_loading_label;
@@ -108,7 +110,7 @@ private:
     int m_zoom_percent{100};
     bool m_is_drag{false};
     bool m_print_lock{true};
-    
+
     std::map<uint32_t, PartState> m_parts_state;
     std::map<uint32_t, std::string> m_parts_name;
     std::vector<int> m_partskip_ids;
@@ -117,7 +119,7 @@ private:
 
     PartsInfo GetPartsInfo();
     bool is_drag_mode();
-    
+
     boost::shared_ptr<PrinterFileSystem> m_file_sys;
     bool m_file_sys_result{false};
     std::string m_timestamp;
@@ -127,19 +129,19 @@ private:
     std::string create_tmp_path();
 
     bool is_local_file_existed(const std::vector<string> &local_paths);
-    
+
     void DownloadPartsFile();
     void OnFileSystemEvent(wxCommandEvent &event);
     void OnFileSystemResult(wxCommandEvent &event);
     void fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs);
-    
+
 
     void OnZoomIn(wxCommandEvent &event);
     void OnZoomOut(wxCommandEvent &event);
-    void OnSwitchDrag(wxCommandEvent &event); 
+    void OnSwitchDrag(wxCommandEvent &event);
     void OnZoomPercent(wxCommandEvent &event);
     void UpdatePartsStateFromCanvas(wxCommandEvent &event);
-    
+
     void UpdateZoomPercent();
     void UpdateCountLabel();
     void UpdateDialogUI();

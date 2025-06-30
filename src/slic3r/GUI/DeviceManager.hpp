@@ -876,6 +876,7 @@ public:
     bool is_support_upgrade_kit{false};
     bool is_support_command_homing { false };// fun[32]
     bool is_support_brtc{false};                 // fun[31], support tcp and upload protocol
+    bool is_support_partskip{false};
 
     bool installed_upgrade_kit{false};
     int  nozzle_max_temperature = -1;
