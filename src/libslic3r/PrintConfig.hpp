@@ -1259,6 +1259,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                filament_map))
     //((ConfigOptionInts,                filament_extruder_id))
     ((ConfigOptionStrings,             filament_extruder_variant))
+    ((ConfigOptionBool,                support_object_skip_flush))
     ((ConfigOptionEnum<BedTempFormula>, bed_temperature_formula))
     ((ConfigOptionInts,                physical_extruder_map))
     ((ConfigOptionIntsNullable,        nozzle_flush_dataset))

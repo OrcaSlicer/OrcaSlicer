@@ -748,8 +748,6 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             gcode += gcodegen.unretract();
         }
 
-        // BBS: if needed, write the gcode_label_objects_end then priming tower, if the retract, didn't did it.
-        gcodegen.m_writer.add_object_end_labels(gcode);
 
         double current_z = gcodegen.writer().get_position().z();
         if (z == -1.) // in case no specific z was provided, print at current_z pos
@@ -761,6 +759,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         // Process the end filament gcode.
+        bool        add_change_filament_624 = false;
         std::string end_filament_gcode_str;
         if (gcodegen.writer().filament() != nullptr) {
             // Process the custom filament_end_gcode in case of single_extruder_multi_material.
@@ -769,7 +768,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (gcodegen.writer().filament() != nullptr && !filament_end_gcode.empty()) {
                 DynamicConfig config;
                 config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
-                end_filament_gcode_str = gcodegen.placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
+                if (!gcodegen.m_filament_instances_code.empty()) {
+                    end_filament_gcode_str += ("M624 " + gcodegen.m_filament_instances_code + "\n");
+                    gcodegen.m_filament_instances_code = "";
+                    add_change_filament_624 = true;
+                }
+                end_filament_gcode_str += gcodegen.placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
                 check_add_eol(end_filament_gcode_str);
             }
         }
@@ -787,6 +791,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         // BBS: should be placed before toolchange parsing
         std::string toolchange_retract_str = gcodegen.retract(tcr.is_tool_change && !is_nozzle_change, false, auto_lift_type);
         check_add_eol(toolchange_retract_str);
+
+        //BBS: if needed, write the gcode_label_objects_end then priming tower, if the retract, didn't did it.
+        std::string object_end_label_temp;
+        gcodegen.m_writer.add_object_end_labels(object_end_label_temp);
 
         // Process the custom change_filament_gcode. If it is empty, provide a simple Tn command to change the filament.
         // Otherwise, leave control to the user completely.
@@ -813,8 +821,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             end_filament_gcode_str = nozzle_change_gcode_trans + end_filament_gcode_str;
         }
 
-        end_filament_gcode_str = toolchange_retract_str + end_filament_gcode_str;
+        end_filament_gcode_str = toolchange_retract_str + object_end_label_temp + end_filament_gcode_str;
 
+        std::string wipe_next_start_point_str;
         bool        need_travel_after_change_filament_gcode = false; // travel need be after the filament changed to get the correct "m_curr_extruder_id"
         if (! change_filament_gcode.empty()) {
             DynamicConfig config;
@@ -952,7 +961,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (!is_used_travel_avoid_perimeter) {
                 std::string start_pos_str = gcodegen.travel_to(wipe_tower_point_to_object_point(gcodegen, tool_change_start_pos + plate_origin_2d), erMixed, "Move to start pos");
                 check_add_eol(start_pos_str);
-                toolchange_gcode_str += start_pos_str;
+                wipe_next_start_point_str = start_pos_str;
             } else {
                 // BBS:change travel_path
                 Vec3f gcode_last_pos;
@@ -980,7 +989,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 }
                 std::string travel_to_wipe_tower_gcode;
                 Polyline    travel_polyline = generate_path_to_wipe_tower(gcode_last_pos2d_object, start_wipe_pos, avoid_bbx, printer_bbx);
-                for (const auto &p : travel_polyline.points) {
+
+                for (size_t i = 0; i < travel_polyline.points.size(); ++i) {
+                    const auto &p = travel_polyline.points[i];
+                    if (i == travel_polyline.points.size() - 1) {
+                        wipe_next_start_point_str = gcodegen.travel_to(p, erMixed, "Move to start pos");
+                        check_add_eol(wipe_next_start_point_str);
+                        break;
+                    }
                     travel_to_wipe_tower_gcode += gcodegen.travel_to(p, erMixed, "Move to start pos");
                     check_add_eol(travel_to_wipe_tower_gcode);
                 }
@@ -1007,10 +1023,14 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             DynamicConfig config;
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(new_filament_id));
             start_filament_gcode_str = gcodegen.placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_filament_id, &config);
+            if (add_change_filament_624) {
+                start_filament_gcode_str += "M625\n";
+                add_change_filament_624 = false;
+            }
             check_add_eol(start_filament_gcode_str);
         }
 
-        start_filament_gcode_str = start_filament_gcode_str + toolchange_unretract_str;
+        start_filament_gcode_str = start_filament_gcode_str + wipe_next_start_point_str + toolchange_unretract_str;
 
         // Insert the end filament, toolchange, and start filament gcode into the generated gcode.
         DynamicConfig config;
@@ -4645,6 +4665,7 @@ LayerResult GCode::process_layer(
     } // for objects
 
     std::map<unsigned int, std::vector<InstanceToPrint>> filament_to_print_instances;
+    std::map<unsigned int, std::vector<InstanceToPrint>> filament_to_print_instances_temp;
     {
         for (unsigned int filament_id : layer_tools.extruders) {
             auto objects_by_extruder_it = by_extruder.find(filament_id);
@@ -4653,21 +4674,24 @@ LayerResult GCode::process_layer(
             bool has_prime_tower = print.config().enable_prime_tower && print.extruders().size() > 1 &&
                                    ((print.config().print_sequence == PrintSequence::ByLayer && print.config().print_order == PrintOrder::Default) ||
                                     (print.config().print_sequence == PrintSequence::ByObject && print.objects().size() == 1));
+
+            int   plate_idx = print.get_plate_index();
+            Point wt_pos(print.config().wipe_tower_x.get_at(plate_idx), print.config().wipe_tower_y.get_at(plate_idx));
+
+            std::vector<GCode::ObjectByExtruder> &objects_by_extruder = objects_by_extruder_it->second;
+            std::vector<const PrintObject *>      print_objects;
+            for (int obj_idx = 0; obj_idx < objects_by_extruder.size(); obj_idx++) {
+                auto &object_by_extruder = objects_by_extruder[obj_idx];
+                if (object_by_extruder.islands.empty() && (object_by_extruder.support == nullptr || object_by_extruder.support->empty())) continue;
+
+                print_objects.push_back(print.get_object(obj_idx));
+            }
+
+            std::vector<const PrintInstance *> new_ordering = chain_print_object_instances(print_objects, &wt_pos);
+            std::reverse(new_ordering.begin(), new_ordering.end());
+            filament_to_print_instances_temp[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
+
             if (has_prime_tower) {
-                int   plate_idx = print.get_plate_index();
-                Point wt_pos(print.config().wipe_tower_x.get_at(plate_idx), print.config().wipe_tower_y.get_at(plate_idx));
-
-                std::vector<GCode::ObjectByExtruder> &objects_by_extruder = objects_by_extruder_it->second;
-                std::vector<const PrintObject *>      print_objects;
-                for (int obj_idx = 0; obj_idx < objects_by_extruder.size(); obj_idx++) {
-                    auto &object_by_extruder = objects_by_extruder[obj_idx];
-                    if (object_by_extruder.islands.empty() && (object_by_extruder.support == nullptr || object_by_extruder.support->empty())) continue;
-
-                    print_objects.push_back(print.get_object(obj_idx));
-                }
-
-                std::vector<const PrintInstance *> new_ordering = chain_print_object_instances(print_objects, &wt_pos);
-                std::reverse(new_ordering.begin(), new_ordering.end());
                 filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
             } else {
                 filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
@@ -4781,6 +4805,12 @@ LayerResult GCode::process_layer(
         if (print.config().skirt_type == stCombined && !print.skirt().empty())
             gcode += generate_skirt(print, print.skirt(), Point(0, 0), layer.object()->config().skirt_start_angle, layer_tools, layer,
                                     extruder_id);
+
+        if (m_enable_exclude_object && print.config().support_object_skip_flush.value) {
+            std::vector<size_t> filament_instances_id;
+            for (InstanceToPrint &instance : filament_to_print_instances_temp[extruder_id]) filament_instances_id.emplace_back(instance.label_object_id);
+            m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
+        }
 
         std::string gcode_toolchange;
         if (has_wipe_tower) {
@@ -7171,6 +7201,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (by_object)
         m_writer.add_object_change_labels(gcode);
 
+    bool add_change_filament_624 = false;
     if (m_writer.filament() != nullptr) {
         // Process the custom filament_end_gcode. set_extruder() is only called if there is no wipe tower
         // so it should not be injected twice.
@@ -7182,7 +7213,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             config.set_key_value("layer_z",   new ConfigOptionFloat(m_writer.get_position().z() - m_config.z_offset.value));
             config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_extruder_id(old_filament_id))));
-            gcode += placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
+            if (!m_filament_instances_code.empty()) {
+                gcode += ("M624 " + m_filament_instances_code + "\n");
+                gcode += placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
+                m_filament_instances_code = "";
+                add_change_filament_624   = true;
+            }
             check_add_eol(gcode);
         }
     }
@@ -7393,6 +7429,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
         config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(new_filament_id)));
         gcode += this->placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_filament_id, &config);
+        if (add_change_filament_624) {
+            gcode += "M625\n";
+            add_change_filament_624 = false;
+        }
         check_add_eol(gcode);
     }
     // Set the new extruder to the operating temperature.
