@@ -6917,12 +6917,12 @@ bool GLCanvas3D::_update_imgui_select_plate_toolbar()
     if (!p_plater) {
         return false;
     }
-    
+
     if (!p_plater->is_plate_toolbar_image_dirty()) {
         return false;
     }
-    
-    p_plater->update_all_plate_thumbnails();
+
+    p_plater->update_all_plate_thumbnails(true);
 
     _update_select_plate_toolbar_stats_item();
 
