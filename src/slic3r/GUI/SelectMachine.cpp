@@ -1576,7 +1576,11 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintStatusNozzleTypeMismatch) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
+    } else if (status == PrintStatusColorQuantityExceed) {
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(false);
     }
+
     else if (status == PrintDialogStatus::PrintStatusAmsMappingU0Invalid) {
         wxString msg_text;
         if (params.size() > 1)
@@ -3308,6 +3312,13 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         show_status(PrintDialogStatus::PrintStatusNoSdcard);
         return;
     }
+    if (wxGetApp().preset_bundle->filament_presets.size() > 16 && m_print_type != PrintFromType::FROM_SDCARD_VIEW) { 
+        if (!obj_->is_enable_ams_np && !obj_->is_enable_np)
+        {
+            show_status(PrintDialogStatus::PrintStatusColorQuantityExceed);
+            return;
+        }
+    }
 
     /*check sdcard when if lan mode printer*/
     if (obj_->is_lan_mode_printer()) {
@@ -3515,7 +3526,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             try
             {
                 int chamber_temp = chamber_temperatures->values[item.id];
-                if (chamber_temp >= 40) { 
+                if (chamber_temp >= 40) {
                     high_temp_filaments.insert(item.get_display_filament_type());// high printing chamber temperature
                 }
 
@@ -5302,6 +5313,7 @@ void PrinterInfoBox::OnBtnQuestionClicked(wxCommandEvent& event)
 {
     wxLaunchDefaultBrowser(wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
 }
+
 
 }
 } // namespace Slic3r::GUI

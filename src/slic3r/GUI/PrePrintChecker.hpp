@@ -76,6 +76,7 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusAmsMappingMixInvalid,
     PrintStatusTPUUnsupportAutoCali,
     PrintStatusHasFilamentInBlackListError,
+    PrintStatusColorQuantityExceed,
     PrintStatusFilamentErrorEnd,
 
     PrintStatusErrorEnd,//->end error<-

@@ -37,6 +37,8 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusBlankPlate: return "PrintStatusBlankPlate";
     case PrintStatusUnsupportedPrinter: return "PrintStatusUnsupportedPrinter";
     case PrintStatusInvalidMapping: return "PrintStatusInvalidMapping";
+    case PrintStatusColorQuantityExceed: return "PrintStatusColorQuantityExceed";
+    // Handle filament errors
     case PrintStatusAmsOnSettingup: return "PrintStatusAmsOnSettingup";
     case PrintStatusAmsMappingInvalid: return "PrintStatusAmsMappingInvalid";
     case PrintStatusAmsMappingU0Invalid: return "PrintStatusAmsMappingU0Invalid";
@@ -89,6 +91,8 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusTPUUnsupportAutoCali: return _L("TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration.");
     case PrintStatusWarningKvalueNotUsed: return _L("Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value.");
     case PrintStatusNotSupportedPrintAll: return _L("This printer does not support printing all plates");
+    case PrintStatusColorQuantityExceed: return _L("Maximum 16 colors are supported. Please reduce current project filaments to <= 16 colors in Prepare Page before printing.");
+
     }
     return wxEmptyString;
 }
