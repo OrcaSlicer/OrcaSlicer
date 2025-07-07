@@ -205,6 +205,10 @@ private:
     std::vector<ScalableButton *> m_score_star;
     bool                          m_star_count_dirty = false;
 
+    // partskip button
+    int m_part_skipped_count{ 0 };
+    int m_part_skipped_dirty{ 0 };
+
     ProgressBar*    m_gauge_progress;
     Label* m_error_text;
     PrintingTaskType m_type;
@@ -251,6 +255,10 @@ public:
     std::vector<ScalableButton *> &get_score_star() { return m_score_star; }
     bool get_star_count_dirty() { return m_star_count_dirty; }
     void set_star_count_dirty(bool dirty) { m_star_count_dirty = dirty; }
+    int get_part_skipped_count() { return m_part_skipped_count; }
+    void set_part_skipped_count(int count) { m_part_skipped_count = count; }
+    int get_part_skipped_dirty() { return m_part_skipped_dirty; }
+    void set_part_skipped_dirty(int dirty) { m_part_skipped_dirty = dirty; }
     void                           set_has_reted_text(bool has_rated);
     void paint(wxPaintEvent&);
 };
@@ -630,6 +638,9 @@ protected:
     /* camera */
     void update_camera_state(MachineObject* obj);
     bool show_vcamera = false;
+
+    // partskip button
+    void update_partskip_button(MachineObject* obj);
 
 public:
     void update_error_message();

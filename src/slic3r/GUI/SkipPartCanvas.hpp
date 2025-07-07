@@ -5,7 +5,6 @@
 #include <opencv2/opencv.hpp>
 #include <wx/textctrl.h>
 #include <vector>
-#include <stack>
 #include <expat.h>
 #include <libslic3r/Color.hpp>
 #include <boost/thread/mutex.hpp>
@@ -85,8 +84,8 @@ protected:
 private:
     wxGLContext* context_;
     cv::Mat pick_image_;
-    std::unordered_map<uint32_t, std::vector<FloatPoint>> parts_triangles_;
-    std::unordered_map<uint32_t, std::vector<cv::Point>> pick_parts_;
+    std::unordered_map < uint32_t, std::vector<std::vector<FloatPoint>>> parts_triangles_;
+    std::unordered_map < uint32_t, std::vector<std::vector<cv::Point>>> pick_parts_;
     std::unordered_map<uint32_t, PartState> parts_state_;
     bool gl_inited_{false};
     int zoom_percent_{100};
@@ -131,25 +130,35 @@ public:
     void log_errors();
 };
 
-class ModelSettingHelper : public _BBS_3MF_Base {
-    struct ParseContext{
-        std::vector<ObjectInfo> objects;
-        ObjectInfo temp_object;
+struct PlateInfo
+{
+    int                     index{-1};
+    std::vector<ObjectInfo> objects;
+};
+
+class ModelSettingHelper : public _BBS_3MF_Base
+{
+    struct ParseContext
+    {
+        std::vector<PlateInfo> plates;
+        PlateInfo              current_plate;
+        ObjectInfo             temp_object;
+        bool                   in_plate = false;
     };
 
 public:
-    ModelSettingHelper(const std::string& path);
+    ModelSettingHelper(const std::string &path);
 
+    bool                    Parse();
+    std::vector<PlateInfo>  GetPlates();
 
-    bool Parse();
-    std::vector<ObjectInfo> GetResults();
 private:
-    std::string path_;
+    std::string  path_;
     ParseContext context_;
 
-    void static XMLCALL StartElementHandler(void* userData, const XML_Char* name, const XML_Char** atts);
-    void static XMLCALL EndElementHandler(void* userData, const XML_Char* name);
-    void DataHandler(const XML_Char* s, int len);
+    static void XMLCALL StartElementHandler(void *userData, const XML_Char *name, const XML_Char **atts);
+    static void XMLCALL EndElementHandler(void *userData, const XML_Char *name);
+    void                DataHandler(const XML_Char *s, int len);
 };
 
 }

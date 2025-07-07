@@ -32,9 +32,47 @@ SkipPartCanvas::SkipPartCanvas(wxWindow *parent, const wxGLAttributes& dispAttrs
 
 void SkipPartCanvas::LoadPickImage(const std::string & path)
 {
+    auto ParseShapeId = [](cv::Mat image, const std::vector<std::vector<cv::Point>> &contours, const std::vector<cv::Vec4i> &hierarchy, int root_idx) -> uint32_t {
+        cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
+
+        cv::drawContours(mask, contours, root_idx, 255, cv::FILLED);
+
+        int child = hierarchy[root_idx][2];
+        while (child != -1) {
+            cv::drawContours(mask, contours, child, 0, cv::FILLED);
+            child = hierarchy[child][0];
+        }
+        std::vector<cv::Vec3b> pixels;
+        for (int y = 0; y < image.rows; ++y) {
+            for (int x = 0; x < image.cols; ++x) {
+                if (mask.at<uchar>(y, x)) { pixels.push_back(image.at<cv::Vec3b>(y, x)); }
+            }
+        }
+
+        std::map<cv::Vec3b, int, std::function<bool(const cv::Vec3b &, const cv::Vec3b &)>> colorCount(
+            [](const cv::Vec3b &a, const cv::Vec3b &b) { return std::lexicographical_compare(a.val, a.val + 3, b.val, b.val + 3); });
+
+        for (auto &c : pixels) colorCount[c]++;
+
+        cv::Vec3b main_color;
+        int       max_count   = 0;
+        int       total_count = 0;
+        for (const auto &kv : colorCount) {
+            if (kv.second > max_count) {
+                max_count  = kv.second;
+                main_color = kv.first;
+            }
+            total_count += kv.second;
+        }
+
+        SkipIdHelper helper{main_color[2], main_color[1], main_color[0]};
+        helper.reverse();
+        return (max_count * 2 > total_count) ? helper.value : 0;
+    };
+
     parts_state_.clear();
-    pick_parts_.clear();
     parts_triangles_.clear();
+    pick_parts_.clear();
     int preffered_w{FromDIP(400)}, preffered_h{FromDIP(400)};
     cv::Mat src_image = cv::imread(path, cv::IMREAD_UNCHANGED);
     cv::cvtColor(src_image, src_image, cv::COLOR_BGRA2BGR); // remove alpha
@@ -52,35 +90,64 @@ void SkipPartCanvas::LoadPickImage(const std::string & path)
     cv::Mat mask; // convery to binary
     cv::threshold(gray, mask, 0, 255, cv::THRESH_BINARY);
     std::vector<std::vector<cv::Point>> pick_counters;
-    cv::findContours(mask, pick_counters, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_TC89_KCOS);
-    std::vector<std::vector<FloatPoint>> polygon;
-    for (const auto& counter : pick_counters) {
-        cv::Point center_pos{0,0};
-        for (const auto& pt : counter) {
-            center_pos += pt;
+    std::vector<cv::Vec4i>              hierarchy;
+    cv::findContours(mask, pick_counters, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_TC89_KCOS);
+    auto compute_depth = [&](int idx) {
+        int depth = 0;
+        while (hierarchy[idx][3] != -1) {
+            depth++;
+            idx = hierarchy[idx][3];
         }
-        center_pos = center_pos / static_cast<int>(counter.size());
-        auto id = GetIdAtImagePt(wxPoint(center_pos.x, center_pos.y));
+        return depth;
+    };
+    for (int i = 0; i < pick_counters.size(); ++i) {
+        int depth  = compute_depth(i);
+        int parent = hierarchy[i][3];
+        if (parent != -1) continue;
+
+        auto id = ParseShapeId(pick_image_, pick_counters, hierarchy, i);
         if (id > 0) {
-            polygon.clear();
-            polygon.emplace_back(std::vector<FloatPoint>{});
-            for (const auto& pt : counter) {
-                polygon[0].push_back(FloatPoint{pt.x * 1.0f, pt.y * 1.0f});
+            std::vector<FloatPoint>              flat_points;
+            std::vector<std::vector<FloatPoint>> polygon;
+
+            // part body
+            {
+                polygon.emplace_back();
+                for (const auto &pt : pick_counters[i]) {
+                    FloatPoint fp{pt.x * 1.0f, pt.y * 1.0f};
+                    polygon.back().push_back(fp);
+                    flat_points.push_back(fp);
+                }
+                int child = hierarchy[i][2];
+                while (child != -1) {
+                    polygon.emplace_back();
+                    for (const auto &pt : pick_counters[child]) {
+                        FloatPoint fp{pt.x * 1.0f, pt.y * 1.0f};
+                        polygon.back().push_back(fp);
+                        flat_points.push_back(fp);
+                    }
+                    child = hierarchy[child][0];
+                }
+                std::vector<uint32_t>   indices = mapbox::earcut<uint32_t>(polygon);
+                std::vector<FloatPoint> final_counter;
+                for (size_t j = 0; j < indices.size(); j += 3) {
+                    final_counter.push_back(flat_points[indices[j]]);
+                    final_counter.push_back(flat_points[indices[j + 1]]);
+                    final_counter.push_back(flat_points[indices[j + 2]]);
+                }
+
+                parts_triangles_[id].emplace_back(final_counter);
             }
-            std::vector<uint32_t> indices = mapbox::earcut<uint32_t>(polygon);
-            std::vector<FloatPoint> final_counter{};
-            for (size_t i = 0; i < indices.size(); i += 3) {
-                FloatPoint a = polygon[0][indices[i]];
-                FloatPoint b = polygon[0][indices[i+1]];
-                FloatPoint c = polygon[0][indices[i+2]];
-                final_counter.push_back(FloatPoint{a[0], a[1]});
-                final_counter.push_back(FloatPoint{b[0], b[1]});
-                final_counter.push_back(FloatPoint{c[0], c[1]});
+            // part outlines
+            {
+                pick_parts_[id].emplace_back(pick_counters[i]);
+                int child = hierarchy[i][2];
+                while (child != -1) {
+                    pick_parts_[id].emplace_back(pick_counters[child]);
+                    child = hierarchy[child][0];
+                }
             }
-            parts_triangles_.emplace(id, final_counter);
-            pick_parts_.emplace(id, counter);
-            if (parts_state_.find(id) == parts_state_.end())
-                parts_state_.emplace(id, psUnCheck);
+            if (parts_state_.find(id) == parts_state_.end()) parts_state_.emplace(id, psUnCheck);
         }
     }
 }
@@ -220,13 +287,15 @@ void SkipPartCanvas::Render()
             if (part_info == parts_state_.end() || part_info->second != part_type)
                 continue;
             glColor3f(1, 1, 1);
-            glBegin(GL_TRIANGLES);
-            for (size_t i = 0; i < contour.second.size(); i += 3) {
-                glVertex2f(contour.second[i][0], contour.second[i][1]);
-                glVertex2f(contour.second[i+1][0], contour.second[i+1][1]);
-                glVertex2f(contour.second[i+2][0], contour.second[i+2][1]);
+            for (const auto &contour_item : contour.second) {
+                glBegin(GL_TRIANGLES);
+                for (size_t i = 0; i < contour_item.size(); i += 3) {
+                    glVertex2f(contour_item[i][0], contour_item[i][1]);
+                    glVertex2f(contour_item[i + 1][0], contour_item[i + 1][1]);
+                    glVertex2f(contour_item[i + 2][0], contour_item[i + 2][1]);
+                }
+                glEnd();
             }
-            glEnd();
         }
 
         for (const auto& contour : pick_parts_) {
@@ -237,11 +306,11 @@ void SkipPartCanvas::Render()
 
             glColor3f(rgb.r(), rgb.g(), rgb.b());
             glLineWidth(border_w);
-            glBegin(GL_LINE_LOOP);
-            for (const auto& pt : contour.second) {
-                glVertex2f(pt.x, pt.y);
+            for (const auto &contour_item : contour.second) {
+                glBegin(GL_LINE_LOOP);
+                for (const auto &pt : contour_item) { glVertex2f(pt.x, pt.y); }
+                glEnd();
             }
-            glEnd();
         }
     };
     // draw unchecked shapes
@@ -277,11 +346,11 @@ void SkipPartCanvas::Render()
                 continue;
             glColor3f(bound.r(), bound.g(), bound.b());
             glLineWidth(border_w);
-            glBegin(GL_LINE_LOOP);
-            for (const auto& pt : contour.second) {
-                glVertex2f(pt.x, pt.y);
+            for (const auto &contour_item : contour.second) {
+                glBegin(GL_LINE_LOOP);
+                for (const auto &pt : contour_item) { glVertex2f(pt.x, pt.y); }
+                glEnd();
             }
-            glEnd();
         }
     };
 
@@ -559,28 +628,40 @@ bool ModelSettingHelper::Parse()
     return true;
 }
 
-std::vector<ObjectInfo> ModelSettingHelper::GetResults() {
-    return context_.objects;
-}
-
 void XMLCALL ModelSettingHelper::StartElementHandler(void *userData, const XML_Char *name, const XML_Char **atts)
 {
-    ModelSettingHelper* self = static_cast<ModelSettingHelper*>(userData);
-    if (strcmp(name, "object") == 0) {
+    ModelSettingHelper *self = static_cast<ModelSettingHelper *>(userData);
+    if (strcmp(name, "plate") == 0) {
+        self->context_.current_plate = PlateInfo(); // start a new plate
+        self->context_.in_plate      = true;
+    } else if (strcmp(name, "metadata") == 0 && self->context_.in_plate) {
+        std::string key, value;
         for (int i = 0; atts[i]; i += 2) {
-            if (strcmp(atts[i], "identify_id") == 0) { self->context_.temp_object.identify_id = atoi(atts[i + 1]); }
-            if (strcmp(atts[i], "name") == 0) { self->context_.temp_object.name = std::string(atts[i + 1]); }
+            if (strcmp(atts[i], "key") == 0) key = atts[i + 1];
+            if (strcmp(atts[i], "value") == 0) value = atts[i + 1];
         }
+        if (key == "index") { self->context_.current_plate.index = std::stoi(value); }
+    } else if (strcmp(name, "object") == 0 && self->context_.in_plate) {
+        ObjectInfo obj;
+        for (int i = 0; atts[i]; i += 2) {
+            if (strcmp(atts[i], "identify_id") == 0) obj.identify_id = atoi(atts[i + 1]);
+            if (strcmp(atts[i], "name") == 0) obj.name = atts[i + 1];
+        }
+        self->context_.current_plate.objects.push_back(obj);
     }
 }
 
 void XMLCALL ModelSettingHelper::EndElementHandler(void *userData, const XML_Char *name)
 {
-    ModelSettingHelper* self = static_cast<ModelSettingHelper*>(userData);
-    if (strcmp(name, "object") == 0) {
-        self->context_.objects.push_back(self->context_.temp_object);
+    ModelSettingHelper *self = static_cast<ModelSettingHelper *>(userData);
+    if (strcmp(name, "plate") == 0 && self->context_.in_plate) {
+        self->context_.plates.push_back(self->context_.current_plate);
+        self->context_.current_plate = PlateInfo(); // reset
+        self->context_.in_plate      = false;
     }
 }
+
+std::vector<PlateInfo> ModelSettingHelper::GetPlates() { return context_.plates; }
 
 void ModelSettingHelper::DataHandler(const XML_Char *s, int len)
 {

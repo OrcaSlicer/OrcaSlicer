@@ -230,11 +230,13 @@ PartSkipDialog::PartSkipDialog(wxWindow* parent): DPIDialog(parent, wxID_ANY, _L
 	m_book_second_sizer = new wxBoxSizer( wxVERTICAL );
     m_book_second_btn_sizer = new wxBoxSizer( wxHORIZONTAL );
 
-	m_retry_label = new Label( m_book_second_panel, _L("Load Skipping Objects Information Failed. \nPlease try again."));
+    m_retry_bitmap = new wxStaticBitmap(m_book_second_panel, -1, create_scaled_bitmap("partskip_retry", m_book_second_panel, 200), wxDefaultPosition, wxDefaultSize);
+	m_retry_label = new Label( m_book_second_panel, _L("Load skipping objects information failed. Please try again."));
 	m_retry_label->Wrap( -1 );
     m_retry_label->SetBackgroundColour(*wxWHITE);
     m_book_second_sizer->Add(0, 0, 1, wxEXPAND, 0);
-    m_book_second_sizer->Add(m_retry_label, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_CENTER_HORIZONTAL, 0);
+    m_book_second_sizer->Add(m_retry_bitmap, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+    m_book_second_sizer->Add(m_retry_label, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     m_book_second_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
     m_second_retry_btn = new Button(m_book_second_panel, _L("Retry"));
@@ -305,6 +307,7 @@ void PartSkipDialog::on_dpi_changed(const wxRect& suggested_rect) {
     m_canvas->LoadPickImage(m_local_paths[0]);
 
     m_loading_icon->SetMinSize(wxSize(FromDIP(25), FromDIP(25)));
+    m_retry_bitmap->SetBitmap(create_scaled_bitmap("partskip_retry", m_book_second_panel, 200));
 
     m_percent_label->SetMinSize(wxSize(FromDIP(56), FromDIP(28)));
     m_percent_label->SetMaxSize(wxSize(FromDIP(56), FromDIP(28)));
@@ -426,8 +429,10 @@ void PartSkipDialog::DownloadPartsFile()
             m_file_sys->Bind(EVT_STATUS_CHANGED, &PartSkipDialog::OnFileSystemEvent, this);
             m_file_sys->Bind(EVT_RAMDOWNLOAD, &PartSkipDialog::OnFileSystemResult, this);
             m_file_sys->Start();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<"part skip: print file system start.";
         }else{
             m_file_sys->Retry();
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<"part skip: print file system retry.";
         }
     } else {
         m_file_sys->SendExistedFile();
@@ -526,8 +531,10 @@ void PartSkipDialog::OnFileSystemEvent(wxCommandEvent &e)
             if( m_url_state == URL_TCP){
                 m_url_state = URL_TUTK;
                 m_file_sys->Retry();
+                BOOST_LOG_TRIVIAL(info) << "part skip: print file system connnect failed first.";
             }else{
                 m_file_sys->SendConnectFail();
+                BOOST_LOG_TRIVIAL(info) << "part skip: print file system connnect failed second.";
             }
             break;
         }
@@ -538,6 +545,7 @@ void PartSkipDialog::OnFileSystemEvent(wxCommandEvent &e)
             boost::shared_ptr fs(wfs.lock());
             if (!fs) return;
             fetchUrl(boost::weak_ptr(fs));
+            BOOST_LOG_TRIVIAL(info) << "part skip: fetch url, get parts info files from printer.";
         });
     }
 }
@@ -550,10 +558,12 @@ void PartSkipDialog::OnFileSystemResult(wxCommandEvent &event){
         InitDialogUI();
         SetSimplebookPage(2);
         m_file_sys->Stop();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<"part skip: on file system result success.";
     }else{
         m_url_state = URL_TCP;
         SetSimplebookPage(1);
         m_file_sys->Stop();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<"part skip: on file system result failed.";
     }
 }
 
@@ -670,6 +680,7 @@ bool PartSkipDialog::Show(bool show)
 
 void PartSkipDialog::InitDialogUI() {
     m_print_lock = true;
+    BOOST_LOG_TRIVIAL(info) << "part skip: lock parts info from printer.";
     m_scroll_sizer->Clear(true);
     m_all_checkbox->SetValue(false);
     m_parts_state.clear();
@@ -684,11 +695,15 @@ void PartSkipDialog::InitDialogUI() {
     m_canvas->SwitchDrag(false);
     m_canvas->SetZoomPercent(100);
     m_canvas->SetOffset(wxPoint(0, 0));
+
+    BOOST_LOG_TRIVIAL(info) << "part skip: load canvas pick image begin.";
     m_canvas->LoadPickImage(pick_img);
+    BOOST_LOG_TRIVIAL(info) << "part skip: load canvas pick image end.";
     ModelSettingHelper helper(slice_info);
 
     if (helper.Parse()) {
-        auto parse_result = helper.GetResults();
+        int plate_idx = m_obj ? m_obj->m_plate_index : 0;
+        auto parse_result = helper.GetPlates()[plate_idx - 1].objects;
         for (const auto& part : parse_result) {
             m_parts_state[part.identify_id] = part.state;
             m_parts_name[part.identify_id] = part.name;
@@ -741,31 +756,42 @@ void PartSkipDialog::InitDialogUI() {
             m_scroll_sizer->Add(line_sizer, 0, wxBOTTOM | wxEXPAND, FromDIP(12));
         }
         m_canvas->UpdatePartsInfo(GetPartsInfo());
+        BOOST_LOG_TRIVIAL(info) << "part skip: update canvas parts info.";
     }
 
     m_scroll_sizer->Layout();
     UpdateCountLabel();
     Refresh();
     m_print_lock = false;
+    BOOST_LOG_TRIVIAL(info) << "part skip: unlock parts info from printer.";
 }
 
 void PartSkipDialog::UpdatePartsStateFromPrinter(MachineObject *obj) {
-    if (m_print_lock) return;
+    if (m_print_lock) {
+        BOOST_LOG_TRIVIAL(info) << "part skip: parts info from printer is locked.";
+        return;
+    }
     m_obj = obj;
     if (m_obj) {
+        bool update_flag = false;
         std::vector<int> partskip_ids = m_obj->m_partskip_ids;
         for(auto part_id : partskip_ids) {
-            m_parts_state[part_id] = PartState::psSkipped;
+            if(m_parts_state[part_id] != PartState::psSkipped){
+                m_parts_state[part_id] = PartState::psSkipped;
+                update_flag = true;
+            }
         }
-        m_canvas->UpdatePartsInfo(GetPartsInfo());
-        UpdateDialogUI();
+        if(update_flag){
+            m_canvas->UpdatePartsInfo(GetPartsInfo());
+            UpdateDialogUI();
+        }
     }
 }
 
 
 void PartSkipDialog::UpdateDialogUI(){
     if(m_parts_state.size() != m_scroll_sizer->GetItemCount()){
-        BOOST_LOG_TRIVIAL(warning) << "m_parts_state and m_scroll_sizer mismatch.";
+        BOOST_LOG_TRIVIAL(warning) << "part skip: m_parts_state and m_scroll_sizer mismatch.";
         return;
     }
 
@@ -839,30 +865,47 @@ void PartSkipDialog::OnApplyDialog(wxCommandEvent &event)
             m_partskip_ids.push_back(part_id);
         }
     }
+
+    bool all_skipped = true;
+    for (auto [part_id, part_state] : m_parts_state) {
+        if (part_state == PartState::psUnCheck) all_skipped = false;
+    }
+
     PartSkipConfirmDialog confirm_dialog(this);
-    confirm_dialog.SetMsgLabel(wxString::Format(_L("Skipping %d objects."), m_partskip_ids.size()));
+    if (all_skipped){
+        confirm_dialog.SetMsgLabel(_L("Skipping all objects."));
+        confirm_dialog.SetTipLabel(_L("The printing job will be stopped. Continue?"));
+    }else{
+        confirm_dialog.SetMsgLabel(wxString::Format(_L("Skipping %d objects."), m_partskip_ids.size()));
+        confirm_dialog.SetTipLabel(_L("This action cannot be undone. Continue?"));
+    }
 
     if(confirm_dialog.ShowModal() == wxID_OK){
         if (m_obj) {
-            BOOST_LOG_TRIVIAL(info) << "monitor: skipping "<< m_partskip_ids.size() <<" objects.";
-
-            bool all_skipped = true;
-            for (auto [part_id, part_state] : m_parts_state) {
-                if (part_state == PartState::psUnCheck) all_skipped = false;
-            }
+            BOOST_LOG_TRIVIAL(info) << "part skip: skipping "<< m_partskip_ids.size() <<" objects.";
 
             if (all_skipped) {
                 m_obj->command_task_abort();
+                BOOST_LOG_TRIVIAL(info) << "part skip: command skip all parts, abort task.";
             } else {
                 m_obj->command_task_partskip(m_partskip_ids);
+                BOOST_LOG_TRIVIAL(info) << "part skip: command skip " << m_partskip_ids.size() << " parts.";
             }
             EndModal(wxID_OK);
         } else {
-            BOOST_LOG_TRIVIAL(warning) << "machine object is null.";
+            BOOST_LOG_TRIVIAL(warning) << "part skip: machine object is null.";
         }
     }
 }
 
+int PartSkipDialog::GetAllSkippedPartsNum() {
+    int skipped_cnt = 0;
+    for (auto& [part_id, part_state] : m_parts_state) {
+        if (part_state == PartState::psSkipped || part_state == PartState::psChecked)
+            skipped_cnt++;
+    }
+    return skipped_cnt;
+}
 
 PartSkipConfirmDialog::PartSkipConfirmDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
@@ -886,9 +929,7 @@ PartSkipConfirmDialog::PartSkipConfirmDialog(wxWindow *parent) : DPIDialog(paren
 	m_msg_label->Wrap( -1 );
     m_msg_label->SetBackgroundColour(*wxWHITE);
 
-
-
-    auto m_tip_label = new Label(this, _L("This action cannot be undone. Continue?"));
+    m_tip_label = new Label(this, _L("This action cannot be undone. Continue?"));
     m_tip_label->Wrap(-1);
     m_tip_label->SetBackgroundColour(*wxWHITE);
     m_tip_label->SetForegroundColour(wxColor(92,92,92));
@@ -963,6 +1004,10 @@ Button* PartSkipConfirmDialog::GetConfirmButton()
 
 void PartSkipConfirmDialog::SetMsgLabel(wxString msg){
     m_msg_label->SetLabel(msg);
+}
+
+void PartSkipConfirmDialog::SetTipLabel(wxString msg){
+    m_tip_label->SetLabel(msg);
 }
 
 

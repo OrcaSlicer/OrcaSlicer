@@ -39,6 +39,7 @@ class PartSkipConfirmDialog : public DPIDialog
 private:
 protected:
     Label    *m_msg_label;
+    Label    *m_tip_label;
     Button   *m_apply_button;
 
 public:
@@ -48,6 +49,7 @@ public:
     void      on_dpi_changed(const wxRect &suggested_rect);
     Button*   GetConfirmButton();
     void      SetMsgLabel(wxString msg);
+    void      SetTipLabel(wxString msg);
     bool      Show(bool show);
 };
 
@@ -63,7 +65,7 @@ public:
     void SetSimplebookPage(int page);
     void InitSchedule(MachineObject *obj_);
     void InitDialogUI();
-
+    int  GetAllSkippedPartsNum();
 
     MachineObject *m_obj{nullptr};
 
@@ -91,6 +93,8 @@ public:
 
     Label* m_loading_label;
     Label* m_retry_label;
+    ScalableBitmap* m_retry_icon;
+    wxStaticBitmap* m_retry_bitmap;
 
     wxBoxSizer* m_sizer;
     wxBoxSizer* m_dlg_sizer;
