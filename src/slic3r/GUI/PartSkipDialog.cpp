@@ -666,7 +666,10 @@ void PartSkipDialog::UpdateCountLabel()
         if (part_state != PartState::psSkipped) tot_cnt++;
     }
     m_cnt_label->SetLabel(wxString::Format(_L("%d"), check_cnt));
+    m_cnt_label->Fit();
     m_tot_label->SetLabel(wxString::Format(_L("/%d Selected"), tot_cnt));
+    m_tot_label->Fit();
+    m_dlg_btn_sizer->Layout();
 }
 
 bool PartSkipDialog::Show(bool show)
@@ -765,6 +768,7 @@ void PartSkipDialog::InitDialogUI()
     }
 
     m_scroll_sizer->Layout();
+    m_list_view->FitInside();
     UpdateCountLabel();
     Refresh();
     m_print_lock = false;
