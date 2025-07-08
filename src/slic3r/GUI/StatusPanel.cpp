@@ -3637,7 +3637,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
                 wxString png_path = "";
                 int width = m_project_task_panel->get_bitmap_thumbnail()->GetSize().x;
                 int height = m_project_task_panel->get_bitmap_thumbnail()->GetSize().y;
-                if (m_calib_method == CALI_METHOD_AUTO) {
+                if (m_calib_method == CALI_METHOD_AUTO || m_calib_method == CalibrationMethod::CALI_METHOD_NEW_AUTO) {
                     std::string image_name = obj->get_auto_pa_cali_thumbnail_img_str();
                     if (m_calib_mode == CalibMode::Calib_PA_Line) {
                         if (obj->is_multi_extruders()) {
