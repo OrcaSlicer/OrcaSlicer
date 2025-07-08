@@ -317,6 +317,8 @@ private:
     size_t m_lock_end   = 0;
     int m_task_flags = 0;
 
+    std::vector<bool> m_download_states;
+
 private:
     struct Session
     {

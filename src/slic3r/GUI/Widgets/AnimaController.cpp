@@ -9,12 +9,13 @@
 AnimaIcon::AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> img_list, std::string img_enable, int ivt)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize), m_ivt(ivt)
 {
+    auto sizer = new wxBoxSizer(wxHORIZONTAL);
     SetBackgroundColour((wxColour(255, 255, 255)));
-    m_size = 20;
+    m_size = 25;
 
     //add ScalableBitmap
-    for (const auto &filename : img_list) m_images.emplace_back(create_scaled_bitmap(filename, this, FromDIP(m_size)));
-    m_image_enable = create_scaled_bitmap(img_enable, this, FromDIP(m_size-8));
+    for (const auto &filename : img_list) m_images.emplace_back(create_scaled_bitmap(filename, this, m_size));
+    m_image_enable = create_scaled_bitmap(img_enable, this, m_size-8);
 
     // show first wxStaticBitmap
     if (!m_images.empty()) m_bitmap = new wxStaticBitmap(this, wxID_ANY, m_images[0], wxDefaultPosition, wxSize(FromDIP(m_size), FromDIP(m_size)));
@@ -47,12 +48,13 @@ AnimaIcon::AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> i
        SetCursor(wxCursor(wxCURSOR_ARROW));
        e.Skip();
    });
-
+    sizer->Add(m_bitmap, 0, wxALIGN_CENTER, 0);
+    SetSizer(sizer);
 	SetSize(wxSize(FromDIP(m_size), FromDIP(m_size)));
     SetMaxSize(wxSize(FromDIP(m_size), FromDIP(m_size)));
     SetMinSize(wxSize(FromDIP(m_size), FromDIP(m_size)));
-    Refresh();
-
+    Layout();
+    Fit();
     Play();
 }
 

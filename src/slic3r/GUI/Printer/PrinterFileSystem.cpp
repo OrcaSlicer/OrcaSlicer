@@ -252,6 +252,7 @@ struct PrinterFileSystem::Download : Progress
 
 void PrinterFileSystem::GetPickImages(const std::vector<std::string> &local_paths, const std::vector<std::string> &targetpaths)
 {
+    m_download_states.clear();
 
     GetPickImage(1, local_paths[0], targetpaths[0]);
     GetPickImage(2, local_paths[1], targetpaths[1]);
@@ -303,6 +304,9 @@ void PrinterFileSystem::DownloadRamFile(int index, const std::string &local_path
                         wxLogWarning("Download failed: result = 1");
                     return ERROR_JSON;
                     }
+                if(mem_dl_json.contains("size") && mem_dl_json["size"] == 0 )
+                    return FILE_SIZE_ERR;
+
                 return CONTINUE;
             }
 
@@ -355,13 +359,27 @@ void PrinterFileSystem::DownloadRamFile(int index, const std::string &local_path
             if (result == CONTINUE) { return; }
             std::string msg;
             if (result == SUCCESS) {
-                wxLogMessage("DownloadImageFromRam finished: %s", download->local_path);
-                msg = "SUCCESS";
-                SendChangedEvent(EVT_RAMDOWNLOAD, result, result ? download->error : download->local_path);
+                if (std::filesystem::exists(download->local_path)) {
+                    m_download_states.emplace_back(true);
+                    BOOST_LOG_TRIVIAL(info) <<"DownloadImageFromRam finished: " << download->local_path << "result = " << result;
+                }else{
+                    m_download_states.emplace_back(false);
+                    BOOST_LOG_TRIVIAL(warning) <<"DownloadImageFromRam finished, but file not exist: " << download->local_path << "result = " << result;
+                }
             } else if (result != CONTINUE) {
-                wxLogWarning("DownloadImageFromRam failed: %s", download->error);
-                msg = "ERROR";
-                SendChangedEvent(EVT_RAMDOWNLOAD, result, result ? download->error : download->local_path);
+                m_download_states.emplace_back(false);
+                BOOST_LOG_TRIVIAL(warning) << "DownloadImageFromRam failed: " << download->error << "result = " << result;
+            }
+
+            if(m_download_states.size() == 3){
+                if(m_download_states[0] && m_download_states[1] && m_download_states[2]){
+                    SendChangedEvent(EVT_RAMDOWNLOAD, SUCCESS);
+                }else{
+                    // FILE_NO_EXIST is not really error_code
+                    SendChangedEvent(EVT_RAMDOWNLOAD, FILE_NO_EXIST);
+                }
+            }else{
+                 BOOST_LOG_TRIVIAL(warning) << "m_download_states current size is : " << m_download_states.size();
             }
         },param);
 }

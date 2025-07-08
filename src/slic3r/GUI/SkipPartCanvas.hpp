@@ -150,7 +150,7 @@ public:
     ModelSettingHelper(const std::string &path);
 
     bool                    Parse();
-    std::vector<PlateInfo>  GetPlates();
+    std::vector<ObjectInfo> GetPlateObjects(int plate_idx);
 
 private:
     std::string  path_;

@@ -5216,6 +5216,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
 
             if (plate_idx >= 0) {
                 plate_index = plate_idx;
+                this->m_plate_index = plate_idx;
             }
             else {
                 std::string subtask_json;
@@ -5278,8 +5279,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
                     BOOST_LOG_TRIVIAL(error) << "task_info: get subtask id failed!";
                 }
             }
-
-            this->m_plate_index = plate_index;
+            // this->m_plate_index = plate_index;
             });
     }
 }

@@ -9,6 +9,7 @@
 #include <expat.h>
 #include <earcut/earcut.hpp>
 #include <libslic3r/Color.hpp>
+#include <filesystem>
 
 wxDEFINE_EVENT(EVT_ZOOM_PERCENT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_CANVAS_PART, wxCommandEvent);
@@ -32,6 +33,8 @@ SkipPartCanvas::SkipPartCanvas(wxWindow *parent, const wxGLAttributes& dispAttrs
 
 void SkipPartCanvas::LoadPickImage(const std::string & path)
 {
+    if(!std::filesystem::exists(path)) return;
+
     auto ParseShapeId = [](cv::Mat image, const std::vector<std::vector<cv::Point>> &contours, const std::vector<cv::Vec4i> &hierarchy, int root_idx) -> uint32_t {
         cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);
 
@@ -249,8 +252,12 @@ void SkipPartCanvas::Render()
 
     int w, h;
     GetClientSize(&w, &h);
+#if defined(__APPLE__)
+    double scale = GetDPIScaleFactor();
+    glViewport(0, 0, w * scale, h * scale);
+#else
     glViewport(0, 0, w, h);
-
+#endif
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     auto view_rect = ViewPtToImagePt(wxPoint(w, h));
@@ -661,7 +668,14 @@ void XMLCALL ModelSettingHelper::EndElementHandler(void *userData, const XML_Cha
     }
 }
 
-std::vector<PlateInfo> ModelSettingHelper::GetPlates() { return context_.plates; }
+std::vector<ObjectInfo> ModelSettingHelper::GetPlateObjects(int plate_idx) {
+    for (const auto &plate : context_.plates) {
+        if (plate.index == plate_idx) {
+            return plate.objects;
+        }
+    }
+    return std::vector<ObjectInfo>();
+}
 
 void ModelSettingHelper::DataHandler(const XML_Char *s, int len)
 {
