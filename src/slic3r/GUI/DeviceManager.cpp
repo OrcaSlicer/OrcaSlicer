@@ -2988,7 +2988,7 @@ int MachineObject::parse_json(std::string payload, bool key_field_only)
                     }
                 }
             }
-            if (j_pre["print"].contains("plate_idx") && m_plate_index == -1){
+            if (j_pre["print"].contains("plate_idx")){ // && m_plate_index == -1
                 m_plate_index = j_pre["print"]["plate_idx"].get<int>();
             }
         }

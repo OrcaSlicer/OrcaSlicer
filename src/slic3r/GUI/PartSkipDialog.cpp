@@ -32,6 +32,33 @@ namespace Slic3r { namespace GUI {
 extern wxString hide_passwd(wxString url, std::vector<wxString> const &passwords);
 extern void     refresh_agora_url(char const *device, char const *dev_ver, char const *channel, void *context, void (*callback)(void *context, char const *url));
 
+StateColor percent_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled),
+                      std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Pressed),
+                      std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Hovered),
+                      std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
+                      std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
+
+static StateColor zoom_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled),
+                          std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
+                          std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
+                          std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
+                          std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
+
+static StateColor zoom_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
+static StateColor zoom_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
+
+static StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
+                               std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
+                               std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
+
+static StateColor btn_bg_gray(std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Pressed),
+                              std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Hovered),
+                              std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Normal));
+
+static StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed),
+                               std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
+                               std::pair<wxColour, int>(wxColour(0, 177, 66), StateColor::Normal));
+
 PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
     std::time_t       t = std::time(0);
@@ -70,12 +97,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_canvas_btn_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_canvas_btn_sizer->SetMinSize(wxSize(-1, FromDIP(28)));
 
-    StateColor zoom_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-                       std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
-                       std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
     zoom_bg.setTakeFocusedAsHovered(false);
-    StateColor zoom_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor zoom_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
 
     m_zoom_out_btn = new Button(m_book_third_panel, wxEmptyString);
     m_zoom_out_btn->SetIcon("canvas_zoom_out");
@@ -85,9 +107,6 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_zoom_out_btn->SetCornerRadius(0);
     m_zoom_out_btn->SetMinSize(wxSize(FromDIP(56), FromDIP(28)));
 
-    StateColor percent_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Pressed),
-                          std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
-                          std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
     m_percent_label = new Button(m_book_third_panel, _L("100 %"));
     m_percent_label->SetBackgroundColor(percent_bg);
     m_percent_label->SetBorderColor(wxColour(238, 238, 238));
@@ -164,20 +183,15 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_tot_label->SetBackgroundColour(*wxWHITE);
     m_tot_label->SetMinSize(wxSize(FromDIP(200), FromDIP(20)));
 
-    StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                            std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed), std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 177, 66), StateColor::Normal));
-
     m_apply_btn = new Button(m_book_third_panel, _L("Skip"));
-    m_apply_btn->SetBackgroundColor(btn_bg_green);
+    m_apply_btn->SetBackgroundColor(btn_bg_gray);
     m_apply_btn->SetTextColor(*wxWHITE);
     // m_apply_btn->SetBorderColor(wxColour(38, 46, 48));
     m_apply_btn->SetFont(Label::Body_14);
     m_apply_btn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
     m_apply_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
     m_apply_btn->SetCornerRadius(FromDIP(16));
+    m_apply_btn->Enable(false);
 
     m_canvas_sizer->Add(m_canvas, 0, wxLEFT | wxTOP | wxEXPAND, FromDIP(17));
     m_canvas_sizer->Add(m_canvas_btn_sizer, 0, wxTOP, FromDIP(8));
@@ -194,12 +208,12 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_dlg_content_sizer->Add(m_list_sizer, 0, wxRIGHT | wxEXPAND, FromDIP(14));
 
     m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(21));
-	m_dlg_btn_sizer->Add(m_cnt_label, 0,  wxALIGN_CENTER_VERTICAL, FromDIP(0) );
-    #ifdef __WXMSW__
-        m_dlg_btn_sizer->Add(m_tot_label, 0, wxLEFT |wxTOP| wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    #else
-        m_dlg_btn_sizer->Add(m_tot_label, 0, wxALIGN_CENTER_VERTICAL, 0);
-    #endif
+    m_dlg_btn_sizer->Add(m_cnt_label, 0, wxALIGN_CENTER_VERTICAL, FromDIP(0));
+#ifdef __WXMSW__
+    m_dlg_btn_sizer->Add(m_tot_label, 0, wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+#else
+    m_dlg_btn_sizer->Add(m_tot_label, 0, wxALIGN_CENTER_VERTICAL, 0);
+#endif
     m_dlg_btn_sizer->Add(0, 0, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(0));
     m_dlg_btn_sizer->Add(m_apply_btn, 0, wxALIGN_CENTER_VERTICAL, FromDIP(0));
     m_dlg_btn_sizer->Add(0, 0, 0, wxLEFT | wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(24));
@@ -289,7 +303,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_apply_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnApplyDialog, this);
     m_all_checkbox->Bind(wxEVT_TOGGLEBUTTON, &PartSkipDialog::OnAllCheckbox, this);
 
-	Layout();
+    Layout();
     Fit();
     CentreOnParent();
 }
@@ -635,6 +649,8 @@ void PartSkipDialog::UpdatePartsStateFromCanvas(wxCommandEvent &event)
     m_parts_state[part_id] = part_state;
     if (part_state == psUnCheck) { m_all_checkbox->SetValue(false); }
     if (IsAllChecked()) { m_all_checkbox->SetValue(true); }
+
+    UpdateApplyButtonStatus();
     UpdateDialogUI();
 }
 
@@ -715,6 +731,7 @@ void PartSkipDialog::InitDialogUI()
                     }
                     m_canvas->UpdatePartsInfo(GetPartsInfo());
                     UpdateCountLabel();
+                    UpdateApplyButtonStatus();
                     event.Skip();
                 },
                 checkbox->GetId());
@@ -821,6 +838,14 @@ bool PartSkipDialog::IsAllChecked()
     return true;
 }
 
+bool PartSkipDialog::IsAllCancled()
+{
+    for (auto &[part_id, part_state] : m_parts_state) {
+        if (part_state == PartState::psChecked) return false;
+    }
+    return true;
+}
+
 void PartSkipDialog::OnAllCheckbox(wxCommandEvent &event)
 {
     if (m_all_checkbox->GetValue()) {
@@ -832,9 +857,21 @@ void PartSkipDialog::OnAllCheckbox(wxCommandEvent &event)
             if (part_state == PartState::psChecked) part_state = PartState::psUnCheck;
         }
     }
+    UpdateApplyButtonStatus();
     m_canvas->UpdatePartsInfo(GetPartsInfo());
     UpdateDialogUI();
     event.Skip();
+}
+
+void PartSkipDialog::UpdateApplyButtonStatus()
+{
+    if (IsAllCancled()) {
+        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->Enable(false);
+    } else {
+        m_apply_btn->SetBackgroundColor(btn_bg_green);
+        m_apply_btn->Enable(true);
+    }
 }
 
 void PartSkipDialog::OnApplyDialog(wxCommandEvent &event)
@@ -866,7 +903,7 @@ void PartSkipDialog::OnApplyDialog(wxCommandEvent &event)
             if (all_skipped) {
                 m_obj->command_task_abort();
                 BOOST_LOG_TRIVIAL(info) << "part skip: command skip all parts, abort task.";
-            } else {
+            } else if (m_partskip_ids.size() > 0) {
                 m_obj->command_task_partskip(m_partskip_ids);
                 BOOST_LOG_TRIVIAL(info) << "part skip: command skip " << m_partskip_ids.size() << " parts.";
             }

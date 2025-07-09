@@ -149,7 +149,9 @@ private:
     void UpdateZoomPercent();
     void UpdateCountLabel();
     void UpdateDialogUI();
+    void UpdateApplyButtonStatus();
     bool IsAllChecked();
+    bool IsAllCancled();
 
     void OnRetryButton(wxCommandEvent &event);
     void OnAllCheckbox(wxCommandEvent &event);
