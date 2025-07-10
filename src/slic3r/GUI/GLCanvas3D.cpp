@@ -6922,7 +6922,9 @@ bool GLCanvas3D::_update_imgui_select_plate_toolbar()
         return false;
     }
 
-    p_plater->update_all_plate_thumbnails(true);
+    if (!p_plater->is_gcode_3mf()) { 
+        p_plater->update_all_plate_thumbnails(true);
+    }
 
     _update_select_plate_toolbar_stats_item();
 
