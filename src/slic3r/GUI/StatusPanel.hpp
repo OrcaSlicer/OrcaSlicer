@@ -223,7 +223,7 @@ public:
     void msw_rescale();
 
 public:
-    void enable_partskip_button(bool enable);
+    void enable_partskip_button(MachineObject* obj, bool enable);
     void enable_pause_resume_button(bool enable, std::string type);
     void enable_abort_button(bool enable);
     void update_subtask_name(wxString name);
@@ -239,7 +239,6 @@ public:
     void set_plate_index(int plate_idx = -1);
     void market_scoring_show();
     void market_scoring_hide();
-    void update_machine_object(MachineObject* obj);
     
 public:
     ScalableButton* get_abort_button() {return m_button_abort;};

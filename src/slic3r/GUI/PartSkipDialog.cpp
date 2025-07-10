@@ -532,6 +532,7 @@ void PartSkipDialog::OnFileSystemEvent(wxCommandEvent &e)
         m_file_sys->Stop();
         if (m_url_state == URL_TCP) {
             m_url_state = URL_TUTK;
+            m_file_sys->SetUrl("3");
             m_file_sys->Retry();
             BOOST_LOG_TRIVIAL(info) << "part skip: print file system connnect failed first.";
         } else {

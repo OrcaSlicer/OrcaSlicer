@@ -643,15 +643,11 @@ void PrintingTaskPanel::reset_printing_value()
     this->set_plate_index(-1);
 }
 
-void PrintingTaskPanel::update_machine_object(MachineObject* obj){
-    if(obj) m_obj = obj;
-}
-
-void PrintingTaskPanel::enable_partskip_button(bool enable)
+void PrintingTaskPanel::enable_partskip_button(MachineObject* obj, bool enable)
 {
     int stage = 0;
     bool in_calibration_mode = false;
-    if( m_obj && (m_obj->print_type == "system" || CalibUtils::get_calib_mode_by_name(m_obj->subtask_name, stage) != CalibMode::Calib_None)){
+    if( obj && (obj->print_type == "system" || CalibUtils::get_calib_mode_by_name(obj->subtask_name, stage) != CalibMode::Calib_None)){
         in_calibration_mode = true;
     }
 
@@ -659,7 +655,7 @@ void PrintingTaskPanel::enable_partskip_button(bool enable)
         m_button_partskip->Enable(false);
         m_button_partskip->SetLabel("");
         m_button_partskip->SetIcon("print_control_partskip_disable");
-    }else if(m_obj && m_obj->is_support_brtc){
+    }else if(obj && obj->is_support_brtc){
         m_button_partskip->Enable(true);
         m_button_partskip->SetIcon("print_control_partskip");   
     }
@@ -1758,7 +1754,7 @@ StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, co
     m_switch_cham_fan->SetValue(false);
 
     /* set default enable state */
-    m_project_task_panel->enable_partskip_button(false);
+    m_project_task_panel->enable_partskip_button(nullptr, false);
     m_project_task_panel->enable_pause_resume_button(false, "resume_disable");
     m_project_task_panel->enable_abort_button(false);
 
@@ -1973,7 +1969,6 @@ void StatusPanel::on_market_retry(wxCommandEvent &event)
 void StatusPanel::update_partskip_button(MachineObject *obj) {
     if (!obj) return;
 
-    m_project_task_panel->update_machine_object(obj);
     auto partskip_button = m_project_task_panel->get_partskip_button();
     if( obj->is_support_partskip ){
         partskip_button->Show();
@@ -3155,7 +3150,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
         if (obj->is_in_prepare() || obj->print_status == "SLICING") {
             m_project_task_panel->market_scoring_hide();
             m_project_task_panel->get_request_failed_panel()->Hide();
-            m_project_task_panel->enable_partskip_button(false);
+            m_project_task_panel->enable_partskip_button(nullptr, false);
             m_project_task_panel->enable_abort_button(false);
             m_project_task_panel->enable_pause_resume_button(false, "pause_disable");
             wxString prepare_text;
@@ -3197,7 +3192,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
             } else {
                  m_project_task_panel->enable_pause_resume_button(true, "pause");
             }
-            m_project_task_panel->enable_partskip_button(true);
+            m_project_task_panel->enable_partskip_button(obj, true);
             // update printing stage
             m_project_task_panel->update_left_time(obj->mc_left_time);
             if (obj->subtask_) {
@@ -3214,7 +3209,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
             if (obj->is_printing_finished()) {
                 obj->update_model_task();
                 m_project_task_panel->enable_abort_button(false);
-                m_project_task_panel->enable_partskip_button(false);
+                m_project_task_panel->enable_partskip_button(nullptr, false);
                 m_project_task_panel->enable_pause_resume_button(false, "resume_disable");
                 // is makeworld subtask
                 if (wxGetApp().has_model_mall() && obj->is_makeworld_subtask()) {
@@ -3372,7 +3367,7 @@ void StatusPanel::update_sdcard_subtask(MachineObject *obj)
 
 void StatusPanel::reset_printing_values()
 {
-    m_project_task_panel->enable_partskip_button(false);
+    m_project_task_panel->enable_partskip_button(nullptr, false);
     m_project_task_panel->enable_pause_resume_button(false, "pause_disable");
     m_project_task_panel->enable_abort_button(false);
     m_project_task_panel->reset_printing_value();
