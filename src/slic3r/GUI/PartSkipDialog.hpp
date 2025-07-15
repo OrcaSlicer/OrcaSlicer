@@ -115,6 +115,8 @@ private:
     int  m_zoom_percent{100};
     bool m_is_drag{false};
     bool m_print_lock{true};
+    bool m_enable_apply_btn{false};
+    bool is_model_support_partskip{false};
 
     std::map<uint32_t, PartState>   m_parts_state;
     std::map<uint32_t, std::string> m_parts_name;

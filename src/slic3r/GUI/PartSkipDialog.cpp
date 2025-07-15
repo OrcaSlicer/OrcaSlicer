@@ -191,7 +191,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_apply_btn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
     m_apply_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
     m_apply_btn->SetCornerRadius(FromDIP(16));
-    m_apply_btn->Enable(false);
+    m_apply_btn->SetToolTip(wxEmptyString);
 
     m_canvas_sizer->Add(m_canvas, 0, wxLEFT | wxTOP | wxEXPAND, FromDIP(17));
     m_canvas_sizer->Add(m_canvas_btn_sizer, 0, wxTOP, FromDIP(8));
@@ -407,7 +407,9 @@ bool PartSkipDialog::is_local_file_existed(const std::vector<string> &local_path
 
 void PartSkipDialog::DownloadPartsFile()
 {
+    BOOST_LOG_TRIVIAL(info) << "part skip: create temp path begin.";
     m_tmp_path = create_tmp_path(); // wxGetApp().app_config->get("download_path");
+    BOOST_LOG_TRIVIAL(info) << "part skip: create temp path end.";
 
     m_local_paths.clear();
     m_target_paths.clear();
@@ -440,6 +442,7 @@ void PartSkipDialog::DownloadPartsFile()
         }
     } else {
         m_file_sys->SendExistedFile();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "part skip: local parts info file is existed.";
     }
 }
 // actor
@@ -686,7 +689,8 @@ bool PartSkipDialog::Show(bool show)
 
 void PartSkipDialog::InitDialogUI()
 {
-    m_print_lock = true;
+    m_print_lock              = true;
+    is_model_support_partskip = false;
     BOOST_LOG_TRIVIAL(info) << "part skip: lock parts info from printer.";
     m_scroll_sizer->Clear(true);
     m_all_checkbox->SetValue(false);
@@ -709,7 +713,8 @@ void PartSkipDialog::InitDialogUI()
     ModelSettingHelper helper(slice_info);
 
     if (helper.Parse()) {
-        auto parse_result = helper.GetPlateObjects(m_plate_idx);
+        is_model_support_partskip = helper.GetLabelObjectEnabled(m_plate_idx);
+        auto parse_result         = helper.GetPlateObjects(m_plate_idx);
         for (const auto &part : parse_result) {
             m_parts_state[part.identify_id] = part.state;
             m_parts_name[part.identify_id]  = part.name;
@@ -769,6 +774,7 @@ void PartSkipDialog::InitDialogUI()
 
     m_scroll_sizer->Layout();
     m_list_view->FitInside();
+    UpdateApplyButtonStatus();
     UpdateCountLabel();
     Refresh();
     m_print_lock = false;
@@ -872,16 +878,29 @@ void PartSkipDialog::UpdateApplyButtonStatus()
 {
     if (IsAllCancled()) {
         m_apply_btn->SetBackgroundColor(btn_bg_gray);
-        m_apply_btn->Enable(false);
+        m_apply_btn->SetToolTip(_L("Nothing selected"));
+        m_enable_apply_btn = false;
+    } else if (m_parts_state.size() > 64) {
+        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->SetToolTip(_L("Over 64 objects in single plate"));
+        m_enable_apply_btn = false;
+    } else if (!is_model_support_partskip) {
+        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->SetToolTip(_L("The current print job cannot be skipped"));
+        m_enable_apply_btn = false;
     } else {
         m_apply_btn->SetBackgroundColor(btn_bg_green);
-        m_apply_btn->Enable(true);
+        m_apply_btn->SetToolTip(wxEmptyString);
+        m_enable_apply_btn = true;
     }
 }
 
 void PartSkipDialog::OnApplyDialog(wxCommandEvent &event)
 {
     event.Skip();
+
+    if (!m_enable_apply_btn) return;
+
     m_partskip_ids.clear();
     for (const auto &[part_id, part_state] : m_parts_state) {
         if (part_state == PartState::psChecked) { m_partskip_ids.push_back(part_id); }

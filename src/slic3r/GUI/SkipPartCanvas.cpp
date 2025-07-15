@@ -649,6 +649,7 @@ void XMLCALL ModelSettingHelper::StartElementHandler(void *userData, const XML_C
             if (strcmp(atts[i], "value") == 0) value = atts[i + 1];
         }
         if (key == "index") { self->context_.current_plate.index = std::stoi(value); }
+        if (key == "label_object_enabled") { self->context_.current_plate.label_object_enabled = value == "true"; }
     } else if (strcmp(name, "object") == 0 && self->context_.in_plate) {
         ObjectInfo obj;
         for (int i = 0; atts[i]; i += 2) {
@@ -676,6 +677,14 @@ std::vector<ObjectInfo> ModelSettingHelper::GetPlateObjects(int plate_idx) {
         }
     }
     return std::vector<ObjectInfo>();
+}
+
+bool ModelSettingHelper::GetLabelObjectEnabled(int plate_idx)
+{
+    for (const auto &plate : context_.plates) {
+        if (plate.index == plate_idx) { return plate.label_object_enabled; }
+    }
+    return false;
 }
 
 void ModelSettingHelper::DataHandler(const XML_Char *s, int len)

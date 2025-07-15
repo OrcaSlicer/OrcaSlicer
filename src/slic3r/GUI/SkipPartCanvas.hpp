@@ -135,6 +135,7 @@ struct PlateInfo
 {
     int                     index{-1};
     std::vector<ObjectInfo> objects;
+    bool                    label_object_enabled = false;
 };
 
 class ModelSettingHelper : public _BBS_3MF_Base
@@ -152,6 +153,7 @@ public:
 
     bool                    Parse();
     std::vector<ObjectInfo> GetPlateObjects(int plate_idx);
+    bool                    GetLabelObjectEnabled(int plate_idx);
 
 private:
     std::string  path_;
