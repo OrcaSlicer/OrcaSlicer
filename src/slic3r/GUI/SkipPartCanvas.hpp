@@ -97,6 +97,7 @@ private:
     bool left_down_{false};
     ColorRGB parent_color_ = ColorRGB();
     int hover_id_{-1};
+    double image_view_scale_{1};
 
     void SendSelectEvent(int id, PartState state);
     void SendZoomEvent(int zoom_percent);

@@ -86,7 +86,8 @@ void SkipPartCanvas::LoadPickImage(const std::string & path)
         image_scale = zoom_x;
     else
         image_scale = zoom_y;
-    cv::resize(src_image, pick_image_, cv::Size(), image_scale, image_scale, cv::INTER_NEAREST);
+    image_view_scale_ = 1 / image_scale;
+    pick_image_ = src_image;
     std::vector<cv::Mat> channels;
     cv::Mat gray; // convert to gray
     cv::cvtColor(pick_image_, gray, cv::COLOR_BGR2GRAY);
@@ -399,7 +400,7 @@ inline double SkipPartCanvas::Zoom() const
 
 inline wxPoint SkipPartCanvas::ViewPtToImagePt(const wxPoint& view_pt) const
 {
-    return wxPoint(view_pt.x / Zoom(), view_pt.y / Zoom()) + offset_;
+    return wxPoint(view_pt.x * image_view_scale_ / Zoom(), view_pt.y * image_view_scale_ / Zoom()) + offset_;
 }
 
 uint32_t SkipPartCanvas::GetIdAtImagePt(const wxPoint& image_pt) const
@@ -460,7 +461,7 @@ void SkipPartCanvas::StartDrag(const wxPoint& mouse_pt)
 
 void SkipPartCanvas::ProcessDrag(const wxPoint& mouse_pt)
 {
-    wxPoint drag_offset = mouse_pt - drag_start_pt_;
+    wxPoint drag_offset = (mouse_pt - drag_start_pt_) * image_view_scale_;
     SetOffset(- wxPoint(drag_offset.x / Zoom(), drag_offset.y / Zoom()) + drag_start_offset_);
     Refresh();
 }
