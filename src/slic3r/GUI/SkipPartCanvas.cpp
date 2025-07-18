@@ -11,6 +11,7 @@
 #include <earcut/earcut.hpp>
 #include <libslic3r/Color.hpp>
 #include <filesystem>
+#include <map>
 
 wxDEFINE_EVENT(EVT_ZOOM_PERCENT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_CANVAS_PART, wxCommandEvent);
