@@ -17,6 +17,7 @@
 #include <wx/glcanvas.h>
 #include <wx/utils.h>
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Label.hpp"
