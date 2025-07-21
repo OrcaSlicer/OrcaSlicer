@@ -387,7 +387,8 @@ std::string PartSkipDialog::create_tmp_path()
     buf << "/bamboo_task/";
     buf << m_timestamp;
     if (m_obj) {
-        buf << m_obj->dev_id << "_";
+        buf << m_obj->dev_id.substr(0, 3) << "_";
+        buf << m_obj->dev_id.substr(m_obj->dev_id.length() - 3, 3) << "_";
         buf << m_obj->job_id_ << "/";
     } else {
         buf << 1 << "_" << 1 << "/";
