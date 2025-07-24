@@ -13,6 +13,7 @@
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
+#include "MainFrame.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -198,6 +199,81 @@ std::string RammingPanel::get_parameters()
 static const float g_min_flush_multiplier = 0.f;
 static const float g_max_flush_multiplier = 3.f;
 
+bool is_flush_config_modified()
+{
+    const auto                &project_config    = wxGetApp().preset_bundle->project_config;
+    const auto                &full_config       = wxGetApp().preset_bundle->full_config();
+    const std::vector<double> &config_matrix     = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
+    const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
+
+    size_t                        nozzle_nums = full_config.option<ConfigOptionFloatsNullable>("nozzle_diameter")->values.size();
+    std::vector<std::vector<int>> extra_flush_volumes;
+    extra_flush_volumes.resize(nozzle_nums, std::vector<int>());
+    for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) { extra_flush_volumes[nozzle_id] = get_min_flush_volumes(full_config, nozzle_id); }
+    WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), extra_flush_volumes);
+
+    bool has_modify = false;
+    for (int i = 0; i < config_multiplier.size(); i++) {
+        if (config_multiplier[i] != 1) {
+            has_modify = true;
+            break;
+        }
+        std::vector<std::vector<double>> default_matrix = dlg.CalcFlushingVolumes(i);
+        int                              len            = default_matrix.size();
+        for (int m = 0; m < len; m++) {
+            for (int n = 0; n < len; n++) {
+                int idx = i * len * len + m * len + n;
+                if (config_matrix[idx] != default_matrix[m][n] * config_multiplier[i]) {
+                    has_modify = true;
+                    break;
+                }
+            }
+            if (has_modify) break;
+        }
+        if (has_modify) break;
+    }
+    return has_modify;
+}
+
+void open_flushing_dialog(Button *flushing_volume_btn, wxEvtHandler *parent, const wxEvent &event)
+{
+    auto                      &project_config = wxGetApp().preset_bundle->project_config;
+    const std::vector<double> &init_matrix    = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
+    const std::vector<double> &init_extruders = (project_config.option<ConfigOptionFloats>("flush_volumes_vector"))->values;
+
+    const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
+    const auto                    &full_config      = wxGetApp().preset_bundle->full_config();
+
+    size_t nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+
+    std::vector<std::vector<int>> extra_flush_volumes;
+    extra_flush_volumes.resize(nozzle_nums, std::vector<int>());
+    for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) { extra_flush_volumes[nozzle_id] = get_min_flush_volumes(full_config, nozzle_id); }
+
+    WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), extra_flush_volumes);
+    //WipingDialog dlg(wxGetApp().mainframe), extra_flush_volumes);
+    dlg.ShowModal();
+    if (dlg.GetSubmitFlag()) {
+        auto matrix = dlg.GetFlattenMatrix();
+        auto flush_multipliers = dlg.GetMultipliers();
+        (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
+        (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
+        auto has_modify = is_flush_config_modified();
+        if (has_modify) {
+            flushing_volume_btn->SetBorderColor(wxColour(255, 111, 0));
+            flushing_volume_btn->SetTextColor(wxColour(255, 111, 0));
+        } else {
+            flushing_volume_btn->SetBorderColor(wxColour(172, 172, 172));
+            flushing_volume_btn->SetTextColor(wxColour(172, 172, 172));
+        }
+
+        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+
+        wxGetApp().plater()->update_project_dirty_from_presets();
+        wxPostEvent(parent, event);
+    }
+}
+
 static std::vector<float> MatrixFlatten(const WipingDialog::VolumeMatrix& matrix) {
     std::vector<float> vec;
     for (auto row_elems : matrix) {
@@ -222,6 +298,11 @@ wxString WipingDialog::BuildTableObjStr()
     }
     flush_multiplier.resize(nozzle_num, 1);
 
+    std::vector<std::vector<float>> default_matrixs;
+    for (int idx = 0; idx < nozzle_num; ++idx) {
+        default_matrixs.emplace_back(MatrixFlatten(CalcFlushingVolumes(idx)));
+    }
+
     m_raw_matrixs = flush_matrixs;
     m_flush_multipliers = flush_multiplier;
 
@@ -235,9 +316,13 @@ wxString WipingDialog::BuildTableObjStr()
     obj["min_flush_multiplier"] = g_min_flush_multiplier;
     obj["max_flush_multiplier"] = g_max_flush_multiplier;
     obj["is_dark_mode"] = wxGetApp().dark_mode();
+    obj["default_matrixs"]      = json::array();
 
     for (const auto& vec : flush_matrixs) {
         obj["flush_volume_matrixs"].push_back(vec);
+    }
+    for (const auto &vec : default_matrixs) {
+        obj["default_matrixs"].push_back(vec);
     }
 
     for (int idx = 0; idx < nozzle_num; ++idx) {

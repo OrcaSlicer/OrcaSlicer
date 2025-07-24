@@ -1870,35 +1870,17 @@ Sidebar::Sidebar(Plater *parent)
     p->m_flushing_volume_btn = new Button(p->m_panel_filament_title, _L("Flushing volumes"));
     p->m_flushing_volume_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
     p->m_flushing_volume_btn->SetId(wxID_RESET);
-    p->m_flushing_volume_btn->Bind(wxEVT_BUTTON, ([parent](wxCommandEvent &e)
-        {
-            auto& project_config = wxGetApp().preset_bundle->project_config;
-            const std::vector<double>& init_matrix = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
-            const std::vector<double>& init_extruders = (project_config.option<ConfigOptionFloats>("flush_volumes_vector"))->values;
+    auto has_modify = is_flush_config_modified();
+    if (has_modify) {
+        p->m_flushing_volume_btn->SetBorderColor(wxColour(255, 111, 0));
+        p->m_flushing_volume_btn->SetTextColor(wxColour(255, 111, 0));
+    } else {
+        p->m_flushing_volume_btn->SetBorderColor(wxColour(172, 172, 172));
+        p->m_flushing_volume_btn->SetTextColor(wxColour(172, 172, 172));
+    }
 
-            const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-            const auto& full_config = wxGetApp().preset_bundle->full_config();
-
-            size_t nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-
-            std::vector<std::vector<int>> extra_flush_volumes;
-            extra_flush_volumes.resize(nozzle_nums, std::vector<int>());
-            for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
-                extra_flush_volumes[nozzle_id] = get_min_flush_volumes(full_config, nozzle_id);
-            }
-
-            WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe),extra_flush_volumes);
-            dlg.ShowModal();
-            if (dlg.GetSubmitFlag()) {
-                auto matrix = dlg.GetFlattenMatrix();
-                auto flush_multipliers = dlg.GetMultipliers();
-                (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
-                (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
-                wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-
-                wxGetApp().plater()->update_project_dirty_from_presets();
-                wxPostEvent(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
-            }
+    p->m_flushing_volume_btn->Bind(wxEVT_BUTTON, ([parent, this](wxCommandEvent &e) {
+            open_flushing_dialog(p->m_flushing_volume_btn, parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
         }));
 
     bSizer39->Add(p->m_flushing_volume_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
@@ -3374,6 +3356,10 @@ wxButton* Sidebar::get_wiping_dialog_button()
 #endif
     return NULL;
 }
+
+Button* Sidebar::get_flushing_volume_btn() {
+    return p->m_flushing_volume_btn;
+ }
 
 void Sidebar::enable_buttons(bool enable)
 {

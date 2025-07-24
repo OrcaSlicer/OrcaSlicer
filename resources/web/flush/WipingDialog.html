@@ -388,6 +388,7 @@
       let m_max_flush_volumes = []
       let m_min_flush_multiplier = 0.50
       let m_max_flush_multiplier = 3
+      let m_default_matrix //系统默认矩阵
 
       function storeData() {
         var data = JSON.stringify({
@@ -516,6 +517,9 @@
         m_raw_matrix = data.flush_volume_matrixs.map(function(arr) {
           return arr.slice();
         });
+        m_default_matrix = data.default_matrixs.map(function (arr) {
+            return arr.slice();
+        });
         m_flush_multipiers = data.flush_multiplier.slice()
         m_max_flush_volumes = data.max_flush_volumes
         m_min_flush_volumes = data.min_flush_volumes
@@ -641,6 +645,14 @@
 
 
       function updateWarningTexts() {
+        let val = parseFloat(document.getElementById("multiplierInput").value);
+        const input = document.getElementById('multiplierInput');
+        if (val !== 1.0) {
+            input.style.color = 'orange';
+        } else {
+            input.style.color = 'black';
+        }
+
         let hasException = false;
         for (let i = 0; i < m_number_of_filaments; i++) {
           for (let j = 0; j < m_number_of_filaments; j++) {
@@ -649,11 +661,18 @@
             let val = parseInt(input.value, 10);
             if (isNaN(val)) val = 0;
 
+            var index = i * m_number_of_filaments + j;
+            let defaultVal = rawToDislay(m_default_matrix[m_curr_extruder_id][index], m_flush_multipiers[m_curr_extruder_id])
+
             if (val < m_min_flush_volumes[m_curr_extruder_id] || val > m_max_flush_volumes[m_curr_extruder_id]) {
               input.style.color = "red";
               hasException = true;
-            } else {
-              input.style.removeProperty("color"); 
+            }
+            else if (val != defaultVal) {
+              input.style.color = "orange";
+            }
+            else {
+              input.style.removeProperty("color");
             }
           }
         }

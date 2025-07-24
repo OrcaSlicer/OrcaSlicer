@@ -7307,6 +7307,7 @@ bool is_soluble_filament(int extruder_id)
 
 bool has_filaments(const std::vector<string>& model_filaments) {
     auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
+    if (!Slic3r::GUI::wxGetApp().plater()) return false;
     auto model_objects = Slic3r::GUI::wxGetApp().plater()->model().objects;
     const Slic3r::DynamicPrintConfig &config = wxGetApp().preset_bundle->full_config();
     Model::setExtruderParams(config, filament_presets.size());

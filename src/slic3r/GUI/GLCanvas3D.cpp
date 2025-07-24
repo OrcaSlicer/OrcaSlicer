@@ -23,6 +23,7 @@
 #include "OpenGLManager.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
+#include "WipeTowerDialog.hpp"
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
 #include "GUI_Colors.hpp"
@@ -3035,6 +3036,8 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
             auto clash_flag = construct_error_string(object_results, get_object_clashed_text());
             auto unprintable_flag= construct_extruder_unprintable_error(object_results, get_left_extruder_unprintable_text(), get_right_extruder_unprintable_text());
 
+            bool is_flushing_volume_valid = is_flushing_matrix_error();
+            _set_warning_notification(EWarning::FlushingVolumeZero, is_flushing_volume_valid);
             _set_warning_notification(EWarning::ObjectClashed, clash_flag);
             _set_warning_notification(EWarning::LeftExtruderPrintableError, unprintable_flag.first);
             _set_warning_notification(EWarning::RightExtruderPrintableError, unprintable_flag.second);
@@ -3066,6 +3069,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
         }
         else {
             _set_warning_notification(EWarning::ObjectOutside, false);
+            _set_warning_notification(EWarning::FlushingVolumeZero, false);
             _set_warning_notification(EWarning::ObjectClashed, false);
             _set_warning_notification(EWarning::LeftExtruderPrintableError, false);
             _set_warning_notification(EWarning::RightExtruderPrintableError, false);
@@ -10167,6 +10171,10 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         text = _u8L(get_filament_mixture_warning_text());
         break;
     }
+    case EWarning::FlushingVolumeZero:
+        text = _u8L("Partial flushing volume set to 0. Multi-color printing may cause color mixing in models. Please redjust flushing settings.");
+        error = ErrorType::SLICING_ERROR;
+        break;
     }
     //BBS: this may happened when exit the app, plater is null
     if (!wxGetApp().plater())
@@ -10270,6 +10278,19 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             else
                 notification_manager.close_slicing_customize_error_notification(NotificationType::BBLFilamentPrintableError, NotificationLevel::ErrorNotificationLevel);
         }
+        else if (warning == EWarning::FlushingVolumeZero) {
+            if (state) {
+                auto callback = [](wxEvtHandler *) {
+                    auto                              plater              = wxGetApp().plater();
+                    auto                              flushing_volume_btn = wxGetApp().sidebar().get_flushing_volume_btn();
+                    const wxEventTypeTag<SimpleEvent> EVT_SCHEDULE_BACKGROUND_PROCESS(wxNewEventType());
+                    open_flushing_dialog(flushing_volume_btn, plater, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, plater));
+                    return false;
+                };
+                notification_manager.push_slicing_customize_error_notification(NotificationType::BBLFlushingVolumeZero, NotificationLevel::WarningNotificationLevel, text, _u8L("Flushing Volume"), callback);
+            } else
+                notification_manager.close_slicing_customize_error_notification(NotificationType::BBLFlushingVolumeZero, NotificationLevel::WarningNotificationLevel);
+        }
         else {
             if (state)
                 notification_manager.push_slicing_error_notification(text, conflictObj ? std::vector<ModelObject const*>{conflictObj} : std::vector<ModelObject const*>{});
@@ -10292,6 +10313,24 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
     default:
         break;
     }
+}
+
+bool GLCanvas3D::is_flushing_matrix_error() {
+
+    const auto                &project_config = wxGetApp().preset_bundle->project_config;
+    const std::vector<double> &config_matrix  = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
+    const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
+
+    int  matrix_len = config_matrix.size() / config_multiplier.size();
+    int  row_len    = std::sqrt(matrix_len);
+    for (int i = 0; i < config_matrix.size(); i++)
+    {
+        int relative_id = i % matrix_len;
+        int row_id      = relative_id / row_len;
+        int col_id      = relative_id % row_len;
+        if (row_id != col_id && config_matrix[i] == 0) return true;
+    }
+    return false;
 }
 
 bool GLCanvas3D::_is_any_volume_outside() const

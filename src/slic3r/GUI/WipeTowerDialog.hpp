@@ -38,6 +38,11 @@ private:
 };
 
 
+class Button;
+
+bool is_flush_config_modified();
+void open_flushing_dialog(Button *flushing_volume_btn, wxEvtHandler *parent, const wxEvent &event);
+
 class WipingDialog : public wxDialog
 {
 public:

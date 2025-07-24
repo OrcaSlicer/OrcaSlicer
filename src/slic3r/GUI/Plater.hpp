@@ -212,6 +212,7 @@ public:
 
     ConfigOptionsGroup*     og_freq_chng_params(const bool is_fff);
     wxButton*               get_wiping_dialog_button();
+    Button*                 get_flushing_volume_btn();
 
     // BBS
     void                    enable_buttons(bool enable);
