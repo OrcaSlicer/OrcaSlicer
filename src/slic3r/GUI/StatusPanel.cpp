@@ -1526,6 +1526,7 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     m_calibration_btn->SetTextColor(wxColour("#FFFFFE"));
     m_calibration_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
     m_calibration_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_calibration_btn->EnableTooltipEvenDisabled();
 
     bSizer_control_title->Add(m_staticText_control, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, PAGE_TITLE_LEFT_MARGIN);
     bSizer_control_title->Add(0, 0, 1, wxEXPAND, 0);
@@ -3535,6 +3536,17 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
 void StatusPanel::update_cali(MachineObject *obj)
 {
     if (!obj) return;
+
+    // disable calibration button in 2D
+    if (!obj->is_fdm_type()) {
+        m_calibration_btn->SetToolTip(_L("Printer 2D mode does not support 3D calibration"));
+        m_calibration_btn->SetLabel(_L("Calibration"));
+        m_calibration_btn->Disable();
+        return;
+    } else if (!m_calibration_btn->IsEnabled()) {
+        m_calibration_btn->SetToolTip(wxEmptyString);
+        m_calibration_btn->Enable();
+    }
 
     if (obj->is_calibration_running()) {
         m_calibration_btn->SetLabel(_L("Calibrating"));
