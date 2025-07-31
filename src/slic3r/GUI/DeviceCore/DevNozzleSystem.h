@@ -28,6 +28,7 @@ namespace Slic3r
        bool                            ContainsNozzle(int id) const { return m_nozzles.find(id) != m_nozzles.end(); }
        DevNozzle                       GetNozzle(int id) const;
        const std::map<int, DevNozzle>& GetNozzles() const { return m_nozzles;}
+       bool                            IsRefreshing() const { return m_state == 1; }
 
    private:
        void Reset();

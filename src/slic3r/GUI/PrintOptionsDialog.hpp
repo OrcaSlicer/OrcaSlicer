@@ -11,6 +11,7 @@
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 #include "DeviceManager.hpp"
+#include "Widgets/Button.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/StaticLine.hpp"
@@ -33,6 +34,8 @@ protected:
     ComboBox* nozzle_flow_type_checkbox;
     Label    *change_nozzle_tips;
     Label* m_wiki_link;
+    Button* m_single_update_nozzle_button;
+    Button* m_multiple_update_nozzle_button;
 
     ComboBox* multiple_left_nozzle_type_checkbox;
     ComboBox *multiple_left_nozzle_diameter_checkbox;
@@ -55,10 +58,12 @@ public:
     void on_dpi_changed(const wxRect& suggested_rect) override;
     void update_machine_obj(MachineObject* obj_);
     bool Show(bool show) override;
+    void UpdateNozzleInfo();
 
 private:
     void  EnableEditing(bool enable);
     void  OnWikiClicked(wxMouseEvent& e);
+    void  OnNozzleRefresh(wxCommandEvent& e);
 
     wxString GetString(NozzleType nozzle_type) const;
     wxString GetString(NozzleFlowType nozzle_flow_type) const;

@@ -1491,6 +1491,14 @@ int MachineObject::command_set_nozzle_new(int nozzle_id, int temp)
     return this->publish_json(j, 1);
 }
 
+int MachineObject::command_refresh_nozzle(){
+    json j;
+    j["print"]["sequence_id"]    = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["command"]        = "refresh_nozzle";
+
+    return this->publish_json(j, 1);
+}
+
 int MachineObject::command_set_chamber(int temp)
 {
     json j;
@@ -2912,6 +2920,12 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 if (jj.contains("bed_temperature_limit")) {
                     if (jj["bed_temperature_limit"].is_number_integer()) {
                         bed_temperature_limit = jj["bed_temperature_limit"].get<int>();
+                    }
+                }
+
+                if (jj.contains("support_refresh_nozzle")) {
+                    if (jj["support_refresh_nozzle"].is_boolean()) {
+                        is_support_refresh_nozzle = jj["support_refresh_nozzle"].get<bool>();
                     }
                 }
             }

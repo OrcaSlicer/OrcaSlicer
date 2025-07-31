@@ -598,6 +598,7 @@ public:
     bool is_support_brtc{false};                 // fun[31], support tcp and upload protocol
     bool is_support_ext_change_assist{false};
     bool is_support_partskip{false};
+    bool is_support_refresh_nozzle{false};
 
       // refine printer function options
     bool is_support_spaghetti_detection{false};
@@ -711,6 +712,7 @@ public:
 
     int command_set_nozzle(int temp);
     int command_set_nozzle_new(int nozzle_id, int temp);
+    int command_refresh_nozzle();
     int command_set_chamber(int temp);
     int check_resume_condition();
     // ams controls

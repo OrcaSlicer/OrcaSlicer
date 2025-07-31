@@ -59,7 +59,8 @@
 			"support_chamber_temp_edit_range": [ 0, 65 ],
 			"support_chamber_temp_switch_heating": 40,
 			"support_extrusion_cali": false,
-			"support_user_preset": false
+			"support_user_preset": false,
+			"support_refresh_nozzle": true
 		},
 		"model_id": "O1D",
 		"support_wrapping_detection": true,
