@@ -10321,11 +10321,10 @@ void Plater::priv::set_bed_shape(const Pointfs       &shape,
 
         //BBS: update part plate's size
         // BBS: to be checked
-        Vec3d max = bed.extended_bounding_box().max;
-        Vec3d min = bed.extended_bounding_box().min;
+        Vec3d max = bed.printable_bounding_box().max;
+        Vec3d min = bed.printable_bounding_box().min;
         double z = config->opt_float("printable_height");
 
-        //Pointfs& exclude_areas = config->option<ConfigOptionPoints>("bed_exclude_area")->values;
         partplate_list.reset_size(max.x() - min.x() - Bed3D::Axes::DefaultTipRadius, max.y() - min.y() - Bed3D::Axes::DefaultTipRadius, z);
         partplate_list.set_shapes(shape, exclude_areas, wrapping_exclude_areas, extruder_areas, extruder_heights, custom_texture, height_to_lid, height_to_rod);
 
