@@ -44,6 +44,7 @@
 			"support_lidar_calibration": true,
 			"support_ai_monitoring": true,
 			"support_first_layer_inspect": true,
+			"support_chamber": true,
 			"support_chamber_temp_edit": true,
 			"support_chamber_temp_edit_range": [0, 60],
 			"support_extrusion_cali": false,

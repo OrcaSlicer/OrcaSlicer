@@ -21,6 +21,7 @@ public:
 
 public:
     // chamber
+    bool HasChamber() const { return m_has_chamber; }
     bool SupportChamberEdit() const { return m_support_chamber_edit; }
     int  GetChamberTempEditMin() const { return m_chamber_temp_edit_min; }
     int  GetChamberTempEditMax() const { return m_chamber_temp_edit_max; }
@@ -54,6 +55,7 @@ private:
 
     /*configure vals*/
     // chamber
+    bool m_has_chamber = false; // whether the machine has a chamber
     bool m_support_chamber_edit = false;
     int  m_chamber_temp_edit_min = 0;
     int  m_chamber_temp_edit_max = 60;

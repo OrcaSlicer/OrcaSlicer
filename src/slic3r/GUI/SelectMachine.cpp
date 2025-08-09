@@ -1512,8 +1512,9 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         tips = params[1];
     }
 
-    if (m_print_status != status)
-        BOOST_LOG_TRIVIAL(info) << "select_machine_dialog: show_status = " << status << "(" << PrePrintChecker::get_print_status_info(status) << ")";
+    if (m_print_status != status) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": update_status: " << status << "(" << PrePrintChecker::get_print_status_info(status) << ")";
+    }
     m_print_status = status;
 
     // all message
@@ -1692,7 +1693,7 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintStatusWarningTpuRightColdPulling) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
-    } else if (status == PrintStatusFilamentWarningHighChamberTempCloseDoor) {
+    } else if (status == PrintStatusFilamentWarningHighChamberTempCloseDoor || status == PrintStatusFilamentWarningHighChamberTemp) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
     } else if (status == PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempSoft || status == PrintDialogStatus::PrintStatusFilamentWarningUnknownHighChamberTempSoft) {
@@ -3519,6 +3520,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
 
     /*Check high temperture slicing*/
     if (m_print_type == PrintFromType::FROM_NORMAL) {
+        std::set<string>  high_temp_filaments;
         std::unordered_set<int> known_fila_soften_extruders;
         std::unordered_set<int> unknown_fila_soften_extruders;
         auto preset_full_config = wxGetApp().preset_bundle->full_config();
@@ -3527,9 +3529,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             try
             {
                 int chamber_temp = chamber_temperatures->values[item.id];
-                if (chamber_temp >= obj_->GetConfig()->GetChamberTempSwitchHeat()) {// check close door
-                    show_status(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor);
-                    if (PrePrintChecker::is_error(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor)) { return; }
+                if (chamber_temp >= 40) { 
+                    high_temp_filaments.insert(item.get_display_filament_type());// high printing chamber temperature
                 }
 
                 for (const auto& extder : obj_->GetExtderSystem()->GetExtruders()) { // check vitrification
@@ -3548,6 +3549,26 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
                 }
             }
             catch (std::exception&) { assert(0); }
+        }
+
+        if (!high_temp_filaments.empty()) {
+            wxString filament_strs;/*join the filament strs*/
+            for (auto filament : high_temp_filaments) {
+                filament_strs += filament;
+                if (filament != *high_temp_filaments.rbegin()) {
+                    filament_strs += ", ";
+                }
+            }
+
+            if (obj_->GetConfig()->HasChamber()) {
+                const auto& msg = wxString::Format(_L("[ %s ] requires printing in a high-temperature environment."), filament_strs);
+                show_status(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor, { msg });
+                if (PrePrintChecker::is_error(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor)) { return; }
+            } else {
+                const auto& msg = wxString::Format(_L("[ %s ] requires printing in a high-temperature environment.Please close the door."), filament_strs);
+                show_status(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTemp, { msg });
+                if (PrePrintChecker::is_error(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTemp)) { return; }
+            }
         }
 
         if (!known_fila_soften_extruders.empty()) {

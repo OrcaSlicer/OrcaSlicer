@@ -8,13 +8,16 @@ namespace Slic3r { namespace GUI {
 
 std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
 {
-    switch (status) {
+    switch (status)
+    {
     case PrintStatusInit: return "PrintStatusInit";
     case PrintStatusNoUserLogin: return "PrintStatusNoUserLogin";
     case PrintStatusInvalidPrinter: return "PrintStatusInvalidPrinter";
     case PrintStatusConnectingServer: return "PrintStatusConnectingServer";
     case PrintStatusReadingTimeout: return "PrintStatusReadingTimeout";
     case PrintStatusReading: return "PrintStatusReading";
+    case PrintStatusConnecting: return "PrintStatusConnecting";
+    case PrintStatusReconnecting: return "PrintStatusReconnecting";
     case PrintStatusInUpgrading: return "PrintStatusInUpgrading";
     case PrintStatusModeNotFDM: return "PrintStatusModeNotFDM";
     case PrintStatusInSystemPrinting: return "PrintStatusInSystemPrinting";
@@ -34,25 +37,30 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusBlankPlate: return "PrintStatusBlankPlate";
     case PrintStatusUnsupportedPrinter: return "PrintStatusUnsupportedPrinter";
     case PrintStatusInvalidMapping: return "PrintStatusInvalidMapping";
-    // Handle filament errors
     case PrintStatusAmsOnSettingup: return "PrintStatusAmsOnSettingup";
     case PrintStatusAmsMappingInvalid: return "PrintStatusAmsMappingInvalid";
     case PrintStatusAmsMappingU0Invalid: return "PrintStatusAmsMappingU0Invalid";
     case PrintStatusAmsMappingMixInvalid: return "PrintStatusAmsMappingMixInvalid";
     case PrintStatusTPUUnsupportAutoCali: return "PrintStatusTPUUnsupportAutoCali";
-    // Handle warnings
+    case PrintStatusHasFilamentInBlackListError: return "PrintStatusHasFilamentInBlackListError";
     case PrintStatusTimelapseNoSdcard: return "PrintStatusTimelapseNoSdcard";
     case PrintStatusTimelapseWarning: return "PrintStatusTimelapseWarning";
     case PrintStatusMixAmsAndVtSlotWarning: return "PrintStatusMixAmsAndVtSlotWarning";
-    // Handle success statuses
+    case PrintStatusWarningKvalueNotUsed: return "PrintStatusWarningKvalueNotUsed";
+    case PrintStatusWarningTpuRightColdPulling: return "PrintStatusWarningTpuRightColdPulling";
+    case PrintStatusHasFilamentInBlackListWarning: return "PrintStatusHasFilamentInBlackListWarning";
+    case PrintStatusFilamentWarningHighChamberTemp: return "PrintStatusFilamentWarningHighChamberTemp";
+    case PrintStatusFilamentWarningHighChamberTempCloseDoor: return "PrintStatusFilamentWarningHighChamberTempCloseDoor";
+    case PrintStatusFilamentWarningHighChamberTempSoft: return "PrintStatusFilamentWarningHighChamberTempSoft";
+    case PrintStatusFilamentWarningUnknownHighChamberTempSoft: return "PrintStatusFilamentWarningUnknownHighChamberTempSoft";
     case PrintStatusReadingFinished: return "PrintStatusReadingFinished";
     case PrintStatusSendingCanceled: return "PrintStatusSendingCanceled";
     case PrintStatusAmsMappingSuccess: return "PrintStatusAmsMappingSuccess";
+    case PrintStatusReadyToGo: return "PrintStatusReadyToGo";
     case PrintStatusNotOnTheSameLAN: return "PrintStatusNotOnTheSameLAN";
     case PrintStatusNotSupportedSendToSDCard: return "PrintStatusNotSupportedSendToSDCard";
     case PrintStatusPublicInitFailed: return "PrintStatusPublicInitFailed";
     case PrintStatusPublicUploadFiled: return "PrintStatusPublicUploadFiled";
-    case PrintStatusReadyToGo: return "PrintStatusReadyToGo";
     default: return "Unknown status";
     }
 }
@@ -83,7 +91,6 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusWarningKvalueNotUsed: return _L("Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value.");
     case PrintStatusNotSupportedPrintAll: return _L("This printer does not support printing all plates");
     case PrintStatusWarningTpuRightColdPulling: return _L("Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer.");
-    case PrintStatusFilamentWarningHighChamberTempCloseDoor: return _L("High chamber temperature is required. Please close the door.");
     }
     return wxEmptyString;
 }

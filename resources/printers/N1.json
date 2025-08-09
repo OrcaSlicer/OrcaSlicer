@@ -37,6 +37,7 @@
 			"support_lidar_calibration": false,
 			"support_ai_monitoring": false,
 			"support_first_layer_inspect": false,
+			"support_chamber": false,
 			"support_chamber_temp_edit": false,
 			"support_extrusion_cali": true,
 			"support_user_preset": false,

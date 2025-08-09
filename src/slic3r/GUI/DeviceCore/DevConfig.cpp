@@ -18,6 +18,7 @@ void DevConfig::ParseConfig(const json& print_json)
 
 void DevConfig::ParseChamberConfig(const json& print_json)
 {
+    DevJsonValParser::ParseVal(print_json, "support_chamber", m_has_chamber);
     DevJsonValParser::ParseVal(print_json, "support_chamber_temp_edit", m_support_chamber_edit);
     if (m_support_chamber_edit)
     {
