@@ -6178,7 +6178,6 @@ void PartPlateList::init_bed_type_info()
     }
     auto is_single_extruder = wxGetApp().preset_bundle->get_printer_extruder_count() == 1;
     if (!is_single_extruder) {
-        m_allow_bed_type_in_double_nozzle.clear();
         pte_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_pte_middle.svg");
         auto &middle_rect = middle_texture_rect;
         if (middle_rect[2] > 0.f) {
@@ -6190,17 +6189,41 @@ void PartPlateList::init_bed_type_info()
             std::string pte_part2_name = "bbl_bed_pte_bottom_" + bottom_texture_end_name + ".svg";
             pte_part2 = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], pte_part2_name);
         }
+
         pei_part1  = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_pei_middle.svg");
         if (middle_rect[2] > 0.f) {
-            pei_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_pte_middle.svg");
+            pei_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_pei_middle.svg");
         }
         pei_part2  = BedTextureInfo::TexturePart(45, -14.5, 70, 8, "bbl_bed_pei_left_bottom.svg");
         if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
             std::string pei_part2_name = "bbl_bed_pei_bottom_" + bottom_texture_end_name + ".svg";
             pei_part2                  = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], pei_part2_name);
         }
-        m_allow_bed_type_in_double_nozzle[(int) btPEI] = true;
-        m_allow_bed_type_in_double_nozzle[(int) btPTE] = true;
+
+        st_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_st_middle.svg");
+        if (middle_rect[2] > 0.f) {
+            st_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_st_middle.svg");
+        }
+        st_part2 = BedTextureInfo::TexturePart(45, -14.5, 70, 8, "bbl_bed_st_left_bottom.svg");
+        if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
+            std::string st_part2_name = "bbl_bed_st_bottom_" + bottom_texture_end_name + ".svg";
+            st_part2                   = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], st_part2_name);
+        }
+
+        ep_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_ep_middle.svg");
+        if (middle_rect[2] > 0.f) {
+            ep_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_ep_middle.svg");
+        }
+        ep_part2 = BedTextureInfo::TexturePart(45, -14.5, 70, 8, "bbl_bed_ep_left_bottom.svg");
+        if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
+            std::string ep_part2_name = "bbl_bed_ep_bottom_" + bottom_texture_end_name + ".svg";
+            ep_part2                   = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], ep_part2_name);
+        }
+        m_allow_bed_type_in_double_nozzle.clear();
+        auto bed_types = wxGetApp().plater()->sidebar().get_cur_combox_bed_types();
+        for (int i = 0; i < bed_types.size(); i++) {
+            m_allow_bed_type_in_double_nozzle[bed_types[i]] = true;
+        }
     }
 
 	for (size_t i = 0; i < btCount; i++) {

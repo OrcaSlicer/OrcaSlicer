@@ -163,6 +163,7 @@ public:
     //void update_partplate(PartPlateList& list);
     void update_presets(Slic3r::Preset::Type preset_type);
     //BBS
+    const std::vector<BedType>& get_cur_combox_bed_types() { return m_cur_combox_bed_types; }
     void update_presets_from_to(Slic3r::Preset::Type preset_type, std::string from, std::string to);
     BedType get_cur_select_bed_type();
     std::string get_cur_select_bed_image();
