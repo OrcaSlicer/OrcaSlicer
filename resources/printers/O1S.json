@@ -61,6 +61,7 @@
 			"support_user_preset": false
 		},
 		"model_id": "O1S",
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_single_o",
 		"printer_modes": [ "fdm", "laser", "cut" ],
 		"compatible_machine": [],
 		"printer_type": "O1S",
