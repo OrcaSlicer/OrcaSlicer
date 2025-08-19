@@ -288,6 +288,9 @@ ConflictComputeOpt ConflictChecker::line_intersect(const LineWithID &l1, const L
     constexpr double SUPPORT_THRESHOLD = 100;  // this large almost disables conflict check of supports
     constexpr double OTHER_THRESHOLD   = 0.01;
     if (l1._id == l2._id) { return {}; } // return true if lines are from same object
+    double overlap_length = 0.;
+    bool   overlap  = l1._line.overlap(l2._line, overlap_length);
+    if (overlap && overlap_length > scaled(OTHER_THRESHOLD)) return std::make_optional<ConflictComputeResult>(l1._id, l2._id);
     Point inter;
     bool  intersect = l1._line.intersection(l2._line, &inter);
 
