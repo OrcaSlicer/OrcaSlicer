@@ -59,7 +59,8 @@
 			"support_chamber_temp_edit_range": [ 0, 65 ],
 			"support_chamber_temp_switch_heating": 40,
 			"support_extrusion_cali": false,
-			"support_user_preset": false
+			"support_user_preset": false,
+			"support_ams_ext_mix_print": true
 		},
 		"model_id": "O1E",
 		"support_wrapping_detection": true,

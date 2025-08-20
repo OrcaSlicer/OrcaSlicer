@@ -41,7 +41,8 @@
 			"support_chamber_temp_edit": false,
 			"support_extrusion_cali": true,
 			"support_user_preset": false,
-			"bed_temperature_limit": 80
+			"bed_temperature_limit": 80,
+			"support_ams_ext_mix_print": false
 		},
 		"model_id": "N1",
 		"support_wrapping_detection": false,

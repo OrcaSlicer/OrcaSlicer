@@ -50,7 +50,8 @@
 			"support_extrusion_cali": false,
 			"support_user_preset": false,
 			"bed_temperature_limit": 110,
-			"nozzle_max_temperature": 320
+			"nozzle_max_temperature": 320,
+			"support_ams_ext_mix_print": true
 		},
 		"model_id": "C13",
 		"support_wrapping_detection": false,

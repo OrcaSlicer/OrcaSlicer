@@ -46,7 +46,8 @@
 			"support_chamber": true,
 			"support_chamber_temp_edit": false,
 			"support_extrusion_cali": false,
-			"support_user_preset": false
+			"support_user_preset": false,
+			"support_ams_ext_mix_print": true
 		},
 		"model_id": "BL-P001",
 		"compatible_machine": [ "BL-P002", "C11", "C12", "C13" ],

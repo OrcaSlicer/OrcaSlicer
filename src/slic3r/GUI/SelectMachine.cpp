@@ -3405,12 +3405,12 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         }
     }
 
-    if (!m_mapping_popup.m_supporting_mix_print && nozzle_nums == 1) {
+    if (!DevPrinterConfigUtil::support_ams_ext_mix_print(obj_->printer_type)) {
         bool useAms = _HasAms(m_ams_mapping_result);
         bool useExt = _HasExt(m_ams_mapping_result);
         if (useAms && useExt) {
-            show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
-            return;
+             show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
+             return;
         }
     }
 

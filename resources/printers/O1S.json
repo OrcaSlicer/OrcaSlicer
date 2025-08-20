@@ -58,7 +58,8 @@
 			"support_chamber_temp_edit_range": [0, 65],
 			"support_chamber_temp_switch_heating": 40,
 			"support_extrusion_cali": false,
-			"support_user_preset": false
+			"support_user_preset": false,
+			"support_ams_ext_mix_print": true
 		},
 		"model_id": "O1S",
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_single_o",

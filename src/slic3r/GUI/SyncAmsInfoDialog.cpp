@@ -2392,19 +2392,6 @@ void SyncAmsInfoDialog::update_show_status()
         }
     }
 
-    if (!m_mapping_popup.m_supporting_mix_print && nozzle_nums == 1) {
-        bool useAms = false;
-        bool useExt = false;
-        for (auto iter = m_ams_mapping_result.begin(); iter != m_ams_mapping_result.end(); iter++) {
-            if (iter->tray_id != VIRTUAL_TRAY_MAIN_ID) { useAms = true; }
-            if (iter->tray_id == VIRTUAL_TRAY_MAIN_ID) { useExt = true; }
-            if (useAms && useExt) {
-                show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
-                return;
-            }
-        }
-    }
-
     // check ams and vt_slot mix use status
     {
         struct ExtruderStatus

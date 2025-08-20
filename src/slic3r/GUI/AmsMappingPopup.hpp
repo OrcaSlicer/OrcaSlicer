@@ -225,7 +225,6 @@ public:
     std::vector<MappingItem*> m_mapping_item_list;
 
     bool        m_has_unmatch_filament {false};
-    bool        m_supporting_mix_print {false};     //For single extruder, can ams and ext print together?
     int         m_current_filament_id;
     ShowType    m_show_type{ShowType::RIGHT};
     std::string m_tag_material;
