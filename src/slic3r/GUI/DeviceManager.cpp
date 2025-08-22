@@ -23,6 +23,7 @@
 #include "fast_float/fast_float.h"
 
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevExtensionTool.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevBed.h"
@@ -530,6 +531,7 @@ MachineObject::MachineObject(DeviceManager* manager, NetworkAgent* agent, std::s
         m_bed = new DevBed(this);
         m_storage       = new DevStorage(this);
         m_extder_system = new DevExtderSystem(this);
+        m_extension_tool = DevExtensionTool::Create(this);
         m_nozzle_system = new DevNozzleSystem(this);
         m_fila_system   = new DevFilaSystem(this);
         m_hms_system    = new DevHMS(this);
@@ -4972,6 +4974,7 @@ void MachineObject::parse_new_info(json print)
 
         if (device.contains("nozzle")) {  DevNozzleSystemParser::ParseV2_0(device["nozzle"], m_nozzle_system); }
         if (device.contains("extruder")) { ExtderSystemParser::ParseV2_0(device["extruder"], m_extder_system);}
+        if (device.contains("ext_tool")) { DevExtensionToolParser::ParseV2_0(device["ext_tool"], m_extension_tool); }
 
         if (device.contains("ctc")) {
             json const& ctc = device["ctc"];

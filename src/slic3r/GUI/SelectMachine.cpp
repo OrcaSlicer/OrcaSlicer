@@ -20,6 +20,7 @@
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevNozzleSystem.h"
+#include "DeviceCore/DevExtensionTool.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
@@ -1674,6 +1675,9 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
             }
         }
         msg = msg_text;
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(true);
+    } else if (status == PrintStatusToolHeadCoolingFanWarning) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
     } else if (status == PrintStatusMixAmsAndVtSlotWarning) {
@@ -3587,6 +3591,9 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         }
     }
 
+    // check extension tool warning
+    UpdateStatusCheckWarning_ExtensionTool(obj_);
+
     /** normal check **/
     show_status(PrintDialogStatus::PrintStatusReadyToGo);
 }
@@ -4573,6 +4580,32 @@ void SelectMachineDialog::show_init() {
 SelectMachineDialog::~SelectMachineDialog()
 {
     delete m_refresh_timer;
+}
+
+void SelectMachineDialog::UpdateStatusCheckWarning_ExtensionTool(MachineObject* obj_)
+{
+    if (!obj_)
+    {
+        return;
+    }
+
+    if (auto extension_tool = obj_->GetExtensionTool().lock())
+    {
+        if (extension_tool->IsToolTypeFanF000() && !extension_tool->IsMounted() )
+        {
+            for (const FilamentInfo& item : m_ams_mapping_result)
+            {
+                auto filament_info = wxGetApp().preset_bundle->get_filament_by_filament_id(item.filament_id);
+                if (filament_info && (filament_info->temperature_vitrification <= 50))
+                {
+                    show_status(PrintDialogStatus::PrintStatusToolHeadCoolingFanWarning,
+                                { _L("Install toolhead enhanced cooling fan to prevent filament softening.")},
+                                "https://e.bambulab.com/t?c=l3T7caKGeNt3omA9");
+                    return;
+                }
+            }
+        }
+    }
 }
 
  ThumbnailPanel::ThumbnailPanel(wxWindow *parent, wxWindowID winid, const wxPoint &pos, const wxSize &size)

@@ -445,6 +445,9 @@ public:
     void update_user_printer();
     void reset_ams_material();
     void update_show_status(MachineObject* obj_ = nullptr);
+
+    void UpdateStatusCheckWarning_ExtensionTool(MachineObject* obj_);
+
     void update_ams_check(MachineObject* obj);
     void update_filament_change_count();
     void on_rename_click(wxMouseEvent &event);

@@ -38,6 +38,22 @@ class DevJsonValParser
 {
 public:
     template<typename T>
+    static T GetVal(const nlohmann::json& j, const std::string& key, const T& default_val = T())
+    {
+        try
+        {
+            if (j.contains(key)) { return j[key].get<T>(); }
+        }
+        catch (const nlohmann::json::exception& e)
+        {
+            assert(0 && __FUNCTION__);
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+        }
+
+        return default_val;
+    }
+
+    template<typename T>
     static void ParseVal(const nlohmann::json& j, const std::string& key, T& val)
     {
         try

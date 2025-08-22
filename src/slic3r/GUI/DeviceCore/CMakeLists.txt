@@ -13,6 +13,8 @@ list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceCore/DevCtrl.h
     GUI/DeviceCore/DevCtrl.cpp
     GUI/DeviceCore/DevDefs.h
+    GUI/DeviceCore/DevExtensionTool.h
+    GUI/DeviceCore/DevExtensionTool.cpp
     GUI/DeviceCore/DevExtruderSystem.h
     GUI/DeviceCore/DevExtruderSystem.cpp
     GUI/DeviceCore/DevExtruderSystemCtrl.cpp

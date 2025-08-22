@@ -8,6 +8,8 @@ src/slic3r/GUI/DeviceCore/DevConfigUtil.cpp
 src/slic3r/GUI/DeviceCore/DevCtrl.h
 src/slic3r/GUI/DeviceCore/DevCtrl.cpp
 src/slic3r/GUI/DeviceCore/DevDefs.h
+src/slic3r/GUI/DeviceCore/DevExtensionTool.h
+src/slic3r/GUI/DeviceCore/DevExtensionTool.cpp
 src/slic3r/GUI/DeviceCore/DevExtruderSystem.h
 src/slic3r/GUI/DeviceCore/DevExtruderSystem.cpp
 src/slic3r/GUI/DeviceCore/DevExtruderSystemCtrl.cpp

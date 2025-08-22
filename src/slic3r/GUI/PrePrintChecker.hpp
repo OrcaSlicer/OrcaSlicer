@@ -88,6 +88,7 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusTimelapseNoSdcard,
     PrintStatusTimelapseWarning,
     PrintStatusMixAmsAndVtSlotWarning,
+    PrintStatusToolHeadCoolingFanWarning,
     PrintStatusPrinterWarningEnd,
 
     // Warnings for filament
