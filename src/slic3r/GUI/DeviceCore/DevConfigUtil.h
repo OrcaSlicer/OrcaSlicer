@@ -83,6 +83,9 @@ public:
     /*safety options*/
     static bool support_safety_options(const std::string &type_str) { return get_value_from_config<bool>(type_str, "support_safety_options"); }
 
+    /*print check*/
+    static bool support_print_check_extension_fan_f000_mounted(const std::string& type_str) { return get_value_from_config<bool>(type_str, "print", "support_print_check_extension_fan_f000_mounted"); }
+
 public:
     template<typename T>
     static T get_value_from_config(const std::string& type_str, const std::string& item)

@@ -4572,6 +4572,11 @@ void SelectMachineDialog::UpdateStatusCheckWarning_ExtensionTool(MachineObject* 
         return;
     }
 
+    if (!DevPrinterConfigUtil::support_print_check_extension_fan_f000_mounted(obj_->printer_type))
+    {
+        return;
+    }
+
     if (auto extension_tool = obj_->GetExtensionTool().lock())
     {
         if (extension_tool->IsToolTypeFanF000() && !extension_tool->IsMounted() )
