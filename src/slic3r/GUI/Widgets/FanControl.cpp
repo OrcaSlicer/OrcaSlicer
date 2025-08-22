@@ -1021,6 +1021,7 @@ wxString FanControlPopupNew::get_fan_func_name(int mode, int submode, AIR_FUN fu
         {
             L_CONTEXT("Right(Aux)", "air_duct");
             L_CONTEXT("Right(Filter)", "air_duct");
+            L_CONTEXT("Left(Aux)", "air_duct");
             return _CTX(func_text, "air_duct");
         }
     }
