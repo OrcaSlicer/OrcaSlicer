@@ -130,30 +130,6 @@ PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
         evt.Skip();
     });
 
-    m_cb_open_door->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &evt) {
-        if (m_cb_open_door->GetValue()) {
-            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING); }
-        } else {
-            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_DISABLE); }
-        }
-
-        evt.Skip();
-    });
-
-    open_door_switch_board->Bind(wxCUSTOMEVT_SWITCH_POS, [this](wxCommandEvent &evt)
-    {
-        if (evt.GetInt() == 0)
-        {
-            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_PAUSE_PRINT); }
-        }
-        else if (evt.GetInt() == 1)
-        {
-            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING); }
-        }
-
-        evt.Skip();
-    });
-
     m_cb_save_remote_print_file_to_storage->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt)
     {
         if (obj) { obj->command_set_save_remote_print_file_to_storage(m_cb_save_remote_print_file_to_storage->GetValue());}
@@ -184,6 +160,28 @@ PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
         }
         evt.Skip();
         });
+
+    m_cb_open_door->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt) {
+        if (m_cb_open_door->GetValue()) {
+            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING); }
+        } else {
+            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_DISABLE); }
+        }
+        evt.Skip();
+    });
+
+    open_door_switch_board->Bind(wxCUSTOMEVT_SWITCH_POS, [this](wxCommandEvent& evt)
+    {
+        if (evt.GetInt() == 0)
+        {
+            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_PAUSE_PRINT); }
+        }
+        else if (evt.GetInt() == 1)
+        {
+            if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING); }
+        }
+        evt.Skip();
+    });
 
     wxGetApp().UpdateDlgDarkUI(this);
 }
@@ -439,8 +437,8 @@ void PrintOptionsDialog::update_options(MachineObject* obj_)
         line7->Hide();
     }
 
-    UpdateOptionOpenDoorCheck(obj_);
     UpdateOptionSavePrintFileToStorage(obj_);
+    UpdateOptionOpenDoorCheck(obj_);
 
     this->Freeze();
 
@@ -505,8 +503,37 @@ void PrintOptionsDialog::update_options(MachineObject* obj_)
     Layout();
 }
 
-void PrintOptionsDialog::UpdateOptionOpenDoorCheck(MachineObject *obj) {
+
+
+void PrintOptionsDialog::UpdateOptionSavePrintFileToStorage(MachineObject *obj)
+{
+    if (obj && obj->GetConfig()->SupportSaveRemotePrintFileToStorage())
+    {
+        m_cb_save_remote_print_file_to_storage->SetValue(obj->get_save_remote_print_file_to_storage());
+    }
+    else
+    {
+        m_cb_save_remote_print_file_to_storage->Hide();
+        text_save_remote_print_file_to_storage->Hide();
+        text_save_remote_print_file_to_storage_explain->Hide();
+    }
+}
+
+void PrintOptionsDialog::UpdateOptionOpenDoorCheck(MachineObject *obj)
+{
     if (!obj || !obj->support_door_open_check()) {
+        m_cb_open_door->Hide();
+        text_open_door->Hide();
+        open_door_switch_board->Hide();
+        return;
+    }
+
+    // Determine if current printer supports safety options
+    std::string current_printer_type = obj->printer_type;
+    bool supports_safety = DevPrinterConfigUtil::support_safety_options(current_printer_type);
+
+    // Hide door open check for printers that support safety options
+    if (supports_safety) {
         m_cb_open_door->Hide();
         text_open_door->Hide();
         open_door_switch_board->Hide();
@@ -533,20 +560,6 @@ void PrintOptionsDialog::UpdateOptionOpenDoorCheck(MachineObject *obj) {
     m_cb_open_door->Show();
     text_open_door->Show();
     open_door_switch_board->Show();
-}
-
-void PrintOptionsDialog::UpdateOptionSavePrintFileToStorage(MachineObject *obj)
-{
-    if (obj && obj->GetConfig()->SupportSaveRemotePrintFileToStorage())
-    {
-        m_cb_save_remote_print_file_to_storage->SetValue(obj->get_save_remote_print_file_to_storage());
-    }
-    else
-    {
-        m_cb_save_remote_print_file_to_storage->Hide();
-        text_save_remote_print_file_to_storage->Hide();
-        text_save_remote_print_file_to_storage_explain->Hide();
-    }
 }
 
 wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
@@ -856,22 +869,6 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     line4->Hide();
     sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
 
-    //Open Door Detection
-    line_sizer         = new wxBoxSizer(wxHORIZONTAL);
-    m_cb_open_door     = new CheckBox(parent);
-    text_open_door     = new Label(parent, _L("Open Door Detection"));
-    text_open_door->SetFont(Label::Body_14);
-    open_door_switch_board = new SwitchBoard(parent, _L("Notification"), _L("Pause printing"), wxSize(FromDIP(200), FromDIP(26)));
-    open_door_switch_board->Disable();
-    line_sizer->Add(FromDIP(5), 0, 0, 0);
-    line_sizer->Add(m_cb_open_door, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
-    line_sizer->Add(text_open_door, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
-
-    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
-    sizer->Add(open_door_switch_board, 0, wxLEFT, FromDIP(58));
-    line_sizer->Add(FromDIP(10), 0, 0, 0);
-    sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
-
      //Save remote file to local storage
     line_sizer     = new wxBoxSizer(wxHORIZONTAL);
     m_cb_save_remote_print_file_to_storage = new CheckBox(parent);
@@ -955,6 +952,20 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_nozzle_blob->Hide();
     text_nozzle_blob_caption->Hide();
     line7->Hide();
+
+    //Open Door Detection
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cb_open_door = new CheckBox(parent);
+    text_open_door = new Label(parent, _L("Open Door Detection"));
+    text_open_door->SetFont(Label::Body_14);
+    open_door_switch_board = new SwitchBoard(parent, _L("Notification"), _L("Pause printing"), wxSize(FromDIP(200), FromDIP(26)));
+    open_door_switch_board->Disable();
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(m_cb_open_door, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    line_sizer->Add(text_open_door, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    sizer->Add(open_door_switch_board, 0, wxLEFT, FromDIP(58));
     sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
 
       ai_monitoring_level_list->Connect(wxEVT_COMBOBOX, wxCommandEventHandler(PrintOptionsDialog::set_ai_monitor_sensitivity), NULL, this);

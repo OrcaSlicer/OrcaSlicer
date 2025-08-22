@@ -69,6 +69,12 @@
 		"printer_arch": "core_xy",
 		"printer_series": "series_x1",
 		"has_cali_line": true,
+<<<<<<< HEAD   (372939 ENH: support proceed action)
 		"enable_set_nozzle_info": false
+=======
+		"printer_is_enclosed": true,
+		"enable_set_nozzle_info": false,
+		"support_safety_options": true
+>>>>>>> CHANGE (35a851 NEW:Add safety button)
 	}
 }

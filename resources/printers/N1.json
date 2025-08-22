@@ -60,7 +60,8 @@
 		"printer_series": "series_n",
 		"has_cali_line": false,
 		"printer_is_enclosed": false,
-		"enable_set_nozzle_info": false
+		"enable_set_nozzle_info": false,
+		"support_safety_options": false
 	},
 	"01.01.50.01": {
 		"print": {

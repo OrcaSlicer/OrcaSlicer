@@ -36,6 +36,12 @@
 #include "DeviceCore/DevPrintTaskInfo.h"
 
 
+
+#include "PrintOptionsDialog.hpp"
+#include "SafetyOptionsDialog.hpp"
+
+
+
 namespace Slic3r { namespace GUI {
 
 #define TEMP_THRESHOLD_VAL 2
@@ -1519,6 +1525,12 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     m_options_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
     m_options_btn->SetMinSize(wxSize(-1, FromDIP(26)));
 
+    m_safety_btn = new Button(m_panel_control_title, _L("Safety Options"));
+    m_safety_btn->SetBackgroundColor(btn_bg_green);
+    m_safety_btn->SetBorderColor(btn_bd_green);
+    m_safety_btn->SetTextColor(wxColour("#FFFFFE"));
+    m_safety_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
+    m_safety_btn->SetMinSize(wxSize(-1, FromDIP(26)));
 
     m_calibration_btn = new Button(m_panel_control_title, _L("Calibration"));
     m_calibration_btn->SetBackgroundColor(btn_bg_green);
@@ -1528,10 +1540,14 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     m_calibration_btn->SetMinSize(wxSize(-1, FromDIP(26)));
     m_calibration_btn->EnableTooltipEvenDisabled();
 
+    m_options_btn->Hide();
+    m_safety_btn->Hide();
+
     bSizer_control_title->Add(m_staticText_control, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, PAGE_TITLE_LEFT_MARGIN);
     bSizer_control_title->Add(0, 0, 1, wxEXPAND, 0);
     bSizer_control_title->Add(m_parts_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
     bSizer_control_title->Add(m_options_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
+    bSizer_control_title->Add(m_safety_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
     bSizer_control_title->Add(m_calibration_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
 
     m_panel_control_title->SetSizer(bSizer_control_title);
@@ -2365,6 +2381,7 @@ StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, co
     m_switch_speed->Connect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_switch_speed), NULL, this);
     m_calibration_btn->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_start_calibration), NULL, this);
     m_options_btn->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_print_options), NULL, this);
+    m_safety_btn->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_safety_options), NULL, this);
     m_parts_btn->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_parts_options), NULL, this);
 }
 
@@ -2409,6 +2426,7 @@ StatusPanel::~StatusPanel()
     m_switch_speed->Disconnect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_switch_speed), NULL, this);
     m_calibration_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_start_calibration), NULL, this);
     m_options_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_print_options), NULL, this);
+    m_safety_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_safety_options), NULL, this);
     m_parts_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_parts_options), NULL, this);
 
     // remove warning dialogs
@@ -2717,20 +2735,56 @@ void StatusPanel::update(MachineObject *obj)
             calibration_dlg->update_cali(obj);
         }
 
+        std::string current_printer_type = obj->printer_type;
+        bool supports_safety = DevPrinterConfigUtil::support_safety_options(current_printer_type);
+
         DevConfig* config = obj->GetConfig();
-        if (config->SupportFirstLayerInspect()
-            || config->SupportAIMonitor()
-            || obj->is_support_build_plate_marker_detect
-            || obj->is_support_auto_recovery_step_loss) {
-            m_options_btn->Show();
-            if (print_options_dlg) {
-                print_options_dlg->update_machine_obj(obj);
-                print_options_dlg->update_options(obj);
+        if (supports_safety) {
+            if (config->SupportFirstLayerInspect()
+                || config->SupportAIMonitor()
+                || obj->is_support_build_plate_marker_detect
+                || obj->is_support_auto_recovery_step_loss) {
+                m_options_btn->Show();
+                if (print_options_dlg) {
+                    print_options_dlg->update_machine_obj(obj);
+                    print_options_dlg->update_options(obj);
+                }
+            } else {
+                m_options_btn->Hide();
             }
         } else {
-            m_options_btn->Hide();
+            if (obj->support_door_open_check()) {
+                m_options_btn->Show();
+                if (print_options_dlg) {
+                    print_options_dlg->update_machine_obj(obj);
+                    print_options_dlg->update_options(obj);
+                }
+            } else {
+                m_options_btn->Hide();
+            }
         }
+
+        if (obj->support_door_open_check()) {
+            if (supports_safety) {
+                m_safety_btn->Show();
+                if (safety_options_dlg) {
+                    safety_options_dlg->update_machine_obj(obj);
+                    safety_options_dlg->update_options(obj);
+                }
+            } else {
+                m_safety_btn->Hide();
+            }
+        } else {
+            m_safety_btn->Hide();
+        }
+
         m_parts_btn->Show();
+
+
+        if (m_panel_control_title) {
+            m_panel_control_title->Layout();
+            m_panel_control_title->Refresh();
+        }
 
         if (!obj->dev_connection_type.empty()) {
             auto iter_connect_type = m_print_connect_types.find(obj->get_dev_id());
@@ -4986,6 +5040,7 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
 void StatusPanel::on_show_print_options(wxCommandEvent& event)
 {
     if (obj) {
+        // Always show print options dialog for all machines
         if (print_options_dlg == nullptr) {
             print_options_dlg = new PrintOptionsDialog(this);
             print_options_dlg->update_machine_obj(obj);
@@ -5000,6 +5055,26 @@ void StatusPanel::on_show_print_options(wxCommandEvent& event)
     }
 }
 
+void StatusPanel::on_show_safety_options(wxCommandEvent& event)
+{
+    if (obj) {
+        std::string current_printer_type = obj->printer_type;
+        bool supports_safety = DevPrinterConfigUtil::support_safety_options(current_printer_type);
+        if (supports_safety) {
+            if (safety_options_dlg == nullptr) {
+                safety_options_dlg = new SafetyOptionsDialog(this);
+                safety_options_dlg->update_machine_obj(obj);
+                safety_options_dlg->update_options(obj);
+                safety_options_dlg->ShowModal();
+            }
+            else {
+                safety_options_dlg->update_machine_obj(obj);
+                safety_options_dlg->update_options(obj);
+                safety_options_dlg->ShowModal();
+            }
+        }
+    }
+}
 
 void StatusPanel::on_show_parts_options(wxCommandEvent &event)
 {
@@ -5081,7 +5156,14 @@ void StatusPanel::set_default()
     m_setting_button->Show();
     m_tempCtrl_chamber->Show();
     m_options_btn->Show();
+    m_safety_btn->Show();
     m_parts_btn->Show();
+
+
+    if (m_panel_control_title) {
+        m_panel_control_title->Layout();
+        m_panel_control_title->Refresh();
+    }
 
     reset_temp_misc_control();
     m_extruder_switching_status->Hide();
@@ -5110,12 +5192,14 @@ void StatusPanel::show_status(int status)
         show_printing_status(false, false);
         m_calibration_btn->Disable();
         m_options_btn->Disable();
+        m_safety_btn->Disable();
         m_parts_btn->Disable();
         m_panel_monitoring_title->Disable();
     } else if ((status & (int) MonitorStatus::MONITOR_NORMAL) != 0) {
         show_printing_status(true, true);
         m_calibration_btn->Disable();
         m_options_btn->Enable();
+        m_safety_btn->Enable();
         m_parts_btn->Enable();
         m_panel_monitoring_title->Enable();
     }
@@ -5268,7 +5352,10 @@ void StatusPanel::msw_rescale()
 
     m_options_btn->SetMinSize(wxSize(-1, FromDIP(26)));
     m_options_btn->Rescale(); 
-    
+
+    m_safety_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_safety_btn->Rescale();
+
     m_parts_btn->SetMinSize(wxSize(-1, FromDIP(26)));
     m_parts_btn->Rescale();
 

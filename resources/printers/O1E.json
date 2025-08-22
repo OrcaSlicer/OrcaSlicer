@@ -76,6 +76,7 @@
 		"printer_series": "series_o",
 		"has_cali_line": true,
 		"printer_is_enclosed": true,
-		"enable_set_nozzle_info": false
+		"enable_set_nozzle_info": false,
+		"support_safety_options": false
 	}
 }
