@@ -3761,6 +3761,11 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         return;
 
     EMoveType type = move_type(delta_pos);
+
+    if (m_extrusion_role == erIroning && m_end_position[Z] == m_extruded_last_z) {
+        type = EMoveType::Extrude;
+    }
+
     if (type == EMoveType::Extrude) {
         const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
         m_travel_dist = delta_xyz;
@@ -4193,6 +4198,11 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
         return;
 
     EMoveType type = move_type(delta_pos);
+
+    if (m_extrusion_role == erIroning && m_end_position[Z] == m_extruded_last_z) {
+        type = EMoveType::Extrude;
+    }
+
     if (type == EMoveType::Extrude) {
         float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
         float volume_extruded_filament = area_filament_cross_section * delta_pos[E];
