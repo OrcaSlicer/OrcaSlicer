@@ -1075,6 +1075,8 @@ static std::vector<std::string> s_Preset_print_options{
     "ironing_type",
     "ironing_pattern",
     "ironing_flow",
+    "ironing_retract",
+    "ironing_unretract_extra",
     "ironing_speed",
     "ironing_spacing",
     "ironing_angle",

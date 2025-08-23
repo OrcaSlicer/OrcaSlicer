@@ -954,6 +954,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"ironing_angle", "ironing_angle_fixed"})
         toggle_field(el, has_ironing && has_rectilinear_ironing);
     
+    for (auto el : { "ironing_retract", "ironing_unretract_extra"})
+        toggle_line(el,  has_ironing && config->opt<ConfigOptionPercent>("ironing_flow")->value == 0);
+
     toggle_line("ironing_speed", has_ironing || has_support_ironing);
 
     bool has_zaa = config->opt_bool("zaa_enabled");
