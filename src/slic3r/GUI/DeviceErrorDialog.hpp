@@ -71,6 +71,7 @@ protected:
     void init_button_list();
     void init_button(ActionButton style, wxString buton_text);
 
+    wxString parse_error_level(int error_code);
     std::vector<int> convert_to_pseudo_buttons(std::string error_str);
 
     void update_contents(const wxString& title, const wxString& text, const wxString& error_code,const wxString& image_url, const std::vector<int>& btns);
