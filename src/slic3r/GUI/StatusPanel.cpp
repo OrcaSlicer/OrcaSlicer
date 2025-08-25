@@ -1772,14 +1772,19 @@ wxBoxSizer *StatusBasePanel::create_misc_control(wxWindow *parent)
 void StatusBasePanel::reset_temp_misc_control()
 {
     // reset temp string
+    m_tempCtrl_nozzle->SetIconNormal();
     m_tempCtrl_nozzle->SetLabel(TEMP_BLANK_STR);
     m_tempCtrl_nozzle->GetTextCtrl()->SetValue(TEMP_BLANK_STR);
 
+    m_tempCtrl_nozzle_deputy->SetIconNormal();
     m_tempCtrl_nozzle_deputy->SetLabel(TEMP_BLANK_STR);
     m_tempCtrl_nozzle_deputy->GetTextCtrl()->SetValue(TEMP_BLANK_STR);
 
+    m_tempCtrl_bed->SetIconNormal();
     m_tempCtrl_bed->SetLabel(TEMP_BLANK_STR);
     m_tempCtrl_bed->GetTextCtrl()->SetValue(TEMP_BLANK_STR);
+
+    m_tempCtrl_chamber->SetIconNormal();
     m_tempCtrl_chamber->SetLabel(TEMP_BLANK_STR);
     m_tempCtrl_chamber->GetTextCtrl()->SetValue(TEMP_BLANK_STR);
 
