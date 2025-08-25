@@ -85,6 +85,10 @@ DeviceErrorDialog::DeviceErrorDialog(MachineObject* obj, wxWindow* parent, wxWin
     wxGetApp().UpdateDlgDarkUI(this);
 
     Bind(wxEVT_WEBREQUEST_STATE, &DeviceErrorDialog::on_webrequest_state, this);
+    Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent &e){
+        if (m_obj) { m_obj->command_clean_print_error_uiop(m_obj->print_error); }
+        e.Skip();
+    });
 }
 
 DeviceErrorDialog::~DeviceErrorDialog()
