@@ -1368,7 +1368,7 @@ void SelectMachineDialog::auto_supply_with_ext(std::vector<DevAmsTray> slots) {
             if (slot.id.empty()) continue;
             m_ams_mapping_result[i].ams_id = slot.id;
             m_ams_mapping_result[i].color = slot.color;
-            m_ams_mapping_result[i].type = slot.type;
+            m_ams_mapping_result[i].type = slot.m_fila_type;
             m_ams_mapping_result[i].colors = slot.cols;
             m_ams_mapping_result[i].tray_id = atoi(slot.id.c_str());
             m_ams_mapping_result[i].slot_id = "0";

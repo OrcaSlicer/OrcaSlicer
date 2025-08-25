@@ -274,6 +274,7 @@ public:
 
     std::string  get_filament_id(std::string ams_id, std::string tray_id) const;
     std::string  get_filament_type(const std::string& ams_id, const std::string& tray_id) const;
+    std::string  get_filament_display_type(const std::string& ams_id, const std::string& tray_id) const;
 
     // parse amsStatusMain and ams_status_sub
     void _parse_ams_status(int ams_status);

@@ -2943,13 +2943,13 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
 
     auto build_tray_config = [](DevAmsTray const &tray, std::string const &name, std::string ams_id, std::string slot_id) {
         BOOST_LOG_TRIVIAL(info) << boost::format("build_filament_ams_list: name %1% setting_id %2% type %3% color %4%")
-                    % name % tray.setting_id % tray.type % tray.color;
+                    % name % tray.setting_id % tray.m_fila_type % tray.color;
         DynamicPrintConfig tray_config;
         tray_config.set_key_value("filament_id", new ConfigOptionStrings{tray.setting_id});
         tray_config.set_key_value("tag_uid", new ConfigOptionStrings{tray.tag_uid});
         tray_config.set_key_value("ams_id", new ConfigOptionStrings{ams_id});
         tray_config.set_key_value("slot_id", new ConfigOptionStrings{slot_id});
-        tray_config.set_key_value("filament_type", new ConfigOptionStrings{tray.type});
+        tray_config.set_key_value("filament_type", new ConfigOptionStrings{tray.m_fila_type});
         tray_config.set_key_value("tray_name", new ConfigOptionStrings{ name });
         tray_config.set_key_value("filament_colour", new ConfigOptionStrings{into_u8(wxColour("#" + tray.color).GetAsString(wxC2S_HTML_SYNTAX))});
         tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});

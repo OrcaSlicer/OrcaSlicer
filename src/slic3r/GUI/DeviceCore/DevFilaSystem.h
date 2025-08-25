@@ -28,7 +28,7 @@ public:
     std::string              tag_uid;             // tag_uid
     std::string              setting_id;          // tray_info_idx
     std::string              filament_setting_id; // setting_id
-    std::string              type;
+    std::string              m_fila_type;
     std::string              sub_brands;
     std::string              color;
     std::vector<std::string> cols;
@@ -57,7 +57,7 @@ public:
     // operators
     bool operator==(DevAmsTray const& o) const
     {
-        return id == o.id && type == o.type && filament_setting_id == o.filament_setting_id && color == o.color;
+        return id == o.id && m_fila_type == o.m_fila_type && filament_setting_id == o.filament_setting_id && color == o.color;
     }
     bool operator!=(DevAmsTray const& o) const { return !operator==(o); }
 

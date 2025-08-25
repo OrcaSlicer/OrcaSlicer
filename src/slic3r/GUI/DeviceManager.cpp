@@ -650,7 +650,11 @@ std::string MachineObject::get_filament_id(std::string ams_id, std::string tray_
 }
 
 std::string MachineObject::get_filament_type(const std::string& ams_id, const std::string& tray_id) const {
-    return this->get_tray(ams_id, tray_id).type;
+    return this->get_tray(ams_id, tray_id).get_filament_type();
+}
+
+std::string MachineObject::get_filament_display_type(const std::string& ams_id, const std::string& tray_id) const {
+    return this->get_tray(ams_id, tray_id).get_display_filament_type();
 }
 
 void MachineObject::_parse_ams_status(int ams_status)
@@ -3726,7 +3730,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             vt_slot[0].color = jj["tray_color"].get<std::string>();
                             vt_slot[0].setting_id = jj["tray_info_idx"].get<std::string>();
                             //vt_tray.type = jj["tray_type"].get<std::string>();
-                            vt_slot[0].type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
+                            vt_slot[0].m_fila_type = setting_id_to_type(vt_slot[0].setting_id, jj["tray_type"].get<std::string>());
                             // delay update
                             vt_slot[0].set_hold_count();
                         } else {
@@ -3751,7 +3755,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                     }*/
 
                                     tray_it->second->setting_id = jj["tray_info_idx"].get<std::string>();
-                                    tray_it->second->type = setting_id_to_type(tray_it->second->setting_id, jj["tray_type"].get<std::string>());
+                                    tray_it->second->m_fila_type = setting_id_to_type(tray_it->second->setting_id, jj["tray_type"].get<std::string>());
                                     // delay update
                                     tray_it->second->set_hold_count();
                                 } else {
@@ -4632,18 +4636,18 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
             //std::string type = vtray["tray_type"].get<std::string>();
             std::string type = setting_id_to_type(vt_tray.setting_id, vtray["tray_type"].get<std::string>());
             if (vt_tray.setting_id == "GFS00") {
-                vt_tray.type = "PLA-S";
+                vt_tray.m_fila_type = "PLA-S";
             }
             else if (vt_tray.setting_id == "GFS01") {
-                vt_tray.type = "PA-S";
+                vt_tray.m_fila_type = "PA-S";
             }
             else {
-                vt_tray.type = type;
+                vt_tray.m_fila_type = type;
             }
         }
         else {
             vt_tray.setting_id = "";
-            vt_tray.type = "";
+            vt_tray.m_fila_type = "";
         }
         if (vtray.contains("tray_sub_brands"))
             vt_tray.sub_brands = vtray["tray_sub_brands"].get<std::string>();
@@ -5157,7 +5161,7 @@ void MachineObject::check_ams_filament_valid()
                                                     << slot_id << "filament_id: " << curr_tray->setting_id;
 
 
-                            command_ams_filament_settings(std::stoi(ams_id), std::stoi(slot_id), curr_tray->setting_id, preset_setting_id, curr_tray->color, curr_tray->type,
+                            command_ams_filament_settings(std::stoi(ams_id), std::stoi(slot_id), curr_tray->setting_id, preset_setting_id, curr_tray->color, curr_tray->m_fila_type,
                                                           std::stoi(curr_tray->nozzle_temp_min), std::stoi(curr_tray->nozzle_temp_max));
                         }
                         continue;
@@ -5218,7 +5222,7 @@ void MachineObject::check_ams_filament_valid()
                     if (!is_equation) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " " << __LINE__
                                                 << " vt_tray filament is not match min max temp and reset, filament_id: " << vt_tray.setting_id;
-                        command_ams_filament_settings(vt_id, 0, vt_tray.setting_id, preset_setting_id, vt_tray.color, vt_tray.type, std::stoi(vt_tray.nozzle_temp_min),
+                        command_ams_filament_settings(vt_id, 0, vt_tray.setting_id, preset_setting_id, vt_tray.color, vt_tray.m_fila_type, std::stoi(vt_tray.nozzle_temp_min),
                                                           std::stoi(vt_tray.nozzle_temp_max));
 
                     }
