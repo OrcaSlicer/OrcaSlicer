@@ -129,8 +129,8 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_scroll_area              = new wxScrolledWindow(this);
     m_scroll_area->SetScrollRate(20, 20);
     m_scroll_area->SetBackgroundColour(m_colour_def_color);
-    m_scroll_area->SetMinSize(wxSize(FromDIP(700), FromDIP(600)));
-    m_scroll_area->SetMaxSize(wxSize(FromDIP(700), FromDIP(600)));
+    m_scroll_area->SetMinSize(wxSize(FromDIP(700), FromDIP(550)));
+    m_scroll_area->SetMaxSize(wxSize(FromDIP(700), FromDIP(550)));
 
 
     m_line_top = new wxPanel(m_scroll_area, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
@@ -1474,6 +1474,7 @@ void SelectMachineDialog::update_print_status_msg()
     bool is_printer_update =  m_text_printer_msg->UpdateInfos(m_pre_print_checker.printerList);
     if (is_printer_update || is_ams_update) {
         Layout();
+        Fit();
     }
 
  }
@@ -2973,7 +2974,7 @@ void SelectMachineDialog::on_timer(wxTimerEvent &event)
     load_option_vals(obj_);
     update_show_status(obj_);
     update_print_status_msg();
-    update_scroll_area_size();
+    //update_scroll_area_size();/*STUDIO-12867 the page maybe blank in some platform. FIXME*/
 }
 
 void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
