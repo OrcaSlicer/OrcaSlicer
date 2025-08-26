@@ -60,6 +60,7 @@ public:
     std::string m_ftp_folder;
     std::string m_access_code;
     std::string task_bed_type;
+    std::string task_nozzle_mapping;
     std::string task_ams_mapping;
     std::string task_ams_mapping2;
     std::string task_ams_mapping_info;
