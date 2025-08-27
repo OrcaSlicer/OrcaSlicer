@@ -94,7 +94,6 @@ enum PrintDialogStatus : unsigned int {
     // Warnings for filament
     PrintStatusFilamentWarningBegin,
     PrintStatusWarningKvalueNotUsed,
-    PrintStatusWarningTpuRightColdPulling,
     PrintStatusHasFilamentInBlackListWarning,
     PrintStatusFilamentWarningHighChamberTemp,
     PrintStatusFilamentWarningHighChamberTempCloseDoor,

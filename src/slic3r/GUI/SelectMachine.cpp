@@ -1695,9 +1695,6 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintStatusHasFilamentInBlackListWarning) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
-    } else if (status == PrintStatusWarningTpuRightColdPulling) {
-        Enable_Refresh_Button(true);
-        Enable_Send_Button(true);
     } else if (status == PrintStatusFilamentWarningHighChamberTempCloseDoor || status == PrintStatusFilamentWarningHighChamberTemp) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
@@ -3506,20 +3503,6 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             std::vector<wxString> params{not_default_ams_names};
             show_status(PrintDialogStatus::PrintStatusWarningKvalueNotUsed);
            // return;
-        }
-    }
-
-    /*Check the tpu at right*/
-    if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
-        for (const FilamentInfo& item : m_ams_mapping_result) {
-            if (item.ams_id.empty()) continue;
-            if (item.type.compare("TPU") != 0 && item.type.compare("TPU-AMS") != 0) { continue; }
-
-            int extruder_id = obj_->get_extruder_id_by_ams_id(item.ams_id);
-            if (extruder_id == MAIN_EXTRUDER_ID) {
-                show_status(PrintDialogStatus::PrintStatusWarningTpuRightColdPulling);
-                break;
-            }
         }
     }
 

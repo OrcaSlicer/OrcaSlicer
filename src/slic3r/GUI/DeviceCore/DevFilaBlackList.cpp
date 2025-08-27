@@ -171,6 +171,7 @@ void check_filaments(std::string  model_id,
 
             // Using in description
             L("TPU is not supported by AMS.");
+            L("Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer.");
             L("Damp PVA will become flexible and get stuck inside AMS, please take care to dry it before use.");
             L("Damp PVA is flexible and may get stuck in extruder. Dry it before use.");
             L("The rough surface of PLA Glow can accelerate wear on the AMS system, particularly on the internal components of the AMS Lite.");
