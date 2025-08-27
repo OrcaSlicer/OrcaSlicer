@@ -3179,15 +3179,16 @@ void StatusPanel::update_ams(MachineObject *obj)
 
     bool     is_support_virtual_tray    = obj->ams_support_virtual_tray;
     bool     is_support_filament_backup = obj->is_support_filament_backup;
-    AMSModel ams_mode                   = AMSModel::GENERIC_AMS;
 
-    if (obj) {
-        if (obj->get_printer_ams_type() == "f1") { ams_mode = AMSModel::AMS_LITE; }
-        if (obj->is_security_control_ready())
-            obj->check_ams_filament_valid();
+    if (obj && obj->is_security_control_ready()) {
+        obj->check_ams_filament_valid();
     }
-    if (obj->is_enable_np && obj->GetFilaSystem()->GetAmsList().size() > 0) {
+
+    AMSModel ams_mode = AMSModel::GENERIC_AMS;
+    if ((obj->is_enable_np || obj->is_enable_ams_np) && obj->GetFilaSystem()->GetAmsList().size() > 0) {
         ams_mode = AMSModel(obj->GetFilaSystem()->GetAmsList().begin()->second->GetAmsType());
+    } if (obj->get_printer_ams_type() == "f1") {
+        ams_mode = AMSModel::AMS_LITE;//STUDIO-14066
     }
 
     if (!obj || !obj->is_connected()) {
@@ -3228,7 +3229,6 @@ void StatusPanel::update_ams(MachineObject *obj)
         AMSinfo info;
         info.ams_id = ams->first;
         if (ams->second->IsExist() && info.parse_ams_info(obj, ams->second, obj->GetFilaSystem()->IsDetectRemainEnabled(), obj->is_support_ams_humidity)) {
-            if (ams_mode == AMSModel::AMS_LITE) { info.ams_type = AMSModel::AMS_LITE; }
             ams_info.push_back(info);
         }
     }

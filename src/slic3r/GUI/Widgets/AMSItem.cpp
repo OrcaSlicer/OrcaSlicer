@@ -3041,10 +3041,7 @@ void AMSHumidity::msw_rescale() {
 /*************************************************
 Description:AmsItem
 **************************************************/
-
-AmsItem::AmsItem() {}
-
-AmsItem::AmsItem(wxWindow *parent,AMSinfo info,  AMSModel model, AMSPanelPos pos) : AmsItem()
+AmsItem::AmsItem(wxWindow *parent,AMSinfo info,  AMSModel model, AMSPanelPos pos)
 {
     m_bitmap_extra_framework = ScalableBitmap(this, "ams_extra_framework_mid_new", 134);
 
@@ -3589,6 +3586,15 @@ void AmsItem::RenderLiteRoad(wxDC& dc, wxSize size) {
     auto a2_top = m_panel_pos == AMSPanelPos::RIGHT_PANEL ? size.y / 2 : size.y / 2 - FromDIP(4);
     auto a3_top = m_panel_pos == AMSPanelPos::RIGHT_PANEL ? size.y / 2 + FromDIP(8) : size.y / 2 + FromDIP(4);
     auto a4_top = m_panel_pos == AMSPanelPos::RIGHT_PANEL ? size.y / 2 + FromDIP(4) : size.y / 2 + FromDIP(8);
+
+    if (m_can_lib_list.empty()) {
+        //to Extruder
+        dc.SetPen(wxPen(AMS_CONTROL_GRAY500, 2, wxPENSTYLE_SOLID));
+        dc.SetBrush(wxBrush(*wxTRANSPARENT_BRUSH));
+        auto top = std::min(a1_top, a2_top);
+        dc.DrawLine(end_top, top, end_top, size.y);
+        return;
+    }
 
     try
     {
