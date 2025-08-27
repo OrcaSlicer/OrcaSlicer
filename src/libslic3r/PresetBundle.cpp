@@ -2540,21 +2540,26 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 exist_multi_color_filment.push_back(need_append_colors[i].mutli_filament_color);
             }
         }
-        filament_color->resize(exist_colors.size());
         filament_color->values = exist_colors;
-        filament_color_type->resize(exist_colors.size());
         filament_color_type->values = exist_color_types;
         ams_multi_color_filment = exist_multi_color_filment;
         this->filament_presets = exist_filament_presets;
         filament_map->values.resize(exist_filament_presets.size(), 1);
     }
-    else {//overwrite
-        filament_color->resize(ams_filament_presets.size());
+    else {//overwrite;
         filament_color->values = ams_filament_colors;
-        filament_color_type->resize(ams_filament_presets.size());
         filament_color_type->values = ams_filament_color_types;
         this->filament_presets = ams_filament_presets;
         filament_map->values.resize(ams_filament_colors.size(), 1);
+
+        auto& print_config = this->prints.get_edited_preset().config;
+        auto  support_filament_opt = print_config.option<ConfigOptionInt>("support_filament");
+        auto support_interface_filament_opt = print_config.option<ConfigOptionInt>("support_interface_filament");
+        if (support_filament_opt->value > ams_filament_color_types.size())
+            support_filament_opt->value = 0;
+
+        if (support_interface_filament_opt->value > ams_filament_color_types.size())
+            support_interface_filament_opt->value = 0;
     }
     // Update ams_multi_color_filment
     update_filament_multi_color();
