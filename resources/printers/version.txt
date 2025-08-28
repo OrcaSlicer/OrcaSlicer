@@ -1,5 +1,1 @@
-<<<<<<< HEAD   (29536a NEW:add helio file to translate list)
-02.00.00.26
-=======
 02.00.00.29
->>>>>>> CHANGE (5fa0cb FIX: check close chamber temperature)
