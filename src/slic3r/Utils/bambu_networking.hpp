@@ -244,6 +244,7 @@ struct PrintParams {
     std::string     ftp_folder;
     std::string     ftp_file;
     std::string     ftp_file_md5;
+    std::string     nozzle_mapping;
     std::string     ams_mapping;
     std::string     ams_mapping2;
     std::string     ams_mapping_info;
