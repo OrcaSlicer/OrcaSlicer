@@ -1,21 +1,133 @@
 {
     "result": 0,
-    "t": 1749692534,
-    "ver": 202506120009,
+    "t": 1756284835,
+    "ver": 202508270600,
     "data": {
         "device_hms": {
-            "ver": 202506120009,
+            "ver": 202508270600,
             "sv": [
                 {
+                    "ecode": "0503000000030027",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0503000000030028",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0503000000030029",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500050000010021",
+                    "intro": "Autentisering av timelapse kit misslyckades. Anslut kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "0C0003000003001A",
+                    "intro": "Detekteringen av främmande föremål misslyckades, eventuellt på grund av manuell avbrott (t.ex. genom att klicka på \"Stopp\"). Om inte, försök starta om printern eller uppdatera firmware."
+                },
+                {
+                    "ecode": "0501040000030002",
+                    "intro": "Gängstänger behöver smörjas nu."
+                },
+                {
+                    "ecode": "0500050000020030",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0300910000010008",
+                    "intro": "Kammarens värmare 1 steg inte till önskad temperatur."
+                },
+                {
+                    "ecode": "030018000001000C",
+                    "intro": "En anomali hopp i extruderns extrusionskraftsensor data har upptäckts, potentiellt orsakad av dålig sensor kontakt eller en defekt sensor."
+                },
+                {
+                    "ecode": "0C00030000020015",
+                    "intro": "Detektering av främmande föremål fungerar inte. Live View kameran har bytts ut. Om en skärmodul är installerad, avinstallera modulen, tryck på \"Inställningar>Kalibrering\" på printer skärmen och kalibrera om Live View kameran."
+                },
+                {
+                    "ecode": "0C00030000020014",
+                    "intro": "Noggrannheten för detektering av främmande föremål har minskat. Om detta inträffar ofta utför du en Live View kamera kalibrering (\"Inställningar\" > \"Kalibrering\" på printerns skärm). Om en skärmodul är installerad, ta bort den innan du fortsätter."
+                },
+                {
+                    "ecode": "0C00030000020012",
+                    "intro": "Detektering av främmande föremål fungerar inte. Live View kameran behöver kalibreras. Tryck på \"Inställningar > kalibrering\" på printerns skärm. Om en skärmodul är installerad, ta bort den före kalibrering."
+                },
+                {
+                    "ecode": "0501040000030003",
+                    "intro": "Linjära stavar behöver rengöras och smörjas nu."
+                },
+                {
+                    "ecode": "0300180000030009",
+                    "intro": "Utskrift med hög värmebädds temperatur utförs för första gången. För att få bättre utskriftskvalitet i första lagret utförs kalibrering av värmebädd med hög temperatur automatiskt."
+                },
+                {
+                    "ecode": "03002D0000030009",
+                    "intro": "Detta är printerns första utskrift med hög temperatur på värmebädden. För att få bättre kvalitet på utskriften av det första lagret utförs automatisk nivellering av bädden med hög temperatur."
+                },
+                {
+                    "ecode": "0C0001000002000E",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000010053",
+                    "intro": ""
+                },
+                {
+                    "ecode": "1800020000020002",
+                    "intro": "AMS-HT A Mätaren har ingen signal. Mätaren kan ha dålig kontakt."
+                },
+                {
+                    "ecode": "0500050000010009",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500050000010008",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000A",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000C",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020016",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020015",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020019",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020054",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020044",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020061",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002001B",
+                    "intro": ""
+                },
+                {
                     "ecode": "0500010000020003",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500030000020010",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500030000020011",
                     "intro": ""
                 },
                 {
@@ -47,24 +159,12 @@
                     "intro": ""
                 },
                 {
-                    "ecode": "0500030000030007",
-                    "intro": ""
-                },
-                {
                     "ecode": "0500060000020007",
                     "intro": ""
                 },
                 {
                     "ecode": "0500010000020009",
                     "intro": ""
-                },
-                {
-                    "ecode": "0500010000030009",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020001",
-                    "intro": "Verktygshuvud kameran är inte på plats; kontrollera hårdvaruanslutningen"
                 },
                 {
                     "ecode": "05000600000200A1",
@@ -91,10 +191,6 @@
                     "intro": ""
                 },
                 {
-                    "ecode": "05000600000200A0",
-                    "intro": ""
-                },
-                {
                     "ecode": "0500060000020011",
                     "intro": ""
                 },
@@ -115,16 +211,56 @@
                     "intro": ""
                 },
                 {
+                    "ecode": "0500030000020010",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000020011",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000030007",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500010000030009",
+                    "intro": ""
+                },
+                {
+                    "ecode": "05000600000200A0",
+                    "intro": ""
+                },
+                {
                     "ecode": "0500060000020021",
                     "intro": ""
                 },
                 {
-                    "ecode": "0300180000030009",
-                    "intro": "Utskrift med hög värmebädds temperatur utförs för första gången. För att få bättre utskriftskvalitet i första lagret utförs kalibrering av värmebädd med hög temperatur automatiskt."
+                    "ecode": "0C0001000002001A",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020062",
+                    "intro": ""
+                },
+                {
+                    "ecode": "03002D0000010006",
+                    "intro": "Nivelleringen av den uppvärmda bädden misslyckades, eventuellt på grund av främmande föremål på bädden eller bäddens lutning. Om du fortsätter att skriva ut kan byggplattan skadas. Ta bort eventuellt skräp eller nivellera bädden manuellt innan du försöker igen."
+                },
+                {
+                    "ecode": "0500030000020055",
+                    "intro": "Användarinformationen har gått ut, logga in igen."
+                },
+                {
+                    "ecode": "0300290000010001",
+                    "intro": "Visionskodarens mönster kan inte identifieras; möjliga orsaker inkluderar förvrängning av visionskodarens mönster, överexponering av ljus och felplacering av plattan."
+                },
+                {
+                    "ecode": "0500060000020001",
+                    "intro": "Verktygshuvud kameran är inte på plats; kontrollera hårdvaruanslutningen"
                 },
                 {
                     "ecode": "03002B0000020001",
-                    "intro": "Kalibreringen av extra kylfläkts spjället misslyckades. Kontrollera om det finns främmande föremål som blockerar spjället."
+                    "intro": "Kalibreringen av luft slussen misslyckades. Kontrollera om det finns främmande föremål som blockerar spjället."
                 },
                 {
                     "ecode": "0701900000010004",
@@ -203,10 +339,6 @@
                     "intro": "Strömsensorn för AMS C utblåsventil 1 är onormal; vänligen kontakta kundsupport för att byta ut AMS moderkortet."
                 },
                 {
-                    "ecode": "03002D0000030009",
-                    "intro": "Detta är printerns första utskrift med hög temperatur på värmebädden. För att få bättre kvalitet på utskriften av det första lagret utförs automatisk nivellering av bädden med hög temperatur."
-                },
-                {
                     "ecode": "0706910000010004",
                     "intro": "Strömsensorn för AMS G utblåsventil 2 är onormal; vänligen kontakta kundsupport för att byta ut AMS moderkortet."
                 },
@@ -260,203 +392,147 @@
                 },
                 {
                     "ecode": "0702960000020004",
-                    "intro": "AMS C Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
+                    "intro": "AMS C Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "1800960000020004",
-                    "intro": "AMS-HT A Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
+                    "intro": "AMS-HT A Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0300330000010001",
-                    "intro": "Vänster sida hjälpkomponentkylfläkten har låg hastighet. Den kan vara fast och behöver rengöras."
+                    "intro": "Kylfläktens hastighet för vänster sidas extra komponent är långsam. Den kan ha fastnat och behöver rengöras."
                 },
                 {
                     "ecode": "0704960000020004",
-                    "intro": "AMS E Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
+                    "intro": "AMS E Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "1801250000020001",
-                    "intro": "AMS-HT B använder skrivarens ström för torkning under laddning/utskrift. För bättre torkprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT B använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "1803250000020001",
-                    "intro": "AMS-HT D använder skrivarens ström för torkning under laddning/utskrift. För bättre torkprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT D använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "1807250000020001",
-                    "intro": "AMS-HT H använder skrivarens ström för torkning under laddning/utskrift. För bättre torkprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT H använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "1806250000020001",
-                    "intro": "AMS-HT G använder skrivarens ström för torkning under laddning/utskrift. För bättre torkningsprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT G använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0703960000020004",
-                    "intro": "AMS D Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmeelementet."
+                    "intro": "AMS D Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0707960000020004",
-                    "intro": "AMS H Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmaren."
+                    "intro": "AMS H Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "1802960000020004",
-                    "intro": "AMS-HT C Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmaren."
+                    "intro": "AMS-HT C Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0300320000010001",
-                    "intro": "Höger sida (Hjälpkomponent Kylning-Filtrering) Fläkthastigheten är för långsam eller har stannat. Den kan vara fastnat, eller kontakten kanske inte är korrekt inkopplad."
+                    "intro": "Fläkthastigheten på höger sida (extra komponents kylnings-filtrering) är för låg eller stoppad. Den kan ha fastnat eller så kanske kontakten inte är ordentligt ansluten."
                 },
                 {
                     "ecode": "1803960000020004",
-                    "intro": "AMS-HT D Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmaren."
+                    "intro": "AMS-HT D Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0706960000020004",
-                    "intro": "AMS G Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
+                    "intro": "AMS G Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "1804960000020004",
-                    "intro": "AMS-HT E Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmeelementet."
+                    "intro": "AMS-HT E Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0701960000020004",
-                    "intro": "AMS B Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
+                    "intro": "AMS B Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "1807960000020004",
-                    "intro": "AMS-HT H Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmeelementet."
+                    "intro": "AMS-HT H Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "1804250000020001",
-                    "intro": "AMS-HT E använder skrivarens ström för torkning under laddning/utskrift. För bättre torkprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT E använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "1805960000020004",
-                    "intro": "AMS-HT F Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
+                    "intro": "AMS-HT F Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "1805250000020001",
-                    "intro": "AMS-HT F använder skrivarens ström för torkning under laddning/utskrift. För bättre torkprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT F använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "1800250000020001",
-                    "intro": "AMS-HT A använder skrivarens ström för torkning under laddning/utskrift. För bättre torkprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT A använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "1801960000020004",
-                    "intro": "AMS-HT B Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
+                    "intro": "AMS-HT B Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0300330000020002",
-                    "intro": "Vänster sida hjälpkomponent kylfläktens hastighet är långsam. Den kan vara fast och behöver rengöras."
+                    "intro": "Kylfläktens hastighet för vänster sidas extra komponent är långsam. Den kan ha fastnat och behöver rengöras."
                 },
                 {
                     "ecode": "1806960000020004",
-                    "intro": "AMS-HT G Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmeelementet."
+                    "intro": "AMS-HT G Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0300320000010002",
-                    "intro": "Höger sida (Hjälpkomponentkylning-filtrering) Fläkthastigheten är låg. Den kan vara fast och behöver rengöras."
+                    "intro": "Fläkthastigheten på höger sida (extra komponents kylnings-filtrering) är långsam. Den kan ha fastnat och behöver rengöras."
                 },
                 {
                     "ecode": "1802250000020001",
-                    "intro": "AMS-HT C använder skrivarens ström för torkning under laddning/utskrift. För bättre torkprestanda, vänligen anslut en strömadapter."
+                    "intro": "AMS-HT C använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0700960000020004",
-                    "intro": "AMS A Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller att det är något fel med värmeelementet."
+                    "intro": "AMS A Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0705960000020004",
-                    "intro": "AMS F Temperaturkontrollfelet är för stort, vilket kan bero på att locket är öppet eller en onormalitet med värmaren."
-                },
-                {
-                    "ecode": "0C00010000020019",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C0001000002001A",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020054",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020044",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020062",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020061",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C0001000002001B",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500050000010009",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500050000010008",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000B",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000A",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000C",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020016",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020015",
-                    "intro": ""
+                    "intro": "AMS F Temperatur kontroll felet är för stort, vilket kan bero på att locket är öppet eller ett fel på värmaren."
                 },
                 {
                     "ecode": "0703250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS D använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0700250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS A använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0701250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS B använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0706250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS G använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0702250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS C använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0705250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS F använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0707250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS H använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0704250000020001",
-                    "intro": "Detekterad AMS som använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
+                    "intro": "AMS E använder printerns ström för torkning under laddning/utskrift. För bättre torkprestanda, anslut en nätadapter."
                 },
                 {
                     "ecode": "0700610000020001",
@@ -535,8 +611,76 @@
                     "intro": "AMS G Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
                 },
                 {
-                    "ecode": "0300180000010005",
-                    "intro": "Z axelmotorns rotation är blockerad; kontrollera om främmande föremål har fastnat i Z reglaget eller Z timingremskivan. Se också till att byggplattan är korrekt placerad för att undvika kollisioner med omgivande strukturer."
+                    "ecode": "1801630000020001",
+                    "intro": "AMS-HT B Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1806630000020001",
+                    "intro": "AMS-HT G Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "0704630000020001",
+                    "intro": "AMS E Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1805610000020001",
+                    "intro": "AMS-HT F Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1802630000020001",
+                    "intro": "AMS-HT C Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1804620000020001",
+                    "intro": "AMS-HT E Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1805620000020001",
+                    "intro": "AMS-HT F Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1800620000020001",
+                    "intro": "AMS-HT A Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "0706610000020001",
+                    "intro": "AMS G Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "0705620000020001",
+                    "intro": "AMS F Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1805600000020001",
+                    "intro": "AMS-HT F Fack 1 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1803610000020001",
+                    "intro": "AMS-HT D Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1801600000020001",
+                    "intro": "AMS-HT B Fack 1 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1807620000020001",
+                    "intro": "AMS-HT H Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1807630000020001",
+                    "intro": "AMS-HT H Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1804600000020001",
+                    "intro": "AMS-HT E Fack 1 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "0707610000020001",
+                    "intro": "AMS H Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                },
+                {
+                    "ecode": "1806620000020001",
+                    "intro": "AMS-HT G Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
                 },
                 {
                     "ecode": "0700600000020001",
@@ -619,76 +763,8 @@
                     "intro": "AMS-HT C Fack 1 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
                 },
                 {
-                    "ecode": "1801630000020001",
-                    "intro": "AMS-HT B Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1806630000020001",
-                    "intro": "AMS-HT G Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "0704630000020001",
-                    "intro": "AMS E Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1805610000020001",
-                    "intro": "AMS-HT F Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1802630000020001",
-                    "intro": "AMS-HT C Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1804620000020001",
-                    "intro": "AMS-HT E Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1805620000020001",
-                    "intro": "AMS-HT F Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1800620000020001",
-                    "intro": "AMS-HT A Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "0706610000020001",
-                    "intro": "AMS G Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "0705620000020001",
-                    "intro": "AMS F Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1805600000020001",
-                    "intro": "AMS-HT F Fack 1 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1803610000020001",
-                    "intro": "AMS-HT D Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1801600000020001",
-                    "intro": "AMS-HT B Fack 1 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1807620000020001",
-                    "intro": "AMS-HT H Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1807630000020001",
-                    "intro": "AMS-HT H Fack 4 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1804600000020001",
-                    "intro": "AMS-HT E Fack 1 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "0707610000020001",
-                    "intro": "AMS H Fack 2 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
-                },
-                {
-                    "ecode": "1806620000020001",
-                    "intro": "AMS-HT G Fack 3 är överbelastad. Filamentet kan vara trassligt eller så kan filament bufferten ha fastnat."
+                    "ecode": "0300180000010005",
+                    "intro": "Z axelmotorns rotation är blockerad; kontrollera om främmande föremål har fastnat i Z reglaget eller Z timingremskivan. Se också till att byggplattan är korrekt placerad för att undvika kollisioner med omgivande strukturer."
                 },
                 {
                     "ecode": "1801620000020001",
@@ -727,22 +803,6 @@
                     "intro": "Verifieringen av MQTT kommandot misslyckades. Uppdatera Studio (inklusive nätverksplugin) eller Handy till den senaste versionen, starta sedan om programvaran och försök igen."
                 },
                 {
-                    "ecode": "0C00030000020015",
-                    "intro": "Detektering av främmande föremål fungerar inte. Live View kameran har bytts ut. Om en skärmodul är installerad, avinstallera modulen, tryck på \"Inställningar>Kalibrering\" på printer skärmen och kalibrera om Live View kameran."
-                },
-                {
-                    "ecode": "0500030000020055",
-                    "intro": "Användarinformationen har löpt ut, vänligen bind enheten igen."
-                },
-                {
-                    "ecode": "0C00030000020014",
-                    "intro": "Noggrannheten för detektering av främmande föremål har minskat. Om detta inträffar ofta utför du en Live View kamera kalibrering (\"Inställningar\" > \"Kalibrering\" på printerns skärm). Om en skärmodul är installerad, ta bort den innan du fortsätter."
-                },
-                {
-                    "ecode": "0C00030000020012",
-                    "intro": "Detektering av främmande föremål fungerar inte. Live View kameran behöver kalibreras. Tryck på \"Inställningar > kalibrering\" på printerns skärm. Om en skärmodul är installerad, ta bort den före kalibrering."
-                },
-                {
                     "ecode": "0300A80000010001",
                     "intro": "Avvikelse i AMS strömförsörjning, eventuellt på grund av skada på AMS eller kortslutning i AMS gränssnittet, eller för många AMS anslutningar. Kontrollera att den är korrekt ansluten."
                 },
@@ -751,12 +811,36 @@
                     "intro": "Detektering av nozzle misslyckades: nozzle inte installerad eller felaktigt installerad."
                 },
                 {
-                    "ecode": "07FF450000020003",
-                    "intro": "Filament skärarens handtag har inte släppts. Handtaget eller bladet kan ha fastnat eller så kan det vara ett problem med anslutningen till filament sensorn."
+                    "ecode": "0706230000020006",
+                    "intro": "AMS G har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
-                    "ecode": "18FF450000020003",
-                    "intro": "Filament skärarens handtag har inte släppts. Handtaget eller bladet kan ha fastnat eller så kan det vara ett problem med anslutningen till filament sensorn."
+                    "ecode": "0702220000020006",
+                    "intro": "AMS C har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1804230000020006",
+                    "intro": "AMS-HT E har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0705210000020006",
+                    "intro": "AMS F har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1805220000020006",
+                    "intro": "AMS-HT F har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0702210000020006",
+                    "intro": "AMS C har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1804210000020006",
+                    "intro": "AMS-HT E har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1805230000020006",
+                    "intro": "AMS-HT F har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
                     "ecode": "0706230000020025",
@@ -795,36 +879,12 @@
                     "intro": "AMS-HT B fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
                 },
                 {
-                    "ecode": "0706230000020006",
-                    "intro": "AMS G har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0702220000020006",
-                    "intro": "AMS C har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1804230000020006",
-                    "intro": "AMS-HT E har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0705210000020006",
+                    "ecode": "0705200000020006",
                     "intro": "AMS F har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
-                    "ecode": "1805220000020006",
-                    "intro": "AMS-HT F har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0702210000020006",
-                    "intro": "AMS C har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1804210000020006",
+                    "ecode": "1804200000020006",
                     "intro": "AMS-HT E har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1805230000020006",
-                    "intro": "AMS-HT F har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
                     "ecode": "0701220000020015",
@@ -1059,14 +1119,6 @@
                     "intro": "AMS-HT F fack 2 filament mätare har ingen signal, vilket kan bero på dålig kontakt i odometer kontakten eller ett fel på odometern."
                 },
                 {
-                    "ecode": "0705200000020006",
-                    "intro": "AMS F har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1804200000020006",
-                    "intro": "AMS-HT E har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
                     "ecode": "0703200000020006",
                     "intro": "AMS D har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
@@ -1077,6 +1129,170 @@
                 {
                     "ecode": "0701200000020006",
                     "intro": "AMS B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1801220000020025",
+                    "intro": "AMS-HT B fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0701220000020025",
+                    "intro": "AMS B fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0705220000020025",
+                    "intro": "AMS F fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1804210000020025",
+                    "intro": "AMS-HT E fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0704220000020025",
+                    "intro": "AMS E fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0701200000020025",
+                    "intro": "AMS B fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1804220000020025",
+                    "intro": "AMS-HT E fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1802220000020025",
+                    "intro": "AMS-HT C fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1803200000020025",
+                    "intro": "AMS-HT D fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1802200000020025",
+                    "intro": "AMS-HT C fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1804200000020025",
+                    "intro": "AMS-HT E fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0707210000020025",
+                    "intro": "AMS H fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0705200000020025",
+                    "intro": "AMS F fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0700220000020025",
+                    "intro": "AMS A fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0700210000020025",
+                    "intro": "AMS A fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1801200000020025",
+                    "intro": "AMS-HT B fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0706210000020025",
+                    "intro": "AMS G fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0707220000020025",
+                    "intro": "AMS H fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1805230000020025",
+                    "intro": "AMS-HT F fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1801210000020025",
+                    "intro": "AMS-HT B fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0704200000020025",
+                    "intro": "AMS E fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1802220000020006",
+                    "intro": "AMS-HT C har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1807210000020006",
+                    "intro": "AMS-HT H har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1800230000020006",
+                    "intro": "AMS-HT A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0706220000020006",
+                    "intro": "AMS G har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0704230000020006",
+                    "intro": "AMS E har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0700210000020006",
+                    "intro": "AMS A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1800220000020006",
+                    "intro": "AMS-HT A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1801230000020006",
+                    "intro": "AMS-HT B har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0701230000020006",
+                    "intro": "AMS B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0707220000020006",
+                    "intro": "AMS H har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0704220000020006",
+                    "intro": "AMS E har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0704210000020006",
+                    "intro": "AMS E har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1803220000020006",
+                    "intro": "AMS-HT D har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0701210000020006",
+                    "intro": "AMS B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0703220000020006",
+                    "intro": "AMS D har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1806230000020006",
+                    "intro": "AMS-HT G har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0707210000020006",
+                    "intro": "AMS H har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1807230000020006",
+                    "intro": "AMS-HT H har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1802210000020006",
+                    "intro": "AMS-HT C har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0703210000020006",
+                    "intro": "AMS D har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
                     "ecode": "1807210000020016",
@@ -1483,170 +1699,6 @@
                     "intro": "AMS-HT G fack 2 matarenhets motor har ingen signal, vilket kan bero på dålig kontakt i motorkontakten eller ett motorfel."
                 },
                 {
-                    "ecode": "1801220000020025",
-                    "intro": "AMS-HT B fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0701220000020025",
-                    "intro": "AMS B fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0705220000020025",
-                    "intro": "AMS F fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1804210000020025",
-                    "intro": "AMS-HT E fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0704220000020025",
-                    "intro": "AMS E fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0701200000020025",
-                    "intro": "AMS B fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1804220000020025",
-                    "intro": "AMS-HT E fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1802220000020025",
-                    "intro": "AMS-HT C fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1803200000020025",
-                    "intro": "AMS-HT D fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1802200000020025",
-                    "intro": "AMS-HT C fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1804200000020025",
-                    "intro": "AMS-HT E fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0707210000020025",
-                    "intro": "AMS H fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0705200000020025",
-                    "intro": "AMS F fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0700220000020025",
-                    "intro": "AMS A fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0700210000020025",
-                    "intro": "AMS A fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1801200000020025",
-                    "intro": "AMS-HT B fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0706210000020025",
-                    "intro": "AMS G fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0707220000020025",
-                    "intro": "AMS H fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1805230000020025",
-                    "intro": "AMS-HT F fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1801210000020025",
-                    "intro": "AMS-HT B fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0704200000020025",
-                    "intro": "AMS E fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1802220000020006",
-                    "intro": "AMS-HT C har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1807210000020006",
-                    "intro": "AMS-HT H har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1800230000020006",
-                    "intro": "AMS-HT A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0706220000020006",
-                    "intro": "AMS G har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0704230000020006",
-                    "intro": "AMS E har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0700210000020006",
-                    "intro": "AMS A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1800220000020006",
-                    "intro": "AMS-HT A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1801230000020006",
-                    "intro": "AMS-HT B har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0701230000020006",
-                    "intro": "AMS B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0707220000020006",
-                    "intro": "AMS H har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0704220000020006",
-                    "intro": "AMS E har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0704210000020006",
-                    "intro": "AMS E har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1803220000020006",
-                    "intro": "AMS-HT D har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0701210000020006",
-                    "intro": "AMS B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0703220000020006",
-                    "intro": "AMS D har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1806230000020006",
-                    "intro": "AMS-HT G har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0707210000020006",
-                    "intro": "AMS H har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1807230000020006",
-                    "intro": "AMS-HT H har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1802210000020006",
-                    "intro": "AMS-HT C har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0703210000020006",
-                    "intro": "AMS D har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
                     "ecode": "1802200000020006",
                     "intro": "AMS-HT C har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
@@ -1681,6 +1733,90 @@
                 {
                     "ecode": "0704200000020006",
                     "intro": "AMS E har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1805200000020025",
+                    "intro": "AMS-HT F fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0705210000020025",
+                    "intro": "AMS F fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1806210000020025",
+                    "intro": "AMS-HT G fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0703230000020025",
+                    "intro": "AMS D fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1807230000020025",
+                    "intro": "AMS-HT H fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1800200000020025",
+                    "intro": "AMS-HT A fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1806200000020025",
+                    "intro": "AMS-HT G fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1807220000020025",
+                    "intro": "AMS-HT H fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1806220000020025",
+                    "intro": "AMS-HT G fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1806230000020025",
+                    "intro": "AMS-HT G fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0707200000020025",
+                    "intro": "AMS H fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0702210000020025",
+                    "intro": "AMS C fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1805220000020025",
+                    "intro": "AMS-HT F fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0703220000020025",
+                    "intro": "AMS D fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1803220000020025",
+                    "intro": "AMS-HT D fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0704230000020025",
+                    "intro": "AMS E fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0706220000020025",
+                    "intro": "AMS G fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "1804230000020025",
+                    "intro": "AMS-HT E fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0704210000020025",
+                    "intro": "AMS E fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0705230000020025",
+                    "intro": "AMS F fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
+                },
+                {
+                    "ecode": "0702200000020006",
+                    "intro": "AMS C har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
                     "ecode": "1803210000020015",
@@ -2147,90 +2283,6 @@
                     "intro": "AMS-HT E fack 4 matarenhets motor har stannat, spolen kan inte rotera."
                 },
                 {
-                    "ecode": "0702200000020006",
-                    "intro": "AMS C har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1805200000020025",
-                    "intro": "AMS-HT F fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0705210000020025",
-                    "intro": "AMS F fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1806210000020025",
-                    "intro": "AMS-HT G fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0703230000020025",
-                    "intro": "AMS D fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1807230000020025",
-                    "intro": "AMS-HT H fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1800200000020025",
-                    "intro": "AMS-HT A fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1806200000020025",
-                    "intro": "AMS-HT G fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1807220000020025",
-                    "intro": "AMS-HT H fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1806220000020025",
-                    "intro": "AMS-HT G fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1806230000020025",
-                    "intro": "AMS-HT G fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0707200000020025",
-                    "intro": "AMS H fack 1 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0702210000020025",
-                    "intro": "AMS C fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1805220000020025",
-                    "intro": "AMS-HT F fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0703220000020025",
-                    "intro": "AMS D fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1803220000020025",
-                    "intro": "AMS-HT D fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0704230000020025",
-                    "intro": "AMS E fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0706220000020025",
-                    "intro": "AMS G fack 3 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "1804230000020025",
-                    "intro": "AMS-HT E fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0704210000020025",
-                    "intro": "AMS E fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
-                    "ecode": "0705230000020025",
-                    "intro": "AMS F fack 4 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
-                },
-                {
                     "ecode": "0706210000020006",
                     "intro": "AMS G har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
@@ -2281,6 +2333,38 @@
                 {
                     "ecode": "07FFA00000020001",
                     "intro": "Nozzle kalldragnings process har löpt ut. Klicka på \"Försök igen\" och dra sedan ut filamentet manuellt."
+                },
+                {
+                    "ecode": "0707230000020006",
+                    "intro": "AMS H har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1805210000020006",
+                    "intro": "AMS-HT F har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0700220000020006",
+                    "intro": "AMS A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1807220000020006",
+                    "intro": "AMS-HT H har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1801210000020006",
+                    "intro": "AMS-HT B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0701220000020006",
+                    "intro": "AMS B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "1801220000020006",
+                    "intro": "AMS-HT B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                },
+                {
+                    "ecode": "0705220000020006",
+                    "intro": "AMS F har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
                     "ecode": "0702230000020025",
@@ -2339,36 +2423,8 @@
                     "intro": "AMS-HT D fack 2 matnings motståndet är för högt. Minska matnings motståndet, minska spolens rotations motstånd och undvik att ha filament slangen för långt och överdrivet böjt."
                 },
                 {
-                    "ecode": "0707230000020006",
-                    "intro": "AMS H har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1805210000020006",
-                    "intro": "AMS-HT F har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0700220000020006",
-                    "intro": "AMS A har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1807220000020006",
-                    "intro": "AMS-HT H har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1801210000020006",
-                    "intro": "AMS-HT B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0701220000020006",
-                    "intro": "AMS B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "1801220000020006",
-                    "intro": "AMS-HT B har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "0705220000020006",
-                    "intro": "AMS F har upptäckt ett brott på PTFE slangen under filamentladdningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
+                    "ecode": "1803200000020006",
+                    "intro": "AMS-HT D har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
                 },
                 {
                     "ecode": "0701230000020016",
@@ -2551,14 +2607,6 @@
                     "intro": "AMS-HT D fack 3 filament sensorn är onormal, vilket kan bero på att ett filamentbrott inuti AMS."
                 },
                 {
-                    "ecode": "1803200000020006",
-                    "intro": "AMS-HT D har upptäckt ett brott på PTFE slangen under filament laddningen. Kontrollera om PTFE slangarna inuti och utanför AMS har fallit av eller skadats."
-                },
-                {
-                    "ecode": "07FF450000020001",
-                    "intro": "Sensorn för filament klippning fungerar inte; kontrollera om kontakten är korrekt inkopplad."
-                },
-                {
                     "ecode": "18FF700000020008",
                     "intro": "Det gick inte att hämta AMS mappnings tabellen; klicka på \"Fortsätt\" för att försöka igen."
                 },
@@ -2587,36 +2635,8 @@
                     "intro": "Kammar temperaturen är onormal. Sensorn för kammar temperaturen kan ha kortslutits."
                 },
                 {
-                    "ecode": "0300980000010003",
-                    "intro": "Hall sensorn för vänster sidofönster (nedre) är onormal; kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "0300980000010002",
-                    "intro": "Hall sensorn (övre) för vänster sidofönster är onormal; kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "0300990000010003",
-                    "intro": "Höger sidofönsters Hall sensor (övre) är onormal; kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "0300990000010002",
-                    "intro": "Hall sensorn för höger sidofönster (nedre) är onormal; kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "0300960000010003",
-                    "intro": "Front dörrens hall sensor (nedre) är onormal; kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "0300970000010003",
-                    "intro": "Topp lockets Hall sensor (vänster bak) är onormal; kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "0300970000010002",
-                    "intro": "Topp lockets Hall sensor (höger fram) är onormal; kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "0300960000010002",
-                    "intro": "Front dörrens hall sensor (övre) är onormal; kontrollera om anslutningskabeln är lös."
+                    "ecode": "0700400000020001",
+                    "intro": "AMS A Filament buffertens positions signal förlorad: kabeln eller positions sensorn kan vara defekt."
                 },
                 {
                     "ecode": "1803400000020001",
@@ -2677,10 +2697,6 @@
                 {
                     "ecode": "1807400000020001",
                     "intro": "AMS-HT H Filament buffertens positions signal förlorad: kabeln eller positions sensorn kan vara defekt."
-                },
-                {
-                    "ecode": "0700400000020001",
-                    "intro": "AMS A Filament buffertens positions signal förlorad: kabeln eller positions sensorn kan vara defekt."
                 },
                 {
                     "ecode": "1800400000020001",
@@ -3076,7 +3092,7 @@
                 },
                 {
                     "ecode": "050001000001000A",
-                    "intro": "BirdsEye kameran fungerar inte som den ska. Försök att starta om enheten. Om problemet kvarstår efter flera omstarter ska du kontrollera kamerans anslutnings status eller kontakta kundsupport."
+                    "intro": ""
                 },
                 {
                     "ecode": "0500060000020003",
@@ -3089,10 +3105,6 @@
                 {
                     "ecode": "030001000003000F",
                     "intro": "Kammartemperaturen är för närvarande hög och värmebädden kyls ned långsamt. Vi rekommenderar att du öppnar topplocket eller frontluckan för att påskynda kylningsprocessen."
-                },
-                {
-                    "ecode": "030001000002000F",
-                    "intro": "Kammarens måltemperatur är inställd för högt, medan värmebäddens måltemperatur är inställd för lågt. Kylningen av värmebädden har hoppats över. Vi rekommenderar att du ställer in matchande temperaturer för kammare och värmebädd."
                 },
                 {
                     "ecode": "0300930000010004",
@@ -3109,10 +3121,6 @@
                 {
                     "ecode": "0583040000010045",
                     "intro": "AMS-HT D firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
-                },
-                {
-                    "ecode": "0C0003000003001A",
-                    "intro": "Detektering av främmande föremål fungerade inte, möjligen på grund av ett manuellt avbrott (t.ex. tryck på stoppknappen eller öppna dörren i laserläge). Du kan ignorera detta om så är fallet. Annars kan du försöka starta om printern eller uppdatera firmware för att återställa funktionen."
                 },
                 {
                     "ecode": "1803980000020001",
@@ -3332,23 +3340,23 @@
                 },
                 {
                     "ecode": "0C00010000010018",
-                    "intro": "BirdEye kameran fungerar inte som den ska. Försök att starta om enheten. Om problemet kvarstår efter flera omstarter, kontrollera kamerans anslutnings status eller kontakta kundsupport."
+                    "intro": ""
                 },
                 {
                     "ecode": "0C00040000010025",
                     "intro": "Enheten fungerade inte som den skulle; starta om."
                 },
                 {
-                    "ecode": "0C00040000020023",
-                    "intro": "Tjockleks mätningen misslyckades, verktygshuvud kameran kunde inte detektera materialytan."
+                    "ecode": "0C00040000030018",
+                    "intro": "Kalibreringen av skärbladets offset misslyckades. Detta kan påverka skär noggrannheten. Se Wiki för att kontrollera om bladspetsen är sliten."
                 },
                 {
                     "ecode": "0500040000020043",
                     "intro": "Verktygshuvud kameran är smutsig eller blockerad; rengör den och fortsätt."
                 },
                 {
-                    "ecode": "0C00040000030018",
-                    "intro": "Kalibreringen av skärbladets offset misslyckades. Detta kan påverka skär noggrannheten. Se Wiki för att kontrollera om bladspetsen är sliten."
+                    "ecode": "0C00040000020023",
+                    "intro": "Tjockleks mätningen misslyckades, verktygshuvud kameran kunde inte detektera materialytan."
                 },
                 {
                     "ecode": "03000F0000010001",
@@ -3419,6 +3427,26 @@
                     "intro": "AMS-HT A firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
                 },
                 {
+                    "ecode": "050005000001000F",
+                    "intro": "Tillbehörets firmware matchar inte printern. Uppgradera den på sidan \"Firmware\"."
+                },
+                {
+                    "ecode": "0502050000010010",
+                    "intro": "AMS C firmware matchar inte printern. Uppdatera den på sidan \"Firmware\"."
+                },
+                {
+                    "ecode": "0506050000010010",
+                    "intro": "AMS G firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
+                },
+                {
+                    "ecode": "0504050000010010",
+                    "intro": "AMS E firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
+                },
+                {
+                    "ecode": "0503050000010010",
+                    "intro": "AMS D firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
+                },
+                {
                     "ecode": "0706930000020003",
                     "intro": "Kylfläkten AMS G värmare 2 kan inte starta eftersom nätadaptern inte är ansluten."
                 },
@@ -3479,42 +3507,6 @@
                     "intro": "Kylfläkten AMS A värmare 2 kan inte starta eftersom nätadaptern inte är ansluten."
                 },
                 {
-                    "ecode": "03009B0000010003",
-                    "intro": "Nödstoppsknappen är inte korrekt installerad. Följ Wiki-anvisningarna för att installera den."
-                },
-                {
-                    "ecode": "050005000001000F",
-                    "intro": "Tillbehörets firmware matchar inte printern. Uppgradera den på sidan \"Firmware\"."
-                },
-                {
-                    "ecode": "0502050000010010",
-                    "intro": "AMS C firmware matchar inte printern. Uppdatera den på sidan \"Firmware\"."
-                },
-                {
-                    "ecode": "0506050000010010",
-                    "intro": "AMS G firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
-                },
-                {
-                    "ecode": "0504050000010010",
-                    "intro": "AMS E firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
-                },
-                {
-                    "ecode": "0503050000010010",
-                    "intro": "AMS D firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
-                },
-                {
-                    "ecode": "0500050000010010",
-                    "intro": "AMS A firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
-                },
-                {
-                    "ecode": "0583050000010010",
-                    "intro": "AMS-HT D firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
-                },
-                {
-                    "ecode": "0581050000010010",
-                    "intro": "AMS-HT B firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
-                },
-                {
                     "ecode": "1805930000020003",
                     "intro": "Kylfläkten AMS-HT F värmare 2 kan inte starta eftersom nätadaptern inte är ansluten."
                 },
@@ -3557,6 +3549,18 @@
                 {
                     "ecode": "1801930000020003",
                     "intro": "Kylfläkten AMS-HT B värmare 2 kan inte starta eftersom nätadaptern inte är ansluten."
+                },
+                {
+                    "ecode": "0500050000010010",
+                    "intro": "AMS A firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
+                },
+                {
+                    "ecode": "0583050000010010",
+                    "intro": "AMS-HT D firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
+                },
+                {
+                    "ecode": "0581050000010010",
+                    "intro": "AMS-HT B firmware matchar inte printern. Uppgradera den på sidan ”Firmware”."
                 },
                 {
                     "ecode": "0500040000020034",
@@ -7439,10 +7443,6 @@
                     "intro": "Live View kameran är smutsig eller blockerad; rengör den och fortsätt."
                 },
                 {
-                    "ecode": "03009C0000010001",
-                    "intro": "Luftpumpen är inte detekterad. Kontrollera om kontakten är ordentligt ansluten."
-                },
-                {
                     "ecode": "1807700000020003",
                     "intro": "Det gick inte att extrudera filamentet. Möjlig orsak: extruder eller nozzle är igensatt."
                 },
@@ -7531,10 +7531,6 @@
                     "intro": "USB enheten är inte formaterad eller går inte att skriva på; formatera USB enheten."
                 },
                 {
-                    "ecode": "03009C0000010002",
-                    "intro": "Luftpumpen är onormal och kan vara skadad."
-                },
-                {
                     "ecode": "1807700000020006",
                     "intro": "Timeout för rensning av gammalt filament. Möjlig orsak: filament har fastnat eller extruder/nozzle är igensatt."
                 },
@@ -7607,10 +7603,6 @@
                     "intro": "Luftflödes systemet lyckades inte aktivera värmeläget; kontrollera luftdörrens status."
                 },
                 {
-                    "ecode": "0300C00000010001",
-                    "intro": "Fel på Aktiv kammare frånlufts dörren: den kan ha fastnat."
-                },
-                {
                     "ecode": "0500040000020037",
                     "intro": "Skärmodulen behöver kalibreras för att få verktygspositionen. Utför monteringskalibreringen före användning. (ca 2-4 minuter)"
                 },
@@ -7679,10 +7671,6 @@
                     "intro": "Signalen från extruderingskraft sensorn är onormal. Sensorn kan vara skadad eller MC-TH kommunikationen kan vara onormal."
                 },
                 {
-                    "ecode": "030025000001000B",
-                    "intro": "Nozzle detektering misslyckades: Nozzle inte installerad eller felaktigt installerad."
-                },
-                {
                     "ecode": "0C00040000010005",
                     "intro": "Fel på BirdsEye kameran: kontakta kundsupport."
                 },
@@ -7719,6 +7707,30 @@
                     "intro": "Det gick inte att hämta AMS mappnings tabell; välj ”Fortsätt” för att försöka igen."
                 },
                 {
+                    "ecode": "0C00020000020006",
+                    "intro": "Nozzle höjden verkar vara för hög. Kontrollera om det finns filament rester på nozzlen."
+                },
+                {
+                    "ecode": "0702800000010004",
+                    "intro": "AMS C Värmare 1 värmer onormalt."
+                },
+                {
+                    "ecode": "0702810000010004",
+                    "intro": "AMS C Värmare 2 värmer onormalt."
+                },
+                {
+                    "ecode": "0701800000010004",
+                    "intro": "AMS B Värmare 1 värmer onormalt."
+                },
+                {
+                    "ecode": "0704800000010004",
+                    "intro": "AMS E Värmare 1 värmer onormalt."
+                },
+                {
+                    "ecode": "1803810000010004",
+                    "intro": "AMS-HT D Värmare 2 värmer onormalt."
+                },
+                {
                     "ecode": "0707810000010004",
                     "intro": "AMS H Värmare 2 värmer onormalt."
                 },
@@ -7749,90 +7761,6 @@
                 {
                     "ecode": "1803700000020007",
                     "intro": "AMS-HT filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
-                },
-                {
-                    "ecode": "0C00020000020006",
-                    "intro": "Nozzle höjden verkar vara för hög. Kontrollera om det finns filament rester på nozzlen."
-                },
-                {
-                    "ecode": "0702800000010004",
-                    "intro": "AMS C Värmare 1 värmer onormalt."
-                },
-                {
-                    "ecode": "0702810000010004",
-                    "intro": "AMS C Värmare 2 värmer onormalt."
-                },
-                {
-                    "ecode": "0701800000010004",
-                    "intro": "AMS B Värmare 1 värmer onormalt."
-                },
-                {
-                    "ecode": "0704800000010004",
-                    "intro": "AMS E Värmare 1 värmer onormalt."
-                },
-                {
-                    "ecode": "1803810000010004",
-                    "intro": "AMS-HT D Värmare 2 värmer onormalt."
-                },
-                {
-                    "ecode": "0300910000010002",
-                    "intro": "Temperaturen i kammarens värmare 1 är onormal. Värmaren kan ha en öppen krets eller så kan termosäkringen ha bränt."
-                },
-                {
-                    "ecode": "0700400000020002",
-                    "intro": "Filamentets buffer positions signal fel: positions sensorn kan vara defekt."
-                },
-                {
-                    "ecode": "0700510000030001",
-                    "intro": "AMS är inaktiverad; ladda filament från spol hållaren."
-                },
-                {
-                    "ecode": "0700700000020007",
-                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
-                },
-                {
-                    "ecode": "0701700000020007",
-                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
-                },
-                {
-                    "ecode": "0702700000020007",
-                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
-                },
-                {
-                    "ecode": "0703700000020007",
-                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
-                },
-                {
-                    "ecode": "0700800000010004",
-                    "intro": "AMS A Värmare 1 värmer onormalt."
-                },
-                {
-                    "ecode": "0700810000010004",
-                    "intro": "AMS A Värmare 2 värms onormalt."
-                },
-                {
-                    "ecode": "0703810000010004",
-                    "intro": "AMS D Värmare 2 värmer onormalt."
-                },
-                {
-                    "ecode": "0701810000010004",
-                    "intro": "AMS B Värmare 2 värmer onormalt."
-                },
-                {
-                    "ecode": "0300950000010006",
-                    "intro": "Lasermodulen detekteras inte: modulen kan ha fallit av, eller snabbspaken kanske inte är låst."
-                },
-                {
-                    "ecode": "1800810000010004",
-                    "intro": "AMS-HT A Värmare 2 värmer onormalt."
-                },
-                {
-                    "ecode": "0705800000010004",
-                    "intro": "AMS F Värmare 1 värmer onormalt."
-                },
-                {
-                    "ecode": "1805800000010004",
-                    "intro": "AMS-HT F Värmare 1 värmer onormalt."
                 },
                 {
                     "ecode": "1800800000010004",
@@ -7923,20 +7851,60 @@
                     "intro": "Lasersäkerhets fönster ej installerad."
                 },
                 {
-                    "ecode": "1803800000010004",
-                    "intro": "AMS-HT D Värmare 1 värmer onormalt."
+                    "ecode": "0300910000010002",
+                    "intro": "Temperaturen i kammarens värmare 1 är onormal. Värmaren kan ha en öppen krets eller så kan termosäkringen ha bränt."
                 },
                 {
-                    "ecode": "0706700000020007",
+                    "ecode": "0700400000020002",
+                    "intro": "Filamentets buffer positions signal fel: positions sensorn kan vara defekt."
+                },
+                {
+                    "ecode": "0700510000030001",
+                    "intro": "AMS är inaktiverad; ladda filament från spol hållaren."
+                },
+                {
+                    "ecode": "0700700000020007",
                     "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
                 },
                 {
-                    "ecode": "1804700000020007",
-                    "intro": "AMS-HT filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
+                    "ecode": "0701700000020007",
+                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
                 },
                 {
-                    "ecode": "0300970000030001",
-                    "intro": "Den övre luckan är öppen."
+                    "ecode": "0702700000020007",
+                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
+                },
+                {
+                    "ecode": "0703700000020007",
+                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
+                },
+                {
+                    "ecode": "0700800000010004",
+                    "intro": "AMS A Värmare 1 värmer onormalt."
+                },
+                {
+                    "ecode": "0700810000010004",
+                    "intro": "AMS A Värmare 2 värms onormalt."
+                },
+                {
+                    "ecode": "0703810000010004",
+                    "intro": "AMS D Värmare 2 värmer onormalt."
+                },
+                {
+                    "ecode": "0701810000010004",
+                    "intro": "AMS B Värmare 2 värmer onormalt."
+                },
+                {
+                    "ecode": "1800810000010004",
+                    "intro": "AMS-HT A Värmare 2 värmer onormalt."
+                },
+                {
+                    "ecode": "0705800000010004",
+                    "intro": "AMS F Värmare 1 värmer onormalt."
+                },
+                {
+                    "ecode": "1805800000010004",
+                    "intro": "AMS-HT F Värmare 1 värmer onormalt."
                 },
                 {
                     "ecode": "0703800000010004",
@@ -7949,6 +7917,18 @@
                 {
                     "ecode": "0C00030000020017",
                     "intro": "Kalibrering av lasergravyrens Z axel fokus misslyckades. Kontrollera att laser testmaterialet (350 g kartong) är korrekt placerat och att dess yta är ren och intakt."
+                },
+                {
+                    "ecode": "1803800000010004",
+                    "intro": "AMS-HT D Värmare 1 värmer onormalt."
+                },
+                {
+                    "ecode": "0706700000020007",
+                    "intro": "AMS filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
+                },
+                {
+                    "ecode": "1804700000020007",
+                    "intro": "AMS-HT filament tog slut. Sätt i nytt filament i samma fack i AMS och fortsätt."
                 },
                 {
                     "ecode": "0700010000010005",
@@ -9087,16 +9067,8 @@
                     "intro": "BirdsEye kamerans datalänk är onormal."
                 },
                 {
-                    "ecode": "0300950000010001",
-                    "intro": "Temperatursensorn i lasermodulen kan ha kortslutits."
-                },
-                {
                     "ecode": "0C00040000020003",
                     "intro": "Laser plattformen är inte korrekt inriktad. Se till att alla fyra hörnen är i linje med värmebädden."
-                },
-                {
-                    "ecode": "0300950000010005",
-                    "intro": "Lasermodulens kommunikation är onormal; kontrollera kontakten."
                 },
                 {
                     "ecode": "0500060000020004",
@@ -9107,20 +9079,8 @@
                     "intro": "Skärmatta upptäcktes inte. Placera den matta som krävs för uppgiften och fortsätt."
                 },
                 {
-                    "ecode": "0300950000010003",
-                    "intro": "Lasermodulen överhettar"
-                },
-                {
-                    "ecode": "0300950000010004",
-                    "intro": "Hastigheten på lasermodulens kylfläkt är för låg eller stoppad. Det kan ha fastnat eller kontakten kanske inte är korrekt ansluten."
-                },
-                {
                     "ecode": "0500060000020033",
                     "intro": "BirdsEye kameran är inte ansluten. Kontrollera maskinvaran och kabel anslutningarna."
-                },
-                {
-                    "ecode": "0300950000010002",
-                    "intro": "Temperatursensorn i lasermodulen kan ha en öppen krets."
                 },
                 {
                     "ecode": "0500040000020031",
@@ -9159,20 +9119,8 @@
                     "intro": "AMS A Hall sensorn för utmatning av fack 3 är frånkopplad. Det kan bero på dålig kontakt."
                 },
                 {
-                    "ecode": "0300990000010004",
-                    "intro": "Höger lasersäkerhets fönster detekteras inte. Installera det enligt Wiki och påbörja uppgiften igen."
-                },
-                {
-                    "ecode": "0300960000010004",
-                    "intro": "Det främre lasersäkerhets fönstret detekteras inte. Installera det enligt Wiki och påbörja uppgiften igen."
-                },
-                {
                     "ecode": "0C00040000020019",
                     "intro": "Birdseye kameran är förskjuten. Se Wiki för att installera om den."
-                },
-                {
-                    "ecode": "0300980000010004",
-                    "intro": "Vänster lasersäkerhets fönstret detekteras inte. Installera det enligt Wiki och påbörja uppgiften igen."
                 },
                 {
                     "ecode": "1804210000020007",
@@ -9319,10 +9267,6 @@
                     "intro": "AMS B Hall sensorn för utmatning av fack 4 är frånkopplad. Det kan bero på dålig kontakt."
                 },
                 {
-                    "ecode": "0300970000010004",
-                    "intro": "Den övre laserskydds plåten detekteras inte. Installera den enligt Wiki och påbörja uppgiften igen."
-                },
-                {
                     "ecode": "0704200000020007",
                     "intro": "AMS E Hall sensorn för utmatning av fack 1 är frånkopplad. Det kan bero på dålig kontakt."
                 },
@@ -9409,14 +9353,6 @@
                 {
                     "ecode": "0706200000020007",
                     "intro": "AMS G Hall sensorn för utmatning av fack 1 är frånkopplad. Det kan bero på dålig kontakt."
-                },
-                {
-                    "ecode": "03009B0000010002",
-                    "intro": "Säkerhetsnyckeln är inte insatt. Följ wikin för att installera den."
-                },
-                {
-                    "ecode": "03009B0000010001",
-                    "intro": "Nödstoppsknappen är inte installerad. Följ Wiki-anvisningarna för att installera den."
                 },
                 {
                     "ecode": "03009D0000020002",
@@ -9771,38 +9707,6 @@
                     "intro": "AMS E Fack 1 filamentet har tagit slut och rensningen av det gamla filamentet gick onormalt; kontrollera om filamentet har fastnat i verktygshuvudet."
                 },
                 {
-                    "ecode": "1807230000020002",
-                    "intro": "AMS-HT H Fack 4 är tom; sätt i ett nytt filament."
-                },
-                {
-                    "ecode": "1807210000020002",
-                    "intro": "AMS-HT H Fack 2 är tom; sätt i ett nytt filament."
-                },
-                {
-                    "ecode": "1802560000030001",
-                    "intro": "AMS-HT C genomgår torr kylning; vänta tills den svalnar innan du använder den."
-                },
-                {
-                    "ecode": "1807220000020008",
-                    "intro": "AMS-HT H Hall sensorn för inmatning av Fack 3 är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
-                    "ecode": "1805200000020008",
-                    "intro": "AMS-HT F Hall sensorn för inmatning av fack 1 är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
-                    "ecode": "1802220000020005",
-                    "intro": "AMS-HT C Fack 3 filamentet har tagit slut och rensningen av det gamla filamentet gick onormalt; kontrollera om filamentet har fastnat i verktygshuvudet."
-                },
-                {
-                    "ecode": "1803200000020003",
-                    "intro": "AMS-HT D Fack 1 filament kan vara trasigt i AMS-HT."
-                },
-                {
-                    "ecode": "1804130000010001",
-                    "intro": "AMS-HT E fack 4 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
-                },
-                {
                     "ecode": "1805120000010001",
                     "intro": "AMS-HT F fack 3 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
                 },
@@ -9995,6 +9899,38 @@
                     "intro": "AMS-HT G Fack 1 filament kan vara trasigt i verktygshuvudet."
                 },
                 {
+                    "ecode": "1807230000020002",
+                    "intro": "AMS-HT H Fack 4 är tom; sätt i ett nytt filament."
+                },
+                {
+                    "ecode": "1807210000020002",
+                    "intro": "AMS-HT H Fack 2 är tom; sätt i ett nytt filament."
+                },
+                {
+                    "ecode": "1802560000030001",
+                    "intro": "AMS-HT C genomgår torr kylning; vänta tills den svalnar innan du använder den."
+                },
+                {
+                    "ecode": "1807220000020008",
+                    "intro": "AMS-HT H Hall sensorn för inmatning av Fack 3 är frånkopplad, vilket kan bero på dålig kontakt."
+                },
+                {
+                    "ecode": "1805200000020008",
+                    "intro": "AMS-HT F Hall sensorn för inmatning av fack 1 är frånkopplad, vilket kan bero på dålig kontakt."
+                },
+                {
+                    "ecode": "1802220000020005",
+                    "intro": "AMS-HT C Fack 3 filamentet har tagit slut och rensningen av det gamla filamentet gick onormalt; kontrollera om filamentet har fastnat i verktygshuvudet."
+                },
+                {
+                    "ecode": "1803200000020003",
+                    "intro": "AMS-HT D Fack 1 filament kan vara trasigt i AMS-HT."
+                },
+                {
+                    "ecode": "1804130000010001",
+                    "intro": "AMS-HT E fack 4 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
+                },
+                {
                     "ecode": "0700120000020002",
                     "intro": "The AMS A fack 3 motor är överbelastad. Filamentet kan ha trasslat sig eller fastnat."
                 },
@@ -10083,10 +10019,6 @@
                     "intro": "AMS-HT C Fack 3 filament kan vara trasigt i AMS-HT."
                 },
                 {
-                    "ecode": "1805550000010003",
-                    "intro": "AMS-HT F upptäcktes offline under AMS initialiseringsprocessen."
-                },
-                {
                     "ecode": "1800220000030001",
                     "intro": "AMS-HT A Fack 3 filament har tagit slut. Vänta medan gammalt filament rensas."
                 },
@@ -10105,10 +10037,6 @@
                 {
                     "ecode": "0707560000030001",
                     "intro": "AMS H genomgår torr kylning; vänta tills den svalnar innan du använder den."
-                },
-                {
-                    "ecode": "1806550000010003",
-                    "intro": "AMS-HT G upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "1801230000030001",
@@ -10149,14 +10077,6 @@
                 {
                     "ecode": "0707200000020008",
                     "intro": "AMS H Hall sensorn för inmatning av fack 1 är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
-                    "ecode": "0701210000020008",
-                    "intro": "AMS B Hall sensorn för inmatning av fack 2 är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
-                    "ecode": "1801130000020002",
-                    "intro": "AMS-HT B fack 4 motorn är överbelastad. Filamentet kan vara trassligt eller fastnat."
                 },
                 {
                     "ecode": "1803120000010003",
@@ -10225,10 +10145,6 @@
                 {
                     "ecode": "1804210000020003",
                     "intro": "AMS-HT E Fack 2 filament kan vara trasigt i AMS-HT."
-                },
-                {
-                    "ecode": "1804550000010003",
-                    "intro": "AMS-HT E upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "1806210000020002",
@@ -10327,6 +10243,14 @@
                     "intro": "AMS-HT C fack 2 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
                 },
                 {
+                    "ecode": "0701210000020008",
+                    "intro": "AMS B Hall sensorn för inmatning av fack 2 är frånkopplad, vilket kan bero på dålig kontakt."
+                },
+                {
+                    "ecode": "1801130000020002",
+                    "intro": "AMS-HT B fack 4 motorn är överbelastad. Filamentet kan vara trassligt eller fastnat."
+                },
+                {
                     "ecode": "0700220000020002",
                     "intro": "AMS A Fack 3 är tom; sätt i ett nytt filament."
                 },
@@ -10421,10 +10345,6 @@
                 {
                     "ecode": "1801220000020002",
                     "intro": "AMS-HT B Fack 3 är tom; sätt i ett nytt filament."
-                },
-                {
-                    "ecode": "1802550000010003",
-                    "intro": "AMS-HT C upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "0704230000020003",
@@ -10557,14 +10477,6 @@
                 {
                     "ecode": "1806350000010001",
                     "intro": "Temperatur och fuktighets sensor fel. Chippet kan vara felaktigt."
-                },
-                {
-                    "ecode": "1806210000030001",
-                    "intro": "AMS-HT G Fack 2 filament har tagit slut. Vänta medan gammalt filament rensas."
-                },
-                {
-                    "ecode": "1801210000030002",
-                    "intro": "AMS-HT B fack 2 filamentet har tagit slut och automatiskt växlat till fack med samma filament."
                 },
                 {
                     "ecode": "1802200000020005",
@@ -10751,6 +10663,14 @@
                     "intro": "AMS-HT E fack 3 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
                 },
                 {
+                    "ecode": "1806210000030001",
+                    "intro": "AMS-HT G Fack 2 filament har tagit slut. Vänta medan gammalt filament rensas."
+                },
+                {
+                    "ecode": "1801210000030002",
+                    "intro": "AMS-HT B fack 2 filamentet har tagit slut och automatiskt växlat till fack med samma filament."
+                },
+                {
                     "ecode": "0700110000010001",
                     "intro": "AMS A fack 2 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
                 },
@@ -10909,10 +10829,6 @@
                 {
                     "ecode": "0706220000020005",
                     "intro": "AMS G Fack 3 filamentet har tagit slut och rensningen av det gamla filamentet gick onormalt; kontrollera om filamentet har fastnat i verktygshuvudet."
-                },
-                {
-                    "ecode": "1800550000010003",
-                    "intro": "AMS-HT A upptäcktes offline under AMS initieringsprocessen."
                 },
                 {
                     "ecode": "1806110000010001",
@@ -12087,10 +12003,6 @@
                     "intro": "AMS H Fack 4 filamentet har tagit slut och rensningen av det gamla filamentet gick onormalt; kontrollera om filamentet har fastnat i verktygshuvudet."
                 },
                 {
-                    "ecode": "1801550000010003",
-                    "intro": "AMS-HT B upptäcktes offline under AMS initialiseringsprocessen."
-                },
-                {
                     "ecode": "0707200000020005",
                     "intro": "AMS H Fack 1 filamentet har tagit slut och rensningen av det gamla filamentet gick onormalt; kontrollera om filamentet har fastnat i verktygshuvudet."
                 },
@@ -12147,22 +12059,6 @@
                     "intro": "Fel på krypterings chipet"
                 },
                 {
-                    "ecode": "1803110000010001",
-                    "intro": "AMS-HT D fack 2 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
-                },
-                {
-                    "ecode": "1807120000020002",
-                    "intro": "AMS-HT H Fack 3 stöd motor är överbelastad. Filamentet kan vara trassligt eller fastnat."
-                },
-                {
-                    "ecode": "0707200000030002",
-                    "intro": "AMS H Fack 1 filamentet har tagit slut och automatiskt växlat till fack med samma filament."
-                },
-                {
-                    "ecode": "1803230000020008",
-                    "intro": "AMS-HT D Hall sensorn för inmatning av fack 4 är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
                     "ecode": "1804200000020003",
                     "intro": "AMS-HT E Fack 1 filamentet kan vara trasigt i AMS-HT."
                 },
@@ -12185,10 +12081,6 @@
                 {
                     "ecode": "1801210000020008",
                     "intro": "AMS-HT B Hall sensorn för inmatning av fack 2 är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
-                    "ecode": "1807550000010003",
-                    "intro": "AMS-HT H upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "1802210000020001",
@@ -12297,6 +12189,22 @@
                 {
                     "ecode": "1805110000010001",
                     "intro": "AMS-HT F fack 2 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
+                },
+                {
+                    "ecode": "1803110000010001",
+                    "intro": "AMS-HT D fack 2 motorn har slirat. Extruderings hjulet kan vara trasigt eller så är filamentet för tunt."
+                },
+                {
+                    "ecode": "1807120000020002",
+                    "intro": "AMS-HT H Fack 3 stöd motor är överbelastad. Filamentet kan vara trassligt eller fastnat."
+                },
+                {
+                    "ecode": "0707200000030002",
+                    "intro": "AMS H Fack 1 filamentet har tagit slut och automatiskt växlat till fack med samma filament."
+                },
+                {
+                    "ecode": "1803230000020008",
+                    "intro": "AMS-HT D Hall sensorn för inmatning av fack 4 är frånkopplad, vilket kan bero på dålig kontakt."
                 },
                 {
                     "ecode": "0700200000020005",
@@ -12483,14 +12391,6 @@
                     "intro": "RFID kan inte avläsas på grund av hårdvaru eller struktur fel."
                 },
                 {
-                    "ecode": "1804210000020001",
-                    "intro": "AMS-HT E Fack 2 filamentet har tagit slut. Sätt i ett nytt filament."
-                },
-                {
-                    "ecode": "1801200000020008",
-                    "intro": "AMS-HT B Hall sensorn för inmatning av fack 1 är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
                     "ecode": "1803210000020002",
                     "intro": "AMS-HT D Fack 2 är tom; sätt i ett nytt filament."
                 },
@@ -12671,6 +12571,14 @@
                     "intro": "AMS-HT A genomgår torr kylning; vänta tills den svalnar innan du använder den."
                 },
                 {
+                    "ecode": "1804210000020001",
+                    "intro": "AMS-HT E Fack 2 filamentet har tagit slut. Sätt i ett nytt filament."
+                },
+                {
+                    "ecode": "1801200000020008",
+                    "intro": "AMS-HT B Hall sensorn för inmatning av fack 1 är frånkopplad, vilket kan bero på dålig kontakt."
+                },
+                {
                     "ecode": "0700220000020001",
                     "intro": "AMS A Fack 3 filament har tagit slut. Sätt i ett nytt filament."
                 },
@@ -12847,10 +12755,6 @@
                     "intro": "Det gick inte att extrudera AMS F Fack 3 filament; extrudern kan vara igensatt eller så kan filamentet vara för tunt, vilket gör att extrudern slirar."
                 },
                 {
-                    "ecode": "1806220000020003",
-                    "intro": "AMS-HT G Fack 3 filament kan vara trasigt i AMS-HT."
-                },
-                {
                     "ecode": "0705200000020003",
                     "intro": "AMS F Fack 1 filament kan vara trasigt i AMS."
                 },
@@ -12979,10 +12883,6 @@
                     "intro": "AMS-HT H fack 4 motorns vridmomentkontroll fungerar inte. Strömsensorn kan vara defekt."
                 },
                 {
-                    "ecode": "1803550000010003",
-                    "intro": "AMS-HT D upptäcktes offline under AMS initialiseringsprocessen."
-                },
-                {
                     "ecode": "0701220000020008",
                     "intro": "AMS B Hall sensorn för inmatning av fack 3 är frånkopplad, vilket kan bero på dålig kontakt."
                 },
@@ -12993,6 +12893,10 @@
                 {
                     "ecode": "0705200000020005",
                     "intro": "AMS F Fack 1 filamentet har tagit slut och rensningen av det gamla filamentet gick onormalt; kontrollera om filamentet har fastnat i verktygshuvudet."
+                },
+                {
+                    "ecode": "1806220000020003",
+                    "intro": "AMS-HT G Fack 3 filament kan vara trasigt i AMS-HT."
                 },
                 {
                     "ecode": "0300C20000010002",
@@ -13021,10 +12925,6 @@
                 {
                     "ecode": "0C00040000010020",
                     "intro": "Den visuella markören på heatbed är skadad, kontakta kundservice."
-                },
-                {
-                    "ecode": "1805970000030001",
-                    "intro": "AMS-HT F kammar temperatur är för hög; extra matning eller RFID-avläsning är för närvarande inte tillåtet."
                 },
                 {
                     "ecode": "1800970000030001",
@@ -13103,20 +13003,16 @@
                     "intro": "AMS-HT C kammar temperaturen är för hög; extra matning eller RFID-avläsning är för närvarande inte tillåtet."
                 },
                 {
+                    "ecode": "1805970000030001",
+                    "intro": "AMS-HT F kammar temperatur är för hög; extra matning eller RFID-avläsning är för närvarande inte tillåtet."
+                },
+                {
                     "ecode": "0300180000000000",
                     "intro": ""
                 },
                 {
                     "ecode": "0C00040000020006",
                     "intro": ""
-                },
-                {
-                    "ecode": "1807960000010003",
-                    "intro": "AMS-HT H Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
-                },
-                {
-                    "ecode": "1804550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
                 },
                 {
                     "ecode": "1806960000010003",
@@ -13131,24 +13027,12 @@
                     "intro": "AMS-HT D Omgivningstemperaturen är för låg, vilket kommer att påverka torkförmågan."
                 },
                 {
-                    "ecode": "1807550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
-                },
-                {
                     "ecode": "1803960000010003",
                     "intro": "AMS-HT D Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
                 },
                 {
                     "ecode": "1804960000020002",
                     "intro": "AMS-HT E Omgivningstemperaturen är för låg, vilket kommer att påverka torkförmågan."
-                },
-                {
-                    "ecode": "1806550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
-                },
-                {
-                    "ecode": "0706550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
                 },
                 {
                     "ecode": "1800960000020002",
@@ -13167,28 +13051,12 @@
                     "intro": "AMS-HT G Omgivningstemperaturen är för låg, vilket kommer att påverka torkförmågan."
                 },
                 {
-                    "ecode": "1800550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
-                },
-                {
-                    "ecode": "1802550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
-                },
-                {
                     "ecode": "1805960000020002",
                     "intro": "AMS-HT F Omgivningstemperaturen är för låg, vilket kommer att påverka torkförmågan."
                 },
                 {
-                    "ecode": "1803550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
-                },
-                {
                     "ecode": "1805960000010003",
                     "intro": "AMS-HT F Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
-                },
-                {
-                    "ecode": "0705550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
                 },
                 {
                     "ecode": "0707960000010003",
@@ -13211,40 +13079,20 @@
                     "intro": "AMS-HT B Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
                 },
                 {
-                    "ecode": "0704550000010002",
-                    "intro": "PTFE-slangen är felaktigt anslutet mellan verktygshuvudet och bufferten. Anslut buffertens topp till den högra extrudern och den nedre till den vänstra extrudern."
-                },
-                {
                     "ecode": "0705960000020002",
                     "intro": "AMS F Omgivningstemperaturen är för låg, vilket kommer att påverka torkförmågan."
-                },
-                {
-                    "ecode": "0700550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
                 },
                 {
                     "ecode": "1802960000010003",
                     "intro": "AMS-HT C Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
                 },
                 {
-                    "ecode": "0707550000010002",
-                    "intro": "PTFE slangen är felaktigt anslutet mellan verktygshuvudet och bufferten. Anslut buffertens topp till den högra extrudern och den nedre till den vänstra extrudern."
-                },
-                {
                     "ecode": "1802960000020002",
                     "intro": "AMS-HT C Omgivningstemperaturen är för låg, vilket kommer att påverka torkförmågan."
                 },
                 {
-                    "ecode": "1801550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
-                },
-                {
                     "ecode": "0706960000010003",
                     "intro": "AMS G Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
-                },
-                {
-                    "ecode": "1805550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
                 },
                 {
                     "ecode": "0706960000020002",
@@ -13283,16 +13131,8 @@
                     "intro": "AMS D Omgivningstemperaturen är för låg, vilket kommer att påverka torkförmågan."
                 },
                 {
-                    "ecode": "0300950000010007",
-                    "intro": "Graverings lasermodulen är onormal; lasern kan ha en öppen krets eller kan vara skadad."
-                },
-                {
                     "ecode": "0500400000010040",
                     "intro": "Skärmodul Serienummer fel"
-                },
-                {
-                    "ecode": "0300990000010001",
-                    "intro": "Höger lucka verkar vara öppen; uppgiften har pausats."
                 },
                 {
                     "ecode": "0701960000010003",
@@ -13303,20 +13143,12 @@
                     "intro": "AMS A Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
                 },
                 {
-                    "ecode": "0300290000010001",
-                    "intro": "Kodarens mönster kan inte identifieras; möjliga orsaker är: mönster förvrängning, överexponering av ljus, felaktig placering av plattan..."
-                },
-                {
                     "ecode": "0300180000010006",
                     "intro": "Värmebäddens utjämningsdata är onormala. Kontrollera om det finns några främmande föremål på värmebädden och Z-skjutreglaget. Om så är fallet, ta bort dem och försök igen."
                 },
                 {
                     "ecode": "0500010000030004",
                     "intro": "Inte tillräckligt med utrymme på USB minnet; frigör lite utrymme."
-                },
-                {
-                    "ecode": "0703550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
                 },
                 {
                     "ecode": "0707960000020002",
@@ -13327,12 +13159,8 @@
                     "intro": "AMS-HT E Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
                 },
                 {
-                    "ecode": "0702550000010002",
-                    "intro": "PTFE slangen är felaktigt anslutet mellan verktygshuvudet och bufferten. Anslut buffertens topp till den högra extrudern och den nedre till den vänstra extrudern."
-                },
-                {
-                    "ecode": "0701550000010002",
-                    "intro": "PTFE slangen är felaktigt ansluten mellan verktygshuvudet och bufferten. Anslut buffertens överdel till den högra extrudern och underdelen till den vänstra extrudern."
+                    "ecode": "1807960000010003",
+                    "intro": "AMS-HT H Det går inte att börja torka; dra ut filamentet från filamentnavet och försök igen."
                 },
                 {
                     "ecode": "0300180000010003",
@@ -13731,10 +13559,6 @@
                     "intro": "Strömförsörjnings spänningen stämmer inte överens med maskinen; värmebädden har stängts av."
                 },
                 {
-                    "ecode": "0300980000010001",
-                    "intro": "Den vänstra luckan verkar vara öppen, uppgiften har pausats."
-                },
-                {
                     "ecode": "0703810000010003",
                     "intro": "AMS D Värmare 2 är kortsluten, vilket kan bero på kortslutning eller värmeskador."
                 },
@@ -13903,10 +13727,6 @@
                     "intro": "RFID-taggen på AMS F Fack4 är skadad eller dess innehåll kan inte identifieras."
                 },
                 {
-                    "ecode": "1807940000010001",
-                    "intro": "AMS-HT H Temperaturgivaren på värmare 1 fungerar inte, vilket kan bero på dålig kontakt."
-                },
-                {
                     "ecode": "0706010000020008",
                     "intro": "AMS G Stöd motorns faslindning har en öppen krets. Stöd motorn kan vara defekt."
                 },
@@ -14071,10 +13891,6 @@
                     "intro": "Fel på krypterings chipet"
                 },
                 {
-                    "ecode": "0C00020000010001",
-                    "intro": "Den horisontella lasern lyser inte. Kontrollera om det är täckt eller om hårdvaru anslutningen har ett problem."
-                },
-                {
                     "ecode": "0C0003000002000F",
                     "intro": "Delar hoppas över före kontroll av första lagret; kontrollen stöds inte för den aktuella utskriften."
                 },
@@ -14143,10 +13959,6 @@
                     "intro": "Extruderingsmotståndet är onormalt. Extrudern kan vara igensatt eller så kan filament ha fastnat i verktygshuvudet."
                 },
                 {
-                    "ecode": "0300970000010001",
-                    "intro": "Det övre locket verkar vara öppet; uppgiften har pausats"
-                },
-                {
                     "ecode": "0300310000010001",
                     "intro": "Hastigheten för delkyl fläkten är för långsam eller stoppad. Den kan ha fastnat eller så kanske kontakten inte är ordentligt ansluten."
                 },
@@ -14165,6 +13977,10 @@
                 {
                     "ecode": "1804330000020002",
                     "intro": "RFID-taggen på AMS-HT E Fack4 är skadad eller dess innehåll kan inte identifieras."
+                },
+                {
+                    "ecode": "1807940000010001",
+                    "intro": "AMS-HT H Temperaturgivaren på värmare 1 fungerar inte, vilket kan bero på dålig kontakt."
                 },
                 {
                     "ecode": "030001000001000A",
@@ -14241,10 +14057,6 @@
                 {
                     "ecode": "0700950000010001",
                     "intro": "AMS A Temperaturgivaren på värmare 2 fungerar inte, vilket kan bero på dålig kontakt."
-                },
-                {
-                    "ecode": "0300350000010001",
-                    "intro": "MC-modulens kylfläkts hastighet är för långsam eller stoppad. Den kan ha fastnat eller så kanske kontakten inte är ordentligt ansluten."
                 },
                 {
                     "ecode": "0C00040000010010",
@@ -14419,10 +14231,6 @@
                     "intro": "AMS-HT E Stöd motorns faslindning har en öppen krets. Stöd motorn kan vara defekt."
                 },
                 {
-                    "ecode": "1800350000010002",
-                    "intro": "AMS-HT A Fuktsensorn är frånkopplad, vilket kan bero på dålig kontakt."
-                },
-                {
                     "ecode": "1803910000010003",
                     "intro": "AMS-HT D Utsugs ventil 2 är inte ansluten, vilket kan bero på dålig kontakt."
                 },
@@ -14519,10 +14327,6 @@
                     "intro": "AMS C Utsugs ventil 2 är inte ansluten, vilket kan bero på dålig kontakt."
                 },
                 {
-                    "ecode": "0300980000030001",
-                    "intro": "Vänster lucka verkar vara öppen."
-                },
-                {
                     "ecode": "0701810000010003",
                     "intro": "AMS B Värmare 2 är kortsluten, vilket kan bero på kortslutning eller värmeskador."
                 },
@@ -14561,6 +14365,10 @@
                 {
                     "ecode": "0705900000010003",
                     "intro": "AMS F Utsugs ventil 1 är inte ansluten, vilket kan bero på dålig kontakt."
+                },
+                {
+                    "ecode": "1800350000010002",
+                    "intro": "AMS-HT A Fuktsensorn är frånkopplad, vilket kan bero på dålig kontakt."
                 },
                 {
                     "ecode": "0703200000020009",
@@ -14663,16 +14471,8 @@
                     "intro": "AMS-HT A RFID 2 kortet har ett fel."
                 },
                 {
-                    "ecode": "1800020000020002",
-                    "intro": "AMS-HT A Mätaren har ingen signal. Mätaren kan ha dålig kontakt."
-                },
-                {
                     "ecode": "1803010000020010",
                     "intro": "AMS-HT D Stöd motorns motstånd är onormalt. Stöd motorn kan vara defekt."
-                },
-                {
-                    "ecode": "0700550000010003",
-                    "intro": "AMS A upptäcktes offline under AMS initieringsprocessen."
                 },
                 {
                     "ecode": "1800930000010001",
@@ -14729,10 +14529,6 @@
                 {
                     "ecode": "1800010000010001",
                     "intro": "AMS-HT A stöd motor har slirat. Extruderingshjulet kan vara slitet eller så kan filamentet vara för tunt."
-                },
-                {
-                    "ecode": "0702550000010003",
-                    "intro": "AMS C upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "0706010000010001",
@@ -14853,10 +14649,6 @@
                 {
                     "ecode": "1804120000020004",
                     "intro": "AMS-HT E Borstmotor 3 har ingen signal, vilket kan bero på dålig kontakt i motoranslutningen eller ett motorfel."
-                },
-                {
-                    "ecode": "0703550000010003",
-                    "intro": "AMS D upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "1807010000020010",
@@ -15439,20 +15231,12 @@
                     "intro": "AMS E Borstmotor 2 har ingen signal, vilket kan bero på dålig kontakt i motorkontakten eller ett motorfel."
                 },
                 {
-                    "ecode": "0701550000010003",
-                    "intro": "AMS B upptäcktes offline under AMS initialiseringsprocessen."
-                },
-                {
                     "ecode": "0707910000020001",
                     "intro": "AMS H Utsugs ventil 2 fungerar onormalt, vilket kan bero på för högt motstånd."
                 },
                 {
                     "ecode": "1807010000010011",
                     "intro": "AMS-HT H Fel på parametern för kalibrering av stödmotorn. Dra ut filamentet från filamentnavet och starta sedan om AMS."
-                },
-                {
-                    "ecode": "0704550000010003",
-                    "intro": "AMS E upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "1805900000020001",
@@ -15767,10 +15551,6 @@
                     "intro": "AMS-HT B stöd motorns vridmomentkontroll fungerar inte. Strömsensorn kan vara defekt."
                 },
                 {
-                    "ecode": "0706550000010003",
-                    "intro": "AMS G upptäcktes offline under AMS initialiseringsprocessen."
-                },
-                {
                     "ecode": "1807930000020002",
                     "intro": "AMS-HT H Kylfläktens hastighet för värmare 2 är för låg, vilket kan bero på för högt fläktmotstånd."
                 },
@@ -15801,10 +15581,6 @@
                 {
                     "ecode": "0707900000020001",
                     "intro": "AMS H Funktionen hos utsugs ventil 1 är onormal, vilket kan bero på för högt motstånd."
-                },
-                {
-                    "ecode": "0707550000010003",
-                    "intro": "AMS H upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "1802500000020001",
@@ -15853,10 +15629,6 @@
                 {
                     "ecode": "0706010000010011",
                     "intro": "AMS G Fel på parametern för kalibrering av stödmotorn. Dra ut filamentet från filamentnavet och starta sedan om AMS."
-                },
-                {
-                    "ecode": "0705550000010003",
-                    "intro": "AMS F upptäcktes offline under AMS initialiseringsprocessen."
                 },
                 {
                     "ecode": "1805010000020011",
@@ -15983,10 +15755,6 @@
                     "intro": "Anslut modulkontakten"
                 },
                 {
-                    "ecode": "0300990000030001",
-                    "intro": "Luckan på höger sida upptäcks vara öppet."
-                },
-                {
                     "ecode": "0701010000010001",
                     "intro": "AMS B stöd motor har slirat. Extruderingshjulet kan vara slitet eller så kan filamentet vara för tunt."
                 },
@@ -16101,10 +15869,6 @@
                 {
                     "ecode": "0702920000010001",
                     "intro": "AMS C Kylfläkten på värmare 1 är blockerad, vilket kan bero på att fläkten sitter fast."
-                },
-                {
-                    "ecode": "0300360000020002",
-                    "intro": "Kammarens värmecirkulations fläkthastighet är långsam. Den kan ha fastnat och behöver rengöras."
                 },
                 {
                     "ecode": "1200100000020002",
@@ -17791,14 +17555,6 @@
                     "intro": "Temperaturen på kammarvärmare 1 är onormal. Givaren kan ha en kortslutning."
                 },
                 {
-                    "ecode": "0300910000010007",
-                    "intro": "Temperaturen på kammar värmare 1 är onormal. Givaren kan ha en öppen krets."
-                },
-                {
-                    "ecode": "0300910000010008",
-                    "intro": "Kammarens värmare 1 steg inte till önskad temperatur."
-                },
-                {
                     "ecode": "030091000001000A",
                     "intro": "Temperaturen på kammar värmare 1 är onormal. AC-kortet kan vara trasigt."
                 },
@@ -17817,14 +17573,6 @@
                 {
                     "ecode": "0300920000010006",
                     "intro": "Temperaturen på kammar värmare 2 är onormal. Givaren kan ha en kortslutning."
-                },
-                {
-                    "ecode": "0300920000010007",
-                    "intro": "Temperaturen på kammar värmare 2 är onormal. Sensorn kan ha en öppen krets."
-                },
-                {
-                    "ecode": "0300920000010008",
-                    "intro": "Kammar värmare 2 steg inte till önskad temperatur."
                 },
                 {
                     "ecode": "030092000001000A",
@@ -18025,23 +17773,123 @@
             ]
         },
         "device_error": {
-            "ver": 202506120009,
+            "ver": 202508270600,
             "sv": [
                 {
-                    "ecode": "0C008002",
+                    "ecode": "0502C014",
+                    "intro": "AMS Remaining Filament Estimation är aktiverat som standard och kan inte inaktiveras."
+                },
+                {
+                    "ecode": "05864096",
+                    "intro": "Enheten kan inte identifiera AMS-HT G. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05024098",
+                    "intro": "Enheten kan inte identifiera AMS C. Anslut AMS-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05014098",
+                    "intro": "Enheten kan inte identifiera AMS B. Anslut AMS-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05814096",
+                    "intro": "Enheten kan inte identifiera AMS-HT B. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05844096",
+                    "intro": "Enheten kan inte identifiera AMS-HT F. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05824096",
+                    "intro": "Enheten kan inte identifiera AMS-HT C. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05034098",
+                    "intro": "Enheten kan inte identifiera AMS D. Anslut AMS-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05854096",
+                    "intro": "Enheten kan inte identifiera AMS-HT E. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05804096",
+                    "intro": "Enheten kan inte identifiera AMS-HT A. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05834096",
+                    "intro": "Enheten kan inte identifiera AMS-HT D. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05874096",
+                    "intro": "Enheten kan inte identifiera AMS-HT H. Anslut AMS-HT-kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "05004098",
+                    "intro": "Enheten kan inte identifiera AMS A. Anslut AMS kabeln igen eller starta om printern."
+                },
+                {
+                    "ecode": "0500807E",
+                    "intro": "Placera en StrongGrip skärmatta på skärskyddets bas."
+                },
+                {
+                    "ecode": "05008062",
+                    "intro": "Markeringen på utskrifts plattan har inte upptäckts. Kontrollera att utskrifts plattan är korrekt placerad på värmebädden med alla fyra hörn i linje och att markeringen är synlig. Om starkt ljus lyser på utskrifts plattan bör du överväga att stänga frontluckan och blockera externa ljuskällor."
+                },
+                {
+                    "ecode": "0502C012",
+                    "intro": "Uppgiften kan inte pausas."
+                },
+                {
+                    "ecode": "0500808B",
+                    "intro": "Installationen av BirdsEye kameran misslyckades. Ta bort alla föremål och mattan på värmebädden för att säkerställa att markeringarna på värmebädden är synliga. Se samtidigt till att BirdsEye kameran är korrekt installerad och ta bort eventuella hinder som kan blockera kamerans sikt."
+                },
+                {
+                    "ecode": "07FFC010",
+                    "intro": "Sätt i filamentet (över 30cm långt) tills det går inte längre. Det kan komma lite rök under rensningen. Stäng frontluckan och toppskyddet efter insättningen."
+                },
+                {
+                    "ecode": "05008093",
+                    "intro": "Silikonhylsan på munstycket är inte installerad; det finns en risk för temperaturkontrollfel. Installera den korrekt och försök igen."
+                },
+                {
+                    "ecode": "05008092",
+                    "intro": "Toolhead-kamerainitialiseringen misslyckades. Denna utskrift kan fortfarande fortsätta, men vissa AI-funktioner kommer att inaktiveras. Om du stöter på detta problem igen efter omstart, vänligen kontakta kundsupport."
+                },
+                {
+                    "ecode": "05024002",
+                    "intro": "Skrivaren har inte kalibreringsdata för rörelseprecisions förbättring; rörelseprecisions förbättringen kan inte aktiveras."
+                },
+                {
+                    "ecode": "05008041",
+                    "intro": "Tråden i hotend är för kall. Extruderingen kan skada extrudern. Fortfarande matar in/ut tråden?"
+                },
+                {
+                    "ecode": "05008040",
+                    "intro": "Verktygshuvudets framsida är lossad. Att flytta verktygshuvudet kan skada skrivaren. Vill du fortsätta?"
+                },
+                {
+                    "ecode": "0502C011",
+                    "intro": "För närvarande i 2D produktionsläge. Använd direkt på printern."
+                },
+                {
+                    "ecode": "05024008",
                     "intro": ""
                 },
                 {
-                    "ecode": "05004042",
-                    "intro": "AMS används för närvarande för utskrift och kan inte starta torkning."
+                    "ecode": "0502400A",
+                    "intro": ""
                 },
                 {
-                    "ecode": "05004040",
-                    "intro": "På grund av effektbegränsningar får AMS inte använda enhetens ström för torkning under utskrift. Ska torkningen stoppas?"
+                    "ecode": "05024007",
+                    "intro": ""
                 },
                 {
-                    "ecode": "05004041",
-                    "intro": "På grund av effektbegränsningar får endast en AMS använda enhetens ström för torkning under utskrift. Ska torkningen stoppas?"
+                    "ecode": "05008091",
+                    "intro": "Kalibreringen av skärmaskinens offsetmodul misslyckades, vilket kan resultera i felaktiga snitt. Se till att det 80g vita skrivarpapperet (brevpapperstjocklek) är korrekt positionerat och kontrollera om skärbladets spets är slitet."
+                },
+                {
+                    "ecode": "0C008002",
+                    "intro": ""
                 },
                 {
                     "ecode": "0502400C",
@@ -18056,16 +17904,112 @@
                     "intro": ""
                 },
                 {
-                    "ecode": "05024008",
-                    "intro": ""
+                    "ecode": "05004030",
+                    "intro": "Enheten uppgraderas för närvarande. Försök igen när den är inaktiv."
                 },
                 {
-                    "ecode": "0502400A",
-                    "intro": ""
+                    "ecode": "0300C012",
+                    "intro": "Värm nozzle till över 170°C."
                 },
                 {
-                    "ecode": "05024007",
-                    "intro": ""
+                    "ecode": "05004010",
+                    "intro": "AMS torkar och kan inte uppgraderas just nu. Försök igen senare."
+                },
+                {
+                    "ecode": "05004011",
+                    "intro": "Printern laddar eller lossar filament och kan inte uppgraderas för tillfället. Försök igen senare."
+                },
+                {
+                    "ecode": "05004012",
+                    "intro": "Enheten skriver ut och kan inte uppgraderas för tillfället. Försök igen senare."
+                },
+                {
+                    "ecode": "0500400F",
+                    "intro": "AMS initieras och kan inte uppgraderas just nu. Försök igen senare."
+                },
+                {
+                    "ecode": "05004013",
+                    "intro": "AMS är i drift och kan inte uppgraderas för tillfället. Försök igen när den är inaktiv."
+                },
+                {
+                    "ecode": "07008023",
+                    "intro": "AMS A kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "07028023",
+                    "intro": "AMS C kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "07038023",
+                    "intro": "AMS D kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "07018023",
+                    "intro": "AMS B kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "07058023",
+                    "intro": "AMS F kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "07048023",
+                    "intro": "AMS E kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18018023",
+                    "intro": "AMS-HT B kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "07068023",
+                    "intro": "AMS G kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "07078023",
+                    "intro": "AMS H kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18048023",
+                    "intro": "AMS-HT E kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18068023",
+                    "intro": "AMS-HT G kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18038023",
+                    "intro": "AMS-HT D kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18058023",
+                    "intro": "AMS-HT F kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18008023",
+                    "intro": "AMS-HT A kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18078023",
+                    "intro": "AMS-HT H kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "18028023",
+                    "intro": "AMS-HT C kylning misslyckades. Omgivningstemperaturen kan vara för hög. Använd enheten i en lämplig miljö."
+                },
+                {
+                    "ecode": "03008022",
+                    "intro": "Värmebädden kan vara blockerad när den rör sig nedåt. Avlägsna eventuella föremål under värmebädden och kontrollera om det finns något motstånd eller om den fastnar under rörelsen."
+                },
+                {
+                    "ecode": "05004042",
+                    "intro": "På grund av effektbegränsningar kommer start av AMS torkning att pausa aktuella operationer som nozzle uppvärmning och fläktdrift. Vill du fortsätta med torkningen?"
+                },
+                {
+                    "ecode": "05004040",
+                    "intro": "Printern har nått sin effektgräns. Anslut en dedikerad strömadapter till denna AMS för att möjliggöra torkning."
+                },
+                {
+                    "ecode": "05004041",
+                    "intro": "AMS torkningen kan inte startas under utskrift."
                 },
                 {
                     "ecode": "0500806B",
@@ -18084,16 +18028,48 @@
                     "intro": "Ta bort frontluckan och häng upp den på X-axeln. Tryck på den svarta PTFE slangkopplingen och dra ut PTFE slangen. När du har slutfört åtgärden klickar du på \"Fortsätt\"."
                 },
                 {
-                    "ecode": "03008022",
-                    "intro": "Ett hinder upptäcks vid botten av värmebädden."
-                },
-                {
                     "ecode": "05008090",
                     "intro": "Fäst det 80 g vita utskrifts papperet i mitten av plattformen."
                 },
                 {
                     "ecode": "05004007",
                     "intro": "Enheten kräver en reparations uppgradering och utskrift är för närvarande inte tillgängligt."
+                },
+                {
+                    "ecode": "18018006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "18008006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "18078006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "18028006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "18048006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "18058006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "18038006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "18068006",
+                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                },
+                {
+                    "ecode": "0502400E",
+                    "intro": "Misslyckades med att starta en ny uppgift: Kalldragningen av nozzle slutfördes inte."
                 },
                 {
                     "ecode": "07FF8025",
@@ -18164,40 +18140,32 @@
                     "intro": "AMS-HT kunde inte dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
                 },
                 {
-                    "ecode": "18018006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                    "ecode": "18068003",
+                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
                 },
                 {
-                    "ecode": "18008006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                    "ecode": "07068004",
+                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
                 },
                 {
-                    "ecode": "18078006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                    "ecode": "07048003",
+                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
                 },
                 {
-                    "ecode": "18028006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                    "ecode": "07078004",
+                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
                 },
                 {
-                    "ecode": "18048006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                    "ecode": "18058003",
+                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
                 },
                 {
-                    "ecode": "18058006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
+                    "ecode": "07048005",
+                    "intro": "AMS misslyckades med att skicka ut filament. Du kan klippa änden av filamentet platt och sätta in den igen. Om detta meddelande kvarstår bör du kontrollera PTFE slangarna i AMS för tecken på slitage."
                 },
                 {
-                    "ecode": "18038006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
-                },
-                {
-                    "ecode": "18068006",
-                    "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS-HT PTFE slangen är ansluten."
-                },
-                {
-                    "ecode": "0502400E",
-                    "intro": "Misslyckades med att starta en ny uppgift: Kalldragningen av nozzle slutfördes inte."
+                    "ecode": "18FF8005",
+                    "intro": "Det gick inte att mata filamentet utanför AMS. Klipp änden av filamentet platt och kontrollera om spolen har fastnat."
                 },
                 {
                     "ecode": "07048006",
@@ -18236,32 +18204,32 @@
                     "intro": "Det gick inte att mata filamentet utanför AMS. Klipp änden av filamentet platt och kontrollera om spolen har fastnat."
                 },
                 {
-                    "ecode": "18068003",
-                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
-                },
-                {
-                    "ecode": "07068004",
-                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
-                },
-                {
-                    "ecode": "07048003",
-                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
-                },
-                {
-                    "ecode": "07078004",
-                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
-                },
-                {
-                    "ecode": "18058003",
-                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
-                },
-                {
-                    "ecode": "07048005",
+                    "ecode": "07008005",
                     "intro": "AMS misslyckades med att skicka ut filament. Du kan klippa änden av filamentet platt och sätta in den igen. Om detta meddelande kvarstår bör du kontrollera PTFE slangarna i AMS för tecken på slitage."
                 },
                 {
-                    "ecode": "18FF8005",
-                    "intro": "Det gick inte att mata filamentet utanför AMS. Klipp änden av filamentet platt och kontrollera om spolen har fastnat."
+                    "ecode": "07018005",
+                    "intro": "AMS misslyckades med att mata ut filament. Du kan klippa änden av filamentet platt och sätta in den igen. Om detta meddelande kvarstår bör du kontrollera PTFE slangarna i AMS för tecken på slitage."
+                },
+                {
+                    "ecode": "07028003",
+                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
+                },
+                {
+                    "ecode": "07038004",
+                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
+                },
+                {
+                    "ecode": "07018003",
+                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
+                },
+                {
+                    "ecode": "07038003",
+                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
+                },
+                {
+                    "ecode": "07028004",
+                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
                 },
                 {
                     "ecode": "07068003",
@@ -18320,34 +18288,6 @@
                     "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
                 },
                 {
-                    "ecode": "07008005",
-                    "intro": "AMS misslyckades med att skicka ut filament. Du kan klippa änden av filamentet platt och sätta in den igen. Om detta meddelande kvarstår bör du kontrollera PTFE slangarna i AMS för tecken på slitage."
-                },
-                {
-                    "ecode": "07018005",
-                    "intro": "AMS misslyckades med att mata ut filament. Du kan klippa änden av filamentet platt och sätta in den igen. Om detta meddelande kvarstår bör du kontrollera PTFE slangarna i AMS för tecken på slitage."
-                },
-                {
-                    "ecode": "07028003",
-                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
-                },
-                {
-                    "ecode": "07038004",
-                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
-                },
-                {
-                    "ecode": "07018003",
-                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
-                },
-                {
-                    "ecode": "07038003",
-                    "intro": "Det gick inte att dra ut filamentet från extrudern. Detta kan bero på att extrudern är igensatt eller att filamentet har gått av inuti extrudern."
-                },
-                {
-                    "ecode": "07028004",
-                    "intro": "AMS misslyckades med att dra tillbaka filamentet. Detta kan bero på att spolen har fastnat eller att filamentets ände har fastnat i banan."
-                },
-                {
                     "ecode": "07008006",
                     "intro": "Det går inte att mata in filament i extrudern. Det kan bero på att filamentet har trasslat in sig eller att spolen har fastnat. Om så inte är fallet, kontrollera om AMS PTFE slangen är ansluten."
                 },
@@ -18400,20 +18340,8 @@
                     "intro": "AMS D firmware matchar inte printern, enheten kan inte fortsätta fungera. Uppdatera den på sidan ”Firmware”."
                 },
                 {
-                    "ecode": "05864096",
-                    "intro": "Ocertifierad AMS-HT G upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
-                    "ecode": "05024098",
-                    "intro": "Ocertifierad AMS C upptäckt; enheten kan inte fortsätta att fungera. Anslut AMS kabeln igen eller starta om printern."
-                },
-                {
                     "ecode": "0581409C",
                     "intro": "AMS-HT B firmware matchar inte printern, enheten kan inte fortsätta fungera. Uppdatera den på sidan ”Firmware”."
-                },
-                {
-                    "ecode": "05014098",
-                    "intro": "Ocertifierad AMS B upptäckt; enheten kan inte fortsätta att fungera. Anslut AMS kabeln igen eller starta om printern."
                 },
                 {
                     "ecode": "0585409C",
@@ -18424,40 +18352,8 @@
                     "intro": "AMS C firmware matchar inte printern; enheten kan inte fortsätta att fungera. Uppdatera den på sidan \"Firmware\"."
                 },
                 {
-                    "ecode": "05814096",
-                    "intro": "Ocertifierad AMS-HT B upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
-                    "ecode": "05844096",
-                    "intro": "Ocertifierad AMS-HT F upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
-                    "ecode": "05824096",
-                    "intro": "Ocertifierad AMS-HT C upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
-                    "ecode": "05854096",
-                    "intro": "Ocertifierad AMS-HT E upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
-                    "ecode": "05804096",
-                    "intro": "Ocertifierad AMS-HT A upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
-                    "ecode": "05834096",
-                    "intro": "Ocertifierad AMS-HT D upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
                     "ecode": "0500409D",
                     "intro": "AMS A firmware matchar inte printern; enheten kan inte fortsätta att fungera. Uppdatera den på sidan \"Firmware\"."
-                },
-                {
-                    "ecode": "05874096",
-                    "intro": "Ocertifierad AMS-HT H upptäckt; enheten kan inte fortsätta att fungera. Återanslut AMS-HT kabeln eller starta om printern."
-                },
-                {
-                    "ecode": "05004098",
-                    "intro": "Ocertifierad AMS A upptäckt; enheten kan inte fortsätta att fungera. Anslut AMS kabeln igen eller starta om printern."
                 },
                 {
                     "ecode": "0586409C",
@@ -18472,10 +18368,6 @@
                     "intro": "Placera lasertestmaterialet (350 g kartong) och placera stödremsor under för att förhindra att materialet vrids."
                 },
                 {
-                    "ecode": "05034098",
-                    "intro": "Ocertifierad AMS D upptäckt; enheten kan inte fortsätta att fungera. Anslut AMS kabeln igen eller starta om printern."
-                },
-                {
                     "ecode": "0583409C",
                     "intro": "AMS-HT D firmware matchar inte printern, enheten kan inte fortsätta fungera. Uppdatera den på sidan ”Firmware”."
                 },
@@ -18486,18 +18378,6 @@
                 {
                     "ecode": "0C008043",
                     "intro": "AI upptäckte klumpbildning på nozzle. Kontrollera nozzlens skick. Se assistenten för lösningar."
-                },
-                {
-                    "ecode": "03004070",
-                    "intro": "Värm nozzle till över 170°C."
-                },
-                {
-                    "ecode": "05008086",
-                    "intro": "Verktygshuvud kameran är smutsig, vilket påverkar AI-funktionen; rengör linsytan."
-                },
-                {
-                    "ecode": "0500808B",
-                    "intro": "Installationen av BirdsEye kameran misslyckades. Rensa värmebädden, ta bort alla föremål och mattan och se till att värmebäddens markörer är synliga. Rengör under tiden BirdsEye kameran och Verktygshuvud kameran och ta bort eventuella hinder som kan blockera kamerorna."
                 },
                 {
                     "ecode": "03004008",
@@ -18520,10 +18400,6 @@
                     "intro": "Tillbehörets firmware matchar inte printern. Uppgradera den på sidan \"Firmware\"."
                 },
                 {
-                    "ecode": "05008062",
-                    "intro": "Markören plattan upptäcktes inte. Kontrollera att plattan är korrekt placerad på värmebädden med alla fyra hörnen i linje och att markören är synlig."
-                },
-                {
                     "ecode": "07FF8007",
                     "intro": "Observera nozzle. Om filamentet har extruderats, välj \"Fortsätt\"; Om det inte är det, tryck filamentet något framåt och välj sedan \"Försök igen\"."
                 },
@@ -18542,10 +18418,6 @@
                 {
                     "ecode": "0500808C",
                     "intro": "Detekterad offset av byggplattan. Rikta in byggplattan mot värmebädden och fortsätt sedan."
-                },
-                {
-                    "ecode": "07FFC010",
-                    "intro": "Sätt i filament tills det inte kan skjutas längre. Det kan komma lätt rök under rensningen, så stäng den främre luckan och den övre luckan efter insättning."
                 },
                 {
                     "ecode": "07FFC011",
@@ -18622,10 +18494,6 @@
                 {
                     "ecode": "18024025",
                     "intro": "Misslyckades med att läsa filament informationen."
-                },
-                {
-                    "ecode": "03008055",
-                    "intro": "Den modul som är monterad på verktygshuvudet passar inte för uppgiften. Vänligen installera rätt modul."
                 },
                 {
                     "ecode": "0300800D",
@@ -18860,10 +18728,6 @@
                     "intro": "Uppgiften kräver en skärplattform, men den nuvarande är en laserplattform. Vänligen byt ut den mot en skärplattform (skärskyddsbas + LightGrip skärmatta)."
                 },
                 {
-                    "ecode": "07FF8010",
-                    "intro": "Kontrollera om den externa filamentspolen eller filamentet har fastnat."
-                },
-                {
                     "ecode": "03008000",
                     "intro": "Utskrift pausad av okänd orsak. Tryck på \"Återuppta\" för att fortsätta utskriften."
                 },
@@ -18944,6 +18808,10 @@
                     "intro": "Funktionen för att upptäcka främmande föremål fungerar inte. Du kan fortsätta med uppgiften eller kontrollera assistenten för felsökning."
                 },
                 {
+                    "ecode": "07FF8010",
+                    "intro": "Kontrollera om den externa filamentspolen eller filamentet har fastnat."
+                },
+                {
                     "ecode": "03004000",
                     "intro": "Z axelns nollställning misslyckades; uppgiften har stoppats."
                 },
@@ -18982,10 +18850,6 @@
                 {
                     "ecode": "0C004024",
                     "intro": "Birdseye kameran är installerad offset. Se assistenten för att installera om den."
-                },
-                {
-                    "ecode": "0300804B",
-                    "intro": "Uppgiften pausad. Lasersäkerhets fönstret är öppet."
                 },
                 {
                     "ecode": "10018004",
@@ -19262,10 +19126,6 @@
                 {
                     "ecode": "05008061",
                     "intro": "Ingen utskrifts platta upptäcktes. Se till att den är korrekt placerad."
-                },
-                {
-                    "ecode": "0300804A",
-                    "intro": "Nödstoppsknappen är felaktigt installerad. Vänligen återinstallera enligt Wiki innan du fortsätter."
                 },
                 {
                     "ecode": "0701C06C",
@@ -19648,10 +19508,6 @@
                     "intro": "Blad Z axelns nollställning misslyckades"
                 },
                 {
-                    "ecode": "0500807E",
-                    "intro": "Placera en StrongGrip skärmatta på skärskyddets bas."
-                },
-                {
                     "ecode": "05008058",
                     "intro": "Placera skärmattan med lätt grepp korrekt och se till att markören är exponerad."
                 },
@@ -19848,10 +19704,6 @@
                     "intro": "Nozzel fel upptäcktes under utskrift. Starta utskriften efter ny beredning, eller fortsätt skriva ut efter att rätt nozzel har bytats ut. Varning: värmetemperaturen är hög."
                 },
                 {
-                    "ecode": "05024002",
-                    "intro": "Skrivaren har inte kalibreringsdata för rörelseprecisions förbättring; rörelseprecisions förbättringen kan inte aktiveras."
-                },
-                {
                     "ecode": "07FF8003",
                     "intro": "Dra ut filamentet på spolhållaren. Om detta meddelande kvarstår, kontrollera om filamentet har gått sönder i extrudern. (Anslut en PTFE slang om du ska använda en AMS)."
                 },
@@ -19956,76 +19808,12 @@
                     "intro": "Material detekteras inte. Bekräfta placeringen och fortsätt."
                 },
                 {
-                    "ecode": "18028023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS-HT C."
-                },
-                {
-                    "ecode": "18078023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS-HT H."
-                },
-                {
-                    "ecode": "18058023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS-HT F."
-                },
-                {
-                    "ecode": "18008023",
-                    "intro": "Kylningsprocessen efter torkning har misslyckats i AMS-HT A."
-                },
-                {
                     "ecode": "0C004022",
                     "intro": "Installationen av BirdsEye kameran misslyckades.  Kontrollera om lasermodulen fungerar som den ska."
                 },
                 {
-                    "ecode": "18038023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS-HT D."
-                },
-                {
-                    "ecode": "18068023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS-HT G."
-                },
-                {
-                    "ecode": "18048023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS-HT E."
-                },
-                {
-                    "ecode": "07078023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS H."
-                },
-                {
-                    "ecode": "07068023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS G."
-                },
-                {
-                    "ecode": "07048023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS E."
-                },
-                {
-                    "ecode": "18018023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS-HT B."
-                },
-                {
-                    "ecode": "07058023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS F."
-                },
-                {
                     "ecode": "0300801D",
                     "intro": "Positionssensorn för extruderns servomotor fungerar inte som den ska. Stäng först av skrivaren och kontrollera om anslutningskabeln är lös."
-                },
-                {
-                    "ecode": "07008023",
-                    "intro": "Kyl processen efter torkning har misslyckats i AMS A."
-                },
-                {
-                    "ecode": "07028023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS C."
-                },
-                {
-                    "ecode": "07038023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS D."
-                },
-                {
-                    "ecode": "07018023",
-                    "intro": "Kylprocessen efter torkning har misslyckats i AMS B."
                 },
                 {
                     "ecode": "07038002",
@@ -20042,10 +19830,6 @@
                 {
                     "ecode": "07018002",
                     "intro": "Skäraren sitter fast. Se till att skärhandtaget är ute."
-                },
-                {
-                    "ecode": "03008044",
-                    "intro": "Brand upptäcktes inne i kammaren."
                 },
                 {
                     "ecode": "0C00C004",
@@ -20086,10 +19870,6 @@
                 {
                     "ecode": "03008063",
                     "intro": "Kammartemperaturen är för hög. Öppna toppluckan och frontluckan för att kyla ned."
-                },
-                {
-                    "ecode": "03008043",
-                    "intro": "Lasermodulen är onormal."
                 },
                 {
                     "ecode": "0C00800B",
