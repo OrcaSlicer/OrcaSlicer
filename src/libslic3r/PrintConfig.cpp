@@ -2150,13 +2150,19 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Enable pressure advance, auto calibration result will be overwritten once enabled.");
     def->set_default_value(new ConfigOptionBools{ false });
 
-    def = this->add("pressure_advance", coFloats);
+    def = this->add("pressure_advance", coStrings);
     def->label = L("Pressure advance");
-    def->tooltip = L("Pressure advance (Klipper) AKA Linear advance factor (Marlin).");
-    def->max = 2;
+    def->tooltip = L("Pressure advance (Klipper) AKA Linear advance factor (Marlin).\n"
+                     "Set as: Nozzle Size, Pressure Advance Value.\n"
+                     "Multiple values can be set. For example\n"
+                     "0.25,0.09 \n0.3,0.065 \n0.35,0.05 \n0.4,0.02 \n0.5,0.018 \n0.6,0.012 \n0.8,0.01 \n"
+                     "Missing values will be calculated with linear interpolation.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloats { 0.02 });
-    
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 10;
+    def->set_default_value(new ConfigOptionStrings{"0.25,0.09\n0.3,0.065\n0.35,0.05\n0.4,0.02\n0.5,0.018\n0.6,0.012\n0.8,0.01"});
+
     // Orca: Adaptive pressure advance option and calibration values
     def = this->add("adaptive_pressure_advance", coBools);
     def->label = L("Enable adaptive pressure advance (beta)");

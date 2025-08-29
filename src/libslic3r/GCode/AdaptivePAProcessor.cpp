@@ -218,7 +218,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
             
                 if(!interpolator){ // Tool not found in the interpolator map
                     // Tool not found in the PA interpolator to tool map
-                    predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
+                    predicted_pa = m_gcodegen.get_pressure_advance_for_extruder(m_last_extruder_id);
                     if(m_config.gcode_comments) output << "; APA: Tool doesnt have APA enabled\n";
                 } else if (!interpolator->isInitialised() || (!m_config.adaptive_pressure_advance.get_at(m_last_extruder_id)) )
                     // Check if the model is not initialised by the constructor for the active extruder
@@ -227,7 +227,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                     // however check for robustness sake.
                 {
                     // Model failed or adaptive pressure advance not enabled - use default value from m_config
-                    predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
+                    predicted_pa = m_gcodegen.get_pressure_advance_for_extruder(m_last_extruder_id);
                     if(m_config.gcode_comments) output << "; APA: Interpolator setup failed, using default pressure advance\n";
                 } else { // Model setup succeeded
                     // Proceed to identify the print speed to use to calculate the adaptive PA value
@@ -252,7 +252,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                         predicted_pa = m_config.adaptive_pressure_advance_bridges.get_at(m_last_extruder_id);
                     
                     if (predicted_pa < 0) { // If extrapolation fails, fall back to the default PA for the extruder.
-                        predicted_pa = m_config.enable_pressure_advance.get_at(m_last_extruder_id) ? m_config.pressure_advance.get_at(m_last_extruder_id) : 0;
+                        predicted_pa = m_gcodegen.get_pressure_advance_for_extruder(m_last_extruder_id);
                         if(m_config.gcode_comments) output << "; APA: Interpolation failed, using fallback pressure advance value\n";
                     }
                 }
