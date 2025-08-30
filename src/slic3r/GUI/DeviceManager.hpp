@@ -446,6 +446,7 @@ public:
 
     std::vector<int> stage_list_info;
     int stage_curr = 0;
+    int stage_remaining_seconds = 0; 
     int m_push_count = 0;
     int m_full_msg_count = 0; /*the full message count, there are full or diff messages from network*/
     bool calibration_done { false };
@@ -456,6 +457,7 @@ public:
 
     wxString get_curr_stage();
     int get_curr_stage_idx();
+    int get_stage_remaining_seconds() const { return stage_remaining_seconds; }
 
     bool is_in_calibration();
     bool is_calibration_running();

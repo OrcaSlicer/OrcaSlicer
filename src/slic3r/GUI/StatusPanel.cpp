@@ -1,5 +1,4 @@
 #include "StatusPanel.hpp"
-
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
@@ -39,6 +38,8 @@
 
 #include "PrintOptionsDialog.hpp"
 #include "SafetyOptionsDialog.hpp"
+
+#include "ThermalPreconditioningDialog.hpp"
 
 
 namespace Slic3r { namespace GUI {
@@ -508,6 +509,7 @@ PrintingTaskPanel::PrintingTaskPanel(wxWindow* parent, PrintingTaskType type)
     : wxPanel(parent, wxID_ANY,wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
 {
     m_type = type;
+    m_question_button = nullptr;
     create_panel(this);
     SetBackgroundColour(*wxWHITE);
     m_bitmap_background = ScalableBitmap(this, "thumbnail_grid", m_bitmap_thumbnail->GetSize().y);
@@ -517,6 +519,10 @@ PrintingTaskPanel::PrintingTaskPanel(wxWindow* parent, PrintingTaskType type)
 
 PrintingTaskPanel::~PrintingTaskPanel()
 {
+    if (m_question_button) {
+        delete m_question_button;
+        m_question_button = nullptr;
+    }
 }
 
 void PrintingTaskPanel::create_panel(wxWindow* parent)
@@ -588,17 +594,6 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     task_name_panel->Fit();
 
     bSizer_task_name->Add(task_name_panel, 0, wxEXPAND, FromDIP(5));
-
-    m_printing_stage_value = new wxStaticText(parent, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT | wxST_ELLIPSIZE_END);
-    m_printing_stage_value->Wrap(-1);
-    m_printing_stage_value->SetMaxSize(wxSize(FromDIP(800),-1));
-    #ifdef __WXOSX_MAC__
-    m_printing_stage_value->SetFont(::Label::Body_11);
-    #else
-    m_printing_stage_value->SetFont(wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
-    #endif
-
-    m_printing_stage_value->SetForegroundColour(STAGE_TEXT_COL);
 
 
     m_staticText_profile_value = new wxStaticText(parent, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT | wxST_ELLIPSIZE_END);
@@ -724,9 +719,77 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     bSizer_text->Add(0, 0, 0, wxLEFT, FromDIP(20));
     bSizer_text->Add(m_staticText_progress_left, 0, wxALIGN_CENTER_VERTICAL | wxALL, 0);
 
+    m_printing_stage_value = new wxStaticText(penel_finish_time, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT | wxST_ELLIPSIZE_END);
+    m_printing_stage_value->Wrap(-1);
+    m_printing_stage_value->SetMaxSize(wxSize(FromDIP(800), -1));
+#ifdef __WXOSX_MAC__
+    m_printing_stage_value->SetFont(::Label::Body_11);
+#else
+    m_printing_stage_value->SetFont(wxFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
+#endif
+    m_printing_stage_value->SetForegroundColour(STAGE_TEXT_COL);
+
+    m_printing_stage_value->Bind(wxEVT_LEFT_UP, &PrintingTaskPanel::on_stage_clicked, this);
+
+    m_printing_stage_value->Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent &event) {
+        auto *dev_manager = wxGetApp().getDeviceManager();
+        MachineObject *obj         = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+        if (obj && obj->stage_curr == 58) {
+            m_printing_stage_value->SetCursor(wxCursor(wxCURSOR_HAND));
+            wxFont font = m_printing_stage_value->GetFont();
+            font.SetUnderlined(true);
+            m_printing_stage_value->SetFont(font);
+        }
+        event.Skip();
+    });
+    m_printing_stage_value->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent &event) {
+        auto *dev_manager = wxGetApp().getDeviceManager();
+        MachineObject *obj = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+        if (obj && obj->stage_curr == 58) {
+            m_printing_stage_value->SetCursor(wxCURSOR_ARROW);
+            wxFont font = m_printing_stage_value->GetFont();
+            font.SetUnderlined(false);
+            m_printing_stage_value->SetFont(font);
+        }
+        event.Skip();
+    });
+
     // penel_text->SetMaxSize(wxSize(FromDIP(600), -1));
     penel_text->SetSizer(bSizer_text);
     penel_text->Layout();
+
+
+    // Create question button
+    m_question_button = new ScalableButton(penel_finish_time, wxID_ANY, "thermal_question", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
+    m_question_button->SetToolTip(_L("Click to view thermal preconditioning explanation"));
+    m_question_button->Hide(); // Hide by default
+    m_question_button->Bind(wxEVT_LEFT_UP, &PrintingTaskPanel::on_stage_clicked, this);
+    m_question_button->Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent &event) {
+        auto          *dev_manager = wxGetApp().getDeviceManager();
+        MachineObject *obj         = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+        if (obj && obj->stage_curr == 58) {
+            m_question_button->SetCursor(wxCursor(wxCURSOR_HAND));
+            if (m_printing_stage_value) {
+                wxFont f = m_printing_stage_value->GetFont();
+                f.SetUnderlined(true);
+                m_printing_stage_value->SetFont(f);
+            }
+        }
+        event.Skip();
+    });
+    m_question_button->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent &event) {
+        auto          *dev_manager = wxGetApp().getDeviceManager();
+        MachineObject *obj         = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+        if (obj && obj->stage_curr == 58) {
+            m_question_button->SetCursor(wxCURSOR_ARROW);
+            if (m_printing_stage_value) {
+                wxFont f = m_printing_stage_value->GetFont();
+                f.SetUnderlined(false);
+                m_printing_stage_value->SetFont(f);
+            }
+            event.Skip();
+        }
+    });
 
     // Orca: display the end time of the print
     m_staticText_progress_end = new wxStaticText(penel_finish_time, wxID_ANY, L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
@@ -734,6 +797,8 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_staticText_progress_end->SetFont(
         wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
     m_staticText_progress_end->SetForegroundColour(wxColour(146, 146, 146));
+    bSizer_finish_time->Add(m_printing_stage_value, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
+    bSizer_finish_time->Add(m_question_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
     bSizer_finish_time->Add(0, 0, 1, wxEXPAND, 0);
     bSizer_finish_time->Add(m_staticText_progress_end, 0, wxLEFT | wxEXPAND, 0);
     // penel_finish_time->SetMaxSize(wxSize(FromDIP(600), -1));
@@ -746,6 +811,9 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
 
     progress_left_sizer->Add(penel_text, 0, wxEXPAND | wxALL, 0);
     progress_left_sizer->Add(m_gauge_progress, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(10));
+
+
+
     progress_left_sizer->Add(penel_finish_time, 0, wxEXPAND |wxALL, 0);
     // progress_left_sizer->SetMaxSize(wxSize(FromDIP(600), -1));
 
@@ -769,7 +837,6 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     bSizer_subtask_info->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(14));
     bSizer_subtask_info->Add(bSizer_task_name, 0, wxEXPAND|wxRIGHT, FromDIP(18));
     bSizer_subtask_info->Add(m_staticText_profile_value, 0, wxEXPAND | wxTOP, FromDIP(5));
-    bSizer_subtask_info->Add(m_printing_stage_value, 0, wxEXPAND | wxTOP, FromDIP(5));
     bSizer_subtask_info->Add(progress_lr_panel, 0, wxEXPAND | wxTOP, FromDIP(5));
 
     m_printing_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1075,6 +1142,39 @@ void PrintingTaskPanel::update_stage_value(wxString stage, int val)
 {
     m_printing_stage_value->SetLabelText(stage);
     m_gauge_progress->SetValue(val);
+}
+
+void PrintingTaskPanel::update_stage_value_with_machine(wxString stage, int val, MachineObject *obj)
+{
+    m_gauge_progress->SetValue(val);
+   // m_printing_stage_value->SetLabelText(stage);
+    m_printing_stage_value->SetLabelText(" Thermal Preconditioning for first layeroptimization");
+
+    if (obj && obj->stage_curr == 58) {
+        // Show English text for thermal preconditioning
+        m_printing_stage_value->SetForegroundColour(wxColour(146, 146, 146)); // Gray color, indicates clickable
+        m_printing_stage_value->SetCursor(wxCursor(wxCURSOR_HAND));
+        m_question_button->Show(); // Show question button
+    } else {
+        m_printing_stage_value->SetLabelText(stage);
+        m_printing_stage_value->SetForegroundColour(STAGE_TEXT_COL);
+        m_printing_stage_value->SetCursor(wxCURSOR_ARROW);
+        m_question_button->Hide(); // Hide question button
+    }
+}
+
+void PrintingTaskPanel::on_stage_clicked(wxMouseEvent &event)
+{
+    auto *dev_manager = wxGetApp().getDeviceManager();
+    MachineObject *obj = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+
+    if (obj && obj->stage_curr == 58) {
+            wxWindow *top    = wxGetTopLevelParent(this);
+            ThermalPreconditioningDialog m_thermal_dialog(top ? top : this, obj->get_dev_id() , "Calculating...");
+            m_thermal_dialog.ShowModal();
+    }
+
+    event.Skip();
 }
 
 void PrintingTaskPanel::update_progress_percent(wxString percent, wxString icon)
@@ -3641,7 +3741,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
             if (obj->gcode_file_prepare_percent >= 0 && obj->gcode_file_prepare_percent <= 100 && show_percent)
                 prepare_text += wxString::Format("(%d%%)", obj->gcode_file_prepare_percent);
 
-            m_project_task_panel->update_stage_value(prepare_text, 0);
+            m_project_task_panel->update_stage_value_with_machine(prepare_text, 0, obj);
             m_project_task_panel->update_progress_percent(NA_STR, wxEmptyString);
             m_project_task_panel->update_left_time(NA_STR);
             m_project_task_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), NA_STR));
@@ -3665,12 +3765,12 @@ void StatusPanel::update_subtask(MachineObject *obj)
             // update printing stage
             m_project_task_panel->update_left_time(obj->mc_left_time);
             if (obj->subtask_) {
-                m_project_task_panel->update_stage_value(obj->get_curr_stage(), obj->subtask_->task_progress);
+                m_project_task_panel->update_stage_value_with_machine(obj->get_curr_stage(), obj->subtask_->task_progress, obj);
                 m_project_task_panel->update_progress_percent(wxString::Format("%d", obj->subtask_->task_progress), "%");
                 m_project_task_panel->update_layers_num(true, wxString::Format(_L("Layer: %d/%d"), obj->curr_layer, obj->total_layers));
 
             } else {
-                m_project_task_panel->update_stage_value(obj->get_curr_stage(), 0);
+                m_project_task_panel->update_stage_value_with_machine(obj->get_curr_stage(), 0, obj);
                 m_project_task_panel->update_progress_percent(NA_STR, wxEmptyString);
                 m_project_task_panel->update_layers_num(true, wxString::Format(_L("Layer: %s"), NA_STR));
             }
@@ -3842,7 +3942,9 @@ void StatusPanel::reset_printing_values()
     m_project_task_panel->reset_printing_value();
     m_project_task_panel->update_subtask_name(NA_STR);
     m_project_task_panel->show_profile_info(false);
-    m_project_task_panel->update_stage_value(wxEmptyString, 0);
+   // m_project_task_panel->update_stage_value_with_machine(wxEmptyString, 0, obj);
+    m_project_task_panel->update_stage_value_with_machine(wxEmptyString, 0, obj);
+    //obj->get_curr_stage()
     m_project_task_panel->update_progress_percent(NA_STR, wxEmptyString);
 
     m_project_task_panel->market_scoring_hide();

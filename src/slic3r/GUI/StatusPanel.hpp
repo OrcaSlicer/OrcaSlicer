@@ -7,6 +7,7 @@
 #include "SliceInfoPanel.hpp"
 #include "CameraPopup.hpp"
 #include "GUI.hpp"
+#include "ThermalPreconditioningDialog.hpp"
 #include <wx/panel.h>
 #include <wx/bitmap.h>
 #include <wx/image.h>
@@ -280,6 +281,7 @@ private:
     wxStaticText*   m_staticText_consumption_of_time;
     wxStaticText*   m_staticText_consumption_of_weight;
     wxStaticText*   m_printing_stage_value;
+    ScalableButton* m_question_button;
     wxStaticText*   m_staticText_profile_value;
     wxStaticText*   m_staticText_progress_percent;
     wxStaticText*   m_staticText_progress_percent_icon;
@@ -330,6 +332,11 @@ public:
     void enable_abort_button(bool enable);
     void update_subtask_name(wxString name);
     void update_stage_value(wxString stage, int val);
+    void update_stage_value_with_machine(wxString stage, int val, MachineObject* obj = nullptr);
+    void on_stage_clicked(wxMouseEvent& event);
+
+    // Public interface to update remaining time text in the thermal dialog
+    void update_thermal_remaining_time(MachineObject* obj);
     void update_progress_percent(wxString percent, wxString icon);
     void update_left_time(wxString time);
     void update_left_time(int mc_left_time);
