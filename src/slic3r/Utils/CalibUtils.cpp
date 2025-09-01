@@ -158,6 +158,8 @@ static wxString to_wstring_name(std::string name)
         return _L("Stainless Steel");
     } else if (name == "tungsten_carbide") {
         return _L("Tungsten Carbide");
+    } else if (name == "brass") {
+        return _L("Brass");
     }
 
     return wxEmptyString;
