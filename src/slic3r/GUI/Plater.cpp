@@ -5001,6 +5001,9 @@ std::map<std::string, std::string> Plater::get_bed_texture_maps()
     auto pm = get_curr_printer_model();
     if (pm) {
         std::map<std::string, std::string> maps;
+        if (pm->use_double_extruder_default_texture.size() > 0) {
+            maps["use_double_extruder_default_texture"] = pm->use_double_extruder_default_texture;
+        }
         if (pm->bottom_texture_end_name.size() > 0) {
             maps["bottom_texture_end_name"] = pm->bottom_texture_end_name;
         }
