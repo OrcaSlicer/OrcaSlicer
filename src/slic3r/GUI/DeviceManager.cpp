@@ -2111,6 +2111,20 @@ int MachineObject::command_xcam_control(std::string module_name, bool on_off, st
     return this->publish_json(j);
 }
 
+int MachineObject::command_ack_proceed(GUI::ActionProceed& proceed) {
+    if(proceed.command.empty()) return -1;
+
+    proceed.err_ignored.push_back(proceed.err_index);
+
+    json j;
+    j["print"]["command"] = proceed.command;
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["err_code"] = 0;
+    j["print"]["err_index"] = proceed.err_index;
+    j["print"]["err_ignored"] = proceed.err_ignored;
+    return this->publish_json(j);
+}
+
 int MachineObject::command_xcam_control_ai_monitoring(bool on_off, std::string lvl)
 {
     bool print_halt = (lvl == "never_halt") ? false:true;
@@ -2983,6 +2997,16 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     if (is_studio_cmd(sequence_id) && jj.contains("command") && jj.contains("err_code") && jj.contains("result"))
                     {
                         if (jj["err_code"].is_number()) { add_command_error_code_dlg(jj["err_code"].get<int>());}
+                    }
+                    /* proceed action*/
+                    else if (is_studio_cmd(sequence_id) && jj.contains("command") && jj.contains("err_code") && jj.contains("err_index")) {
+                        json action_json;
+                        action_json["command"] = jj["command"];
+                        action_json["err_code"] = jj["err_code"];
+                        action_json["err_index"] = jj["err_index"];
+                        action_json["err_ignored"] = jj.contains("err_ignored") ? jj["err_ignored"] : json::array();
+
+                        add_command_error_code_dlg(jj["err_code"].get<int>(), action_json);
                     }
                 }
 
@@ -5326,11 +5350,11 @@ std::string MachineObject::get_error_code_str(int error_code)
     return print_error_str;
 }
 
-void MachineObject::add_command_error_code_dlg(int command_err)
+void MachineObject::add_command_error_code_dlg(int command_err, json action_json)
 {
     if (command_err > 0 && !Slic3r::GUI::wxGetApp().get_hms_query()->is_internal_error(this, command_err))
     {
-        GUI::wxGetApp().CallAfter([this, command_err, token = std::weak_ptr<int>(m_token)]
+        GUI::wxGetApp().CallAfter([this, command_err, action_json, token = std::weak_ptr<int>(m_token)]
         {
             if (token.expired()) { return;}
             GUI::DeviceErrorDialog* device_error_dialog = new GUI::DeviceErrorDialog(this, (wxWindow*)GUI::wxGetApp().mainframe);
@@ -5340,6 +5364,7 @@ void MachineObject::add_command_error_code_dlg(int command_err)
                     event.Skip();
                 });
 
+            if(!action_json.is_null()) device_error_dialog->set_action_json(action_json);
             device_error_dialog->show_error_code(command_err);
             m_command_error_code_dlgs.insert(device_error_dialog);
         });

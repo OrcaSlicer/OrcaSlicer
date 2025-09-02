@@ -6,6 +6,7 @@
 
 #include "GUI_Utils.hpp"
 #include "Widgets/StateColor.hpp"
+#include <nlohmann/json.hpp>
 
 class Label;
 class Button;
@@ -15,6 +16,15 @@ namespace Slic3r {
 class MachineObject;//Previous definitions
 
 namespace GUI {
+
+struct ActionProceed{
+    std::string command;
+    uint16_t err_index;
+    uint32_t err_code;
+    std::vector<uint16_t> err_ignored;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Slic3r::GUI::ActionProceed, command, err_index, err_code, err_ignored);
+
 
 class DeviceErrorDialog : public DPIDialog
 {
@@ -42,7 +52,9 @@ public:
 
         RETRY_PROBLEM_SOLVED = 34,
         STOP_DRYING = 35,
+        CANCLE = 37,
         REMOVE_CLOSE_BTN = 39, // special case, do not show close button
+        PROCEED = 41,
 
         ERROR_BUTTON_COUNT,
 
@@ -53,6 +65,8 @@ public:
         DBL_CHECK_RESUME = 10003,
         DBL_CHECK_OK = 10004,
     };
+    /* action params json */
+    nlohmann::json m_action_json;
 
 public:
     DeviceErrorDialog(MachineObject* obj,
@@ -66,6 +80,7 @@ public:
 
 public:
     wxString show_error_code(int error_code);
+    void     set_action_json(const nlohmann::json &action_json) { m_action_json = action_json; }
 
 protected:
     void init_button_list();

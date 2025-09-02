@@ -20,7 +20,7 @@
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevFirmware.h"
-
+#include "DeviceErrorDialog.hpp"
 
 #include <wx/object.h>
 #include <wx/timer.h>
@@ -401,7 +401,7 @@ public:
     std::string get_print_error_str() const { return MachineObject::get_error_code_str(this->print_error); }
 
     std::unordered_set<GUI::DeviceErrorDialog*> m_command_error_code_dlgs;
-    void  add_command_error_code_dlg(int command_err);
+    void  add_command_error_code_dlg(int command_err, json action_json=json{});
 
     int     curr_layer = 0;
     int     total_layers = 0;
@@ -685,6 +685,7 @@ public:
     int command_set_printer_nozzle(std::string nozzle_type, float diameter);
     int command_set_printer_nozzle2(int id, std::string nozzle_type, float diameter);
     int command_get_access_code();
+    int command_ack_proceed(GUI::ActionProceed& proceed);
 
     /* command upgrade */
     int command_upgrade_confirm();
