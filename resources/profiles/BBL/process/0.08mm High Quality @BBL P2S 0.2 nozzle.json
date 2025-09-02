@@ -56,7 +56,7 @@
         "6000"
     ],
     "overhang_1_4_speed": [
-        "60",
+        "0",
         "60"
     ],
     "outer_wall_acceleration": [
@@ -64,11 +64,11 @@
         "2000"
     ],
     "overhang_2_4_speed": [
-        "30",
+        "60",
         "30"
     ],
     "overhang_3_4_speed": [
-        "10",
+        "40",
         "10"
     ],
     "outer_wall_speed": [
@@ -76,7 +76,7 @@
         "60"
     ],
     "overhang_4_4_speed": [
-        "10",
+        "20",
         "10"
     ],
     "overhang_totally_speed": [
@@ -144,6 +144,10 @@
         "80"
     ],
     "top_surface_pattern": "monotonic",
+    "travel_speed": [
+        "600",
+        "600"
+    ],
     "top_surface_speed": [
         "150",
         "150"
@@ -151,10 +155,6 @@
     "top_surface_acceleration": [
         "2000",
         "2000"
-    ],
-    "travel_speed": [
-        "500",
-        "500"
     ],
     "travel_speed_z": [
         "0",

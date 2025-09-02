@@ -148,13 +148,13 @@
         "150"
     ],
     "top_surface_pattern": "monotonic",
+    "travel_speed": [
+        "600",
+        "600"
+    ],
     "top_surface_acceleration": [
         "2000",
         "2000"
-    ],
-    "travel_speed": [
-        "500",
-        "500"
     ],
     "travel_speed_z": [
         "0",

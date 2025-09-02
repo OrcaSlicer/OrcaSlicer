@@ -5,20 +5,13 @@
     "from": "system",
     "setting_id": "GFSG99_09",
     "instantiation": "true",
-    "first_x_layer_fan_speed": [
-        "40"
+    "filament_deretraction_speed": [
+        "nil",
+        "nil"
     ],
     "filament_flow_ratio": [
         "0.95",
         "0.95"
-    ],
-    "filament_max_volumetric_speed": [
-        "12",
-        "12"
-    ],
-    "filament_deretraction_speed": [
-        "nil",
-        "nil"
     ],
     "filament_flush_temp": [
         "0",
@@ -32,11 +25,23 @@
         "nil",
         "nil"
     ],
+    "filament_max_volumetric_speed": [
+        "12",
+        "12"
+    ],
     "filament_ramming_volumetric_speed": [
         "-1",
         "-1"
     ],
+    "filament_ramming_volumetric_speed_nc": [
+        "-1",
+        "-1"
+    ],
     "filament_retract_before_wipe": [
+        "nil",
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
         "nil",
         "nil"
     ],
@@ -80,11 +85,50 @@
         "Direct Drive Standard",
         "Direct Drive High Flow"
     ],
+    "first_x_layer_fan_speed": [
+        "40"
+    ],
     "filament_pre_cooling_temperature": [
         "0",
         "0"
     ],
+    "filament_pre_cooling_temperature_nc": [
+        "0",
+        "0"
+    ],
     "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "0",
+        "0"
+    ],
+    "filament_enable_overhang_speed": [
+        "1",
+        "1"
+    ],
+    "filament_overhang_1_4_speed": [
+        "0",
+        "0"
+    ],
+    "filament_overhang_2_4_speed": [
+        "50",
+        "50"
+    ],
+    "filament_overhang_3_4_speed": [
+        "30",
+        "30"
+    ],
+    "filament_overhang_4_4_speed": [
+        "10",
+        "10"
+    ],
+    "filament_overhang_totally_speed": [
+        "10",
+        "10"
+    ],
+    "filament_adaptive_volumetric_speed": [
         "0",
         "0"
     ],
@@ -100,9 +144,17 @@
         "255",
         "255"
     ],
+    "override_process_overhang_speed": [
+        "0",
+        "0"
+    ],
     "retraction_distances_when_ec": [
         "0",
         "0"
+    ],
+    "volumetric_speed_coefficients": [
+        "0 0 0 0 0 0",
+        "0 0 0 0 0 0"
     ],
     "compatible_printers": [
         "Bambu Lab P2S 0.4 nozzle",

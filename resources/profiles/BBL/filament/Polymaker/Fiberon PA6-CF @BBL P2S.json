@@ -1,30 +1,17 @@
 {
     "type": "filament",
-    "name": "Bambu PC @BBL P2S 0.2 nozzle",
-    "inherits": "Bambu PC @BBL X1C 0.2 nozzle",
+    "name": "Fiberon PA6-CF @BBL P2S",
+    "inherits": "Fiberon PA6-CF @base",
     "from": "system",
-    "setting_id": "GFSC00_24",
+    "setting_id": "GFSL50_01",
     "instantiation": "true",
-    "chamber_temperatures": [
-        "60"
-    ],
-    "eng_plate_temp": [
-        "100"
-    ],
-    "eng_plate_temp_initial_layer": [
-        "100"
-    ],
-    "filament_max_volumetric_speed": [
-        "1",
-        "1"
-    ],
-    "filament_flow_ratio": [
-        "0.94",
-        "0.94"
-    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"
+    ],
+    "filament_flow_ratio": [
+        "0.95",
+        "0.95"
     ],
     "filament_flush_temp": [
         "0",
@@ -38,11 +25,23 @@
         "nil",
         "nil"
     ],
+    "filament_max_volumetric_speed": [
+        "14",
+        "14"
+    ],
     "filament_ramming_volumetric_speed": [
         "-1",
         "-1"
     ],
+    "filament_ramming_volumetric_speed_nc": [
+        "-1",
+        "-1"
+    ],
     "filament_retract_before_wipe": [
+        "nil",
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
         "nil",
         "nil"
     ],
@@ -90,40 +89,74 @@
         "0",
         "0"
     ],
+    "filament_pre_cooling_temperature_nc": [
+        "0",
+        "0"
+    ],
     "filament_ramming_travel_time": [
         "0",
         "0"
     ],
-    "hot_plate_temp": [
-        "100"
+    "filament_ramming_travel_time_nc": [
+        "0",
+        "0"
     ],
-    "hot_plate_temp_initial_layer": [
-        "100"
+    "filament_enable_overhang_speed": [
+        "1",
+        "1"
+    ],
+    "filament_overhang_1_4_speed": [
+        "0",
+        "0"
+    ],
+    "filament_overhang_2_4_speed": [
+        "50",
+        "50"
+    ],
+    "filament_overhang_3_4_speed": [
+        "30",
+        "30"
+    ],
+    "filament_overhang_4_4_speed": [
+        "10",
+        "10"
+    ],
+    "filament_overhang_totally_speed": [
+        "10",
+        "10"
+    ],
+    "filament_adaptive_volumetric_speed": [
+        "0",
+        "0"
     ],
     "long_retractions_when_ec": [
         "0",
         "0"
     ],
     "nozzle_temperature": [
-        "260",
-        "260"
+        "300",
+        "300"
     ],
     "nozzle_temperature_initial_layer": [
-        "270",
-        "270"
+        "300",
+        "300"
+    ],
+    "override_process_overhang_speed": [
+        "0",
+        "0"
     ],
     "retraction_distances_when_ec": [
         "0",
         "0"
     ],
-    "textured_plate_temp": [
-        "100"
-    ],
-    "textured_plate_temp_initial_layer": [
-        "100"
+    "volumetric_speed_coefficients": [
+        "0 0 0 0 0 0",
+        "0 0 0 0 0 0"
     ],
     "compatible_printers": [
-        "Bambu Lab P2S 0.2 nozzle"
+        "Bambu Lab P2S 0.4 nozzle",
+        "Bambu Lab P2S 0.6 nozzle",
+        "Bambu Lab P2S 0.8 nozzle"
     ],
     "filament_start_gcode": [
         "; filament start gcode\n"
