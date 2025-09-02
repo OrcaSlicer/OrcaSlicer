@@ -692,6 +692,11 @@ CreateFilamentPresetDialog::CreateFilamentPresetDialog(wxWindow *parent)
     Layout();
     Fit();
 
+    this->Bind(wxEVT_SIZE, [this](wxSizeEvent &event) {
+        this->Refresh();
+        event.Skip();
+    });
+
 	wxGetApp().UpdateDlgDarkUI(this);
 }
 
