@@ -3194,6 +3194,10 @@
             "sub_path": "filament/Generic PETG HF @BBL P2S 0.2 nozzle.json"
         },
         {
+            "name": "Generic PETG HF @BBL P2S 0.4 nozzle",
+            "sub_path": "filament/Generic PETG HF @BBL P2S 0.4 nozzle.json"
+        },
+        {
             "name": "Generic PETG HF @BBL X1C",
             "sub_path": "filament/Generic PETG HF @BBL X1C.json"
         },
