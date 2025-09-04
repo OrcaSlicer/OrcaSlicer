@@ -539,7 +539,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         ops_auto, "nozzle_offset_cali"
     );
 
-    m_sizer_options = new wxGridSizer(0, 2, FromDIP(5), FromDIP(28));
+    m_sizer_options = new wxGridSizer(0, 2, FromDIP(5), FromDIP(10));
     m_sizer_options->Add(option_timelapse, 0, wxEXPAND);
     m_sizer_options->Add(option_auto_bed_level, 0, wxEXPAND);
     m_sizer_options->Add(option_flow_dynamics_cali, 0, wxEXPAND);
@@ -4674,10 +4674,15 @@ void SelectMachineDialog::UpdateStatusCheckWarning_ExtensionTool(MachineObject* 
      m_printoption_title = new Label(this, title);
      m_printoption_title->SetFont(Label::Body_13);
 
+     m_printoption_tips = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
+     m_printoption_tips->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
+     m_printoption_tips->SetMaxSize(wxSize(FromDIP(18), FromDIP(18)));
+
      m_printoption_item = new PrintOptionItem(this, m_ops, param);
      m_printoption_item->SetFont(Label::Body_13);
 
      sizer->Add(m_printoption_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
+     sizer->Add(m_printoption_tips, 0, wxLEFT | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, FromDIP(2));
      sizer->AddStretchSpacer();
      sizer->Add(m_printoption_item, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL, 0);
 
@@ -4756,19 +4761,21 @@ bool PrintOption::contain_opt(const std::string &opt) const
 
 void PrintOption::update_options(std::vector<POItem> ops, const wxString &tips)
 {
-    if (m_ops != ops)
-    {
+    if (m_ops != ops) {
         m_ops = ops;
         m_printoption_item->update_options(ops);
     }
 
-    if (m_printoption_title->GetToolTipText() != tips) { m_printoption_title->SetToolTip(tips); }
+    update_tooltip(tips);
 }
 
 void PrintOption::update_tooltip(const wxString &tips)
 {
-    if (m_printoption_title->GetToolTipText() != tips) { m_printoption_title->SetToolTip(tips); }
-    if (m_printoption_item->GetToolTipText() != tips) { m_printoption_item->SetToolTip(tips); }
+    if (m_printoption_tips->GetToolTipText() != tips) {
+        m_printoption_tips->SetToolTip(tips);
+    }
+
+    m_printoption_tips->Show(!m_printoption_tips->GetToolTipText().IsEmpty());
 }
 
 std::string PrintOption::getValue()
@@ -4787,6 +4794,12 @@ int PrintOption::getValueInt()
     } else {
         return 2;
     }
+}
+
+void PrintOption::msw_rescale()
+{
+    m_printoption_item->msw_rescale();
+    m_printoption_tips->msw_rescale();
 }
 
 PrintOptionItem::PrintOptionItem(wxWindow* parent, std::vector<POItem> ops, std::string param)
