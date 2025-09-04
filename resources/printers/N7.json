@@ -49,16 +49,29 @@
 			"support_ai_monitoring": true,
 			"support_first_layer_inspect": false,
 			"support_save_remote_print_file_to_storage": true,
+			"support_chamber": true,
 			"support_chamber_temp_edit": false,
 			"support_extrusion_cali": false,
-			"support_user_preset": false
+			"support_user_preset": false,
+			"support_ams_ext_mix_print": true
 		},
-		"fan": {
-			"special_func_aux_text": "Right"
+		"fan" : {
+			"0" :
+			{
+				"description": "",
+				"2": "Right(Aux)",
+				"10": "Left(Aux)"
+			},
+			"1" :
+			{
+				"2": "Right(Filter)",
+				"10": "Left(Aux)"
+			}
 		},
 		"model_id": "N7",
 		"subseries": ["N7-V2"],
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_n7",
+		"support_wrapping_detection": true,
 		"compatible_machine": [],
 		"printer_type": "N7",
 		"printer_thumbnail_image": "printer_thumbnail_N7",
@@ -69,12 +82,8 @@
 		"printer_arch": "core_xy",
 		"printer_series": "series_x1",
 		"has_cali_line": true,
-<<<<<<< HEAD   (372939 ENH: support proceed action)
-		"enable_set_nozzle_info": false
-=======
 		"printer_is_enclosed": true,
 		"enable_set_nozzle_info": false,
 		"support_safety_options": true
->>>>>>> CHANGE (35a851 NEW:Add safety button)
 	}
 }
