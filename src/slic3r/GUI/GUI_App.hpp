@@ -468,7 +468,6 @@ public:
 
     void            handle_http_error(unsigned int status, std::string body);
     void            on_http_error(wxCommandEvent &evt);
-    void            on_set_selected_machine(wxCommandEvent& evt);
     void            on_update_machine_list(wxCommandEvent& evt);
     void            on_user_login(wxCommandEvent &evt);
     void            on_user_login_handle(wxCommandEvent& evt);

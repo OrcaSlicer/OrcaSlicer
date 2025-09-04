@@ -2663,7 +2663,6 @@ bool GUI_App::on_init_inner()
 
     preset_bundle->backup_user_folder();
 
-    Bind(EVT_SET_SELECTED_MACHINE, &GUI_App::on_set_selected_machine, this);
     Bind(EVT_UPDATE_MACHINE_LIST, &GUI_App::on_update_machine_list, this);
     Bind(EVT_USER_LOGIN, &GUI_App::on_user_login, this);
     Bind(EVT_USER_LOGIN_HANDLE, &GUI_App::on_user_login_handle, this);
@@ -4306,18 +4305,6 @@ void GUI_App::enable_user_preset_folder(bool enable)
     }
 }
 
-void GUI_App::on_set_selected_machine(wxCommandEvent &evt)
-{
-    // Orca: do not connect to default device during app startup, because some of the lan machines might not online yet
-    // and user will be prompted by several "Connect XXX failed" error message.
-    return;
-
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (dev) {
-        dev->set_selected_machine(m_agent->get_user_selected_machine());
-    }
-}
-
 void GUI_App::on_update_machine_list(wxCommandEvent &evt)
 {
     /* DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
@@ -4338,8 +4325,6 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 
     boost::thread update_thread = boost::thread([this, dev] {
         dev->update_user_machine_list_info();
-        auto evt = new wxCommandEvent(EVT_SET_SELECTED_MACHINE);
-        wxQueueEvent(this, evt);
     });
 
     if (online_login) {
