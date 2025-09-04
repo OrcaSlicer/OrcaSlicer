@@ -55,7 +55,7 @@
 		"support_wrapping_detection": false,
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto",
 		"printer_type": "3DPrinter-X1-Carbon",
-		"printer_thumbnail_image": "printer_thumbnail",
+		"printer_thumbnail_image": "printer_thumbnail_x1c",
 		"printer_connect_help_image": "input_access_code_x1",
 		"printer_use_ams_image": "ams_icon",
 		"printer_ext_image": ["ext_image_xp"],

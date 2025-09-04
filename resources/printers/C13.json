@@ -59,7 +59,7 @@
 		"compatible_machine": [ "BL-P001", "BL-P002", "C11", "C12" ],
 		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
 		"printer_type": "C13",
-		"printer_thumbnail_image": "printer_thumbnail",
+		"printer_thumbnail_image": "printer_thumbnail_x1e",
 		"printer_connect_help_image": "input_access_code_x1",
 		"printer_use_ams_image": "ams_icon",
 		"printer_ext_image": ["ext_image_xp"],
