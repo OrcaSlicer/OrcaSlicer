@@ -1206,6 +1206,7 @@ void CalibrationPresetPage::create_page(wxWindow* parent)
     m_sending_panel->get_sending_progress_bar()->set_cancel_callback_fina([this]() {
         on_cali_cancel_job();
         });
+    m_sending_panel->Bind(EVT_SHOW_ERROR_FAIL_SEND, [this](auto &event){on_cali_cancel_job();});
     m_sending_panel->Hide();
 
     m_custom_range_panel = new CaliPresetCustomRangePanel(parent);
