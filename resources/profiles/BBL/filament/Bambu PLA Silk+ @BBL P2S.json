@@ -5,6 +5,9 @@
     "from": "system",
     "setting_id": "GFSA06_11",
     "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "80"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"
@@ -159,7 +162,7 @@
         "35"
     ],
     "slow_down_layer_time": [
-        "10"
+        "6"
     ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",
