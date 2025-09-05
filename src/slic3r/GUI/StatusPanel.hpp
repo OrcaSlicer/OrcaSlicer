@@ -506,6 +506,7 @@ protected:
     wxStaticText *  m_ams_debug;
     bool            m_show_ams_group{false};
     bool            m_show_filament_group{ false };
+
     AMSControl*     m_ams_control;
     StaticBox*      m_ams_control_box;
     wxStaticBitmap *m_ams_extruder_img;
@@ -755,6 +756,8 @@ protected:
     void update_temp_ctrl(MachineObject *obj);
     void update_misc_ctrl(MachineObject *obj);
     void update_ams(MachineObject* obj);
+    void update_filament_loading_panel(MachineObject* obj);
+
     void update_ams_insert_material(MachineObject* obj);
     void update_extruder_status(MachineObject* obj);
     void update_ams_control_state(std::string ams_id, std::string slot_id);

@@ -166,8 +166,11 @@ namespace Slic3r
             if (!tray_tar.empty())
             {
                 int tray_tar_int = atoi(tray_tar.c_str());
-                if (tray_tar_int == VIRTUAL_TRAY_MAIN_ID || tray_tar_int == VIRTUAL_TRAY_DEPUTY_ID)
-                {
+                if (tray_tar_int == VIRTUAL_TRAY_MAIN_ID) /*255 means unloading*/ {
+                    system->m_extders[MAIN_EXTRUDER_ID].m_star.ams_id = "";
+                    system->m_extders[MAIN_EXTRUDER_ID].m_star.slot_id = std::to_string(VIRTUAL_TRAY_MAIN_ID);
+                }
+                else if (tray_tar_int == VIRTUAL_TRAY_DEPUTY_ID) /*254 means loading ext spool*/ {
                     system->m_extders[MAIN_EXTRUDER_ID].m_star.ams_id = std::to_string(VIRTUAL_TRAY_MAIN_ID);
                     system->m_extders[MAIN_EXTRUDER_ID].m_star.slot_id = "0";
                 }

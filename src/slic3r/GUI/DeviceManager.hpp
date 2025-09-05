@@ -281,7 +281,7 @@ public:
     // parse amsStatusMain and ams_status_sub
     void _parse_ams_status(int ams_status);
 
-    bool is_ams_unload();
+    bool is_target_slot_unload() const;
     bool can_unload_filament();
     bool is_support_amx_ext_mix_mapping() const { return true;}
 

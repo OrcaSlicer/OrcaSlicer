@@ -5386,9 +5386,9 @@ Slic3r::DevPrintingSpeedLevel MachineObject::GetPrintingSpeedLevel() const
     return m_print_options->GetPrintingSpeedLevel();
 }
 
-bool MachineObject::is_ams_unload()
+bool MachineObject::is_target_slot_unload() const
 {
-    return m_extder_system->GetTargetAmsId().compare("255") == 0;
+    return m_extder_system->GetTargetSlotId().compare("255") == 0;
 }
 
 Slic3r::DevAms* MachineObject::get_curr_Ams()

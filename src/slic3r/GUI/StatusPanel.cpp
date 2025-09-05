@@ -2007,8 +2007,8 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
 
     auto sizer_scale_panel = new wxBoxSizer(wxHORIZONTAL);
     m_scale_panel          = new wxPanel(parent);
-    m_scale_panel->SetMinSize(wxSize(FromDIP(586), FromDIP(50)));
-    m_scale_panel->SetMaxSize(wxSize(FromDIP(586), FromDIP(50)));
+    m_scale_panel->SetMinSize(wxSize(FromDIP(586), FromDIP(40)));
+    m_scale_panel->SetMaxSize(wxSize(FromDIP(586), FromDIP(40)));
     m_scale_panel->SetBackgroundColour(*wxWHITE);
 
     auto m_title_filament_loading = new Label(m_scale_panel, _L("Filament loading..."));
@@ -2057,7 +2057,7 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
     wxBoxSizer *steps_sizer = new wxBoxSizer(wxHORIZONTAL);
     steps_sizer->Add(m_filament_step, 0, wxALIGN_LEFT, FromDIP(20));
     steps_sizer->Add(m_filament_load_img, 0, wxALIGN_TOP, FromDIP(30));
-    steps_sizer->AddSpacer(FromDIP(50));
+    steps_sizer->AddStretchSpacer();
 
     StateColor btn_bd_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
     StateColor btn_text_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
@@ -2079,15 +2079,14 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
     });
 
 
-    sizer_box->Add(steps_sizer, 0, wxALIGN_CENTER | wxTOP, FromDIP(10));
-    sizer_box->Add(0, 0, 0, wxTOP, FromDIP(5));
+    sizer_box->Add(steps_sizer, 0, wxEXPAND | wxALIGN_LEFT | wxTOP, FromDIP(5));
     sizer_box->Add(m_button_retry, 0, wxLEFT, FromDIP(28));
-    sizer_box->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_box->Add(0, 0, 0, wxTOP, FromDIP(5));
     m_filament_load_box->SetBackgroundColour(*wxWHITE);
     m_filament_load_box->Layout();
     m_filament_load_box->Fit();
     m_filament_load_box->Hide();
-    sizer->Add(m_scale_panel, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 0);
+    sizer->Add(m_scale_panel, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(5));
     sizer->Add(m_filament_load_box, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 0);
     return sizer;
 }
@@ -2174,19 +2173,24 @@ void StatusBasePanel::show_ams_group(bool show)
 
 void StatusBasePanel::show_filament_load_group(bool show)
 {
-    if (m_show_filament_group != show ) {
-        if (!show) {
-            m_filament_load_box->Show(show);
-            m_img_filament_loading->SetBitmap(create_scaled_bitmap("filament_load_fold", this, 24));
-        }
+    if (m_scale_panel->IsShown() != show) {
         m_scale_panel->Show(show);
+        if (!show) {
+            m_img_filament_loading->SetBitmap(create_scaled_bitmap("filament_load_fold", this, 24));
+            m_img_filament_loading->Refresh();
+        }
+
+        // m_scale_panel control the display of m_filament_load_box
+        if (!show && m_filament_load_box->IsShown()) {
+            m_filament_load_box->Show(false);
+        }
 
         auto cur_ext = obj->GetExtderSystem()->GetCurrentExtder();
         m_filament_step->SetupSteps(cur_ext ? cur_ext->HasFilamentInExt() : false);
 
-        m_show_filament_group = show;
         Layout();
         Fit();
+
         wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
         wxGetApp().mainframe->m_monitor->Layout();
     }
@@ -3364,119 +3368,8 @@ void StatusPanel::update_ams(MachineObject *obj)
         m_ams_control->SetExtruder(ext->HasFilamentInExt(), DEPUTY_EXTRUDER_ID, ext->GetSlotNow().ams_id, ext->GetSlotNow().slot_id);
     }
 
-    bool ams_loading_state = false;
-    auto ams_status_sub    = obj->ams_status_sub;
+    update_filament_loading_panel(obj);
 
-    if (obj->is_enable_np) {
-        if (obj->GetExtderSystem()->IsBusyLoading()) {
-            ams_loading_state = true;
-        }
-    } else if (obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE) {
-        ams_loading_state = true;
-    }
-
-    if (ams_loading_state) {
-        update_load_with_temp();
-
-        const std::string& cur_ams_id = obj->GetExtderSystem()->GetCurrentAmsId();
-        const std::string& cur_tray_id = obj->GetExtderSystem()->GetCurrentSlotId();
-        if (!cur_ams_id.empty() && !cur_tray_id.empty())
-        {
-            m_filament_step->updateID(std::atoi(cur_ams_id.c_str()), std::atoi(cur_tray_id.c_str()));
-        }
-
-        auto loading_ext = obj->GetExtderSystem()->GetLoadingExtder();
-        auto tar = loading_ext ? loading_ext->GetSlotTarget() : DevAmsSlotInfo();
-        bool busy_for_vt_loading = (tar.ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || tar.ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID));
-        if (busy_for_vt_loading) {
-            // wait to heat hotend
-            if (ams_status_sub == 0x02) {
-                m_filament_step->SetFilamentStep(FilamentStep::STEP_HEAT_NOZZLE, FilamentStepType::STEP_TYPE_VT_LOAD);
-            } else if (ams_status_sub == 0x05) {
-                m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_VT_LOAD);
-            } else if (ams_status_sub == 0x06) {
-                m_filament_step->SetFilamentStep(FilamentStep::STEP_CONFIRM_EXTRUDED, FilamentStepType::STEP_TYPE_VT_LOAD);
-            } else if (ams_status_sub == 0x07) {
-                m_filament_step->SetFilamentStep(FilamentStep::STEP_PURGE_OLD_FILAMENT, FilamentStepType::STEP_TYPE_VT_LOAD);
-            } else {
-                m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_VT_LOAD);
-                ams_loading_state = false;
-            }
-        } else {
-            // wait to heat hotend
-            if (ams_status_sub == 0x02) {
-                if (!obj->is_ams_unload()) {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_HEAT_NOZZLE, FilamentStepType::STEP_TYPE_LOAD);
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_HEAT_NOZZLE, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else if (ams_status_sub == 0x03) {
-                if (!obj->is_ams_unload()) {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CUT_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CUT_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else if (ams_status_sub == 0x04) {
-                if (!obj->is_ams_unload()) {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PULL_CURR_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PULL_CURR_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else if (ams_status_sub == 0x05) {
-                if (!obj->is_ams_unload()) {
-                    if (m_is_load_with_temp) {
-                        m_filament_step->SetFilamentStep(FilamentStep::STEP_CUT_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
-                    } else {
-                        m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
-                    }
-
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else if (ams_status_sub == 0x06) {
-                if (!obj->is_ams_unload()) {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else if (ams_status_sub == 0x07) {
-                if (!obj->is_ams_unload()) {
-                    if (m_is_load_with_temp) {
-                        m_filament_step->SetFilamentStep(FilamentStep::STEP_PULL_CURR_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
-                    } else {
-                        m_filament_step->SetFilamentStep(FilamentStep::STEP_PURGE_OLD_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
-                    }
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PURGE_OLD_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else if (ams_status_sub == 0x08) {
-                if (!obj->is_ams_unload()) {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_LOAD);
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else if (ams_status_sub == 0x09) {
-                //just wait
-            } else if (ams_status_sub == 0x0B) {
-                if (!obj->is_ams_unload()) {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_LOAD);
-                } else {
-                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_UNLOAD);
-                }
-            } else {
-                m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_UNLOAD);
-                ams_loading_state = false;
-            }
-        }
-    } else if (obj->ams_status_main == AMS_STATUS_MAIN_ASSIST) {
-        m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_LOAD);
-        ams_loading_state = false;
-    } else {
-        m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_LOAD);
-        ams_loading_state = false;
-    }
-
-    show_filament_load_group(ams_loading_state);
 
     const auto& amslist = obj->GetFilaSystem()->GetAmsList();
     for (auto ams_it = amslist.begin(); ams_it != amslist.end(); ams_it++) {
@@ -5363,6 +5256,125 @@ void StatusPanel::msw_rescale()
 
     Layout();
     Refresh();
+}
+
+void StatusPanel::update_filament_loading_panel(MachineObject* obj)
+{
+    if (!obj) {
+        show_filament_load_group(false);
+        return;
+    }
+
+    bool ams_loading_state = false;
+    auto ams_status_sub = obj->ams_status_sub;
+
+    if (obj->is_enable_np) {
+        ams_loading_state = obj->GetExtderSystem()->IsBusyLoading();
+    } else if (obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE) {
+        ams_loading_state = true;
+    }
+
+    if (ams_loading_state) {
+        update_load_with_temp();
+
+        const std::string& cur_ams_id = obj->GetExtderSystem()->GetCurrentAmsId();
+        const std::string& cur_tray_id = obj->GetExtderSystem()->GetCurrentSlotId();
+        if (!cur_ams_id.empty() && !cur_tray_id.empty()) {
+            m_filament_step->updateID(std::atoi(cur_ams_id.c_str()), std::atoi(cur_tray_id.c_str()));
+        }
+
+        auto loading_ext = obj->GetExtderSystem()->GetLoadingExtder();
+        auto tar = loading_ext ? loading_ext->GetSlotTarget() : DevAmsSlotInfo();
+        bool busy_for_vt_loading = (tar.ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || tar.ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) && !obj->is_target_slot_unload();
+        if (busy_for_vt_loading) {
+            // wait to heat hotend
+            if (ams_status_sub == 0x02) {
+                m_filament_step->SetFilamentStep(FilamentStep::STEP_HEAT_NOZZLE, FilamentStepType::STEP_TYPE_VT_LOAD);
+            } else if (ams_status_sub == 0x05) {
+                m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_VT_LOAD);
+            } else if (ams_status_sub == 0x06) {
+                m_filament_step->SetFilamentStep(FilamentStep::STEP_CONFIRM_EXTRUDED, FilamentStepType::STEP_TYPE_VT_LOAD);
+            } else if (ams_status_sub == 0x07) {
+                m_filament_step->SetFilamentStep(FilamentStep::STEP_PURGE_OLD_FILAMENT, FilamentStepType::STEP_TYPE_VT_LOAD);
+            } else {
+                m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_VT_LOAD);
+                ams_loading_state = false;
+            }
+        } else {
+            // wait to heat hotend
+            if (ams_status_sub == 0x02) {
+                if (!obj->is_target_slot_unload()) {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_HEAT_NOZZLE, FilamentStepType::STEP_TYPE_LOAD);
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_HEAT_NOZZLE, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else if (ams_status_sub == 0x03) {
+                if (!obj->is_target_slot_unload()) {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CUT_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CUT_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else if (ams_status_sub == 0x04) {
+                if (!obj->is_target_slot_unload()) {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PULL_CURR_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PULL_CURR_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else if (ams_status_sub == 0x05) {
+                if (!obj->is_target_slot_unload()) {
+                    if (m_is_load_with_temp) {
+                        m_filament_step->SetFilamentStep(FilamentStep::STEP_CUT_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
+                    } else {
+                        m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
+                    }
+
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else if (ams_status_sub == 0x06) {
+                if (!obj->is_target_slot_unload()) {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PUSH_NEW_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else if (ams_status_sub == 0x07) {
+                if (!obj->is_target_slot_unload()) {
+                    if (m_is_load_with_temp) {
+                        m_filament_step->SetFilamentStep(FilamentStep::STEP_PULL_CURR_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
+                    } else {
+                        m_filament_step->SetFilamentStep(FilamentStep::STEP_PURGE_OLD_FILAMENT, FilamentStepType::STEP_TYPE_LOAD);
+                    }
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_PURGE_OLD_FILAMENT, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else if (ams_status_sub == 0x08) {
+                if (!obj->is_target_slot_unload()) {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_LOAD);
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else if (ams_status_sub == 0x09) {
+                //just wait
+            } else if (ams_status_sub == 0x0B) {
+                if (!obj->is_target_slot_unload()) {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_LOAD);
+                } else {
+                    m_filament_step->SetFilamentStep(FilamentStep::STEP_CHECK_POSITION, FilamentStepType::STEP_TYPE_UNLOAD);
+                }
+            } else {
+                m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_UNLOAD);
+                ams_loading_state = false;
+            }
+        }
+    } else if (obj->ams_status_main == AMS_STATUS_MAIN_ASSIST) {
+        m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_LOAD);
+        ams_loading_state = false;
+    } else {
+        m_filament_step->SetFilamentStep(FilamentStep::STEP_IDLE, FilamentStepType::STEP_TYPE_LOAD);
+        ams_loading_state = false;
+    }
+
+    show_filament_load_group(ams_loading_state);
 }
 
 ScoreDialog::ScoreDialog(wxWindow *parent, int design_id, std::string model_id, int profile_id, int rating_id, bool success_printed, int star_count)
