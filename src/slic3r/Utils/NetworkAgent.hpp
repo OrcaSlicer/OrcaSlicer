@@ -110,7 +110,6 @@ typedef int (*func_get_model_mall_rating_result)(void *agent, int job_id, std::s
 typedef int (*func_get_mw_user_preference)(void *agent, std::function<void(std::string)> callback);
 typedef int (*func_get_mw_user_4ulist)(void *agent, int seed, int limit, std::function<void(std::string)> callback);
 
-
 //the NetworkAgent class
 class NetworkAgent
 {

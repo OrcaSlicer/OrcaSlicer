@@ -619,6 +619,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/WebSocketClient.hpp
     Utils/WxFontUtils.cpp
     Utils/WxFontUtils.hpp
+    Utils/FileTransferUtils.cpp
+    Utils/FileTransferUtils.hpp
 )
 
 add_subdirectory(GUI/DeviceCore)
