@@ -6,6 +6,7 @@
 #include "DevFilaAmsSetting.h"
 
 #include <map>
+#include <memory>
 #include <wx/string.h>
 #include <wx/colour.h>
 
@@ -150,6 +151,8 @@ public:
     ~DevFilaSystem();
 
 public:
+    MachineObject* GetOwner() const { return m_owner; }
+
     bool        HasAms() const { return !amsList.empty(); }
     bool        IsAmsSettingUp() const;
 
@@ -167,10 +170,16 @@ public:
 
     /* AMS settings*/
     DevAmsSystemSetting& GetAmsSystemSetting() { return m_ams_system_setting; }
-    bool                 IsDetectOnInsertEnabled() const { return m_ams_system_setting.IsDetectOnInsertEnabled(); };
+    std::optional<bool>  IsDetectOnInsertEnabled() const { return m_ams_system_setting.IsDetectOnInsertEnabled(); };
     bool                 IsDetectOnPowerupEnabled() const { return m_ams_system_setting.IsDetectOnPowerupEnabled(); }
     bool                 IsDetectRemainEnabled() const { return m_ams_system_setting.IsDetectRemainEnabled(); }
     bool                 IsAutoRefillEnabled() const { return m_ams_system_setting.IsAutoRefillEnabled(); }
+
+    std::weak_ptr<DevAmsSystemFirmwareSwitch> GetAmsFirmwareSwitch() const { return m_ams_firmware_switch;}
+
+public:
+    // ctrls
+    int  CtrlAmsReset() const;
      
 public:
     static bool IsBBL_Filament(std::string tag_uid);
@@ -184,6 +193,7 @@ private:
     std::map<std::string, DevAms*> amsList;    // key: ams[id], start with 0
 
     DevAmsSystemSetting m_ams_system_setting{ this };
+    std::shared_ptr<DevAmsSystemFirmwareSwitch> m_ams_firmware_switch = DevAmsSystemFirmwareSwitch::Create(this);
 };// class DevFilaSystem
 
 

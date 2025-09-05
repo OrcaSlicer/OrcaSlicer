@@ -75,3 +75,8 @@ void AnimaIcon::Enable()
 {
     if (m_bitmap) { m_bitmap->SetBitmap(m_image_enable); }
 }
+
+bool AnimaIcon::IsRunning() const
+{
+    return m_timer ? m_timer->IsRunning() : false;
+}

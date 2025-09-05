@@ -230,7 +230,7 @@ int AMSinfo::get_humidity_display_idx() const
         }
     }
 
-    assert(false && "Invalid AMS type for humidity display");
+    //assert(false && "Invalid AMS type for humidity display");
     return 1;
 }
 

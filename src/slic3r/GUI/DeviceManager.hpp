@@ -292,12 +292,6 @@ public:
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
 
-    /* ams settings*/
-    bool IsDetectOnInsertEnabled() const;;
-    //bool IsDetectOnPowerupEnabled() const { return m_enable_detect_on_powerup; }
-    //bool IsDetectRemainEnabled() const { return m_enable_detect_remain; }
-    //bool IsAutoRefillEnabled() const { return m_enable_auto_refill; }
-
     [[nodiscard]] bool is_nozzle_flow_type_supported() const { return is_enable_np; };
     [[nodiscard]] wxString get_nozzle_replace_url() const;
 
@@ -368,9 +362,9 @@ public:
 
     std::string get_firmware_type_str();
     std::string get_lifecycle_type_str();
-    bool is_in_upgrading();
+    bool is_in_upgrading() const;
     bool is_upgrading_avalable();
-    int get_upgrade_percent();
+    int get_upgrade_percent() const;
     std::string get_ota_version();
     bool check_version_valid();
     wxString get_upgrade_result_str(int upgrade_err_code);
@@ -724,7 +718,7 @@ public:
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);
     int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210);
-    int command_ams_user_settings(int ams_id, bool start_read_opt, bool tray_read_opt, bool remain_flag = false);
+    int command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag = false);
     int command_ams_switch_filament(bool switch_filament);
     int command_ams_air_print_detect(bool air_print_detect);
     int command_ams_calibrate(int ams_id);

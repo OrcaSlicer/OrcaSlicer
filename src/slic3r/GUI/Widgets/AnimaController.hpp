@@ -13,6 +13,7 @@ public:
     void Play();
     void Stop();
     void Enable();
+    bool IsPlaying() const { return IsRunning(); };
     bool IsRunning() const;
 
 private:

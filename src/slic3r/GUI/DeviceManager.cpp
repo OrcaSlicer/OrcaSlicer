@@ -724,7 +724,7 @@ std::string MachineObject::get_lifecycle_type_str()
     return "product";
 }
 
-bool MachineObject::is_in_upgrading()
+bool MachineObject::is_in_upgrading() const
 {
     return upgrade_display_state == DevFirmwareUpgradingState::UpgradingInProgress;
 }
@@ -734,7 +734,7 @@ bool MachineObject::is_upgrading_avalable()
     return upgrade_display_state == DevFirmwareUpgradingState::UpgradingAvaliable;
 }
 
-int MachineObject::get_upgrade_percent()
+int MachineObject::get_upgrade_percent() const
 {
     if (upgrade_progress.empty())
         return 0;
@@ -1006,6 +1006,10 @@ void MachineObject::parse_home_flag(int flag)
     }
 
     is_support_air_print_detection = ((flag >> 29) & 0x1) != 0;
+    if (auto ptr = m_fila_system->GetAmsFirmwareSwitch().lock();
+        ptr->GetCurrentFirmwareIdxRun() == DevAmsSystemFirmwareSwitch::IDX_AMS_AMS2_AMSHT) {
+        is_support_air_print_detection = false;// special case, for the firmware, air print is not supported
+    }
     ams_air_print_status = ((flag >> 28) & 0x1) != 0;
 
     /*if (!is_support_p1s_plus) {
@@ -1555,12 +1559,12 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
     return this->publish_json(j);
 }
 
-int MachineObject::command_ams_user_settings(int ams_id, bool start_read_opt, bool tray_read_opt, bool remain_flag)
+int MachineObject::command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag)
 {
     json j;
     j["print"]["command"] = "ams_user_setting";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["ams_id"] = ams_id;
+    j["print"]["ams_id"] = -1; // all ams
     j["print"]["startup_read_option"]   = start_read_opt;
     j["print"]["tray_read_option"]      = tray_read_opt;
     j["print"]["calibrate_remain_flag"] = remain_flag;
@@ -2778,6 +2782,13 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
             }
         } catch (...) {}
 
+        try {
+            if (auto ptr = m_fila_system->GetAmsFirmwareSwitch().lock()) {
+                ptr->ParseFirmwareSwitch(j);
+            }
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "parse_json: failed to parse firmware switch info";
+        }
 
         if (j.contains("print")) {
             json jj = j["print"];
@@ -2858,6 +2869,10 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 if (jj.contains("support_update_remain")) {
                     if (jj["support_update_remain"].is_boolean()) {
                         is_support_update_remain = jj["support_update_remain"].get<bool>();
+                        if (auto ptr = m_fila_system->GetAmsFirmwareSwitch().lock();
+                            ptr->GetCurrentFirmwareIdxRun() == DevAmsSystemFirmwareSwitch::IDX_AMS_AMS2_AMSHT) {
+                            is_support_update_remain = true;// special case, for the firmware, remain is supported
+                        }
                     }
                 }
 
@@ -5413,11 +5428,6 @@ Slic3r::DevAmsTray* MachineObject::get_ams_tray(std::string ams_id, std::string 
 bool MachineObject::HasAms() const
 {
     return m_fila_system->HasAms();
-}
-
-bool MachineObject::IsDetectOnInsertEnabled() const
-{
-    return m_fila_system->GetAmsSystemSetting().IsDetectOnInsertEnabled();
 }
 
 void change_the_opacity(wxColour& colour)

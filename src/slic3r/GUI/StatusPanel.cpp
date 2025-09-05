@@ -3230,16 +3230,8 @@ void StatusPanel::update_extruder_status(MachineObject* obj)
 void StatusPanel::update_ams(MachineObject *obj)
 {
     // update obj in sub dlg
-    if (m_ams_setting_dlg) {
-        m_ams_setting_dlg->obj = obj;
-
-        if (obj && m_ams_setting_dlg->IsShown()) {
-            update_ams_insert_material(obj);
-            m_ams_setting_dlg->update_starting_read_mode(obj->GetFilaSystem()->IsDetectOnPowerupEnabled());
-            m_ams_setting_dlg->update_remain_mode(obj->GetFilaSystem()->IsDetectRemainEnabled());
-            m_ams_setting_dlg->update_switch_filament(obj->GetFilaSystem()->IsAutoRefillEnabled());
-            m_ams_setting_dlg->update_air_printing_detection(obj->ams_air_print_status);
-        }
+    if (m_ams_setting_dlg && m_ams_setting_dlg->IsShown()) {
+        m_ams_setting_dlg->UpdateByObj(obj);
     }
     if (m_filament_setting_dlg) { m_filament_setting_dlg->obj = obj; }
 
@@ -3287,10 +3279,8 @@ void StatusPanel::update_ams(MachineObject *obj)
 
         if (obj->GetFilaSystem()->GetAmsList().empty() || obj->ams_exist_bits == 0) {
             m_ams_control->show_auto_refill(false);
-            m_ams_control->enable_ams_setting(false);
         } else {
             m_ams_control->show_auto_refill(true);
-            m_ams_control->enable_ams_setting(true);
         }
     }
 
@@ -3415,17 +3405,6 @@ void StatusPanel::update_ams(MachineObject *obj)
     }
 
     update_ams_control_state(curr_ams_id, curr_can_id);
-}
-
-void StatusPanel::update_ams_insert_material(MachineObject* obj) {
-    std::string extra_ams_str = (boost::format("ams_f1/%1%") % 0).str();
-    auto extra_ams_it = obj->module_vers.find(extra_ams_str);
-    if (extra_ams_it != obj->module_vers.end()) {
-        m_ams_setting_dlg->update_insert_material_read_mode(obj->GetFilaSystem()->IsDetectOnInsertEnabled(), extra_ams_it->second.sw_ver);
-    }
-    else {
-        m_ams_setting_dlg->update_insert_material_read_mode(obj->GetFilaSystem()->IsDetectOnInsertEnabled(), "");
-    }
 }
 
 
@@ -4312,25 +4291,13 @@ void StatusPanel::on_ams_filament_backup(SimpleEvent& event)
 
 void StatusPanel::on_ams_setting_click(SimpleEvent &event)
 {
-    if (!m_ams_setting_dlg) m_ams_setting_dlg = new AMSSetting((wxWindow *) this, wxID_ANY);
     if (obj) {
-        update_ams_insert_material(obj);
-        m_ams_setting_dlg->update_starting_read_mode(obj->GetFilaSystem()->IsDetectOnPowerupEnabled());
-        m_ams_setting_dlg->update_ams_img(DevPrinterConfigUtil::get_printer_ams_img(obj->printer_type));
-        std::string ams_id = m_ams_control->GetCurentShowAms();
-        if (obj->GetFilaSystem()->GetAmsList().size() == 0) {
-            return;
-        } else {
-            try {
-                int ams_id_int = atoi(ams_id.c_str());
-                m_ams_setting_dlg->ams_id = ams_id_int;
-                m_ams_setting_dlg->ams_support_remain = obj->is_support_update_remain;
-                m_ams_setting_dlg->Show();
-            }
-            catch (...) {
-                ;
-            }
+        if (!m_ams_setting_dlg) {
+            m_ams_setting_dlg = new AMSSetting((wxWindow*)this, wxID_ANY);
         }
+
+        m_ams_setting_dlg->UpdateByObj(obj);
+        m_ams_setting_dlg->Show();
     }
 }
 

@@ -759,7 +759,6 @@ protected:
     void update_ams(MachineObject* obj);
     void update_filament_loading_panel(MachineObject* obj);
 
-    void update_ams_insert_material(MachineObject* obj);
     void update_extruder_status(MachineObject* obj);
     void update_ams_control_state(std::string ams_id, std::string slot_id);
     void update_cali(MachineObject* obj);
