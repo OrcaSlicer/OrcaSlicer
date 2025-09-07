@@ -167,7 +167,8 @@ double calculate_infill_rotation_angle(const PrintObject* object,
                                     idx          = std::min(idx, (int) object->layers().size() - 1);
                                     limit_fill_z = object->get_layer(idx)->print_z + sdx * object->config().layer_height;
                                 }
-                                repeats = std::max(--repeats, 0);
+                                --repeats;
+                                repeats = std::max(repeats, 0);
                             } else
                                 _noop = true; // set the dumb cycle
                             if (_absolute) {  // is absolute
