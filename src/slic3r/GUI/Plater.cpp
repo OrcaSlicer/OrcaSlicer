@@ -5103,9 +5103,6 @@ void Plater::priv::select_view_3D(const std::string& name, bool no_slice)
         set_current_panel(view3D, no_slice);
     }
     else if (name == "Preview") {
-        if (!q->check_ams_status(false))
-            return;
-
         BOOST_LOG_TRIVIAL(info) << "select preview";
         //BBS update extruder params and speed table before slicing
         const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
@@ -9111,9 +9108,6 @@ void Plater::priv::on_action_open_project(SimpleEvent&)
 void Plater::priv::on_action_slice_plate(SimpleEvent&)
 {
     if (q != nullptr) {
-        if (!q->check_ams_status(false))
-            return;
-
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received slice plate event\n" ;
         //BBS update extruder params and speed table before slicing
         const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
@@ -16402,8 +16396,12 @@ int Plater::select_plate(int plate_index, bool need_slice)
                     //p->process_completed_with_error = -1;
                     p->m_slice_all = false;
                     reset_gcode_toolpaths();
-                    if (model_fits && !validate_err)
+                    if (model_fits && !validate_err) {
+                        if (!check_ams_status(false)){
+                            return ret;
+                        }
                         reslice();
+                    }
                     else {
                         p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, false);
                         //sometimes the previous print's sliced result is still valid, but the newly added object is laid over the boundary

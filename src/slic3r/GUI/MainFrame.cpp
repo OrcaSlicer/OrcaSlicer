@@ -1085,6 +1085,9 @@ void MainFrame::init_tabpanel() {
                 m_param_panel->OnActivate();
             }
             else if (sel == tpPreview) {
+                m_plater->reset_check_status();
+                if (!m_plater->check_ams_status(m_slice_select == eSliceAll))
+                    return;
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLVIEWTOOLBAR_PREVIEW));
                 m_param_panel->OnActivate();
             }
@@ -1684,9 +1687,6 @@ wxBoxSizer* MainFrame::create_side_tools()
 
     m_slice_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& event)
         {
-            m_plater->reset_check_status();
-            if (!m_plater->check_ams_status(m_slice_select == eSliceAll))
-                return;
 
             //this->m_plater->select_view_3D("Preview");
             m_plater->exit_gizmo();
