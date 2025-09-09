@@ -128,11 +128,10 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     wxBoxSizer* m_scroll_sizer = new wxBoxSizer(wxVERTICAL);
     m_scroll_area              = new wxScrolledWindow(this);
-    m_scroll_area->SetScrollRate(20, 20);
+    m_scroll_area->SetScrollRate(0, 20);
     m_scroll_area->SetBackgroundColour(m_colour_def_color);
-    m_scroll_area->SetMinSize(wxSize(FromDIP(700), FromDIP(550)));
-    m_scroll_area->SetMaxSize(wxSize(FromDIP(700), FromDIP(550)));
-
+    m_scroll_area->SetMinSize(wxSize(FromDIP(700), FromDIP(600)));
+    m_scroll_area->SetMaxSize(wxSize(FromDIP(700), FromDIP(600)));
 
     m_line_top = new wxPanel(m_scroll_area, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
@@ -710,11 +709,11 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_print_failed_info->Add(0, 0, 0, wxTOP, FromDIP(3));
     sizer_print_failed_info->Add(sizer_extra_info, 0, wxLEFT, 5);
 
-
     m_scroll_sizer->Add(m_line_top, 0, wxEXPAND, 0);
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(11));
     //m_sizer_main->Add(m_sizer_mode_switch, 0, wxALIGN_CENTER, 0);
-    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    //m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    m_scroll_sizer->AddStretchSpacer();
     m_scroll_sizer->Add(m_basic_panel, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(14));
     m_scroll_sizer->Add(sizer_split_filament, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
