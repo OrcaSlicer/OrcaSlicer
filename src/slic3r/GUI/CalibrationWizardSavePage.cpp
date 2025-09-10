@@ -344,7 +344,13 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
             n_value->GetTextCtrl()->SetValue(n_str);
 
             for (auto& name : preset_names) {
-                if (item.tray_id == name.first) {
+                int tray_id = item.tray_id;
+                /* upgrade single extruder printer tray_id from 254 to 255 */
+                if (!m_obj->is_multi_extruders() && tray_id == VIRTUAL_TRAY_DEPUTY_ID) {
+                    tray_id = VIRTUAL_TRAY_MAIN_ID;
+                }
+
+                if (tray_id == name.first) {
                     comboBox_tray_name->SetValue(from_u8(name.second));
                 }
             }
