@@ -4665,15 +4665,10 @@ LayerResult GCode::process_layer(
     } // for objects
 
     std::map<unsigned int, std::vector<InstanceToPrint>> filament_to_print_instances;
-    std::map<unsigned int, std::vector<InstanceToPrint>> filament_to_print_instances_temp;
     {
         for (unsigned int filament_id : layer_tools.extruders) {
             auto objects_by_extruder_it = by_extruder.find(filament_id);
             if (objects_by_extruder_it == by_extruder.end()) continue;
-
-            bool has_prime_tower = print.config().enable_prime_tower && print.extruders().size() > 1 &&
-                                   ((print.config().print_sequence == PrintSequence::ByLayer && print.config().print_order == PrintOrder::Default) ||
-                                    (print.config().print_sequence == PrintSequence::ByObject && print.objects().size() == 1));
 
             int   plate_idx = print.get_plate_index();
             Point wt_pos(print.config().wipe_tower_x.get_at(plate_idx), print.config().wipe_tower_y.get_at(plate_idx));
@@ -4689,12 +4684,11 @@ LayerResult GCode::process_layer(
 
             std::vector<const PrintInstance *> new_ordering = chain_print_object_instances(print_objects, &wt_pos);
             std::reverse(new_ordering.begin(), new_ordering.end());
-            filament_to_print_instances_temp[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
 
-            if (has_prime_tower) {
-                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
-            } else {
+            if (print.config().print_sequence == PrintSequence::ByObject) {
                 filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
+            } else {
+                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
             }
         }
     }
@@ -4808,7 +4802,7 @@ LayerResult GCode::process_layer(
 
         if (m_enable_exclude_object && print.config().support_object_skip_flush.value) {
             std::vector<size_t> filament_instances_id;
-            for (InstanceToPrint &instance : filament_to_print_instances_temp[extruder_id]) filament_instances_id.emplace_back(instance.label_object_id);
+            for (InstanceToPrint &instance : filament_to_print_instances[extruder_id]) filament_instances_id.emplace_back(instance.label_object_id);
             m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
         }
 
