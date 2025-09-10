@@ -1,11 +1,51 @@
 {
     "result": 0,
-    "t": 1756284835,
-    "ver": 202508270600,
+    "t": 1757424119,
+    "ver": 202509091807,
     "data": {
         "device_hms": {
-            "ver": 202508270600,
+            "ver": 202509090602,
             "pt-BR": [
+                {
+                    "ecode": "0300090000020005",
+                    "intro": "O extrusor está extraindo de forma anormal. Pode estar obstruído, ou o filamento pode estar muito fino, causando o deslizamento do extrusor, ou o filamento montado externamente pode estar emaranhado."
+                },
+                {
+                    "ecode": "0300090000020004",
+                    "intro": "A resistência à extrusão está anormal. O extrusor pode estar obstruído ou pode haver filamento preso na cabeça da ferramenta, ou o filamento montado externamente pode estar emaranhado."
+                },
+                {
+                    "ecode": "0500070000020201",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020002",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020001",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020003",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020101",
+                    "intro": ""
+                },
+                {
+                    "ecode": "03003A0000010001",
+                    "intro": "A velocidade do ventilador de resfriamento do componente auxiliar do lado esquerdo está baixa. Pode estar travado e precisar de limpeza."
+                },
+                {
+                    "ecode": "03003A0000020002",
+                    "intro": "A velocidade do ventilador de resfriamento do componente auxiliar do lado esquerdo está baixa. Pode estar travado e precisar de limpeza."
+                },
+                {
+                    "ecode": "0500040000010056",
+                    "intro": ""
+                },
                 {
                     "ecode": "0503000000030027",
                     "intro": ""
@@ -65,66 +105,6 @@
                 {
                     "ecode": "03002D0000030009",
                     "intro": "Essa é a primeira impressão da impressora com alta temperatura no leito térmico. Para obter uma melhor qualidade de impressão na primeira camada, o nivelamento do leito em alta temperatura está sendo executado automaticamente."
-                },
-                {
-                    "ecode": "0C0001000002000E",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500030000010053",
-                    "intro": ""
-                },
-                {
-                    "ecode": "1800020000020002",
-                    "intro": "AMS-HT A o odômetro não tem sinal. O conector do odômetro pode estar com mau contato."
-                },
-                {
-                    "ecode": "0500050000010009",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500050000010008",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000B",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000A",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000C",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020016",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020015",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020019",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020054",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020044",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020061",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C0001000002001B",
-                    "intro": ""
                 },
                 {
                     "ecode": "0500010000020003",
@@ -208,6 +188,66 @@
                 },
                 {
                     "ecode": "0500060000020014",
+                    "intro": ""
+                },
+                {
+                    "ecode": "1800020000020002",
+                    "intro": "AMS-HT A o odômetro não tem sinal. O conector do odômetro pode estar com mau contato."
+                },
+                {
+                    "ecode": "0500050000010009",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500050000010008",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000A",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000C",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020016",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020015",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020019",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020054",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020044",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020061",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002001B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002000E",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000010053",
                     "intro": ""
                 },
                 {
@@ -399,10 +439,6 @@
                     "intro": "AMS-HT A O erro de controle de temperatura é muito grande, o que pode ser devido à tampa estar aberta ou a uma anormalidade no aquecedor."
                 },
                 {
-                    "ecode": "0300330000010001",
-                    "intro": "A velocidade da ventoinha de resfriamento do componente auxiliar esquerdo está lenta. Ela pode estar travada e precisa de limpeza."
-                },
-                {
                     "ecode": "0704960000020004",
                     "intro": "AMS E O erro de controle de temperatura é muito grande, o que pode ser devido à tampa estar aberta ou a uma anormalidade no aquecedor."
                 },
@@ -477,10 +513,6 @@
                 {
                     "ecode": "1801960000020004",
                     "intro": "AMS-HT B O erro de controle de temperatura é muito grande, o que pode ser devido à tampa estar aberta ou a uma anormalidade no aquecedor."
-                },
-                {
-                    "ecode": "0300330000020002",
-                    "intro": "A velocidade da ventoinha de resfriamento do componente auxiliar esquerdo está lenta. Ela pode estar travada e precisa de limpeza."
                 },
                 {
                     "ecode": "1806960000020004",
@@ -611,76 +643,8 @@
                     "intro": "O slot 4 do AMS G está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
                 },
                 {
-                    "ecode": "1801630000020001",
-                    "intro": "O slot 4 do AMS-HT B está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1806630000020001",
-                    "intro": "O slot 4 do AMS-HT G está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "0704630000020001",
-                    "intro": "O slot 4 do AMS E está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1805610000020001",
-                    "intro": "O slot 2 do AMS-HT F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1802630000020001",
-                    "intro": "O slot 4 do AMS-HT C está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1804620000020001",
-                    "intro": "O slot 3 do AMS-HT E está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1805620000020001",
-                    "intro": "O slot 3 do AMS-HT F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1800620000020001",
-                    "intro": "O slot 3 do AMS-HT A está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "0706610000020001",
-                    "intro": "O slot 2 do AMS G está sobrecarregado. O filamento pode estar emaranhado ou o buffer do filamento pode estar preso."
-                },
-                {
-                    "ecode": "0705620000020001",
-                    "intro": "O slot 3 do AMS F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1805600000020001",
-                    "intro": "O slot 1 do AMS-HT F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1803610000020001",
-                    "intro": "O slot 2 do AMS-HT D está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1801600000020001",
-                    "intro": "O slot 1 do AMS-HT B está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1807620000020001",
-                    "intro": "O slot 3 do AMS-HT H está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1807630000020001",
-                    "intro": "O slot 4 do AMS-HT H está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1804600000020001",
-                    "intro": "O slot 1 do AMS-HT E está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "0707610000020001",
-                    "intro": "O slot 2 do AMS H está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
-                },
-                {
-                    "ecode": "1806620000020001",
-                    "intro": "O slot 3 do AMS-HT G está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                    "ecode": "0300180000010005",
+                    "intro": "A rotação do motor do eixo Z está obstruída; verifique se há objetos estranhos presos no cursor Z ou na polia de sincronização Z. Além disso, certifique-se de que a placa de impressão esteja posicionada corretamente para evitar colisões com estruturas ao redor."
                 },
                 {
                     "ecode": "0700600000020001",
@@ -763,8 +727,76 @@
                     "intro": "O slot 1 do AMS-HT C está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
                 },
                 {
-                    "ecode": "0300180000010005",
-                    "intro": "A rotação do motor do eixo Z está obstruída; verifique se há objetos estranhos presos no cursor Z ou na polia de sincronização Z. Além disso, certifique-se de que a placa de impressão esteja posicionada corretamente para evitar colisões com estruturas ao redor."
+                    "ecode": "1801630000020001",
+                    "intro": "O slot 4 do AMS-HT B está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1806630000020001",
+                    "intro": "O slot 4 do AMS-HT G está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "0704630000020001",
+                    "intro": "O slot 4 do AMS E está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1805610000020001",
+                    "intro": "O slot 2 do AMS-HT F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1802630000020001",
+                    "intro": "O slot 4 do AMS-HT C está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1804620000020001",
+                    "intro": "O slot 3 do AMS-HT E está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1805620000020001",
+                    "intro": "O slot 3 do AMS-HT F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1800620000020001",
+                    "intro": "O slot 3 do AMS-HT A está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "0706610000020001",
+                    "intro": "O slot 2 do AMS G está sobrecarregado. O filamento pode estar emaranhado ou o buffer do filamento pode estar preso."
+                },
+                {
+                    "ecode": "0705620000020001",
+                    "intro": "O slot 3 do AMS F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1805600000020001",
+                    "intro": "O slot 1 do AMS-HT F está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1803610000020001",
+                    "intro": "O slot 2 do AMS-HT D está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1801600000020001",
+                    "intro": "O slot 1 do AMS-HT B está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1807620000020001",
+                    "intro": "O slot 3 do AMS-HT H está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1807630000020001",
+                    "intro": "O slot 4 do AMS-HT H está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1804600000020001",
+                    "intro": "O slot 1 do AMS-HT E está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "0707610000020001",
+                    "intro": "O slot 2 do AMS H está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
+                },
+                {
+                    "ecode": "1806620000020001",
+                    "intro": "O slot 3 do AMS-HT G está sobrecarregado. O filamento pode estar emaranhado ou o buffer de filamento pode estar preso."
                 },
                 {
                     "ecode": "1801620000020001",
@@ -3287,6 +3319,10 @@
                     "intro": "Falha na certificação AMS-HT E. Reconecte o cabo ou reinicie a impressora."
                 },
                 {
+                    "ecode": "0C00010000010018",
+                    "intro": ""
+                },
+                {
                     "ecode": "0587050000010017",
                     "intro": "Falha na certificação AMS-HT H. Reconecte o cabo ou reinicie a impressora."
                 },
@@ -3337,10 +3373,6 @@
                 {
                     "ecode": "1806980000020002",
                     "intro": "AMS-HT G A tensão do adaptador de energia está muito alta, o que pode danificar o circuito do aquecedor. Substitua o adaptador de energia."
-                },
-                {
-                    "ecode": "0C00010000010018",
-                    "intro": ""
                 },
                 {
                     "ecode": "0C00040000010025",
@@ -11419,6 +11451,10 @@
                     "intro": "O sensor de temperatura e umidade apresenta um erro. O chip pode estar com defeito."
                 },
                 {
+                    "ecode": "18FF450000020003",
+                    "intro": "A alça do cortador de filamento não foi liberada. O cabo ou a lâmina podem estar presos."
+                },
+                {
                     "ecode": "0707300000030003",
                     "intro": "O RFID não pode ser lido devido a um erro estrutural ou de hardware."
                 },
@@ -11757,6 +11793,10 @@
                 {
                     "ecode": "0707210000020009",
                     "intro": "Falha na extrusão do filamento AMS H Slot 2; a extrusora pode estar entupida ou o filamento pode estar muito fino, fazendo com que a extrusora escorregue."
+                },
+                {
+                    "ecode": "18FE450000020003",
+                    "intro": "A alça do cortador de filamento não foi liberada. O cabo ou a lâmina podem estar presos."
                 },
                 {
                     "ecode": "1802100000010001",
@@ -12963,6 +13003,14 @@
                     "intro": "A temperatura da câmara AMS-HT B está muito alta; alimentação auxiliar ou leitura de RFID atualmente não são permitidas."
                 },
                 {
+                    "ecode": "07FF450000020003",
+                    "intro": "A alça do cortador de filamento não foi liberada. O cabo ou a lâmina podem estar presos."
+                },
+                {
+                    "ecode": "07FE450000020003",
+                    "intro": "A alça do cortador de filamento não foi liberada. O cabo ou a lâmina podem estar presos."
+                },
+                {
                     "ecode": "1200300000010004",
                     "intro": "O RFID não pode ser lido devido a uma falha no chip de criptografia no AMS1."
                 },
@@ -13903,10 +13951,6 @@
                     "intro": "Base de proteção de corte não detectada, que\npode causar danos ao leito térmico. Por favor, coloque-o e continue."
                 },
                 {
-                    "ecode": "030091000001000E",
-                    "intro": "A tensão da fonte de alimentação não corresponde à máquina; o aquecedor de câmara 1 foi desativado."
-                },
-                {
                     "ecode": "0703950000010001",
                     "intro": "AMS D O sensor de temperatura do aquecedor 2 está com defeito, o que pode ser devido ao mau contato do conector."
                 },
@@ -14231,10 +14275,6 @@
                     "intro": "AMS-HT E O enrolamento de fase do motor auxiliar tem um circuito aberto. O motor auxiliar pode estar com defeito."
                 },
                 {
-                    "ecode": "1803910000010003",
-                    "intro": "AMS-HT D A válvula de escape 2 não está conectada, o que pode ser devido ao mau contato do conector."
-                },
-                {
                     "ecode": "1806810000010003",
                     "intro": "AMS-HT G O aquecedor 2 está em curto-circuito, o que pode ser devido a um curto-circuito na fiação ou a danos no aquecedor."
                 },
@@ -14369,6 +14409,10 @@
                 {
                     "ecode": "1800350000010002",
                     "intro": "AMS-HT A O sensor de umidade está desconectado, o que pode ser devido ao mau contato do conector."
+                },
+                {
+                    "ecode": "1803910000010003",
+                    "intro": "AMS-HT D A válvula de escape 2 não está conectada, o que pode ser devido ao mau contato do conector."
                 },
                 {
                     "ecode": "0703200000020009",
@@ -17773,11 +17817,19 @@
             ]
         },
         "device_error": {
-            "ver": 202508270600,
+            "ver": 202509091807,
             "pt-BR": [
+                {
+                    "ecode": "03004016",
+                    "intro": "Limpeza do bico falhou. Por favor, clique no Assistente para solução de problemas."
+                },
                 {
                     "ecode": "0502C014",
                     "intro": "A estimativa de filamento restante do AMS é habilitada por padrão e não pode ser desabilitada."
+                },
+                {
+                    "ecode": "0500807E",
+                    "intro": "Coloque um tapete de corte StrongGrip na base de proteção de corte."
                 },
                 {
                     "ecode": "05864096",
@@ -17828,20 +17880,16 @@
                     "intro": "AMS A não certificado detectado; o dispositivo não pode continuar funcionando. Reconecte o cabo AMS ou reinicie a impressora."
                 },
                 {
-                    "ecode": "0500807E",
-                    "intro": "Coloque um tapete de corte StrongGrip na base de proteção de corte."
-                },
-                {
                     "ecode": "05008062",
                     "intro": "O marcador da placa de impressão não foi detectado. Confirme se a placa de impressão está posicionada corretamente na mesa de aquecimento, com os quatro cantos alinhados e se o marcador está visível. Se houver muita luz incidindo sobre a folha de impressão, considere fechar a porta frontal e bloquear as fontes de luz externas."
                 },
                 {
-                    "ecode": "0502C012",
-                    "intro": "A tarefa de calibração não pode ser pausada."
-                },
-                {
                     "ecode": "0500808B",
                     "intro": "A configuração da câmera BirdsEye falhou. Limpe a cama térmica, remova todos os objetos e o tapete e certifique-se de que os marcadores da cama térmica estejam visíveis. Enquanto isso, limpe a câmera BirdsEye e a câmera Toolhead e remova quaisquer obstruções que possam bloquear as câmeras."
+                },
+                {
+                    "ecode": "0502C012",
+                    "intro": "A tarefa de calibração não pode ser pausada."
                 },
                 {
                     "ecode": "07FFC010",
@@ -17872,6 +17920,10 @@
                     "intro": "Atualmente, você está no modo de produção 2D. Opere diretamente na impressora."
                 },
                 {
+                    "ecode": "0C008002",
+                    "intro": ""
+                },
+                {
                     "ecode": "05024008",
                     "intro": ""
                 },
@@ -17886,10 +17938,6 @@
                 {
                     "ecode": "05008091",
                     "intro": "A calibração do offset do módulo de corte falhou, o que pode resultar em cortes imprecisos. Por favor, certifique-se de que o papel de impressora branco de 80g (espessura de papel carta) está devidamente posicionado e verifique se a ponta da lâmina de corte está desgastada."
-                },
-                {
-                    "ecode": "0C008002",
-                    "intro": ""
                 },
                 {
                     "ecode": "0502400C",
@@ -17912,24 +17960,36 @@
                     "intro": "Por favor, aqueça o bocal acima de 170° C."
                 },
                 {
-                    "ecode": "05004010",
-                    "intro": "O AMS está secando e não pode ser atualizado no momento. Tente novamente mais tarde."
+                    "ecode": "07078023",
+                    "intro": "Falha no resfriamento do AMS H. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
                 },
                 {
-                    "ecode": "05004011",
-                    "intro": "A impressora está carregando ou descarregando filamento e não pode ser atualizada no momento. Tente novamente mais tarde."
+                    "ecode": "18048023",
+                    "intro": "Falha no resfriamento do AMS-HT E. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
                 },
                 {
-                    "ecode": "05004012",
-                    "intro": "O dispositivo está imprimindo e não pode ser atualizado no momento. Tente novamente mais tarde."
+                    "ecode": "18068023",
+                    "intro": "Falha no resfriamento do AMS-HT G. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
                 },
                 {
-                    "ecode": "0500400F",
-                    "intro": "O AMS está sendo inicializado e não pode ser atualizado no momento. Tente novamente mais tarde."
+                    "ecode": "18038023",
+                    "intro": "Falha no resfriamento do AMS-HT D. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
                 },
                 {
-                    "ecode": "05004013",
-                    "intro": "O AMS está em operação e não pode ser atualizado no momento. Tente novamente quando ele estiver inativo."
+                    "ecode": "18058023",
+                    "intro": "Falha no resfriamento do AMS-HT F. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                },
+                {
+                    "ecode": "18008023",
+                    "intro": "Falha no resfriamento do AMS-HT A. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                },
+                {
+                    "ecode": "18078023",
+                    "intro": "Falha no resfriamento do AMS-HT H. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                },
+                {
+                    "ecode": "18028023",
+                    "intro": "Falha no resfriamento do AMS-HT C. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
                 },
                 {
                     "ecode": "07008023",
@@ -17964,36 +18024,24 @@
                     "intro": "Falha no resfriamento do AMS G. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
                 },
                 {
-                    "ecode": "07078023",
-                    "intro": "Falha no resfriamento do AMS H. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                    "ecode": "05004010",
+                    "intro": "O AMS está secando e não pode ser atualizado no momento. Tente novamente mais tarde."
                 },
                 {
-                    "ecode": "18048023",
-                    "intro": "Falha no resfriamento do AMS-HT E. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                    "ecode": "05004011",
+                    "intro": "A impressora está carregando ou descarregando filamento e não pode ser atualizada no momento. Tente novamente mais tarde."
                 },
                 {
-                    "ecode": "18068023",
-                    "intro": "Falha no resfriamento do AMS-HT G. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                    "ecode": "05004012",
+                    "intro": "O dispositivo está imprimindo e não pode ser atualizado no momento. Tente novamente mais tarde."
                 },
                 {
-                    "ecode": "18038023",
-                    "intro": "Falha no resfriamento do AMS-HT D. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                    "ecode": "0500400F",
+                    "intro": "O AMS está sendo inicializado e não pode ser atualizado no momento. Tente novamente mais tarde."
                 },
                 {
-                    "ecode": "18058023",
-                    "intro": "Falha no resfriamento do AMS-HT F. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
-                },
-                {
-                    "ecode": "18008023",
-                    "intro": "Falha no resfriamento do AMS-HT A. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
-                },
-                {
-                    "ecode": "18078023",
-                    "intro": "Falha no resfriamento do AMS-HT H. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
-                },
-                {
-                    "ecode": "18028023",
-                    "intro": "Falha no resfriamento do AMS-HT C. A temperatura ambiente pode estar muito alta. Opere o dispositivo em um ambiente adequado."
+                    "ecode": "05004013",
+                    "intro": "O AMS está em operação e não pode ser atualizado no momento. Tente novamente quando ele estiver inativo."
                 },
                 {
                     "ecode": "03008022",

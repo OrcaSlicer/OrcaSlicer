@@ -1,11 +1,51 @@
 {
     "result": 0,
-    "t": 1756284835,
-    "ver": 202508270600,
+    "t": 1757424119,
+    "ver": 202509091807,
     "data": {
         "device_hms": {
-            "ver": 202508270600,
+            "ver": 202509090602,
             "hu": [
+                {
+                    "ecode": "0300090000020005",
+                    "intro": "Az extruder szokatlanul extrudál. Lehet, hogy eldugult, vagy a filament túl vékony lehet, ami miatt az extruder csúszik, vagy a külsőleg felszerelt filament összeakadhat."
+                },
+                {
+                    "ecode": "0300090000020004",
+                    "intro": "Az extrúziós ellenállás rendellenes. Eltömődhet az extruder, vagy a szerszámtartóban ragadt filament, vagy a külsőleg felszerelt filament összekuszálódhat."
+                },
+                {
+                    "ecode": "0500070000020201",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020002",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020001",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020003",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020101",
+                    "intro": ""
+                },
+                {
+                    "ecode": "03003A0000010001",
+                    "intro": "A bal oldali kiegészítő komponens-hűtőventilátor fordulatszáma túl alacsony. Lehet, hogy beragadt és tisztításra szorul."
+                },
+                {
+                    "ecode": "03003A0000020002",
+                    "intro": "A bal oldali kiegészítő komponens-hűtőventilátor fordulatszáma túl alacsony. Lehet, hogy beragadt és tisztításra szorul."
+                },
+                {
+                    "ecode": "0500040000010056",
+                    "intro": ""
+                },
                 {
                     "ecode": "0503000000030027",
                     "intro": ""
@@ -65,66 +105,6 @@
                 {
                     "ecode": "03002D0000030009",
                     "intro": "Első alkalommal nyomtatsz magas asztalhőmérséklettel. A jobb minőségű kezdőréteg érdekében a magas asztalhőmérsékletű kalibrálás automatikusan végre lesz hajtva."
-                },
-                {
-                    "ecode": "0C0001000002000E",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500030000010053",
-                    "intro": ""
-                },
-                {
-                    "ecode": "1800020000020002",
-                    "intro": "AMS-HT A: nem érkezett jel a távolságmérőből. Előfordulhat, hogy a távolságmérő csatlakozója nem érintkezik megfelelően."
-                },
-                {
-                    "ecode": "0500050000010009",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500050000010008",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000B",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000A",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000C",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020016",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020015",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020019",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020054",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020044",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020061",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C0001000002001B",
-                    "intro": ""
                 },
                 {
                     "ecode": "0500010000020003",
@@ -208,6 +188,66 @@
                 },
                 {
                     "ecode": "0500060000020014",
+                    "intro": ""
+                },
+                {
+                    "ecode": "1800020000020002",
+                    "intro": "AMS-HT A: nem érkezett jel a távolságmérőből. Előfordulhat, hogy a távolságmérő csatlakozója nem érintkezik megfelelően."
+                },
+                {
+                    "ecode": "0500050000010009",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500050000010008",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000A",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000C",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020016",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020015",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020019",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020054",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020044",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020061",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002001B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002000E",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000010053",
                     "intro": ""
                 },
                 {
@@ -399,10 +439,6 @@
                     "intro": "AMS-HT A: a hőmérséklet-szabályzási hiba túl nagy, amelynek oka lehet a fedél nyitva hagyása vagy a fűtés meghibásodása."
                 },
                 {
-                    "ecode": "0300330000010001",
-                    "intro": "A bal oldali kiegészítő komponens-hűtőventilátor fordulatszáma túl alacsony. Lehet, hogy beragadt és tisztításra szorul."
-                },
-                {
                     "ecode": "0704960000020004",
                     "intro": "AMS E: a hőmérséklet-szabályzási hiba túl nagy, amelynek oka lehet a fedél nyitva hagyása vagy a fűtés meghibásodása."
                 },
@@ -477,10 +513,6 @@
                 {
                     "ecode": "1801960000020004",
                     "intro": "AMS-HT B: a hőmérséklet-szabályzási hiba túl nagy, amelynek oka lehet a fedél nyitva hagyása vagy a fűtés meghibásodása."
-                },
-                {
-                    "ecode": "0300330000020002",
-                    "intro": "A bal oldali kiegészítő komponens-hűtőventilátor fordulatszáma túl alacsony. Lehet, hogy beragadt és tisztításra szorul."
                 },
                 {
                     "ecode": "1806960000020004",
@@ -611,76 +643,8 @@
                     "intro": "Az AMS G Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
                 },
                 {
-                    "ecode": "1801630000020001",
-                    "intro": "Az AMS-HT B Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1806630000020001",
-                    "intro": "Az AMS-HT G Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "0704630000020001",
-                    "intro": "Az AMS E Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1805610000020001",
-                    "intro": "Az AMS-HT F Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1802630000020001",
-                    "intro": "Az AMS-HT C Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1804620000020001",
-                    "intro": "Az AMS-HT E Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1805620000020001",
-                    "intro": "Az AMS-HT F Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1800620000020001",
-                    "intro": "Az AMS-HT A Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "0706610000020001",
-                    "intro": "Az AMS G Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "0705620000020001",
-                    "intro": "Az AMS F Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1805600000020001",
-                    "intro": "Az AMS-HT F Slot 1 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1803610000020001",
-                    "intro": "Az AMS-HT D Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1801600000020001",
-                    "intro": "Az AMS-HT B Slot 1 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1807620000020001",
-                    "intro": "Az AMS-HT H Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1807630000020001",
-                    "intro": "Az AMS-HT H Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1804600000020001",
-                    "intro": "Az AMS-HT E Slot 1 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "0707610000020001",
-                    "intro": "Az AMS H Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
-                },
-                {
-                    "ecode": "1806620000020001",
-                    "intro": "Az AMS-HT G Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                    "ecode": "0300180000010005",
+                    "intro": "A Z-tengely motor forgása akadályoztatva van; ellenőrizd, hogy nincs-e idegen tárgy ragadva a Z-szánra vagy a Z-szíjtárcsára. Győződj meg arról is, hogy a nyomtatótálca megfelelően van behelyezve, hogy elkerüld a környező tárgyakkal való ütközést."
                 },
                 {
                     "ecode": "0700600000020001",
@@ -763,8 +727,76 @@
                     "intro": "Az AMS-HT C Slot 1 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
                 },
                 {
-                    "ecode": "0300180000010005",
-                    "intro": "A Z-tengely motor forgása akadályoztatva van; ellenőrizd, hogy nincs-e idegen tárgy ragadva a Z-szánra vagy a Z-szíjtárcsára. Győződj meg arról is, hogy a nyomtatótálca megfelelően van behelyezve, hogy elkerüld a környező tárgyakkal való ütközést."
+                    "ecode": "1801630000020001",
+                    "intro": "Az AMS-HT B Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1806630000020001",
+                    "intro": "Az AMS-HT G Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "0704630000020001",
+                    "intro": "Az AMS E Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1805610000020001",
+                    "intro": "Az AMS-HT F Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1802630000020001",
+                    "intro": "Az AMS-HT C Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1804620000020001",
+                    "intro": "Az AMS-HT E Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1805620000020001",
+                    "intro": "Az AMS-HT F Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1800620000020001",
+                    "intro": "Az AMS-HT A Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "0706610000020001",
+                    "intro": "Az AMS G Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "0705620000020001",
+                    "intro": "Az AMS F Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1805600000020001",
+                    "intro": "Az AMS-HT F Slot 1 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1803610000020001",
+                    "intro": "Az AMS-HT D Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1801600000020001",
+                    "intro": "Az AMS-HT B Slot 1 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1807620000020001",
+                    "intro": "Az AMS-HT H Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1807630000020001",
+                    "intro": "Az AMS-HT H Slot 4 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1804600000020001",
+                    "intro": "Az AMS-HT E Slot 1 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "0707610000020001",
+                    "intro": "Az AMS H Slot 2 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
+                },
+                {
+                    "ecode": "1806620000020001",
+                    "intro": "Az AMS-HT G Slot 3 túlterhelt. Lehet, hogy a filament összegabalyodott vagy a filamentpuffer beragadt."
                 },
                 {
                     "ecode": "1801620000020001",
@@ -3287,6 +3319,10 @@
                     "intro": "AMS-HT E: tanúsítványhiba. Kérjük, csatlakoztasd újra a kábelt vagy indítsd újra a nyomtatót."
                 },
                 {
+                    "ecode": "0C00010000010018",
+                    "intro": ""
+                },
+                {
                     "ecode": "0587050000010017",
                     "intro": "AMS-HT H: tanúsítványhiba. Kérjük, csatlakoztasd újra a kábelt vagy indítsd újra a nyomtatót."
                 },
@@ -3337,10 +3373,6 @@
                 {
                     "ecode": "1806980000020002",
                     "intro": "AMS HT-G: a tápegység feszültsége túl magas, ami károsíthatja a fűtőáramkört. Kérjük, cseréld ki a hálózati adaptert."
-                },
-                {
-                    "ecode": "0C00010000010018",
-                    "intro": ""
                 },
                 {
                     "ecode": "0C00040000010025",
@@ -11419,6 +11451,10 @@
                     "intro": "A hőmérséklet- és páratartalom-érzékelő hibásan működik. Lehet, hogy a chip hibás."
                 },
                 {
+                    "ecode": "18FF450000020003",
+                    "intro": "A filamentvágó karja nem engedett ki. Lehet, hogy a kar vagy a penge beragadt."
+                },
+                {
                     "ecode": "0707300000030003",
                     "intro": "Az RFID nem olvasható hardveres vagy szerkezeti hiba miatt."
                 },
@@ -11757,6 +11793,10 @@
                 {
                     "ecode": "0707210000020009",
                     "intro": "Az AMS H Slot 2 filament extrudálása sikertelen. Előfordulhat, hogy az extruder eltömődött, vagy a filament átmérője túl kicsi, így az extruder nem tudja behúzni."
+                },
+                {
+                    "ecode": "18FE450000020003",
+                    "intro": "A filamentvágó karja nem engedett ki. Lehet, hogy a kar vagy a penge beragadt."
                 },
                 {
                     "ecode": "1802100000010001",
@@ -12963,6 +13003,14 @@
                     "intro": "AMS-HT B: a kamra hőmérséklete túl magas; a betöltés rásegítés és az RFID-olvasás jelenleg nem működik."
                 },
                 {
+                    "ecode": "07FF450000020003",
+                    "intro": "A filamentvágó karja nem engedett ki. Lehet, hogy a kar vagy a penge beragadt."
+                },
+                {
+                    "ecode": "07FE450000020003",
+                    "intro": "A filamentvágó karja nem engedett ki. Lehet, hogy a kar vagy a penge beragadt."
+                },
+                {
                     "ecode": "1200300000010004",
                     "intro": "Az RFID nem olvasható az AMS A titkosítóchip hibája miatt."
                 },
@@ -13903,10 +13951,6 @@
                     "intro": "Nem található a vágáshoz szükséges védőlap, ami a tárgyasztal sérüléséhez vezethet.\nKérjük folytatás előtt helyezd be."
                 },
                 {
-                    "ecode": "030091000001000E",
-                    "intro": "A tápfeszültség nem egyezik a gépével; 1. kamrafűtőelem letiltva."
-                },
-                {
                     "ecode": "0703950000010001",
                     "intro": "AMS D: fűtőelem 2 hőmérséklet-érzékelője hibásan működik, ami a csatlakozó rossz érintkezésének tudható be."
                 },
@@ -14231,10 +14275,6 @@
                     "intro": "AMS-HT E: a segédmotor tekercselése szakadást mutat. Lehet, hogy a segédmotor meghibásodott."
                 },
                 {
-                    "ecode": "1803910000010003",
-                    "intro": "AMS-HT D: elszívószelep 2 nincs csatlakoztatva, aminek oka lehet a csatlakozó rossz érintkezése."
-                },
-                {
                     "ecode": "1806810000010003",
                     "intro": "AMS-HT G: Fűtőelem 2 rövidzárlatos, amelynek oka lehet a vezeték rövidzárlata vagy a fűtőelem sérülése."
                 },
@@ -14369,6 +14409,10 @@
                 {
                     "ecode": "1800350000010002",
                     "intro": "AMS-HT A: a páratartalom-érzékelő nincs csatlakoztatva, aminek oka lehet a csatlakozó rossz érintkezése."
+                },
+                {
+                    "ecode": "1803910000010003",
+                    "intro": "AMS-HT D: elszívószelep 2 nincs csatlakoztatva, aminek oka lehet a csatlakozó rossz érintkezése."
                 },
                 {
                     "ecode": "0703200000020009",
@@ -17773,11 +17817,19 @@
             ]
         },
         "device_error": {
-            "ver": 202508270600,
+            "ver": 202509091807,
             "hu": [
                 {
+                    "ecode": "03004016",
+                    "intro": "Fúvó csőtisztítás sikertelen volt. Kattintson az Asszisztensre a hibaelhárításhoz."
+                },
+                {
                     "ecode": "0502C014",
-                    "intro": "Az AMS maradék szálbecslése alapértelmezés szerint engedélyezett, és nem lehet letiltani."
+                    "intro": "Az AMS fennmaradó filament becslése alapértelmezés szerint engedélyezve van, és nem lehet letiltani."
+                },
+                {
+                    "ecode": "0500807E",
+                    "intro": "Kérjük, helyezd a StrongGrip vágólapot a vágáshoz szükséges védőlapra."
                 },
                 {
                     "ecode": "05864096",
@@ -17828,20 +17880,16 @@
                     "intro": "AMS A: az eszköz nem található. Kérjük, csatlakoztasd újra az AMS kábelét vagy indítsd újra a nyomtatót."
                 },
                 {
-                    "ecode": "0500807E",
-                    "intro": "Kérjük, helyezd a StrongGrip vágólapot a vágáshoz szükséges védőlapra."
-                },
-                {
                     "ecode": "05008062",
                     "intro": "A tálca azonosítóját nem sikerült beolvasni. Kérjük, győződj meg arról, hogy a tálca mind a négy sarka megfelelően illeszkedik a tárgyasztalra és az azonosító látható. Amennyiben a tálcát erős fény éri, próbáld meg becsukni az ajtót és eltakarni a külső fényforrást."
                 },
                 {
-                    "ecode": "0502C012",
-                    "intro": "A feladat nem szüneteltethető."
-                },
-                {
                     "ecode": "0500808B",
                     "intro": "A BirdsEye kamera beállítása nem sikerült. Kérjük, távolíts el minden tárgyat és a szőnyeget a tárgyasztalról, és győződj meg arról, hogy a tárgyasztal jelölései láthatóak. Ellenőrizd a BirdsEye kamerát, és távolíts el minden olyan tárgyat, amely akadályozhatja a kamera szabad kilátását."
+                },
+                {
+                    "ecode": "0502C012",
+                    "intro": "A feladat nem szüneteltethető."
                 },
                 {
                     "ecode": "07FFC010",
@@ -17872,6 +17920,10 @@
                     "intro": "Jelenleg 2D-módban üzemel. Kérjük, folytasd a műveletet a nyomtatón."
                 },
                 {
+                    "ecode": "0C008002",
+                    "intro": ""
+                },
+                {
                     "ecode": "05024008",
                     "intro": ""
                 },
@@ -17885,11 +17937,7 @@
                 },
                 {
                     "ecode": "05008091",
-                    "intro": "A Vágómodul eltolási kalibrálása sikertelen volt, ami pontatlan vágásokhoz vezethet. Kérjük, győződjön meg róla, hogy a 80g fehér nyomtatópapír (levél papírvastagság) megfelelően van elhelyezve, és ellenőrizze, hogy a vágópenge hegye elkopott-e."
-                },
-                {
-                    "ecode": "0C008002",
-                    "intro": ""
+                    "intro": "A Vágómodul eltolási kalibrálása sikertelen volt, ami pontatlan vágásokhoz vezethet. Kérjük, győződjön meg róla, hogy a 80g fehér nyomtatópapír (levél papírvastagság) megfelelően van elhelyezve, és ellenőrizze, hogy a vágópengének a hegye el van-e kopva."
                 },
                 {
                     "ecode": "0502400C",
@@ -17912,24 +17960,36 @@
                     "intro": "Kérjük, melegítsd a fúvókát 170 °C fölé."
                 },
                 {
-                    "ecode": "05004010",
-                    "intro": "Az AMS szárítást végez, és jelenleg nem frissíthető. Kérjük, próbáld meg később újra."
+                    "ecode": "07078023",
+                    "intro": "AMS H: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
                 },
                 {
-                    "ecode": "05004011",
-                    "intro": "A nyomtató éppen filamentet tölt be vagy ki, és jelenleg nem lehet frissíteni. Kérjük, próbáld meg később újra."
+                    "ecode": "18048023",
+                    "intro": "AMS-HT E: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
                 },
                 {
-                    "ecode": "05004012",
-                    "intro": "A készülék nyomtat, és jelenleg nem frissíthető. Kérjük, próbáld meg később újra."
+                    "ecode": "18068023",
+                    "intro": "AMS-HT G: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
                 },
                 {
-                    "ecode": "0500400F",
-                    "intro": "Az AMS inicializálást végez, és jelenleg nem frissíthető. Kérjük, próbáld meg később újra."
+                    "ecode": "18038023",
+                    "intro": "AMS-HT D: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
                 },
                 {
-                    "ecode": "05004013",
-                    "intro": "Az AMS használatban van, és jelenleg nem frissíthető. Kérjük, próbáld meg újra, amikor már nincs használatban."
+                    "ecode": "18058023",
+                    "intro": "AMS-HT F: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                },
+                {
+                    "ecode": "18008023",
+                    "intro": "AMS-HT A: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                },
+                {
+                    "ecode": "18078023",
+                    "intro": "AMS-HT H: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                },
+                {
+                    "ecode": "18028023",
+                    "intro": "AMS-HT C: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
                 },
                 {
                     "ecode": "07008023",
@@ -17964,36 +18024,24 @@
                     "intro": "AMS G: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
                 },
                 {
-                    "ecode": "07078023",
-                    "intro": "AMS H: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                    "ecode": "05004010",
+                    "intro": "Az AMS szárítást végez, és jelenleg nem frissíthető. Kérjük, próbáld meg később újra."
                 },
                 {
-                    "ecode": "18048023",
-                    "intro": "AMS-HT E: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                    "ecode": "05004011",
+                    "intro": "A nyomtató éppen filamentet tölt be vagy ki, és jelenleg nem lehet frissíteni. Kérjük, próbáld meg később újra."
                 },
                 {
-                    "ecode": "18068023",
-                    "intro": "AMS-HT G: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                    "ecode": "05004012",
+                    "intro": "A készülék nyomtat, és jelenleg nem frissíthető. Kérjük, próbáld meg később újra."
                 },
                 {
-                    "ecode": "18038023",
-                    "intro": "AMS-HT D: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                    "ecode": "0500400F",
+                    "intro": "Az AMS inicializálást végez, és jelenleg nem frissíthető. Kérjük, próbáld meg később újra."
                 },
                 {
-                    "ecode": "18058023",
-                    "intro": "AMS-HT F: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
-                },
-                {
-                    "ecode": "18008023",
-                    "intro": "AMS-HT A: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
-                },
-                {
-                    "ecode": "18078023",
-                    "intro": "AMS-HT H: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
-                },
-                {
-                    "ecode": "18028023",
-                    "intro": "AMS-HT C: hűtés sikertelen. Előfordulhat, hogy a környezeti hőmérséklet túl magas. Kérjük, csak az előírt környezetben üzemeltesd a készüléket."
+                    "ecode": "05004013",
+                    "intro": "Az AMS használatban van, és jelenleg nem frissíthető. Kérjük, próbáld meg újra, amikor már nincs használatban."
                 },
                 {
                     "ecode": "03008022",

@@ -1,11 +1,51 @@
 {
     "result": 0,
-    "t": 1756284835,
-    "ver": 202508270600,
+    "t": 1757424119,
+    "ver": 202509091807,
     "data": {
         "device_hms": {
-            "ver": 202508270600,
+            "ver": 202509090602,
             "en": [
+                {
+                    "ecode": "0300090000020005",
+                    "intro": "The extruder is extruding abnormally. It may be clogged, or the filament may be too thin, causing the extruder to slip, or the externally mounted filament may be tangled."
+                },
+                {
+                    "ecode": "0300090000020004",
+                    "intro": "The extrusion resistance is abnormal. The extruder may be clogged or there may be filament stuck in the toolhead, or the externally mounted filament may be tangled."
+                },
+                {
+                    "ecode": "0500070000020201",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020002",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020001",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020003",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020101",
+                    "intro": ""
+                },
+                {
+                    "ecode": "03003A0000010001",
+                    "intro": "The Left Side Auxiliary Component Cooling Fan speed is slow. It may be stuck and need cleaning."
+                },
+                {
+                    "ecode": "03003A0000020002",
+                    "intro": "The Left Side Auxiliary Component Cooling Fan speed is slow. It may be stuck and need cleaning."
+                },
+                {
+                    "ecode": "0500040000010056",
+                    "intro": ""
+                },
                 {
                     "ecode": "0503000000030027",
                     "intro": ""
@@ -65,66 +105,6 @@
                 {
                     "ecode": "03002D0000030009",
                     "intro": "Performing initial High-temperature Bed Leveling."
-                },
-                {
-                    "ecode": "0C0001000002000E",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500030000010053",
-                    "intro": ""
-                },
-                {
-                    "ecode": "1800020000020002",
-                    "intro": "AMS-HT A The odometer has no signal. The odometer connector may have poor contact."
-                },
-                {
-                    "ecode": "0500050000010009",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500050000010008",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000B",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000A",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000C",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020016",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020015",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020019",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020054",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020044",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020061",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C0001000002001B",
-                    "intro": ""
                 },
                 {
                     "ecode": "0500010000020003",
@@ -208,6 +188,66 @@
                 },
                 {
                     "ecode": "0500060000020014",
+                    "intro": ""
+                },
+                {
+                    "ecode": "1800020000020002",
+                    "intro": "AMS-HT A The odometer has no signal. The odometer connector may have poor contact."
+                },
+                {
+                    "ecode": "0500050000010009",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500050000010008",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000A",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000C",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020016",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020015",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020019",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020054",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020044",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020061",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002001B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002000E",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000010053",
                     "intro": ""
                 },
                 {
@@ -399,10 +439,6 @@
                     "intro": "AMS-HT A The temperature control error is too large, which may be due to the lid being open or an abnormality with the heater."
                 },
                 {
-                    "ecode": "0300330000010001",
-                    "intro": "The Left Side Auxiliary Component Cooling Fan speed is slow. It may be stuck and need cleaning."
-                },
-                {
                     "ecode": "0704960000020004",
                     "intro": "AMS E The temperature control error is too large, which may be due to the lid being open or an abnormality with the heater."
                 },
@@ -477,10 +513,6 @@
                 {
                     "ecode": "1801960000020004",
                     "intro": "AMS-HT B The temperature control error is too large, which may be due to the lid being open or an abnormality with the heater."
-                },
-                {
-                    "ecode": "0300330000020002",
-                    "intro": "The Left Side Auxiliary Component Cooling Fan speed is slow. It may be stuck and need cleaning."
                 },
                 {
                     "ecode": "1806960000020004",
@@ -611,76 +643,8 @@
                     "intro": "The AMS G Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
                 },
                 {
-                    "ecode": "1801630000020001",
-                    "intro": "The AMS-HT B Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1806630000020001",
-                    "intro": "The AMS-HT G Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "0704630000020001",
-                    "intro": "The AMS E Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1805610000020001",
-                    "intro": "The AMS-HT F Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1802630000020001",
-                    "intro": "The AMS-HT C Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1804620000020001",
-                    "intro": "The AMS-HT E Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1805620000020001",
-                    "intro": "The AMS-HT F Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1800620000020001",
-                    "intro": "The AMS-HT A Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "0706610000020001",
-                    "intro": "The AMS G Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "0705620000020001",
-                    "intro": "The AMS F Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1805600000020001",
-                    "intro": "The AMS-HT F Slot 1 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1803610000020001",
-                    "intro": "The AMS-HT D Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1801600000020001",
-                    "intro": "The AMS-HT B Slot 1 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1807620000020001",
-                    "intro": "The AMS-HT H Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1807630000020001",
-                    "intro": "The AMS-HT H Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1804600000020001",
-                    "intro": "The AMS-HT E Slot 1 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "0707610000020001",
-                    "intro": "The AMS H Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
-                },
-                {
-                    "ecode": "1806620000020001",
-                    "intro": "The AMS-HT G Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                    "ecode": "0300180000010005",
+                    "intro": "Z-axis motor rotation is obstructed; please check if foreign objects are stuck in the Z slider or Z timing pulley. Also, ensure the build plate is placed correctly to avoid collisions with surrounding structures."
                 },
                 {
                     "ecode": "0700600000020001",
@@ -763,8 +727,76 @@
                     "intro": "The AMS-HT C Slot 1 is overloaded. The filament may be tangled or the filament buffer may be stuck."
                 },
                 {
-                    "ecode": "0300180000010005",
-                    "intro": "Z-axis motor rotation is obstructed; please check if foreign objects are stuck in the Z slider or Z timing pulley. Also, ensure the build plate is placed correctly to avoid collisions with surrounding structures."
+                    "ecode": "1801630000020001",
+                    "intro": "The AMS-HT B Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1806630000020001",
+                    "intro": "The AMS-HT G Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "0704630000020001",
+                    "intro": "The AMS E Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1805610000020001",
+                    "intro": "The AMS-HT F Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1802630000020001",
+                    "intro": "The AMS-HT C Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1804620000020001",
+                    "intro": "The AMS-HT E Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1805620000020001",
+                    "intro": "The AMS-HT F Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1800620000020001",
+                    "intro": "The AMS-HT A Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "0706610000020001",
+                    "intro": "The AMS G Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "0705620000020001",
+                    "intro": "The AMS F Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1805600000020001",
+                    "intro": "The AMS-HT F Slot 1 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1803610000020001",
+                    "intro": "The AMS-HT D Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1801600000020001",
+                    "intro": "The AMS-HT B Slot 1 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1807620000020001",
+                    "intro": "The AMS-HT H Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1807630000020001",
+                    "intro": "The AMS-HT H Slot 4 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1804600000020001",
+                    "intro": "The AMS-HT E Slot 1 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "0707610000020001",
+                    "intro": "The AMS H Slot 2 is overloaded. The filament may be tangled or the filament buffer may be stuck."
+                },
+                {
+                    "ecode": "1806620000020001",
+                    "intro": "The AMS-HT G Slot 3 is overloaded. The filament may be tangled or the filament buffer may be stuck."
                 },
                 {
                     "ecode": "1801620000020001",
@@ -3287,6 +3319,10 @@
                     "intro": "AMS-HT E certification failed. Please reconnect the cable or restart the printer."
                 },
                 {
+                    "ecode": "0C00010000010018",
+                    "intro": ""
+                },
+                {
                     "ecode": "0587050000010017",
                     "intro": "AMS-HT H certification failed. Please reconnect the cable or restart the printer."
                 },
@@ -3337,10 +3373,6 @@
                 {
                     "ecode": "1806980000020002",
                     "intro": "AMS-HT G The power adapter voltage is too high, which may damage the heater circuit. Please replace the power adapter."
-                },
-                {
-                    "ecode": "0C00010000010018",
-                    "intro": ""
                 },
                 {
                     "ecode": "0C00040000010025",
@@ -11419,6 +11451,10 @@
                     "intro": "The temperature and humidity sensor has an error. The chip may be faulty."
                 },
                 {
+                    "ecode": "18FF450000020003",
+                    "intro": "The filament cutter handle has not been released. The handle or blade may be jammed, or there could be an issue with the filament sensor connection."
+                },
+                {
                     "ecode": "0707300000030003",
                     "intro": "RFID cannot be read because of a hardware or structural error."
                 },
@@ -11757,6 +11793,10 @@
                 {
                     "ecode": "0707210000020009",
                     "intro": "Failed to extrude AMS H Slot 2 filament; the extruder may be clogged or the filament may be too thin, causing the extruder to slip."
+                },
+                {
+                    "ecode": "18FE450000020003",
+                    "intro": "The filament cutter handle has not been released. The handle or blade may be jammed, or there could be an issue with the filament sensor connection."
                 },
                 {
                     "ecode": "1802100000010001",
@@ -12963,6 +13003,14 @@
                     "intro": "AMS-HT B chamber temperature is too high; auxiliary feeding or RFID reading is currently not allowed."
                 },
                 {
+                    "ecode": "07FF450000020003",
+                    "intro": "The filament cutter handle has not been released. The handle or blade may be jammed, or there could be an issue with the filament sensor connection."
+                },
+                {
+                    "ecode": "07FE450000020003",
+                    "intro": "The filament cutter handle has not been released. The handle or blade may be jammed, or there could be an issue with the filament sensor connection."
+                },
+                {
                     "ecode": "1200300000010004",
                     "intro": "RFID cannot be read because of an encryption chip failure in AMS A."
                 },
@@ -13903,10 +13951,6 @@
                     "intro": "Cutting Protection Base not detected, which\nmay lead to heatbed damage. Please place it and continue."
                 },
                 {
-                    "ecode": "030091000001000E",
-                    "intro": "The power supply voltage does not match the machine; chamber heater 1 has been disabled."
-                },
-                {
                     "ecode": "0703950000010001",
                     "intro": "AMS D The temperature sensor of heater 2 is malfunctioning, which may be due to poor connector contact."
                 },
@@ -14231,10 +14275,6 @@
                     "intro": "AMS-HT E The assist motor phase winding has an open circuit. The assist motor may be faulty."
                 },
                 {
-                    "ecode": "1803910000010003",
-                    "intro": "AMS-HT D The exhaust valve 2 is not connected, which may be due to poor connector contact."
-                },
-                {
                     "ecode": "1806810000010003",
                     "intro": "AMS-HT G The heater 2 is short-circuited, which may be due to a wiring short or heater damage."
                 },
@@ -14369,6 +14409,10 @@
                 {
                     "ecode": "1800350000010002",
                     "intro": "AMS-HT A The humidity sensor is disconnected, which may be due to poor connector contact."
+                },
+                {
+                    "ecode": "1803910000010003",
+                    "intro": "AMS-HT D The exhaust valve 2 is not connected, which may be due to poor connector contact."
                 },
                 {
                     "ecode": "0703200000020009",
@@ -17773,11 +17817,19 @@
             ]
         },
         "device_error": {
-            "ver": 202508270600,
+            "ver": 202509091807,
             "en": [
+                {
+                    "ecode": "03004016",
+                    "intro": "Nozzle cleaning failed. Please click the Assistant for troubleshooting."
+                },
                 {
                     "ecode": "0502C014",
                     "intro": "The AMS Remaining Filament Estimation is enabled by default and cannot be disabled."
+                },
+                {
+                    "ecode": "0500807E",
+                    "intro": "Please place a StrongGrip cutting mat on the cutting protection base."
                 },
                 {
                     "ecode": "05864096",
@@ -17828,20 +17880,16 @@
                     "intro": "The device cannot detect AMS A. Please reconnect the AMS cable or restart the printer."
                 },
                 {
-                    "ecode": "0500807E",
-                    "intro": "Please place a StrongGrip cutting mat on the cutting protection base."
-                },
-                {
                     "ecode": "05008062",
                     "intro": "The print plate marker was not detected. Please confirm the print plate is correctly positioned on the heatbed with all four corners aligned, and the marker is visible. If strong light is shining on the print sheet, consider closing the front door and blocking external light sources."
                 },
                 {
-                    "ecode": "0502C012",
-                    "intro": "The task cannot be paused."
-                },
-                {
                     "ecode": "0500808B",
                     "intro": "The BirdsEye Camera setup failed. Please remove all objects and the mat on the heatbed to ensure the heatbed markers are visible. Meanwhile, please ensure the BirdsEye Camera is installed correctly and remove any obstructions that may block the camera's view."
+                },
+                {
+                    "ecode": "0502C012",
+                    "intro": "The task cannot be paused."
                 },
                 {
                     "ecode": "07FFC010",
@@ -17872,6 +17920,10 @@
                     "intro": "Currently in 2D production mode. Please continue the operation on the printer"
                 },
                 {
+                    "ecode": "0C008002",
+                    "intro": ""
+                },
+                {
                     "ecode": "05024008",
                     "intro": ""
                 },
@@ -17886,10 +17938,6 @@
                 {
                     "ecode": "05008091",
                     "intro": "The Cutting Module offset calibration failed, which may result in inaccurate cuts. Please ensure the 80g white printer paper(letter paper thickness) is properly positioned and check whether the cutting blade tip is worn."
-                },
-                {
-                    "ecode": "0C008002",
-                    "intro": ""
                 },
                 {
                     "ecode": "0502400C",
@@ -17912,24 +17960,36 @@
                     "intro": "Please heat the nozzle to above 170°C."
                 },
                 {
-                    "ecode": "05004010",
-                    "intro": "AMS is drying and cannot be upgraded at the moment. Please try again later."
+                    "ecode": "07078023",
+                    "intro": "AMS H cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
                 },
                 {
-                    "ecode": "05004011",
-                    "intro": "The printer is loading or unloading filament and cannot be upgraded at the moment. Please try again later."
+                    "ecode": "18048023",
+                    "intro": "AMS-HT E cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
                 },
                 {
-                    "ecode": "05004012",
-                    "intro": "The device is printing and cannot be upgraded at the moment. Please try again later."
+                    "ecode": "18068023",
+                    "intro": "AMS-HT G cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
                 },
                 {
-                    "ecode": "0500400F",
-                    "intro": "AMS is initializing and cannot be upgraded at the moment. Please try again later."
+                    "ecode": "18038023",
+                    "intro": "AMS-HT D cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
                 },
                 {
-                    "ecode": "05004013",
-                    "intro": "AMS is in operation and cannot be upgraded at the moment. Please try again when it is idle."
+                    "ecode": "18058023",
+                    "intro": "AMS-HT F cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                },
+                {
+                    "ecode": "18008023",
+                    "intro": "AMS-HT A cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                },
+                {
+                    "ecode": "18078023",
+                    "intro": "AMS-HT H cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                },
+                {
+                    "ecode": "18028023",
+                    "intro": "AMS-HT C cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
                 },
                 {
                     "ecode": "07008023",
@@ -17964,36 +18024,24 @@
                     "intro": "AMS G cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
                 },
                 {
-                    "ecode": "07078023",
-                    "intro": "AMS H cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                    "ecode": "05004010",
+                    "intro": "AMS is drying and cannot be upgraded at the moment. Please try again later."
                 },
                 {
-                    "ecode": "18048023",
-                    "intro": "AMS-HT E cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                    "ecode": "05004011",
+                    "intro": "The printer is loading or unloading filament and cannot be upgraded at the moment. Please try again later."
                 },
                 {
-                    "ecode": "18068023",
-                    "intro": "AMS-HT G cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                    "ecode": "05004012",
+                    "intro": "The device is printing and cannot be upgraded at the moment. Please try again later."
                 },
                 {
-                    "ecode": "18038023",
-                    "intro": "AMS-HT D cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                    "ecode": "0500400F",
+                    "intro": "AMS is initializing and cannot be upgraded at the moment. Please try again later."
                 },
                 {
-                    "ecode": "18058023",
-                    "intro": "AMS-HT F cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
-                },
-                {
-                    "ecode": "18008023",
-                    "intro": "AMS-HT A cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
-                },
-                {
-                    "ecode": "18078023",
-                    "intro": "AMS-HT H cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
-                },
-                {
-                    "ecode": "18028023",
-                    "intro": "AMS-HT C cooling failed. The ambient temperature may be too high. Please operate the device in a suitable environment."
+                    "ecode": "05004013",
+                    "intro": "AMS is in operation and cannot be upgraded at the moment. Please try again when it is idle."
                 },
                 {
                     "ecode": "03008022",

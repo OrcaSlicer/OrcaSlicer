@@ -1,11 +1,51 @@
 {
     "result": 0,
-    "t": 1756284835,
-    "ver": 202508270600,
+    "t": 1757424119,
+    "ver": 202509091807,
     "data": {
         "device_hms": {
-            "ver": 202508270600,
+            "ver": 202509090602,
             "fr": [
+                {
+                    "ecode": "0300090000020005",
+                    "intro": "L'extrudeuse extrude de manière anormale. Il se peut qu'elle soit obstruée, ou que le filament soit trop fin, ce qui provoque un glissement de l'extrudeuse, ou que le filament monté à l'extérieur soit emmêlé."
+                },
+                {
+                    "ecode": "0300090000020004",
+                    "intro": "La résistance à l'extrusion est anormale. L'extrudeuse peut être obstruée ou il peut y avoir du filament coincé dans la tête d'impression, ou le filament monté à l'extérieur peut être emmêlé."
+                },
+                {
+                    "ecode": "0500070000020201",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020002",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020001",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020003",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020101",
+                    "intro": ""
+                },
+                {
+                    "ecode": "03003A0000010001",
+                    "intro": "La vitesse du Ventilateur de Refroidissement des Composants Auxiliaires Gauche est lente. Il est peut-être coincé et doit être nettoyé."
+                },
+                {
+                    "ecode": "03003A0000020002",
+                    "intro": "La vitesse du Ventilateur de Refroidissement des Composants Auxiliaires Gauche est lente. Il est peut-être coincé et doit être nettoyé."
+                },
+                {
+                    "ecode": "0500040000010056",
+                    "intro": ""
+                },
                 {
                     "ecode": "0503000000030027",
                     "intro": ""
@@ -65,66 +105,6 @@
                 {
                     "ecode": "03002D0000030009",
                     "intro": "Il s’agit de la première impression avec une température de plateau chauffant élevée. Afin d’obtenir une meilleure qualité d’impression de la première couche, un nivellement automatique à haute température est en cours."
-                },
-                {
-                    "ecode": "0C0001000002000E",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500030000010053",
-                    "intro": ""
-                },
-                {
-                    "ecode": "1800020000020002",
-                    "intro": "L'odomètre AMS HT A n'émet aucun signal. Le connecteur pourrait être en faux contact."
-                },
-                {
-                    "ecode": "0500050000010009",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500050000010008",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000B",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000A",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000C",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020016",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020015",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020019",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020054",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020044",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020061",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C0001000002001B",
-                    "intro": ""
                 },
                 {
                     "ecode": "0500010000020003",
@@ -208,6 +188,66 @@
                 },
                 {
                     "ecode": "0500060000020014",
+                    "intro": ""
+                },
+                {
+                    "ecode": "1800020000020002",
+                    "intro": "L'odomètre AMS HT A n'émet aucun signal. Le connecteur pourrait être en faux contact."
+                },
+                {
+                    "ecode": "0500050000010009",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500050000010008",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000A",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000C",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020016",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020015",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020019",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020054",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020044",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020061",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002001B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002000E",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000010053",
                     "intro": ""
                 },
                 {
@@ -399,10 +439,6 @@
                     "intro": "AMS-HT A L'erreur de réglage de la température est trop importante, ce qui peut être dû à l'ouverture du couvercle ou à une anomalie du chauffage."
                 },
                 {
-                    "ecode": "0300330000010001",
-                    "intro": "La vitesse du ventilateur de refroidissement des composants auxiliaires du côté gauche est lente. Il est peut-être coincé et doit être nettoyé."
-                },
-                {
                     "ecode": "0704960000020004",
                     "intro": "AMS E L'erreur de réglage de la température est trop importante, ce qui peut être dû à l'ouverture du couvercle ou à une anomalie du chauffage."
                 },
@@ -477,10 +513,6 @@
                 {
                     "ecode": "1801960000020004",
                     "intro": "AMS-HT B L'erreur de régulation de la température est trop importante, ce qui peut être dû à l'ouverture du couvercle ou à une anomalie du chauffage."
-                },
-                {
-                    "ecode": "0300330000020002",
-                    "intro": "La vitesse du ventilateur de refroidissement des composants auxiliaires du côté gauche est lente. Il est peut-être coincé et doit être nettoyé."
                 },
                 {
                     "ecode": "1806960000020004",
@@ -611,76 +643,8 @@
                     "intro": "L'emplacement 4 de l'AMS G est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
                 },
                 {
-                    "ecode": "1801630000020001",
-                    "intro": "L'emplacement 4 de l'AMS-HT B est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1806630000020001",
-                    "intro": "L'emplacement 4 AMS-HT G est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "0704630000020001",
-                    "intro": "L'emplacement 4 de l'AMS E est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1805610000020001",
-                    "intro": "L'emplacement 2 de l'AMS-HT F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1802630000020001",
-                    "intro": "L'emplacement 4 de l'AMS-HT C est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1804620000020001",
-                    "intro": "L'emplacement 3 de l'AMS-HT E est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1805620000020001",
-                    "intro": "L'emplacement 3 de l'AMS-HT F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1800620000020001",
-                    "intro": "L'emplacement 3 de l'AMS-HT A est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "0706610000020001",
-                    "intro": "L'emplacement 2 de l'AMS G est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "0705620000020001",
-                    "intro": "L'emplacement 3 de l'AMS F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1805600000020001",
-                    "intro": "L'emplacement 1 de l'AMS-HT F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1803610000020001",
-                    "intro": "L'emplacement 2 de l'AMS-HT D est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1801600000020001",
-                    "intro": "L'emplacement 1 de l'AMS-HT B est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1807620000020001",
-                    "intro": "L'emplacement 3 de l'AMS-HT H est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1807630000020001",
-                    "intro": "L'emplacement 4 de l'AMS-HT H est surchargé. Il se peut que le filament soit emmêlé ou que le tampon du filament soit bloqué."
-                },
-                {
-                    "ecode": "1804600000020001",
-                    "intro": "L'emplacement 1 de l'AMS-HT E est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "0707610000020001",
-                    "intro": "L'emplacement 2 de l'AMS H est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
-                },
-                {
-                    "ecode": "1806620000020001",
-                    "intro": "L'emplacement 3 AMS-HT G est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                    "ecode": "0300180000010005",
+                    "intro": "La rotation du moteur de l'axe Z est obstruée ; veuillez vérifier si des objets étrangers sont coincés dans la glissière ou la poulie de synchronisation Z. Assurez-vous également que la plaque d'impression est placée correctement afin d'éviter les collisions avec les structures environnantes."
                 },
                 {
                     "ecode": "0700600000020001",
@@ -763,8 +727,76 @@
                     "intro": "L'emplacement 1 de l'AMS-HT C est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
                 },
                 {
-                    "ecode": "0300180000010005",
-                    "intro": "La rotation du moteur de l'axe Z est obstruée ; veuillez vérifier si des objets étrangers sont coincés dans la glissière ou la poulie de synchronisation Z. Assurez-vous également que la plaque d'impression est placée correctement afin d'éviter les collisions avec les structures environnantes."
+                    "ecode": "1801630000020001",
+                    "intro": "L'emplacement 4 de l'AMS-HT B est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1806630000020001",
+                    "intro": "L'emplacement 4 AMS-HT G est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "0704630000020001",
+                    "intro": "L'emplacement 4 de l'AMS E est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1805610000020001",
+                    "intro": "L'emplacement 2 de l'AMS-HT F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1802630000020001",
+                    "intro": "L'emplacement 4 de l'AMS-HT C est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1804620000020001",
+                    "intro": "L'emplacement 3 de l'AMS-HT E est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1805620000020001",
+                    "intro": "L'emplacement 3 de l'AMS-HT F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1800620000020001",
+                    "intro": "L'emplacement 3 de l'AMS-HT A est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "0706610000020001",
+                    "intro": "L'emplacement 2 de l'AMS G est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "0705620000020001",
+                    "intro": "L'emplacement 3 de l'AMS F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1805600000020001",
+                    "intro": "L'emplacement 1 de l'AMS-HT F est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1803610000020001",
+                    "intro": "L'emplacement 2 de l'AMS-HT D est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1801600000020001",
+                    "intro": "L'emplacement 1 de l'AMS-HT B est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1807620000020001",
+                    "intro": "L'emplacement 3 de l'AMS-HT H est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1807630000020001",
+                    "intro": "L'emplacement 4 de l'AMS-HT H est surchargé. Il se peut que le filament soit emmêlé ou que le tampon du filament soit bloqué."
+                },
+                {
+                    "ecode": "1804600000020001",
+                    "intro": "L'emplacement 1 de l'AMS-HT E est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "0707610000020001",
+                    "intro": "L'emplacement 2 de l'AMS H est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
+                },
+                {
+                    "ecode": "1806620000020001",
+                    "intro": "L'emplacement 3 AMS-HT G est surchargé. Le filament peut être emmêlé ou le tampon de filament peut être bloqué."
                 },
                 {
                     "ecode": "1801620000020001",
@@ -3287,6 +3319,10 @@
                     "intro": "La certification AMS-HT E a échoué. Veuillez rebrancher le câble ou redémarrer l'imprimante."
                 },
                 {
+                    "ecode": "0C00010000010018",
+                    "intro": ""
+                },
+                {
                     "ecode": "0587050000010017",
                     "intro": "La certification AMS-HT H a échoué. Veuillez rebrancher le câble ou redémarrer l'imprimante."
                 },
@@ -3337,10 +3373,6 @@
                 {
                     "ecode": "1806980000020002",
                     "intro": "AMS-HT G La tension de l'adaptateur électrique est trop élevée, ce qui risque d'endommager le circuit de chauffage. Remplacer l'adaptateur électrique."
-                },
-                {
-                    "ecode": "0C00010000010018",
-                    "intro": ""
                 },
                 {
                     "ecode": "0C00040000010025",
@@ -11419,6 +11451,10 @@
                     "intro": "Le capteur de température et d'humidité a une erreur. La puce peut être défectueuse."
                 },
                 {
+                    "ecode": "18FF450000020003",
+                    "intro": "La poignée du coupe-filament ne s'est pas relâchée. Le manche ou la lame peut être coincé, ou il pourrait y avoir un problème avec la connexion du capteur filament."
+                },
+                {
                     "ecode": "0707300000030003",
                     "intro": "La RFID ne peut pas être lue en raison d'une erreur matérielle ou structurelle."
                 },
@@ -11757,6 +11793,10 @@
                 {
                     "ecode": "0707210000020009",
                     "intro": "L’extrusion du filament 2 AMS H a échoué ; l’extrudeur peut être obstruée ou le filament peut être trop fin, ce qui entraîne un patinage de l’extrudeur."
+                },
+                {
+                    "ecode": "18FE450000020003",
+                    "intro": "La poignée du coupe-filament ne s'est pas relâchée. Le manche ou la lame peut être coincé, ou il pourrait y avoir un problème avec la connexion du capteur filament."
                 },
                 {
                     "ecode": "1802100000010001",
@@ -12963,6 +13003,14 @@
                     "intro": "La température de la chambre de l'AMS HT B est trop élevée; l'assistance à l'insertion de bobine ou la lecture RFID n'est pas autorisée."
                 },
                 {
+                    "ecode": "07FF450000020003",
+                    "intro": "La poignée du coupe-filament ne s'est pas relâchée. Le manche ou la lame peut être coincé, ou il pourrait y avoir un problème avec la connexion du capteur filament."
+                },
+                {
+                    "ecode": "07FE450000020003",
+                    "intro": "La poignée du coupe-filament ne s'est pas relâchée. Le manche ou la lame peut être coincé, ou il pourrait y avoir un problème avec la connexion du capteur filament."
+                },
+                {
                     "ecode": "1200300000010004",
                     "intro": "La RFID ne peut pas être lue en raison d'une défaillance de la puce de chiffrement de l'AMS A."
                 },
@@ -13903,10 +13951,6 @@
                     "intro": "La Base de Protection de Coupe n'est pas détectée, ce qui\nrisque d'dommager le lit chauffant. Veuillez la placer et continuer."
                 },
                 {
-                    "ecode": "030091000001000E",
-                    "intro": "La tension d'alimentation ne correspond pas à celle de la machine ; le réchauffeur de chambre 1 a été désactivé."
-                },
-                {
                     "ecode": "0703950000010001",
                     "intro": "Le capteur de température du chauffage 2 AMS D fonctionne mal, cela peut être dû à un mauvais contact avec le connecteur."
                 },
@@ -14231,10 +14275,6 @@
                     "intro": "Un enroulement du moteur d’assistance de l’AMS HT E est en circuit ouvert. Le moteur d'assistance peut être défectueux."
                 },
                 {
-                    "ecode": "1803910000010003",
-                    "intro": "Le clapet d'échappement 2 AMS HT D n'est pas connectée, cela peut venir d’un mauvais contact."
-                },
-                {
                     "ecode": "1806810000010003",
                     "intro": "AMS-HT G Le chauffage 2 est en court-circuit, ce qui peut être dû à un court-circuit ou à une détérioration du chauffage."
                 },
@@ -14369,6 +14409,10 @@
                 {
                     "ecode": "1800350000010002",
                     "intro": "L'hygromètre AMS HT A est déconnecté, il est possible que le connecteur soit en cause."
+                },
+                {
+                    "ecode": "1803910000010003",
+                    "intro": "Le clapet d'échappement 2 AMS HT D n'est pas connectée, cela peut venir d’un mauvais contact."
                 },
                 {
                     "ecode": "0703200000020009",
@@ -17773,11 +17817,19 @@
             ]
         },
         "device_error": {
-            "ver": 202508270600,
+            "ver": 202509091807,
             "fr": [
                 {
+                    "ecode": "03004016",
+                    "intro": "Le nettoyage de la buse a échoué. Veuillez cliquer sur l'Assistant pour le dépannage."
+                },
+                {
                     "ecode": "0502C014",
-                    "intro": "L'estimation du filament restant AMS est activée par défaut et ne peut pas être désactivée."
+                    "intro": "L'estimation de la quantité de filament restante de l'AMS est activée par défaut et ne peut pas être désactivée."
+                },
+                {
+                    "ecode": "0500807E",
+                    "intro": "Veuillez placer un tapis de découpe StrongGrip sur la base de protection contre les coupures."
                 },
                 {
                     "ecode": "05864096",
@@ -17828,20 +17880,16 @@
                     "intro": "L'appareil ne peut pas détecter AMS A. Veuillez reconnecter le câble AMS ou redémarrer l'imprimante."
                 },
                 {
-                    "ecode": "0500807E",
-                    "intro": "Veuillez placer un tapis de découpe StrongGrip sur la base de protection contre les coupures."
-                },
-                {
                     "ecode": "05008062",
                     "intro": "Le marqueur de la plaque d'impression n'a pas été détecté. Vérifie que la plaque d'impression est bien positionnée sur le plateau chauffant, avec les quatre coins alignés, et que le marqueur est bien visible. Si la feuille d'impression est exposée à une lumière intense, pense à fermer la porte avant et à bloquer les sources de lumière extérieures."
                 },
                 {
-                    "ecode": "0502C012",
-                    "intro": "La tâche ne peut pas être mise en pause."
-                },
-                {
                     "ecode": "0500808B",
                     "intro": "L'installation de la caméra BirdsEye a échoué. Veuillez retirer tous les objets et le tapis du plateau chauffant afin de garantir la visibilité des repères. En attendant, assurez-vous que la caméra BirdsEye est correctement installée et retirez tout obstacle susceptible de bloquer la vue de la caméra."
+                },
+                {
+                    "ecode": "0502C012",
+                    "intro": "La tâche ne peut pas être mise en pause."
                 },
                 {
                     "ecode": "07FFC010",
@@ -17853,7 +17901,7 @@
                 },
                 {
                     "ecode": "05008092",
-                    "intro": "L'initialisation de la caméra de l'outil a échoué. Cette impression peut toujours continuer, mais certaines fonctions d'IA seront désactivées. Si vous rencontrez à nouveau ce problème après avoir redémarré, veuillez contacter le support client."
+                    "intro": "L'initialisation de la caméra de l'outil a échoué. Cette impression peut encore continuer, mais certaines fonctions d'IA seront désactivées. Si vous rencontrez à nouveau ce problème après avoir redémarré, veuillez contacter le support client."
                 },
                 {
                     "ecode": "05024002",
@@ -17872,6 +17920,10 @@
                     "intro": "Actuellement en mode de production 2D. Veuillez continuer sur l'imprimante."
                 },
                 {
+                    "ecode": "0C008002",
+                    "intro": ""
+                },
+                {
                     "ecode": "05024008",
                     "intro": ""
                 },
@@ -17886,10 +17938,6 @@
                 {
                     "ecode": "05008091",
                     "intro": "L'étalonnage du module de découpe a échoué, ce qui peut entraîner des coupes inexactes. Veuillez vous assurer que le papier d'imprimante blanc de 80g (épaisseur du papier lettre) est correctement positionné et vérifiez si la pointe de la lame de coupe est usée."
-                },
-                {
-                    "ecode": "0C008002",
-                    "intro": ""
                 },
                 {
                     "ecode": "0502400C",
@@ -17912,24 +17960,36 @@
                     "intro": "Veuillez chauffer la buse au delà de 170°C."
                 },
                 {
-                    "ecode": "05004010",
-                    "intro": "L'AMS est en train de sécher et ne peut pas être amélioré pour le moment. Veuillez réessayer ultérieurement."
+                    "ecode": "07078023",
+                    "intro": "Le refroidissement de l'AMS H a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
                 },
                 {
-                    "ecode": "05004011",
-                    "intro": "L'imprimante est en train de charger ou de décharger un filament et ne peut pas être mise à jour pour le moment. Veuillez réessayer ultérieurement."
+                    "ecode": "18048023",
+                    "intro": "Le refroidissement de l'AMS-HT E a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
                 },
                 {
-                    "ecode": "05004012",
-                    "intro": "L'appareil est en cours d'impression et ne peut pas être mis à niveau pour le moment. Veuillez réessayer ultérieurement."
+                    "ecode": "18068023",
+                    "intro": "Le refroidissement de l'AMS-HT G a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
                 },
                 {
-                    "ecode": "0500400F",
-                    "intro": "L'AMS est en cours d'initialisation et ne peut pas être mis à niveau pour le moment. Veuillez réessayer ultérieurement."
+                    "ecode": "18038023",
+                    "intro": "Le refroidissement de l'AMS-HT D a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
                 },
                 {
-                    "ecode": "05004013",
-                    "intro": "L'AMS est en service et ne peut pas être mise à jour pour le moment. Veuillez réessayer lorsqu'il est inactif."
+                    "ecode": "18058023",
+                    "intro": "Le refroidissement de l'AMS-HT F a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                },
+                {
+                    "ecode": "18008023",
+                    "intro": "Le refroidissement de l'AMS-HT A a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                },
+                {
+                    "ecode": "18078023",
+                    "intro": "Le refroidissement de l'AMS-HT H a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                },
+                {
+                    "ecode": "18028023",
+                    "intro": "Le refroidissement de l'AMS-HT C a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
                 },
                 {
                     "ecode": "07008023",
@@ -17964,36 +18024,24 @@
                     "intro": "Le refroidissement de l'AMS G a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
                 },
                 {
-                    "ecode": "07078023",
-                    "intro": "Le refroidissement de l'AMS H a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                    "ecode": "05004010",
+                    "intro": "L'AMS est en train de sécher et ne peut pas être amélioré pour le moment. Veuillez réessayer ultérieurement."
                 },
                 {
-                    "ecode": "18048023",
-                    "intro": "Le refroidissement de l'AMS-HT E a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                    "ecode": "05004011",
+                    "intro": "L'imprimante est en train de charger ou de décharger un filament et ne peut pas être mise à jour pour le moment. Veuillez réessayer ultérieurement."
                 },
                 {
-                    "ecode": "18068023",
-                    "intro": "Le refroidissement de l'AMS-HT G a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                    "ecode": "05004012",
+                    "intro": "L'appareil est en cours d'impression et ne peut pas être mis à niveau pour le moment. Veuillez réessayer ultérieurement."
                 },
                 {
-                    "ecode": "18038023",
-                    "intro": "Le refroidissement de l'AMS-HT D a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                    "ecode": "0500400F",
+                    "intro": "L'AMS est en cours d'initialisation et ne peut pas être mis à niveau pour le moment. Veuillez réessayer ultérieurement."
                 },
                 {
-                    "ecode": "18058023",
-                    "intro": "Le refroidissement de l'AMS-HT F a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
-                },
-                {
-                    "ecode": "18008023",
-                    "intro": "Le refroidissement de l'AMS-HT A a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
-                },
-                {
-                    "ecode": "18078023",
-                    "intro": "Le refroidissement de l'AMS-HT H a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
-                },
-                {
-                    "ecode": "18028023",
-                    "intro": "Le refroidissement de l'AMS-HT C a échoué. La température ambiante est peut-être trop élevée. Veuillez utiliser l'appareil dans un environnement approprié."
+                    "ecode": "05004013",
+                    "intro": "L'AMS est en service et ne peut pas être mise à jour pour le moment. Veuillez réessayer lorsqu'il est inactif."
                 },
                 {
                     "ecode": "03008022",

@@ -1,11 +1,51 @@
 {
     "result": 0,
-    "t": 1756284835,
-    "ver": 202508270600,
+    "t": 1757424119,
+    "ver": 202509091807,
     "data": {
         "device_hms": {
-            "ver": 202508270600,
+            "ver": 202509090602,
             "nl": [
+                {
+                    "ecode": "0300090000020005",
+                    "intro": "De extruder is abnormaal aan het extruderen. Het kan verstopt zijn, of het filament kan te dun zijn, waardoor de extruder slippen, of het extern gemonteerde filament kan in de war zijn."
+                },
+                {
+                    "ecode": "0300090000020004",
+                    "intro": "De extrusieweerstand is abnormaal. De extruder kan verstopt zijn of er kan filament vastzitten in de gereedschapskop, of het extern gemonteerde filament kan in de war zijn."
+                },
+                {
+                    "ecode": "0500070000020201",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020002",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020001",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020003",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500070000020101",
+                    "intro": ""
+                },
+                {
+                    "ecode": "03003A0000010001",
+                    "intro": "De snelheid van de linker zijcomponent van de koelventilator is laag. Mogelijk zit hij vast en moet hij worden schoongemaakt."
+                },
+                {
+                    "ecode": "03003A0000020002",
+                    "intro": "De snelheid van de linker zijcomponent van de koelventilator is laag. Mogelijk zit hij vast en moet hij worden schoongemaakt."
+                },
+                {
+                    "ecode": "0500040000010056",
+                    "intro": ""
+                },
                 {
                     "ecode": "0503000000030027",
                     "intro": ""
@@ -65,66 +105,6 @@
                 {
                     "ecode": "03002D0000030009",
                     "intro": "Uitvoeren van de eerste hogetemperatuurbednivellering."
-                },
-                {
-                    "ecode": "0C0001000002000E",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500030000010053",
-                    "intro": ""
-                },
-                {
-                    "ecode": "1800020000020002",
-                    "intro": "AMS-HT A de odometer heeft geen signaal. De connector van de odometer heeft mogelijk slecht contact."
-                },
-                {
-                    "ecode": "0500050000010009",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500050000010008",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000B",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000A",
-                    "intro": ""
-                },
-                {
-                    "ecode": "050005000001000C",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020016",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020015",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C00010000020019",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020054",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020044",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0500060000020061",
-                    "intro": ""
-                },
-                {
-                    "ecode": "0C0001000002001B",
-                    "intro": ""
                 },
                 {
                     "ecode": "0500010000020003",
@@ -208,6 +188,66 @@
                 },
                 {
                     "ecode": "0500060000020014",
+                    "intro": ""
+                },
+                {
+                    "ecode": "1800020000020002",
+                    "intro": "AMS-HT A de odometer heeft geen signaal. De connector van de odometer heeft mogelijk slecht contact."
+                },
+                {
+                    "ecode": "0500050000010009",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500050000010008",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000A",
+                    "intro": ""
+                },
+                {
+                    "ecode": "050005000001000C",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020016",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020015",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C00010000020019",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020054",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020044",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500060000020061",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002001B",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0C0001000002000E",
+                    "intro": ""
+                },
+                {
+                    "ecode": "0500030000010053",
                     "intro": ""
                 },
                 {
@@ -399,10 +439,6 @@
                     "intro": "AMS-HT A De fout in de temperatuurregeling is te groot, wat kan komen doordat het deksel open is of door een afwijking in de verwarming."
                 },
                 {
-                    "ecode": "0300330000010001",
-                    "intro": "De snelheid van de linker zijcomponent van de koelventilator is laag. Mogelijk zit hij vast en moet hij worden schoongemaakt."
-                },
-                {
                     "ecode": "0704960000020004",
                     "intro": "AMS E De fout in de temperatuurregeling is te groot, wat kan komen doordat het deksel open is of door een afwijking in de verwarming."
                 },
@@ -477,10 +513,6 @@
                 {
                     "ecode": "1801960000020004",
                     "intro": "AMS-HT B De fout in de temperatuurregeling is te groot, wat kan komen doordat het deksel open is of door een afwijking in de verwarming."
-                },
-                {
-                    "ecode": "0300330000020002",
-                    "intro": "De snelheid van de linker zijcomponent van de koelventilator is laag. Mogelijk zit hij vast en moet hij worden schoongemaakt."
                 },
                 {
                     "ecode": "1806960000020004",
@@ -611,76 +643,8 @@
                     "intro": "De AMS G-sleuf 4 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
                 },
                 {
-                    "ecode": "1801630000020001",
-                    "intro": "Slot 4 van de AMS-HT B is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1806630000020001",
-                    "intro": "De AMS-HT G-sleuf 4 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "0704630000020001",
-                    "intro": "De AMS E-sleuf 4 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1805610000020001",
-                    "intro": "De AMS-HT F-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1802630000020001",
-                    "intro": "Slot 4 van de AMS-HT C is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1804620000020001",
-                    "intro": "De AMS-HT E-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1805620000020001",
-                    "intro": "De AMS-HT F-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1800620000020001",
-                    "intro": "De AMS-HT A Slot 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "0706610000020001",
-                    "intro": "De AMS G-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "0705620000020001",
-                    "intro": "De AMS F-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1805600000020001",
-                    "intro": "De AMS-HT F-sleuf 1 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1803610000020001",
-                    "intro": "De AMS-HT D-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1801600000020001",
-                    "intro": "Slot 1 van de AMS-HT B is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1807620000020001",
-                    "intro": "De AMS-HT H-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1807630000020001",
-                    "intro": "De AMS-HT H-sleuf 4 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1804600000020001",
-                    "intro": "De AMS-HT E-sleuf 1 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "0707610000020001",
-                    "intro": "De AMS H-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
-                },
-                {
-                    "ecode": "1806620000020001",
-                    "intro": "De AMS-HT G-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                    "ecode": "0300180000010005",
+                    "intro": "De rotatie van de motor op de Z-as is belemmerd; controleer of er vreemde voorwerpen vastzitten in de Z-schuif of de Z-distributiepoelie. Zorg er ook voor dat de bouwplaat correct is geplaatst om botsingen met omliggende constructies te voorkomen."
                 },
                 {
                     "ecode": "0700600000020001",
@@ -763,8 +727,76 @@
                     "intro": "Slot 1 van de AMS-HT C is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
                 },
                 {
-                    "ecode": "0300180000010005",
-                    "intro": "De rotatie van de motor op de Z-as is belemmerd; controleer of er vreemde voorwerpen vastzitten in de Z-schuif of de Z-distributiepoelie. Zorg er ook voor dat de bouwplaat correct is geplaatst om botsingen met omliggende constructies te voorkomen."
+                    "ecode": "1801630000020001",
+                    "intro": "Slot 4 van de AMS-HT B is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1806630000020001",
+                    "intro": "De AMS-HT G-sleuf 4 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "0704630000020001",
+                    "intro": "De AMS E-sleuf 4 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1805610000020001",
+                    "intro": "De AMS-HT F-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1802630000020001",
+                    "intro": "Slot 4 van de AMS-HT C is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1804620000020001",
+                    "intro": "De AMS-HT E-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1805620000020001",
+                    "intro": "De AMS-HT F-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1800620000020001",
+                    "intro": "De AMS-HT A Slot 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "0706610000020001",
+                    "intro": "De AMS G-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "0705620000020001",
+                    "intro": "De AMS F-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1805600000020001",
+                    "intro": "De AMS-HT F-sleuf 1 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1803610000020001",
+                    "intro": "De AMS-HT D-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1801600000020001",
+                    "intro": "Slot 1 van de AMS-HT B is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1807620000020001",
+                    "intro": "De AMS-HT H-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1807630000020001",
+                    "intro": "De AMS-HT H-sleuf 4 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1804600000020001",
+                    "intro": "De AMS-HT E-sleuf 1 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "0707610000020001",
+                    "intro": "De AMS H-sleuf 2 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
+                },
+                {
+                    "ecode": "1806620000020001",
+                    "intro": "De AMS-HT G-sleuf 3 is overbelast. Het filament kan in de knoop zitten of de filamentbuffer kan vastlopen."
                 },
                 {
                     "ecode": "1801620000020001",
@@ -3287,6 +3319,10 @@
                     "intro": "AMS-HT E-certificering is mislukt. Sluit de kabel opnieuw aan of start de printer opnieuw op."
                 },
                 {
+                    "ecode": "0C00010000010018",
+                    "intro": ""
+                },
+                {
                     "ecode": "0587050000010017",
                     "intro": "AMS-HT H-certificering mislukt. Sluit de kabel opnieuw aan of start de printer opnieuw op."
                 },
@@ -3337,10 +3373,6 @@
                 {
                     "ecode": "1806980000020002",
                     "intro": "AMS-HT G De spanning van de voedingsadapter is te hoog, waardoor het verwarmingscircuit kan worden beschadigd. Vervang de voedingsadapter."
-                },
-                {
-                    "ecode": "0C00010000010018",
-                    "intro": ""
                 },
                 {
                     "ecode": "0C00040000010025",
@@ -11419,6 +11451,10 @@
                     "intro": "De temperatuur- en vochtigheidssensor heeft een fout. De chip is mogelijk defect."
                 },
                 {
+                    "ecode": "18FF450000020003",
+                    "intro": "De handgreep van de filamentsnijder is niet losgemaakt. Het handvat of het mes kan vastzitten of er kan een probleem zijn met de aansluiting van de filamentsensor."
+                },
+                {
                     "ecode": "0707300000030003",
                     "intro": "RFID kan niet worden gelezen vanwege een hardware- of structurele fout."
                 },
@@ -11757,6 +11793,10 @@
                 {
                     "ecode": "0707210000020009",
                     "intro": "Kan AMS H Slot 2-filament niet extruderen; De extruder kan verstopt zijn of het filament kan te dun zijn, waardoor de extruder wegglijdt."
+                },
+                {
+                    "ecode": "18FE450000020003",
+                    "intro": "De handgreep van de filamentsnijder is niet losgemaakt. Het handvat of het mes kan vastzitten of er kan een probleem zijn met de aansluiting van de filamentsensor."
                 },
                 {
                     "ecode": "1802100000010001",
@@ -12963,6 +13003,14 @@
                     "intro": "De temperatuur van de AMS-HT B-kamer is te hoog; hulpvoeding of RFID-uitlezing is momenteel niet toegestaan."
                 },
                 {
+                    "ecode": "07FF450000020003",
+                    "intro": "De handgreep van de filamentsnijder is niet losgemaakt. Het handvat of het mes kan vastzitten of er kan een probleem zijn met de aansluiting van de filamentsensor."
+                },
+                {
+                    "ecode": "07FE450000020003",
+                    "intro": "De handgreep van de filamentsnijder is niet losgemaakt. Het handvat of het mes kan vastzitten of er kan een probleem zijn met de aansluiting van de filamentsensor."
+                },
+                {
                     "ecode": "1200300000010004",
                     "intro": "RFID kan niet worden gelezen vanwege een storing in de coderingschip in AMS A."
                 },
@@ -13903,10 +13951,6 @@
                     "intro": "Snijbeschermingsbasis niet gedetecteerd, die\nkan leiden tot schade aan het heatbed. Plaats het alstublieft en ga verder."
                 },
                 {
-                    "ecode": "030091000001000E",
-                    "intro": "De voedingsspanning komt niet overeen met de machine; kamerverwarmer 1 is uitgeschakeld."
-                },
-                {
                     "ecode": "0703950000010001",
                     "intro": "AMS D De temperatuursensor van verwarming 2 werkt niet goed, wat te wijten kan zijn aan een slecht contact met de connector."
                 },
@@ -14231,10 +14275,6 @@
                     "intro": "AMS-HT E De fasewikkeling van de hulpmotor heeft een open circuit. De hulpmotor is mogelijk defect."
                 },
                 {
-                    "ecode": "1803910000010003",
-                    "intro": "AMS-HT D De uitlaatklep 2 is niet aangesloten, wat te wijten kan zijn aan een slecht contact met de connector."
-                },
-                {
                     "ecode": "1806810000010003",
                     "intro": "AMS-HT G De kachel 2 is kortgesloten, wat te wijten kan zijn aan kortsluiting in de bedrading of schade aan de verwarming."
                 },
@@ -14369,6 +14409,10 @@
                 {
                     "ecode": "1800350000010002",
                     "intro": "AMS-HT A De vochtigheidssensor is losgekoppeld, wat te wijten kan zijn aan een slecht contact met de connector."
+                },
+                {
+                    "ecode": "1803910000010003",
+                    "intro": "AMS-HT D De uitlaatklep 2 is niet aangesloten, wat te wijten kan zijn aan een slecht contact met de connector."
                 },
                 {
                     "ecode": "0703200000020009",
@@ -17773,11 +17817,19 @@
             ]
         },
         "device_error": {
-            "ver": 202508270600,
+            "ver": 202509091807,
             "nl": [
                 {
+                    "ecode": "03004016",
+                    "intro": "Nozzle reiniging mislukt. Klik op de Assistent voor probleemoplossing."
+                },
+                {
                     "ecode": "0502C014",
-                    "intro": "De AMS Remaining Filament Estimation is standaard ingeschakeld en kan niet worden uitgeschakeld."
+                    "intro": "De AMS-schatting van resterende filament is standaard aan en kan niet worden uitgeschakeld."
+                },
+                {
+                    "ecode": "0500807E",
+                    "intro": "Plaats a.u.b. een StrongGrip snijmat op de snijbeschermingsbasis."
                 },
                 {
                     "ecode": "05864096",
@@ -17828,20 +17880,16 @@
                     "intro": "Niet-gecertificeerde AMS A gedetecteerd; Het apparaat kan niet verder werken. Sluit de AMS-kabel opnieuw aan of start de printer opnieuw op."
                 },
                 {
-                    "ecode": "0500807E",
-                    "intro": "Plaats a.u.b. een StrongGrip snijmat op de snijbeschermingsbasis."
-                },
-                {
                     "ecode": "05008062",
                     "intro": "De printplaatmarkering is niet gedetecteerd. Controleer of de printplaat correct op het verhittingsbed is geplaatst met alle vier de hoeken uitgelijnd en de markering zichtbaar is."
                 },
                 {
-                    "ecode": "0502C012",
-                    "intro": "De kalibratietaak kan niet worden gepauzeerd."
-                },
-                {
                     "ecode": "0500808B",
                     "intro": "De installatie van de BirdsEye-camera is mislukt. Maak het warmtebed leeg, verwijder alle voorwerpen en de mat en zorg ervoor dat de heatbedmarkeringen zichtbaar zijn. Maak ondertussen de BirdsEye-camera en de Toolhead-camera schoon en verwijder alle obstakels die de camera's kunnen blokkeren."
+                },
+                {
+                    "ecode": "0502C012",
+                    "intro": "De kalibratietaak kan niet worden gepauzeerd."
                 },
                 {
                     "ecode": "07FFC010",
@@ -17872,6 +17920,10 @@
                     "intro": "Nu in 2D-productiemodus. Ga gewoon door met de printer."
                 },
                 {
+                    "ecode": "0C008002",
+                    "intro": ""
+                },
+                {
                     "ecode": "05024008",
                     "intro": ""
                 },
@@ -17886,10 +17938,6 @@
                 {
                     "ecode": "05008091",
                     "intro": "De offsetkalibratie van de snijmodule is mislukt, waardoor de sneden misschien niet goed uitkomen. Zorg ervoor dat het witte printerpapier van 80 g (letterformaat) goed ligt en check of het mesje nog scherp is."
-                },
-                {
-                    "ecode": "0C008002",
-                    "intro": ""
                 },
                 {
                     "ecode": "0502400C",
@@ -17912,24 +17960,36 @@
                     "intro": "Verwarm de nozzle tot boven de 170°C."
                 },
                 {
-                    "ecode": "05004010",
-                    "intro": "AMS is aan het drogen en kan momenteel niet worden geüpgraded. Probeer het later nog eens."
+                    "ecode": "07078023",
+                    "intro": "Koeling AMS H mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
                 },
                 {
-                    "ecode": "05004011",
-                    "intro": "De printer is bezig met het laden of lossen van filament en kan op dit moment niet worden geüpgraded. Probeer het later nog eens."
+                    "ecode": "18048023",
+                    "intro": "Koeling AMS-HT E mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
                 },
                 {
-                    "ecode": "05004012",
-                    "intro": "Het apparaat is bezig met afdrukken en kan momenteel niet worden geüpgraded. Probeer het later nog eens."
+                    "ecode": "18068023",
+                    "intro": "Koeling AMS-HT G is mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
                 },
                 {
-                    "ecode": "0500400F",
-                    "intro": "AMS wordt geïnitialiseerd en kan momenteel niet worden geüpgraded. Probeer het later nog eens."
+                    "ecode": "18038023",
+                    "intro": "Koeling AMS-HT D mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
                 },
                 {
-                    "ecode": "05004013",
-                    "intro": "AMS is in bedrijf en kan momenteel niet worden geüpgraded. Probeer het opnieuw als het niet actief is."
+                    "ecode": "18058023",
+                    "intro": "Koeling AMS-HT F mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                },
+                {
+                    "ecode": "18008023",
+                    "intro": "AMS-HT A koeling mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                },
+                {
+                    "ecode": "18078023",
+                    "intro": "Koeling AMS-HT H mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                },
+                {
+                    "ecode": "18028023",
+                    "intro": "Koeling AMS-HT C is mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
                 },
                 {
                     "ecode": "07008023",
@@ -17964,36 +18024,24 @@
                     "intro": "Koeling AMS G is mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
                 },
                 {
-                    "ecode": "07078023",
-                    "intro": "Koeling AMS H mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                    "ecode": "05004010",
+                    "intro": "AMS is aan het drogen en kan momenteel niet worden geüpgraded. Probeer het later nog eens."
                 },
                 {
-                    "ecode": "18048023",
-                    "intro": "Koeling AMS-HT E mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                    "ecode": "05004011",
+                    "intro": "De printer is bezig met het laden of lossen van filament en kan op dit moment niet worden geüpgraded. Probeer het later nog eens."
                 },
                 {
-                    "ecode": "18068023",
-                    "intro": "Koeling AMS-HT G is mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                    "ecode": "05004012",
+                    "intro": "Het apparaat is bezig met afdrukken en kan momenteel niet worden geüpgraded. Probeer het later nog eens."
                 },
                 {
-                    "ecode": "18038023",
-                    "intro": "Koeling AMS-HT D mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                    "ecode": "0500400F",
+                    "intro": "AMS wordt geïnitialiseerd en kan momenteel niet worden geüpgraded. Probeer het later nog eens."
                 },
                 {
-                    "ecode": "18058023",
-                    "intro": "Koeling AMS-HT F mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
-                },
-                {
-                    "ecode": "18008023",
-                    "intro": "AMS-HT A koeling mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
-                },
-                {
-                    "ecode": "18078023",
-                    "intro": "Koeling AMS-HT H mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
-                },
-                {
-                    "ecode": "18028023",
-                    "intro": "Koeling AMS-HT C is mislukt. De omgevingstemperatuur is mogelijk te hoog. Gebruik het apparaat in een geschikte omgeving."
+                    "ecode": "05004013",
+                    "intro": "AMS is in bedrijf en kan momenteel niet worden geüpgraded. Probeer het opnieuw als het niet actief is."
                 },
                 {
                     "ecode": "03008022",
