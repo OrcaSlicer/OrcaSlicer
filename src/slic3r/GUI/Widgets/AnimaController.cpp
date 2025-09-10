@@ -55,9 +55,16 @@ AnimaIcon::AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> i
     SetMinSize(wxSize(FromDIP(m_size), FromDIP(m_size)));
     Layout();
     Fit();
-    Play();
 }
 
+AnimaIcon::~AnimaIcon()
+{
+    if (m_timer) {
+        m_timer->Stop();
+        delete m_timer;
+        m_timer = nullptr;
+    }
+}
 
 void AnimaIcon::Play()
 {
