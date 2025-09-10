@@ -260,7 +260,12 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
     }
     preset_names = default_naming(preset_names);
 
-    for (auto& item : cali_result) {
+    std::vector<PACalibResult> sorted_cali_result = cali_result;
+    std::sort(sorted_cali_result.begin(), sorted_cali_result.end(), [this](const PACalibResult &left, const PACalibResult& right) {
+        return left.tray_id < right.tray_id;
+    });
+
+    for (auto &item : sorted_cali_result) {
         bool result_failed = false;
         if (item.confidence != 0) {
             result_failed = true;

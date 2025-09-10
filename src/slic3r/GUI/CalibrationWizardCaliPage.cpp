@@ -270,7 +270,7 @@ void CalibrationCaliPage::update(MachineObject* obj)
                     enable_cali = false;
                 }
             } else {
-                assert(false);
+                //assert(false);
             }
             m_action_panel->enable_button(CaliPageActionType::CALI_ACTION_CALI_NEXT, enable_cali);
         } 

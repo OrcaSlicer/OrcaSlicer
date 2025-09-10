@@ -42,6 +42,9 @@ static std::string MachineBedTypeString[7] = {
     "pct",
 };
 
+static wxString nozzle_not_set_text = _L("The printer nozzle information has not been set.\nPlease configure it before proceeding with the calibration.");
+static wxString nozzle_volume_type_not_match_text = _L("The nozzle type does not match the actual printer nozzle type.\nPlease click the Sync button above and restart the calibration.");
+
 std::vector<std::string> not_support_auto_pa_cali_filaments = {
     "GFU03", // TPU 90A
     "GFU04"  // TPU 85A
@@ -836,6 +839,7 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
     _wall_generator->value   = PerimeterGeneratorType::Arachne;
 
     print_config.option<ConfigOptionBool>("enable_prime_tower")->value = false;
+    print_config.option<ConfigOptionBool>("enable_wrapping_detection")->value = false;
 
     auto get_new_filament_id = [&sorted_calib_infos](int index) -> int {
         for (size_t i = 0; i < sorted_calib_infos.size(); ++i) {
@@ -1361,13 +1365,6 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
     }
 
     bool  is_multi_extruder = obj->is_multi_extruders();
-    std::vector<NozzleFlowType> nozzle_volume_types;
-    if (is_multi_extruder) {
-        for (const DevExtder& extruder : obj->GetExtderSystem()->GetExtruders()) {
-            nozzle_volume_types.emplace_back(extruder.GetNozzleFlowType());
-        }
-    }
-
     Preset *printer_preset = get_printer_preset(obj);
 
     for (const auto &cali_info : cali_infos.calib_datas) {
@@ -1383,7 +1380,14 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
             return false;
         }
 
+
+        if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
+            return false;
+        }
+
         float diameter = obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
+        NozzleFlowType nozzle_volume_type = obj->GetExtderSystem()->GetNozzleFlowType(extruder_id);
         if (!is_approx(cali_info.nozzle_diameter, diameter)) {
             if (is_multi_extruder)
                 error_message = wxString::Format(_L("The currently selected nozzle diameter of %s extruder does not match the actual nozzle diameter.\n"
@@ -1394,18 +1398,21 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
             return false;
         }
 
-        if (is_multi_extruder) {
-            if (nozzle_volume_types[cali_info.extruder_id] == NozzleFlowType::NONE_FLOWTYPE) {
-
+        if (nozzle_volume_type == NozzleFlowType::NONE_FLOWTYPE) {
+            if (is_multi_extruder)
                 error_message = wxString::Format(_L("Printer %s nozzle information has not been set. Please configure it before proceeding with the calibration."), name);
-                return false;
-            }
+            else
+                error_message = nozzle_not_set_text;
+            return false;
+        }
 
-            if (NozzleVolumeType(nozzle_volume_types[cali_info.extruder_id] - 1) != cali_info.nozzle_volume_type) {
+        if (NozzleVolumeType(nozzle_volume_type - 1) != cali_info.nozzle_volume_type) {
+            if (is_multi_extruder)
                 error_message = wxString::Format(_L("The currently selected nozzle type of %s extruder does not match the actual printer nozzle type.\n"
-                                                    "Please click the Sync button above and restart the calibration."), name);
-                return false;
-            }
+                                                "Please click the Sync button above and restart the calibration."), name);
+            else
+                error_message = nozzle_volume_type_not_match_text;
+            return false;
         }
     }
     return true;
@@ -1421,61 +1428,72 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
     if (cali_infos.empty())
         return true;
 
-    float cali_diameter = cali_infos[0].nozzle_diameter;
-    int   extruder_id   = cali_infos[0].extruder_id;
+    bool is_multi_extruder = obj->is_multi_extruders();
+    std::vector<NozzleFlowType> nozzle_volume_types;
+    if (is_multi_extruder) {
+        const auto& extders = obj->GetExtderSystem()->GetExtruders();
+        for (const DevExtder &extruder : extders) {
+            nozzle_volume_types.emplace_back(extruder.GetNozzleFlowType());
+        }
+    }
+
+    Preset *printer_preset = get_printer_preset(obj);
+
     for (const auto &cali_info : cali_infos) {
-        if (cali_infos[0].params.mode == CalibMode::Calib_Auto_PA_Line && !is_support_auto_pa_cali(cali_info.filament_prest->filament_id)) {
+        wxString name = _L("left");
+        if (cali_info.extruder_id == 0) {
+            name = _L("right");
+        }
+
+        if (cali_info.params.mode == CalibMode::Calib_Auto_PA_Line && !is_support_auto_pa_cali(cali_info.filament_prest->filament_id)) {
             error_message = _L("TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration.");
             return false;
         }
 
-        if (!is_approx(cali_diameter, cali_info.nozzle_diameter)) {
-            error_message = _L("Automatic calibration only supports cases where the left and right nozzle diameters are identical.");
+
+        if (is_approx(double(cali_info.nozzle_diameter), 0.2) && !obj->is_series_x()) {
+            error_message = wxString::Format(_L("The nozzle diameter of %s extruder is 0.2mm which does not support automatic Flow Dynamics calibration."), name);
             return false;
         }
-    }
 
-    if (extruder_id >= obj->GetExtderSystem()->GetExtruders().size()) {
-        error_message = _L("The number of printer extruders and the printer selected for calibration does not match.");
-        return false;
-    }
+        float cali_diameter = cali_info.nozzle_diameter;
+        int   extruder_id   = cali_info.extruder_id;
+        if (extruder_id >= obj->GetExtderSystem()->GetTotalExtderSize()) {
+            error_message = _L("The number of printer extruders and the printer selected for calibration does not match.");
+            return false;
+        }
 
-    float diameter = obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
-    bool                        is_multi_extruder = obj->is_multi_extruders();
-    std::vector<NozzleFlowType> nozzle_volume_types;
-    if (is_multi_extruder) {
-        for (auto &extruder : obj->GetExtderSystem()->GetExtruders()) { nozzle_volume_types.emplace_back(extruder.GetNozzleFlowType()); }
-    }
-
-    for (const auto &cali_info : cali_infos) {
-        wxString name = _L("left");
-        if (cali_info.extruder_id == 0) { name = _L("right"); }
+        float diameter = obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
+        NozzleFlowType nozzle_volume_type = nozzle_volume_types[cali_info.extruder_id];
 
         if (!is_approx(cali_info.nozzle_diameter, diameter)) {
             if (is_multi_extruder)
                 error_message = wxString::Format(_L("The currently selected nozzle diameter of %s extruder does not match the actual nozzle diameter.\n"
-                                                    "Please click the Sync button above and restart the calibration."),
-                                                 name);
+                                                    "Please click the Sync button above and restart the calibration."), name);
             else
                 error_message = _L("The nozzle diameter does not match the actual printer nozzle diameter.\n"
                                    "Please click the Sync button above and restart the calibration.");
             return false;
         }
 
-        if (is_multi_extruder) {
-            if (nozzle_volume_types[cali_info.extruder_id] == NozzleFlowType::NONE_FLOWTYPE) {
+        if (nozzle_volume_type == NozzleFlowType::NONE_FLOWTYPE) {
+            if (is_multi_extruder)
                 error_message = wxString::Format(_L("Printer %s nozzle information has not been set. Please configure it before proceeding with the calibration."), name);
-                return false;
-            }
+            else
+                error_message = nozzle_not_set_text;
+            return false;
+        }
 
-            if (NozzleVolumeType(nozzle_volume_types[cali_info.extruder_id] - 1) != cali_info.nozzle_volume_type) {
+        if (NozzleVolumeType(nozzle_volume_type - 1) != cali_info.nozzle_volume_type) {
+            if (is_multi_extruder)
                 error_message = wxString::Format(_L("The currently selected nozzle type of %s extruder does not match the actual printer nozzle type.\n"
-                                                    "Please click the Sync button above and restart the calibration."),
-                                                 name);
-                return false;
-            }
+                                                "Please click the Sync button above and restart the calibration."), name);
+            else
+                error_message = nozzle_volume_type_not_match_text;
+            return false;
         }
     }
+
     return true;
 }
 
@@ -1489,19 +1507,14 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject* obj, co
     const ConfigOptionFloats *nozzle_diameter_config = cali_info.printer_prest->config.option<ConfigOptionFloats>("nozzle_diameter");
     float nozzle_diameter = nozzle_diameter_config->values[0];
 
-    float diameter = obj->GetExtderSystem()->GetNozzleDiameter(cali_info.extruder_id);
     bool  is_multi_extruder = obj->is_multi_extruders();
-    std::vector<NozzleFlowType> nozzle_volume_types;
-    if (is_multi_extruder) {
-        for (const DevExtder& extruder : obj->GetExtderSystem()->GetExtruders()) {
-            nozzle_volume_types.emplace_back(extruder.GetNozzleFlowType());
-        }
-    }
-
     wxString name = _L("left");
     if (cali_info.extruder_id == 0) {
         name = _L("right");
     }
+
+    float  diameter = obj->GetExtderSystem()->GetNozzleDiameter(cali_info.extruder_id);
+    NozzleFlowType nozzle_volume_type = obj->GetExtderSystem()->GetNozzleFlowType(cali_info.extruder_id);
 
     if (!is_approx(nozzle_diameter, diameter)) {
         if (is_multi_extruder)
@@ -1513,17 +1526,22 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject* obj, co
         return false;
     }
 
-    if (is_multi_extruder) {
-        if (nozzle_volume_types[cali_info.extruder_id] == NozzleFlowType::NONE_FLOWTYPE) {
-            error_message = wxString::Format(_L("Printer %s nozzle information has not been set. Please configure it before proceeding with the calibration."), name);
-            return false;
-        }
 
-        if (NozzleVolumeType(nozzle_volume_types[cali_info.extruder_id] - 1) != cali_info.nozzle_volume_type) {
+    if (nozzle_volume_type == NozzleFlowType::NONE_FLOWTYPE) {
+        if (is_multi_extruder)
+            error_message = wxString::Format(_L("Printer %s nozzle information has not been set. Please configure it before proceeding with the calibration."), name);
+        else
+            error_message = nozzle_not_set_text;
+        return false;
+    }
+
+    if (NozzleVolumeType(nozzle_volume_type - 1) != cali_info.nozzle_volume_type) {
+        if (is_multi_extruder)
             error_message = wxString::Format(_L("The currently selected nozzle type of %s extruder does not match the actual printer nozzle type.\n"
-                                                "Please click the Sync button above and restart the calibration."), name);
-            return false;
-        }
+                                            "Please click the Sync button above and restart the calibration."), name);
+        else
+            error_message = nozzle_volume_type_not_match_text;
+        return false;
     }
 
     return true;
