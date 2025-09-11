@@ -38,6 +38,7 @@ public:
 class AmsPanel : public wxPanel
 {
 public:
+    wxStaticText *m_staticText_ams_model_id;
     wxStaticText *m_staticText_ams;
     wxStaticText *m_staticText_ams_sn_val;
     wxStaticText *m_staticText_ams_ver_val;

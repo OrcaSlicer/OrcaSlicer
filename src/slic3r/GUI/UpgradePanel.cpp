@@ -433,9 +433,9 @@ void MachineInfoPanel::msw_rescale()
 void MachineInfoPanel::init_bitmaps()
 {
     try {
-        m_img_printer        = ScalableBitmap(this, "printer_thumbnail_png", 160);
-        m_img_monitor_ams    = ScalableBitmap(this, "monitor_upgrade_ams_png", 160);
-        m_img_ext            = ScalableBitmap(this, "monitor_upgrade_ext", 160);
+        m_img_printer     = ScalableBitmap(this, "printer_thumbnail_png", 160);
+        m_img_monitor_ams = ScalableBitmap(this, "monitor_upgrade_ams_png", 150);
+        m_img_ext         = ScalableBitmap(this, "monitor_upgrade_ext", 160);
 
         m_img_air_pump  = ScalableBitmap(this, "air_pump", 160);
         m_img_extra_ams = ScalableBitmap(this, "extra_icon_png", 160);
@@ -685,6 +685,7 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
             AmsPanel *amspanel = m_amspanel_list[i];
             amspanel->Hide();
         }
+
 
         m_ahb_panel->Show();
 
@@ -1025,7 +1026,7 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
 
     if (contain_four_slot) {
         if (m_img_monitor_ams.name() != "monitor_upgrade_ams") {
-            m_img_monitor_ams = ScalableBitmap(this, "monitor_upgrade_ams_png", 160);
+            m_img_monitor_ams = ScalableBitmap(this, "monitor_upgrade_ams_png", 150);
             m_ams_img->SetBitmap(m_img_monitor_ams.bmp());
         }
     } else if (contain_one_slot) {
@@ -1522,6 +1523,10 @@ bool UpgradePanel::Show(bool show)
      ams_sizer->SetFlexibleDirection(wxHORIZONTAL);
      ams_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
+     m_staticText_ams_model_id = new wxStaticText(this, wxID_ANY, _L("Model:"), wxDefaultPosition, wxDefaultSize, 0);
+     m_staticText_ams_model_id->Wrap(-1);
+     m_staticText_ams_model_id->SetFont(Label::Head_14);
+
      m_staticText_ams = new wxStaticText(this, wxID_ANY, "-", wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_ams->SetForegroundColour("#262E30");
      m_staticText_ams->SetFont(Label::Head_14);
@@ -1564,8 +1569,8 @@ bool UpgradePanel::Show(bool show)
      content_info->Add(m_staticText_ams_ver_val, 0, wxALL | wxEXPAND, FromDIP(5));
      content_info->Add(m_staticText_beta_version, 0, wxALL | wxEXPAND, FromDIP(5));
 
-     ams_sizer->Add(m_staticText_ams, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
-     ams_sizer->Add(0, 0, 1, wxEXPAND, 5);
+     ams_sizer->Add(m_staticText_ams_model_id, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
+     ams_sizer->Add(m_staticText_ams, 0,  wxALL, FromDIP(5));
      ams_sizer->Add(m_staticText_ams_sn, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
      ams_sizer->Add(m_staticText_ams_sn_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ams_sizer->Add(m_ams_ver_sizer, 1, wxEXPAND, FromDIP(5));
