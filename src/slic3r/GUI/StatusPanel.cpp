@@ -739,6 +739,11 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
             wxFont font = m_printing_stage_value->GetFont();
             font.SetUnderlined(true);
             m_printing_stage_value->SetFont(font);
+        } else {
+            m_printing_stage_value->SetCursor(wxCursor(wxCURSOR_ARROW));
+            wxFont font = m_printing_stage_value->GetFont();
+            font.SetUnderlined(false);
+            m_printing_stage_value->SetFont(font);
         }
         event.Skip();
     });
@@ -1147,8 +1152,8 @@ void PrintingTaskPanel::update_stage_value(wxString stage, int val)
 void PrintingTaskPanel::update_stage_value_with_machine(wxString stage, int val, MachineObject *obj)
 {
     m_gauge_progress->SetValue(val);
-   // m_printing_stage_value->SetLabelText(stage);
-    m_printing_stage_value->SetLabelText(" Thermal Preconditioning for first layeroptimization");
+    m_printing_stage_value->SetLabelText(stage);
+
 
     if (obj && obj->stage_curr == 58) {
         // Show English text for thermal preconditioning
@@ -1156,9 +1161,11 @@ void PrintingTaskPanel::update_stage_value_with_machine(wxString stage, int val,
         m_printing_stage_value->SetCursor(wxCursor(wxCURSOR_HAND));
         m_question_button->Show(); // Show question button
     } else {
-        m_printing_stage_value->SetLabelText(stage);
         m_printing_stage_value->SetForegroundColour(STAGE_TEXT_COL);
         m_printing_stage_value->SetCursor(wxCURSOR_ARROW);
+        wxFont font = m_printing_stage_value->GetFont();
+        font.SetUnderlined(false);
+        m_printing_stage_value->SetFont(font);
         m_question_button->Hide(); // Hide question button
     }
 }
