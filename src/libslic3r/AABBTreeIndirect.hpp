@@ -593,7 +593,7 @@ namespace detail {
 			const auto &look_left = [&]()
 			{
                 size_t	i_left;
-                Vector 	c_left = c;
+                Vector 	c_left;
                 Scalar	sqr_d_left = squared_distance_to_indexed_primitives_recursive(distancer, left_node_idx, low_sqr_d, up_sqr_d, i_left, c_left);
 				set_min(sqr_d_left, i_left, c_left);
 				looked_left = true;
@@ -601,7 +601,7 @@ namespace detail {
 			const auto &look_right = [&]()
 			{
                 size_t	i_right;
-                Vector	c_right = c;
+                Vector	c_right;
                 Scalar	sqr_d_right = squared_distance_to_indexed_primitives_recursive(distancer, right_node_idx, low_sqr_d, up_sqr_d, i_right, c_right);
 				set_min(sqr_d_right, i_right, c_right);
 				looked_right = true;
