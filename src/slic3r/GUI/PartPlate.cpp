@@ -6236,6 +6236,14 @@ void PartPlateList::init_bed_type_info()
         for (int i = 0; i < bed_types.size(); i++) {
             m_allow_bed_type_in_double_nozzle[bed_types[i]] = true;
         }
+    } else {
+        if (bottom_texture_end_name.size() > 0) {
+            st_part2.update_file("bbl_bed_st_bottom_" + bottom_texture_end_name + ".svg");
+            pc_part2.update_file("bbl_bed_pc_bottom_" + bottom_texture_end_name + ".svg");
+            ep_part2.update_file("bbl_bed_ep_bottom_" + bottom_texture_end_name + ".svg");
+            pei_part2.update_file("bbl_bed_pei_bottom_" + bottom_texture_end_name + ".svg");
+            pte_part2.update_file("bbl_bed_pte_bottom_" + bottom_texture_end_name + ".svg");
+        }
     }
 
 	for (size_t i = 0; i < btCount; i++) {
