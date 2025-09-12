@@ -4088,10 +4088,20 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                     pa_calib_result.setting_id  = (*it)["setting_id"].get<std::string>();
                                 }
 
+                                // old
                                 if (jj["nozzle_diameter"].is_number_float()) {
                                     pa_calib_result.nozzle_diameter = jj["nozzle_diameter"].get<float>();
                                 } else if (jj["nozzle_diameter"].is_string()) {
                                     pa_calib_result.nozzle_diameter = string_to_float(jj["nozzle_diameter"].get<std::string>());
+                                }
+
+                                // new: should get nozzle diameter from filament item
+                                if ((*it).contains("setting_id")) {
+                                    if ((*it)["nozzle_diameter"].is_number_float()) {
+                                        pa_calib_result.nozzle_diameter = (*it)["nozzle_diameter"].get<float>();
+                                    } else if ((*it)["nozzle_diameter"].is_string()) {
+                                        pa_calib_result.nozzle_diameter = string_to_float((*it)["nozzle_diameter"].get<std::string>());
+                                    }
                                 }
 
                                 if (it->contains("ams_id")) {
