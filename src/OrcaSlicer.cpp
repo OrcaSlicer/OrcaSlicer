@@ -1791,7 +1791,7 @@ int CLI::run(int argc, char **argv)
             }
         }
         catch (std::exception& e) {
-            boost::nowide::cerr << construct_assemble_list << ": " << e.what() << std::endl;
+            boost::nowide::cerr << "construct_assemble_list: " << e.what() << std::endl;
             record_exit_reson(outfile_dir, CLI_DATA_FILE_ERROR, 0, cli_errors[CLI_DATA_FILE_ERROR], sliced_info);
             flush_and_exit(CLI_DATA_FILE_ERROR);
         }
