@@ -140,13 +140,12 @@ enum Axis {
 	NUM_AXES_WITH_UNKNOWN,
 };
 
-template <typename T, typename Alloc, typename Alloc2>
-inline void append(std::vector<T, Alloc> &dest, const std::vector<T, Alloc2> &src)
+template <typename T, typename Alloc>
+inline void append(std::vector<T, Alloc> &dest, const std::vector<T, Alloc> &src)
 {
     if (dest.empty())
-        dest = src;
-    else
-        dest.insert(dest.end(), src.begin(), src.end());
+        dest.reserve(src.size());
+    dest.insert(dest.end(), src.begin(), src.end());
 }
 
 template <typename T, typename Alloc>
