@@ -149,6 +149,48 @@ void OrientJob::prepare()
     }
 }
 
+namespace {
+/// parameters to minimize support area
+void setMinimalSupportAreaPrams(Slic3r::orientation::OrientParams &out)
+{
+    out.TAR_A               = 0.015f;
+    out.TAR_B               = 0.177f;
+    out.RELATIVE_F          = 20;
+    out.CONTOUR_F           = 0.5f;
+    out.BOTTOM_F            = 2.5f;
+    out.BOTTOM_HULL_F       = 0.1f;
+    out.TAR_C               = 0.1f;
+    out.TAR_D               = 1;
+    out.TAR_E               = 0.0115f;
+    out.FIRST_LAY_H         = 0.2f;      // 0.0475;
+    out.VECTOR_TOL          = -0.00083f;
+    out.NEGL_FACE_SIZE      = 0.01f;
+    out.ASCENT              = -0.5f;
+    out.PLAFOND_ADV         = 0.0599f;
+    out.CONTOUR_AMOUNT      = 0.0182427f;
+    out.OV_H                = 2.574f;
+    out.height_offset       = 2.3728f;
+    out.height_log          = 0.041375f;
+    out.height_log_k        = 1.9325457f;
+    out.LAF_MAX             = 0.999f;    // cos(1.4\degree) for low angle face 0.9997f
+    out.LAF_MIN             = 0.97f;     // cos(14\degree) 0.9703f
+    out.TAR_LAF             = 0.001f;    // 0.01f
+    out.TAR_PROJ_AREA       = 0.1f;
+    out.BOTTOM_MIN          = 0.1f;      // min bottom area. If lower than it the object may be unstable
+    out.BOTTOM_MAX          = 2000;      // max bottom area. If get to it the object is stable enough (further increase bottom area won't do more help)
+    out.height_to_bottom_hull_ratio_MIN = 1,
+    out.BOTTOM_HULL_MAX     = 2000;      // max bottom hull area
+    out.APPERANCE_FACE_SUPP = 3;         // penalty of generating supports on appearance face
+    out.overhang_angle      = 60.f;
+    out.use_low_angle_face  = true;
+    out.min_volume          = false;
+    out.fun_dir             = {};
+    out.parallel            = true;
+    out.progressind         = {};
+    out.stopcondition       = {};
+}
+} // namespace
+
 void OrientJob::process(Ctl &ctl)
 {
     static const auto arrangestr = _u8L("Orienting...");
@@ -161,9 +203,8 @@ void OrientJob::process(Ctl &ctl)
     const GLCanvas3D::OrientSettings& settings = m_plater->canvas3D()->get_orient_settings();
 
     orientation::OrientParams params;
-    orientation::OrientParamsArea params_area;
     if (settings.min_area) {
-        memcpy(&params, &params_area, sizeof(params));
+        setMinimalSupportAreaPrams(params);
         params.min_volume = false;
     }
     else {
