@@ -293,6 +293,7 @@ static void init_multi_extruder_params_for_cali(DynamicPrintConfig& config, cons
         {
             nozzle_volume_types[index] = (int) calib_info.nozzle_volume_type;
             extruder_id = index + 1;
+            break;
         }
     }
 
@@ -883,6 +884,7 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
         for (size_t index = 0; index < extruder_count; ++index) {
             if (physical_extruder_maps[index] == extruder_id) {
                 extruder_id = index;
+                break;
             }
         }
         nozzle_volume_types[extruder_id] = (int)calib_info.nozzle_volume_type;
@@ -969,6 +971,7 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
         for (size_t index = 0; index < physical_extruder_maps.size(); ++index) {
             if (physical_extruder_maps[index] == calib_info.extruder_id) {
                 filament_map[i] = index;
+                break;
             }
         }
     }
