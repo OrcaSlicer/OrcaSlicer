@@ -6206,7 +6206,7 @@ void PartPlateList::init_bed_type_info()
         if (middle_rect[2] > 0.f) {
             st_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_st_middle.svg");
         }
-        st_part2 = BedTextureInfo::TexturePart(45, -14.5, 70, 8, "bbl_bed_st_left_bottom.svg");
+        st_part2 = BedTextureInfo::TexturePart(45, -14.5, 260, 8, "bbl_bed_st_left_bottom.svg");
         if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
             std::string st_part2_name = "bbl_bed_st_bottom_" + bottom_texture_end_name + ".svg";
             st_part2                   = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], st_part2_name);
@@ -6216,7 +6216,7 @@ void PartPlateList::init_bed_type_info()
         if (middle_rect[2] > 0.f) {
             ep_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_ep_middle.svg");
         }
-        ep_part2 = BedTextureInfo::TexturePart(45, -14.5, 70, 8, "bbl_bed_ep_left_bottom.svg");
+        ep_part2 = BedTextureInfo::TexturePart(45, -14.5, 260, 8, "bbl_bed_ep_left_bottom.svg");
         if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
             std::string ep_part2_name = "bbl_bed_ep_bottom_" + bottom_texture_end_name + ".svg";
             ep_part2                   = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], ep_part2_name);
