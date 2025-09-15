@@ -111,6 +111,8 @@ struct SupportParameters {
 
         SupportMaterialPattern  support_pattern = object_config.support_base_pattern;
         this->with_sheath = object_config.tree_support_wall_count > 0;
+        // Cache Rectilinear Interlaced flag once
+        this->interlaced_interface = (object_config.support_interface_pattern == smipRectilinearInterlaced);
         this->base_fill_pattern =
             support_pattern == smpHoneycomb ? ipHoneycomb :
             this->support_density > 0.95 || this->with_sheath ? ipRectilinear : ipSupportBase;
@@ -127,37 +129,10 @@ struct SupportParameters {
             ipConcentric :
             (this->interface_density > 0.95 ? ipRectilinear : ipSupportBase);
 
-        this->raft_angle_1st_layer  = 0.f;
-        this->raft_angle_base       = 0.f;
-        this->raft_angle_interface  = 0.f;
-        if (slicing_params.base_raft_layers > 1) {
-            assert(slicing_params.raft_layers() >= 4);
-            // There are all raft layer types (1st layer, base, interface & contact layers) available.
-            this->raft_angle_1st_layer  = this->interface_angle;
-            this->raft_angle_base       = this->base_angle;
-            this->raft_angle_interface  = this->interface_angle;
-            if ((slicing_params.interface_raft_layers & 1) == 0)
-                // Allign the 1st raft interface layer so that the object 1st layer is hatched perpendicularly to the raft contact interface.
-                this->raft_angle_interface += float(0.5 * M_PI);
-        } else if (slicing_params.base_raft_layers == 1 || slicing_params.interface_raft_layers > 1) {
-            assert(slicing_params.raft_layers() == 2 || slicing_params.raft_layers() == 3);
-            // 1st layer, interface & contact layers available.
-            this->raft_angle_1st_layer  = this->base_angle;
-            this->raft_angle_interface  = this->interface_angle + 0.5 * M_PI;
-        } else if (slicing_params.interface_raft_layers == 1) {
-            // Only the contact raft layer is non-empty, which will be printed as the 1st layer.
-            assert(slicing_params.base_raft_layers == 0);
-            assert(slicing_params.interface_raft_layers == 1);
-            assert(slicing_params.raft_layers() == 1);
-            this->raft_angle_1st_layer = float(0.5 * M_PI);
-            this->raft_angle_interface = this->raft_angle_1st_layer;
-        } else {
-            // No raft.
-            assert(slicing_params.base_raft_layers == 0);
-            assert(slicing_params.interface_raft_layers == 0);
-            assert(slicing_params.raft_layers() == 0);
-        }
-
+        this->raft_angle_1st_layer  = float(M_PI_2);
+        this->raft_angle_base       = 0.0f;
+        this->raft_angle_interface  = slicing_params.base_raft_layers == 1 ? 0.0f : float(M_PI_2);  // make it perpendicular to the layer beneath it
+        
 	    const auto     nozzle_diameter = print_config.nozzle_diameter.get_at(object_config.support_interface_filament - 1);
         const coordf_t extrusion_width = object_config.line_width.get_abs_value(nozzle_diameter);
         support_extrusion_width        = object_config.support_line_width.get_abs_value(nozzle_diameter);
@@ -254,6 +229,8 @@ struct SupportParameters {
     InfillPattern 			contact_fill_pattern;
     // Shall the sparse (base) layers be printed with a single perimeter line (sheath) for robustness?
     bool                    with_sheath;
+    // True if support interface pattern is Rectilinear Interlaced
+    bool                    interlaced_interface = false;
     // Branches of organic supports with area larger than this threshold will be extruded with double lines.
     double                  tree_branch_diameter_double_wall_area_scaled = 0.25 * sqr(scaled<double>(5.0)) * M_PI;;
 
@@ -262,8 +239,30 @@ struct SupportParameters {
     float 					raft_angle_interface;
 
     // Produce a raft interface angle for a given SupportLayer::interface_id()
-    float 					raft_interface_angle(size_t interface_id) const 
-    	{ return this->raft_angle_interface + ((interface_id & 1) ? float(- M_PI / 4.) : float(+ M_PI / 4.)); }
+    float raft_interface_angle(size_t interface_id) const
+    {
+        // Raft interfaces → always alternate 0°/90°
+        return this->raft_angle_interface +
+            ((interface_id & 1) ? float(M_PI_2) : 0.0f);
+    }
+
+    float support_interface_angle(size_t interface_id) const
+    {
+        if (this->support_style == smsSnug) {
+            // Snug → ±45°
+            return this->interface_angle +
+                ((interface_id & 1) ? -float(M_PI_4) : +float(M_PI_4));
+        }
+
+        if (this->interlaced_interface) {
+            // Interlaced → 0°/90°
+            return this->interface_angle +
+                ((interface_id & 1) ? float(M_PI_2) : 0.0f);
+        }
+
+        // Default → fixed
+        return this->interface_angle;
+    }
 		
     bool independent_layer_height = false;
     const double thresh_big_overhang = Slic3r::sqr(scale_(10));
