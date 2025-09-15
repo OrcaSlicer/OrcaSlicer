@@ -4882,22 +4882,17 @@ void MachineObject::parse_new_info(json print)
         tutk_state = get_flag_bits(cfg, 6) == 1 ? "disable" : "";
         m_lamp->SetChamberLight(get_flag_bits(cfg, 7) == 1 ? DevLamp::LIGHT_EFFECT_ON : DevLamp::LIGHT_EFFECT_OFF);
         //is_support_build_plate_marker_detect = get_flag_bits(cfg, 12); todo yangcong
+        if (time(nullptr) - xcam_first_layer_hold_start > HOLD_TIME_3SEC) { xcam_first_layer_inspector = get_flag_bits(cfg, 12); }
 
-        if (time(nullptr) - xcam_first_layer_hold_start > HOLD_TIME_3SEC) {
-            xcam_first_layer_inspector = get_flag_bits(cfg, 12);
-        }
-
-        if (time(nullptr) - xcam_ai_monitoring_hold_start > HOLD_COUNT_MAX)
-        {
+        if (time(nullptr) - xcam_ai_monitoring_hold_start > HOLD_COUNT_MAX) {
             xcam_ai_monitoring = get_flag_bits(cfg, 15);
 
-            switch (get_flag_bits(cfg, 13, 2))
-            {
-               case 0: xcam_ai_monitoring_sensitivity = "never_halt"; break;
-               case 1: xcam_ai_monitoring_sensitivity = "low"; break;
-               case 2: xcam_ai_monitoring_sensitivity = "medium"; break;
-               case 3: xcam_ai_monitoring_sensitivity = "high"; break;
-               default: break;
+            switch (get_flag_bits(cfg, 13, 2)) {
+            case 0: xcam_ai_monitoring_sensitivity = "never_halt"; break;
+            case 1: xcam_ai_monitoring_sensitivity = "low"; break;
+            case 2: xcam_ai_monitoring_sensitivity = "medium"; break;
+            case 3: xcam_ai_monitoring_sensitivity = "high"; break;
+            default: break;
             }
         }
 
@@ -4934,6 +4929,8 @@ void MachineObject::parse_new_info(json print)
         }
 
         installed_upgrade_kit = get_flag_bits(cfg, 25);
+
+        DevPrintOptionsParser::ParseDetectionV2_1(m_print_options, cfg);
     }
 
     /*fun*/
@@ -4970,6 +4967,7 @@ void MachineObject::parse_new_info(json print)
         m_fan->SetSupportCoolingFilter(get_flag_bits(fun, 46));
         is_support_ext_change_assist = get_flag_bits(fun, 48);
         is_support_partskip = get_flag_bits(fun, 49);
+        is_support_idelheadingprotect_detection = get_flag_bits(fun, 62);
     }
 
     /*aux*/

@@ -609,6 +609,7 @@ public:
     bool is_support_purgechutepileup_detection{false};
     bool is_support_nozzleclumping_detection{false};
     bool is_support_airprinting_detection{false};
+    bool is_support_idelheadingprotect_detection{false};
 
     bool installed_upgrade_kit{false};
     int  bed_temperature_limit = -1;

@@ -138,6 +138,7 @@ src/slic3r/GUI/ObjectDataViewModel.cpp
 src/slic3r/GUI/OpenGLManager.cpp
 src/slic3r/GUI/OptionsGroup.cpp
 src/slic3r/GUI/PrintOptionsDialog.cpp
+src/slic3r/GUI/SafetyOptionsDialog.cpp
 src/slic3r/GUI/ParamsPanel.cpp
 src/slic3r/GUI/PartPlate.cpp
 src/slic3r/GUI/Plater.cpp

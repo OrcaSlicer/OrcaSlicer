@@ -7,6 +7,7 @@
 #include <wx/string.h>
 #include <wx/sizer.h>
 #include <wx/dialog.h>
+#include <wx/tipwin.h>
 
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
@@ -26,11 +27,21 @@ class SafetyOptionsDialog : public DPIDialog
 protected:
     // settings
     wxScrolledWindow* m_scrollwindow;
-    CheckBox* m_cb_open_door;
-    Label* text_open_door;
-    SwitchBoard* open_door_switch_board;
-    wxBoxSizer* create_settings_group(wxWindow* parent);
 
+    CheckBox*    m_cb_open_door;
+    CheckBox*    m_cb_idel_heating_protection;
+    Label*       m_text_open_door;
+    Label*       m_text_idel_heating_protection;
+    Label*       m_text_idel_heating_protection_caption;
+    SwitchBoard* m_open_door_switch_board;
+    wxPanel*    m_idel_heating_container { nullptr };
+
+    // toast for idle heating unavailable
+    wxPopupWindow *m_idel_heating_toast{nullptr};
+    wxTimer      m_idel_heating_toast_timer;
+    bool         m_idel_protect_unavailable { false };
+
+    wxBoxSizer* create_settings_group(wxWindow* parent);
     bool print_halt = false;
 
 public:
@@ -45,7 +56,9 @@ public:
     bool             Show(bool show) override;
 
 private:
-    void UpdateOptionOpenDoorCheck(MachineObject *obj);
+    void updateOpenDoorCheck(MachineObject *obj);
+    void updateIdelHeatingProtect(MachineObject *obj);
+    void show_idel_heating_toast(const wxString &text);
 };
 
 }} // namespace Slic3r::GUI
