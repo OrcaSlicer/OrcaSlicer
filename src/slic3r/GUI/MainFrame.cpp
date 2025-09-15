@@ -2870,7 +2870,7 @@ void MainFrame::init_menubar_as_editor()
 #else
             if (dlg.seq_top_layer_only_changed())
 #endif
-                plater()->refresh_print();
+                plater()->reload_print();
         },
         "", nullptr, []() { return true; }, this, 1);
     //parent_menu->Insert(1, preference_item);

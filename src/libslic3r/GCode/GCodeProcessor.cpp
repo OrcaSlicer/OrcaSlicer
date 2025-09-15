@@ -106,10 +106,6 @@ const float GCodeProcessor::Wipe_Height = 0.05f;
 
 bool GCodeProcessor::s_IsBBLPrinter = true;
 
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-const std::string GCodeProcessor::Mm3_Per_Mm_Tag = "MM3_PER_MM:";
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-
 static void set_option_value(ConfigOptionFloats& option, size_t id, float value)
 {
     if (id < option.values.size())
@@ -135,7 +131,7 @@ static float intersection_distance(float initial_rate, float final_rate, float a
 static float speed_from_distance(float initial_feedrate, float distance, float acceleration)
 {
     // to avoid invalid negative numbers due to numerical errors 
-    float value = std::max(0.0f, sqr(initial_feedrate) + 2.0f * acceleration * distance);
+    const float value = std::max(0.0f, sqr(initial_feedrate) + 2.0f * acceleration * distance);
     return ::sqrt(value);
 }
 
@@ -144,7 +140,7 @@ static float speed_from_distance(float initial_feedrate, float distance, float a
 static float max_allowable_speed(float acceleration, float target_velocity, float distance)
 {
     // to avoid invalid negative numbers due to numerical errors 
-    float value = std::max(0.0f, sqr(target_velocity) - 2.0f * acceleration * distance);
+    const float value = std::max(0.0f, sqr(target_velocity) - 2.0f * acceleration * distance);
     return std::sqrt(value);
 }
 
@@ -167,30 +163,18 @@ void GCodeProcessor::CpColor::reset()
 
 float GCodeProcessor::Trapezoid::acceleration_time(float entry_feedrate, float acceleration) const
 {
-    return acceleration_time_from_distance(entry_feedrate, accelerate_until, acceleration);
-}
-
-float GCodeProcessor::Trapezoid::cruise_time() const
-{
-    return (cruise_feedrate != 0.0f) ? cruise_distance() / cruise_feedrate : 0.0f;
+    return acceleration_time_from_distance(entry_feedrate, acceleration_distance(), acceleration);
 }
 
 float GCodeProcessor::Trapezoid::deceleration_time(float distance, float acceleration) const
 {
-    return acceleration_time_from_distance(cruise_feedrate, (distance - decelerate_after), -acceleration);
-}
-
-float GCodeProcessor::Trapezoid::cruise_distance() const
-{
-    return decelerate_after - accelerate_until;
+    return acceleration_time_from_distance(cruise_feedrate, deceleration_distance(distance), -acceleration);
 }
 
 void GCodeProcessor::TimeBlock::calculate_trapezoid()
 {
-    trapezoid.cruise_feedrate = feedrate_profile.cruise;
-
     float accelerate_distance = std::max(0.0f, estimated_acceleration_distance(feedrate_profile.entry, feedrate_profile.cruise, acceleration));
-    float decelerate_distance = std::max(0.0f, estimated_acceleration_distance(feedrate_profile.cruise, feedrate_profile.exit, -acceleration));
+    const float decelerate_distance = std::max(0.0f, estimated_acceleration_distance(feedrate_profile.cruise, feedrate_profile.exit, -acceleration));
     float cruise_distance = distance - accelerate_distance - decelerate_distance;
 
     // Not enough space to reach the nominal feedrate.
@@ -201,16 +185,11 @@ void GCodeProcessor::TimeBlock::calculate_trapezoid()
         cruise_distance = 0.0f;
         trapezoid.cruise_feedrate = speed_from_distance(feedrate_profile.entry, accelerate_distance, acceleration);
     }
+    else
+        trapezoid.cruise_feedrate = feedrate_profile.cruise;
 
     trapezoid.accelerate_until = accelerate_distance;
     trapezoid.decelerate_after = accelerate_distance + cruise_distance;
-}
-
-float GCodeProcessor::TimeBlock::time() const
-{
-    return trapezoid.acceleration_time(feedrate_profile.entry, acceleration)
-        + trapezoid.cruise_time()
-        + trapezoid.deceleration_time(distance, acceleration);
 }
 
 void GCodeProcessor::TimeMachine::State::reset()
@@ -248,53 +227,60 @@ void GCodeProcessor::TimeMachine::reset()
     gcode_time.reset();
     blocks = std::vector<TimeBlock>();
     g1_times_cache = std::vector<G1LinesCacheItem>();
-    std::fill(moves_time.begin(), moves_time.end(), 0.0f);
-    std::fill(roles_time.begin(), roles_time.end(), 0.0f);
-    layers_time = std::vector<float>();
+    first_layer_time = 0.0f;
     prepare_time = 0.0f;
 }
 
-void GCodeProcessor::TimeMachine::simulate_st_synchronize(float additional_time)
+static void planner_forward_pass_kernel(const GCodeProcessor::TimeBlock& prev, GCodeProcessor::TimeBlock& curr)
 {
-    if (!enabled)
-        return;
-
-    calculate_time(0, additional_time);
-}
-
-static void planner_forward_pass_kernel(GCodeProcessor::TimeBlock& prev, GCodeProcessor::TimeBlock& curr)
-{
-    // If the previous block is an acceleration block, but it is not long enough to complete the
-    // full speed change within the block, we need to adjust the entry speed accordingly. Entry
-    // speeds have already been reset, maximized, and reverse planned by reverse planner.
-    // If nominal length is true, max junction speed is guaranteed to be reached. No need to recheck.
-    if (!prev.flags.nominal_length) {
-        if (prev.feedrate_profile.entry < curr.feedrate_profile.entry) {
-            float entry_speed = std::min(curr.feedrate_profile.entry, max_allowable_speed(-prev.acceleration, prev.feedrate_profile.entry, prev.distance));
-
-            // Check for junction speed change
-            if (curr.feedrate_profile.entry != entry_speed) {
-                curr.feedrate_profile.entry = entry_speed;
-                curr.flags.recalculate = true;
-            }
+    //
+    // C:\prusa\firmware\Prusa-Firmware-Buddy\lib\Marlin\Marlin\src\module\planner.cpp
+    // Line 954
+    //
+    // If the previous block is an acceleration block, too short to complete the full speed
+    // change, adjust the entry speed accordingly. Entry speeds have already been reset,
+    // maximized, and reverse-planned. If nominal length is set, max junction speed is
+    // guaranteed to be reached. No need to recheck.
+    if (!prev.flags.nominal_length && prev.feedrate_profile.entry < curr.feedrate_profile.entry) {
+        // Compute the maximum allowable speed
+        const float new_entry_speed = max_allowable_speed(-prev.acceleration, prev.feedrate_profile.entry, prev.distance);
+        // If true, current block is full-acceleration and we can move the planned pointer forward.
+        if (new_entry_speed < curr.feedrate_profile.entry) {
+            // Always <= max_entry_speed_sqr. Backward pass sets this.
+            curr.feedrate_profile.entry = new_entry_speed;
+            curr.flags.recalculate = true;
         }
     }
 }
 
-void planner_reverse_pass_kernel(GCodeProcessor::TimeBlock& curr, GCodeProcessor::TimeBlock& next)
+static void planner_reverse_pass_kernel(GCodeProcessor::TimeBlock& curr, const GCodeProcessor::TimeBlock& next)
 {
-    // If entry speed is already at the maximum entry speed, no need to recheck. Block is cruising.
-    // If not, block in state of acceleration or deceleration. Reset entry speed to maximum and
-    // check for maximum allowable speed reductions to ensure maximum possible planned speed.
-    if (curr.feedrate_profile.entry != curr.max_entry_speed) {
-        // If nominal length true, max junction speed is guaranteed to be reached. Only compute
-        // for max allowable speed if block is decelerating and nominal length is false.
-        if (!curr.flags.nominal_length && curr.max_entry_speed > next.feedrate_profile.entry)
-            curr.feedrate_profile.entry = std::min(curr.max_entry_speed, max_allowable_speed(-curr.acceleration, next.feedrate_profile.entry, curr.distance));
-        else
-            curr.feedrate_profile.entry = curr.max_entry_speed;
-
-        curr.flags.recalculate = true;
+    //
+    // C:\prusa\firmware\Prusa-Firmware-Buddy\lib\Marlin\Marlin\src\module\planner.cpp
+    // Line 857
+    //
+    // If entry speed is already at the maximum entry speed, and there was no change of speed
+    // in the next block, there is no need to recheck. Block is cruising and there is no need to
+    // compute anything for this block,
+    // If not, block entry speed needs to be recalculated to ensure maximum possible planned speed.
+    const float max_entry_speed = curr.max_entry_speed;
+    // Compute maximum entry speed decelerating over the current block from its exit speed.
+    // If not at the maximum entry speed, or the previous block entry speed changed
+    if (curr.feedrate_profile.entry != max_entry_speed || next.flags.recalculate) {
+        // If nominal length true, max junction speed is guaranteed to be reached.
+        // If a block can de/ac-celerate from nominal speed to zero within the length of the block, then
+        // the current block and next block junction speeds are guaranteed to always be at their maximum
+        // junction speeds in deceleration and acceleration, respectively. This is due to how the current
+        // block nominal speed limits both the current and next maximum junction speeds. Hence, in both
+        // the reverse and forward planners, the corresponding block junction speed will always be at the
+        // the maximum junction speed and may always be ignored for any speed reduction checks.
+        const float new_entry_speed = curr.flags.nominal_length ? max_entry_speed :
+            std::min(max_entry_speed, max_allowable_speed(-curr.acceleration, next.feedrate_profile.entry, curr.distance));
+        if (curr.feedrate_profile.entry != new_entry_speed) {
+            // Just Set the new entry speed.
+            curr.feedrate_profile.entry = new_entry_speed;
+            curr.flags.recalculate = true;
+        }
     }
 }
 
@@ -304,7 +290,7 @@ static void recalculate_trapezoids(std::vector<GCodeProcessor::TimeBlock>& block
     GCodeProcessor::TimeBlock* next = nullptr;
 
     for (size_t i = 0; i < blocks.size(); ++i) {
-        GCodeProcessor::TimeBlock& b = blocks[i];
+      GCodeProcessor::TimeBlock& b = blocks[i];
 
         curr = next;
         next = &b;
@@ -313,10 +299,8 @@ static void recalculate_trapezoids(std::vector<GCodeProcessor::TimeBlock>& block
             // Recalculate if current block entry or exit junction speed has changed.
             if (curr->flags.recalculate || next->flags.recalculate) {
                 // NOTE: Entry and exit factors always > 0 by all previous logic operations.
-                GCodeProcessor::TimeBlock block = *curr;
-                block.feedrate_profile.exit = next->feedrate_profile.entry;
-                block.calculate_trapezoid();
-                curr->trapezoid = block.trapezoid;
+                curr->feedrate_profile.exit = next->feedrate_profile.entry;
+                curr->calculate_trapezoid();
                 curr->flags.recalculate = false; // Reset current only to ensure next trapezoid is computed
             }
         }
@@ -324,15 +308,13 @@ static void recalculate_trapezoids(std::vector<GCodeProcessor::TimeBlock>& block
 
     // Last/newest block in buffer. Always recalculated.
     if (next != nullptr) {
-        GCodeProcessor::TimeBlock block = *next;
-        block.feedrate_profile.exit = next->safe_feedrate;
-        block.calculate_trapezoid();
-        next->trapezoid = block.trapezoid;
+        next->feedrate_profile.exit = next->safe_feedrate;
+        next->calculate_trapezoid();
         next->flags.recalculate = false;
     }
 }
 
-void GCodeProcessor::TimeMachine::calculate_time(size_t keep_last_n_blocks, float additional_time)
+void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks, float additional_time)
 {
     if (!enabled || blocks.size() < 2)
         return;
@@ -345,12 +327,13 @@ void GCodeProcessor::TimeMachine::calculate_time(size_t keep_last_n_blocks, floa
     }
 
     // reverse_pass
-    for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i)
+    for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i) {
         planner_reverse_pass_kernel(blocks[i - 1], blocks[i]);
+    }
 
     recalculate_trapezoids(blocks);
 
-    size_t n_blocks_process = blocks.size() - keep_last_n_blocks;
+    const size_t n_blocks_process = blocks.size() - keep_last_n_blocks;
     for (size_t i = 0; i < n_blocks_process; ++i) {
         const TimeBlock& block = blocks[i];
         float block_time = block.time();
@@ -358,22 +341,102 @@ void GCodeProcessor::TimeMachine::calculate_time(size_t keep_last_n_blocks, floa
             block_time += additional_time;
 
         time += block_time;
+        result.moves[block.move_id].time[static_cast<size_t>(mode)] = block_time;
         gcode_time.cache += block_time;
-        //BBS: don't calculate travel of start gcode into travel time
-        if (!block.flags.prepare_stage || block.move_type != EMoveType::Travel)
-            moves_time[static_cast<size_t>(block.move_type)] += block_time;
-        roles_time[static_cast<size_t>(block.role)] += block_time;
-        if (block.layer_id >= layers_time.size()) {
-            const size_t curr_size = layers_time.size();
-            layers_time.resize(block.layer_id);
-            for (size_t i = curr_size; i < layers_time.size(); ++i) {
-                layers_time[i] = 0.0f;
-            }
-        }
-        layers_time[block.layer_id - 1] += block_time;
         //BBS
         if (block.flags.prepare_stage)
             prepare_time += block_time;
+
+        if (block.layer_id == 1)
+            first_layer_time += block_time;
+
+        // detect actual speed moves required to render toolpaths using actual speed
+        if (mode == PrintEstimatedStatistics::ETimeMode::Normal) {
+            GCodeProcessorResult::MoveVertex& curr_move = result.moves[block.move_id];
+            if (curr_move.type != EMoveType::Extrude &&
+                curr_move.type != EMoveType::Travel &&
+                curr_move.type != EMoveType::Wipe)
+              continue;
+
+            assert(curr_move.actual_feedrate == 0.0f);
+
+            GCodeProcessorResult::MoveVertex& prev_move = result.moves[block.move_id - 1];
+            const bool interpolate = (prev_move.type == curr_move.type);
+            if (!interpolate &&
+                prev_move.type != EMoveType::Extrude &&
+                prev_move.type != EMoveType::Travel &&
+                prev_move.type != EMoveType::Wipe)
+                prev_move.actual_feedrate = block.feedrate_profile.entry;
+
+            if (EPSILON < block.trapezoid.accelerate_until && block.trapezoid.accelerate_until < block.distance - EPSILON) {
+                const float t = block.trapezoid.accelerate_until / block.distance;
+                const Vec3f position = lerp(prev_move.position, curr_move.position, t);
+                if ((position - prev_move.position).norm() > EPSILON &&
+                    (position - curr_move.position).norm() > EPSILON) {
+                    const float delta_extruder = interpolate ? lerp(prev_move.delta_extruder, curr_move.delta_extruder, t) : curr_move.delta_extruder;
+                    const float feedrate = interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
+                    const float width = interpolate ? lerp(prev_move.width, curr_move.width, t) : curr_move.width;
+                    const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
+                    const float mm3_per_mm = interpolate ? lerp(prev_move.mm3_per_mm, curr_move.mm3_per_mm, t) : curr_move.mm3_per_mm;
+                    const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
+                    const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
+                    actual_speed_moves.push_back({
+                        block.move_id,
+                        position,
+                        block.trapezoid.cruise_feedrate,
+                        delta_extruder,
+                        feedrate,
+                        width,
+                        height,
+                        mm3_per_mm,
+                        fan_speed,
+                        temperature
+                    });
+                }
+            }
+
+            const bool has_deceleration = block.trapezoid.deceleration_distance(block.distance) > EPSILON;
+            if (has_deceleration && block.trapezoid.decelerate_after > block.trapezoid.accelerate_until + EPSILON) {
+                const float t = block.trapezoid.decelerate_after / block.distance;
+                const Vec3f position = lerp(prev_move.position, curr_move.position, t);
+                if ((position - prev_move.position).norm() > EPSILON &&
+                    (position - curr_move.position).norm() > EPSILON) {
+                    const float delta_extruder = interpolate ? lerp(prev_move.delta_extruder, curr_move.delta_extruder, t) : curr_move.delta_extruder;
+                    const float feedrate = interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
+                    const float width = interpolate ? lerp(prev_move.width, curr_move.width, t) : curr_move.width;
+                    const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
+                    const float mm3_per_mm = interpolate ? lerp(prev_move.mm3_per_mm, curr_move.mm3_per_mm, t) : curr_move.mm3_per_mm;
+                    const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
+                    const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
+                    actual_speed_moves.push_back({
+                        block.move_id,
+                        position,
+                        block.trapezoid.cruise_feedrate,
+                        delta_extruder,
+                        feedrate,
+                        width,
+                        height,
+                        mm3_per_mm,
+                        fan_speed,
+                        temperature
+                    });
+                }
+            }
+
+            const bool is_cruise_only = block.trapezoid.is_cruise_only(block.distance);
+            actual_speed_moves.push_back({
+                block.move_id,
+                std::nullopt,
+                (is_cruise_only || !has_deceleration) ? block.trapezoid.cruise_feedrate : block.feedrate_profile.exit,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt,
+                std::nullopt
+            });
+        }
         g1_times_cache.push_back({ block.g1_line_id, block.remaining_internal_g1_lines, time });
         // update times for remaining time to printer stop placeholders
         auto it_stop_time = std::lower_bound(stop_times.begin(), stop_times.end(), block.g1_line_id,
@@ -551,34 +614,6 @@ void GCodeProcessor::UsedFilaments::process_caches(GCodeProcessor* processor)
     process_total_volume_cache(processor);
 }
 
-#if ENABLE_GCODE_VIEWER_STATISTICS
-void GCodeProcessorResult::reset() {
-    //BBS: add mutex for protection of gcode result
-    lock();
-
-    moves = std::vector<GCodeProcessorResult::MoveVertex>();
-    printable_area = Pointfs();
-    //BBS: add bed exclude area
-    bed_exclude_area = Pointfs();
-    //BBS: add toolpath_outside
-    toolpath_outside = false;
-    //BBS: add label_object_enabled
-    label_object_enabled = false;
-    timelapse_warning_code = 0;
-    printable_height = 0.0f;
-    settings_ids.reset();
-    extruders_count = 0;
-    extruder_colors = std::vector<std::string>();
-    filament_diameters = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DIAMETER);
-    filament_densities = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DENSITY);
-    custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
-    spiral_vase_layers = std::vector<std::pair<float, std::pair<size_t, size_t>>>();
-    time = 0;
-
-    //BBS: add mutex for protection of gcode result
-    unlock();
-}
-#else
 void GCodeProcessorResult::reset() {
     //BBS: add mutex for protection of gcode result
     lock();
@@ -604,7 +639,7 @@ void GCodeProcessorResult::reset() {
     filament_densities = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DENSITY);
     filament_costs = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_COST);
     custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
-    spiral_vase_layers = std::vector<std::pair<float, std::pair<size_t, size_t>>>();
+    spiral_vase_mode = false; // TODO???
     bed_match_result = BedMatchResult(true);
     warnings.clear();
 
@@ -613,7 +648,6 @@ void GCodeProcessorResult::reset() {
     //BBS: add logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: this=%2% reset finished")%__LINE__%this;
 }
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
 
 const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> GCodeProcessor::Producers = {
     //BBS: OrcaSlicer is also "bambu". Otherwise the time estimation didn't work.
@@ -794,6 +828,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     const ConfigOptionBool* spiral_vase = config.option<ConfigOptionBool>("spiral_mode");
     if (spiral_vase != nullptr)
         m_detect_layer_based_on_tag = spiral_vase->value;
+    // TODO: m_result.spiral_vase_mode = spiral_vase->value;
 
     const ConfigOptionBool* has_scarf_joint_seam = config.option<ConfigOptionBool>("has_scarf_joint_seam");
     if (has_scarf_joint_seam != nullptr)
@@ -1101,6 +1136,7 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     const ConfigOptionBool* spiral_vase = config.option<ConfigOptionBool>("spiral_mode");
     if (spiral_vase != nullptr)
         m_detect_layer_based_on_tag = spiral_vase->value;
+    // TODO: m_result.spiral_vase_mode = spiral_vase->value;
 
     const ConfigOptionBool* has_scarf_joint_seam = config.option<ConfigOptionBool>("has_scarf_joint_seam");
     if (has_scarf_joint_seam != nullptr)
@@ -1192,12 +1228,6 @@ void GCodeProcessor::reset()
     m_seams_count = 0;
     m_preheat_time = 0.f;
     m_preheat_steps = 1;
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    m_mm3_per_mm_compare.reset();
-    m_height_compare.reset();
-    m_width_compare.reset();
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 }
 
 static inline const char* skip_whitespaces(const char *begin, const char *end) {
@@ -1215,10 +1245,6 @@ static inline const char* remove_eols(const char *begin, const char *end) {
 void GCodeProcessor::process_file(const std::string& filename, std::function<void()> cancel_callback)
 {
     CNumericLocalesSetter locales_setter;
-
-#if ENABLE_GCODE_VIEWER_STATISTICS
-    m_start_time = std::chrono::high_resolution_clock::now();
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
 
     // pre-processing
     // parse the gcode file to detect its producer
@@ -1283,10 +1309,6 @@ void GCodeProcessor::initialize(const std::string& filename)
 {
     assert(is_decimal_separator_point());
 
-#if ENABLE_GCODE_VIEWER_STATISTICS
-    m_start_time = std::chrono::high_resolution_clock::now();
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
-
     // process gcode
     m_result.filename = filename;
     m_result.id = ++s_result_id;
@@ -1312,11 +1334,12 @@ void GCodeProcessor::finalize(bool post_process)
         }
     }
 
+    calculate_time(m_result);
+
     // process the time blocks
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         TimeMachine& machine = m_time_processor.machines[i];
         TimeMachine::CustomGCodeTime& gcode_time = machine.gcode_time;
-        machine.calculate_time();
         if (gcode_time.needed && gcode_time.cache != 0.0f)
             gcode_time.times.push_back({ CustomGCode::ColorChange, gcode_time.cache });
     }
@@ -1324,31 +1347,23 @@ void GCodeProcessor::finalize(bool post_process)
     m_used_filaments.process_caches(this);
 
     update_estimated_times_stats();
-    auto time_mode = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)];
+    // TODO
+    // auto time_mode = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)];
+    //
+    // auto it = std::find_if(time_mode.roles_times.begin(), time_mode.roles_times.end(), [](const std::pair<ExtrusionRole, float>& item) { return erCustom == item.first; });
+    // auto prepare_time = (it != time_mode.roles_times.end()) ? it->second : 0.0f;
+    //
+    // //update times for results
+    // for (size_t i = 0; i < m_result.moves.size(); i++) {
+    //     //field layer_duration contains the layer id for the move in which the layer_duration has to be set.
+    //     size_t layer_id = size_t(m_result.moves[i].layer_duration);
+    //     std::vector<float>& layer_times = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].layers_times;
+    //     if (layer_times.size() > layer_id - 1 && layer_id > 0)
+    //         m_result.moves[i].layer_duration = layer_id == 1 ? std::max(0.f,layer_times[layer_id - 1] - prepare_time) : layer_times[layer_id - 1];
+    //     else
+    //         m_result.moves[i].layer_duration = 0;
+    // }
 
-    auto it = std::find_if(time_mode.roles_times.begin(), time_mode.roles_times.end(), [](const std::pair<ExtrusionRole, float>& item) { return erCustom == item.first; });
-    auto prepare_time = (it != time_mode.roles_times.end()) ? it->second : 0.0f;
-
-    //update times for results
-    for (size_t i = 0; i < m_result.moves.size(); i++) {
-        //field layer_duration contains the layer id for the move in which the layer_duration has to be set.
-        size_t layer_id = size_t(m_result.moves[i].layer_duration);
-        std::vector<float>& layer_times = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].layers_times;
-        if (layer_times.size() > layer_id - 1 && layer_id > 0)
-            m_result.moves[i].layer_duration = layer_id == 1 ? std::max(0.f,layer_times[layer_id - 1] - prepare_time) : layer_times[layer_id - 1];
-        else
-            m_result.moves[i].layer_duration = 0;
-    }
-    
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    std::cout << "\n";
-    m_mm3_per_mm_compare.output();
-    m_height_compare.output();
-    m_width_compare.output();
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-#if ENABLE_GCODE_VIEWER_STATISTICS
-    m_result.time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - m_start_time).count();
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
     //BBS: update slice warning
     update_slice_warnings();
 
@@ -1381,32 +1396,6 @@ std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> GCodeProcesso
             float remaining = include_remaining ? machine.time - total_time : 0.0f;
             ret.push_back({ type, { time, remaining } });
             total_time += time;
-        }
-    }
-    return ret;
-}
-
-std::vector<std::pair<EMoveType, float>> GCodeProcessor::get_moves_time(PrintEstimatedStatistics::ETimeMode mode) const
-{
-    std::vector<std::pair<EMoveType, float>> ret;
-    if (mode < PrintEstimatedStatistics::ETimeMode::Count) {
-        for (size_t i = 0; i < m_time_processor.machines[static_cast<size_t>(mode)].moves_time.size(); ++i) {
-            float time = m_time_processor.machines[static_cast<size_t>(mode)].moves_time[i];
-            if (time > 0.0f)
-                ret.push_back({ static_cast<EMoveType>(i), time });
-        }
-    }
-    return ret;
-}
-
-std::vector<std::pair<ExtrusionRole, float>> GCodeProcessor::get_roles_time(PrintEstimatedStatistics::ETimeMode mode) const
-{
-    std::vector<std::pair<ExtrusionRole, float>> ret;
-    if (mode < PrintEstimatedStatistics::ETimeMode::Count) {
-        for (size_t i = 0; i < m_time_processor.machines[static_cast<size_t>(mode)].roles_time.size(); ++i) {
-            float time = m_time_processor.machines[static_cast<size_t>(mode)].roles_time[i];
-            if (time > 0.0f)
-                ret.push_back({ static_cast<ExtrusionRole>(i), time });
         }
     }
     return ret;
@@ -1445,11 +1434,9 @@ void GCodeProcessor::apply_config_superslicer(const std::string& filename)
     apply_config(config);
 }
 
-std::vector<float> GCodeProcessor::get_layers_time(PrintEstimatedStatistics::ETimeMode mode) const
+float GCodeProcessor::get_first_layer_time(PrintEstimatedStatistics::ETimeMode mode) const
 {
-    return (mode < PrintEstimatedStatistics::ETimeMode::Count) ?
-        m_time_processor.machines[static_cast<size_t>(mode)].layers_time :
-        std::vector<float>();
+    return (mode < PrintEstimatedStatistics::ETimeMode::Count) ? m_time_processor.machines[static_cast<size_t>(mode)].first_layer_time : 0.0f;
 }
 
 void GCodeProcessor::apply_config_simplify3d(const std::string& filename)
@@ -2074,29 +2061,8 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     // layer change tag
     if (comment == reserved_tag(ETags::Layer_Change)) {
         ++m_layer_id;
-        if (m_detect_layer_based_on_tag) {
-            if (m_result.moves.empty() || m_result.spiral_vase_layers.empty())
-                // add a placeholder for layer height. the actual value will be set inside process_G1() method
-                m_result.spiral_vase_layers.push_back({ FLT_MAX, { 0, 0 } });
-            else {
-                const size_t move_id = m_result.moves.size() - 1 - m_seams_count;
-                if (!m_result.spiral_vase_layers.empty())
-                    m_result.spiral_vase_layers.back().second.second = move_id;
-                // add a placeholder for layer height. the actual value will be set inside process_G1() method
-                m_result.spiral_vase_layers.push_back({ FLT_MAX, { move_id, move_id } });
-            }
-        }
         return;
     }
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    // mm3_per_mm print tag
-    if (boost::starts_with(comment, Mm3_Per_Mm_Tag)) {
-        if (! parse_number(comment.substr(Mm3_Per_Mm_Tag.size()), m_mm3_per_mm_compare.last_tag_value))
-            BOOST_LOG_TRIVIAL(error) << "GCodeProcessor encountered an invalid value for Mm3_Per_Mm (" << comment << ").";
-        return;
-    }
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 }
 
 bool GCodeProcessor::process_producers_tags(const std::string_view comment)
@@ -2665,9 +2631,6 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         }
         // volume extruded filament / tool displacement = area toolpath cross section
         m_mm3_per_mm = area_toolpath_cross_section;
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_mm3_per_mm_compare.update(area_toolpath_cross_section, m_extrusion_role);
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
         if (m_forced_height > 0.0f)
             m_height = m_forced_height;
@@ -2684,10 +2647,6 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
 
         m_extruded_last_z = m_end_position[Z];
         m_options_z_corrector.update(m_height);
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_height_compare.update(m_height, m_extrusion_role);
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
         if (m_forced_width > 0.0f)
             m_width = m_forced_width;
@@ -2706,10 +2665,6 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
 
         // clamp width to avoid artifacts which may arise from wrong values of m_height
         m_width = std::min(m_width, std::max(2.0f, 4.0f * m_height));
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_width_compare.update(m_width, m_extrusion_role);
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
     }
     else if (type == EMoveType::Unretract && m_flushing) {
         float volume_flushed_filament = area_filament_cross_section * delta_pos[E];
@@ -2765,6 +2720,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         block.role = (type != EMoveType::Travel || m_extrusion_role == erCustom) ? m_extrusion_role : erNone;
         block.distance = distance;
         block.g1_line_id = m_g1_line_id;
+        block.move_id = static_cast<unsigned int>(m_result.moves.size());
         block.remaining_internal_g1_lines = remaining_internal_g1_lines.has_value() ? *remaining_internal_g1_lines : 0;
         block.layer_id = std::max<unsigned int>(1, m_layer_id);
         block.flags.prepare_stage = m_processing_start_custom_gcode;
@@ -2945,10 +2901,10 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         prev = curr;
 
         blocks.push_back(block);
-
-        if (blocks.size() > TimeProcessor::Planner::refresh_threshold)
-            machine.calculate_time(TimeProcessor::Planner::queue_size);
     }
+
+    if (m_time_processor.machines[0].blocks.size() > TimeProcessor::Planner::refresh_threshold)
+        calculate_time(m_result, TimeProcessor::Planner::queue_size);
 
     const Vec3f plate_offset = {(float) m_x_offset, (float) m_y_offset, 0.0f};
 
@@ -2991,20 +2947,6 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
     else if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
         m_seams_detector.activate(true);
         m_seams_detector.set_first_vertex(m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset);
-    }
-
-    if (m_detect_layer_based_on_tag && !m_result.spiral_vase_layers.empty()) {
-        if (delta_pos[Z] >= 0.0 && type == EMoveType::Extrude) {
-            const float current_z = static_cast<float>(m_end_position[Z]);
-            // replace layer height placeholder with correct value
-            if (m_result.spiral_vase_layers.back().first == FLT_MAX) {
-                m_result.spiral_vase_layers.back().first = current_z;
-            } else {
-                m_result.spiral_vase_layers.back().first = std::max(m_result.spiral_vase_layers.back().first, current_z);
-            }
-        }
-        if (!m_result.moves.empty())
-            m_result.spiral_vase_layers.back().second.second = m_result.moves.size() - 1 - m_seams_count;
     }
 
     // store move
@@ -3382,7 +3324,7 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         blocks.push_back(block);
 
         if (blocks.size() > TimeProcessor::Planner::refresh_threshold)
-            machine.calculate_time(TimeProcessor::Planner::queue_size);
+            machine.calculate_time(m_result, PrintEstimatedStatistics::ETimeMode::Normal, TimeProcessor::Planner::queue_size);
     }
 
     //BBS: seam detector
@@ -3426,21 +3368,22 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
         m_seams_detector.set_first_vertex(m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset);
     }
 
-    // Orca: we now use spiral_vase_layers for proper layer detect when scarf joint is enabled,
-    // and this is needed if the layer has only arc moves
-    if (m_detect_layer_based_on_tag && !m_result.spiral_vase_layers.empty()) {
-        if (delta_pos[Z] >= 0.0 && type == EMoveType::Extrude) {
-            const float current_z = static_cast<float>(m_end_position[Z]);
-            // replace layer height placeholder with correct value
-            if (m_result.spiral_vase_layers.back().first == FLT_MAX) {
-                m_result.spiral_vase_layers.back().first = current_z;
-            } else {
-                m_result.spiral_vase_layers.back().first = std::max(m_result.spiral_vase_layers.back().first, current_z);
-            }
-        }
-        if (!m_result.moves.empty())
-            m_result.spiral_vase_layers.back().second.second = m_result.moves.size() - 1 - m_seams_count;
-    }
+    // TODO
+    // // Orca: we now use spiral_vase_layers for proper layer detect when scarf joint is enabled,
+    // // and this is needed if the layer has only arc moves
+    // if (m_detect_layer_based_on_tag && !m_result.spiral_vase_layers.empty()) {
+    //     if (delta_pos[Z] >= 0.0 && type == EMoveType::Extrude) {
+    //         const float current_z = static_cast<float>(m_end_position[Z]);
+    //         // replace layer height placeholder with correct value
+    //         if (m_result.spiral_vase_layers.back().first == FLT_MAX) {
+    //             m_result.spiral_vase_layers.back().first = current_z;
+    //         } else {
+    //             m_result.spiral_vase_layers.back().first = std::max(m_result.spiral_vase_layers.back().first, current_z);
+    //         }
+    //     }
+    //     if (!m_result.moves.empty())
+    //         m_result.spiral_vase_layers.back().second.second = m_result.moves.size() - 1 - m_seams_count;
+    // }
 
     //BBS: store move
     store_move_vertex(type, m_move_path_type);
@@ -4788,13 +4731,15 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
         Vec3f(m_end_position[X] + m_x_offset, m_end_position[Y] + m_y_offset, m_processing_start_custom_gcode ? m_first_layer_height : m_end_position[Z]- m_z_offset) + m_extruder_offsets[m_extruder_id],
         static_cast<float>(m_end_position[E] - m_start_position[E]),
         m_feedrate,
+        0.0f, // actual feedrate
         m_width,
         m_height,
         m_mm3_per_mm,
         m_travel_dist,
         m_fan_speed,
         m_extruder_temps[m_extruder_id],
-        static_cast<float>(m_result.moves.size()),
+        { 0.0f, 0.0f }, // time
+        std::max<unsigned int>(1, m_layer_id) - 1,
         static_cast<float>(m_layer_id), //layer_duration: set later
         //BBS: add arc move related data
         path_type,
@@ -4954,6 +4899,9 @@ int GCodeProcessor::get_filament_vitrification_temperature(size_t extrude_id)
 
 void GCodeProcessor::process_custom_gcode_time(CustomGCode::Type code)
 {
+    //FIXME this simulates st_synchronize! is it correct?
+    // The estimated time may be longer than the real print time.
+    simulate_st_synchronize();
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         TimeMachine& machine = m_time_processor.machines[i];
         if (!machine.enabled)
@@ -4961,9 +4909,6 @@ void GCodeProcessor::process_custom_gcode_time(CustomGCode::Type code)
 
         TimeMachine::CustomGCodeTime& gcode_time = machine.gcode_time;
         gcode_time.needed = true;
-        //FIXME this simulates st_synchronize! is it correct?
-        // The estimated time may be longer than the real print time.
-        machine.simulate_st_synchronize();
         if (gcode_time.cache != 0.0f) {
             gcode_time.times.push_back({ code, gcode_time.cache });
             gcode_time.cache = 0.0f;
@@ -4985,11 +4930,69 @@ void GCodeProcessor::process_filaments(CustomGCode::Type code)
     }
 }
 
+void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks, float additional_time)
+{
+    // calculate times
+    std::vector<TimeMachine::ActualSpeedMove> actual_speed_moves;
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        TimeMachine& machine = m_time_processor.machines[i];
+        machine.calculate_time(m_result, static_cast<PrintEstimatedStatistics::ETimeMode>(i), keep_last_n_blocks, additional_time);
+        if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal)
+            actual_speed_moves = std::move(machine.actual_speed_moves);
+    }
+
+    // insert actual speed moves into the move list
+    unsigned int inserted_actual_speed_moves_count = 0;
+    std::vector<GCodeProcessorResult::MoveVertex> new_moves;
+    std::map<unsigned int, unsigned int> id_map;
+    for (auto it = actual_speed_moves.begin(); it != actual_speed_moves.end(); ++it) {
+        const unsigned int base_id = it->move_id + inserted_actual_speed_moves_count;
+        if (it->position.has_value()) {
+            // insert actual speed move into the move list
+            // clone from existing move
+            GCodeProcessorResult::MoveVertex new_move = result.moves[base_id];
+            // override modified parameters
+            new_move.time = { 0.0f, 0.0f };
+            new_move.position = *it->position;
+            new_move.actual_feedrate = it->actual_feedrate;
+            new_move.delta_extruder = *it->delta_extruder;
+            new_move.feedrate = *it->feedrate;
+            new_move.width = *it->width;
+            new_move.height = *it->height;
+            new_move.mm3_per_mm = *it->mm3_per_mm;
+            new_move.fan_speed = *it->fan_speed;
+            new_move.temperature = *it->temperature;
+            // new_move.internal_only = true; // TODO
+            new_moves.push_back(new_move);
+        }
+        else {
+            result.moves.insert(result.moves.begin() + base_id, new_moves.begin(), new_moves.end());
+            id_map[it->move_id] = base_id + new_moves.size();
+            // update move actual speed
+            result.moves[base_id + new_moves.size()].actual_feedrate = it->actual_feedrate;
+            inserted_actual_speed_moves_count += new_moves.size();
+            // synchronize seams actual speed
+            if (base_id + new_moves.size() + 1 < result.moves.size()) {
+                GCodeProcessorResult::MoveVertex& move = result.moves[base_id + new_moves.size() + 1];
+                if (move.type == EMoveType::Seam)
+                    move.actual_feedrate = it->actual_feedrate;
+            }
+            new_moves.clear();
+        }
+    }
+
+    // synchronize blocks' move_ids with after moves for actual speed insertion
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        for (GCodeProcessor::TimeBlock& block : m_time_processor.machines[i].blocks) {
+            auto it = id_map.find(block.move_id);
+            block.move_id = (it != id_map.end()) ? it->second : block.move_id + inserted_actual_speed_moves_count;
+        }
+    }
+}
+
 void GCodeProcessor::simulate_st_synchronize(float additional_time)
 {
-    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-        m_time_processor.machines[i].simulate_st_synchronize(additional_time);
-    }
+    calculate_time(m_result, 0, additional_time);
 }
 
 void GCodeProcessor::update_estimated_times_stats()
@@ -4999,9 +5002,6 @@ void GCodeProcessor::update_estimated_times_stats()
         data.time = get_time(mode);
         data.prepare_time = get_prepare_time(mode);
         data.custom_gcode_times = get_custom_gcode_times(mode, true);
-        data.moves_times = get_moves_time(mode);
-        data.roles_times = get_roles_time(mode);
-        data.layers_times = get_layers_time(mode);
     };
 
     update_mode(PrintEstimatedStatistics::ETimeMode::Normal);

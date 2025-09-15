@@ -544,9 +544,6 @@ private:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    double                              m_last_mm3_per_mm;
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
     // Always check gcode placeholders when building in debug mode.
 #if !defined(NDEBUG)

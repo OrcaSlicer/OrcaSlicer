@@ -56,21 +56,12 @@ class Print;
             float time;
             float prepare_time;
             std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> custom_gcode_times;
-            std::vector<std::pair<EMoveType, float>> moves_times;
-            std::vector<std::pair<ExtrusionRole, float>> roles_times;
-            std::vector<float> layers_times;
 
             void reset() {
                 time = 0.0f;
                 prepare_time = 0.0f;
                 custom_gcode_times.clear();
                 custom_gcode_times.shrink_to_fit();
-                moves_times.clear();
-                moves_times.shrink_to_fit();
-                roles_times.clear();
-                roles_times.shrink_to_fit();
-                layers_times.clear();
-                layers_times.shrink_to_fit();
             }
         };
 
@@ -159,13 +150,15 @@ class Print;
             Vec3f position{ Vec3f::Zero() }; // mm
             float delta_extruder{ 0.0f }; // mm
             float feedrate{ 0.0f }; // mm/s
+            float actual_feedrate{ 0.0f }; // mm/s
             float width{ 0.0f }; // mm
             float height{ 0.0f }; // mm
             float mm3_per_mm{ 0.0f };
             float travel_dist{ 0.0f }; // mm
             float fan_speed{ 0.0f }; // percentage
             float temperature{ 0.0f }; // Celsius degrees
-            float time{ 0.0f }; // s
+            std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
+            unsigned int layer_id{ 0 };
             float layer_duration{ 0.0f }; // s (layer id before finalize)
 
 
@@ -175,6 +168,7 @@ class Print;
             std::vector<Vec3f> interpolation_points;     // interpolation points of arc for drawing
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
+            float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
             //BBS: new function to support arc move
             bool is_arc_move_with_interpolation_points() const {
                 return (move_path_type == EMovePathType::Arc_move_ccw || move_path_type == EMovePathType::Arc_move_cw) && interpolation_points.size();
@@ -219,15 +213,12 @@ class Print;
         std::vector<int> filament_vitrification_temperature;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
-        std::vector<std::pair<float, std::pair<size_t, size_t>>> spiral_vase_layers;
+        bool spiral_vase_mode;
         //BBS
         std::vector<SliceWarning> warnings;
         int nozzle_hrc;
         NozzleType nozzle_type;
         BedType bed_type = BedType::btCount;
-#if ENABLE_GCODE_VIEWER_STATISTICS
-        int64_t time{ 0 };
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
         void reset();
 
         //BBS: add mutex for protection of gcode result
@@ -253,7 +244,7 @@ class Print;
             filament_costs = other.filament_costs;
             print_statistics = other.print_statistics;
             custom_gcode_per_print_z = other.custom_gcode_per_print_z;
-            spiral_vase_layers = other.spiral_vase_layers;
+            spiral_vase_mode = other.spiral_vase_mode;
             warnings = other.warnings;
             bed_type = other.bed_type;
             bed_match_result = other.bed_match_result;
@@ -312,10 +303,6 @@ class Print;
 
         static bool s_IsBBLPrinter;
 
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        static const std::string Mm3_Per_Mm_Tag;
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-
     private:
         using AxisCoords = std::array<double, 4>;
         using ExtruderColors = std::vector<unsigned char>;
@@ -364,9 +351,12 @@ class Print;
             float cruise_feedrate{ 0.0f }; // mm/sec
 
             float acceleration_time(float entry_feedrate, float acceleration) const;
-            float cruise_time() const;
+            float cruise_time() const { return (cruise_feedrate != 0.0f) ? cruise_distance() / cruise_feedrate : 0.0f; }
             float deceleration_time(float distance, float acceleration) const;
-            float cruise_distance() const;
+            float acceleration_distance() const { return accelerate_until; }
+            float cruise_distance() const { return decelerate_after - accelerate_until; }
+            float deceleration_distance(float distance) const { return distance - decelerate_after; }
+            bool is_cruise_only(float distance) const { return std::abs(cruise_distance() - distance) < EPSILON; }
         };
 
         struct TimeBlock
@@ -380,6 +370,7 @@ class Print;
 
             EMoveType move_type{ EMoveType::Noop };
             ExtrusionRole role{ erNone };
+            unsigned int move_id{ 0 };
             unsigned int g1_line_id{ 0 };
             unsigned int remaining_internal_g1_lines{ 0 };
             unsigned int layer_id{ 0 };
@@ -394,7 +385,10 @@ class Print;
             // Calculates this block's trapezoid
             void calculate_trapezoid();
 
-            float time() const;
+            float time() const {
+                return trapezoid.acceleration_time(feedrate_profile.entry, acceleration) +
+                       trapezoid.cruise_time() + trapezoid.deceleration_time(distance, acceleration);
+            }
         };
 
 
@@ -434,6 +428,20 @@ class Print;
                 float elapsed_time;
             };
 
+            struct ActualSpeedMove
+            {
+                unsigned int move_id{ 0 };
+                std::optional<Vec3f> position;
+                float actual_feedrate{ 0.0f };
+                std::optional<float> delta_extruder;
+                std::optional<float> feedrate;
+                std::optional<float> width;
+                std::optional<float> height;
+                std::optional<float> mm3_per_mm;
+                std::optional<float> fan_speed;
+                std::optional<float> temperature;
+            };
+
             bool enabled;
             float acceleration; // mm/s^2
             // hard limit for the acceleration, to which the firmware will clamp.
@@ -459,17 +467,14 @@ class Print;
             CustomGCodeTime gcode_time;
             std::vector<TimeBlock> blocks;
             std::vector<G1LinesCacheItem> g1_times_cache;
-            std::array<float, static_cast<size_t>(EMoveType::Count)> moves_time;
-            std::array<float, static_cast<size_t>(ExtrusionRole::erCount)> roles_time;
-            std::vector<float> layers_time;
+            float first_layer_time;
+            std::vector<ActualSpeedMove> actual_speed_moves;
             //BBS: prepare stage time before print model, including start gcode time and mostly same with start gcode time
             float prepare_time;
 
             void reset();
 
-            // Simulates firmware st_synchronize() call
-            void simulate_st_synchronize(float additional_time = 0.0f);
-            void calculate_time(size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
+            void calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
         };
 
         struct TimeProcessor
@@ -733,9 +738,6 @@ class Print;
         float m_preheat_time;
         int m_preheat_steps;
         bool m_disable_m73;
-#if ENABLE_GCODE_VIEWER_STATISTICS
-        std::chrono::time_point<std::chrono::high_resolution_clock> m_start_time;
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
 
         enum class EProducer
         {
@@ -761,12 +763,6 @@ class Print;
 
         GCodeProcessorResult m_result;
         static unsigned int s_result_id;
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        DataChecker m_mm3_per_mm_compare{ "mm3_per_mm", 0.01f };
-        DataChecker m_height_compare{ "height", 0.01f };
-        DataChecker m_width_compare{ "width", 0.01f };
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
     public:
         GCodeProcessor();
@@ -798,9 +794,7 @@ class Print;
         std::string get_time_dhm(PrintEstimatedStatistics::ETimeMode mode) const;
         std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> get_custom_gcode_times(PrintEstimatedStatistics::ETimeMode mode, bool include_remaining) const;
 
-        std::vector<std::pair<EMoveType, float>> get_moves_time(PrintEstimatedStatistics::ETimeMode mode) const;
-        std::vector<std::pair<ExtrusionRole, float>> get_roles_time(PrintEstimatedStatistics::ETimeMode mode) const;
-        std::vector<float> get_layers_time(PrintEstimatedStatistics::ETimeMode mode) const;
+        float get_first_layer_time(PrintEstimatedStatistics::ETimeMode mode) const;
 
         //BBS: set offset for gcode writer
         void set_xy_offset(double x, double y) { m_x_offset = x; m_y_offset = y; }
@@ -971,6 +965,8 @@ class Print;
         int   get_filament_vitrification_temperature(size_t extrude_id);
         void process_custom_gcode_time(CustomGCode::Type code);
         void process_filaments(CustomGCode::Type code);
+
+        void calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
 
         // Simulates firmware st_synchronize() call
         void simulate_st_synchronize(float additional_time = 0.0f);
