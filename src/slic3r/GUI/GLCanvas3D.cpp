@@ -10282,14 +10282,14 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
             if (state) {
                 auto callback = [](wxEvtHandler *) {
                     auto                              plater              = wxGetApp().plater();
-                    auto                              flushing_volume_btn = wxGetApp().sidebar().get_flushing_volume_btn();
                     const wxEventTypeTag<SimpleEvent> EVT_SCHEDULE_BACKGROUND_PROCESS(wxNewEventType());
-                    open_flushing_dialog(flushing_volume_btn, plater, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, plater));
+                    open_flushing_dialog(plater, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, plater));
+                    plater->get_view3D_canvas3D()->reload_scene(true);
                     return false;
                 };
-                notification_manager.push_slicing_customize_error_notification(NotificationType::BBLFlushingVolumeZero, NotificationLevel::WarningNotificationLevel, text, _u8L("Flushing Volume"), callback);
+                notification_manager.push_flushing_volume_error_notification(NotificationType::BBLFlushingVolumeZero, NotificationLevel::WarningNotificationLevel, text, _u8L("Flushing Volume"), callback);
             } else
-                notification_manager.close_slicing_customize_error_notification(NotificationType::BBLFlushingVolumeZero, NotificationLevel::WarningNotificationLevel);
+                notification_manager.close_flushing_volume_error_notification(NotificationType::BBLFlushingVolumeZero, NotificationLevel::WarningNotificationLevel);
         }
         else {
             if (state)

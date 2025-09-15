@@ -235,7 +235,7 @@ bool is_flush_config_modified()
     return has_modify;
 }
 
-void open_flushing_dialog(Button *flushing_volume_btn, wxEvtHandler *parent, const wxEvent &event)
+void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
 {
     auto                      &project_config = wxGetApp().preset_bundle->project_config;
     const std::vector<double> &init_matrix    = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
@@ -258,17 +258,9 @@ void open_flushing_dialog(Button *flushing_volume_btn, wxEvtHandler *parent, con
         auto flush_multipliers = dlg.GetMultipliers();
         (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values = std::vector<double>(matrix.begin(), matrix.end());
         (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values = std::vector<double>(flush_multipliers.begin(), flush_multipliers.end());
-        auto has_modify = is_flush_config_modified();
-        if (has_modify) {
-            flushing_volume_btn->SetBorderColor(wxColour(255, 111, 0));
-            flushing_volume_btn->SetTextColor(wxColour(255, 111, 0));
-        } else {
-            flushing_volume_btn->SetBorderColor(wxColour(172, 172, 172));
-            flushing_volume_btn->SetTextColor(wxColour(172, 172, 172));
-        }
-
+        bool flushing_volume_modify = is_flush_config_modified();
+        wxGetApp().sidebar().set_flushing_volume_warning(flushing_volume_modify);
         wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-
         wxGetApp().plater()->update_project_dirty_from_presets();
         wxPostEvent(parent, event);
     }

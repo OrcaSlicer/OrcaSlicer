@@ -1857,16 +1857,11 @@ Sidebar::Sidebar(Plater *parent)
     p->m_flushing_volume_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
     p->m_flushing_volume_btn->SetId(wxID_RESET);
     auto has_modify = is_flush_config_modified();
-    if (has_modify) {
-        p->m_flushing_volume_btn->SetBorderColor(wxColour(255, 111, 0));
-        p->m_flushing_volume_btn->SetTextColor(wxColour(255, 111, 0));
-    } else {
-        p->m_flushing_volume_btn->SetBorderColor(wxColour(172, 172, 172));
-        p->m_flushing_volume_btn->SetTextColor(wxColour(172, 172, 172));
-    }
+    set_flushing_volume_warning(has_modify);
 
     p->m_flushing_volume_btn->Bind(wxEVT_BUTTON, ([parent, this](wxCommandEvent &e) {
-            open_flushing_dialog(p->m_flushing_volume_btn, parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
+            open_flushing_dialog(parent, SimpleEvent(EVT_SCHEDULE_BACKGROUND_PROCESS, parent));
+            p->plater->get_view3D_canvas3D()->reload_scene(true);
         }));
 
     bSizer39->Add(p->m_flushing_volume_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
@@ -3345,9 +3340,24 @@ wxButton* Sidebar::get_wiping_dialog_button()
     return NULL;
 }
 
-Button* Sidebar::get_flushing_volume_btn() {
-    return p->m_flushing_volume_btn;
- }
+void Sidebar::set_flushing_volume_warning(const bool flushing_volume_modify)
+{
+    if (flushing_volume_modify){
+        p->m_flushing_volume_btn->SetBorderColor(wxColour(255, 111, 0));
+        p->m_flushing_volume_btn->SetTextColor(wxColour(255, 111, 0));
+    }
+    else {
+        StateColor flush_fg_col(std::pair<wxColour, int>(wxColour(107, 107, 106), StateColor::Pressed),
+                                std::pair<wxColour, int>(wxColour(107, 107, 106), StateColor::Hovered),
+                                std::pair<wxColour, int>(wxColour(107, 107, 106), StateColor::Normal));
+
+        StateColor flush_bd_col(std::pair<wxColour, int>(wxColour(0, 174, 66), StateColor::Pressed),
+                                std::pair<wxColour, int>(wxColour(0, 174, 66), StateColor::Hovered),
+                                std::pair<wxColour, int>(wxColour(172, 172, 172), StateColor::Normal));
+        p->m_flushing_volume_btn->SetBorderColor(flush_bd_col);
+        p->m_flushing_volume_btn->SetTextColor(flush_fg_col);
+    }
+}
 
 void Sidebar::enable_buttons(bool enable)
 {
@@ -11184,6 +11194,9 @@ void Plater::load_project(wxString const& filename2,
     up_to_date(true, true);
 
     wxGetApp().params_panel()->switch_to_object_if_has_object_configs();
+
+    auto       has_modify = is_flush_config_modified();
+    sidebar().set_flushing_volume_warning(has_modify);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " load project done";
     m_loading_project = false;
