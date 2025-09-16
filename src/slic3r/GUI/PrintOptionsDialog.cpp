@@ -1496,7 +1496,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         nozzle_flow_type_checkbox->Show(obj->is_nozzle_flow_type_supported());
         if (obj->is_nozzle_flow_type_supported())
         {
-            auto flow_type = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
+            auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
             nozzle_flow_type_checkbox->SetValue(GetString(flow_type));
         }
     } else if(multiple_panel->IsShown()){
