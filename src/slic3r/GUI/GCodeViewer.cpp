@@ -972,9 +972,11 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     view_type_items.push_back(libvgcode::EViewType::FeatureType);
     view_type_items.push_back(libvgcode::EViewType::ColorPrint);
     view_type_items.push_back(libvgcode::EViewType::Speed);
+    view_type_items.push_back(libvgcode::EViewType::ActualSpeed);
     view_type_items.push_back(libvgcode::EViewType::Height);
     view_type_items.push_back(libvgcode::EViewType::Width);
     view_type_items.push_back(libvgcode::EViewType::VolumetricFlowRate);
+    view_type_items.push_back(libvgcode::EViewType::ActualVolumetricFlowRate);
     view_type_items.push_back(libvgcode::EViewType::LayerTimeLinear);
     view_type_items.push_back(libvgcode::EViewType::LayerTimeLogarithmic);
     view_type_items.push_back(libvgcode::EViewType::FanSpeed);
@@ -1361,8 +1363,6 @@ void GCodeViewer::reset()
     m_paths_bounding_box = BoundingBoxf3();
     m_max_bounding_box = BoundingBoxf3();
     m_max_print_height = 0.0f;
-    m_tools.m_tool_colors = std::vector<ColorRGBA>(); // TODO
-    m_tools.m_tool_visibles = std::vector<bool>();
     m_extruders_count = 0; // TODO
     // m_extruder_ids = std::vector<unsigned char>(); // TODO
     m_filament_diameters = std::vector<float>();
@@ -3309,7 +3309,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             if (ImGui::BBLSelectable(view_type_items_str[i].c_str(), is_selected)) {
                 m_fold = false;
                 m_view_type_sel = i;
+                enable_view_type_cache_load(false);
                 set_view_type(view_type_items[m_view_type_sel]);
+                enable_view_type_cache_load(true);
                 reset_visible(view_type_items[m_view_type_sel]);
                 update_moves_slider();
                 wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
@@ -3596,7 +3598,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Wipes)), _u8L("Wipe"), visible);
     };
 
-    const libvgcode::EViewType new_view_type = m_viewer.get_view_type();
+    const libvgcode::EViewType new_view_type = curr_view_type; // TODO: m_viewer.get_view_type();
 
     // extrusion paths section -> items
     switch (new_view_type)
@@ -3617,9 +3619,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             columns_offsets.push_back({used_filaments_weight[i], offsets[4]});
             append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_extrusion_role_color(role)), columns_offsets,
                 true, offsets.back(), visible, [this, role, visible]() {
-                    if (m_viewer.is_extrusion_role_visible(role) != visible) {
-                        m_viewer.toggle_extrusion_role_visibility(role);
-                    }
+                    m_viewer.toggle_extrusion_role_visibility(role);
                     update_moves_slider();
                     wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
                 });
@@ -3665,7 +3665,24 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::PopStyleVar(1);
         break;
     }
-    case libvgcode::EViewType::ActualSpeed:              { append_range(m_viewer.get_color_range(libvgcode::EViewType::ActualSpeed), 0); break; } // TODO
+    case libvgcode::EViewType::ActualSpeed: {
+        append_range(m_viewer.get_color_range(libvgcode::EViewType::ActualSpeed), 0);
+        ImGui::Spacing();
+        ImGui::Dummy({ window_padding, window_padding });
+        ImGui::SameLine();
+        offsets = calculate_offsets({ { _u8L("Options"), { _u8L("Travel")}}, { _u8L("Display"), {""}} }, icon_size);
+        append_headers({ {_u8L("Options"), offsets[0] }, { _u8L("Display"), offsets[1]} });
+        const bool travel_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 3.0f));
+        append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this, travel_visible]() {
+            m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
+            // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
+            update_moves_slider();
+            wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+            });
+        ImGui::PopStyleVar(1);
+        break;
+    }
     case libvgcode::EViewType::FanSpeed:                 { append_range(m_viewer.get_color_range(libvgcode::EViewType::FanSpeed), 0); break; }
     case libvgcode::EViewType::Temperature:              { append_range(m_viewer.get_color_range(libvgcode::EViewType::Temperature), 0); break; }
     case libvgcode::EViewType::LayerTimeLinear:          { append_range(m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLinear), true); break; }
@@ -3706,8 +3723,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         // shows only extruders actually used
         size_t i = 0;
         const std::vector<uint8_t>& used_extruders_ids = m_viewer.get_used_extruders_ids();
-        for (auto extruder_idx : used_extruders_ids) { // TODO
-            const bool filament_visible = m_tools.m_tool_visibles[extruder_idx];
+        auto tool_colors = m_viewer.get_tool_colors();
+        for (auto extruder_idx : used_extruders_ids) {
             if (i < model_used_filaments_m.size() && i < model_used_filaments_g.size()) {
                 std::vector<std::pair<std::string, float>> columns_offsets;
                 columns_offsets.push_back({ std::to_string(extruder_idx + 1), color_print_offsets[_u8L("Filament")]});
@@ -3748,11 +3765,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 }
 
                 float checkbox_pos = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
-                append_item(EItemType::Rect, m_tools.m_tool_colors[extruder_idx], columns_offsets, true, checkbox_pos/*ORCA*/, filament_visible, [this, extruder_idx]() {
-                        m_tools.m_tool_visibles[extruder_idx] = !m_tools.m_tool_visibles[extruder_idx];
-                        update_moves_slider();
-                        wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-                    });
+                append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, [this, extruder_idx]() {});
             }
             i++;
         }
@@ -3796,7 +3809,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                     (total_model_used_filament_g + total_support_used_filament_g + total_flushed_filament_g + total_wipe_tower_used_filament_g) / unit_conver);
                 columns_offsets.push_back({ buf, color_print_offsets[_u8L("Total")] });
             }
-            append_item(EItemType::None, m_tools.m_tool_colors[0], columns_offsets);
+            append_item(EItemType::None, libvgcode::convert(tool_colors[0]), columns_offsets);
         }
 
         //BBS display filament change times
@@ -4001,6 +4014,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         switch (m_viewer.get_view_type())
         {
         case libvgcode::EViewType::Speed:
+        case libvgcode::EViewType::ActualSpeed:
         case libvgcode::EViewType::Tool:
         case libvgcode::EViewType::ColorPrint: {
             break;

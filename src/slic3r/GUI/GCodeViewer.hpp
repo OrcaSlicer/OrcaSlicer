@@ -168,12 +168,6 @@ public:
         void render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
     };
 
-    struct ETools
-    {
-        std::vector<ColorRGBA> m_tool_colors;
-        std::vector<bool>  m_tool_visibles;
-    };
-
     //BBS
     ConflictResultOpt m_conflict_result;
 private:
@@ -194,8 +188,6 @@ private:
     BoundingBoxf3 m_shell_bounding_box;
     float m_max_print_height{ 0.0f };
 
-    //BBS save m_tools_color and m_tools_visible
-    ETools m_tools;
     ConfigOptionMode m_user_mode;
     bool m_fold = {false};
 
@@ -330,8 +322,6 @@ public:
                     m_viewer.toggle_extrusion_role_visibility(role);
                 }
             }
-        } else if (type == libvgcode::EViewType::ColorPrint){
-            for(auto item: m_tools.m_tool_visibles) item = true;
         }
     }
 
