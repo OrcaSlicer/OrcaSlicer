@@ -161,6 +161,7 @@ class Print;
         ConflictResultOpt conflict_result;
         GCodeCheckResult  gcode_check_result;
         FilamentPrintableResult filament_printable_reuslt;
+        float initial_layer_time;
 
         struct SettingsIds
         {

@@ -1987,7 +1987,7 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     
     if(is_BBL_Printer())
         result->label_object_enabled = m_enable_exclude_object;
-
+    result->initial_layer_time   = m_initial_layer_time;
     // Write the profiler measurements to file
     PROFILE_UPDATE();
     PROFILE_OUTPUT(debug_out_path("gcode-export-profile.txt").c_str());
@@ -3429,6 +3429,12 @@ void GCode::process_layers(
         tbb::parallel_pipeline(12, generator & pressure_equalizer & cooling & fan_mover & pa_processor_filter & output);
     else
     	tbb::parallel_pipeline(12, generator & cooling & fan_mover & pa_processor_filter & output);
+
+    for (auto& layer_res : layers_results) {
+        if (layer_res.layer_id == 0)
+            m_initial_layer_time = layer_res.layer_time;
+    }
+
 }
 
 // Process all layers of a single object instance (sequential mode) with a parallel pipeline:
