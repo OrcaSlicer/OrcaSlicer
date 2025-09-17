@@ -23,6 +23,7 @@
     "upward_compatible_machine": [
         "Bambu Lab H2D 0.6 nozzle",
         "Bambu Lab H2D Pro 0.6 nozzle",
-        "Bambu Lab H2S 0.6 nozzle"
+        "Bambu Lab H2S 0.6 nozzle",
+        "Bambu Lab P2S 0.6 nozzle"
     ]
 }
