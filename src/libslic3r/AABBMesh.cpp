@@ -54,12 +54,12 @@ public:
                             int &                        i,
                             Eigen::Matrix<double, 1, 3> &closest)
     {
-        size_t idx_unsigned = 0;
-        Vec3d  closest_vec3d(closest);
-        double dist =
+        size_t idx_unsigned { 0 };
+        Vec3d  closest_vec3d { Vec3d::Zero() };
+        const double dist {
             AABBTreeIndirect::squared_distance_to_indexed_triangle_set(
                 its.vertices, its.indices, m_tree, point, idx_unsigned,
-                closest_vec3d);
+                closest_vec3d) };
         i       = int(idx_unsigned);
         closest = closest_vec3d;
         return dist;
