@@ -4897,6 +4897,13 @@ void GUI_App::process_network_msg(std::string dev_id, std::string msg)
             obj->update_device_cert_state(true);
         }
     }
+    else if (msg == "device_cert_uninstalled") {
+        BOOST_LOG_TRIVIAL(info) << "process_network_msg, device_cert_uninstalled";
+        Slic3r::DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+        if (!dev) return;
+        MachineObject *obj = dev->get_my_machine(dev_id);
+        if (obj) { obj->update_device_cert_state(false); }
+    }
 }
 
 //BBS pop up a dialog and download files
