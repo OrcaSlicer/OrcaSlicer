@@ -1758,6 +1758,8 @@ void SendToPrinterDialog::set_default()
         }
         image  = image.Rescale(FromDIP(256), FromDIP(256));
         m_thumbnailPanel->set_thumbnail(image);
+    } else {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " : thumbnail_data invalid." << "current plater: " << m_plater->get_partplate_list().get_curr_plate_index();
     }
 
     std::vector<std::string> materials;
