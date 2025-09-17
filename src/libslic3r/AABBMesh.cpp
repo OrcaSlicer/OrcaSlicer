@@ -311,10 +311,9 @@ AABBMesh::hit_result IndexedMesh::filter_hits(
 
 
 double AABBMesh::squared_distance(const Vec3d &p, int& i, Vec3d& c) const {
-    double sqdst = 0;
-    Eigen::Matrix<double, 1, 3> pp = p;
-    Eigen::Matrix<double, 1, 3> cc;
-    sqdst = m_aabb->squared_distance(*m_tm, pp, i, cc);
+    const Eigen::Matrix<double, 1, 3> pp { p };
+    Eigen::Matrix<double, 1, 3> cc { Vec3d::Zero() };
+    const double sqdst { m_aabb->squared_distance(*m_tm, pp, i, cc) };
     c = cc;
     return sqdst;
 }
