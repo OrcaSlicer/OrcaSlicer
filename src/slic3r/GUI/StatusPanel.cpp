@@ -4663,6 +4663,9 @@ void StatusPanel::on_switch_speed(wxCommandEvent &event)
 #else
     PopupWindow *popUp = new PopupWindow(m_switch_speed);
 #endif
+#ifdef __WXMSW__
+    popUp->BindUnfocusEvent();
+#endif
     popUp->SetBackgroundColour(StateColor::darkModeColorFor(0xeeeeee));
     StepCtrl *step = new StepCtrl(popUp, wxID_ANY);
     wxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
