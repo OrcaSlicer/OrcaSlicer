@@ -4092,7 +4092,17 @@ void StatusPanel::on_set_chamber_temp()
                 m_tempCtrl_chamber->Warning(false);
             }
 
-            if (!obj->GetFan()->is_at_heating_mode() && chamber_temp >= obj->GetConfig()->GetChamberTempSwitchHeat())
+            if(obj->is_in_printing() && obj->GetFan()->GetSupportAirduct() && obj->GetFan()->is_at_cooling_mode())
+            {
+#ifndef __APPLE__
+                MessageDialog champer_switch_head_dlg(this, _L("Chamber temperature cannot be changed in cooling mode while printing."), wxEmptyString, wxICON_WARNING | wxOK);
+#else
+                wxMessageDialog champer_switch_head_dlg(this, _L("Chamber temperature cannot be changed in cooling mode while printing."), wxEmptyString, wxICON_WARNING | wxOK);
+#endif
+                champer_switch_head_dlg.ShowModal();
+                return;
+            }
+            else if (!obj->GetFan()->is_at_heating_mode() && chamber_temp >= obj->GetConfig()->GetChamberTempSwitchHeat())
             {
 #ifndef __APPLE__
                 MessageDialog champer_switch_head_dlg(this, _L("If the chamber temperature exceeds 40\u2103, the system will automatically switch to heating mode. "
