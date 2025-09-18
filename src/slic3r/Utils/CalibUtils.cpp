@@ -1432,14 +1432,6 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
         return true;
 
     bool is_multi_extruder = obj->is_multi_extruders();
-    std::vector<NozzleFlowType> nozzle_volume_types;
-    if (is_multi_extruder) {
-        const auto& extders = obj->GetExtderSystem()->GetExtruders();
-        for (const DevExtder &extruder : extders) {
-            nozzle_volume_types.emplace_back(extruder.GetNozzleFlowType());
-        }
-    }
-
     Preset *printer_preset = get_printer_preset(obj);
 
     for (const auto &cali_info : cali_infos) {
@@ -1467,7 +1459,7 @@ bool CalibUtils::check_printable_status_before_cali(const MachineObject *obj, co
         }
 
         float diameter = obj->GetExtderSystem()->GetNozzleDiameter(extruder_id);
-        NozzleFlowType nozzle_volume_type = nozzle_volume_types[cali_info.extruder_id];
+        NozzleFlowType nozzle_volume_type = obj->GetExtderSystem()->GetNozzleFlowType(cali_info.extruder_id);
 
         if (!is_approx(cali_info.nozzle_diameter, diameter)) {
             if (is_multi_extruder)
