@@ -2994,19 +2994,20 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                 if (!key_field_only)
                 {
-                    if (is_studio_cmd(sequence_id) && jj.contains("command") && jj.contains("err_code") && jj.contains("result"))
+                    if (is_studio_cmd(sequence_id) && jj.contains("command") && jj.contains("err_code"))
                     {
-                        if (jj["err_code"].is_number()) { add_command_error_code_dlg(jj["err_code"].get<int>());}
-                    }
-                    /* proceed action*/
-                    else if (is_studio_cmd(sequence_id) && jj.contains("command") && jj.contains("err_code") && jj.contains("err_index")) {
-                        json action_json;
-                        action_json["command"] = jj["command"];
-                        action_json["err_code"] = jj["err_code"];
-                        action_json["err_index"] = jj["err_index"];
-                        action_json["err_ignored"] = jj.contains("err_ignored") ? jj["err_ignored"] : json::array();
-
-                        add_command_error_code_dlg(jj["err_code"].get<int>(), action_json);
+                        if (jj["err_code"].is_number())
+                        {
+                            json action_json;
+                            if (jj.contains("err_index")) {
+                                /* proceed action*/
+                                action_json["command"]     = jj["command"];
+                                action_json["err_code"]    = jj["err_code"];
+                                action_json["err_index"]   = jj["err_index"];
+                                action_json["err_ignored"] = jj.contains("err_ignored") ? jj["err_ignored"] : json::array();
+                            }
+                            add_command_error_code_dlg(jj["err_code"].get<int>(), action_json);
+                        }
                     }
                 }
 
