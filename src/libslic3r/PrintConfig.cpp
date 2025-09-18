@@ -6214,10 +6214,11 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("wipe_tower_rib_width", coFloat);
     def->label    = L("Rib width");
-    def->tooltip  = L("Rib width.");
+    def->tooltip  = L("Rib width is always less than half the prime tower side length.");
     def->sidetext = "mm";	// milimeters, don't need translation
     def->mode     = comAdvanced;
     def->min      = 0;
+    def->max      = 300;
     def->set_default_value(new ConfigOptionFloat(8));
 
     def          = this->add("wipe_tower_fillet_wall", coBool);
