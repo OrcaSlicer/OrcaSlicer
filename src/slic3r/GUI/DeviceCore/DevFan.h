@@ -2,6 +2,8 @@
 #include <nlohmann/json.hpp>
 #include "slic3r/Utils/json_diff.hpp"
 
+#include <map>
+
 namespace Slic3r {
 
 class MachineObject;
@@ -69,7 +71,7 @@ public:
 struct AirDuctData
 {
     int                              curren_mode{0};
-    std::unordered_map<int, AirMode> modes;
+    std::map<int, AirMode>           modes;
     std::vector<AirParts>            parts;
 
     int  m_sub_mode = -1;// the submode of airduct, for cooling: 0-filter, 1-cooling
