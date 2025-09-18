@@ -1822,20 +1822,18 @@ void GUI_App::init_networking_callbacks()
             CallAfter([this, dev_id, msg] {
                 if (is_closing())
                     return;
-                this->process_network_msg(dev_id, msg);
 
-                MachineObject* obj = this->m_device_manager->get_user_machine(dev_id);
-                if (obj) {
+                if (process_network_msg(dev_id, msg)) {
+                    return;
+                }
+
+                if (MachineObject* obj = this->m_device_manager->get_user_machine(dev_id)) {
                     auto sel = this->m_device_manager->get_selected_machine();
-
-                    if (sel && sel->get_dev_id() == dev_id)
-                    {
+                    if (sel && sel->get_dev_id() == dev_id) {
                         obj->parse_json("cloud", msg);
-                    }
-                    else {
+                    } else {
                         obj->parse_json("cloud", msg, true);
                     }
-
 
                     if (sel == obj || sel == nullptr) {
                         GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
@@ -1876,10 +1874,11 @@ void GUI_App::init_networking_callbacks()
                 if (is_closing())
                     return;
 
-                this->process_network_msg(dev_id, msg);
-                MachineObject* obj = m_device_manager->get_my_machine(dev_id);
+                if (this->process_network_msg(dev_id, msg)) {
+                    return;
+                }
 
-                if (obj) {
+                if (MachineObject* obj = m_device_manager->get_my_machine(dev_id)) {
                     obj->parse_json("lan", msg);
                     if (this->m_device_manager->get_selected_machine() == obj) {
                         GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
@@ -4883,27 +4882,34 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
     http.perform();
 }
 
-void GUI_App::process_network_msg(std::string dev_id, std::string msg)
+// return true if handled
+bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
 {
     if (dev_id.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << msg;
     }
     else if (msg == "device_cert_installed") {
         BOOST_LOG_TRIVIAL(info) << "process_network_msg, device_cert_installed";
-        Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-        if (!dev) return;
-        MachineObject* obj = dev->get_my_machine(dev_id);
-        if (obj) {
-            obj->update_device_cert_state(true);
+        if (Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
+            if (MachineObject* obj = dev->get_my_machine(dev_id)) {
+                obj->update_device_cert_state(true);
+            }
         }
+
+        return true;
     }
     else if (msg == "device_cert_uninstalled") {
         BOOST_LOG_TRIVIAL(info) << "process_network_msg, device_cert_uninstalled";
-        Slic3r::DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-        if (!dev) return;
-        MachineObject *obj = dev->get_my_machine(dev_id);
-        if (obj) { obj->update_device_cert_state(false); }
+        if (Slic3r::DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
+            if (MachineObject* obj = dev->get_my_machine(dev_id)){
+                obj->update_device_cert_state(false);
+            }
+        }
+
+        return true;
     }
+
+    return false;
 }
 
 //BBS pop up a dialog and download files
