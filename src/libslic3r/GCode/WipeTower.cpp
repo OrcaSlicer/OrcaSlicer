@@ -3771,9 +3771,10 @@ void WipeTower::plan_tower_new()
     }
 
     update_all_layer_depth(max_depth);
-    m_rib_length = std::max({m_rib_length, sqrt(m_wipe_tower_depth * m_wipe_tower_depth + m_wipe_tower_width * m_wipe_tower_width)});
+    float diagonal = sqrt(m_wipe_tower_depth * m_wipe_tower_depth + m_wipe_tower_width * m_wipe_tower_width);
+    m_rib_length    = std::max({m_rib_length, diagonal});
     m_rib_length += m_extra_rib_length;
-    m_rib_length = std::max(0.f, m_rib_length);
+    m_rib_length = std::max(diagonal, m_rib_length);
     m_rib_width  = std::min(m_rib_width, std::min(m_wipe_tower_depth, m_wipe_tower_width) / 2.f); // Ensure that the rib wall of the wipetower are attached to the infill.
 
 }
