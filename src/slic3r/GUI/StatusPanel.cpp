@@ -1004,7 +1004,7 @@ void PrintingTaskPanel::show_error_msg(wxString msg)
 
 void PrintingTaskPanel::reset_printing_value()
 {
-    this->set_thumbnail_img(m_thumbnail_placeholder.bmp());
+    this->set_thumbnail_img(m_thumbnail_placeholder.bmp(), m_thumbnail_placeholder.name());
     this->set_plate_index(-1);
 }
 
@@ -1182,8 +1182,15 @@ void PrintingTaskPanel::show_profile_info(bool show, wxString profile /*= wxEmpt
     }
 }
 
-void PrintingTaskPanel::set_thumbnail_img(const wxBitmap& bmp)
+// the API will buff the bmp and bmp_name
+// when bmp_name is empty, the API will replace the image on force
+void PrintingTaskPanel::set_thumbnail_img(const wxBitmap& bmp, const std::string& bmp_name)
 {
+    if (!bmp_name.empty() && m_thumbnail_bmp_display_name == bmp_name)  {
+        return;
+    }
+
+    m_thumbnail_bmp_display_name = bmp_name;
     m_thumbnail_bmp_display = bmp;
     Refresh();
 }
@@ -2156,7 +2163,6 @@ void StatusBasePanel::show_ams_group(bool show)
         m_ams_control->Fit();
         Layout();
         Fit();
-        wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
         wxGetApp().mainframe->m_monitor->Layout();
     }
 
@@ -2166,7 +2172,6 @@ void StatusBasePanel::show_ams_group(bool show)
         m_ams_control->Fit();
         Layout();
         Fit();
-        wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
         wxGetApp().mainframe->m_monitor->Layout();
     }
 }
@@ -2217,6 +2222,7 @@ void StatusPanel::update_camera_state(MachineObject* obj)
             m_bitmap_sdcard_img->SetToolTip(_L("Storage"));
         }
         m_last_sdcard = sdcard_state;
+        m_panel_monitoring_title->Layout();
     }
 
     //recording
@@ -2229,8 +2235,11 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         }
         m_last_recording = obj->is_recording() ? 1 : 0;
     }
-    if (!m_bitmap_recording_img->IsShown())
+
+    if (!m_bitmap_recording_img->IsShown()) {
         m_bitmap_recording_img->Show();
+        m_panel_monitoring_title->Layout();
+    }
 
     /*if (m_bitmap_recording_img->IsShown())
         m_bitmap_recording_img->Hide();*/
@@ -2245,11 +2254,16 @@ void StatusPanel::update_camera_state(MachineObject* obj)
             }
             m_last_timelapse = obj->is_timelapse() ? 1 : 0;
         }
-        if (!m_bitmap_timelapse_img->IsShown())
+
+        if (!m_bitmap_timelapse_img->IsShown()) {
             m_bitmap_timelapse_img->Show();
+            m_panel_monitoring_title->Layout();
+        }
     } else {
-        if (m_bitmap_timelapse_img->IsShown())
+        if (m_bitmap_timelapse_img->IsShown()) {
             m_bitmap_timelapse_img->Hide();
+            m_panel_monitoring_title->Layout();
+        }
     }
 
     //vcamera
@@ -2262,11 +2276,16 @@ void StatusPanel::update_camera_state(MachineObject* obj)
             }
             m_last_vcamera = m_media_play_ctrl->IsStreaming() ? 1 : 0;
         }
-        if (!m_bitmap_vcamera_img->IsShown())
+
+        if (!m_bitmap_vcamera_img->IsShown()) {
             m_bitmap_vcamera_img->Show();
+            m_panel_monitoring_title->Layout();
+        }
     } else {
-        if (m_bitmap_vcamera_img->IsShown())
+        if (m_bitmap_vcamera_img->IsShown()) {
             m_bitmap_vcamera_img->Hide();
+            m_panel_monitoring_title->Layout();
+        }
     }
 
     //camera setting
@@ -2274,8 +2293,6 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         bool show_vcamera = m_media_play_ctrl->IsStreaming();
         m_camera_popup->update(show_vcamera);
     }
-
-    m_panel_monitoring_title->Layout();
 }
 
 StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style, const wxString &name)
@@ -2614,7 +2631,7 @@ void StatusPanel::on_webrequest_state(wxWebRequestEvent &evt)
             wxImage img(*evt.GetResponse().GetStream());
             img_list.insert(std::make_pair(m_request_url, img));
             wxImage resize_img = img.Scale(m_project_task_panel->get_bitmap_thumbnail()->GetSize().x, m_project_task_panel->get_bitmap_thumbnail()->GetSize().y, wxIMAGE_QUALITY_HIGH);
-            m_project_task_panel->set_thumbnail_img(resize_img);
+            m_project_task_panel->set_thumbnail_img(resize_img, "");
             m_project_task_panel->set_brightness_value(get_brightness_value(resize_img));
         }
         if (obj) {
@@ -2628,7 +2645,7 @@ void StatusPanel::on_webrequest_state(wxWebRequestEvent &evt)
     case wxWebRequest::State_Failed:
     case wxWebRequest::State_Cancelled:
     case wxWebRequest::State_Unauthorized: {
-        m_project_task_panel->set_thumbnail_img(m_thumbnail_brokenimg.bmp());
+        m_project_task_panel->set_thumbnail_img(m_thumbnail_brokenimg.bmp(), m_thumbnail_brokenimg.name());
         m_project_task_panel->set_plate_index(-1);
         task_thumbnail_state = ThumbnailState::BROKEN_IMG;
         break;
@@ -2787,7 +2804,6 @@ void StatusPanel::update(MachineObject *obj)
 
         if (m_panel_control_title) {
             m_panel_control_title->Layout();
-            m_panel_control_title->Refresh();
         }
 
         if (!obj->dev_connection_type.empty()) {
@@ -3620,7 +3636,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
             }
         }
         if (calib_bitmap != nullptr)
-            m_project_task_panel->set_thumbnail_img(*calib_bitmap);
+            m_project_task_panel->set_thumbnail_img(*calib_bitmap, "");
     }
 
     m_project_task_panel->show_layers_num(obj->is_support_layer_num);
@@ -3760,8 +3776,6 @@ void StatusPanel::update_subtask(MachineObject *obj)
     } else {
         reset_printing_values();
     }
-
-    Layout();
 }
 
 void StatusPanel::update_partskip_subtask(MachineObject *obj){
@@ -3818,7 +3832,7 @@ void StatusPanel::update_cloud_subtask(MachineObject *obj)
                     if (m_current_print_mode != PrintingTaskType::CALIBRATION  ||(m_calib_mode == CalibMode::Calib_Flow_Rate && m_calib_method == CalibrationMethod::CALI_METHOD_MANUAL)) {
                         img = it->second;
                         wxImage resize_img = img.Scale(m_project_task_panel->get_bitmap_thumbnail()->GetSize().x, m_project_task_panel->get_bitmap_thumbnail()->GetSize().y);
-                        m_project_task_panel->set_thumbnail_img(resize_img);
+                        m_project_task_panel->set_thumbnail_img(resize_img, "");
                         m_project_task_panel->set_brightness_value(get_brightness_value(resize_img));
                     }
                     if (this->obj) {
@@ -3847,7 +3861,7 @@ void StatusPanel::update_sdcard_subtask(MachineObject *obj)
         update_calib_bitmap();
         if (m_current_print_mode != PrintingTaskType::CALIBRATION) {
             m_project_task_panel->get_bitmap_thumbnail()->SetBitmap(m_thumbnail_sdcard.bmp());
-            m_project_task_panel->set_thumbnail_img(m_thumbnail_sdcard.bmp());
+            m_project_task_panel->set_thumbnail_img(m_thumbnail_sdcard.bmp(), m_thumbnail_sdcard.name());
         }
         task_thumbnail_state = ThumbnailState::SDCARD_THUMBNAIL;
         m_load_sdcard_thumbnail = true;

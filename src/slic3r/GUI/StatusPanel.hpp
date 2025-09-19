@@ -264,6 +264,7 @@ public:
 private:
     MachineObject*  m_obj{nullptr};
     ScalableBitmap  m_thumbnail_placeholder;
+    std::string     m_thumbnail_bmp_display_name;
     wxBitmap        m_thumbnail_bmp_display;
     ScalableBitmap  m_bitmap_use_time;
     ScalableBitmap  m_bitmap_use_weight;
@@ -336,7 +337,7 @@ public:
     void update_layers_num(bool show, wxString num = wxEmptyString);
     void show_priting_use_info(bool show, wxString time = wxEmptyString, wxString weight = wxEmptyString);
     void show_profile_info(bool show, wxString profile = wxEmptyString);
-    void set_thumbnail_img(const wxBitmap& bmp);
+    void set_thumbnail_img(const wxBitmap& bmp, const std::string& bmp_name);
     void set_brightness_value(int value) { m_brightness_value = value; }
     void set_plate_index(int plate_idx = -1);
     void market_scoring_show();

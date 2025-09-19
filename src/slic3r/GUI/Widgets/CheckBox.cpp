@@ -31,8 +31,10 @@ CheckBox::CheckBox(wxWindow *parent, int id)
 
 void CheckBox::SetValue(bool value)
 {
-	wxBitmapToggleButton::SetValue(value);
-	update();
+    if (wxBitmapToggleButton::GetValue() != value) {
+        wxBitmapToggleButton::SetValue(value);
+        update();
+    }
 }
 
 void CheckBox::SetHalfChecked(bool value)
