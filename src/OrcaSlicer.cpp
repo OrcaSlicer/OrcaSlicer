@@ -3508,6 +3508,7 @@ int CLI::run(int argc, char **argv)
 
     m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
 
+    bool has_wipe_tower_position = m_print_config.option<ConfigOptionFloats>("wipe_tower_x") && m_print_config.option<ConfigOptionFloats>("wipe_tower_y");
     // Initialize full print configs for both the FFF and SLA technologies.
     FullPrintConfig    fff_print_config;
     //SLAFullPrintConfig sla_print_config;
@@ -4737,7 +4738,7 @@ int CLI::run(int argc, char **argv)
                 bool is_seq_print = false;
                 get_print_sequence(cur_plate, m_print_config, is_seq_print);
 
-                if (!is_seq_print && assemble_plate.filaments_count > 1)
+                if (!is_seq_print && (assemble_plate.filaments_count > 1) && !has_wipe_tower_position)
                 {
                     //prepare the wipe tower
                     auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
