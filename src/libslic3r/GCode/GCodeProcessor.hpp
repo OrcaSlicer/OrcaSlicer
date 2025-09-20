@@ -160,22 +160,10 @@ class Print;
             std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
             unsigned int layer_id{ 0 };
             float layer_duration{ 0.0f }; // s (layer id before finalize)
-
-
-            //BBS: arc move related data
-            EMovePathType move_path_type{ EMovePathType::Noop_move };
-            Vec3f arc_center_position{ Vec3f::Zero() };      // mm
-            std::vector<Vec3f> interpolation_points;     // interpolation points of arc for drawing
+            bool internal_only{ false };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
-            //BBS: new function to support arc move
-            bool is_arc_move_with_interpolation_points() const {
-                return (move_path_type == EMovePathType::Arc_move_ccw || move_path_type == EMovePathType::Arc_move_cw) && interpolation_points.size();
-            }
-            bool is_arc_move() const {
-                return move_path_type == EMovePathType::Arc_move_ccw || move_path_type == EMovePathType::Arc_move_cw;
-            }
         };
 
         struct SliceWarning {
@@ -698,10 +686,6 @@ class Print;
         //BBS: x, y offset for gcode generated
         double          m_x_offset{ 0 };
         double          m_y_offset{ 0 };
-        //BBS: arc move related data
-        EMovePathType m_move_path_type{ EMovePathType::Noop_move };
-        Vec3f m_arc_center{ Vec3f::Zero() };    // mm
-        std::vector<Vec3f> m_interpolation_points;
 
         unsigned int m_line_id;
         unsigned int m_last_line_id;
@@ -830,7 +814,16 @@ class Print;
         // Move
         void process_G0(const GCodeReader::GCodeLine& line);
         void process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
-        void process_G2_G3(const GCodeReader::GCodeLine& line);
+        enum class G1DiscretizationOrigin {
+            G1,
+            G2G3,
+        };
+        void process_G1(const std::array<std::optional<double>, 4>& axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt },
+            const std::optional<double>& feedrate = std::nullopt, G1DiscretizationOrigin origin = G1DiscretizationOrigin::G1,
+            const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
+
+        // Arc Move
+        void process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise);
 
         // BBS: handle delay command
         void process_G4(const GCodeReader::GCodeLine& line);
@@ -950,7 +943,7 @@ class Print;
         void run_post_process();
 
         //BBS: different path_type is only used for arc move
-        void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move);
+        void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
 
         void set_extrusion_role(ExtrusionRole role);
 
@@ -978,6 +971,9 @@ class Print;
         void simulate_st_synchronize(float additional_time = 0.0f);
 
         void update_estimated_times_stats();
+
+        double extract_absolute_position_on_axis(Axis axis, const GCodeReader::GCodeLine& line, double area_filament_cross_section);
+
         //BBS:
         void update_slice_warnings();
    };

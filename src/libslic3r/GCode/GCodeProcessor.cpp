@@ -31,6 +31,8 @@
 
 #include <chrono>
 
+#include "Geometry/ArcWelder.hpp"
+
 static const float DEFAULT_TOOLPATH_WIDTH = 0.4f;
 static const float DEFAULT_TOOLPATH_HEIGHT = 0.2f;
 
@@ -1174,9 +1176,6 @@ void GCodeProcessor::reset()
     m_flushing = false;
     m_wipe_tower = false;
     m_remaining_volume = 0.f;
-    // BBS: arc move related data
-    m_move_path_type = EMovePathType::Noop_move;
-    m_arc_center = Vec3f::Zero();
 
     m_line_id = 0;
     m_last_line_id = 0;
@@ -1559,8 +1558,8 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
                 switch (cmd[1]) {
                 case '0': { process_G0(line); break; }  // Move
                 case '1': { process_G1(line); break; }  // Move
-                case '2':
-                case '3': { process_G2_G3(line); break; }  // Move
+                case '2': { process_G2_G3(line, true); break; }   // CW Arc Move
+                case '3': { process_G2_G3(line, false); break; }  // CCW Arc Move
                 //BBS
                 case 4:  { process_G4(line); break; }  // Delay
                 default: break;
@@ -2550,40 +2549,55 @@ void GCodeProcessor::process_G0(const GCodeReader::GCodeLine& line)
 
 void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines)
 {
+    std::array<std::optional<double>, 4> g1_axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt };
+    if (line.has_x()) g1_axes[X] = (double)line.x();
+    if (line.has_y()) g1_axes[Y] = (double)line.y();
+    if (line.has_z()) g1_axes[Z] = (double)line.z();
+    if (line.has_e()) g1_axes[E] = (double)line.e();
+    std::optional<double> g1_feedrate = std::nullopt;
+    if (line.has_f()) g1_feedrate = (double)line.f();
+    process_G1(g1_axes, g1_feedrate);
+}
+
+void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes, const std::optional<double>& feedrate,
+    G1DiscretizationOrigin origin, const std::optional<unsigned int>& remaining_internal_g1_lines)
+{
     float filament_diameter = (static_cast<size_t>(m_extruder_id) < m_result.filament_diameters.size()) ? m_result.filament_diameters[m_extruder_id] : m_result.filament_diameters.back();
     float filament_radius = 0.5f * filament_diameter;
     float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
-    auto absolute_position = [this, area_filament_cross_section](Axis axis, const GCodeReader::GCodeLine& lineG1) {
-        bool is_relative = (m_global_positioning_type == EPositioningType::Relative);
-        if (axis == E)
-            is_relative |= (m_e_local_positioning_type == EPositioningType::Relative);
 
-        if (lineG1.has(Slic3r::Axis(axis))) {
-            float lengthsScaleFactor = (m_units == EUnits::Inches) ? INCHES_TO_MM : 1.0f;
-            float ret = lineG1.value(Slic3r::Axis(axis)) * lengthsScaleFactor;
+    auto move_type = [this](const AxisCoords& delta_pos) {
+        if (m_wiping)
+            return EMoveType::Wipe;
+        else if (delta_pos[E] < 0.0f)
+            return (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f || delta_pos[Z] != 0.0f) ? EMoveType::Travel : EMoveType::Retract;
+        else if (delta_pos[E] > 0.0f) {
+            if (delta_pos[X] == 0.0f && delta_pos[Y] == 0.0f)
+                return (delta_pos[Z] == 0.0f) ? EMoveType::Unretract : EMoveType::Travel;
+            else if (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f)
+                return EMoveType::Extrude;
+        }
+        else if (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f || delta_pos[Z] != 0.0f)
+            return EMoveType::Travel;
+
+        return EMoveType::Noop;
+    };
+
+    auto extract_absolute_position_on_axis = [&](Axis axis, std::optional<double> value, double area_filament_cross_section)
+    {
+        if (value.has_value()) {
+            bool is_relative = (m_global_positioning_type == EPositioningType::Relative);
+            if (axis == E)
+                is_relative |= (m_e_local_positioning_type == EPositioningType::Relative);
+
+            const double lengthsScaleFactor = (m_units == EUnits::Inches) ? double(INCHES_TO_MM) : 1.0;
+            double       ret                = *value * lengthsScaleFactor;
+            // if (axis == E && m_use_volumetric_e)
+            //     ret /= area_filament_cross_section;
             return is_relative ? m_start_position[axis] + ret : m_origin[axis] + ret;
         }
         else
             return m_start_position[axis];
-    };
-
-    auto move_type = [this](const AxisCoords& delta_pos) {
-        EMoveType type = EMoveType::Noop;
-
-        if (m_wiping)
-            type = EMoveType::Wipe;
-        else if (delta_pos[E] < 0.0f)
-            type = (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f || delta_pos[Z] != 0.0f) ? EMoveType::Travel : EMoveType::Retract;
-        else if (delta_pos[E] > 0.0f) {
-            if (delta_pos[X] == 0.0f && delta_pos[Y] == 0.0f)
-                type = (delta_pos[Z] == 0.0f) ? EMoveType::Unretract : EMoveType::Travel;
-            else if (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f)
-                type = EMoveType::Extrude;
-        }
-        else if (delta_pos[X] != 0.0f || delta_pos[Y] != 0.0f || delta_pos[Z] != 0.0f)
-            type = EMoveType::Travel;
-
-        return type;
     };
 
     ++m_g1_line_id;
@@ -2593,12 +2607,12 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
 
     // updates axes positions from line
     for (unsigned char a = X; a <= E; ++a) {
-        m_end_position[a] = absolute_position((Axis)a, line);
+        m_end_position[a] = extract_absolute_position_on_axis((Axis)a, axes[a], double(area_filament_cross_section));
     }
 
     // updates feedrate from line, if present
-    if (line.has_f())
-        m_feedrate = line.f() * MMMIN_TO_MMSEC;
+    if (feedrate.has_value())
+        m_feedrate = (*feedrate) * MMMIN_TO_MMSEC;
 
     // calculates movement deltas
     float max_abs_delta = 0.0f;
@@ -2633,7 +2647,7 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
 
         if (m_forced_height > 0.0f)
             m_height = m_forced_height;
-        else {
+        else if (origin == G1DiscretizationOrigin::G1) {
             if (m_end_position[Z] > m_extruded_last_z + EPSILON)
                 m_height = m_end_position[Z] - m_extruded_last_z;
         }
@@ -2644,7 +2658,8 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         if (m_end_position[Z] == 0.0f)
             m_end_position[Z] = m_height;
 
-        m_extruded_last_z = m_end_position[Z];
+        if (origin == G1DiscretizationOrigin::G1)
+            m_extruded_last_z = m_end_position[Z];
         m_options_z_corrector.update(m_height);
 
         if (m_forced_width > 0.0f)
@@ -2952,440 +2967,302 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
     store_move_vertex(type);
 }
 
-// BBS: this function is absolutely new for G2 and G3 gcode
-void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
+void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise)
 {
-    float filament_diameter = (static_cast<size_t>(m_extruder_id) < m_result.filament_diameters.size()) ? m_result.filament_diameters[m_extruder_id] : m_result.filament_diameters.back();
-    float filament_radius = 0.5f * filament_diameter;
-    float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
-    auto absolute_position = [this, area_filament_cross_section](Axis axis, const GCodeReader::GCodeLine& lineG2_3) {
-        bool is_relative = (m_global_positioning_type == EPositioningType::Relative);
-        if (axis == E)
-            is_relative |= (m_e_local_positioning_type == EPositioningType::Relative);
+    enum class EFitting { None, IJ, R };
+    std::string_view axis_pos_I;
+    std::string_view axis_pos_J;
+    EFitting fitting = EFitting::None;
+    if (line.has('R')) {
+        fitting = EFitting::R;
+    } else {
+        axis_pos_I = line.axis_pos('I');
+        axis_pos_J = line.axis_pos('J');
+        if (! axis_pos_I.empty() || ! axis_pos_J.empty())
+            fitting = EFitting::IJ;
+    }
 
-        if (lineG2_3.has(Slic3r::Axis(axis))) {
-            float lengthsScaleFactor = (m_units == EUnits::Inches) ? INCHES_TO_MM : 1.0f;
-            float ret = lineG2_3.value(Slic3r::Axis(axis)) * lengthsScaleFactor;
-            if (axis == I)
-                return m_start_position[X] + ret;
-            else if (axis == J)
-                return m_start_position[Y] + ret;
-            else
-                return is_relative ? m_start_position[axis] + ret : m_origin[axis] + ret;
-        }
-        else {
-            if (axis == I)
-                return m_start_position[X];
-            else if (axis == J)
-                return m_start_position[Y];
-            else
-                return m_start_position[axis];
-        }
+    if (fitting == EFitting::None)
+        return;
+
+    const float filament_diameter = (static_cast<size_t>(m_extruder_id) < m_result.filament_diameters.size()) ? m_result.filament_diameters[m_extruder_id] : m_result.filament_diameters.back();
+    const float filament_radius = 0.5f * filament_diameter;
+    const float area_filament_cross_section = static_cast<float>(M_PI) * sqr(filament_radius);
+
+    AxisCoords end_position = m_start_position;
+    for (unsigned char a = X; a <= E; ++a) {
+        end_position[a] = extract_absolute_position_on_axis((Axis)a, line, double(area_filament_cross_section));
+    }
+
+    // relative center
+    Vec3f rel_center = Vec3f::Zero();
+#ifndef NDEBUG
+    double radius = 0.0;
+#endif // NDEBUG
+    if (fitting == EFitting::R) {
+        float r;
+        if (!line.has_value('R', r) || r == 0.0f)
+            return;
+#ifndef NDEBUG
+        radius = (double)std::abs(r);
+#endif // NDEBUG
+        const Vec2f start_pos((float)m_start_position[X], (float)m_start_position[Y]);
+        const Vec2f end_pos((float)end_position[X], (float)end_position[Y]);
+        const Vec2f c = Geometry::ArcWelder::arc_center(start_pos, end_pos, r, !clockwise);
+        rel_center.x() = c.x() - m_start_position[X];
+        rel_center.y() = c.y() - m_start_position[Y];
+    }
+    else {
+        assert(fitting == EFitting::IJ);
+        if (! axis_pos_I.empty() && ! line.has_value(axis_pos_I, rel_center.x()))
+            return;
+        if (! axis_pos_J.empty() && ! line.has_value(axis_pos_J, rel_center.y()))
+            return;
+    }
+
+    // scale center, if needed
+    if (m_units == EUnits::Inches)
+        rel_center *= INCHES_TO_MM;
+
+    struct Arc
+    {
+        Vec3d start{ Vec3d::Zero() };
+        Vec3d end{ Vec3d::Zero() };
+        Vec3d center{ Vec3d::Zero() };
+
+        double angle{ 0.0 };
+        double delta_x() const { return end.x() - start.x(); }
+        double delta_y() const { return end.y() - start.y(); }
+        double delta_z() const { return end.z() - start.z(); }
+
+        double length() const { return angle * start_radius(); }
+        double travel_length() const { return std::sqrt(sqr(length()) + sqr(delta_z())); }
+        double start_radius() const { return (start - center).norm(); }
+        double end_radius() const { return (end - center).norm(); }
+
+        Vec3d relative_start() const { return start - center; }
+        Vec3d relative_end() const { return end - center; }
+
+        bool is_full_circle() const { return std::abs(delta_x()) < EPSILON && std::abs(delta_y()) < EPSILON; }
     };
 
-    auto move_type = [this](const float& delta_E) {
-        if (delta_E == 0.0f)
-            return EMoveType::Travel;
-        else
-            return EMoveType::Extrude;
+    Arc arc;
+
+    // arc start endpoint
+    arc.start = Vec3d(m_start_position[X], m_start_position[Y], m_start_position[Z]);
+
+    // arc center
+    arc.center = arc.start + rel_center.cast<double>();
+
+    // arc end endpoint
+    arc.end = Vec3d(end_position[X], end_position[Y], end_position[Z]);
+
+    // radii
+    if (std::abs(arc.end_radius() - arc.start_radius()) > 0.001) {
+        // what to do ???
+    }
+
+    assert(fitting != EFitting::R || std::abs(radius - arc.start_radius()) < EPSILON);
+
+    // updates feedrate from line
+    std::optional<float> feedrate;
+    if (line.has_f()) {
+        // feedrate = m_feed_multiply.current * line.f() * MMMIN_TO_MMSEC;
+        feedrate = 1.0f * line.f() * MMMIN_TO_MMSEC;
+    }
+
+    // updates extrusion from line
+    std::optional<float> extrusion;
+    if (line.has_e())
+        extrusion = end_position[E] - m_start_position[E];
+
+    // relative arc endpoints
+    const Vec3d rel_arc_start = arc.relative_start();
+    const Vec3d rel_arc_end   = arc.relative_end();
+
+    // arc angle
+    if (arc.is_full_circle())
+        arc.angle = 2.0 * PI;
+    else {
+        arc.angle = std::atan2(rel_arc_start.x() * rel_arc_end.y() - rel_arc_start.y() * rel_arc_end.x(),
+            rel_arc_start.x() * rel_arc_end.x() + rel_arc_start.y() * rel_arc_end.y());
+        if (arc.angle < 0.0)
+            arc.angle += 2.0 * PI;
+        if (clockwise)
+            arc.angle -= 2.0 * PI;
+    }
+
+    const double travel_length = arc.travel_length();
+    if (travel_length < 0.001)
+        return;
+
+    auto adjust_target = [this, area_filament_cross_section](const AxisCoords& target, const AxisCoords& prev_position) {
+        AxisCoords ret = target;
+        if (m_global_positioning_type == EPositioningType::Relative) {
+            for (unsigned char a = X; a <= E; ++a) {
+                ret[a] -= prev_position[a];
+            }
+        }
+        else if (m_e_local_positioning_type == EPositioningType::Relative)
+            ret[E] -= prev_position[E];
+
+        // if (m_use_volumetric_e)
+        //     ret[E] *= area_filament_cross_section;
+
+        const double lengthsScaleFactor = (m_units == EUnits::Inches) ? double(INCHES_TO_MM) : 1.0;
+        for (unsigned char a = X; a <= E; ++a) {
+            ret[a] /= lengthsScaleFactor;
+        }
+        return ret;
     };
 
-     auto arc_interpolation = [this](const Vec3f& start_pos, const Vec3f& end_pos, const Vec3f& center_pos, const bool is_ccw) {
-         float radius = ArcSegment::calc_arc_radius(start_pos, center_pos);
-         //BBS: radius is too small to draw
-         if (radius <= DRAW_ARC_TOLERANCE) {
-             m_interpolation_points.resize(0);
-             return;
-         }
-         float radian_step = 2 * acos((radius - DRAW_ARC_TOLERANCE) / radius);
-         float num = ArcSegment::calc_arc_radian(start_pos, end_pos, center_pos, is_ccw) / radian_step;
-         float z_step = (num < 1)? end_pos.z() - start_pos.z() : (end_pos.z() - start_pos.z()) / num;
-         radian_step = is_ccw ? radian_step : -radian_step;
-         int interpolation_num = floor(num);
+    auto internal_only_g1_line = [this](const AxisCoords& target, bool has_z, const std::optional<float>& feedrate,
+        const std::optional<float>& extrusion, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt) {
+          std::array<std::optional<double>, 4> g1_axes = { target[X], target[Y], std::nullopt, std::nullopt };
+          std::optional<double> g1_feedrate = std::nullopt;
+          if (has_z)
+              g1_axes[Z] = target[Z];
+          if (extrusion.has_value())
+              g1_axes[E] = target[E];
+          if (feedrate.has_value())
+              g1_feedrate = (double)*feedrate;
+          process_G1(g1_axes, g1_feedrate, G1DiscretizationOrigin::G2G3, remaining_internal_g1_lines);
+    };
 
-         m_interpolation_points.resize(interpolation_num, Vec3f::Zero());
-         Vec3f delta = start_pos - center_pos;
-         for (auto i = 0; i < interpolation_num; i++) {
-             float cos_val = cos((i+1) * radian_step);
-             float sin_val = sin((i+1) * radian_step);
-             m_interpolation_points[i] = Vec3f(center_pos.x() + delta.x() * cos_val - delta.y() * sin_val,
-                                               center_pos.y() + delta.x() * sin_val + delta.y() * cos_val,
-                                               start_pos.z() + (i + 1) * z_step);
-         }
-     };
+    if (m_flavor == gcfMarlinFirmware) {
+        // calculate arc segments
+        // reference:
+        // Prusa-Firmware-Buddy\lib\Marlin\Marlin\src\gcode\motion\G2_G3.cpp - plan_arc()
+        // https://github.com/prusa3d/Prusa-Firmware-Buddy-Private/blob/private/lib/Marlin/Marlin/src/gcode/motion/G2_G3.cpp
 
-    ++m_g1_line_id;
+        static const float MAX_ARC_DEVIATION = 0.02f;
+        static const float MIN_ARC_SEGMENTS_PER_SEC = 50;
+        static const float MIN_ARC_SEGMENT_MM = 0.1f;
+        static const float MAX_ARC_SEGMENT_MM = 2.0f;
+        const float feedrate_mm_s = feedrate.has_value() ? *feedrate : m_feedrate;
+        const float radius_mm = rel_center.norm();
+        const float segment_mm = std::clamp(std::min(std::sqrt(8.0f * radius_mm * MAX_ARC_DEVIATION), feedrate_mm_s * (1.0f / MIN_ARC_SEGMENTS_PER_SEC)), MIN_ARC_SEGMENT_MM, MAX_ARC_SEGMENT_MM);
+        const float flat_mm = radius_mm * std::abs(arc.angle);
+        const size_t segments = std::max<size_t>(flat_mm / segment_mm + 0.8f, 1);
 
-    //BBS: enable processing of lines M201/M203/M204/M205
-    m_time_processor.machine_envelope_processing_enabled = true;
+        AxisCoords prev_target = m_start_position;
 
-    //BBS: get axes positions from line
-    for (unsigned char a = X; a <= E; ++a) {
-        m_end_position[a] = absolute_position((Axis)a, line);
-    }
-    //BBS: G2 G3 line but has no I and J axis, invalid G code format
-    if (!line.has(I) && !line.has(J))
-        return;
-    //BBS: P mode, but xy position is not same, or P is not 1, invalid G code format
-    if (line.has(P) &&
-        (m_start_position[X] != m_end_position[X] ||
-         m_start_position[Y] != m_end_position[Y] ||
-         ((int)line.p()) != 1))
-        return;
+        if (segments > 1) {
+            const float inv_segments = 1.0f / static_cast<float>(segments);
+            const float theta_per_segment = static_cast<float>(arc.angle) * inv_segments;
+            const float cos_T = cos(theta_per_segment);
+            const float sin_T = sin(theta_per_segment);
+            const float z_per_segment = arc.delta_z() * inv_segments;
+            const float extruder_per_segment = (extrusion.has_value()) ? *extrusion * inv_segments : 0.0f;
 
-    m_arc_center = Vec3f(absolute_position(I, line),absolute_position(J, line),m_start_position[Z]);
-    //BBS: G2 is CW direction, G3 is CCW direction
-    const std::string_view cmd = line.cmd();
-    m_move_path_type = (::atoi(&cmd[1]) == 2) ? EMovePathType::Arc_move_cw : EMovePathType::Arc_move_ccw;
-    //BBS: get arc length,interpolation points and radian in X-Y plane
-    Vec3f start_point = Vec3f(m_start_position[X], m_start_position[Y], m_start_position[Z]);
-    Vec3f end_point = Vec3f(m_end_position[X], m_end_position[Y], m_end_position[Z]);
-    float arc_length;
-    if (!line.has(P))
-        arc_length = ArcSegment::calc_arc_length(start_point, end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
-    else
-        arc_length = ((int)line.p()) * 2 * PI * (start_point - m_arc_center).norm();
-    //BBS: Attention! arc_onterpolation does not support P mode while P is not 1.
-    arc_interpolation(start_point, end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
-    float radian = ArcSegment::calc_arc_radian(start_point, end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
-    Vec3f start_dir = Circle::calc_tangential_vector(start_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
-    Vec3f end_dir = Circle::calc_tangential_vector(end_point, m_arc_center, (m_move_path_type == EMovePathType::Arc_move_ccw));
+            static const size_t N_ARC_CORRECTION = 25;
+            size_t arc_recalc_count = N_ARC_CORRECTION;
 
-    //BBS: updates feedrate from line, if present
-    if (line.has_f())
-        m_feedrate = line.f() * MMMIN_TO_MMSEC;
-
-    //BBS: calculates movement deltas
-    AxisCoords delta_pos;
-    for (unsigned char a = X; a <= E; ++a) {
-        delta_pos[a] = m_end_position[a] - m_start_position[a];
-    }
-
-    //BBS: no displacement, return
-    if (arc_length == 0.0f && delta_pos[Z] == 0.0f)
-        return;
-
-    EMoveType type = move_type(delta_pos[E]);
-
-
-    const float delta_xyz = std::sqrt(sqr(arc_length) + sqr(delta_pos[Z]));
-    m_travel_dist         = delta_xyz;
-    if (type == EMoveType::Extrude) {
-        float volume_extruded_filament = area_filament_cross_section * delta_pos[E];
-        float area_toolpath_cross_section = volume_extruded_filament / delta_xyz;
-
-        if(m_extrusion_role == ExtrusionRole::erSupportMaterial || m_extrusion_role == ExtrusionRole::erSupportMaterialInterface || m_extrusion_role ==ExtrusionRole::erSupportTransition)
-            m_used_filaments.increase_support_caches(volume_extruded_filament);
-        else if (m_extrusion_role == ExtrusionRole::erWipeTower) {
-            //BBS: save wipe tower volume to the cache
-            m_used_filaments.increase_wipe_tower_caches(volume_extruded_filament);
-        }
-        else {
-            //BBS: save extruded volume to the cache
-            m_used_filaments.increase_model_caches(volume_extruded_filament);
-        }
-        //BBS: volume extruded filament / tool displacement = area toolpath cross section
-        m_mm3_per_mm = area_toolpath_cross_section;
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_mm3_per_mm_compare.update(area_toolpath_cross_section, m_extrusion_role);
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-
-        if (m_forced_height > 0.0f)
-            m_height = m_forced_height;
-        else {
-            if (m_end_position[Z] > m_extruded_last_z + EPSILON)
-                m_height = m_end_position[Z] - m_extruded_last_z;
-        }
-
-        if (m_height == 0.0f)
-            m_height = DEFAULT_TOOLPATH_HEIGHT;
-
-        if (m_end_position[Z] == 0.0f)
-            m_end_position[Z] = m_height;
-
-        m_extruded_last_z = m_end_position[Z];
-        m_options_z_corrector.update(m_height);
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_height_compare.update(m_height, m_extrusion_role);
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-
-        if (m_forced_width > 0.0f)
-            m_width = m_forced_width;
-        else if (m_extrusion_role == erExternalPerimeter)
-            //BBS: cross section: rectangle
-            m_width = delta_pos[E] * static_cast<float>(M_PI * sqr(1.05f * filament_radius)) / (delta_xyz * m_height);
-        else if (m_extrusion_role == erBridgeInfill || m_extrusion_role == erInternalBridgeInfill || m_extrusion_role == erNone)
-            //BBS: cross section: circle
-            m_width = static_cast<float>(m_result.filament_diameters[m_extruder_id]) * std::sqrt(delta_pos[E] / delta_xyz);
-        else
-            //BBS: cross section: rectangle + 2 semicircles
-            m_width = delta_pos[E] * static_cast<float>(M_PI * sqr(filament_radius)) / (delta_xyz * m_height) + static_cast<float>(1.0 - 0.25 * M_PI) * m_height;
-
-        if (m_width == 0.0f)
-            m_width = DEFAULT_TOOLPATH_WIDTH;
-
-        //BBS: clamp width to avoid artifacts which may arise from wrong values of m_height
-        m_width = std::min(m_width, std::max(2.0f, 4.0f * m_height));
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_width_compare.update(m_width, m_extrusion_role);
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-    }
-
-    //BBS: time estimate section
-    assert(delta_xyz != 0.0f);
-    float inv_distance = 1.0f / delta_xyz;
-    float radius = ArcSegment::calc_arc_radius(start_point, m_arc_center);
-
-    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-        TimeMachine& machine = m_time_processor.machines[i];
-        if (!machine.enabled)
-            continue;
-
-        TimeMachine::State& curr = machine.curr;
-        TimeMachine::State& prev = machine.prev;
-        std::vector<TimeBlock>& blocks = machine.blocks;
-
-        curr.feedrate = (type == EMoveType::Travel) ?
-            minimum_travel_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), m_feedrate) :
-            minimum_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), m_feedrate);
-
-        //BBS: calculeta enter and exit direction
-        curr.enter_direction = start_dir;
-        curr.exit_direction = end_dir;
-
-        TimeBlock block;
-        block.move_type = type;
-        //BBS: don't calculate travel time into extrusion path, except travel inside start and end gcode.
-        block.role = (type != EMoveType::Travel || m_extrusion_role == erCustom) ? m_extrusion_role : erNone;
-        block.distance = delta_xyz;
-        block.g1_line_id = m_g1_line_id;
-        block.layer_id = std::max<unsigned int>(1, m_layer_id);
-        block.flags.prepare_stage = m_processing_start_custom_gcode;
-
-        // BBS: calculates block cruise feedrate
-        // For arc move, we need to limite the cruise according to centripetal acceleration which is
-        // same with acceleration in x-y plane. Because arc move part is only on x-y plane, we use x-y acceleration directly
-        float centripetal_acceleration = get_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i));
-        float max_feedrate_by_centri_acc = sqrtf(centripetal_acceleration * radius) / (arc_length * inv_distance);
-        curr.feedrate = std::min(curr.feedrate, max_feedrate_by_centri_acc);
-
-        float min_feedrate_factor = 1.0f;
-        for (unsigned char a = X; a <= E; ++a) {
-            if (a == X || a == Y)
-                //BBS: use resultant feedrate in x-y plane
-                curr.axis_feedrate[a] = curr.feedrate * arc_length * inv_distance;
-            else if (a == Z)
-                curr.axis_feedrate[a] = curr.feedrate * delta_pos[a] * inv_distance;
-            else
-                curr.axis_feedrate[a] *= machine.extrude_factor_override_percentage;
-
-            curr.abs_axis_feedrate[a] = std::abs(curr.axis_feedrate[a]);
-            if (curr.abs_axis_feedrate[a] != 0.0f) {
-                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
-                if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
-            }
-        }
-        curr.feedrate *= min_feedrate_factor;
-        block.feedrate_profile.cruise = curr.feedrate;
-        if (min_feedrate_factor < 1.0f) {
-            for (unsigned char a = X; a <= E; ++a) {
-                curr.axis_feedrate[a] *= min_feedrate_factor;
-                curr.abs_axis_feedrate[a] *= min_feedrate_factor;
-            }
-        }
-
-        //BBS: calculates block acceleration
-        float acceleration = (type == EMoveType::Travel) ?
-                              get_travel_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i)) :
-                              get_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i));
-        float min_acc_factor = 1.0f;
-        AxisCoords axis_acc;
-        for (unsigned char a = X; a <= Z; ++a) {
-            if (a == X || a == Y)
-                //BBS: use resultant feedrate in x-y plane
-                axis_acc[a] = acceleration * arc_length * inv_distance;
-            else
-                axis_acc[a] = acceleration * std::abs(delta_pos[a]) * inv_distance;
-
-            if (axis_acc[a] != 0.0f) {
-                float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
-                if (axis_max_acceleration != 0.0f && axis_acc[a] > axis_max_acceleration) min_acc_factor = std::min<float>(min_acc_factor, axis_max_acceleration / axis_acc[a]);
-            }
-        }
-        block.acceleration = acceleration * min_acc_factor;
-
-        //BBS: calculates block exit feedrate
-        for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
-            if (curr.abs_axis_feedrate[a] > axis_max_jerk)
-                curr.safe_feedrate = std::min(curr.safe_feedrate, axis_max_jerk);
-        }
-        block.feedrate_profile.exit = curr.safe_feedrate;
-
-        //BBS: calculates block entry feedrate
-        static const float PREVIOUS_FEEDRATE_THRESHOLD = 0.0001f;
-        float vmax_junction = curr.safe_feedrate;
-        if (!blocks.empty() && prev.feedrate > PREVIOUS_FEEDRATE_THRESHOLD) {
-            bool prev_speed_larger = prev.feedrate > block.feedrate_profile.cruise;
-            float smaller_speed_factor = prev_speed_larger ? (block.feedrate_profile.cruise / prev.feedrate) : (prev.feedrate / block.feedrate_profile.cruise);
-            //BBS: Pick the smaller of the nominal speeds. Higher speed shall not be achieved at the junction during coasting.
-            vmax_junction = prev_speed_larger ? block.feedrate_profile.cruise : prev.feedrate;
-
-            float v_factor = 1.0f;
-            bool limited = false;
-
-            for (unsigned char a = X; a <= E; ++a) {
-                //BBS: Limit an axis. We have to differentiate coasting from the reversal of an axis movement, or a full stop.
-                if (a == X) {
-                    Vec3f exit_v = prev.feedrate * (prev.exit_direction);
-                    if (prev_speed_larger)
-                        exit_v *= smaller_speed_factor;
-                    Vec3f entry_v = block.feedrate_profile.cruise * (curr.enter_direction);
-                    Vec3f jerk_v = entry_v - exit_v;
-                    jerk_v = Vec3f(abs(jerk_v.x()), abs(jerk_v.y()), abs(jerk_v.z()));
-                    Vec3f max_xyz_jerk_v = get_xyz_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i));
-
-                    for (size_t i = 0; i < 3; i++)
-                    {
-                        if (jerk_v[i] > max_xyz_jerk_v[i]) {
-                            v_factor *= max_xyz_jerk_v[i] / jerk_v[i];
-                            jerk_v *= v_factor;
-                            limited = true;
-                        }
-                    }
+            Vec2f rvec(-rel_center.x(), -rel_center.y());
+            AxisCoords arc_target = { 0.0f, 0.0f, m_start_position[Z], m_start_position[E] };
+            for (size_t i = 1; i < segments; ++i) {
+                if (--arc_recalc_count) {
+                    // Apply vector rotation matrix to previous rvec.a / 1
+                    const float r_new_Y = rvec.x() * sin_T + rvec.y() * cos_T;
+                    rvec.x() = rvec.x() * cos_T - rvec.y() * sin_T;
+                    rvec.y() = r_new_Y;
                 }
-                else if (a == Y || a == Z) {
-                    continue;
-                } 
                 else {
-                    float v_exit = prev.axis_feedrate[a];
-                    float v_entry = curr.axis_feedrate[a];
-
-                    if (prev_speed_larger)
-                        v_exit *= smaller_speed_factor;
-
-                    if (limited) {
-                        v_exit *= v_factor;
-                        v_entry *= v_factor;
-                    }
-
-                    //BBS: Calculate the jerk depending on whether the axis is coasting in the same direction or reversing a direction.
-                    float jerk =
-                        (v_exit > v_entry) ?
-                        (((v_entry > 0.0f) || (v_exit < 0.0f)) ?
-                            //BBS: coasting
-                            (v_exit - v_entry) :
-                            //BBS: axis reversal
-                            std::max(v_exit, -v_entry)) :
-                        (((v_entry < 0.0f) || (v_exit > 0.0f)) ?
-                            //BBS: coasting
-                            (v_entry - v_exit) :
-                            //BBS: axis reversal
-                            std::max(-v_exit, v_entry));
-
-
-                    float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
-                    if (jerk > axis_max_jerk) {
-                        v_factor *= axis_max_jerk / jerk;
-                        limited = true;
-                    }
+                    arc_recalc_count = N_ARC_CORRECTION;
+                    // Arc correction to radius vector. Computed only every N_ARC_CORRECTION increments.
+                    // Compute exact location by applying transformation matrix from initial radius vector(=-offset).
+                    // To reduce stuttering, the sin and cos could be computed at different times.
+                    // For now, compute both at the same time.
+                    const float Ti = i * theta_per_segment;
+                    const float cos_Ti = cos(Ti);
+                    const float sin_Ti = sin(Ti);
+                    rvec.x() = -rel_center.x() * cos_Ti + rel_center.y() * sin_Ti;
+                    rvec.y() = -rel_center.x() * sin_Ti - rel_center.y() * cos_Ti;
                 }
-            }
 
-            if (limited)
-                vmax_junction *= v_factor;
+                // Update arc_target location
+                arc_target[X] = arc.center.x() + rvec.x();
+                arc_target[Y] = arc.center.y() + rvec.y();
+                arc_target[Z] += z_per_segment;
+                arc_target[E] += extruder_per_segment;
 
-            //BBS: Now the transition velocity is known, which maximizes the shared exit / entry velocity while
-            // respecting the jerk factors, it may be possible, that applying separate safe exit / entry velocities will achieve faster prints.
-            float vmax_junction_threshold = vmax_junction * 0.99f;
-
-            //BBS: Not coasting. The machine will stop and start the movements anyway, better to start the segment from start.
-            if ((prev.safe_feedrate > vmax_junction_threshold) && (curr.safe_feedrate > vmax_junction_threshold))
-                vmax_junction = curr.safe_feedrate;
-        }
-
-        float v_allowable = max_allowable_speed(-acceleration, curr.safe_feedrate, block.distance);
-        block.feedrate_profile.entry = std::min(vmax_junction, v_allowable);
-
-        block.max_entry_speed = vmax_junction;
-        block.flags.nominal_length = (block.feedrate_profile.cruise <= v_allowable);
-        block.flags.recalculate = true;
-        block.safe_feedrate = curr.safe_feedrate;
-
-        //BBS: calculates block trapezoid
-        block.calculate_trapezoid();
-
-        //BBS: updates previous
-        prev = curr;
-
-        blocks.push_back(block);
-
-        if (blocks.size() > TimeProcessor::Planner::refresh_threshold)
-            machine.calculate_time(m_result, PrintEstimatedStatistics::ETimeMode::Normal, TimeProcessor::Planner::queue_size);
-    }
-
-    //BBS: seam detector
-    Vec3f plate_offset = {(float) m_x_offset, (float) m_y_offset, 0.0f};
-
-    if (m_seams_detector.is_active()) {
-        //BBS: check for seam starting vertex
-        if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
-            const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset;
-            if (!m_seams_detector.has_first_vertex()) {
-                m_seams_detector.set_first_vertex(new_pos);
-            } else if (m_detect_layer_based_on_tag) {
-                // We may have sloped loop, drop any previous start pos if we have z increment
-                const std::optional<Vec3f> first_vertex = m_seams_detector.get_first_vertex();
-                if (new_pos.z() > first_vertex->z()) {
-                    m_seams_detector.set_first_vertex(new_pos);
-                }
+                m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
+                internal_only_g1_line(adjust_target(arc_target, prev_target), z_per_segment != 0.0, (i == 1) ? feedrate : std::nullopt,
+                    extrusion, segments - i);
+                prev_target = arc_target;
             }
         }
-        //BBS: check for seam ending vertex and store the resulting move
-        else if ((type != EMoveType::Extrude || (m_extrusion_role != erExternalPerimeter && m_extrusion_role != erOverhangPerimeter)) && m_seams_detector.has_first_vertex()) {
-            auto set_end_position = [this](const Vec3f& pos) {
-                m_end_position[X] = pos.x(); m_end_position[Y] = pos.y(); m_end_position[Z] = pos.z();
-            };
-            const Vec3f curr_pos(m_end_position[X], m_end_position[Y], m_end_position[Z]);
-            const Vec3f new_pos = m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset;
-            const std::optional<Vec3f> first_vertex = m_seams_detector.get_first_vertex();
-            //BBS: the threshold value = 0.0625f == 0.25 * 0.25 is arbitrary, we may find some smarter condition later
 
-            if ((new_pos - *first_vertex).squaredNorm() < 0.0625f) {
-                set_end_position(0.5f * (new_pos + *first_vertex));
-                store_move_vertex(EMoveType::Seam);
-                set_end_position(curr_pos);
+        // Ensure last segment arrives at target location.
+        m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
+        internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
+    }
+    else {
+        // calculate arc segments
+        // reference:
+        // Prusa-Firmware\Firmware\motion_control.cpp - mc_arc()
+        // https://github.com/prusa3d/Prusa-Firmware/blob/MK3/Firmware/motion_control.cpp
+
+        // segments count
+#if 0
+        static const double MM_PER_ARC_SEGMENT = 1.0;
+        const size_t segments = std::max<size_t>(std::floor(travel_length / MM_PER_ARC_SEGMENT), 1);
+#else
+        static const double gcode_arc_tolerance = 0.0125;
+        const size_t segments = Geometry::ArcWelder::arc_discretization_steps(arc.start_radius(), std::abs(arc.angle), gcode_arc_tolerance);
+#endif
+
+        const double inv_segment = 1.0 / double(segments);
+        const double theta_per_segment = arc.angle * inv_segment;
+        const double z_per_segment = arc.delta_z() * inv_segment;
+        const double extruder_per_segment = (extrusion.has_value()) ? *extrusion * inv_segment : 0.0;
+        const double sq_theta_per_segment = sqr(theta_per_segment);
+        const double cos_T = 1.0 - 0.5 * sq_theta_per_segment;
+        const double sin_T = theta_per_segment - sq_theta_per_segment * theta_per_segment / 6.0f;
+
+        AxisCoords prev_target = m_start_position;
+        AxisCoords arc_target;
+
+        // Initialize the linear axis
+        arc_target[Z] = m_start_position[Z];
+
+        // Initialize the extruder axis
+        arc_target[E] = m_start_position[E];
+
+        static const size_t N_ARC_CORRECTION = 25;
+        Vec3d curr_rel_arc_start = arc.relative_start();
+        size_t count = N_ARC_CORRECTION;
+
+        for (size_t i = 1; i < segments; ++i) {
+            if (count-- == 0) {
+                const double cos_Ti = ::cos(i * theta_per_segment);
+                const double sin_Ti = ::sin(i * theta_per_segment);
+                curr_rel_arc_start.x() = -double(rel_center.x()) * cos_Ti + double(rel_center.y()) * sin_Ti;
+                curr_rel_arc_start.y() = -double(rel_center.x()) * sin_Ti - double(rel_center.y()) * cos_Ti;
+                count = N_ARC_CORRECTION;
+            }
+            else {
+                const float r_axisi = curr_rel_arc_start.x() * sin_T + curr_rel_arc_start.y() * cos_T;
+                curr_rel_arc_start.x() = curr_rel_arc_start.x() * cos_T - curr_rel_arc_start.y() * sin_T;
+                curr_rel_arc_start.y() = r_axisi;
             }
 
-            m_seams_detector.activate(false);
+            // Update arc_target location
+            arc_target[X] = arc.center.x() + curr_rel_arc_start.x();
+            arc_target[Y] = arc.center.y() + curr_rel_arc_start.y();
+            arc_target[Z] += z_per_segment;
+            arc_target[E] += extruder_per_segment;
+
+            m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
+            internal_only_g1_line(adjust_target(arc_target, prev_target), z_per_segment != 0.0, (i == 1) ? feedrate : std::nullopt,
+                extrusion, segments - i);
+            prev_target = arc_target;
         }
-    }
-    else if (type == EMoveType::Extrude && m_extrusion_role == erExternalPerimeter) {
-        m_seams_detector.activate(true);
-        m_seams_detector.set_first_vertex(m_result.moves.back().position - m_extruder_offsets[m_extruder_id] - plate_offset);
-    }
 
-    // TODO
-    // // Orca: we now use spiral_vase_layers for proper layer detect when scarf joint is enabled,
-    // // and this is needed if the layer has only arc moves
-    // if (m_detect_layer_based_on_tag && !m_result.spiral_vase_layers.empty()) {
-    //     if (delta_pos[Z] >= 0.0 && type == EMoveType::Extrude) {
-    //         const float current_z = static_cast<float>(m_end_position[Z]);
-    //         // replace layer height placeholder with correct value
-    //         if (m_result.spiral_vase_layers.back().first == FLT_MAX) {
-    //             m_result.spiral_vase_layers.back().first = current_z;
-    //         } else {
-    //             m_result.spiral_vase_layers.back().first = std::max(m_result.spiral_vase_layers.back().first, current_z);
-    //         }
-    //     }
-    //     if (!m_result.moves.empty())
-    //         m_result.spiral_vase_layers.back().second.second = m_result.moves.size() - 1 - m_seams_count;
-    // }
-
-    //BBS: store move
-    store_move_vertex(type, m_move_path_type);
+        // Ensure last segment arrives at target location.
+        m_start_position = m_end_position; // this is required because we are skipping the call to process_gcode_line()
+        internal_only_g1_line(adjust_target(end_position, prev_target), arc.delta_z() != 0.0, (segments == 1) ? feedrate : std::nullopt, extrusion);
+    }
 }
 
 //BBS
@@ -4703,22 +4580,11 @@ void GCodeProcessor::run_post_process()
             "Is " + out_path + " locked?" + '\n');
 }
 
-void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
+void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, bool internal_only)
 {
     m_last_line_id = (type == EMoveType::Color_change || type == EMoveType::Pause_Print || type == EMoveType::Custom_GCode) ?
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
-
-    //BBS: apply plate's and extruder's offset to arc interpolation points
-    if (path_type == EMovePathType::Arc_move_cw ||
-        path_type == EMovePathType::Arc_move_ccw) {
-        for (size_t i = 0; i < m_interpolation_points.size(); i++)
-            m_interpolation_points[i] =
-                Vec3f(m_interpolation_points[i].x() + m_x_offset,
-                      m_interpolation_points[i].y() + m_y_offset,
-                      m_processing_start_custom_gcode ? m_first_layer_height : m_interpolation_points[i].z()) +
-                m_extruder_offsets[m_extruder_id];
-    }
 
     m_result.moves.push_back({
         m_last_line_id,
@@ -4740,10 +4606,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
         { 0.0f, 0.0f }, // time
         std::max<unsigned int>(1, m_layer_id) - 1,
         static_cast<float>(m_layer_id), //layer_duration: set later
-        //BBS: add arc move related data
-        path_type,
-        Vec3f(m_arc_center(0, 0) + m_x_offset, m_arc_center(1, 0) + m_y_offset, m_arc_center(2, 0)) + m_extruder_offsets[m_extruder_id],
-        m_interpolation_points,
+        internal_only
     });
 
     if (type == EMoveType::Seam) {
@@ -4961,7 +4824,7 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
             new_move.mm3_per_mm = *it->mm3_per_mm;
             new_move.fan_speed = *it->fan_speed;
             new_move.temperature = *it->temperature;
-            // new_move.internal_only = true; // TODO
+            new_move.internal_only = true;
             new_moves.push_back(new_move);
         }
         else {
@@ -5016,6 +4879,23 @@ void GCodeProcessor::update_estimated_times_stats()
     m_result.print_statistics.flush_per_filament      = m_used_filaments.flush_per_filament;
     m_result.print_statistics.used_filaments_per_role   = m_used_filaments.filaments_per_role;
     m_result.print_statistics.total_volumes_per_extruder = m_used_filaments.total_volumes_per_extruder;
+}
+
+double GCodeProcessor::extract_absolute_position_on_axis(Axis axis, const GCodeReader::GCodeLine& line, double area_filament_cross_section)
+{
+    if (line.has(Slic3r::Axis(axis))) {
+        bool is_relative = (m_global_positioning_type == EPositioningType::Relative);
+        if (axis == E)
+            is_relative |= (m_e_local_positioning_type == EPositioningType::Relative);
+
+        const double lengthsScaleFactor = (m_units == EUnits::Inches) ? double(INCHES_TO_MM) : 1.0;
+        double ret = line.value(Slic3r::Axis(axis)) * lengthsScaleFactor;
+        // if (axis == E && m_use_volumetric_e)
+        //     ret /= area_filament_cross_section;
+        return is_relative ? m_start_position[axis] + ret : m_origin[axis] + ret;
+    }
+    else
+        return m_start_position[axis];
 }
 
 //BBS: ugly code...
