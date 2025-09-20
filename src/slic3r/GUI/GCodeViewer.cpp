@@ -1912,11 +1912,10 @@ void GCodeViewer::update_moves_slider(bool set_to_max)
         return;
 
     const libvgcode::Interval& range = m_viewer.get_view_enabled_range();
+    const libvgcode::Interval& visible_range = m_viewer.get_view_visible_range();
     uint32_t last_gcode_id = get_gcode_vertex_at(range[0]).gcode_id;
-    // std::optional<uint32_t> gcode_id_min = visible_range_min.has_value() ?
-    //     std::optional<uint32_t>{ get_gcode_vertex_at(*visible_range_min).gcode_id } : std::nullopt;
-    // std::optional<uint32_t> gcode_id_max = visible_range_max.has_value() ?
-    //     std::optional<uint32_t>{ get_gcode_vertex_at(*visible_range_max).gcode_id } : std::nullopt;
+    uint32_t gcode_id_min = get_gcode_vertex_at(visible_range[0]).gcode_id;
+    uint32_t gcode_id_max = get_gcode_vertex_at(visible_range[1]).gcode_id;
 
     const size_t range_size = range[1] - range[0] + 1;
     std::vector<double> values;
@@ -1944,29 +1943,16 @@ void GCodeViewer::update_moves_slider(bool set_to_max)
         if (!skip) {
             values.emplace_back(i + 1);
             alternate_values.emplace_back(gcode_id);
-            // if (gcode_id_min.has_value() && alternate_values.back() == *gcode_id_min)
-            //     visible_range_min_id = counter;
-            // else if (gcode_id_max.has_value() && alternate_values.back() == *gcode_id_max)
-            //     visible_range_max_id = counter;
+            if (alternate_values.back() == gcode_id_min)
+                visible_range_min_id = counter;
+            else if (alternate_values.back() == gcode_id_max)
+                visible_range_max_id = counter;
             ++counter;
         }
     }
 
     const int span_min_id = visible_range_min_id.has_value() ? *visible_range_min_id : 0;
     const int span_max_id = visible_range_max_id.has_value() ? *visible_range_max_id : static_cast<int>(values.size()) - 1;
-
-    // const GCodeViewer::SequentialView &view = get_sequential_view();
-    // // this should not be needed, but it is here to try to prevent rambling crashes on Mac Asan
-    // if (view.endpoints.last < view.endpoints.first) return;
-    //
-    // std::vector<double> values(view.endpoints.last - view.endpoints.first + 1);
-    // std::vector<double> alternate_values(view.endpoints.last - view.endpoints.first + 1);
-    // unsigned int        count = 0;
-    // for (unsigned int i = view.endpoints.first; i <= view.endpoints.last; ++i) {
-    //     values[count] = static_cast<double>(i + 1);
-    //     if (view.gcode_ids[i] > 0) alternate_values[count] = static_cast<double>(view.gcode_ids[i]);
-    //     ++count;
-    // }
 
     bool keep_min = m_moves_slider->GetActiveValue() == m_moves_slider->GetMinValue();
 

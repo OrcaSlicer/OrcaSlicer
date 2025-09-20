@@ -166,6 +166,9 @@ void AppConfig::set_defaults()
 #endif // _WIN32
     }
 
+    if (get("seq_top_layer_only").empty())
+        set("seq_top_layer_only", "1");
+
     if (get("use_perspective_camera").empty())
         set_bool("use_perspective_camera", true);
 
