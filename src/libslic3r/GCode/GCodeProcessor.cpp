@@ -3125,7 +3125,7 @@ void GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line, bool cloc
           if (extrusion.has_value())
               g1_axes[E] = target[E];
           if (feedrate.has_value())
-              g1_feedrate = (double)*feedrate;
+              g1_feedrate = (double)*feedrate / MMMIN_TO_MMSEC;
           process_G1(g1_axes, g1_feedrate, G1DiscretizationOrigin::G2G3, remaining_internal_g1_lines);
     };
 
