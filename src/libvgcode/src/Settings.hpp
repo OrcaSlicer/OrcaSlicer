@@ -61,7 +61,12 @@ struct Settings
 				true, // SupportMaterial
 				true, // SupportMaterialInterface
 				true, // WipeTower
-				true  // Custom
+				true, // Custom
+		        // ORCA
+		        true, // BottomSurface
+		        true, // InternalBridgeInfill
+		        true, // Brim
+		        true, // SupportTransition
 		};
 };
 

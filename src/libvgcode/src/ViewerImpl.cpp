@@ -295,7 +295,12 @@ static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRU
     {   0, 255,   0 }, // SupportMaterial
     {   0, 128,   0 }, // SupportMaterialInterface
     { 179, 227, 171 }, // WipeTower
-    {  94, 209, 148 }  // Custom
+    {  94, 209, 148 },  // Custom
+    // ORCA
+    { 102,  92, 199 }, // BottomSurface
+    {  77, 128, 186 }, // InternalBridgeInfill
+    {   0,  59, 110 }, // Brim
+    {   0,  64,   0 }, // SupportTransition
 } };
 
 static const std::array<Color, size_t(EOptionType::COUNT)> DEFAULT_OPTIONS_COLORS{ {
@@ -1019,7 +1024,9 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
                 v.role != EGCodeExtrusionRole::SupportMaterial &&
                 v.role != EGCodeExtrusionRole::SupportMaterialInterface &&
                 v.role != EGCodeExtrusionRole::WipeTower &&
-                v.role != EGCodeExtrusionRole::Custom) {
+                v.role != EGCodeExtrusionRole::Custom &&
+                v.role != EGCodeExtrusionRole::Brim &&
+                v.role != EGCodeExtrusionRole::SupportTransition) {
                 m_cog_marker.update(0.5f * (v.position + m_vertices[i - 1].position), v.weight);
             }
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS

@@ -434,11 +434,17 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     case libvgcode::EGCodeExtrusionRole::Ironing:                  { return _u8L("Ironing"); }
     case libvgcode::EGCodeExtrusionRole::BridgeInfill:             { return _u8L("Bridge infill"); }
     case libvgcode::EGCodeExtrusionRole::GapFill:                  { return _u8L("Gap fill"); }
-    case libvgcode::EGCodeExtrusionRole::Skirt:                    { return _u8L("Skirt/Brim"); }
+    case libvgcode::EGCodeExtrusionRole::Skirt:                    { return _u8L("Skirt"); } // ORCA
     case libvgcode::EGCodeExtrusionRole::SupportMaterial:          { return _u8L("Support material"); }
     case libvgcode::EGCodeExtrusionRole::SupportMaterialInterface: { return _u8L("Support material interface"); }
     case libvgcode::EGCodeExtrusionRole::WipeTower:                { return _u8L("Wipe tower"); }
     case libvgcode::EGCodeExtrusionRole::Custom:                   { return _u8L("Custom"); }
+    // ORCA
+    case libvgcode::EGCodeExtrusionRole::BottomSurface:            { return _u8L("Bottom surface"); }
+    case libvgcode::EGCodeExtrusionRole::InternalBridgeInfill:     { return _u8L("Internal bridge infill"); }
+    case libvgcode::EGCodeExtrusionRole::Brim:                     { return _u8L("Brim"); }
+    case libvgcode::EGCodeExtrusionRole::SupportTransition:        { return _u8L("Support transition"); }
+    case libvgcode::EGCodeExtrusionRole::Mixed:                    { return _u8L("Mixed"); }
     default:                                                       { return _u8L("Unknown"); }
     }
 }
@@ -1182,8 +1188,11 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             libvgcode::EGCodeExtrusionRole::InternalInfill, libvgcode::EGCodeExtrusionRole::SolidInfill, libvgcode::EGCodeExtrusionRole::TopSolidInfill,
             libvgcode::EGCodeExtrusionRole::Ironing, libvgcode::EGCodeExtrusionRole::BridgeInfill, libvgcode::EGCodeExtrusionRole::GapFill,
             libvgcode::EGCodeExtrusionRole::Skirt, libvgcode::EGCodeExtrusionRole::SupportMaterial, libvgcode::EGCodeExtrusionRole::SupportMaterialInterface,
-            libvgcode::EGCodeExtrusionRole::WipeTower
-        });
+            libvgcode::EGCodeExtrusionRole::WipeTower,
+            // ORCA
+            libvgcode::EGCodeExtrusionRole::BottomSurface, libvgcode::EGCodeExtrusionRole::InternalBridgeInfill, libvgcode::EGCodeExtrusionRole::Brim,
+            libvgcode::EGCodeExtrusionRole::SupportTransition, libvgcode::EGCodeExtrusionRole::Mixed
+            });
     m_paths_bounding_box = BoundingBoxf3(libvgcode::convert(bbox[0]).cast<double>(), libvgcode::convert(bbox[1]).cast<double>());
 
     if (wxGetApp().is_editor())

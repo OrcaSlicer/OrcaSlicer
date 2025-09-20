@@ -140,6 +140,12 @@ enum class EGCodeExtrusionRole : uint8_t
 	  SupportMaterialInterface,
 	  WipeTower,
 	  Custom,
+      // ORCA
+      BottomSurface,
+      InternalBridgeInfill,
+      Brim,
+      SupportTransition,
+      Mixed,
     COUNT
 };
 
