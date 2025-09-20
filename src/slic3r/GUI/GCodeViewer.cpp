@@ -214,10 +214,6 @@ void GCodeViewer::SequentialView::Marker::init(std::string filename)
     m_model.set_color({ 1.0f, 1.0f, 1.0f, 0.5f });
 }
 
-void GCodeViewer::SequentialView::Marker::update_curr_move(const GCodeProcessorResult::MoveVertex move) {
-    m_curr_move = move;
-}
-
 //BBS: GUI refactor: add canvas size from parameters
 void GCodeViewer::SequentialView::Marker::render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
@@ -252,153 +248,6 @@ void GCodeViewer::SequentialView::Marker::render(int canvas_width, int canvas_he
     shader->stop_using();
 
     glsafe(::glDisable(GL_BLEND));
-
-    static float last_window_width = 0.0f;
-    size_t text_line = 0;
-    static size_t last_text_line = 0;
-    const ImU32 text_name_clr = m_is_dark ? IM_COL32(255, 255, 255, 0.88 * 255) : IM_COL32(38, 46, 48, 255);
-    const ImU32 text_value_clr = m_is_dark ? IM_COL32(255, 255, 255, 0.4 * 255) : IM_COL32(144, 144, 144, 255);
-
-    ImGuiWrapper& imgui = *wxGetApp().imgui();
-    //BBS: GUI refactor: add canvas size from parameters
-    imgui.set_next_window_pos(0.5f * static_cast<float>(canvas_width), static_cast<float>(canvas_height), ImGuiCond_Always, 0.5f, 1.0f);
-    imgui.push_toolbar_style(m_scale);
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0, 4.0 * m_scale));
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(20.0 * m_scale, 6.0 * m_scale));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, text_name_clr);
-    ImGui::PushStyleColor(ImGuiCol_Text, text_value_clr);
-    imgui.begin(std::string("ExtruderPosition"), ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar);
-    ImGui::AlignTextToFramePadding();
-    //BBS: minus the plate offset when show tool position
-    PartPlateList& partplate_list = wxGetApp().plater()->get_partplate_list();
-    PartPlate* plate = partplate_list.get_curr_plate();
-    const Vec3f position = m_world_position + m_world_offset;
-    std::string x = ImGui::ColorMarkerStart + std::string("X: ") + ImGui::ColorMarkerEnd;
-    std::string y = ImGui::ColorMarkerStart + std::string("Y: ") + ImGui::ColorMarkerEnd;
-    std::string z = ImGui::ColorMarkerStart + std::string("Z: ") + ImGui::ColorMarkerEnd;
-    std::string height = ImGui::ColorMarkerStart + _u8L("Height: ") + ImGui::ColorMarkerEnd;
-    std::string width = ImGui::ColorMarkerStart + _u8L("Width: ") + ImGui::ColorMarkerEnd;
-    std::string speed = ImGui::ColorMarkerStart + _u8L("Speed: ") + ImGui::ColorMarkerEnd;
-    std::string flow = ImGui::ColorMarkerStart + _u8L("Flow: ") + ImGui::ColorMarkerEnd;
-    std::string layer_time = ImGui::ColorMarkerStart + _u8L("Layer Time: ") + ImGui::ColorMarkerEnd;
-    std::string fanspeed = ImGui::ColorMarkerStart + _u8L("Fan: ") + ImGui::ColorMarkerEnd;
-    std::string temperature = ImGui::ColorMarkerStart + _u8L("Temperature: ") + ImGui::ColorMarkerEnd;
-    const float item_size = imgui.calc_text_size(std::string_view{"X: 000.000       "}).x;
-    const float item_spacing = imgui.get_item_spacing().x;
-    const float window_padding = ImGui::GetStyle().WindowPadding.x;
-
-    char buf[1024];
-     if (true)
-    {
-        float startx2 = window_padding + item_size + item_spacing;
-        float startx3 = window_padding + 2*(item_size + item_spacing);
-        sprintf(buf, "%s%.3f", x.c_str(), position.x() - plate->get_origin().x());
-        ImGui::PushItemWidth(item_size);
-        imgui.text(buf);
-
-        ImGui::SameLine(startx2);
-        sprintf(buf, "%s%.3f", y.c_str(), position.y() - plate->get_origin().y());
-        ImGui::PushItemWidth(item_size);
-        imgui.text(buf);
-
-        ImGui::SameLine(startx3);
-        sprintf(buf, "%s%.3f", z.c_str(), position.z());
-        ImGui::PushItemWidth(item_size);
-        imgui.text(buf);
-
-        sprintf(buf, "%s%.0f", speed.c_str(), m_curr_move.feedrate);
-        ImGui::PushItemWidth(item_size);
-        imgui.text(buf);
-
-        switch (view_type) {
-        case libvgcode::EViewType::Height: {
-            ImGui::SameLine(startx2);
-            sprintf(buf, "%s%.2f", height.c_str(), m_curr_move.height);
-            ImGui::PushItemWidth(item_size);
-            imgui.text(buf);
-            break;
-        }
-        case libvgcode::EViewType::Width: {
-            ImGui::SameLine(startx2);
-            sprintf(buf, "%s%.2f", width.c_str(), m_curr_move.width);
-            ImGui::PushItemWidth(item_size);
-            imgui.text(buf);
-            break;
-        }
-        // case EViewType::Feedrate: {
-        //     ImGui::SameLine(startx2);
-        //     sprintf(buf, "%s%.0f", speed.c_str(), m_curr_move.feedrate);
-        //     ImGui::PushItemWidth(item_size);
-        //     imgui.text(buf);
-        //     break;
-        // }
-        case libvgcode::EViewType::VolumetricFlowRate: {
-            if (m_curr_move.type != EMoveType::Extrude) break;
-            ImGui::SameLine(startx2);
-            sprintf(buf, "%s%.2f", flow.c_str(), m_curr_move.volumetric_rate());
-            ImGui::PushItemWidth(item_size);
-            imgui.text(buf);
-            break;
-        }
-        case libvgcode::EViewType::FanSpeed: {
-            ImGui::SameLine(startx2);
-            sprintf(buf, "%s%.0f", fanspeed.c_str(), m_curr_move.fan_speed);
-            ImGui::PushItemWidth(item_size);
-            imgui.text(buf);
-            break;
-        }
-        case libvgcode::EViewType::Temperature: {
-            ImGui::SameLine(startx2);
-            sprintf(buf, "%s%.0f", temperature.c_str(), m_curr_move.temperature);
-            ImGui::PushItemWidth(item_size);
-            imgui.text(buf);
-            break;
-        }
-        case libvgcode::EViewType::LayerTimeLinear:
-        case libvgcode::EViewType::LayerTimeLogarithmic: {
-            ImGui::SameLine(startx2);
-            sprintf(buf, "%s%.1f", layer_time.c_str(), m_curr_move.layer_duration);
-            ImGui::PushItemWidth(item_size);
-            imgui.text(buf);
-            break;
-        }
-        default:
-            break;
-        }
-        text_line = 2;
-    }
-    // else {
-    //     sprintf(buf, "%s%.3f", x.c_str(), position.x() - plate->get_origin().x());
-    //     imgui.text(buf);
-
-    //     ImGui::SameLine();
-    //     sprintf(buf, "%s%.3f", y.c_str(), position.y() - plate->get_origin().y());
-    //     imgui.text(buf);
-
-    //     ImGui::SameLine();
-    //     sprintf(buf, "%s%.3f", z.c_str(), position.z());
-    //     imgui.text(buf);
-
-    //     text_line = 1;
-    // }
-
-    // force extra frame to automatically update window size
-    float window_width = ImGui::GetWindowWidth();
-    if (window_width != last_window_width || text_line != last_text_line) {
-        last_window_width = window_width;
-        last_text_line = text_line;
-#if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-        imgui.set_requires_extra_frame();
-#else
-        wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-        wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
-#endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-    }
-
-    imgui.end();
-    ImGui::PopStyleVar(2);
-    ImGui::PopStyleColor(2);
-    imgui.pop_toolbar_style();
 }
 
 static std::string to_string(libvgcode::EMoveType type)
@@ -449,7 +298,7 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     }
 }
 
-void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer)
+void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height)
 {
     static float last_window_width = 0.0f;
     static size_t last_text_length = 0;
@@ -457,8 +306,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
     if (viewer != nullptr) {
         ImGuiWrapper& imgui = *wxGetApp().imgui();
-        const Size cnv_size = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size();
-        imgui.set_next_window_pos(0.5f * static_cast<float>(cnv_size.get_width()), static_cast<float>(cnv_size.get_height()), ImGuiCond_Always, 0.5f, 1.0f);
+        // const Size cnv_size = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size();
+        imgui.set_next_window_pos(0.5f * static_cast<float>(canvas_width), static_cast<float>(canvas_height), ImGuiCond_Always, 0.5f, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::SetNextWindowBgAlpha(0.25f);
         imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
@@ -585,7 +434,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 if (table_shown) {
                     static float table_wnd_height = 0.0f;
                     const ImVec2 wnd_size = ImGui::GetWindowSize();
-                    imgui.set_next_window_pos(ImGui::GetWindowPos().x + wnd_size.x, static_cast<float>(cnv_size.get_height()), ImGuiCond_Always, 0.0f, 1.0f);
+                    imgui.set_next_window_pos(ImGui::GetWindowPos().x + wnd_size.x, static_cast<float>(canvas_height), ImGuiCond_Always, 0.0f, 1.0f);
                     ImGui::SetNextWindowSizeConstraints({ 0.0f, 0.0f }, { -1.0f, wnd_size.y });
                     imgui.begin(std::string("ToolPositionTableWnd"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar |
                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove);
@@ -863,8 +712,8 @@ void GCodeViewer::SequentialView::render(const bool has_render_path, float legen
 {
     if (has_render_path && m_show_marker) {
         // marker.set_world_offset(current_offset);
-
         marker.render(canvas_width, canvas_height, view_type);
+        marker.render_position_window(viewer, canvas_width, canvas_height);
     }
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
@@ -2016,21 +1865,6 @@ void GCodeViewer::update_layers_slider_mode()
     }
 
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
-}
-
-void GCodeViewer::update_marker_curr_move() {
-    if ((int)m_last_result_id != -1) {
-        auto it = std::find_if(m_gcode_result->moves.begin(), m_gcode_result->moves.end(), [this](auto move) {
-            auto range = m_viewer.get_view_enabled_range();
-            auto full_range = m_viewer.get_view_full_range();
-                if (range.back() < full_range.back() && range.back() >= 0) {
-                    return move.gcode_id == static_cast<uint64_t>(m_viewer.get_vertex_at(range.back()).gcode_id);
-                }
-                return false;
-            });
-        if (it != m_gcode_result->moves.end())
-            m_sequential_view.marker.update_curr_move(*it);
-    }
 }
 
 void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range)

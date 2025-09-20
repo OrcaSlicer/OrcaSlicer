@@ -79,7 +79,6 @@ public:
             float m_z_offset{ 0.0f };
             // z offset of the model
             float m_model_z_offset{ 0.5f };
-            GCodeProcessorResult::MoveVertex m_curr_move;
             bool m_visible{ true };
             bool m_is_dark = false;
             bool m_fixed_screen_size{ false };
@@ -115,10 +114,8 @@ public:
             void set_visible(bool visible) { m_visible = visible; }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
-            void render_position_window(const libvgcode::Viewer* viewer);
+            void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height);
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
-
-            void update_curr_move(const GCodeProcessorResult::MoveVertex move);
         };
 
         class GCodeWindow
@@ -298,7 +295,6 @@ public:
     void enable_moves_slider(bool enable) const;
     void update_moves_slider(bool set_to_max = false);
     void update_layers_slider_mode();
-    void update_marker_curr_move();
 
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_viewer.get_view_full_range(); }
     const libvgcode::Interval& get_gcode_view_enabled_range() const { return m_viewer.get_view_enabled_range(); }
