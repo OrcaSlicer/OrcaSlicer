@@ -308,11 +308,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGuiWrapper& imgui = *wxGetApp().imgui();
         // const Size cnv_size = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size();
         imgui.set_next_window_pos(0.5f * static_cast<float>(canvas_width), static_cast<float>(canvas_height), ImGuiCond_Always, 0.5f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImGuiWrapper::COL_BUTTON_BACKGROUND);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGuiWrapper::COL_BUTTON_ACTIVE);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGuiWrapper::COL_BUTTON_HOVERED);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::SetNextWindowBgAlpha(0.25f);
+        ImGui::SetNextWindowBgAlpha(0.8f);
         imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         ImGui::AlignTextToFramePadding();
-        ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, _u8L("Position") + ":");
+        ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, _u8L("Position") + ":");
         ImGui::SameLine();
         libvgcode::PathVertex vertex = viewer->get_current_vertex();
         size_t vertex_id = viewer->get_current_vertex_id();
@@ -335,7 +338,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             auto append_table_row = [](const std::string& label, std::function<void(void)> value_callback) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, label);
+                ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, label);
                 ImGui::TableSetColumnIndex(1);
                 value_callback();
             };
@@ -454,10 +457,10 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                             ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, row_bg_color);
                             ImGui::TableSetColumnIndex(0);
                             sprintf(buff, "%.3f", item.pos);
-                            imgui.text_colored(highlight ? ImGuiWrapper::COL_ORANGE_LIGHT : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
+                            imgui.text_colored(highlight ? ImGuiWrapper::COL_ORCA : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
                             ImGui::TableSetColumnIndex(1);
                             sprintf(buff, "%.1f", item.speed);
-                            imgui.text_colored(highlight ? ImGuiWrapper::COL_ORANGE_LIGHT : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
+                            imgui.text_colored(highlight ? ImGuiWrapper::COL_ORCA : ImGuiWrapper::to_ImVec4(ColorRGBA::WHITE()), buff);
                             ++counter;
                         }
                         ImGui::EndTable();
@@ -491,9 +494,9 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         const Size cnv_size = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size();
         imgui.set_next_window_pos(0.5f * static_cast<float>(cnv_size.get_width()), static_cast<float>(cnv_size.get_height()), ImGuiCond_Always, 0.5f, 1.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::SetNextWindowBgAlpha(0.25f);
+        ImGui::SetNextWindowBgAlpha(0.8f);
         imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
-        imgui.text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, _u8L("Tool position") + ":");
+        imgui.text_colored(ImGuiWrapper::COL_ORCA, _u8L("Tool position") + ":");
         ImGui::SameLine();
         char buf[1024];
         const Vec3f position = m_world_position + m_world_offset + m_z_offset * Vec3f::UnitZ();
