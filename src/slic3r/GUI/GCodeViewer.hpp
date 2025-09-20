@@ -76,7 +76,7 @@ public:
             // the offset is used to show the correct value of tool position in the "ToolPosition" window
             // see implementation of render() method
             Vec3f m_world_offset;
-            float m_z_offset{ 0.5f };
+            float m_z_offset{ 0.0f };
             // z offset of the model
             float m_model_z_offset{ 0.5f };
             GCodeProcessorResult::MoveVertex m_curr_move;
@@ -97,6 +97,7 @@ public:
 
             void set_world_position(const Vec3f& position) { m_world_position = position; }
             void set_world_offset(const Vec3f& offset) { m_world_offset = offset; }
+            void set_z_offset(float z_offset) { m_z_offset = z_offset; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
             void set_actual_speed_y_range(const std::pair<float, float>& y_range) {
@@ -187,6 +188,7 @@ private:
     //BBS: add shell bounding box
     BoundingBoxf3 m_shell_bounding_box;
     float m_max_print_height{ 0.0f };
+    float m_z_offset{ 0.0f };
 
     ConfigOptionMode m_user_mode;
     bool m_fold = {false};

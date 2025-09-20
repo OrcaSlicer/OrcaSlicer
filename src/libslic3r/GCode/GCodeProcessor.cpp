@@ -1326,6 +1326,8 @@ void GCodeProcessor::process_buffer(const std::string &buffer)
 
 void GCodeProcessor::finalize(bool post_process)
 {
+    m_result.z_offset = m_z_offset;
+
     // update width/height of wipe moves
     for (GCodeProcessorResult::MoveVertex& move : m_result.moves) {
         if (move.type == EMoveType::Wipe) {

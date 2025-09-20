@@ -202,6 +202,7 @@ class Print;
         int timelapse_warning_code {0};
         bool support_traditional_timelapse{true};
         float printable_height;
+        float z_offset;
         SettingsIds settings_ids;
         size_t extruders_count;
         bool backtrace_enabled;

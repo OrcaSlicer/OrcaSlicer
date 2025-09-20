@@ -856,7 +856,6 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
 void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
 {
     if (has_render_path && m_show_marker) {
-        // marker.set_world_position(current_position);
         // marker.set_world_offset(current_offset);
 
         marker.render(canvas_width, canvas_height, view_type);
@@ -1205,6 +1204,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         m_custom_gcode_per_print_z = gcode_result.custom_gcode_per_print_z;
 
     m_max_print_height = gcode_result.printable_height;
+    m_z_offset = gcode_result.z_offset;
 
     //BBS: add mutex for protection of gcode result
     // if (m_layers.empty()) {
@@ -1363,6 +1363,7 @@ void GCodeViewer::reset()
     m_paths_bounding_box = BoundingBoxf3();
     m_max_bounding_box = BoundingBoxf3();
     m_max_print_height = 0.0f;
+    m_z_offset = 0.0f;
     m_extruders_count = 0; // TODO
     // m_extruder_ids = std::vector<unsigned char>(); // TODO
     m_filament_diameters = std::vector<float>();
@@ -1403,6 +1404,9 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     auto current = m_viewer.get_view_visible_range(); // TODO: verify
     auto endpoints = m_viewer.get_view_full_range();
     m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
+    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
+    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
     // BBS fixed buttom margin. m_moves_slider.pos_y
     m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type());
 
