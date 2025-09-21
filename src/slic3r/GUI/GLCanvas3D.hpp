@@ -920,9 +920,6 @@ public:
         PartPlateList& partplate_list, ModelObjectPtrs& model_objects, const GLVolumeCollection& volumes, std::vector<ColorRGBA>& extruder_colors,
         GLShaderProgram* shader, Camera::EType camera_type, bool use_top_view = false, bool for_picking = false, bool ban_light = false);
 
-    //BBS use gcoder viewer render calibration thumbnails
-    // void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params);
-
     //BBS
     void select_curr_plate_all();
     void select_object_from_idx(std::vector<int>& object_idxs);
@@ -966,8 +963,6 @@ public:
     bool is_gcode_view_type_cache_write_enabled() const { return m_gcode_viewer.is_view_type_cache_write_enabled(); }
 
     void load_sla_preview();
-//    void load_preview(const std::vector<std::string>& str_tool_colors, const std::vector<std::string>& str_color_print_colors,
-//        const std::vector<CustomGCode::Item>& color_print_values);
     void bind_event_handlers();
     void unbind_event_handlers();
 

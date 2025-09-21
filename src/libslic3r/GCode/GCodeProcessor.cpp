@@ -641,7 +641,7 @@ void GCodeProcessorResult::reset() {
     filament_densities = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_DENSITY);
     filament_costs = std::vector<float>(MIN_EXTRUDERS_COUNT, DEFAULT_FILAMENT_COST);
     custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
-    spiral_vase_mode = false; // TODO???
+    spiral_vase_mode = false;
     bed_match_result = BedMatchResult(true);
     warnings.clear();
 
@@ -828,9 +828,10 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_result.printable_height = config.printable_height;
 
     const ConfigOptionBool* spiral_vase = config.option<ConfigOptionBool>("spiral_mode");
-    if (spiral_vase != nullptr)
+    if (spiral_vase != nullptr) {
         m_detect_layer_based_on_tag = spiral_vase->value;
-    // TODO: m_result.spiral_vase_mode = spiral_vase->value;
+        m_result.spiral_vase_mode = spiral_vase->value;
+    }
 
     const ConfigOptionBool* has_scarf_joint_seam = config.option<ConfigOptionBool>("has_scarf_joint_seam");
     if (has_scarf_joint_seam != nullptr)
@@ -1136,9 +1137,10 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
         m_result.printable_height = printable_height->value;
 
     const ConfigOptionBool* spiral_vase = config.option<ConfigOptionBool>("spiral_mode");
-    if (spiral_vase != nullptr)
+    if (spiral_vase != nullptr) {
         m_detect_layer_based_on_tag = spiral_vase->value;
-    // TODO: m_result.spiral_vase_mode = spiral_vase->value;
+        m_result.spiral_vase_mode = spiral_vase->value;
+    }
 
     const ConfigOptionBool* has_scarf_joint_seam = config.option<ConfigOptionBool>("has_scarf_joint_seam");
     if (has_scarf_joint_seam != nullptr)
@@ -1345,22 +1347,6 @@ void GCodeProcessor::finalize(bool post_process)
     m_used_filaments.process_caches(this);
 
     update_estimated_times_stats();
-    // TODO
-    // auto time_mode = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)];
-    //
-    // auto it = std::find_if(time_mode.roles_times.begin(), time_mode.roles_times.end(), [](const std::pair<ExtrusionRole, float>& item) { return erCustom == item.first; });
-    // auto prepare_time = (it != time_mode.roles_times.end()) ? it->second : 0.0f;
-    //
-    // //update times for results
-    // for (size_t i = 0; i < m_result.moves.size(); i++) {
-    //     //field layer_duration contains the layer id for the move in which the layer_duration has to be set.
-    //     size_t layer_id = size_t(m_result.moves[i].layer_duration);
-    //     std::vector<float>& layer_times = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].layers_times;
-    //     if (layer_times.size() > layer_id - 1 && layer_id > 0)
-    //         m_result.moves[i].layer_duration = layer_id == 1 ? std::max(0.f,layer_times[layer_id - 1] - prepare_time) : layer_times[layer_id - 1];
-    //     else
-    //         m_result.moves[i].layer_duration = 0;
-    // }
 
     //BBS: update slice warning
     update_slice_warnings();
@@ -4605,7 +4591,6 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_extruder_temps[m_extruder_id],
         { 0.0f, 0.0f }, // time
         std::max<unsigned int>(1, m_layer_id) - 1,
-        static_cast<float>(m_layer_id), //layer_duration: set later
         internal_only
     });
 

@@ -196,14 +196,6 @@ int GCodeViewer::SequentialView::ActualSpeedImguiWidget::plot(const char* label,
 }
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
 
-// float GCodeViewer::Extrusions::Range::get_value_at_step(int step) const {
-//     if (!log_scale)
-//         return min + static_cast<float>(step) * step_size();
-//     else
-//     return std::exp(std::log(min) + static_cast<float>(step) * step_size());
-//
-// }
-
 void GCodeViewer::SequentialView::Marker::init(std::string filename)
 {
     if (filename.empty()) {
@@ -233,8 +225,6 @@ void GCodeViewer::SequentialView::Marker::render(int canvas_width, int canvas_he
     const Camera& camera = wxGetApp().plater()->get_camera();
     const Transform3d& view_matrix = camera.get_view_matrix();
     float scale_factor = m_scale_factor;
-    //if (m_fixed_screen_size)
-    //    scale_factor *= 10.0f * camera.get_inv_zoom(); // TODO
     const Transform3d model_matrix = (Geometry::translation_transform((m_world_position + m_model_z_offset * Vec3f::UnitZ()).cast<double>()) *
         Geometry::translation_transform(scale_factor * m_model.get_bounding_box().size().z() * Vec3d::UnitZ()) * Geometry::rotation_transform({ M_PI, 0.0, 0.0 })) *
         Geometry::scale_transform(scale_factor);
@@ -733,7 +723,6 @@ GCodeViewer::GCodeViewer()
 {
     m_moves_slider  = new IMSlider(0, 0, 0, 100, wxSL_HORIZONTAL);
     m_layers_slider = new IMSlider(0, 0, 0, 100, wxSL_VERTICAL);
-    //m_extrusions.reset_role_visibility_flags(); TODO
 }
 
 GCodeViewer::~GCodeViewer()
@@ -753,9 +742,6 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
 {
     if (m_gl_data_initialized)
         return;
-
-    // BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": enter, m_buffers.size=%1%")
-    //     %m_buffers.size();
 
     // initializes tool marker
     std::string filename;
@@ -1067,12 +1053,6 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_max_print_height = gcode_result.printable_height;
     m_z_offset = gcode_result.z_offset;
 
-    //BBS: add mutex for protection of gcode result
-    // if (m_layers.empty()) {
-    //     gcode_result.unlock();
-    //     return;
-    // }
-
     m_settings_ids = gcode_result.settings_ids;
     m_filament_diameters = gcode_result.filament_diameters;
     m_filament_densities = gcode_result.filament_densities;
@@ -1144,17 +1124,16 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     }
 
     // set to color print by default if use multi extruders
-    // TODO
-    // if (m_extruder_ids.size() > 1) {
-    //     for (int i = 0; i < view_type_items.size(); i++) {
-    //         if (view_type_items[i] == libvgcode::EViewType::ColorPrint) {
-    //             m_view_type_sel = i;
-    //             break;
-    //         }
-    //     }
-    //
-    //     set_view_type(libvgcode::EViewType::ColorPrint);
-    // }
+    if (m_viewer.get_used_extruders_count() > 1) {
+        for (int i = 0; i < view_type_items.size(); i++) {
+            if (view_type_items[i] == libvgcode::EViewType::ColorPrint) {
+                m_view_type_sel = i;
+                break;
+            }
+        }
+
+        set_view_type(libvgcode::EViewType::ColorPrint);
+    }
 
     bool only_gcode_3mf = false;
     PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
@@ -1171,8 +1150,6 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     //BBS: add mutex for protection of gcode result
     gcode_result.unlock();
-    //BBS: add logs
-    // BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished, m_buffers size %1%!")%m_buffers.size();
 }
 
 void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
@@ -1217,24 +1194,15 @@ void GCodeViewer::reset()
     //BBS: add only gcode mode
     m_only_gcode_in_preview = false;
 
-    m_ssid_to_moveid_map.clear(); // TODO
-    m_ssid_to_moveid_map.shrink_to_fit(); // TODO
     m_viewer.reset();
 
     m_paths_bounding_box = BoundingBoxf3();
     m_max_bounding_box = BoundingBoxf3();
     m_max_print_height = 0.0f;
     m_z_offset = 0.0f;
-    m_extruders_count = 0; // TODO
-    // m_extruder_ids = std::vector<unsigned char>(); // TODO
+    m_extruders_count = 0;
     m_filament_diameters = std::vector<float>();
     m_filament_densities = std::vector<float>();
-    // m_extrusions.reset_ranges(); // TODO
-    //BBS: always load shell at preview
-    //m_shells.volumes.clear();
-    // m_layers.reset(); // TODO
-    // m_layers_z_range = { 0, 0 }; // TODO
-    // m_roles = std::vector<ExtrusionRole>();
     m_print_statistics.reset();
     m_custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
     m_sequential_view.gcode_window.reset();
@@ -1250,7 +1218,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     if (m_viewer.get_extrusion_roles().empty())
         return;
 
-    render_toolpaths(); // TODO: m_viewer.get_layers_count() > 0
+    render_toolpaths();
 
     float legend_height = 0.0f;
     render_legend(legend_height, canvas_width, canvas_height, right_margin);
@@ -1262,7 +1230,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
     //BBS fixed bottom_margin for space to render horiz slider
     int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
-    auto current = m_viewer.get_view_visible_range(); // TODO: verify
+    auto current = m_viewer.get_view_visible_range();
     auto endpoints = m_viewer.get_view_full_range();
     m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
     const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
@@ -1332,366 +1300,6 @@ static void debug_calibration_output_thumbnail(const ThumbnailData& thumbnail_da
     image.SaveFile("D:/calibrate.png", wxBITMAP_TYPE_PNG);
 }
 #endif
-
-// void GCodeViewer::_render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager)
-// {
-//     int plate_idx = thumbnail_params.plate_id;
-//     PartPlate* plate = partplate_list.get_plate(plate_idx);
-//     BoundingBoxf3 plate_box = plate->get_bounding_box(false);
-//     plate_box.min.z() = 0.0;
-//     plate_box.max.z() = 0.0;
-//     Vec3d center = plate_box.center();
-//
-// #if 1
-//     Camera camera;
-//     camera.set_viewport(0, 0, thumbnail_data.width, thumbnail_data.height);
-//     camera.apply_viewport();
-//     camera.set_scene_box(plate_box);
-//     camera.set_type(Camera::EType::Ortho);
-//     camera.set_target(center);
-//     camera.select_view("top");
-//     camera.zoom_to_box(plate_box, 1.0f);
-//     camera.apply_projection(plate_box);
-//
-//     auto render_as_triangles = [
-// #if ENABLE_GCODE_VIEWER_STATISTICS
-//         this
-// #endif // ENABLE_GCODE_VIEWER_STATISTICS
-//     ](TBuffer &buffer, std::vector<RenderPath>::iterator it_path, std::vector<RenderPath>::iterator it_end, GLShaderProgram& shader, int uniform_color) {
-//         for (auto it = it_path; it != it_end && it_path->ibuffer_id == it->ibuffer_id; ++it) {
-//             const RenderPath& path = *it;
-//             // Some OpenGL drivers crash on empty glMultiDrawElements, see GH #7415.
-//             assert(!path.sizes.empty());
-//             assert(!path.offsets.empty());
-//             shader.set_uniform(uniform_color, path.color);
-//             glsafe(::glMultiDrawElements(GL_TRIANGLES, (const GLsizei*)path.sizes.data(), GL_UNSIGNED_SHORT, (const void* const*)path.offsets.data(), (GLsizei)path.sizes.size()));
-// #if ENABLE_GCODE_VIEWER_STATISTICS
-//             ++m_statistics.gl_multi_triangles_calls_count;
-// #endif // ENABLE_GCODE_VIEWER_STATISTICS
-//         }
-//     };
-//
-//     auto render_as_instanced_model = [
-// #if ENABLE_GCODE_VIEWER_STATISTICS
-//         this
-// #endif // ENABLE_GCODE_VIEWER_STATISTICS
-//     ](TBuffer& buffer, GLShaderProgram& shader) {
-//         for (auto& range : buffer.model.instances.render_ranges.ranges) {
-//             if (range.vbo == 0 && range.count > 0) {
-//                 glsafe(::glGenBuffers(1, &range.vbo));
-//                 glsafe(::glBindBuffer(GL_ARRAY_BUFFER, range.vbo));
-//                 glsafe(::glBufferData(GL_ARRAY_BUFFER, range.count * buffer.model.instances.instance_size_bytes(), (const void*)&buffer.model.instances.buffer[range.offset * buffer.model.instances.instance_size_floats()], GL_STATIC_DRAW));
-//                 glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
-//             }
-//
-//             if (range.vbo > 0) {
-//                 buffer.model.model.set_color(range.color);
-//                 buffer.model.model.render_instanced(range.vbo, range.count);
-// #if ENABLE_GCODE_VIEWER_STATISTICS
-//                 ++m_statistics.gl_instanced_models_calls_count;
-//                 m_statistics.total_instances_gpu_size += static_cast<int64_t>(range.count * buffer.model.instances.instance_size_bytes());
-// #endif // ENABLE_GCODE_VIEWER_STATISTICS
-//             }
-//         }
-//     };
-//
-// #if ENABLE_GCODE_VIEWER_STATISTICS
-//     auto render_as_batched_model = [this](TBuffer& buffer, GLShaderProgram& shader) {
-// #else
-//     auto render_as_batched_model = [](TBuffer& buffer, GLShaderProgram& shader, int position_id, int normal_id) {
-// #endif // ENABLE_GCODE_VIEWER_STATISTICS
-//
-//         struct Range
-//         {
-//             unsigned int first;
-//             unsigned int last;
-//             bool intersects(const Range& other) const { return (other.last < first || other.first > last) ? false : true; }
-//         };
-//         Range buffer_range = { 0, 0 };
-//         size_t indices_per_instance = buffer.model.data.indices_count();
-//
-//         for (size_t j = 0; j < buffer.indices.size(); ++j) {
-//             const IBuffer& i_buffer = buffer.indices[j];
-//             buffer_range.last = buffer_range.first + i_buffer.count / indices_per_instance;
-//             glsafe(::glBindBuffer(GL_ARRAY_BUFFER, i_buffer.vbo));
-//             if (position_id != -1) {
-//                 glsafe(::glVertexAttribPointer(position_id, buffer.vertices.position_size_floats(), GL_FLOAT, GL_FALSE, buffer.vertices.vertex_size_bytes(), (const void*)buffer.vertices.position_offset_bytes()));
-//                 glsafe(::glEnableVertexAttribArray(position_id));
-//             }
-//             bool has_normals = buffer.vertices.normal_size_floats() > 0;
-//             if (has_normals) {
-//                 if (normal_id != -1) {
-//                     glsafe(::glVertexAttribPointer(normal_id, buffer.vertices.normal_size_floats(), GL_FLOAT, GL_FALSE, buffer.vertices.vertex_size_bytes(), (const void*)buffer.vertices.normal_offset_bytes()));
-//                     glsafe(::glEnableVertexAttribArray(normal_id));
-//                 }
-//             }
-//
-//             glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer.ibo));
-//
-//             for (auto& range : buffer.model.instances.render_ranges.ranges) {
-//                 Range range_range = { range.offset, range.offset + range.count };
-//                 if (range_range.intersects(buffer_range)) {
-//                     shader.set_uniform("uniform_color", range.color);
-//                     unsigned int offset = (range_range.first > buffer_range.first) ? range_range.first - buffer_range.first : 0;
-//                     size_t offset_bytes = static_cast<size_t>(offset) * indices_per_instance * sizeof(IBufferType);
-//                     Range render_range = { std::max(range_range.first, buffer_range.first), std::min(range_range.last, buffer_range.last) };
-//                     size_t count = static_cast<size_t>(render_range.last - render_range.first) * indices_per_instance;
-//                     if (count > 0) {
-//                         glsafe(::glDrawElements(GL_TRIANGLES, (GLsizei)count, GL_UNSIGNED_SHORT, (const void*)offset_bytes));
-// #if ENABLE_GCODE_VIEWER_STATISTICS
-//                         ++m_statistics.gl_batched_models_calls_count;
-// #endif // ENABLE_GCODE_VIEWER_STATISTICS
-//                     }
-//                 }
-//             }
-//
-//             glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-//
-//             if (normal_id != -1)
-//                 glsafe(::glDisableVertexAttribArray(normal_id));
-//             if (position_id != -1)
-//                 glsafe(::glDisableVertexAttribArray(position_id));
-//             glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
-//
-//             buffer_range.first = buffer_range.last;
-//         }
-//     };
-//
-//     unsigned char begin_id = buffer_id(EMoveType::Retract);
-//     unsigned char end_id = buffer_id(EMoveType::Count);
-//
-//     BOOST_LOG_TRIVIAL(info) << boost::format("render_calibration_thumbnail: begin_id %1%, end_id %2%")%begin_id %end_id;
-//     for (unsigned char i = begin_id; i < end_id; ++i) {
-//         TBuffer& buffer = m_buffers[i];
-//         if (!buffer.visible || !buffer.has_data())
-//             continue;
-//
-//         GLShaderProgram* shader = opengl_manager.get_shader("flat");
-//         if (shader != nullptr) {
-//             shader->start_using();
-//
-//             shader->set_uniform("view_model_matrix", camera.get_view_matrix());
-//             shader->set_uniform("projection_matrix", camera.get_projection_matrix());
-//             int position_id = shader->get_attrib_location("v_position");
-//             int normal_id   = shader->get_attrib_location("v_normal");
-//
-//             if (buffer.render_primitive_type == TBuffer::ERenderPrimitiveType::InstancedModel) {
-//                 //shader->set_uniform("emission_factor", 0.25f);
-//                 render_as_instanced_model(buffer, *shader);
-//                 //shader->set_uniform("emission_factor", 0.0f);
-//             }
-//             else if (buffer.render_primitive_type == TBuffer::ERenderPrimitiveType::BatchedModel) {
-//                 //shader->set_uniform("emission_factor", 0.25f);
-//                 render_as_batched_model(buffer, *shader, position_id, normal_id);
-//                 //shader->set_uniform("emission_factor", 0.0f);
-//             }
-//             else {
-//                 int uniform_color = shader->get_uniform_location("uniform_color");
-//                 auto it_path = buffer.render_paths.begin();
-//                 for (unsigned int ibuffer_id = 0; ibuffer_id < static_cast<unsigned int>(buffer.indices.size()); ++ibuffer_id) {
-//                     const IBuffer& i_buffer = buffer.indices[ibuffer_id];
-//                     // Skip all paths with ibuffer_id < ibuffer_id.
-//                     for (; it_path != buffer.render_paths.end() && it_path->ibuffer_id < ibuffer_id; ++it_path);
-//                     if (it_path == buffer.render_paths.end() || it_path->ibuffer_id > ibuffer_id)
-//                         // Not found. This shall not happen.
-//                         continue;
-//
-//                     glsafe(::glBindBuffer(GL_ARRAY_BUFFER, i_buffer.vbo));
-//                     if (position_id != -1) {
-//                         glsafe(::glVertexAttribPointer(position_id, buffer.vertices.position_size_floats(), GL_FLOAT, GL_FALSE, buffer.vertices.vertex_size_bytes(), (const void*)buffer.vertices.position_offset_bytes()));
-//                         glsafe(::glEnableVertexAttribArray(position_id));
-//                     }
-//                     bool has_normals = false;// buffer.vertices.normal_size_floats() > 0;
-//                     if (has_normals) {
-//                         if (normal_id != -1) {
-//                             glsafe(::glVertexAttribPointer(normal_id, buffer.vertices.normal_size_floats(), GL_FLOAT, GL_FALSE, buffer.vertices.vertex_size_bytes(), (const void*)buffer.vertices.normal_offset_bytes()));
-//                             glsafe(::glEnableVertexAttribArray(normal_id));
-//                         }
-//                     }
-//
-//                     glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_buffer.ibo));
-//
-//                     // Render all elements with it_path->ibuffer_id == ibuffer_id, possible with varying colors.
-//                     switch (buffer.render_primitive_type)
-//                     {
-//                     case TBuffer::ERenderPrimitiveType::Triangle: {
-//                         render_as_triangles(buffer, it_path, buffer.render_paths.end(), *shader, uniform_color);
-//                         break;
-//                     }
-//                     default: { break; }
-//                     }
-//
-//                     glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
-//
-//                     if (normal_id != -1)
-//                         glsafe(::glDisableVertexAttribArray(normal_id));
-//                     if (position_id != -1)
-//                         glsafe(::glDisableVertexAttribArray(position_id));
-//
-//                     glsafe(::glBindBuffer(GL_ARRAY_BUFFER, 0));
-//                 }
-//             }
-//
-//             shader->stop_using();
-//         }
-//         else {
-//             BOOST_LOG_TRIVIAL(info) << boost::format("render_calibration_thumbnail: can not find shader");
-//         }
-//     }
-// #endif
-//     BOOST_LOG_TRIVIAL(info) << boost::format("render_calibration_thumbnail: exit");
-//
-// }
-//
-// void GCodeViewer::_render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager)
-// {
-//     BOOST_LOG_TRIVIAL(info) << boost::format("render_calibration_thumbnail prepare: width %1%, height %2%")%w %h;
-//     thumbnail_data.set(w, h);
-//     if (!thumbnail_data.is_valid())
-//         return;
-//
-//     //TODO bool multisample = m_multisample_allowed;
-//     bool multisample = OpenGLManager::can_multisample();
-//     //if (!multisample)
-//     //    glsafe(::glEnable(GL_MULTISAMPLE));
-//
-//     GLint max_samples;
-//     glsafe(::glGetIntegerv(GL_MAX_SAMPLES, &max_samples));
-//     GLsizei num_samples = max_samples / 2;
-//
-//     GLuint render_fbo;
-//     glsafe(::glGenFramebuffers(1, &render_fbo));
-//     glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, render_fbo));
-//     BOOST_LOG_TRIVIAL(info) << boost::format("render_calibration_thumbnail prepare: max_samples %1%, multisample %2%, render_fbo %3%")%max_samples %multisample %render_fbo;
-//
-//     GLuint render_tex = 0;
-//     GLuint render_tex_buffer = 0;
-//     if (multisample) {
-//         // use renderbuffer instead of texture to avoid the need to use glTexImage2DMultisample which is available only since OpenGL 3.2
-//         glsafe(::glGenRenderbuffers(1, &render_tex_buffer));
-//         glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, render_tex_buffer));
-//         glsafe(::glRenderbufferStorageMultisample(GL_RENDERBUFFER, num_samples, GL_RGBA8, w, h));
-//         glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, render_tex_buffer));
-//     }
-//     else {
-//         glsafe(::glGenTextures(1, &render_tex));
-//         glsafe(::glBindTexture(GL_TEXTURE_2D, render_tex));
-//         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
-//         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-//         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-//         glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, render_tex, 0));
-//     }
-//
-//     GLuint render_depth;
-//     glsafe(::glGenRenderbuffers(1, &render_depth));
-//     glsafe(::glBindRenderbuffer(GL_RENDERBUFFER, render_depth));
-//     if (multisample)
-//         glsafe(::glRenderbufferStorageMultisample(GL_RENDERBUFFER, num_samples, GL_DEPTH_COMPONENT24, w, h));
-//     else
-//         glsafe(::glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, w, h));
-//
-//     glsafe(::glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, render_depth));
-//
-//     GLenum drawBufs[] = { GL_COLOR_ATTACHMENT0 };
-//     glsafe(::glDrawBuffers(1, drawBufs));
-//
-//
-//     if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
-//         _render_calibration_thumbnail_internal(thumbnail_data, thumbnail_params, partplate_list, opengl_manager);
-//
-//         if (multisample) {
-//             GLuint resolve_fbo;
-//             glsafe(::glGenFramebuffers(1, &resolve_fbo));
-//             glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, resolve_fbo));
-//
-//             GLuint resolve_tex;
-//             glsafe(::glGenTextures(1, &resolve_tex));
-//             glsafe(::glBindTexture(GL_TEXTURE_2D, resolve_tex));
-//             glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
-//             glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-//             glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-//             glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, resolve_tex, 0));
-//
-//             glsafe(::glDrawBuffers(1, drawBufs));
-//
-//             if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
-//                 glsafe(::glBindFramebuffer(GL_READ_FRAMEBUFFER, render_fbo));
-//                 glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, resolve_fbo));
-//                 glsafe(::glBlitFramebuffer(0, 0, w, h, 0, 0, w, h, GL_COLOR_BUFFER_BIT, GL_LINEAR));
-//
-//                 glsafe(::glBindFramebuffer(GL_READ_FRAMEBUFFER, resolve_fbo));
-//                 glsafe(::glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, (void*)thumbnail_data.pixels.data()));
-//             }
-//
-//             glsafe(::glDeleteTextures(1, &resolve_tex));
-//             glsafe(::glDeleteFramebuffers(1, &resolve_fbo));
-//         }
-//         else
-//             glsafe(::glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, (void*)thumbnail_data.pixels.data()));
-//     }
-// #if ENABLE_CALIBRATION_THUMBNAIL_OUTPUT
-//      debug_calibration_output_thumbnail(thumbnail_data);
-// #endif
-//
-//      glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
-//      glsafe(::glDeleteRenderbuffers(1, &render_depth));
-//      if (render_tex_buffer != 0)
-//          glsafe(::glDeleteRenderbuffers(1, &render_tex_buffer));
-//      if (render_tex != 0)
-//          glsafe(::glDeleteTextures(1, &render_tex));
-//      glsafe(::glDeleteFramebuffers(1, &render_fbo));
-//
-//     //if (!multisample)
-//     //    glsafe(::glDisable(GL_MULTISAMPLE));
-//     BOOST_LOG_TRIVIAL(info) << boost::format("render_calibration_thumbnail prepare: exit");
-// }
-
-//BBS
-// void GCodeViewer::render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager)
-// {
-//     // reset values and refresh render
-//     int       last_view_type_sel = m_view_type_sel;
-//     EViewType last_view_type     = m_view_type;
-//     unsigned int last_role_visibility_flags = m_extrusions.role_visibility_flags;
-//     // set color scheme to FilamentId
-//     for (int i = 0; i < view_type_items.size(); i++) {
-//         if (view_type_items[i] == EViewType::FilamentId) {
-//             m_view_type_sel = i;
-//             break;
-//         }
-//     }
-//     set_view_type(EViewType::FilamentId, false);
-//     // set m_layers_z_range to 0, 1;
-//     // To be safe, we include both layers here although layer 1 seems enough
-//     // layer 0: custom extrusions such as flow calibration etc.
-//     // layer 1: the real first layer of object
-//     std::array<unsigned int, 2> tmp_layers_z_range = m_layers_z_range;
-//     m_layers_z_range = {0, 1};
-//     // BBS exclude feature types
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags & ~(1 << erSkirt);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags & ~(1 << erCustom);
-//     // BBS include feature types
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erWipeTower);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erPerimeter);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erExternalPerimeter);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erOverhangPerimeter);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erSolidInfill);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erTopSolidInfill);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erInternalInfill);
-//     m_extrusions.role_visibility_flags = m_extrusions.role_visibility_flags | (1 << erBottomSurface);
-//
-//     refresh_render_paths(false, false);
-//
-//     _render_calibration_thumbnail_framebuffer(thumbnail_data, w, h, thumbnail_params, partplate_list, opengl_manager);
-//
-//     // restore values and refresh render
-//     // reset m_layers_z_range and view type
-//     m_view_type_sel = last_view_type_sel;
-//     set_view_type(last_view_type, false);
-//     m_layers_z_range = tmp_layers_z_range;
-//     m_extrusions.role_visibility_flags = last_role_visibility_flags;
-//     refresh_render_paths(false, false);
-// }
 
 bool GCodeViewer::can_export_toolpaths() const
 {
@@ -3434,7 +3042,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             append_option_item_with_type(type, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Wipes)), _u8L("Wipe"), visible);
     };
 
-    const libvgcode::EViewType new_view_type = curr_view_type; // TODO: m_viewer.get_view_type();
+    const libvgcode::EViewType new_view_type = curr_view_type;
 
     // extrusion paths section -> items
     switch (new_view_type)
@@ -3891,21 +3499,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     //    }
     //    }
     //}
-
-    // auto any_option_available = [this]() {
-    //     auto available = [this](EMoveType type) {
-    //         const TBuffer& buffer = m_buffers[buffer_id(type)];
-    //         return buffer.visible && buffer.has_data();
-    //     };
-    //
-    //     return available(EMoveType::Color_change) ||
-    //         available(EMoveType::Custom_GCode) ||
-    //         available(EMoveType::Pause_Print) ||
-    //         available(EMoveType::Retract) ||
-    //         available(EMoveType::Tool_change) ||
-    //         available(EMoveType::Unretract) ||
-    //         available(EMoveType::Seam);
-    // };
 
     //auto add_option = [this, append_item](EMoveType move_type, EOptionsColors color, const std::string& text) {
     //    const TBuffer& buffer = m_buffers[buffer_id(move_type)];

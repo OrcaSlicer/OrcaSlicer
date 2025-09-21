@@ -2672,8 +2672,6 @@ struct Plater::priv
     void generate_thumbnail(ThumbnailData& data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,
         Camera::EType camera_type, bool use_top_view = false, bool for_picking = false,bool ban_light = false);
     ThumbnailsList generate_thumbnails(const ThumbnailsParams& params, Camera::EType camera_type);
-    //BBS
-    // void generate_calibration_thumbnail(ThumbnailData& data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params);
     PlateBBoxData generate_first_layer_bbox();
 
     void bring_instance_forward() const;
@@ -7715,11 +7713,6 @@ ThumbnailsList Plater::priv::generate_thumbnails(const ThumbnailsParams& params,
     }
     return thumbnails;
 }
-
-// void Plater::priv::generate_calibration_thumbnail(ThumbnailData& data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params)
-// {
-//     preview->get_canvas3d()->render_calibration_thumbnail(data, w, h, thumbnail_params);
-// }
 
 PlateBBoxData Plater::priv::generate_first_layer_bbox()
 {

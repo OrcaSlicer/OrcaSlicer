@@ -159,7 +159,6 @@ class Print;
             float temperature{ 0.0f }; // Celsius degrees
             std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
             unsigned int layer_id{ 0 };
-            float layer_duration{ 0.0f }; // s (layer id before finalize)
             bool internal_only{ false };
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }

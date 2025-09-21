@@ -176,7 +176,6 @@ private:
     const GCodeProcessorResult* m_gcode_result;
     //BBS: add only gcode mode
     bool m_only_gcode_in_preview {false};
-    std::vector<size_t> m_ssid_to_moveid_map;
 
     // bounding box of toolpaths
     BoundingBoxf3 m_paths_bounding_box;

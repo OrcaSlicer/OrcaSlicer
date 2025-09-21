@@ -643,7 +643,6 @@ void GLGizmoSimplify::on_render()
 
     const Transform3d trafo_matrix = selected_volume->world_matrix();
     auto* gouraud_shader = wxGetApp().get_shader("gouraud_light");
-    glsafe(::glPushAttrib(GL_DEPTH_TEST)); // TODO: delete this line?
     glsafe(::glEnable(GL_DEPTH_TEST));
     gouraud_shader->start_using();
     const Camera& camera = wxGetApp().plater()->get_camera();

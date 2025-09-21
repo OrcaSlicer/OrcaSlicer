@@ -2052,13 +2052,6 @@ void GLCanvas3D::render_thumbnail(ThumbnailData& thumbnail_data, unsigned int w,
     }
 }
 
-// void GLCanvas3D::render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params)
-// {
-//     //load current plate gcode
-//     m_gcode_viewer.render_calibration_thumbnail(thumbnail_data, w, h, thumbnail_params,
-//         wxGetApp().plater()->get_partplate_list(), wxGetApp().get_opengl_manager());
-// }
-
 //BBS
 void GLCanvas3D::select_curr_plate_all()
 {
@@ -7636,13 +7629,6 @@ void GLCanvas3D::_render_volumes_for_picking(const Camera& camera) const
 
     glsafe(::glEnable(GL_CULL_FACE));
 }
-
-// void GLCanvas3D::_render_current_gizmo() const // TODO: delete?
-// {
-//     //BBS update inv_zoom
-//     GLGizmoBase::INV_ZOOM = (float)wxGetApp().plater()->get_camera().get_inv_zoom();
-//     m_gizmos.render_current_gizmo();
-// }
 
 void GLCanvas3D::_render_current_gizmo() const
 {
