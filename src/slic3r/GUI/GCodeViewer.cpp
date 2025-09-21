@@ -1132,7 +1132,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             }
         }
 
+        enable_view_type_cache_load(false);
         set_view_type(libvgcode::EViewType::ColorPrint);
+        enable_view_type_cache_load(true);
     }
 
     bool only_gcode_3mf = false;
