@@ -322,7 +322,9 @@ void SyncAmsInfoDialog::update_plate_combox()
 {
     if (m_combobox_plate) {
         m_combobox_plate->Clear();
-        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) { m_combobox_plate->Append(m_plate_number_choices_str[i]); }
+        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) {
+            m_combobox_plate->Append(m_plate_number_choices_str[i]);
+        }
         auto iter = std::find(m_plate_choices.begin(), m_plate_choices.end(), m_specify_plate_idx);
         if (iter != m_plate_choices.end()) {
             auto index = iter - m_plate_choices.begin();
@@ -528,7 +530,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_choose_plate_sizer->Add(chose_combox_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxEXPAND | wxTOP, FromDIP(6));
     m_choose_plate_sizer->AddSpacer(FromDIP(10));
 
-    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(50), -1), 0, NULL, wxCB_READONLY);
+    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(60), -1), 0, NULL, wxCB_READONLY);
 
     m_combobox_plate->Bind(wxEVT_COMBOBOX, [this](auto &e) {
         if (e.GetSelection() < m_plate_choices.size()) {
@@ -2516,6 +2518,7 @@ void SyncAmsInfoDialog::on_dpi_changed(const wxRect &suggested_rect)
     m_button_cancel->SetCornerRadius(FromDIP(12));
     m_merge_color_checkbox->Rescale();
     m_append_color_checkbox->Rescale();
+    m_combobox_plate->Rescale();
     Fit();
     Refresh();
 }
