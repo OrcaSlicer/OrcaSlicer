@@ -605,6 +605,9 @@ public:
     bool is_support_airprinting_detection{false};
     bool is_support_idelheadingprotect_detection{false};
 
+    // fun2
+    bool is_support_print_with_emmc{false};
+
     bool installed_upgrade_kit{false};
     int  bed_temperature_limit = -1;
 
@@ -858,6 +861,7 @@ public:
     bool check_enable_np(const json& print) const;
     void parse_new_info(json print);
     int  get_flag_bits(std::string str, int start, int count = 1) const;
+    uint32_t get_flag_bits_no_border(std::string str, int start_idx, int count = 1) const;
     int get_flag_bits(int num, int start, int count = 1, int base = 10) const;
 
     /* Device Filament Check */

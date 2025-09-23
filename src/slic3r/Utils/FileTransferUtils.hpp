@@ -76,6 +76,7 @@ using fn_ft_tunnel_create        = ft_err(FT_CALL *)(const char *url, FT_TunnelH
 using fn_ft_tunnel_retain        = void(FT_CALL *)(FT_TunnelHandle *);
 using fn_ft_tunnel_release       = void(FT_CALL *)(FT_TunnelHandle *);
 using fn_ft_tunnel_start_connect = ft_err(FT_CALL *)(FT_TunnelHandle *, void(FT_CALL *)(void *user, int ok, int err, const char *msg), void *user);
+using fn_ft_tunnel_sync_connect  = ft_err(FT_CALL *)(FT_TunnelHandle *);
 using fn_ft_tunnel_set_status_cb = ft_err(FT_CALL *)(FT_TunnelHandle *, void(FT_CALL *)(void *user, int old_status, int new_status, int err, const char *msg), void *user);
 using fn_ft_tunnel_shutdown      = ft_err(FT_CALL *)(FT_TunnelHandle *);
 
@@ -107,6 +108,7 @@ struct FileTransferModule
     fn_ft_tunnel_retain        ft_tunnel_retain{};
     fn_ft_tunnel_release       ft_tunnel_release{};
     fn_ft_tunnel_start_connect ft_tunnel_start_connect{};
+    fn_ft_tunnel_sync_connect  ft_tunnel_sync_connect{};
     fn_ft_tunnel_set_status_cb ft_tunnel_set_status_cb{};
     fn_ft_tunnel_shutdown      ft_tunnel_shutdown{};
 
@@ -146,6 +148,7 @@ public:
     FileTransferTunnel &operator=(FileTransferTunnel &&)      = delete;
 
     void start_connect();
+    bool sync_start_connect();
     void on_connection(ConnectionCb cb);
     void on_status(TunnelStatusCb cb);
 

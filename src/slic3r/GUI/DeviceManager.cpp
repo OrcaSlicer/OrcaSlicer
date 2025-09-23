@@ -4986,6 +4986,18 @@ void MachineObject::parse_new_info(json print)
         is_support_idelheadingprotect_detection = get_flag_bits(fun, 62);
     }
 
+    /*fun2*/
+    std::string fun2;
+    if (print.contains("fun2") && print["fun2"].is_string()) {
+        fun2 = print["fun2"].get<std::string>();
+        BOOST_LOG_TRIVIAL(info) << "new print data fun2 = " << fun;
+    }
+
+    // fun2 may have infinite length, use get_flag_bits_no_border
+    if (!fun2.empty()) {
+        is_support_print_with_emmc = get_flag_bits_no_border(fun2, 0) == 1;
+    }
+
     /*aux*/
     std::string aux = print["aux"].get<std::string>();
 
@@ -4993,7 +5005,6 @@ void MachineObject::parse_new_info(json print)
 
     if (!aux.empty()) {
         m_storage->set_sdcard_state(get_flag_bits(aux, 12, 2));
-         //sdcard_state = MachineObject::SdcardState(get_flag_bits(aux, 12, 2));
     }
 
     /*stat*/
@@ -5036,6 +5047,10 @@ void MachineObject::parse_new_info(json print)
     }
 }
 
+static bool is_hex_digit(char c) {
+    return std::isxdigit(static_cast<unsigned char>(c)) != 0;
+}
+
 int MachineObject::get_flag_bits(std::string str, int start, int count) const
 {
     try {
@@ -5043,7 +5058,94 @@ int MachineObject::get_flag_bits(std::string str, int start, int count) const
         unsigned long long mask = (1ULL << count) - 1;
         int flag = (decimal_value >> start) & mask;
         return flag;
-    } catch (...) {
+    }
+    catch (...) {
+        return 0;
+    }
+}
+
+uint32_t MachineObject::get_flag_bits_no_border(std::string str, int start_idx, int count) const
+{
+    if (start_idx < 0 || count <= 0) return 0;
+
+    try {
+        // --- 1) trim ---
+        auto ltrim = [](std::string& s) {
+            s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+                [](unsigned char ch) { return !std::isspace(ch); }));
+            };
+        auto rtrim = [](std::string& s) {
+            s.erase(std::find_if(s.rbegin(), s.rend(),
+                [](unsigned char ch) { return !std::isspace(ch); }).base(), s.end());
+            };
+        ltrim(str); rtrim(str);
+
+        // --- 2) remove 0x/0X prefix ---
+        if (str.size() >= 2 && str[0] == '0' && (str[1] == 'x' || str[1] == 'X')) {
+            str.erase(0, 2);
+        }
+
+        // --- 3) keep only hex digits ---
+        std::string hex;
+        hex.reserve(str.size());
+        for (char c : str) {
+            if (std::isxdigit(static_cast<unsigned char>(c))) hex.push_back(c);
+        }
+        if (hex.empty()) return 0;
+
+        // --- 4) use size_t for all index/bit math ---
+        const size_t total_bits = hex.size() * 4ULL;
+
+        const size_t ustart = static_cast<size_t>(start_idx);
+        if (ustart >= total_bits) return 0;
+
+        const int int_bits = std::numeric_limits<uint32_t>::digits; // typically 32
+        const size_t need_bits = static_cast<size_t>(std::min(count, int_bits));
+
+        // [first_bit, last_bit]
+        const size_t first_bit = ustart;
+        const size_t last_bit = std::min(ustart + need_bits, total_bits) - 1ULL;
+        if (last_bit < first_bit) return 0;
+
+
+        const size_t right_index = hex.size() - 1ULL;
+
+        const size_t first_nibble = first_bit / 4ULL;
+        const size_t last_nibble = last_bit / 4ULL;
+
+        const size_t start_idx = right_index - last_nibble;
+        const size_t end_idx = right_index - first_nibble;
+        if (end_idx < start_idx) return 0;
+
+        const size_t sub_len = end_idx - start_idx + 1ULL;
+        if (end_idx >= hex.size()) return 0;
+
+        const std::string sub_hex = hex.substr(start_idx, sub_len);
+
+        unsigned long long chunk = std::stoull(sub_hex, nullptr, 16);
+
+        const unsigned nibble_offset = static_cast<unsigned>(first_bit % 4ULL);
+        const unsigned long long shifted =
+            (nibble_offset == 0U) ? chunk : (chunk >> nibble_offset);
+
+        uint32_t mask;
+        if (need_bits >= static_cast<size_t>(std::numeric_limits<uint32_t>::digits)) {
+            mask = std::numeric_limits<uint32_t>::max();
+        }
+        else {
+            mask = static_cast<uint32_t>((1ULL << need_bits) - 1ULL);
+        }
+
+        const uint32_t val = static_cast<uint32_t>(shifted & mask);
+        return val;
+    }
+    catch (const std::invalid_argument&) {
+        return 0;
+    }
+    catch (const std::out_of_range&) {
+        return 0;
+    }
+    catch (...) {
         return 0;
     }
 }

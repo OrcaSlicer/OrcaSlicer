@@ -19,6 +19,7 @@ FileTransferModule::FileTransferModule(ModuleHandle networking_module, int requi
     ft_tunnel_retain        = sym_lookup<fn_ft_tunnel_retain>(networking_, "ft_tunnel_retain");
     ft_tunnel_release       = sym_lookup<fn_ft_tunnel_release>(networking_, "ft_tunnel_release");
     ft_tunnel_start_connect = sym_lookup<fn_ft_tunnel_start_connect>(networking_, "ft_tunnel_start_connect");
+    ft_tunnel_sync_connect  = sym_lookup<fn_ft_tunnel_sync_connect>(networking_, "ft_tunnel_sync_connect");
     ft_tunnel_set_status_cb = sym_lookup<fn_ft_tunnel_set_status_cb>(networking_, "ft_tunnel_set_status_cb");
     ft_tunnel_shutdown      = sym_lookup<fn_ft_tunnel_shutdown>(networking_, "ft_tunnel_shutdown");
 
@@ -67,6 +68,11 @@ void FileTransferTunnel::start_connect()
         } catch (...) {}
     };
     if (m_->ft_tunnel_start_connect(h_, tramp, &conn_cb_) == ft_err::FT_EXCEPTION) { throw std::runtime_error("ft_tunnel_start_connect failed"); }
+}
+
+bool FileTransferTunnel::sync_start_connect()
+{
+    return m_->ft_tunnel_sync_connect(h_) == FT_OK;
 }
 
 void FileTransferTunnel::on_connection(ConnectionCb cb) { conn_cb_ = std::move(cb); }

@@ -82,6 +82,7 @@ public:
     bool        task_layer_inspect;
     bool        cloud_print_only { false };
     bool        has_sdcard { false };
+    bool        could_emmc_print { false };
     bool        task_use_ams { true };
     bool        task_ext_change_assist { false };
 

@@ -1832,6 +1832,7 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
     print_job->set_calibration_task(true);
 
     print_job->has_sdcard = obj_->GetStorage()->get_sdcard_state() == DevStorage::HAS_SDCARD_NORMAL;
+    print_job->could_emmc_print = obj_->is_support_print_with_emmc;
     print_job->set_print_config(MachineBedTypeString[bed_type], true, false, false, false, true, false, 0, 0, 0);
     print_job->set_print_job_finished_event(wxGetApp().plater()->get_send_calibration_finished_event(), print_job->m_project_name);
 
@@ -1948,6 +1949,7 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
     print_job->set_calibration_task(true);
 
     print_job->has_sdcard = obj_->GetStorage()->get_sdcard_state() == DevStorage::HAS_SDCARD_NORMAL;
+    print_job->could_emmc_print = obj_->is_support_print_with_emmc;
     print_job->set_print_config(MachineBedTypeString[bed_type], true, true, false, false, true, false, 0, 1, 0);
     print_job->set_print_job_finished_event(wxGetApp().plater()->get_send_calibration_finished_event(), print_job->m_project_name);
 

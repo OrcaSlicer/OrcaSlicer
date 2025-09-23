@@ -2524,6 +2524,7 @@ void SelectMachineDialog::on_send_print()
     }
 
     m_print_job->has_sdcard = obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
+    m_print_job->could_emmc_print = obj_->is_support_print_with_emmc;
 
 
     bool timelapse_option = m_checkbox_list["timelapse"]->IsShown()?true:false;
@@ -3322,7 +3323,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
 
     /*check sdcard when if lan mode printer*/
     if (obj_->is_lan_mode_printer()) {
-        if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD) {
+        if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD
+            && !obj_->is_support_print_with_emmc) {
             show_status(PrintDialogStatus::PrintStatusLanModeNoSdcard);
             return;
         } else if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL || obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_READONLY) {
