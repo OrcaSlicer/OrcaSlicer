@@ -897,6 +897,10 @@ void FanControlPopupNew::on_left_down(wxMouseEvent& evt)
         fan->on_left_down(evt);
     }
 
+    Layout();
+    Fit();
+    Refresh();
+
     evt.Skip();
 }
 
@@ -973,6 +977,10 @@ void FanControlPopupNew::on_mode_changed(const wxMouseEvent &event)
             btn_iter.second->setSelected(false);
         }
     }
+
+    Layout();
+    Fit();
+    Refresh();
 }
 
 void FanControlPopupNew::on_fan_changed(const wxCommandEvent &event)
@@ -1077,6 +1085,8 @@ FanControlNewSwitchPanel::FanControlNewSwitchPanel(wxWindow* parent, const wxStr
 
     SetBackgroundColour(wxColour(248, 248, 248));
     Layout();
+
+    wxGetApp().UpdateDarkUIWin(this);
 }
 
 void FanControlNewSwitchPanel::SetSwitchOn(bool on)
