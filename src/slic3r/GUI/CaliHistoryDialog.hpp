@@ -40,6 +40,8 @@ protected:
     bool&                      m_show_history_dialog;
     std::vector<PACalibResult> m_calib_results_history;
     MachineObject*             curr_obj { nullptr };
+
+    bool                       m_ui_op_lock{ false };
 };
 
 class EditCalibrationHistoryDialog : public DPIDialog

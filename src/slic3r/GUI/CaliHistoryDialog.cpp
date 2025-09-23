@@ -383,9 +383,14 @@ void HistoryWindow::sync_history_data() {
         delete_button->SetMinSize(wxSize(-1, FromDIP(24)));
         delete_button->SetCornerRadius(FromDIP(12));
         delete_button->Bind(wxEVT_BUTTON, [this, gbSizer, i, &result](auto& e) {
+            if (m_ui_op_lock) {
+                return;
+            } else {
+                m_ui_op_lock = true;
+            }
             for (int j = 0; j < HISTORY_WINDOW_ITEMS_COUNT; j++) {
                 auto item = gbSizer->FindItemAtPosition({ i, j });
-                if (item)
+                if (item && item->GetWindow())
                     item->GetWindow()->Hide();
             }
             gbSizer->SetEmptyCellSize({ 0,0 });
@@ -410,6 +415,8 @@ void HistoryWindow::sync_history_data() {
         edit_button->SetMinSize(wxSize(-1, FromDIP(24)));
         edit_button->SetCornerRadius(FromDIP(12));
         edit_button->Bind(wxEVT_BUTTON, [this, result, k_value, name_value, edit_button](auto& e) {
+            if (m_ui_op_lock) return;
+
             PACalibResult result_buffer = result;
             result_buffer.k_value = stof(k_value->GetLabel().ToStdString());
             result_buffer.name = name_value->GetLabel().ToUTF8().data();
@@ -440,6 +447,7 @@ void HistoryWindow::sync_history_data() {
         gbSizer->Add(delete_button, {i, get_colume_idx(CaliColumnType::Cali_Delete, curr_obj)}, {1, 1}, wxBOTTOM, FromDIP(15));
         gbSizer->Add(edit_button, {i, get_colume_idx(CaliColumnType::Cali_Edit, curr_obj)}, {1, 1}, wxBOTTOM, FromDIP(15));
         i++;
+        m_ui_op_lock = false;
     }
 
     wxGetApp().UpdateDlgDarkUI(this);
