@@ -351,6 +351,17 @@ void AMSSetting::update_insert_material_read_mode(MachineObject* obj)
             return;
         }
 
+        // special case for A series
+        if (auto ptr = obj->GetFilaSystem()->GetAmsFirmwareSwitch().lock(); ptr->SupportSwitchFirmware()) {
+            if (ptr->GetCurrentFirmwareIdxSel() == DevAmsSystemFirmwareSwitch::IDX_LITE) {
+                m_panel_Insert_material->Show(false);
+                return;
+            }
+        } else if (DevPrinterConfigUtil::get_printer_use_ams_type(obj->printer_type) == "f1") {
+            m_panel_Insert_material->Show(false);
+            return;
+        }
+
         std::string extra_ams_str = (boost::format("ams_f1/%1%") % 0).str();
         auto extra_ams_it = obj->module_vers.find(extra_ams_str);
         if (extra_ams_it != obj->module_vers.end()) {
