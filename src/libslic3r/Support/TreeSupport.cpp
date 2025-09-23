@@ -618,7 +618,7 @@ TreeSupport::TreeSupport(PrintObject& object, const SlicingParameters &slicing_p
 
     if(support_pattern == smpLightning)
         m_support_params.base_fill_pattern = ipLightning;
-    diameter_angle_scale_factor              = std::clamp<double>(m_object_config->tree_support_branch_diameter_angle * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
+    diameter_angle_scale_factor              = std::clamp<double>(m_object_config->tree_support_branch_diameter_angle * M_PI / 180., 0., M_PI_2 - EPSILON);
     is_slim                                  = is_tree_slim(support_type, m_support_params.support_style);
     is_strong = is_tree(support_type) && m_support_params.support_style == smsTreeStrong;
     base_radius                              = std::max(MIN_BRANCH_RADIUS, m_object_config->tree_support_branch_diameter.value / 2);
@@ -1369,7 +1369,7 @@ void TreeSupport::generate_toolpaths()
 
         Flow support_flow = Flow(support_extrusion_width, ts_layer->height, nozzle_diameter);
         Fill* filler_raft = Fill::new_from_type(ipRectilinear);
-        filler_raft->angle = layer_nr == 0 ? PI/2 : 0;
+        filler_raft->angle = layer_nr == 0 ? M_PI_2 : 0;
         filler_raft->spacing = support_flow.spacing();
 
         FillParams fill_params;
@@ -1404,14 +1404,24 @@ void TreeSupport::generate_toolpaths()
 
     // raft interfaces
     for (layer_nr = m_slicing_params.base_raft_layers;
-         layer_nr < m_slicing_params.base_raft_layers + m_slicing_params.interface_raft_layers;
+         layer_nr < m_raft_layers;
          layer_nr++)
     {
         SupportLayer *ts_layer = m_object->get_support_layer(layer_nr);
 
         Flow support_flow(support_extrusion_width, ts_layer->height, nozzle_diameter);
         Fill* filler_interface = Fill::new_from_type(ipRectilinear);
-        filler_interface->angle = PI / 2;  // interface should be perpendicular to base
+
+        const size_t iface_idx = layer_nr - m_slicing_params.base_raft_layers;
+        const bool single_raft_base_layer = (m_slicing_params.base_raft_layers == 1);
+
+        // Make interface lines alternate 0°/90° between layers, to improve bonding.
+        // If only 1 base layer → start at 0°; otherwise (0 or ≥2 base layers) → start at 90°.
+        filler_interface->angle = 
+            (iface_idx & 1)
+                ? (single_raft_base_layer ? float(M_PI_2) : 0.0f)
+                : (single_raft_base_layer ? 0.0f : float(M_PI_2));
+
         filler_interface->spacing = support_flow.spacing();
 
         FillParams fill_params;
@@ -1431,7 +1441,7 @@ void TreeSupport::generate_toolpaths()
         SupportLayer *ts_layer = m_object->get_support_layer(layer_nr);
         Flow support_flow(support_extrusion_width, ts_layer->height, nozzle_diameter);
         Fill* filler_raft = Fill::new_from_type(ipRectilinear);
-        filler_raft->angle = PI / 2;
+        filler_raft->angle = M_PI_2;
         filler_raft->spacing = support_flow.spacing();
         for (auto& poly : first_non_raft_base)
             make_perimeter_and_infill(ts_layer->support_fills.entities, poly, std::min(size_t(1), wall_count), support_flow, erSupportMaterial, filler_raft, interface_density, false);
@@ -1487,11 +1497,16 @@ void TreeSupport::generate_toolpaths()
                         fill_params.density = interface_density;
                         fill_params.dont_adjust = true;
                     }
+                    
                     if (area_group.type == SupportLayer::Roof1stLayer) {
                         // roof_1st_layer
                         fill_params.density = interface_density;
                         // Note: spacing means the separation between two lines as if they are tightly extruded
                         filler_Roof1stLayer->spacing = interface_flow.spacing();
+                        
+                        if (m_object_config->support_interface_pattern == smipRectilinearInterlaced)
+                            filler_Roof1stLayer->layer_id = area_group.interface_id;
+                        
                         // generate a perimeter first to support interface better
                         ExtrusionEntityCollection* temp_support_fills = new ExtrusionEntityCollection();
                         make_perimeter_and_infill(temp_support_fills->entities, poly, 1, interface_flow, erSupportMaterial,
@@ -1505,6 +1520,10 @@ void TreeSupport::generate_toolpaths()
                         // floor_areas
                         fill_params.density = bottom_interface_density;
                         filler_interface->spacing = interface_flow.spacing();
+
+                        if (m_object_config->support_interface_pattern == smipRectilinearInterlaced)
+                            filler_interface->layer_id = area_group.interface_id;
+
                         fill_expolygons_generate_paths(ts_layer->support_fills.entities, polys,
                             filler_interface.get(), fill_params, erSupportMaterialInterface, interface_flow);
                     } else if (area_group.type == SupportLayer::RoofType) {
@@ -1701,7 +1720,7 @@ void TreeSupport::generate()
     draw_circles();
     profiler.stage_finish(STAGE_DRAW_CIRCLES);
 
-
+    normalize_interface_ids();
 
     profiler.stage_start(STAGE_GENERATE_TOOLPATHS);
     m_object->print()->set_status(70, _u8L("Generating support"));
@@ -1779,6 +1798,7 @@ ExPolygons TreeSupport::get_avoidance(coordf_t radius, size_t obj_layer_nr)
     return m_ts_data->get_avoidance(radius, obj_layer_nr);
 #endif
 }
+
 ExPolygons TreeSupport::get_collision(coordf_t radius, size_t layer_nr)
 {
 #if USE_SUPPORT_3D
@@ -1795,6 +1815,7 @@ ExPolygons TreeSupport::get_collision(coordf_t radius, size_t layer_nr)
 #endif
     return ExPolygons();
 }
+
 Polygons TreeSupport::get_collision_polys(coordf_t radius, size_t layer_nr)
 {
 #if USE_SUPPORT_3D
@@ -1930,7 +1951,7 @@ void TreeSupport::draw_circles()
     {
         double angle;
         if (SQUARE_SUPPORT)
-            angle = (double) i / CIRCLE_RESOLUTION * TAU + PI / 4.0 + nodes_angle;
+            angle = (double) i / CIRCLE_RESOLUTION * TAU + M_PI_4 + nodes_angle;
         else
             angle = (double) i / CIRCLE_RESOLUTION * TAU;
         branch_circle.append(Point(cos(angle) * branch_radius_scaled, sin(angle) * branch_radius_scaled));
@@ -1994,7 +2015,6 @@ void TreeSupport::draw_circles()
                 coordf_t         max_layers_above_base = 0;
                 coordf_t         max_layers_above_roof = 0;
                 coordf_t         max_layers_above_roof1 = 0;
-                int interface_id = 0;
                 bool has_circle_node = false;
                 bool need_extra_wall = false;
                 ExPolygons collision_sharp_tails;
@@ -2089,18 +2109,17 @@ void TreeSupport::draw_circles()
                         }
                     }
 
-                    if (obj_layer_nr>0 && node.distance_to_top < 0)
+                    if (obj_layer_nr > 0 && node.distance_to_top < 0)
                         append(roof_gap_areas, area);
                     else if (obj_layer_nr > 0 && node.support_roof_layers_below == 1 && node.is_sharp_tail==false)
                     {
                         append(roof_1st_layer, area);
                         max_layers_above_roof1 = std::max(max_layers_above_roof1, node.dist_mm_to_top);
                     }
-                    else if (obj_layer_nr > 0 && node.support_roof_layers_below > 0 && node.is_sharp_tail == false)
+                    else if (obj_layer_nr > 0 && node.support_roof_layers_below > 1 && node.is_sharp_tail == false)
                     {
                         append(roof_areas, area);
                         max_layers_above_roof = std::max(max_layers_above_roof, node.dist_mm_to_top);
-                        interface_id = node.obj_layer_nr % top_interface_layers;
                     }
                     else
                     {
@@ -2171,7 +2190,6 @@ void TreeSupport::draw_circles()
                 for (auto& expoly : ts_layer->roof_areas) {
                     //if (area(expoly) < SQ(scale_(1))) continue;
                     area_groups.emplace_back(&expoly, SupportLayer::RoofType, max_layers_above_roof);
-                    area_groups.back().interface_id = interface_id;
                 }
                 for (auto &expoly : ts_layer->floor_areas) {
                     //if (area(expoly) < SQ(scale_(1))) continue;
@@ -2205,7 +2223,6 @@ void TreeSupport::draw_circles()
 
             }
         });
-
 
         if (with_lightning_infill)
         {
@@ -2412,6 +2429,27 @@ void TreeSupport::draw_circles()
     }
 }
 
+/*!
+ * Reassigns sequential interface IDs to enforce A/B alternation
+ * for RectilinearInterlaced support patterns.
+ */
+void TreeSupport::normalize_interface_ids()
+{
+    if (m_object_config->support_interface_pattern != smipRectilinearInterlaced)
+        return;
+
+    size_t iface_parity = 0;
+    for (int lid = m_raft_layers; lid < m_object->support_layer_count(); ++lid) {
+        SupportLayer* ts_layer = m_object->get_support_layer(lid);
+        if (!ts_layer) continue;
+        
+        for (auto &ag : ts_layer->area_groups)
+                ag.interface_id = iface_parity;
+        
+        iface_parity ^= 1;
+    }
+}
+
 double SupportNode::diameter_angle_scale_factor;
 
 void TreeSupport::drop_nodes()
@@ -2423,7 +2461,7 @@ void TreeSupport::drop_nodes()
     const double angle = config.tree_support_branch_angle.value * M_PI / 180.;
     const int wall_count = std::max(1, config.tree_support_wall_count.value);
     double tan_angle = tan(angle); // when nodes are thick, they can move further. this is the max angle
-    const coordf_t max_move_distance = (angle < M_PI / 2) ? (coordf_t)(tan_angle * layer_height)*wall_count : std::numeric_limits<coordf_t>::max();
+    const coordf_t max_move_distance = (angle < M_PI_2) ? (coordf_t)(tan_angle * layer_height)*wall_count : std::numeric_limits<coordf_t>::max();
     const double max_move_distance2 = max_move_distance * max_move_distance;
     const size_t tip_layers = base_radius / layer_height; //The number of layers to be shrinking the circle to create a tip. This produces a 45 degree angle.
     const coordf_t radius_sample_resolution = m_ts_data->m_radius_sample_resolution;

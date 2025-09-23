@@ -3983,18 +3983,21 @@ void organic_draw_branches(
 
             // Subtract top contact layer polygons from support base.
             SupportGeneratorLayer *top_contact_layer = top_contacts.empty() ? nullptr : top_contacts[layer_idx];
+            
             if (top_contact_layer && ! top_contact_layer->polygons.empty() && ! base_layer_polygons.empty()) {
                 base_layer_polygons = diff(base_layer_polygons, top_contact_layer->polygons);
                 if (! bottom_contact_polygons.empty())
                     //FIXME it may be better to clip bottom contacts with top contacts first after they are propagated to produce interface layers.
                     bottom_contact_polygons = diff(bottom_contact_polygons, top_contact_layer->polygons);
             }
+            
             if (! bottom_contact_polygons.empty()) {
                 base_layer_polygons = diff(base_layer_polygons, bottom_contact_polygons);
                 SupportGeneratorLayer *bottom_contact_layer = bottom_contacts[layer_idx] = &layer_allocate(
                     layer_storage, SupporLayerType::BottomContact, print_object.slicing_parameters(), config, layer_idx);
                 bottom_contact_layer->polygons = std::move(bottom_contact_polygons);
             }
+            
             if (! base_layer_polygons.empty()) {
                 SupportGeneratorLayer *base_layer = intermediate_layers[layer_idx] = &layer_allocate(
                     layer_storage, SupporLayerType::Base, print_object.slicing_parameters(), config, layer_idx);

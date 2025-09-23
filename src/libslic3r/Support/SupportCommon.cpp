@@ -1378,10 +1378,27 @@ SupportGeneratorLayersPtr generate_support_layers(
         }
 
         if (!empty_layer) {
-            // Add this support layer with the current interface ID
-            object.add_support_layer(layer_id++, interface_id, height_min, zavg);
+            // Default: keep the global interface_id counter.
+            int this_iface_id = interface_id;
 
-            // Increment the interface ID only if this group contains interface/contact layers
+            // Special case: TreeOrganic raft-interface layers.
+            // Interface IDs may be unstable here, leading to inconsistent angles.
+            // Use deterministic IDs: alternate 0/1 by distance from the base raft.
+            bool is_tree_organic = (object.config().support_style == SupportMaterialStyle::smsTreeOrganic || 
+                                   (object.config().support_style == SupportMaterialStyle::smsDefault && is_tree(object.config().support_type)));
+
+            if (is_tree_organic &&
+                layer_id >= object.slicing_parameters().base_raft_layers &&
+                layer_id <  object.slicing_parameters().raft_layers())
+            {
+                // Alternate IDs 0,1,0,1... based on distance from base raft.
+                this_iface_id = (layer_id - object.slicing_parameters().base_raft_layers) & 1;
+            }
+            // END special case
+
+            object.add_support_layer(layer_id++, this_iface_id, height_min, zavg);
+
+            // Only increment the global counter if this set actually contains interface/contact layers.
             if (has_interface_layer)
                 interface_id++;
         }
