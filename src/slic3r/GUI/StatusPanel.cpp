@@ -3412,10 +3412,11 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
     wxString load_error_info, unload_error_info;
 
     if (obj->is_in_printing() && !obj->can_resume()) {
-        if (!obj->can_resume() || obj->is_in_extrusion_cali()) {
-            load_error_info = _L("The printer is busy on other print job");
-            unload_error_info = _L("The printer is busy on other print job");
-        }
+        load_error_info = _L("The printer is busy on other print job");
+        unload_error_info = _L("The printer is busy on other print job");
+    } else if (obj->can_resume() && !devPrinterUtil::IsVirtualSlot(ams_id)) {
+        load_error_info = _L("When printing is paused, filament loading and unloading are only supported for external slots.");
+        unload_error_info = _L("When printing is paused, filament loading and unloading are only supported for external slots.");
     } else {
         /*switch now*/
         bool in_switch_filament = false;
