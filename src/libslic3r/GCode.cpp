@@ -4806,8 +4806,11 @@ LayerResult GCode::process_layer(
                 gcode_toolchange = m_wipe_tower->tool_change(*this, extruder_id, extruder_id == layer_tools.extruders.back());
             }
         } else {
-            if (m_writer.need_toolchange(extruder_id) &&
-                m_config.nozzle_diameter.values.size() == 2 && writer().filament() &&
+            if (need_insert_timelapse_gcode_for_traditional &&
+                !has_insert_timelapse_gcode &&
+                m_writer.need_toolchange(extruder_id) &&
+                m_config.nozzle_diameter.values.size() == 2 &&
+                writer().filament() &&
                 (get_extruder_id(writer().filament()->id()) == most_used_extruder)) {
                 gcode += this->retract(false, false, auto_lift_type);
                 m_writer.add_object_change_labels(gcode);
