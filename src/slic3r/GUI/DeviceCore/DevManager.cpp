@@ -430,6 +430,8 @@ namespace Slic3r
         selected_machine = "";
         local_selected_machine = "";
 
+        OnSelectedMachineChanged(selected_machine, "");
+
         // clean user list
         for (auto it = userMachineList.begin(); it != userMachineList.end(); it++)
         {
@@ -533,6 +535,11 @@ namespace Slic3r
                 data.second.checked_filament.clear();
             }
         }
+
+        if (selected_machine != dev_id) {
+            OnSelectedMachineChanged(selected_machine, dev_id);
+        }
+
         selected_machine = dev_id;
         return true;
     }
@@ -825,7 +832,16 @@ namespace Slic3r
     void DeviceManager::OnSelectedMachineLost()
     {
         GUI::wxGetApp().sidebar().update_sync_status(nullptr);
-        GUI::wxGetApp().sidebar().load_ams_list(string(), nullptr);
+        GUI::wxGetApp().sidebar().load_ams_list(nullptr);
+    }
+
+    void DeviceManager::OnSelectedMachineChanged(const std::string& /*pre_dev_id*/,
+                                                 const std::string& /*new_dev_id*/)
+    {
+        if (MachineObject* obj_ = get_selected_machine()) {
+            GUI::wxGetApp().sidebar().update_sync_status(obj_);
+            GUI::wxGetApp().sidebar().load_ams_list(obj_);
+        };
     }
 
     void DeviceManager::reload_printer_settings()

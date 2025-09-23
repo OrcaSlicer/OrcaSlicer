@@ -3031,7 +3031,6 @@ void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
         }
 
         // Has changed machine unrecoverably
-        GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
         m_check_flag = false;
     } else {
         BOOST_LOG_TRIVIAL(error) << "on_selection_changed dev_id not found";
@@ -4522,6 +4521,13 @@ bool SelectMachineDialog::Show(bool show)
         EnableEditing(true);
         m_options_other->Show();
         m_refresh_timer->Start(LIST_REFRESH_INTERVAL);
+
+        //set a default machine when obj is null
+        if (DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
+            if (!dev->get_selected_machine()) {
+                dev->load_last_machine();
+            }
+        };
     } else {
         m_refresh_timer->Stop();
         return DPIDialog::Show(false);

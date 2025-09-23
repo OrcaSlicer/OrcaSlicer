@@ -642,9 +642,6 @@ bool CalibrationPanel::Show(bool show) {
             obj = dev->get_selected_machine();
             if (obj == nullptr) {
                 dev->load_last_machine();
-                obj = dev->get_selected_machine();
-                if (obj)
-                    GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
             }
             else {
                 obj->reset_update_time();
@@ -682,7 +679,6 @@ void CalibrationPanel::set_default()
 {
     obj = nullptr;
     last_conn_type = "undefined";
-    wxGetApp().sidebar().load_ams_list({}, {});
 }
 
 void CalibrationPanel::msw_rescale()
