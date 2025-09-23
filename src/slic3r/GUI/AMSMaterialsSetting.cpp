@@ -1378,6 +1378,7 @@ ColorPicker::ColorPicker(wxWindow* parent, wxWindowID id, const wxPoint& pos /*=
 
     m_bitmap_border = create_scaled_bitmap("color_picker_border", nullptr, 25);
     m_bitmap_border_dark = create_scaled_bitmap("color_picker_border_dark", nullptr, 25);
+    m_bitmap_transparent_def = ScalableBitmap(this, "transparent_color_picker", 25);
     m_bitmap_transparent = create_scaled_bitmap("transparent_color_picker", nullptr, 25);
 }
 
@@ -1387,7 +1388,7 @@ void ColorPicker::msw_rescale()
 {
     m_bitmap_border = create_scaled_bitmap("color_picker_border", nullptr, 25);
     m_bitmap_border_dark = create_scaled_bitmap("color_picker_border_dark", nullptr, 25);
-    m_bitmap_transparent = create_scaled_bitmap("transparent_color_picker", nullptr, 25);
+    m_bitmap_transparent_def.msw_rescale();
 
     Refresh();
 }
@@ -1442,15 +1443,15 @@ void ColorPicker::doRender(wxDC& dc)
     if (m_selected) radius -= FromDIP(1);
 
     if (alpha == 0) {
-        wxSize bmp_size = m_bitmap_transparent.GetSize();
+        wxSize bmp_size = m_bitmap_transparent_def.GetBmpSize();
         int center_x = (size.x - bmp_size.x) / 2;
         int center_y = (size.y - bmp_size.y) / 2;
-        dc.DrawBitmap(m_bitmap_transparent, center_x, center_y);
+        dc.DrawBitmap(m_bitmap_transparent_def.bmp(), center_x, center_y);
     }
     else if (alpha != 254 && alpha != 255) {
         if (transparent_changed) {
             std::string rgb = (m_colour.GetAsString(wxC2S_HTML_SYNTAX)).ToStdString();
-            if (rgb.size() == 8) {
+            if (rgb.size() == 9) {
                 //delete alpha value
                 rgb = rgb.substr(0, rgb.size() - 2);
             }
@@ -1461,12 +1462,11 @@ void ColorPicker::doRender(wxDC& dc)
             replace.push_back(fill_replace);
             m_bitmap_transparent = ScalableBitmap(this, "transparent_color_picker", 25, false, false, true, replace).bmp();
             transparent_changed = false;
-
+        }
             wxSize bmp_size = m_bitmap_transparent.GetSize();
             int center_x = (size.x - bmp_size.x) / 2;
             int center_y = (size.y - bmp_size.y) / 2;
             dc.DrawBitmap(m_bitmap_transparent, center_x, center_y);
-        }
     }
     else {
         dc.SetPen(wxPen(m_colour));
