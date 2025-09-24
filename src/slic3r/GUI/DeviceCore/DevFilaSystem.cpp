@@ -361,11 +361,14 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     int type_id = 1;   // 0:dummy 1:ams 2:ams-lite 3:n3f 4:n3s
 
                     /*ams info*/
-                    if (it->contains("info"))
-                    {
+                    if (it->contains("info")) {
                         const std::string& info = (*it)["info"].get<std::string>();
                         type_id = DevUtil::get_flag_bits(info, 0, 4);
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
+                    } else {
+                        if (!obj->is_enable_ams_np) {
+                            type_id = DevAms::AMS_LITE;
+                        }
                     }
 
                     /*AMS without initialization*/
