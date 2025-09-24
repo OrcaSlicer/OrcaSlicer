@@ -1802,10 +1802,6 @@
             "sub_path": "filament/Polymaker/PolyLite ABS @BBL P1P.json"
         },
         {
-            "name": "PolyLite ABS @BBL P2S",
-            "sub_path": "filament/PolyLite ABS @BBL P2S.json"
-        },
-        {
             "name": "PolyLite ABS @BBL X1C",
             "sub_path": "filament/Polymaker/PolyLite ABS @BBL X1C.json"
         },
@@ -2040,10 +2036,6 @@
         {
             "name": "PolyLite ASA @BBL P1P",
             "sub_path": "filament/Polymaker/PolyLite ASA @BBL P1P.json"
-        },
-        {
-            "name": "PolyLite ASA @BBL P2S",
-            "sub_path": "filament/PolyLite ASA @BBL P2S.json"
         },
         {
             "name": "PolyLite ASA @BBL X1C",
@@ -2326,20 +2318,12 @@
             "sub_path": "filament/Polymaker/Fiberon PA12-CF @BBL H2D.json"
         },
         {
-            "name": "Fiberon PA12-CF @BBL P2S",
-            "sub_path": "filament/Polymaker/Fiberon PA12-CF @BBL P2S.json"
-        },
-        {
             "name": "Fiberon PA12-CF @BBL X1C",
             "sub_path": "filament/Polymaker/Fiberon PA12-CF @BBL X1C.json"
         },
         {
             "name": "Fiberon PA6-CF @BBL H2D",
             "sub_path": "filament/Polymaker/Fiberon PA6-CF @BBL H2D.json"
-        },
-        {
-            "name": "Fiberon PA6-CF @BBL P2S",
-            "sub_path": "filament/Polymaker/Fiberon PA6-CF @BBL P2S.json"
         },
         {
             "name": "Fiberon PA6-CF @BBL X1C",
@@ -2350,20 +2334,12 @@
             "sub_path": "filament/Polymaker/Fiberon PA6-GF @BBL H2D.json"
         },
         {
-            "name": "Fiberon PA6-GF @BBL P2S",
-            "sub_path": "filament/Polymaker/Fiberon PA6-GF @BBL P2S.json"
-        },
-        {
             "name": "Fiberon PA6-GF @BBL X1C",
             "sub_path": "filament/Polymaker/Fiberon PA6-GF @BBL X1C.json"
         },
         {
             "name": "Fiberon PA612-CF @BBL H2D",
             "sub_path": "filament/Polymaker/Fiberon PA612-CF @BBL H2D.json"
-        },
-        {
-            "name": "Fiberon PA612-CF @BBL P2S",
-            "sub_path": "filament/Polymaker/Fiberon PA612-CF @BBL P2S.json"
         },
         {
             "name": "Fiberon PA612-CF @BBL X1C",
@@ -3042,10 +3018,6 @@
             "sub_path": "filament/Polymaker/Fiberon PET-CF @BBL H2D.json"
         },
         {
-            "name": "Fiberon PET-CF @BBL P2S",
-            "sub_path": "filament/Polymaker/Fiberon PET-CF @BBL P2S.json"
-        },
-        {
             "name": "Fiberon PET-CF @BBL X1C",
             "sub_path": "filament/Polymaker/Fiberon PET-CF @BBL X1C.json"
         },
@@ -3054,20 +3026,12 @@
             "sub_path": "filament/Polymaker/Fiberon PETG-ESD @BBL H2D.json"
         },
         {
-            "name": "Fiberon PETG-ESD @BBL P2S",
-            "sub_path": "filament/Polymaker/Fiberon PETG-ESD @BBL P2S.json"
-        },
-        {
             "name": "Fiberon PETG-ESD @BBL X1C",
             "sub_path": "filament/Polymaker/Fiberon PETG-ESD @BBL X1C.json"
         },
         {
             "name": "Fiberon PETG-rCF @BBL H2D",
             "sub_path": "filament/Polymaker/Fiberon PETG-rCF @BBL H2D.json"
-        },
-        {
-            "name": "Fiberon PETG-rCF @BBL P2S",
-            "sub_path": "filament/Polymaker/Fiberon PETG-rCF @BBL P2S.json"
         },
         {
             "name": "Fiberon PETG-rCF @BBL X1C",
@@ -3268,10 +3232,6 @@
         {
             "name": "PolyLite PETG @BBL P1P",
             "sub_path": "filament/Polymaker/PolyLite PETG @BBL P1P.json"
-        },
-        {
-            "name": "PolyLite PETG @BBL P2S",
-            "sub_path": "filament/PolyLite PETG @BBL P2S.json"
         },
         {
             "name": "PolyLite PETG @BBL X1C",
@@ -4982,10 +4942,6 @@
             "sub_path": "filament/Overture/Overture Matte PLA @BBL P1P.json"
         },
         {
-            "name": "Overture Matte PLA @BBL P2S",
-            "sub_path": "filament/Overture Matte PLA @BBL P2S.json"
-        },
-        {
             "name": "Overture Matte PLA @BBL X1",
             "sub_path": "filament/Overture/Overture Matte PLA @BBL X1.json"
         },
@@ -5028,10 +4984,6 @@
         {
             "name": "Overture PLA @BBL P1P",
             "sub_path": "filament/Overture/Overture PLA @BBL P1P.json"
-        },
-        {
-            "name": "Overture PLA @BBL P2S",
-            "sub_path": "filament/Overture PLA @BBL P2S.json"
         },
         {
             "name": "Overture PLA @BBL X1",
@@ -5762,10 +5714,6 @@
             "sub_path": "filament/P1P/PolyLite PLA @BBL P1P.json"
         },
         {
-            "name": "PolyLite PLA @BBL P2S",
-            "sub_path": "filament/PolyLite PLA @BBL P2S.json"
-        },
-        {
             "name": "PolyLite PLA @BBL X1",
             "sub_path": "filament/Polymaker/PolyLite PLA @BBL X1.json"
         },
@@ -5852,10 +5800,6 @@
         {
             "name": "PolyTerra PLA @BBL P1P",
             "sub_path": "filament/P1P/PolyTerra PLA @BBL P1P.json"
-        },
-        {
-            "name": "PolyTerra PLA @BBL P2S",
-            "sub_path": "filament/PolyTerra PLA @BBL P2S.json"
         },
         {
             "name": "PolyTerra PLA @BBL X1",
@@ -6176,14 +6120,6 @@
         {
             "name": "eSUN PLA+ @BBL P1P 0.2 nozzle",
             "sub_path": "filament/P1P/eSUN PLA+ @BBL P1P 0.2 nozzle.json"
-        },
-        {
-            "name": "eSUN PLA+ @BBL P2S",
-            "sub_path": "filament/eSUN PLA+ @BBL P2S.json"
-        },
-        {
-            "name": "eSUN PLA+ @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/eSUN PLA+ @BBL P2S 0.2 nozzle.json"
         },
         {
             "name": "eSUN PLA+ @BBL X1",
@@ -6782,10 +6718,6 @@
             "sub_path": "filament/PolyLite ABS @BBL H2DP.json"
         },
         {
-            "name": "PolyLite ABS @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/PolyLite ABS @BBL P2S 0.2 nozzle.json"
-        },
-        {
             "name": "PolyLite ABS @BBL X1C 0.2 nozzle",
             "sub_path": "filament/Polymaker/PolyLite ABS @BBL X1C 0.2 nozzle.json"
         },
@@ -6840,10 +6772,6 @@
         {
             "name": "PolyLite ASA @BBL H2DP",
             "sub_path": "filament/PolyLite ASA @BBL H2DP.json"
-        },
-        {
-            "name": "PolyLite ASA @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/PolyLite ASA @BBL P2S 0.2 nozzle.json"
         },
         {
             "name": "PolyLite ASA @BBL X1C 0.2 nozzle",
@@ -7022,10 +6950,6 @@
             "sub_path": "filament/PolyLite PETG @BBL H2DP 0.2 nozzle.json"
         },
         {
-            "name": "PolyLite PETG @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/PolyLite PETG @BBL P2S 0.2 nozzle.json"
-        },
-        {
             "name": "PolyLite PETG @BBL X1C 0.2 nozzle",
             "sub_path": "filament/Polymaker/PolyLite PETG @BBL X1C 0.2 nozzle.json"
         },
@@ -7098,10 +7022,6 @@
             "sub_path": "filament/Overture Matte PLA @BBL H2DP 0.2 nozzle.json"
         },
         {
-            "name": "Overture Matte PLA @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/Overture Matte PLA @BBL P2S 0.2 nozzle.json"
-        },
-        {
             "name": "Overture Matte PLA @BBL X1C 0.2 nozzle",
             "sub_path": "filament/Overture/Overture Matte PLA @BBL X1C 0.2 nozzle.json"
         },
@@ -7118,10 +7038,6 @@
             "sub_path": "filament/Overture PLA @BBL H2DP 0.2 nozzle.json"
         },
         {
-            "name": "Overture PLA @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/Overture PLA @BBL P2S 0.2 nozzle.json"
-        },
-        {
             "name": "Overture PLA @BBL X1C 0.2 nozzle",
             "sub_path": "filament/Overture/Overture PLA @BBL X1C 0.2 nozzle.json"
         },
@@ -7134,10 +7050,6 @@
             "sub_path": "filament/P1P/PolyLite PLA @BBL P1P 0.2 nozzle.json"
         },
         {
-            "name": "PolyLite PLA @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/PolyLite PLA @BBL P2S 0.2 nozzle.json"
-        },
-        {
             "name": "PolyLite PLA @BBL X1C 0.2 nozzle",
             "sub_path": "filament/Polymaker/PolyLite PLA @BBL X1C 0.2 nozzle.json"
         },
@@ -7148,10 +7060,6 @@
         {
             "name": "PolyTerra PLA @BBL P1P 0.2 nozzle",
             "sub_path": "filament/P1P/PolyTerra PLA @BBL P1P 0.2 nozzle.json"
-        },
-        {
-            "name": "PolyTerra PLA @BBL P2S 0.2 nozzle",
-            "sub_path": "filament/PolyTerra PLA @BBL P2S 0.2 nozzle.json"
         },
         {
             "name": "PolyTerra PLA @BBL X1C 0.2 nozzle",
