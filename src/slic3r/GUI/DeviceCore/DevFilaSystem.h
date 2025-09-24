@@ -4,6 +4,7 @@
 
 #include "DevDefs.h"
 #include "DevFilaAmsSetting.h"
+#include "DevUtil.h"
 
 #include <map>
 #include <memory>
@@ -158,7 +159,7 @@ public:
 
     /* ams */
     DevAms*                         GetAmsById(const std::string& ams_id) const;
-    std::map<std::string, DevAms*>& GetAmsList() { return amsList; }
+    std::map<std::string, DevAms*, NumericStrCompare>& GetAmsList() { return amsList; }
     int                             GetAmsCount() const { return amsList.size(); }
 
     /* tray*/
@@ -190,7 +191,7 @@ private:
     /* ams properties */
     int  m_ams_cali_stat = 0;
 
-    std::map<std::string, DevAms*> amsList;    // key: ams[id], start with 0
+    std::map<std::string, DevAms*, NumericStrCompare> amsList;// key: ams[id], start with 0
 
     DevAmsSystemSetting m_ams_system_setting{ this };
     std::shared_ptr<DevAmsSystemFirmwareSwitch> m_ams_firmware_switch = DevAmsSystemFirmwareSwitch::Create(this);

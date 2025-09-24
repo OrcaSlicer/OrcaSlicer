@@ -85,4 +85,23 @@ public:
     static std::string get_longlong_val(const nlohmann::json& j);
 };
 
+
+struct NumericStrCompare
+{
+    bool operator()(const std::string& a, const std::string& b) const noexcept
+    {
+        int ai = -1;
+        try {
+            ai = std::stoi(a);
+        } catch (...) { };
+
+        int bi = -1;
+        try {
+            bi = std::stoi(b);
+        } catch (...) { };
+
+        return ai < bi;
+    }
+};
+
 }; // namespace Slic3r
