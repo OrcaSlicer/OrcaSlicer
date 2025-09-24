@@ -449,8 +449,7 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
     case DeviceErrorDialog::PROCEED: {
         if(!m_action_json.is_null()){
             try{
-                ActionProceed proceed = m_action_json.get<ActionProceed>();
-                m_obj->command_ack_proceed(proceed);
+                m_obj->command_ack_proceed(m_action_json);
             } catch(...){
                 BOOST_LOG_TRIVIAL(error) << "DeviceErrorDialog: Action Proceed missing params.";
             }

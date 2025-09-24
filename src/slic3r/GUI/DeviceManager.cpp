@@ -2115,17 +2115,19 @@ int MachineObject::command_xcam_control(std::string module_name, bool on_off, st
     return this->publish_json(j);
 }
 
-int MachineObject::command_ack_proceed(GUI::ActionProceed& proceed) {
-    if(proceed.command.empty()) return -1;
+int MachineObject::command_ack_proceed(json& proceed) {
+    if (proceed["command"].empty()) return -1;
 
-    proceed.err_ignored.push_back(proceed.err_index);
+    proceed["err_code"] = 0;
+    if (proceed.contains("err_ignored")) {
+        proceed["err_ignored"].push_back(proceed["err_index"]);
+    } else {
+        proceed["err_ignored"] = std::vector<int>{proceed["err_index"]};
+    }
+    proceed["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
 
     json j;
-    j["print"]["command"] = proceed.command;
-    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
-    j["print"]["err_code"] = 0;
-    j["print"]["err_index"] = proceed.err_index;
-    j["print"]["err_ignored"] = proceed.err_ignored;
+    j["print"] = proceed;
     return this->publish_json(j);
 }
 
@@ -3013,14 +3015,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     {
                         if (jj["err_code"].is_number())
                         {
-                            json action_json;
-                            if (jj.contains("err_index")) {
-                                /* proceed action*/
-                                action_json["command"]     = jj["command"];
-                                action_json["err_code"]    = jj["err_code"];
-                                action_json["err_index"]   = jj["err_index"];
-                                action_json["err_ignored"] = jj.contains("err_ignored") ? jj["err_ignored"] : json::array();
-                            }
+                            /* proceed action*/
+                            json action_json = jj.contains("err_index") ? jj : json();
+
                             add_command_error_code_dlg(jj["err_code"].get<int>(), action_json);
                         }
                     }

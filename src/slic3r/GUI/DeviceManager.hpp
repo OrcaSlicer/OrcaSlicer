@@ -683,7 +683,7 @@ public:
     int command_set_printer_nozzle(std::string nozzle_type, float diameter);
     int command_set_printer_nozzle2(int id, std::string nozzle_type, float diameter);
     int command_get_access_code();
-    int command_ack_proceed(GUI::ActionProceed& proceed);
+    int command_ack_proceed(json& proceed);
 
     /* command upgrade */
     int command_upgrade_confirm();

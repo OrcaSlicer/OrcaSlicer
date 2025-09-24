@@ -17,15 +17,6 @@ class MachineObject;//Previous definitions
 
 namespace GUI {
 
-struct ActionProceed{
-    std::string command;
-    uint16_t err_index;
-    uint32_t err_code;
-    std::vector<uint16_t> err_ignored;
-};
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Slic3r::GUI::ActionProceed, command, err_index, err_code, err_ignored);
-
-
 class DeviceErrorDialog : public DPIDialog
 {
 public:
