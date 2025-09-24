@@ -202,15 +202,8 @@ static const float g_max_flush_multiplier = 3.f;
 bool is_flush_config_modified()
 {
     const auto                &project_config    = wxGetApp().preset_bundle->project_config;
-    const auto                &full_config       = wxGetApp().preset_bundle->full_config();
     const std::vector<double> &config_matrix     = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
     const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
-
-    size_t                        nozzle_nums = full_config.option<ConfigOptionFloatsNullable>("nozzle_diameter")->values.size();
-    std::vector<std::vector<int>> extra_flush_volumes;
-    extra_flush_volumes.resize(nozzle_nums, std::vector<int>());
-    for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) { extra_flush_volumes[nozzle_id] = get_min_flush_volumes(full_config, nozzle_id); }
-    WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), extra_flush_volumes);
 
     bool has_modify = false;
     for (int i = 0; i < config_multiplier.size(); i++) {
@@ -218,8 +211,8 @@ bool is_flush_config_modified()
             has_modify = true;
             break;
         }
-        std::vector<std::vector<double>> default_matrix = dlg.CalcFlushingVolumes(i);
-        int                              len            = default_matrix.size();
+        std::vector<std::vector<double>> default_matrix = WipingDialog::CalcFlushingVolumes(i);
+        int len = default_matrix.size();
         for (int m = 0; m < len; m++) {
             for (int n = 0; n < len; n++) {
                 int idx = i * len * len + m * len + n;
@@ -238,20 +231,8 @@ bool is_flush_config_modified()
 void open_flushing_dialog(wxEvtHandler *parent, const wxEvent &event)
 {
     auto                      &project_config = wxGetApp().preset_bundle->project_config;
-    const std::vector<double> &init_matrix    = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
-    const std::vector<double> &init_extruders = (project_config.option<ConfigOptionFloats>("flush_volumes_vector"))->values;
 
-    const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
-    const auto                    &full_config      = wxGetApp().preset_bundle->full_config();
-
-    size_t nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-
-    std::vector<std::vector<int>> extra_flush_volumes;
-    extra_flush_volumes.resize(nozzle_nums, std::vector<int>());
-    for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) { extra_flush_volumes[nozzle_id] = get_min_flush_volumes(full_config, nozzle_id); }
-
-    WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), extra_flush_volumes);
-    //WipingDialog dlg(wxGetApp().mainframe), extra_flush_volumes);
+    WipingDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe));
     dlg.ShowModal();
     if (dlg.GetSubmitFlag()) {
         auto matrix = dlg.GetFlattenMatrix();
@@ -318,7 +299,8 @@ wxString WipingDialog::BuildTableObjStr()
     }
 
     for (int idx = 0; idx < nozzle_num; ++idx) {
-        int min_flush_from_nozzle_volume = *min_element(m_extra_flush_volume[idx].begin(), m_extra_flush_volume[idx].end());
+        const std::vector<int> &min_flush_volumes = get_min_flush_volumes(full_config, idx);
+        int min_flush_from_nozzle_volume = *min_element(min_flush_volumes.begin(), min_flush_volumes.end());
         GenericFlushPredictor pd(nozzle_flush_dataset[idx]);
         int min_flush_from_flush_data = pd.get_min_flush_volume();
         obj["min_flush_volumes"].push_back(std::min(min_flush_from_flush_data,min_flush_from_nozzle_volume));
@@ -381,11 +363,10 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
     return text_obj;
 }
 
-WipingDialog::WipingDialog(wxWindow* parent, const std::vector<std::vector<int>>& extra_flush_volume,const int max_flush_volume) :
+WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxDialog(parent, wxID_ANY, _(L("Flushing volumes for filament change")),
     wxDefaultPosition, wxDefaultSize,
     wxDEFAULT_DIALOG_STYLE ),
-    m_extra_flush_volume(extra_flush_volume),
     m_max_flush_volume(max_flush_volume)
 {
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
@@ -555,6 +536,7 @@ WipingDialog::VolumeMatrix WipingDialog::CalcFlushingVolumes(int extruder_id)
     }
 
     VolumeMatrix matrix;
+    const std::vector<int> min_flush_volumes = get_min_flush_volumes(full_config, extruder_id);
 
     for (int from_idx = 0; from_idx < multi_colors.size(); ++from_idx) {
         bool is_from_support = is_support_filament(from_idx);
@@ -576,7 +558,7 @@ WipingDialog::VolumeMatrix WipingDialog::CalcFlushingVolumes(int extruder_id)
                     const wxColour& from = multi_colors[from_idx][i];
                     for (int j = 0; j < multi_colors[to_idx].size(); ++j) {
                         const wxColour& to = multi_colors[to_idx][j];
-                        int volume = CalcFlushingVolume(from, to, m_extra_flush_volume[extruder_id][from_idx], flush_dataset_value);
+                        int volume = CalcFlushingVolume(from, to, min_flush_volumes[from_idx], flush_dataset_value);
                         flushing_volume = std::max(flushing_volume, volume);
                     }
                 }
