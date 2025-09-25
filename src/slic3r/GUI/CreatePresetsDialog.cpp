@@ -838,6 +838,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
         Refresh();
         Layout();
         Fit();
+
+        e.Skip();
     });
 
     comboBoxSizer->Add(vendor_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
@@ -1842,6 +1844,8 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
         Layout();
         m_page1->SetSizerAndFit(m_page1_sizer);
         Fit();
+
+        e.Skip();
     });
 
     vertical_sizer->Add(checkbox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
@@ -1920,6 +1924,8 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
         Layout();
         m_page1->SetSizerAndFit(m_page1_sizer);
         Fit();
+
+        e.Skip();
     });
 
     vertical_sizer->Add(checkbox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
