@@ -304,6 +304,9 @@ private:
     wxPanel *                     m_score_subtask_info;
     wxPanel *                     m_score_staticline;
     wxPanel *                     m_request_failed_panel;
+    wxPanel                      *m_printing_stage_underline;
+    wxPanel                      *m_printing_stage_panel;
+
     // score page
     int                           m_star_count;
     std::vector<ScalableButton *> m_score_star;

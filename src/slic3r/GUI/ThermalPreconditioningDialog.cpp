@@ -14,16 +14,15 @@ END_EVENT_TABLE()
 ThermalPreconditioningDialog::ThermalPreconditioningDialog(wxWindow* parent, std::string dev_id,const wxString& remaining_time)
     : wxDialog(parent, wxID_ANY, _L("Thermal Preconditioning for first layer optimization"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
     , m_dev_id(dev_id)
-    , m_refresh_timer(this)
 {
     wxBitmap bitmap = create_scaled_bitmap("thermal_preconditioning_title", this, 16);
     wxIcon icon;
     icon.CopyFromBitmap(bitmap);
     SetIcon(icon);
     create_ui();
-
-    Bind(wxEVT_TIMER, &ThermalPreconditioningDialog::on_timer, this);
-    m_refresh_timer.Start(1000);
+    m_refresh_timer = new wxTimer(this);
+    this->Bind(wxEVT_TIMER, &ThermalPreconditioningDialog::on_timer, this);
+    m_refresh_timer->Start(1000);
 
     // Set remaining time
     if (!remaining_time.IsEmpty()) {
@@ -36,6 +35,16 @@ ThermalPreconditioningDialog::ThermalPreconditioningDialog(wxWindow* parent, std
     SetSize(wxSize(FromDIP(400), FromDIP(200)));
     CentreOnScreen();
 }
+
+ThermalPreconditioningDialog::~ThermalPreconditioningDialog() {
+    if (m_refresh_timer && m_refresh_timer->IsRunning())
+    {
+        m_refresh_timer->Stop();
+        delete m_refresh_timer;
+        m_refresh_timer = nullptr;
+    }
+}
+
 
 void ThermalPreconditioningDialog::create_ui()
 {
@@ -54,11 +63,16 @@ void ThermalPreconditioningDialog::create_ui()
     m_explanation_label->Wrap(FromDIP(350));
     m_explanation_label->SetForegroundColour(wxColour(50, 58, 61));
 
-    // OK button
     m_ok_button = new wxButton(this, wxID_OK, _L("OK"));
+#ifdef __WXMAC__
+    m_ok_button->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE));
+    m_ok_button->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_BTNTEXT));
+#else
     m_ok_button->SetBackgroundColour(wxColour("#B6F34F"));
     m_ok_button->SetForegroundColour(wxColour("#000000"));
+#endif
     m_ok_button->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
+    m_ok_button->SetMaxSize(wxSize(FromDIP(80), FromDIP(32)));
 
     // Layout
     main_sizer->Add(0, 0, 1, wxEXPAND);
@@ -81,14 +95,16 @@ void ThermalPreconditioningDialog::update_thermal_remaining_time()
     if (!dev) return;
     MachineObject * m_obj = dev->get_my_machine(m_dev_id);
 
-    int      remaining_seconds = m_obj->get_stage_remaining_seconds();
+    int remaining_seconds = m_obj->get_stage_remaining_seconds();
     wxString remaining_time;
     if (remaining_seconds >= 0) {
        int minutes = remaining_seconds/60;
         int seconds = remaining_seconds % 60;
        remaining_time = wxString::Format("Remaining time: %dmin%ds", minutes, seconds);
     }
-    set_remaining_time_text(remaining_time);
+
+    if (m_remaining_time_label)
+        m_remaining_time_label->SetLabelText(remaining_time);
 }
 
 void ThermalPreconditioningDialog::on_timer(wxTimerEvent &event) {
@@ -96,10 +112,10 @@ void ThermalPreconditioningDialog::on_timer(wxTimerEvent &event) {
     if (!dev) return;
     MachineObject *m_obj = dev->get_my_machine(m_dev_id);
 
-    if (IsShown() && m_obj && m_obj->stage_curr == 58) {
+    if (IsShown() && m_obj && m_obj->stage_curr == 58) { 
          update_thermal_remaining_time();
     } else {
-        m_refresh_timer.Stop();
+        m_refresh_timer->Stop();
     }
 }
 
