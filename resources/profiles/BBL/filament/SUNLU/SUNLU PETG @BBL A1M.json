@@ -68,6 +68,9 @@
     "filament_flush_temp": [
         "0"
     ],
+    "filament_adaptive_volumetric_speed": [
+        "0"
+    ],
     "long_retractions_when_ec": [
         "0"
     ],
