@@ -4987,7 +4987,7 @@ void MachineObject::parse_new_info(json print)
     std::string fun2;
     if (print.contains("fun2") && print["fun2"].is_string()) {
         fun2 = print["fun2"].get<std::string>();
-        BOOST_LOG_TRIVIAL(info) << "new print data fun2 = " << fun;
+        BOOST_LOG_TRIVIAL(info) << "new print data fun2 = " << fun2;
     }
 
     // fun2 may have infinite length, use get_flag_bits_no_border
