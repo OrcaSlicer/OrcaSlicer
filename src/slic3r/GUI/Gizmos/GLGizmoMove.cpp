@@ -188,10 +188,18 @@ void GLGizmoMove3D::on_render()
                 m_grabber_connections[id].model.init_from(std::move(init_data));
             //}
 
-            glLineStipple(1, 0x0FFF);
-            glEnable(GL_LINE_STIPPLE);
+            // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+            if (!OpenGLManager::get_gl_info().is_core_profile()) {
+                glLineStipple(1, 0x0FFF);
+                glEnable(GL_LINE_STIPPLE);
+            }
+#endif // !SLIC3R_OPENGL_ES
             m_grabber_connections[id].model.render();
-            glDisable(GL_LINE_STIPPLE);
+#if !SLIC3R_OPENGL_ES
+            if (!OpenGLManager::get_gl_info().is_core_profile())
+                glDisable(GL_LINE_STIPPLE);
+#endif // !SLIC3R_OPENGL_ES
         }
     };
 

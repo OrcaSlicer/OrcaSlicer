@@ -390,10 +390,18 @@ void GLGizmoScale3D::render_grabbers_connection(unsigned int id_1, unsigned int 
     }
 
     m_grabber_connections[id].model.set_color(color);
-    glLineStipple(1, 0x0FFF);
-    glEnable(GL_LINE_STIPPLE);
+    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile()) {
+        glLineStipple(1, 0x0FFF);
+        glEnable(GL_LINE_STIPPLE);
+    }
+#endif // !SLIC3R_OPENGL_ES
     m_grabber_connections[id].model.render();
-    glDisable(GL_LINE_STIPPLE);
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile())
+        glDisable(GL_LINE_STIPPLE);
+#endif // !SLIC3R_OPENGL_ES
 }
 
 //BBS: add input window for move

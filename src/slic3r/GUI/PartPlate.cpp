@@ -950,20 +950,32 @@ void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
 	if (m_print && m_print->config().print_sequence == PrintSequence::ByObject && mode != HEIGHT_LIMIT_NONE)
 	{
 		// draw lower limit
-		glsafe(::glLineWidth(3.0f * m_scale_factor));
+	    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+	    if (!OpenGLManager::get_gl_info().is_core_profile())
+	        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
         m_height_limit_common.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
         m_height_limit_common.render();
 
 		if ((mode == HEIGHT_LIMIT_BOTTOM) || (mode == HEIGHT_LIMIT_BOTH)) {
-			glsafe(::glLineWidth(3.0f * m_scale_factor));
-            m_height_limit_bottom.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
+		    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+		    if (!OpenGLManager::get_gl_info().is_core_profile())
+		        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
+		    m_height_limit_bottom.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
             m_height_limit_bottom.render();
 		}
 
 		// draw upper limit
 		if ((mode == HEIGHT_LIMIT_TOP) || (mode == HEIGHT_LIMIT_BOTH)){
-            glsafe(::glLineWidth(3.0f * m_scale_factor));
-            m_height_limit_top.set_color(HEIGHT_LIMIT_TOP_COLOR);
+		    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+		    if (!OpenGLManager::get_gl_info().is_core_profile())
+		        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
+		    m_height_limit_top.set_color(HEIGHT_LIMIT_TOP_COLOR);
             m_height_limit_top.render();
 		}
 	}

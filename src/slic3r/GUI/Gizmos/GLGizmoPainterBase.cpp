@@ -392,7 +392,11 @@ void GLGizmoPainterBase::render_cursor_height_range(const Transform3d& trafo) co
 
             shader->set_uniform("view_model_matrix", view_model_matrix);
             shader->set_uniform("projection_matrix", camera.get_projection_matrix());
-            glsafe(::glLineWidth(2.0f));
+            // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+            if (!OpenGLManager::get_gl_info().is_core_profile())
+                glsafe(::glLineWidth(2.0f));
+#endif // !SLIC3R_OPENGL_ES
             m_cut_contours[m_volumes_index].contours.render();
             m_volumes_index++;
         }
