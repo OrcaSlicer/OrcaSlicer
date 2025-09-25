@@ -878,8 +878,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
         // collect color print colors
         libvgcode::Palette color_print_colors;
-        color_print_colors.reserve(str_color_print_colors.size());
-        for (const std::string& color : str_color_print_colors) {
+        const std::vector<std::string>& str_colors = str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors;
+        color_print_colors.reserve(str_colors.size());
+        for (const std::string& color : str_colors) {
             color_print_colors.emplace_back(libvgcode::convert(color));
         }
         m_viewer.set_color_print_colors(color_print_colors);
