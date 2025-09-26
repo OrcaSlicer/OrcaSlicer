@@ -2759,30 +2759,17 @@ void StatusPanel::update(MachineObject *obj)
         bool supports_safety = DevPrinterConfigUtil::support_safety_options(current_printer_type);
 
         DevConfig* config = obj->GetConfig();
-        if (supports_safety) {
-            if (config->SupportFirstLayerInspect()
-                || config->SupportAIMonitor()
-                || obj->is_support_build_plate_marker_detect
-                || obj->is_support_auto_recovery_step_loss) {
-                m_options_btn->Show();
-                if (print_options_dlg) {
-                    print_options_dlg->update_machine_obj(obj);
-                    print_options_dlg->update_options(obj);
-                }
-            } else {
-                m_options_btn->Hide();
+
+        if (config->SupportFirstLayerInspect() || config->SupportAIMonitor() || obj->is_support_build_plate_marker_detect || obj->is_support_auto_recovery_step_loss) {
+            m_options_btn->Show();
+            if (print_options_dlg) {
+                print_options_dlg->update_machine_obj(obj);
+                print_options_dlg->update_options(obj);
             }
         } else {
-            if (obj->support_door_open_check()) {
-                m_options_btn->Show();
-                if (print_options_dlg) {
-                    print_options_dlg->update_machine_obj(obj);
-                    print_options_dlg->update_options(obj);
-                }
-            } else {
-                m_options_btn->Hide();
-            }
+            m_options_btn->Hide();
         }
+
 
         if (obj->support_door_open_check()) {
             if (supports_safety) {
