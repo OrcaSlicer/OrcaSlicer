@@ -56,9 +56,9 @@ static StateColor btn_bg_gray(std::pair<wxColour, int>(wxColour(194, 194, 194), 
                               std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Hovered),
                               std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Normal));
 
-static StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed),
-                               std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
-                               std::pair<wxColour, int>(wxColour(0, 177, 66), StateColor::Normal));
+static StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
+                               std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
+                               std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
 
 PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
@@ -174,7 +174,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_cnt_label = new Label(m_book_third_panel, wxEmptyString);
     m_cnt_label->Wrap(-1);
     m_cnt_label->SetBackgroundColour(*wxWHITE);
-    m_cnt_label->SetForegroundColour(wxColour(0, 174, 66));
+    m_cnt_label->SetForegroundColour(wxColour(0, 150, 136));
     m_cnt_label->SetFont(Label::Head_16);
     m_cnt_label->SetSize(wxSize(-1, FromDIP(20)));
     m_cnt_label->SetMaxSize(wxSize(-1, FromDIP(20)));
@@ -186,7 +186,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
 
     m_apply_btn = new Button(m_book_third_panel, _L("Skip"));
     m_apply_btn->SetBackgroundColor(btn_bg_gray);
-    m_apply_btn->SetTextColor(*wxWHITE);
+    m_apply_btn->SetTextColor(wxColour("#FFFFFE"));
     // m_apply_btn->SetBorderColor(wxColour(38, 46, 48));
     m_apply_btn->SetFont(Label::Body_14);
     m_apply_btn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
@@ -619,7 +619,7 @@ void PartSkipDialog::OnSwitchDrag(wxCommandEvent &event)
         m_switch_drag_btn->SetIcon("canvas_drag");
     } else {
         m_is_drag = true;
-        m_switch_drag_btn->SetBackgroundColor(wxColour(0, 174, 66));
+        m_switch_drag_btn->SetBackgroundColor(wxColour(0, 150, 136));
         m_switch_drag_btn->SetIcon("canvas_drag_active");
     }
     m_canvas->SwitchDrag(m_is_drag);
@@ -757,11 +757,11 @@ void PartSkipDialog::InitDialogUI()
                 checkbox->Enable(false);
             }
             label->SetLabel(wxString::FromUTF8(m_parts_name[part_id]));
-            label->SetBackgroundColour(*wxWHITE);
-            label->SetForegroundColour(wxColor(107, 107, 107));
+            label->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+            label->SetForegroundColour(StateColor::darkModeColorFor(wxColor(107, 107, 107)));
             label->Wrap(-1);
             label->SetMinSize(wxSize(-1, FromDIP(18)));
-            checkbox->SetBackgroundColour(*wxWHITE);
+            checkbox->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
             checkbox->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
             checkbox->SetMaxSize(wxSize(FromDIP(18), FromDIP(18)));
 
