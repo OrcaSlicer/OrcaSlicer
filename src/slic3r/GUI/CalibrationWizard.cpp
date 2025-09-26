@@ -396,13 +396,12 @@ void CalibrationWizard::cache_preset_info(MachineObject* obj, float nozzle_dia)
             int ams_id, slot_id, tray_id;
             get_tray_ams_and_slot_id(curr_obj, result.tray_id, ams_id, slot_id, tray_id);
             result.extruder_id = preset_page->get_extruder_id(ams_id);
-            result.nozzle_volume_type = preset_page->get_nozzle_volume_type(result.extruder_id);
             result.nozzle_diameter  = preset_page->get_nozzle_diameter(result.extruder_id);
         }
         else {
             result.extruder_id = 0;
-            result.nozzle_volume_type = NozzleVolumeType::nvtStandard;
         }
+        result.nozzle_volume_type = preset_page->get_nozzle_volume_type(result.extruder_id);
 
         obj->selected_cali_preset.push_back(result);
     }
