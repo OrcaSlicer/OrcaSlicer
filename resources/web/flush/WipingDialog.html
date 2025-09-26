@@ -611,10 +611,10 @@
 
       function handleExtruderSelect(extruder) {
         m_curr_extruder_id = extruder == 'left' ? 0 : 1
-        updateTable(m_raw_matrix[m_curr_extruder_id], m_curr_extruder_id)
         updateVolumeRange(m_min_flush_volumes[m_curr_extruder_id],m_max_flush_volumes[m_curr_extruder_id])
         updateFlushMultiplier(m_min_flush_multiplier[m_curr_extruder_id],m_max_flush_multiplier[m_curr_extruder_id])
         updateFlushMultiplier(m_curr_extruder_id)
+        updateTable(m_raw_matrix[m_curr_extruder_id], m_curr_extruder_id)
       }
 
       function onMultiplierChange() {
