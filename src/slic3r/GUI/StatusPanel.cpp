@@ -5086,6 +5086,9 @@ void StatusPanel::set_hold_count(int& count)
 
 void StatusPanel::rescale_camera_icons()
 {
+    if (!GetParent() || IsBeingDeleted()) return;
+    if (!m_setting_button || !m_media_play_ctrl || !m_bitmap_vcamera_img || !m_bitmap_sdcard_img || !m_bitmap_recording_img || !m_bitmap_timelapse_img) return;
+
     m_setting_button->msw_rescale();
 
 
