@@ -318,11 +318,12 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
 
     wxBoxSizer *bSizer_buttons = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *bSizer_text = new wxBoxSizer(wxHORIZONTAL);
-    wxPanel* penel_bottons = new wxPanel(parent);
-    wxPanel* penel_text = new wxPanel(penel_bottons);
+    wxBoxSizer *bSizer_finish_time = new wxBoxSizer(wxHORIZONTAL);
+    wxPanel* penel_text = new wxPanel(progress_lr_panel);
+    wxPanel* penel_finish_time = new wxPanel(progress_lr_panel);
 
     penel_text->SetBackgroundColour(*wxWHITE);
-    penel_bottons->SetBackgroundColour(*wxWHITE);
+    penel_finish_time->SetBackgroundColour(*wxWHITE);
 
     wxBoxSizer *sizer_percent = new wxBoxSizer(wxVERTICAL);
     sizer_percent->Add(0, 0, 1, wxEXPAND, 0);
@@ -355,13 +356,6 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_staticText_progress_left->SetFont(wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
     m_staticText_progress_left->SetForegroundColour(wxColour(146, 146, 146));
 
-    // Orca: display the end time of the print
-    m_staticText_progress_end = new wxStaticText(penel_text, wxID_ANY, L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
-    m_staticText_progress_end->Wrap(-1);
-    m_staticText_progress_end->SetFont(
-        wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
-    m_staticText_progress_end->SetForegroundColour(wxColour(146, 146, 146));
-
     m_staticText_layers = new wxStaticText(penel_text, wxID_ANY, _L("Layer: N/A"));
     m_staticText_layers->SetFont(wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
     m_staticText_layers->SetForegroundColour(wxColour(146, 146, 146));
@@ -373,20 +367,30 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     bSizer_text->Add(m_staticText_layers, 0, wxALIGN_CENTER_VERTICAL | wxALL, 0);
     bSizer_text->Add(0, 0, 0, wxLEFT, FromDIP(20));
     bSizer_text->Add(m_staticText_progress_left, 0, wxALIGN_CENTER_VERTICAL | wxALL, 0);
-    // Orca: display the end time of the print
-    bSizer_text->Add(0, 0, 0, wxLEFT, FromDIP(8));
-    bSizer_text->Add(m_staticText_progress_end, 0, wxALIGN_CENTER | wxALL, 0);
 
     // penel_text->SetMaxSize(wxSize(FromDIP(600), -1));
     penel_text->SetSizer(bSizer_text);
     penel_text->Layout();
+
+    // Orca: display the end time of the print
+    m_staticText_progress_end = new wxStaticText(penel_finish_time, wxID_ANY, L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_progress_end->Wrap(-1);
+    m_staticText_progress_end->SetFont(
+        wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
+    m_staticText_progress_end->SetForegroundColour(wxColour(146, 146, 146));
+    bSizer_finish_time->Add(0, 0, 1, wxEXPAND, 0);
+    bSizer_finish_time->Add(m_staticText_progress_end, 0, wxLEFT | wxEXPAND, 0);
+    // penel_finish_time->SetMaxSize(wxSize(FromDIP(600), -1));
+    penel_finish_time->SetSizer(bSizer_finish_time);
+    penel_finish_time->Layout();
 
     auto progress_lr_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto progress_left_sizer = new wxBoxSizer(wxVERTICAL);
     auto progress_right_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     progress_left_sizer->Add(penel_text, 0, wxEXPAND | wxALL, 0);
-    progress_left_sizer->Add(m_gauge_progress, 0, wxEXPAND | wxALL, 0);
+    progress_left_sizer->Add(m_gauge_progress, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(10));
+    progress_left_sizer->Add(penel_finish_time, 0, wxEXPAND |wxALL, 0);
     // progress_left_sizer->SetMaxSize(wxSize(FromDIP(600), -1));
 
     progress_right_sizer->Add(0, 0, 0, wxEXPAND | wxLEFT, FromDIP(18));
@@ -417,7 +421,6 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_printing_sizer->Add(m_bitmap_thumbnail, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT | wxLEFT, FromDIP(12));
     m_printing_sizer->Add(FromDIP(8), 0, 0, wxEXPAND, 0);
     m_printing_sizer->Add(bSizer_subtask_info, 1, wxALL | wxEXPAND, 0);
-
 
     m_staticline = new wxPanel( parent, wxID_ANY);
     m_staticline->SetBackgroundColour(wxColour(238,238,238));
