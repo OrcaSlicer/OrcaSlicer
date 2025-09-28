@@ -1,20 +1,26 @@
 {
     "type": "filament",
-    "name": "Bambu PLA Matte @BBL P2S 0.6 nozzle",
-    "inherits": "Bambu PLA Matte @base",
+    "name": "Bambu ABS @BBL P2S 0.6 nozzle",
+    "inherits": "Bambu ABS @base",
     "from": "system",
-    "setting_id": "GFSA01_26",
+    "setting_id": "GFSB00_36",
     "instantiation": "true",
-    "additional_cooling_fan_speed": [
-        "100"
+    "activate_air_filtration": [
+        "0"
+    ],
+    "chamber_temperatures": [
+        "65"
+    ],
+    "fan_max_speed": [
+        "60"
     ],
     "filament_deretraction_speed": [
         "nil",
         "nil"
     ],
     "filament_flow_ratio": [
-        "0.98",
-        "0.98"
+        "0.95",
+        "0.95"
     ],
     "filament_flush_temp": [
         "0",
@@ -29,8 +35,8 @@
         "nil"
     ],
     "filament_max_volumetric_speed": [
-        "22",
-        "40"
+        "16",
+        "35"
     ],
     "filament_ramming_volumetric_speed": [
         "-1",
@@ -69,12 +75,12 @@
         "nil"
     ],
     "filament_wipe": [
-        "1",
-        "1"
+        "nil",
+        "nil"
     ],
     "filament_wipe_distance": [
-        "1",
-        "1"
+        "nil",
+        "nil"
     ],
     "filament_z_hop": [
         "nil",
@@ -87,9 +93,6 @@
     "filament_extruder_variant": [
         "Direct Drive Standard",
         "Direct Drive High Flow"
-    ],
-    "first_x_layer_fan_speed": [
-        "40"
     ],
     "filament_pre_cooling_temperature": [
         "0",
@@ -140,12 +143,12 @@
         "0"
     ],
     "nozzle_temperature": [
-        "220",
-        "220"
+        "270",
+        "270"
     ],
     "nozzle_temperature_initial_layer": [
-        "220",
-        "220"
+        "260",
+        "260"
     ],
     "override_process_overhang_speed": [
         "0",
@@ -154,6 +157,9 @@
     "retraction_distances_when_ec": [
         "0",
         "0"
+    ],
+    "slow_down_layer_time": [
+        "12"
     ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",

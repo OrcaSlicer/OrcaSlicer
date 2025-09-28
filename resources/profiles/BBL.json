@@ -1666,6 +1666,10 @@
             "sub_path": "filament/Bambu ABS @BBL P2S 0.2 nozzle.json"
         },
         {
+            "name": "Bambu ABS @BBL P2S 0.6 nozzle",
+            "sub_path": "filament/Bambu ABS @BBL P2S 0.6 nozzle.json"
+        },
+        {
             "name": "Bambu ABS @BBL P2S 0.8 nozzle",
             "sub_path": "filament/Bambu ABS @BBL P2S 0.8 nozzle.json"
         },

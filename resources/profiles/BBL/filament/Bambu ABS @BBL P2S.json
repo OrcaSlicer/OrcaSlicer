@@ -166,8 +166,7 @@
         "0 0 0 0 0 0"
     ],
     "compatible_printers": [
-        "Bambu Lab P2S 0.4 nozzle",
-        "Bambu Lab P2S 0.6 nozzle"
+        "Bambu Lab P2S 0.4 nozzle"
     ],
     "filament_start_gcode": [
         "; filament start gcode\n"
