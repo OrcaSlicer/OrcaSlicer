@@ -9,6 +9,7 @@
     "bottom_texture_rect": "40,-14.5,70,8",
     "default_bed_type": "Textured PEI Plate",
     "image_bed_type": "o",
+    "not_support_bed_type": "Smooth Cool Plate;Textured Cool Plate",
     "right_icon_offset_bed": "10;-5",
     "family": "BBL-3DP",
     "machine_tech": "FFF",

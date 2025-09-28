@@ -8,7 +8,7 @@
     "default_bed_type": "Textured PEI Plate",
     "image_bed_type": "n",
     "bottom_texture_end_name": "n",
-    "not_support_bed_type": "Cool Plate",
+    "not_support_bed_type": "Smooth Cool Plate;Textured Cool Plate",
     "family": "BBL-3DP",
     "machine_tech": "FFF",
     "model_id": "N7",
