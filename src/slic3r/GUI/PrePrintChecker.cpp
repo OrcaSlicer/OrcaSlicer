@@ -78,6 +78,7 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusInSystemPrinting: return _L("The printer is executing instructions. Please restart printing after it ends");
     case PrintStatusInPrinting: return _L("The printer is busy on other print job");
     case PrintStatusAmsOnSettingup: return _L("AMS is setting up. Please try again later.");
+    case PrintStatusAmsMappingInvalid: return _L("Not all filaments used in slicing are mapped to the printer. Please check the mapping of filaments.");
     case PrintStatusAmsMappingMixInvalid: return _L("Please do not mix-use the Ext with AMS");
     case PrintStatusNozzleDataInvalid: return _L("Invalid nozzle information, please refresh or manually set nozzle information.");
     case PrintStatusLanModeNoSdcard: return _L("Storage needs to be inserted before printing via LAN.");
