@@ -182,7 +182,6 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     wxBoxSizer* extra_ams_content_sizer = new wxBoxSizer(wxVERTICAL);
     extra_ams_content_sizer->Add(0, 40, 0, wxEXPAND, FromDIP(5));
     m_extra_ams_panel = new ExtraAmsPanel(this);
-    m_extra_ams_panel->m_staticText_ams->SetLabel("AMS Lite");
     extra_ams_content_sizer->Add(m_extra_ams_panel, 0, wxEXPAND, 0);
 
     m_extra_ams_sizer->Add(extra_ams_content_sizer, 1, wxEXPAND, 0);
@@ -688,8 +687,13 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
 
         m_ahb_panel->Show();
         wxString hub_name = "-";
-        if (!obj->module_vers.find("ahb")->second.product_name.empty()) {
+        if (!obj->module_vers.find("ahb")->second.product_name.empty())
+        {
             hub_name = obj->module_vers.find("ahb")->second.product_name;
+        }
+        else
+        {
+            hub_name = "AMS HUB";
         }
 
 
@@ -754,8 +758,8 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
     }
 
     //ams
-    if (obj->ams_exist_bits != 0) {
-
+    if (obj->ams_exist_bits != 0)
+    {
         std::string extra_ams_str = (boost::format("ams_f1/%1%") % 0).str();
         auto extra_ams_it = obj->module_vers.find(extra_ams_str);
         if (extra_ams_it != obj->module_vers.end()) {
@@ -791,6 +795,13 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
                     m_extra_ams_panel->m_staticText_beta_version->Hide();
                 }
             }
+            wxString name_text = "-";
+            if (!extra_ams_it->second.product_name.empty())
+                name_text = extra_ams_it->second.product_name;
+            else
+                name_text = "AMS Lite";
+
+            m_extra_ams_panel->m_staticText_ams->SetLabel(name_text);
             m_extra_ams_panel->m_staticText_ams_sn_val->SetLabelText(sn_text);
             m_extra_ams_panel->m_staticText_ams_ver_val->SetLabelText(ver_text);
             show_ams(false);
@@ -843,19 +854,26 @@ void MachineInfoPanel::update_ams_ext(MachineObject *obj)
                 auto ams_id = std::stoi(iter->second->GetAmsId());
                 ams_id -= ams_id >= 128 ? 128 : 0;
 
-                size_t pos = it->second.name.find('/');
-                wxString ams_device_name = "AMS-%s";
-
-                if (pos != std::string::npos) {
-                    wxString result = it->second.name.substr(0, pos);
-                    result.MakeUpper();
-                    if (auto str_it = ACCESSORY_DISPLAY_STR.find(result); str_it != ACCESSORY_DISPLAY_STR.end())
-                        result = str_it->second;
-                    ams_device_name = result + "-%s";
+                if (!it->second.product_name.empty())
+                {
+                    ams_name = it->second.product_name;
                 }
+                else
+                {
+                     size_t pos = it->second.name.find('/');
+                     wxString ams_device_name = "AMS-%s";
 
-                wxString ams_text = wxString::Format(ams_device_name, std::to_string(ams_id + 1));
-                ams_name = ams_text;
+                     if (pos != std::string::npos) {
+                         wxString result = it->second.name.substr(0, pos);
+                         result.MakeUpper();
+                         if (auto str_it = ACCESSORY_DISPLAY_STR.find(result); str_it != ACCESSORY_DISPLAY_STR.end())
+                             result = str_it->second;
+                         ams_device_name = result + "-%s";
+                     }
+
+                     wxString ams_text = wxString::Format(ams_device_name, std::to_string(ams_id + 1));
+                     ams_name = ams_text;
+                }
 
                 if (it == ver_list.end()) {
                     // hide this ams
@@ -1613,12 +1631,16 @@ bool UpgradePanel::Show(bool show)
      ext_sizer->SetFlexibleDirection(wxHORIZONTAL);
      ext_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-     auto title_sizer = new wxBoxSizer(wxHORIZONTAL);
-     m_staticText_ext = new wxStaticText(this, wxID_ANY, _L("Extension Board"), wxDefaultPosition, wxDefaultSize, 0);
+
+     m_staticText_ext = new wxStaticText(this, wxID_ANY, _L("Model:"), wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_ext->SetForegroundColour("#262E30");
-     m_staticText_ext->SetFont(Label::Head_14);
      m_staticText_ext->Wrap(-1);
-     title_sizer->Add(m_staticText_ext, 0, wxALL, FromDIP(5));
+     m_staticText_ext->SetFont(Label::Head_14);
+
+     m_staticText_ext_val = new wxStaticText(this, wxID_ANY, _L("Extension Board"), wxDefaultPosition, wxDefaultSize, 0);
+     m_staticText_ext_val->SetForegroundColour("#262E30");
+     m_staticText_ext_val->SetFont(Label::Head_14);
+     m_staticText_ext_val->Wrap(-1);
 
      auto m_staticText_ext_sn = new wxStaticText(this, wxID_ANY, _L("Serial:"), wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_ext_sn->SetForegroundColour("#262E30");
@@ -1646,13 +1668,14 @@ bool UpgradePanel::Show(bool show)
      m_staticText_ext_ver_val->SetForegroundColour("#262E30");
      m_staticText_ext_ver_val->Wrap(-1);
 
+     ext_sizer->Add(m_staticText_ext, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
+     ext_sizer->Add(m_staticText_ext_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ext_sizer->Add(m_staticText_ext_sn, 0, wxALIGN_RIGHT | wxALL, FromDIP(5));
      ext_sizer->Add(m_staticText_ext_sn_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ext_sizer->Add(m_ext_ver_sizer, 1, wxEXPAND, FromDIP(5));
      ext_sizer->Add(m_staticText_ext_ver_val, 0, wxALL | wxEXPAND, FromDIP(5));
      ext_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
-     top_sizer->Add(title_sizer);
      top_sizer->Add(ext_sizer);
      SetSizer(top_sizer);
      Layout();

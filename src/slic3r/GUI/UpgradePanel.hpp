@@ -19,6 +19,7 @@ class ExtensionPanel : public wxPanel
 {
 public:
     wxStaticText* m_staticText_ext;
+    wxStaticText* m_staticText_ext_val;
     wxStaticText* m_staticText_ext_ver;
     wxStaticText* m_staticText_ext_ver_val;
     wxStaticText* m_staticText_ext_sn_val;
