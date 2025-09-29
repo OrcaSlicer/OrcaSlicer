@@ -301,6 +301,7 @@ class Print;
             filament_printable_reuslt = other.filament_printable_reuslt;
             layer_filaments = other.layer_filaments;
             filament_change_count_map = other.filament_change_count_map;
+            initial_layer_time = other.initial_layer_time;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = other.time;
 #endif

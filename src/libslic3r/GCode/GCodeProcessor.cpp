@@ -2524,11 +2524,13 @@ void GCodeProcessor::finalize(bool post_process)
     auto it = std::find_if(time_mode.roles_times.begin(), time_mode.roles_times.end(), [](const std::pair<ExtrusionRole, float>& item) { return erCustom == item.first; });
     auto prepare_time = (it != time_mode.roles_times.end()) ? it->second : 0.0f;
 
+    std::vector<float>& layer_times = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].layers_times;
+    m_result.initial_layer_time     = layer_times.size() > 0 ? std::max(float(0.0), layer_times[0] - prepare_time) : 0;
+
     //update times for results
     for (size_t i = 0; i < m_result.moves.size(); i++) {
         //field layer_duration contains the layer id for the move in which the layer_duration has to be set.
         size_t layer_id = size_t(m_result.moves[i].layer_duration);
-        std::vector<float>& layer_times = m_result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].layers_times;
         if (layer_times.size() > layer_id - 1 && layer_id > 0)
             m_result.moves[i].layer_duration = layer_id == 1 ? std::max(0.f,layer_times[layer_id - 1] - prepare_time) : layer_times[layer_id - 1];
         else

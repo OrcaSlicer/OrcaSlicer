@@ -618,8 +618,6 @@ private:
 
     std::vector<const PrintObject*> m_printed_objects;
 
-    float m_initial_layer_time;
-
     // Processor
     GCodeProcessor m_processor;
 
