@@ -2340,6 +2340,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         XML_SetUserData(m_xml_parser, (void*)this);
         XML_SetElementHandler(m_xml_parser, start_handler, end_handler);
         XML_SetCharacterDataHandler(m_xml_parser, _BBS_3MF_Importer::_handle_xml_characters);
+        XML_SetEntityDeclHandler(m_xml_parser, nullptr);
+        XML_SetExternalEntityRefHandler(m_xml_parser, nullptr);
 
         void* parser_buffer = XML_GetBuffer(m_xml_parser, (int)stat.m_uncomp_size);
         if (parser_buffer == nullptr) {
@@ -2381,6 +2383,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         XML_SetUserData(m_xml_parser, (void*)this);
         XML_SetElementHandler(m_xml_parser, _BBS_3MF_Importer::_handle_start_model_xml_element, _BBS_3MF_Importer::_handle_end_model_xml_element);
         XML_SetCharacterDataHandler(m_xml_parser, _BBS_3MF_Importer::_handle_xml_characters);
+        XML_SetEntityDeclHandler(m_xml_parser, nullptr);
+        XML_SetExternalEntityRefHandler(m_xml_parser, nullptr);
 
         struct CallbackData
         {
@@ -5495,6 +5499,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         XML_SetUserData(object_xml_parser, (void*)this);
         XML_SetElementHandler(object_xml_parser, _BBS_3MF_Importer::ObjectImporter::_handle_object_start_model_xml_element, _BBS_3MF_Importer::ObjectImporter::_handle_object_end_model_xml_element);
         XML_SetCharacterDataHandler(object_xml_parser, _BBS_3MF_Importer::ObjectImporter::_handle_object_xml_characters);
+        XML_SetEntityDeclHandler(object_xml_parser, nullptr);
+        XML_SetExternalEntityRefHandler(object_xml_parser, nullptr);
 
         struct CallbackData
         {
