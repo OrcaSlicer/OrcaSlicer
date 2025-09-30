@@ -55,7 +55,8 @@ CalibrationDialog::CalibrationDialog(Plater *plater)
     select_vibration    = create_check_option(_L("Vibration compensation"), cali_left_panel, _L("Vibration compensation"), "vibration");
     select_motor_noise  = create_check_option(_L("Motor noise cancellation"), cali_left_panel, _L("Motor noise cancellation"), "motor_noise");
     select_nozzle_cali  = create_check_option(_L("Nozzle offset calibration"), cali_left_panel, _L("Nozzle offset calibration"), "nozzle_cali");
-    select_heatbed_cali = create_check_option(_L("High-temperature Heatbed Calibration"), cali_left_panel, _L("High-temperature Heatbed Calibration"), "bed_cali");
+    select_heatbed_cali  = create_check_option(_L("High-temperature Heatbed Calibration"), cali_left_panel, _L("High-temperature Heatbed Calibration"), "bed_cali");
+    select_clumppos_cali = create_check_option(_L("Nozzle clumping detection Calibration"), cali_left_panel, _L("Nozzle clumping detection Calibration"), "clump_pos_cali");
 
     // STUDIO-10091 the default not checked option
     if(m_checkbox_list.count("bed_cali") != 0)
@@ -70,6 +71,7 @@ CalibrationDialog::CalibrationDialog(Plater *plater)
     cali_left_sizer->Add(select_motor_noise, 0, wxLEFT, FromDIP(15));
     cali_left_sizer->Add(select_nozzle_cali, 0, wxLEFT, FromDIP(15));
     cali_left_sizer->Add(select_heatbed_cali, 0, wxLEFT, FromDIP(15));
+    cali_left_sizer->Add(select_clumppos_cali, 0, wxLEFT, FromDIP(15));
     cali_left_sizer->Add(0, FromDIP(30), 0, wxEXPAND, 0);
 
     auto cali_left_text_top = new wxStaticText(cali_left_panel, wxID_ANY, _L("Calibration program"), wxDefaultPosition, wxDefaultSize, 0);
@@ -252,6 +254,13 @@ void CalibrationDialog::update_cali(MachineObject *obj)
         m_checkbox_list["bed_cali"]->SetValue(false);
     }
 
+    if (obj->GetConfig()->SupportCaliClumpPos()) {
+        select_clumppos_cali->Show();
+    } else {
+        select_clumppos_cali->Hide();
+        m_checkbox_list["clump_pos_cali"]->SetValue(false);
+    }
+
     if (obj->is_calibration_running() || obj->is_calibration_done()) {
         if (obj->is_calibration_done()) {
             m_calibration_btn->Enable();
@@ -279,6 +288,8 @@ void CalibrationDialog::update_cali(MachineObject *obj)
             for (int i = 0; i < obj->stage_list_info.size(); i++) {
                 m_calibration_flow->AppendItem(Slic3r::get_stage_string(obj->stage_list_info[i]));
             }
+
+            last_stage_list_info = obj->stage_list_info;
         }
         int index = obj->get_curr_stage_idx();
         m_calibration_flow->SelectItem(index);
@@ -333,7 +344,8 @@ void CalibrationDialog::on_start_calibration(wxMouseEvent &event)
                 m_checkbox_list["xcam_cali"]->GetValue(),
                 m_checkbox_list["motor_noise"]->GetValue(),
                 m_checkbox_list["nozzle_cali"]->GetValue(),
-                m_checkbox_list["bed_cali"]->GetValue()
+                m_checkbox_list["bed_cali"]->GetValue(),
+                m_checkbox_list["clump_pos_cali"]->GetValue()
                 );
         }
     }

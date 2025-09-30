@@ -46,6 +46,7 @@
 			"support_lidar_calibration": false,
 			"support_nozzle_offset_calibration": false,
 			"support_high_tempbed_calibration": true,
+			"support_clump_position_calibration": true,
 			"support_ai_monitoring": true,
 			"support_first_layer_inspect": false,
 			"support_save_remote_print_file_to_storage": true,
