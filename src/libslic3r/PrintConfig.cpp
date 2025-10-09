@@ -4469,7 +4469,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Enable"));
     def->enum_labels.push_back(L("Disable"));
     def->set_default_value(new ConfigOptionEnum<PowerLossRecoveryMode>(PowerLossRecoveryMode::PrinterConfiguration));
-    
+
     def = this->add("initial_z_clearance_height", coFloat);
     def->label = L("Height");
     def->tooltip = L("Lift Z before initial travel moves to avoid nozzle collisions. Set to 0 to disable.");
