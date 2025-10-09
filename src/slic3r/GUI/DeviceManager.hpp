@@ -292,7 +292,10 @@ public:
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
 
-    [[nodiscard]] bool is_nozzle_flow_type_supported() const { return is_enable_np; };
+    /* E3D has extra nozzle flow type info */
+    bool has_extra_flow_type{false};
+
+    [[nodiscard]] bool is_nozzle_flow_type_supported() const { return is_enable_np | has_extra_flow_type; };
     [[nodiscard]] wxString get_nozzle_replace_url() const;
 
     /*online*/

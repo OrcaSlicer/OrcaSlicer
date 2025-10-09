@@ -2361,6 +2361,7 @@ void MachineObject::reset()
         }
     }
     subtask_ = nullptr;
+    has_extra_flow_type = false;
     m_partskip_ids.clear();
 }
 
@@ -3377,14 +3378,14 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                         if (jj.contains("nozzle_diameter") && jj.contains("nozzle_type"))
                         {
-                            int nozzle_flow_type = -1;
-
-                            if(jj.contains("flag3")){
-                                int flag3 = jj["flag3"].get<int>();
-                                nozzle_flow_type = get_flag_bits(flag3, 10, 3);
+                            std::optional<int> flag_e3d;
+                            if (jj.contains("flag3")) {
+                                int flag3           = jj["flag3"].get<int>();
+                                flag_e3d            = std::make_optional(get_flag_bits(flag3, 10, 3));
+                                has_extra_flow_type = true;
                             }
 
-                            DevNozzleSystemParser::ParseV1_0(jj["nozzle_type"], jj["nozzle_diameter"], nozzle_flow_type, m_nozzle_system);
+                            DevNozzleSystemParser::ParseV1_0(jj["nozzle_type"], jj["nozzle_diameter"], m_nozzle_system, flag_e3d);
                         }
                     }
 
