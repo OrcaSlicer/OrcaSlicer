@@ -5,6 +5,12 @@
     "from": "system",
     "setting_id": "GFSU98_07",
     "instantiation": "true",
+    "eng_plate_temp": [
+        "35"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "35"
+    ],
     "fan_cooling_layer_time": [
         "40"
     ],

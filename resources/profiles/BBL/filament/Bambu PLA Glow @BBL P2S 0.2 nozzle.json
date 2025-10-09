@@ -8,17 +8,11 @@
     "additional_cooling_fan_speed": [
         "100"
     ],
-    "filament_deretraction_speed": [
-        "nil",
-        "nil"
+    "eng_plate_temp": [
+        "55"
     ],
-    "filament_flow_ratio": [
-        "0.98",
-        "0.98"
-    ],
-    "filament_flush_temp": [
-        "0",
-        "0"
+    "eng_plate_temp_initial_layer": [
+        "55"
     ],
     "filament_flush_volumetric_speed": [
         "3",
@@ -32,25 +26,9 @@
         "1",
         "1"
     ],
-    "filament_ramming_volumetric_speed": [
-        "-1",
-        "-1"
-    ],
     "filament_ramming_volumetric_speed_nc": [
         "-1",
         "-1"
-    ],
-    "filament_retract_before_wipe": [
-        "nil",
-        "nil"
-    ],
-    "filament_retract_restart_extra": [
-        "nil",
-        "nil"
-    ],
-    "filament_retract_when_changing_layer": [
-        "nil",
-        "nil"
     ],
     "filament_retraction_distances_when_cut": [
         "10",
@@ -60,46 +38,10 @@
         "0.8",
         "0.8"
     ],
-    "filament_retraction_minimum_travel": [
-        "nil",
-        "nil"
-    ],
-    "filament_retraction_speed": [
-        "nil",
-        "nil"
-    ],
-    "filament_wipe": [
-        "nil",
-        "nil"
-    ],
-    "filament_wipe_distance": [
-        "nil",
-        "nil"
-    ],
-    "filament_z_hop": [
-        "nil",
-        "nil"
-    ],
-    "filament_z_hop_types": [
-        "nil",
-        "nil"
-    ],
-    "filament_extruder_variant": [
-        "Direct Drive Standard",
-        "Direct Drive High Flow"
-    ],
     "first_x_layer_fan_speed": [
         "40"
     ],
-    "filament_pre_cooling_temperature": [
-        "0",
-        "0"
-    ],
     "filament_pre_cooling_temperature_nc": [
-        "0",
-        "0"
-    ],
-    "filament_ramming_travel_time": [
         "0",
         "0"
     ],
@@ -131,33 +73,9 @@
         "10",
         "10"
     ],
-    "filament_adaptive_volumetric_speed": [
-        "0",
-        "0"
-    ],
-    "long_retractions_when_ec": [
-        "0",
-        "0"
-    ],
-    "nozzle_temperature": [
-        "220",
-        "220"
-    ],
-    "nozzle_temperature_initial_layer": [
-        "220",
-        "220"
-    ],
     "override_process_overhang_speed": [
         "0",
         "0"
-    ],
-    "retraction_distances_when_ec": [
-        "0",
-        "0"
-    ],
-    "volumetric_speed_coefficients": [
-        "0 0 0 0 0 0",
-        "0 0 0 0 0 0"
     ],
     "compatible_printers": [
         "Bambu Lab P2S 0.2 nozzle"
