@@ -29,12 +29,6 @@ public:
     // axis permutation forces full emission without physically coupling axes.
     virtual bool must_emit_all_axes() const = 0;
 
-    // True when a lift must be suppressed while the current position is unknown,
-    // because _travel_to_z() re-emits the logical X/Y through this mapping and an
-    // uninitialised position would map to a bogus machine point -- for a reverse
-    // mapping, the far corner of the bed.
-    virtual bool suppress_lift_at_unknown_position() const = 0;
-
     // True when a G2/G3 arc in the logical XY plane is still the same arc in the
     // machine frame. Arc moves emit only X, Y, I and J, so this asks a narrower
     // question than must_emit_all_axes(): whether logical X and Y reach the
@@ -63,8 +57,6 @@ public:
     Vec3d to_machine(const Vec3d &p) const override;
 
     bool must_emit_all_axes() const override { return this->has_axis_remap(); }
-    bool suppress_lift_at_unknown_position() const override { return this->has_axis_remap(); }
-
     // X and Y must reach the machine untouched. Because the remap is a
     // permutation, pinning those two also pins Z to Z, so a mapping that only
     // negates or reverses Z still supports arcs -- every word a G2/G3 emits is

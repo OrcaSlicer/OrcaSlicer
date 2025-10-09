@@ -216,10 +216,6 @@ protected:
     // installed it decides; otherwise the layer-coarse m_is_first_layer flag does.
     bool point_on_first_layer(const Vec3d &point_logical) const;
 
-    // True when a lift must be skipped because this mapping would emit the
-    // stored logical X/Y and that position is not yet known.
-    bool must_skip_lift_now() const;
-
     // True when travel speed is selected per destination point rather than per
     // layer. Set for writers that install a first-layer point test. The
     // historical path emits the raw configured travel speed in the final branch
