@@ -1781,12 +1781,11 @@ SCENARIO("Axis remap: no lift is commanded through the uninitialised origin", "[
             writer.lazy_lift(LiftType::NormalLift);
             const std::string gcode = writer.travel_to_xyz(Vec3d(10.0, 10.0, 5.0));
 
-            THEN("behaviour is unchanged: the lift is still emitted") {
-                // Three moves, not two: with no remap and an unknown position the
-                // destination is emitted as a separate XY move followed by its own
-                // Z move, on top of the lift. That split is the pre-existing
-                // identity-mapping path and must not change.
-                REQUIRE(count_g1(gcode) == 3);
+            THEN("no speculative lift is emitted before the first position is established") {
+                // With an unknown position, a z-hop derived from m_pos could lower
+                // the physical nozzle. The initial travel establishes XY, followed by
+                // the requested Z; no separate lift is safe here.
+                REQUIRE(count_g1(gcode) == 2);
             }
         }
     }
