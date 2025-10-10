@@ -65,7 +65,6 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusNotSupportedPrintAll,
     PrintStatusBlankPlate,
     PrintStatusUnsupportedPrinter,
-    PrintStatusInvalidMapping,
     PrintStatusPrinterErrorEnd,
 
     // Errors for filament, Block Print
