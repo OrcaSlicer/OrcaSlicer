@@ -607,6 +607,7 @@ void ParamsPanel::OnToggled(wxCommandEvent& event)
     }
 
     Slic3r::GUI::wxGetApp().save_mode(mode_id);
+    event.Skip();
 }
 
 // This is special, DO NOT call it from outer except from Tab
