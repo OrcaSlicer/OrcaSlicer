@@ -584,6 +584,8 @@ public:
     void        clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
 
+	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
+
     const std::string&	get_custom_gcode(const t_config_option_key& opt_key) override;
     void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value) override;
 };
@@ -640,11 +642,11 @@ public:
 	bool 		supports_printer_technology(const PrinterTechnology /* tech */) const override { return true; }
 
 	void		set_extruder_volume_type(int extruder_id, NozzleVolumeType type);
+	void		on_value_change(const std::string& opt_key, const boost::any& value) override;
 
 	wxSizer*	create_bed_shape_widget(wxWindow* parent);
 	void		cache_extruder_cnt(const DynamicPrintConfig* config = nullptr);
 	bool		apply_extruder_cnt_from_cache();
-
 };
 
 class TabSLAMaterial : public Tab

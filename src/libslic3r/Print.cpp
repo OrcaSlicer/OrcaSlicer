@@ -172,6 +172,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filename_format",
         "retraction_minimum_travel",
         "retract_before_wipe",
+        // Orca:
+        "retract_after_wipe",
         "retract_when_changing_layer",
         "retraction_length",
         "retract_length_toolchange",
