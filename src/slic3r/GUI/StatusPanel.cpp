@@ -3240,8 +3240,8 @@ void StatusPanel::update_ams(MachineObject *obj)
     AMSModel ams_mode = AMSModel::GENERIC_AMS;
     if ((obj->is_enable_np || obj->is_enable_ams_np) && obj->GetFilaSystem()->GetAmsList().size() > 0) {
         ams_mode = AMSModel(obj->GetFilaSystem()->GetAmsList().begin()->second->GetAmsType());
-    } if (obj->get_printer_ams_type() == "f1") {
-        ams_mode = AMSModel::AMS_LITE;//STUDIO-14066
+    } else if (obj->get_printer_ams_type() == "f1") {
+        ams_mode = AMSModel::AMS_LITE; // STUDIO-14066
     }
 
     if (!obj || !obj->is_connected()) {
