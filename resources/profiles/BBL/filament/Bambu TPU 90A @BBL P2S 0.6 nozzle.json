@@ -1,30 +1,30 @@
 {
     "type": "filament",
-    "name": "Bambu PLA Silk @BBL P2S",
-    "inherits": "Bambu PLA Silk @base",
+    "name": "Bambu TPU 90A @BBL P2S 0.6 nozzle",
+    "inherits": "Bambu TPU 90A @base",
     "from": "system",
-    "setting_id": "GFSA05_17",
+    "setting_id": "GFSU03_16",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "100"
     ],
     "eng_plate_temp": [
-        "55"
+        "35"
     ],
     "eng_plate_temp_initial_layer": [
-        "55"
+        "35"
     ],
     "filament_deretraction_speed": [
         "nil",
         "nil"
     ],
     "filament_flow_ratio": [
-        "0.98",
-        "0.98"
+        "1",
+        "1"
     ],
     "filament_flush_temp": [
-        "200",
-        "200"
+        "0",
+        "0"
     ],
     "filament_flush_volumetric_speed": [
         "0",
@@ -35,14 +35,10 @@
         "nil"
     ],
     "filament_max_volumetric_speed": [
-        "12",
-        "12"
+        "2.8",
+        "2.8"
     ],
     "filament_ramming_volumetric_speed": [
-        "-1",
-        "-1"
-    ],
-    "filament_ramming_volumetric_speed_nc": [
         "-1",
         "-1"
     ],
@@ -63,8 +59,8 @@
         "nil"
     ],
     "filament_retraction_length": [
-        "0.4",
-        "nil"
+        "0.6",
+        "0.6"
     ],
     "filament_retraction_minimum_travel": [
         "nil",
@@ -76,11 +72,11 @@
     ],
     "filament_wipe": [
         "1",
-        "nil"
+        "1"
     ],
     "filament_wipe_distance": [
-        "1",
-        "nil"
+        "0",
+        "0"
     ],
     "filament_z_hop": [
         "nil",
@@ -88,20 +84,13 @@
     ],
     "filament_z_hop_types": [
         "Spiral Lift",
-        "nil"
+        "Spiral Lift"
     ],
     "filament_extruder_variant": [
         "Direct Drive Standard",
         "Direct Drive High Flow"
     ],
-    "first_x_layer_fan_speed": [
-        "40"
-    ],
     "filament_pre_cooling_temperature": [
-        "0",
-        "0"
-    ],
-    "filament_pre_cooling_temperature_nc": [
         "0",
         "0"
     ],
@@ -109,7 +98,7 @@
         "0",
         "0"
     ],
-    "filament_ramming_travel_time_nc": [
+    "filament_adaptive_volumetric_speed": [
         "0",
         "0"
     ],
@@ -137,21 +126,29 @@
         "10",
         "10"
     ],
-    "filament_adaptive_volumetric_speed": [
+    "filament_pre_cooling_temperature_nc": [
         "0",
         "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_volumetric_speed_nc": [
+        "-1",
+        "-1"
     ],
     "long_retractions_when_ec": [
         "0",
         "0"
     ],
     "nozzle_temperature": [
-        "230",
-        "230"
+        "225",
+        "225"
     ],
     "nozzle_temperature_initial_layer": [
-        "230",
-        "230"
+        "225",
+        "225"
     ],
     "override_process_overhang_speed": [
         "0",
@@ -161,15 +158,12 @@
         "0",
         "0"
     ],
-    "slow_down_layer_time": [
-        "6"
-    ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",
         "0 0 0 0 0 0"
     ],
     "compatible_printers": [
-        "Bambu Lab P2S 0.4 nozzle"
+        "Bambu Lab P2S 0.6 nozzle"
     ],
     "filament_start_gcode": [
         "; filament start gcode\n"

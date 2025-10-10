@@ -6466,6 +6466,10 @@
             "sub_path": "filament/Bambu TPU 85A @BBL P2S.json"
         },
         {
+            "name": "Bambu TPU 85A @BBL P2S 0.8 nozzle",
+            "sub_path": "filament/Bambu TPU 85A @BBL P2S 0.8 nozzle.json"
+        },
+        {
             "name": "Bambu TPU 85A @BBL X1C",
             "sub_path": "filament/Bambu TPU 85A @BBL X1C.json"
         },
@@ -6504,6 +6508,14 @@
         {
             "name": "Bambu TPU 90A @BBL P2S",
             "sub_path": "filament/Bambu TPU 90A @BBL P2S.json"
+        },
+        {
+            "name": "Bambu TPU 90A @BBL P2S 0.6 nozzle",
+            "sub_path": "filament/Bambu TPU 90A @BBL P2S 0.6 nozzle.json"
+        },
+        {
+            "name": "Bambu TPU 90A @BBL P2S 0.8 nozzle",
+            "sub_path": "filament/Bambu TPU 90A @BBL P2S 0.8 nozzle.json"
         },
         {
             "name": "Bambu TPU 90A @BBL X1C",
