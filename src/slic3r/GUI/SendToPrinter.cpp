@@ -631,13 +631,14 @@ void SendToPrinterDialog::update_storage_list(const std::vector<std::string> &st
         if (storages[i] == "emmc")
             storage_text->SetLabel(_L("Internal Storage"));
         else
-            storage_text->SetLabel(_L("Enternal Storage"));
+            storage_text->SetLabel(_L("External Storage"));
 
         //radiobox->SetLabel(storages[i]);
         if (storages[i] != "emmc" && m_if_has_sdcard == false)
         {
-            storage_text->SetLabel(_L("No Enternal Storage"));
+            storage_text->SetLabel(_L("External Storage"));
             radiobox->Disable();
+            storage_text->SetForegroundColour(wxColour("#CECECE"));
         }
         else
         {
@@ -654,6 +655,7 @@ void SendToPrinterDialog::update_storage_list(const std::vector<std::string> &st
         m_storage_sizer->Add(radiobox, 0, wxALIGN_CENTER, 0);
         m_storage_sizer->Add(0, 0, 0, wxEXPAND|wxLEFT, FromDIP(6));
         m_storage_sizer->Add(storage_text, 0, wxALIGN_CENTER,0);
+        m_storage_sizer->AddSpacer(20);
         m_storage_radioBox.push_back(radiobox);
     }
 
@@ -1874,8 +1876,17 @@ void SendToPrinterDialog::CreateMediaAbilityJob()
                      auto media_set = nlohmann::json::parse(json_res);
                      for (const auto &it : media_set)
                          m_ability_list.push_back(it.get<std::string>());
-                     update_storage_list(m_ability_list);
+
                      BOOST_LOG_TRIVIAL(info) << "CreateMediaAbilityJob::" << "request mediaability success." << json_res;
+                     if (m_if_has_sdcard == false && m_ability_list.size() == 1)
+                     {
+                         show_status(PrintDialogStatus::PrintStatusNoSdcard);
+                         return;
+                     }
+                     else
+                     {
+                         update_storage_list(m_ability_list);
+                     }
                  }
                  catch (const nlohmann::json::exception &e)
                  {
