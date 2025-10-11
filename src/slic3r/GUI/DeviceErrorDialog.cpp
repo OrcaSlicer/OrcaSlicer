@@ -13,7 +13,6 @@ namespace GUI
 static std::unordered_set<std::string> message_containing_retry{
     "0701-8004",
     "0701-8005",
-    "0701-8006",
     "0701-8007",
     "0701-8012",
     "0702-8012",
