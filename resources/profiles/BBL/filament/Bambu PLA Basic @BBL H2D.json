@@ -51,7 +51,7 @@
     ],
     "filament_max_volumetric_speed": [
         "25",
-        "35"
+        "40"
     ],
     "filament_ramming_volumetric_speed": [
         "-1",
