@@ -629,16 +629,23 @@ void SendToPrinterDialog::update_storage_list(const std::vector<std::string> &st
         Label    *storage_text = new Label(m_storage_panel);
 
         if (storages[i] == "emmc")
+        {
             storage_text->SetLabel(_L("Internal Storage"));
+            storage_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#000000")));
+        }
         else
+        {
             storage_text->SetLabel(_L("External Storage"));
+            storage_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#000000")));
+        }
+
 
         //radiobox->SetLabel(storages[i]);
         if (storages[i] != "emmc" && m_if_has_sdcard == false)
         {
             storage_text->SetLabel(_L("External Storage"));
             radiobox->Disable();
-            storage_text->SetForegroundColour(wxColour("#CECECE"));
+            storage_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#CECECE")));
         }
         else
         {
