@@ -1,4 +1,6 @@
+#!/bin/bash
 # these are the Arch Linux specific build functions
+export FOUND_GTK3
 FOUND_GTK3=$(pacman -Q gtk3)
 
 # Addtional Dev packages for OrcaSlicer
@@ -30,16 +32,17 @@ export REQUIRED_DEV_PACKAGES=(
 if [[ -n "$UPDATE_LIB" ]]
 then
     echo -n -e "Updating linux ...\n"
-    NEEDED_PKGS=""
-    for PKG in ${REQUIRED_DEV_PACKAGES[@]}; do
-        pacman -Q ${PKG} > /dev/null || NEEDED_PKGS+=" ${PKG}"
+    NEEDED_PKGS=()
+    for PKG in "${REQUIRED_DEV_PACKAGES[@]}"; do
+        pacman -Q "${PKG}" > /dev/null || NEEDED_PKGS+=("${PKG}")
     done
 
-    if [ -n "${NEEDED_PKGS}" ]; then
-        sudo pacman -Syy --noconfirm ${NEEDED_PKGS}
+    if [[ "${#NEEDED_PKGS[*]}" -gt 0 ]]; then
+        sudo pacman -Syy --noconfirm "${NEEDED_PKGS[@]}"
     fi
     echo -e "done\n"
     exit 0
 fi
 
+export FOUND_GTK3_DEV
 FOUND_GTK3_DEV=${FOUND_GTK3}

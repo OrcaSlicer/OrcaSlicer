@@ -5,7 +5,7 @@ project(stb_dxt)
 add_library(stb_dxt INTERFACE)
 
 # Set include directories for the interface library
-target_include_directories(stb_dxt 
+target_include_directories(stb_dxt SYSTEM
     INTERFACE 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>

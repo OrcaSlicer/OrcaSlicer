@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Rolohaun Delta Flyer Refit",
+    "model_id": "RDFR1_1",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "RolohaunDesign",
+    "bed_model": "",
+    "bed_texture": "bedtexture-rook-green-120.png",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @System;Generic PETG @System"
+}

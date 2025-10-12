@@ -1,0 +1,194 @@
+{
+    "name": "Afinia",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "Afinia configurations",
+    "machine_model_list": [
+        {
+            "name": "Afinia H+1(HS)",
+            "sub_path": "machine/Afinia H+1(HS).json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_afinia_common",
+            "sub_path": "process/fdm_process_afinia_common.json"
+        },
+        {
+            "name": "fdm_process_afinia_HS_common",
+            "sub_path": "process/fdm_process_afinia_HS_common.json"
+        },
+        {
+            "name": "0.12mm Fine @Afinia H+1(HS)",
+            "sub_path": "process/0.12mm Fine @Afinia H+1(HS).json"
+        },
+        {
+            "name": "0.16mm Optimal @Afinia H+1(HS)",
+            "sub_path": "process/0.16mm Optimal @Afinia H+1(HS).json"
+        },
+        {
+            "name": "0.20mm Standard @Afinia H+1(HS)",
+            "sub_path": "process/0.20mm Standard @Afinia H+1(HS).json"
+        },
+        {
+            "name": "0.24mm Draft @Afinia H+1(HS)",
+            "sub_path": "process/0.24mm Draft @Afinia H+1(HS).json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Afinia H+1(HS)",
+            "sub_path": "process/0.28mm Extra Draft @Afinia H+1(HS).json"
+        },
+        {
+            "name": "fdm_process_afinia_0.18_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.18_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.24_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.24_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.30_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.30_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.36_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.36_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.42_nozzle_0.6",
+            "sub_path": "process/fdm_process_afinia_0.42_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.18_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_afinia_0.18_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.24_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_afinia_0.24_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.30_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_afinia_0.30_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.36_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_afinia_0.36_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_afinia_0.42_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_afinia_0.42_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "0.18mm Fine @Afinia H+1(HS) 0.6 nozzle",
+            "sub_path": "process/0.18mm Fine @Afinia H+1(HS) 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Afinia H+1(HS) 0.6 nozzle",
+            "sub_path": "process/0.24mm Standard @Afinia H+1(HS) 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @Afinia H+1(HS) 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @Afinia H+1(HS) 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Strength @Afinia H+1(HS) 0.6 nozzle",
+            "sub_path": "process/0.30mm Strength @Afinia H+1(HS) 0.6 nozzle.json"
+        },
+        {
+            "name": "0.36mm Draft @Afinia H+1(HS) 0.6 nozzle",
+            "sub_path": "process/0.36mm Draft @Afinia H+1(HS) 0.6 nozzle.json"
+        },
+        {
+            "name": "0.42mm Extra Draft @Afinia H+1(HS) 0.6 nozzle",
+            "sub_path": "process/0.42mm Extra Draft @Afinia H+1(HS) 0.6 nozzle.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "Afinia PLA",
+            "sub_path": "filament/Afinia PLA.json"
+        },
+        {
+            "name": "Afinia Value PLA",
+            "sub_path": "filament/Afinia Value PLA.json"
+        },
+        {
+            "name": "Afinia ABS",
+            "sub_path": "filament/Afinia ABS.json"
+        },
+        {
+            "name": "Afinia ABS+",
+            "sub_path": "filament/Afinia ABS+.json"
+        },
+        {
+            "name": "Afinia Value ABS",
+            "sub_path": "filament/Afinia Value ABS.json"
+        },
+        {
+            "name": "Afinia TPU",
+            "sub_path": "filament/Afinia TPU.json"
+        },
+        {
+            "name": "Afinia PLA@HS",
+            "sub_path": "filament/Afinia PLA@HS.json"
+        },
+        {
+            "name": "Afinia Value PLA@HS",
+            "sub_path": "filament/Afinia Value PLA@HS.json"
+        },
+        {
+            "name": "Afinia ABS@HS",
+            "sub_path": "filament/Afinia ABS@HS.json"
+        },
+        {
+            "name": "Afinia Value ABS@HS",
+            "sub_path": "filament/Afinia Value ABS@HS.json"
+        },
+        {
+            "name": "Afinia ABS+@HS",
+            "sub_path": "filament/Afinia ABS+@HS.json"
+        },
+        {
+            "name": "Afinia TPU@HS",
+            "sub_path": "filament/Afinia TPU@HS.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_afinia_common",
+            "sub_path": "machine/fdm_afinia_common.json"
+        },
+        {
+            "name": "Afinia H+1(HS) 0.4 nozzle",
+            "sub_path": "machine/Afinia H+1(HS) 0.4 nozzle.json"
+        },
+        {
+            "name": "Afinia H+1(HS) 0.6 nozzle",
+            "sub_path": "machine/Afinia H+1(HS) 0.6 nozzle.json"
+        }
+    ]
+}

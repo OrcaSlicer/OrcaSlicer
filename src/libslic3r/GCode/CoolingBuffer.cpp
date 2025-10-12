@@ -153,7 +153,8 @@ struct PerExtruderAdjustments
                 assert(line.time_max >= 0.f && line.time_max < FLT_MAX);
                 line.slowdown = true;
                 line.time     = line.time_max;
-                line.feedrate = line.length / line.time;
+                if (line.time > 0.f)
+                    line.feedrate = line.length / line.time;
             }
             time_total += line.time;
         }
@@ -169,7 +170,8 @@ struct PerExtruderAdjustments
             if (line.adjustable(slowdown_external_perimeters)) {
                 line.slowdown = true;
                 line.time     = std::min(line.time_max, line.time * factor);
-                line.feedrate = line.length / line.time;
+                if (line.time > 0.f)
+                    line.feedrate = line.length / line.time;
             }
             time_total += line.time;
         }

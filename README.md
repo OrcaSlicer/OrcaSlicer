@@ -30,7 +30,7 @@ Optimize your prints with ultra-fast slicing, intelligent support generation, an
 <tr>
 <td>
 <strong>⚠️ CAUTION:</strong><br><br>
-There are several clickbait and malicious websites pretending to be Official OrcaSlicer. These sites may redirect you to dangerous downloads or contain misleading information.
+Several clickbait and malicious websites, such as orca-slicer.com and orcaslicer.net, are pretending to be the official OrcaSlicer site. These sites may redirect you to dangerous downloads or contain misleading information. Our only official website is www.orcaslicer.com.
 <br><br>
 If you come across any of these in search results, please <a href="https://safebrowsing.google.com/safebrowsing/report_phish/?">report them as unsafe or phishing</a>  to help keep the community secure.
 </td>

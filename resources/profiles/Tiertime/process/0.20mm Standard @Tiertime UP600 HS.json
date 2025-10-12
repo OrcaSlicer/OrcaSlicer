@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "name": "0.20mm Standard @Tiertime UP600 HS",
-    "inherits": "fdm_process_tiertime_HS_common",
-    "from": "system",
     "setting_id": "GP024",
+    "name": "0.20mm Standard @Tiertime UP600 HS",
+    "from": "system",
+    "inherits": "fdm_process_tiertime_HS_common",
     "instantiation": "true",
     "elefant_foot_compensation": "0.15",
     "top_shell_thickness": "1.0",
@@ -19,4 +19,4 @@
     "compatible_printers": [
         "Tiertime UP600 HS 0.4 nozzle"
     ]
-}
+} 

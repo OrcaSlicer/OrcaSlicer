@@ -1,0 +1,124 @@
+{
+    "type": "machine",
+    "setting_id": "GM001",
+    "name": "Sovol SV08 MAX 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_machine_common",
+    "printer_model": "Sovol SV08 MAX",
+    "default_print_profile": "0.30mm Standard @Sovol SV08 MAX 0.6 nozzle",
+    "printer_variant": "0.6",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "min_layer_height": [
+        "0.12"
+    ],
+    "max_layer_height": [
+        "0.42"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "printable_area": [
+        "0x0",
+        "500x0",
+        "500x500",
+        "0x500"
+    ],
+    "printable_height": "500",
+    "printer_structure": "corexy",
+    "gcode_flavor": "klipper",
+    "retraction_length": [
+        "1.8"
+    ],
+    "retract_restart_extra": [
+        "0.1"
+    ],
+    "machine_max_speed_e": [
+        "50"
+    ],
+    "machine_max_speed_x": [
+        "800"
+    ],
+    "machine_max_speed_y": [
+        "800"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_max_acceleration_e": [
+        "20000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "40000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "40000"
+    ],
+    "machine_max_acceleration_x": [
+        "40000"
+    ],
+    "machine_max_acceleration_y": [
+        "40000"
+    ],
+    "machine_max_acceleration_z": [
+        "500"
+    ],
+    "machine_max_jerk_e": [
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "20"
+    ],
+    "machine_max_jerk_y": [
+        "20"
+    ],
+    "machine_max_jerk_z": [
+        "2.5"
+    ],
+    "z_hop": [
+        "0.6"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "retraction_minimum_travel": [
+        "0"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "3"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ],
+    "thumbnails": [
+        "32x32",
+        "64x64",
+        "160x160",
+        "256x256"
+    ],
+    "retract_lift_below": [
+        "498"
+    ],
+    "auxiliary_fan": "0",
+    "thumbnails_format": "PNG",
+    "before_layer_change_gcode": "TIMELAPSE_TAKE_FRAME\nG92 E0\nSET_PRINT_STATS_INFO CURRENT_LAYER=[layer_num]\n",
+    "machine_start_gcode": "G28\nM140 S[bed_temperature_initial_layer_single] ;set bed temp\nM190 S[bed_temperature_initial_layer_single] ;wait for bed temp\nSTART_PRINT\nG90\nG1 X0 Y0 F12000\nG1 Z0.300 F600\nM104 S[nozzle_temperature_initial_layer] ;set extruder temp\nM109 S[nozzle_temperature_initial_layer];wait for extruder temp\n{if first_layer_print_min[0] - 3 > print_bed_min[0]}\nG90\nM83\nG1 E-0.100 F600\nG1 X{first_layer_print_min[0] - 3} Y{first_layer_print_min[1]} F12000\nG1 Z0.3 F600 ;Move to start position\nG1 E0.100 F600\nG1 Y{first_layer_print_min[1] + 5 * 6} E{5 * 0.24 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 Y{first_layer_print_min[1] + 5 * 6 * 2} E{5 * 0.16 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 E-0.100 F600\nG1 Z1 F600\nG1 X{first_layer_print_min[0] - 2} Y{first_layer_print_min[1]} F12000\nG1 Z0.3 F600 ;Move to start position\nG1 E0.100 F600\nG1 Y{first_layer_print_min[1] + 5 * 6} E{5 * 0.24 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 Y{first_layer_print_min[1] + 5 * 6 * 2} E{5 * 0.16 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 E-0.100 F600\n{else}\nG90\nM83\nG1 E-0.100 Z3 F600\nG1 X-1.5 Y{first_layer_print_min[1]} F{outer_wall_volumetric_speed * 5 * 30}\nG1 Z0.3 F600\nG1 E0.100 F600\nG1 Y{first_layer_print_min[1] + 5 * 6} E{5 * 0.24 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 Y{first_layer_print_min[1] + 5 * 6 * 2} E{5 * 0.16 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 X-0.5 Y{first_layer_print_min[1]} F{outer_wall_volumetric_speed * 5 * 30}\nG1 Z0.3 F600\nG1 E0.100 F600\nG1 Y{first_layer_print_min[1] + 5 * 6} E{5 * 0.24 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 Y{first_layer_print_min[1] + 5 * 6 * 2} E{5 * 0.16 * 6}  F{outer_wall_volumetric_speed * 5 * 30}\nG1 E-0.100 Z3 F600\nM400\n{endif}\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\n\n",
+    "machine_end_gcode": "END_PRINT\n",
+    "default_filament_profile": [
+        "Generic PLA @Sovol SV08 MAX"
+    ]
+}

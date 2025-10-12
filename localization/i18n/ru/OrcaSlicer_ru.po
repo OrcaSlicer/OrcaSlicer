@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.0 Official Release\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "PO-Revision-Date: 2025-07-06 21:08+0700\n"
 "Last-Translator: \n"
 "Language-Team: Andylg <andylg@yandex.ru>\n"
@@ -6350,6 +6350,17 @@ msgstr ""
 msgid "Load 3mf"
 msgstr "Загрузка 3mf"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -9099,11 +9110,11 @@ msgstr "Показать список сочетаний клавиш"
 msgid "Global shortcuts"
 msgstr "Глобальные горячие клавиши"
 
-msgid "Rotate View"
-msgstr "Вращение камеры"
-
 msgid "Pan View"
 msgstr "Перемещение камеры"
+
+msgid "Rotate View"
+msgstr "Вращение камеры"
 
 msgid "Zoom View"
 msgstr "Масштабирование вида"

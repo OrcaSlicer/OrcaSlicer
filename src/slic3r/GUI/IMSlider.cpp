@@ -191,6 +191,10 @@ void IMSlider::SetSelectionSpan(const int lower_val, const int higher_val)
     m_higher_value = std::max(std::min(higher_val, m_max_value), m_lower_value);
     if (m_lower_value < m_higher_value) m_is_one_layer = false;
 
+    // ORCA reset single layer position when min max values changed
+    // This will trigger when print height changed. but stays same on reslicing if layer count is same 
+    m_one_layer_value = int((m_higher_value - m_lower_value)/2); 
+
     set_as_dirty();
 }
 
@@ -443,9 +447,20 @@ bool IMSlider::switch_one_layer_mode()
         return false;
 
     m_is_one_layer = !m_is_one_layer;
-    if (!m_is_one_layer) {
+    if (!m_is_one_layer) {                       // DEACTIVATE
+        m_one_layer_value = GetHigherValue();       // ORCA Backup value on deactivate
         SetLowerValue(m_min_value);
-        SetHigherValue(m_max_value);
+        SetHigherValue(m_max_value);             // Higher value resets on toggling off one layer mode to show whole model
+    }else{                                       // ACTIVATE
+                                                 // ORCA Ensure value fits range. value set in IMSlider::SetSelectionSpan but added this just in case
+        if(!m_one_layer_value || m_one_layer_value > m_max_value || m_one_layer_value < m_min_value){
+            m_one_layer_value = int((m_max_value - m_min_value)/2);
+            SetHigherValue(m_one_layer_value);  
+        }
+        else if(GetHigherValue() == m_max_value) // ORCA Prefer backup value if higher value reseted
+            SetHigherValue(m_one_layer_value);      // ORCA Restore value
+        else                                     // ORCA Prefer higher value if user changed higher value. so it will show section on same view
+            SetHigherValue(GetHigherValue());    // ORCA use same position with higher value if user changed its position. visible section stays same when switching one layer mode with this
     }
     m_selection == ssLower ? correct_lower_value() : correct_higher_value();
     if (m_selection == ssUndef) m_selection = ssHigher;
@@ -1487,6 +1502,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
             if (is_one_layer()) {
                 const int new_pos = GetHigherValue() + wheel;
                 SetHigherValue(new_pos);
+                m_one_layer_value = new_pos; // ORCA backup value for single layer mode
             }
             else {
                 const int new_pos = m_selection == ssLower ? GetLowerValue() + wheel : GetHigherValue() + wheel;

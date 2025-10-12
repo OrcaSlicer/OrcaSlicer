@@ -1,6 +1,8 @@
 Build
 Build.bat
 /build*/
+CMakeLists.txt.user
+**/CMakeLists.txt.autosave
 deps/build*
 MYMETA.json
 MYMETA.yml

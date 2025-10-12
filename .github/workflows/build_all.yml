@@ -30,6 +30,9 @@ on:
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
 
+  schedule:
+      - cron: '35 7 * * *' # run once a day near midnight US Pacific time
+
   workflow_dispatch: # allows for manual dispatch
     inputs:
       build-deps-only:
@@ -60,6 +63,7 @@ jobs:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
+      force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   flatpak:
     name: "Flatpak"
@@ -93,12 +97,15 @@ jobs:
         ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           ver="PR-${{ github.event.number }}"
+          git_commit_hash="${{ github.event.pull_request.head.sha }}"
         else
           ver=V$ver_pure
+          git_commit_hash=""
         fi
         echo "ver=$ver" >> $GITHUB_ENV
         echo "ver_pure=$ver_pure" >> $GITHUB_ENV
         echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
+        echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
       shell: bash
     - uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
       with:

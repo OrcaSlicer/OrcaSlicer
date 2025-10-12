@@ -1,6 +1,6 @@
 {
     "type": "machine",
-    "name": "Creality Ender-3 V3 KE 0.4 nozzle",
+    "name": "Creality Ender-3 V3 KE 0.8 nozzle",
     "inherits": "fdm_creality_common",
     "from": "system",
     "setting_id": "GM001",
@@ -83,10 +83,10 @@
         "0.4"
     ],
     "max_layer_height": [
-        "0.32"
+        "0.64"
     ],
     "min_layer_height": [
-        "0.08"
+        "0.16"
     ],
     "retraction_minimum_travel": [
         "2"

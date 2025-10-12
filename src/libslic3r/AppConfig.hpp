@@ -294,7 +294,7 @@ public:
 
 	// Get the Slic3r version check url.
 	// This returns a hardcoded string unless it is overriden by "version_check_url" in the ini file.
-	std::string 		version_check_url(bool stable_only = false) const;
+	std::string 		version_check_url() const;
 
 	// Get the Orca profile update url.
 	std::string 		profile_update_url() const;

@@ -33,6 +33,7 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/beast/core/detail/base64.hpp>
 
 #include <wx/stdpaths.h>
 #include <wx/imagpng.h>
@@ -54,6 +55,9 @@
 #include <wx/splash.h>
 #include <wx/fontutil.h>
 #include <wx/glcanvas.h>
+#include <wx/utils.h>
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
 
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
@@ -70,12 +74,14 @@
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "GLCanvas3D.hpp"
+#include "GeneratedConfig.hpp"
 
 #include "../Utils/PresetUpdater.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Process.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/Http.hpp"
+#include "../Utils/InstanceID.hpp"
 #include "../Utils/UndoRedo.hpp"
 #include "slic3r/Config/Snapshot.hpp"
 #include "Preferences.hpp"
@@ -4381,108 +4387,414 @@ Semver get_version(const std::string& str, const std::regex& regexp) {
     return Semver::invalid();
 }
 
+namespace
+{
+
+struct UpdaterQuery
+{
+    std::string iid;
+    std::string version;
+    std::string os;
+    std::string arch;
+    std::string os_info;
+};
+
+std::string detect_updater_os()
+{
+#if defined(_WIN32)
+    return "win";
+#elif defined(__APPLE__)
+    return "macos";
+#elif defined(__linux__) || defined(__LINUX__)
+    return "linux";
+#else
+    return "unknown";
+#endif
+}
+
+std::string detect_updater_arch()
+{
+#if defined(__aarch64__) || defined(_M_ARM64)
+    return "arm64";
+#elif defined(__x86_64__) || defined(_M_X64)
+    return "x86_64";
+#elif defined(__i386__) || defined(_M_IX86)
+    return "i386";
+#else
+    std::string arch = wxPlatformInfo::Get().GetArchName().ToStdString();
+    boost::algorithm::to_lower(arch);
+    if (arch.find("aarch64") != std::string::npos || arch.find("arm64") != std::string::npos)
+        return "arm64";
+    if (arch.find("x86_64") != std::string::npos || arch.find("amd64") != std::string::npos)
+        return "x86_64";
+    if (arch.find("i686") != std::string::npos || arch.find("i386") != std::string::npos || arch.find("x86") != std::string::npos)
+        return "i386";
+    return "unknown";
+#endif
+}
+
+std::string detect_updater_os_info()
+{
+    wxString description = wxPlatformInfo::Get().GetOperatingSystemDescription();
+#if defined(__LINUX__) || defined(__linux__)
+    wxLinuxDistributionInfo distro = wxGetLinuxDistributionInfo();
+    if (!distro.Id.empty()) {
+        wxString normalized = distro.Id;
+        if (!distro.Release.empty())
+            normalized << " " << distro.Release;
+        normalized.Trim(true);
+        normalized.Trim(false);
+        if (!normalized.empty())
+            description = normalized;
+    }
+#endif
+    if (description.empty())
+        description = wxGetOsDescription();
+
+    //Orca: workaround: wxGetOsVersion can't recognize Windows 11
+    // For Windows, use actual version numbers to properly detect Windows 11
+    // Windows 11 starts at build 22000
+#if defined(_WIN32)
+    int major = 0, minor = 0, micro = 0;
+    wxGetOsVersion(&major, &minor, &micro);
+    if (micro >= 22000) {
+        // replace Windows 10 with Windows 11
+        description.Replace("Windows 10", "Windows 11");
+    }
+#endif
+    std::string os_info = description.ToStdString();
+    boost::replace_all(os_info, "\r", " ");
+    boost::replace_all(os_info, "\n", " ");
+    boost::algorithm::trim(os_info);
+    if (os_info.size() > 120)
+        os_info.resize(120);
+    boost::algorithm::to_lower(os_info);
+    return os_info;
+}
+
+std::string detect_updater_version()
+{
+    return SoftFever_VERSION;
+}
+
+std::string detect_updater_iid(AppConfig* config)
+{
+    if (config == nullptr)
+        return {};
+    return instance_id::ensure(*config);
+}
+
+std::string encode_uri_component(const std::string& value)
+{
+    static constexpr const char* hex = "0123456789ABCDEF";
+    std::string out;
+    out.reserve(value.size());
+    for (unsigned char ch : value) {
+        if ((ch >= 'A' && ch <= 'Z') ||
+            (ch >= 'a' && ch <= 'z') ||
+            (ch >= '0' && ch <= '9') ||
+            ch == '-' || ch == '_' || ch == '.' || ch == '~' ||
+            ch == '!' || ch == '*' || ch == '(' || ch == ')' || ch == '\'') {
+            out.push_back(static_cast<char>(ch));
+        } else {
+            out.push_back('%');
+            out.push_back(hex[(ch >> 4) & 0xF]);
+            out.push_back(hex[ch & 0xF]);
+        }
+    }
+    return out;
+}
+
+std::string build_updater_query(const UpdaterQuery& query)
+{
+    std::vector<std::pair<std::string, std::string>> params;
+
+    auto add_param = [&params](const char* key, const std::string& value) {
+        if (!value.empty())
+            params.emplace_back(key, encode_uri_component(value));
+    };
+
+    add_param("iid", query.iid);
+    add_param("v", query.version);
+    add_param("os", query.os);
+    add_param("arch", query.arch);
+    add_param("os_info", query.os_info);
+
+    std::sort(params.begin(), params.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.first < rhs.first;
+    });
+
+    if (params.empty())
+        return {};
+
+    std::string encoded;
+    for (size_t idx = 0; idx < params.size(); ++idx) {
+        if (idx > 0)
+            encoded.push_back('&');
+        encoded += params[idx].first;
+        encoded.push_back('=');
+        encoded += params[idx].second;
+    }
+    return encoded;
+}
+
+std::string base64url_encode(const unsigned char* data, std::size_t length)
+{
+    std::string encoded;
+    encoded.resize(boost::beast::detail::base64::encoded_size(length));
+    encoded.resize(boost::beast::detail::base64::encode(encoded.data(), data, length));
+    std::replace(encoded.begin(), encoded.end(), '+', '-');
+    std::replace(encoded.begin(), encoded.end(), '/', '_');
+    while (!encoded.empty() && encoded.back() == '=')
+        encoded.pop_back();
+    return encoded;
+}
+
+std::optional<std::vector<unsigned char>> load_signature_key()
+{
+#if ORCA_UPDATER_SIG_KEY_AVAILABLE
+    std::string key = ORCA_UPDATER_SIG_KEY_B64;
+    boost::algorithm::trim(key);
+    if (key.empty())
+        return std::nullopt;
+
+    key.erase(std::remove_if(key.begin(), key.end(), [](unsigned char ch) { return std::isspace(ch); }), key.end());
+    std::replace(key.begin(), key.end(), '-', '+');
+    std::replace(key.begin(), key.end(), '_', '/');
+    while (key.size() % 4 != 0)
+        key.push_back('=');
+
+    std::string decoded;
+    decoded.resize(boost::beast::detail::base64::decoded_size(key.size()));
+    auto decode_result = boost::beast::detail::base64::decode(decoded.data(), key.data(), key.size());
+    if (!decode_result.second)
+        return std::nullopt;
+    decoded.resize(decode_result.first);
+
+    return std::vector<unsigned char>(decoded.begin(), decoded.end());
+#else
+    return std::nullopt;
+#endif
+}
+
+const std::optional<std::vector<unsigned char>>& get_signature_key()
+{
+    static std::optional<std::vector<unsigned char>> cached;
+    static bool loaded = false;
+    if (!loaded) {
+        cached = load_signature_key();
+        loaded = true;
+    }
+    return cached;
+}
+
+std::string extract_path_from_url(const std::string& url)
+{
+    if (url.empty())
+        return "/latest";
+
+    std::string path;
+    const auto scheme_pos = url.find("://");
+    if (scheme_pos != std::string::npos) {
+        const auto path_pos = url.find('/', scheme_pos + 3);
+        if (path_pos != std::string::npos)
+            path = url.substr(path_pos);
+        else
+            path = "/";
+    } else {
+        path = url;
+    }
+
+    const auto fragment_pos = path.find('#');
+    if (fragment_pos != std::string::npos)
+        path = path.substr(0, fragment_pos);
+
+    const auto query_pos = path.find('?');
+    if (query_pos != std::string::npos)
+        path = path.substr(0, query_pos);
+
+    if (path.empty())
+        path = "/";
+    return path;
+}
+
+void maybe_attach_updater_signature(Http& http, const std::string& canonical_query, const std::string& request_url)
+{
+    if (canonical_query.empty())
+        return;
+
+    const auto& key = get_signature_key();
+    if (!key || key->empty())
+        return;
+
+    const auto now   = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    const std::string timestamp = std::to_string(now.time_since_epoch().count());
+    const std::string path      = extract_path_from_url(request_url);
+
+    std::string string_to_sign = "GET\n";
+    string_to_sign += path;
+    string_to_sign += "\n";
+    string_to_sign += canonical_query;
+    string_to_sign += "\n";
+    string_to_sign += timestamp;
+
+    unsigned int digest_length = 0;
+    unsigned char digest[EVP_MAX_MD_SIZE] = {};
+    if (HMAC(EVP_sha256(), key->data(), static_cast<int>(key->size()),
+             reinterpret_cast<const unsigned char*>(string_to_sign.data()),
+             string_to_sign.size(), digest, &digest_length) == nullptr || digest_length == 0)
+        return;
+
+    const std::string signature = base64url_encode(digest, digest_length);
+    http.header("X-Orca-Ts", timestamp);
+    http.header("X-Orca-Sig", "v1:" + signature);
+}
+
+} // namespace
+
 void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 {
     AppConfig* app_config = wxGetApp().app_config;
     bool       check_stable_only = app_config->get_bool("check_stable_update_only");
-    auto       version_check_url = app_config->version_check_url(check_stable_only);
-    Http::get(version_check_url)
+    auto version_check_url = app_config->version_check_url();
+
+    UpdaterQuery query{
+        detect_updater_iid(app_config),
+        detect_updater_version(),
+        detect_updater_os(),
+        detect_updater_arch(),
+        detect_updater_os_info()
+    };
+
+    const std::string query_string = build_updater_query(query);
+    if (!query_string.empty()) {
+        const bool has_query = version_check_url.find('?') != std::string::npos;
+        if (!has_query)
+            version_check_url.push_back('?');
+        else if (!version_check_url.empty() && version_check_url.back() != '&' && version_check_url.back() != '?')
+            version_check_url.push_back('&');
+        version_check_url += query_string;
+    }
+
+    auto http = Http::get(version_check_url);
+    maybe_attach_updater_signature(http, query_string, version_check_url);
+
+    http.header("accept", "application/vnd.github.v3+json")
+        .timeout_connect(5)
+        .timeout_max(10)
         .on_error([&](std::string body, std::string error, unsigned http_status) {
           (void)body;
           BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%", "check_new_version_sf", http_status,
                                              error);
         })
-        .timeout_connect(1)
-        .on_complete([this,by_user, check_stable_only](std::string body, unsigned http_status) {
-          // Http response OK
+        .on_complete([this, by_user, check_stable_only](std::string body, unsigned http_status) {
           if (http_status != 200)
             return;
           try {
             boost::trim(body);
-            // Orca: parse github release, inspired by SS
-            boost::property_tree::ptree root;
-            std::stringstream json_stream(body);
-            boost::property_tree::read_json(json_stream, root);
-
-            // at least two number, use '.' as separator. can be followed by -Az23 for prereleased and +Az42 for
-            // metadata
-            std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
-
-            Semver           current_version = get_version(SoftFever_VERSION, matcher);
-            Semver best_pre(1, 0, 0);
-            Semver best_release(1, 0, 0);
-            std::string best_pre_url;
-            std::string best_release_url;
-            std::string best_release_content;
-            std::string best_pre_content;
-            const std::regex reg_num("([0-9]+)");
-            if (check_stable_only) {
-                std::string tag = root.get<std::string>("tag_name");
-                if (tag[0] == 'v')
-                    tag.erase(0, 1);
-                for (std::regex_iterator it = std::sregex_iterator(tag.begin(), tag.end(), reg_num); it != std::sregex_iterator(); ++it) {}
-                Semver tag_version = get_version(tag, matcher);
-                if (root.get<bool>("prerelease")) {
-                    if (best_pre < tag_version) {
-                        best_pre         = tag_version;
-                        best_pre_url     = root.get<std::string>("html_url");
-                        best_pre_content = root.get<std::string>("body");
-                    }
-                } else {
-                    if (best_release < tag_version) {
-                        best_release         = tag_version;
-                        best_release_url     = root.get<std::string>("html_url");
-                        best_release_content = root.get<std::string>("body");
-                    }
-                }
-            } else {
-                for (auto json_version : root) {
-                    std::string tag = json_version.second.get<std::string>("tag_name");
-                    if (tag[0] == 'v')
-                        tag.erase(0, 1);
-                    for (std::regex_iterator it = std::sregex_iterator(tag.begin(), tag.end(), reg_num); it != std::sregex_iterator();
-                         ++it) {}
-                    Semver tag_version = get_version(tag, matcher);
-                    if (json_version.second.get<bool>("prerelease")) {
-                        if (best_pre < tag_version) {
-                            best_pre         = tag_version;
-                            best_pre_url     = json_version.second.get<std::string>("html_url");
-                            best_pre_content = json_version.second.get<std::string>("body");
-                        }
-                    } else {
-                        if (best_release < tag_version) {
-                            best_release         = tag_version;
-                            best_release_url     = json_version.second.get<std::string>("html_url");
-                            best_release_content = json_version.second.get<std::string>("body");
-                        }
-                    }
-                }
-            }
-
-            // if release is more recent than beta, use release anyway
-            if (best_pre < best_release) {
-                best_pre         = best_release;
-                best_pre_url     = best_release_url;
-                best_pre_content = best_release_content;
-            }
-            // if we're the most recent, don't do anything
-            if ((check_stable_only ? best_release : best_pre) <= current_version) {
+            if (body.empty()) {
                 if (by_user != 0)
                     this->no_new_version();
                 return;
             }
 
-            version_info.url           = check_stable_only ? best_release_url : best_pre_url;
-            version_info.version_str   = check_stable_only ? best_release.to_string_sf() : best_pre.to_string();
-            version_info.description   = check_stable_only ? best_release_content : best_pre_content;
+            boost::property_tree::ptree root;
+            std::stringstream           json_stream(body);
+            boost::property_tree::read_json(json_stream, root);
+
+            std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
+            Semver    current_version = get_version(SoftFever_VERSION, matcher);
+            Semver    best_pre(0, 0, 0);
+            Semver    best_release(0, 0, 0);
+            bool      best_pre_valid = false;
+            bool      best_release_valid = false;
+            std::string best_pre_url;
+            std::string best_release_url;
+            std::string best_release_content;
+            std::string best_pre_content;
+
+            auto consider_release = [&](const boost::property_tree::ptree& node) {
+                auto tag_opt = node.get_optional<std::string>("tag_name");
+                if (!tag_opt)
+                    return;
+
+                std::string tag = *tag_opt;
+                if (!tag.empty() && tag.front() == 'v')
+                    tag.erase(0, 1);
+
+                Semver tag_version = get_version(tag, matcher);
+                if (!tag_version.valid())
+                    return;
+
+                const bool is_prerelease = node.get_optional<bool>("prerelease").get_value_or(false);
+                const std::string html_url = node.get_optional<std::string>("html_url").get_value_or(std::string());
+                const std::string body_copy = node.get_optional<std::string>("body").get_value_or(std::string());
+
+                if (is_prerelease) {
+                    if (!best_pre_valid || best_pre < tag_version) {
+                        best_pre        = tag_version;
+                        best_pre_url    = html_url;
+                        best_pre_content = body_copy;
+                        best_pre_valid  = true;
+                    }
+                } else {
+                    if (!best_release_valid || best_release < tag_version) {
+                        best_release         = tag_version;
+                        best_release_url     = html_url;
+                        best_release_content = body_copy;
+                        best_release_valid   = true;
+                    }
+                }
+            };
+
+            if (root.get_optional<std::string>("tag_name")) {
+                consider_release(root);
+            } else {
+                for (const auto& child : root)
+                    consider_release(child.second);
+            }
+
+            if (!best_release_valid && !best_pre_valid) {
+                if (by_user != 0)
+                    this->no_new_version();
+                return;
+            }
+
+            if (best_pre_valid && best_release_valid && best_pre < best_release) {
+                best_pre        = best_release;
+                best_pre_url    = best_release_url;
+                best_pre_content = best_release_content;
+                best_pre_valid  = true;
+            }
+
+            const bool        prefer_release = check_stable_only || !best_pre_valid;
+            const Semver&     chosen_version = prefer_release ? best_release : best_pre;
+            const bool        chosen_valid   = prefer_release ? best_release_valid : best_pre_valid;
+
+            if (!chosen_valid) {
+                if (by_user != 0)
+                    this->no_new_version();
+                return;
+            }
+
+            if (current_version.valid() && chosen_version <= current_version) {
+                if (by_user != 0)
+                    this->no_new_version();
+                return;
+            }
+
+            version_info.url           = prefer_release ? best_release_url : best_pre_url;
+            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string();
+            version_info.description   = prefer_release ? best_release_content : best_pre_content;
             version_info.force_upgrade = false;
 
             wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
-            evt->SetString((check_stable_only ? best_release : best_pre).to_string());
+            evt->SetString((prefer_release ? best_release : best_pre).to_string());
             GUI::wxGetApp().QueueEvent(evt);
           } catch (...) {}
-        })
-        .perform();
+        });
+
+    http.perform();
 }
 
 void GUI_App::process_network_msg(std::string dev_id, std::string msg)

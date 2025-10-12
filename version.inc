@@ -10,7 +10,7 @@ endif()
 if(NOT DEFINED BBL_INTERNAL_TESTING)
 set(BBL_INTERNAL_TESTING "0")
 endif()
-set(SoftFever_VERSION "2.3.1-beta")
+set(SoftFever_VERSION "2.3.2-dev")
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
        SoftFever_VERSION_MATCH ${SoftFever_VERSION})
 set(ORCA_VERSION_MAJOR ${CMAKE_MATCH_1})
@@ -18,3 +18,7 @@ set(ORCA_VERSION_MINOR ${CMAKE_MATCH_2})
 set(ORCA_VERSION_PATCH ${CMAKE_MATCH_3})
 
 set(SLIC3R_VERSION "01.10.01.50")
+
+if (NOT DEFINED ORCA_UPDATER_SIG_KEY)
+    set(ORCA_UPDATER_SIG_KEY "" CACHE STRING "Base64url encoded updater signature key")
+endif()

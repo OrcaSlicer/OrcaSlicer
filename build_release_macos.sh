@@ -3,7 +3,7 @@
 set -e
 set -o pipefail
 
-while getopts ":dpa:snt:xbc:h" opt; do
+while getopts ":dpa:snt:xbc:1h" opt; do
   case "${opt}" in
     d )
         export BUILD_TARGET="deps"
@@ -174,6 +174,7 @@ function build_slicer() {
                     -G "${SLICER_CMAKE_GENERATOR}" \
                     -DBBL_RELEASE_TO_PUBLIC=1 \
                     -DORCA_TOOLS=ON \
+                    ${ORCA_UPDATER_SIG_KEY:+-DORCA_UPDATER_SIG_KEY="$ORCA_UPDATER_SIG_KEY"} \
                     -DCMAKE_PREFIX_PATH="$DEPS/usr/local" \
                     -DCMAKE_INSTALL_PREFIX="$PWD/OrcaSlicer" \
                     -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \

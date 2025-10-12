@@ -268,5 +268,5 @@ if __name__ == '__main__':
         update_profile_library(args.vendor, 'process')
         update_profile_library(args.vendor, 'filament')
         update_profile_library(args.vendor, 'machine')
-    else:
-        rename_filament_system(args.vendor)
+    # else:
+        # rename_filament_system(args.vendor)

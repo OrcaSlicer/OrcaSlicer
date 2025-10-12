@@ -633,12 +633,12 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     return out_string;
 }
 
-std::string GCodeWriter::travel_to_z(double z, const std::string &comment)
+std::string GCodeWriter::travel_to_z(double z, const std::string &comment, bool force)
 {
     /*  If target Z is lower than current Z but higher than nominal Z
         we don't perform the move but we only adjust the nominal Z by
         reducing the lift amount that will be used for unlift. */
-    if (!this->will_move_z(z)) {
+    if (!force && !this->will_move_z(z)) {
         double nominal_z = m_pos(2) - m_lifted;
         m_lifted -= (z - nominal_z);
         if (std::abs(m_lifted) < EPSILON)

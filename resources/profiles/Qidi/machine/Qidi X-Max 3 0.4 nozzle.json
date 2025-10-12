@@ -21,7 +21,7 @@
     "nozzle_type": "hardened_steel",
     "auxiliary_fan": "1",
     "max_layer_height": [
-        "0.28"
+        "0.32"
     ],
     "min_layer_height": [
         "0.08"

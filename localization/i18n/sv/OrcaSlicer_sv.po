@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -6070,6 +6070,17 @@ msgstr "3mf kommer inte från Orca Slicer, laddar endast geometri data."
 msgid "Load 3mf"
 msgstr "Ladda 3mf"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -8618,11 +8629,11 @@ msgstr "Visa tangentbordets genvägs lista"
 msgid "Global shortcuts"
 msgstr "Övergripande genvägar"
 
-msgid "Rotate View"
-msgstr "Rotera vy"
-
 msgid "Pan View"
 msgstr "Panoreringsvy"
+
+msgid "Rotate View"
+msgstr "Rotera vy"
 
 msgid "Zoom View"
 msgstr "Zoomvy"

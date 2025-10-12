@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "PO-Revision-Date: 2025-03-27 19:32+0800\n"
 "Last-Translator: 5idereal <hi@5idereal.cc>\n"
 "Language-Team: \n"
@@ -6017,6 +6017,17 @@ msgstr "該 3mf 檔案不是來自 Orca Slicer，將只載入幾何資料。"
 msgid "Load 3mf"
 msgstr "載入 3mf"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -8525,11 +8536,11 @@ msgstr "顯示鍵盤快捷鍵清單"
 msgid "Global shortcuts"
 msgstr "全域快捷鍵"
 
-msgid "Rotate View"
-msgstr "旋轉視角"
-
 msgid "Pan View"
 msgstr "移動視角"
+
+msgid "Rotate View"
+msgstr "旋轉視角"
 
 msgid "Zoom View"
 msgstr "縮放視角"

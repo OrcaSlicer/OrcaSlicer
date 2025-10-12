@@ -21,30 +21,71 @@ endif()
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
 
 set(lisbslic3r_sources
-    ArcFitter.cpp
-    ArcFitter.hpp
-    pchheader.cpp
-    pchheader.hpp
+    AABBMesh.cpp
+    AABBMesh.hpp
     AABBTreeIndirect.hpp
     AABBTreeLines.hpp
-    AABBMesh.hpp
-    AABBMesh.cpp
-    Algorithm/LineSplit.hpp
     Algorithm/LineSplit.cpp
-    Algorithm/RegionExpansion.hpp
+    Algorithm/LineSplit.hpp
     Algorithm/RegionExpansion.cpp
+    Algorithm/RegionExpansion.hpp
     AnyPtr.hpp
+    AppConfig.cpp
+    AppConfig.hpp
+    Arachne/BeadingStrategy/BeadingStrategy.cpp
+    Arachne/BeadingStrategy/BeadingStrategyFactory.cpp
+    Arachne/BeadingStrategy/BeadingStrategyFactory.hpp
+    Arachne/BeadingStrategy/BeadingStrategy.hpp
+    Arachne/BeadingStrategy/DistributedBeadingStrategy.cpp
+    Arachne/BeadingStrategy/DistributedBeadingStrategy.hpp
+    Arachne/BeadingStrategy/LimitedBeadingStrategy.cpp
+    Arachne/BeadingStrategy/LimitedBeadingStrategy.hpp
+    Arachne/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
+    Arachne/BeadingStrategy/OuterWallInsetBeadingStrategy.hpp
+    Arachne/BeadingStrategy/RedistributeBeadingStrategy.cpp
+    Arachne/BeadingStrategy/RedistributeBeadingStrategy.hpp
+    Arachne/BeadingStrategy/WideningBeadingStrategy.cpp
+    Arachne/BeadingStrategy/WideningBeadingStrategy.hpp
+    Arachne/SkeletalTrapezoidation.cpp
+    Arachne/SkeletalTrapezoidationEdge.hpp
+    Arachne/SkeletalTrapezoidationGraph.cpp
+    Arachne/SkeletalTrapezoidationGraph.hpp
+    Arachne/SkeletalTrapezoidation.hpp
+    Arachne/SkeletalTrapezoidationJoint.hpp
+    Arachne/utils/ExtrusionJunction.hpp
+    Arachne/utils/ExtrusionLine.cpp
+    Arachne/utils/ExtrusionLine.hpp
+    Arachne/utils/HalfEdgeGraph.hpp
+    Arachne/utils/HalfEdge.hpp
+    Arachne/utils/HalfEdgeNode.hpp
+    Arachne/utils/PolygonsPointIndex.hpp
+    Arachne/utils/PolygonsSegmentIndex.hpp
+    Arachne/utils/PolylineStitcher.cpp
+    Arachne/utils/PolylineStitcher.hpp
+    Arachne/utils/SparseGrid.hpp
+    Arachne/utils/SparseLineGrid.hpp
+    Arachne/utils/SparsePointGrid.hpp
+    Arachne/utils/SquareGrid.cpp
+    Arachne/utils/SquareGrid.hpp
+    Arachne/WallToolPaths.cpp
+    Arachne/WallToolPaths.hpp
+    ArcFitter.cpp
+    ArcFitter.hpp
+    Arrange.cpp
+    Arrange.hpp
+    BlacklistedLibraryCheck.cpp
+    BlacklistedLibraryCheck.hpp
     BoundingBox.cpp
     BoundingBox.hpp
     BridgeDetector.cpp
     BridgeDetector.hpp
-    FaceDetector.cpp
-    FaceDetector.hpp
     Brim.cpp
-    Brim.hpp
     BrimEarsPoint.hpp
+    Brim.hpp
     BuildVolume.cpp
     BuildVolume.hpp
+    calib.cpp
+    calib.hpp
     Circle.cpp
     Circle.hpp
     clipper.cpp
@@ -56,6 +97,10 @@ set(lisbslic3r_sources
     Color.hpp
     Config.cpp
     Config.hpp
+    CustomGCode.cpp
+    CustomGCode.hpp
+    CutUtils.cpp
+    CutUtils.hpp
     EdgeGrid.cpp
     EdgeGrid.hpp
     ElephantFootCompensation.cpp
@@ -64,6 +109,9 @@ set(lisbslic3r_sources
     Emboss.hpp
     EmbossShape.hpp
     enum_bitmask.hpp
+    Execution/Execution.hpp
+    Execution/ExecutionSeq.hpp
+    Execution/ExecutionTBB.hpp
     ExPolygon.cpp
     ExPolygon.hpp
     ExPolygonSerialize.hpp
@@ -71,21 +119,21 @@ set(lisbslic3r_sources
     ExPolygonsIndex.hpp
     Extruder.cpp
     Extruder.hpp
-    ExtrusionEntity.cpp
-    ExtrusionEntity.hpp
     ExtrusionEntityCollection.cpp
     ExtrusionEntityCollection.hpp
+    ExtrusionEntity.cpp
+    ExtrusionEntity.hpp
     ExtrusionSimulator.cpp
     ExtrusionSimulator.hpp
+    FaceDetector.cpp
+    FaceDetector.hpp
+    Feature/FuzzySkin/FuzzySkin.cpp
+    Feature/FuzzySkin/FuzzySkin.hpp
     Feature/Interlocking/InterlockingGenerator.cpp
     Feature/Interlocking/InterlockingGenerator.hpp
     Feature/Interlocking/VoxelUtils.cpp
     Feature/Interlocking/VoxelUtils.hpp
     FileParserError.hpp
-    Feature/FuzzySkin/FuzzySkin.cpp
-    Feature/FuzzySkin/FuzzySkin.hpp
-    Fill/Fill.cpp
-    Fill/Fill.hpp
     Fill/Fill3DHoneycomb.cpp
     Fill/Fill3DHoneycomb.hpp
     Fill/FillAdaptive.cpp
@@ -96,22 +144,26 @@ set(lisbslic3r_sources
     Fill/FillConcentric.hpp
     Fill/FillConcentricInternal.cpp
     Fill/FillConcentricInternal.hpp
+    Fill/Fill.cpp
     Fill/FillCrossHatch.cpp
     Fill/FillCrossHatch.hpp
-    Fill/FillHoneycomb.cpp
-    Fill/FillHoneycomb.hpp
     Fill/FillGyroid.cpp
     Fill/FillGyroid.hpp
+    Fill/FillHoneycomb.cpp
+    Fill/FillHoneycomb.hpp
+    Fill/Fill.hpp
+    Fill/FillLightning.cpp
+    Fill/FillLightning.hpp
+    Fill/FillLine.cpp
+    Fill/FillLine.hpp
+    Fill/FillPlanePath.cpp
+    Fill/FillPlanePath.hpp
+    Fill/FillRectilinear.cpp
+    Fill/FillRectilinear.hpp
     Fill/FillTpmsD.cpp
     Fill/FillTpmsD.hpp
     Fill/FillTpmsFK.cpp
     Fill/FillTpmsFK.hpp
-    Fill/FillPlanePath.cpp
-    Fill/FillPlanePath.hpp
-    Fill/FillLine.cpp
-    Fill/FillLine.hpp
-    Fill/FillLightning.cpp
-    Fill/FillLightning.hpp
     Fill/Lightning/DistanceField.cpp
     Fill/Lightning/DistanceField.hpp
     Fill/Lightning/Generator.cpp
@@ -120,219 +172,256 @@ set(lisbslic3r_sources
     Fill/Lightning/Layer.hpp
     Fill/Lightning/TreeNode.cpp
     Fill/Lightning/TreeNode.hpp
-    Fill/FillRectilinear.cpp
-    Fill/FillRectilinear.hpp
     Flow.cpp
     Flow.hpp
     FlushVolCalc.cpp
     FlushVolCalc.hpp
-    format.hpp
     Format/3mf.cpp
     Format/3mf.hpp
-    Format/bbs_3mf.cpp
-    Format/bbs_3mf.hpp
     Format/AMF.cpp
     Format/AMF.hpp
+    Format/bbs_3mf.cpp
+    Format/bbs_3mf.hpp
+    format.hpp
     Format/OBJ.cpp
     Format/OBJ.hpp
     Format/objparser.cpp
     Format/objparser.hpp
+    Format/SL1.cpp
+    Format/SL1.hpp
     Format/STEP.cpp
     Format/STEP.hpp
     Format/STL.cpp
     Format/STL.hpp
-    Format/SL1.hpp
-    Format/SL1.cpp
-	Format/svg.hpp
     Format/svg.cpp
-    Format/ZipperArchiveImport.hpp
+    Format/svg.hpp
     Format/ZipperArchiveImport.cpp
-    GCode/ThumbnailData.cpp
-    GCode/ThumbnailData.hpp
+    Format/ZipperArchiveImport.hpp
+    GCode/AdaptivePAInterpolator.cpp
+    GCode/AdaptivePAInterpolator.hpp
+    GCode/AdaptivePAProcessor.cpp
+    GCode/AdaptivePAProcessor.hpp
+    GCode/AvoidCrossingPerimeters.cpp
+    GCode/AvoidCrossingPerimeters.hpp
+    GCode/ConflictChecker.cpp
+    GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
-	GCode/FanMover.cpp
+    GCode.cpp
+    GCode/ExtrusionProcessor.hpp
+    GCode/FanMover.cpp
     GCode/FanMover.hpp
+    GCode/GCodeProcessor.cpp
+    GCode/GCodeProcessor.hpp
+    GCode.hpp
+    GCode/PchipInterpolatorHelper.cpp
+    GCode/PchipInterpolatorHelper.hpp
     GCode/PostProcessor.cpp
     GCode/PostProcessor.hpp
     GCode/PressureEqualizer.cpp
     GCode/PressureEqualizer.hpp
     GCode/PrintExtents.cpp
     GCode/PrintExtents.hpp
-    GCode/RetractWhenCrossingPerimeters.cpp
-    GCode/RetractWhenCrossingPerimeters.hpp
-    GCode/SmallAreaInfillFlowCompensator.cpp
-    GCode/SmallAreaInfillFlowCompensator.hpp
-    GCode/PchipInterpolatorHelper.cpp
-    GCode/PchipInterpolatorHelper.hpp
-    GCode/AdaptivePAInterpolator.cpp
-    GCode/AdaptivePAInterpolator.hpp
-    GCode/AdaptivePAProcessor.cpp
-    GCode/AdaptivePAProcessor.hpp
-    GCode/SpiralVase.cpp
-    GCode/SpiralVase.hpp
-    GCode/SeamPlacer.cpp
-    GCode/SeamPlacer.hpp
-    GCode/ToolOrdering.cpp
-    GCode/ToolOrdering.hpp
-    GCode/WipeTower.cpp
-    GCode/WipeTower.hpp
-    GCode/WipeTower2.cpp
-    GCode/WipeTower2.hpp
-    GCode/GCodeProcessor.cpp
-    GCode/GCodeProcessor.hpp
-    GCode/AvoidCrossingPerimeters.cpp
-    GCode/AvoidCrossingPerimeters.hpp
-    GCode/ExtrusionProcessor.hpp
-    GCode/ConflictChecker.cpp
-    GCode/ConflictChecker.hpp
-    GCode.cpp
-    GCode.hpp
     GCodeReader.cpp
     GCodeReader.hpp
-    # GCodeSender.cpp
-    # GCodeSender.hpp
+    GCode/RetractWhenCrossingPerimeters.cpp
+    GCode/RetractWhenCrossingPerimeters.hpp
+    GCode/SeamPlacer.cpp
+    GCode/SeamPlacer.hpp
+    #GCodeSender.cpp
+    #GCodeSender.hpp
+    GCode/SmallAreaInfillFlowCompensator.cpp
+    GCode/SmallAreaInfillFlowCompensator.hpp
+    GCode/SpiralVase.cpp
+    GCode/SpiralVase.hpp
+    GCode/ThumbnailData.cpp
+    GCode/ThumbnailData.hpp
+    GCode/Thumbnails.cpp
+    GCode/Thumbnails.hpp
+    GCode/ToolOrdering.cpp
+    GCode/ToolOrdering.hpp
+    GCode/WipeTower2.cpp
+    GCode/WipeTower2.hpp
+    GCode/WipeTower.cpp
+    GCode/WipeTower.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
-    Geometry.cpp
-    Geometry.hpp
     Geometry/Bicubic.hpp
     Geometry/Circle.cpp
     Geometry/Circle.hpp
     Geometry/ConvexHull.cpp
     Geometry/ConvexHull.hpp
+    Geometry.cpp
     Geometry/Curves.hpp
+    Geometry.hpp
     Geometry/MedialAxis.cpp
     Geometry/MedialAxis.hpp
-	Geometry/Voronoi.cpp
+    Geometry/Voronoi.cpp
     Geometry/Voronoi.hpp
     Geometry/VoronoiOffset.cpp
     Geometry/VoronoiOffset.hpp
-	Geometry/VoronoiUtils.hpp
-    Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtilsCgal.cpp
     Geometry/VoronoiUtilsCgal.hpp
+    Geometry/VoronoiUtils.cpp
+    Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp
     Layer.hpp
     LayerRegion.cpp
-    libslic3r.h
     libslic3r.cpp
+    libslic3r.h
     Line.cpp
     Line.hpp
-    BlacklistedLibraryCheck.cpp
-    BlacklistedLibraryCheck.hpp
     LocalesUtils.cpp
     LocalesUtils.hpp
-    CutUtils.cpp
-    CutUtils.hpp
+    MarchingSquares.hpp
+    Measure.cpp
+    Measure.hpp
+    MeasureUtils.hpp
+    MeshSplitImpl.hpp
+    MinAreaBoundingBox.cpp
+    MinAreaBoundingBox.hpp
+    MinimumSpanningTree.cpp
+    MinimumSpanningTree.hpp
+    miniz_extension.cpp
+    miniz_extension.hpp
+    ModelArrange.cpp
+    ModelArrange.hpp
     Model.cpp
     Model.hpp
-    ModelArrange.hpp
-    ModelArrange.cpp
+    MTUtils.hpp
     MultiMaterialSegmentation.cpp
     MultiMaterialSegmentation.hpp
-    Measure.hpp
-    Measure.cpp
-    MeasureUtils.hpp
-    CustomGCode.cpp
-    CustomGCode.hpp
-    Arrange.hpp
-    Arrange.cpp
-    NormalUtils.cpp
-    NormalUtils.hpp
-    ObjColorUtils.hpp
-    Orient.hpp
-    Orient.cpp
     MultiPoint.cpp
     MultiPoint.hpp
+    MutablePolygon.cpp
+    MutablePolygon.hpp
     MutablePriorityQueue.hpp
+    NormalUtils.cpp
+    NormalUtils.hpp
     NSVGUtils.cpp
     NSVGUtils.hpp
+    ObjColorUtils.hpp
     ObjectID.cpp
     ObjectID.hpp
-	ParameterUtils.cpp
+    Optimize/BruteforceOptimizer.hpp
+    Optimize/NLoptOptimizer.hpp
+    Optimize/Optimizer.hpp
+    Orient.cpp
+    Orient.hpp
+    ParameterUtils.cpp
     ParameterUtils.hpp
+    pchheader.cpp
+    pchheader.hpp
     PerimeterGenerator.cpp
     PerimeterGenerator.hpp
     PlaceholderParser.cpp
     PlaceholderParser.hpp
     Platform.cpp
     Platform.hpp
+    PNGReadWrite.cpp
+    PNGReadWrite.hpp
     Point.cpp
     Point.hpp
     Polygon.cpp
     Polygon.hpp
-    MutablePolygon.cpp
-    MutablePolygon.hpp
     PolygonTrimmer.cpp
     PolygonTrimmer.hpp
     Polyline.cpp
     Polyline.hpp
-    Preset.cpp
-    Preset.hpp
     PresetBundle.cpp
     PresetBundle.hpp
-    ProjectTask.cpp
-    ProjectTask.hpp
-    PrincipalComponents2D.hpp
+    Preset.cpp
+    Preset.hpp
     PrincipalComponents2D.cpp
-    AppConfig.cpp
-    AppConfig.hpp
-    Print.cpp
-    Print.hpp
+    PrincipalComponents2D.hpp
     PrintApply.cpp
     PrintBase.cpp
     PrintBase.hpp
     PrintConfig.cpp
     PrintConfig.hpp
+    Print.cpp
+    Print.hpp
     PrintObject.cpp
     PrintObjectSlice.cpp
     PrintRegion.cpp
-    PNGReadWrite.hpp
-    PNGReadWrite.cpp
+    ProjectTask.cpp
+    ProjectTask.hpp
     QuadricEdgeCollapse.cpp
     QuadricEdgeCollapse.hpp
     Semver.cpp
+    Shape/TextShape.cpp
+    Shape/TextShape.hpp
     ShortEdgeCollapse.cpp
     ShortEdgeCollapse.hpp
     ShortestPath.cpp
     ShortestPath.hpp
+    SLA/AGGRaster.hpp
+    SLA/BoostAdapter.hpp
+    SLA/Clustering.cpp
+    SLA/Clustering.hpp
+    SLA/ConcaveHull.cpp
+    SLA/ConcaveHull.hpp
+    SLA/Concurrency.hpp
+    SLA/Hollowing.cpp
+    SLA/Hollowing.hpp
+    SLA/IndexedMesh.cpp
+    SLA/IndexedMesh.hpp
+    SLA/JobController.hpp
+    SLA/Pad.cpp
+    SLA/Pad.hpp
     SLAPrint.cpp
+    SLAPrint.hpp
     SLAPrintSteps.cpp
     SLAPrintSteps.hpp
-    SLAPrint.hpp
-    Slicing.cpp
-    Slicing.hpp
-    SlicesToTriangleMesh.hpp
+    SLA/RasterBase.cpp
+    SLA/RasterBase.hpp
+    SLA/RasterToPolygons.cpp
+    SLA/RasterToPolygons.hpp
+    SLA/ReprojectPointsOnMesh.hpp
+    SLA/Rotfinder.cpp
+    SLA/Rotfinder.hpp
+    SLA/SpatIndex.cpp
+    SLA/SpatIndex.hpp
+    SLA/SupportPointGenerator.cpp
+    SLA/SupportPointGenerator.hpp
+    SLA/SupportPoint.hpp
+    SLA/SupportTreeBuilder.cpp
+    SLA/SupportTreeBuilder.hpp
+    SLA/SupportTreeBuildsteps.cpp
+    SLA/SupportTreeBuildsteps.hpp
+    SLA/SupportTree.cpp
+    SLA/SupportTree.hpp
+    #SLA/SupportTreeIGL.cpp
+    SLA/SupportTreeMesher.cpp
+    SLA/SupportTreeMesher.hpp
     SlicesToTriangleMesh.cpp
+    SlicesToTriangleMesh.hpp
     SlicingAdaptive.cpp
     SlicingAdaptive.hpp
+    Slicing.cpp
+    Slicing.hpp
     Support/SupportCommon.cpp
     Support/SupportCommon.hpp
     Support/SupportLayer.hpp
     Support/SupportMaterial.cpp
     Support/SupportMaterial.hpp
+    Support/SupportParameters.hpp
     Support/SupportSpotsGenerator.cpp
     Support/SupportSpotsGenerator.hpp
-    Support/TreeSupport.hpp
-    Support/TreeSupport.cpp
-    Support/TreeSupport3D.hpp
-    Support/TreeSupport3D.cpp
-    Support/TreeModelVolumes.hpp
     Support/TreeModelVolumes.cpp
+    Support/TreeModelVolumes.hpp
+    Support/TreeSupport3D.cpp
+    Support/TreeSupport3D.hpp
     Support/TreeSupportCommon.hpp
-    Support/SupportParameters.hpp
-    PrincipalComponents2D.cpp
-    PrincipalComponents2D.hpp
-    MinimumSpanningTree.hpp
-    MinimumSpanningTree.cpp
-    Surface.cpp
-    Surface.hpp
+    Support/TreeSupport.cpp
+    Support/TreeSupport.hpp
     SurfaceCollection.cpp
     SurfaceCollection.hpp
+    Surface.cpp
+    Surface.hpp
     SurfaceMesh.hpp
     SVG.cpp
     SVG.hpp
@@ -340,124 +429,33 @@ set(lisbslic3r_sources
     Tesselate.cpp
     Tesselate.hpp
     TextConfiguration.hpp
-    TriangleMesh.cpp
-    TriangleMesh.hpp
-    TriangleMeshSlicer.cpp
-    TriangleMeshSlicer.hpp
-    MeshSplitImpl.hpp
-    TriangulateWall.hpp
-    TriangulateWall.cpp
-    utils.cpp
-    Utils.hpp
+    Thread.cpp
+    Thread.hpp
     Time.cpp
     Time.hpp
     Timer.cpp
     Timer.hpp
-    Thread.cpp
-    Thread.hpp
+    TriangleMesh.cpp
+    TriangleMesh.hpp
+    TriangleMeshSlicer.cpp
+    TriangleMeshSlicer.hpp
     TriangleSelector.cpp
     TriangleSelector.hpp
     TriangleSetSampling.cpp
     TriangleSetSampling.hpp
-    MTUtils.hpp
+    TriangulateWall.cpp
+    TriangulateWall.hpp
+    utils.cpp
+    Utils.hpp
     VariableWidth.cpp
     VariableWidth.hpp
-    Zipper.hpp
     Zipper.cpp
-    MinAreaBoundingBox.hpp
-    MinAreaBoundingBox.cpp
-    miniz_extension.hpp
-    miniz_extension.cpp
-    MarchingSquares.hpp
-    Execution/Execution.hpp
-    Execution/ExecutionSeq.hpp
-    Execution/ExecutionTBB.hpp
-    Optimize/Optimizer.hpp
-    Optimize/NLoptOptimizer.hpp
-    Optimize/BruteforceOptimizer.hpp
-    SLA/Pad.hpp
-    SLA/Pad.cpp
-    SLA/SupportTreeBuilder.hpp
-    SLA/SupportTreeMesher.hpp
-    SLA/SupportTreeMesher.cpp
-    SLA/SupportTreeBuildsteps.hpp
-    SLA/SupportTreeBuildsteps.cpp
-    SLA/SupportTreeBuilder.cpp
-    SLA/Concurrency.hpp
-    SLA/SupportTree.hpp
-    SLA/SupportTree.cpp
-#    SLA/SupportTreeIGL.cpp
-    SLA/Rotfinder.hpp
-    SLA/Rotfinder.cpp
-    SLA/BoostAdapter.hpp
-    SLA/SpatIndex.hpp
-    SLA/SpatIndex.cpp
-    SLA/RasterBase.hpp
-    SLA/RasterBase.cpp
-    SLA/AGGRaster.hpp
-    SLA/RasterToPolygons.hpp
-    SLA/RasterToPolygons.cpp
-    SLA/ConcaveHull.hpp
-    SLA/ConcaveHull.cpp
-    SLA/Hollowing.hpp
-    SLA/Hollowing.cpp
-    SLA/JobController.hpp
-    SLA/SupportPoint.hpp
-    SLA/SupportPointGenerator.hpp
-    SLA/SupportPointGenerator.cpp
-    SLA/IndexedMesh.hpp
-    SLA/IndexedMesh.cpp
-    SLA/Clustering.hpp
-    SLA/Clustering.cpp
-    SLA/ReprojectPointsOnMesh.hpp
-    Arachne/BeadingStrategy/BeadingStrategy.hpp
-    Arachne/BeadingStrategy/BeadingStrategy.cpp
-    Arachne/BeadingStrategy/BeadingStrategyFactory.hpp
-    Arachne/BeadingStrategy/BeadingStrategyFactory.cpp
-    Arachne/BeadingStrategy/DistributedBeadingStrategy.hpp
-    Arachne/BeadingStrategy/DistributedBeadingStrategy.cpp
-    Arachne/BeadingStrategy/LimitedBeadingStrategy.hpp
-    Arachne/BeadingStrategy/LimitedBeadingStrategy.cpp
-    Arachne/BeadingStrategy/OuterWallInsetBeadingStrategy.hpp
-    Arachne/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
-    Arachne/BeadingStrategy/RedistributeBeadingStrategy.hpp
-    Arachne/BeadingStrategy/RedistributeBeadingStrategy.cpp
-    Arachne/BeadingStrategy/WideningBeadingStrategy.hpp
-    Arachne/BeadingStrategy/WideningBeadingStrategy.cpp
-    Arachne/utils/ExtrusionJunction.hpp
-    Arachne/utils/ExtrusionLine.hpp
-    Arachne/utils/ExtrusionLine.cpp
-    Arachne/utils/HalfEdge.hpp
-    Arachne/utils/HalfEdgeGraph.hpp
-    Arachne/utils/HalfEdgeNode.hpp
-    Arachne/utils/SparseGrid.hpp
-    Arachne/utils/SparsePointGrid.hpp
-    Arachne/utils/SparseLineGrid.hpp
-    Arachne/utils/SquareGrid.hpp
-    Arachne/utils/SquareGrid.cpp
-    Arachne/utils/PolygonsPointIndex.hpp
-    Arachne/utils/PolygonsSegmentIndex.hpp
-    Arachne/utils/PolylineStitcher.hpp
-    Arachne/utils/PolylineStitcher.cpp
-    Arachne/SkeletalTrapezoidation.hpp
-    Arachne/SkeletalTrapezoidation.cpp
-    Arachne/SkeletalTrapezoidationEdge.hpp
-    Arachne/SkeletalTrapezoidationGraph.hpp
-    Arachne/SkeletalTrapezoidationGraph.cpp
-    Arachne/SkeletalTrapezoidationJoint.hpp
-    Arachne/WallToolPaths.hpp
-    Arachne/WallToolPaths.cpp
-    Shape/TextShape.hpp
-    Shape/TextShape.cpp
-    calib.hpp
-    calib.cpp
-    GCode/Thumbnails.cpp
-    GCode/Thumbnails.hpp
+    Zipper.hpp
 )
 
 if (APPLE)
     list(APPEND lisbslic3r_sources
-			MacUtils.mm
+            MacUtils.mm
             Format/ModelIO.hpp
             Format/ModelIO.mm
         )
@@ -519,7 +517,7 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
 # Find the OCCT and related libraries
 set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
 find_package(OpenCASCADE REQUIRED)
-target_include_directories(libslic3r PUBLIC ${OpenCASCADE_INCLUDE_DIR})
+target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 
 find_package(JPEG REQUIRED)
 
@@ -554,57 +552,59 @@ set(OCCT_LIBS
 
 find_package(libnoise REQUIRED)
 target_link_libraries(libslic3r
-    libnest2d
-    admesh
-    cereal::cereal
-    eigen
-    libigl
-    miniz
-    boost_libs
-    clipper
-    ${EXPAT_LIBRARIES}
-    glu-libtess
-    qhull
-    semver
-    TBB::tbb
-    TBB::tbbmalloc
-    libslic3r_cgal
-    ${CMAKE_DL_LIBS}
-    PNG::PNG
-    ZLIB::ZLIB
-    ${OCCT_LIBS}
-    mcut
-    JPEG::JPEG
-    qoi
-    opencv_world
-    noise::noise
+    PUBLIC
+        admesh
+        libigl
+        libnest2d
+        miniz
+        opencv_world
+    PRIVATE
+        ${CMAKE_DL_LIBS}
+        ${EXPAT_LIBRARIES}
+        ${OCCT_LIBS}
+        boost_libs
+        cereal::cereal
+        clipper
+        eigen
+        glu-libtess
+        JPEG::JPEG
+        libslic3r_cgal
+        mcut
+        noise::noise
+        PNG::PNG
+        qhull
+        qoi
+        semver
+        TBB::tbb
+        TBB::tbbmalloc
+        ZLIB::ZLIB
     )
 
 if(NOT WIN32)
     # Link freetype for OCCT dependency (CAD operations need font rendering)
-    target_link_libraries(libslic3r ${FREETYPE_LIBRARIES})
-    target_link_libraries(libslic3r OpenSSL::Crypto)
+    target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
+    target_link_libraries(libslic3r PRIVATE OpenSSL::Crypto)
     if (NOT APPLE)
-        target_link_libraries(libslic3r fontconfig)
+        target_link_libraries(libslic3r PRIVATE fontconfig)
     endif()
 endif()
 
 if (APPLE)
     find_library(FOUNDATION Foundation REQUIRED)
     find_library(MODELIO ModelIO REQUIRED)
-    target_link_libraries(libslic3r ${FOUNDATION} ${MODELIO})
+    target_link_libraries(libslic3r PRIVATE ${FOUNDATION} ${MODELIO})
 endif ()
 
 if (TARGET OpenVDB::openvdb)
-    target_link_libraries(libslic3r OpenVDB::openvdb)
+    target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
 endif()
 
 if(WIN32)
-    target_link_libraries(libslic3r Psapi.lib)
+    target_link_libraries(libslic3r PRIVATE Psapi.lib)
 endif()
 
 if(SLIC3R_PROFILE)
-    target_link_libraries(libslic3r Shiny)
+    target_link_libraries(libslic3r PRIVATE Shiny)
 endif()
 
 if (SLIC3R_PCH AND NOT SLIC3R_SYNTAXONLY)

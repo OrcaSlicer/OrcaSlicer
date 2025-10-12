@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Afinia H+1(HS)",
+    "model_id": "my_afinia_h_1_hs_01",
+    "nozzle_diameter": "0.4;0.6",
+    "machine_tech": "FFF",
+    "family": "Afinia",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "Afinia ABS;Afinia PLA"
+}
