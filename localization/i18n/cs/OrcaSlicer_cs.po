@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "PO-Revision-Date: 2024-11-03 20:59+0100\n"
 "Last-Translator: René Mošner <Renemosner@seznam.cz>\n"
 "Language-Team: \n"
@@ -6170,6 +6170,17 @@ msgstr ""
 msgid "Load 3mf"
 msgstr "Načíst 3mf"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -8733,11 +8744,11 @@ msgstr "Zobrazit přehled klávesových zkratek"
 msgid "Global shortcuts"
 msgstr "Globální zkratky"
 
-msgid "Rotate View"
-msgstr "Otočit pohled"
-
 msgid "Pan View"
 msgstr "Zobrazení panorama"
+
+msgid "Rotate View"
+msgstr "Otočit pohled"
 
 msgid "Zoom View"
 msgstr "Zvětšit zobrazení"

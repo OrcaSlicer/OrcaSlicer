@@ -1,6 +1,6 @@
 {
     "name": "Prusa",
-    "version": "02.03.01.01",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Prusa configurations",
     "machine_model_list": [

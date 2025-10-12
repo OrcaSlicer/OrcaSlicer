@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.2mm Vase Mode @Delta Flyer Refit",
+    "inherits": "fdm_process_Rook MK1 LDO_common",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_layers": "4",
+    "initial_layer_infill_speed": "100",
+    "initial_layer_speed": "80",
+    "min_skirt_length": "8",
+    "outer_wall_line_width": "1",
+    "skirt_height": "1",
+    "skirt_loops": "2",
+    "sparse_infill_density": "0%",
+    "spiral_mode": "1",
+    "top_shell_layers": "0",
+    "top_solid_infill_flow_ratio": "0.95",
+    "travel_speed": "300",
+    "wall_loops": "1"
+}

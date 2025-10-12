@@ -544,6 +544,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/HexFile.hpp
     Utils/Http.cpp
     Utils/Http.hpp
+    Utils/InstanceID.cpp
+    Utils/InstanceID.hpp
     Utils/json_diff.cpp
     Utils/json_diff.hpp
     Utils/minilzo_extension.cpp
@@ -622,11 +624,28 @@ if (UNIX AND NOT APPLE)
     )
 endif ()
 
+set(ORCA_UPDATER_SIG_KEY_B64 "${ORCA_UPDATER_SIG_KEY}")
+string(STRIP "${ORCA_UPDATER_SIG_KEY_B64}" ORCA_UPDATER_SIG_KEY_B64)
+string(REPLACE "\n" "" ORCA_UPDATER_SIG_KEY_B64 "${ORCA_UPDATER_SIG_KEY_B64}")
+string(REPLACE "\r" "" ORCA_UPDATER_SIG_KEY_B64 "${ORCA_UPDATER_SIG_KEY_B64}")
+string(REPLACE "\t" "" ORCA_UPDATER_SIG_KEY_B64 "${ORCA_UPDATER_SIG_KEY_B64}")
+string(REPLACE " "  "" ORCA_UPDATER_SIG_KEY_B64 "${ORCA_UPDATER_SIG_KEY_B64}")
+
+set(ORCA_UPDATER_SIG_KEY_AVAILABLE 0)
+if(ORCA_UPDATER_SIG_KEY_B64)
+    set(ORCA_UPDATER_SIG_KEY_AVAILABLE 1)
+endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/GeneratedConfig.hpp.in
+               ${CMAKE_CURRENT_BINARY_DIR}/GeneratedConfig.hpp
+               @ONLY)
+
 add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
-target_include_directories(libslic3r_gui PRIVATE Utils)
+target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)
+    target_link_libraries(libslic3r_gui Advapi32)
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
@@ -652,7 +671,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${CURL_LIBRARIES}
     )
 elseif (APPLE)
-    target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY})
+    target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY} "-framework Security")
 endif()
 
 if (SLIC3R_STATIC)
@@ -677,7 +696,9 @@ endif ()
 # layer and sub-libraries. This forces us to use the include locations and
 # link these libraries.
 if (UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
     find_package(GTK${SLIC3R_GTK} REQUIRED)
+    pkg_check_modules(LIBSECRET REQUIRED libsecret-1)
     if (FLATPAK)
         # I don't know why this is needed, but for whatever reason slic3r isn't
         # linking to X11 and webkit2gtk. force it.
@@ -686,8 +707,8 @@ if (UNIX AND NOT APPLE)
         pkg_check_modules(webkit2gtk REQUIRED webkit2gtk-4.1)
         target_link_libraries (libslic3r_gui ${X11_LIBRARIES} ${webkit2gtk_LIBRARIES})
     endif()
-    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS})
-    target_link_libraries(libslic3r_gui ${GTK${SLIC3R_GTK}_LIBRARIES} fontconfig)
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GTK${SLIC3R_GTK}_INCLUDE_DIRS} ${LIBSECRET_INCLUDE_DIRS})
+    target_link_libraries(libslic3r_gui ${GTK${SLIC3R_GTK}_LIBRARIES} fontconfig ${LIBSECRET_LIBRARIES})
 
 
     # We add GStreamer for bambu:/// support.

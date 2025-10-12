@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "PO-Revision-Date: 2025-09-14 23:43+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -178,7 +178,7 @@ msgid "Smart fill"
 msgstr "Akıllı boyama"
 
 msgid "Bucket fill"
-msgstr "Kova boya aracı"
+msgstr "Boya kovası aracı"
 
 msgid "Height range"
 msgstr "Yükseklik aralığı"
@@ -336,7 +336,7 @@ msgid "Auto"
 msgstr "Otomatik"
 
 msgid "Manual"
-msgstr "Manual"
+msgstr "Manuel"
 
 msgid "Plug"
 msgstr "Tak"
@@ -369,7 +369,7 @@ msgid "Flip upside down"
 msgstr "Baş aşağı çevir"
 
 msgid "Connectors"
-msgstr "Konektörler"
+msgstr "Bağlayıcılar"
 
 msgid "Type"
 msgstr "Tür"
@@ -566,7 +566,7 @@ msgstr[0] "%1$d bağlayıcı nesnenin dışında"
 msgstr[1] "%1$d bağlayıcı nesnenin dışında"
 
 msgid "Some connectors are overlapped"
-msgstr "Bazı konektörler üst üste binmiş"
+msgstr "Bazı bağlayıcılar üst üste binmiş"
 
 msgid "Select at least one object to keep after cutting."
 msgstr "Kesimden sonra saklanacak en az bir nesne seçin."
@@ -6235,6 +6235,17 @@ msgstr ""
 msgid "Load 3mf"
 msgstr "3mf yükle"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -8914,11 +8925,11 @@ msgstr "Klavye kısayolları listesini göster"
 msgid "Global shortcuts"
 msgstr "Genel kısayollar"
 
-msgid "Rotate View"
-msgstr "Görüntüyü döndür"
-
 msgid "Pan View"
 msgstr "Pan Görünümü"
+
+msgid "Rotate View"
+msgstr "Görüntüyü döndür"
 
 msgid "Zoom View"
 msgstr "Zoom Görünümü"
@@ -12475,6 +12486,7 @@ msgstr "İlk katmana pütürlü yüzey uygulanıp uygulanmayacağı."
 msgid "Fuzzy skin generator mode"
 msgstr "Pütürlü yüzey oluşturma modu"
 
+#, fuzzy, c-format, boost-format
 msgid ""
 "Fuzzy skin generation mode. Works only with Arachne!\n"
 "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle "

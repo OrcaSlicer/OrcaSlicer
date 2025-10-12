@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "PO-Revision-Date: 2024-07-28 07:12+0000\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -6001,6 +6001,19 @@ msgstr "该3mf文件不是来自Orca Slicer，将只加载几何数据。"
 msgid "Load 3mf"
 msgstr "加载3mf"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+"该项目由 OrcaSlicer 2.3.1-alpha 创建，并使用了填充旋转模板设置，这些设置可能"
+"无法与您当前的填充模式正常配合，可能导致支撑不足或打印质量问题。"
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr "您是否希望 OrcaSlicer 清除旋转模板设置以自动修复此问题？"
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -8503,11 +8516,11 @@ msgstr "显示键盘快捷键列表"
 msgid "Global shortcuts"
 msgstr "全局快捷键"
 
-msgid "Rotate View"
-msgstr "旋转视角"
-
 msgid "Pan View"
 msgstr "移动视角"
+
+msgid "Rotate View"
+msgstr "旋转视角"
 
 msgid "Zoom View"
 msgstr "缩放视角"

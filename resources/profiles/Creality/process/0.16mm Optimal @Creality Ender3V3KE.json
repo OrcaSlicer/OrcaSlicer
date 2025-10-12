@@ -115,6 +115,9 @@
     "travel_jerk": "7",
     "accel_to_decel_enable": "0",
     "compatible_printers": [
-        "Creality Ender-3 V3 KE 0.4 nozzle"
+        "Creality Ender-3 V3 KE 0.2 nozzle",
+        "Creality Ender-3 V3 KE 0.4 nozzle",
+        "Creality Ender-3 V3 KE 0.6 nozzle",
+        "Creality Ender-3 V3 KE 0.8 nozzle"
     ]
 }

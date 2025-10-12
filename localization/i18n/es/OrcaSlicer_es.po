@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Carlos Fco. Caruncho Serrano <puzzlero@gmail.com>\n"
 "Language-Team: \n"
@@ -6309,6 +6309,17 @@ msgstr "El 3mf no es de Orca Slicer, cargando sólo datos de geometría."
 msgid "Load 3mf"
 msgstr "Cargar 3mf"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -9004,11 +9015,11 @@ msgstr "Muestra lista de atajos de teclado"
 msgid "Global shortcuts"
 msgstr "Atajos globales"
 
-msgid "Rotate View"
-msgstr "Rotar Vista"
-
 msgid "Pan View"
 msgstr "Desplazar vista"
+
+msgid "Rotate View"
+msgstr "Rotar Vista"
 
 msgid "Zoom View"
 msgstr "Hacer Zoom"

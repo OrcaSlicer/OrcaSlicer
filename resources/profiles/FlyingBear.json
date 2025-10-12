@@ -1,6 +1,6 @@
 {
     "name": "FlyingBear",
-    "version": "02.03.01.00",
+    "version": "02.03.01.10",
     "force_update": "1",
     "description": "FlyingBear configurations",
     "machine_model_list": [
@@ -11,6 +11,10 @@
         {
             "name": "FlyingBear Reborn3",
             "sub_path": "machine/FlyingBear Reborn3.json"
+        },
+        {
+            "name": "FlyingBear Ghost7",
+            "sub_path": "machine/Ghost7/FlyingBear Ghost7.json"
         },
         {
             "name": "FlyingBear S1",
@@ -25,6 +29,10 @@
         {
             "name": "fdm_process_common_S1",
             "sub_path": "process/S1/fdm_process_common_S1.json"
+        },
+        {
+            "name": "fdm_process_common_Ghost7",
+            "sub_path": "process/Ghost7/fdm_process_common_Ghost7.json"
         },
         {
             "name": "0.08mm Extra Fine @FlyingBear Reborn3",
@@ -46,6 +54,28 @@
             "name": "0.24mm Draft @FlyingBear Reborn3",
             "sub_path": "process/0.24mm Draft @FlyingBear Reborn3.json"
         },
+
+        {
+            "name": "0.08mm Extra Fine @FlyingBear Ghost7",
+            "sub_path": "process/Ghost7/0.08mm Extra Fine @FlyingBear Ghost7.json"
+        },
+        {
+            "name": "0.12mm Fine @FlyingBear Ghost7",
+            "sub_path": "process/Ghost7/0.12mm Fine @FlyingBear Ghost7.json"
+        },
+        {
+            "name": "0.16mm Optimal @FlyingBear Ghost7",
+            "sub_path": "process/Ghost7/0.16mm Optimal @FlyingBear Ghost7.json"
+        },
+        {
+            "name": "0.20mm Standard @FlyingBear Ghost7",
+            "sub_path": "process/Ghost7/0.20mm Standard @FlyingBear Ghost7.json"
+        },
+        {
+            "name": "0.24mm Draft @FlyingBear Ghost7",
+            "sub_path": "process/Ghost7/0.24mm Draft @FlyingBear Ghost7.json"
+        },     
+        
         {
             "name": "fdm_process_marlin_common",
             "sub_path": "process/fdm_process_marlin_common.json"
@@ -99,6 +129,10 @@
         {
             "name": "fdm_filament_common_S1",
             "sub_path": "filament/S1/fdm_filament_common_S1.json"
+        },
+        {
+            "name": "fdm_filament_common_Ghost7",
+            "sub_path": "filament/Ghost7/fdm_filament_common_Ghost7.json"
         },
         {
             "name": "fdm_filament_abs",
@@ -163,6 +197,10 @@
         {
             "name": "fdm_filament_pla @S1",
             "sub_path": "filament/S1/fdm_filament_pla @S1.json"
+        },
+        {
+            "name": "fdm_filament_pla @Ghost7",
+            "sub_path": "filament/Ghost7/fdm_filament_pla @Ghost7.json"
         },
         {
             "name": "fdm_filament_pla_Hyper @S1",
@@ -245,6 +283,10 @@
             "sub_path": "filament/S1/Other PETG @S1.json"
         },
         {
+            "name": "FlyingBear PLA @Ghost7",
+            "sub_path": "filament/Ghost7/FlyingBear PLA @Ghost7.json"
+        },
+        {
             "name": "FlyingBear PLA @S1",
             "sub_path": "filament/S1/FlyingBear PLA @S1.json"
         },
@@ -289,6 +331,10 @@
         {
             "name": "FlyingBear Reborn3 0.4 nozzle",
             "sub_path": "machine/FlyingBear Reborn3 0.4 nozzle.json"
+        },
+        {
+            "name": "FlyingBear Ghost7 0.4 nozzle",
+            "sub_path": "machine/Ghost7/FlyingBear Ghost7 0.4 nozzle.json"
         },
         {
             "name": "FlyingBear S1 0.4 nozzle",

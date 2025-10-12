@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-09-11 21:06+0800\n"
+"POT-Creation-Date: 2025-09-28 18:44+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -6122,6 +6122,17 @@ msgstr "이 3mf는 OrcaSlicer에서 지원되지 않습니다. 형상 데이터�
 msgid "Load 3mf"
 msgstr "3mf 불러오기"
 
+msgid ""
+"This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
+"rotation template settings that may not work properly with your current "
+"infill pattern. This could result in weak support or print quality issues."
+msgstr ""
+
+msgid ""
+"Would you like OrcaSlicer to automatically fix this by clearing the rotation "
+"template settings?"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 "The 3mf's version %s is newer than %s's version %s, found following "
@@ -8707,11 +8718,11 @@ msgstr "키보드 단축키 목록 보기"
 msgid "Global shortcuts"
 msgstr "전역 단축키"
 
-msgid "Rotate View"
-msgstr "시점 회전"
-
 msgid "Pan View"
 msgstr "시점 이동"
+
+msgid "Rotate View"
+msgstr "시점 회전"
 
 msgid "Zoom View"
 msgstr "시점 확대/축소"
