@@ -18,15 +18,12 @@
         "0.16"
     ],
     "nozzle_type": [
-        "hardened_steel",
         "hardened_steel"
     ],
     "retract_length_toolchange": [
-        "3",
         "3"
     ],
     "retraction_length": [
-        "3",
         "3"
     ],
     "upward_compatible_machine": [

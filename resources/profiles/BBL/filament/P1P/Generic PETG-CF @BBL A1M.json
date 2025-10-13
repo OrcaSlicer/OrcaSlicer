@@ -92,12 +92,6 @@
     "overhang_fan_speed": [
         "90"
     ],
-    "retraction_distances_when_ec": [
-        "0"
-    ],
-    "volumetric_speed_coefficients": [
-        "0 0 0 0 0 0"
-    ],
     "compatible_printers": [
         "Bambu Lab A1 mini 0.4 nozzle",
         "Bambu Lab A1 mini 0.6 nozzle",

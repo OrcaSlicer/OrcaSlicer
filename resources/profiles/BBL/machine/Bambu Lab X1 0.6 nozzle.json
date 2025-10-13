@@ -18,15 +18,12 @@
         "0.12"
     ],
     "nozzle_type": [
-        "hardened_steel",
         "hardened_steel"
     ],
     "retraction_length": [
-        "1.4",
         "1.4"
     ],
     "retraction_minimum_travel": [
-        "3",
         "3"
     ],
     "upward_compatible_machine": [

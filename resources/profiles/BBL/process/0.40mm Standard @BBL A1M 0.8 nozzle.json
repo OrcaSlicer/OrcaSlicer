@@ -5,13 +5,12 @@
     "from": "system",
     "setting_id": "GP037",
     "instantiation": "true",
+    "description": "It has a very big layer height, and results in very apparent layer lines, low printing quality and general printing time.",
     "default_acceleration": [
-        "6000",
         "6000"
     ],
     "elefant_foot_compensation": "0",
     "travel_speed": [
-        "700",
         "700"
     ],
     "compatible_printers": [
