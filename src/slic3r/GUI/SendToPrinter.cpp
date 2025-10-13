@@ -1374,8 +1374,10 @@ void SendToPrinterDialog::Enable_Refresh_Button(bool en)
 
 void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxString> params)
 {
-	if (m_print_status != status)
-		BOOST_LOG_TRIVIAL(info) << "select_machine_dialog: show_status = " << status;
+    if (m_print_status != status)
+        BOOST_LOG_TRIVIAL(info) << "select_machine_dialog: show_status = " << status;
+    else
+        return;
 	m_print_status = status;
 
 	// m_comboBox_printer
@@ -1395,7 +1397,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 
         Layout();
         Enable_Send_Button(false);
-        Enable_Refresh_Button(true);
+        Enable_Refresh_Button(false);
         return;
 
     } else if (status == PrintDialogStatus::PrintStatusReconnecting) {
@@ -1441,7 +1443,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         wxString msg_text = _L("Synchronizing device information");
         update_print_status_msg(msg_text, false, true);
         Enable_Send_Button(false);
-        Enable_Refresh_Button(true);
+        Enable_Refresh_Button(false);
     }
 
 	else if (status == PrintDialogStatus::PrintStatusReadingFinished) {
