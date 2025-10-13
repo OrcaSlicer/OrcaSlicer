@@ -1016,7 +1016,7 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
         if (!special_cooling_text.empty()) {
             L("Cooling mode is suitable for printing PLA/PETG/TPU materials."); //some potential text, add i18n flags
             L("Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air.");
-            label_text[AIR_DUCT::AIR_DUCT_COOLING_FILT] = special_cooling_text;
+            label_text[AIR_DUCT::AIR_DUCT_COOLING_FILT] = _L(special_cooling_text);
         }
     }
 }
