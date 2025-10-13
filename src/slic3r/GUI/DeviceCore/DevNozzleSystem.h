@@ -23,6 +23,12 @@ namespace Slic3r
        friend class DevNozzleSystemParser;
    public:
        DevNozzleSystem(MachineObject* owner) : m_owner(owner) {}
+   private:
+       enum Status : int
+       {
+           NOZZLE_SYSTEM_IDLE = 0,
+           NOZZLE_SYSTEM_REFRESHING = 1,
+       };
 
    public:
        bool                            ContainsNozzle(int id) const { return m_nozzles.find(id) != m_nozzles.end(); }

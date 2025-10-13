@@ -60,6 +60,7 @@
 			"support_chamber_temp_switch_heating": 40,
 			"support_extrusion_cali": false,
 			"support_user_preset": false,
+			"support_refresh_nozzle": true,
 			"support_ams_ext_mix_print": true
 		},
 		"model_id": "O1E",
