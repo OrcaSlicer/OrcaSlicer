@@ -7,6 +7,7 @@
 #include "DevUtil.h"
 
 #include <map>
+#include <optional>
 #include <memory>
 #include <wx/string.h>
 #include <wx/colour.h>

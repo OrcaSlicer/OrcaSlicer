@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <nlohmann/json.hpp>
 #include "DevCtrl.h"
 
