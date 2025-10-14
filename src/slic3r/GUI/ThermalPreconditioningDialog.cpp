@@ -28,12 +28,9 @@ ThermalPreconditioningDialog::ThermalPreconditioningDialog(wxWindow *parent, std
     m_refresh_timer->Start(1000);
 
     // Set remaining time
-    if (!remaining_time.IsEmpty()) {
-        m_remaining_time_label->SetLabelText(wxString::Format(_L("Remaining time: %s"), remaining_time));
-    } else {
-        m_remaining_time_label->SetLabelText(_L("Remaining time: Calculating..."));
-    }
+    m_remaining_time_label->SetLabelText(_L("Remaining time: Calculating..."));
 
+     Layout();
     // Set dialog size and position
     SetSize(wxSize(FromDIP(400), FromDIP(200)));
     wxGetApp().UpdateDlgDarkUI(this);
@@ -106,6 +103,8 @@ void ThermalPreconditioningDialog::update_thermal_remaining_time()
     }
 
     if (m_remaining_time_label) m_remaining_time_label->SetLabelText(remaining_time);
+   
+     Layout();
 }
 
 void ThermalPreconditioningDialog::on_timer(wxTimerEvent &event) {
