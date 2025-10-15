@@ -366,7 +366,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                         type_id = DevUtil::get_flag_bits(info, 0, 4);
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
                     } else {
-                        if (!obj->is_enable_ams_np) {
+                        if (!obj->is_enable_ams_np && obj->get_printer_ams_type() == "f1") {
                             type_id = DevAms::AMS_LITE;
                         }
                     }
