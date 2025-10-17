@@ -1814,8 +1814,8 @@ msgstr "圆盘"
 msgid "Torus"
 msgstr "环面"
 
-msgid "Orca Cube"
-msgstr "Orca逆方块"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca误差测试"

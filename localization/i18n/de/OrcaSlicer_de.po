@@ -1874,8 +1874,8 @@ msgstr "Scheibe"
 msgid "Torus"
 msgstr "Torus"
 
-msgid "Orca Cube"
-msgstr "Orca Würfel"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca Toleranz Test"

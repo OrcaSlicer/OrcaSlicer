@@ -1804,7 +1804,7 @@ msgstr "Lemez"
 msgid "Torus"
 msgstr "Tórusz"
 
-msgid "Orca Cube"
+msgid "Cosmyx Cube"
 msgstr ""
 
 msgid "Orca Tolerance Test"

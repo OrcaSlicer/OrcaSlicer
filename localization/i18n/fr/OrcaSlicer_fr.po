@@ -1888,8 +1888,8 @@ msgstr "Disque"
 msgid "Torus"
 msgstr "Tore"
 
-msgid "Orca Cube"
-msgstr "Cube Orca"
+msgid "Cosmyx Cube"
+msgstr "Cube Cosmyx"
 
 msgid "Orca Tolerance Test"
 msgstr "Test de tolérance Orca"

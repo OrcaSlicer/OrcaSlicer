@@ -1861,8 +1861,8 @@ msgstr "Диск"
 msgid "Torus"
 msgstr "Тороїд"
 
-msgid "Orca Cube"
-msgstr "Orca Куб"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Тест на допуски ORCA"

@@ -1874,8 +1874,8 @@ msgstr "Диск"
 msgid "Torus"
 msgstr "Тороид"
 
-msgid "Orca Cube"
-msgstr "Куб Orca Design"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Тест допусков от Orca"

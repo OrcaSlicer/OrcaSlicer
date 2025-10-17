@@ -1852,8 +1852,8 @@ msgstr "Disk"
 msgid "Torus"
 msgstr "Simit"
 
-msgid "Orca Cube"
-msgstr "Orca Küpü"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca tolerans testi"

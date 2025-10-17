@@ -1859,8 +1859,8 @@ msgstr "Tarcza"
 msgid "Torus"
 msgstr "Torus"
 
-msgid "Orca Cube"
-msgstr "Sześcian Orca"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Test tolerancji Orca"

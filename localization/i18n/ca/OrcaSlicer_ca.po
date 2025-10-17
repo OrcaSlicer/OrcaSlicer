@@ -1870,8 +1870,8 @@ msgstr "Disc"
 msgid "Torus"
 msgstr "Tor"
 
-msgid "Orca Cube"
-msgstr "Cub d'Orca"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Prova de tolerància d'Orca"

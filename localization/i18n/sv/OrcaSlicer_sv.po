@@ -1799,7 +1799,7 @@ msgstr "Skiva"
 msgid "Torus"
 msgstr "Torus"
 
-msgid "Orca Cube"
+msgid "Cosmyx Cube"
 msgstr ""
 
 msgid "Orca Tolerance Test"

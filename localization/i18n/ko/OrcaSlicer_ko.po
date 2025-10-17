@@ -1838,8 +1838,8 @@ msgstr "디스크"
 msgid "Torus"
 msgstr "토러스"
 
-msgid "Orca Cube"
-msgstr "Orca 큐브"
+msgid "Cosmyx Cube"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca 공차 테스트"
