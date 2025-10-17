@@ -533,7 +533,7 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
 wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeType type) {
     auto sub_menu = new wxMenu;
 
-    for (auto &item : {L("Orca Cube"), L("Orca Tolerance Test"), L("3DBenchy"), L("Autodesk FDM Test"),
+    for (auto &item : {L("Cosmyx Cube"), L("Orca Tolerance Test"), L("3DBenchy"), L("Autodesk FDM Test"),
                        L("Voron Cube"), L("Stanford Bunny"), L("Orca String Hell") }) {
         append_menu_item(
             sub_menu, wxID_ANY, _(item), "",
@@ -541,8 +541,8 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                 std::vector<boost::filesystem::path> input_files;
                 bool                                 is_stringhell = false;
                 std::string                          file_name     = item;
-                if (file_name == L("Orca Cube"))
-                    file_name = "OrcaCube_v2.3mf";
+                if (file_name == L("Cosmyx Cube"))
+                    file_name = "cosmyx_cube.3mf";
                 else if (file_name == L("Orca Tolerance Test"))
                     file_name = "OrcaToleranceTest.stl";
                 else if (file_name == L("3DBenchy"))
