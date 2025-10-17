@@ -12705,6 +12705,12 @@ msgstr "Paslanmaz çelik"
 msgid "Brass"
 msgstr "Pirinç"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Tungsten karbür"
+
 msgid "Nozzle HRC"
 msgstr "Nozul HRC"
 

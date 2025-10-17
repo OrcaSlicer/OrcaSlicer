@@ -13036,6 +13036,12 @@ msgstr "Edelstahl"
 msgid "Brass"
 msgstr "Messing"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Wolframkarbid"
+
 msgid "Nozzle HRC"
 msgstr "Düse HRC"
 

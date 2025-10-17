@@ -11893,6 +11893,12 @@ msgstr "不鏽鋼"
 msgid "Brass"
 msgstr "黃銅"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "碳化鎢"
+
 msgid "Nozzle HRC"
 msgstr "噴嘴洛氏硬度"
 

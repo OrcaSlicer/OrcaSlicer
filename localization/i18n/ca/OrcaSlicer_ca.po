@@ -12821,6 +12821,12 @@ msgstr "Acer inoxidable"
 msgid "Brass"
 msgstr "Llautó"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Carbur de tungstè"
+
 msgid "Nozzle HRC"
 msgstr "HRC del Broquet"
 

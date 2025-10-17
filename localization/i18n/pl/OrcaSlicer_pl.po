@@ -12744,6 +12744,12 @@ msgstr "Stal nierdzewna"
 msgid "Brass"
 msgstr "Mosiądz"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "węglik wolframu"
+
 msgid "Nozzle HRC"
 msgstr "Twardość dyszy (HRC)"
 

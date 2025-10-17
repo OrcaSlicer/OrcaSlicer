@@ -12689,6 +12689,12 @@ msgstr "Nerūdijantis plienas"
 msgid "Brass"
 msgstr "Žalvaris"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Volframo karbidas"
+
 msgid "Nozzle HRC"
 msgstr "Purkštuko HRC"
 

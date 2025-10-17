@@ -11505,6 +11505,12 @@ msgstr ""
 msgid "Brass"
 msgstr ""
 
+msgid "CHT"
+msgstr ""
+
+msgid "Tungsten Carbide"
+msgstr ""
+
 msgid "Nozzle HRC"
 msgstr ""
 

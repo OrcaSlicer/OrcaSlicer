@@ -11768,6 +11768,12 @@ msgstr "Rostfritt stål"
 msgid "Brass"
 msgstr "Mässing"
 
+msgid "CHT"
+msgstr ""
+
+msgid "Tungsten Carbide"
+msgstr "Volframkarbid"
+
 msgid "Nozzle HRC"
 msgstr "Nozzle HRC"
 

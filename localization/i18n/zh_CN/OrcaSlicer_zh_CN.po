@@ -11788,6 +11788,12 @@ msgstr "不锈钢"
 msgid "Brass"
 msgstr "黄铜"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Tànhuà wū"
+
 msgid "Nozzle HRC"
 msgstr "喷嘴洛氏硬度"
 

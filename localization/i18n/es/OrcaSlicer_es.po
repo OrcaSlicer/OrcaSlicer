@@ -12705,6 +12705,12 @@ msgstr "Acero inoxidable"
 msgid "Brass"
 msgstr "Latón"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "carburo de tungsteno"
+
 msgid "Nozzle HRC"
 msgstr "Dureza HRC de la boquilla"
 

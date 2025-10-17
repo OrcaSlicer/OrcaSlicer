@@ -12873,6 +12873,12 @@ msgstr "Aço inoxidável"
 msgid "Brass"
 msgstr "Latão"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Carboneto de tungstênio"
+
 msgid "Nozzle HRC"
 msgstr "Bico HRC"
 

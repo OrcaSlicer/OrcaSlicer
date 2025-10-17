@@ -12975,6 +12975,12 @@ msgstr "Нержавеющая сталь"
 msgid "Brass"
 msgstr "Латунь"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Карбид вольфрама"
+
 msgid "Nozzle HRC"
 msgstr "Твердость сопла (HRC)"
 

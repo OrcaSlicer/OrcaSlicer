@@ -12902,6 +12902,12 @@ msgstr "Acciaio inox"
 msgid "Brass"
 msgstr "Ottone"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Carburo di tungsteno"
+
 msgid "Nozzle HRC"
 msgstr "HRC ugello"
 

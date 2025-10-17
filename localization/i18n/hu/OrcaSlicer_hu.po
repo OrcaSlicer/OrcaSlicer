@@ -11826,6 +11826,12 @@ msgstr "Rozsdamentes acél"
 msgid "Brass"
 msgstr "Sárgaréz"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Volfrámkarbid"
+
 msgid "Nozzle HRC"
 msgstr "Fúvóka HRC értéke"
 

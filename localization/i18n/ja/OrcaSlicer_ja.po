@@ -11546,6 +11546,12 @@ msgstr "ステンレススチール"
 msgid "Brass"
 msgstr "真鍮"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "炭化タングステン"Carbure de Tungstène
+
 msgid "Nozzle HRC"
 msgstr "ノズルHRC"
 

@@ -12985,6 +12985,12 @@ msgstr "Acier inoxydable"
 msgid "Brass"
 msgstr "Laiton"
 
+msgid "CHT"
+msgstr "CHT"
+
+msgid "Tungsten Carbide"
+msgstr "Carbure de tungstène"
+
 msgid "Nozzle HRC"
 msgstr "Dureté HRC buse"
 
