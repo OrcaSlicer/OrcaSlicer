@@ -302,6 +302,8 @@ enum NozzleType {
     ntHardenedSteel,
     ntStainlessSteel,
     ntBrass,
+    ntTungstenCarbide,
+    ntCHT,
     ntCount
 };
 
@@ -309,14 +311,18 @@ static std::unordered_map<NozzleType, std::string>NozzleTypeEumnToStr = {
     {NozzleType::ntUndefine,        "undefine"},
     {NozzleType::ntHardenedSteel,   "hardened_steel"},
     {NozzleType::ntStainlessSteel,  "stainless_steel"},
-    {NozzleType::ntBrass,           "brass"}
+    {NozzleType::ntBrass,           "brass"},
+    {NozzleType::ntTungstenCarbide,  "tungsten_carbide"},
+    {NozzleType::ntCHT,  "cht"}
 };
 
 static std::unordered_map<std::string, NozzleType>NozzleTypeStrToEumn = {
     {"undefine", NozzleType::ntUndefine},
     {"hardened_steel", NozzleType::ntHardenedSteel},
     {"stainless_steel", NozzleType::ntStainlessSteel},
-    {"brass", NozzleType::ntBrass}
+    {"brass", NozzleType::ntBrass},
+    {"tungsten_carbide", NozzleType::ntTungstenCarbide},
+    {"cht", NozzleType::ntCHT}
 };
 
 // BBS
