@@ -6,6 +6,8 @@
 #include "MainFrame.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include <string>
+#include <vector>
+#include "libslic3r/PrintConfig.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -26,6 +28,39 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
     for (wxString label : labels)
         text_size.IncTo(parent->GetTextExtent(label));
     return text_size.x + parent->FromDIP(10);
+}
+
+std::vector<std::string> get_shaper_type_values()
+{
+    if (auto* preset_bundle = wxGetApp().preset_bundle) {
+        auto printer_config = &preset_bundle->printers.get_edited_preset().config;
+        if (auto* gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")) {
+            switch (gcode_flavor_option->value) {
+            case GCodeFlavor::gcfKlipper:
+                return {"Default", "ZV", "MZV", "ZVD", "EI", "2HUMP_EI", "3HUMP_EI"};
+            case GCodeFlavor::gcfRepRapFirmware:
+                return {"Default", "MZV", "ZVD", "ZVDD", "ZVDDD", "EI2", "EI3", "DAA"};
+            case GCodeFlavor::gcfMarlinFirmware:
+                return {"ZV"};
+            default:
+                break;
+            }
+        }
+    }
+    return {"Default"};
+}
+
+std::vector<wxString> make_shaper_type_labels()
+{
+    auto values = get_shaper_type_values();
+    if (values.empty())
+        values.emplace_back("");
+
+    std::vector<wxString> labels;
+    labels.reserve(values.size());
+    for (const auto& label : values)
+        labels.emplace_back(wxString::FromUTF8(label.c_str()));
+    return labels;
 }
 
 }
@@ -761,6 +796,12 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     SetForegroundColour(wxColour("#363636"));
     SetFont(Label::Body_14);
 
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    const auto* gcode_flavor_option = (preset_bundle != nullptr)
+        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
+        : nullptr;
+    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -772,8 +813,41 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
+    // Input shaper type selection
+    auto labeled_box_type = new LabeledStaticBox(this, _L("Input shaper type"));
+    auto type_box = new wxStaticBoxSizer(labeled_box_type, wxVERTICAL);
+    auto type_labels = make_shaper_type_labels();
+    m_rbType = new RadioGroup(this, type_labels, wxVERTICAL, 3);
+    type_box->Add(m_rbType, 0, wxALL | wxEXPAND, FromDIP(4));
+    m_rbType->SetSelection(0);
+
+    // Determine firmware-specific note
+    wxString firmware_note = "Please ensure the selected type is compatible with your firmware version.";
+    if (gcode_flavor_option) {
+        switch (gcode_flavor_option->value) {
+        case GCodeFlavor::gcfMarlinFirmware:
+        case GCodeFlavor::gcfMarlinLegacy:
+            firmware_note = "Marlin version => 2.1.2\nFixed-Time motion not yet implemented.";
+            break;
+        case GCodeFlavor::gcfKlipper:
+            firmware_note = "Klipper version => 0.9.0";
+            break;
+        case GCodeFlavor::gcfRepRapFirmware:
+            firmware_note = "RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.";
+            break;
+        default:
+            break;
+        }
+    }
+
+    auto type_note = new wxStaticText(this, wxID_ANY, firmware_note, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    type_note->SetForegroundColour(wxColour(128, 128, 128));
+    type_box->Add(type_note, 0, wxALL, FromDIP(5));
+
+    v_sizer->Add(type_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
     // Settings
-    wxString x_axis_str = "X " + _L("Start / End") + ": ";
+    wxString x_axis_str = reprap_firmware ? _L("Frequency (Start / End): ") : "X " + _L("Start / End") + ": ";
     wxString y_axis_str = "Y " + _L("Start / End") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{x_axis_str, y_axis_str});
 
@@ -805,11 +879,23 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     m_tiFreqStartY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     m_tiFreqEndY =   new TextInput(this, std::to_string(110), "Hz", "", wxDefaultPosition, ti_size);
     m_tiFreqEndY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    
+
     y_freq_sizer->Add(start_y_text  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     y_freq_sizer->Add(m_tiFreqStartY, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     y_freq_sizer->Add(m_tiFreqEndY  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(y_freq_sizer, 0, wxLEFT, FromDIP(3));
+
+    if (reprap_firmware) {
+        m_tiFreqStartY->GetTextCtrl()->SetValue(m_tiFreqStartX->GetTextCtrl()->GetValue());
+        m_tiFreqEndY->GetTextCtrl()->SetValue(m_tiFreqEndX->GetTextCtrl()->GetValue());
+        start_y_text->Hide();
+        m_tiFreqStartY->Hide();
+        m_tiFreqEndY->Hide();
+        settings_sizer->Hide(y_freq_sizer);
+        start_x_text->SetLabel(_L("Frequency (Start / End): "));
+        m_tiFreqStartX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency range for both axes."));
+        m_tiFreqEndX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency range for both axes."));
+    }
 
     // Damping Factor
     wxString damping_factor_str = _L("Damp: ");
@@ -824,8 +910,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     
     settings_sizer->AddSpacer(FromDIP(5));
 
-    // Add a note explaining that 0 means use default value
-    auto note_text = new wxStaticText(this, wxID_ANY, _L("Recommended: Set Damp to 0.\nThis will use the printer's default or the last saved value."), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    auto note_text = new wxStaticText(this, wxID_ANY, _L("Recommended: Set Damp to 0.\nThis will use the printer's default or saved value."), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     note_text->SetForegroundColour(wxColour(128, 128, 128));
     settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
 
@@ -853,15 +938,29 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
     bool read_double = false;
     read_double = m_tiFreqStartX->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartX);
     read_double = read_double && m_tiFreqEndX->GetTextCtrl()->GetValue().ToDouble(&m_params.freqEndX);
-    read_double = read_double && m_tiFreqStartY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartY);
-    read_double = read_double && m_tiFreqEndY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqEndY);
+
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    const auto* gcode_flavor_option = (preset_bundle != nullptr)
+        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
+        : nullptr;
+    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+
+    if (!reprap_firmware) {
+        read_double = read_double && m_tiFreqStartY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartY);
+        read_double = read_double && m_tiFreqEndY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqEndY);
+    } else {
+        m_params.freqStartY = m_params.freqStartX;
+        m_params.freqEndY   = m_params.freqEndX;
+        m_tiFreqStartY->GetTextCtrl()->SetValue(m_tiFreqStartX->GetTextCtrl()->GetValue());
+        m_tiFreqEndY->GetTextCtrl()->SetValue(m_tiFreqEndX->GetTextCtrl()->GetValue());
+    }
     read_double = read_double && m_tiDampingFactor->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
 
     if (!read_double ||
         m_params.freqStartX < 0 || m_params.freqEndX > 500 ||
-        m_params.freqStartY < 0 || m_params.freqEndX > 500 ||
+        (!reprap_firmware && (m_params.freqStartY < 0 || m_params.freqEndY > 500)) ||
         m_params.freqStartX >= m_params.freqEndX ||
-        m_params.freqStartY >= m_params.freqEndY) {
+        (!reprap_firmware && m_params.freqStartY >= m_params.freqEndY)) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0 < FreqStart < FreqEnd < 500)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
@@ -871,6 +970,16 @@ void Input_Shaping_Freq_Test_Dlg::on_start(wxCommandEvent& event) {
         MessageDialog msg_dlg(nullptr, _L("Please input a valid damping factor (0 < Damping/zeta factor <= 1)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
+    }
+
+    auto shaper_values = get_shaper_type_values();
+    int type_selection = m_rbType->GetSelection();
+    if (shaper_values.empty()) {
+        m_params.shaper_type.clear();
+    } else {
+        if (type_selection < 0 || type_selection >= static_cast<int>(shaper_values.size()))
+            type_selection = 0;
+        m_params.shaper_type = shaper_values[static_cast<size_t>(type_selection)];
     }
 
     m_params.mode = CalibMode::Calib_Input_shaping_freq;
@@ -897,6 +1006,12 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     SetForegroundColour(wxColour("#363636"));
     SetFont(Label::Body_14);
 
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    const auto* gcode_flavor_option = (preset_bundle != nullptr)
+        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
+        : nullptr;
+    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+
     wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
     SetSizer(v_sizer);
 
@@ -908,8 +1023,41 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
+    // Input shaper type selection
+    auto labeled_box_type = new LabeledStaticBox(this, _L("Input shaper type"));
+    auto type_box = new wxStaticBoxSizer(labeled_box_type, wxVERTICAL);
+    auto type_labels = make_shaper_type_labels();
+    m_rbType = new RadioGroup(this, type_labels, wxVERTICAL, 3);
+    type_box->Add(m_rbType, 0, wxALL | wxEXPAND, FromDIP(4));
+    m_rbType->SetSelection(0);
+
+    // Determine firmware-specific note
+    wxString firmware_note = "Check firmware compatibility.";
+    if (gcode_flavor_option) {
+        switch (gcode_flavor_option->value) {
+        case GCodeFlavor::gcfMarlinFirmware:
+        case GCodeFlavor::gcfMarlinLegacy:
+            firmware_note = "Marlin version => 2.1.2\nFixed-Time motion not yet implemented.";
+            break;
+        case GCodeFlavor::gcfKlipper:
+            firmware_note = "Klipper version => 0.9.0";
+            break;
+        case GCodeFlavor::gcfRepRapFirmware:
+            firmware_note = "RepRap firmware version => 3.4.0\nCheck your firmware documentation for supported shaper types.";
+            break;
+        default:
+            break;
+        }
+    }
+
+    auto type_note = new wxStaticText(this, wxID_ANY, firmware_note, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    type_note->SetForegroundColour(wxColour(128, 128, 128));
+    type_box->Add(type_note, 0, wxALL, FromDIP(5));
+
+    v_sizer->Add(type_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
     // Settings
-    wxString freq_str = _L("Frequency") + " X / Y: ";
+    wxString freq_str = reprap_firmware ? _L("Frequency: ") : _L("Frequency") + " X / Y: ";
     wxString damp_str = _L("Damp") + " " + _L("Start / End") + ": ";
     int text_max = GetTextMax(this, std::vector<wxString>{freq_str, damp_str});
 
@@ -931,7 +1079,14 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     freq_sizer->Add(m_tiFreqX, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     freq_sizer->Add(m_tiFreqY, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(freq_sizer, 0, wxLEFT, FromDIP(3));
-    
+
+    if (reprap_firmware) {
+        m_tiFreqY->GetTextCtrl()->SetValue(m_tiFreqX->GetTextCtrl()->GetValue());
+        m_tiFreqY->Hide();
+        freq_text->SetLabel(freq_str);
+        m_tiFreqX->GetTextCtrl()->SetToolTip(_L("RepRap firmware uses the same frequency for both axes."));
+    }
+
     // Damping Factor Start and End
     auto damp_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto damp_text = new wxStaticText(this, wxID_ANY, damp_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
@@ -974,13 +1129,24 @@ Input_Shaping_Damp_Test_Dlg::~Input_Shaping_Damp_Test_Dlg() {
 void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
     bool read_double = false;
     read_double = m_tiFreqX->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartX);
-    read_double = read_double && m_tiFreqY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartY);
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    const auto* gcode_flavor_option = (preset_bundle != nullptr)
+        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
+        : nullptr;
+    const bool reprap_firmware = gcode_flavor_option && gcode_flavor_option->value == GCodeFlavor::gcfRepRapFirmware;
+
+    if (!reprap_firmware) {
+        read_double = read_double && m_tiFreqY->GetTextCtrl()->GetValue().ToDouble(&m_params.freqStartY);
+    } else {
+        m_params.freqStartY = m_params.freqStartX;
+        m_tiFreqY->GetTextCtrl()->SetValue(m_tiFreqX->GetTextCtrl()->GetValue());
+    }
     read_double = read_double && m_tiDampingFactorStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiDampingFactorEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
 
     if (!read_double ||
         m_params.freqStartX < 0 || m_params.freqStartX > 500 ||
-        m_params.freqStartY < 0 || m_params.freqStartY > 500 ) {
+        (!reprap_firmware && (m_params.freqStartY < 0 || m_params.freqStartY > 500))) {
         MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0 < Freq < 500)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
@@ -991,6 +1157,16 @@ void Input_Shaping_Damp_Test_Dlg::on_start(wxCommandEvent& event) {
         MessageDialog msg_dlg(nullptr, _L("Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
+    }
+
+    auto shaper_values = get_shaper_type_values();
+    int type_selection = m_rbType->GetSelection();
+    if (shaper_values.empty()) {
+        m_params.shaper_type.clear();
+    } else {
+        if (type_selection < 0 || type_selection >= static_cast<int>(shaper_values.size()))
+            type_selection = 0;
+        m_params.shaper_type = shaper_values[static_cast<size_t>(type_selection)];
     }
 
     m_params.mode = CalibMode::Calib_Input_shaping_damp;

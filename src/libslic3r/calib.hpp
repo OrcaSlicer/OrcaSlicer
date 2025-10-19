@@ -37,6 +37,7 @@ struct Calib_Params
     bool      print_numbers;
     double freqStartX, freqEndX, freqStartY, freqEndY;
     int test_model;
+    std::string shaper_type;
     std::vector<double> accelerations;
     std::vector<double> speeds;
 
