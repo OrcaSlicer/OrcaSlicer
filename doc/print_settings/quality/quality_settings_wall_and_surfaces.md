@@ -92,6 +92,9 @@ Highly recommended for detailed or aesthetic prints.
 
 ![avoid-crossing-walls](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/avoid-crossing-walls.png?raw=true)
 
+> [!NOTE]
+> This feature is not compatible with Timelapse mode, as it can cause unexpected travel moves.
+
 ### Max detour length
 
 Defines the maximum distance the printer is allowed to detour to avoid crossing a wall.

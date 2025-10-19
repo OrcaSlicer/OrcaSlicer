@@ -6,6 +6,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "Plater.hpp"
@@ -60,10 +61,29 @@ void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrint
     int temperature_range_low, temperature_range_high;
     if (!get_temperature_range(config, temperature_range_low, temperature_range_high)) return;
 
+    // Get the selected filament type
+    std::string filament_type = "";
+    if (config->has("filament_type") && config->option<ConfigOptionStrings>("filament_type")->values.size() > 0) {
+        filament_type = config->option<ConfigOptionStrings>("filament_type")->values[0];
+    }
+
+    int min_recommended_temp = 190;
+    int max_recommended_temp = 300;
+
+    if (!MaterialType::get_temperature_range(filament_type, min_recommended_temp, max_recommended_temp)){
+        filament_type = "Unknown";
+    }
+
     wxString msg_text;
     bool     need_check = false;
-    if (temperature_range_low < 190 || temperature_range_high > 300) {
-        msg_text += _L("The recommended minimum temperature is less than 190°C or the recommended maximum temperature is greater than 300°C.\n");
+    if (temperature_range_low < min_recommended_temp) {
+        msg_text += wxString::Format(_L("A minimum temperature above %d\u2103 is recommended for %s.\n"),
+                                        min_recommended_temp, filament_type);
+        need_check = true;
+    }
+    if (temperature_range_high > max_recommended_temp) {
+        msg_text += wxString::Format(_L("A maximum temperature below %d\u2103 is recommended for %s.\n"),
+                                        max_recommended_temp, filament_type);
         need_check = true;
     }
     if (temperature_range_low > temperature_range_high) {
@@ -146,23 +166,14 @@ void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig 
 
 void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
 {
-    const static std::map<std::string, int>recommend_temp_map = {
-        {"PLA",45},
-        {"PLA-CF",45},
-        {"PVA",45},
-        {"TPU",50},
-        {"PETG",55},
-        {"PCTG",55},
-        {"PETG-CF",55}
-    };
    bool support_chamber_temp_control=GUI::wxGetApp().preset_bundle->printers.get_selected_preset().config.opt_bool("support_chamber_temp_control");
     if (support_chamber_temp_control&&config->has("chamber_temperature")) {
         std::string filament_type = config->option<ConfigOptionStrings>("filament_type")->get_at(0);
-        auto iter = recommend_temp_map.find(filament_type);
-        if (iter!=recommend_temp_map.end()) {
-            if (iter->second < config->option<ConfigOptionInts>("chamber_temperature")->get_at(0)) {
+        int chamber_min_temp, chamber_max_temp;
+    if (MaterialType::get_chamber_temperature_range(filament_type, chamber_min_temp, chamber_max_temp)) {
+            if (chamber_max_temp < config->option<ConfigOptionInts>("chamber_temperature")->get_at(0)) {
                 wxString msg_text = wxString::Format(_L("Current chamber temperature is higher than the material's safe temperature, this may result in material softening and clogging. "
-                                                        "The maximum safe temperature for the material is %d"), iter->second);
+                                                        "The maximum safe temperature for the material is %d"), chamber_max_temp);
                 MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
                 is_msg_dlg_already_exist = true;
                 dialog.ShowModal();

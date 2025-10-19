@@ -1,6 +1,7 @@
 #include "PrintConfig.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
+#include "MaterialType.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
 
@@ -53,6 +54,8 @@ namespace Slic3r {
 //! return same string
 #define L(s) (s)
 #define _(s) Slic3r::I18N::translate(s)
+
+// Filament types are defined in MaterialType.
 
 
 const std::vector<std::string> filament_extruder_override_keys = {
@@ -2503,46 +2506,11 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
     def->gui_flags = "show_value";
 
-    def->enum_values.push_back("ABS");
-    def->enum_values.push_back("ABS-GF");
-    def->enum_values.push_back("ASA");
-    def->enum_values.push_back("ASA-AERO");
-    def->enum_values.push_back("ASA-CF");
-    def->enum_values.push_back("BVOH");
-    def->enum_values.push_back("PCTG");
-    def->enum_values.push_back("EVA");
-    def->enum_values.push_back("FLEX");
-    def->enum_values.push_back("HIPS");
-    def->enum_values.push_back("PA");
-    def->enum_values.push_back("PA-CF");
-    def->enum_values.push_back("PA-GF");
-    def->enum_values.push_back("PA6-CF");
-    def->enum_values.push_back("PA11-CF");
-    def->enum_values.push_back("PC");
-    def->enum_values.push_back("PC-CF");
-    def->enum_values.push_back("PCTG");
-    def->enum_values.push_back("PE");
-    def->enum_values.push_back("PE-CF");
-    def->enum_values.push_back("PET-CF");
-    def->enum_values.push_back("PETG");
-    def->enum_values.push_back("PETG-CF");
-    def->enum_values.push_back("PETG-CF10");
-    def->enum_values.push_back("PETG-GF");
-    def->enum_values.push_back("PHA");
-    def->enum_values.push_back("PLA");
-    def->enum_values.push_back("PLA-AERO");
-    def->enum_values.push_back("PLA-CF");
-    def->enum_values.push_back("PP");
-    def->enum_values.push_back("PP-CF");
-    def->enum_values.push_back("PP-GF");
-    def->enum_values.push_back("PPA-CF");
-    def->enum_values.push_back("PPA-GF");
-    def->enum_values.push_back("PPS");
-    def->enum_values.push_back("PPS-CF");
-    def->enum_values.push_back("PVA");
-    def->enum_values.push_back("PVB");
-    def->enum_values.push_back("SBS");
-    def->enum_values.push_back("TPU");
+    // Populate the enum values using the shared material type database
+    for (const auto& filament : MaterialType::all()) {
+        def->enum_values.push_back(filament.name);
+    }
+
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionStrings { "PLA" });
 

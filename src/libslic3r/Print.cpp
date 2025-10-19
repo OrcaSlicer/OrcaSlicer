@@ -16,6 +16,7 @@
 #include "GCode/WipeTower2.hpp"
 #include "Utils.hpp"
 #include "PrintConfig.hpp"
+#include "MaterialType.hpp"
 #include "Model.hpp"
 #include "format.hpp"
 #include <float.h>
@@ -56,6 +57,13 @@ PrintRegion::PrintRegion(PrintRegionConfig &&config) : PrintRegion(std::move(con
 //BBS
 // ORCA: Now this is a parameter
 //float Print::min_skirt_length = 0;
+
+struct FilamentType {
+    std::string name;
+    int min_temp;
+    int max_temp;
+    std::string temp_type;
+};
 
 void Print::clear()
 {
@@ -2707,6 +2715,14 @@ Vec2d Print::translate_to_print_space(const Point &point) const {
 
 FilamentTempType Print::get_filament_temp_type(const std::string& filament_type)
 {
+    // FilamentTempType Temperature-based logic
+    int min_temp, max_temp;
+    if (MaterialType::get_temperature_range(filament_type, min_temp, max_temp)) {
+        if (max_temp <= 250) return FilamentTempType::LowTemp;
+        else if (max_temp < 280) return FilamentTempType::HighLowCompatible;
+        else return FilamentTempType::HighTemp;
+    }
+
     const static std::string HighTempFilamentStr = "high_temp_filament";
     const static std::string LowTempFilamentStr = "low_temp_filament";
     const static std::string HighLowCompatibleFilamentStr = "high_low_compatible_filament";

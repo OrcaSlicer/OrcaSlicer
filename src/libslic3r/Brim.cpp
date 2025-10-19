@@ -7,6 +7,7 @@
 #include "ShortestPath.hpp"
 #include "libslic3r.h"
 #include "PrintConfig.hpp"
+#include "MaterialType.hpp"
 #include "Model.hpp"
 #include <algorithm>
 #include <numeric>
@@ -590,13 +591,10 @@ double getadhesionCoeff(const PrintObject* printObject)
         for (auto iter = extrudersFirstLayer.begin(); iter != extrudersFirstLayer.end(); iter++) {
             if (modelVolume->extruder_id() == *iter) {
                 if (Model::extruderParamsMap.find(modelVolume->extruder_id()) != Model::extruderParamsMap.end()) {
-                    if (Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName == "PETG" ||
-                        Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName == "PCTG") {
-                        adhesionCoeff = 2;
-                    }
-                    else if (Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName == "TPU") {
-                        adhesionCoeff = 0.5;
-                    }
+                    std::string filament_type = Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName;
+                    double adhesion_coefficient = 1.0; // Default value
+                    MaterialType::get_adhesion_coefficient(filament_type, adhesion_coefficient);
+                    adhesionCoeff = adhesion_coefficient;
                 }
             }
         }

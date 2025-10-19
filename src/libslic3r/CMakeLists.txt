@@ -344,6 +344,8 @@ set(lisbslic3r_sources
     PrintApply.cpp
     PrintBase.cpp
     PrintBase.hpp
+    MaterialType.cpp
+    MaterialType.hpp
     PrintConfig.cpp
     PrintConfig.hpp
     Print.cpp

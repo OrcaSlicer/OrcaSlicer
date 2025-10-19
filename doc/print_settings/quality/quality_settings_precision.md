@@ -63,7 +63,7 @@ To mitigate this effect, OrcaSlicer allows you to specify a negative distance th
 
 ## Precise wall
 
-The 'Precise Wall' is a distinctive feature introduced by OrcaSlicer, aimed at improving the dimensional accuracy of prints and minimizing layer inconsistencies by slightly increasing the spacing between the outer wall and the inner wall.
+The 'Precise Wall' is a distinctive feature introduced by OrcaSlicer, aimed at improving the dimensional accuracy of prints and minimizing layer inconsistencies by slightly increasing the spacing between the outer wall and the inner wall when printing in [Inner Outer wall order](quality_settings_wall_and_surfaces#innerouter).
 
 ### Technical explanation
 

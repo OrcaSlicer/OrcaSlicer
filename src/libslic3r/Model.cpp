@@ -10,6 +10,7 @@
 #include "MTUtils.hpp"
 #include "TriangleMeshSlicer.hpp"
 #include "TriangleSelector.hpp"
+#include "MaterialType.hpp"
 
 #include "Format/AMF.hpp"
 #include "Format/svg.hpp"
@@ -3163,18 +3164,10 @@ double Model::getThermalLength(const ModelVolume* modelVolumePtr) {
     double thermalLength = 200.;
     auto aa = modelVolumePtr->extruder_id();
     if (Model::extruderParamsMap.find(aa) != Model::extruderParamsMap.end()) {
-        if (Model::extruderParamsMap.at(aa).materialName == "ABS" ||
-            Model::extruderParamsMap.at(aa).materialName == "PA-CF" ||
-            Model::extruderParamsMap.at(aa).materialName == "PET-CF") {
-            thermalLength = 100;
+        double thermal_length = 200.0;
+    if (MaterialType::get_thermal_length(Model::extruderParamsMap.at(aa).materialName, thermal_length)) {
+            return thermal_length;
         }
-        if (Model::extruderParamsMap.at(aa).materialName == "PC") {
-            thermalLength = 40;
-        }
-        if (Model::extruderParamsMap.at(aa).materialName == "TPU") {
-            thermalLength = 1000;
-        }
-
     }
     return thermalLength;
 }
@@ -3237,16 +3230,10 @@ void ModelInstance::invalidate_convex_hull_2d()
 //BBS adhesion coefficients from model object class
 double getadhesionCoeff(const ModelVolumePtrs objectVolumes)
 {
-    double adhesionCoeff = 1;
+    double adhesionCoeff = 1.0;
     for (const ModelVolume* modelVolume : objectVolumes) {
         if (Model::extruderParamsMap.find(modelVolume->extruder_id()) != Model::extruderParamsMap.end()) {
-            if (Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName == "PETG" ||
-                Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName == "PCTG") {
-                adhesionCoeff = 2;
-            }
-            else if (Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName == "TPU") {
-                adhesionCoeff = 0.5;
-            }
+            MaterialType::get_adhesion_coefficient(Model::extruderParamsMap.at(modelVolume->extruder_id()).materialName, adhesionCoeff);
         }
     }
     return adhesionCoeff;
