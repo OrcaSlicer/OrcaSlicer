@@ -84,19 +84,34 @@ How to building with Visual Studio 2022 on Windows 64-bit.
      ```
 
 > [!NOTE]
+> The build process will take a long time depending on your system but even with high-end hardware it can take up to 40 minutes.
+
+> [!TIP]
 > If you encounter issues, you can try to uninstall ZLIB from your Vcpkg library.
 
-3. If successful, you will find the VS 2022 solution file in:
+3. If successful, you will find the Visual Studio solution file in:
    ```shell
    build\OrcaSlicer.sln
    ```
+4. Open the solution in Visual Studio, set the build configuration to `Release` and run the `Local Windows Debugger`.  
+   ![compile_vs2022_local_debugger](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/compile_vs2022_local_debugger.png?raw=true)
+5. Your resulting executable will be located in:
+   ```shell
+   \build\src\Release\orca-slicer.exe
+   ```
+
+> [!NOTE]
+> The first time you build a branch, it will take a long time.  
+> Changes to .cpp files are quickly compiled.  
+> Changes to .hpp files take longer, depending on what you change.  
+> If you switch back and forth between branches, it also takes a long time to rebuild, even if you haven't made any changes.
 
 > [!IMPORTANT]
 > Make sure that CMake version 3.31.x is actually being used. Run `cmake --version` and verify it returns a **3.31.x** version.
 > If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).
 > You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
 
-> [!NOTE]
+> [!TIP]
 > If the build fails, try deleting the `build/` and `deps/build/` directories to clear any cached build data. Rebuilding after a clean-up is usually sufficient to resolve most issues.
 
 ## MacOS 64-bit
