@@ -134,6 +134,7 @@ protected:
     Calib_Params m_params;
 
     RadioGroup* m_rbModel;
+    RadioGroup* m_rbType;
     TextInput* m_tiFreqStartX;
     TextInput* m_tiFreqEndX;
     TextInput* m_tiFreqStartY;
@@ -155,6 +156,7 @@ protected:
     Calib_Params m_params;
 
     RadioGroup* m_rbModel;
+    RadioGroup* m_rbType;
     TextInput* m_tiFreqX;
     TextInput* m_tiFreqY;
     TextInput* m_tiDampingFactorStart;

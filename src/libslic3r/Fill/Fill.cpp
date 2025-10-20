@@ -1462,43 +1462,31 @@ void Layer::make_ironing()
 		double 		height;
 		double 		speed;
 		double 		angle;
+        bool        is_using_template_angle;
         double 		inset;
 
 		bool operator<(const IroningParams &rhs) const {
-			if (this->extruder < rhs.extruder)
-				return true;
-			if (this->extruder > rhs.extruder)
-				return false;
-			if (int(this->just_infill) < int(rhs.just_infill))
-				return true;
-			if (int(this->just_infill) > int(rhs.just_infill))
-				return false;
-			if (this->line_spacing < rhs.line_spacing)
-				return true;
-			if (this->line_spacing > rhs.line_spacing)
-				return false;
-			if (this->height < rhs.height)
-				return true;
-			if (this->height > rhs.height)
-				return false;
-			if (this->speed < rhs.speed)
-				return true;
-			if (this->speed > rhs.speed)
-				return false;
-			if (this->angle < rhs.angle)
-				return true;
-			if (this->angle > rhs.angle)
-				return false;
-            if (this->inset < rhs.inset)
-                return true;
-            if (this->inset > rhs.inset)
-                return false;
+            RETURN_COMPARE_NON_EQUAL(extruder);
+            RETURN_COMPARE_NON_EQUAL(just_infill);
+            RETURN_COMPARE_NON_EQUAL(line_spacing);
+            RETURN_COMPARE_NON_EQUAL(height);
+            RETURN_COMPARE_NON_EQUAL(speed);
+            RETURN_COMPARE_NON_EQUAL(angle);
+            RETURN_COMPARE_NON_EQUAL(is_using_template_angle);
+            RETURN_COMPARE_NON_EQUAL(inset);
 			return false;
 		}
 
 		bool operator==(const IroningParams &rhs) const {
-			return this->extruder == rhs.extruder && this->just_infill == rhs.just_infill &&
-				   this->line_spacing == rhs.line_spacing && this->height == rhs.height && this->speed == rhs.speed && this->angle == rhs.angle && this->pattern == rhs.pattern && this->inset == rhs.inset;
+			return  this->extruder == rhs.extruder  && 
+                    this->just_infill == rhs.just_infill &&
+				    this->line_spacing == rhs.line_spacing && 
+                    this->height == rhs.height && 
+                    this->speed == rhs.speed && 
+                    this->angle == rhs.angle && 
+                    this->is_using_template_angle == rhs.is_using_template_angle && 
+                    this->pattern == rhs.pattern && 
+                    this->inset == rhs.inset;
 		}
 
 		LayerRegion *layerm		= nullptr;
@@ -1545,7 +1533,8 @@ void Layer::make_ironing()
                 ironing_params.inset 		= config.ironing_inset;
 				ironing_params.height 		= default_layer_height * 0.01 * config.ironing_flow;
 				ironing_params.speed 		= config.ironing_speed;
-                ironing_params.angle        = (config.ironing_angle >= 0 ? config.ironing_angle : config.infill_direction) * M_PI / 180.;
+                ironing_params.angle        = calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value) + config.ironing_angle * M_PI / 180.;
+                ironing_params.is_using_template_angle = !config.solid_infill_rotate_template.value.empty(); 
 				ironing_params.pattern      = config.ironing_pattern;
 				ironing_params.layerm 		= layerm;
 				by_extruder.emplace_back(ironing_params);
@@ -1641,6 +1630,7 @@ void Layer::make_ironing()
         // Create the filler object.
         f->spacing = ironing_params.line_spacing;
         f->angle = float(ironing_params.angle);
+        f->is_using_template_angle = ironing_params.is_using_template_angle;
         f->link_max_length = (coord_t) scale_(3. * f->spacing);
 		double  extrusion_height = ironing_params.height * f->spacing / nozzle_dmr;
 		float  extrusion_width  = Flow::rounded_rectangle_extrusion_width_from_spacing(float(nozzle_dmr), float(extrusion_height));
