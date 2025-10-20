@@ -1147,6 +1147,18 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                small_area_infill_flow_compensation))
     ((ConfigOptionEnum<WallDirection>,  wall_direction))
 
+    // Orca: flow ratios
+    ((ConfigOptionBool,                 set_other_flow_ratios))
+    ((ConfigOptionFloat,                first_layer_flow_ratio))
+    ((ConfigOptionFloat,                outer_wall_flow_ratio))
+    ((ConfigOptionFloat,                inner_wall_flow_ratio))
+    ((ConfigOptionFloat,                overhang_flow_ratio))
+    ((ConfigOptionFloat,                sparse_infill_flow_ratio))
+    ((ConfigOptionFloat,                internal_solid_infill_flow_ratio))
+    ((ConfigOptionFloat,                gap_fill_flow_ratio))
+    ((ConfigOptionFloat,                support_flow_ratio))
+    ((ConfigOptionFloat,                support_interface_flow_ratio))
+
     // Orca: seam slopes
     ((ConfigOptionEnum<SeamScarfType>,  seam_slope_type))
     ((ConfigOptionBool,                 seam_slope_conditional))
