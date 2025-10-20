@@ -3497,14 +3497,14 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(20));
 
     def           = this->add("ironing_angle", coFloat);
-    def->label    = L("Ironing angle");
+    def->label    = L("Ironing angle offset");
     def->category = L("Quality");
-    def->tooltip  = L("The angle ironing is done at. A negative number disables this function and uses the default method.");
+    def->tooltip  = L("The angle of ironing lines offset from the top surface.");
     def->sidetext = u8"°";	// degrees, don't need translation
-    def->min      = -1;
+    def->min      = 0;
     def->max      = 359;
     def->mode     = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(-1));
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
@@ -6863,6 +6863,8 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "bottom_solid_infill_flow_ratio";
     } else if (opt_key == "ironing_direction") {
         opt_key = "ironing_angle";
+    } else if (opt_key == "ironing_angle" && boost::starts_with(value, "-")) {
+        value = "0";
     } else if (opt_key == "counterbole_hole_bridging") {
         opt_key = "counterbore_hole_bridging";
     } else if (opt_key == "draft_shield" && value == "limited") {
