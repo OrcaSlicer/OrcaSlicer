@@ -4690,12 +4690,15 @@ void SelectMachineDialog::UpdateStatusCheckWarning_ExtensionTool(MachineObject* 
 
      m_ops = ops;
      m_param = param;
+     m_full_title = title;
 
      SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
      wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
 
      m_printoption_title = new Label(this, title);
      m_printoption_title->SetFont(Label::Body_13);
+
+     update_title_display();
 
      m_printoption_tips = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
      m_printoption_tips->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
@@ -4819,10 +4822,32 @@ int PrintOption::getValueInt()
     }
 }
 
+void PrintOption::update_title_display()
+{
+    if (!m_printoption_title || m_full_title.IsEmpty()) {
+        return;
+    }
+
+    wxGCDC dc;
+    wxSize titleSize = dc.GetTextExtent(m_full_title);
+    int maxTitleWidth = FromDIP(150);
+
+    wxString displayTitle = m_full_title;
+    if (titleSize.x > maxTitleWidth) {
+        displayTitle = wxControl::Ellipsize(m_full_title, dc, wxELLIPSIZE_END, maxTitleWidth);
+        m_printoption_title->SetToolTip(m_full_title);
+    } else {
+        m_printoption_title->SetToolTip(wxEmptyString);
+    }
+
+    m_printoption_title->SetLabel(displayTitle);
+}
+
 void PrintOption::msw_rescale()
 {
     m_printoption_item->msw_rescale();
     m_printoption_tips->msw_rescale();
+    update_title_display();
 }
 
 PrintOptionItem::PrintOptionItem(wxWindow* parent, std::vector<POItem> ops, std::string param)
