@@ -1,0 +1,109 @@
+{
+    "type": "filament",
+    "name": "COEX TPU 60A @base",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "CX60AB17",
+    "instantiation": "false",
+    "filament_vendor": [
+        "COEX 3D"
+    ],
+    "filament_cost": [
+        "95.00"
+    ],
+    "filament_density": [
+        "1.14"
+    ],
+    "filament_type": [
+        "TPU"
+    ],
+    "filament_notes": "Flexible filament - print slowly with minimal retraction",
+    "nozzle_temperature": [
+        "225"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225"
+    ],
+    "bed_temperature": [
+        "0"
+    ],
+    "bed_temperature_initial_layer": [
+        "0"
+    ],
+    "temperature_vitrification": [
+        "60"
+    ],
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "filament_retraction_minimum_travel": [
+        "3"
+    ],
+    "filament_retract_before_wipe": [
+        "0%"
+    ],
+    "filament_retract_layer_change": [
+        "0"
+    ],
+    "filament_retract_when_changing_layer": [
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0"
+    ],
+    "filament_retraction_speed": [
+        "20"
+    ],
+    "filament_deretraction_speed": [
+        "20"
+    ],
+    "filament_wipe": [
+        "0"
+    ],
+    "filament_wipe_distance": [
+        "0"
+    ],
+    "fan_min_speed": [
+        "80"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "disable_fan_first_layers": [
+        "1"
+    ],
+    "full_fan_speed_layer": [
+        "2"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "5"
+    ],
+    "initial_layer_print_speed": [
+        "15"
+    ],
+    "outer_wall_speed": [
+        "25"
+    ],
+    "inner_wall_speed": [
+        "30"
+    ],
+    "infill_speed": [
+        "30"
+    ],
+    "top_surface_speed": [
+        "25"
+    ],
+    "travel_speed": [
+        "150"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "compatible_printers": [],
+    "compatible_printers_condition": "",
+    "compatible_prints": [],
+    "compatible_prints_condition": ""
+}
