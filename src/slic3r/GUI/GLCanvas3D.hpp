@@ -338,6 +338,7 @@ class GLCanvas3D
             int move_volume_idx{ -1 };
             bool move_requires_threshold{ false };
             Point move_start_threshold_position_2D{ Invalid_2D_Point };
+            std::optional<Vec3d> camera_pan_anchor;
         };
 
         bool dragging{ false };
@@ -549,6 +550,7 @@ private:
     bool m_fps_overlay_tick{ false };
     LayersEditing m_layers_editing;
     Mouse m_mouse;
+    std::optional<Vec3d> m_gesture_pan_anchor;
     GLGizmosManager m_gizmos;
     //BBS: GUI refactor: GLToolbar
     mutable GLToolbar m_main_toolbar;
@@ -1405,6 +1407,16 @@ private:
 
     // Convert the screen space coordinate to world coordinate on the bed.
     Vec3d _mouse_to_bed_3d(const Point& mouse_pos);
+
+    enum class ECameraNavigationType : unsigned char
+    {
+        Mouse,
+        Gesture
+    };
+
+    std::optional<Vec3d> get_camera_orbit_target(ECameraNavigationType navigation_type) const;
+    Vec3d get_camera_pan_anchor(Camera& camera, ECameraNavigationType navigation_type,
+        const Vec2d& screen_position) const;
 
     void _start_timer() { m_timer.Start(100, wxTIMER_CONTINUOUS); }
     void _stop_timer() { m_timer.Stop(); }
