@@ -1,6 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "GLCanvas3D.hpp"
 
+#include <igl/project.h>
 #include <igl/unproject.h>
 
 #include "libslic3r/BuildVolume.hpp"
@@ -109,6 +110,32 @@ void GLCanvas3D::load_render_colors()
 
 namespace Slic3r {
 namespace GUI {
+
+static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& anchor)
+{
+    // Move the chosen world-space anchor by exactly the same framebuffer delta as the cursor,
+    // using the matrices which produced the currently visible frame.
+    const Vec4i32 viewport(camera.get_viewport().data());
+    if (viewport.z() > 0 && viewport.w() > 0 && anchor.allFinite()) {
+        const Vec4d viewport_d = viewport.cast<double>();
+        Vec3d shifted_screen_position = igl::project<double>(anchor, camera.get_view_matrix().matrix(),
+            camera.get_projection_matrix().matrix(), viewport_d);
+        shifted_screen_position.x() += screen_delta.x();
+        shifted_screen_position.y() -= screen_delta.y();
+
+        const Vec3d shifted_world_position = igl::unproject<double>(shifted_screen_position,
+            camera.get_view_matrix().matrix(), camera.get_projection_matrix().matrix(), viewport_d);
+        const Vec3d displacement = anchor - shifted_world_position;
+        if (displacement.allFinite()) {
+            camera.translate(displacement);
+            return;
+        }
+    }
+
+    // Screen Y grows downward, and the camera moves opposite to the drag.
+    camera.translate(camera.get_inv_zoom() *
+        (screen_delta.y() * camera.get_dir_up() - screen_delta.x() * camera.get_dir_right()));
+}
 
 #ifdef __WXGTK3__
 // wxGTK3 seems to simulate OSX behavior in regard to HiDPI scaling support.
@@ -4113,27 +4140,34 @@ void GLCanvas3D::on_gesture(wxGestureEvent &evt)
 
     auto & camera = wxGetApp().plater()->get_camera();
     if (evt.GetEventType() == wxEVT_GESTURE_PAN) {
-        auto p = evt.GetPosition();
+        const auto p = evt.GetPosition();
         auto d = static_cast<wxPanGestureEvent&>(evt).GetDelta();
-        float z = 0;
-        const Vec3d &p2 = _mouse_to_3d({p.x, p.y}, &z);
-        const Vec3d &p1 = _mouse_to_3d({p.x - d.x, p.y - d.y}, &z);
-        camera.set_target(camera.get_target() + p1 - p2);
+        Vec2d screen_position(p.x, p.y);
+        Vec2d screen_delta(d.x, d.y);
+        apply_retina_scale(screen_position);
+        apply_retina_scale(screen_delta);
+        if (evt.IsGestureStart() || !m_gesture_pan_anchor.has_value())
+            m_gesture_pan_anchor = get_camera_pan_anchor(camera, ECameraNavigationType::Gesture,
+                screen_position - screen_delta);
+        pan_camera(camera, screen_delta, *m_gesture_pan_anchor);
+        if (evt.IsGestureEnd())
+            m_gesture_pan_anchor.reset();
     } else if (evt.GetEventType() == wxEVT_GESTURE_ZOOM) {
         static float zoom_start = 1;
         if (evt.IsGestureStart())
             zoom_start = camera.get_zoom();
         camera.set_zoom(zoom_start * static_cast<wxZoomGestureEvent&>(evt).GetZoomFactor());
     } else if (evt.GetEventType() == wxEVT_GESTURE_ROTATE) {
-        PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+        m_gesture_pan_anchor.reset();
         bool rotate_limit = current_printer_technology() != ptSLA;
         static double last_rotate = 0;
         if (evt.IsGestureStart())
             last_rotate = 0;
         auto rotate = static_cast<wxRotateGestureEvent&>(evt).GetRotationAngle() - last_rotate;
         last_rotate += rotate;
-        if (plate)
-            camera.rotate_on_sphere_with_target(-rotate, 0, rotate_limit, plate->get_bounding_box().center());
+        const std::optional<Vec3d> rotate_target = get_camera_orbit_target(ECameraNavigationType::Gesture);
+        if (rotate_target.has_value())
+            camera.rotate_on_sphere_with_target(-rotate, 0, rotate_limit, *rotate_target);
         else
             camera.rotate_on_sphere(-rotate, 0, rotate_limit);
         camera.auto_type(Camera::EType::Perspective);
@@ -4582,6 +4616,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         }
         // do not process the dragging if the left mouse was set down in another canvas
         else if (is_camera_rotate(evt, button_mappings)) {
+            m_mouse.set_start_position_2D_as_invalid();
+            m_mouse.drag.camera_pan_anchor.reset();
 
             if (!has_mouse_capture()) // ORCA keep tracking mouse position while drag active and cursor not in window bounds
                 m_canvas->CaptureMouse();
@@ -4599,12 +4635,11 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 if (this->m_canvas_type == ECanvasType::CanvasAssembleView || m_gizmos.get_current_type() == GLGizmosManager::FdmSupports ||
                     m_gizmos.get_current_type() == GLGizmosManager::Seam || m_gizmos.get_current_type() == GLGizmosManager::MmSegmentation ||
                     m_gizmos.get_current_type() == GLGizmosManager::FuzzySkin) {
-                    Vec3d rotate_target = Vec3d::Zero();
-                    if (!m_selection.is_empty())
-                        rotate_target = m_selection.get_bounding_box().center();
+                    const std::optional<Vec3d> rotate_target = get_camera_orbit_target(ECameraNavigationType::Mouse);
+                    if (rotate_target.has_value())
+                        camera.rotate_on_sphere_with_target(rot.x(), rot.y(), false, *rotate_target);
                     else
-                        rotate_target = volumes_bounding_box().center();
-                    camera.rotate_on_sphere_with_target(rot.x(), rot.y(), false, rotate_target);
+                        camera.rotate_on_sphere(rot.x(), rot.y(), false);
                 }
                 else {
                     if (wxGetApp().app_config->get_bool("use_free_camera"))
@@ -4628,28 +4663,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                             }
                             camera.rotate_on_sphere_with_target(rot.x(), rot.y(), rotate_limit, m_rotation_center);
                         } else {
-                            Vec3d rotate_target = Vec3d::Zero();
-                            if (m_canvas_type == ECanvasType::CanvasPreview) {
-                                PartPlate *plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
-                                if (plate)
-                                    rotate_target = plate->get_bounding_box().center();
-                            }
-                            else {
-                                if (!m_selection.is_empty())
-                                    rotate_target = m_selection.get_bounding_box().center();
-                                else {
-                                    // Rotate around the center of objects on current plate
-                                    auto bbox = volumes_bounding_box(true);
-                                    if (!bbox.defined) {
-                                        // Rotate around current plate center if current plate is empty
-                                        bbox = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_bounding_box();
-                                    }
-                                    rotate_target = bbox.center();
-                                }
-                            }
-
-                            if (!rotate_target.isZero())
-                                camera.rotate_on_sphere_with_target(rot.x(), rot.y(), rotate_limit, rotate_target);
+                            const std::optional<Vec3d> rotate_target = get_camera_orbit_target(ECameraNavigationType::Mouse);
+                            if (rotate_target.has_value())
+                                camera.rotate_on_sphere_with_target(rot.x(), rot.y(), rotate_limit, *rotate_target);
                             else
                                 camera.rotate_on_sphere(rot.x(), rot.y(), rotate_limit);
                         }
@@ -4665,16 +4681,13 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_mouse.drag.start_position_3D = Vec3d((double)pos(0), (double)pos(1), 0.0);
         }
         else if (is_camera_pan(evt, button_mappings)) {
+            m_mouse.set_start_position_3D_as_invalid();
 
             if (!has_mouse_capture()) // ORCA keep tracking mouse position while drag active and cursor not in window bounds
                 m_canvas->CaptureMouse();
 
             // if dragging with right button or if button functions swapped and dragging with left button over blank area then pan
             if (m_mouse.is_start_position_2D_defined()) {
-                // get point in model space at Z = 0
-                float z = 0.0f;
-                const Vec3d& cur_pos = _mouse_to_3d(pos, &z);
-                Vec3d orig = _mouse_to_3d(m_mouse.drag.start_position_2D, &z);
                 Camera& camera = wxGetApp().plater()->get_camera();
                 if (this->m_canvas_type != ECanvasType::CanvasAssembleView) {
                     // Orca: Use a constrained camera when navigating the 3D scene with a regular mouse, if the free camera is not selected
@@ -4686,7 +4699,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                         camera.recover_from_free_camera();
                 }
 
-                camera.set_target(camera.get_target() + orig - cur_pos);
+                const Vec2d screen_delta =
+                    pos.cast<double>() - m_mouse.drag.start_position_2D.cast<double>();
+                if (!m_mouse.drag.camera_pan_anchor.has_value())
+                    m_mouse.drag.camera_pan_anchor = get_camera_pan_anchor(camera, ECameraNavigationType::Mouse,
+                        m_mouse.drag.start_position_2D.cast<double>());
+                pan_camera(camera, screen_delta, *m_mouse.drag.camera_pan_anchor);
                 m_dirty = true;
                 m_mouse.ignore_right_up = true;  // will be reset on button up event even if not right button is pressed
             }
@@ -5594,6 +5612,7 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.drag.move_volume_idx = -1;
     m_mouse.set_start_position_3D_as_invalid();
     m_mouse.set_start_position_2D_as_invalid();
+    m_mouse.drag.camera_pan_anchor.reset();
     m_mouse.dragging = false;
     m_mouse.ignore_left_up = false;
     m_mouse.ignore_right_up = false;
@@ -10297,6 +10316,60 @@ Vec3d GLCanvas3D::_mouse_to_3d(const Point& mouse_pos, float* z)
 Vec3d GLCanvas3D::_mouse_to_bed_3d(const Point& mouse_pos)
 {
     return mouse_ray(mouse_pos).intersect_plane(0.0);
+}
+
+std::optional<Vec3d> GLCanvas3D::get_camera_orbit_target(ECameraNavigationType navigation_type) const
+{
+    PartPlate* current_plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
+    if (navigation_type == ECameraNavigationType::Gesture)
+        return current_plate == nullptr ? std::nullopt :
+            std::make_optional(current_plate->get_bounding_box().center());
+
+    const GLGizmosManager::EType gizmo_type = m_gizmos.get_current_type();
+    const bool use_scene_target = m_canvas_type == ECanvasType::CanvasAssembleView ||
+        gizmo_type == GLGizmosManager::FdmSupports || gizmo_type == GLGizmosManager::Seam ||
+        gizmo_type == GLGizmosManager::MmSegmentation || gizmo_type == GLGizmosManager::FuzzySkin;
+    if (use_scene_target) {
+        if (!m_selection.is_empty())
+            return m_selection.get_bounding_box().center();
+
+        // Preserve the world-origin fallback used by orbit in an empty scene.
+        return volumes_bounding_box().center();
+    }
+
+    // Free-camera rotation uses Camera::m_target rather than a plate or selection pivot.
+    if (wxGetApp().app_config->get_bool("use_free_camera"))
+        return std::nullopt;
+
+    Vec3d target = Vec3d::Zero();
+    if (m_canvas_type == ECanvasType::CanvasPreview) {
+        if (current_plate != nullptr)
+            target = current_plate->get_bounding_box().center();
+    } else if (!m_selection.is_empty()) {
+        target = m_selection.get_bounding_box().center();
+    } else {
+        // Match regular mouse orbit: objects on the active plate, then the plate itself.
+        BoundingBoxf3 bbox = volumes_bounding_box(true);
+        if (!bbox.defined && current_plate != nullptr)
+            bbox = current_plate->get_bounding_box();
+        if (bbox.defined)
+            target = bbox.center();
+    }
+
+    // Preserve the existing zero sentinel used by regular mouse orbit.
+    return target.isZero() ? std::nullopt : std::make_optional(target);
+}
+
+Vec3d GLCanvas3D::get_camera_pan_anchor(Camera& camera, ECameraNavigationType navigation_type,
+    const Vec2d& screen_position) const
+{
+    const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(screen_position, camera, nullptr);
+    if (hit.is_valid() && hit.position.allFinite())
+        return hit.position.cast<double>();
+
+    // Empty parts of the canvas use the same reference point as orbiting.
+    const std::optional<Vec3d> orbit_target = get_camera_orbit_target(navigation_type);
+    return orbit_target.has_value() && orbit_target->allFinite() ? *orbit_target : camera.get_target();
 }
 
 // While it looks like we can call
