@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "Bambu PC @BBL P2S 0.4 nozzle",
-    "inherits": "Bambu PC @BBL X1C",
+    "inherits": "Bambu PC @base",
     "from": "system",
     "setting_id": "GFSC00_20",
     "instantiation": "true",
@@ -13,6 +13,9 @@
     ],
     "eng_plate_temp_initial_layer": [
         "100"
+    ],
+    "fan_max_speed": [
+        "40"
     ],
     "filament_deretraction_speed": [
         "nil",
@@ -39,10 +42,6 @@
         "30"
     ],
     "filament_ramming_volumetric_speed": [
-        "-1",
-        "-1"
-    ],
-    "filament_ramming_volumetric_speed_nc": [
         "-1",
         "-1"
     ],
@@ -98,11 +97,19 @@
         "0",
         "0"
     ],
-    "filament_pre_cooling_temperature_nc": [
+    "filament_ramming_travel_time": [
         "0",
         "0"
     ],
-    "filament_ramming_travel_time": [
+    "filament_adaptive_volumetric_speed": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_volumetric_speed_nc": [
+        "-1",
+        "-1"
+    ],
+    "filament_pre_cooling_temperature_nc": [
         "0",
         "0"
     ],
@@ -134,10 +141,6 @@
         "10",
         "10"
     ],
-    "filament_adaptive_volumetric_speed": [
-        "0",
-        "0"
-    ],
     "hot_plate_temp": [
         "100"
     ],
@@ -163,6 +166,9 @@
     "retraction_distances_when_ec": [
         "0",
         "0"
+    ],
+    "slow_down_layer_time": [
+        "12"
     ],
     "textured_plate_temp": [
         "100"

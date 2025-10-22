@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "PolyLite PETG @BBL H2DP 0.2 nozzle",
-    "inherits": "PolyLite PETG @BBL X1C",
+    "inherits": "PolyLite PETG @base",
     "from": "system",
     "setting_id": "GFSG60_15",
     "instantiation": "true",
@@ -96,9 +96,6 @@
     "long_retractions_when_ec": [
         "1",
         "1"
-    ],
-    "nozzle_temperature_range_high": [
-        "260"
     ],
     "nozzle_temperature": [
         "255",

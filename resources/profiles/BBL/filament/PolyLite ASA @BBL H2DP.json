@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "PolyLite ASA @BBL H2DP",
-    "inherits": "PolyLite ASA @BBL X1C",
+    "inherits": "PolyLite ASA @base",
     "from": "system",
     "setting_id": "GFSB61_12",
     "instantiation": "true",

@@ -1,12 +1,15 @@
 {
     "type": "filament",
     "name": "Bambu ABS @BBL H2DP",
-    "inherits": "Bambu ABS @BBL X1C",
+    "inherits": "Bambu ABS @base",
     "from": "system",
     "setting_id": "GFSB00_16",
     "instantiation": "true",
     "chamber_temperatures": [
         "65"
+    ],
+    "fan_max_speed": [
+        "60"
     ],
     "filament_deretraction_speed": [
         "nil",
@@ -111,6 +114,9 @@
     "retraction_distances_when_ec": [
         "10",
         "10"
+    ],
+    "slow_down_layer_time": [
+        "12"
     ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",
