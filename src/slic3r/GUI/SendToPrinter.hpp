@@ -38,6 +38,7 @@
 #include "Widgets/ScrolledWindow.hpp"
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
+#include "Printer/PrinterFileSystem.h"
 
 namespace Slic3r {
 namespace GUI {
@@ -62,6 +63,7 @@ private:
     std::string                         m_print_error_extra;
     std::string							m_print_info;
 	std::string							m_printer_last_select;
+    std::string                         m_device_select;
     wxString							m_current_project_name;
 
     TextInput*							m_rename_input{ nullptr };
@@ -83,6 +85,8 @@ private:
     wxPanel*							m_panel_image{ nullptr };
     wxPanel*							m_rename_normal_panel{ nullptr };
     wxPanel*							m_line_materia{ nullptr };
+    wxBoxSizer*                         m_storage_sizer{ nullptr };
+    wxPanel*                            m_storage_panel{ nullptr };
 	wxSimplebook*						m_simplebook{ nullptr };
 	wxStaticText*						m_statictext_finish{ nullptr };
     wxStaticText*						m_stext_sending{ nullptr };
@@ -111,10 +115,17 @@ private:
     wxColour							m_colour_def_color{ wxColour(255, 255, 255) };
     wxColour							m_colour_bold_color{ wxColour(38, 46, 48) };
 	wxTimer*							m_refresh_timer{ nullptr };
+    std::unique_ptr<wxTimer>            m_task_timer{ nullptr };
     std::shared_ptr<BBLStatusBarSend>   m_status_bar;
     std::unique_ptr<Worker>             m_worker;
 	wxScrolledWindow*                   m_sw_print_failed_info{nullptr};
     std::shared_ptr<int>                m_token = std::make_shared<int>(0);
+    std::vector<RadioBox*>              m_storage_radioBox;
+
+    bool                                  m_waiting_support{ false };
+    bool                                  m_waiting_enable{ false };
+    boost::shared_ptr<PrinterFileSystem>  m_file_sys;
+    std::vector<std::string>              m_ability_list;
    
 public:
 	SendToPrinterDialog(Plater* plater = nullptr);
@@ -153,8 +164,13 @@ public:
     void show_print_failed_info(bool show, int code = 0, wxString description = wxEmptyString, wxString extra = wxEmptyString);
     void update_print_error_info(int code, std::string msg, std::string extra);
     void on_change_color_mode() { wxGetApp().UpdateDlgDarkUI(this); }
+    void update_storage_list(std::vector<std::string> storages);
+    std::string get_storage_selected();
+
     wxString format_text(wxString& m_msg);
 	std::vector<std::string> sort_string(std::vector<std::string> strArray);
+
+    void fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs);
 };
 
 wxDECLARE_EVENT(EVT_CLEAR_IPADDRESS, wxCommandEvent);

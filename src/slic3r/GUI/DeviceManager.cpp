@@ -535,6 +535,13 @@ bool MachineObject::is_lan_mode_printer() const
     return result;
 }
 
+std::string MachineObject::convertToIp(long long ip)
+{
+    std::stringstream ss;
+    ss << ((ip >> 0) & 0xFF) << "." << ((ip >> 8) & 0xFF) << "." << ((ip >> 16) & 0xFF) << "." << ((ip >> 24) & 0xFF);
+    return ss.str();
+}
+
 PrinterSeries MachineObject::get_printer_series() const
 {
     std::string series =  DeviceManager::get_printer_series(printer_type);
@@ -1853,6 +1860,17 @@ int MachineObject::command_control_fan_val(FanType fan_type, int val)
 }
 
 
+int MachineObject::command_task_partskip(std::vector<int> part_ids)
+{
+    BOOST_LOG_TRIVIAL(trace) << "command_task_partskip: ";
+    json j;
+    j["print"]["command"] = "skip_objects";
+    j["print"]["obj_list"] = part_ids;
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+
+    return this->publish_json(j.dump(), 1); 
+}
+
 int MachineObject::command_task_abort()
 {
     BOOST_LOG_TRIVIAL(trace) << "command_task_abort: ";
@@ -2723,7 +2741,7 @@ void MachineObject::reset()
     vt_tray.reset();
 
     subtask_ = nullptr;
-
+    m_partskip_ids.clear();
 }
 
 void MachineObject::set_print_state(std::string status)
@@ -2959,6 +2977,29 @@ int MachineObject::parse_json(std::string payload, bool key_field_only)
                             print_json.load_compatible_settings(printer_type, "");
                         print_json.diff2all_base_reset(j_pre);
                     }
+
+                    if (j_pre["print"].contains("s_obj")){
+                        if(j_pre["print"]["s_obj"].is_array()){
+                            m_partskip_ids.clear();
+                            for(auto it=j_pre["print"]["s_obj"].begin(); it!=j_pre["print"]["s_obj"].end(); it++){
+                                m_partskip_ids.push_back(it.value().get<int>());
+                            }
+                        }
+                    }
+                }
+            }
+            if (j_pre["print"].contains("plate_idx")){ // && m_plate_index == -1
+                if (j_pre["print"]["plate_idx"].is_number())
+                {
+                    m_plate_index = j_pre["print"]["plate_idx"].get<int>();
+                }
+                else if (j_pre["print"]["plate_idx"].is_string())
+                {
+                    try
+                    {
+                        m_plate_index = std::stoi(j_pre["print"]["plate_idx"].get<std::string>());
+                    }
+                    catch (...) { BOOST_LOG_TRIVIAL(error) << "parse_json: failed to convert plate_idx to int"; }
                 }
             }
         }
@@ -3423,8 +3464,24 @@ int MachineObject::parse_json(std::string payload, bool key_field_only)
                             if (jj["net"].contains("conf")) {
                                 network_wired = (jj["net"]["conf"].get<int>() & (0x1)) != 0;
                             }
+                            if (jj["net"].contains("info")) {
+                                for (auto info_item = jj["net"]["info"].begin(); info_item != jj["net"]["info"].end(); info_item++) {
+
+                                    if (info_item->contains("ip")) {
+                                        auto tmp_dev_ip = (*info_item)["ip"].get<int64_t>();
+                                        if (tmp_dev_ip == 0)
+                                            continue ;
+                                        else {
+                                           set_dev_ip(convertToIp(tmp_dev_ip));
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
+
 #pragma endregion
 
 #pragma region online
@@ -5170,6 +5227,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
 
             if (plate_idx >= 0) {
                 plate_index = plate_idx;
+                this->m_plate_index = plate_idx;
             }
             else {
                 std::string subtask_json;
@@ -5232,8 +5290,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
                     BOOST_LOG_TRIVIAL(error) << "task_info: get subtask id failed!";
                 }
             }
-
-            this->m_plate_index = plate_index;
+            // this->m_plate_index = plate_index;
             });
     }
 }
@@ -5562,6 +5619,8 @@ void MachineObject::parse_new_info(json print)
         is_support_nozzle_blob_detection = get_flag_bits(fun, 13);
         is_support_upgrade_kit = get_flag_bits(cfg, 14);
         is_support_command_homing = get_flag_bits(fun, 32);
+        is_support_brtc = get_flag_bits(fun, 31);
+        is_support_partskip = get_flag_bits(fun, 49);
     }
 
     /*aux*/

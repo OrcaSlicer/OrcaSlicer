@@ -509,6 +509,7 @@ public:
     int         subscribe_counter{3};
     std::string dev_connection_type;    /* lan | cloud */
     std::string connection_type() { return dev_connection_type; }
+
     std::string dev_connection_name;    /* lan | eth */
     void set_dev_ip(std::string ip) {dev_ip = ip;}
     std::string get_ftp_folder();
@@ -520,6 +521,7 @@ public:
     void erase_user_access_code();
     std::string get_user_access_code() const;
     bool is_lan_mode_printer() const;
+    std::string convertToIp(long long ip);
 
     //PRINTER_TYPE printer_type = PRINTER_3DPrinter_UKNOWN;
     std::string printer_type;       /* model_id */
@@ -831,6 +833,9 @@ public:
     int  xcam_filament_tangle_detect_count = 0;
     int  ams_print_option_count = 0;
 
+    // part skip
+    std::vector<int> m_partskip_ids;
+
     //supported features
     bool is_support_chamber_edit{false};
     bool is_support_extrusion_cali{false};
@@ -870,6 +875,8 @@ public:
     bool is_support_agora{false};
     bool is_support_upgrade_kit{false};
     bool is_support_command_homing { false };// fun[32]
+    bool is_support_brtc{false};                 // fun[31], support tcp and upload protocol
+    bool is_support_partskip{false};
 
     bool installed_upgrade_kit{false};
     int  nozzle_max_temperature = -1;
@@ -952,6 +959,7 @@ public:
     int command_control_fan_val(FanType fan_type, int val);
     int command_task_abort();
     /* cancelled the job_id */
+    int command_task_partskip(std::vector<int> part_ids);
     int command_task_cancel(std::string job_id);
     int command_task_pause();
     int command_task_resume();
