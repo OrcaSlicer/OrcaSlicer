@@ -20,7 +20,7 @@ Support structures are used in 3D printing to provide stability to overhangs and
 - [Initial layer density](#initial-layer-density)
 - [Initial layer expansion](#initial-layer-expansion)
 - [On build plate only](#on-build-plate-only)
-- [Remove small overhangs](#remove-small-overhangs)
+- [Ignore small overhangs](#ignore-small-overhangs)
 
 ## Type
 
@@ -95,6 +95,6 @@ Expand the first raft or support layer to improve bed plate adhesion.
 
 Don't create support on model surface, only on build plate.
 
-## Remove small overhangs
+## Ignore small overhangs
 
-Remove small overhangs that possibly need no supports.
+With this setting small overhangs that possibly need no supports will be ignored from support generation.

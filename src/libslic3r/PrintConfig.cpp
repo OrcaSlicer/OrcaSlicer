@@ -5017,9 +5017,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("support_remove_small_overhang", coBool);
-    def->label = L("Remove small overhangs");
+    def->label = L("Ignore small overhangs");
     def->category = L("Support");
-    def->tooltip = L("Remove small overhangs that possibly need no supports.");
+    def->tooltip = L("Ignore small overhangs that possibly don't require support.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
