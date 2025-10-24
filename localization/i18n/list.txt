@@ -234,6 +234,10 @@ src/slic3r/Utils/Flashforge.cpp
 src/slic3r/GUI/Jobs/OAuthJob.cpp
 src/slic3r/GUI/BackgroundSlicingProcess.cpp
 src/slic3r/GUI/Gizmos/GLGizmoBrimEars.cpp
+src/slic3r/GUI/PartSkipDialog.cpp
+src/slic3r/GUI/PartSkipDialog.hpp
+src/slic3r/GUI/SkipPartCanvas.cpp
+src/slic3r/GUI/SkipPartCanvas.hpp
 src/slic3r/GUI/FilamentBitmapUtils.cpp
 src/slic3r/GUI/FilamentBitmapUtils.hpp
 src/slic3r/GUI/FilamentPickerDialog.cpp

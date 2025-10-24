@@ -554,6 +554,9 @@ public:
     time_t  xcam_prompt_sound_hold_start = 0;
     time_t  xcam_filament_tangle_detect_hold_start = 0;
 
+    // part skip
+    std::vector<int> m_partskip_ids;
+
     /*target from Studio-SwitchBoard, default to INVALID_NOZZLE_ID if no switching control from PC*/
     int targ_nozzle_id_from_pc = INVALID_EXTRUDER_ID;
 
@@ -593,6 +596,7 @@ public:
     bool m_support_mqtt_homing { false };// fun[32]
     bool is_support_brtc{false};                 // fun[31], support tcp and upload protocol
     bool is_support_ext_change_assist{false};
+    bool is_support_partskip{false};
 
       // refine printer function options
     bool is_support_spaghetti_detection{false};
@@ -689,6 +693,7 @@ public:
 
     int command_task_abort();
     /* cancelled the job_id */
+    int command_task_partskip(std::vector<int> part_ids);
     int command_task_cancel(std::string job_id);
     int command_task_pause();
     int command_task_resume();

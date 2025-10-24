@@ -1336,6 +1336,17 @@ int MachineObject::command_go_home()
     return this->is_in_printing() ? this->publish_gcode("G28 X\n") : this->publish_gcode("G28 \n");
 }
 
+int MachineObject::command_task_partskip(std::vector<int> part_ids)
+{
+    BOOST_LOG_TRIVIAL(trace) << "command_task_partskip: ";
+    json j;
+    j["print"]["command"] = "skip_objects";
+    j["print"]["obj_list"] = part_ids;
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+
+    return this->publish_json(j, 1);
+}
+
 int MachineObject::command_task_abort()
 {
     BOOST_LOG_TRIVIAL(trace) << "command_task_abort: ";
@@ -2313,6 +2324,7 @@ void MachineObject::reset()
         }
     }
     subtask_ = nullptr;
+    m_partskip_ids.clear();
 }
 
 void MachineObject::set_print_state(std::string status)
@@ -2567,6 +2579,29 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                         print_json.diff2all_base_reset(j_pre);
                     }
+
+                    if (j_pre["print"].contains("s_obj")){
+                        if(j_pre["print"]["s_obj"].is_array()){
+                            m_partskip_ids.clear();
+                            for(auto it=j_pre["print"]["s_obj"].begin(); it!=j_pre["print"]["s_obj"].end(); it++){
+                                m_partskip_ids.push_back(it.value().get<int>());
+                            }
+                        }
+                    }
+                }
+            }
+            if (j_pre["print"].contains("plate_idx")){ // && m_plate_index == -1
+                if (j_pre["print"]["plate_idx"].is_number())
+                {
+                    m_plate_index = j_pre["print"]["plate_idx"].get<int>();
+                }
+                else if (j_pre["print"]["plate_idx"].is_string())
+                {
+                    try
+                    {
+                        m_plate_index = std::stoi(j_pre["print"]["plate_idx"].get<std::string>());
+                    }
+                    catch (...) { BOOST_LOG_TRIVIAL(error) << "parse_json: failed to convert plate_idx to int"; }
                 }
             }
         }
@@ -4407,6 +4442,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
 
             if (plate_idx >= 0) {
                 plate_index = plate_idx;
+                this->m_plate_index = plate_idx;
             }
             else {
                 std::string subtask_json;
@@ -4469,8 +4505,7 @@ void MachineObject::update_slice_info(std::string project_id, std::string profil
                     BOOST_LOG_TRIVIAL(error) << "task_info: get subtask id failed!";
                 }
             }
-
-            this->m_plate_index = plate_index;
+            // this->m_plate_index = plate_index;
             });
     }
 }
@@ -4880,6 +4915,7 @@ void MachineObject::parse_new_info(json print)
         is_support_airprinting_detection = get_flag_bits(fun, 45);
         m_fan->SetSupportCoolingFilter(get_flag_bits(fun, 46));
         is_support_ext_change_assist = get_flag_bits(fun, 48);
+        is_support_partskip = get_flag_bits(fun, 49);
     }
 
     /*aux*/
