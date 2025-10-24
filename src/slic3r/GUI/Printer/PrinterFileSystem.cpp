@@ -26,9 +26,9 @@
 std::string last_system_error() {
     return Slic3r::decode_path(std::error_code(
 #ifdef _WIN32
-        GetLastError(), 
+        GetLastError(),
 #else
-        errno, 
+        errno,
 #endif
         std::system_category()).message().c_str());
 }
@@ -55,7 +55,7 @@ static std::map<int, std::string> error_messages = {
      {PrinterFileSystem::FILE_NO_EXIST, L("File does not exist.")},
      {PrinterFileSystem::FILE_CHECK_ERR, L("File checksum error. Please retry.")},
      {PrinterFileSystem::FILE_TYPE_ERR, L("Not supported on the current printer version.")},
-     {PrinterFileSystem::STORAGE_UNAVAILABLE, L("Please check if the SD card is inserted into the printer.\nIf it still cannot be read, you can try formatting the SD card.")},
+     {PrinterFileSystem::STORAGE_UNAVAILABLE, L("Please check if the storage is inserted into the printer.\nIf it still cannot be read, you can try formatting the storage.")},
      {PrinterFileSystem::API_VERSION_UNSUPPORT, L("The firmware version of the printer is too low. Please update the firmware and try again.")},
      {PrinterFileSystem::FILE_EXIST, L("The file already exists, do you want to replace it?")},
      {PrinterFileSystem::STORAGE_SPACE_NOT_ENOUGH, L("Insufficient storage space, please clear the space and try again.")},
@@ -67,12 +67,16 @@ static std::map<int, std::string> error_messages = {
 };
 
 struct StaticBambuLib : BambuLib {
-    static StaticBambuLib & get();
+    static StaticBambuLib &get(BambuLib * copy = nullptr);
     static int Fake_Bambu_Create(Bambu_Tunnel*, char const*) { return -2; }
+    static void reset();
+    static void release();
+private:
+    std::vector<BambuLib *> copies_;
 };
 
 PrinterFileSystem::PrinterFileSystem()
-    : BambuLib(StaticBambuLib::get())
+    : BambuLib(StaticBambuLib::get(this))
 {
     if (!default_thumbnail.IsOk()) {
         default_thumbnail = *Slic3r::GUI::BitmapCache().load_svg("printer_file", 0, 0);
@@ -267,6 +271,7 @@ struct PrinterFileSystem::Upload : Progress
     MD5_CTX                     ctx;
     boost::filesystem::ifstream ifs;
 };
+
 
 void PrinterFileSystem::GetPickImages(const std::vector<std::string> &local_paths, const std::vector<std::string> &targetpaths)
 {
@@ -526,7 +531,7 @@ void PrinterFileSystem::FetchModel(size_t index, std::function<void(int, std::st
             m_task_flags &= ~FF_FETCH_MODEL;
             if (result != 0) {
                 auto iter = error_messages.find(result);
-                if (iter != error_messages.end())     
+                if (iter != error_messages.end())
                     *file_data = _u8L(iter->second.c_str());
                 else
                     file_data->clear();
@@ -556,6 +561,13 @@ std::string PrinterFileSystem::File::Metadata(std::string const &key, std::strin
 {
     auto iter = metadata.find(key);
     return iter == metadata.end() || iter->second.empty() ? dflt : iter->second;
+}
+
+PrinterFileSystem::UploadFile::~UploadFile()
+{
+    if (upload && upload->ifs.is_open()) {
+        upload->ifs.close();
+    }
 }
 
 size_t PrinterFileSystem::GetIndexAtTime(boost::uint32_t time)
@@ -692,6 +704,7 @@ void PrinterFileSystem::Stop(bool quit)
 
 void PrinterFileSystem::SetUploadFile(const std::string &path, const std::string &name, const std::string &select_storage)
 {
+    boost::unique_lock l(m_mutex);
     if (!m_upload_file) {
         m_upload_file = std::make_unique<UploadFile>();
     }
@@ -919,7 +932,7 @@ void PrinterFileSystem::UpdateFocusThumbnail()
                 names.push_back({file.name, ""});
             else
                 paths.push_back({file.name, file.path});
-            if (names.size() >= 5 || paths.size() >= 5)
+            if (names.size() >= 2 || paths.size() >= 2)
                 break;
             if ((file.flags & FF_THUMNAIL_RETRY) != 0) {
                 const_cast<File&>(file).flags &= ~FF_THUMNAIL_RETRY;
@@ -930,7 +943,7 @@ void PrinterFileSystem::UpdateFocusThumbnail()
     if (names.empty() && paths.empty())
         return;
     m_task_flags |= FF_THUMNAIL;
-    UpdateFocusThumbnail2(std::make_shared<std::vector<File>>(paths.empty() ? names : paths), 
+    UpdateFocusThumbnail2(std::make_shared<std::vector<File>>(paths.empty() ? names : paths),
         paths.empty() ? OldThumbnail : m_file_type == F_MODEL ? ModelMetadata : VideoThumbnail);
 }
 
@@ -1014,7 +1027,7 @@ void PrinterFileSystem::UpdateFocusThumbnail2(std::shared_ptr<std::vector<File>>
                     if (!thumbnail.empty()) {
                         arr.push_back(file.path + "#" + thumbnail);
                         file.flags &= ~FF_THUMNAIL;
-                        file.local_path.clear();    
+                        file.local_path.clear();
                     }
                 }
             }
@@ -1120,7 +1133,7 @@ std::pair<PrinterFileSystem::FileList &, size_t> PrinterFileSystem::FindFile(std
                                m_file_list :
                                m_file_list_cache[type];
     if (index >= file_list.size() || (by_path ? file_list[index].path : file_list[index].name) != name) {
-        auto iter = std::find_if(m_file_list.begin(), file_list.end(), 
+        auto iter = std::find_if(m_file_list.begin(), file_list.end(),
                 [name, by_path](File &f) { return (by_path ? f.path : f.name) == name; });
         if (iter == m_file_list.end()) return {file_list, -1};
         index = std::distance(m_file_list.begin(), iter);
@@ -1189,7 +1202,7 @@ void PrinterFileSystem::SendChangedEvent(wxEventType type, size_t index, std::st
     event.SetInt(index);
     if (!str.empty())
         event.SetString(wxString::FromUTF8(str.c_str()));
-    else if (auto iter = error_messages.find(extra); iter != error_messages.end())     
+    else if (auto iter = error_messages.find(extra); iter != error_messages.end())
         event.SetString(_L(iter->second.c_str()));
     else if (extra > CONTINUE && extra != ERROR_CANCEL)
         event.SetString(wxString::Format(_L("Error code: %d"), int(extra)));
@@ -1202,7 +1215,11 @@ void PrinterFileSystem::SendChangedEvent(wxEventType type, size_t index, std::st
 
 void PrinterFileSystem::DumpLog(void * thiz, int, tchar const *msg)
 {
+
+#if !BBL_RELEASE_TO_PUBLIC
     BOOST_LOG_TRIVIAL(info) << "PrinterFileSystem: " << wxString(msg).ToUTF8().data();
+#endif
+
     static_cast<PrinterFileSystem*>(thiz)->Bambu_FreeLogMsg(msg);
 }
 
@@ -1234,6 +1251,10 @@ boost::uint32_t PrinterFileSystem::RequestMediaAbility(int api_version)
 
 void PrinterFileSystem::RequestUploadFile()
 {
+    if (!m_upload_file) {
+        return;
+    }
+
     json req;
     req["type"]    = "model";
     req["storage"] = m_upload_file->select_storage;
@@ -1254,9 +1275,9 @@ void PrinterFileSystem::RequestUploadFile()
             if (result != SUCCESS && result != CONTINUE && result != FILE_EXIST) {
                 std::string error_msg = "";
                 if (result == ERROR_CANCEL) {
-                    error_msg = L("User cancels task.");
+                    error_msg = _L("User cancels task.").ToStdString();
                 } else if (result == FILE_READ_WRITE_ERR || result == FILE_OPEN_ERR) {
-                    error_msg = L("Failed to read file, please try again.");
+                    error_msg = _L("Failed to read file, please try again.").ToStdString();
                 }
                 wxLogWarning("PrinterFileSystem::UploadFile error: %d\n", result);
                 SendChangedEvent(EVT_UPLOAD_CHANGED, FF_UPLOADCANCEL, error_msg, result);
@@ -1283,6 +1304,9 @@ void PrinterFileSystem::RequestUploadFile()
 
             // reset m_upload_file
             if (m_upload_file) {
+                if (m_upload_file->upload->ifs.is_open()) {
+                    m_upload_file->upload->ifs.close();
+                }
                 m_upload_file.reset();
             }
             return result;
@@ -1386,6 +1410,16 @@ void PrinterFileSystem::CancelUploadTask(bool send_cancel_req)
 {
     if (!m_upload_file)
         return;
+
+    {
+        boost::unique_lock l(m_mutex);
+        if (m_produce_message_cb_map.find(m_upload_seq) != m_produce_message_cb_map.end())
+            m_produce_message_cb_map.erase(m_upload_seq);
+        if (m_upload_file->upload->ifs.is_open()) {
+            m_upload_file->upload->ifs.close();
+        }
+        m_upload_file.reset();
+    }
 
     if (send_cancel_req) {
         CancelRequest(m_upload_seq);
@@ -1572,8 +1606,8 @@ void PrinterFileSystem::HandleResponse(boost::unique_lock<boost::mutex> &l, Bamb
         json_end = end;
     std::string msg((char const *) sample.buffer, json_end - sample.buffer);
     json        root;
-    //OutputDebugStringA(msg.c_str());
-    //OutputDebugStringA("\n");
+    // OutputDebugStringA(msg.c_str());
+    // OutputDebugStringA("\n");
     wxLogInfo("PrinterFileSystem::HandleResponse <<<: \n%s\n", wxString::FromUTF8(msg));
     std::istringstream iss(msg);
     int                cmd    = 0;
@@ -1658,6 +1692,8 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
     m_messages.clear();
     if (result)
         m_cond.timed_wait(l, boost::posix_time::seconds(10));
+
+
     while (true) {
         while (m_stopped) {
             if (m_session.owner == nullptr)
@@ -1694,12 +1730,24 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
                 Bambu_SetLogger(tunnel, DumpLog, this);
                 ret = Bambu_Open(tunnel);
             }
+
             if (ret == 0)
-                do {
-                    ret = Bambu_StartStreamEx 
-                        ? Bambu_StartStreamEx(tunnel, CTRL_TYPE)
-                        : Bambu_StartStream(tunnel, false);
-                } while (ret == Bambu_would_block);
+            {
+                auto                             start_time = boost::posix_time::microsec_clock::universal_time();
+                boost::posix_time::time_duration timeout    = boost::posix_time::seconds(3);
+                do{
+                    ret = Bambu_StartStreamEx ? Bambu_StartStreamEx(tunnel, CTRL_TYPE) : Bambu_StartStream(tunnel, false);
+                    if (ret == Bambu_would_block)
+                        boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+
+                     auto now = boost::posix_time::microsec_clock::universal_time();
+                    if (now - start_time > timeout) {
+                        BOOST_LOG_TRIVIAL(warning) << "StartStream timeout after 5 seconds.";
+                        break;
+                    }
+
+                } while (ret == Bambu_would_block && !m_stopped);
+            }
             l.lock();
             if (ret == 0) {
                 m_session.tunnel = tunnel;
@@ -1768,12 +1816,12 @@ static void* get_function(const char* name)
 
 #define GET_FUNC(x) lib.x = reinterpret_cast<decltype(lib.x)>(get_function(#x))
 
-StaticBambuLib &StaticBambuLib::get()
+StaticBambuLib &StaticBambuLib::get(BambuLib *copy)
 {
     static StaticBambuLib lib;
     // first load the library
 
-    if (lib.Bambu_Open)
+    if (lib.Bambu_Create)
         return lib;
 
     if (!module) {
@@ -1796,12 +1844,29 @@ StaticBambuLib &StaticBambuLib::get()
     GET_FUNC(Bambu_Destroy);
     GET_FUNC(Bambu_SetLogger);
     GET_FUNC(Bambu_FreeLogMsg);
+    GET_FUNC(Bambu_Deinit);
 
-    if (!lib.Bambu_Open)
+    if (!lib.Bambu_Create) {
         lib.Bambu_Create = Fake_Bambu_Create;
+        if (copy)
+            lib.copies_.push_back(copy);
+    }
     return lib;
 }
 
-extern "C" BambuLib *bambulib_get() {
-    return &StaticBambuLib::get();
+void StaticBambuLib::reset()
+{
+    get().Bambu_Create = nullptr;
+    auto &lib = get();
+    for (auto c : lib.copies_)
+        *c = lib;
 }
+
+void StaticBambuLib::release()
+{
+    if (auto f = get().Bambu_Deinit)
+        f();
+}
+
+extern "C" BambuLib *bambulib_get() {
+    return &StaticBambuLib::get(); }

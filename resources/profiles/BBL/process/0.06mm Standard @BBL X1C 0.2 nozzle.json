@@ -8,7 +8,6 @@
     "description": "Compared with the default profile of 0.2 mm nozzle, it has a smaller layer height, and results in minimal layer lines and higher printing quality, but shorter printing time.",
     "elefant_foot_compensation": "0.15",
     "smooth_coefficient": "150",
-    "overhang_totally_speed": "50",
     "compatible_printers": [
         "Bambu Lab X1 Carbon 0.2 nozzle",
         "Bambu Lab X1 0.2 nozzle",

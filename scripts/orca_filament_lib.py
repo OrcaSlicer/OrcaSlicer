@@ -160,6 +160,9 @@ def clean_up_profile(vendor="", profile_type="", force=False):
         for root, dirs, files in os.walk(profile_dir):
             for file in files:
                 if file.lower().endswith('.json'):
+                    if file == 'filaments_color_codes.json': # Ignore non-profile file
+                        continue
+                    
                     full_path = os.path.join(root, file)
                     
                     # Get relative path from base directory
@@ -189,6 +192,19 @@ def clean_up_profile(vendor="", profile_type="", force=False):
                                     del _profile[field]
                                     print(f"Removed {field} field from {file}")
                                     need_update = True
+
+                            # Handle `extruder_clearance_radius`.
+                            if 'extruder_clearance_radius' in _profile and 'extruder_clearance_max_radius' in _profile:
+                                # BBS renamed `extruder_clearance_radius` to `extruder_clearance_max_radius`
+                                # however some of their profiles have both options exists with different value, which
+                                # could cause very bad consequence such as toolhead collision.
+                                # Here we make sure only one of these options exist, and if both present, we keep
+                                # the one with greater value.
+                                need_update = True
+                                if float(_profile['extruder_clearance_max_radius']) > float(_profile['extruder_clearance_radius']):
+                                    del _profile['extruder_clearance_radius']
+                                else:
+                                    del _profile['extruder_clearance_max_radius']
 
                             if need_update or force:
                                 # write back to file

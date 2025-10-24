@@ -94,6 +94,7 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
 
     m_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     m_optgroup = new ConfigOptionsGroup(this, _L("Print Host upload"), m_config);
+    check_host_key_valid();
     build_printhost_settings(m_optgroup);
 
     auto dlg_btns = new DialogButtons(this, {"OK"});
@@ -724,6 +725,16 @@ void PhysicalPrinterDialog::on_dpi_changed(const wxRect& suggested_rect)
 
     Fit();
     Refresh();
+}
+
+void PhysicalPrinterDialog::check_host_key_valid()
+{
+    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
+    for (auto &key : keys) {
+        auto it = m_config->option<ConfigOptionString>(key);
+        if (!it) m_config->set_key_value(key, new ConfigOptionString(""));
+    }
+    return;
 }
 
 void PhysicalPrinterDialog::OnOK(wxEvent& event)

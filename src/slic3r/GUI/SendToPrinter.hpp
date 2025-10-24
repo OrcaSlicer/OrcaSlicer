@@ -39,6 +39,8 @@
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
 #include "Printer/PrinterFileSystem.h"
+#include "Widgets/AnimaController.hpp"
+#include "Widgets/RadioBox.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -49,16 +51,21 @@ private:
 	void init_bind();
 	void init_timer();
 
+
 	int									m_print_plate_idx;
     int									m_current_filament_id;
     int                                 m_print_error_code = 0;
     int									timeout_count = 0;
+    int                                 m_connect_try_times = 0;
     bool								m_is_in_sending_mode{ false };
     bool								m_is_rename_mode{ false };
     bool								enable_prepare_mode{ true };
     bool								m_need_adaptation_screen{ false };
     bool								m_export_3mf_cancel{ false };
     bool								m_is_canceled{ false };
+    bool                                m_tcp_try_connect{true};
+    bool                                m_tutk_try_connect{false};
+    bool                                m_ftp_try_connect{false};
     std::string                         m_print_error_msg;
     std::string                         m_print_error_extra;
     std::string							m_print_info;
@@ -87,11 +94,13 @@ private:
     wxPanel*							m_line_materia{ nullptr };
     wxBoxSizer*                         m_storage_sizer{ nullptr };
     wxPanel*                            m_storage_panel{ nullptr };
+    wxPanel *                           m_connecting_panel{nullptr};
 	wxSimplebook*						m_simplebook{ nullptr };
 	wxStaticText*						m_statictext_finish{ nullptr };
     wxStaticText*						m_stext_sending{ nullptr };
     wxStaticText*						m_staticText_bed_title{ nullptr };
     wxStaticText*						m_statictext_printer_msg{ nullptr };
+    wxStaticText *                      m_connecting_printer_msg{nullptr};
     wxStaticText*						m_stext_printer_title{ nullptr };
     wxStaticText*						m_rename_text{ nullptr };
     wxStaticText*						m_stext_time{ nullptr };
@@ -106,8 +115,10 @@ private:
 	wxBoxSizer*							sizer_thumbnail;
 	wxBoxSizer*							m_sizer_scrollable_region;
 	wxBoxSizer*							m_sizer_main;
+
 	wxStaticText*						m_file_name;
     PrintDialogStatus					m_print_status{ PrintStatusInit };
+    AnimaIcon *                         m_animaicon{nullptr};
 
     std::vector<wxString>               m_bedtype_list;
     std::map<std::string, ::CheckBox*>	m_checkbox_list;
@@ -126,7 +137,7 @@ private:
     bool                                  m_waiting_enable{ false };
     boost::shared_ptr<PrinterFileSystem>  m_file_sys;
     std::vector<std::string>              m_ability_list;
-   
+
 public:
 	SendToPrinterDialog(Plater* plater = nullptr);
     ~SendToPrinterDialog();
@@ -164,11 +175,11 @@ public:
     void show_print_failed_info(bool show, int code = 0, wxString description = wxEmptyString, wxString extra = wxEmptyString);
     void update_print_error_info(int code, std::string msg, std::string extra);
     void on_change_color_mode() { wxGetApp().UpdateDlgDarkUI(this); }
-    void update_storage_list(std::vector<std::string> storages);
+    void update_storage_list(const std::vector<std::string>& storages);
     std::string get_storage_selected();
 
     wxString format_text(wxString& m_msg);
-	std::vector<std::string> sort_string(std::vector<std::string> strArray);
+    std::vector<std::string> sort_string(std::vector<std::string> strArray);
 
     void fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs);
 };

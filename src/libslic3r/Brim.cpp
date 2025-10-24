@@ -908,9 +908,6 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         brimToWrite.insert({ objectWithExtruder.first, {true,true} });
 
     ExPolygons objectIslands;
-    auto bedPoly = Model::getBedPolygon();
-    auto bedExPoly = diff_ex((offset(bedPoly, scale_(30.), jtRound, SCALED_RESOLUTION)), { bedPoly });
-
     for (unsigned int extruderNo : printExtruders) {
         ++extruderNo;
         for (const auto& objectWithExtruder : objPrintVec) {
@@ -1094,17 +1091,48 @@ static ExPolygons outer_inner_brim_area(const Print& print,
             }
         }
     }
-    if (!bedExPoly.empty()){
-        no_brim_area.push_back(bedExPoly.front());
+
+    int  extruder_nums = print.config().nozzle_diameter.values.size();
+    std::vector<Polygons> extruder_unprintable_area = print.get_extruder_printable_polygons();
+    // Orca: if per-extruder print area is not specified, use the whole bed as printable area for all extruders
+    if (extruder_unprintable_area.empty()) {
+        extruder_unprintable_area.resize(extruder_nums, Polygons{Model::getBedPolygon()});
     }
+    std::vector<int> filament_map = print.get_filament_maps();
+
+    if (print.has_wipe_tower() && !print.get_fake_wipe_tower().outer_wall.empty()) {
+        ExPolygons expolyFromLines{};
+        for (auto polyline : print.get_fake_wipe_tower().outer_wall.begin()->second) {
+            polyline.remove_duplicate_points();
+            expolyFromLines.emplace_back(polyline.points);
+            expolyFromLines.back().translate(Point(scale_(print.get_fake_wipe_tower().pos[0]), scale_(print.get_fake_wipe_tower().pos[1])));
+        }
+        expolygons_append(no_brim_area, expolyFromLines);
+    }
+
     for (const PrintObject* object : print.objects()) {
-        if (brimAreaMap.find(object->id()) != brimAreaMap.end())
-        {
-            brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], no_brim_area);
+        ExPolygons extruder_no_brim_area = no_brim_area;
+        auto iter = std::find_if(objPrintVec.begin(), objPrintVec.end(), [object](const std::pair<ObjectID, unsigned int>& item) {
+            return item.first == object->id();
+        });
+
+        if (iter != objPrintVec.end()) {
+            int extruder_id = filament_map[iter->second - 1] - 1;
+            auto bedPoly = extruder_unprintable_area[extruder_id];
+            auto bedExPoly   = diff_ex((offset(bedPoly, scale_(30.), jtRound, SCALED_RESOLUTION)), {bedPoly});
+            if (!bedExPoly.empty()) {
+                extruder_no_brim_area.push_back(bedExPoly.front());
+            }
+            //extruder_no_brim_area = offset2_ex(extruder_no_brim_area, scaled_flow_width, -scaled_flow_width); // connect scattered small areas to prevent generating very small brims
+
+        }
+
+        if (brimAreaMap.find(object->id()) != brimAreaMap.end()) {
+            brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], extruder_no_brim_area);
         }
 
         if (supportBrimAreaMap.find(object->id()) != supportBrimAreaMap.end())
-            supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], no_brim_area);
+            supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], extruder_no_brim_area);
     }
 
     brim_area.clear();

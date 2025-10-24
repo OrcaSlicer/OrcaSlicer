@@ -4,6 +4,8 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
+#include "slic3r/GUI/DeviceCore/DevManager.h"
+
 namespace Slic3r {
 namespace GUI {
 
@@ -97,7 +99,7 @@ void BindJob::process(Ctl &ctl)
     );
 
     if (result < 0) {
-        BOOST_LOG_TRIVIAL(trace) << "login: result = " << result;
+        BOOST_LOG_TRIVIAL(info) << "login: result = " << result;
 
         if (result_code == BAMBU_NETWORK_ERR_BIND_ECODE_LOGIN_REPORT_FAILED || result_code == BAMBU_NETWORK_ERR_BIND_GET_PRINTER_TICKET_TIMEOUT) {
             int         error_code;
@@ -105,8 +107,7 @@ void BindJob::process(Ctl &ctl)
             try
             {
                 error_code = stoi(result_info);
-                wxString error_msg;
-                wxGetApp().get_hms_query()->query_print_error_msg(error_code, error_msg);
+                wxString error_msg = wxGetApp().get_hms_query()->query_print_error_msg(m_dev_id, error_code);
                 result_info = error_msg.ToStdString();
             }
             catch (...) {
@@ -120,7 +121,7 @@ void BindJob::process(Ctl &ctl)
 
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) {
-        BOOST_LOG_TRIVIAL(trace) << "login: dev is null";
+        BOOST_LOG_TRIVIAL(error) << "login: dev is null";
         post_fail_event(result_code, result_info);
         return;
     }

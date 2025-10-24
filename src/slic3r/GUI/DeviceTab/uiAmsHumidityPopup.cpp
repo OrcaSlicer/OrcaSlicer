@@ -1,6 +1,6 @@
 //**********************************************************/
 /* File: uiAmsHumidityPopup.cpp
-*  Description: The popup with Ams Humidity
+*  Description: The popup with DevAms Humidity
 *
 * \n class uiAmsHumidityPopup
 //**********************************************************/
@@ -15,32 +15,87 @@
 
 
 #include <wx/dcgraph.h>
+#include <wx/grid.h>
 
 namespace Slic3r { namespace GUI {
 
 uiAmsPercentHumidityDryPopup::uiAmsPercentHumidityDryPopup(wxWindow *parent)
-    : PopupWindow(parent, wxBORDER_NONE)
+    : wxDialog(parent, wxID_ANY, "")
 {
+    Create();
+    wxGetApp().UpdateDlgDarkUI(this);
+}
+
+void uiAmsPercentHumidityDryPopup::Create()
+{
+    // create images
+    idle_img = ScalableBitmap(this, "ams_drying", 16);
+    drying_img = ScalableBitmap(this, "ams_is_drying", 16);
+
+    // background 
+    SetBackgroundColour(*wxWHITE);
+
+    // create title sizer
+    wxSizer* title_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    Label* title = new Label(this, _L("Current AMS humidity"));
+    title->SetForegroundColour(*wxBLACK);
+    title->SetBackgroundColour(*wxWHITE);
+    title->SetFont(Label::Head_18);
+
+    title_sizer->AddStretchSpacer();
+    title_sizer->Add(title, 0);
+    title_sizer->AddStretchSpacer();
+
+    // create humidity image
+    m_humidity_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
+
+    // create dry state sizer
+    wxGridSizer* dry_state_sizer = new wxGridSizer(2, FromDIP(5), FromDIP(5));
+    m_dry_state_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
+    m_dry_state_img->SetMinSize(wxSize(FromDIP(16), FromDIP(16)));
+    m_dry_state_img->SetMaxSize(wxSize(FromDIP(16), FromDIP(16)));
+    m_dry_state = new Label(this);
+    m_dry_state->SetForegroundColour(*wxBLACK);
+    m_dry_state->SetBackgroundColour(*wxWHITE);
+    m_dry_state->SetFont(Label::Body_14);
+    dry_state_sizer->Add(m_dry_state_img, 1, wxALIGN_RIGHT);
+    dry_state_sizer->Add(m_dry_state, 1, wxALIGN_LEFT);
+
+    // create table grid sizer
+    wxGridSizer* grid_sizer = new wxGridSizer(2, 3, FromDIP(10), FromDIP(10));
+    m_humidity_header = new Label(this, _L("Humidity"));
+    m_temperature_header = new Label(this, _L("Temperature"));
+    left_dry_time_header = new Label(this, _L("Left Time"));
+    m_humidity_label = new Label(this);
+    m_temperature_label = new Label(this);
+    left_dry_time_label = new Label(this);
+
+    grid_sizer->Add(m_humidity_header, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(m_temperature_header, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(left_dry_time_header, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(m_humidity_label, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(m_temperature_label, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
+    grid_sizer->Add(left_dry_time_label, 0, wxALIGN_CENTER_HORIZONTAL | wxALIGN_CENTER_VERTICAL);
+
+    // complete main sizer
+    m_sizer = new wxBoxSizer(wxVERTICAL);
+    m_sizer->AddSpacer(FromDIP(10));
+    m_sizer->Add(title_sizer, 1, wxEXPAND | wxHORIZONTAL);
+    m_sizer->Add(m_humidity_img, 1, wxALIGN_CENTER_HORIZONTAL, 0);
+    m_sizer->AddSpacer(FromDIP(10));
+    m_sizer->Add(dry_state_sizer, 1 ,wxEXPAND | wxHORIZONTAL);
+    m_sizer->Add(grid_sizer, 1, wxEXPAND | wxHORIZONTAL, FromDIP(15));
+    m_sizer->AddSpacer(FromDIP(10));
+    SetSizer(m_sizer);
+
     SetSize(wxSize(FromDIP(400), FromDIP(270)));
     SetMinSize(wxSize(FromDIP(400), FromDIP(270)));
     SetMaxSize(wxSize(FromDIP(400), FromDIP(270)));
 
-    idle_img   = ScalableBitmap(this, "ams_drying", 16);
-    drying_img = ScalableBitmap(this, "ams_is_drying", 16);
-    close_img  = ScalableBitmap(this, "hum_popup_close", 24);
-
-    Bind(wxEVT_PAINT, &uiAmsPercentHumidityDryPopup::paintEvent, this);
-    Bind(wxEVT_LEFT_UP, [this](auto &e) {
-        auto rect = ClientToScreen(wxPoint(0, 0));
-
-        auto close_left   = rect.x + GetSize().x - close_img.GetBmpWidth() - FromDIP(38);
-        auto close_right  = close_left + close_img.GetBmpWidth();
-        auto close_top    = rect.y + FromDIP(24);
-        auto close_bottom = close_top + close_img.GetBmpHeight();
-
-        auto mouse_pos = ClientToScreen(e.GetPosition());
-        if (mouse_pos.x > close_left && mouse_pos.y > close_top && mouse_pos.x < close_right && mouse_pos.y < close_bottom) { Dismiss(); }
-    });
+    Fit();
+    Layout();
+    Refresh();
 }
 
 void uiAmsPercentHumidityDryPopup::Update(int humidiy_level, int humidity_percent, int left_dry_time, float current_temperature)
@@ -53,62 +108,12 @@ void uiAmsPercentHumidityDryPopup::Update(int humidiy_level, int humidity_percen
         m_left_dry_time    = left_dry_time;
         m_current_temperature = current_temperature;
 
-        Refresh();
+        UpdateContents();
     }
 }
 
-void uiAmsPercentHumidityDryPopup::paintEvent(wxPaintEvent &evt)
+void uiAmsPercentHumidityDryPopup::UpdateContents()
 {
-    wxPaintDC dc(this);
-    render(dc);
-}
-
-void uiAmsPercentHumidityDryPopup::render(wxDC &dc)
-{
-#ifdef __WXMSW__
-    wxSize     size = GetSize();
-    wxMemoryDC memdc;
-    wxBitmap   bmp(size.x, size.y);
-    memdc.SelectObject(bmp);
-    memdc.Blit({0, 0}, size, &dc, {0, 0});
-
-    {
-        wxGCDC dc2(memdc);
-        doRender(dc2);
-    }
-
-    memdc.SelectObject(wxNullBitmap);
-    dc.DrawBitmap(bmp, 0, 0);
-#else
-    doRender(dc);
-#endif
-}
-
-void uiAmsPercentHumidityDryPopup::doRender(wxDC &dc)
-{
-    // background
-    {
-        dc.SetBrush(StateColor::darkModeColorFor(*wxWHITE));
-        dc.DrawRoundedRectangle(0, 0, GetSize().GetWidth(), GetSize().GetHeight(), 0);
-    }
-    dc.SetBrush(*wxTRANSPARENT_BRUSH);
-
-    wxPoint p;
-
-    // Header
-    {
-        dc.SetFont(::Label::Head_24);
-        dc.SetTextForeground(StateColor::darkModeColorFor(*wxBLACK));
-        //WxFontUtils::get_suitable_font_size(FromDIP(24), dc);
-
-        auto extent = dc.GetTextExtent(_L("Current AMS humidity"));
-        dc.DrawText(_L("Current AMS humidity"), (GetSize().GetWidth() - extent.GetWidth()) / 2, FromDIP(24));
-    }
-
-    // close icon
-    p.y += FromDIP(24);
-    dc.DrawBitmap(close_img.bmp(), GetSize().x - close_img.GetBmpWidth() - FromDIP(38), p.y);
-
     // humitidy image
     if (0 < m_humidity_level && m_humidity_level < 6)
     {
@@ -122,115 +127,65 @@ void uiAmsPercentHumidityDryPopup::doRender(wxDC &dc)
             humitidy_image = ScalableBitmap(this, "hum_level" + std::to_string(m_humidity_level) + "_no_num_light", 64);
         }
 
-        p.y += 2 * FromDIP(24);
-        dc.DrawBitmap(humitidy_image.bmp(), (GetSize().GetWidth() - humitidy_image.GetBmpWidth()) / 2, p.y);
-        p.y += humitidy_image.GetBmpHeight();
+        m_humidity_img->SetBitmap(humitidy_image.bmp());
     }
 
     // dry state
-    int spacing = FromDIP(5);
-    {
-        p.y += spacing;
-        if (m_left_dry_time > 0)
-        {
-            dc.DrawBitmap(drying_img.bmp(), GetSize().GetWidth() / 2 - drying_img.GetBmpWidth() - spacing, p.y);
-        }
-        else
-        {
-            dc.DrawBitmap(idle_img.bmp(), GetSize().GetWidth() / 2 - idle_img.GetBmpWidth() - spacing, p.y);
-        }
-
-        dc.SetFont(::Label::Body_14);
-        //WxFontUtils::get_suitable_font_size(idle_img.GetBmpHeight(), dc);
-
-        const wxString &dry_state        = (m_left_dry_time > 0) ? _L("Drying") : _L("Idle");
-        auto dry_state_extent = dc.GetTextExtent(dry_state);
-
-        p.y += (idle_img.GetBmpHeight() - dry_state_extent.GetHeight());//align bottom
-        dc.DrawText(dry_state, GetSize().GetWidth() / 2 + spacing, p.y);
-        p.y += dry_state_extent.GetHeight();
-    }
-
-    // Grid area
-    {
-        p.y += 2 * spacing;
-        DrawGridArea(dc, p);
-    }
-}
-
-
-static vector<wxString> grid_header{ L("Humidity"), L("Temperature"), L("Left Time")};
-void uiAmsPercentHumidityDryPopup::DrawGridArea(wxDC &dc, wxPoint start_p)
-{
-    const wxColour& gray_clr = StateColor::darkModeColorFor(wxColour(194, 194, 194));
-    const wxColour& black_clr = StateColor::darkModeColorFor(*wxBLACK);
-
-    // Horizontal line
-    dc.SetPen(gray_clr);
-    int h_margin = FromDIP(20);
-    dc.DrawLine(h_margin, start_p.y, GetSize().GetWidth() - h_margin, start_p.y);
-    start_p.x = h_margin;
-    start_p.y += h_margin;
-
-    // Draw grid area
-    int toltal_col;
     if (m_left_dry_time > 0)
     {
-        toltal_col = 3;
+        m_dry_state_img->SetBitmap(drying_img.bmp());
+        m_dry_state->SetLabel(_L("Drying"));
+        m_dry_state->Fit();
     }
     else
     {
-        toltal_col = 2;
+        m_dry_state_img->SetBitmap(idle_img.bmp());
+        m_dry_state->SetLabel(_L("Idle"));
+        m_dry_state->Fit();
     }
 
-    int row_height = FromDIP(30);
-    int text_height = FromDIP(20);
-    int distance = (GetSize().GetWidth() - 2 * h_margin)/ toltal_col;
-    for (int col = 0; col < toltal_col; ++col)
+    // table grid
+    const wxString& humidity_str = wxString::Format("%d%%", m_humidity_percent);
+    m_humidity_label->SetLabel(humidity_str);
+    const wxString& temp_str = wxString::Format(_L("%d \u2103"), (int)std::round(m_current_temperature));
+    m_temperature_label->SetLabel(temp_str);
+
+    if (m_left_dry_time > 0)
     {
-        const wxString& header = _L(grid_header[col]);
-        dc.SetFont(::Label::Body_14);
-        //WxFontUtils::get_suitable_font_size(text_height, dc);
-        const auto &header_extent = dc.GetTextExtent(header);
-
-        int left = start_p.x + (distance - header_extent.GetWidth()) / 2;
-        dc.SetPen(gray_clr);
-        dc.DrawText(header, left, start_p.y);
-
-        // row content
-        dc.SetPen(black_clr);
-        if (header == _L("Humidity"))
-        {
-            const wxString &humidity_str = wxString::Format("%d%%", m_humidity_percent);
-            dc.DrawText(humidity_str, left, start_p.y + row_height);
-        }
-        else if (header == _L("Temperature"))
-        {
-            const wxString &temp_str = wxString::Format(wxString::FromUTF8(u8"%.1f \u2103"), m_current_temperature);
-            dc.DrawText(temp_str, left, start_p.y + row_height);
-        }
-        else if (header == _L("Left Time"))
-        {
-            const wxString &time_str = wxString::Format("%d : %d", m_left_dry_time / 60, m_left_dry_time % 60);
-            dc.DrawText(time_str, left, start_p.y + row_height);
+        wxString display_hour_str;
+        int left_hours = m_left_dry_time / 60;
+        if (left_hours < 10) {
+            display_hour_str = wxString::Format("0%d", left_hours);
+        } else {
+            display_hour_str = wxString::Format("%d", left_hours);
         }
 
-        start_p.x += distance;
-        if (col < toltal_col - 1) /*draw splitter*/
-        {
-            dc.SetPen(gray_clr);
-            dc.DrawLine(start_p.x, start_p.y, start_p.x, start_p.y + 2 * row_height);
+        wxString display_min_str;
+        int left_minutes = m_left_dry_time % 60;
+        if (left_minutes < 10) {
+            display_min_str = wxString::Format("0%d", left_minutes);
+        } else {
+            display_min_str = wxString::Format("%d", left_minutes);
         }
+
+        const wxString& time_str = wxString::Format("%s : %s", display_hour_str, display_min_str);
+        left_dry_time_label->SetLabel(time_str);
     }
+    else
+    {
+        left_dry_time_label->SetLabel(_L("Idle"));
+    }
+
+    Fit();
+    Layout();
+    Refresh();
 }
 
 void uiAmsPercentHumidityDryPopup::msw_rescale()
 {
     idle_img.msw_rescale();
     drying_img.msw_rescale();
-    close_img.msw_rescale();
-
-    Refresh();
+    UpdateContents();
 }
 
 } // namespace GUI

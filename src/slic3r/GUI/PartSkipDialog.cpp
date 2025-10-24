@@ -28,6 +28,8 @@
 #include "SkipPartCanvas.hpp"
 #include "MediaPlayCtrl.h"
 
+#include "DeviceCore/DevManager.h"
+
 namespace Slic3r { namespace GUI {
 
 extern wxString hide_passwd(wxString url, std::vector<wxString> const &passwords);
@@ -387,8 +389,9 @@ std::string PartSkipDialog::create_tmp_path()
     buf << "/bamboo_task/";
     buf << m_timestamp;
     if (m_obj) {
-        buf << m_obj->dev_id.substr(0, 3) << "_";
-        buf << m_obj->dev_id.substr(m_obj->dev_id.length() - 3, 3) << "_";
+        const auto& dev_id = m_obj->get_dev_id();
+        buf << dev_id.substr(0, 3) << "_";
+        buf << dev_id.substr(dev_id.length() - 3, 3) << "_";
         buf << m_obj->job_id_ << "/";
     } else {
         buf << 1 << "_" << 1 << "/";
@@ -461,7 +464,7 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
         return;
     }
     std::string dev_ver = obj->get_ota_version();
-    std::string dev_id  = obj->dev_id;
+    std::string dev_id  = obj->get_dev_id();
     // int         remote_proto = obj->get_file_remote();
 
     NetworkAgent *agent         = wxGetApp().getAgent();
@@ -473,7 +476,7 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
     if (agent) {
         switch (url_state) {
         case URL_TCP: {
-            std::string devIP      = obj->dev_ip;
+            std::string devIP      = obj->get_dev_ip();
             std::string accessCode = obj->get_access_code();
             std::string tcp_url    = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
             CallAfter([=] {
@@ -489,7 +492,8 @@ void PartSkipDialog::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
         }
         case URL_TUTK: {
             std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
-            agent->get_camera_url(obj->dev_id + "|" + dev_ver + "|" + protocols[3], [this, wfs, m = dev_id, v = agent->get_version(), dv = dev_ver](std::string url) {
+            agent->get_camera_url(obj->get_dev_id() + "|" + dev_ver + "|" + protocols[3], [this, wfs, m = dev_id, v = agent->get_version(), dv = dev_ver](std::string url)
+                {
                 if (boost::algorithm::starts_with(url, "bambu:///")) {
                     url += "&device=" + m;
                     url += "&net_ver=" + v;

@@ -31,7 +31,7 @@
 #define SLIC3R_SNAPSHOTS_DIR "snapshots"
 #define SLIC3R_SNAPSHOT_FILE "snapshot.ini"
 
-namespace Slic3r { 
+namespace Slic3r {
 namespace GUI {
 namespace Config {
 
@@ -132,7 +132,7 @@ void Snapshot::load_ini(const std::string &path)
             vc.name = section.first.substr(group_name_vendor.size());
             for (auto &kvp : section.second) {
             	if (kvp.first == "version" || kvp.first == "min_slic3r_version" || kvp.first == "max_slic3r_version") {
-            		// Version of the vendor specific config bundle bundled with this snapshot.            		
+            		// Version of the vendor specific config bundle bundled with this snapshot.
                 	auto semver = Semver::parse(kvp.second.data());
                 	if (! semver)
                 		throw_on_parse_error("invalid " + kvp.first + " format for " + section.first);
@@ -155,11 +155,11 @@ void Snapshot::load_ini(const std::string &path)
         }
     }
     // Sort the vendors lexicographically.
-    std::sort(this->vendor_configs.begin(), this->vendor_configs.begin(), 
+    std::sort(this->vendor_configs.begin(), this->vendor_configs.begin(),
         [](const VendorConfig &cfg1, const VendorConfig &cfg2) { return cfg1.name < cfg2.name; });
 }
 
-static std::string reason_string(const Snapshot::Reason reason) 
+static std::string reason_string(const Snapshot::Reason reason)
 {
     switch (reason) {
     case Snapshot::SNAPSHOT_UPGRADE:
@@ -372,7 +372,7 @@ static void copy_config_dir_single_level(const boost::filesystem::path &path_src
 {
 //BBS: remove snapshots function currently
 #if 0
-    if (! boost::filesystem::is_directory(path_dst) && 
+    if (! boost::filesystem::is_directory(path_dst) &&
         ! boost::filesystem::create_directory(path_dst))
         throw Slic3r::RuntimeError(std::string("OrcaSlicer was unable to create a directory at ") + path_dst.string());
 
@@ -521,7 +521,7 @@ SnapshotDB::const_iterator SnapshotDB::snapshot_with_vendor_preset(const std::st
     key.name = vendor_name;
     for (auto it = m_snapshots.begin(); it != m_snapshots.end(); ++ it) {
         const Snapshot &snapshot = *it;
-        auto it_vendor_config = std::lower_bound(snapshot.vendor_configs.begin(), snapshot.vendor_configs.end(), 
+        auto it_vendor_config = std::lower_bound(snapshot.vendor_configs.begin(), snapshot.vendor_configs.end(),
             key, [](const Snapshot::VendorConfig &cfg1, const Snapshot::VendorConfig &cfg2) { return cfg1.name < cfg2.name; });
         if (it_vendor_config != snapshot.vendor_configs.end() && it_vendor_config->name == vendor_name &&
             config_version == it_vendor_config->version.config_version) {
@@ -548,7 +548,7 @@ boost::filesystem::path SnapshotDB::create_db_dir()
     for (const boost::filesystem::path &path : { data_dir, snapshots_dir }) {
 		boost::filesystem::path subdir = path;
         subdir.make_preferred();
-        if (! boost::filesystem::is_directory(subdir) && 
+        if (! boost::filesystem::is_directory(subdir) &&
             ! boost::filesystem::create_directory(subdir))
             throw Slic3r::RuntimeError(std::string("Slic3r was unable to create a directory at ") + subdir.string());
     }
@@ -580,7 +580,7 @@ const Snapshot* take_config_snapshot_report_error(const AppConfig &app_config, S
     try {
         return &SnapshotDB::singleton().take_snapshot(app_config, reason, comment);
     } catch (std::exception &err) {
-        show_error(static_cast<wxWindow*>(wxGetApp().mainframe), 
+        show_error(static_cast<wxWindow*>(wxGetApp().mainframe),
             _L("Taking a configuration snapshot failed.") + "\n\n" + from_u8(err.what()));
         return nullptr;
     }

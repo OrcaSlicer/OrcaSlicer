@@ -170,7 +170,7 @@ bool BoostThreadWorker::wait_for_idle(unsigned timeout_ms)
     return !timeout_reached;
 }
 
-bool BoostThreadWorker::push(std::unique_ptr<Job> job)
+bool BoostThreadWorker::push(std::shared_ptr<Job> job)
 {
     if (!job)
         return false;

@@ -41,11 +41,20 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "filament_change_length": [
+        "12"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
     "hot_plate_temp": [
         "70"
     ],
     "hot_plate_temp_initial_layer": [
         "70"
+    ],
+    "impact_strength_z": [
+        "10.6"
     ],
     "nozzle_temperature": [
         "245"

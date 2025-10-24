@@ -14,6 +14,9 @@
     "filament_retraction_distances_when_cut": [
         "nil"
     ],
+    "pre_start_fan_time": [
+        "2"
+    ],
     "compatible_printers": [
         "Bambu Lab A1 mini 0.2 nozzle"
     ]

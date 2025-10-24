@@ -21,7 +21,6 @@
     "default_print_profile": "0.10mm Standard 0.2mm nozzle @Anker",
     "extruder_clearance_height_to_lid": "250",
     "extruder_clearance_height_to_rod": "30",
-    "extruder_clearance_max_radius": "45",
     "extruder_clearance_radius": "45",
     "printer_structure": "i3",
     "nozzle_type": "brass",

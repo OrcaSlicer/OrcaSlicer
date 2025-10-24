@@ -241,6 +241,8 @@ public:
         return idx;
     }
 
+    size_t get_extruder_id(unsigned int filament_id) const;
+
 protected:
     friend class PrintObject;
     friend std::vector<Layer*> new_layers(PrintObject*, const std::vector<coordf_t>&);

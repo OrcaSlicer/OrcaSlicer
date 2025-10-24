@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 85A @base",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "GFU04",
+    "instantiation": "false",
+    "description": "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide.",
+    "filament_cost": [
+        "44.99"
+    ],
+    "filament_density": [
+        "1.18"
+    ],
+    "filament_max_volumetric_speed": [
+        "2.2"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "nozzle_temperature": [
+        "225"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
+    ],
+    "slow_down_layer_time": [
+        "20"
+    ]
+}

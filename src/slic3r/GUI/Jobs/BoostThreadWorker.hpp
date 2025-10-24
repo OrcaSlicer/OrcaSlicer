@@ -25,7 +25,7 @@ class BoostThreadWorker : public Worker, private Job::Ctl
 {
     struct JobEntry // Goes into worker and also out of worker as a finalize msg
     {
-        std::unique_ptr<Job> job;
+        std::shared_ptr<Job> job;
         bool                 canceled = false;
         std::exception_ptr   eptr     = nullptr;
     };
@@ -110,7 +110,7 @@ public:
     BoostThreadWorker &operator=(const BoostThreadWorker &) = delete;
     BoostThreadWorker &operator=(BoostThreadWorker &&) = delete;
 
-    bool push(std::unique_ptr<Job> job) override;
+    bool push(std::shared_ptr<Job> job) override;
 
     bool is_idle() const override
     {

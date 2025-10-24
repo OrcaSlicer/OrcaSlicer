@@ -14,8 +14,12 @@ set(SLIC3R_GUI_SOURCES
     GUI/2DBed.hpp
     GUI/3DBed.cpp
     GUI/3DBed.hpp
+    GUI/Widgets/StaticGroup.cpp
+    GUI/Widgets/StaticGroup.hpp
     GUI/3DScene.cpp
     GUI/3DScene.hpp
+    GUI/Widgets/FilamentLoad.cpp
+    GUI/Widgets/FilamentLoad.hpp
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
     GUI/AmsMappingPopup.cpp
@@ -105,6 +109,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp
     GUI/EditGCodeDialog.hpp
+    GUI/EncodedFilament.hpp
+    GUI/EncodedFilament.cpp
     GUI/ExtraRenderers.cpp
     GUI/ExtraRenderers.hpp
     GUI/ExtrusionCalibration.cpp
@@ -179,7 +185,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/GLTexture.cpp
     GUI/GLTexture.hpp
     GUI/GLToolbar.cpp
+    GUI/GuiColor.cpp
+    GUI/GuiColor.hpp
     GUI/GLToolbar.hpp
+    GUI/ImageDPIFrame.cpp
+    GUI/ImageDPIFrame.hpp
     GUI/GUI_App.cpp
     GUI/GUI_App.hpp
     GUI/GUI_AuxiliaryList.cpp
@@ -218,14 +228,32 @@ set(SLIC3R_GUI_SOURCES
     GUI/HttpServer.hpp
     GUI/I18N.cpp
     GUI/I18N.hpp
+    GUI/DragDropPanel.cpp
+    GUI/DragDropPanel.hpp
+    GUI/CapsuleButton.cpp
+    GUI/CapsuleButton.hpp
+    GUI/FilamentMapPanel.cpp
+    GUI/FilamentMapPanel.hpp
+    GUI/FilamentMapDialog.cpp
+    GUI/FilamentMapDialog.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
     GUI/ImageGrid.cpp
     GUI/ImageGrid.h
     GUI/ImGuiWrapper.cpp
+    GUI/FilamentPickerDialog.cpp
+    GUI/FilamentPickerDialog.hpp
+    GUI/FilamentBitmapUtils.cpp
+    GUI/FilamentBitmapUtils.hpp
+    GUI/BaseTransparentDPIFrame.cpp
+    GUI/BaseTransparentDPIFrame.hpp
+    GUI/SyncAmsInfoDialog.cpp
+    GUI/SyncAmsInfoDialog.hpp
     GUI/ImGuiWrapper.hpp
     GUI/IMSlider.cpp
     GUI/IMSlider.hpp
+    GUI/DeviceErrorDialog.hpp
+    GUI/DeviceErrorDialog.cpp
     GUI/IMToolbar.cpp
     GUI/IMToolbar.hpp
     GUI/InstanceCheck.cpp
@@ -282,6 +310,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ModelMall.cpp
     GUI/ModelMall.hpp
     GUI/MonitorBasePanel.cpp
+    GUI/BBLStatusBarPrint.hpp
+    GUI/BBLStatusBarPrint.cpp
     GUI/MonitorBasePanel.h
     GUI/Monitor.cpp
     GUI/Monitor.hpp
@@ -329,6 +359,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ParamsPanel.hpp
     GUI/PartPlate.cpp
     GUI/PartPlate.hpp
+    GUI/FilamentGroupPopup.hpp
+    GUI/FilamentGroupPopup.cpp
     GUI/PhysicalPrinterDialog.cpp
     GUI/PhysicalPrinterDialog.hpp
     GUI/Plater.cpp
@@ -384,6 +416,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Selection.hpp
     GUI/SelectMachine.cpp
     GUI/SelectMachine.hpp
+    GUI/PrePrintChecker.hpp
+    GUI/PrePrintChecker.cpp
     GUI/SelectMachinePop.cpp
     GUI/SelectMachinePop.hpp
     GUI/SendMultiMachinePage.cpp
@@ -585,6 +619,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
 )
 
+add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)
 
 if (WIN32)

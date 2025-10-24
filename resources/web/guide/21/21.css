@@ -9,17 +9,18 @@
 	padding: 0px;
 	border-bottom:#009688 1px solid;
 	width: 100%;
+	display: flex;
+	justify-content:space-between;
+	align-items: center;
 }
 
 
 .BannerBtns
 {
-	float: right;
 	display: flex;
 	white-space: nowrap;
 	justify-content: space-around;
 	align-items: center;
-	height: 40px;
 	text-align: center;
 	margin-right: 0px; /* ORCA align buttons with end of horizontal separator/line */
 }
@@ -52,10 +53,34 @@
 	padding: 10px;
 }
 
-.PrinterBlock img
+.PImg
 {
+	position:relative;
 	width:160px;
-	height: 160px;
+	height: 160px;	
+}
+
+.ModelCheckBox
+{
+	position: absolute;
+	width: 20px;
+	height: 20px;
+	right: 10px;
+	top: 10px;
+	cursor: pointer;
+	background-image: url("../img/emptycheck.svg");
+	background-size: cover;
+}
+
+.ModelCheckBox.ModelCheckBoxSelected
+{
+	background-image: url("../img/greencheck.svg");
+}
+
+img.ModelThumbnail
+{
+	width:  100%;
+	height: 100%;
 }
 
 .PName
@@ -66,7 +91,7 @@
 
 .pNozzel
 {
-	display: flex;
+	display: none;
 	align-items: center;
 	justify-content:flex-start;
 	color: #5A5A5A;	

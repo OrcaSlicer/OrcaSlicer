@@ -2599,7 +2599,7 @@ bool ConfigWizard::priv::apply_config(AppConfig *app_config, PresetBundle *prese
         custom_config->set_key_value("filament_colour", wxGetApp().preset_bundle->project_config.option("filament_colour"));
         const std::string profile_name = page_custom->profile_name();
         Semver semver(SLIC3R_VERSION);
-        preset_bundle->load_config_from_wizard(profile_name, *custom_config, semver, true);
+        preset_bundle->load_config_from_wizard(profile_name, *custom_config, semver);
 
         wxGetApp().plater()->sidebar().update_presets(Slic3r::Preset::Type::TYPE_PRINTER);
         wxGetApp().plater()->sidebar().update_presets(Slic3r::Preset::Type::TYPE_FILAMENT);

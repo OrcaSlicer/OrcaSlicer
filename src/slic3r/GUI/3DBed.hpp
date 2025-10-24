@@ -115,6 +115,8 @@ private:
     //BBS: add part plate related logic
     Vec2d m_position{ Vec2d::Zero() };
     std::vector<Vec2d>  m_bed_shape;
+    std::vector<std::vector<Vec2d>> m_extruder_shapes;
+    std::vector<double> m_extruder_heights;
     bool m_is_dark = false;
 
 public:
@@ -126,8 +128,8 @@ public:
     //FIXME if the build volume max print height is updated, this function still returns zero
     // as this class does not use it, thus there is no need to update the UI.
     // BBS
-    bool set_shape(const Pointfs& printable_area, const double printable_height, const std::string& custom_model, bool force_as_custom = false,
-        const Vec2d& position = Vec2d::Zero(), bool with_reset = true);
+    bool set_shape(const Pointfs& printable_area, const double printable_height, std::vector<Pointfs> extruder_areas, std::vector<double> extruder_heights, const std::string& custom_model, bool force_as_custom = false,
+        const Vec2d position = Vec2d::Zero(), bool with_reset = true);
 
     void set_position(Vec2d& position);
     void set_axes_mode(bool origin);

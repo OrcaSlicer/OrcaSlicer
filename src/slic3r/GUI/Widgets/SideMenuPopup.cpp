@@ -60,7 +60,7 @@ void SidePopup::Popup(wxWindow* focus)
 #ifdef __APPLE__
          pos.x = pos.x - FromDIP(20);
 #endif // __APPLE__
-       
+
         if (pos.x + max_width > screenwidth)
             Position({pos.x - (pos.x + max_width - screenwidth),pos.y}, {0, focus->GetSize().y + 12});
         else
@@ -88,7 +88,7 @@ void SidePopup::Create()
         size.x = max_width;
         btn->SetMinSize(size);
         btn->SetSize(size);
-        sizer->Add(btn, 0, 0, 0);        
+        sizer->Add(btn, 0, 0, 0);
     }
 
     SetSize(wxSize(max_width, height));

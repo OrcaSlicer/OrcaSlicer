@@ -164,8 +164,15 @@ void SendJob::process(Ctl &ctl)
     params.dev_id               = m_dev_id;
     params.project_name         = m_project_name + ".gcode.3mf";
     params.preset_name          = wxGetApp().preset_bundle->prints.get_selected_preset_name();
-    params.filename             = job_data._3mf_path.string();
+
+    if (wxGetApp().plater()->using_exported_file())
+        params.filename = wxGetApp().plater()->get_3mf_filename();
+    else
+        params.filename = job_data._3mf_path.string();
+
+
     params.config_filename      = job_data._3mf_config_path.string();
+
     params.plate_index          = curr_plate_idx;
     params.ams_mapping          = this->task_ams_mapping;
     params.connection_type      = this->connection_type;
@@ -233,7 +240,7 @@ void SendJob::process(Ctl &ctl)
                             }
                         }
 
-                        //get errors 
+                        //get errors
                         if (code > 100 || code < 0 || stage == BBL::SendingPrintJobStage::PrintingStageERROR) {
                             if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE) {
                                 m_plater->update_print_error_info(code, desc_file_too_large, info);
@@ -268,7 +275,7 @@ void SendJob::process(Ctl &ctl)
         else if (params.password.empty())
             params.comments = "no_password";
 
-        if (!params.password.empty() 
+        if (!params.password.empty()
             && !params.dev_ip.empty()
             && this->has_sdcard) {
             // try to send local with record
@@ -294,7 +301,7 @@ void SendJob::process(Ctl &ctl)
             ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN"));
             result = m_agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
         } else {
-            ctl.update_status(curr_percent, _u8L("An SD card needs to be inserted before sending to printer."));
+            ctl.update_status(curr_percent, _u8L("Storage needs to be inserted before sending to printer."));
             return;
         }
     }

@@ -48,7 +48,7 @@ private:
     std::string m_app_key;
 
 public:
-    TipsDialog(wxWindow *parent, const wxString &title, const wxString &description, std::string app_key = "");
+    TipsDialog(wxWindow *parent, const wxString &title, const wxString &description, std::string app_key = "", long style = wxOK, std::map<wxStandardID,wxString> option_map={});
     Button *m_confirm{nullptr};
     Button *m_cancel{nullptr};
     wxPanel *m_top_line{nullptr};
@@ -56,8 +56,8 @@ public:
 
 protected:
     void on_dpi_changed(const wxRect &suggested_rect) override;
-    void on_ok(wxMouseEvent &event);
     wxBoxSizer *create_item_checkbox(wxString title, wxWindow *parent, wxString tooltip, std::string param);
+    Button* add_button(wxWindowID btn_id, const wxString &label, bool set_focus = false);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

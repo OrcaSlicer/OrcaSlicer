@@ -36,8 +36,6 @@ typedef int (*func_stop_subscribe)(void *agent, std::string module);
 typedef int (*func_add_subscribe)(void *agent, std::vector<std::string> dev_list);
 typedef int (*func_del_subscribe)(void *agent, std::vector<std::string> dev_list);
 typedef void (*func_enable_multi_machine)(void *agent, bool enable);
-typedef int (*func_start_device_subscribe)(void* agent);
-typedef int (*func_stop_device_subscribe)(void* agent);
 typedef int (*func_send_message)(void *agent, std::string dev_id, std::string json_str, int qos, int flag);
 typedef int (*func_connect_printer)(void *agent, std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
 typedef int (*func_disconnect_printer)(void *agent);
@@ -157,8 +155,6 @@ public:
     int add_subscribe(std::vector<std::string> dev_list);
     int del_subscribe(std::vector<std::string> dev_list);
     void enable_multi_machine(bool enable);
-    int start_device_subscribe();
-    int stop_device_subscribe();
     int send_message(std::string dev_id, std::string json_str, int qos, int flag);
     int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     int disconnect_printer();
@@ -266,8 +262,6 @@ private:
     static func_add_subscribe                  add_subscribe_ptr;
     static func_del_subscribe                  del_subscribe_ptr;
     static func_enable_multi_machine           enable_multi_machine_ptr;
-    static func_start_device_subscribe         start_device_subscribe_ptr;
-    static func_stop_device_subscribe          stop_device_subscribe_ptr;
     static func_send_message                   send_message_ptr;
     static func_connect_printer                connect_printer_ptr;
     static func_disconnect_printer             disconnect_printer_ptr;

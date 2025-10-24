@@ -20,7 +20,7 @@
 #include <vector>
 #include <algorithm>
 #include <thread>
-
+#include "FileHelp.hpp"
 #define STB_DXT_IMPLEMENTATION
 #include "stb_dxt/stb_dxt.h"
 
@@ -153,12 +153,13 @@ bool GLTexture::load_from_file(const std::string& filename, bool use_mipmaps, EC
 bool GLTexture::load_from_svg_file(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px)
 {
     reset();
-
-    if (!boost::filesystem::exists(filename))
+    auto svg_file = filename;
+    Utils::slash_to_back_slash(svg_file);
+    if (!boost::filesystem::exists(svg_file))
         return false;
 
-    if (boost::algorithm::iends_with(filename, ".svg"))
-        return load_from_svg(filename, use_mipmaps, compress, apply_anisotropy, max_size_px);
+    if (boost::algorithm::iends_with(svg_file, ".svg"))
+        return load_from_svg(svg_file, use_mipmaps, compress, apply_anisotropy, max_size_px);
     else
         return false;
 }

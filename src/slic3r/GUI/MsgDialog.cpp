@@ -21,17 +21,16 @@
 #include "wxExtensions.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GUI_App.hpp"
-
-#define DESIGN_INPUT_SIZE wxSize(FromDIP(100), -1)
-
+#define MSG_DLG_MAX_SIZE wxSize(-1, FromDIP(464))//notice:ban setting the maximum width value
 namespace Slic3r {
 namespace GUI {
 
-MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &headline, long style, wxBitmap bitmap)
+MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &headline, long style, wxBitmap bitmap, const wxString &forward_str)
 	: DPIDialog(parent ? parent : dynamic_cast<wxWindow*>(wxGetApp().mainframe), wxID_ANY, title, wxDefaultPosition, wxSize(360, -1),wxDEFAULT_DIALOG_STYLE)
 	, boldfont(wxGetApp().normal_font())
 	, content_sizer(new wxBoxSizer(wxVERTICAL))
-	, btn_sizer(new wxBoxSizer(wxHORIZONTAL))
+    , btn_sizer(new wxBoxSizer(wxHORIZONTAL))
+    , m_forward_str(forward_str)
 {
 	boldfont.SetWeight(wxFONTWEIGHT_BOLD);
     SetBackgroundColour(0xFFFFFF);
@@ -48,7 +47,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 	//rightsizer->Add(headtext);
 	//rightsizer->AddSpacer(VERT_SPACING);
 
-	rightsizer->Add(content_sizer, 1, wxEXPAND);
+	rightsizer->Add(content_sizer, 1, wxEXPAND | wxRIGHT, FromDIP(10));
 
 	logo = new wxStaticBitmap(this, wxID_ANY, bitmap.IsOk() ? bitmap : wxNullBitmap);
     topsizer->Add(LOGO_SPACING, 0, 0, wxEXPAND, 0);
@@ -60,9 +59,9 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 
     m_dsa_sizer = new wxBoxSizer(wxHORIZONTAL);
     btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(120));
-    btn_sizer->Add(m_dsa_sizer, 0, wxEXPAND,0);
-    btn_sizer->Add(0, 0, 1, wxEXPAND, 5);
-    main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND, BORDER);
+    btn_sizer->AddStretchSpacer();
+    btn_sizer->Add(m_dsa_sizer, 0, wxEXPAND);
+    main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
 
     apply_style(style);
 	SetSizerAndFit(main_sizer);
@@ -160,7 +159,7 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
     }
     */
 
-    if (btn_id == wxID_OK || btn_id == wxID_YES) {
+    if (btn_id == wxID_OK || btn_id == wxID_YES || btn_id == wxFORWARD) {
         btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     }
 
@@ -191,7 +190,14 @@ Button* MsgDialog::get_button(wxWindowID btn_id){
 
 void MsgDialog::apply_style(long style)
 {
-    if (style & wxOK)       add_button(wxID_OK, true, _L("OK"));
+    if (style & wxFORWARD)
+        add_button(wxFORWARD, true, _L("Go to") + " " + m_forward_str);
+    if (style & wxOK) {
+        if (style & wxFORWARD) { add_button(wxID_CANCEL, false, _L("Later")); }
+        else {
+            add_button(wxID_OK, true, _L("OK"));
+        }
+    }
     if (style & wxYES)      add_button(wxID_YES, true, _L("Yes"));
     if (style & wxNO)       add_button(wxID_NO, false,_L("No"));
     if (style & wxCANCEL)   add_button(wxID_CANCEL, false, _L("Cancel"));
@@ -204,14 +210,21 @@ void MsgDialog::apply_style(long style)
 
 void MsgDialog::finalize()
 {
-    wxGetApp().UpdateDlgDarkUI(this);
+    Layout();
     Fit();
     CenterOnParent();
+    wxGetApp().UpdateDlgDarkUI(this);
 }
 
 
 // Text shown as HTML, so that mouse selection and Ctrl-V to copy will work.
-static void add_msg_content(wxWindow* parent, wxBoxSizer* content_sizer, wxString msg, bool monospaced_font = false, bool is_marked_msg = false)
+static void add_msg_content(wxWindow   *parent,
+                            wxBoxSizer *content_sizer,
+                            wxString    msg,
+                            bool        monospaced_font = false,
+                            bool        is_marked_msg   = false,
+                            const wxString &link_text = "",
+                            std::function<void(const wxString &)> link_callback = nullptr)
 {
     wxHtmlWindow* html = new wxHtmlWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO);
     html->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
@@ -262,7 +275,7 @@ static void add_msg_content(wxWindow* parent, wxBoxSizer* content_sizer, wxStrin
         em = std::max<size_t>(10, 10.0f * scale_factor);
 #endif // __WXGTK__
     }
-
+    auto info_width = 68 * em;
     // if message containes the table
     if (msg.Contains("<tr>")) {
         int lines = msg.Freq('\n') + 1;
@@ -271,19 +284,43 @@ static void add_msg_content(wxWindow* parent, wxBoxSizer* content_sizer, wxStrin
             pos = msg.find("<tr>", pos + 1);
             lines += 2;
         }
-        int page_height = std::min(int(font.GetPixelSize().y+2) * lines, 68 * em);
-        page_size = wxSize(68 * em, page_height);
+        int page_height = std::min(int(font.GetPixelSize().y + 2) * lines, info_width);
+        page_size       = wxSize(info_width, page_height);
     }
     else {
-        Label* wrapped_text = new Label(html, msg);
-        wrapped_text->Wrap(68 * em);
-        msg = wrapped_text->GetLabel();
-        wrapped_text->Destroy();
         wxClientDC dc(parent);
-        wxSize msg_sz = dc.GetMultiLineTextExtent(msg);
+        wxSize     msg_sz = dc.GetMultiLineTextExtent(msg);
 
-        page_size = wxSize(std::min(msg_sz.GetX(), 68 * em),
-                           std::min(msg_sz.GetY(), 68 * em));
+        page_size = wxSize(std::min(msg_sz.GetX(), info_width), std::min(msg_sz.GetY(), info_width));
+        // Extra line breaks in message dialog
+        if (link_text.IsEmpty() && !link_callback && is_marked_msg == false) {//for common text
+            html->Destroy();
+            if (msg_sz.GetX() < info_width) {//No need for line breaks
+                info_width = msg_sz.GetX();
+            }
+            wxScrolledWindow *scrolledWindow = new wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+            scrolledWindow->SetBackgroundColour(*wxWHITE);
+            scrolledWindow->SetScrollRate(0, 20);
+            scrolledWindow->EnableScrolling(false, true);
+            wxBoxSizer *sizer_scrolled = new wxBoxSizer(wxHORIZONTAL);
+            Label *wrapped_text = new Label(scrolledWindow, font, msg, LB_AUTO_WRAP, wxSize(info_width, -1));
+            wrapped_text->SetMinSize(wxSize(info_width, -1));
+            wrapped_text->SetMaxSize(wxSize(info_width, -1));
+            wrapped_text->Wrap(info_width);
+            sizer_scrolled->Add(wrapped_text, wxALIGN_LEFT ,0);
+            sizer_scrolled->AddSpacer(5);
+            sizer_scrolled->AddStretchSpacer();
+            scrolledWindow->SetSizer(sizer_scrolled);
+            auto info_height = 48 * em;
+            if (sizer_scrolled->GetMinSize().GetHeight() < info_height) {
+                info_height = sizer_scrolled->GetMinSize().GetHeight();
+            }
+            scrolledWindow->SetMinSize(wxSize(info_width, info_height));
+            scrolledWindow->SetMaxSize(wxSize(info_width, info_height));
+            scrolledWindow->FitInside();
+            content_sizer->Add(scrolledWindow, 1, wxEXPAND | wxRIGHT, 8);
+            return;
+        }
     }
     html->SetMinSize(page_size);
 
@@ -293,24 +330,34 @@ static void add_msg_content(wxWindow* parent, wxBoxSizer* content_sizer, wxStrin
     if (monospaced_font)
         // Code formatting will be preserved. This is useful for reporting errors from the placeholder parser.
         msg_escaped = std::string("<pre><code>") + msg_escaped + "</code></pre>";
+
+    if (!link_text.IsEmpty() && link_callback) {
+        msg_escaped += "<span><a href=\"#\" style=\"color:rgb(0, 150, 136); text-decoration:underline;\">" + std::string(link_text.ToUTF8().data()) + "</a></span>";
+    }
+
     html->SetPage("<html><body bgcolor=\"" + bgr_clr_str + "\"><font color=\"" + text_clr_str + "\">" + wxString::FromUTF8(msg_escaped.data()) + "</font></body></html>");
     content_sizer->Add(html, 1, wxEXPAND|wxRIGHT, 8);
     wxGetApp().UpdateDarkUIWin(html);
+
+    html->Bind(wxEVT_HTML_LINK_CLICKED, [=](wxHtmlLinkEvent& event) {
+        if (link_callback)
+            link_callback(event.GetLinkInfo().GetHref());
+    });
 }
 
 // ErrorDialog
 
-ErrorDialog::ErrorDialog(wxWindow *parent, const wxString &msg, bool monospaced_font)
-    : MsgDialog(parent, wxString::Format(_(L("%s error")), SLIC3R_APP_FULL_NAME), 
+ErrorDialog::ErrorDialog(wxWindow *parent, const wxString &temp_msg, bool monospaced_font)
+    : MsgDialog(parent, wxString::Format(_(L("%s error")), SLIC3R_APP_FULL_NAME),
                         wxString::Format(_(L("%s has encountered an error")), SLIC3R_APP_FULL_NAME), wxOK)
-	, msg(msg)
+    , msg(temp_msg)
 {
     add_msg_content(this, content_sizer, msg, monospaced_font);
 
 	// Use a small bitmap with monospaced font, as the error text will not be wrapped.
 	logo->SetBitmap(create_scaled_bitmap("OrcaSlicer_192px_grayscale.png", this, monospaced_font ? 48 : /*1*/84));
 
-    SetMaxSize(wxSize(-1, CONTENT_MAX_HEIGHT*wxGetApp().em_unit()));
+    SetMaxSize(MSG_DLG_MAX_SIZE);
 
     finalize();
 }
@@ -334,12 +381,15 @@ WarningDialog::WarningDialog(wxWindow *parent,
 MessageDialog::MessageDialog(wxWindow* parent,
     const wxString& message,
     const wxString& caption/* = wxEmptyString*/,
-    long style/* = wxOK*/)
-    : MsgDialog(parent, caption.IsEmpty() ? wxString::Format(_L("%s info"), SLIC3R_APP_FULL_NAME) : caption, wxEmptyString, style)
+    long style /* = wxOK*/,
+    const wxString &forward_str /* = wxEmptyString*/,
+    const wxString &link_text   /* = wxEmptyString*/,
+    std::function<void(const wxString &)> link_callback /* = nullptr*/)
+    : MsgDialog(parent, caption.IsEmpty() ? wxString::Format(_L("%s info"), SLIC3R_APP_FULL_NAME) : caption, wxEmptyString, style, wxBitmap(),forward_str)
 {
-    add_msg_content(this, content_sizer, message);
+    add_msg_content(this, content_sizer, message, false, false, link_text, link_callback);
+    SetMaxSize(MSG_DLG_MAX_SIZE);
     finalize();
-    wxGetApp().UpdateDlgDarkUI(this);
 }
 
 
@@ -363,7 +413,7 @@ int RichMessageDialog::ShowModal()
     }
     Layout();
 
-    return wxDialog::ShowModal();
+    return MsgDialog::ShowModal();
 }
 
 bool RichMessageDialog::IsCheckBoxChecked() const
@@ -569,7 +619,7 @@ wxBoxSizer *Newer3mfVersionDialog::get_btn_sizer()
 
     bool       file_version_newer = (*m_file_version) > (*m_cloud_version);
     if (!file_version_newer) {
-        m_update_btn = new Button(this, _L("Update"));
+        m_update_btn = new Button(this, _CTX(L_CONTEXT("Update", "Software"), "Software"));
         m_update_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         horizontal_sizer->Add(m_update_btn, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 

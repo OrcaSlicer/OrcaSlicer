@@ -119,6 +119,19 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
     }
 }
 
+inline void OptionsSearcher::sort_options()
+{
+    std::sort(options.begin(), options.end(), [](const Option &o1, const Option &o2) { return o1.label < o2.label; });
+    Option * last = nullptr;
+    for (auto& opt : options) {
+        if (last && last->label == opt.label && last->group == opt.group && last->type == opt.type && last->category != opt.category) {
+            last->multi_category = true;
+            opt.multi_category = true;
+        }
+        last = &opt;
+    }
+}
+
 // Mark a string using ColorMarkerStart and ColorMarkerEnd symbols
 static std::wstring mark_string(const std::wstring &str, const std::vector<uint16_t> &matches, Preset::Type type, PrinterTechnology pt)
 {
@@ -177,7 +190,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
         std::wstring out;
         if (marked) out += marker_by_type(opt.type, printer_technology);
         const std::wstring *prev = nullptr;
-        for (const std::wstring *const s : {view_params.category ? &opt.category_local : nullptr, &opt.group_local, &opt.label_local})
+        for (const std::wstring *const s : {view_params.category || opt.multi_category ? &opt.category_local : nullptr, &opt.group_local, &opt.label_local})
             if (s != nullptr && (prev == nullptr || *prev != *s)) {
                 if (out.size() > 2) out += sep;
                 out += *s;
@@ -190,7 +203,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
         std::wstring out;
         if (marked) out += marker_by_type(opt.type, printer_technology);
         const std::wstring *prev = nullptr;
-        for (const std::wstring *const s : {view_params.category ? &opt.category : nullptr, &opt.group, &opt.label})
+        for (const std::wstring *const s : {view_params.category || opt.multi_category ? &opt.category : nullptr, &opt.group, &opt.label})
             if (s != nullptr && (prev == nullptr || *prev != *s)) {
                 if (out.size() > 2) out += sep;
                 out += *s;

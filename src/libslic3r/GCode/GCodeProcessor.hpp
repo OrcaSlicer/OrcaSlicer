@@ -24,6 +24,7 @@ class Print;
 #define BED_TEMP_TOO_HIGH_THAN_FILAMENT                             "bed_temperature_too_high_than_filament"
 #define NOT_SUPPORT_TRADITIONAL_TIMELAPSE                           "not_support_traditional_timelapse"
 #define NOT_GENERATE_TIMELAPSE                                      "not_generate_timelapse"
+#define SMOOTH_TIMELAPSE_WITHOUT_PRIME_TOWER                        "smooth_timelapse_without_prime_tower"
 #define LONG_RETRACTION_WHEN_CUT                                    "activate_long_retraction_when_cut"
 
     enum class EMoveType : unsigned char
@@ -84,7 +85,8 @@ class Print;
         std::map<ExtrusionRole, std::pair<double, double>>  used_filaments_per_role;
 
         std::array<Mode, static_cast<size_t>(ETimeMode::Count)> modes;
-        unsigned int                                        total_filamentchanges;
+        unsigned int                                        total_filament_changes;
+        unsigned int                                        total_extruder_changes;
 
         PrintEstimatedStatistics() { reset(); }
 
@@ -100,7 +102,8 @@ class Print;
             total_volumes_per_extruder.clear();
             flush_per_filament.clear();
             used_filaments_per_role.clear();
-            total_filamentchanges = 0;
+            total_filament_changes = 0;
+            total_extruder_changes = 0;
         }
     };
 
@@ -118,23 +121,46 @@ class Print;
         ConflictResult() = default;
     };
 
-    struct BedMatchResult
+    using ConflictResultOpt = std::optional<ConflictResult>;
+
+    struct GCodeCheckResult
     {
-        bool match;
-        std::string bed_type_name;
-        int extruder_id;
-        BedMatchResult():match(true),bed_type_name(""),extruder_id(-1) {}
-        BedMatchResult(bool _match,const std::string& _bed_type_name="",int _extruder_id=-1)
-            :match(_match),bed_type_name(_bed_type_name),extruder_id(_extruder_id)
-        {}
+        int error_code = 0;   // 0 means succeed, 0b 0001 multi extruder printable area error, 0b 0010 multi extruder printable height error, 
+        // 0b 0100 plate printable area error, 0b 1000 plate printable height error, 0b 10000 wrapping detection area error
+        std::map<int, std::vector<std::pair<int, int>>> print_area_error_infos;   // printable_area  extruder_id to <filament_id - object_label_id> which cannot printed in this extruder
+        std::map<int, std::vector<std::pair<int, int>>> print_height_error_infos;   // printable_height extruder_id to <filament_id - object_label_id> which cannot printed in this extruder
+        void reset() {
+            error_code = 0;
+            print_area_error_infos.clear();
+            print_height_error_infos.clear();
+        }
     };
 
-    using ConflictResultOpt = std::optional<ConflictResult>;
+    struct FilamentPrintableResult
+    {
+        std::vector<int> conflict_filament;
+        std::string plate_name;
+        FilamentPrintableResult(){};
+        FilamentPrintableResult(std::vector<int> &conflict_filament, std::string plate_name) : conflict_filament(conflict_filament), plate_name(plate_name) {}
+        bool has_value(){
+           return !conflict_filament.empty();
+        };
+    };
 
     struct GCodeProcessorResult
     {
+        struct FilamentSequenceHash
+        {
+            uint64_t operator()(const std::vector<unsigned int>& layer_filament) const {
+                uint64_t key = 0;
+                for (auto& f : layer_filament)
+                    key |= (uint64_t(1) << f);
+                return key;
+            }
+        };
         ConflictResultOpt conflict_result;
-        BedMatchResult  bed_match_result;
+        GCodeCheckResult  gcode_check_result;
+        FilamentPrintableResult filament_printable_reuslt;
 
         struct SettingsIds
         {
@@ -173,6 +199,8 @@ class Print;
             EMovePathType move_path_type{ EMovePathType::Noop_move };
             Vec3f arc_center_position{ Vec3f::Zero() };      // mm
             std::vector<Vec3f> interpolation_points;     // interpolation points of arc for drawing
+            int  object_label_id{-1};
+            float print_z{0.0f};
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
             //BBS: new function to support arc move
@@ -199,6 +227,9 @@ class Print;
         Pointfs printable_area;
         //BBS: add bed exclude area
         Pointfs bed_exclude_area;
+        Pointfs wrapping_exclude_area;
+        std::vector<Pointfs> extruder_areas;
+        std::vector<double> extruder_heights;
         //BBS: add toolpath_outside
         bool toolpath_outside;
         //BBS: add object_label_enabled
@@ -209,7 +240,7 @@ class Print;
         bool support_traditional_timelapse{true};
         float printable_height;
         SettingsIds settings_ids;
-        size_t extruders_count;
+        size_t filaments_count;
         bool backtrace_enabled;
         std::vector<std::string> extruder_colors;
         std::vector<float> filament_diameters;
@@ -217,13 +248,20 @@ class Print;
         std::vector<float> filament_densities;
         std::vector<float> filament_costs;
         std::vector<int> filament_vitrification_temperature;
+        std::vector<int>   filament_maps;
+        std::vector<int>   limit_filament_maps;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
         std::vector<std::pair<float, std::pair<size_t, size_t>>> spiral_vase_layers;
         //BBS
         std::vector<SliceWarning> warnings;
         int nozzle_hrc;
-        NozzleType nozzle_type;
+        std::vector<NozzleType> nozzle_type;
+        // first key stores filaments, second keys stores the layer ranges(enclosed) that use the filaments
+        std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
+        // first key stores `from` filament, second keys stores the `to` filament
+        std::map<std::pair<int,int>, int > filament_change_count_map;
+
         BedType bed_type = BedType::btCount;
 #if ENABLE_GCODE_VIEWER_STATISTICS
         int64_t time{ 0 };
@@ -240,13 +278,14 @@ class Print;
             lines_ends = other.lines_ends;
             printable_area = other.printable_area;
             bed_exclude_area = other.bed_exclude_area;
+            wrapping_exclude_area = other.wrapping_exclude_area;
             toolpath_outside = other.toolpath_outside;
             label_object_enabled = other.label_object_enabled;
             long_retraction_when_cut = other.long_retraction_when_cut;
             timelapse_warning_code = other.timelapse_warning_code;
             printable_height = other.printable_height;
             settings_ids = other.settings_ids;
-            extruders_count = other.extruders_count;
+            filaments_count = other.filaments_count;
             extruder_colors = other.extruder_colors;
             filament_diameters = other.filament_diameters;
             filament_densities = other.filament_densities;
@@ -256,7 +295,11 @@ class Print;
             spiral_vase_layers = other.spiral_vase_layers;
             warnings = other.warnings;
             bed_type = other.bed_type;
-            bed_match_result = other.bed_match_result;
+            gcode_check_result = other.gcode_check_result;
+            limit_filament_maps = other.limit_filament_maps;
+            filament_printable_reuslt = other.filament_printable_reuslt;
+            layer_filaments = other.layer_filaments;
+            filament_change_count_map = other.filament_change_count_map;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = other.time;
 #endif
@@ -267,12 +310,32 @@ class Print;
     };
 
 
+    class CommandProcessor {
+    public:
+        using command_handler_t = std::function<void(const GCodeReader::GCodeLine& line)>;
+    private:
+        struct TrieNode {
+            command_handler_t handler{ nullptr };
+            std::unordered_map<char, std::unique_ptr<TrieNode>> children;
+            bool early_quit{ false }; // stop matching, trigger handle imediately
+        };
+    public:
+        CommandProcessor();
+        void register_command(const std::string& str, command_handler_t handler,bool early_quit = false);
+        bool process_comand(std::string_view cmd, const GCodeReader::GCodeLine& line);
+    private:
+        std::unique_ptr<TrieNode> root;
+    };
+
+
     class GCodeProcessor
     {
         static const std::vector<std::string> Reserved_Tags;
         static const std::vector<std::string> Reserved_Tags_compatible;
         static const std::string Flush_Start_Tag;
         static const std::string Flush_End_Tag;
+        static const std::string VFlush_Start_Tag;
+        static const std::string VFlush_End_Tag;
         static const std::string External_Purge_Tag;
     public:
         enum class ETags : unsigned char
@@ -306,6 +369,7 @@ class Print;
 
         static int get_gcode_last_filament(const std::string &gcode_str);
         static bool get_last_z_from_gcode(const std::string& gcode_str, double& z);
+        static bool get_last_position_from_gcode(const std::string &gcode_str, Vec3f &pos);
 
         static const float Wipe_Width;
         static const float Wipe_Height;
@@ -399,6 +463,7 @@ class Print;
 
 
     private:
+        friend class ExportLines;
         struct TimeMachine
         {
             struct State
@@ -472,6 +537,48 @@ class Print;
             void calculate_time(size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
         };
 
+        struct UsedFilaments  // filaments per ColorChange
+        {
+            double color_change_cache;
+            std::vector<double> volumes_per_color_change;
+
+            double model_extrude_cache;
+            std::map<size_t, double> model_volumes_per_filament;
+
+            double wipe_tower_cache;
+            std::map<size_t, double>wipe_tower_volumes_per_filament;
+
+            double support_volume_cache;
+            std::map<size_t, double>support_volumes_per_filament;
+
+            //BBS: the flush amount of every filament
+            std::map<size_t, double> flush_per_filament;
+
+            double total_volume_cache;
+            std::map<size_t, double>total_volumes_per_filament;
+
+            double role_cache;
+            std::map<ExtrusionRole, std::pair<double, double>> filaments_per_role;
+
+            void reset();
+
+            void increase_support_caches(double extruded_volume);
+            void increase_model_caches(double extruded_volume);
+            void increase_wipe_tower_caches(double extruded_volume);
+
+            void process_color_change_cache();
+            void process_model_cache(GCodeProcessor* processor);
+            void process_wipe_tower_cache(GCodeProcessor* processor);
+            void process_support_cache(GCodeProcessor* processor);
+            void process_total_volume_cache(GCodeProcessor* processor);
+
+            void update_flush_per_filament(size_t extrude_id, float flush_length);
+            void process_role_cache(GCodeProcessor* processor);
+            void process_caches(GCodeProcessor* processor);
+
+            friend class GCodeProcessor;
+        };
+
         struct TimeProcessor
         {
             struct Planner
@@ -501,49 +608,6 @@ class Print;
 
             void reset();
         };
-
-        struct UsedFilaments  // filaments per ColorChange
-        {
-            double color_change_cache;
-            std::vector<double> volumes_per_color_change;
-
-            double model_extrude_cache;
-            std::map<size_t, double> model_volumes_per_extruder;
-
-            double wipe_tower_cache;
-            std::map<size_t, double>wipe_tower_volumes_per_extruder;
-
-            double support_volume_cache;
-            std::map<size_t, double>support_volumes_per_extruder;
-
-            //BBS: the flush amount of every filament
-            std::map<size_t, double> flush_per_filament;
-
-            double total_volume_cache;
-            std::map<size_t, double>total_volumes_per_extruder;
-
-            double role_cache;
-            std::map<ExtrusionRole, std::pair<double, double>> filaments_per_role;
-
-            void reset();
-
-            void increase_support_caches(double extruded_volume);
-            void increase_model_caches(double extruded_volume);
-            void increase_wipe_tower_caches(double extruded_volume);
-
-            void process_color_change_cache();
-            void process_model_cache(GCodeProcessor* processor);
-            void process_wipe_tower_cache(GCodeProcessor* processor);
-            void process_support_cache(GCodeProcessor* processor);
-            void process_total_volume_cache(GCodeProcessor* processor);
-
-            void update_flush_per_filament(size_t extrude_id, float flush_length);
-            void process_role_cache(GCodeProcessor* processor);
-            void process_caches(GCodeProcessor* processor);
-
-            friend class GCodeProcessor;
-        };
-
     public:
         class SeamsDetector
         {
@@ -672,21 +736,28 @@ class Print;
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
     private:
+        CommandProcessor m_command_processor;
         GCodeReader m_parser;
         EUnits m_units;
         EPositioningType m_global_positioning_type;
         EPositioningType m_e_local_positioning_type;
         std::vector<Vec3f> m_extruder_offsets;
         GCodeFlavor m_flavor;
-        float       m_nozzle_volume;
+        std::vector<float> m_nozzle_volume;
         AxisCoords m_start_position; // mm
         AxisCoords m_end_position; // mm
         AxisCoords m_origin; // mm
         CachedPosition m_cached_position;
         bool m_wiping;
-        bool m_flushing;
+        bool m_flushing; // mark a section with real flush
+        bool m_virtual_flushing; // mark a section with virtual flush, only for statistics
         bool m_wipe_tower;
-        float m_remaining_volume;
+        int m_object_label_id{-1};
+        float m_print_z{0.0f};
+        std::vector<float> m_remaining_volume;
+        ExtruderTemps m_filament_nozzle_temp;
+        ExtruderTemps m_filament_nozzle_temp_first_layer;
+        std::vector<int> m_physical_extruder_map;
         bool m_manual_filament_change;
 
         //BBS: x, y offset for gcode generated
@@ -709,12 +780,12 @@ class Print;
         float m_fan_speed; // percentage
         float m_z_offset; // mm
         ExtrusionRole m_extrusion_role;
+        std::vector<int> m_filament_maps;
+        std::vector<unsigned char> m_last_filament_id;
+        std::vector<unsigned char> m_filament_id;
         unsigned char m_extruder_id;
-        unsigned char m_last_extruder_id;
         ExtruderColors m_extruder_colors;
         ExtruderTemps m_extruder_temps;
-        ExtruderTemps m_extruder_temps_config;
-        ExtruderTemps m_extruder_temps_first_layer_config;
         bool  m_is_XL_printer = false;
         int m_highest_bed_temp;
         float m_extruded_last_z;
@@ -729,6 +800,7 @@ class Print;
         size_t m_last_default_color_id;
         bool m_detect_layer_based_on_tag {false};
         int m_seams_count;
+        bool m_measure_g29_time {false};
         bool m_single_extruder_multi_material;
         float m_preheat_time;
         int m_preheat_steps;
@@ -770,9 +842,21 @@ class Print;
 
     public:
         GCodeProcessor();
-
+        void init_filament_maps_and_nozzle_type_when_import_only_gcode();
+        // check whether the gcode path meets the filament_map grouping requirements
+        bool check_multi_extruder_gcode_valid(const int                         extruder_size,
+                                              const Pointfs                     plate_printable_area,
+                                              const double                      plate_printable_height,
+                                              const Pointfs                     wrapping_exclude_area,
+                                              const std::vector<Polygons> &unprintable_areas,
+                                              const std::vector<double>   &printable_heights,
+                                              const std::vector<int>      &filament_map,
+                                              const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
         void set_print(Print* print) { m_print = print; }
+
+        DynamicConfig export_config_for_render() const;
+
         void enable_stealth_time_estimator(bool enabled);
         bool is_stealth_time_estimator_enabled() const {
             return m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Stealth)].enabled;
@@ -810,6 +894,7 @@ class Print;
         void detect_layer_based_on_tag(bool enabled) { m_detect_layer_based_on_tag = enabled; }
 
     private:
+        void register_commands();
         void apply_config(const DynamicPrintConfig& config);
         void apply_config_simplify3d(const std::string& filename);
         void apply_config_superslicer(const std::string& filename);
@@ -831,6 +916,9 @@ class Print;
         void process_G0(const GCodeReader::GCodeLine& line);
         void process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
         void process_G2_G3(const GCodeReader::GCodeLine& line);
+
+        void process_VG1(const GCodeReader::GCodeLine& line);
+
 
         // BBS: handle delay command
         void process_G4(const GCodeReader::GCodeLine& line);
@@ -879,6 +967,12 @@ class Print;
 
         // Set extruder temperature
         void process_M104(const GCodeReader::GCodeLine& line);
+
+        // Process virtual command of M104, in order to help gcodeviewer work
+        void process_VM104(const GCodeReader::GCodeLine& line);
+
+        // Process virtual command of M109, in order to help gcodeviewer work
+        void process_VM109(const GCodeReader::GCodeLine& line);
 
         // Set fan speed
         void process_M106(const GCodeReader::GCodeLine& line);
@@ -940,9 +1034,17 @@ class Print;
         // Unload the current filament into the MK3 MMU2 unit at the end of print.
         void process_M702(const GCodeReader::GCodeLine& line);
 
+        void process_SYNC(const GCodeReader::GCodeLine& line);
+
         // Processes T line (Select Tool)
         void process_T(const GCodeReader::GCodeLine& line);
         void process_T(const std::string_view command);
+        void process_M1020(const GCodeReader::GCodeLine &line);
+
+        void process_M622(const GCodeReader::GCodeLine &line);
+        void process_M623(const GCodeReader::GCodeLine &line);
+
+        void process_filament_change(int id);
 
         // post process the file with the given filename to:
         // 1) add remaining time lines M73 and update moves' gcode ids accordingly
@@ -956,8 +1058,8 @@ class Print;
 
         float minimum_feedrate(PrintEstimatedStatistics::ETimeMode mode, float feedrate) const;
         float minimum_travel_feedrate(PrintEstimatedStatistics::ETimeMode mode, float feedrate) const;
-        float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
-        float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int extruder_id) const;
+        float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int extruder_id) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;
         float get_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode) const;
@@ -968,6 +1070,7 @@ class Print;
         void  set_travel_acceleration(PrintEstimatedStatistics::ETimeMode mode, float value);
         float get_filament_load_time(size_t extruder_id);
         float get_filament_unload_time(size_t extruder_id);
+        float get_extruder_change_time(size_t extruder_id);
         int   get_filament_vitrification_temperature(size_t extrude_id);
         void process_custom_gcode_time(CustomGCode::Type code);
         void process_filaments(CustomGCode::Type code);
@@ -978,6 +1081,13 @@ class Print;
         void update_estimated_times_stats();
         //BBS:
         void update_slice_warnings();
+
+        // get current used filament
+        int get_filament_id(bool force_initialize = true) const;
+        // get last used filament in the same extruder with current filament
+        int get_last_filament_id(bool force_initialize = true) const;
+        //get current used extruder
+        int get_extruder_id(bool force_initialize = true)const;
    };
 
 } /* namespace Slic3r */

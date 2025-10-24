@@ -314,8 +314,8 @@ void IMSlider::SetLayersTimes(const std::vector<double> &layers_times)
 
 void IMSlider::SetDrawMode(bool is_sequential_print)
 {
-    m_draw_mode = is_sequential_print   ? dmSequentialFffPrint  : 
-                                          dmRegular; 
+    m_draw_mode = is_sequential_print   ? dmSequentialFffPrint  :
+                                          dmRegular;
     m_can_change_color = m_can_change_color && !(m_draw_mode == dmSequentialFffPrint);
 }
 
@@ -426,7 +426,7 @@ bool IMSlider::check_ticks_changed_event(Type type)
                                                              _L("The last color change data was saved for a multi extruder printing.")) +
                            "\n" + _L("Your current changes will delete all saved color changes.") + "\n\n\t" + _L("Are you sure you want to continue?");
 
-        
+
         GUI::MessageDialog msg(this, message, _L("Notice"), wxYES_NO);
         if (msg.ShowModal() == wxID_YES) {
             m_ticks.erase_all_ticks_with_code(ColorChange);
@@ -922,16 +922,16 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     ImRect one_handle = ImRect(higher_handle.Min - ImVec2(one_handle_offset, 0), higher_handle.Max - ImVec2(one_handle_offset, 0));
 
     bool value_changed = false;
-    if (!one_layer_flag) 
+    if (!one_layer_flag)
     {
         // select higher handle by default
         static bool h_selected = (selection == ssHigher);
         if (ImGui::ItemHoverable(higher_handle, id) && context.IO.MouseClicked[0]) {
-            selection = ssHigher; 
+            selection = ssHigher;
             h_selected = true;
         }
         if (ImGui::ItemHoverable(lower_handle, id) && context.IO.MouseClicked[0]) {
-            selection = ssLower; 
+            selection = ssLower;
             h_selected = false;
         }
 
@@ -939,7 +939,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         if (h_selected)
         {
             value_changed = slider_behavior(id, higher_slideable_region, v_min, v_max,
-                higher_value, &higher_handle, ImGuiSliderFlags_Vertical, 
+                higher_value, &higher_handle, ImGuiSliderFlags_Vertical,
                 m_tick_value, m_tick_rect);
         }
         if (!h_selected) {
@@ -1029,7 +1029,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
             draw_tick_on_mouse_position(h_selected ? higher_slideable_region : lower_slideable_region);
         }
     }
-    if (one_layer_flag) 
+    if (one_layer_flag)
     {
         // update handle position
         value_changed = slider_behavior(id, one_slideable_region, v_min, v_max,
@@ -1044,7 +1044,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         if ((!ImGui::ItemHoverable(one_handle, id) && context.IO.MouseClicked[1]) ||
             context.IO.MouseClicked[0])
             m_show_menu = false;
-        
+
         ImVec2 bar_center = higher_handle.GetCenter();
 
         // draw ticks
@@ -1186,8 +1186,8 @@ void IMSlider::render_input_custom_gcode(std::string custom_gcode)
             strcpy(m_custom_gcode, custom_gcode.c_str());
         }
         const int text_height = 6;
-
-        ImGui::InputTextMultiline("##text", m_custom_gcode, sizeof(m_custom_gcode), ImVec2(-1, ImGui::GetTextLineHeight() * text_height));
+        const ImGuiInputTextFlags flag  = ImGuiInputTextFlags_Multiline;
+        ImGui::InputTextMultiline("##text", m_custom_gcode, sizeof(m_custom_gcode), ImVec2(-1, ImGui::GetTextLineHeight() * text_height), flag);
 
         ImGui::NewLine();
         ImGui::SameLine(ImGui::GetStyle().WindowPadding.x * 14);
@@ -1355,7 +1355,7 @@ void IMSlider::render_add_menu()
             }
             if (hovered) { show_tooltip(_u8L("Insert a pause command at the beginning of this layer.")); }
 
-            
+
             if (menu_item_with_icon(_u8L("Add Custom G-code").c_str(), "", ImVec2(0, 0), 0, false, menu_item_enable, &hovered)) {
                 m_show_custom_gcode_window = true;
             }
@@ -1479,7 +1479,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
     }
     else if (wxGetKeyState(WXK_RAW_CONTROL)) {
         wheel *= 5;
-    } 
+    }
 #else
     if (wxGetKeyState(WXK_COMMAND) || wxGetKeyState(WXK_SHIFT))
         wheel *= 5;
@@ -1535,6 +1535,9 @@ void IMSlider::correct_higher_value()
 
 bool IMSlider::is_wipe_tower_layer(int tick) const
 {
+    // BBS: This function is useless in BBS
+    return false;
+
     if (!m_is_wipe_tower || tick >= (int) m_values.size()) return false;
     if (tick == 0 || (tick == (int) m_values.size() - 1 && m_values[tick] > m_values[tick - 1])) return false;
     if ((m_values[tick - 1] == m_values[tick + 1] && m_values[tick] < m_values[tick + 1]) ||

@@ -1,206 +1,426 @@
 {
-	"printer": {
-		"Bambu Lab A1": {
-			"machine_limits": {
-				"cli_safe_acceleration_e": "0,0",
-				"cli_safe_acceleration_extruding": "0,0",
-				"cli_safe_acceleration_retracting": "0,0",
-				"cli_safe_acceleration_travel": "6000,6000",
-				"cli_safe_acceleration_x": "6000,6000",
-				"cli_safe_acceleration_y": "6000,6000",
-				"cli_safe_acceleration_z": "0,0",
-				"cli_safe_jerk_e": "0,0",
-				"cli_safe_jerk_x": "0,0",
-				"cli_safe_jerk_y": "0,0",
-				"cli_safe_jerk_z": "0,0",
-				"cli_safe_speed_e": "0,0",
-				"cli_safe_speed_x": "0,0",
-				"cli_safe_speed_y": "0,0",
-				"cli_safe_speed_z": "0,0"
-			},
-			"downward_check": {
-				"Bambu Lab A1 0.2 nozzle": [
-					"Bambu Lab P1S 0.2 nozzle",
-					"Bambu Lab P1P 0.2 nozzle",
-					"Bambu Lab X1 Carbon 0.2 nozzle",
-					"Bambu Lab X1E 0.2 nozzle",
-					"Bambu Lab X1 0.2 nozzle",
-					"Bambu Lab A1 mini 0.2 nozzle"
-				],
-				"Bambu Lab A1 0.4 nozzle": [
-					"Bambu Lab P1S 0.4 nozzle",
-					"Bambu Lab P1P 0.4 nozzle",
-					"Bambu Lab X1 Carbon 0.4 nozzle",
-					"Bambu Lab X1E 0.4 nozzle",
-					"Bambu Lab X1 0.4 nozzle",
-					"Bambu Lab A1 mini 0.4 nozzle"
-				],
-				"Bambu Lab A1 0.6 nozzle": [
-					"Bambu Lab P1S 0.6 nozzle",
-					"Bambu Lab P1P 0.6 nozzle",
-					"Bambu Lab X1 Carbon 0.6 nozzle",
-					"Bambu Lab X1E 0.6 nozzle",
-					"Bambu Lab X1 0.6 nozzle",
-					"Bambu Lab A1 mini 0.6 nozzle"
-				],
-				"Bambu Lab A1 0.8 nozzle": [
-					"Bambu Lab P1S 0.8 nozzle",
-					"Bambu Lab P1P 0.8 nozzle",
-					"Bambu Lab X1 Carbon 0.8 nozzle",
-					"Bambu Lab X1E 0.8 nozzle",
-					"Bambu Lab X1 0.8 nozzle",
-					"Bambu Lab A1 mini 0.8 nozzle"
-				]
-			}
-		},
-		"Bambu Lab A1 mini": {
-			"machine_limits": {
-				"cli_safe_acceleration_e": "0,0",
-				"cli_safe_acceleration_extruding": "0,0",
-				"cli_safe_acceleration_retracting": "0,0",
-				"cli_safe_acceleration_travel": "6000,6000",
-				"cli_safe_acceleration_x": "6000,6000",
-				"cli_safe_acceleration_y": "6000,6000",
-				"cli_safe_acceleration_z": "0,0",
-				"cli_safe_jerk_e": "0,0",
-				"cli_safe_jerk_x": "0,0",
-				"cli_safe_jerk_y": "0,0",
-				"cli_safe_jerk_z": "0,0",
-				"cli_safe_speed_e": "0,0",
-				"cli_safe_speed_x": "0,0",
-				"cli_safe_speed_y": "0,0",
-				"cli_safe_speed_z": "0,0"
-			},
-			"downward_check": {
-				"Bambu Lab A1 mini 0.2 nozzle": [
-					"Bambu Lab P1S 0.2 nozzle",
-					"Bambu Lab P1P 0.2 nozzle",
-					"Bambu Lab X1 Carbon 0.2 nozzle",
-					"Bambu Lab X1E 0.2 nozzle",
-					"Bambu Lab X1 0.2 nozzle"
-				],
-				"Bambu Lab A1 mini 0.4 nozzle": [
-					"Bambu Lab P1S 0.4 nozzle",
-					"Bambu Lab P1P 0.4 nozzle",
-					"Bambu Lab X1 Carbon 0.4 nozzle",
-					"Bambu Lab X1E 0.4 nozzle",
-					"Bambu Lab X1 0.4 nozzle"
-				],
-				"Bambu Lab A1 mini 0.6 nozzle": [
-					"Bambu Lab P1S 0.6 nozzle",
-					"Bambu Lab P1P 0.6 nozzle",
-					"Bambu Lab X1 Carbon 0.6 nozzle",
-					"Bambu Lab X1E 0.6 nozzle",
-					"Bambu Lab X1 0.6 nozzle"
-				],
-				"Bambu Lab A1 mini 0.8 nozzle": [
-					"Bambu Lab P1S 0.8 nozzle",
-					"Bambu Lab P1P 0.8 nozzle",
-					"Bambu Lab X1 Carbon 0.8 nozzle",
-					"Bambu Lab X1E 0.8 nozzle",
-					"Bambu Lab X1 0.8 nozzle"
-				]
-			}
-		},
-		"Bambu Lab X1": {
-			"downward_check": {
-				"Bambu Lab X1 0.2 nozzle": [
-					"Bambu Lab A1 mini 0.2 nozzle",
-					"Bambu Lab A1 0.2 nozzle"
-				],
-				"Bambu Lab X1 0.4 nozzle": [
-					"Bambu Lab A1 mini 0.4 nozzle",
-					"Bambu Lab A1 0.4 nozzle"
-				],
-				"Bambu Lab X1 0.6 nozzle": [
-					"Bambu Lab A1 mini 0.6 nozzle",
-					"Bambu Lab A1 0.6 nozzle"
-				],
-				"Bambu Lab X1 0.8 nozzle": [
-					"Bambu Lab A1 mini 0.8 nozzle",
-					"Bambu Lab A1 0.8 nozzle"
-				]
-			}
-		},
-		"Bambu Lab X1 Carbon": {
-			"downward_check": {
-				"Bambu Lab X1 Carbon 0.2 nozzle": [
-					"Bambu Lab A1 mini 0.2 nozzle",
-					"Bambu Lab A1 0.2 nozzle"
-				],
-				"Bambu Lab X1 Carbon 0.4 nozzle": [
-					"Bambu Lab A1 mini 0.4 nozzle",
-					"Bambu Lab A1 0.4 nozzle"
-				],
-				"Bambu Lab X1 Carbon 0.6 nozzle": [
-					"Bambu Lab A1 mini 0.6 nozzle",
-					"Bambu Lab A1 0.6 nozzle"
-				],
-				"Bambu Lab X1 Carbon 0.8 nozzle": [
-					"Bambu Lab A1 mini 0.8 nozzle",
-					"Bambu Lab A1 0.8 nozzle"
-				]
-			}
-		},
-		"Bambu Lab X1E": {
-			"downward_check": {
-				"Bambu Lab X1E 0.2 nozzle": [
-					"Bambu Lab A1 mini 0.2 nozzle",
-					"Bambu Lab A1 0.2 nozzle"
-				],
-				"Bambu Lab X1E 0.4 nozzle": [
-					"Bambu Lab A1 mini 0.4 nozzle",
-					"Bambu Lab A1 0.4 nozzle"
-				],
-				"Bambu Lab X1E 0.6 nozzle": [
-					"Bambu Lab A1 mini 0.6 nozzle",
-					"Bambu Lab A1 0.6 nozzle"
-				],
-				"Bambu Lab X1E 0.8 nozzle": [
-					"Bambu Lab A1 mini 0.8 nozzle",
-					"Bambu Lab A1 0.8 nozzle"
-				]
-			}
-		},
-		"Bambu Lab P1P": {
-			"downward_check": {
-				"Bambu Lab P1P 0.2 nozzle": [
-					"Bambu Lab A1 mini 0.2 nozzle",
-					"Bambu Lab A1 0.2 nozzle"
-				],
-				"Bambu Lab P1P 0.4 nozzle": [
-					"Bambu Lab A1 mini 0.4 nozzle",
-					"Bambu Lab A1 0.4 nozzle"
-				],
-				"Bambu Lab P1P 0.6 nozzle": [
-					"Bambu Lab A1 mini 0.6 nozzle",
-					"Bambu Lab A1 0.6 nozzle"
-				],
-				"Bambu Lab P1P 0.8 nozzle": [
-					"Bambu Lab A1 mini 0.8 nozzle",
-					"Bambu Lab A1 0.8 nozzle"
-				]
-			}
-		},
-		"Bambu Lab P1S": {
-			"downward_check": {
-				"Bambu Lab P1S 0.2 nozzle": [
-					"Bambu Lab A1 mini 0.2 nozzle",
-					"Bambu Lab A1 0.2 nozzle"
-				],
-				"Bambu Lab P1S 0.4 nozzle": [
-					"Bambu Lab A1 mini 0.4 nozzle",
-					"Bambu Lab A1 0.4 nozzle"
-				],
-				"Bambu Lab P1S 0.6 nozzle": [
-					"Bambu Lab A1 mini 0.6 nozzle",
-					"Bambu Lab A1 0.6 nozzle"
-				],
-				"Bambu Lab P1S 0.8 nozzle": [
-					"Bambu Lab A1 mini 0.8 nozzle",
-					"Bambu Lab A1 0.8 nozzle"
-				]
-			}
-		}
-	}
+    "printer": {
+        "Bambu Lab A1": {
+            "machine_limits": {
+                "cli_safe_acceleration_e": "0,0",
+                "cli_safe_acceleration_extruding": "0,0",
+                "cli_safe_acceleration_retracting": "0,0",
+                "cli_safe_acceleration_travel": "6000,6000",
+                "cli_safe_acceleration_x": "6000,6000",
+                "cli_safe_acceleration_y": "6000,6000",
+                "cli_safe_acceleration_z": "0,0",
+                "cli_safe_jerk_e": "0,0",
+                "cli_safe_jerk_x": "0,0",
+                "cli_safe_jerk_y": "0,0",
+                "cli_safe_jerk_z": "0,0",
+                "cli_safe_speed_e": "0,0",
+                "cli_safe_speed_x": "0,0",
+                "cli_safe_speed_y": "0,0",
+                "cli_safe_speed_z": "0,0"
+            },
+            "downward_check": {
+                "Bambu Lab A1 0.2 nozzle": [
+                    "Bambu Lab P1S 0.2 nozzle",
+                    "Bambu Lab P1P 0.2 nozzle",
+                    "Bambu Lab X1 Carbon 0.2 nozzle",
+                    "Bambu Lab X1E 0.2 nozzle",
+                    "Bambu Lab X1 0.2 nozzle",
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab A1 0.4 nozzle": [
+                    "Bambu Lab P1S 0.4 nozzle",
+                    "Bambu Lab P1P 0.4 nozzle",
+                    "Bambu Lab X1 Carbon 0.4 nozzle",
+                    "Bambu Lab X1E 0.4 nozzle",
+                    "Bambu Lab X1 0.4 nozzle",
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab A1 0.6 nozzle": [
+                    "Bambu Lab P1S 0.6 nozzle",
+                    "Bambu Lab P1P 0.6 nozzle",
+                    "Bambu Lab X1 Carbon 0.6 nozzle",
+                    "Bambu Lab X1E 0.6 nozzle",
+                    "Bambu Lab X1 0.6 nozzle",
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab A1 0.8 nozzle": [
+                    "Bambu Lab P1S 0.8 nozzle",
+                    "Bambu Lab P1P 0.8 nozzle",
+                    "Bambu Lab X1 Carbon 0.8 nozzle",
+                    "Bambu Lab X1E 0.8 nozzle",
+                    "Bambu Lab X1 0.8 nozzle",
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab A1 mini": {
+            "machine_limits": {
+                "cli_safe_acceleration_e": "0,0",
+                "cli_safe_acceleration_extruding": "0,0",
+                "cli_safe_acceleration_retracting": "0,0",
+                "cli_safe_acceleration_travel": "6000,6000",
+                "cli_safe_acceleration_x": "6000,6000",
+                "cli_safe_acceleration_y": "6000,6000",
+                "cli_safe_acceleration_z": "0,0",
+                "cli_safe_jerk_e": "0,0",
+                "cli_safe_jerk_x": "0,0",
+                "cli_safe_jerk_y": "0,0",
+                "cli_safe_jerk_z": "0,0",
+                "cli_safe_speed_e": "0,0",
+                "cli_safe_speed_x": "0,0",
+                "cli_safe_speed_y": "0,0",
+                "cli_safe_speed_z": "0,0"
+            },
+            "downward_check": {
+                "Bambu Lab A1 mini 0.2 nozzle": [
+                    "Bambu Lab P1S 0.2 nozzle",
+                    "Bambu Lab P1P 0.2 nozzle",
+                    "Bambu Lab X1 Carbon 0.2 nozzle",
+                    "Bambu Lab X1E 0.2 nozzle",
+                    "Bambu Lab X1 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab A1 mini 0.4 nozzle": [
+                    "Bambu Lab P1S 0.4 nozzle",
+                    "Bambu Lab P1P 0.4 nozzle",
+                    "Bambu Lab X1 Carbon 0.4 nozzle",
+                    "Bambu Lab X1E 0.4 nozzle",
+                    "Bambu Lab X1 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab A1 mini 0.6 nozzle": [
+                    "Bambu Lab P1S 0.6 nozzle",
+                    "Bambu Lab P1P 0.6 nozzle",
+                    "Bambu Lab X1 Carbon 0.6 nozzle",
+                    "Bambu Lab X1E 0.6 nozzle",
+                    "Bambu Lab X1 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab A1 mini 0.8 nozzle": [
+                    "Bambu Lab P1S 0.8 nozzle",
+                    "Bambu Lab P1P 0.8 nozzle",
+                    "Bambu Lab X1 Carbon 0.8 nozzle",
+                    "Bambu Lab X1E 0.8 nozzle",
+                    "Bambu Lab X1 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab X1": {
+            "downward_check": {
+                "Bambu Lab X1 0.2 nozzle": [
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab X1 0.4 nozzle": [
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab X1 0.6 nozzle": [
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab X1 0.8 nozzle": [
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab X1 Carbon": {
+            "downward_check": {
+                "Bambu Lab X1 Carbon 0.2 nozzle": [
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab X1 Carbon 0.4 nozzle": [
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab X1 Carbon 0.6 nozzle": [
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab X1 Carbon 0.8 nozzle": [
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab X1E": {
+            "downward_check": {
+                "Bambu Lab X1E 0.2 nozzle": [
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab X1E 0.4 nozzle": [
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab X1E 0.6 nozzle": [
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab X1E 0.8 nozzle": [
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab P1P": {
+            "downward_check": {
+                "Bambu Lab P1P 0.2 nozzle": [
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab P1P 0.4 nozzle": [
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab P1P 0.6 nozzle": [
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab P1P 0.8 nozzle": [
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab P1S": {
+            "downward_check": {
+                "Bambu Lab P1S 0.2 nozzle": [
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab P1S 0.4 nozzle": [
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab P1S 0.6 nozzle": [
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab P1S 0.8 nozzle": [
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab H2D": {
+            "downward_check": {
+                "Bambu Lab H2D 0.2 nozzle": [
+                    "Bambu Lab P1S 0.2 nozzle",
+                    "Bambu Lab P1P 0.2 nozzle",
+                    "Bambu Lab X1 Carbon 0.2 nozzle",
+                    "Bambu Lab X1E 0.2 nozzle",
+                    "Bambu Lab X1 0.2 nozzle",
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab H2D 0.4 nozzle": [
+                    "Bambu Lab P1S 0.4 nozzle",
+                    "Bambu Lab P1P 0.4 nozzle",
+                    "Bambu Lab X1 Carbon 0.4 nozzle",
+                    "Bambu Lab X1E 0.4 nozzle",
+                    "Bambu Lab X1 0.4 nozzle",
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab H2D 0.6 nozzle": [
+                    "Bambu Lab P1S 0.6 nozzle",
+                    "Bambu Lab P1P 0.6 nozzle",
+                    "Bambu Lab X1 Carbon 0.6 nozzle",
+                    "Bambu Lab X1E 0.6 nozzle",
+                    "Bambu Lab X1 0.6 nozzle",
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab H2D 0.8 nozzle": [
+                    "Bambu Lab P1S 0.8 nozzle",
+                    "Bambu Lab P1P 0.8 nozzle",
+                    "Bambu Lab X1 Carbon 0.8 nozzle",
+                    "Bambu Lab X1E 0.8 nozzle",
+                    "Bambu Lab X1 0.8 nozzle",
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab H2D Pro": {
+            "downward_check": {
+                "Bambu Lab H2D Pro 0.2 nozzle": [
+                    "Bambu Lab P1S 0.2 nozzle",
+                    "Bambu Lab P1P 0.2 nozzle",
+                    "Bambu Lab X1 Carbon 0.2 nozzle",
+                    "Bambu Lab X1E 0.2 nozzle",
+                    "Bambu Lab X1 0.2 nozzle",
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab H2S 0.2 nozzle"
+                ],
+                "Bambu Lab H2D Pro 0.4 nozzle": [
+                    "Bambu Lab P1S 0.4 nozzle",
+                    "Bambu Lab P1P 0.4 nozzle",
+                    "Bambu Lab X1 Carbon 0.4 nozzle",
+                    "Bambu Lab X1E 0.4 nozzle",
+                    "Bambu Lab X1 0.4 nozzle",
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab H2S 0.4 nozzle"
+                ],
+                "Bambu Lab H2D Pro 0.6 nozzle": [
+                    "Bambu Lab P1S 0.6 nozzle",
+                    "Bambu Lab P1P 0.6 nozzle",
+                    "Bambu Lab X1 Carbon 0.6 nozzle",
+                    "Bambu Lab X1E 0.6 nozzle",
+                    "Bambu Lab X1 0.6 nozzle",
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab H2S 0.6 nozzle"
+                ],
+                "Bambu Lab H2D Pro 0.8 nozzle": [
+                    "Bambu Lab P1S 0.8 nozzle",
+                    "Bambu Lab P1P 0.8 nozzle",
+                    "Bambu Lab X1 Carbon 0.8 nozzle",
+                    "Bambu Lab X1E 0.8 nozzle",
+                    "Bambu Lab X1 0.8 nozzle",
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab H2S 0.8 nozzle"
+                ]
+            }
+        },
+        "Bambu Lab H2S": {
+            "downward_check": {
+                "Bambu Lab H2S 0.2 nozzle": [
+                    "Bambu Lab A1 0.2 nozzle",
+                    "Bambu Lab A1 mini 0.2 nozzle",
+                    "Bambu Lab H2D 0.2 nozzle",
+                    "Bambu Lab H2D Pro 0.2 nozzle",
+                    "Bambu Lab P1P 0.2 nozzle",
+                    "Bambu Lab P1S 0.2 nozzle",
+                    "Bambu Lab X1 0.2 nozzle",
+                    "Bambu Lab X1 Carbon 0.2 nozzle",
+                    "Bambu Lab X1E 0.2 nozzle"
+                ],
+                "Bambu Lab H2S 0.4 nozzle": [
+                    "Bambu Lab A1 0.4 nozzle",
+                    "Bambu Lab A1 mini 0.4 nozzle",
+                    "Bambu Lab H2D 0.4 nozzle",
+                    "Bambu Lab H2D Pro 0.4 nozzle",
+                    "Bambu Lab P1P 0.4 nozzle",
+                    "Bambu Lab P1S 0.4 nozzle",
+                    "Bambu Lab X1 0.4 nozzle",
+                    "Bambu Lab X1 Carbon 0.4 nozzle",
+                    "Bambu Lab X1E 0.4 nozzle"
+                ],
+                "Bambu Lab H2S 0.6 nozzle": [
+                    "Bambu Lab A1 0.6 nozzle",
+                    "Bambu Lab A1 mini 0.6 nozzle",
+                    "Bambu Lab H2D 0.6 nozzle",
+                    "Bambu Lab H2D Pro 0.6 nozzle",
+                    "Bambu Lab P1P 0.6 nozzle",
+                    "Bambu Lab P1S 0.6 nozzle",
+                    "Bambu Lab X1 0.6 nozzle",
+                    "Bambu Lab X1 Carbon 0.6 nozzle",
+                    "Bambu Lab X1E 0.6 nozzle"
+                ],
+                "Bambu Lab H2S 0.8 nozzle": [
+                    "Bambu Lab A1 0.8 nozzle",
+                    "Bambu Lab A1 mini 0.8 nozzle",
+                    "Bambu Lab H2D 0.8 nozzle",
+                    "Bambu Lab H2D Pro 0.8 nozzle",
+                    "Bambu Lab P1P 0.8 nozzle",
+                    "Bambu Lab P1S 0.8 nozzle",
+                    "Bambu Lab X1 0.8 nozzle",
+                    "Bambu Lab X1 Carbon 0.8 nozzle",
+                    "Bambu Lab X1E 0.8 nozzle"
+                ]
+            }
+        }
+    }
 }
