@@ -2254,7 +2254,7 @@ void Sidebar::update_all_preset_comboboxes()
         p->m_filament_icon->SetBitmap_("filament");
     }
 
-    show_SEMM_buttons(cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor);
+    show_SEMM_buttons(should_show_SEMM_buttons());
 
     //p->m_staticText_filament_settings->Update();
 
@@ -3279,6 +3279,15 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "begin pop_finsish_sync_ams_dialog";
     pop_finsish_sync_ams_dialog();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish pop_finsish_sync_ams_dialog";
+}
+
+bool Sidebar::should_show_SEMM_buttons()
+{
+    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
+    auto cfg = preset_bundle.printers.get_edited_preset().config;
+
+    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
 }
 
 void Sidebar::show_SEMM_buttons(bool bshow)

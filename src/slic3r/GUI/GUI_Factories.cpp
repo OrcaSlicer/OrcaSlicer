@@ -1488,7 +1488,12 @@ void MenuFactory::create_filament_action_menu(bool init, int active_filament_men
         append_menu_item(
             menu, wxID_ANY, _L("Delete"), _L("Delete this filament"), [](wxCommandEvent&) {
                 plater()->sidebar().delete_filament(-2); }, "", nullptr,
-            []() { return plater()->sidebar().combos_filament().size() > 1; }, m_parent);
+            []() {
+                auto& sidebar = plater()->sidebar();
+                return sidebar.combos_filament().size() > 1
+                    // Orca: only show delete filament option for SEMM machines unless is BBL
+                    && sidebar.should_show_SEMM_buttons();
+            }, m_parent);
     }
 
     const int item_id = menu->FindItem(_L("Merge with"));
