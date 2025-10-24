@@ -198,7 +198,7 @@ public:
     void get_big_btn_sync_pos_size(wxPoint &pt, wxSize &size);
     void get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size);
     // Orca
-    bool should_show_SEMM_buttons();
+    static bool should_show_SEMM_buttons();
     void show_SEMM_buttons(bool bshow);
     void update_dynamic_filament_list();
 
