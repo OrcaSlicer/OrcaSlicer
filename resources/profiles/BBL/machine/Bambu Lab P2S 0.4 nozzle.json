@@ -27,7 +27,6 @@
     "extruder_clearance_dist_to_rod": "36.5",
     "extruder_clearance_height_to_lid": "141.5",
     "extruder_clearance_height_to_rod": "32.5",
-    "extruder_clearance_max_radius": "72",
     "extruder_clearance_radius": "72",
     "extruder_offset": [
         "0X0"
