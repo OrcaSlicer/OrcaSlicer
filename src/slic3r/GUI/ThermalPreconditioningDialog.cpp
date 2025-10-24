@@ -16,10 +16,6 @@ ThermalPreconditioningDialog::ThermalPreconditioningDialog(wxWindow *parent, std
     : wxDialog(parent, wxID_ANY, _L("Thermal Preconditioning for first layer optimization"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
     , m_dev_id(dev_id)
 {
-    wxBitmap bitmap = create_scaled_bitmap("thermal_preconditioning_title", this, 16);
-    wxIcon   icon;
-    icon.CopyFromBitmap(bitmap);
-    SetIcon(icon);
     // Apply dark-mode-friendly background for the dialog
     SetBackgroundColour(StateColor::darkModeColorFor(wxColour(255, 255, 255)));
     create_ui();
