@@ -76,6 +76,7 @@ jobs:
         - /opt/ghc:/opt/ghc1
         - /usr/local/share/boost:/usr/local/share/boost1
     strategy:
+      fail-fast: false
       matrix:
         variant:
           - arch: x86_64

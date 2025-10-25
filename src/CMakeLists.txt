@@ -9,6 +9,8 @@ add_subdirectory(dev-utils)
 # add_subdirectory(avrdude)
 # Note: semver and hints are now included from deps_src/CMakeLists.txt
 
+find_package(libnoise REQUIRED)
+
 add_subdirectory(libslic3r)
 
 if (SLIC3R_GUI)

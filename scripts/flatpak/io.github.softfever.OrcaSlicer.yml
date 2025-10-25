@@ -64,219 +64,54 @@ modules:
         url: https://github.com/FreeSpacenav/libspnav/releases/download/v1.2/libspnav-1.2.tar.gz
         sha256: 093747e7e03b232e08ff77f1ad7f48552c06ac5236316a5012db4269951c39db
 
-  - name: orca_wxwidgets
-    buildsystem: simple
-    build-commands:
-      - |
-        mkdir builddir && cd builddir
-        cmake ../ -GNinja \
-          -DwxBUILD_PRECOMP=ON \
-          -DwxBUILD_TOOLKIT=gtk3 \
-          -DwxBUILD_DEBUG_LEVEL=0 \
-          -DwxBUILD_SAMPLES=OFF \
-          -DwxBUILD_SHARED=ON \
-          -DwxUSE_MEDIACTRL=ON \
-          -DwxUSE_DETECT_SM=OFF \
-          -DwxUSE_UNICODE=ON \
-          -DwxUSE_PRIVATE_FONTS=ON \
-          -DwxUSE_OPENGL=ON \
-          -DwxUSE_WEBREQUEST=ON \
-          -DwxUSE_WEBVIEW=ON \
-          -DwxUSE_WEBVIEW_EDGE=OFF \
-          -DwxUSE_WEBVIEW_IE=OFF \
-          -DwxUSE_REGEX=builtin \
-          -DwxUSE_LIBSDL=OFF \
-          -DwxUSE_XTEST=OFF \
-          -DwxUSE_STC=OFF \
-          -DwxUSE_AUI=ON \
-          -DwxUSE_LIBPNG=sys \
-          -DwxUSE_ZLIB=sys \
-          -DwxUSE_LIBJPEG=sys \
-          -DwxUSE_LIBTIFF=OFF \
-          -DwxUSE_EXPAT=sys \
-          -DBUILD_SHARED_LIBS:BOOL=ON \
-          -DCMAKE_INSTALL_PREFIX:STRING=/app \
-          -DCMAKE_PREFIX_PATH=/app \
-          -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --target install -j$FLATPAK_BUILDER_N_JOBS
-    sources:
-      - type: git
-        url: https://github.com/SoftFever/Orca-deps-wxWidgets
-        branch: master
-        path: ../
-      - type: file
-        path: patches/0001-Enable-using-a-dark-theme-when-Gnome-dark-style-is-s.patch
-        dest-filename: wxwidgets-dark-theme.patch
-      - type: shell
-        commands:
-          - patch -p1 < wxwidgets-dark-theme.patch
-    cleanup:
-      - "*.la"
-      - "*.a"
-      - "*.cmake"
-      - /include
-      - /app/bin/*
-
   - name: orca_deps
+    build-options:
+      build-args:
+        - --share=network # allow cmake to download the needed deps
+      env:
+        BUILD_DIR: deps/build_flatpak
     buildsystem: simple
     build-commands:
       # start build
       - |
-        mkdir -p deps/build_flatpak && cd deps/build_flatpak
-        cmake ../ \
-          -DDEP_WX_GTK3=ON \
+        cmake -S deps -B $BUILD_DIR \
+          -DFLATPAK=ON \
           -DDEP_DOWNLOAD_DIR=/run/build/orca_deps/external-packages \
           -DCMAKE_PREFIX_PATH=/app \
           -DDESTDIR=/app \
-          -DFLATPAK=ON \
           -DCMAKE_INSTALL_PREFIX=/app
-        cmake --build . --parallel
-        rm -rf /run/build/orca_deps/external-packages
-    
+      - cmake --build $BUILD_DIR --parallel --target dep_wxWidgets
+      - cmake --build $BUILD_DIR --parallel
+      - rm -rf /run/build/orca_deps/external-packages
+
     cleanup:
       - /app/include
       - "*.a"
       - "*.la"
     
     sources:
-      # -
-      # Section bellow fetches all OrcaSlicer dependencies before the build process and stores them in external-packages/*/* .
-      # -DDEP_DOWNLOAD_DIR is set in the build process which has to match with dest.
-      #
-      # NOTE: The url, dest folder name and sha256 must match from OrcaSlicer's cmake scripts and folder names in OrcaSlicer/deps/
-      # -
-      
       # OrcaSlicer Source Archive
       - type: dir 
-        path: ../../
+        path: ../../deps
+        dest: deps
 
-      # Blosc
       - type: file
-        url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
-        dest: external-packages/Blosc
-        sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
-
-      # Cereal
-      - type: file
-        url: https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.0.zip
-        dest: external-packages/Cereal
-        sha256: 71642cb54658e98c8f07a0f0d08bf9766f1c3771496936f6014169d3726d9657
-
-      # CGAL
-      - type: file
-        url: https://github.com/CGAL/cgal/archive/refs/tags/v5.4.zip
-        dest: external-packages/CGAL
-        sha256: d7605e0a5a5ca17da7547592f6f6e4a59430a0bc861948974254d0de43eab4c0
-
-      # GMP
-      - type: file
-        url: https://github.com/SoftFever/OrcaSlicer_deps/releases/download/gmp-6.2.1/gmp-6.2.1.tar.bz2
-        dest: external-packages/GMP
-        sha256: eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a36b4d7c
-
-      # curl
-      - type: file
-        url: https://github.com/curl/curl/archive/refs/tags/curl-7_75_0.zip
-        dest: external-packages/CURL
-        sha256: a63ae025bb0a14f119e73250f2c923f4bf89aa93b8d4fafa4a9f5353a96a765a
-
-      # MPFR
-      - type: file
-        url: https://www.mpfr.org/mpfr-4.2.2/mpfr-4.2.2.tar.bz2
-        dest: external-packages/MPFR
-        sha256: 9ad62c7dc910303cd384ff8f1f4767a655124980bb6d8650fe62c815a231bb7b
-
-      # NLopt
-      - type: file
-        url: https://github.com/stevengj/nlopt/archive/v2.5.0.tar.gz
-        dest: external-packages/NLopt
-        sha256: c6dd7a5701fff8ad5ebb45a3dc8e757e61d52658de3918e38bab233e7fd3b4ae
-
-      # OCCT
-      - type: file
-        url: https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V7_6_0.zip
-        dest: external-packages/OCCT
-        sha256: 28334f0e98f1b1629799783e9b4d21e05349d89e695809d7e6dfa45ea43e1dbc
-
-      # OpenCSG
-      - type: file
-        url: https://github.com/floriankirsch/OpenCSG/archive/refs/tags/opencsg-1-4-2-release.zip
-        dest: external-packages/OpenCSG
-        sha256: 51afe0db79af8386e2027d56d685177135581e0ee82ade9d7f2caff8deab5ec5
-
-      # OpenCV
-      - type: file
-        url: https://github.com/opencv/opencv/archive/refs/tags/4.6.0.tar.gz
-        dest: external-packages/OpenCV
-        sha256: 1ec1cba65f9f20fe5a41fda1586e01c70ea0c9a6d7b67c9e13edf0cfe2239277
-
-      # OpenEXR
-      - type: file
-        url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
-        dest: external-packages/OpenEXR
-        sha256: 0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
-
-      # OpenSSL
-      - type: file
-        url: https://github.com/openssl/openssl/archive/OpenSSL_1_1_1w.tar.gz
-        dest: external-packages/OpenSSL
-        sha256: 2130e8c2fb3b79d1086186f78e59e8bc8d1a6aedf17ab3907f4cb9ae20918c41
-
-      # OpenVDB
-      - type: file
-        url: https://github.com/tamasmeszaros/openvdb/archive/a68fd58d0e2b85f01adeb8b13d7555183ab10aa5.zip
-        dest: external-packages/OpenVDB
-        sha256: f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
-
-      # Qhull
-      - type: file
-        url: https://github.com/qhull/qhull/archive/v8.0.1.zip
-        dest: external-packages/Qhull
-        sha256: 5287f5edd6a0372588f5d6640799086a4033d89d19711023ef8229dd9301d69b
-
-      # TBB
-      - type: file
-        url: https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.5.0.zip
-        dest: external-packages/TBB
-        sha256: 83ea786c964a384dd72534f9854b419716f412f9d43c0be88d41874763e7bb47
-      
-      # Boost
-      - type: file
-        url: https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.gz
-        dest: external-packages/Boost
-        sha256: 4d27e9efed0f6f152dc28db6430b9d3dfb40c0345da7342eaa5a987dde57bd95
-
-      # GLFW
-      - type: file
-        url: https://github.com/glfw/glfw/archive/refs/tags/3.3.7.zip
-        dest: external-packages/GLFW
-        sha256: e02d956935e5b9fb4abf90e2c2e07c9a0526d7eacae8ee5353484c69a2a76cd0
-      # libnoise
-      - type: file
-        url: https://github.com/SoftFever/Orca-deps-libnoise/archive/refs/tags/1.0.zip
-        dest: external-packages/libnoise
-        sha256: 96ffd6cc47898dd8147aab53d7d1b1911b507d9dbaecd5613ca2649468afd8b6
+        path: patches/0001-Enable-using-a-dark-theme-when-Gnome-dark-style-is-s.patch
+        dest: deps/wxWidgets
+        dest-filename: 0001-flatpak.patch
 
   - name: OrcaSlicer 
     buildsystem: simple
     build-commands:
       - |
-        mkdir -p build_flatpak
-        CXXFLAGS=-std=gnu++20 cmake . -B build_flatpak \
-          -DSLIC3R_PCH=OFF \
-          -DSLIC3R_FHS=ON \
-          -DSLIC3R_GTK=3 \
-          -DSLIC3R_STATIC=ON \
-          -DBUILD_TESTS=OFF \
-          -DSLIC3R_DESKTOP_INTEGRATION=OFF \
-          -DCMAKE_BUILD_TYPE=Release \
+        cmake . -B build_flatpak \
           -DFLATPAK=ON \
-          -DBBL_RELEASE_TO_PUBLIC=1 \
+          -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_PREFIX_PATH=/app \
           -DCMAKE_INSTALL_PREFIX=/app
-        CXXFLAGS=-std=gnu++20 cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
-        ./scripts/run_gettext.sh
-        CXXFLAGS=-std=gnu++20 cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
+      - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
+      - ./scripts/run_gettext.sh
+      - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
 
     cleanup:
       - /include
@@ -292,16 +127,29 @@ modules:
         install -Dm755 umount /app/bin
 
     sources:
-      # -
-      # Section bellow fetches all OrcaSlicer dependencies before the build process and stores them in external-packages/*/* .
-      # -DDEP_DOWNLOAD_DIR is set in the build process which has to match with dest.
-      #
-      # NOTE: The url, dest folder name and sha256 must match from OrcaSlicer's cmake scripts and folder names in OrcaSlicer/deps/
-      # -
-
       # OrcaSlicer Source Archive
-      - type: dir 
-        path: ../../
+      - type: dir
+        path: ../../cmake
+        dest: cmake
+      - type: dir
+        path: ../../deps_src
+        dest: deps_src
+      - type: dir
+        path: ../../resources
+        dest: resources
+      - type: dir
+        path: ../../src
+        dest: src
+
+      - type: file
+        path: ../../CMakeLists.txt
+      - type: file
+        path: ../../LICENSE.txt
+      - type: file
+        path: ../../version.inc
+      - type: file
+        path: ../run_gettext.sh
+        dest: scripts
 
       # AppData metainfo for Gnome Software & Co.
       - type: file

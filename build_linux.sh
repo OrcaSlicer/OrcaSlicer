@@ -10,10 +10,12 @@ function usage() {
     echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
     echo "   -1: limit builds to one core (where possible)"
     echo "   -j N: limit builds to N cores (where possible)"
-    echo "   -b: build in debug mode"
+    echo "   -b: build in Debug mode"
     echo "   -c: force a clean build"
     echo "   -C: enable ANSI-colored compile output (GNU/Clang only)"
     echo "   -d: download and build dependencies in ./deps/ (build prerequisite)"
+    echo "   -D: dry run"
+    echo "   -e: build in RelWithDebInfo mode"
     echo "   -h: prints this help text"
     echo "   -i: build the Orca Slicer AppImage (optional)"
     echo "   -p: boost ccache hit rate by disabling precompiled headers (default: ON)"
@@ -31,7 +33,9 @@ function usage() {
 SLIC3R_PRECOMPILED_HEADERS="ON"
 
 unset name
-while getopts ":1j:bcCdhiprstulL" opt ; do
+BUILD_DIR=build
+BUILD_CONFIG=Release
+while getopts ":1j:bcCdDehiprstulL" opt ; do
   case ${opt} in
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
@@ -40,7 +44,8 @@ while getopts ":1j:bcCdhiprstulL" opt ; do
         export CMAKE_BUILD_PARALLEL_LEVEL=$OPTARG
         ;;
     b )
-        BUILD_DEBUG="1"
+        BUILD_DIR=build-dbg
+        BUILD_CONFIG=Debug
         ;;
     c )
         CLEAN_BUILD=1
@@ -50,6 +55,13 @@ while getopts ":1j:bcCdhiprstulL" opt ; do
         ;;
     d )
         BUILD_DEPS="1"
+        ;;
+    D )
+        DRY_RUN="1"
+        ;;
+    e )
+        BUILD_DIR=build-dbginfo
+        BUILD_CONFIG=RelWithDebInfo
         ;;
     h ) usage
         exit 1
@@ -112,6 +124,21 @@ function check_available_memory_and_disk() {
     fi
 }
 
+function print_and_run() {
+    cmd=()
+    # Remove empty arguments, leading and trailing spaces
+    for item in "$@" ; do
+        if [[ -n $item ]]; then
+            cmd+=( "$(echo "${item}" | xargs)" )
+        fi
+    done
+
+    echo "${cmd[@]}"
+    if [[ -z "${DRY_RUN}" ]] ; then
+        "${cmd[@]}"
+    fi
+}
+
 # cmake 4.x compatibility workaround
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
@@ -137,7 +164,7 @@ else
     source "./scripts/linux.d/${DISTRIBUTION}"
 fi
 
-echo "FOUND_GTK3=${FOUND_GTK3}"
+echo "FOUND_GTK3_DEV=${FOUND_GTK3_DEV}"
 if [[ -z "${FOUND_GTK3_DEV}" ]] ; then
     echo "Error, you must install the dependencies before."
     echo "Use option -u with sudo"
@@ -176,51 +203,27 @@ fi
 if [[ -n "${BUILD_DEPS}" ]] ; then
     echo "Configuring dependencies..."
     read -r -a BUILD_ARGS <<< "${DEPS_EXTRA_BUILD_ARGS}"
-    BUILD_ARGS+=(-DDEP_WX_GTK3=ON)
     if [[ -n "${CLEAN_BUILD}" ]]
     then
-        rm -fr deps/build
+        print_and_run rm -fr deps/$BUILD_DIR
     fi
-    mkdir -p deps/build
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        # build deps with debug and release else cmake will not find required sources
-        mkdir -p deps/build/release
-	set -x
-	cmake -S deps -B deps/build/release "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G Ninja \
-	      -DSLIC3R_PCH="${SLIC3R_PRECOMPILED_HEADERS}" \
-	      -DDESTDIR="${SCRIPT_PATH}/deps/build/destdir" \
-	      -DDEP_DOWNLOAD_DIR="${SCRIPT_PATH}/deps/DL_CACHE" \
-	      "${COLORED_OUTPUT}" \
-	      "${BUILD_ARGS[@]}"
-	set +x
-        cmake --build deps/build/release
-        BUILD_ARGS+=(-DCMAKE_BUILD_TYPE=Debug)
+    mkdir -p deps/$BUILD_DIR
+    if [[ $BUILD_CONFIG != Release ]] ; then
+        BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
 
-    set -x
-    cmake -S deps -B deps/build "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G Ninja \
-	  -DSLIC3R_PCH="${SLIC3R_PRECOMPILED_HEADERS}" \
-	  -DDESTDIR="${SCRIPT_PATH}/deps/build/destdir" \
-	  -DDEP_DOWNLOAD_DIR="${SCRIPT_PATH}/deps/DL_CACHE" \
-	  "${COLORED_OUTPUT}" \
-	  "${BUILD_ARGS[@]}"
-    set +x
-    cmake --build deps/build
+    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
+    print_and_run cmake --build deps/$BUILD_DIR
 fi
 
 if [[ -n "${BUILD_ORCA}" ]] ; then
     echo "Configuring OrcaSlicer..."
     if [[ -n "${CLEAN_BUILD}" ]] ; then
-        rm -fr build
+        print_and_run rm -fr $BUILD_DIR
     fi
     read -r -a BUILD_ARGS <<< "${ORCA_EXTRA_BUILD_ARGS}"
-    if [[ -n "${FOUND_GTK3_DEV}" ]] ; then
-        BUILD_ARGS+=(-DSLIC3R_GTK=3)
-    fi
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        BUILD_ARGS+=(-DCMAKE_BUILD_TYPE=Debug -DBBL_INTERNAL_TESTING=1)
-    else
-        BUILD_ARGS+=(-DBBL_RELEASE_TO_PUBLIC=1 -DBBL_INTERNAL_TESTING=0)
+    if [[ $BUILD_CONFIG != Release ]] ; then
+        BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
     if [[ -n "${BUILD_TESTS}" ]] ; then
         BUILD_ARGS+=(-DBUILD_TESTS=ON)
@@ -229,35 +232,22 @@ if [[ -n "${BUILD_ORCA}" ]] ; then
         BUILD_ARGS+=(-DORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY}")
     fi
 
-    echo "Configuring OrcaSlicer..."
-    set -x
-    cmake -S . -B build "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G "Ninja Multi-Config" \
-	  -DSLIC3R_PCH="${SLIC3R_PRECOMPILED_HEADERS}" \
-	  -DCMAKE_PREFIX_PATH="${SCRIPT_PATH}/deps/build/destdir/usr/local" \
-	  -DSLIC3R_STATIC=1 \
-	  -DORCA_TOOLS=ON \
-	  "${COLORED_OUTPUT}" \
-	  "${BUILD_ARGS[@]}"
-    set +x
+    print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G "Ninja Multi-Config" \
+-DSLIC3R_PCH=${SLIC3R_PRECOMPILED_HEADERS} \
+-DORCA_TOOLS=ON \
+"${COLORED_OUTPUT}" \
+"${BUILD_ARGS[@]}"
     echo "done"
     echo "Building OrcaSlicer ..."
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        cmake --build build --config Debug --target OrcaSlicer
-    else
-        cmake --build build --config Release --target OrcaSlicer
-    fi
+    print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer
     echo "Building OrcaSlicer_profile_validator .."
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        cmake --build build --config Debug --target OrcaSlicer_profile_validator
-    else
-        cmake --build build --config Release --target OrcaSlicer_profile_validator
-    fi
+    print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer_profile_validator
     ./scripts/run_gettext.sh
     echo "done"
 fi
 
 if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
-    pushd build > /dev/null
+    pushd $BUILD_DIR > /dev/null
     echo "[9/9] Generating Linux app..."
     build_linux_image="./src/build_linux_image.sh"
     if [[ -e ${build_linux_image} ]] ; then
@@ -265,7 +255,7 @@ if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
         if [[ -n "${BUILD_IMAGE}" ]] ; then
             extra_script_args="-i"
         fi
-        ${build_linux_image} ${extra_script_args}
+        print_and_run ${build_linux_image} ${extra_script_args}
 
         echo "done"
     fi
