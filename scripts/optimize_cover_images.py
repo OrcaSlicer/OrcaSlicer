@@ -448,6 +448,8 @@ def main():
                '  %(prog)s --dry-run\n'
                '  %(prog)s --optimize\n'
                '  %(prog)s --optimize --quality 70-85\n'
+               '  %(prog)s --vendor Custom\n'
+               '  %(prog)s --vendor Custom --optimize\n'
                '  %(prog)s --max-size 200\n'
                '  %(prog)s --no-resize\n'
                '  %(prog)s --path ./custom/path --ratio 0.80\n'
@@ -465,6 +467,11 @@ def main():
         '--path',
         default='./resources/profiles',
         help='Base path to search for cover images (default: ./resources/profiles)'
+    )
+    parser.add_argument(
+        '--vendor',
+        type=str,
+        help='Process only a specific vendor subfolder (e.g., "Custom")'
     )
     parser.add_argument(
         '--ratio',
@@ -508,6 +515,27 @@ def main():
     if args.dry_run:
         print("⚠️  DRY RUN MODE - No changes will be saved\n")
 
+    # Determine the search path
+    search_path = args.path
+    if args.vendor:
+        search_path = os.path.join(args.path, args.vendor)
+        print(f"🎯 Processing vendor: {args.vendor}")
+        print(f"   Path: {search_path}")
+        
+        # Check if vendor path exists
+        if not os.path.exists(search_path):
+            print(f"❌ Error: Vendor path does not exist: {search_path}")
+            print(f"\nAvailable vendors in {args.path}:")
+            try:
+                vendors = [d for d in os.listdir(args.path) 
+                          if os.path.isdir(os.path.join(args.path, d)) and not d.startswith('.')]
+                for vendor in sorted(vendors):
+                    print(f"  - {vendor}")
+            except Exception:
+                pass
+            return 1
+        print()
+
     # Determine max size (None if --no-resize is specified)
     max_size = None if args.no_resize else args.max_size
 
@@ -515,7 +543,7 @@ def main():
         print(f"📏 Images will be resized to max {max_size}px if larger\n")
 
     stats = find_and_process_cover_images(
-        args.path,
+        search_path,
         args.ratio,
         args.dry_run,
         args.optimize,
