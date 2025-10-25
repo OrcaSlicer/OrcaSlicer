@@ -5885,6 +5885,24 @@ int CLI::run(int argc, char **argv)
                         print->apply(model, new_print_config);
                         BOOST_LOG_TRIVIAL(info) << boost::format("set no_check to %1%:")%no_check;
                         print->set_no_check_flag(no_check);//BBS
+
+                        // Set is_BBL_printer flag before validation as the validation depends on it.
+                        std::string& printer_model_string = new_print_config.opt_string("printer_model", true);
+                        bool is_bbl_vendor_preset = false;
+
+                        if (!printer_model_string.empty()) {
+                            is_bbl_vendor_preset = (printer_model_string.compare(0, 9, "Bambu Lab") == 0);
+                            BOOST_LOG_TRIVIAL(info) << boost::format("printer_model_string: %1%, is_bbl_vendor_preset %2%")%printer_model_string %is_bbl_vendor_preset;
+                        }
+                        else {
+                            if (!new_printer_name.empty())
+                                is_bbl_vendor_preset = (new_printer_name.compare(0, 9, "Bambu Lab") == 0);
+                            else if (!current_printer_system_name.empty())
+                                is_bbl_vendor_preset = (current_printer_system_name.compare(0, 9, "Bambu Lab") == 0);
+                            BOOST_LOG_TRIVIAL(info) << boost::format("new_printer_name: %1%, current_printer_system_name %2%, is_bbl_vendor_preset %3%")%new_printer_name %current_printer_system_name %is_bbl_vendor_preset;
+                        }
+                        (dynamic_cast<Print*>(print))->is_BBL_printer() = is_bbl_vendor_preset;
+
                         StringObjectException warning;
                         print_fff->set_check_multi_filaments_compatibility(!allow_mix_temp);
                         auto err = print->validate(&warning);
@@ -5959,22 +5977,6 @@ int CLI::run(int argc, char **argv)
                                 BOOST_LOG_TRIVIAL(info) << "set print's callback to default_status_callback.";
                                 print->set_status_callback(default_status_callback);
 #endif
-                                //check whether it is bbl printer
-                                std::string& printer_model_string = new_print_config.opt_string("printer_model", true);
-                                bool is_bbl_vendor_preset = false;
-
-                                if (!printer_model_string.empty()) {
-                                    is_bbl_vendor_preset = (printer_model_string.compare(0, 9, "Bambu Lab") == 0);
-                                    BOOST_LOG_TRIVIAL(info) << boost::format("printer_model_string: %1%, is_bbl_vendor_preset %2%")%printer_model_string %is_bbl_vendor_preset;
-                                }
-                                else {
-                                    if (!new_printer_name.empty())
-                                        is_bbl_vendor_preset = (new_printer_name.compare(0, 9, "Bambu Lab") == 0);
-                                    else if (!current_printer_system_name.empty())
-                                        is_bbl_vendor_preset = (current_printer_system_name.compare(0, 9, "Bambu Lab") == 0);
-                                    BOOST_LOG_TRIVIAL(info) << boost::format("new_printer_name: %1%, current_printer_system_name %2%, is_bbl_vendor_preset %3%")%new_printer_name %current_printer_system_name %is_bbl_vendor_preset;
-                                }
-                                (dynamic_cast<Print*>(print))->is_BBL_printer() = is_bbl_vendor_preset;
 
                                 //update information for brim
                                 const PrintConfig& print_config = print_fff->config();
