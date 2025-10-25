@@ -1,6 +1,6 @@
 {
     "type": "filament",
-    "name": "fdm_filament_pla @Ghost7",
+    "name": "fdm_filament_pla_Hyper @Ghost7",
     "inherits": "fdm_filament_common_Ghost7",
     "from": "system",
     "instantiation": "false",
@@ -29,7 +29,7 @@
         "60"
     ],
     "hot_plate_temp": [
-        "55"
+        "60"
     ],
     "textured_plate_temp": [
         "60"
@@ -41,13 +41,13 @@
         "60"
     ],
     "hot_plate_temp_initial_layer": [
-        "55"
+        "60"
     ],
     "textured_plate_temp_initial_layer": [
         "60"
     ],
     "nozzle_temperature_initial_layer": [
-        "210"
+        "220"
     ],
     "reduce_fan_stop_start_freq": [
         "1"
@@ -71,7 +71,7 @@
         "1"
     ],
     "nozzle_temperature": [
-        "210"
+        "220"
     ],
     "temperature_vitrification": [
         "60"
