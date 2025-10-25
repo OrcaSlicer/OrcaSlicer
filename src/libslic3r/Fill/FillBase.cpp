@@ -2712,7 +2712,7 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
         const float center = (n_lines - 1) / 2.0f;
 
         for (int line = 0; line < n_lines; ++line) {
-            float offset = (static_cast<float>(line) - center) * spacing;
+            float offset = scale_((static_cast<float>(line) - center) * spacing);
 
             for (const Polyline& pl : polylines) {
                 const size_t n = pl.points.size();
@@ -2725,22 +2725,27 @@ void multiline_fill(Polylines& polylines, const FillParams& params, float spacin
                 new_points.reserve(n);
                 for (size_t i = 0; i < n; ++i) {
                     Vec2f tangent;
-                    if (i == 0)
-                        tangent = Vec2f(pl.points[1].x() - pl.points[0].x(), pl.points[1].y() - pl.points[0].y());
-                    else if (i == n - 1)
-                        tangent = Vec2f(pl.points[n - 1].x() - pl.points[n - 2].x(), pl.points[n - 1].y() - pl.points[n - 2].y());
-                    else
-                        tangent = Vec2f(pl.points[i + 1].x() - pl.points[i - 1].x(), pl.points[i + 1].y() - pl.points[i - 1].y());
-
-                    float len = std::hypot(tangent.x(), tangent.y());
-                    if (len == 0)
-                        len = 1.0f;
-                    tangent /= len;
+                    // For the first and last point, if the polyline is a
+                    // closed loop, get the tangent from the points on either
+                    // side of the join, otherwise just use the first or last
+                    // line.
+                    if (i == 0) {
+                        if (pl.points[0] == pl.points[n-1]) {
+                            tangent = (pl.points[1] - pl.points[n-2]).template cast<float>().normalized();
+                        } else {
+                            tangent = (pl.points[1] - pl.points[0]).template cast<float>().normalized();
+                        }
+                    } else if (i == n - 1) {
+                        if (pl.points[0] == pl.points[n-1]) {
+                            tangent = (pl.points[1] - pl.points[n-2]).template cast<float>().normalized();
+                        } else {
+                            tangent = (pl.points[n-1] - pl.points[n-2]).template cast<float>().normalized();
+                        }
+                    } else
+                        tangent = (pl.points[i+1] - pl.points[i-1]).template cast<float>().normalized();
                     Vec2f normal(-tangent.y(), tangent.x());
 
-                    Point p = pl.points[i];
-                    p.x() += scale_(normal.x() * offset);
-                    p.y() += scale_(normal.y() * offset);
+                    Point p = pl.points[i] + (normal * offset).template cast<coord_t>();
                     new_points.push_back(p);
                 }
 
