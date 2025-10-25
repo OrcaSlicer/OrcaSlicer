@@ -9,5 +9,7 @@
     "compatible_printers": [
         "Prusa MK4S HF0.5 nozzle"
     ],
-    "filament_max_volumetric_speed": "29"
+    "filament_max_volumetric_speed": [
+        "29"
+    ]
 }

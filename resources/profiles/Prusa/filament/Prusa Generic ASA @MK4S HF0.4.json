@@ -9,7 +9,9 @@
     "compatible_printers": [
         "Prusa MK4S HF0.4 nozzle"
     ],
-    "filament_max_volumetric_speed": "26",
+    "filament_max_volumetric_speed": [
+        "26"
+    ],
     "filament_start_gcode": [
         "M572 S{if nozzle_diameter[0]==0.4}0.02{elsif nozzle_diameter[0]==0.5}0.018{elsif nozzle_diameter[0]==0.6}0.015{elsif nozzle_diameter[0]==0.8}0.01{elsif nozzle_diameter[0]==0.25}0.09{elsif nozzle_diameter[0]==0.3}0.065{else}0{endif} ; Filament gcode\nM142 S40 ; set heatbreak target temp"
     ],

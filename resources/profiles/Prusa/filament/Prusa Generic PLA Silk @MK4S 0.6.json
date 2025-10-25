@@ -11,7 +11,9 @@
         "Prusa MK4S HF0.6 nozzle"
     ],
     "fan_cooling_layer_time": "22",
-    "filament_max_volumetric_speed": "9",
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
     "nozzle_temperature": "215",
     "slow_down_layer_time": "10"
 }

@@ -206,6 +206,25 @@ def clean_up_profile(vendor="", profile_type="", force=False):
                                 else:
                                     del _profile['extruder_clearance_max_radius']
 
+                            # Convert filament fields to arrays if not already
+                            if profile_type == 'filament':
+                                fields_to_arrayify = ['filament_cost', 'filament_density', 'filament_type', "temperature_vitrification", "filament_max_volumetric_speed", "filament_vendor"]
+                                for field in fields_to_arrayify:
+                                    if field in _profile and not isinstance(_profile[field], list):
+                                        original_value = _profile[field]
+                                        _profile[field] = [original_value]
+                                        print(f"Converted {field} to array in {file}")
+                                        need_update = True
+
+                                # remove following fields from filament profile
+                                fields_to_remove = ['initial_layer_print_speed', 'outer_wall_speed', 'inner_wall_speed', 'infill_speed', 'top_surface_speed', 'travel_speed']
+                                for field in fields_to_remove:
+                                    if field in _profile:
+                                        del _profile[field]
+                                        print(f"Removed {field} field from {file}")
+                                        need_update = True
+
+
                             if need_update or force:
                                 # write back to file
                                 f.seek(0)

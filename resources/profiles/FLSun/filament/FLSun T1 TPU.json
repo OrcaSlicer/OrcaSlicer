@@ -12,7 +12,9 @@
     "fan_min_speed": [
         "100"
     ],
-    "filament_density": "1.22",
+    "filament_density": [
+        "1.22"
+    ],
     "filament_flow_ratio": "1",
     "activate_air_filtration": [
         "1"
