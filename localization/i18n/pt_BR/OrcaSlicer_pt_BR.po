@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-09-28 18:44+0800\n"
-"PO-Revision-Date: 2025-08-13 10:05-0300\n"
+"PO-Revision-Date: 2025-10-05 10:08-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
 "Language: pt_BR\n"
@@ -268,10 +268,10 @@ msgid "Part selection"
 msgstr "Seleção de peça"
 
 msgid "Fixed step drag"
-msgstr ""
+msgstr "Arrasto de passo fixo"
 
 msgid "Single sided scaling"
-msgstr ""
+msgstr "Escala unilateral"
 
 msgid "Position"
 msgstr "Posição"
@@ -1577,7 +1577,7 @@ msgstr "Tempo de execução WebView2"
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
-msgstr ""
+msgstr "O caminho dos recursos não existe ou não é um diretório: %s"
 
 #, c-format, boost-format
 msgid ""
@@ -6291,11 +6291,17 @@ msgid ""
 "rotation template settings that may not work properly with your current "
 "infill pattern. This could result in weak support or print quality issues."
 msgstr ""
+"Este projeto foi criado com um OrcaSlicer 2.3.1-alpha e usa configurações de "
+"gabarito de rotação de preenchimento que podem não funcionar corretamente "
+"com o seu padrão de preenchimento atual. Isso pode resultar em suporte fraco "
+"ou problemas de qualidade de impressão."
 
 msgid ""
 "Would you like OrcaSlicer to automatically fix this by clearing the rotation "
 "template settings?"
 msgstr ""
+"Você gostaria que o OrcaSlicer corrigisse isso automaticamente limpando as "
+"configurações do gabarito de rotação?"
 
 #, c-format, boost-format
 msgid ""
@@ -7040,10 +7046,13 @@ msgstr ""
 
 msgid "Show options when importing STEP file"
 msgstr ""
+"Mostrar a caixa de diálogo de configuração dos parâmetros da malha de degraus."
 
 msgid ""
 "If enabled,a parameter settings dialog will appear during STEP file import."
 msgstr ""
+"Se ativo, uma caixa de diálogo de configurações de parâmetros será exibida "
+"durante a importação do arquivo STEP."
 
 msgid "Multi device management"
 msgstr "Gerenciamento de multi dispositivos"
@@ -8164,7 +8173,7 @@ msgid "Support filament"
 msgstr "Filamento de suporte"
 
 msgid "Support ironing"
-msgstr ""
+msgstr "Passar a ferro nos suportes"
 
 msgid "Tree supports"
 msgstr "Suportes de árvore"
@@ -12332,11 +12341,12 @@ msgstr ""
 "Zero é vertical."
 
 msgid "Infill overhang angle"
-msgstr ""
+msgstr "Ângulo de saliência do preenchimento"
 
 msgid ""
 "The angle of the infill angled lines. 60° will result in a pure honeycomb."
 msgstr ""
+"O ângulo das linhas de preenchimento. 60° resultará em um favo de mel puro."
 
 msgid "Sparse infill anchor length"
 msgstr "Comprimento da âncora de preenchimento esparso"
@@ -12605,7 +12615,7 @@ msgstr ""
 "por um período prolongado de tempo."
 
 msgid "Ironing fan speed"
-msgstr ""
+msgstr "Velocidade do ventilador para passar a ferro"
 
 msgid ""
 "This part cooling fan speed is applied when ironing. Setting this parameter "
@@ -15280,10 +15290,10 @@ msgstr ""
 "ativada, a interface de suporte também será extrudada como sólida."
 
 msgid "Support Ironing Pattern"
-msgstr ""
+msgstr "Padrão de Passar a Ferro no Suporte"
 
 msgid "Support Ironing flow"
-msgstr ""
+msgstr "Fluxo de Passar a Ferro no Suporte"
 
 msgid ""
 "The amount of material to extrude during ironing. Relative to flow of normal "
@@ -15295,7 +15305,7 @@ msgstr ""
 "em superextrusão na superfície."
 
 msgid "Support Ironing line spacing"
-msgstr ""
+msgstr "Espaçamento de Passar a Ferro no Suporte"
 
 msgid "Activate temperature control"
 msgstr "Ativar controle de temperatura"
@@ -17558,7 +17568,7 @@ msgstr ""
 "(0 <= Desvio de Junção < 1)"
 
 msgid "NOTE: High values may cause Layer shift"
-msgstr ""
+msgstr "NOTA: Valores altos podem causar Deslocamento de Camadas"
 
 msgid "Send G-code to printer host"
 msgstr "Enviar G-code para o host da impressora"
@@ -18784,7 +18794,7 @@ msgstr ""
 "Algo inesperado aconteceu ao tentar conectar, por favor tente novamente."
 
 msgid "User cancelled."
-msgstr ""
+msgstr "Cancelado pelo usuário."
 
 msgid "Head diameter"
 msgstr "Diâmetro da cabeça"
@@ -18824,7 +18834,7 @@ msgstr ""
 "borda não terão efeito!"
 
 msgid "Set the brim type of this object to \"painted\""
-msgstr ""
+msgstr "Defina o tipo de borda deste objeto como \"pintado\""
 
 msgid " invalid brim ears"
 msgstr " orelhas da borda iválidas"
@@ -19290,9 +19300,6 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Número inválido"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "A publicação foi cancelada"
-
 #~ msgid "Search"
 #~ msgstr "Buscar"
 
@@ -19411,9 +19418,6 @@ msgstr ""
 
 #~ msgid "User canceled."
 #~ msgstr "O usuário cancelou."
-
-#~ msgid "Set the brim type to \"painted\""
-#~ msgstr "Defina o tipo de borda como \"pintada\""
 
 #~ msgid ""
 #~ "We have added an experimental style \"Tree Slim\" that features smaller "
