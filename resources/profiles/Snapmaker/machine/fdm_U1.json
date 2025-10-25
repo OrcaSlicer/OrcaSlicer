@@ -7,7 +7,7 @@
     "gcode_flavor": "klipper",
     "single_extruder_multi_material": "0",
     "bed_model": "Snapmaker U1_bed.stl",
-    "bed_texture": "Snapmaker U1_bed.svg",
+    "bed_texture": "Snapmaker U1_texture.svg",
     "max_layer_height": [
         "0.32",
         "0.32",
