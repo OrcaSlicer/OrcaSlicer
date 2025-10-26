@@ -1549,7 +1549,7 @@ var LangText = {
     orca4: "Isso interrompe a transmissão de dados para os serviços de nuvem da Bambu. Usuários que não usam máquinas BBL ou usam somente o modo LAN podem ativar essa função com segurança.",
     orca5: "Habilita Modo Furtivo.",
   },
-  lt: {
+  lt_LT: {
     t1: "Pasisveikinkite su Orca Slicer",
     t2: "Orca Slicer bus nustatyta per kelis žingsnius. Pradėkime!",
     t3: "Naudotojo sutartis",
@@ -1691,3 +1691,4 @@ function TranslatePage() {
     }
   }
 }
+
