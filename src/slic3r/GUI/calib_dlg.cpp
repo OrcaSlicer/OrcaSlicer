@@ -173,6 +173,20 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
+    // Help links
+    auto help_sizer = new wxBoxSizer(wxVERTICAL);
+    auto help_link_pa = new wxHyperlinkCtrl(this, wxID_ANY, _L("Pressure Advance Guide"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/pressure-advance-calib");
+    help_link_pa->SetForegroundColour(wxColour("#1890FF"));
+    help_sizer->Add(help_link_pa, 0, wxALL, FromDIP(5));
+
+    auto help_link_apa = new wxHyperlinkCtrl(this, wxID_ANY, _L("Adaptive Pressure Advance Guide"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/adaptive-pressure-advance-calib");
+    help_link_apa->SetForegroundColour(wxColour("#1890FF"));
+    help_sizer->Add(help_link_apa, 0, wxALL, FromDIP(5));
+
+    v_sizer->Add(help_sizer, 0, wxALL, FromDIP(10));
+
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
 
@@ -372,6 +386,11 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
+    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Temperature Calibration"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/temp-calib");
+    help_link->SetForegroundColour(wxColour("#1890FF"));
+    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
+
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
 
@@ -546,6 +565,11 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
+    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Volumetric Speed Calibration"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/volumetric-speed-calib");
+    help_link->SetForegroundColour(wxColour("#1890FF"));
+    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
+
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
 
@@ -646,6 +670,11 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
+
+    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: VFA"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/vfa-calib");
+    help_link->SetForegroundColour(wxColour("#1890FF"));
+    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
@@ -748,6 +777,11 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
+
+    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Retraction Calibration"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/retraction-calib");
+    help_link->SetForegroundColour(wxColour("#1890FF"));
+    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
@@ -920,6 +954,11 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
+
+    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Input Shaping Calibration"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/input-shaping-calib");
+    help_link->SetForegroundColour(wxColour("#1890FF"));
+    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
@@ -1113,6 +1152,11 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
+    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Input Shaping Calibration"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/input-shaping-calib");
+    help_link->SetForegroundColour(wxColour("#1890FF"));
+    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
+
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
 
@@ -1185,11 +1229,11 @@ void Input_Shaping_Damp_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     Fit();
 }
 
-// Junction_Deviation_Test_Dlg
+// Cornering_Test_Dlg
 //
 
-Junction_Deviation_Test_Dlg::Junction_Deviation_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
-    : DPIDialog(parent, id, _L("Junction Deviation test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
+Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
+    : DPIDialog(parent, id, _L("Cornering test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE), m_plater(plater)
 {
     SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
     SetForegroundColour(wxColour("#363636"));
@@ -1202,56 +1246,112 @@ Junction_Deviation_Test_Dlg::Junction_Deviation_Test_Dlg(wxWindow* parent, wxWin
     auto labeled_box_model = new LabeledStaticBox(this, _L("Test model"));
     auto model_box = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
 
-    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower") }, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, { _L("Ringing Tower"), _L("Fast Tower"), _L("SCV-V2") }, wxHORIZONTAL);
     model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
     // Settings
-    wxString start_jd_str = _L("Start junction deviation: ");
-    wxString end_jd_str   = _L("End junction deviation: ");
-    int text_max = GetTextMax(this, std::vector<wxString>{start_jd_str, end_jd_str});
+    wxString start_jd_str = _L("Start: ");
+    wxString end_jd_str   = _L("End: ");
 
-    auto st_size = FromDIP(wxSize(text_max, -1));
-    auto ti_size = FromDIP(wxSize(120, -1));
-
-    LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Junction Deviation settings"));
+    LabeledStaticBox* stb = new LabeledStaticBox(this, _L("Cornering settings"));
     wxStaticBoxSizer* settings_sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
 
     settings_sizer->AddSpacer(FromDIP(5));
 
-    // Start junction deviation
+    // Detect GCode Flavor and set appropriate values and units
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    const auto* gcode_flavor_option = (preset_bundle != nullptr)
+        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
+        : nullptr;
+
+    wxString start_value_str;
+    wxString end_value_str;
+    wxString units_str;
+
+    if (gcode_flavor_option &&
+        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
+        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
+        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
+        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
+            // Using Junction Deviation (mm)
+            start_value_str = wxString::Format("%.3f", 0.000);
+            end_value_str   = wxString::Format("%.3f", 0.250);
+            units_str = "mm";
+        } else {
+            // Using Classic Jerk (mm/s)
+                start_value_str = wxString::Format("%.3f", 1.0);
+                end_value_str   = wxString::Format("%.3f", 15.0);
+                units_str = "mm/s";
+        }
+
+    auto ti_size = FromDIP(wxSize(120, -1));
+
+    // Start and End cornering on same row
+    auto cornering_row_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    // Start cornering
     auto start_jd_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto start_jd_text = new wxStaticText(this, wxID_ANY, start_jd_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiJDStart = new TextInput(this, wxString::Format("%.3f", 0.000), "mm", "", wxDefaultPosition, ti_size);
+    auto start_jd_text = new wxStaticText(this, wxID_ANY, start_jd_str, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    m_tiJDStart = new TextInput(this, start_value_str, units_str, "", wxDefaultPosition, ti_size);
     m_tiJDStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     start_jd_sizer->Add(start_jd_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     start_jd_sizer->Add(m_tiJDStart  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    settings_sizer->Add(start_jd_sizer, 0, wxLEFT, FromDIP(3));
+    cornering_row_sizer->Add(start_jd_sizer, 0, wxLEFT, FromDIP(3));
 
-    // End junction deviation
+    // End cornering
     auto end_jd_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto end_jd_text = new wxStaticText(this, wxID_ANY, end_jd_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiJDEnd = new TextInput(this, wxString::Format("%.3f", 0.250), "mm", "", wxDefaultPosition, ti_size);
+    auto end_jd_text = new wxStaticText(this, wxID_ANY, end_jd_str, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    m_tiJDEnd = new TextInput(this, end_value_str, units_str, "", wxDefaultPosition, ti_size);
     m_tiJDEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     end_jd_sizer->Add(end_jd_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    end_jd_sizer->Add(m_tiJDEnd  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    settings_sizer->Add(end_jd_sizer, 0, wxLEFT, FromDIP(3));
+       end_jd_sizer->Add(m_tiJDEnd  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    cornering_row_sizer->Add(end_jd_sizer, 0, wxLEFT, FromDIP(3));
+
+    settings_sizer->Add(cornering_row_sizer, 0, wxLEFT, FromDIP(3));
 
     settings_sizer->AddSpacer(FromDIP(5));
 
-    // Add note about junction deviation
-    auto note_text = new wxStaticText(this, wxID_ANY, _L("Note: Lower values = sharper corners but slower speeds"), 
+    // Add note about cornering based on GCode Flavor
+    wxString note_msg = _L("Note: Lower values = sharper corners but slower speeds.\n");
+    if (gcode_flavor_option) {
+        switch (gcode_flavor_option->value) {
+            case GCodeFlavor::gcfMarlinFirmware: {
+                // Check if machine_max_junction_deviation is set and > 0
+                const auto* max_jd_option = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
+                if (max_jd_option && !max_jd_option->values.empty() && max_jd_option->values[0] > 0) {
+                    note_msg += _L("Marlin 2 Junction Deviation detected:\nTo test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to 0.");
+                } else {
+                    note_msg += _L("Marlin 2 Classic Jerk detected:\nTo test Junction Deviation, set 'Maximum Junction Deviation' in Motion ability to a value > 0.");
+                }
+                break;
+            }
+            case GCodeFlavor::gcfRepRapFirmware:
+                note_msg += _L("RepRap detected: Jerk in mm/s.\nOrcaSlicer will convert the values to mm/min when necessary.");
+                break;
+            default:
+                break;
+        }
+    }
+
+    auto note_text = new wxStaticText(this, wxID_ANY, note_msg,
                                     wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
     note_text->SetForegroundColour(wxColour(128, 128, 128));
+    note_text->Wrap(FromDIP(300));
     settings_sizer->Add(note_text, 0, wxALL, FromDIP(5));
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
+    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Cornering Calibration"),
+        "https://github.com/SoftFever/OrcaSlicer/wiki/cornering-calib");
+    help_link->SetForegroundColour(wxColour("#1890FF"));
+    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
+
     auto dlg_btns = new DialogButtons(this, {"OK"});
     v_sizer->Add(dlg_btns , 0, wxEXPAND);
 
-    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Junction_Deviation_Test_Dlg::on_start, this);
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Cornering_Test_Dlg::on_start, this);
 
     wxGetApp().UpdateDlgDarkUI(this);
 
@@ -1259,34 +1359,54 @@ Junction_Deviation_Test_Dlg::Junction_Deviation_Test_Dlg(wxWindow* parent, wxWin
     Fit();
 }
 
-Junction_Deviation_Test_Dlg::~Junction_Deviation_Test_Dlg() {
+Cornering_Test_Dlg::~Cornering_Test_Dlg() {
     // Disconnect Events
 }
 
-void Junction_Deviation_Test_Dlg::on_start(wxCommandEvent& event) {
+void Cornering_Test_Dlg::on_start(wxCommandEvent& event) {
     bool read_double = false;
     read_double = m_tiJDStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
     read_double = read_double && m_tiJDEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
 
-    if (!read_double || m_params.start < 0 || m_params.end >= 1 || m_params.start >= m_params.end) {
-        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0 <= Junction Deviation < 1)"), wxEmptyString, wxICON_WARNING | wxOK);
+    // Get max values based on GCode Flavor
+    double max_end_value = 100.0;
+    double warning_threshold = 20.0;
+    const auto* preset_bundle = wxGetApp().preset_bundle;
+    const auto* gcode_flavor_option = (preset_bundle != nullptr)
+        ? preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")
+        : nullptr;
+
+    if (gcode_flavor_option &&
+        gcode_flavor_option->value == GCodeFlavor::gcfMarlinFirmware &&
+        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation") &&
+        !preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values.empty() &&
+        preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")->values[0] > 0) {
+            // Using Junction Deviation (mm)
+            max_end_value = 1.0;
+            warning_threshold = 0.3;
+    }
+
+    if (!read_double || m_params.start < 0 || m_params.end > max_end_value || m_params.start >= m_params.end) {
+        wxString error_msg = wxString::Format(_L("Please input valid values:\n(0 <= Cornering <= %s)"), wxString::Format("%.3f", max_end_value));
+        MessageDialog msg_dlg(nullptr, error_msg, wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
-    } else if (m_params.end > 0.3) {
-        MessageDialog msg_dlg(nullptr, _L("NOTE: High values may cause Layer shift"), wxEmptyString, wxICON_WARNING | wxOK);
+    } else if (m_params.end > warning_threshold) {
+        wxString warning_msg = wxString::Format(_L("NOTE: High values may cause Layer shift (>%s)"), wxString::Format("%.3f", warning_threshold));
+        MessageDialog msg_dlg(nullptr, warning_msg, wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
     }
 
-    m_params.mode = CalibMode::Calib_Junction_Deviation;
-    
+    m_params.mode = CalibMode::Calib_Cornering;
+
     // Set model type based on selection
-    m_params.test_model = m_rbModel->GetSelection() == 0 ? 0 : 1; // 0 = Ringing Tower, 1 = Fast Tower
-    
-    m_plater->calib_junction_deviation(m_params);
+    m_params.test_model = m_rbModel->GetSelection();
+
+    m_plater->Calib_Cornering(m_params);
     EndModal(wxID_OK);
 }
 
-void Junction_Deviation_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
+void Cornering_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     this->Refresh();
     Fit();
 }

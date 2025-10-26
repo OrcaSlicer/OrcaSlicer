@@ -4241,10 +4241,10 @@ LayerResult GCode::process_layer(
                 }
             } else {
                 if (print.calib_params().freqStartX == print.calib_params().freqStartY && print.calib_params().freqEndX == print.calib_params().freqEndY) {
-                    gcode += writer().set_input_shaping('A', 0.f, (print.calib_params().freqStartX) + ((print.calib_params().freqEndX)-(print.calib_params().freqStartX)) * (m_layer_index - 2) / (m_layer_count - 3), "");
+                    gcode += writer().set_input_shaping('A', 0.f, this->interpolate_value_across_layers(print.calib_params().freqStartX, print.calib_params().freqEndX), "");
                 } else {
-                    gcode += writer().set_input_shaping('X', 0.f, (print.calib_params().freqStartX) + ((print.calib_params().freqEndX)-(print.calib_params().freqStartX)) * (m_layer_index - 2) / (m_layer_count - 3), "");
-                    gcode += writer().set_input_shaping('Y', 0.f, (print.calib_params().freqStartY) + ((print.calib_params().freqEndY)-(print.calib_params().freqStartY)) * (m_layer_index - 2) / (m_layer_count - 3), "");
+                    gcode += writer().set_input_shaping('X', 0.f, this->interpolate_value_across_layers(print.calib_params().freqStartX, print.calib_params().freqEndX), "");
+                    gcode += writer().set_input_shaping('Y', 0.f, this->interpolate_value_across_layers(print.calib_params().freqStartY, print.calib_params().freqEndY), "");
                 }
             }
             break;
@@ -4258,12 +4258,18 @@ LayerResult GCode::process_layer(
                 gcode += writer().set_input_shaping('X', 0.f, print.calib_params().freqStartX, print.calib_params().shaper_type);
                 gcode += writer().set_input_shaping('Y', 0.f, print.calib_params().freqStartY, print.calib_params().shaper_type);
             } else {
-                gcode += writer().set_input_shaping('A', print.calib_params().start + ((print.calib_params().end)-(print.calib_params().start)) * (m_layer_index) / (m_layer_count), 0.f, "");
+                gcode += writer().set_input_shaping('A', this->interpolate_value_across_layers(print.calib_params().start, print.calib_params().end), 0.f, "");
             }
             break;
         }
-        case CalibMode::Calib_Junction_Deviation: {
-            gcode += writer().set_junction_deviation(print.calib_params().start + ((print.calib_params().end)-(print.calib_params().start)) * (m_layer_index) / (m_layer_count));
+        case CalibMode::Calib_Cornering: {
+            if (m_writer.get_gcode_flavor() == gcfMarlinFirmware &&
+                !m_config.machine_max_junction_deviation.values.empty() &&
+                m_config.machine_max_junction_deviation.values.front() > 0) {
+                gcode += writer().set_junction_deviation(this->interpolate_value_across_layers(print.calib_params().start, print.calib_params().end));
+            } else {
+                gcode += writer().set_jerk_xy(this->interpolate_value_across_layers(print.calib_params().start, print.calib_params().end));
+            }
             break;
         }
     }
@@ -6680,6 +6686,17 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
     }
 }
 
+// Calculate the interpolated value for the current layer between start_value and end_value
+float GCode::interpolate_value_across_layers(float start_value, float end_value) const {
+    if (m_layer_index == 1) {
+        return start_value;
+    } else {
+        float ratio = (m_layer_index - 2.0f) / (m_layer_count - 3.0f);
+        ratio = std::max(0.0f, std::min(1.0f, ratio)); // clamp
+        return start_value + ratio * (end_value - start_value);
+    }
+}
+
 std::string encodeBase64(uint64_t value)
 {
     //Always use big endian mode
@@ -7522,7 +7539,6 @@ void GCode::ObjectByExtruder::Island::Region::append(const Type type, const Extr
         perimeters_or_infills_overrides->resize(new_size, copies_extruder);
     }
 }
-
 
 // Index into std::vector<LayerToPrint>, which contains Object and Support layers for the current print_z, collected for
 // a single object, or for possibly multiple objects with multiple instances.

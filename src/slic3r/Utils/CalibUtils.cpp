@@ -142,8 +142,8 @@ std::string get_calib_mode_name(CalibMode cali_mode, int stage)
         return "input_shaping_freq_calib_mode";
     case CalibMode::Calib_Input_shaping_damp:
         return "input_shaping_damp_calib_mode";
-    case CalibMode::Calib_Junction_Deviation:
-        return "junction_deviation_calib_mode";
+    case CalibMode::Calib_Cornering:
+        return "cornering_calib_mode";
     default:
         assert(false);
         return "";
@@ -339,8 +339,8 @@ CalibMode CalibUtils::get_calib_mode_by_name(const std::string name, int& cali_s
         return CalibMode::Calib_Input_shaping_freq;
     else if (name == "input_shaping_damp_calib_mode")
         return CalibMode::Calib_Input_shaping_damp;
-    else if (name == "junction_deviation_calib_mode")
-        return CalibMode::Calib_Junction_Deviation;
+    else if (name == "cornering_calib_mode")
+        return CalibMode::Calib_Cornering;
     return CalibMode::Calib_None;
 }
 

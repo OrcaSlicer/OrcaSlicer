@@ -4040,15 +4040,16 @@ void PrintConfigDef::init_fff_params()
             def->set_default_value(new ConfigOptionFloats(axis.max_jerk));
         }
     }
-    // M205 J... [mm] machine junction deviation limits 
+    // M205 J... [mm] machine junction deviation limits
     def = this->add("machine_max_junction_deviation", coFloats);
     def->full_label = L("Maximum Junction Deviation");
     def->category = L("Machine limits");
-    def->tooltip = L("Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware)");
+    def->tooltip = L("Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware\nIf your Marlin 2 printer uses Classic Jerk set this value to 0.)");
     def->sidetext = "mm";	// milimeters, don't need translation
     def->min = 0;
+    def->max = 1;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloats{0. ,0. });
+    def->set_default_value(new ConfigOptionFloats { 0.01});
 
     // M205 S... [mm/sec]
     def = this->add("machine_min_extruding_rate", coFloats);

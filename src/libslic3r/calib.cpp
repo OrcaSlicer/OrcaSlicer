@@ -895,5 +895,4 @@ double CalibPressureAdvancePattern::pattern_shift() const
     return (wall_count() - 1) * line_spacing_first_layer() + line_width_first_layer() + m_glyph_padding_horizontal;
 }
 
-
 } // namespace Slic3r

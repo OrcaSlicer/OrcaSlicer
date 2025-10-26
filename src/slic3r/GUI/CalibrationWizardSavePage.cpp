@@ -50,7 +50,7 @@ static wxString get_default_name(wxString filament_name, CalibMode mode){
         break;
     case Slic3r::CalibMode::Calib_Input_shaping_damp:
         break;
-    case Slic3r::CalibMode::Calib_Junction_Deviation:
+    case Slic3r::CalibMode::Calib_Cornering:
         break;
     default:
         break;

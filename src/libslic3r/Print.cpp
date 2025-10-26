@@ -1655,7 +1655,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                }
             }
 
-            // check  junction deviation
+            // Check junction deviation
             const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
             if (warning_key.empty() && m_default_object_config.default_junction_deviation.value > max_junction_deviation) {
                 warning->string  = L( "Junction deviation setting exceeds the printer's maximum value "
