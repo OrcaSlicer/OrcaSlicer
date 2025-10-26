@@ -782,7 +782,7 @@ void MenuFactory::append_menu_item_fill_bed(wxMenu *menu)
 {
     append_menu_item(
         menu, wxID_ANY, _L("Fill bed with copies"), _L("Fill the remaining area of bed with copies of the selected object"),
-        [](wxCommandEvent &) { plater()->fill_bed_with_instances(); }, "", nullptr, []() { return plater()->can_increase_instances(); }, m_parent);
+        [](wxCommandEvent &) { plater()->fill_bed_with_copies(); }, "", nullptr, []() { return plater()->can_increase_instances(); }, m_parent);
 }
 
 wxMenuItem* MenuFactory::append_menu_item_printable(wxMenu* menu)
@@ -1259,14 +1259,12 @@ void MenuFactory::create_default_menu()
 void MenuFactory::create_common_object_menu(wxMenu* menu)
 {
     append_menu_item_rename(menu);
-    // BBS
-    //append_menu_items_instance_manipulation(menu);
+    append_menu_items_instance_manipulation(menu);
+    
     // Delete menu was moved to be after +/- instace to make it more difficult to be selected by mistake.
     append_menu_item_delete(menu);
-    //append_menu_item_instance_to_object(menu);
     menu->AppendSeparator();
 
-    // BBS
     append_menu_item_reload_from_disk(menu);
     append_menu_item_export_stl(menu);
     // "Scale to print volume" makes a sense just for whole object
@@ -1302,6 +1300,11 @@ void MenuFactory::create_object_menu()
 
 void MenuFactory::create_extra_object_menu()
 {
+    // Object instances / conversions
+    append_menu_items_instance_manipulation(&m_object_menu);
+    m_object_menu.AppendSeparator();
+    append_menu_item_instance_to_object(&m_object_menu);
+    m_object_menu.AppendSeparator();
     //append_menu_item_fill_bed(&m_object_menu);
     // Object Clone
     append_menu_item_clone(&m_object_menu);
@@ -1794,6 +1797,26 @@ wxMenu* MenuFactory::assemble_multi_selection_menu()
     menu->AppendSeparator();
     append_menu_item_change_extruder(menu);
     return menu;
+}
+
+
+//PS
+void MenuFactory::append_menu_items_instance_manipulation(wxMenu* menu)
+{
+    MenuType type = menu == &m_object_menu ? mtObjectFFF : mtObjectSLA;
+
+    items_increase[type]                = append_menu_item(menu, wxID_ANY, _L("Add instance") + "\t+", _L("Add one more instance of the selected object"),
+        [](wxCommandEvent&) { plater()->increase_instances();      }, "", nullptr, 
+        []() { return plater()->can_increase_instances(); }, m_parent);
+    items_decrease[type]                = append_menu_item(menu, wxID_ANY, _L("Remove instance") + "\t-", _L("Remove one instance of the selected object"),
+        [](wxCommandEvent&) { plater()->decrease_instances();      }, "", nullptr, 
+        []() { return plater()->can_decrease_instances(); }, m_parent);
+    items_set_number_of_copies[type]    = append_menu_item(menu, wxID_ANY, _L("Set number of instances") + dots, _L("Change the number of instances of the selected object"),
+        [](wxCommandEvent&) { plater()->set_number_of_copies();    }, "", nullptr,
+        []() { return plater()->can_increase_instances(); }, m_parent);
+    append_menu_item(menu, wxID_ANY, _L("Fill bed with instances") + dots, _L("Fill the remaining area of bed with instances of the selected object"),
+        [](wxCommandEvent&) { plater()->fill_bed_with_instances();    }, "", nullptr, 
+        []() { return plater()->can_increase_instances(); }, m_parent);
 }
 
 wxMenu *MenuFactory::filament_action_menu(int active_filament_menu_id) {

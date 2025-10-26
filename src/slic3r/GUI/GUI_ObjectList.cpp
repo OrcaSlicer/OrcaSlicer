@@ -1735,12 +1735,12 @@ void ObjectList::key_event(wxKeyEvent& event)
         cut();
     else if (wxGetKeyState(wxKeyCode('K')) && wxGetKeyState(WXK_CONTROL))
         clone();
-    //else if (event.GetUnicodeKey() == '+')
-    //    increase_instances();
-    //else if (event.GetUnicodeKey() == '-')
-    //    decrease_instances();
-    //else if (event.GetUnicodeKey() == 'p')
-    //    toggle_printable_state();
+    else if (event.GetUnicodeKey() == '+')
+        increase_instances();
+    else if (event.GetUnicodeKey() == '-')
+        decrease_instances();
+    else if (event.GetUnicodeKey() == 'p')
+        toggle_printable_state();
     else if (filaments_count() > 1) {
         std::vector<wxChar> numbers = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
         wxChar key_char = event.GetUnicodeKey();

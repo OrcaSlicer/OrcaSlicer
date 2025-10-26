@@ -157,7 +157,7 @@ private:
     void        append_menu_item_edit_text(wxMenu *menu);
     void        append_menu_item_edit_svg(wxMenu *menu);
 
-    //void        append_menu_items_instance_manipulation(wxMenu *menu);
+    void        append_menu_items_instance_manipulation(wxMenu *menu);
     //void        update_menu_items_instance_manipulation(MenuType type);
     //BBS add bbl menu item
     void        append_menu_item_clone(wxMenu* menu);

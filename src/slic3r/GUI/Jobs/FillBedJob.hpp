@@ -26,12 +26,14 @@ class FillBedJob : public Job
     int m_status_range = 0;
     Plater *m_plater;
 
+    bool m_instances;
+
 public:
 
     void prepare();
     void process(Ctl &ctl) override;
 
-    FillBedJob();
+    FillBedJob(bool instances = false);
 
     int status_range() const
     {
