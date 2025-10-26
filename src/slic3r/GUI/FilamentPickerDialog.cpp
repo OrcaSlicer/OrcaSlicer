@@ -264,9 +264,9 @@ wxBoxSizer* FilamentPickerDialog::CreateInfoSection()
     m_label_preview_color = new wxStaticText(this, wxID_ANY, _L("Custom Color"),
                                            wxDefaultPosition, wxDefaultSize,
                                            wxST_ELLIPSIZE_END);
-    m_label_preview_idx = new wxStaticText(this, wxID_ANY, _L(""),
+    m_label_preview_idx = new wxStaticText(this, wxID_ANY, "",
                                          wxDefaultPosition, wxDefaultSize); // No size limit, no ellipsis
-    m_label_preview_type = new wxStaticText(this, wxID_ANY, _L(""),
+    m_label_preview_type = new wxStaticText(this, wxID_ANY, "",
                                           wxDefaultPosition, wxSize(FromDIP(220), FromDIP(16)),
                                           wxST_ELLIPSIZE_END);
 
@@ -504,7 +504,7 @@ void FilamentPickerDialog::UpdateCustomColorPreview(const wxColour& custom_color
 
     // Update preview labels for custom color
     m_label_preview_color->SetLabel(custom_color.GetAsString(wxC2S_HTML_SYNTAX));
-    m_label_preview_idx->SetLabel(_L(""));
+    m_label_preview_idx->SetLabel("");
     Layout();
 }
 

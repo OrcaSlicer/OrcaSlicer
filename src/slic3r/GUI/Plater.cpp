@@ -1211,7 +1211,7 @@ bool Sidebar::priv::switch_diameter(bool single)
     }
     auto preset          = wxGetApp().preset_bundle->get_similar_printer_preset({}, diameter.ToStdString());
     if (preset == nullptr) {
-        MessageDialog dlg(this->plater, _L(""), _L(""));
+        MessageDialog dlg(this->plater, "", "");
         dlg.ShowModal();
         return false;
     }
@@ -8537,7 +8537,7 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
             if (combo->is_selected_printer_model()) {
                 auto preset = wxGetApp().preset_bundle->get_similar_printer_preset(preset_name, {});
                 if (preset == nullptr) {
-                    MessageDialog dlg(this->sidebar, _L(""), _L(""));
+                    MessageDialog dlg(this->sidebar, "", "");
                     dlg.ShowModal();
                 }
                 preset->is_visible = true; // force visible
