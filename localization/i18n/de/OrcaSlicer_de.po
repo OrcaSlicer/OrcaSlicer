@@ -6973,7 +6973,7 @@ msgid "Login region"
 msgstr "Login region"
 
 msgid "Stealth mode"
-msgstr "Unsichtbarer modus"
+msgstr "Unsichtbarer Modus"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7129,7 +7129,7 @@ msgstr ""
 "Drucker und wechselt automatisch."
 
 msgid "Show options when importing STEP file"
-msgstr "Zeige den Dialog für die Parameter-Einstellungen des Step-Netzes."
+msgstr "Optionen beim Importieren von STEP-Dateien anzeigen"
 
 msgid ""
 "If enabled,a parameter settings dialog will appear during STEP file import."
@@ -7140,7 +7140,7 @@ msgid "Multi device management"
 msgstr "Multi-Geräte-Verwaltung"
 
 msgid "(Requires restart)"
-msgstr ""
+msgstr "(Erfordert Neustart)"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7222,7 +7222,7 @@ msgid "Load behaviour"
 msgstr "Ladeverhalten"
 
 msgid "Behaviour"
-msgstr ""
+msgstr "Verhalten"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr ""
@@ -7237,7 +7237,7 @@ msgstr "Maximale Anzahl der zuletzt verwendeten Dateien"
 
 msgid "Add STL/STEP files to recent files list"
 msgstr ""
-"Modell-Dateien STL/STEP zur Liste der zuletzt verwendeten Dateien hinzufügen"
+"STL/STEP Dateien zur Liste der zuletzt verwendeten Dateien hinzufügen"
 
 msgid "Clear my choice on the unsaved projects."
 msgstr "Meine Auswahl für nicht gespeicherte Projekte löschen."
@@ -7246,7 +7246,7 @@ msgid "Don't warn when loading 3MF with modified G-code"
 msgstr "Keine Warnungen beim Laden von 3MF mit modifizierten G-Codes"
 
 msgid "Auto backup"
-msgstr "Automatische datensicherung"
+msgstr "Automatische Datensicherung"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7264,13 +7264,13 @@ msgid "Downloads"
 msgstr "Downloads"
 
 msgid "Downloads folder"
-msgstr ""
+msgstr "Download-Ordner"
 
 msgid "Dark Mode"
 msgstr "Dunkler Modus"
 
 msgid "Enable dark mode"
-msgstr "Dunklen modus aktivieren"
+msgstr "Dunklen Modus aktivieren"
 
 msgid "Develop mode"
 msgstr "Entwicklermodus"
