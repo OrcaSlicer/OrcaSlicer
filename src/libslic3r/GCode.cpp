@@ -95,114 +95,6 @@ Vec2d travel_point_1;
 Vec2d travel_point_2;
 Vec2d travel_point_3;
 
-// Calculate pressure advance value based on nozzle diameter from string format:
-// "nozzle_diameter,pa_value\n..." or single value for legacy compatibility
-static double calculate_pressure_advance_for_nozzle(const std::string& pa_string, double nozzle_diameter)
-{
-    if (pa_string.empty()) return 0.0;
-
-    // Remove spaces and tabs keeping newlines for parsing
-    std::string clean_string = pa_string;
-    clean_string.erase(std::remove_if(clean_string.begin(), clean_string.end(),
-                                     [](char c) { return c == ' ' || c == '\t' || c == '\r'; }), clean_string.end());
-
-    // Legacy format: single value without comma
-    if (clean_string.find(',') == std::string::npos) {
-        try { return std::stod(clean_string); } catch (...) { return 0.0; }
-    }
-
-    // Parse nozzle,pa pairs
-    std::vector<std::pair<double, double>> pa_values;
-    
-    for (size_t start = 0, end; start < clean_string.length(); start = end + 1) {
-        end = clean_string.find('\n', start);
-        if (end == std::string::npos) end = clean_string.length();
-        if (end <= start) continue;
-        
-        size_t comma = clean_string.find(',', start);
-        if (comma != std::string::npos && comma < end) {
-            try {
-                pa_values.emplace_back(std::stod(clean_string.substr(start, comma - start)),
-                                     std::stod(clean_string.substr(comma + 1, end - comma - 1)));
-            } catch (...) { /* Skip invalid lines */ }
-        }
-        if (end == clean_string.length()) break;
-    }
-    
-    if (pa_values.empty()) return 0.0;
-    
-    // Auto-detect if columns are swapped by checking if values are multiples of 0.05 (nozzle characteristic)
-    auto is_multiple_of_005 = [](double val) -> bool {
-        double remainder = std::fmod(std::abs(val), 0.05);
-        return remainder < 0.001 || remainder > 0.049;
-    };
-    
-    bool first_col_all_multiples = true;
-    bool second_col_all_multiples = true;
-    size_t first_col_multiples_count = 0;
-    size_t second_col_multiples_count = 0;
-    
-    for (const auto& [first, second] : pa_values) {
-        if (is_multiple_of_005(first)) {
-            first_col_multiples_count++;
-        } else {
-            first_col_all_multiples = false;
-        }
-        
-        if (is_multiple_of_005(second)) {
-            second_col_multiples_count++;
-        } else {
-            second_col_all_multiples = false;
-        }
-    }
-    
-    // Determine if columns should be swapped
-    bool should_swap = false;
-    
-    if (!first_col_all_multiples && second_col_all_multiples) {
-        // Only second column has all multiples of 0.05 -> data is inverted
-        should_swap = true;
-    } else if (!first_col_all_multiples && !second_col_all_multiples) {
-        // Neither column has all multiples -> use the one with more multiples as nozzle column
-        if (second_col_multiples_count > first_col_multiples_count) {
-            should_swap = true;
-        }
-    }
-    // If both columns have all multiples or only first column has all multiples, keep original order
-    
-    if (should_swap) {
-        for (auto& [first, second] : pa_values) {
-            std::swap(first, second);
-        }
-    }
-    
-    std::sort(pa_values.begin(), pa_values.end());
-    
-    // Handle all cases in one pass: exact match, boundaries, and interpolation
-    for (size_t i = 0; i < pa_values.size(); ++i) {
-        auto& [nozzle, pa] = pa_values[i];
-        
-        // Exact match
-        if (std::abs(nozzle - nozzle_diameter) < 0.001) return pa;
-        
-        // Below first value
-        if (i == 0 && nozzle_diameter < nozzle) return pa;
-        
-        // Above last value
-        if (i == pa_values.size() - 1 && nozzle_diameter > nozzle) return pa;
-        
-        // Interpolation range found
-        if (i < pa_values.size() - 1 && nozzle_diameter > nozzle) {
-            auto& [next_nozzle, next_pa] = pa_values[i + 1];
-            if (nozzle_diameter <= next_nozzle) {
-                return pa + (next_pa - pa) * (nozzle_diameter - nozzle) / (next_nozzle - nozzle);
-            }
-        }
-    }
-    
-    return 0.0;
-}
-
 static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 {
     // give safe value in case there is no start_end_points in config
@@ -6917,9 +6809,92 @@ float GCode::interpolate_value_across_layers(float start_value, float end_value)
 double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
 {
     const std::string& pa_string = m_config.pressure_advance.get_at(filament_id);
-    const unsigned int extruder_id = get_extruder_id(filament_id);
-    const double nozzle_diameter = m_config.nozzle_diameter.get_at(extruder_id);
-    return calculate_pressure_advance_for_nozzle(pa_string, nozzle_diameter);
+    if (pa_string.empty()) return 0.0;
+
+    // Remove spaces and tabs keeping newlines for parsing
+    std::string clean_string = pa_string;
+    clean_string.erase(std::remove_if(clean_string.begin(), clean_string.end(),
+                                     [](char c) { return c == ' ' || c == '\t' || c == '\r'; }), clean_string.end());
+
+    // Legacy format: single value without comma
+    if (clean_string.find(',') == std::string::npos) {
+        try { return std::stod(clean_string); } catch (...) { return 0.0; }
+    }
+
+    // Parse nozzle,pa pairs - reserve estimated capacity
+    std::vector<std::pair<double, double>> pa_values;
+    pa_values.reserve(std::count(clean_string.begin(), clean_string.end(), '\n') + 1);
+
+    for (size_t start = 0, end; start < clean_string.length(); start = end + 1) {
+        end = clean_string.find('\n', start);
+        if (end == std::string::npos) end = clean_string.length();
+        if (end <= start) continue;
+
+        size_t comma = clean_string.find(',', start);
+        if (comma != std::string::npos && comma < end) {
+            try {
+                pa_values.emplace_back(std::stod(clean_string.substr(start, comma - start)),
+                                     std::stod(clean_string.substr(comma + 1, end - comma - 1)));
+            } catch (...) { /* Skip invalid lines */ }
+        }
+        if (end == clean_string.length()) break;
+    }
+
+    if (pa_values.empty()) return 0.0;
+    
+    // Early return for single value - no interpolation needed
+    if (pa_values.size() == 1) return pa_values[0].second;
+
+    // Auto-detect if columns are swapped by checking if values are multiples of 0.05 (nozzle characteristic)
+    auto is_multiple_of_005 = [](double val) -> bool {
+        double remainder = std::fmod(std::abs(val), 0.05);
+        return remainder < 0.001 || remainder > 0.049;
+    };
+
+    size_t first_col_multiples_count = 0;
+    size_t second_col_multiples_count = 0;
+
+    for (const auto& [first, second] : pa_values) {
+        if (is_multiple_of_005(first))  first_col_multiples_count++;
+        if (is_multiple_of_005(second)) second_col_multiples_count++;
+    }
+
+    // Determine if columns should be swapped based on which column has more nozzle-like values
+    const bool should_swap = (second_col_multiples_count > first_col_multiples_count);
+
+    if (should_swap) {
+        for (auto& [first, second] : pa_values) {
+            std::swap(first, second);
+        }
+    }
+
+    std::sort(pa_values.begin(), pa_values.end());
+
+    const double nozzle_diameter = m_config.nozzle_diameter.get_at(get_extruder_id(filament_id));
+
+    // Binary search for the interpolation range
+    auto it = std::lower_bound(pa_values.begin(), pa_values.end(), nozzle_diameter,
+                               [](const std::pair<double, double>& p, double val) { return p.first < val; });
+
+    // Exact match or above last value
+    if (it != pa_values.end() && std::abs(it->first - nozzle_diameter) < 0.001) {
+        return it->second;
+    }
+
+    // Below first value
+    if (it == pa_values.begin()) {
+        return pa_values.front().second;
+    }
+
+    // Above last value
+    if (it == pa_values.end()) {
+        return pa_values.back().second;
+    }
+
+    // Interpolate between two values
+    const auto& upper = *it;
+    const auto& lower = *(it - 1);
+    return lower.second + (upper.second - lower.second) * (nozzle_diameter - lower.first) / (upper.first - lower.first);
 }
 
 std::string encodeBase64(uint64_t value)
