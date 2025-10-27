@@ -2959,10 +2959,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         }
         // Orca: add missing PA settings for initial filament
         if (m_config.enable_pressure_advance.get_at(initial_non_support_extruder_id)) {
-            file.write(m_writer.set_pressure_advance(m_config.pressure_advance.get_at(initial_non_support_extruder_id)));
+            file.write(m_writer.set_pressure_advance(this->get_pressure_advance_for_extruder(initial_non_support_extruder_id)));
             // Orca: Adaptive PA
             // Reset Adaptive PA processor last PA value
-            m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(initial_non_support_extruder_id));
+            m_pa_processor->resetPreviousPA(this->get_pressure_advance_for_extruder(initial_non_support_extruder_id));
         }
     }
 
