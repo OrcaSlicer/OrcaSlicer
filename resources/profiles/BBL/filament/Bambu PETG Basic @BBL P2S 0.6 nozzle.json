@@ -9,7 +9,7 @@
         "60"
     ],
     "fan_min_speed": [
-        "20"
+        "30"
     ],
     "filament_deretraction_speed": [
         "nil",
@@ -32,14 +32,10 @@
         "nil"
     ],
     "filament_max_volumetric_speed": [
-        "16",
-        "16"
+        "21",
+        "23"
     ],
     "filament_ramming_volumetric_speed": [
-        "-1",
-        "-1"
-    ],
-    "filament_ramming_volumetric_speed_nc": [
         "-1",
         "-1"
     ],
@@ -60,8 +56,8 @@
         "10"
     ],
     "filament_retraction_length": [
-        "nil",
-        "nil"
+        "0.4",
+        "0.4"
     ],
     "filament_retraction_minimum_travel": [
         "nil",
@@ -72,20 +68,20 @@
         "nil"
     ],
     "filament_wipe": [
-        "nil",
-        "nil"
+        "1",
+        "1"
     ],
     "filament_wipe_distance": [
-        "nil",
-        "nil"
+        "1",
+        "1"
     ],
     "filament_z_hop": [
-        "nil",
-        "nil"
+        "0.2",
+        "0.2"
     ],
     "filament_z_hop_types": [
-        "nil",
-        "nil"
+        "Spiral Lift",
+        "Spiral Lift"
     ],
     "filament_extruder_variant": [
         "Direct Drive Standard",
@@ -98,41 +94,9 @@
         "0",
         "0"
     ],
-    "filament_pre_cooling_temperature_nc": [
-        "0",
-        "0"
-    ],
     "filament_ramming_travel_time": [
         "0",
         "0"
-    ],
-    "filament_ramming_travel_time_nc": [
-        "0",
-        "0"
-    ],
-    "filament_enable_overhang_speed": [
-        "1",
-        "1"
-    ],
-    "filament_overhang_1_4_speed": [
-        "0",
-        "0"
-    ],
-    "filament_overhang_2_4_speed": [
-        "50",
-        "50"
-    ],
-    "filament_overhang_3_4_speed": [
-        "30",
-        "30"
-    ],
-    "filament_overhang_4_4_speed": [
-        "10",
-        "10"
-    ],
-    "filament_overhang_totally_speed": [
-        "10",
-        "10"
     ],
     "filament_adaptive_volumetric_speed": [
         "0",
@@ -143,12 +107,12 @@
         "0"
     ],
     "nozzle_temperature": [
-        "255",
-        "255"
+        "250",
+        "250"
     ],
     "nozzle_temperature_initial_layer": [
-        "255",
-        "255"
+        "245",
+        "245"
     ],
     "override_process_overhang_speed": [
         "0",
