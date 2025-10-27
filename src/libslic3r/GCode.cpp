@@ -101,10 +101,10 @@ static double calculate_pressure_advance_for_nozzle(const std::string& pa_string
 {
     if (pa_string.empty()) return 0.0;
 
-    // Remove all whitespace characters for simpler parsing
+    // Remove spaces and tabs keeping newlines for parsing
     std::string clean_string = pa_string;
     clean_string.erase(std::remove_if(clean_string.begin(), clean_string.end(),
-                                     [](char c) { return std::isspace(c); }), clean_string.end());
+                                     [](char c) { return c == ' ' || c == '\t' || c == '\r'; }), clean_string.end());
 
     // Legacy format: single value without comma
     if (clean_string.find(',') == std::string::npos) {
@@ -6871,7 +6871,8 @@ float GCode::interpolate_value_across_layers(float start_value, float end_value)
 double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
 {
     const std::string& pa_string = m_config.pressure_advance.get_at(filament_id);
-    const double nozzle_diameter = m_config.nozzle_diameter.get_at(filament_id);
+    const unsigned int extruder_id = get_extruder_id(filament_id);
+    const double nozzle_diameter = m_config.nozzle_diameter.get_at(extruder_id);
     return calculate_pressure_advance_for_nozzle(pa_string, nozzle_diameter);
 }
 
