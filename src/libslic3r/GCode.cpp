@@ -130,6 +130,52 @@ static double calculate_pressure_advance_for_nozzle(const std::string& pa_string
     }
     
     if (pa_values.empty()) return 0.0;
+    
+    // Auto-detect if columns are swapped by checking if values are multiples of 0.05 (nozzle characteristic)
+    auto is_multiple_of_005 = [](double val) -> bool {
+        double remainder = std::fmod(std::abs(val), 0.05);
+        return remainder < 0.001 || remainder > 0.049;
+    };
+    
+    bool first_col_all_multiples = true;
+    bool second_col_all_multiples = true;
+    size_t first_col_multiples_count = 0;
+    size_t second_col_multiples_count = 0;
+    
+    for (const auto& [first, second] : pa_values) {
+        if (is_multiple_of_005(first)) {
+            first_col_multiples_count++;
+        } else {
+            first_col_all_multiples = false;
+        }
+        
+        if (is_multiple_of_005(second)) {
+            second_col_multiples_count++;
+        } else {
+            second_col_all_multiples = false;
+        }
+    }
+    
+    // Determine if columns should be swapped
+    bool should_swap = false;
+    
+    if (!first_col_all_multiples && second_col_all_multiples) {
+        // Only second column has all multiples of 0.05 -> data is inverted
+        should_swap = true;
+    } else if (!first_col_all_multiples && !second_col_all_multiples) {
+        // Neither column has all multiples -> use the one with more multiples as nozzle column
+        if (second_col_multiples_count > first_col_multiples_count) {
+            should_swap = true;
+        }
+    }
+    // If both columns have all multiples or only first column has all multiples, keep original order
+    
+    if (should_swap) {
+        for (auto& [first, second] : pa_values) {
+            std::swap(first, second);
+        }
+    }
+    
     std::sort(pa_values.begin(), pa_values.end());
     
     // Handle all cases in one pass: exact match, boundaries, and interpolation
