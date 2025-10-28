@@ -601,7 +601,7 @@ public:
             for (size_t i = 0; i < dest_index.size(); i++) {
                 for (size_t j = 0; j < stride; j++)
                 {
-                    if (!other->is_nil(dest_index[i]))
+                    if (dest_index[i] < other->values.size() && !other->is_nil(dest_index[i]))
                         this->values[i * stride +j] = other->values[dest_index[i] * stride +j];
                 }
             }
