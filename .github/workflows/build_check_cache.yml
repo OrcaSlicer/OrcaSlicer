@@ -12,9 +12,6 @@ on:
       build-deps-only:
         required: false
         type: boolean
-      force-build:
-        required: false
-        type: boolean
   
 jobs:
   check_cache: # determines if there is a cache and outputs variables used in caching process
@@ -58,5 +55,4 @@ jobs:
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
       build-deps-only: ${{ inputs.build-deps-only }}
-      force-build: ${{ inputs.force-build }}
     secrets: inherit
