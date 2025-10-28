@@ -19,14 +19,11 @@ on:
       build-deps-only:
         required: false
         type: boolean
-      force-build:
-        required: false
-        type: boolean
 
 jobs:
   build_deps:
     name: Build Deps
-    if: inputs.build-deps-only || inputs.force-build || inputs.valid-cache != true
+    if: inputs.build-deps-only || inputs.valid-cache != true
     runs-on: ${{ inputs.os }}
     env:
       date:
@@ -142,7 +139,7 @@ jobs:
   build_orca:
     name: Build OrcaSlicer
     needs: [build_deps]
-    if: ${{ !cancelled() && !inputs.build-deps-only && inputs.force-build || (inputs.valid-cache == true && needs.build_deps.result == 'skipped') || (inputs.valid-cache != true && success()) }}
+    if: ${{ !cancelled() && !inputs.build-deps-only && (inputs.valid-cache == true && needs.build_deps.result == 'skipped') || (inputs.valid-cache != true && success()) }}
     uses: ./.github/workflows/build_orca.yml
     with:
       cache-key: ${{ inputs.cache-key }}
