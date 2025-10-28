@@ -6821,9 +6821,8 @@ double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
         try { return std::stod(clean_string); } catch (...) { return 0.0; }
     }
 
-    // Parse nozzle,pa pairs - reserve estimated capacity
+    // Parse nozzle,pa pairs
     std::vector<std::pair<double, double>> pa_values;
-    pa_values.reserve(std::count(clean_string.begin(), clean_string.end(), '\n') + 1);
 
     for (size_t start = 0, end; start < clean_string.length(); start = end + 1) {
         end = clean_string.find('\n', start);
@@ -6841,7 +6840,7 @@ double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
     }
 
     if (pa_values.empty()) return 0.0;
-    
+
     // Early return for single value - no interpolation needed
     if (pa_values.size() == 1) return pa_values[0].second;
 
@@ -6851,18 +6850,16 @@ double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
         return remainder < 0.001 || remainder > 0.049;
     };
 
-    size_t first_col_multiples_count = 0;
-    size_t second_col_multiples_count = 0;
+    int first_col_multiples_count = 0;
+    int second_col_multiples_count = 0;
 
     for (const auto& [first, second] : pa_values) {
         if (is_multiple_of_005(first))  first_col_multiples_count++;
         if (is_multiple_of_005(second)) second_col_multiples_count++;
     }
 
-    // Determine if columns should be swapped based on which column has more nozzle-like values
-    const bool should_swap = (second_col_multiples_count > first_col_multiples_count);
-
-    if (should_swap) {
+    // Swap columns if needed (second column has more nozzle-like values)
+    if (second_col_multiples_count > first_col_multiples_count) {
         for (auto& [first, second] : pa_values) {
             std::swap(first, second);
         }
@@ -6871,30 +6868,31 @@ double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
     std::sort(pa_values.begin(), pa_values.end());
 
     const double nozzle_diameter = m_config.nozzle_diameter.get_at(get_extruder_id(filament_id));
+    constexpr double epsilon = 0.001;
 
-    // Binary search for the interpolation range
+    // Use binary search to find the position where nozzle_diameter should be inserted
     auto it = std::lower_bound(pa_values.begin(), pa_values.end(), nozzle_diameter,
                                [](const std::pair<double, double>& p, double val) { return p.first < val; });
 
-    // Exact match or above last value
-    if (it != pa_values.end() && std::abs(it->first - nozzle_diameter) < 0.001) {
+    // Exact match (within epsilon)
+    if (it != pa_values.end() && std::abs(it->first - nozzle_diameter) < epsilon) {
         return it->second;
     }
 
-    // Below first value
+    // Below all values - use first
     if (it == pa_values.begin()) {
         return pa_values.front().second;
     }
 
-    // Above last value
+    // Above all values - use last
     if (it == pa_values.end()) {
         return pa_values.back().second;
     }
 
-    // Interpolate between two values
-    const auto& upper = *it;
-    const auto& lower = *(it - 1);
-    return lower.second + (upper.second - lower.second) * (nozzle_diameter - lower.first) / (upper.first - lower.first);
+    // Between two values - interpolate
+    const auto& [upper_nozzle, upper_pa] = *it;
+    const auto& [lower_nozzle, lower_pa] = *(it - 1);
+    return lower_pa + (upper_pa - lower_pa) * (nozzle_diameter - lower_nozzle) / (upper_nozzle - lower_nozzle);
 }
 
 std::string encodeBase64(uint64_t value)
