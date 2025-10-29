@@ -65,7 +65,8 @@ build_release_vs2022.bat slicer
 # Performance and debug options:
 ./build_linux.sh -j N  # limit to N cores
 ./build_linux.sh -1    # single core build
-./build_linux.sh -b    # debug build
+./build_linux.sh -b    # Debug build
+./build_linux.sh -e    # RelWithDebInfo build
 ./build_linux.sh -c    # clean build
 ./build_linux.sh -r    # skip RAM/disk checks
 ./build_linux.sh -l    # use Clang instead of GCC
@@ -107,9 +108,10 @@ cd build && ctest --output-on-failure
 Run individual test suites:
 ```bash
 # From build directory
-./tests/libslic3r/libslic3r_tests
-./tests/fff_print/fff_print_tests
-./tests/sla_print/sla_print_tests
+ctest --test-dir ./tests/libslic3r/libslic3r_tests
+ctest --test-dir ./tests/fff_print/fff_print_tests
+ctest --test-dir ./tests/sla_print/sla_print_tests
+# and so on
 ```
 
 ## Architecture

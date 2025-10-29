@@ -7,6 +7,7 @@ REQUIRED_DEV_PACKAGES=(
     eglexternalplatform-dev
     extra-cmake-modules
     file
+    g++
     gettext
     git
     libcurl4-openssl-dev
@@ -34,7 +35,7 @@ then
         if dpkg --compare-versions "${VERSION_ID}" ge 22 && dpkg --compare-versions "${VERSION_ID}" lt 24 ;
         then
             # Some extra packages needed on Ubuntu 22.x and 23.x:
-            REQUIRED_DEV_PACKAGES+=(curl libfuse-dev libssl-dev libcurl4-openssl-dev m4)
+            REQUIRED_DEV_PACKAGES+=(curl libfuse-dev m4)
         fi
     fi
 

@@ -21,7 +21,7 @@ TEST_CASE("Check SSL certificates paths", "[Http][NotWorking]") {
 }
 
 TEST_CASE("Http digest authentication", "[Http][NotWorking]") {
-    Slic3r::Http g = Slic3r::Http::get("https://jigsaw.w3.org/HTTP/Digest/");
+    Slic3r::Http g = Slic3r::Http::get("https://httpbin.org/digest-auth/guest/guest");
 
     g.auth_digest("guest", "guest");
 
@@ -40,7 +40,7 @@ TEST_CASE("Http digest authentication", "[Http][NotWorking]") {
 }
 
 TEST_CASE("Http basic authentication", "[Http][NotWorking]") {
-    Slic3r::Http g = Slic3r::Http::get("https://jigsaw.w3.org/HTTP/Basic/");
+    Slic3r::Http g = Slic3r::Http::get("https://httpbin.org/basic-auth/guest/guest");
 
     g.auth_basic("guest", "guest");
 

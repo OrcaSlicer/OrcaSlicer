@@ -46,18 +46,28 @@ concurrency:
   
 
 jobs:
+  build_linux:
+    name: Build Linux
+    strategy:
+      fail-fast: false
+    # Don't run scheduled builds on forks:
+    if: github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer'
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ubuntu-24.04
+      build-deps-only: ${{ inputs.build-deps-only || false }}
+    secrets: inherit
   build_all:
-    name: Build All
+    name: Build Non-Linux
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Deprecate 20.04appimage
-          # - os: ubuntu-20.04
-          - os: ubuntu-24.04
           - os: windows-latest
           - os: macos-14
             arch: arm64
+    # Don't run scheduled builds on forks:
+    if: github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer'
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
@@ -65,6 +75,43 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
+  unit_tests:
+    name: Unit Tests
+    runs-on: ubuntu-24.04
+    needs: build_linux
+    if: ${{ success() }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            .github
+            scripts
+      - name: Apt-Install Dependencies
+        uses: ./.github/actions/apt-install-deps
+      - name: Restore Test Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.sha }}-tests
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.28.0"  # use most recent 3.28.x version
+      - name: Unpackage and Run Unit Tests
+        timeout-minutes: 20
+        run: |
+          tar -xvf build_tests.tar
+          scripts/run_unit_tests.sh
+      - name: Upload Test Logs
+        uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: unit-test-logs
+          path: build/tests/**/*.log
+      - name: Publish Test Results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: "ctest_results.xml"
   flatpak:
     name: "Flatpak"
     container:
@@ -83,6 +130,8 @@ jobs:
             runner: ubuntu-24.04
           - arch: aarch64
             runner: ubuntu-24.04-arm
+    # Don't run scheduled builds on forks:
+    if: github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer'
     runs-on: ${{ matrix.variant.runner }}
     env:
       date:
@@ -121,7 +170,7 @@ jobs:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'
     - name: Deploy Flatpak to nightly release
-      if: ${{github.ref == 'refs/heads/main'}}
+      if: github.repository == 'SoftFever/OrcaSlicer' && github.ref == 'refs/heads/main'
       uses: WebFreak001/deploy-nightly@v3.2.0
       with:
         upload_url: https://uploads.github.com/repos/SoftFever/OrcaSlicer/releases/137995723/assets{?name,label}
