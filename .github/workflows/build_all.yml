@@ -30,6 +30,9 @@ on:
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
 
+  schedule:
+      - cron: '0 17 * * *' # run once a day at 1 AM Singapore time (UTC+8)
+
   workflow_dispatch: # allows for manual dispatch
     inputs:
       build-deps-only:
@@ -60,6 +63,7 @@ jobs:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
+      force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   flatpak:
     name: "Flatpak"
