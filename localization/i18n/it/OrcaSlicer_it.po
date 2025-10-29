@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-26 10:38+0800\n"
+"POT-Creation-Date: 2025-10-29 11:23+0100\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2052,6 +2052,12 @@ msgstr "Sostituisci con STL"
 msgid "Replace the selected part with new STL"
 msgstr "Sostituisci la parte selezionata con un nuovo STL"
 
+msgid "Replace all with STL"
+msgstr ""
+
+msgid "Replace all selected parts with STL from folder"
+msgstr ""
+
 msgid "Change filament"
 msgstr "Cambia filamento"
 
@@ -2233,6 +2239,30 @@ msgstr "Elimina piatto"
 
 msgid "Remove the selected plate"
 msgstr "Rimuovi il piatto selezionato"
+
+msgid "Add instance"
+msgstr ""
+
+msgid "Add one more instance of the selected object"
+msgstr ""
+
+msgid "Remove instance"
+msgstr ""
+
+msgid "Remove one instance of the selected object"
+msgstr ""
+
+msgid "Set number of instances"
+msgstr ""
+
+msgid "Change the number of instances of the selected object"
+msgstr ""
+
+msgid "Fill bed with instances"
+msgstr ""
+
+msgid "Fill the remaining area of bed with instances of the selected object"
+msgstr ""
 
 msgid "Clone"
 msgstr "Clona"
@@ -2764,9 +2794,9 @@ msgid "Top"
 msgstr "Dall'alto"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality."
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -3037,7 +3067,25 @@ msgstr ""
 msgid "Access code:%s IP address:%s"
 msgstr ""
 
-msgid "Storage needs to be inserted before printing via LAN."
+msgid "A Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid ""
+"Sending print job over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
 
 msgid "Sending G-code file over LAN"
@@ -3051,6 +3099,21 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "Inviato con successo. Chiusura della pagina corrente in %s s"
 
 msgid "Storage needs to be inserted before sending to printer."
+msgstr ""
+
+msgid ""
+"Sending G-code file over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending to printer."
 msgstr ""
 
 msgid "Importing SLA archive"
@@ -3959,6 +4022,7 @@ msgstr ""
 "seam_slope_start_height deve essere inferiore a layer_height.\n"
 "È stato ripristinato a 0."
 
+#, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4934,7 +4998,7 @@ msgstr "Volume:"
 msgid "Size:"
 msgstr "Dimensione:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5456,13 +5520,10 @@ msgstr "Test di retrazione"
 msgid "Max flowrate"
 msgstr "Portata massima"
 
-msgid "Junction Deviation"
-msgstr ""
-
-msgid "Junction Deviation calibration"
-msgstr ""
-
 msgid "Cornering"
+msgstr ""
+
+msgid "Cornering calibration"
 msgstr ""
 
 msgid "Input Shaping Frequency"
@@ -7136,6 +7197,34 @@ msgstr "Seleziona nuovo file"
 msgid "File for the replace wasn't selected"
 msgstr "Il file per la sostituzione non è stato selezionato"
 
+msgid "Select folder to replace from"
+msgstr ""
+
+msgid "Directory for the replace wasn't selected"
+msgstr ""
+
+msgid "Replaced with STLs from directory:\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: same file.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: file does not exist.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: failed to replace.\n"
+msgstr ""
+
+#, boost-format
+msgid "✔ Replaced %1%.\n"
+msgstr ""
+
+msgid "Replaced volumes"
+msgstr ""
+
 msgid "Please select a file"
 msgstr "Seleziona file"
 
@@ -7621,13 +7710,13 @@ msgid "Home"
 msgstr "Pagina iniziale"
 
 msgid "Default page"
-msgstr "Pagina predefinita"
+msgstr ""
 
 msgid "Set the page opened on startup."
 msgstr "Imposta la pagina aperta all'avvio."
 
 msgid "Enable dark mode"
-msgstr "Attiva modalità Scura"
+msgstr ""
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "Consenti solo un'istanza di OrcaSlicer"
@@ -7675,7 +7764,7 @@ msgid "Load Geometry Only"
 msgstr "Carica solo la geometria"
 
 msgid "Load behaviour"
-msgstr "Comportamento di caricamento"
+msgstr ""
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr ""
@@ -7692,7 +7781,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "Nessun avviso durante il caricamento di 3MF con G-code modificati"
+msgstr ""
 
 msgid "Show options when importing STEP file"
 msgstr ""
@@ -7702,7 +7791,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr "Backup automatico"
+msgstr ""
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7727,7 +7816,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr "Gestione multi-dispositivo"
+msgstr ""
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7836,10 +7925,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr "Regione di accesso"
+msgstr ""
 
 msgid "Stealth mode"
-msgstr "Modalità invisibile"
+msgstr ""
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7850,7 +7939,7 @@ msgstr ""
 "possono attivare questa funzione in tutta sicurezza."
 
 msgid "Network test"
-msgstr "Test di rete"
+msgstr ""
 
 msgid "Test"
 msgstr "Prova"
@@ -7926,6 +8015,14 @@ msgstr ""
 msgid ""
 "With this option enabled, you can print materials with a large temperature "
 "difference together."
+msgstr ""
+
+msgid "Allow Abnormal Storage"
+msgstr ""
+
+msgid ""
+"This allows the use of Storage that is marked as abnormal by the Printer.\n"
+"Use at your own risk, can cause issues!"
 msgstr ""
 
 msgid "Log Level"
@@ -8502,7 +8599,10 @@ msgid ""
 "information."
 msgstr ""
 
-msgid "Storage is not available or is in read-only mode."
+msgid "Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid "Storage is in abnormal state or is in read-only mode."
 msgstr ""
 
 msgid "Storage needs to be inserted before printing."
@@ -8910,8 +9010,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Quando si registra un timelapse senza il gruppo testina, si consiglia di "
 "aggiungere un \"Timelapse Torre di spurgo\"\n"
@@ -9398,10 +9498,6 @@ msgstr "Torre di spurgo"
 
 msgid "Single extruder multi-material parameters"
 msgstr "Parametri estrusore singolo multimateriale"
-
-#, c-format, boost-format
-msgid "Extruder %d"
-msgstr ""
 
 msgid ""
 "This is a single extruder multi-material printer, diameters of all extruders "
@@ -9899,6 +9995,9 @@ msgstr ""
 msgid ""
 "Please check whether the nozzle type of the device is the same as the preset "
 "nozzle type."
+msgstr ""
+
+msgid "Storage is not available or is in read-only mode."
 msgstr ""
 
 #, c-format, boost-format
@@ -10471,8 +10570,8 @@ msgid ""
 msgstr ""
 "È stato rilevato un aggiornamento importante che deve essere eseguito prima "
 "che la stampa possa continuare. Si desidera aggiornare ora? È possibile "
-"effettuare l'aggiornamento anche in un secondo momento da \"Aggiorna "
-"firmware\"."
+"effettuare l'aggiornamento anche in un secondo momento da \"Aggiorna firmware"
+"\"."
 
 msgid ""
 "The firmware version is abnormal. Repairing and updating are required before "
@@ -13345,9 +13444,9 @@ msgid ""
 "this movement should be before the filament is retracted again."
 msgstr ""
 "Se impostato su un valore diverso da zero, il filamento viene spostato verso "
-"l'ugello tra i singoli movimenti nei tubi di raffreddamento "
-"(\"timbratura\"). Questa opzione configura la durata di questo movimento "
-"prima che il filamento venga nuovamente retratto."
+"l'ugello tra i singoli movimenti nei tubi di raffreddamento (\"timbratura"
+"\"). Questa opzione configura la durata di questo movimento prima che il "
+"filamento venga nuovamente retratto."
 
 msgid "Speed of the first cooling move"
 msgstr "Velocità del primo movimento di raffreddamento"
@@ -13734,8 +13833,8 @@ msgid "mm/s² or %"
 msgstr "mm/s o %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Accelerazione del riempimento sparso. Se il valore è espresso in percentuale "
 "(ad esempio 100%), verrà calcolato in base all'accelerazione predefinita."
@@ -13774,6 +13873,9 @@ msgstr ""
 "accelerazione."
 
 msgid "Default jerk."
+msgstr ""
+
+msgid "Junction Deviation"
 msgstr ""
 
 msgid ""
@@ -13857,17 +13959,17 @@ msgstr "Velocità massima della ventola su strato"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "La velocità della ventola aumenterà in modo lineare da zero nello strato "
 "\"close_fan_the_first_x_layers\" al massimo nello strato "
 "\"full_fan_speed_layer\". Se inferiore a \"close_fan_the_first_x_layers\", "
 "\"full_fan_speed_layer\" verrà ignorato. in tal caso la ventola funzionerà "
-"alla massima velocità consentita nello strato "
-"\"close_fan_the_first_x_layers\" + 1."
+"alla massima velocità consentita nello strato \"close_fan_the_first_x_layers"
+"\" + 1."
 
 msgid "layer"
 msgstr "strato"
@@ -14838,7 +14940,9 @@ msgid "Maximum Junction Deviation"
 msgstr ""
 
 msgid ""
-"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware)"
+"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+"Firmware\n"
+"If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
 msgstr ""
 
 msgid "Minimum speed for extruding"
@@ -15721,8 +15825,8 @@ msgid "Role base wipe speed"
 msgstr "Velocità di spurgo basata su ruolo"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -16492,16 +16596,6 @@ msgstr ""
 "l'interfaccia di supporto superiore invece di impostare un valore elevato di "
 "densità dei rami, se sono necessarie interfacce dense."
 
-msgid "Adaptive layer height"
-msgstr "Altezza strato adattiva"
-
-msgid ""
-"Enabling this option means the height of tree support layer except the first "
-"will be automatically calculated."
-msgstr ""
-"Abilitando questa opzione, l'altezza degli strati dei supporti ad albero, "
-"eccetto il primo, verrà calcolata automaticamente."
-
 msgid "Auto brim width"
 msgstr "Larghezza tesa automatica"
 
@@ -16598,8 +16692,8 @@ msgstr "Attiva controllo della temperatura"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -17546,11 +17640,11 @@ msgid "Debug level"
 msgstr "Livello di debug"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
-"Imposta livello di debug. 0:fatale, 1:errore, 2:avviso, 3:info, 4:debug, "
-"5:traccia\n"
+"Imposta livello di debug. 0:fatale, 1:errore, 2:avviso, 3:info, 4:debug, 5:"
+"traccia\n"
 
 msgid "Enable timelapse for print"
 msgstr "Abilita timelapse per la stampa"
@@ -18033,13 +18127,13 @@ msgstr "Impossibile leggere il file fornito perché è vuoto"
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Formato file sconosciuto: il file di input deve avere "
-"un'estensione .stl, .obj o .amf(.xml)."
+"Formato file sconosciuto: il file di input deve avere un'estensione .stl, ."
+"obj o .amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Formato file sconosciuto: il file di input deve avere un'estensione .3mf "
-"o .zip.amf."
+"Formato file sconosciuto: il file di input deve avere un'estensione .3mf o ."
+"zip.amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: impossibile analizzare"
@@ -18741,6 +18835,12 @@ msgstr "Elenco separato da virgole delle accelerazioni di stampa"
 msgid "Comma-separated list of printing speeds"
 msgstr "Elenco separato da virgole delle velocità di stampa"
 
+msgid "Pressure Advance Guide"
+msgstr ""
+
+msgid "Adaptive Pressure Advance Guide"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start PA: >= 0.0\n"
@@ -18788,6 +18888,9 @@ msgstr "Temperatura finale: "
 msgid "Temp step: "
 msgstr "Incremento di temperatura: "
 
+msgid "Wiki Guide: Temperature Calibration"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 350\n"
@@ -18803,6 +18906,9 @@ msgstr "Velocità volumetrica iniziale: "
 
 msgid "End volumetric speed: "
 msgstr "Velocità volumetrica finale: "
+
+msgid "Wiki Guide: Volumetric Speed Calibration"
+msgstr ""
 
 msgid ""
 "Please input valid values:\n"
@@ -18824,6 +18930,9 @@ msgstr "Velocità iniziale: "
 msgid "End speed: "
 msgstr "Velocità finale: "
 
+msgid "Wiki Guide: VFA"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18840,6 +18949,9 @@ msgstr "Lunghezza di retrazione iniziale: "
 
 msgid "End retraction length: "
 msgstr "Lunghezza di retrazione finale: "
+
+msgid "Wiki Guide: Retraction Calibration"
+msgstr ""
 
 msgid "Input shaping Frequency test"
 msgstr ""
@@ -18874,6 +18986,9 @@ msgstr ""
 msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
+msgstr ""
+
+msgid "Wiki Guide: Input Shaping Calibration"
 msgstr ""
 
 msgid ""
@@ -18911,27 +19026,52 @@ msgid ""
 "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr ""
 
-msgid "Junction Deviation test"
+msgid "Cornering test"
 msgstr ""
 
-msgid "Start junction deviation: "
+msgid "SCV-V2"
 msgstr ""
 
-msgid "End junction deviation: "
+msgid "Start: "
 msgstr ""
 
-msgid "Junction Deviation settings"
+msgid "End: "
 msgstr ""
 
-msgid "Note: Lower values = sharper corners but slower speeds"
+msgid "Cornering settings"
+msgstr ""
+
+msgid "Note: Lower values = sharper corners but slower speeds.\n"
 msgstr ""
 
 msgid ""
-"Please input valid values:\n"
-"(0 <= Junction Deviation < 1)"
+"Marlin 2 Junction Deviation detected:\n"
+"To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
+"0."
 msgstr ""
 
-msgid "NOTE: High values may cause Layer shift"
+msgid ""
+"Marlin 2 Classic Jerk detected:\n"
+"To test Junction Deviation, set 'Maximum Junction Deviation' in Motion "
+"ability to a value > 0."
+msgstr ""
+
+msgid ""
+"RepRap detected: Jerk in mm/s.\n"
+"OrcaSlicer will convert the values to mm/min when necessary."
+msgstr ""
+
+msgid "Wiki Guide: Cornering Calibration"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Please input valid values:\n"
+"(0 <= Cornering <= %s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr ""
 
 msgid "Send G-code to printer host"
@@ -19204,12 +19344,12 @@ msgstr ""
 "Vuoi riscriverlo?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
-"Rinomineremo i profili come \"Produttore Tipo Seriale @stampante "
-"selezionata\".\n"
+"Rinomineremo i profili come \"Produttore Tipo Seriale @stampante selezionata"
+"\".\n"
 "Per aggiungere il profilo per più stampanti, vai alla selezione della "
 "stampante"
 
@@ -19645,8 +19785,8 @@ msgid "nozzle size memorized: %d"
 msgstr ""
 
 msgid ""
-"The size of nozzle type in preset is not consistent with memorized "
-"nozzle.Did you change your nozzle lately ? "
+"The size of nozzle type in preset is not consistent with memorized nozzle."
+"Did you change your nozzle lately ? "
 msgstr ""
 
 #, c-format, boost-format
@@ -21301,6 +21441,15 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Impostazioni generali"
 
+#~ msgid "Login Region"
+#~ msgstr "Regione di accesso"
+
+#~ msgid "Stealth Mode"
+#~ msgstr "Modalità invisibile"
+
+#~ msgid "Default Page"
+#~ msgstr "Pagina predefinita"
+
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Mostra \"Suggerimento del giorno\" dopo l'avvio"
 
@@ -21325,6 +21474,9 @@ msgstr ""
 #~ msgstr ""
 #~ "Se abilitato, calcola automaticamente ogni volta che il filamento cambia"
 
+#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
+#~ msgstr "Gestione multi-dispositivo (avrà effetto dopo il riavvio di Orca)."
+
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "Disposizione automatica del piatto dopo la clonazione dell'oggetto"
 
@@ -21340,6 +21492,15 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "Associa gli URL ad OrcaSlicer"
 
+#~ msgid "Load Behaviour"
+#~ msgstr "Comportamento di caricamento"
+
+#~ msgid "No warnings when loading 3MF with modified G-code"
+#~ msgstr "Nessun avviso durante il caricamento di 3MF con G-code modificati"
+
+#~ msgid "Auto-Backup"
+#~ msgstr "Backup automatico"
+
 #~ msgid "every"
 #~ msgstr "ogni"
 
@@ -21348,6 +21509,9 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "Modalità scura"
+
+#~ msgid "Enable Dark mode"
+#~ msgstr "Attiva modalità Scura"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Pagina iniziale e suggerimenti quotidiani"
@@ -21579,6 +21743,16 @@ msgstr ""
 #~ msgstr ""
 #~ "Rimuove le piccole sporgenze che eventualmente non necessitano di "
 #~ "supporti."
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "Altezza strato adattiva"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "Abilitando questa opzione, l'altezza degli strati dei supporti ad albero, "
+#~ "eccetto il primo, verrà calcolata automaticamente."
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "
@@ -22465,10 +22639,9 @@ msgstr ""
 #~ "\n"
 #~ "\n"
 #~ "Per impostazione predefinita, i piccoli bridge interni vengono filtrati e "
-#~ "il riempimento solido interno viene stampato direttamente sul "
-#~ "riempimento.Questo metodo funziona bene nella maggior parte dei casi, "
-#~ "velocizzando la stampa senza compromettere troppo la qualità della "
-#~ "superficie superiore.\n"
+#~ "il riempimento solido interno viene stampato direttamente sul riempimento."
+#~ "Questo metodo funziona bene nella maggior parte dei casi, velocizzando la "
+#~ "stampa senza compromettere troppo la qualità della superficie superiore.\n"
 #~ "\n"
 #~ "Tuttavia, in modelli fortemente inclinati o curvi, soprattutto se si "
 #~ "utilizza una densità di riempimento troppo bassa, potrebbe comportare "
@@ -22682,13 +22855,12 @@ msgstr ""
 #~ "nostro wiki.\n"
 #~ "\n"
 #~ "Di solito la calibrazione non è necessaria. Quando si avvia una stampa a "
-#~ "singolo colore/materiale, con l'opzione \"calibrazione dinamica del "
-#~ "flusso\" selezionata nel menu di avvio della stampa, la stampante seguirà "
-#~ "il vecchio modo, calibrando il filamento prima della stampa; Quando si "
-#~ "avvia una stampa multicolore/materiale, la stampante utilizzerà il "
-#~ "parametro di compensazione predefinito per il filamento durante ogni "
-#~ "cambio di filamento, che avrà un buon risultato nella maggior parte dei "
-#~ "casi.\n"
+#~ "singolo colore/materiale, con l'opzione \"calibrazione dinamica del flusso"
+#~ "\" selezionata nel menu di avvio della stampa, la stampante seguirà il "
+#~ "vecchio modo, calibrando il filamento prima della stampa; Quando si avvia "
+#~ "una stampa multicolore/materiale, la stampante utilizzerà il parametro di "
+#~ "compensazione predefinito per il filamento durante ogni cambio di "
+#~ "filamento, che avrà un buon risultato nella maggior parte dei casi.\n"
 #~ "\n"
 #~ "Si prega di notare che ci sono alcuni casi che renderanno il risultato "
 #~ "della calibrazione non affidabile: utilizzo di una piastra di texture per "

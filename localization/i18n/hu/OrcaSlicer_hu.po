@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-26 10:38+0800\n"
+"POT-Creation-Date: 2025-10-29 11:23+0100\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1970,6 +1970,12 @@ msgstr "Lecserélés STL-lel"
 msgid "Replace the selected part with new STL"
 msgstr "Lecseréli a kijelölt tárgyat egy új STL-lel"
 
+msgid "Replace all with STL"
+msgstr ""
+
+msgid "Replace all selected parts with STL from folder"
+msgstr ""
+
 msgid "Change filament"
 msgstr "Filament csere"
 
@@ -2154,6 +2160,30 @@ msgstr ""
 
 msgid "Remove the selected plate"
 msgstr "Kiválasztott tálca eltávolítása"
+
+msgid "Add instance"
+msgstr ""
+
+msgid "Add one more instance of the selected object"
+msgstr ""
+
+msgid "Remove instance"
+msgstr ""
+
+msgid "Remove one instance of the selected object"
+msgstr ""
+
+msgid "Set number of instances"
+msgstr ""
+
+msgid "Change the number of instances of the selected object"
+msgstr ""
+
+msgid "Fill bed with instances"
+msgstr ""
+
+msgid "Fill the remaining area of bed with instances of the selected object"
+msgstr ""
 
 msgid "Clone"
 msgstr "Klónozás"
@@ -2671,9 +2701,9 @@ msgid "Top"
 msgstr "Felül"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality."
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -2933,7 +2963,25 @@ msgstr ""
 msgid "Access code:%s IP address:%s"
 msgstr ""
 
-msgid "Storage needs to be inserted before printing via LAN."
+msgid "A Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid ""
+"Sending print job over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
 
 msgid "Sending G-code file over LAN"
@@ -2947,6 +2995,21 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "Sikeresen elküldve. Az oldal bezárul %s mp-en belül"
 
 msgid "Storage needs to be inserted before sending to printer."
+msgstr ""
+
+msgid ""
+"Sending G-code file over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending to printer."
 msgstr ""
 
 msgid "Importing SLA archive"
@@ -3809,6 +3872,7 @@ msgid ""
 "Reset to 0."
 msgstr ""
 
+#, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4779,7 +4843,7 @@ msgstr "Térfogat:"
 msgid "Size:"
 msgstr "Méret:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5297,13 +5361,10 @@ msgstr "Visszahúzás teszt"
 msgid "Max flowrate"
 msgstr "Max. anyagáramlás"
 
-msgid "Junction Deviation"
-msgstr ""
-
-msgid "Junction Deviation calibration"
-msgstr ""
-
 msgid "Cornering"
+msgstr ""
+
+msgid "Cornering calibration"
 msgstr ""
 
 msgid "Input Shaping Frequency"
@@ -6930,6 +6991,34 @@ msgstr "Válassz egy új fájlt"
 msgid "File for the replace wasn't selected"
 msgstr "A cserefájl nem lett kiválasztva"
 
+msgid "Select folder to replace from"
+msgstr ""
+
+msgid "Directory for the replace wasn't selected"
+msgstr ""
+
+msgid "Replaced with STLs from directory:\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: same file.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: file does not exist.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: failed to replace.\n"
+msgstr ""
+
+#, boost-format
+msgid "✔ Replaced %1%.\n"
+msgstr ""
+
+msgid "Replaced volumes"
+msgstr ""
+
 msgid "Please select a file"
 msgstr "Kérjük, válassz egy fájlt"
 
@@ -7401,7 +7490,7 @@ msgid "Set the page opened on startup."
 msgstr ""
 
 msgid "Enable dark mode"
-msgstr "Sötét mód engedélyezése"
+msgstr ""
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr ""
@@ -7472,7 +7561,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr "Automatikus biztonsági mentés"
+msgstr ""
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7593,7 +7682,7 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr "Régió"
+msgstr ""
 
 msgid "Stealth mode"
 msgstr ""
@@ -7604,7 +7693,7 @@ msgid ""
 msgstr ""
 
 msgid "Network test"
-msgstr "Hálózati teszt"
+msgstr ""
 
 msgid "Test"
 msgstr "Teszt"
@@ -7681,6 +7770,14 @@ msgstr ""
 msgid ""
 "With this option enabled, you can print materials with a large temperature "
 "difference together."
+msgstr ""
+
+msgid "Allow Abnormal Storage"
+msgstr ""
+
+msgid ""
+"This allows the use of Storage that is marked as abnormal by the Printer.\n"
+"Use at your own risk, can cause issues!"
 msgstr ""
 
 msgid "Log Level"
@@ -8249,7 +8346,10 @@ msgid ""
 "information."
 msgstr ""
 
-msgid "Storage is not available or is in read-only mode."
+msgid "Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid "Storage is in abnormal state or is in read-only mode."
 msgstr ""
 
 msgid "Storage needs to be inserted before printing."
@@ -8617,8 +8717,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Ha a nyomtatófej nélküli timelapse engedélyezve van, javasoljuk, hogy "
 "helyezz el a tálcán egy „Timelapse törlőtornyot“. Ehhez kattints jobb "
@@ -9091,10 +9191,6 @@ msgstr "Törlőtorony"
 
 msgid "Single extruder multi-material parameters"
 msgstr "Egyetlen extruder többanyagú paraméterei"
-
-#, c-format, boost-format
-msgid "Extruder %d"
-msgstr ""
 
 msgid ""
 "This is a single extruder multi-material printer, diameters of all extruders "
@@ -9570,6 +9666,9 @@ msgstr ""
 msgid ""
 "Please check whether the nozzle type of the device is the same as the preset "
 "nozzle type."
+msgstr ""
+
+msgid "Storage is not available or is in read-only mode."
 msgstr ""
 
 #, c-format, boost-format
@@ -12779,8 +12878,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² vagy %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Gyorsulás a ritkás kitöltéseknél. Ha az érték százalékban van megadva (pl. "
 "100%), akkor az alapértelmezett gyorsulás alapján kerül kiszámításra."
@@ -12814,6 +12913,9 @@ msgid ""
 msgstr ""
 
 msgid "Default jerk."
+msgstr ""
+
+msgid "Junction Deviation"
 msgstr ""
 
 msgid ""
@@ -12888,10 +12990,10 @@ msgstr "Teljes ventilátor fordulatszám ennél a rétegnél"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 
 msgid "layer"
@@ -13734,7 +13836,9 @@ msgid "Maximum Junction Deviation"
 msgstr ""
 
 msgid ""
-"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware)"
+"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+"Firmware\n"
+"If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
 msgstr ""
 
 msgid "Minimum speed for extruding"
@@ -14465,8 +14569,8 @@ msgid "Role base wipe speed"
 msgstr ""
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15136,14 +15240,6 @@ msgid ""
 "needed."
 msgstr ""
 
-msgid "Adaptive layer height"
-msgstr "Adaptív rétegmagasság"
-
-msgid ""
-"Enabling this option means the height of tree support layer except the first "
-"will be automatically calculated."
-msgstr ""
-
 msgid "Auto brim width"
 msgstr ""
 
@@ -15231,8 +15327,8 @@ msgstr ""
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16051,11 +16147,11 @@ msgid "Debug level"
 msgstr "Hibakeresés szintje"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
-"A hibakeresési naplózási szint beállítása. 0:fatal, 1:error, 2:warning, "
-"3:info, 4:debug, 5:trace\n"
+"A hibakeresési naplózási szint beállítása. 0:fatal, 1:error, 2:warning, 3:"
+"info, 4:debug, 5:trace\n"
 
 msgid "Enable timelapse for print"
 msgstr ""
@@ -17096,6 +17192,12 @@ msgstr ""
 msgid "Comma-separated list of printing speeds"
 msgstr ""
 
+msgid "Pressure Advance Guide"
+msgstr ""
+
+msgid "Adaptive Pressure Advance Guide"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start PA: >= 0.0\n"
@@ -17143,6 +17245,9 @@ msgstr "Befejező hőmérséklet: "
 msgid "Temp step: "
 msgstr "Hőmérséklet lépcső: "
 
+msgid "Wiki Guide: Temperature Calibration"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 350\n"
@@ -17158,6 +17263,9 @@ msgstr "Kezdő volumetrikus sebesség: "
 
 msgid "End volumetric speed: "
 msgstr "Befejező volumetrikus sebesség: "
+
+msgid "Wiki Guide: Volumetric Speed Calibration"
+msgstr ""
 
 msgid ""
 "Please input valid values:\n"
@@ -17175,6 +17283,9 @@ msgstr "Kezdősebesség: "
 msgid "End speed: "
 msgstr "Befejező sebesség: "
 
+msgid "Wiki Guide: VFA"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -17187,6 +17298,9 @@ msgstr "Kezdő visszahúzás hossza: "
 
 msgid "End retraction length: "
 msgstr "Befejező visszahúzási hossz:"
+
+msgid "Wiki Guide: Retraction Calibration"
+msgstr ""
 
 msgid "Input shaping Frequency test"
 msgstr ""
@@ -17221,6 +17335,9 @@ msgstr ""
 msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
+msgstr ""
+
+msgid "Wiki Guide: Input Shaping Calibration"
 msgstr ""
 
 msgid ""
@@ -17258,27 +17375,52 @@ msgid ""
 "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr ""
 
-msgid "Junction Deviation test"
+msgid "Cornering test"
 msgstr ""
 
-msgid "Start junction deviation: "
+msgid "SCV-V2"
 msgstr ""
 
-msgid "End junction deviation: "
+msgid "Start: "
 msgstr ""
 
-msgid "Junction Deviation settings"
+msgid "End: "
 msgstr ""
 
-msgid "Note: Lower values = sharper corners but slower speeds"
+msgid "Cornering settings"
+msgstr ""
+
+msgid "Note: Lower values = sharper corners but slower speeds.\n"
 msgstr ""
 
 msgid ""
-"Please input valid values:\n"
-"(0 <= Junction Deviation < 1)"
+"Marlin 2 Junction Deviation detected:\n"
+"To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
+"0."
 msgstr ""
 
-msgid "NOTE: High values may cause Layer shift"
+msgid ""
+"Marlin 2 Classic Jerk detected:\n"
+"To test Junction Deviation, set 'Maximum Junction Deviation' in Motion "
+"ability to a value > 0."
+msgstr ""
+
+msgid ""
+"RepRap detected: Jerk in mm/s.\n"
+"OrcaSlicer will convert the values to mm/min when necessary."
+msgstr ""
+
+msgid "Wiki Guide: Cornering Calibration"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Please input valid values:\n"
+"(0 <= Cornering <= %s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr ""
 
 msgid "Send G-code to printer host"
@@ -17537,8 +17679,8 @@ msgstr ""
 "Szeretnéd felülírni?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 
@@ -17952,8 +18094,8 @@ msgid "nozzle size memorized: %d"
 msgstr ""
 
 msgid ""
-"The size of nozzle type in preset is not consistent with memorized "
-"nozzle.Did you change your nozzle lately ? "
+"The size of nozzle type in preset is not consistent with memorized nozzle."
+"Did you change your nozzle lately ? "
 msgstr ""
 
 #, c-format, boost-format
@@ -19379,6 +19521,9 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Általános beállítások"
 
+#~ msgid "Login Region"
+#~ msgstr "Régió"
+
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "A nap tippje értesítés megjelenítése indítás után"
 
@@ -19405,11 +19550,17 @@ msgstr ""
 #~ msgid "User Sync"
 #~ msgstr "Felhasználó szinkronizálás"
 
+#~ msgid "Auto-Backup"
+#~ msgstr "Automatikus biztonsági mentés"
+
 #~ msgid "Downloads"
 #~ msgstr "Letöltések"
 
 #~ msgid "Dark Mode"
 #~ msgstr "Sötét mód"
+
+#~ msgid "Enable Dark mode"
+#~ msgstr "Sötét mód engedélyezése"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Kezdőoldal és napi tippek"
@@ -19523,6 +19674,9 @@ msgstr ""
 #~ msgstr ""
 #~ "Eltávolítja a kis túlnyúlásokat, amelyek esetleg nem igényelnek "
 #~ "alátámasztást."
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "Adaptív rétegmagasság"
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

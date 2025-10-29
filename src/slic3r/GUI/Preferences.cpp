@@ -1342,7 +1342,9 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_enable_plugin);
     
     auto item_legacy_network   = create_item_checkbox(_L("Use legacy network plugin"), _L("Disable to use latest network plugin that supports new BambuLab firmwares."), "legacy_networking", _L("(Requires restart)"));
-    g_sizer->Add(item_legacy_network);
+    g_sizer->Add(item_legacy_network);    
+    //// ONLINE > Storage
+    
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
@@ -1403,6 +1405,10 @@ void PreferencesDialog::create_items()
 
     auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
     g_sizer->Add(item_mix_print_high_low_temperature);
+
+    g_sizer->Add(create_item_title(_L("Storage")), 1, wxEXPAND);
+    auto item_allow_abnormal_storage = create_item_checkbox(_L("Allow Abnormal Storage"), _L("This allows the use of Storage that is marked as abnormal by the Printer.\nUse at your own risk, can cause issues!"), "allow_abnormal_storage");
+    g_sizer->Add(item_allow_abnormal_storage);
 
     g_sizer->Add(create_item_title(_L("Log Level")), 1, wxEXPAND);
     auto log_level_list  = std::vector<wxString>{_L("fatal"), _L("error"), _L("warning"), _L("info"), _L("debug"), _L("trace")};

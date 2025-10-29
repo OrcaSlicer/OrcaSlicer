@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-26 10:38+0800\n"
+"POT-Creation-Date: 2025-10-29 11:23+0100\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -2009,6 +2009,12 @@ msgstr "STL 파일로 교체"
 msgid "Replace the selected part with new STL"
 msgstr "선택한 부품을 새 STL 파일로 교체"
 
+msgid "Replace all with STL"
+msgstr ""
+
+msgid "Replace all selected parts with STL from folder"
+msgstr ""
+
 msgid "Change filament"
 msgstr "필라멘트 변경"
 
@@ -2189,6 +2195,30 @@ msgstr "플레이트 삭제"
 
 msgid "Remove the selected plate"
 msgstr "선택된 플레이트 삭제"
+
+msgid "Add instance"
+msgstr ""
+
+msgid "Add one more instance of the selected object"
+msgstr ""
+
+msgid "Remove instance"
+msgstr ""
+
+msgid "Remove one instance of the selected object"
+msgstr ""
+
+msgid "Set number of instances"
+msgstr ""
+
+msgid "Change the number of instances of the selected object"
+msgstr ""
+
+msgid "Fill bed with instances"
+msgstr ""
+
+msgid "Fill the remaining area of bed with instances of the selected object"
+msgstr ""
 
 msgid "Clone"
 msgstr "복제"
@@ -2697,9 +2727,9 @@ msgid "Top"
 msgstr "위"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality."
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -2958,7 +2988,25 @@ msgstr "성공적으로 전송되었습니다. %ss의 다음 페이지로 자동
 msgid "Access code:%s IP address:%s"
 msgstr ""
 
-msgid "Storage needs to be inserted before printing via LAN."
+msgid "A Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid ""
+"Sending print job over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
 
 msgid "Sending G-code file over LAN"
@@ -2972,6 +3020,21 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "성공적으로 보냈습니다. %s초 내에 현재 페이지가 닫힙니다"
 
 msgid "Storage needs to be inserted before sending to printer."
+msgstr ""
+
+msgid ""
+"Sending G-code file over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending to printer."
 msgstr ""
 
 msgid "Importing SLA archive"
@@ -3832,6 +3895,7 @@ msgstr ""
 "심_경사_시작_높이는 레이어_높이보다 작아야 합니다.\n"
 "0으로 재설정합니다."
 
+#, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4801,7 +4865,7 @@ msgstr "용량:"
 msgid "Size:"
 msgstr "크기:"
 
-#, boost-format
+#, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5321,13 +5385,10 @@ msgstr "후퇴 테스트"
 msgid "Max flowrate"
 msgstr "최대 압출량"
 
-msgid "Junction Deviation"
-msgstr ""
-
-msgid "Junction Deviation calibration"
-msgstr ""
-
 msgid "Cornering"
+msgstr ""
+
+msgid "Cornering calibration"
 msgstr ""
 
 msgid "Input Shaping Frequency"
@@ -5656,8 +5717,8 @@ msgid ""
 "The .gcode.3mf file contains no G-code data. Please slice it with Orca "
 "Slicer and export a new .gcode.3mf file."
 msgstr ""
-".gcode.3mf 파일에는 Gcode 데이터가 없습니다. OrcaSlicer에서 슬라이스하고 "
-"새 .gcode.3mf 파일을 내보내십시오."
+".gcode.3mf 파일에는 Gcode 데이터가 없습니다. OrcaSlicer에서 슬라이스하고 새 ."
+"gcode.3mf 파일을 내보내십시오."
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -6957,6 +7018,34 @@ msgstr "새 파일 선택"
 msgid "File for the replace wasn't selected"
 msgstr "대체할 파일이 선택되지 않았습니다"
 
+msgid "Select folder to replace from"
+msgstr ""
+
+msgid "Directory for the replace wasn't selected"
+msgstr ""
+
+msgid "Replaced with STLs from directory:\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: same file.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: file does not exist.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: failed to replace.\n"
+msgstr ""
+
+#, boost-format
+msgid "✔ Replaced %1%.\n"
+msgstr ""
+
+msgid "Replaced volumes"
+msgstr ""
+
 msgid "Please select a file"
 msgstr "파일을 선택하세요"
 
@@ -7428,13 +7517,13 @@ msgid "Home"
 msgstr "홈"
 
 msgid "Default page"
-msgstr "기본 페이지"
+msgstr ""
 
 msgid "Set the page opened on startup."
 msgstr "시작 시 열리는 페이지를 설정합니다."
 
 msgid "Enable dark mode"
-msgstr "다크 모드 사용"
+msgstr ""
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "OrcaSlicer 인스턴스를 하나만 허용"
@@ -7481,7 +7570,7 @@ msgid "Load Geometry Only"
 msgstr "형상만 로드"
 
 msgid "Load behaviour"
-msgstr "행동 로드"
+msgstr ""
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr ".3mf를 열 때 프린터/필라멘트/프로세스 설정이 로드되어야 합니까?"
@@ -7496,7 +7585,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "수정된 Gcode로 3MF를 로드할 때 경고 없음"
+msgstr ""
 
 msgid "Show options when importing STEP file"
 msgstr ""
@@ -7506,7 +7595,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr "자동 백업"
+msgstr ""
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7529,7 +7618,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr "다중 장치 관리"
+msgstr ""
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7633,10 +7722,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr "로그인 지역"
+msgstr ""
 
 msgid "Stealth mode"
-msgstr "스텔스 모드"
+msgstr ""
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7646,7 +7735,7 @@ msgstr ""
 "용하지 않거나 LAN 모드만 사용하는 사용자는 이 기능을 안전하게 켤 수 있습니다."
 
 msgid "Network test"
-msgstr "네트워크 테스트"
+msgstr ""
 
 msgid "Test"
 msgstr "테스트"
@@ -7719,6 +7808,14 @@ msgstr ""
 msgid ""
 "With this option enabled, you can print materials with a large temperature "
 "difference together."
+msgstr ""
+
+msgid "Allow Abnormal Storage"
+msgstr ""
+
+msgid ""
+"This allows the use of Storage that is marked as abnormal by the Printer.\n"
+"Use at your own risk, can cause issues!"
 msgstr ""
 
 msgid "Log Level"
@@ -8283,7 +8380,10 @@ msgid ""
 "information."
 msgstr ""
 
-msgid "Storage is not available or is in read-only mode."
+msgid "Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid "Storage is in abnormal state or is in read-only mode."
 msgstr ""
 
 msgid "Storage needs to be inserted before printing."
@@ -8672,8 +8772,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "툴헤드 없이 시간 경과를 기록할 경우 \"타임랩스 프라임 타워\"를 추가하는 것이 "
 "좋습니다\n"
@@ -9137,10 +9237,6 @@ msgstr "프라임 타워"
 
 msgid "Single extruder multi-material parameters"
 msgstr "단일 압출기 다중 재료 매개변수"
-
-#, c-format, boost-format
-msgid "Extruder %d"
-msgstr ""
 
 msgid ""
 "This is a single extruder multi-material printer, diameters of all extruders "
@@ -9625,6 +9721,9 @@ msgstr ""
 msgid ""
 "Please check whether the nozzle type of the device is the same as the preset "
 "nozzle type."
+msgstr ""
+
+msgid "Storage is not available or is in read-only mode."
 msgstr ""
 
 #, c-format, boost-format
@@ -10895,9 +10994,9 @@ msgid ""
 msgstr ""
 "Orca Slicer은 Gcode 파일을 프린터 호스트에 업로드할 수 있습니다. 이 필드에는 "
 "프린터 호스트 인스턴스의 호스트 이름, IP 주소 또는 URL이 포함되어야 합니다. "
-"기본 인증이 활성화된 HAProxy 뒤의 출력 호스트는 https://"
-"username:password@your-octopi-address/ 형식의 URL에 사용자 이름과 암호를 입력"
-"하여 액세스할 수 있습니다"
+"기본 인증이 활성화된 HAProxy 뒤의 출력 호스트는 https://username:"
+"password@your-octopi-address/ 형식의 URL에 사용자 이름과 암호를 입력하여 액세"
+"스할 수 있습니다"
 
 msgid "Device UI"
 msgstr "장치 UI"
@@ -13185,8 +13284,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² 또는 %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "드문 채우기 가속도. 값이 백분율 (예. 100%)로 표시되면 기본 가속도를 기준으로 "
 "계산됩니다."
@@ -13221,6 +13320,9 @@ msgid ""
 msgstr "Klipper의 max_accel_to_decel은 가속도의 %%로 조정됩니다"
 
 msgid "Default jerk."
+msgstr ""
+
+msgid "Junction Deviation"
 msgstr ""
 
 msgid ""
@@ -13297,10 +13399,10 @@ msgstr "팬 최대 속도 레이어"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "팬 속도는 \"close_fan_the_first_x_layers\" 의 0에서 \"full_fan_speed_layer\" "
 "의 최고 속도까지 선형적으로 증가합니다. \"full_fan_speed_layer\"가 "
@@ -14226,7 +14328,9 @@ msgid "Maximum Junction Deviation"
 msgstr ""
 
 msgid ""
-"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware)"
+"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+"Firmware\n"
+"If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
 msgstr ""
 
 msgid "Minimum speed for extruding"
@@ -15046,8 +15150,8 @@ msgid "Role base wipe speed"
 msgstr "역할 기반 노즐 청소 속도"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15755,16 +15859,6 @@ msgstr ""
 "스가 필요한 경우 높은 가지 밀도 값 대신 상단 지지 인터페이스를 활성화하는 것"
 "이 좋습니다."
 
-msgid "Adaptive layer height"
-msgstr "적응형 레이어 높이"
-
-msgid ""
-"Enabling this option means the height of tree support layer except the first "
-"will be automatically calculated."
-msgstr ""
-"이 옵션을 활성화하면 첫 번째 레이어를 제외한 트리 서포트의 레이어 높이가 자동"
-"으로 계산됩니다 "
-
 msgid "Auto brim width"
 msgstr "트리 서포트 자동 브림 너비"
 
@@ -15855,8 +15949,8 @@ msgstr "온도 제어 활성화"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16739,8 +16833,8 @@ msgid "Debug level"
 msgstr "디버그 수준"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 "디버그 로깅 수준을 설정합니다. 0:치명적, 1:오류, 2:경고, 3:정보, 4:디버그, 5:"
 "추적\n"
@@ -17848,6 +17942,12 @@ msgstr "쉼표로 구분된 출력 가속 목록"
 msgid "Comma-separated list of printing speeds"
 msgstr "쉼표로 구분된 출력 속도 목록"
 
+msgid "Pressure Advance Guide"
+msgstr ""
+
+msgid "Adaptive Pressure Advance Guide"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start PA: >= 0.0\n"
@@ -17895,6 +17995,9 @@ msgstr "종료 온도: "
 msgid "Temp step: "
 msgstr "온도 단계: "
 
+msgid "Wiki Guide: Temperature Calibration"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 350\n"
@@ -17910,6 +18013,9 @@ msgstr "시작 압출 속도: "
 
 msgid "End volumetric speed: "
 msgstr "종료 압출 속도: "
+
+msgid "Wiki Guide: Volumetric Speed Calibration"
+msgstr ""
 
 msgid ""
 "Please input valid values:\n"
@@ -17931,6 +18037,9 @@ msgstr "시작 속도: "
 msgid "End speed: "
 msgstr "종료 속도: "
 
+msgid "Wiki Guide: VFA"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -17947,6 +18056,9 @@ msgstr "후퇴 시작 길이: "
 
 msgid "End retraction length: "
 msgstr "후퇴 종료 길이: "
+
+msgid "Wiki Guide: Retraction Calibration"
+msgstr ""
 
 msgid "Input shaping Frequency test"
 msgstr ""
@@ -17981,6 +18093,9 @@ msgstr ""
 msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
+msgstr ""
+
+msgid "Wiki Guide: Input Shaping Calibration"
 msgstr ""
 
 msgid ""
@@ -18018,27 +18133,52 @@ msgid ""
 "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr ""
 
-msgid "Junction Deviation test"
+msgid "Cornering test"
 msgstr ""
 
-msgid "Start junction deviation: "
+msgid "SCV-V2"
 msgstr ""
 
-msgid "End junction deviation: "
+msgid "Start: "
 msgstr ""
 
-msgid "Junction Deviation settings"
+msgid "End: "
 msgstr ""
 
-msgid "Note: Lower values = sharper corners but slower speeds"
+msgid "Cornering settings"
+msgstr ""
+
+msgid "Note: Lower values = sharper corners but slower speeds.\n"
 msgstr ""
 
 msgid ""
-"Please input valid values:\n"
-"(0 <= Junction Deviation < 1)"
+"Marlin 2 Junction Deviation detected:\n"
+"To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
+"0."
 msgstr ""
 
-msgid "NOTE: High values may cause Layer shift"
+msgid ""
+"Marlin 2 Classic Jerk detected:\n"
+"To test Junction Deviation, set 'Maximum Junction Deviation' in Motion "
+"ability to a value > 0."
+msgstr ""
+
+msgid ""
+"RepRap detected: Jerk in mm/s.\n"
+"OrcaSlicer will convert the values to mm/min when necessary."
+msgstr ""
+
+msgid "Wiki Guide: Cornering Calibration"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Please input valid values:\n"
+"(0 <= Cornering <= %s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr ""
 
 msgid "Send G-code to printer host"
@@ -18301,8 +18441,8 @@ msgstr ""
 "다시 작성하시겠습니까?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 
@@ -18716,8 +18856,8 @@ msgid "nozzle size memorized: %d"
 msgstr ""
 
 msgid ""
-"The size of nozzle type in preset is not consistent with memorized "
-"nozzle.Did you change your nozzle lately ? "
+"The size of nozzle type in preset is not consistent with memorized nozzle."
+"Did you change your nozzle lately ? "
 msgstr ""
 
 #, c-format, boost-format
@@ -20302,6 +20442,15 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "일반 설정"
 
+#~ msgid "Login Region"
+#~ msgstr "로그인 지역"
+
+#~ msgid "Stealth Mode"
+#~ msgstr "스텔스 모드"
+
+#~ msgid "Default Page"
+#~ msgstr "기본 페이지"
+
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "시작 후 \"오늘의 팁\" 알림 표시"
 
@@ -20321,6 +20470,9 @@ msgstr ""
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "활성화하면 필라멘트가 교체될 때마다 자동 계산됩니다"
 
+#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
+#~ msgstr "다중 장치 관리 (Orca를 다시 시작한 후 적용됨)."
+
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "객체를 복제한 후 플레이트를 자동으로 정렬합니다"
 
@@ -20336,6 +20488,15 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "OrcaSlicer에 URL 연결"
 
+#~ msgid "Load Behaviour"
+#~ msgstr "행동 로드"
+
+#~ msgid "No warnings when loading 3MF with modified G-code"
+#~ msgstr "수정된 Gcode로 3MF를 로드할 때 경고 없음"
+
+#~ msgid "Auto-Backup"
+#~ msgstr "자동 백업"
+
 #~ msgid "every"
 #~ msgstr "매번"
 
@@ -20344,6 +20505,9 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "다크 모드"
+
+#~ msgid "Enable Dark mode"
+#~ msgstr "다크 모드 사용"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "홈페이지 및 데일리 팁"
@@ -20556,6 +20720,16 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "서포트가 필요하지 않은 작은 오버행에서 서포트를 제거합니다."
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "적응형 레이어 높이"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "이 옵션을 활성화하면 첫 번째 레이어를 제외한 트리 서포트의 레이어 높이가 "
+#~ "자동으로 계산됩니다 "
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "
@@ -21027,8 +21201,8 @@ msgstr ""
 #~ msgstr "mm/mm"
 
 #~ msgid ""
-#~ "We would rename the presets as \"Vendor Type Serial @printer you "
-#~ "selected\".\n"
+#~ "We would rename the presets as \"Vendor Type Serial @printer you selected"
+#~ "\".\n"
 #~ "To add preset for more printers, Please go to printer selection"
 #~ msgstr ""
 #~ "사전 설정의 이름을 \"선택한 공급업체 유형 직렬 @프린터\"로 변경합니다.\n"
@@ -22058,8 +22232,8 @@ msgstr ""
 #~ "로 지정되지 않은 경우 필라멘트의 최소 출력 속도가 활성화됩니다."
 
 #~ msgid ""
-#~ "We would rename the presets as \"Vendor Type Serial @printer you "
-#~ "selected\".\n"
+#~ "We would rename the presets as \"Vendor Type Serial @printer you selected"
+#~ "\".\n"
 #~ "To add preset for more prinetrs, Please go to printer selection"
 #~ msgstr ""
 #~ "사전 설정의 이름을 \"선택한 공급업체 유형 직렬 @프린터\"로 변경합니다.\n"

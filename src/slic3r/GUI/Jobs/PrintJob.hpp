@@ -5,6 +5,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "libslic3r/PrintConfig.hpp"
 #include "Job.hpp"
+#include "slic3r/GUI/DeviceCore/DevStorage.h" 
 
 namespace fs = boost::filesystem;
 
@@ -82,6 +83,8 @@ public:
     bool        cloud_print_only { false };
     bool        has_sdcard { false };
     bool        task_use_ams { true };
+    
+    DevStorage::SdcardState sdcard_state = DevStorage::SdcardState::NO_SDCARD;        
     bool        task_ext_change_assist { false };
 
     int         auto_bed_leveling{0};
