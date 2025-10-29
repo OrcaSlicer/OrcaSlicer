@@ -1,0 +1,62 @@
+{
+    "type": "filament",
+    "filament_id": "MIL02",
+    "name": "CAPIFIL PLA BLEU @Cosmyx Nova",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Cosmyx PLA Basic @Cosmyx Nova",
+    "filament_vendor": [
+        "CAPIFIL"
+    ],
+    "default_filament_colour": [
+        "#0000FF"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "hot_plate_temp": [
+        "65"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+     "compatible_printers": [
+        "Cosmyx SuperNova Double Tete 0.4 nozzle",
+        "Cosmyx SuperNova Double Tete 0.2 nozzle",
+        "Cosmyx SuperNova Double Tete 0.6 nozzle",
+        "Cosmyx SuperNova Double Tete 0.8 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle",
+        "Cosmyx Nova 0.4 nozzle",
+        "Cosmyx Nova 0.2 nozzle",
+        "Cosmyx Nova 0.6 nozzle",
+        "Cosmyx Nova 0.8 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.4 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.2 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.6 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.8 nozzle",
+        "Cosmyx Nova Double Tete 0.4 nozzle",
+        "Cosmyx Nova Double Tete 0.2 nozzle",
+        "Cosmyx Nova Double Tete 0.6 nozzle",
+        "Cosmyx Nova Double Tete 0.8 nozzle",
+        "Cosmyx Nova Haute Temperature 0.4 nozzle",
+        "Cosmyx Nova Haute Temperature 0.2 nozzle",
+        "Cosmyx Nova Haute Temperature 0.6 nozzle",
+        "Cosmyx Nova Haute Temperature 0.8 nozzle",
+        "Cosmyx SuperNova 0.4 nozzle",
+        "Cosmyx SuperNova 0.2 nozzle",
+        "Cosmyx SuperNova 0.6 nozzle",
+        "Cosmyx SuperNova 0.8 nozzle"
+    ]
+}

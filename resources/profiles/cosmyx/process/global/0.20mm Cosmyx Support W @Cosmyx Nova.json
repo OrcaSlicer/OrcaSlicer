@@ -1,0 +1,27 @@
+{
+    "type": "process",
+    "setting_id": "GP008",
+    "name": "0.20mm Cosmyx Support W @Cosmyx Nova",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_cosmyx_0.20",
+    "enable_support": "1",
+    "support_interface_top_layers": "3",
+    "support_top_z_distance": "0.2",
+    "support_interface_loop_pattern": "1",
+    "support_interface_spacing": "0",
+    "support_interface_speed": "80",
+    "support_filament": "0",
+    "support_interface_filament": "0",
+    "enable_prime_tower": "1",
+    "compatible_printers": [
+        "Cosmyx Nova 0.4 nozzle",
+        "Cosmyx X1 0.4 nozzle",
+        "Cosmyx SuperNova 0.4 nozzle",
+        "Cosmyx SuperNova Double Tete 0.4 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.4 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle",
+        "Cosmyx Nova Haute Temperature 0.4 nozzle",
+        "Cosmyx Nova Double Tete 0.4 nozzle"
+    ]
+}

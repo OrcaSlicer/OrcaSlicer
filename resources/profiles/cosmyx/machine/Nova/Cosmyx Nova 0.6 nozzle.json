@@ -1,0 +1,32 @@
+{
+    "type": "machine",
+    "setting_id": "GM005",
+    "name": "Cosmyx Nova 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Cosmyx Nova 0.4 nozzle",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printer_model": "Cosmyx Nova",
+    "printer_variant": "0.6",
+    "default_print_profile": "0.30mm Standard @Cosmyx Nova 0.6 nozzle",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.12"
+    ],
+    "retraction_length": [
+        "1.4"
+    ],
+    "retraction_minimum_travel": [
+        "3"
+    ],
+    "upward_compatible_machine": [
+        "Cosmyx P1P 0.6 nozzle",
+        "Cosmyx P1S 0.6 nozzle",
+        "Cosmyx X1 0.6 nozzle"
+    ],
+    "version": "01.07.00.18"
+}

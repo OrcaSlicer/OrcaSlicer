@@ -1,0 +1,140 @@
+{
+    "type": "machine",
+    "name": "fdm_cosmyx_3dp_001_common",
+    "from": "system",
+    "instantiation": "false",
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x200",
+        "0x200"
+    ],
+    "auxiliary_fan": "0",
+    "bed_exclude_area": [],
+    "default_filament_profile": [
+        "Cosmyx PLA Basic @Cosmyx Nova"
+    ],
+    "default_print_profile": "0.16mm Optimal @Cosmyx Nova",
+    "extruder_colour": [
+        "#018001"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "gcode_flavor": "klipper",
+    "inherits": "fdm_machine_common",
+    "machine_max_acceleration_e": [
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "400"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "800"
+    ],
+    "machine_max_speed_y": [
+        "800"
+    ],
+    "machine_max_speed_z": [
+        "28"
+    ],
+    "machine_max_jerk_e": [
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printable_height": "270",
+    "extruder_clearance_radius": "60",
+    "extruder_clearance_max_radius": "68",
+    "extruder_clearance_height_to_rod": "9.8",
+    "extruder_clearance_height_to_lid": "240",
+    "nozzle_volume": "107",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "z_hop_types": [
+        "slope"
+    ],
+    "nozzle_type": "brass",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "PAUSE",
+    "layer_change_gcode": "G92 E0.0",
+    "machine_end_gcode": ";; end_print ;;",
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": "PREHEAT B={max(first_layer_bed_temperature[0],first_layer_bed_temperature[1])} TL={first_layer_temperature[0]} TR={first_layer_temperature[1]}\n\n;; start_print ;;",
+    "wipe": [
+        "1"
+    ]
+}

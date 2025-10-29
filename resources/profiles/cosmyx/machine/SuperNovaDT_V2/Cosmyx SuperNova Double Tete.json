@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Cosmyx SuperNova Double Tete",
+    "model_id": "BL-P001",
+    "url": "http://www.cosmyx.com/Parameters/printer_model/Cosmyx SuperNova_dualhead.json",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Cosmyx-3DP",
+    "bed_model": "SuperNova-bed_model.stl",
+    "bed_texture": "SuperNova-bed_texture.png",
+    "hotend_model": "cosmyx-3dp-hotend.stl",
+    "default_materials": "CAPIFIL PLA BLANC;CAPIFIL PLA BLEU;CAPIFIL PLA NOIR;ENKY PETG CF;ENKY TPU 95A;FILKEMP PLN;FORMFUTURA PVA;KIMYA TPC 91A;TECTONIC ASA+;TECTONIC Breakaway;TECTONIC CPE JAUNE;TECTONIC CPE ROUGE;TECTONIC PP-CF15"
+}

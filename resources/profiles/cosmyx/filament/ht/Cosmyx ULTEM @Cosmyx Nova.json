@@ -1,0 +1,76 @@
+{
+    "type": "filament",
+    "filament_id": "Cosmyx ULTEM @Cosmyx Nova",
+    "name": "Cosmyx ULTEM @Cosmyx Nova",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_asa",
+
+    "filament_settings_id": [
+        "Cosmyx ULTEM @Cosmyx Nova"
+    ],
+    "filament_type": ["ULTEM"],
+
+    "filament_vendor": ["Cosmyx"],
+    
+    "is_custom_defined": "0",
+
+    "chamber_temperature": [
+        "100"
+    ],
+    "enable_overhang_bridge_fan": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "0"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "filament_cost": [
+        "108"
+    ],
+    "filament_max_volumetric_speed": [
+        "5"
+    ],
+    "hot_plate_temp": [
+        "170"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "170"
+    ],
+    "nozzle_temperature": [
+        "380"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "380"
+    ],
+    "nozzle_temperature_range_high": [
+        "440"
+    ],
+    "nozzle_temperature_range_low": [
+        "380"
+    ],
+    "overhang_fan_speed": [
+        "10"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "slow_down_min_speed": [
+        "5"
+    ],
+    "temperature_vitrification": [
+        "360"
+    ],
+    "version": "1.7.0.18",
+    "compatible_printers": [
+        "Cosmyx Nova Haute Temperature 0.2 nozzle",
+        "Cosmyx Nova Haute Temperature 0.4 nozzle",
+        "Cosmyx Nova Haute Temperature 0.6 nozzle",
+        "Cosmyx Nova Haute Temperature 0.8 nozzle"
+    ]
+}

@@ -1,0 +1,29 @@
+{
+    "type": "machine",
+    "setting_id": "GM001",
+    "name": "Cosmyx Nova 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_cosmyx_3dp_001_common",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_model": "Cosmyx Nova",
+    "printer_variant": "0.4",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "default_print_profile": "0.20mm Standard @Cosmyx Nova",
+    "extruder_offset": [
+        "0x0"
+    ],
+    "machine_load_filament_time": "29",
+    "machine_unload_filament_time": "28",
+    "scan_first_layer": "1",
+    "upward_compatible_machine": [
+        "Cosmyx P1P 0.4 nozzle",
+        "Cosmyx P1S 0.4 nozzle",
+        "Cosmyx X1 0.4 nozzle"
+    ],
+    "version": "01.07.00.18"
+}

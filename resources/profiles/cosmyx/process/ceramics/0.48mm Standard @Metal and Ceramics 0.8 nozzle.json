@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "setting_id": "GP034",
+    "name": "0.48mm Standard @Metal and Ceramics 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_cosmyx_0.48_nozzle_0.8",
+    "compatible_printers": [
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.8 nozzle"
+    ],
+    "version": "01.07.00.18",
+    "overhang_reverse": "1",
+    "overhang_reverse_threshold": "0%",
+    "sparse_infill_density": "92%",
+    "top_shell_layers": "6",
+    "wall_loops": "5",
+    "bottom_shell_layers": "6",
+    "brim_type": "outer_and_inner"
+}

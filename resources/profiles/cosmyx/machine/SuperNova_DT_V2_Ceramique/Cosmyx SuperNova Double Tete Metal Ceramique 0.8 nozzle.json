@@ -1,0 +1,44 @@
+{
+    "type": "machine",
+    "setting_id": "GM004",
+    "instantiation": "true",
+    "inherits": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle",
+    "name": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle",
+    "nozzle_diameter": [
+        "0.8",
+        "0.8"
+    ],  
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],  
+    "printer_model": "Cosmyx SuperNova Double Tete Metal Ceramique",
+    "printer_variant": "0.8",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "change_extrusion_role_gcode": ";changement role extrusion",
+    "change_filament_gcode": "\n;filament\n",
+    "enable_filament_ramming": "0",
+    "layer_change_gcode": "G92 E0.0\n",
+    "purge_in_prime_tower": "0",
+    "default_filament_profile": [
+        "Cosmyx PLA Basic @Cosmyx Nova 0.8 nozzle"
+    ],
+    "default_print_profile": "0.40mm Standard @Cosmyx Nova 0.8 nozzle",
+    "max_layer_height": [
+        "0.56"
+    ],
+    "min_layer_height": [
+        "0.16"
+    ],
+    "retract_length_toolchange": [
+        "3"
+    ],
+    "retraction_length": [
+        "3"
+    ]
+
+}

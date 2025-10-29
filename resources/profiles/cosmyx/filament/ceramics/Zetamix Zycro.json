@@ -1,0 +1,90 @@
+{
+    "type": "filament",
+    "filament_id": "GFA00",
+    "name": "Nanoe Zetamix Zycro",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Cosmyx PLA Basic @Cosmyx Nova",
+    "filament_vendor": [
+        "Nanoe Zetamix"
+    ],
+    "filament_cost": [
+        "24.99"
+    ],
+    "filament_type": [
+        "ZYRCO"
+    ],
+    "activate_chamber_temp_control": [
+        "1"
+    ],
+    "additional_cooling_fan_speed": [
+        "5"
+    ],
+    "chamber_temperature": [
+        "30"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "10"
+    ],
+    "cool_plate_temp": [
+        "70"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "70"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "10"
+    ],
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "filament_retraction_length": [
+        "0.2"
+    ],
+    "filament_z_hop": [
+        "0.2"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "165"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "185"
+    ],
+    "nozzle_temperature_range_high": [
+        "180"
+    ],
+    "nozzle_temperature_range_low": [
+        "100"
+    ],
+    "overhang_fan_speed": [
+        "5"
+    ],
+    "overhang_fan_threshold": [
+        "10%"
+    ],    
+     "compatible_printers": [
+        "Cosmyx Nova Metal Ceramique 0.4 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle"
+    ]
+}

@@ -1,0 +1,58 @@
+{
+    "type": "machine",
+    "setting_id": "GM604",
+    "instantiation": "true",
+    "inherits": "Cosmyx Nova 0.8 nozzle",
+    "name": "Cosmyx Nova Double Tete 0.8 nozzle",
+    "nozzle_diameter": [
+        "0.8",
+        "0.8"
+    ], 
+    "printable_area": [
+        "68x0",
+        "224x0",
+        "224x200",
+        "68x200"
+    ],   
+    "printer_model": "Cosmyx Nova Double Tete",
+    "printer_variant": "0.8",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "is_custom_defined": "0",
+    "layer_change_gcode": "G92 E0.0\n",
+    "change_filament_gcode": ";filamentUSE",
+    "machine_end_gcode": ";; end_print ;;",
+    "machine_pause_gcode": "PAUSE",
+    "purge_in_prime_tower": "0",
+    "version": "1.7.0.18",
+    "single_extruder_multi_material": "1",
+    "extruders_count": "2",
+        "machine_max_acceleration_extruding": [
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "400"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "28"
+    ],
+    "machine_max_jerk_x": [
+        "3"
+    ],
+    "machine_max_jerk_y": [
+        "3"
+    ]  
+}

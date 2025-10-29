@@ -1,0 +1,12 @@
+{
+    "type": "machine",
+    "setting_id": "GM404", "__comment": "/* Error 404 Cosmyx Metal Ceramique 0.8 nozzle N'a pas été trouvé */",
+    "instantiation": "true",
+    "inherits": "Cosmyx Nova 0.8 nozzle",
+    "name": "Cosmyx Nova Metal Ceramique 0.8 nozzle",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printer_model": "Cosmyx Nova Metal Ceramique",
+    "printer_variant": "0.8"
+}

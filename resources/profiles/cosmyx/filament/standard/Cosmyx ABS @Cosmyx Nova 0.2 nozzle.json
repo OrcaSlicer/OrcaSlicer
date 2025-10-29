@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "setting_id": "GFSB00_00",
+    "name": "Cosmyx ABS @Cosmyx Nova 0.2 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Cosmyx ABS @base",
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "compatible_printers": [
+        "Cosmyx Nova 0.2 nozzle",
+        "Cosmyx X1 0.2 nozzle",
+        "Cosmyx P1S 0.2 nozzle",
+        "Cosmyx SuperNova 0.2 nozzle",
+        "Cosmyx SuperNova Double Tete 0.2 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.2 nozzle",
+        "Cosmyx Nova Haute Temperature 0.2 nozzle",
+        "Cosmyx Nova Double Tete 0.2 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle"
+    ],
+    "version": "01.07.00.18"
+}

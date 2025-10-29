@@ -1,0 +1,23 @@
+{
+    "type": "process",
+    "setting_id": "GP013",
+    "name": "0.20mm Strength @Cosmyx Nova",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_cosmyx_0.20",
+    "outer_wall_speed": "60",
+    "wall_loops": "6",
+    "sparse_infill_density": "25%",
+    "compatible_printers": [
+        "Cosmyx Nova 0.4 nozzle",
+        "Cosmyx X1 0.4 nozzle",
+        "Cosmyx P1S 0.4 nozzle",
+        "Cosmyx SuperNova 0.4 nozzle",
+        "Cosmyx SuperNova Double Tete 0.4 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.4 nozzle",
+        "Cosmyx Nova Haute Temperature 0.4 nozzle",
+        "Cosmyx Nova Double Tete 0.4 nozzle"
+    ],
+    "version": "01.07.00.18"
+}

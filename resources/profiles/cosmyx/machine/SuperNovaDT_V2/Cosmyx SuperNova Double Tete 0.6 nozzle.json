@@ -1,0 +1,40 @@
+{
+    "type": "machine",
+    "setting_id": "GM005",
+    "instantiation": "true",
+    "inherits": "Cosmyx SuperNova Double Tete 0.4 nozzle",
+    "name": "Cosmyx SuperNova Double Tete 0.6 nozzle",
+    "nozzle_diameter": [
+        "0.6",
+        "0.6"
+    ],   
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],  
+    "printer_model": "Cosmyx SuperNova Double Tete",
+    "printer_variant": "0.6",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "change_extrusion_role_gcode": ";changement role extrusion",
+    "change_filament_gcode": "\n;filament\n",
+    "enable_filament_ramming": "0",
+    "layer_change_gcode": "G92 E0.0\n",
+    "purge_in_prime_tower": "0",
+    "default_print_profile": "0.30mm Standard @Cosmyx Nova 0.6 nozzle",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.12"
+    ],
+    "retraction_length": [
+        "1.4"
+    ],
+    "retraction_minimum_travel": [
+        "3"
+    ]
+}

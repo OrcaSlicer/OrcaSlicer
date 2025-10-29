@@ -1,0 +1,12 @@
+{
+    "type": "machine",
+    "setting_id": "GM502",
+    "instantiation": "true",
+    "inherits": "Cosmyx Nova 0.2 nozzle",
+    "name": "Cosmyx Nova Haute Temperature 0.2 nozzle",
+    "nozzle_diameter": [
+        "0.2"
+    ],
+    "printer_model": "Cosmyx Nova Haute Temperature",
+    "printer_variant": "0.2"
+}

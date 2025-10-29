@@ -1,0 +1,19 @@
+{
+    "type": "machine",
+    "setting_id": "GM205",
+    "inherits": "Cosmyx Nova 0.6 nozzle",
+    "name": "Cosmyx SuperNova 0.6 nozzle",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.6"
+    ],    
+    "printer_model": "Cosmyx SuperNova",
+    "printer_variant": "0.6",
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "600"
+}

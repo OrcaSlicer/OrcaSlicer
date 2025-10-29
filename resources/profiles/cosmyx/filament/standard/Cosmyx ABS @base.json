@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "filament_id": "GFB00",
+    "name": "Cosmyx ABS @base",
+    "from": "system",
+    "instantiation": "false",
+    "inherits": "fdm_filament_abs",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_cost": [
+        "24.99"
+    ],
+    "filament_vendor": [
+        "Cosmyx"
+    ]
+}

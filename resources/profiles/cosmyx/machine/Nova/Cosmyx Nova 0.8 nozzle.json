@@ -1,0 +1,35 @@
+{
+    "type": "machine",
+    "setting_id": "GM004",
+    "name": "Cosmyx Nova 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Cosmyx Nova 0.4 nozzle",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printer_model": "Cosmyx Nova",
+    "printer_variant": "0.8",
+    "default_filament_profile": [
+        "Cosmyx PLA Basic @Cosmyx Nova 0.8 nozzle"
+    ],
+    "default_print_profile": "0.40mm Standard @Cosmyx Nova 0.8 nozzle",
+    "max_layer_height": [
+        "0.56"
+    ],
+    "min_layer_height": [
+        "0.16"
+    ],
+    "retract_length_toolchange": [
+        "3"
+    ],
+    "retraction_length": [
+        "3"
+    ],
+    "upward_compatible_machine": [
+        "Cosmyx P1P 0.8 nozzle",
+        "Cosmyx P1S 0.8 nozzle",
+        "Cosmyx X1 0.8 nozzle"
+    ],
+    "version": "01.07.00.18"
+}

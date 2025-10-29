@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "setting_id": "GP033",
+    "name": "0.32mm Standard @Cosmyx Nova 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_cosmyx_0.32_nozzle_0.8",
+    "compatible_printers": [
+        "Cosmyx Nova 0.8 nozzle",
+        "Cosmyx X1 0.8 nozzle",
+        "Cosmyx P1S 0.8 nozzle",
+        "Cosmyx SuperNova 0.8 nozzle",
+        "Cosmyx SuperNova Double Tete 0.8 nozzle",
+        "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle",
+        "Cosmyx Nova Metal Ceramique 0.8 nozzle",
+        "Cosmyx Nova Haute Temperature 0.8 nozzle",
+        "Cosmyx Nova Double Tete 0.8 nozzle"
+    ],
+    "version": "01.07.00.18"
+}
