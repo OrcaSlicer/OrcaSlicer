@@ -869,6 +869,13 @@ void MenuFactory::append_menu_item_replace_with_stl(wxMenu *menu)
         []() { return plater()->can_replace_with_stl(); }, m_parent);
 }
 
+void MenuFactory::append_menu_item_replace_all_with_stl(wxMenu *menu)
+{
+    append_menu_item(menu, wxID_ANY, _L("Replace all with STL"), _L("Replace all selected parts with STL from folder"),
+        [](wxCommandEvent &) { plater()->replace_all_with_stl(); }, "", menu,
+        []() { return plater()->can_replace_all_with_stl(); }, m_parent);
+}
+
 void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
 {
     // BBS
@@ -1350,6 +1357,7 @@ void MenuFactory::create_extra_object_menu()
     m_object_menu.AppendSeparator();
     append_menu_item_reload_from_disk(&m_object_menu);
     append_menu_item_replace_with_stl(&m_object_menu);
+    append_menu_item_replace_all_with_stl(&m_object_menu);
     append_menu_item_export_stl(&m_object_menu);
 }
 
@@ -1465,6 +1473,7 @@ void MenuFactory::create_bbl_part_menu()
     append_menu_item_change_type(menu);
     append_menu_item_reload_from_disk(menu);
     append_menu_item_replace_with_stl(menu);
+    append_menu_item_replace_all_with_stl(menu);
 }
 
 void MenuFactory::create_bbl_assemble_part_menu()
@@ -1615,6 +1624,7 @@ void MenuFactory::create_plate_menu()
         [](wxCommandEvent&) { plater()->add_file(); }, "", menu,
         []() {return wxGetApp().plater()->can_add_model(); }, m_parent);
 #endif
+    append_menu_item_replace_all_with_stl(menu);
 
 
     return;
@@ -1721,14 +1731,26 @@ wxMenu* MenuFactory::multi_selection_menu()
     wxDataViewItemArray sels;
     obj_list()->GetSelections(sels);
     bool multi_volume = true;
+    bool undefined_type = false;
+    bool all_plates = true;
 
     for (const wxDataViewItem& item : sels) {
-        multi_volume = list_model()->GetItemType(item) & itVolume;
-        if (!(list_model()->GetItemType(item) & (itVolume | itObject | itInstance)))
+        Slic3r::GUI::ItemType item_type = list_model()->GetItemType(item);
+        if ((item_type & itPlate) == 0)
+            all_plates = false;
+        multi_volume = item_type & itVolume;
+        if (!(item_type & (itVolume | itObject | itInstance)))
             // show this menu only for Objects(Instances mixed with Objects)/Volumes selection
-            return nullptr;
+            undefined_type = true;
     }
 
+    if (all_plates) {
+        wxMenu* menu = new MenuWithSeparators();
+        append_menu_item_replace_all_with_stl(menu);
+        return menu;
+    }
+    if (undefined_type)
+        return nullptr;
     wxMenu* menu = new MenuWithSeparators();
     if (!multi_volume) {
         int index = 0;
@@ -1747,6 +1769,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         append_menu_item_per_object_process(menu);
         menu->AppendSeparator();
         append_menu_items_convert_unit(menu);
+        append_menu_item_replace_all_with_stl(menu);
         //BBS
         append_menu_item_change_filament(menu);
         menu->AppendSeparator();
@@ -1759,6 +1782,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         //append_menu_item_simplify(menu);
         append_menu_item_delete(menu);
         append_menu_items_convert_unit(menu);
+        append_menu_item_replace_all_with_stl(menu);
         append_menu_item_change_filament(menu);
         wxMenu* split_menu = new wxMenu();
         if (split_menu) {

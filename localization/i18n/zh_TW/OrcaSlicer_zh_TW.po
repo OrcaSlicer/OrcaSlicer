@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-26 10:38+0800\n"
+"POT-Creation-Date: 2025-10-29 11:23+0100\n"
 "PO-Revision-Date: 2025-03-27 19:32+0800\n"
 "Last-Translator: 5idereal <hi@5idereal.cc>\n"
 "Language-Team: \n"
@@ -1984,6 +1984,12 @@ msgstr "替換為 STL"
 msgid "Replace the selected part with new STL"
 msgstr "用新的 STL 替換選中的零件"
 
+msgid "Replace all with STL"
+msgstr ""
+
+msgid "Replace all selected parts with STL from folder"
+msgstr ""
+
 msgid "Change filament"
 msgstr "更換線材"
 
@@ -2164,6 +2170,30 @@ msgstr "刪除列印板"
 
 msgid "Remove the selected plate"
 msgstr "刪除所選列印板"
+
+msgid "Add instance"
+msgstr ""
+
+msgid "Add one more instance of the selected object"
+msgstr ""
+
+msgid "Remove instance"
+msgstr ""
+
+msgid "Remove one instance of the selected object"
+msgstr ""
+
+msgid "Set number of instances"
+msgstr ""
+
+msgid "Change the number of instances of the selected object"
+msgstr ""
+
+msgid "Fill bed with instances"
+msgstr ""
+
+msgid "Fill the remaining area of bed with instances of the selected object"
+msgstr ""
 
 msgid "Clone"
 msgstr "複製"
@@ -2665,9 +2695,9 @@ msgid "Top"
 msgstr "頂部"
 
 msgid ""
-"The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
-"according to different printing materials."
+"The fan controls the temperature during printing to improve print quality."
+"The system automatically adjusts the fan's switch and speed according to "
+"different printing materials."
 msgstr ""
 
 msgid ""
@@ -2917,7 +2947,25 @@ msgstr "已成功傳送。將自動跳至 %ss 中的下一頁"
 msgid "Access code:%s IP address:%s"
 msgstr "訪問代碼：%s　IP 位址：%s"
 
-msgid "Storage needs to be inserted before printing via LAN."
+msgid "A Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid ""
+"Sending print job over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending print job to printer."
+msgstr ""
+
+msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
 
 #, fuzzy
@@ -2933,6 +2981,21 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "傳送成功。即將關閉目前頁面（%s秒）"
 
 msgid "Storage needs to be inserted before sending to printer."
+msgstr ""
+
+msgid ""
+"Sending G-code file over LAN, but the Storage in the printer is abnormal and "
+"print-issues may be caused by this."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is abnormal. Please replace it with a normal "
+"Storage before sending to printer."
+msgstr ""
+
+msgid ""
+"The Storage in the printer is read-only. Please replace it with a normal "
+"Storage before sending to printer."
 msgstr ""
 
 msgid "Importing SLA archive"
@@ -3765,6 +3828,7 @@ msgstr ""
 "seam_slope_start_height 必須小於 layer_height。\n"
 "重設為 0。"
 
+#, fuzzy, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4739,7 +4803,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, fuzzy, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5258,14 +5322,11 @@ msgstr "回抽測試"
 msgid "Max flowrate"
 msgstr "最大體積流量"
 
-msgid "Junction Deviation"
-msgstr "轉折偏移值"
-
-msgid "Junction Deviation calibration"
-msgstr "轉折偏移校正"
-
 msgid "Cornering"
 msgstr "轉角控制"
+
+msgid "Cornering calibration"
+msgstr ""
 
 msgid "Input Shaping Frequency"
 msgstr "輸入震動抑制頻率"
@@ -5589,8 +5650,8 @@ msgid ""
 "The .gcode.3mf file contains no G-code data. Please slice it with Orca "
 "Slicer and export a new .gcode.3mf file."
 msgstr ""
-".gcode.3mf 檔案中不包含 G-code 資料。請使用 Orca Slicer 進行切片並匯出新"
-"的 .gcode.3mf 檔案。"
+".gcode.3mf 檔案中不包含 G-code 資料。請使用 Orca Slicer 進行切片並匯出新的 ."
+"gcode.3mf 檔案。"
 
 #, c-format, boost-format
 msgid "File '%s' was lost! Please download it again."
@@ -6860,6 +6921,34 @@ msgstr "選擇新檔案"
 msgid "File for the replace wasn't selected"
 msgstr "未選擇替換檔案"
 
+msgid "Select folder to replace from"
+msgstr ""
+
+msgid "Directory for the replace wasn't selected"
+msgstr ""
+
+msgid "Replaced with STLs from directory:\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: same file.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: file does not exist.\n"
+msgstr ""
+
+#, boost-format
+msgid "✖ Skipped %1%: failed to replace.\n"
+msgstr ""
+
+#, boost-format
+msgid "✔ Replaced %1%.\n"
+msgstr ""
+
+msgid "Replaced volumes"
+msgstr ""
+
 msgid "Please select a file"
 msgstr "請選擇一個檔案"
 
@@ -7319,13 +7408,13 @@ msgid "Home"
 msgstr "首頁"
 
 msgid "Default page"
-msgstr "預設頁面"
+msgstr ""
 
 msgid "Set the page opened on startup."
 msgstr "設定為啟動頁面。"
 
 msgid "Enable dark mode"
-msgstr "啟用深色模式"
+msgstr ""
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "僅允許一個 OrcaSlicer 程序"
@@ -7371,7 +7460,7 @@ msgid "Load Geometry Only"
 msgstr "僅載入幾何資料"
 
 msgid "Load behaviour"
-msgstr "載入方式"
+msgstr ""
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr "開啟 .3mf 檔案時，是否需要載入印表機、線材和參數設定？"
@@ -7386,17 +7475,17 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr "載入包含修改過 G-code 的 3MF 時不顯示警告"
+msgstr ""
 
 msgid "Show options when importing STEP file"
-msgstr "顯示 STEP 網格參數設定視窗。"
+msgstr ""
 
 msgid ""
 "If enabled,a parameter settings dialog will appear during STEP file import."
 msgstr "啟用後，匯入 STEP 檔案時會顯示參數設定視窗。"
 
 msgid "Auto backup"
-msgstr "自動備份"
+msgstr ""
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7417,7 +7506,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr "多臺設備管理"
+msgstr ""
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7516,10 +7605,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr "登入區域"
+msgstr ""
 
 msgid "Stealth mode"
-msgstr "區域網路模式"
+msgstr ""
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7529,7 +7618,7 @@ msgstr ""
 "網路模式，可以安全地啟用此功能。"
 
 msgid "Network test"
-msgstr "網路測試"
+msgstr ""
 
 msgid "Test"
 msgstr "測試"
@@ -7553,7 +7642,7 @@ msgid "Enable network plugin"
 msgstr "啟用網路外掛程式"
 
 msgid "Use legacy network plugin"
-msgstr "使用舊版網路外掛"
+msgstr ""
 
 msgid ""
 "Disable to use latest network plugin that supports new BambuLab firmwares."
@@ -7598,6 +7687,14 @@ msgstr ""
 msgid ""
 "With this option enabled, you can print materials with a large temperature "
 "difference together."
+msgstr ""
+
+msgid "Allow Abnormal Storage"
+msgstr ""
+
+msgid ""
+"This allows the use of Storage that is marked as abnormal by the Printer.\n"
+"Use at your own risk, can cause issues!"
 msgstr ""
 
 msgid "Log Level"
@@ -8160,7 +8257,10 @@ msgid ""
 "information."
 msgstr ""
 
-msgid "Storage is not available or is in read-only mode."
+msgid "Storage needs to be inserted before printing via LAN."
+msgstr ""
+
+msgid "Storage is in abnormal state or is in read-only mode."
 msgstr ""
 
 msgid "Storage needs to be inserted before printing."
@@ -8540,8 +8640,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add "
-"Primitive\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add Primitive"
+"\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "在錄製無工具頭縮時錄影影片時，建議新增一個「縮時錄影換料塔」\n"
 "可以通過右鍵點擊構建板的空白位置，選擇『新增標準模型』->『縮時錄影換料塔』來"
@@ -8994,10 +9094,6 @@ msgstr "換料塔"
 
 msgid "Single extruder multi-material parameters"
 msgstr "單擠出機多線材參數"
-
-#, c-format, boost-format
-msgid "Extruder %d"
-msgstr "擠出機 %d"
 
 msgid ""
 "This is a single extruder multi-material printer, diameters of all extruders "
@@ -9474,6 +9570,9 @@ msgstr ""
 msgid ""
 "Please check whether the nozzle type of the device is the same as the preset "
 "nozzle type."
+msgstr ""
+
+msgid "Storage is not available or is in read-only mode."
 msgstr ""
 
 #, c-format, boost-format
@@ -12839,8 +12938,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² 或 %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage "
-"(e.g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage (e."
+"g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "稀疏填充的加速度。如果該值表示為百分比（例如 100%），則將根據預設加速度進行計"
 "算。"
@@ -12874,6 +12973,9 @@ msgstr "Klipper 的最大煞車速度將調整為加速度的 %%"
 
 msgid "Default jerk."
 msgstr ""
+
+msgid "Junction Deviation"
+msgstr "轉折偏移值"
 
 msgid ""
 "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk "
@@ -12945,10 +13047,10 @@ msgstr "滿速風扇在"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer "
-"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
-"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
-"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
+"\". \"full_fan_speed_layer\" will be ignored if lower than "
+"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
+"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "風扇速度會從第「close_fan_the_first_x_layers」層開始，從零速以線性方式逐漸增"
 "加，直到第「full_fan_speed_layer」層達到最大速度。如果"
@@ -13844,7 +13946,9 @@ msgid "Maximum Junction Deviation"
 msgstr ""
 
 msgid ""
-"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware)"
+"Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+"Firmware\n"
+"If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
 msgstr ""
 
 msgid "Minimum speed for extruding"
@@ -14591,8 +14695,8 @@ msgid "Role base wipe speed"
 msgstr "自動擦拭速度"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. "
-"e.g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. e."
+"g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15268,14 +15372,6 @@ msgstr ""
 "難移除。如果需要密集的支撐層，建議啟用頂部支撐介面，而非單純提高分支密度設"
 "定。"
 
-msgid "Adaptive layer height"
-msgstr "自適應層高"
-
-msgid ""
-"Enabling this option means the height of tree support layer except the first "
-"will be automatically calculated."
-msgstr "啟用此選項將自動計算（除第一層外）樹狀支撐的層高"
-
 msgid "Auto brim width"
 msgstr "自動 Brim 寬度"
 
@@ -15363,8 +15459,8 @@ msgstr "啟動溫度控制"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the "
-"\"machine_start_gcode\"\n"
+"activates the emitting of an M191 command before the \"machine_start_gcode"
+"\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16206,8 +16302,8 @@ msgid "Debug level"
 msgstr "除錯模式等級"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
-"5:trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
+"trace\n"
 msgstr ""
 "設定除錯日誌級別。0：致命錯誤，1：錯誤，2：警告，3：資訊，4：除錯，5：追蹤\n"
 
@@ -17280,6 +17376,12 @@ msgstr "列印加速度的逗號分隔清單"
 msgid "Comma-separated list of printing speeds"
 msgstr "列印速度的逗號分隔清單"
 
+msgid "Pressure Advance Guide"
+msgstr ""
+
+msgid "Adaptive Pressure Advance Guide"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start PA: >= 0.0\n"
@@ -17327,6 +17429,9 @@ msgstr "終止溫度："
 msgid "Temp step: "
 msgstr "溫度步距："
 
+msgid "Wiki Guide: Temperature Calibration"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "Start temp: <= 350\n"
@@ -17342,6 +17447,9 @@ msgstr "起始流量："
 
 msgid "End volumetric speed: "
 msgstr "結束流量："
+
+msgid "Wiki Guide: Volumetric Speed Calibration"
+msgstr ""
 
 msgid ""
 "Please input valid values:\n"
@@ -17363,6 +17471,9 @@ msgstr "起始速度："
 msgid "End speed: "
 msgstr "結束速度："
 
+msgid "Wiki Guide: VFA"
+msgstr ""
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -17379,6 +17490,9 @@ msgstr "起始回抽長度："
 
 msgid "End retraction length: "
 msgstr "結束回抽長度："
+
+msgid "Wiki Guide: Retraction Calibration"
+msgstr ""
 
 msgid "Input shaping Frequency test"
 msgstr ""
@@ -17413,6 +17527,9 @@ msgstr ""
 msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
+msgstr ""
+
+msgid "Wiki Guide: Input Shaping Calibration"
 msgstr ""
 
 msgid ""
@@ -17450,27 +17567,52 @@ msgid ""
 "Please input a valid damping factor (0 <= DampingStart < DampingEnd <= 1)"
 msgstr ""
 
-msgid "Junction Deviation test"
+msgid "Cornering test"
 msgstr ""
 
-msgid "Start junction deviation: "
+msgid "SCV-V2"
 msgstr ""
 
-msgid "End junction deviation: "
+msgid "Start: "
 msgstr ""
 
-msgid "Junction Deviation settings"
+msgid "End: "
 msgstr ""
 
-msgid "Note: Lower values = sharper corners but slower speeds"
+msgid "Cornering settings"
+msgstr ""
+
+msgid "Note: Lower values = sharper corners but slower speeds.\n"
 msgstr ""
 
 msgid ""
-"Please input valid values:\n"
-"(0 <= Junction Deviation < 1)"
+"Marlin 2 Junction Deviation detected:\n"
+"To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
+"0."
 msgstr ""
 
-msgid "NOTE: High values may cause Layer shift"
+msgid ""
+"Marlin 2 Classic Jerk detected:\n"
+"To test Junction Deviation, set 'Maximum Junction Deviation' in Motion "
+"ability to a value > 0."
+msgstr ""
+
+msgid ""
+"RepRap detected: Jerk in mm/s.\n"
+"OrcaSlicer will convert the values to mm/min when necessary."
+msgstr ""
+
+msgid "Wiki Guide: Cornering Calibration"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Please input valid values:\n"
+"(0 <= Cornering <= %s)"
+msgstr ""
+
+#, c-format, boost-format
+msgid "NOTE: High values may cause Layer shift (>%s)"
 msgstr ""
 
 msgid "Send G-code to printer host"
@@ -17723,8 +17865,8 @@ msgstr ""
 "確定要覆寫嗎？"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you "
-"selected\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you selected"
+"\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "將會將預設名稱重新命名為「廠牌 型號 序號 @選擇的列印設備」。\n"
@@ -18120,8 +18262,8 @@ msgid "nozzle size memorized: %d"
 msgstr ""
 
 msgid ""
-"The size of nozzle type in preset is not consistent with memorized "
-"nozzle.Did you change your nozzle lately ? "
+"The size of nozzle type in preset is not consistent with memorized nozzle."
+"Did you change your nozzle lately ? "
 msgstr ""
 
 #, c-format, boost-format
@@ -19572,6 +19714,9 @@ msgstr ""
 #~ "您可以在列印設備「設置->網路->連接->存取碼」\n"
 #~ "查看，如下圖所示："
 
+#~ msgid "Junction Deviation calibration"
+#~ msgstr "轉折偏移校正"
+
 #~ msgid ""
 #~ "Browsing file in SD card is not supported in current firmware. Please "
 #~ "update the printer firmware."
@@ -19657,6 +19802,18 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "一般設定"
 
+#~ msgid "Login Region"
+#~ msgstr "登入區域"
+
+#~ msgid "Stealth Mode"
+#~ msgstr "區域網路模式"
+
+#~ msgid "Use legacy network plugin (Takes effect after restarting Orca)"
+#~ msgstr "使用舊版網路外掛（重新啟動 Orca 後生效）"
+
+#~ msgid "Default Page"
+#~ msgstr "預設頁面"
+
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "啟動後顯示「每日小提示」通知"
 
@@ -19676,6 +19833,12 @@ msgstr ""
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "啟用後，換料時自動計算"
 
+#~ msgid "Show the step mesh parameter setting dialog."
+#~ msgstr "顯示 STEP 網格參數設定視窗。"
+
+#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
+#~ msgstr "多臺設備管理 (需重開 Orca)"
+
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "物件複製後自動排列列印板"
 
@@ -19691,6 +19854,15 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "將 URL 關聯到 OrcaSlicer"
 
+#~ msgid "Load Behaviour"
+#~ msgstr "載入方式"
+
+#~ msgid "No warnings when loading 3MF with modified G-code"
+#~ msgstr "載入包含修改過 G-code 的 3MF 時不顯示警告"
+
+#~ msgid "Auto-Backup"
+#~ msgstr "自動備份"
+
 #~ msgid "every"
 #~ msgstr "所有"
 
@@ -19699,6 +19871,9 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "深色模式"
+
+#~ msgid "Enable Dark mode"
+#~ msgstr "啟用深色模式"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "首頁和每日小提示"
@@ -19797,6 +19972,10 @@ msgstr ""
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr "該列印設備不支援傳送到 SD 記憶卡。"
+
+#, c-format, boost-format
+#~ msgid "Extruder %d"
+#~ msgstr "擠出機 %d"
 
 #, c-format, boost-format
 #~ msgid "The color count should be in range [%d, %d]."
@@ -19908,6 +20087,14 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "移除可能並不需要支撐的小懸空。"
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "自適應層高"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr "啟用此選項將自動計算（除第一層外）樹狀支撐的層高"
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

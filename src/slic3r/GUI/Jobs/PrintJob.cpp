@@ -579,12 +579,34 @@ void PrintJob::process(Ctl &ctl)
             }
         }
     } else {
-        if (this->has_sdcard || this->could_emmc_print) {
+        if (this->could_emmc_print) {
             ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
             result = m_agent->start_local_print(params, update_fn, cancel_fn);
         } else {
-            ctl.update_status(curr_percent, _u8L("Storage needs to be inserted before printing via LAN."));
-            return;
+            switch(this->sdcard_state) {
+                case DevStorage::SdcardState::NO_SDCARD:
+                    ctl.update_status(curr_percent, _u8L("A Storage needs to be inserted before printing via LAN."));
+                    return;
+                case DevStorage::SdcardState::HAS_SDCARD_ABNORMAL:
+                    if(this->has_sdcard) {
+                        // means the storage is abnormal but can be used option is enabled
+                        ctl.update_status(curr_percent, _u8L("Sending print job over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
+                        result = m_agent->start_local_print(params, update_fn, cancel_fn);
+                        break;
+                    }
+                    ctl.update_status(curr_percent, _u8L("The Storage in the printer is abnormal. Please replace it with a normal Storage before sending print job to printer."));
+                    return;
+                case DevStorage::SdcardState::HAS_SDCARD_READONLY:
+                    ctl.update_status(curr_percent, _u8L("The Storage in the printer is read-only. Please replace it with a normal Storage before sending print job to printer."));
+                    return;
+                case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
+                    ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+                    result = m_agent->start_local_print(params, update_fn, cancel_fn);
+                    break;
+                default:
+                    ctl.update_status(curr_percent, _u8L("Encountered an unknown error with the Storage status. Please try again."));
+                    return;
+            }
         }
     }
 

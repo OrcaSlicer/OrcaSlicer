@@ -2520,7 +2520,12 @@ void SelectMachineDialog::on_send_print()
         BOOST_LOG_TRIVIAL(error) << "build_nozzle_info errors";
     }
 
-    m_print_job->has_sdcard = obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
+    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();    
+    m_print_job->has_sdcard =  wxGetApp().app_config->get("allow_abnormal_storage") == "true"
+            ? (m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
+               || m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
+            : m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
+
     m_print_job->could_emmc_print = obj_->is_support_print_with_emmc;
 
 
@@ -3324,7 +3329,10 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             && !obj_->is_support_print_with_emmc) {
             show_status(PrintDialogStatus::PrintStatusLanModeNoSdcard);
             return;
-        } else if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL || obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_READONLY) {
+        } else if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_READONLY) {
+            show_status(PrintDialogStatus::PrintStatusLanModeSDcardNotAvailable);
+            return;
+        } else if(obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL &&  (wxGetApp().app_config->get("allow_abnormal_storage") == "false")){
             show_status(PrintDialogStatus::PrintStatusLanModeSDcardNotAvailable);
             return;
         }

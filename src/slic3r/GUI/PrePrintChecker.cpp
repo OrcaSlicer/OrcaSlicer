@@ -81,7 +81,7 @@ wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
     case PrintStatusAmsMappingMixInvalid: return _L("Please do not mix-use the Ext with AMS");
     case PrintStatusNozzleDataInvalid: return _L("Invalid nozzle information, please refresh or manually set nozzle information.");
     case PrintStatusLanModeNoSdcard: return _L("Storage needs to be inserted before printing via LAN.");
-    case PrintStatusLanModeSDcardNotAvailable: return _L("Storage is not available or is in read-only mode.");
+    case PrintStatusLanModeSDcardNotAvailable: return _L("Storage is in abnormal state or is in read-only mode.");
     case PrintStatusNoSdcard: return _L("Storage needs to be inserted before printing.");
     case PrintStatusNeedForceUpgrading: return _L("Cannot send the print job to a printer whose firmware is required to get updated.");
     case PrintStatusNeedConsistencyUpgrading: return _L("Cannot send the print job to a printer whose firmware is required to get updated.");

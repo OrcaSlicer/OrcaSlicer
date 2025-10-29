@@ -494,6 +494,7 @@ public:
 
     void reload_from_disk();
     void replace_with_stl();
+    void replace_all_with_stl();
     void reload_all_from_disk();
     bool has_toolpaths_to_export() const;
     void export_toolpaths_to_obj() const;
@@ -670,6 +671,7 @@ public:
     bool can_redo() const;
     bool can_reload_from_disk() const;
     bool can_replace_with_stl() const;
+    bool can_replace_all_with_stl() const;
     bool can_mirror() const;
     bool can_split(bool to_objects) const;
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
