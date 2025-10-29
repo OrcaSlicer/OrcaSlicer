@@ -4171,6 +4171,7 @@ struct Plater::priv
     void reload_from_disk();
     bool replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "");
     void replace_with_stl();
+    void replace_all_with_stl();
     void reload_all_from_disk();
 
     //BBS: add no_slice option
@@ -4284,6 +4285,7 @@ struct Plater::priv
     bool can_fillcolor() const;
     bool has_assemble_view() const;
     bool can_replace_with_stl() const;
+    bool can_replace_all_with_stl() const;
     bool can_split(bool to_objects) const;
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
     bool can_scale_to_print_volume() const;
@@ -7634,6 +7636,132 @@ void Plater::priv::replace_with_stl()
     }
 }
 
+void Plater::priv::replace_all_with_stl()
+{
+    if (! q->get_view3D_canvas3D()->get_gizmos_manager().check_gizmos_closed_except(GLGizmosManager::EType::Undefined))
+        return;
+
+    const Selection& selection = get_selection();
+
+    if (selection.is_wipe_tower())
+        return;
+
+    fs::path input_path;
+    Selection::IndicesList volume_idxs = selection.get_volume_idxs();
+
+    // when plates are selected instead of volumes
+    // then selection is inaccurate, we need to
+    // find volumes contained in selected plates
+
+    if (selection.is_empty() || volume_idxs.empty()) {
+        std::vector<int> selected_plate_idxs;
+
+        wxDataViewItemArray sels;
+        wxGetApp().obj_list()->GetSelections(sels);
+        for (const wxDataViewItem& item : sels) {
+            Slic3r::GUI::ItemType item_type = wxGetApp().obj_list()->GetModel()->GetItemType(item);
+            if (item_type & itPlate) {
+                if (item.IsOk()) {
+                    ObjectDataViewModelNode *node = static_cast<ObjectDataViewModelNode *>(item.GetID());
+                    selected_plate_idxs.push_back(node->GetPlateIdx());
+                }
+            }
+        }
+        PartPlateList& plate_list = wxGetApp().plater()->get_partplate_list();
+        for (int obj_idx = 0; obj_idx < selection.get_model()->objects.size(); obj_idx++) {
+            for (int plate_idx : selected_plate_idxs) {
+                PartPlate* plate = plate_list.get_plate(plate_idx);
+                if (plate && plate->contain_instance_totally(obj_idx, 0)) {
+                    std::vector<unsigned int> indices = selection.get_volume_idxs_from_object(obj_idx);
+                    volume_idxs.insert(indices.begin(), indices.end());
+                }
+            }
+        }
+    }
+
+    // find path for initializing the file selection dialog
+
+    for (unsigned int idx : volume_idxs) {
+        const GLVolume* v = selection.get_volume(idx);
+        int object_idx = v->object_idx();
+        int volume_idx = v->volume_idx();
+
+        const ModelObject* object = model.objects[object_idx];
+        const ModelVolume* volume = object->volumes[volume_idx];
+
+        if (!volume->source.input_file.empty() && fs::exists(volume->source.input_file)) {
+            input_path = volume->source.input_file;
+            break;
+        }
+    }
+
+    wxString title = _L("Select folder to replace from");
+    title += ":";
+    wxDirDialog dialog(q, title, from_u8(input_path.parent_path().string()), wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+    if (dialog.ShowModal() != wxID_OK)
+        return;
+
+    fs::path out_path = dialog.GetPath().ToUTF8().data();
+    if (out_path.empty()) {
+        MessageDialog dlg(q, _L("Directory for the replace wasn't selected"), _L("Error during replace"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+        dlg.ShowModal();
+        return;
+    }
+
+    std::string status = _L("Replaced with STLs from directory:\n").ToStdString() + out_path.string() + "\n\n";
+
+    for (unsigned int idx : volume_idxs) {
+        const GLVolume* v = selection.get_volume(idx);
+        int object_idx = v->object_idx();
+        int volume_idx = v->volume_idx();
+
+        const ModelObject* object = model.objects[object_idx];
+        const ModelVolume* volume = object->volumes[volume_idx];
+
+        if (volume->source.input_file.empty())
+            continue;
+
+        input_path = volume->source.input_file;
+
+        fs::path new_path = out_path / input_path.filename();
+
+        std::string volume_name = volume->name;
+
+        if (new_path == input_path) {
+            status += boost::str(boost::format(_L("✖ Skipped %1%: same file.\n").ToStdString()) % volume_name);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " skipping replace volume : same filename " << new_path;
+            continue;
+        }
+
+        if (!fs::exists(new_path)) {
+            status += boost::str(boost::format(_L("✖ Skipped %1%: file does not exist.\n").ToStdString()) % volume_name);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : filen does not exist " << new_path;
+            continue;
+        }
+
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " replacing volume : " << input_path << " with " << new_path;
+
+        if (!replace_volume_with_stl(object_idx, volume_idx, new_path, "Replace with STL")) {
+            status += boost::str(boost::format(_L("✖ Skipped %1%: failed to replace.\n").ToStdString()) % volume_name);
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : failed to replace with " << new_path;
+            continue;
+        }
+
+        status += boost::str(boost::format(_L("✔ Replaced %1%.\n").ToStdString()) % volume_name);
+    }
+
+    // update 3D scene
+    update();
+
+    // new GLVolumes have been created at this point, so update their printable state
+    for (size_t i = 0; i < model.objects.size(); ++i) {
+        view3D->get_canvas3d()->update_instance_printable_state_for_object(i);
+    }
+
+    MessageDialog dlg(q, status, _L("Replaced volumes"), wxOK | wxOK_DEFAULT | wxICON_INFORMATION);
+    dlg.ShowModal();
+}
+
 #if ENABLE_RELOAD_FROM_DISK_REWORK
 static std::vector<std::pair<int, int>> reloadable_volumes(const Model &model, const Selection &selection)
 {
@@ -10196,6 +10324,12 @@ bool Plater::priv::can_replace_with_stl() const
 {
     return !sidebar->obj_list()->has_selected_cut_object()
         && get_selection().get_volume_idxs().size() == 1;
+}
+
+bool Plater::priv::can_replace_all_with_stl() const
+{
+    return !sidebar->obj_list()->has_selected_cut_object()
+        && get_selection().get_volume_idxs().size() != 1;
 }
 
 bool Plater::priv::can_reload_from_disk() const
@@ -14036,7 +14170,7 @@ bool Plater::check_printer_initialized(MachineObject *obj, bool only_warning, bo
                 break;
             }
         }
-        if (extruder.GetNozzleFlowType() == NozzleType::ntUndefine) {
+        if (extruder.GetNozzleFlowType() == NozzleFlowType::NONE_FLOWTYPE) {
             has_been_initialized = false;
             break;
         }
@@ -14719,6 +14853,11 @@ void Plater::reload_from_disk()
 void Plater::replace_with_stl()
 {
     p->replace_with_stl();
+}
+
+void Plater::replace_all_with_stl()
+{
+    p->replace_all_with_stl();
 }
 
 void Plater::reload_all_from_disk()
@@ -17317,6 +17456,7 @@ bool Plater::can_reload_from_disk() const { return p->can_reload_from_disk(); }
 bool Plater::can_fillcolor() const { return p->can_fillcolor(); }
 bool Plater::has_assmeble_view() const { return p->has_assemble_view(); }
 bool Plater::can_replace_with_stl() const { return p->can_replace_with_stl(); }
+bool Plater::can_replace_all_with_stl() const { return p->can_replace_all_with_stl(); }
 bool Plater::can_mirror() const { return p->can_mirror(); }
 bool Plater::can_split(bool to_objects) const { return p->can_split(to_objects); }
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT

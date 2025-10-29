@@ -1949,7 +1949,13 @@ msgstr ""
 msgid "Replace with STL"
 msgstr ""
 
+msgid "Replace all with STL"
+msgstr ""
+
 msgid "Replace the selected part with new STL"
+msgstr ""
+
+msgid "Replace all selected parts with STL from folder"
 msgstr ""
 
 msgid "Change filament"
@@ -2269,6 +2275,18 @@ msgid ""
 "\n"
 "To manipulate with solid parts or negative volumes you have to invalidate "
 "cut information first."
+msgstr ""
+
+msgid "✖ Skipped %1%: %2%, same file\n"
+msgstr ""
+
+msgid "✖ Skipped %1%: %2% does not exist.\n"
+msgstr ""
+
+msgid "✖ Skipped %1%: failed to replace.\n"
+msgstr ""
+
+msgid "✔ Replaced %1% with %2%\n"
 msgstr ""
 
 msgid "Delete all connectors"
@@ -6695,6 +6713,12 @@ msgid "Select a new file"
 msgstr ""
 
 msgid "File for the replace wasn't selected"
+msgstr ""
+
+msgid "Select folder to replace from"
+msgstr ""
+
+msgid "Directory for the replace wasn't selected"
 msgstr ""
 
 msgid "Please select a file"
