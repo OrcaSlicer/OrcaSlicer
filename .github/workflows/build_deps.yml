@@ -19,11 +19,14 @@ on:
       build-deps-only:
         required: false
         type: boolean
+      force-build:
+        required: false
+        type: boolean
 
 jobs:
   build_deps:
     name: Build Deps
-    if: inputs.build-deps-only || inputs.valid-cache != true
+    if: inputs.build-deps-only || inputs.force-build || inputs.valid-cache != true
     runs-on: ${{ inputs.os }}
     env:
       date:
@@ -85,28 +88,15 @@ jobs:
             brew install zstd
 
 
-      - name: Install Ubuntu Build Dependencies
-        if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04'
-        working-directory: ${{ github.workspace }}
-        env:
-          apt-cmd: ${{ (inputs.os == 'ubuntu-20.04' && 'apt-fast') || (inputs.os == 'ubuntu-24.04' && 'sudo apt-get') || '' }}
-          webkit-ver: ${{ (inputs.os == 'ubuntu-20.04' && '4.0') || (inputs.os == 'ubuntu-24.04' && '4.1') || '' }}
-        run: |
-            ${{ env.apt-cmd }} update
-            ${{ env.apt-cmd }} install -y cmake git g++ build-essential libgl1-mesa-dev m4 \
-            libwayland-dev libxkbcommon-dev wayland-protocols extra-cmake-modules pkgconf \
-            libglu1-mesa-dev libcairo2-dev libgtk-3-dev libsoup2.4-dev libwebkit2gtk-${{ env.webkit-ver }}-dev \
-            libgstreamer1.0-dev libgstreamer-plugins-good1.0-dev libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-bad wget sudo autoconf curl libunwind-dev texinfo
+      - name: Apt-Install Dependencies
+        if: inputs.os == 'ubuntu-24.04'
+        uses: ./.github/actions/apt-install-deps
 
       - name: Build on Ubuntu
         if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04'
         working-directory: ${{ github.workspace }}
         run: |
-            mkdir -p ${{ github.workspace }}/deps/build
             mkdir -p ${{ github.workspace }}/deps/build/destdir
-            sudo ./build_linux.sh -ur
-            sudo chown $USER -R ./
             ./build_linux.sh -dr
             cd deps/build
             tar -czvf OrcaSlicer_dep_ubuntu_$(date +"%Y%m%d").tar.gz destdir
@@ -139,7 +129,7 @@ jobs:
   build_orca:
     name: Build OrcaSlicer
     needs: [build_deps]
-    if: ${{ !cancelled() && !inputs.build-deps-only && (inputs.valid-cache == true && needs.build_deps.result == 'skipped') || (inputs.valid-cache != true && success()) }}
+    if: ${{ !cancelled() && !inputs.build-deps-only && (inputs.force-build || (inputs.valid-cache == true && needs.build_deps.result == 'skipped') || (inputs.valid-cache != true && success())) }}
     uses: ./.github/workflows/build_orca.yml
     with:
       cache-key: ${{ inputs.cache-key }}

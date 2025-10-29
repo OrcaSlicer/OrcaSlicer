@@ -7,7 +7,7 @@ SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
 pushd "${SCRIPT_PATH}" > /dev/null
 
 function usage() {
-    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
+    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
     echo "   -1: limit builds to one core (where possible)"
     echo "   -j N: limit builds to N cores (where possible)"
     echo "   -b: build in Debug mode"
@@ -21,7 +21,7 @@ function usage() {
     echo "   -p: boost ccache hit rate by disabling precompiled headers (default: ON)"
     echo "   -r: skip RAM and disk checks (low RAM compiling)"
     echo "   -s: build the Orca Slicer (optional)"
-    echo "   -t: build tests (optional)"
+    echo "   -t: build tests (optional), requires -s flag"
     echo "   -u: install system dependencies (asks for sudo password; build prerequisite)"
     echo "   -l: use Clang instead of GCC (default: GCC)"
     echo "   -L: use ld.lld as linker (if available)"
@@ -99,6 +99,11 @@ done
 
 if [ ${OPTIND} -eq 1 ] ; then
     usage
+    exit 1
+fi
+
+if [[ -n "${BUILD_TESTS}" ]] && [[ -z "${BUILD_ORCA}" ]] ; then
+    echo "-t flag requires -s flag in the same invocation"
     exit 1
 fi
 
@@ -243,19 +248,22 @@ if [[ -n "${BUILD_ORCA}" ]] ; then
     echo "Building OrcaSlicer_profile_validator .."
     print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer_profile_validator
     ./scripts/run_gettext.sh
+    if [[ -n "${BUILD_TESTS}" ]] ; then
+	echo "Building tests ..."
+	print_and_run cmake --build ${BUILD_DIR} --config "${BUILD_CONFIG}" --target tests/all
+    fi
     echo "done"
 fi
 
 if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
     pushd $BUILD_DIR > /dev/null
-    echo "[9/9] Generating Linux app..."
     build_linux_image="./src/build_linux_image.sh"
     if [[ -e ${build_linux_image} ]] ; then
         extra_script_args=""
         if [[ -n "${BUILD_IMAGE}" ]] ; then
             extra_script_args="-i"
         fi
-        print_and_run ${build_linux_image} ${extra_script_args}
+        print_and_run ${build_linux_image} ${extra_script_args} -R "${BUILD_CONFIG}"
 
         echo "done"
     fi
