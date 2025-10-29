@@ -21,6 +21,7 @@ on:
      - release/*
     paths:
      - 'deps/**'
+     - 'deps_src/**'
      - 'src/**'
      - '**/CMakeLists.txt'
      - 'version.inc'
@@ -29,6 +30,8 @@ on:
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
+     - 'resources/**'
+
 
   workflow_dispatch: # allows for manual dispatch
     inputs:
