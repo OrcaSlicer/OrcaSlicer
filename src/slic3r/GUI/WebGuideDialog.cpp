@@ -505,10 +505,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
         }
         else if (strCmd == "save_stealth_mode") {
             wxString strAction = j["data"]["action"];
-
-            if (strAction != "yes") {
-                StealthMode = true;
-        }
+                StealthMode = true
     } catch (std::exception &e) {
         // wxMessageBox(e.what(), "json Exception", MB_OK);
         BOOST_LOG_TRIVIAL(trace) << "GuideFrame::OnScriptMessage;Error:" << e.what();
