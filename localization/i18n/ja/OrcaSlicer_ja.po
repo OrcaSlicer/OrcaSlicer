@@ -11550,7 +11550,7 @@ msgid "CHT"
 msgstr "CHT"
 
 msgid "Tungsten Carbide"
-msgstr "炭化タングステン"Carbure de Tungstène
+msgstr "炭化タングステン"
 
 msgid "Nozzle HRC"
 msgstr "ノズルHRC"
