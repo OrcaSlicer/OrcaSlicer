@@ -237,8 +237,8 @@ function SortUI()
 	//--If Need Install Network Plugin
 	if(m_ProfileItem["network_plugin_install"]!='1' || (m_ProfileItem["network_plugin_install"]=='1' && m_ProfileItem["network_plugin_compability"]=='0') )
 	{
-		$("#AcceptBtn").hide();
-		$("#GotoNetPluginBtn").show();
+		$("#AcceptBtn").show();
+		$("#GotoNetPluginBtn").hide();
 	}
 }
 
