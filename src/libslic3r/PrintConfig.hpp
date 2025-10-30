@@ -344,6 +344,18 @@ enum PrinterStructure {
     psDelta
 };
 
+enum class InputShaperType : unsigned char {
+    Default = 0,
+    MZV,
+    ZVD,
+    ZVDD,
+    ZVDDD,
+    EI2,
+    EI3,
+    DAA,
+    Disable
+};
+
 // BBS
 enum ZHopType {
     zhtAuto = 0,
@@ -506,6 +518,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BrimType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TimelapseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BedType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SkirtType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InputShaperType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(DraftShield)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ForwardCompatibilitySubstitutionRule)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeThumbnailsFormat)
@@ -1225,6 +1238,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 resonance_avoidance))
     ((ConfigOptionFloat,                min_resonance_avoidance_speed))
     ((ConfigOptionFloat,                max_resonance_avoidance_speed))
+    //Input shaping
+    ((ConfigOptionBool,                 input_shaping_enable))
+    ((ConfigOptionEnum<InputShaperType>, input_shaping_type))
+    ((ConfigOptionFloat,                input_shaping_freq_x))
+    ((ConfigOptionFloat,                input_shaping_freq_y))
+    ((ConfigOptionFloat,                input_shaping_damp_x))
+    ((ConfigOptionFloat,                input_shaping_damp_y))
 )
 
 // This object is mapped to Perl as Slic3r::Config::GCode.

@@ -472,6 +472,19 @@ static t_config_enum_values s_keys_map_PrinterStructure {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrinterStructure)
 
+static t_config_enum_values s_keys_map_InputShaperType {
+    {"default", int(InputShaperType::Default)},
+    {"mzv",     int(InputShaperType::MZV)},
+    {"zvd",     int(InputShaperType::ZVD)},
+    {"zvdd",    int(InputShaperType::ZVDD)},
+    {"zvddd",   int(InputShaperType::ZVDDD)},
+    {"ei2",     int(InputShaperType::EI2)},
+    {"ei3",     int(InputShaperType::EI3)},
+    {"daa",     int(InputShaperType::DAA)},
+    {"disable", int(InputShaperType::Disable)}
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InputShaperType)
+
 static t_config_enum_values s_keys_map_PerimeterGeneratorType{
     { "classic", int(PerimeterGeneratorType::Classic) },
     { "arachne", int(PerimeterGeneratorType::Arachne) }
@@ -4221,6 +4234,51 @@ void PrintConfigDef::init_fff_params()
     def->min      = 0;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
+
+    def          = this->add("input_shaping_enable", coBool);
+    def->label   = L("Enable input shaping");
+    def->tooltip = L("Emit SET_INPUT_SHAPER commands before printing moves.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def               = this->add("input_shaping_type", coEnum);
+    def->label        = L("Input shaper type");
+    def->tooltip      = L("Choose the input shaper algorithm to use when generating SET_INPUT_SHAPER commands.");
+    def->enum_keys_map = &ConfigOptionEnum<InputShaperType>::get_enum_values();
+    def->enum_values  = {"default", "mzv", "zvd", "zvdd", "zvddd", "ei2", "ei3", "daa", "disable"};
+    def->enum_labels  = {L("Default"), L("MZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI2"), L("EI3"), L("DAA"), L("Disable")};
+    def->mode         = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<InputShaperType>(InputShaperType::Default));
+
+    def           = this->add("input_shaping_freq_x", coFloat);
+    def->label    = L("X");
+    def->tooltip  = L("Resonant frequency for the X axis input shaper.\nRRF: X and Y values are equal.");
+    def->sidetext = "Hz";
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def           = this->add("input_shaping_freq_y", coFloat);
+    def->label    = L("Y");
+    def->tooltip  = L("Resonant frequency for the Y axis input shaper.");
+    def->sidetext = "Hz";
+    def->min      = 0;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def          = this->add("input_shaping_damp_x", coFloat);
+    def->label   = L("X");
+    def->tooltip = L("Damping ratio for the X axis input shaper.\nRRF: X and Y values are equal.");
+    def->min     = 0;
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def          = this->add("input_shaping_damp_y", coFloat);
+    def->label   = L("Y");
+    def->tooltip = L("Damping ratio for the Y axis input shaper.");
+    def->min     = 0;
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("fan_max_speed", coFloats);
     def->label = L("Fan speed");

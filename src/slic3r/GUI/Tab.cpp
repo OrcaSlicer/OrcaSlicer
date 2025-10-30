@@ -4735,6 +4735,20 @@ PageShp TabPrinter::build_kinematics_page()
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
         optgroup->append_line(resonance_line);
     }
+    optgroup->append_single_option_line("input_shaping_enable");
+    optgroup->append_single_option_line("input_shaping_type");
+    {
+        Line freq_line = {L("Frequency"), L("")};
+        freq_line.append_option(optgroup->get_option("input_shaping_freq_x"));
+        freq_line.append_option(optgroup->get_option("input_shaping_freq_y"));
+        optgroup->append_line(freq_line);
+    }
+    {
+        Line damping_line = {L("Damping"), L("")};
+        damping_line.append_option(optgroup->get_option("input_shaping_damp_x"));
+        damping_line.append_option(optgroup->get_option("input_shaping_damp_y"));
+        optgroup->append_line(damping_line);
+    }
 
     const std::vector<std::string> speed_axes{
         "machine_max_speed_x",
@@ -5360,6 +5374,13 @@ void TabPrinter::toggle_options()
         bool resonance_avoidance = m_config->opt_bool("resonance_avoidance");
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
+
+        bool input_shaping_enabled = m_config->opt_bool("input_shaping_enable");
+        toggle_option("input_shaping_type", input_shaping_enabled);
+        toggle_option("input_shaping_freq_x", input_shaping_enabled);
+        toggle_option("input_shaping_freq_y", input_shaping_enabled);
+        toggle_option("input_shaping_damp_x", input_shaping_enabled);
+        toggle_option("input_shaping_damp_y", input_shaping_enabled);
     }
 }
 
