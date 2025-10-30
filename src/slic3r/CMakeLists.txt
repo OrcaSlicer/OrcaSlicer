@@ -675,7 +675,17 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/GeneratedConfig.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/GeneratedConfig.hpp
                @ONLY)
 
-add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
+if (WIN32)
+    add_library(libslic3r_gui STATIC
+        ${SLIC3R_GUI_SOURCES}
+        ../dev-utils/BaseException.cpp
+        ../dev-utils/BaseException.h
+        ../dev-utils/StackWalker.cpp
+        ../dev-utils/StackWalker.h
+    )
+else ()
+    add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
+endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
 
 if (WIN32)
