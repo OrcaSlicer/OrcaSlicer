@@ -19,6 +19,7 @@
     "bed_exclude_area": [
         "0x0"
     ],
+    "printable_height": "600",
     "change_extrusion_role_gcode": ";changement role extrusion",
     "change_filament_gcode": "\n;filament\n",
     "enable_filament_ramming": "0",

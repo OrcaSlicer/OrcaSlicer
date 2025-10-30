@@ -13,7 +13,8 @@
         "300x0",
         "300x300",
         "0x300"
-    ],  
+    ],
+    "printable_height": "600",  
     "printer_model": "Cosmyx SuperNova Double Tete",
     "printer_variant": "0.6",
     "bed_exclude_area": [
