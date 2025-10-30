@@ -113,7 +113,7 @@ GuideFrame::GuideFrame(GUI_App *pGUI, long style)
     // INI
     m_SectionName = "firstguide";
     PrivacyUse    = false;
-    StealthMode   = false;
+    StealthMode   = true;
     InstallNetplugin = false;
 
     m_MainPtr = pGUI;
@@ -509,7 +509,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
             if (strAction == "yes") {
                 StealthMode = true;
             } else {
-                StealthMode = false;
+                StealthMode = true;
             }
         }
     } catch (std::exception &e) {
