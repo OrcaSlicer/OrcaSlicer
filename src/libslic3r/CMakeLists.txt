@@ -591,12 +591,12 @@ target_link_libraries(libslic3r
         TBB::tbb
         TBB::tbbmalloc
         ZLIB::ZLIB
+        OpenSSL::Crypto
     )
 
 if(NOT WIN32)
     # Link freetype for OCCT dependency (CAD operations need font rendering)
     target_link_libraries(libslic3r PRIVATE ${FREETYPE_LIBRARIES})
-    target_link_libraries(libslic3r PRIVATE OpenSSL::Crypto)
     if (NOT APPLE)
         target_link_libraries(libslic3r PRIVATE fontconfig)
     endif()
@@ -613,7 +613,7 @@ if (TARGET OpenVDB::openvdb)
 endif()
 
 if(WIN32)
-    target_link_libraries(libslic3r PRIVATE Psapi.lib)
+    target_link_libraries(libslic3r PRIVATE Psapi.lib bcrypt.lib)
 endif()
 
 if(SLIC3R_PROFILE)

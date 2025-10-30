@@ -489,7 +489,7 @@ static constexpr float  gsizef = 100.0; // grid size in mm (box volume side leng
 static constexpr float  wsizef = 0.50;  // grid window size in mm (roughly line segment length).
 static constexpr float  psizef = 0.01;  // raster pixel size in mm (roughly point accuracy).
 static constexpr float  isoval = 0.0;   // iso value threshold to use.
-static constexpr size_t wsize  = std::round(wsizef / psizef);
+static const     long   wsize  = std::round(wsizef / psizef);
 
 static float period = 10.0;            // gyroid "wavelength" in mm (2x line spacing).
 static float freq   = 2 * PI / period; // gyroid frequency in waves per mm.
