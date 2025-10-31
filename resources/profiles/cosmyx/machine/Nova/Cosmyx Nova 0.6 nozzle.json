@@ -10,6 +10,7 @@
     ],
     "printer_model": "Cosmyx Nova",
     "printer_variant": "0.6",
+    "nozzle_type": "cht",
     "default_print_profile": "0.30mm Standard @Cosmyx Nova 0.6 nozzle",
     "max_layer_height": [
         "0.42"

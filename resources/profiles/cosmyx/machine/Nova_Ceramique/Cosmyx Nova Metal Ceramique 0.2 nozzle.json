@@ -8,5 +8,6 @@
         "0.2"
     ],
     "printer_model": "Cosmyx Nova Metal Ceramique",
-    "printer_variant": "0.2"
+    "printer_variant": "0.2",
+    "nozzle_type": "brass"
 }

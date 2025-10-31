@@ -20,7 +20,7 @@
     "min_layer_height": [
         "0.04"
     ],
-    "nozzle_type": "stainless_steel",
+    "nozzle_type": "cht",
     "retraction_length": [
         "0.4"
     ],

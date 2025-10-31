@@ -15,6 +15,7 @@
         "300x300",
         "0x300"
     ],
+    "nozzle_type": "cht",
     "printable_height": "600"
 
 

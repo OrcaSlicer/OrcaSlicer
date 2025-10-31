@@ -10,6 +10,7 @@
     ],
     "printer_model": "Cosmyx Nova",
     "printer_variant": "0.4",
+    "nozzle_type": "cht",
     "bed_exclude_area": [
         "0x0"
     ],

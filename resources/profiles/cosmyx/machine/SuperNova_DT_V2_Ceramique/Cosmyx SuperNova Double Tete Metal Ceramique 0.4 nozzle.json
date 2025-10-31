@@ -17,6 +17,7 @@
     "printable_height": "600",
     "printer_model": "Cosmyx SuperNova Double Tete Metal Ceramique",
     "printer_variant": "0.4",
+    "nozzle_type": "brass",
     "bed_exclude_area": [
         "0x0"
     ],
