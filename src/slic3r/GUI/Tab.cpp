@@ -4796,7 +4796,7 @@ PageShp TabPrinter::build_kinematics_page()
     optgroup->append_single_option_line("emit_machine_limits_to_gcode", "printer_motion_ability#emit-limits-to-g-code");
 
     // resonance avoidance ported over from qidi slicer
-    optgroup = page->new_optgroup(L("Resonance Avoidance"), "param_resonance_avoidance");
+    optgroup = page->new_optgroup(L("Resonance Compensation"), "param_resonance_avoidance");
     optgroup->append_single_option_line("resonance_avoidance", "printer_motion_ability#resonance-avoidance");
     // Resonance‑avoidance speed inputs
     {
@@ -4806,16 +4806,16 @@ PageShp TabPrinter::build_kinematics_page()
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
         optgroup->append_line(resonance_line);
     }
-    optgroup->append_single_option_line("input_shaping_enable");
-    optgroup->append_single_option_line("input_shaping_type");
+    optgroup->append_single_option_line("input_shaping_enable", "input-shaping-calib");
+    optgroup->append_single_option_line("input_shaping_type", "input-shaping-calib");
     {
-        Line freq_line = {L("Frequency"), L("")};
+        Line freq_line = {L("Frequency"), L("The frequency of the anti-vibration signal will correspond to the natural frequency of the frame.")};
         freq_line.append_option(optgroup->get_option("input_shaping_freq_x"));
         freq_line.append_option(optgroup->get_option("input_shaping_freq_y"));
         optgroup->append_line(freq_line);
     }
     {
-        Line damping_line = {L("Damping"), L("")};
+        Line damping_line = {L("Damping"), L("Damping ratio for the input shaping filter.")};
         damping_line.append_option(optgroup->get_option("input_shaping_damp_x"));
         damping_line.append_option(optgroup->get_option("input_shaping_damp_y"));
         optgroup->append_line(damping_line);
