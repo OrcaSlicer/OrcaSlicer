@@ -39,6 +39,7 @@
 #include "Tab.hpp"
 #include "format.hpp"
 #include "slic3r/GUI/GUI.hpp"
+#include "slic3r/Utils/FileHelp.hpp"
 #include <imgui/imgui_internal.h>
 #include <wx/dcgraph.h>
 using boost::optional;
@@ -5563,8 +5564,10 @@ void PartPlateList::update_logo_texture_filename(const std::string &texture_file
     if (!texture_filename.empty() && !check_texture(texture_filename)) {
 		m_logo_texture_filename = "";
         BOOST_LOG_TRIVIAL(error) << "Unable to load bed texture: " << texture_filename;
-    } else
+    } else {
         m_logo_texture_filename = texture_filename;
+        Utils::slash_to_back_slash(m_logo_texture_filename);
+    }
 }
 
 /*slice related functions*/

@@ -101,6 +101,8 @@ void GLTexture::Compressor::send_compressed_data_to_gpu()
     	this->reset();
 }
 
+std::atomic<bool> GLTexture::Compressor::m_dirty = false;
+
 void GLTexture::Compressor::compress()
 {
     // reference: https://github.com/Cyan4973/RygsDXTc
@@ -123,6 +125,11 @@ void GLTexture::Compressor::compress()
         level.src_data.clear();
         ++ m_num_levels_compressed;
     }
+
+    // Trigger an idle event to refresh the scene once the texture data is ready
+    // This fixes the issue that the bed texture is black after switching printer model until mouse moves to the 3d scene
+    m_dirty = true;
+    wxWakeUpIdle();
 }
 
 GLTexture::Quad_UVs GLTexture::FullTextureUVs = { { 0.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f } };

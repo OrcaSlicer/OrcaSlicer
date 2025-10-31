@@ -3309,6 +3309,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     bool imgui_requires_extra_frame = wxGetApp().imgui()->requires_extra_frame();
     m_dirty |= imgui_requires_extra_frame;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+    m_dirty |= GLTexture::Compressor::has_compressed_texture_to_refresh();
 
     if (!m_dirty)
         return;
