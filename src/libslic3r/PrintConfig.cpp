@@ -90,6 +90,23 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
+{
+    switch (flavor) {
+    case GCodeFlavor::gcfKlipper:
+        return {"Default", "MZV", "ZV", "ZVD", "EI", "2HUMP_EI", "3HUMP_EI"};
+    case GCodeFlavor::gcfRepRapFirmware:
+        return {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI2", "EI3", "DAA"};
+    case GCodeFlavor::gcfMarlinFirmware:
+        return {"ZV"};
+    case GCodeFlavor::gcfMarlinLegacy:
+        return {};
+    default:
+        break;
+    }
+    return {"Default"};
+}
+
 static t_config_enum_names enum_names_from_keys_map(const t_config_enum_values &enum_keys_map)
 {
     t_config_enum_names names;
@@ -475,6 +492,7 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrinterStructure)
 static t_config_enum_values s_keys_map_InputShaperType {
     {"default", int(InputShaperType::Default)},
     {"mzv",     int(InputShaperType::MZV)},
+    {"zv",      int(InputShaperType::ZV)},
     {"zvd",     int(InputShaperType::ZVD)},
     {"zvdd",    int(InputShaperType::ZVDD)},
     {"zvddd",   int(InputShaperType::ZVDDD)},
@@ -4248,8 +4266,8 @@ void PrintConfigDef::init_fff_params()
     def->label        = L("Input shaper type");
     def->tooltip      = L("Choose the input shaper algorithm to use when generating SET_INPUT_SHAPER commands.");
     def->enum_keys_map = &ConfigOptionEnum<InputShaperType>::get_enum_values();
-    def->enum_values  = {"default", "mzv", "zvd", "zvdd", "zvddd", "ei", "ei2", "2hump_ei", "ei3", "3hump_ei", "daa", "disable"};
-    def->enum_labels  = {L("Default"), L("MZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HumpEI"), L("EI3"), L("3HumpEI"), L("DAA"), L("Disable")};
+    def->enum_values  = {"default", "mzv", "zv", "zvd", "zvdd", "zvddd", "ei", "ei2", "2hump_ei", "ei3", "3hump_ei", "daa", "disable"};
+    def->enum_labels  = {L("Default"), L("MZV"), L("ZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HumpEI"), L("EI3"), L("3HumpEI"), L("DAA"), L("Disable")};
     def->mode         = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InputShaperType>(InputShaperType::Default));
 

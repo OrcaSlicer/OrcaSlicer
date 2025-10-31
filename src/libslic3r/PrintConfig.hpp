@@ -347,6 +347,7 @@ enum PrinterStructure {
 enum class InputShaperType : unsigned char {
     Default = 0,
     MZV,
+    ZV,
     ZVD,
     ZVDD,
     ZVDDD,
