@@ -3679,6 +3679,14 @@ void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print, int ex
             print.config().machine_max_jerk_z.values.front() * factor,
             print.config().machine_max_jerk_e.values.front() * factor);
 
+        if (print.config().input_shaping_enable.value && flavor != gcfMarlinLegacy) {
+            file.write_format(writer().set_input_shaping('X', print.config().input_shaping_damp_x.value,
+                print.config().input_shaping_freq_x.value, print.config().opt_serialize("input_shaping_type")).c_str());
+            if (flavor != gcfRepRapFirmware){
+                file.write_format(writer().set_input_shaping('Y', print.config().input_shaping_damp_y.value,
+                    print.config().input_shaping_freq_y.value, "").c_str());
+            }
+        }
         // New Marlin uses M205 J[mm] for junction deviation (only apply if it is > 0)
         file.write_format(writer().set_junction_deviation(config().machine_max_junction_deviation.values.front()).c_str());
     }
