@@ -3005,14 +3005,14 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("hardened_steel");
     def->enum_values.push_back("stainless_steel");
     def->enum_values.push_back("brass");
-    def->enum_values.push_back("cht");
     def->enum_values.push_back("tungsten_carbide");
+    def->enum_values.push_back("cht");
     def->enum_labels.push_back(L("Undefine"));
     def->enum_labels.push_back(L("Hardened steel"));
     def->enum_labels.push_back(L("Stainless steel"));
     def->enum_labels.push_back(L("Brass"));
-    def->enum_labels.push_back(L("CHT"));
     def->enum_labels.push_back(L("Tungsten Carbide"));
+    def->enum_values.push_back("cht");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<NozzleType>(ntUndefine));
 
