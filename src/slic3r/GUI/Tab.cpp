@@ -5375,12 +5375,21 @@ void TabPrinter::toggle_options()
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
 
-        bool input_shaping_enabled = m_config->opt_bool("input_shaping_enable");
-        toggle_option("input_shaping_type", input_shaping_enabled);
-        toggle_option("input_shaping_freq_x", input_shaping_enabled);
-        toggle_option("input_shaping_freq_y", input_shaping_enabled);
-        toggle_option("input_shaping_damp_x", input_shaping_enabled);
-        toggle_option("input_shaping_damp_y", input_shaping_enabled);
+        if (m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfMarlinLegacy) {
+            bool input_shaping_enabled = m_config->opt_bool("input_shaping_enable");
+            bool reprap = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
+            toggle_option("input_shaping_type", input_shaping_enabled);
+            toggle_option("input_shaping_freq_x", input_shaping_enabled);
+            toggle_option("input_shaping_freq_y", input_shaping_enabled && !reprap);
+            toggle_option("input_shaping_damp_x", input_shaping_enabled);
+            toggle_option("input_shaping_damp_y", input_shaping_enabled && !reprap);
+        } else {
+            for (auto is : {"input_shaping_enable", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y",
+                            "input_shaping_damp_x", "input_shaping_damp_y"})
+                toggle_line(is, false);
+        }
+
+        s_input_shaper_type_list.refresh();
     }
 }
 
