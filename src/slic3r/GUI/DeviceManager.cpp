@@ -4024,7 +4024,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             if (jj["result"].get<std::string>() == "fail") {
                                 is_succeed = false;
                             }
-                            is_succeed = false;
                         }
 
                         if (is_succeed) {
