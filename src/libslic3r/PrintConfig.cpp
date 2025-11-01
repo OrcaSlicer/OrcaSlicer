@@ -7442,6 +7442,8 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "wipe_tower_fillet_wall";
     } else if (opt_key == "extruder_clearance_max_radius") {
         opt_key = "extruder_clearance_radius";
+    } else if (opt_key == "machine_switch_extruder_time") {
+        opt_key = "machine_tool_change_time";
     }
 
     // Ignore the following obsolete configuration keys:
