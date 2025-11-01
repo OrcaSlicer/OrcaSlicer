@@ -818,19 +818,15 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
     });
 
     for (const CalibInfo &calib_info : calib_infos) {
-        int   index      = get_index_for_extruder_parameter(print_config, "outer_wall_speed", calib_info.extruder_id, calib_info.extruder_type, calib_info.nozzle_volume_type);
-        float wall_speed = CalibPressureAdvance::find_optimal_PA_speed(full_config, print_config.get_abs_value("line_width"), print_config.get_abs_value("layer_height"),
-                                                                       calib_info.extruder_id, 0);
-
-        ConfigOptionFloats *wall_speed_speed_opt = print_config.option<ConfigOptionFloats>("outer_wall_speed");
-        std::vector<double> new_speeds = wall_speed_speed_opt->values;
-        new_speeds[index] = wall_speed;
         ModelObject* object = model.objects[calib_info.index];
-        object->config.set_key_value("outer_wall_speed", new ConfigOptionFloats(new_speeds));
+        object->config.set_key_value("outer_wall_speed",
+            new ConfigOptionFloat(CalibPressureAdvance::find_optimal_PA_speed(
+                full_config, print_config.get_abs_value("line_width"),
+                print_config.get_abs_value("layer_height"), calib_info.extruder_id, 0)));
     }
 
     for (const auto opt : SuggestedConfigCalibPAPattern().nozzle_ratio_pairs) {
-        print_config.set_key_value(opt.first, new ConfigOptionFloat(nozzle_diameter * opt.second / 100));
+        print_config.set_key_value(opt.first, new ConfigOptionFloatOrPercent(nozzle_diameter * opt.second / 100, false));
     }
 
     for (const auto opt : SuggestedConfigCalibPAPattern().int_pairs) { print_config.set_key_value(opt.first, new ConfigOptionInt(opt.second)); }
@@ -1603,6 +1599,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
 
     Print *fff_print = dynamic_cast<Print *>(print);
     fff_print->set_calib_params(params);
+    fff_print->is_BBL_printer() = true;
 
     //StringObjectException warning;
     //auto err = print->validate(&warning);
@@ -1886,6 +1883,8 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
             return;
         }
     }
+
+    print_worker = std::make_unique<PlaterWorker<BoostThreadWorker>>(wxGetApp().plater(), std::move(process_bar), "calib_worker");
 
     auto print_job                = std::make_shared<PrintJob>(dev_id);
     print_job->m_dev_ip      = obj_->get_dev_ip();
