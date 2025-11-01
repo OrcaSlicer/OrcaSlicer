@@ -21,6 +21,7 @@
 #include <boost/format/format_fwd.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
+#include <boost/log/trivial.hpp>
 
 #include <cereal/access.hpp>
 #include <cereal/types/base_class.hpp>
@@ -2514,7 +2515,11 @@ public:
     TYPE* option(const t_config_option_key &opt_key, bool create = false)
     {
         ConfigOption *opt = this->optptr(opt_key, create);
-        return (opt == nullptr || opt->type() != TYPE::static_type()) ? nullptr : static_cast<TYPE*>(opt);
+        if (opt != nullptr && opt->type() != TYPE::static_type()) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": attempt to access option with wrong type: " << opt_key;
+            return nullptr;
+        }
+        return static_cast<TYPE*>(opt);
     }
 
     ConfigOption* option_throw(const t_config_option_key &opt_key, bool create = false)
