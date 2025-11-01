@@ -1096,11 +1096,13 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                     render_icon_texture(m_lock_icon.model, m_partplate_list->m_lockopen_texture);
             }
 
-			int extruder_count = wxGetApp().preset_bundle->get_printer_extruder_count();
-            if (extruder_count == 2) {
-                if (hover_id == PLATE_FILAMENT_MAP_ID)
+            PresetBundle* preset = wxGetApp().preset_bundle;
+            bool dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
+            if (dual_bbl) {
+                if (hover_id == PLATE_FILAMENT_MAP_ID){
                     render_icon_texture(m_plate_filament_map_icon.model, m_partplate_list->m_plate_set_filament_map_hovered_texture);
-                else
+                    show_tooltip(_u8L("Filament grouping"));
+                } else
                     render_icon_texture(m_plate_filament_map_icon.model, m_partplate_list->m_plate_set_filament_map_texture);
             }
 
@@ -3044,9 +3046,11 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
         calc_vertex_for_icons(2, m_arrange_icon);
         calc_vertex_for_icons(3, m_lock_icon);
         calc_vertex_for_icons(4, m_plate_settings_icon);
-        calc_vertex_for_icons(5, m_plate_filament_map_icon);
-        calc_vertex_for_icons(6, m_move_front_icon);
         // ORCA also change bed_icon_count number in calc_vertex_for_icons() after adding or removing icons for circular shaped beds that uses vertical alingment for icons
+        PresetBundle* preset = wxGetApp().preset_bundle;
+        bool dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
+        calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
+        calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
 
 		//calc_vertex_for_number(0, (m_plate_index < 9), m_plate_idx_icon);
 		calc_vertex_for_number(0, false, m_plate_idx_icon);
