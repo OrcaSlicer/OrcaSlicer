@@ -183,8 +183,9 @@ void GLGizmosManager::switch_gizmos_icon_filename()
 
 bool GLGizmosManager::init()
 {
-    bool result = init_icon_textures();
-    if (!result) return result;
+    if (!m_gizmos.empty())
+        return true;
+    init_icon_textures();
 
     m_background_texture.metadata.filename = m_is_dark ? "toolbar_background_dark.png" : "toolbar_background.png";
     m_background_texture.metadata.left = 16;
@@ -241,9 +242,12 @@ bool GLGizmosManager::init()
 
     return true;
 }
-
+std::map<int, void *> GLGizmosManager::icon_list = {};
 bool GLGizmosManager::init_icon_textures()
 {
+    if (icon_list.size() > 0) {
+        return true;
+    }
     ImTextureID texture_id;
 
     icon_list.clear();
@@ -277,6 +281,26 @@ bool GLGizmosManager::init_icon_textures()
     else
         return false;
 
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle.svg", 64, 64, texture_id))
+        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle_hover.svg", 64, 64, texture_id))
+        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE_HOVER, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle_dark.svg", 64, 64, texture_id))
+        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE_DARK, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle_hover_dark.svg", 64, 64, texture_id))
+        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE_DARK_HOVER, texture_id));
+    else
+        return false;
+    
     return true;
 }
 
