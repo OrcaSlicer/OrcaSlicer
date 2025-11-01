@@ -490,19 +490,19 @@ static t_config_enum_values s_keys_map_PrinterStructure {
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PrinterStructure)
 
 static t_config_enum_values s_keys_map_InputShaperType {
-    {"default", int(InputShaperType::Default)},
-    {"mzv",     int(InputShaperType::MZV)},
-    {"zv",      int(InputShaperType::ZV)},
-    {"zvd",     int(InputShaperType::ZVD)},
-    {"zvdd",    int(InputShaperType::ZVDD)},
-    {"zvddd",   int(InputShaperType::ZVDDD)},
-    {"ei",     int(InputShaperType::EI)},
-    {"ei2",     int(InputShaperType::EI2)},
-    {"2hump_ei",int(InputShaperType::TwoHumpEI)},
-    {"ei3",     int(InputShaperType::EI3)},
-    {"3hump_ei",int(InputShaperType::ThreeHumpEI)},
-    {"daa",     int(InputShaperType::DAA)},
-    {"disable", int(InputShaperType::Disable)}
+    {"Default", int(InputShaperType::Default)},
+    {"MZV",     int(InputShaperType::MZV)},
+    {"ZV",      int(InputShaperType::ZV)},
+    {"ZVD",     int(InputShaperType::ZVD)},
+    {"ZVDD",    int(InputShaperType::ZVDD)},
+    {"ZVDDD",   int(InputShaperType::ZVDDD)},
+    {"EI",     int(InputShaperType::EI)},
+    {"EI2",     int(InputShaperType::EI2)},
+    {"2HUMP_EI",int(InputShaperType::TwoHumpEI)},
+    {"EI3",     int(InputShaperType::EI3)},
+    {"3HUMP_EI",int(InputShaperType::ThreeHumpEI)},
+    {"DAA",     int(InputShaperType::DAA)},
+    {"Disable", int(InputShaperType::Disable)}
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InputShaperType)
 
@@ -4266,8 +4266,8 @@ void PrintConfigDef::init_fff_params()
     def->label        = L("Input shaper type");
     def->tooltip      = L("Choose the input shaper algorithm to use when generating SET_INPUT_SHAPER commands.");
     def->enum_keys_map = &ConfigOptionEnum<InputShaperType>::get_enum_values();
-    def->enum_values  = {"default", "mzv", "zv", "zvd", "zvdd", "zvddd", "ei", "ei2", "2hump_ei", "ei3", "3hump_ei", "daa", "disable"};
-    def->enum_labels  = {L("Default"), L("MZV"), L("ZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HumpEI"), L("EI3"), L("3HumpEI"), L("DAA"), L("Disable")};
+    def->enum_values  = {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI", "EI2", "2HUMP_EI", "EI3", "3HUMP_EI", "DAA", "Disable"};
+    def->enum_labels  = {L("Default"), L("MZV"), L("ZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HUMP_EI"), L("EI3"), L("3HUMP_EI"), L("DAA"), L("Disable")};
     def->mode         = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InputShaperType>(InputShaperType::Default));
 
