@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
     # Don't run scheduled builds on forks:
-    if: !cancelled() && (github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer')
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ubuntu-24.04
@@ -70,7 +70,7 @@ jobs:
           - os: macos-14
             arch: arm64
     # Don't run scheduled builds on forks:
-    if: !cancelled() && (github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer')
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
@@ -134,7 +134,7 @@ jobs:
           - arch: aarch64
             runner: ubuntu-24.04-arm
     # Don't run scheduled builds on forks:
-    if: !cancelled() && (github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer')
+    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'SoftFever/OrcaSlicer') }}
     runs-on: ${{ matrix.variant.runner }}
     env:
       date:
