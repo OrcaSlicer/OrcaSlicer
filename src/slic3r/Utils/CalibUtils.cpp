@@ -766,10 +766,10 @@ void CalibUtils::calib_pa_pattern(const CalibInfo &calib_info, Model& model)
         print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second));
     }
 
-    int index = get_index_for_extruder_parameter(print_config, "outer_wall_speed", calib_info.extruder_id, calib_info.extruder_type, calib_info.nozzle_volume_type);
-    float wall_speed = CalibPressureAdvance::find_optimal_PA_speed(full_config, print_config.get_abs_value("line_width"), print_config.get_abs_value("layer_height"), calib_info.extruder_id, 0);
-    ConfigOptionFloats *wall_speed_speed_opt = print_config.option<ConfigOptionFloats>("outer_wall_speed");
-    wall_speed_speed_opt->values[index]              = wall_speed;
+    print_config.set_key_value("outer_wall_speed",
+        new ConfigOptionFloat(CalibPressureAdvance::find_optimal_PA_speed(
+            full_config, print_config.get_abs_value("line_width"),
+            print_config.get_abs_value("layer_height"), calib_info.extruder_id, 0)));
 
     for (const auto& opt : SuggestedConfigCalibPAPattern().nozzle_ratio_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloatOrPercent(nozzle_diameter * opt.second / 100, false));
