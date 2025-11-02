@@ -12,6 +12,8 @@
 
 namespace Slic3r { namespace GUI {
 
+std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor);
+
 namespace {
 
 void ParseStringValues(std::string str, std::vector<double> &vec)
@@ -35,18 +37,29 @@ std::vector<std::string> get_shaper_type_values()
 {
     if (auto* preset_bundle = wxGetApp().preset_bundle) {
         auto printer_config = &preset_bundle->printers.get_edited_preset().config;
-        if (auto* gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")) {
-            switch (gcode_flavor_option->value) {
-            case GCodeFlavor::gcfKlipper:
-                return {"Default", "ZV", "MZV", "ZVD", "EI", "2HUMP_EI", "3HUMP_EI"};
-            case GCodeFlavor::gcfRepRapFirmware:
-                return {"Default", "MZV", "ZVD", "ZVDD", "ZVDDD", "EI2", "EI3", "DAA"};
-            case GCodeFlavor::gcfMarlinFirmware:
-                return {"ZV"};
-            default:
-                break;
+        const auto* gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+        const ConfigOptionDef* def = printer_config->def()->get("input_shaping_type");
+        if (gcode_flavor_option) {
+            auto types = input_shaper_types_for_flavor(gcode_flavor_option->value);
+            if (!types.empty()) {
+                std::vector<std::string> values;
+                values.reserve(types.size());
+                for (InputShaperType type : types) {
+                    if (type == InputShaperType::Disable)
+                        continue;
+                    const size_t idx = static_cast<size_t>(type);
+                    if (def && idx < def->enum_values.size())
+                        values.push_back(def->enum_values[idx]);
+                    else
+                        values.push_back(std::to_string(static_cast<int>(type)));
+                }
+                if (!values.empty())
+                    return values;
             }
         }
+
+        if (def && !def->enum_values.empty())
+            return {def->enum_values.front()};
     }
     return {"Default"};
 }

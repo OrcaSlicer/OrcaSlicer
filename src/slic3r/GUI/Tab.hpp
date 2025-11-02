@@ -54,6 +54,8 @@ namespace GUI {
 class TabPresetComboBox;
 class OG_CustomCtrl;
 
+std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor);
+
 // Single Tab page containing a{ vsizer } of{ optgroups }
 // package Slic3r::GUI::Tab::Page;
 using ConfigOptionsGroupShp = std::shared_ptr<ConfigOptionsGroup>;
@@ -595,7 +597,6 @@ private:
 	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
 	bool		m_rebuild_kinematics_page = false;
 	void        update_input_shaper_menu(GCodeFlavor flavor);
-	static std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor);
 
 	ogStaticText*	m_fff_print_host_upload_description_line {nullptr};
 	ogStaticText*	m_sla_print_host_upload_description_line {nullptr};

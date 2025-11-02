@@ -5196,7 +5196,7 @@ void TabPrinter::clear_pages()
     m_reset_to_filament_color = nullptr;
 }
 
-std::vector<InputShaperType> TabPrinter::input_shaper_types_for_flavor(GCodeFlavor flavor)
+std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor)
 {
     switch (flavor) {
     case GCodeFlavor::gcfKlipper:
@@ -5207,7 +5207,8 @@ std::vector<InputShaperType> TabPrinter::input_shaper_types_for_flavor(GCodeFlav
             InputShaperType::ZVD,
             InputShaperType::EI,
             InputShaperType::TwoHumpEI,
-            InputShaperType::ThreeHumpEI
+            InputShaperType::ThreeHumpEI,
+            InputShaperType::Disable
         };
     case GCodeFlavor::gcfRepRapFirmware:
         return {
@@ -5218,12 +5219,19 @@ std::vector<InputShaperType> TabPrinter::input_shaper_types_for_flavor(GCodeFlav
             InputShaperType::ZVDDD,
             InputShaperType::EI2,
             InputShaperType::EI3,
-            InputShaperType::DAA
+            InputShaperType::DAA,
+            InputShaperType::Disable
         };
     case GCodeFlavor::gcfMarlinFirmware:
-        return { InputShaperType::ZV };
+        return {
+            InputShaperType::ZV,
+            InputShaperType::Disable
+        };
     default:
-        return { InputShaperType::Default };
+        return {
+            InputShaperType::Default,
+            InputShaperType::Disable
+        };
     }
 }
 
