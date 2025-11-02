@@ -4258,13 +4258,13 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("input_shaping_enable", coBool);
     def->label   = L("Enable input shaping");
-    def->tooltip = L("Emit SET_INPUT_SHAPER commands before printing moves.");
+    def->tooltip = L("Override firmware input shaping settings.\nIf disabled, firmware settings are used.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def               = this->add("input_shaping_type", coEnum);
     def->label        = L("Input shaper type");
-    def->tooltip      = L("Choose the input shaper algorithm to use when generating SET_INPUT_SHAPER commands.");
+    def->tooltip      = L("Choose the input shaper algorithm.\nDefault uses the firmware default settings.\nDisable turns off input shaping in the firmware.");
     def->enum_keys_map = &ConfigOptionEnum<InputShaperType>::get_enum_values();
     def->enum_values  = {"Default", "MZV", "ZV", "ZVD", "ZVDD", "ZVDDD", "EI", "EI2", "2HUMP_EI", "EI3", "3HUMP_EI", "DAA", "Disable"};
     def->enum_labels  = {L("Default"), L("MZV"), L("ZV"), L("ZVD"), L("ZVDD"), L("ZVDDD"), L("EI"), L("EI2"), L("2HUMP_EI"), L("EI3"), L("3HUMP_EI"), L("DAA"), L("Disable")};
@@ -4273,7 +4273,7 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("input_shaping_freq_x", coFloat);
     def->label    = L("X");
-    def->tooltip  = L("Resonant frequency for the X axis input shaper.\nRRF: X and Y values are equal.");
+    def->tooltip  = L("Resonant frequency for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->sidetext = "Hz";
     def->min      = 0;
     def->mode     = comAdvanced;
@@ -4281,7 +4281,7 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("input_shaping_freq_y", coFloat);
     def->label    = L("Y");
-    def->tooltip  = L("Resonant frequency for the Y axis input shaper.");
+    def->tooltip  = L("Resonant frequency for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
     def->sidetext = "Hz";
     def->min      = 0;
     def->mode     = comAdvanced;
@@ -4289,14 +4289,14 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("input_shaping_damp_x", coFloat);
     def->label   = L("X");
-    def->tooltip = L("Damping ratio for the X axis input shaper.\nRRF: X and Y values are equal.");
+    def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->min     = 0;
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
     def          = this->add("input_shaping_damp_y", coFloat);
     def->label   = L("Y");
-    def->tooltip = L("Damping ratio for the Y axis input shaper.");
+    def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
     def->min     = 0;
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
