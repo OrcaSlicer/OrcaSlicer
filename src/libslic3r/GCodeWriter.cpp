@@ -317,7 +317,7 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
 
 std::string GCodeWriter::set_junction_deviation(double junction_deviation){
     std::ostringstream gcode;
-    if (FLAVOR_IS(gcfMarlinFirmware) && junction_deviation > 0 && m_max_junction_deviation > 0) {
+    if (FLAVOR_IS(gcfMarlinFirmware) && m_max_junction_deviation > 0 && junction_deviation > 0) {
         // Clamp the junction deviation to the allowed maximum.
         gcode << "M205 J";
         if (junction_deviation <= m_max_junction_deviation) {
