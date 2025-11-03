@@ -4279,8 +4279,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("emit_machine_limits_to_gcode", coBool);
     def->label = L("Emit limits to G-code");
     def->category = L("Machine limits");
-    def->tooltip  = L("If enabled, the machine limits will be emitted to G-code file.\nThis option will be ignored if the G-code flavor is "
-                       "set to Klipper.");
+    def->tooltip = L("If enabled, the machine limits will be emitted to G-code file.\nThis option will be ignored if the G-code flavor is "
+        "set to Klipper.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -4492,8 +4492,8 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(120));
 
     // Orca: Input Shaping support
-    def          = this->add("input_shaping_enable", coBool);
-    def->label   = L("Enable input shaping");
+    def          = this->add("input_shaping_emit", coBool);
+    def->label   = L("Emit input shaping");
     def->tooltip = L("Override firmware input shaping settings.\nIf disabled, firmware settings are used.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
