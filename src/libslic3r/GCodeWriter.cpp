@@ -355,66 +355,85 @@ std::string GCodeWriter::set_pressure_advance(double pa) const
 
 std::string GCodeWriter::set_input_shaping(char axis, float damp, float freq, std::string type) const
 {
-    if (FLAVOR_IS(gcfMarlinLegacy))
-        throw std::runtime_error("Input shaping is not supported by Marlin < 2.1.2.\nCheck your firmware version and update your G-code flavor to ´Marlin 2´");
-    if (freq < 0.0f || damp < 0.f || damp > 1.0f || (axis != 'X' && axis != 'Y' && axis != 'Z' && axis != 'A'))// A = all axis
-    {
-    throw std::runtime_error("Invalid input shaping parameters: freq=" + std::to_string(freq) + ", damp=" + std::to_string(damp));
+    bool disable = type == "Disable";
+    if (disable){
+        freq = 0.0f;
+        damp = 0.0f;
+        axis = 'A';
+        type = "Default";
+    } else if (freq < 0.0f || damp < 0.f || damp > 1.0f || (axis != 'X' && axis != 'Y' && axis != 'Z' && axis != 'A')) { // A = all axis
+        throw std::runtime_error("Invalid input shaping parameters: freq=" + std::to_string(freq) + ", damp=" + std::to_string(damp));
     }
     std::ostringstream gcode;
-    if (FLAVOR_IS(gcfKlipper)) {
-        gcode << "SET_INPUT_SHAPER";
+    std::ostringstream params;
+    switch (this->config.gcode_flavor) {
+    case gcfKlipper: {
         if (!type.empty() && type != "Default") {
-                gcode << " SHAPER_TYPE=" << type;
+            params << " SHAPER_TYPE=" << type;
         }
         if (axis != 'A')
         {
             if (freq > 0.0f) {
-                gcode << " SHAPER_FREQ_" << axis << "=" << std::fixed << std::setprecision(2) << freq;
-            }
-            if (damp > 0.0f){
-                gcode  << " DAMPING_RATIO_" << axis << "=" << std::fixed << std::setprecision(3) << damp;
-            }
-        } else {
-            if (freq > 0.0f) {
-                gcode << " SHAPER_FREQ_X=" << std::fixed << std::setprecision(2) << freq << " SHAPER_FREQ_Y=" << std::fixed << std::setprecision(2) << freq;
+                params << " SHAPER_FREQ_" << axis << "=" << std::fixed << std::setprecision(2) << freq;
             }
             if (damp > 0.0f) {
-                gcode << " DAMPING_RATIO_X=" << std::fixed << std::setprecision(3) << damp << " DAMPING_RATIO_Y=" << std::fixed << std::setprecision(3) << damp;
+                params << " DAMPING_RATIO_" << axis << "=" << std::fixed << std::setprecision(3) << damp;
+            }
+        } else {
+            if (freq > 0.0f || disable) {
+                params << " SHAPER_FREQ_X=" << std::fixed << std::setprecision(2) << freq << " SHAPER_FREQ_Y=" << std::fixed << std::setprecision(2) << freq;
+            }
+            if (damp > 0.0f || disable) {
+                params << " DAMPING_RATIO_X=" << std::fixed << std::setprecision(3) << damp << " DAMPING_RATIO_Y=" << std::fixed << std::setprecision(3) << damp;
             }
         }
-    } else if (FLAVOR_IS(gcfRepRapFirmware)) {
-        gcode << "M593";
+        if (!params.str().empty()) {
+            gcode << "SET_INPUT_SHAPER" << params.str();
+        }
+        break;
+    }
+    case gcfRepRapFirmware: {
         if (!type.empty() && type != "Default" && type != "DAA") {
-            gcode << " P\"" << type << "\"";
+            params << " P\"" << type << "\"";
         }
-        if (freq > 0.0f) {
-            gcode << " F" << std::fixed << std::setprecision(2) << freq;
+        if (freq > 0.0f || disable) {
+            params << " F" << std::fixed << std::setprecision(2) << freq;
         }
-        if (damp > 0.0f){
-            gcode  << " S" << std::fixed << std::setprecision(3) << damp;
+        if (damp > 0.0f || disable) {
+            params << " S" << std::fixed << std::setprecision(3) << damp;
         }
-    } else if (FLAVOR_IS(gcfMarlinFirmware)) {
-        gcode << "M593";
-        if (axis != 'A')
-        {
-            gcode << " " << axis;
+        if (!params.str().empty()) {
+            gcode << "M593" << params.str();
         }
-        if (freq > 0.0f)
-        {
-            gcode << " F" << std::fixed << std::setprecision(2) << freq;
+        break;
+    }
+    case gcfMarlinFirmware: {
+        if (axis != 'A') {
+            params << " " << axis;
         }
-        if (damp > 0.0f)
-        {
-            gcode << " D" << std::fixed << std::setprecision(3) << damp;
+        if (freq > 0.0f || disable) {
+            params << " F" << std::fixed << std::setprecision(2) << freq;
         }
-    } else {
+        if (damp > 0.0f || disable) {
+            params << " D" << std::fixed << std::setprecision(3) << damp;
+        }
+        if (!params.str().empty()) {
+            gcode << "M593" << params.str();
+        }
+        break;
+    }
+    case gcfMarlinLegacy: {
+        throw std::runtime_error("Input shaping is not supported by Marlin < 2.1.2.\nCheck your firmware version and update your G-code flavor to ´Marlin 2´");
+    }
+    default:
         throw std::runtime_error("Input shaping is only supported by Klipper, RepRapFirmware and Marlin 2");
     }
-    if (GCodeWriter::full_gcode_comment){
-        gcode << " ; Override input shaping";
+    if (!gcode.str().empty()) {
+        if (GCodeWriter::full_gcode_comment) {
+            gcode << " ; Override input shaping";
+        }
+        gcode << "\n";
     }
-    gcode << "\n";
     return gcode.str();
 }
 
