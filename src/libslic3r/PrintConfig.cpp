@@ -1201,14 +1201,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
-    def = this->add("bridge_line_width", coFloat);
-    def->label = L("Bridge line width ratio");
+    def = this->add("bridge_line_width", coFloatOrPercent);
+    def->label = L("Bridge line width");
     def->category = L("Quality");
-    def->tooltip = L("Scale the spacing between bridge lines. Values above 1.0 increase the spacing, while values below 1.0 pack the bridge lines closer together.");
-    def->min = 0.1;
-    def->max = 3.0;
+    def->tooltip = L("Override the bridge line width. Leave at 0 to use the automatic value, set an absolute width in millimeters, or provide a percentage of the nozzle diameter.");
+    def->sidetext = L("mm or %");
+    def->ratio_over = "nozzle_diameter";
+    def->min = 0;
+    def->max = 1000;
+    def->max_literal = 10;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(1));
+    def->set_default_value(new ConfigOptionFloatOrPercent(0., false));
 
     def = this->add("internal_bridge_flow", coFloat);
     def->label = L("Internal bridge flow ratio");
@@ -9454,10 +9457,6 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         error_message.emplace("internal_bridge_flow", L("invalid value ") + std::to_string(cfg.internal_bridge_flow));
     }
 
-    if (cfg.bridge_line_width <= 0) {
-        error_message.emplace("bridge_line_width", L("invalid value ") + std::to_string(cfg.bridge_line_width));
-    }
-
     // extruder clearance
     if (cfg.extruder_clearance_radius <= 0) {
         error_message.emplace("extruder_clearance_radius", L("invalid value ") + std::to_string(cfg.extruder_clearance_radius));
@@ -9519,6 +9518,7 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
             "inner_wall_line_width",
             "sparse_infill_line_width",
             "internal_solid_infill_line_width",
+            "bridge_line_width",
             "top_surface_line_width",
             "support_line_width",
             "initial_layer_line_width",

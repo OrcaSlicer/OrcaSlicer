@@ -11,6 +11,7 @@
 
 #include <string>
 #include <map>
+#include <cmath>
 
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/clamp.hpp>
@@ -34,19 +35,25 @@ Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const
     const PrintObject       &print_object   = *this->layer()->object();
     Flow bridge_flow;
     auto nozzle_diameter = float(print_object.print()->config().nozzle_diameter.get_at(region.extruder(role) - 1));
+    const ConfigOptionFloatOrPercent& bridge_width_opt = region_config.bridge_line_width;
+    const bool                        has_bridge_width = bridge_width_opt.percent || bridge_width_opt.value > 0.;
+    const double                      bridge_flow_ratio = region_config.bridge_flow;
+
     if (thick_bridge) {
         // The old Slic3r way (different from all other slicers): Use rounded extrusions.
         // Get the configured nozzle_diameter for the extruder associated to the flow role requested.
-        // Here this->extruder(role) - 1 may underflow to MAX_INT, but then the get_at() will follback to zero'th element, so everything is all right.
-        // Applies default bridge spacing.
-        bridge_flow = Flow::bridging_flow(float(sqrt(region_config.bridge_flow)) * nozzle_diameter, nozzle_diameter);
+        // Here this->extruder(role) - 1 may underflow to MAX_INT, but then the get_at() will fall back to zero'th element, so everything is all right.
+        float thread_diameter = has_bridge_width ? float(bridge_width_opt.get_abs_value(nozzle_diameter)) : nozzle_diameter;
+        if (bridge_flow_ratio > 0.)
+            thread_diameter *= float(std::sqrt(bridge_flow_ratio));
+        bridge_flow = Flow::bridging_flow(thread_diameter, nozzle_diameter);
     } else {
         // The same way as other slicers: Use normal extrusions. Apply bridge_flow while maintaining the original spacing.
-        bridge_flow = this->flow(role).with_flow_ratio(region_config.bridge_flow);
+        Flow base_flow = this->flow(role);
+        if (has_bridge_width)
+            base_flow = Flow(float(bridge_width_opt.get_abs_value(nozzle_diameter)), base_flow.height(), nozzle_diameter);
+        bridge_flow = base_flow.with_flow_ratio(bridge_flow_ratio);
     }
-    const float line_width_ratio = region_config.bridge_line_width;
-    if (line_width_ratio > 0.f && line_width_ratio != 1.f)
-        bridge_flow = bridge_flow.with_spacing(bridge_flow.spacing() * line_width_ratio);
     return bridge_flow;
 
 }
