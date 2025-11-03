@@ -4276,6 +4276,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Resonant frequency for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->sidetext = "Hz";
     def->min      = 0;
+    def->max      = 1000;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -4284,6 +4285,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Resonant frequency for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
     def->sidetext = "Hz";
     def->min      = 0;
+    def->max      = 1000;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -4291,6 +4293,7 @@ void PrintConfigDef::init_fff_params()
     def->label   = L("X");
     def->tooltip = L("Damping ratio for the X axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.\nRRF: X and Y values are equal.");
     def->min     = 0;
+    def->max     = 1;
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -4298,6 +4301,7 @@ void PrintConfigDef::init_fff_params()
     def->label   = L("Y");
     def->tooltip = L("Damping ratio for the Y axis input shaper.\nZero will use the firmware frequency.\nTo disable input shaping, use the Disable type.");
     def->min     = 0;
+    def->max     = 1;
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
