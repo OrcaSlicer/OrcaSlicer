@@ -1201,6 +1201,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
+    def = this->add("bridge_line_width", coFloat);
+    def->label = L("Bridge line width ratio");
+    def->category = L("Quality");
+    def->tooltip = L("Scale the spacing between bridge lines. Values above 1.0 increase the spacing, while values below 1.0 pack the bridge lines closer together.");
+    def->min = 0.1;
+    def->max = 3.0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
+
     def = this->add("internal_bridge_flow", coFloat);
     def->label = L("Internal bridge flow ratio");
     def->category = L("Quality");
@@ -9440,9 +9449,13 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         error_message.emplace("bridge_flow", L("invalid value ") + std::to_string(cfg.bridge_flow));
     }
     
-    // --bridge-flow-ratio
-    if (cfg.bridge_flow <= 0) {
+    // --internal-bridge-flow-ratio
+    if (cfg.internal_bridge_flow <= 0) {
         error_message.emplace("internal_bridge_flow", L("invalid value ") + std::to_string(cfg.internal_bridge_flow));
+    }
+
+    if (cfg.bridge_line_width <= 0) {
+        error_message.emplace("bridge_line_width", L("invalid value ") + std::to_string(cfg.bridge_line_width));
     }
 
     // extruder clearance

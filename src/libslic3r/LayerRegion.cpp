@@ -44,6 +44,9 @@ Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const
         // The same way as other slicers: Use normal extrusions. Apply bridge_flow while maintaining the original spacing.
         bridge_flow = this->flow(role).with_flow_ratio(region_config.bridge_flow);
     }
+    const float line_width_ratio = region_config.bridge_line_width;
+    if (line_width_ratio > 0.f && line_width_ratio != 1.f)
+        bridge_flow = bridge_flow.with_spacing(bridge_flow.spacing() * line_width_ratio);
     return bridge_flow;
 
 }
