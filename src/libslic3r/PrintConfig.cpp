@@ -4295,7 +4295,7 @@ void PrintConfigDef::init_fff_params()
     def->min     = 0;
     def->max     = 1;
     def->mode    = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(0.1));
 
     def          = this->add("input_shaping_damp_y", coFloat);
     def->label   = L("Y");
@@ -4303,7 +4303,7 @@ void PrintConfigDef::init_fff_params()
     def->min     = 0;
     def->max     = 1;
     def->mode    = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(0.1));
 
     def = this->add("fan_max_speed", coFloats);
     def->label = L("Fan speed");
