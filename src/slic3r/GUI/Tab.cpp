@@ -5045,6 +5045,11 @@ void TabPrinter::toggle_options()
        is_BBL_printer = wxGetApp().preset_bundle->is_bbl_vendor();
     }
 
+    bool is_QIDI_printer = false;
+    if (m_preset_bundle) {
+       is_QIDI_printer = wxGetApp().preset_bundle->is_qidi_vendor();
+    }
+
     bool have_multiple_extruders = true;
     //m_extruders_count > 1;
     //if (m_active_page->title() == "Custom G-code") {
@@ -5077,7 +5082,7 @@ void TabPrinter::toggle_options()
                  "extra_loading_move",
                  "high_current_on_filament_swap",
              })
-            toggle_option(el, !is_BBL_printer);
+            toggle_option(el, !is_BBL_printer && !is_QIDI_printer);
 
         auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
         if (!bSEMM && m_config->opt_bool("manual_filament_change")) {
@@ -5087,7 +5092,7 @@ void TabPrinter::toggle_options()
         }
         toggle_option("extruders_count", !bSEMM);
         toggle_option("manual_filament_change", bSEMM);
-        toggle_option("purge_in_prime_tower", bSEMM && !is_BBL_printer);
+        toggle_option("purge_in_prime_tower", bSEMM && (!is_BBL_printer && !is_QIDI_printer));
     }
     wxString extruder_number;
     long val = 1;
