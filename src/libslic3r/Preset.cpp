@@ -1094,6 +1094,7 @@ static std::vector<std::string> s_Preset_print_options{
     "infill_wall_overlap",
     "top_bottom_infill_wall_overlap",
     "bridge_flow",
+    "bridge_line_width",
     "internal_bridge_flow",
     "elefant_foot_compensation",
     "elefant_foot_compensation_layers",
