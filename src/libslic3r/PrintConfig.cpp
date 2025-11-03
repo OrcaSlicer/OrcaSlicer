@@ -1202,9 +1202,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat(1));
 
     def = this->add("bridge_line_width", coFloatOrPercent);
-    def->label = L("Bridge line width");
+    def->label = L("Bridge");
     def->category = L("Quality");
-    def->tooltip = L("Override the bridge line width. Leave at 0 to use the automatic value, set an absolute width in millimeters, or provide a percentage of the nozzle diameter.");
+    def->tooltip = L("Bridge line width. Leave at 0 to ignore. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
