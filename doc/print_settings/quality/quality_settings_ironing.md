@@ -52,7 +52,17 @@ If this value is set to 0, the ironing toolpath will start directly at the perim
 
 ## Angle Offset
 
-The angle of ironing lines offset relative to the top surface solid infill direction. Commonly used ironing angle offsets are 0°, 45°, and 90° each producing a [different surface finish](https://github.com/SoftFever/OrcaSlicer/issues/10834#issuecomment-3322628589) which will depend on your printer nozzle.
+The angle of ironing lines offset relative to the top surface solid infill direction. 
+
+Commonly used ironing angle offsets are 0°, 45°, and 90° each producing a [different surface finish](https://github.com/SoftFever/OrcaSlicer/issues/10834#issuecomment-3322628589) which will depend on your printer nozzle.
+
+## Fixed Angle
+
+Use a fixed absolute angle for ironing that is not offset from the top surface infill direction. This results in an ironing finish that does not have alternating line directions and may result in a more uniform surface finish and reduced tiger striping effect when reflecting light.
+
+Set the Ironing Angle Offset to an angle with optimal ironing angle offsets from all affected top surface solid infill directions.
+
+Suggested fixed ironing angles are 0° and 90° if you are using the default solid infill direction of 45°.
 
 ## Speed
 
