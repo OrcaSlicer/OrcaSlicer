@@ -1165,9 +1165,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");
     def->category = L("Strength");
-    def->tooltip = L("Controls the density (spacing) of external bridge lines. Default is 100%.\n\n"
+    def->tooltip = L("Controls the density (spacing) of external bridge lines. 100% means solid bridge. Default is 100%.\n\n"
+                     "Due to the tendency for bridge extrusions to sag, a value of 100% may not be sufficient for proper welding between them,\n"
+                     "so it is recommended to increase it slightly while using 100% Bridge Line Width.\n"
                      "Lower density external bridges can help improve reliability as there is more space for air to circulate "
-                     "around the extruded bridge, improving its cooling speed. Minimum is 10%.\n\n"
+                     "around the extruded bridge, improving its cooling speed. Minimum is 10%.\n"
                      "Higher densities can produce smoother bridge surfaces, as overlapping lines provide "
                      "additional support during printing. Maximum is 120%.\n"
                      "Note: Bridge density that is too high can cause warping or overextrusion.");
@@ -1194,9 +1196,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_flow", coFloat);
     def->label = L("Bridge flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("Increasing this value (~1.5) when using a Bridge Line Width of 100% (equal to the nozzle size) improves lateral contact between bridge lines, which significantly enhances bridging performance and reduces sagging.\n\n"
-                     "Slightly decreasing this value (e.g., to 0.9) lowers the amount of material used for bridges, which can help reduce sagging, but will prevent adjacent bridge lines from making lateral contact.\n\n"
-                     "The actual bridge flow used is calculated by multiplying this value with the filament flow ratio, and if set, the object's flow ratio.");
+    def->tooltip = L("Values above 1.0 add material:\n"
+                     "  - Regular bridges: Keep spacing and thicken the filament for stronger line contact when paired with a <= 100% Bridge line width.\n"
+                     "  - Thick bridges: Increase spacing and increase width, height and spacing.\n"
+                     "Values below 1.0 remove material:\n"
+                     "  - Regular bridges: eventually tighten spacing as the thread thins—potentially adding passes or altering paths—whereas.\n"
+                     "  - Thick bridges: shrink both diameter and spacing, cutting sagging at the cost of lateral bonding.");
     def->min = 0;
     def->max = 2.0;
     def->mode = comAdvanced;
@@ -1205,7 +1210,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_line_width", coFloatOrPercent);
     def->label = L("Bridge");
     def->category = L("Quality");
-    def->tooltip = L("Bridge line width. Recommended value 100% along with a higher Bridge flow ratio.\n"
+    def->tooltip = L("Bridge line width. Recommended value 100% along with a higher External bridge density or Bridge flow ratio.\n"
                      "Leave at 0 to ignore. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
