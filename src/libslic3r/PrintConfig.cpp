@@ -1194,7 +1194,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_flow", coFloat);
     def->label = L("Bridge flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("Decrease this value slightly (for example 0.9) to reduce the amount of material for bridge, to improve sag.\n\n"
+    def->tooltip = L("Increasing this value (~1.5) when using a Bridge Line Width of 100% (equal to the nozzle size) improves lateral contact between bridge lines, which significantly enhances bridging performance and reduces sagging.\n\n"
+                     "Slightly decreasing this value (e.g., to 0.9) lowers the amount of material used for bridges, which can help reduce sagging, but will prevent adjacent bridge lines from making lateral contact.\n\n"
                      "The actual bridge flow used is calculated by multiplying this value with the filament flow ratio, and if set, the object's flow ratio.");
     def->min = 0;
     def->max = 2.0;
@@ -1204,7 +1205,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_line_width", coFloatOrPercent);
     def->label = L("Bridge");
     def->category = L("Quality");
-    def->tooltip = L("Bridge line width. Leave at 0 to ignore. If expressed as a %, it will be computed over the nozzle diameter.");
+    def->tooltip = L("Bridge line width. Recommended value 100% along with a higher Bridge flow ratio.\n"
+                     "Leave at 0 to ignore. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
