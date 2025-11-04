@@ -250,6 +250,7 @@ public:
     std::string     unretract() { return m_writer.unlift() + m_writer.unretract(); }
     std::string     set_extruder(unsigned int extruder_id, double print_z, bool by_object=false);
     bool is_BBL_Printer();
+    bool is_QIDI_Printer();
 
     // SoftFever
     std::string set_object_info(Print* print);

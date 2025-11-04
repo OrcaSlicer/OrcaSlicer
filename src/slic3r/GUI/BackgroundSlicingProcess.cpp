@@ -681,6 +681,7 @@ StringObjectException BackgroundSlicingProcess::validate(StringObjectException *
     assert(m_print == m_fff_print);
 
     m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+	m_fff_print->is_QIDI_printer() = wxGetApp().preset_bundle->is_qidi_vendor();
     return m_print->validate(warning, collison_polygons, height_polygons);
 }
 

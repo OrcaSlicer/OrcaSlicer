@@ -1290,7 +1290,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::prime(GCode &gcodegen)
     {
         std::string gcode;
-        if (!gcodegen.is_BBL_Printer()) {
+        if (!gcodegen.is_BBL_Printer() && !gcodegen.is_QIDI_Printer()) {
             for (const WipeTower::ToolChangeResult &tcr : m_priming) {
                 if (!tcr.extrusions.empty())
                     gcode += append_tcr2(gcodegen, tcr, tcr.new_tool);
@@ -1306,7 +1306,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         assert(m_layer_idx >= 0);
         if (m_layer_idx >= (int) m_tool_changes.size())
             return gcode;
-        if (!gcodegen.is_BBL_Printer()) {
+        if (!gcodegen.is_BBL_Printer() && !gcodegen.is_QIDI_Printer()) {
             if (gcodegen.writer().need_toolchange(extruder_id) || finish_layer) {
                 if (m_layer_idx < (int) m_tool_changes.size()) {
                     if (!(size_t(m_tool_change_idx) < m_tool_changes[m_layer_idx].size()))
@@ -1395,7 +1395,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::finalize(GCode &gcodegen)
     {
         std::string gcode;
-        if (!gcodegen.is_BBL_Printer()) {
+        if (!gcodegen.is_BBL_Printer() && !gcodegen.is_QIDI_Printer()) {
             if (std::abs(gcodegen.writer().get_position().z() - m_final_purge.print_z) > EPSILON)
                 gcode += gcodegen.change_layer(m_final_purge.print_z);
             gcode += append_tcr2(gcodegen, m_final_purge, -1);
@@ -1817,6 +1817,13 @@ bool GCode::is_BBL_Printer()
     return false;
 }
 
+bool GCode::is_QIDI_Printer()
+{
+    if (m_curr_print)
+        return m_curr_print->is_QIDI_printer();
+    return false;
+}
+
 void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb)
 {
     PROFILE_CLEAR();
@@ -2226,6 +2233,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
     const bool is_bbl_printers = print.is_BBL_printer();
+    const bool is_qidi_printers = print.is_QIDI_printer();
     m_calib_config.clear();
     // resets analyzer's tracking data
     m_last_height  = 0.f;
@@ -2516,7 +2524,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             throw Slic3r::SlicingError(_(L("No object can be printed. Maybe too small")));
         has_wipe_tower = print.has_wipe_tower() && tool_ordering.has_wipe_tower();
         // Orca: support all extruder priming
-        initial_extruder_id = (!is_bbl_printers && has_wipe_tower && !print.config().single_extruder_multi_material_priming) ?
+        initial_extruder_id = (!is_bbl_printers && has_wipe_tower && !print.config().single_extruder_multi_material_priming && !is_qidi_printers) ?
             // The priming towers will be skipped.
             tool_ordering.all_extruders().back() :
             // Don't skip the priming towers.

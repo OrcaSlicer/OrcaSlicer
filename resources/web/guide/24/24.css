@@ -79,18 +79,17 @@
 .PImg
 {
 	position:relative;
-	width:160px;
-	height: 160px;	
+	width:120px;      /* ORCA use covers as 120x120px but use source file as 240x240 for better quality on hidpi */
+	height:120px;	  /* ORCA fit image to fill frame */
+	padding:10px 20px /* ORCA use less vertical padding */
 }
 
 .ModelCheckBox
 {
-	position: absolute;
-	width: 20px;
-	height: 20px;
-	right: 10px;
-	top: 10px;
-	cursor: pointer;
+	flex: 0 0 18px;			/* ORCA match checkbox style and size */
+	margin: 10px 5px 0 0;
+	width: 18px;
+	height: 18px;
 	background-image: url("../img/emptycheck.svg");
 	background-size: cover;
 }
@@ -109,6 +108,7 @@ img.ModelThumbnail
 .PName
 {
 	font-weight: 700;
+	line-height: 20px; /* ORCA */
 	text-align: left;
 }
 
