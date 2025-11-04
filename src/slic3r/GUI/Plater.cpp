@@ -12465,6 +12465,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     const auto gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+
     if (has_junction_deviation(printer_config)) {
         printer_config->set_key_value("machine_max_junction_deviation", new ConfigOptionFloats {(std::max(printer_config->option<ConfigOptionFloats>("machine_max_junction_deviation")->values.front(), 0.25))});
         print_config->set_key_value("default_junction_deviation", new ConfigOptionFloat(0));
@@ -12474,13 +12475,17 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
         printer_config->set_key_value("machine_max_jerk_y", new ConfigOptionFloats{std::max(printer_config->option<ConfigOptionFloats>("machine_max_jerk_y")->values.front(), jerk_value)});
         print_config->set_key_value("default_jerk", new ConfigOptionFloat(0));
     }
+
+    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
+        filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
+        filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
+        filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
+    }
+
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_min_speed", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_for_layer_cooling", new ConfigOptionBools{false});
-    filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
-    filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
-    filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
     print_config->set_key_value("layer_height", new ConfigOptionFloat(0.2));
     print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool { false });
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
@@ -12521,6 +12526,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     const auto gcode_flavor_option = printer_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
+
     if (has_junction_deviation(printer_config)) {
         printer_config->set_key_value("machine_max_junction_deviation", new ConfigOptionFloats {(std::max(printer_config->option<ConfigOptionFloats>("machine_max_junction_deviation")->values.front(), 0.25))});
         print_config->set_key_value("default_junction_deviation", new ConfigOptionFloat(0));
@@ -12530,13 +12536,17 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
         printer_config->set_key_value("machine_max_jerk_y", new ConfigOptionFloats{std::max(printer_config->option<ConfigOptionFloats>("machine_max_jerk_y")->values.front(), jerk_value)});
         print_config->set_key_value("default_jerk", new ConfigOptionFloat(0));
     }
+
+    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
+        filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
+        filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
+        filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
+    }
+
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_min_speed", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_for_layer_cooling", new ConfigOptionBools{false});
-    filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
-    filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
-    filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
     print_config->set_key_value("layer_height", new ConfigOptionFloat(0.2));
     print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool{false});
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
@@ -12579,6 +12589,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+
     if (has_junction_deviation(printer_config)) {
         printer_config->set_key_value("machine_max_junction_deviation", new ConfigOptionFloats{params.end});
         print_config->set_key_value("default_junction_deviation", new ConfigOptionFloat(0.0));
@@ -12587,14 +12598,18 @@ void Plater::Calib_Cornering(const Calib_Params& params)
         printer_config->set_key_value("machine_max_jerk_y", new ConfigOptionFloats{params.end});
         print_config->set_key_value("default_jerk", new ConfigOptionFloat(0));
     }
+
+    if (!filament_config->option<ConfigOptionBools>("enable_pressure_advance")->get_at(0)) {
+        filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
+        filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
+        filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
+    }
+
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_min_speed", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_for_layer_cooling", new ConfigOptionBools{false});
     filament_config->set_key_value("filament_max_volumetric_speed", new ConfigOptionFloats{200});
-    filament_config->set_key_value("enable_pressure_advance", new ConfigOptionBools {true});
-    filament_config->set_key_value("pressure_advance", new ConfigOptionFloats { 0.0 });
-    filament_config->set_key_value("adaptive_pressure_advance", new ConfigOptionBools{false});
     print_config->set_key_value("layer_height", new ConfigOptionFloat(0.2));
     print_config->set_key_value("enable_overhang_speed", new ConfigOptionBool{false});
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
