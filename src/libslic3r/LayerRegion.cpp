@@ -11,7 +11,6 @@
 
 #include <string>
 #include <map>
-#include <cmath>
 
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/clamp.hpp>
@@ -45,7 +44,7 @@ Flow LayerRegion::bridging_flow(FlowRole role, bool thick_bridge) const
         // Here this->extruder(role) - 1 may underflow to MAX_INT, but then the get_at() will fall back to zero'th element, so everything is all right.
         float thread_diameter = has_bridge_width ? float(bridge_width_opt.get_abs_value(nozzle_diameter)) : nozzle_diameter;
         if (bridge_flow_ratio > 0.)
-            thread_diameter *= float(std::sqrt(bridge_flow_ratio));
+            thread_diameter *= float(sqrt(bridge_flow_ratio));
         bridge_flow = Flow::bridging_flow(thread_diameter, nozzle_diameter);
     } else {
         // The same way as other slicers: Use normal extrusions. Apply bridge_flow while maintaining the original spacing.
