@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -4970,6 +4970,9 @@ msgstr "Retour d'assemblage"
 msgid "Return"
 msgstr "Retour"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Barre d'outils de peinture"
 
@@ -6773,6 +6776,9 @@ msgstr "Déverrouiller le plateau actuel"
 msgid "Lock current plate"
 msgstr "Verrouiller le plateau actuel"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "Modifier le nom du plateau actuel"
 
@@ -7746,13 +7752,13 @@ msgid "Home"
 msgstr "Accueil"
 
 msgid "Default page"
-msgstr ""
+msgstr "Page par défaut"
 
 msgid "Set the page opened on startup."
 msgstr "Définit la page ouverte au démarrage."
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Activer le mode Sombre"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "Autoriser une seule instance d’OrcaSlicer"
@@ -7801,7 +7807,7 @@ msgid "Load Geometry Only"
 msgstr "Charger uniquement la géométrie"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "Comportement du chargement"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr ""
@@ -7819,6 +7825,7 @@ msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
 msgstr ""
+"Pas d'avertissement lors du chargement de 3MF avec des G-codes modifiés"
 
 msgid "Show options when importing STEP file"
 msgstr ""
@@ -7828,7 +7835,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Sauvegarde automatique"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7853,7 +7860,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "Gestion multi appareils"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7964,10 +7971,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Région d'origine"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "Mode privé"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7979,7 +7986,7 @@ msgstr ""
 "sécurité."
 
 msgid "Network test"
-msgstr ""
+msgstr "Test du réseau"
 
 msgid "Test"
 msgstr "Tester"
@@ -14885,6 +14892,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
 "Cette partie G-code est insérée à chaque changement de couche après le "
@@ -20655,9 +20668,6 @@ msgstr "Échec de l’impression"
 msgid "Removed"
 msgstr "Supprimé"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -21268,6 +21278,17 @@ msgstr ""
 "déformer, tels que l’ABS, une augmentation appropriée de la température du "
 "plateau chauffant peut réduire la probabilité de déformation?"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "Hauteur de couche adaptative"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "L’activation de cette option signifie que la hauteur de couche des "
+#~ "supports arborescents, à l’exception de la première, sera automatiquement "
+#~ "calculée "
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS non connecté"
 
@@ -21562,15 +21583,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Paramètres généraux"
 
-#~ msgid "Login Region"
-#~ msgstr "Région d'origine"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "Mode privé"
-
-#~ msgid "Default Page"
-#~ msgstr "Page par défaut"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Afficher la notification \"Astuce du jour\" après le démarrage"
 
@@ -21596,9 +21608,6 @@ msgstr ""
 #~ "Si cette option est activée, le calcul s’effectue automatiquement à "
 #~ "chaque changement de filament"
 
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr "Gestion multi-appareils (prend effet après le redémarrage d’Orca)."
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "Arrangement automatique de la plaque après le clonage de l’objet"
 
@@ -21614,16 +21623,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "Associer des URL à OrcaSlicer"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "Comportement du chargement"
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr ""
-#~ "Pas d'avertissement lors du chargement de 3MF avec des G-codes modifiés"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "Sauvegarde automatique"
-
 #~ msgid "every"
 #~ msgstr "chaque"
 
@@ -21632,9 +21631,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "Mode Sombre"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Activer le mode Sombre"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Page d'accueil et Astuces quotidiennes"
@@ -21825,17 +21821,6 @@ msgstr ""
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr ""
 #~ "Supprimer les petits surplombs qui n’ont peut-être pas besoin de supports."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Hauteur de couche adaptative"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr ""
-#~ "L’activation de cette option signifie que la hauteur de couche des "
-#~ "supports arborescents, à l’exception de la première, sera automatiquement "
-#~ "calculée "
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

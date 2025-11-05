@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -4810,6 +4810,9 @@ msgstr "Monterings retur"
 msgid "Return"
 msgstr "Tillbaka"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Färgläggningsverktyg"
 
@@ -6548,6 +6551,9 @@ msgstr ""
 msgid "Lock current plate"
 msgstr ""
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr ""
 
@@ -7482,7 +7488,7 @@ msgid "Set the page opened on startup."
 msgstr ""
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Aktivera mörkt läge"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr ""
@@ -7552,7 +7558,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Auto säkerhetskopiera"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7676,7 +7682,7 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Logga in region"
 
 msgid "Stealth mode"
 msgstr ""
@@ -7687,7 +7693,7 @@ msgid ""
 msgstr ""
 
 msgid "Network test"
-msgstr ""
+msgstr "Nätverkstest"
 
 msgid "Test"
 msgstr "Test"
@@ -13649,6 +13655,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "Denna G-kod infogas vid varje lagerbyte efter lyft av Z axis"
 
@@ -18684,9 +18696,6 @@ msgstr ""
 msgid "Removed"
 msgstr ""
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -19234,6 +19243,9 @@ msgstr ""
 "ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten "
 "för vridning?"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "Adaptiv lagerhöjd"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS ej ansluten"
 
@@ -19446,9 +19458,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Allmänna inställningar"
 
-#~ msgid "Login Region"
-#~ msgstr "Logga in Region"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Visa \"Dagens tips\" efter start"
 
@@ -19475,9 +19484,6 @@ msgstr ""
 #~ msgid "System Sync"
 #~ msgstr "Synkronisering av system"
 
-#~ msgid "Auto-Backup"
-#~ msgstr "Auto Säkerhetskopiera"
-
 #~ msgid "every"
 #~ msgstr "varje"
 
@@ -19486,9 +19492,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "Mörkt Läge"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Aktivera mörkt läge"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Hemsida och dagliga förslag"
@@ -19606,9 +19609,6 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "Ta bort små överhäng som eventuellt inte behöver stöd."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Adaptiv lagerhöjd"
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

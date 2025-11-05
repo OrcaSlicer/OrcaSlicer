@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4857,6 +4857,9 @@ msgstr "Montage terug"
 msgid "Return"
 msgstr "Terug"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Kleur instellingen"
 
@@ -6612,6 +6615,9 @@ msgstr ""
 msgid "Lock current plate"
 msgstr ""
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr ""
 
@@ -7554,13 +7560,13 @@ msgid "Home"
 msgstr "Thuis"
 
 msgid "Default page"
-msgstr ""
+msgstr "Startpagina"
 
 msgid "Set the page opened on startup."
 msgstr "Stel de pagina in die wordt geopend bij het opstarten."
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Donkere modus inschakelen"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "Sta slechts één OrcaSlicer-instantie toe"
@@ -7623,7 +7629,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "Geen waarschuwingen bij het laden van 3MF met aangepaste G-codes"
 
 msgid "Show options when importing STEP file"
 msgstr ""
@@ -7633,7 +7639,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Automatisch een back-up maken"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7658,7 +7664,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "Beheer van meerdere apparaten"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7765,10 +7771,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Inlogregio"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "Stealth modus"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7779,7 +7785,7 @@ msgstr ""
 "gebruiken, kunnen deze functie veilig inschakelen."
 
 msgid "Network test"
-msgstr ""
+msgstr "Netwerktest"
 
 msgid "Test"
 msgstr "Test"
@@ -13868,6 +13874,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
 "De G-code wordt bij iedere laagwisseling toegevoegd na het optillen van Z"
@@ -19010,9 +19022,6 @@ msgstr ""
 msgid "Removed"
 msgstr ""
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -19605,6 +19614,9 @@ msgstr ""
 "kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het "
 "warmtebed de kans op kromtrekken kan verkleinen?"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "Adaptieve laaghoogte"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS niet aangesloten"
 
@@ -19807,15 +19819,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Algemene instellingen"
 
-#~ msgid "Login Region"
-#~ msgstr "Inlogregio"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "Stealth-modus"
-
-#~ msgid "Default Page"
-#~ msgstr "Startpagina"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Toon de melding 'Tip van de dag' na het starten"
 
@@ -19843,10 +19846,6 @@ msgstr ""
 #~ "Als dit is ingeschakeld, wordt er automatisch berekend telkens wanneer "
 #~ "het filament wordt verwisseld"
 
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr ""
-#~ "Beheer van meerdere apparaten (Werkt nadat Orca opnieuw is opgestart)."
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr ""
 #~ "Automatische rangschikking van de plaat na het klonen van een object"
@@ -19863,20 +19862,11 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "Koppel URL's aan OrcaSlicer"
 
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr "Geen waarschuwingen bij het laden van 3MF met aangepaste G-codes"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "Automatisch een back-up maken"
-
 #~ msgid "every"
 #~ msgstr "elke"
 
 #~ msgid "Dark Mode"
 #~ msgstr "Donkere modus"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Donkere modus inschakelen"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Startpagina en dagelijkse tips"
@@ -20020,9 +20010,6 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "Verwijder kleine overstekken die mogelijk geen steun nodig hebben."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Adaptieve laaghoogte"
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

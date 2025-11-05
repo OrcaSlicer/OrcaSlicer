@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -4935,6 +4935,9 @@ msgstr "Повернення збірки"
 msgid "Return"
 msgstr "Повернення"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Панель інструментів малювання"
 
@@ -6747,6 +6750,9 @@ msgstr "Розблокувати поточну пластину"
 msgid "Lock current plate"
 msgstr "Блокувати поточну пластину"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "Редагувати назву поточної пластини"
 
@@ -7687,13 +7693,13 @@ msgid "Home"
 msgstr "Домашня"
 
 msgid "Default page"
-msgstr ""
+msgstr "Початкова сторінка"
 
 msgid "Set the page opened on startup."
 msgstr "Задати сторінку, яка відкривається при запуску."
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Увімкнути темний режим"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "Дозволити лише один екземпляр OrcaSlicer"
@@ -7742,7 +7748,7 @@ msgid "Load Geometry Only"
 msgstr "Завантажити Тільки Геометрію"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "Поведінка завантаження"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr ""
@@ -7759,7 +7765,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "Немає попереджень при завантаженні файлу 3MF із зміненими G-кодами"
 
 msgid "Show options when importing STEP file"
 msgstr ""
@@ -7769,7 +7775,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Автобекап"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7794,7 +7800,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "Керування кількома пристроями"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7901,10 +7907,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Регіон входу"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "Прихований режим"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7915,7 +7921,7 @@ msgstr ""
 "можуть безпечно ввімкнути цю функцію."
 
 msgid "Network test"
-msgstr ""
+msgstr "Тест мережі"
 
 msgid "Test"
 msgstr "Тест"
@@ -14656,6 +14662,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "Ця частина gcode вставляється при кожній зміні шару після підйому z"
 
@@ -20264,9 +20276,6 @@ msgstr "Не вдалося надрукувати"
 msgid "Removed"
 msgstr "Видалено"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -20863,6 +20872,16 @@ msgstr ""
 "ABS, відповідне підвищення температури гарячого ліжка може зменшити "
 "ймовірність деформації?"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "Адаптивна ширина шару"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "Включення цієї опції означає, що висота шару підтримки дерева, за "
+#~ "виключенням першого, буде розрахована автоматично "
+
 #~ msgid "AMS not connected"
 #~ msgstr "АМС не підключено"
 
@@ -21143,15 +21162,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Загальні налаштування"
 
-#~ msgid "Login Region"
-#~ msgstr "Регіон входу"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "Прихований режим"
-
-#~ msgid "Default Page"
-#~ msgstr "Початкова сторінка"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Показувати повідомлення \"Порада дня\" після запуску"
 
@@ -21178,10 +21188,6 @@ msgstr ""
 #~ "Якщо ввімкнено, автоматично обчислювати кожного разу, коли змінюється "
 #~ "філамент"
 
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr ""
-#~ "Керування кількома пристроями (набуває чинності після перезапуску Orca)."
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "Автоматично впорядкувати об'єкти пластини після копіювання об'єкту"
 
@@ -21197,15 +21203,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "Асоціювати URL-адреси з OrcaSlicer"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "Поведінка завантаження"
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr "Немає попереджень при завантаженні файлу 3MF із зміненими G-кодами"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "Автобекап"
-
 #~ msgid "every"
 #~ msgstr "кожен"
 
@@ -21214,9 +21211,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "Темний режим"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Увімкнути темний режим"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Головна сторінка та щоденні поради"
@@ -21441,16 +21435,6 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "Видалити невеликі виступи, які, можливо, не потребують підтримки."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Адаптивна ширина шару"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr ""
-#~ "Включення цієї опції означає, що висота шару підтримки дерева, за "
-#~ "виключенням першого, буде розрахована автоматично "
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

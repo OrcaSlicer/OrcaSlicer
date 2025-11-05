@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4752,6 +4752,9 @@ msgstr "戻る"
 msgid "Return"
 msgstr "戻る"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "ペイント ツールバー"
 
@@ -6461,6 +6464,9 @@ msgstr ""
 msgid "Lock current plate"
 msgstr ""
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr ""
 
@@ -7372,7 +7378,7 @@ msgid "Set the page opened on startup."
 msgstr ""
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "ダークモードを有効"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr ""
@@ -7439,7 +7445,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "自動バックアップ"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7560,7 +7566,7 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "地域"
 
 msgid "Stealth mode"
 msgstr ""
@@ -13461,6 +13467,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "積層が変わる直後に実行するG-codeです。"
 
@@ -18376,9 +18388,6 @@ msgstr ""
 msgid "Removed"
 msgstr ""
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -18910,6 +18919,9 @@ msgstr ""
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げること"
 "で、反りが発生する確率を下げることができることをご存知ですか？"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "アダプティブ積層ピッチ"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS が接続されていません"
 
@@ -19062,9 +19074,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "一般設定"
 
-#~ msgid "Login Region"
-#~ msgstr "地域"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "起動後「毎日のヒント」を表示"
 
@@ -19077,17 +19086,11 @@ msgstr ""
 #~ msgid "User Sync"
 #~ msgstr "ユーザー同期"
 
-#~ msgid "Auto-Backup"
-#~ msgstr "自動バックアップ"
-
 #~ msgid "Downloads"
 #~ msgstr "ダウンロード"
 
 #~ msgid "Dark Mode"
 #~ msgstr "ダークモード"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "ダークモードを有効"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "ホームページとヒント"
@@ -19170,9 +19173,6 @@ msgstr ""
 #~ msgstr ""
 #~ "温度差が大きいフィラメントを一緒に造形することができません。ノズル詰まりや"
 #~ "損傷する可能性があります"
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "アダプティブ積層ピッチ"
 
 #~ msgid "Alt + Mouse wheel"
 #~ msgstr "Alt + マウスホイール"

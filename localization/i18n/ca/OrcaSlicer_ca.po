@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4945,6 +4945,9 @@ msgstr "Tornar a Agrupar"
 msgid "Return"
 msgstr "Tornar"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Barra d'eines de pintura"
 
@@ -6741,6 +6744,9 @@ msgstr "Desbloquejar la placa actual"
 msgid "Lock current plate"
 msgstr "Bloquejar la placa actual"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "Editar el nom de la placa actual"
 
@@ -7693,13 +7699,13 @@ msgid "Home"
 msgstr "Inici"
 
 msgid "Default page"
-msgstr ""
+msgstr "Pàgina predeterminada"
 
 msgid "Set the page opened on startup."
 msgstr "Definiu la pàgina a obrir a l'inici."
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Habilitar el mode fosc"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "Permet només una instància OrcaSlicer"
@@ -7748,7 +7754,7 @@ msgid "Load Geometry Only"
 msgstr "Carregar només geometria"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "Carregar comportament"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr ""
@@ -7765,7 +7771,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "No hi ha avisos en carregar 3MF amb Codis-G modificats"
 
 msgid "Show options when importing STEP file"
 msgstr ""
@@ -7775,7 +7781,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Còpia de seguretat automàtica"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7800,7 +7806,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "Gestió multidispositiu"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7909,10 +7915,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Regió d'inici de sessió"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "Mode silenciós"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7923,7 +7929,7 @@ msgstr ""
 "activar aquesta funció de manera segura."
 
 msgid "Network test"
-msgstr ""
+msgstr "Prova de Xarxa"
 
 msgid "Test"
 msgstr "Test"
@@ -14724,6 +14730,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
 "Aquesta part de Codi-G s'insereix en cada canvi de capa després de "
@@ -20419,9 +20431,6 @@ msgstr "Impressió Fallida"
 msgid "Removed"
 msgstr "Eliminat"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -21023,6 +21032,16 @@ msgstr ""
 "augmentar adequadament la temperatura del llit pot reduir la probabilitat de "
 "deformació?"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "Alçada de Capa Adaptativa"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "Si activeu aquesta opció, l'alçada de la capa de suport en arbre, excepte "
+#~ "la primera, es calcularà automàticament "
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS no connectat"
 
@@ -21308,15 +21327,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Configuració general"
 
-#~ msgid "Login Region"
-#~ msgstr "Regió d'inici de sessió"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "Mode Silenciós"
-
-#~ msgid "Default Page"
-#~ msgstr "Pàgina predeterminada"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Mostrar la notificació de \"Consell del dia\" després de l'inici"
 
@@ -21343,9 +21353,6 @@ msgstr ""
 #~ "Si està activat, fa els càlculs automàticament cada vegada que canvia el "
 #~ "filament"
 
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr "Gestió multidispositiu(Entra en vigor després de reiniciar Studio)."
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "Organitza automàticament la placa després de la clonació d'objectes"
 
@@ -21361,15 +21368,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "Associeu URLs a OrcaSlicer"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "Carregar Comportament"
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr "No hi ha avisos en carregar 3MF amb Codis-G modificats"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "Còpia de seguretat automàtica"
-
 #~ msgid "every"
 #~ msgstr "cada"
 
@@ -21378,9 +21376,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "Mode fosc"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Habilitar el mode fosc"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Pàgina d'inici i consells diaris"
@@ -21607,16 +21602,6 @@ msgstr ""
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr ""
 #~ "Eliminar els voladissos petits que possiblement no necessiten suports."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Alçada de Capa Adaptativa"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr ""
-#~ "Si activeu aquesta opció, l'alçada de la capa de suport en arbre, excepte "
-#~ "la primera, es calcularà automàticament "
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "
