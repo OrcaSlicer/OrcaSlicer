@@ -3327,7 +3327,7 @@ void StatusPanel::update_ams(MachineObject *obj)
     }
     if (m_filament_setting_dlg) { m_filament_setting_dlg->obj = obj; }
 
-    if (obj && (obj->last_cali_version != obj->cali_version) && obj->is_security_control_ready()) {
+    if (obj && (obj->last_cali_version != obj->cali_version) && (obj->is_lan_mode_printer() || obj->is_security_control_ready())) {
         obj->last_cali_version = obj->cali_version;
         PACalibExtruderInfo cali_info;
         cali_info.nozzle_diameter        = obj->GetExtderSystem()->GetNozzleDiameter(0);
@@ -3339,7 +3339,7 @@ void StatusPanel::update_ams(MachineObject *obj)
     bool     is_support_virtual_tray    = obj->ams_support_virtual_tray;
     bool     is_support_filament_backup = obj->is_support_filament_backup;
 
-    if (obj && obj->is_security_control_ready()) {
+    if (obj && (obj->is_lan_mode_printer() || obj->is_security_control_ready())) {
         obj->check_ams_filament_valid();
     }
 
