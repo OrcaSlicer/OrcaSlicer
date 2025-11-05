@@ -1218,7 +1218,7 @@ void PrintConfigDef::init_fff_params()
     def->max = 1000;
     def->max_literal = 10;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloatOrPercent(0., false));
+    def->set_default_value(new ConfigOptionFloatOrPercent(100., true));
 
     def = this->add("internal_bridge_flow", coFloat);
     def->label = L("Internal bridge flow ratio");
