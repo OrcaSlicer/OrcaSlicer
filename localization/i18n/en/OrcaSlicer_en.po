@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: 2025-05-18 09:32-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -4714,6 +4714,9 @@ msgstr ""
 msgid "Return"
 msgstr ""
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr ""
 
@@ -6430,6 +6433,9 @@ msgstr ""
 msgid "Lock current plate"
 msgstr ""
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr ""
 
@@ -7342,7 +7348,7 @@ msgid "Set the page opened on startup."
 msgstr ""
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Enable dark Mode"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr ""
@@ -13407,6 +13413,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
 
@@ -18292,9 +18304,6 @@ msgstr ""
 msgid "Removed"
 msgstr ""
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -18851,9 +18860,6 @@ msgstr ""
 
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "If enabled, auto-calculate every time filament is changed"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Enable Dark Mode"
 
 #~ msgid "An SD card needs to be inserted before printing."
 #~ msgstr "A MicroSD card needs to be inserted before printing."

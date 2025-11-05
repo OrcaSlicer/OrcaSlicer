@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: 2025-03-27 19:32+0800\n"
 "Last-Translator: 5idereal <hi@5idereal.cc>\n"
 "Language-Team: \n"
@@ -4776,6 +4776,9 @@ msgstr "退出組裝視角"
 msgid "Return"
 msgstr "返回"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "上色工具列"
 
@@ -6506,6 +6509,9 @@ msgstr "解鎖列印板"
 msgid "Lock current plate"
 msgstr "鎖定列印板"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "編輯列印板名稱"
 
@@ -7408,13 +7414,13 @@ msgid "Home"
 msgstr "首頁"
 
 msgid "Default page"
-msgstr ""
+msgstr "預設頁面"
 
 msgid "Set the page opened on startup."
 msgstr "設定為啟動頁面。"
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "啟用深色模式"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "僅允許一個 OrcaSlicer 程序"
@@ -7460,7 +7466,7 @@ msgid "Load Geometry Only"
 msgstr "僅載入幾何資料"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "載入方式"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr "開啟 .3mf 檔案時，是否需要載入印表機、線材和參數設定？"
@@ -7475,17 +7481,17 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "載入包含修改過 G-code 的 3MF 時不顯示警告"
 
 msgid "Show options when importing STEP file"
-msgstr ""
+msgstr "顯示 STEP 網格參數設定視窗。"
 
 msgid ""
 "If enabled,a parameter settings dialog will appear during STEP file import."
 msgstr "啟用後，匯入 STEP 檔案時會顯示參數設定視窗。"
 
 msgid "Auto backup"
-msgstr ""
+msgstr "自動備份"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7506,7 +7512,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "多臺設備管理"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7605,10 +7611,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "登入區域"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "區域網路模式"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7618,7 +7624,7 @@ msgstr ""
 "網路模式，可以安全地啟用此功能。"
 
 msgid "Network test"
-msgstr ""
+msgstr "網路測試"
 
 msgid "Test"
 msgstr "測試"
@@ -7642,7 +7648,7 @@ msgid "Enable network plugin"
 msgstr "啟用網路外掛程式"
 
 msgid "Use legacy network plugin"
-msgstr ""
+msgstr "使用舊版網路外掛"
 
 msgid ""
 "Disable to use latest network plugin that supports new BambuLab firmwares."
@@ -13818,6 +13824,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "在每次換層抬升Z高度之後插入這段 G-code"
 
@@ -18970,9 +18982,6 @@ msgstr "列印失敗"
 msgid "Removed"
 msgstr "已移除"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -19544,6 +19553,21 @@ msgstr ""
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
 
+#~ msgid "Junction Deviation calibration"
+#~ msgstr "轉折偏移校正"
+
+#, c-format, boost-format
+#~ msgid "Extruder %d"
+#~ msgstr "擠出機 %d"
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "自適應層高"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr "啟用此選項將自動計算（除第一層外）樹狀支撐的層高"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS 尚未連接"
 
@@ -19714,9 +19738,6 @@ msgstr ""
 #~ "您可以在列印設備「設置->網路->連接->存取碼」\n"
 #~ "查看，如下圖所示："
 
-#~ msgid "Junction Deviation calibration"
-#~ msgstr "轉折偏移校正"
-
 #~ msgid ""
 #~ "Browsing file in SD card is not supported in current firmware. Please "
 #~ "update the printer firmware."
@@ -19802,18 +19823,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "一般設定"
 
-#~ msgid "Login Region"
-#~ msgstr "登入區域"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "區域網路模式"
-
-#~ msgid "Use legacy network plugin (Takes effect after restarting Orca)"
-#~ msgstr "使用舊版網路外掛（重新啟動 Orca 後生效）"
-
-#~ msgid "Default Page"
-#~ msgstr "預設頁面"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "啟動後顯示「每日小提示」通知"
 
@@ -19833,12 +19842,6 @@ msgstr ""
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "啟用後，換料時自動計算"
 
-#~ msgid "Show the step mesh parameter setting dialog."
-#~ msgstr "顯示 STEP 網格參數設定視窗。"
-
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr "多臺設備管理 (需重開 Orca)"
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "物件複製後自動排列列印板"
 
@@ -19854,15 +19857,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "將 URL 關聯到 OrcaSlicer"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "載入方式"
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr "載入包含修改過 G-code 的 3MF 時不顯示警告"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "自動備份"
-
 #~ msgid "every"
 #~ msgstr "所有"
 
@@ -19871,9 +19865,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "深色模式"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "啟用深色模式"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "首頁和每日小提示"
@@ -19972,10 +19963,6 @@ msgstr ""
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr "該列印設備不支援傳送到 SD 記憶卡。"
-
-#, c-format, boost-format
-#~ msgid "Extruder %d"
-#~ msgstr "擠出機 %d"
 
 #, c-format, boost-format
 #~ msgid "The color count should be in range [%d, %d]."
@@ -20087,14 +20074,6 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "移除可能並不需要支撐的小懸空。"
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "自適應層高"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr "啟用此選項將自動計算（除第一層外）樹狀支撐的層高"
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

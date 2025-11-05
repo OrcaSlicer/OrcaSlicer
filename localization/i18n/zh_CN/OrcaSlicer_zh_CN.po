@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: 2024-07-28 07:12+0000\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -4771,6 +4771,9 @@ msgstr "退出装配体视图"
 msgid "Return"
 msgstr "返回"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "上色工具条"
 
@@ -6493,6 +6496,9 @@ msgstr "解锁当前板"
 msgid "Lock current plate"
 msgstr "锁定当前板"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "编辑当前盘名"
 
@@ -7394,13 +7400,13 @@ msgid "Home"
 msgstr "首页"
 
 msgid "Default page"
-msgstr ""
+msgstr "起始页"
 
 msgid "Set the page opened on startup."
 msgstr "设置启动OrcaSlicer时首先显示的页面。"
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "启用深色模式"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "同时仅运行一个 OrcaSlicer 实例"
@@ -7446,7 +7452,7 @@ msgid "Load Geometry Only"
 msgstr "仅加载几何形状"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "加载 交互项"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr "printter/filament/process 设置项文件能否以 .3mf后缀方式打开"
@@ -7458,20 +7464,20 @@ msgid "Maximum count of recent files"
 msgstr "最近使用文件的最大数量"
 
 msgid "Add STL/STEP files to recent files list"
-msgstr ""
+msgstr "添加模型文件 STL/STEP 到最近文件列表"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "加载具有修改的 G-Code 的 3MF 时不会出现警告"
 
 msgid "Show options when importing STEP file"
-msgstr ""
+msgstr "显示STEP网格参数设置对话框"
 
 msgid ""
 "If enabled,a parameter settings dialog will appear during STEP file import."
 msgstr "如果启用，在导入STEP文件时将出现参数设置对话框"
 
 msgid "Auto backup"
-msgstr ""
+msgstr "自动备份"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7492,7 +7498,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "多设备管理"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7591,10 +7597,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "登录区域"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "局域网模式"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7604,7 +7610,7 @@ msgstr ""
 "式，则可以安全地启用此功能。"
 
 msgid "Network test"
-msgstr ""
+msgstr "网络测试"
 
 msgid "Test"
 msgstr "测试"
@@ -7628,7 +7634,7 @@ msgid "Enable network plugin"
 msgstr "启用网络插件"
 
 msgid "Use legacy network plugin"
-msgstr ""
+msgstr "使用旧版网络插件"
 
 msgid ""
 "Disable to use latest network plugin that supports new BambuLab firmwares."
@@ -13688,6 +13694,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "在每次换层抬升Z高度之后插入这段G-code。"
 
@@ -18795,9 +18807,6 @@ msgstr "打印失败"
 msgid "Removed"
 msgstr "移除"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -19358,6 +19367,44 @@ msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
 
+#~ msgid "Junction Deviation calibration"
+#~ msgstr "结点偏差校准"
+
+#, c-format, boost-format
+#~ msgid "Extruder %d"
+#~ msgstr "挤出机 %d"
+
+#~ msgid ""
+#~ "Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+#~ "Firmware)"
+#~ msgstr "最大结点偏差（M205 J，仅适用于Marlin固件的JD > 0时）"
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "自适应层高"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr "启用此选项将自动计算（除第一层外）树状支撑的层高。"
+
+#~ msgid "Junction Deviation test"
+#~ msgstr "结点偏差测试"
+
+#~ msgid "Start junction deviation: "
+#~ msgstr "起始结点偏差： "
+
+#~ msgid "End junction deviation: "
+#~ msgstr "结束结点偏差： "
+
+#~ msgid "Junction Deviation settings"
+#~ msgstr "结点偏差设置"
+
+#~ msgid "Note: Lower values = sharper corners but slower speeds"
+#~ msgstr "注意：较低值 = 更尖锐的拐角但速度更慢"
+
+#~ msgid "NOTE: High values may cause Layer shift"
+#~ msgstr "注意：高值可能导致层偏移"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS 未连接"
 
@@ -19527,9 +19574,6 @@ msgstr ""
 #~ "你可以在打印机“设置->网络->连接->访问码\"\n"
 #~ "查看，如下图所示："
 
-#~ msgid "Junction Deviation calibration"
-#~ msgstr "结点偏差校准"
-
 #~ msgid ""
 #~ "Browsing file in SD card is not supported in current firmware. Please "
 #~ "update the printer firmware."
@@ -19615,18 +19659,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "通用设置"
 
-#~ msgid "Login Region"
-#~ msgstr "登录区域"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "局域网模式"
-
-#~ msgid "Use legacy network plugin (Takes effect after restarting Orca)"
-#~ msgstr "使用旧版网络插件（重启Orca后生效）"
-
-#~ msgid "Default Page"
-#~ msgstr "起始页"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "启动后显示“每日小贴士”通知"
 
@@ -19646,12 +19678,6 @@ msgstr ""
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "如果启用，会在每一次更换材料时自动计算。"
 
-#~ msgid "Show the step mesh parameter setting dialog."
-#~ msgstr "显示STEP网格参数设置对话框"
-
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr "多设备管理 （重启Orca后生效）"
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "对象克隆后自动排列打印板"
 
@@ -19667,18 +19693,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "将URL关联到OrcaSlicer"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "加载 交互项"
-
-#~ msgid "Add model files (stl/step) to recent file list."
-#~ msgstr "添加模型文件（stl/step）到最近文件列表"
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr "加载具有修改的 G-Code 的 3MF 时不会出现警告"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "自动备份"
-
 #~ msgid "every"
 #~ msgstr "每"
 
@@ -19687,9 +19701,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "深色模式"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "启用深色模式"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "首页和每日小贴士"
@@ -19790,10 +19801,6 @@ msgstr ""
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr "该打印机不支持发送到打印机SD卡。"
-
-#, c-format, boost-format
-#~ msgid "Extruder %d"
-#~ msgstr "挤出机 %d"
 
 #, c-format, boost-format
 #~ msgid "The color count should be in range [%d, %d]."
@@ -19899,24 +19906,11 @@ msgstr ""
 #~ "and uses the default method."
 #~ msgstr "熨烫的角度。设为负值将禁用此功能并使用默认方法。"
 
-#~ msgid ""
-#~ "Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
-#~ "Firmware)"
-#~ msgstr "最大结点偏差（M205 J，仅适用于Marlin固件的JD > 0时）"
-
 #~ msgid "Remove small overhangs"
 #~ msgstr "移除小悬空"
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "移除可能并不需要支撑的小悬空。"
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "自适应层高"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr "启用此选项将自动计算（除第一层外）树状支撑的层高。"
 
 #~ msgid "Width of the brim."
 #~ msgstr "边缘宽度。"
@@ -19939,24 +19933,6 @@ msgstr ""
 #~ "起始温度：<= 350\n"
 #~ "结束温度：>= 170\n"
 #~ "起始温度 > 结束温度 + 5）"
-
-#~ msgid "Junction Deviation test"
-#~ msgstr "结点偏差测试"
-
-#~ msgid "Start junction deviation: "
-#~ msgstr "起始结点偏差： "
-
-#~ msgid "End junction deviation: "
-#~ msgstr "结束结点偏差： "
-
-#~ msgid "Junction Deviation settings"
-#~ msgstr "结点偏差设置"
-
-#~ msgid "Note: Lower values = sharper corners but slower speeds"
-#~ msgstr "注意：较低值 = 更尖锐的拐角但速度更慢"
-
-#~ msgid "NOTE: High values may cause Layer shift"
-#~ msgstr "注意：高值可能导致层偏移"
 
 #~ msgid "The custom printer or model is not entered, please enter it."
 #~ msgstr "自定义打印机或型号未输入，请输入。"

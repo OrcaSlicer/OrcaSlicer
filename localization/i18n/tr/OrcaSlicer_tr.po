@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
-"PO-Revision-Date: 2025-09-14 23:43+0300\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
+"PO-Revision-Date: 2025-09-30 09:12+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
 "Language: tr\n"
@@ -4912,6 +4912,9 @@ msgstr "Montaj İptali"
 msgid "Return"
 msgstr "Geri dön"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Boyama Araç Çubuğu"
 
@@ -6696,6 +6699,9 @@ msgstr "Mevcut plakanın kilidini aç"
 msgid "Lock current plate"
 msgstr "Mevcut plakayı kilitle"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "Mevcut plaka adını düzenle"
 
@@ -6942,11 +6948,17 @@ msgid ""
 "rotation template settings that may not work properly with your current "
 "infill pattern. This could result in weak support or print quality issues."
 msgstr ""
+"Bu proje OrcaSlicer 2.3.1-alpha ile oluşturulmuştur ve geçerli dolgu "
+"(infill) deseninizle doğru çalışmayabilecek dolgu döndürme şablon ayarlarını "
+"kullanmaktadır. Bu durum, zayıf destek veya baskı kalitesi sorunlarına yol "
+"açabilir."
 
 msgid ""
 "Would you like OrcaSlicer to automatically fix this by clearing the rotation "
 "template settings?"
 msgstr ""
+"OrcaSlicer’ın, döndürme şablonu ayarlarını temizleyerek otomatik olarak "
+"düzeltmesini ister misiniz?"
 
 #, c-format, boost-format
 msgid ""
@@ -7635,13 +7647,13 @@ msgid "Home"
 msgstr "Ana Sayfa"
 
 msgid "Default page"
-msgstr ""
+msgstr "Varsayılan sayfa"
 
 msgid "Set the page opened on startup."
 msgstr "Açılışta açılacak sayfayı ayarlayın."
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Karanlık modu etkinleştir"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "Yalnızca bir OrcaSlicer örneğine izin ver"
@@ -7672,7 +7684,7 @@ msgid "Show the splash screen during startup."
 msgstr "Açılış sırasında açılış ekranını göster."
 
 msgid "Downloads folder"
-msgstr ""
+msgstr "İndirilenler klasörü"
 
 msgid "Target folder for downloaded items"
 msgstr ""
@@ -7690,7 +7702,7 @@ msgid "Load Geometry Only"
 msgstr "Yalnızca Geometriyi Yükle"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "Yükleme davranışı"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr "Bir .3mf açılırken yazıcı/filament/işlem ayarları yüklenmeli mi?"
@@ -7702,13 +7714,13 @@ msgid "Maximum count of recent files"
 msgstr "Son dosyaların maksimum sayısı"
 
 msgid "Add STL/STEP files to recent files list"
-msgstr ""
+msgstr "STL/STEP dosyalarını son dosyalar listesine ekle"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "Değiştirilmiş G-kodları içeren 3MF dosyalarını yüklerken uyarma"
 
 msgid "Show options when importing STEP file"
-msgstr ""
+msgstr "STEP dosyasını içe aktarırken seçenekleri göster"
 
 msgid ""
 "If enabled,a parameter settings dialog will appear during STEP file import."
@@ -7717,7 +7729,7 @@ msgstr ""
 "iletişim kutusu görüntülenir."
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Otomatik yedekleme"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7742,7 +7754,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "Çoklu Cihaz Yönetimi"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7752,13 +7764,13 @@ msgstr ""
 "gönderebilir ve birden fazla cihazı yönetebilirsiniz."
 
 msgid "(Requires restart)"
-msgstr ""
+msgstr "(Yeniden başlatma gerektirir)"
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
 
 msgid "Behaviour"
-msgstr ""
+msgstr "Davranış"
 
 msgid "All"
 msgstr "Tümü"
@@ -7850,10 +7862,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Giriş bölgesi"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "Gizli mod"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7864,7 +7876,7 @@ msgstr ""
 "açabilir."
 
 msgid "Network test"
-msgstr ""
+msgstr "Ağ testi"
 
 msgid "Test"
 msgstr "Test"
@@ -7882,13 +7894,13 @@ msgid "Update built-in Presets automatically."
 msgstr "Yerleşik Ön Ayarları otomatik olarak güncelleyin."
 
 msgid "Network plugin"
-msgstr ""
+msgstr "Ağ eklentisi"
 
 msgid "Enable network plugin"
 msgstr "Ağ eklentisini etkinleştir"
 
 msgid "Use legacy network plugin"
-msgstr ""
+msgstr "Eski ağ eklentisini kullan"
 
 msgid ""
 "Disable to use latest network plugin that supports new BambuLab firmwares."
@@ -14643,6 +14655,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
 "Bu gcode kısmı, z kaldırma işleminden sonra her katman değişikliğinde "
@@ -18993,7 +19011,7 @@ msgid "Delete input"
 msgstr "Girişi sil"
 
 msgid "Network Test"
-msgstr "Ağ testi"
+msgstr "Ağ Testi"
 
 msgid "Start Test Multi-Thread"
 msgstr "Çoklu İş Parçacığı Testini Başlat"
@@ -20347,9 +20365,6 @@ msgstr "Yazdırma Başarısız"
 msgid "Removed"
 msgstr "Kaldırıldı"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -20947,6 +20962,56 @@ msgstr ""
 "sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını "
 "azaltabileceğini biliyor muydunuz?"
 
+#~ msgid "Junction Deviation calibration"
+#~ msgstr "Köşe sapması kalibrasyonu"
+
+#, c-format, boost-format
+#~ msgid "Extruder %d"
+#~ msgstr "Ekstruder %d"
+
+#~ msgid ""
+#~ "Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+#~ "Firmware)"
+#~ msgstr ""
+#~ "Maksimum köşe sapması (M205 J, yalnızca Marlin Firmware için JD > 0 ise "
+#~ "geçerlidir)"
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "Uyarlanabilir katman yüksekliği"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "Bu seçeneğin etkinleştirilmesi, ilki hariç ağaç destek katmanının "
+#~ "yüksekliğinin otomatik olarak hesaplanacağı anlamına gelir."
+
+#~ msgid "Junction Deviation test"
+#~ msgstr "Köşe sapma testi"
+
+#~ msgid "Start junction deviation: "
+#~ msgstr "Başlangıç köşe sapması: "
+
+#~ msgid "End junction deviation: "
+#~ msgstr "Bitiş köşe sapması: "
+
+#~ msgid "Junction Deviation settings"
+#~ msgstr "Köşe sapma ayarları"
+
+#~ msgid "Note: Lower values = sharper corners but slower speeds"
+#~ msgstr ""
+#~ "Not: Daha düşük değerler = daha keskin köşeler ancak daha yavaş hızlar"
+
+#~ msgid ""
+#~ "Please input valid values:\n"
+#~ "(0 <= Junction Deviation < 1)"
+#~ msgstr ""
+#~ "Lütfen geçerli değerler girin:\n"
+#~ "(0 <= Köşe Sapması < 1)"
+
+#~ msgid "NOTE: High values may cause Layer shift"
+#~ msgstr "Not: Yüksek değerler katman kaymasına neden olabilir"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS bağlı değil"
 
@@ -21125,9 +21190,6 @@ msgstr ""
 #~ "Bunu \"Ayarlar > Ağ > Bağlantı kodu\" bölümünde bulabilirsiniz.\n"
 #~ "şekilde gösterildiği gibi yazıcıda:"
 
-#~ msgid "Junction Deviation calibration"
-#~ msgstr "Köşe sapması kalibrasyonu"
-
 #~ msgid ""
 #~ "Browsing file in SD card is not supported in current firmware. Please "
 #~ "update the printer firmware."
@@ -21224,20 +21286,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Genel Ayarlar"
 
-#~ msgid "Login Region"
-#~ msgstr "Giriş Bölgesi"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "Gizli mod"
-
-#~ msgid "Use legacy network plugin (Takes effect after restarting Orca)"
-#~ msgstr ""
-#~ "Eski ağ eklentisini kullan (Orca'yı yeniden başlattıktan sonra etkili "
-#~ "olur)"
-
-#~ msgid "Default Page"
-#~ msgstr "Varsayılan Sayfa"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Başlangıçtan sonra \"Günün ipucu\" bildirimini göster"
 
@@ -21259,13 +21307,6 @@ msgstr ""
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "Etkinleştirilirse filaman her değiştirildiğinde otomatik hesaplama"
 
-#~ msgid "Show the step mesh parameter setting dialog."
-#~ msgstr "Step ağ parametresi ayar iletişim kutusunu göster."
-
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr ""
-#~ "Çoklu Cihaz Yönetimi(Studio yeniden başlatıldıktan sonra geçerli olur)."
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "Nesne klonlamadan sonra plakayı otomatik düzenleme"
 
@@ -21281,19 +21322,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "URL’leri OrcaSlicer ile ilişkilendirin"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "Yükleme Davranışı"
-
-#~ msgid "Add model files (stl/step) to recent file list."
-#~ msgstr "Model dosyalarını (STL/STEP) son dosyalar listesine ekle."
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr ""
-#~ "Değiştirilmiş G-kodları içeren 3MF dosyalarını yüklerken uyarı verme"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "Otomatik yedekleme"
-
 #~ msgid "every"
 #~ msgstr "her"
 
@@ -21302,9 +21330,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "Karanlık Mod"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Karanlık modu etkinleştir"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Ana sayfa ve günlük ipuçları"
@@ -21419,10 +21444,6 @@ msgstr ""
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr "Yazıcı, yazıcı SD kartına gönderimi desteklemiyor."
-
-#, c-format, boost-format
-#~ msgid "Extruder %d"
-#~ msgstr "Ekstruder %d"
 
 #, c-format, boost-format
 #~ msgid "The color count should be in range [%d, %d]."
@@ -21540,28 +21561,11 @@ msgstr ""
 #~ "Köşebent ütüleme işlemi yapılır. Negatif bir sayı bu işlevi devre dışı "
 #~ "bırakır ve varsayılan yöntemi kullanır."
 
-#~ msgid ""
-#~ "Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
-#~ "Firmware)"
-#~ msgstr ""
-#~ "Maksimum köşe sapması (M205 J, yalnızca Marlin Firmware için JD > 0 ise "
-#~ "geçerlidir)"
-
 #~ msgid "Remove small overhangs"
 #~ msgstr "Küçük çıkıntıları kaldır"
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "Muhtemelen desteğe ihtiyaç duymayan küçük çıkıntıları kaldırın."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Uyarlanabilir katman yüksekliği"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr ""
-#~ "Bu seçeneğin etkinleştirilmesi, ilki hariç ağaç destek katmanının "
-#~ "yüksekliğinin otomatik olarak hesaplanacağı anlamına gelir."
 
 #~ msgid "Width of the brim."
 #~ msgstr "Kenar genişliği."
@@ -21594,32 +21598,6 @@ msgstr ""
 #~ "Öneri: Nemlendirme değerini 0 olarak ayarlayın.\n"
 #~ "Bu, yazıcının varsayılan değerini veya son kaydedilen değeri "
 #~ "kullanacaktır."
-
-#~ msgid "Junction Deviation test"
-#~ msgstr "Köşe sapma testi"
-
-#~ msgid "Start junction deviation: "
-#~ msgstr "Başlangıç köşe sapması: "
-
-#~ msgid "End junction deviation: "
-#~ msgstr "Bitiş köşe sapması: "
-
-#~ msgid "Junction Deviation settings"
-#~ msgstr "Köşe sapma ayarları"
-
-#~ msgid "Note: Lower values = sharper corners but slower speeds"
-#~ msgstr ""
-#~ "Not: Daha düşük değerler = daha keskin köşeler ancak daha yavaş hızlar"
-
-#~ msgid ""
-#~ "Please input valid values:\n"
-#~ "(0 <= Junction Deviation < 1)"
-#~ msgstr ""
-#~ "Lütfen geçerli değerler girin:\n"
-#~ "(0 <= Köşe Sapması < 1)"
-
-#~ msgid "NOTE: High values may cause Layer shift"
-#~ msgstr "Not: Yüksek değerler katman kaymasına neden olabilir"
 
 #~ msgid "The custom printer or model is not entered, please enter it."
 #~ msgstr "Özel yazıcı veya model girilmedi lütfen giriş yapın."

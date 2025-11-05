@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -4838,6 +4838,9 @@ msgstr "조립 되돌리기"
 msgid "Return"
 msgstr "돌아가기"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "칠하기 도구 모음"
 
@@ -6591,6 +6594,9 @@ msgstr "현재 플레이트 잠금 해제"
 msgid "Lock current plate"
 msgstr "현재 플레이트 잠금"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "현재 번호판 이름 수정"
 
@@ -7517,13 +7523,13 @@ msgid "Home"
 msgstr "홈"
 
 msgid "Default page"
-msgstr ""
+msgstr "기본 페이지"
 
 msgid "Set the page opened on startup."
 msgstr "시작 시 열리는 페이지를 설정합니다."
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "다크 모드 사용"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "OrcaSlicer 인스턴스를 하나만 허용"
@@ -7570,7 +7576,7 @@ msgid "Load Geometry Only"
 msgstr "형상만 로드"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "행동 로드"
 
 msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
 msgstr ".3mf를 열 때 프린터/필라멘트/프로세스 설정이 로드되어야 합니까?"
@@ -7585,7 +7591,7 @@ msgid "Add STL/STEP files to recent files list"
 msgstr ""
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "수정된 Gcode로 3MF를 로드할 때 경고 없음"
 
 msgid "Show options when importing STEP file"
 msgstr ""
@@ -7595,7 +7601,7 @@ msgid ""
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "자동 백업"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7618,7 +7624,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "다중 장치 관리"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7722,10 +7728,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "로그인 지역"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "스텔스 모드"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7735,7 +7741,7 @@ msgstr ""
 "용하지 않거나 LAN 모드만 사용하는 사용자는 이 기능을 안전하게 켤 수 있습니다."
 
 msgid "Network test"
-msgstr ""
+msgstr "네트워크 테스트"
 
 msgid "Test"
 msgstr "테스트"
@@ -14199,6 +14205,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "이 Gcode는 Z올리기 이후 모든 레이어 변경에 삽입됩니다"
 
@@ -19585,9 +19597,6 @@ msgstr "출력 실패"
 msgid "Removed"
 msgstr "삭제됨"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -20175,6 +20184,16 @@ msgstr ""
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 "
 "높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "적응형 레이어 높이"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "이 옵션을 활성화하면 첫 번째 레이어를 제외한 트리 서포트의 레이어 높이가 "
+#~ "자동으로 계산됩니다 "
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS가 연결되지 않음"
 
@@ -20442,15 +20461,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "일반 설정"
 
-#~ msgid "Login Region"
-#~ msgstr "로그인 지역"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "스텔스 모드"
-
-#~ msgid "Default Page"
-#~ msgstr "기본 페이지"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "시작 후 \"오늘의 팁\" 알림 표시"
 
@@ -20470,9 +20480,6 @@ msgstr ""
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "활성화하면 필라멘트가 교체될 때마다 자동 계산됩니다"
 
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr "다중 장치 관리 (Orca를 다시 시작한 후 적용됨)."
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "객체를 복제한 후 플레이트를 자동으로 정렬합니다"
 
@@ -20488,15 +20495,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "OrcaSlicer에 URL 연결"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "행동 로드"
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr "수정된 Gcode로 3MF를 로드할 때 경고 없음"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "자동 백업"
-
 #~ msgid "every"
 #~ msgstr "매번"
 
@@ -20505,9 +20503,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "다크 모드"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "다크 모드 사용"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "홈페이지 및 데일리 팁"
@@ -20720,16 +20715,6 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "서포트가 필요하지 않은 작은 오버행에서 서포트를 제거합니다."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "적응형 레이어 높이"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr ""
-#~ "이 옵션을 활성화하면 첫 번째 레이어를 제외한 트리 서포트의 레이어 높이가 "
-#~ "자동으로 계산됩니다 "
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "

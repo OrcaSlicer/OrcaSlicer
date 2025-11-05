@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -4862,6 +4862,9 @@ msgstr "Trở về lắp ráp"
 msgid "Return"
 msgstr "Trở về"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Thanh công cụ vẽ"
 
@@ -6619,6 +6622,9 @@ msgstr "Mở khóa bản hiện tại"
 
 msgid "Lock current plate"
 msgstr "Khóa bản hiện tại"
+
+msgid "Filament grouping"
+msgstr ""
 
 msgid "Edit current plate name"
 msgstr "Chỉnh sửa tên bản hiện tại"
@@ -14415,6 +14421,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "G-code này được chèn vào mỗi lần thay đổi lớp sau khi nâng Z."
 
@@ -19985,9 +19997,6 @@ msgstr "In thất bại"
 
 msgid "Removed"
 msgstr "Đã xóa"
-
-msgid "Filament grouping"
-msgstr ""
 
 msgid "Don't remind me again"
 msgstr ""

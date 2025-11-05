@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4653,6 +4653,9 @@ msgstr ""
 msgid "Return"
 msgstr ""
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr ""
 
@@ -6354,6 +6357,9 @@ msgid "Unlock current plate"
 msgstr ""
 
 msgid "Lock current plate"
+msgstr ""
+
+msgid "Filament grouping"
 msgstr ""
 
 msgid "Edit current plate name"
@@ -13102,6 +13108,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
 
@@ -17837,9 +17849,6 @@ msgid "Print Failed"
 msgstr ""
 
 msgid "Removed"
-msgstr ""
-
-msgid "Filament grouping"
 msgstr ""
 
 msgid "Don't remind me again"
