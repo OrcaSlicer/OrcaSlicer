@@ -1165,14 +1165,13 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");
     def->category = L("Strength");
-    def->tooltip = L("Controls the density (spacing) of external bridge lines. 100% means solid bridge. Default is 100%.\n\n"
-                     "Due to the tendency for bridge extrusions to sag, a value of 100% may not be sufficient for proper welding between them,\n"
-                     "so it is recommended to increase it slightly while using 100% Bridge Line Width.\n"
-                     "Lower density external bridges can help improve reliability as there is more space for air to circulate "
-                     "around the extruded bridge, improving its cooling speed. Minimum is 10%.\n"
+    def->tooltip = L("Controls the density (spacing) of external bridge lines. Default is 100%.\n"
+                     "Theoretically, 100% means a solid bridge, but due to the tendency of bridge extrusions to sag, 100% may not be sufficient."
                      "Higher densities can produce smoother bridge surfaces, as overlapping lines provide "
                      "additional support during printing. Maximum is 120%.\n"
-                     "Note: Bridge density that is too high can cause warping or overextrusion.");
+                     "Note: Bridge density that is too high can cause warping or overextrusion.\n\n"
+                     "Lower density external bridges can help improve reliability as there is more space for air to circulate "
+                     "around the extruded bridge, improving its cooling speed. Minimum is 10%.")
     def->sidetext = "%";
     def->min = 10;
     def->max = 120;
