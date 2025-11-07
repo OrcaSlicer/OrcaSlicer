@@ -1209,8 +1209,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_line_width", coFloatOrPercent);
     def->label = L("Bridge");
     def->category = L("Quality");
-    def->tooltip = L("Bridge line width expressed either as an absolute value or as a percentage of the active nozzle diameter (percentages are computed from the nozzle diameter). Recommended value 100% along with a higher External bridge density or Bridge flow ratio.\n"
-                     "Leave at 0 to use the automatic width.");
+    def->tooltip = L("Bridge line width expressed either as an absolute value or as a percentage of the active nozzle diameter (percentages are computed from the nozzle diameter).\n"
+                     "Recommended to use with a higher Bridge density or Bridge flow ratio.\n\n"
+                     "Maximum value is 100% or nozzle diameter.\n"
+                     "If set to 0, the line width will be equal to Internal solid infill width.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
