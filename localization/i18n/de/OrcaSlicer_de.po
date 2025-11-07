@@ -3109,24 +3109,33 @@ msgstr "Zugriffscode:%s IP-Adresse:%s"
 
 msgid "A Storage needs to be inserted before printing via LAN."
 msgstr ""
+"Ein Speicher muss vor dem Drucken über LAN eingelegt werden."
 
 msgid ""
 "Sending print job over LAN, but the Storage in the printer is abnormal and "
 "print-issues may be caused by this."
 msgstr ""
+"Druckauftrag wird über LAN gesendet, aber der Speicher im Drucker ist "
+"fehlerhaft und Druckprobleme können dadurch verursacht werden."
 
 msgid ""
 "The Storage in the printer is abnormal. Please replace it with a normal "
 "Storage before sending print job to printer."
 msgstr ""
+"Der Speicher im Drucker ist fehlerhaft. Bitte ersetzen Sie ihn durch einen "
+"normalen Speicher, bevor Sie den Druckauftrag an den Drucker senden."
 
 msgid ""
 "The Storage in the printer is read-only. Please replace it with a normal "
 "Storage before sending print job to printer."
 msgstr ""
+"Der Speicher im Drucker ist schreibgeschützt. Bitte ersetzen Sie ihn durch "
+"einen normalen Speicher, bevor Sie den Druckauftrag an den Drucker senden."
 
 msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
+"Es ist ein unbekannter Fehler mit dem Speicherstatus aufgetreten. Bitte "
+"versuchen Sie es erneut."
 
 msgid "Sending G-code file over LAN"
 msgstr "Sende Gcode-Datei über LAN"
@@ -3145,16 +3154,22 @@ msgid ""
 "Sending G-code file over LAN, but the Storage in the printer is abnormal and "
 "print-issues may be caused by this."
 msgstr ""
+"Gcode-Datei wird über LAN gesendet, aber der Speicher im Drucker ist fehlerhaft "
+"und Druckprobleme können dadurch verursacht werden."
 
 msgid ""
 "The Storage in the printer is abnormal. Please replace it with a normal "
 "Storage before sending to printer."
 msgstr ""
+"Der Speicher im Drucker ist fehlerhaft. Bitte ersetzen Sie ihn durch einen "
+"normalen Speicher, bevor Sie etwas an den Drucker senden."
 
 msgid ""
 "The Storage in the printer is read-only. Please replace it with a normal "
 "Storage before sending to printer."
 msgstr ""
+"Der Speicher im Drucker ist schreibgeschützt. Bitte ersetzen Sie ihn durch "
+"einen normalen Speicher, bevor Sie etwas an den Drucker senden."
 
 msgid "Importing SLA archive"
 msgstr "SLA-Archiv importieren"
@@ -5113,7 +5128,7 @@ msgid "Return"
 msgstr "Zurück"
 
 msgid "Toggle Axis"
-msgstr ""
+msgstr "Achse umschalten"
 
 msgid "Paint Toolbar"
 msgstr "Malwerkzeuge"
@@ -7454,26 +7469,26 @@ msgid "Directory for the replace wasn't selected"
 msgstr "Verzeichnis um daraus zu ersetzen wurde nicht ausgewählt"
 
 msgid "Replaced with STLs from directory:\n"
-msgstr ""
+msgstr "Ersetzt mit STLs aus dem Verzeichnis:\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: same file.\n"
-msgstr ""
+msgstr "✖ Übersprungen %1%: gleiche Datei.\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr ""
+msgstr "✖ Übersprungen %1%: Datei existiert nicht.\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ %1% übersprungen: Ersetzen fehlgeschlagen.\n"
+msgstr "✖ Übersprungen %1%: Ersetzen fehlgeschlagen.\n"
 
 #, boost-format
 msgid "✔ Replaced %1%.\n"
-msgstr ""
+msgstr "✔ Ersetzt %1%.\n"
 
 msgid "Replaced volumes"
-msgstr ""
+msgstr "Ersetzte Volumen"
 
 msgid "Please select a file"
 msgstr "Bitte wählen Sie eine Datei"
@@ -8301,12 +8316,15 @@ msgstr ""
 "zusammen drucken."
 
 msgid "Allow Abnormal Storage"
-msgstr ""
+msgstr "Fehlerhaften Speicher zulassen"
 
 msgid ""
 "This allows the use of Storage that is marked as abnormal by the Printer.\n"
 "Use at your own risk, can cause issues!"
 msgstr ""
+"Dies ermöglicht die Verwendung von Speicher, der vom Drucker als "
+"fehlerhaft markiert ist.\n"
+"Verwendung auf eigenes Risiko, kann Probleme verursachen!"
 
 msgid "Log Level"
 msgstr "Protokollstufe"
@@ -8945,7 +8963,7 @@ msgid "Storage needs to be inserted before printing via LAN."
 msgstr "Speicher muss vor dem Drucken über LAN eingelegt werden."
 
 msgid "Storage is in abnormal state or is in read-only mode."
-msgstr ""
+msgstr "Speicher ist in einem abnormalen Zustand oder im Nur-Lese-Modus."
 
 msgid "Storage needs to be inserted before printing."
 msgstr "Speicher muss vor dem Drucken eingesetzt werden."
@@ -15408,10 +15426,10 @@ msgid "The angle of ironing lines offset from the top surface."
 msgstr "Der Winkel der Glättlinien, der von der oberen Oberfläche abweicht."
 
 msgid "Fixed ironing angle"
-msgstr ""
+msgstr "Fester Glättwinkel"
 
 msgid "Use a fixed absolute angle for ironing."
-msgstr ""
+msgstr "Verwenden Sie einen festen absoluten Winkel zum Glätten."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
