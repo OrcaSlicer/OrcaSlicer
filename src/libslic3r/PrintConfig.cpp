@@ -1166,41 +1166,47 @@ void PrintConfigDef::init_fff_params()
     def->label = L("External bridge density");
     def->category = L("Strength");
     def->tooltip = L("Controls the density (spacing) of external bridge lines. Default is 100%.\n"
-                     "Theoretically, 100% means a solid bridge, but due to the tendency of bridge extrusions to sag, 100% may not be sufficient."
-                     "Higher densities can produce smoother bridge surfaces, as overlapping lines provide "
-                     "additional support during printing. Maximum is 120%.\n"
-                     "Note: Bridge density that is too high can cause warping or overextrusion.\n\n"
-                     "Lower density external bridges can help improve reliability as there is more space for air to circulate "
-                     "around the extruded bridge, improving its cooling speed. Minimum is 10%.");
+                     "Theoretically, 100% means a solid bridge, but due to the tendency of bridge extrusions to sag, 100% may not be sufficient.\n\n"
+                     "- Higher than 100% density (Recommended Max 125%):\n"
+                     "  - Pros: Produces smoother bridge surfaces, as overlapping lines provide additional support during printing.\n"
+                     "  - Cons: Can cause overextrusion, which may reduce lower and upper surface quality and increase risk of warping.\n\n"
+                     "- Lower than 100% density (Min 10%):\n"
+                     "  - Pros: Can create a string-like first layer. Faster and with better cooling because there is more space for air to circulate around the extruded bridge.\n"
+                     "  - Cons: May lead to sagging and poorer surface finish.\n\n"
+                     "Recommended range: Minimum 10% - Maximum 125%.");
     def->sidetext = "%";
     def->min = 10;
-    def->max = 120;
+    def->max = 125;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(100));
 
     def = this->add("internal_bridge_density", coPercent);
     def->label = L("Internal bridge density");
     def->category = L("Strength");
-    def->tooltip = L("Controls the density (spacing) of internal bridge lines. 100% means solid bridge. Default is 100%.\n\n"
-                     "Lower density internal bridges can help reduce top surface pillowing and improve internal bridge reliability as there is more space for "
-                     "air to circulate around the extruded bridge, improving its cooling speed.\n\n"
-                     "This option works particularly well when combined with the second internal bridge over infill option, "
-                     "further improving internal bridging structure before solid infill is extruded.");
+    def->tooltip = L("Controls the density (spacing) of internal bridge lines. Default is 100%. 100% means a solid internal bridge.\n\n"
+                     "Internal bridges act as intermediate support between sparse infill and top solid infill and can strongly affect top surface quality.\n\n"
+                     "- Higher than 100% density (Recommended Max 125%):\n"
+                     "  - Pros: Improves internal bridge strength and support under top layers, reducing sagging and improving top-surface finish.\n"
+                     "  - Cons: Increases material use and print time; excessive density may cause overextrusion and internal stresses.\n\n"
+                     "- Lower than 100% density (Min 10%):\n"
+                     "  - Pros: Can reduce pillowing and improve cooling (more airflow through the bridge), and may speed up printing.\n"
+                     "  - Cons: May reduce internal support, increasing the risk of sagging and top surface defects.\n\n"
+                     "This option works particularly well when combined with the second internal bridge over infill option to further improve bridging before solid infill is extruded.");
     def->sidetext = "%";
     def->min = 10;
-    def->max = 100;
+    def->max = 125;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(100));
 
     def = this->add("bridge_flow", coFloat);
     def->label = L("Bridge flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("Values above 1.0 add material:\n"
-                     "  - Regular bridges: Keep spacing and thicken the filament for stronger line contact when paired with a <= 100% Bridge line width.\n"
-                     "  - Thick bridges: Increase spacing and increase width, height and spacing.\n"
-                     "Values below 1.0 remove material:\n"
-                     "  - Regular bridges: eventually tighten spacing as the thread thins—potentially adding passes or altering paths—whereas.\n"
-                     "  - Thick bridges: shrink both diameter and spacing, cutting sagging at the cost of lateral bonding.");
+    def->tooltip = L("Values above 1.0:\n"
+                     "  - Regular bridges: Keep spacing and thicken the filament. If Bridge line width is <= 100%, this can improve line contact and strength.\n"
+                     "  - Thick bridges: Increase width, height, and spacing. May be stronger but increases the risk of sagging.\n"
+                     "Values below 1.0:\n"
+                     "  - Regular bridges: Reduce spacing; this can potentially add extra passes or alter paths.\n"
+                     "  - Thick bridges: Decrease width, height, and spacing. Reduces sagging at the cost of lateral bonding.");
     def->min = 0;
     def->max = 2.0;
     def->mode = comAdvanced;
