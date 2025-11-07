@@ -1209,12 +1209,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_line_width", coFloatOrPercent);
     def->label = L("Bridge");
     def->category = L("Quality");
-    def->tooltip = L("Bridge line width. Recommended value 100% along with a higher External bridge density or Bridge flow ratio.\n"
-                     "Leave at 0 to ignore. If expressed as a %, it will be computed over the nozzle diameter.");
+    def->tooltip = L("Bridge line width expressed either as an absolute value or as a percentage of the active nozzle diameter (percentages are computed from the nozzle diameter). Recommended value 100% along with a higher External bridge density or Bridge flow ratio.\n"
+                     "Leave at 0 to use the automatic width.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
-    def->max = 1000;
+    def->max = 100;
     def->max_literal = 10;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(100., true));
@@ -9532,8 +9532,13 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
             "skeleton_infill_line_width"};
         for (size_t i = 0; i < sizeof(widths) / sizeof(widths[i]); ++ i) {
             std::string key(widths[i]);
-            if (cfg.get_abs_value(key, max_nozzle_diameter) > MAX_LINE_WIDTH_MULTIPLIER * max_nozzle_diameter) {
-                error_message.emplace(key, L("too large line width ") + std::to_string(cfg.get_abs_value(key)));
+            double abs_width = cfg.get_abs_value(key, max_nozzle_diameter);
+            double allowed_max = (key == "bridge_line_width") ? max_nozzle_diameter : MAX_LINE_WIDTH_MULTIPLIER * max_nozzle_diameter;
+            if (abs_width > allowed_max) {
+                if (key == "bridge_line_width")
+                    error_message.emplace(key, L("Bridge line width must not exceed nozzle diameter: ") + std::to_string(abs_width));
+                else
+                    error_message.emplace(key, L("too large line width ") + std::to_string(abs_width));
                 //return std::string("Too Large line width: ") + key;
             }
         }
