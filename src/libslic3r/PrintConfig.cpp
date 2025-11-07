@@ -1171,7 +1171,7 @@ void PrintConfigDef::init_fff_params()
                      "additional support during printing. Maximum is 120%.\n"
                      "Note: Bridge density that is too high can cause warping or overextrusion.\n\n"
                      "Lower density external bridges can help improve reliability as there is more space for air to circulate "
-                     "around the extruded bridge, improving its cooling speed. Minimum is 10%.")
+                     "around the extruded bridge, improving its cooling speed. Minimum is 10%.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 120;
