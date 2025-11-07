@@ -5953,10 +5953,6 @@ msgstr "层： %s"
 msgid "Layer: %d/%d"
 msgstr "层： %d/%d"
 
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
-
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
 msgstr "请在进料或退料前把喷嘴升温到170℃以上。"
@@ -9439,9 +9435,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -18945,9 +18938,6 @@ msgstr "请选中单个对象。"
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -18955,14 +18945,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format

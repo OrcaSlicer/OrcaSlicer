@@ -6385,10 +6385,6 @@ msgstr "Schicht: %s"
 msgid "Layer: %d/%d"
 msgstr "Schicht: %d/%d"
 
-#, c-format, boost-format
-msgid "(%d)"
-msgstr "(%d)"
-
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
 msgstr ""
@@ -10305,9 +10301,6 @@ msgid ""
 msgstr ""
 "Die Farbe wurde ausgewählt, Sie können OK wählen \n"
 "um fortzufahren oder sie manuell anzupassen."
-
-msgid "—> "
-msgstr "—> "
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament "
@@ -21515,9 +21508,6 @@ msgstr "Bitte wählen Sie ein einzelnes Objekt aus."
 msgid "Zoom Out"
 msgstr "Vergrößern"
 
-msgid "100 %"
-msgstr "100 %"
-
 msgid "Zoom In"
 msgstr "Verkleinern"
 
@@ -21528,14 +21518,6 @@ msgstr ""
 
 msgid "Loading ..."
 msgstr "Wird geladen ..."
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr "%d%%"
-
-#, c-format, boost-format
-msgid "%d"
-msgstr "%d"
 
 #, c-format, boost-format
 msgid "/%d Selected"
