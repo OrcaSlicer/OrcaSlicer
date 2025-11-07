@@ -858,7 +858,7 @@ static void _collect_filament_info(const wxString& shown_name,
                                    unordered_map<wxString, wxString>& query_filament_types)
 {
     query_filament_vendors[shown_name] = filament.config.get_filament_vendor();
-    query_filament_vendors[shown_name] = filament.config.get_filament_type();
+    query_filament_types[shown_name] = filament.config.get_filament_type();
 }
 
 void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_min, wxString temp_max, wxString k, wxString n)
