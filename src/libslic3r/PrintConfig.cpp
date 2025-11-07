@@ -2156,7 +2156,8 @@ void PrintConfigDef::init_fff_params()
                      "Set as: Nozzle Size, Pressure Advance Value.\n"
                      "Multiple values can be set. For example\n"
                      "0.25,0.09 \n0.3,0.065 \n0.35,0.05 \n0.4,0.02 \n0.5,0.018 \n0.6,0.012 \n0.8,0.01 \n"
-                     "Missing values will be calculated with linear interpolation.");
+                     "Values are interpolated linearly between the nearest lower and higher nozzle sizes. "
+                     "If the nozzle size is smaller than the minimum or larger than the maximum, the minimum or maximum value is used.");
     def->mode = comAdvanced;
     def->multiline = true;
     def->full_width = true;

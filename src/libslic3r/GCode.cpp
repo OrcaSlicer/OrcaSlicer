@@ -6854,12 +6854,17 @@ double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
     int second_col_multiples_count = 0;
 
     for (const auto& [first, second] : pa_values) {
-        if (is_multiple_of_005(first))  first_col_multiples_count++;
-        if (is_multiple_of_005(second)) second_col_multiples_count++;
+        const bool left_is_multiple  = is_multiple_of_005(first);
+        const bool right_is_multiple = is_multiple_of_005(second);
+
+        if (left_is_multiple && !right_is_multiple)
+            first_col_multiples_count++;
+        if (!left_is_multiple && right_is_multiple)
+            second_col_multiples_count++;
     }
 
     // Swap columns if needed (second column has more nozzle-like values)
-    if (second_col_multiples_count > first_col_multiples_count) {
+    if (second_col_multiples_count > first_col_multiples_count && first_col_multiples_count == 0) {
         for (auto& [first, second] : pa_values) {
             std::swap(first, second);
         }

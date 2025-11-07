@@ -226,7 +226,7 @@ std::string AdaptivePAProcessor::process_layer(std::string &&gcode) {
                     // as the PA change flag should not be set upstream (in the GCode.cpp file) if adaptive PA is disabled
                     // however check for robustness sake.
                 {
-                    // Model failed or adaptive pressure advance not enabled - use default value from m_config
+                    // Model failed or adaptive pressure advance not enabled - use default value from m_gcodegen
                     predicted_pa = m_gcodegen.get_pressure_advance_for_extruder(m_last_extruder_id);
                     if(m_config.gcode_comments) output << "; APA: Interpolator setup failed, using default pressure advance\n";
                 } else { // Model setup succeeded
