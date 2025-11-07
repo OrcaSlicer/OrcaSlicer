@@ -1978,13 +1978,13 @@ msgstr "選択したパーツをディスクから再読込み"
 msgid "Replace with STL"
 msgstr "STLに置き換え"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "選択したパーツを新しいSTLに置換え"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3634,7 +3634,7 @@ msgstr "長方形"
 msgid "Circular"
 msgstr "円形"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "STLからシェープデータを読込む"
 
 msgid "Settings"

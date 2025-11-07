@@ -1990,13 +1990,13 @@ msgstr "Laad de geselecteerde onderdelen opnieuw vanaf de schijf"
 msgid "Replace with STL"
 msgstr "Vervangen door STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Vervang het geselecteerde onderdeel door een nieuwe STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3711,7 +3711,7 @@ msgstr "Rechthoekig"
 msgid "Circular"
 msgstr "Rond"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "Vorm laden vanuit het stl. bestand..."
 
 msgid "Settings"

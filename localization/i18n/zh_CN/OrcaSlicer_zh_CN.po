@@ -1980,13 +1980,13 @@ msgstr "从磁盘重新加载选中的零件"
 msgid "Replace with STL"
 msgstr "替换为STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "用新的STL替换选中的零件"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3629,7 +3629,7 @@ msgstr "矩形"
 msgid "Circular"
 msgstr "圆"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "从STL文件加载形状..."
 
 msgid "Settings"

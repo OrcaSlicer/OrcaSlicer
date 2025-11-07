@@ -2039,13 +2039,13 @@ msgstr "Tornar a carregar les parts seleccionades des del disc"
 msgid "Replace with STL"
 msgstr "Substitueix per STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Substituir la peça seleccionada per un nou STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3783,8 +3783,8 @@ msgstr "Rectangular"
 msgid "Circular"
 msgstr "Circular"
 
-msgid "Load shape from STL..."
-msgstr "Carregar forma des de l'STL..."
+msgid "Load shape from STL ..."
+msgstr "Carregar forma des de l'STL ..."
 
 msgid "Settings"
 msgstr "Configuració"

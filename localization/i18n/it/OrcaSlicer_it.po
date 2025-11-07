@@ -2049,13 +2049,13 @@ msgstr "Ricarica le parti selezionate da disco"
 msgid "Replace with STL"
 msgstr "Sostituisci con STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Sostituisci la parte selezionata con un nuovo STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3809,8 +3809,8 @@ msgstr "Rettangolare"
 msgid "Circular"
 msgstr "Circolare"
 
-msgid "Load shape from STL..."
-msgstr "Carica forma da STL..."
+msgid "Load shape from STL ..."
+msgstr "Carica forma da STL ..."
 
 msgid "Settings"
 msgstr "Impostazioni"

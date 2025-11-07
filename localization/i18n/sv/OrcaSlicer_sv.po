@@ -1963,13 +1963,13 @@ msgstr "Ladda om de valda delarna från disken"
 msgid "Replace with STL"
 msgstr "Ersätt med STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Ersätt den valda delen med ny STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3674,8 +3674,8 @@ msgstr "Rektangulär"
 msgid "Circular"
 msgstr "Cirkulär"
 
-msgid "Load shape from STL..."
-msgstr "Ladda form ifrån STL..."
+msgid "Load shape from STL ..."
+msgstr "Ladda form ifrån STL ..."
 
 msgid "Settings"
 msgstr "Inställningar"

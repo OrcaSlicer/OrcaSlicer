@@ -2000,13 +2000,13 @@ msgstr "Tải lại các phần đã chọn từ ổ đĩa"
 msgid "Replace with STL"
 msgstr "Thay thế bằng STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Thay thế phần đã chọn bằng STL mới"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3701,8 +3701,8 @@ msgstr "Hình chữ nhật"
 msgid "Circular"
 msgstr "Hình tròn"
 
-msgid "Load shape from STL..."
-msgstr "Tải hình dạng từ STL..."
+msgid "Load shape from STL ..."
+msgstr "Tải hình dạng từ STL ..."
 
 msgid "Settings"
 msgstr "Cài đặt"

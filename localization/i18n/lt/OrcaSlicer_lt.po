@@ -2031,13 +2031,13 @@ msgstr "Iš naujo įkelti pasirinktas dalis iš disko"
 msgid "Replace with STL"
 msgstr "Pakeisti STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Pakeisti pasirinktą dalį į naują STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3772,8 +3772,8 @@ msgstr "Stačiakampis"
 msgid "Circular"
 msgstr "Apvalus"
 
-msgid "Load shape from STL..."
-msgstr "Įkelti formą iš STL..."
+msgid "Load shape from STL ..."
+msgstr "Įkelti formą iš STL ..."
 
 msgid "Settings"
 msgstr "Nustatymai"

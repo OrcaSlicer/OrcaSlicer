@@ -1967,13 +1967,13 @@ msgstr "A kiválasztott tárgyak újratöltése a lemezről"
 msgid "Replace with STL"
 msgstr "Lecserélés STL-lel"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Lecseréli a kijelölt tárgyat egy új STL-lel"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3676,7 +3676,7 @@ msgstr "Téglalap"
 msgid "Circular"
 msgstr "Kör"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "Forma betöltése STL-ből..."
 
 msgid "Settings"

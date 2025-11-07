@@ -2021,13 +2021,13 @@ msgstr "Seçilen parçaları diskten yeniden yükle"
 msgid "Replace with STL"
 msgstr "STL ile değiştirin"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Seçilen parçayı yeni STL ile değiştirin"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3746,7 +3746,7 @@ msgstr "Dikdörtgen"
 msgid "Circular"
 msgstr "Dairesel"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "Şekli STL'den yükle..."
 
 msgid "Settings"

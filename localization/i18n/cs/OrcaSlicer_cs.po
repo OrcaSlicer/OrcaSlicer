@@ -2020,13 +2020,13 @@ msgstr "Znovu načíst vybrané části z disku"
 msgid "Replace with STL"
 msgstr "Nahradit STL souborem"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Nahradit vybranou část novým STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3735,8 +3735,8 @@ msgstr "Obdélníkový"
 msgid "Circular"
 msgstr "Kruhový"
 
-msgid "Load shape from STL..."
-msgstr "Načíst tvar ze souboru STL…"
+msgid "Load shape from STL ..."
+msgstr "Načíst tvar ze souboru STL …"
 
 msgid "Settings"
 msgstr "Nastavení"

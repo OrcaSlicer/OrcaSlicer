@@ -1949,13 +1949,13 @@ msgstr ""
 msgid "Replace with STL"
 msgstr ""
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr ""
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3595,7 +3595,7 @@ msgstr ""
 msgid "Circular"
 msgstr ""
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr ""
 
 msgid "Settings"

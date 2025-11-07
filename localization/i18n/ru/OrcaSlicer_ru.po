@@ -2037,13 +2037,13 @@ msgstr "Перезагрузить выбранные модели с диска
 msgid "Replace with STL"
 msgstr "Заменить на другую модель"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Заменить выбранную модель другой"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3805,7 +3805,7 @@ msgstr "Прямоугольная"
 msgid "Circular"
 msgstr "Круглая"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "Загрузка формы стола из STL файла..."
 
 msgid "Settings"
