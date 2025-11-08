@@ -1005,9 +1005,6 @@ void GUI_App::post_init()
         });
     }
 
-    if (is_user_login())
-        request_user_handle(0);
-
     if(!m_networking_need_update && m_agent) {
         m_agent->set_on_ssdp_msg_fn(
             [this](std::string json_str) {
