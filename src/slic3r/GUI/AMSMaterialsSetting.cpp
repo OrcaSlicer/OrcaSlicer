@@ -1139,7 +1139,7 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
             sorted_names.insert_or_assign(match->alias, sort_rank);
         }
         
-        static std::vector<wxString> sorted_vendors { "Bambu Lab", "Generic" };
+        static std::vector<wxString> sorted_vendors{ "Generic", "Bambu Lab" };
         static std::vector<wxString> sorted_types { "PLA", "PETG", "ABS", "TPU" };
         auto _filament_sorter = [&query_filament_vendors, &query_filament_types, &sorted_names](const wxString& left, const wxString& right) -> bool
         {
