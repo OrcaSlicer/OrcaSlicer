@@ -1,6 +1,7 @@
 #include "FilamentMapDialog.hpp"
 #include "PartPlate.hpp"
 #include "Widgets/Button.hpp"
+#include "Widgets/DialogButtons.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
@@ -110,23 +111,6 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     return false;
 }
 
-
-static const StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                                     std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                                     std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
-static const StateColor btn_bd_green(std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
-static const StateColor btn_text_green(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Normal));
-
-static const StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-                                     std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                                     std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
-
-static const StateColor btn_bd_white(std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal));
-
-static const StateColor btn_text_white(std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal));
-
 FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
                                      const std::vector<std::string> &filament_color,
                                      const std::vector<std::string> &filament_type,
@@ -213,25 +197,11 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
     bottom_sizer->AddStretchSpacer();
 
     {
-        wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-        m_ok_btn                 = new Button(bottom_panel, _L("OK"));
-        m_cancel_btn             = new Button(bottom_panel, _L("Cancel"));
-        m_ok_btn->SetCornerRadius(FromDIP(12));
-        m_cancel_btn->SetCornerRadius(FromDIP(12));
-        m_ok_btn->SetFont(Label::Body_12);
-        m_cancel_btn->SetFont(Label::Body_12);
+        auto dlg_btns = new DialogButtons(bottom_panel, {"OK", "Cancel"});
+        m_ok_btn      = dlg_btns->GetOK();
+        m_cancel_btn  = dlg_btns->GetCANCEL();
 
-        m_ok_btn->SetBackgroundColor(btn_bg_green);
-        m_ok_btn->SetBorderColor(btn_bd_green);
-        m_ok_btn->SetTextColor(btn_text_green);
-        m_cancel_btn->SetBackgroundColor(btn_bg_white);
-        m_cancel_btn->SetBorderColor(btn_bd_white);
-        m_cancel_btn->SetTextColor(btn_text_white);
-
-        button_sizer->Add(m_ok_btn, 1, wxRIGHT, FromDIP(4));
-        button_sizer->Add(m_cancel_btn, 1, wxLEFT, FromDIP(4));
-
-        bottom_sizer->Add(button_sizer, 0, wxALIGN_CENTER | wxALL, FromDIP(15));
+        bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
     }
     main_sizer->Add(bottom_panel, 0, wxEXPAND);
 
