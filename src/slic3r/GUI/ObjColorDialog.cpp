@@ -1029,7 +1029,7 @@ wxBoxSizer *ObjColorPanel::create_color_icon_map_rgba_sizer(wxWindow *parent, in
     icon_sizer->Add(icon, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0); // wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM
     icon_sizer->AddSpacer(FromDIP(10));
 
-    wxStaticText *map_text = new wxStaticText(parent, wxID_ANY, _L("—> "));
+    wxStaticText *map_text = new wxStaticText(parent, wxID_ANY, u8"—> ");
     map_text->SetFont(Label::Head_12);
     icon_sizer->Add(map_text, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
 

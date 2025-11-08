@@ -3866,7 +3866,7 @@ void StatusPanel::update_partskip_subtask(MachineObject *obj){
             BOOST_LOG_TRIVIAL(info) << "part skip: recv printer normal data.";
         }
         if (part_cnt > 0)
-            partskip_button->SetLabel(wxString::Format(_L("(%d)"), part_cnt));
+            partskip_button->SetLabel(wxString::Format("(%d)", part_cnt));
         else 
             partskip_button->SetLabel("");
     }

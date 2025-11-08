@@ -2006,13 +2006,13 @@ msgstr "선택한 부품을 디스크에서 다시 불러오기"
 msgid "Replace with STL"
 msgstr "STL 파일로 교체"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "선택한 부품을 새 STL 파일로 교체"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3697,7 +3697,7 @@ msgstr "직사각형"
 msgid "Circular"
 msgstr "원형"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "STL에서 모양 불러오기..."
 
 msgid "Settings"
@@ -6031,10 +6031,6 @@ msgstr "레이어: %s"
 #, c-format, boost-format
 msgid "Layer: %d/%d"
 msgstr "레이어: %d/%d"
-
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
 
 #, fuzzy
 msgid ""
@@ -9610,9 +9606,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -19739,9 +19732,6 @@ msgstr "단일 객체를 선택하세요."
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -19749,14 +19739,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format

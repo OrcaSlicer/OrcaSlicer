@@ -15,17 +15,50 @@
     ],
     "machine_list": [
         {
-            "name": "fdm_tiq_common",
-            "sub_path": "machine/fdm_tiq_common.json"
-        },
-        {
-            "name": "iQ TiQ2 0.4 Nozzle",
-            "sub_path": "machine/iQ TiQ2 0.4 nozzle.json"
-        },
-        {
-            "name": "iQ TiQ8 0.4 Nozzle",
-            "sub_path": "machine/iQ TiQ8 0.4 nozzle.json"
-        }
+      "name": "fdm_tiq_common",
+      "sub_path": "machine/fdm_tiq_common.json"
+    },
+    
+    {
+      "name": "iQ TiQ2 0.4 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.4 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ2 0.25 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.25 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ2 0.6 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.6 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ2 0.8 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.8 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.4 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.4 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.25 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.25 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.6 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.6 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.8 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.8 nozzle.json"
+    }
+    
     ],
     "process_list": [
         {

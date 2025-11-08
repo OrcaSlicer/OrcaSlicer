@@ -1981,13 +1981,13 @@ msgstr "從硬碟重新載入選中的零件"
 msgid "Replace with STL"
 msgstr "替換為 STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "用新的 STL 替換選中的零件"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3634,7 +3634,7 @@ msgstr "矩形"
 msgid "Circular"
 msgstr "圓"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "從 STL 檔案載入形狀..."
 
 msgid "Settings"
@@ -5959,10 +5959,6 @@ msgstr "%s 層"
 #, c-format, boost-format
 msgid "Layer: %d/%d"
 msgstr "%d/%d 層"
-
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
 
 #, fuzzy
 msgid ""
@@ -9459,9 +9455,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -19120,9 +19113,6 @@ msgstr "請選擇一個物件。"
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -19130,14 +19120,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format

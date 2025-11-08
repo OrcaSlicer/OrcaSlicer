@@ -2030,13 +2030,13 @@ msgstr "Перезавантажте вибрані частини з диска
 msgid "Replace with STL"
 msgstr "Замінити на STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Замініть вибрану частину новим STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3778,8 +3778,8 @@ msgstr "Прямокутний"
 msgid "Circular"
 msgstr "Округлий"
 
-msgid "Load shape from STL..."
-msgstr "Завантажити форму з STL..."
+msgid "Load shape from STL ..."
+msgstr "Завантажити форму з STL ..."
 
 msgid "Settings"
 msgstr "Налаштування"
@@ -6165,10 +6165,6 @@ msgstr "Шар: %s"
 #, c-format, boost-format
 msgid "Layer: %d/%d"
 msgstr "Шар: %d/%d"
-
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
 
 #, fuzzy
 msgid ""
@@ -9843,9 +9839,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -20418,9 +20411,6 @@ msgstr "Будь ласка, виберіть один об’єкт."
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -20428,14 +20418,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format

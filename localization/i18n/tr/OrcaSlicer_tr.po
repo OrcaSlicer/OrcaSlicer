@@ -2021,13 +2021,13 @@ msgstr "Seçilen parçaları diskten yeniden yükle"
 msgid "Replace with STL"
 msgstr "STL ile değiştirin"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Seçilen parçayı yeni STL ile değiştirin"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3746,7 +3746,7 @@ msgstr "Dikdörtgen"
 msgid "Circular"
 msgstr "Dairesel"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "Şekli STL'den yükle..."
 
 msgid "Settings"
@@ -6125,10 +6125,6 @@ msgstr "Katman: %s"
 #, c-format, boost-format
 msgid "Layer: %d/%d"
 msgstr "Katman: %d/%d"
-
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
 
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
@@ -9801,9 +9797,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -20507,9 +20500,6 @@ msgstr "Lütfen tek bir nesne seçin."
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -20517,14 +20507,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format

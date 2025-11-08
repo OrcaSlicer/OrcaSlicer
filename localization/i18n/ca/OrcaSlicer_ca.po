@@ -2039,13 +2039,13 @@ msgstr "Tornar a carregar les parts seleccionades des del disc"
 msgid "Replace with STL"
 msgstr "Substitueix per STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Substituir la peça seleccionada per un nou STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3783,8 +3783,8 @@ msgstr "Rectangular"
 msgid "Circular"
 msgstr "Circular"
 
-msgid "Load shape from STL..."
-msgstr "Carregar forma des de l'STL..."
+msgid "Load shape from STL ..."
+msgstr "Carregar forma des de l'STL ..."
 
 msgid "Settings"
 msgstr "Configuració"
@@ -6167,10 +6167,6 @@ msgstr "Capa: %s"
 #, c-format, boost-format
 msgid "Layer: %d/%d"
 msgstr "Capa: %d/%d"
-
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
 
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
@@ -9853,9 +9849,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -20575,9 +20568,6 @@ msgstr "Seleccioneu un sol objecte."
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -20585,14 +20575,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format

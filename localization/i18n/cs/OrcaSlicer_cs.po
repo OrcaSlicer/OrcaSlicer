@@ -2020,13 +2020,13 @@ msgstr "Znovu načíst vybrané části z disku"
 msgid "Replace with STL"
 msgstr "Nahradit STL souborem"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Nahradit vybranou část novým STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3735,8 +3735,8 @@ msgstr "Obdélníkový"
 msgid "Circular"
 msgstr "Kruhový"
 
-msgid "Load shape from STL..."
-msgstr "Načíst tvar ze souboru STL…"
+msgid "Load shape from STL ..."
+msgstr "Načíst tvar ze souboru STL …"
 
 msgid "Settings"
 msgstr "Nastavení"
@@ -6077,10 +6077,6 @@ msgstr "Vrstva: %s"
 #, c-format, boost-format
 msgid "Layer: %d/%d"
 msgstr "Vrstva: %d/%d"
-
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
 
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
@@ -9657,9 +9653,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -19231,9 +19224,6 @@ msgstr ""
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -19241,14 +19231,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format

@@ -754,9 +754,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         toggle_line(el, support_is_organic);
 
     toggle_field("tree_support_brim_width", support_is_tree && !config->opt_bool("tree_support_auto_brim"));
-    // non-organic tree support use max_bridge_length instead of bridge_no_support
-    toggle_line("max_bridge_length", support_is_normal_tree);
-    toggle_line("bridge_no_support", !support_is_normal_tree);
+    // tree support use max_bridge_length instead of bridge_no_support
+    toggle_line("max_bridge_length", support_is_tree);
+    toggle_line("bridge_no_support", !support_is_tree);
     toggle_line("support_critical_regions_only", is_auto(support_type) && support_is_tree);
 
     for (auto el : { "support_interface_filament",

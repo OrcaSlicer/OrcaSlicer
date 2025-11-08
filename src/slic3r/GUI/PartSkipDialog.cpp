@@ -110,7 +110,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_zoom_out_btn->SetCornerRadius(0);
     m_zoom_out_btn->SetMinSize(wxSize(FromDIP(56), FromDIP(28)));
 
-    m_percent_label = new Button(m_book_third_panel, _L("100 %"));
+    m_percent_label = new Button(m_book_third_panel, "100%");
     m_percent_label->SetBackgroundColor(percent_bg);
     m_percent_label->SetBorderColor(wxColour(238, 238, 238));
     m_percent_label->SetMinSize(wxSize(FromDIP(56), FromDIP(28)));
@@ -664,7 +664,7 @@ void PartSkipDialog::UpdatePartsStateFromCanvas(wxCommandEvent &event)
     UpdateDialogUI();
 }
 
-void PartSkipDialog::UpdateZoomPercent() { m_percent_label->SetLabel(wxString::Format(_L("%d%%"), m_zoom_percent)); }
+void PartSkipDialog::UpdateZoomPercent() { m_percent_label->SetLabel(wxString::Format("%d%%", m_zoom_percent)); }
 
 void PartSkipDialog::UpdateCountLabel()
 {
@@ -674,7 +674,7 @@ void PartSkipDialog::UpdateCountLabel()
         if (part_state == PartState::psChecked) check_cnt++;
         if (part_state != PartState::psSkipped) tot_cnt++;
     }
-    m_cnt_label->SetLabel(wxString::Format(_L("%d"), check_cnt));
+    m_cnt_label->SetLabel(wxString::Format("%d", check_cnt));
     m_cnt_label->Fit();
     m_tot_label->SetLabel(wxString::Format(_L("/%d Selected"), tot_cnt));
     m_tot_label->Fit();

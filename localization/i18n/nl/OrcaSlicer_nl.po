@@ -1990,13 +1990,13 @@ msgstr "Laad de geselecteerde onderdelen opnieuw vanaf de schijf"
 msgid "Replace with STL"
 msgstr "Vervangen door STL"
 
-msgid "Replace the selected part with new STL"
+msgid "Replace the selected part with new STL."
 msgstr "Vervang het geselecteerde onderdeel door een nieuwe STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace all selected parts with STL from folder."
 msgstr ""
 
 msgid "Change filament"
@@ -3711,7 +3711,7 @@ msgstr "Rechthoekig"
 msgid "Circular"
 msgstr "Rond"
 
-msgid "Load shape from STL..."
+msgid "Load shape from STL ..."
 msgstr "Vorm laden vanuit het stl. bestand..."
 
 msgid "Settings"
@@ -6045,10 +6045,6 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Layer: %d/%d"
-msgstr ""
-
-#, c-format, boost-format
-msgid "(%d)"
 msgstr ""
 
 msgid ""
@@ -9678,9 +9674,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -19160,9 +19153,6 @@ msgstr "Selecteer een enkel object."
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
@@ -19170,14 +19160,6 @@ msgid "Load skipping objects information failed. Please try again."
 msgstr ""
 
 msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format
