@@ -1720,14 +1720,14 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
             wxString msg_text;
             if (!is_soluble_filament(interface_filament_id)) {
                 msg_text = _L("When using support material for the support interface, we recommend the following settings:\n"
-                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and disable independent support layer height");
+                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and disable independent support layer height.");
                 msg_text += "\n\n" + _L("Change these settings automatically?\n"
                                         "Yes - Change these settings automatically\n"
                                         "No  - Do not change these settings for me");
             } else {
-                msg_text = _L("When using soluble material for the support interface, We recommend the following settings:\n"
-                              "0 top z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height \n"
-                              "and use soluble materials for both support interface and support base");
+                msg_text = _L("When using soluble material for the support interface, we recommend the following settings:\n"
+                              "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
+                              "and use soluble materials for both support interface and support base.");
                 msg_text += "\n\n" + _L("Change these settings automatically? \n"
                                         "Yes - Change these settings automatically\n"
                                         "No  - Do not change these settings for me");

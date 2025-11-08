@@ -1964,7 +1964,7 @@ void PrintConfigDef::init_fff_params()
                      "then the external perimeter and, finally, the first internal perimeter. "
                      "This option is recommended against the Outer/Inner option in most cases.\n\n"
                      "Use Outer/Inner for the same external wall quality and dimensional accuracy benefits of Inner/Outer/Inner option. "
-                     "However, the z seams will appear less consistent as the first extrusion of a new layer starts on a visible surface.\n\n ");
+                     "However, the Z seams will appear less consistent as the first extrusion of a new layer starts on a visible surface.");
     def->enum_keys_map = &ConfigOptionEnum<WallSequence>::get_enum_values();
     def->enum_values.push_back("inner wall/outer wall");
     def->enum_values.push_back("outer wall/inner wall");
@@ -2438,10 +2438,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_shrink", coPercents);
     def->label = L("Shrinkage (XY)");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm)."
-        " The part will be scaled in xy to compensate."
-        " Only the filament used for the perimeter is taken into account."
-        "\nBe sure to allow enough space between objects, as this compensation is done after the checks.");
+    def->tooltip = L("Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). "
+        "The part will be scaled in XY to compensate. Only the filament used for the perimeter is taken into account.\n"
+        "Be sure to allow enough space between objects, as this compensation is done after the checks.");
     def->sidetext = "%";
     def->ratio_over = "";
     def->min = 50;
@@ -3285,7 +3284,7 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def          = this->add("precise_z_height", coBool);
     def->label   = L("Precise Z height");
-    def->tooltip = L("Enable this to get precise z height of object after slicing. "
+    def->tooltip = L("Enable this to get precise Z height of object after slicing. "
                      "It will get the precise object height by fine-tuning the layer heights of the last few layers. "
                      "Note that this is an experimental parameter.");
     def->mode    = comAdvanced;
@@ -5164,7 +5163,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("spiral_mode", coBool);
     def->label = L("Spiral vase");
-    def->tooltip = L("Spiralize smooths out the z moves of the outer contour. "
+    def->tooltip = L("Spiralize smooths out the Z moves of the outer contour. "
                      "And turns a solid model into a single walled print with solid bottom layers. "
                      "The final generated model has no seam.");
     def->mode = comSimple;
@@ -5379,7 +5378,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
     def = this->add("support_object_xy_distance", coFloat);
-    def->label = L("Support/object xy distance");
+    def->label = L("Support/object XY distance");
     def->category = L("Support");
     def->tooltip = L("XY separation between an object and its support.");
     def->sidetext = "mm";	// milimeters, don't need translation
@@ -5679,7 +5678,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("independent_support_layer_height", coBool);
     def->label = L("Independent support layer height");
     def->category = L("Support");
-    def->tooltip = L("Support layer uses layer height independent with object layer. This is to support customizing z-gap and save print time. "
+    def->tooltip = L("Support layer uses layer height independent with object layer. This is to support customizing Z-gap and save print time. "
                      "This option will be invalid when the prime tower is enabled.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
@@ -10128,7 +10127,7 @@ ObjectsInfoConfigDef::ObjectsInfoConfigDef()
     def->label = L("Scale per object");
     def->tooltip = L("Contains a string with the information about what scaling was applied to the individual objects. "
                      "Indexing of the objects is zero-based (first object has index 0).\n"
-                     "Example: 'x:100% y:50% z:100'.");
+                     "Example: 'x:100% y:50% z:100%'.");
 
     def = this->add("input_filename_base", coString);
     def->label = L("Input filename without extension");
@@ -10142,8 +10141,8 @@ DimensionsConfigDef::DimensionsConfigDef()
 {
     ConfigOptionDef* def;
 
-    const std::string point_tooltip   = L("The vector has two elements: x and y coordinate of the point. Values in mm.");
-    const std::string bb_size_tooltip = L("The vector has two elements: x and y dimension of the bounding box. Values in mm.");
+    const std::string point_tooltip   = L("The vector has two elements: X and Y coordinate of the point. Values in mm.");
+    const std::string bb_size_tooltip = L("The vector has two elements: X and Y dimension of the bounding box. Values in mm.");
 
     def = this->add("first_layer_print_convex_hull", coPoints);
     def->label = L("First layer convex hull");
