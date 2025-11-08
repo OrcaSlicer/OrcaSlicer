@@ -49,11 +49,11 @@ static void set_prefered_map_mode(FilamentMapMode mode)
 
 void FilamentGroupPopup::CreateBmps()
 {
-    checked_bmp = create_scaled_bitmap("map_mode_on", nullptr, 16);;
-    unchecked_bmp = create_scaled_bitmap("map_mode_off", nullptr, 16);
-    disabled_bmp = create_scaled_bitmap("map_mode_disabled", nullptr, 16);
-    checked_hover_bmp = create_scaled_bitmap("map_mode_on_hovered", nullptr, 16);
-    unchecked_hover_bmp = create_scaled_bitmap("map_mode_off_hovered", nullptr, 16);
+    checked_bmp = create_scaled_bitmap("radio_on", nullptr, 16);; // ORCA match icons
+    unchecked_bmp = create_scaled_bitmap("radio_off", nullptr, 16);
+    disabled_bmp = create_scaled_bitmap("radio_disabled", nullptr, 16);
+    checked_hover_bmp = create_scaled_bitmap("radio_on_hover", nullptr, 16);
+    unchecked_hover_bmp = create_scaled_bitmap("radio_off_hover", nullptr, 16);
 }
 
 FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, wxBORDER_NONE | wxPU_CONTAINS_CONTROLS)

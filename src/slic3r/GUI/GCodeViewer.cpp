@@ -4491,7 +4491,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         ImVec2 p1 = ImGui::GetCursorScreenPos();
         ImVec2 p2 = ImVec2(p1.x + ImGui::GetContentRegionAvail().x, p1.y);
         for (float i = p1.x; i < p2.x; i += (dash_length + gap_length)) {
-            draw_list->AddLine(ImVec2(i, p1.y), ImVec2(i + dash_length, p1.y), IM_COL32(206, 206, 206, 255));
+            draw_list->AddLine(ImVec2(i, p1.y), ImVec2(i + dash_length, p1.y), ImGui::GetColorU32(ImVec4(1.0f,1.0f,1.0f,0.6f))); // ORCA match color
         }
     };
 
@@ -4558,8 +4558,8 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         tips_count = 5;
 
     float AMS_container_height = ams_item_height + line_height * tips_count + line_height;
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1.f, 1.f, 1.f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(.15f, .18f, .19f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0)); // this shold be 0 since its child of gcodeviewer
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(window_padding * 3, 0));
 
     // ImGui::Dummy({window_padding, window_padding});
@@ -4570,7 +4570,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         float spacing           = 18.0f * m_scale;
 
         ImGui::Dummy({window_padding, window_padding});
-        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(.8f, .8f, .8f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.0f,1.0f,1.0f,0.6f));
         imgui.bold_text(_u8L("Filament Grouping"));
         ImGui::SameLine();
         std::string tip_str = _u8L("Why this grouping");
@@ -4580,12 +4580,12 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         ImGui::PopStyleColor();
         ImGui::Dummy({window_padding, window_padding});
 
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.00f, 0.00f, 0.00f, 0.1f));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1, 1, 1, 0.05f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(window_padding * 2, window_padding));
 
         ImDrawList *child_begin_draw_list = ImGui::GetWindowDrawList();
         ImVec2      cursor_pos            = ImGui::GetCursorScreenPos();
-        child_begin_draw_list->AddRectFilled(cursor_pos, ImVec2(cursor_pos.x + half_width, cursor_pos.y + line_height), IM_COL32(0, 0, 0, 20));
+        child_begin_draw_list->AddRectFilled(cursor_pos, ImVec2(cursor_pos.x + half_width, cursor_pos.y + line_height), IM_COL32(255, 255, 255, 10));
         ImGui::BeginChild("#LeftAMS", ImVec2(half_width, ams_item_height), false, ImGuiWindowFlags_AlwaysUseWindowPadding);
         {
             imgui.text(_u8L("Left nozzle"));
@@ -4600,7 +4600,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         }
         ImGui::SameLine();
         cursor_pos = ImGui::GetCursorScreenPos();
-        child_begin_draw_list->AddRectFilled(cursor_pos, ImVec2(cursor_pos.x + half_width, cursor_pos.y + line_height), IM_COL32(0, 0, 0, 20));
+        child_begin_draw_list->AddRectFilled(cursor_pos, ImVec2(cursor_pos.x + half_width, cursor_pos.y + line_height), IM_COL32(255, 255, 255, 10));
         ImGui::BeginChild("#RightAMS", ImVec2(half_width, ams_item_height), false, ImGuiWindowFlags_AlwaysUseWindowPadding);
         {
             imgui.text(_u8L("Right nozzle"));
@@ -6075,7 +6075,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             append_option_item(item, offsets);
     }
     ImGui::Dummy({ window_padding, window_padding });
-    if (m_nozzle_nums > 1)
+    if (m_nozzle_nums > 1 && (m_view_type == EViewType::Summary || m_view_type == EViewType::ColorPrint)) // ORCA show only on summary and filament tab
         render_legend_color_arr_recommen(window_padding);
 
     legend_height = ImGui::GetCurrentWindow()->Size.y;
