@@ -784,7 +784,7 @@ void FanControlPopupNew::UpdatePartSubMode()
             m_cooling_filter_switch_panel->Bind(EVT_FANCTRL_SWITCH, [this] (wxCommandEvent& evt) 
                 {
                   if (m_obj && m_obj->is_in_printing()) {
-                      MessageDialog msg_wingow(nullptr, _L("Enabling filtration during printing may reduce cooling and affect print qulity. Please choose carefully"), "", wxICON_WARNING | wxCANCEL | wxOK);
+                      MessageDialog msg_wingow(nullptr, _L("Enabling filtration during printing may reduce cooling and affect print quality. Please choose carefully."), "", wxICON_WARNING | wxCANCEL | wxOK);
                       msg_wingow.SetButtonLabel(wxID_OK, _L("Change Anyway"));
                       if (msg_wingow.ShowModal() != wxID_OK) { return; }
                   }

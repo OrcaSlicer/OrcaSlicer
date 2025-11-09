@@ -708,7 +708,7 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("preferred_orientation", coFloat);
     def->label = L("Preferred orientation");
-    def->tooltip = L("Automatically orient stls on the Z axis upon initial import.");
+    def->tooltip = L("Automatically orient STL files on the Z axis upon initial import.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->max = 360;
     def->min = -360;
@@ -1964,7 +1964,7 @@ void PrintConfigDef::init_fff_params()
                      "then the external perimeter and, finally, the first internal perimeter. "
                      "This option is recommended against the Outer/Inner option in most cases.\n\n"
                      "Use Outer/Inner for the same external wall quality and dimensional accuracy benefits of Inner/Outer/Inner option. "
-                     "However, the z seams will appear less consistent as the first extrusion of a new layer starts on a visible surface.\n\n ");
+                     "However, the Z seams will appear less consistent as the first extrusion of a new layer starts on a visible surface.");
     def->enum_keys_map = &ConfigOptionEnum<WallSequence>::get_enum_values();
     def->enum_values.push_back("inner wall/outer wall");
     def->enum_values.push_back("outer wall/inner wall");
@@ -2290,14 +2290,16 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInts{1});
 
     def = this->add("physical_extruder_map",coInts);
+    // internal use only, don't need translation
     def->label = "Map the logical extruder to physical extruder";
     def->tooltip = "Map the logical extruder to physical extruder.";
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInts{0});
 
-    def                = this->add("filament_map_mode", coEnum);
-    def->label         = L("filament mapping mode");
-    def->tooltip = ("Filament mapping mode used as plate param.");
+    def = this->add("filament_map_mode", coEnum);
+    // internal use only, don't need translation
+    def->label = "filament mapping mode";
+    def->tooltip = "Filament mapping mode used as plate param.";
     def->enum_keys_map = &ConfigOptionEnum<FilamentMapMode>::get_enum_values();
     def->enum_values.push_back("Auto For Flush");
     def->enum_values.push_back("Auto For Match");
@@ -2441,10 +2443,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_shrink", coPercents);
     def->label = L("Shrinkage (XY)");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm)."
-        " The part will be scaled in xy to compensate."
-        " Only the filament used for the perimeter is taken into account."
-        "\nBe sure to allow enough space between objects, as this compensation is done after the checks.");
+    def->tooltip = L("Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). "
+        "The part will be scaled in XY to compensate. Only the filament used for the perimeter is taken into account.\n"
+        "Be sure to allow enough space between objects, as this compensation is done after the checks.");
     def->sidetext = "%";
     def->ratio_over = "";
     def->min = 50;
@@ -3288,7 +3289,7 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def          = this->add("precise_z_height", coBool);
     def->label   = L("Precise Z height");
-    def->tooltip = L("Enable this to get precise z height of object after slicing. "
+    def->tooltip = L("Enable this to get precise Z height of object after slicing. "
                      "It will get the precise object height by fine-tuning the layer heights of the last few layers. "
                      "Note that this is an experimental parameter.");
     def->mode    = comAdvanced;
@@ -4719,8 +4720,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnumsGeneric{RetractLiftEnforceType ::rletAllSurfaces});
 
     def = this->add("extruder_type", coEnums);
-    def->label = L("Type");
-    def->tooltip = ("This setting is only used for initial value of manual calibration of pressure advance. Bowden extruder usually has larger pa value. This setting doesn't influence normal slicing.");
+    // internal use only, don't need translation
+    def->label = "Type";
+    def->tooltip = "This setting is only used for initial value of manual calibration of pressure advance. Bowden extruder usually has larger PA value. This setting doesn't influence normal slicing.";
     def->enum_keys_map = &ConfigOptionEnum<ExtruderType>::get_enum_values();
     def->enum_values.push_back("Direct Drive");
     def->enum_values.push_back("Bowden");
@@ -4731,8 +4733,9 @@ void PrintConfigDef::init_fff_params()
 
     //BBS
     def = this->add("nozzle_volume_type", coEnums);
-    def->label = L("Nozzle Volume Type");
-    def->tooltip = ("Nozzle volume type.");
+    // internal use only, don't need translation
+    def->label = "Nozzle Volume Type";
+    def->tooltip = "Nozzle volume type for extruders.";
     def->enum_keys_map = &ConfigOptionEnum<NozzleVolumeType>::get_enum_values();
     def->enum_values.push_back(L("Standard"));
     def->enum_values.push_back(L("High Flow"));
@@ -4742,8 +4745,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnumsGeneric{ NozzleVolumeType::nvtStandard });
 
     def = this->add("default_nozzle_volume_type", coEnums);
-    def->label = L("Default Nozzle Volume Type.");
-    def->tooltip = ("Default Nozzle volume type for extruders in this printer.");
+    // internal use only, don't need translation
+    def->label = "Default Nozzle Volume Type.";
+    def->tooltip = "Default Nozzle volume type for extruders in this printer.";
     def->enum_keys_map = &ConfigOptionEnum<NozzleVolumeType>::get_enum_values();
     def->enum_values.push_back(L("Standard"));
     def->enum_values.push_back(L("High Flow"));
@@ -4753,40 +4757,47 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnumsGeneric{ NozzleVolumeType::nvtStandard });
 
     def = this->add("extruder_variant_list", coStrings);
+    // internal use only, don't need translation
     def->label = "Extruder variant list";
     def->tooltip = "Extruder variant list.";
     def->set_default_value(new ConfigOptionStrings { "Direct Drive Standard" });
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("extruder_ams_count", coStrings);
-    def->label = "Extruder ams count";
-    def->tooltip = "Ams counts of per extruder.";
+    // internal use only, don't need translation
+    def->label = "Extruder AMS count";
+    def->tooltip = "AMS counts per extruder.";
     def->set_default_value(new ConfigOptionStrings { });
 
     def = this->add("printer_extruder_id", coInts);
+    // internal use only, don't need translation
     def->label = "Printer extruder id";
     def->tooltip = "Printer extruder id.";
     def->set_default_value(new ConfigOptionInts { 1 });
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("printer_extruder_variant", coStrings);
+    // internal use only, don't need translation
     def->label = "Printer's extruder variant";
     def->tooltip = "Printer's extruder variant.";
     def->set_default_value(new ConfigOptionStrings { "Direct Drive Standard" });
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("master_extruder_id", coInt);
+    // internal use only, don't need translation
     def->label = "Master extruder id";
     def->tooltip = "Default extruder id to place filament.";
     def->set_default_value(new ConfigOptionInt{ 1 });
 
     def = this->add("print_extruder_id", coInts);
+    // internal use only, don't need translation
     def->label = "Print extruder id";
     def->tooltip = "Print extruder id.";
     def->set_default_value(new ConfigOptionInts { 1 });
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("print_extruder_variant", coStrings);
+    // internal use only, don't need translation
     def->label = "Print's extruder variant";
     def->tooltip = "Print's extruder variant.";
     def->set_default_value(new ConfigOptionStrings { "Direct Drive Standard" });
@@ -4799,12 +4810,14 @@ void PrintConfigDef::init_fff_params()
     def->cli = ConfigOptionDef::nocli;*/
 
     def = this->add("filament_extruder_variant", coStrings);
+    // internal use only, don't need translation
     def->label = "Filament's extruder variant";
     def->tooltip = "Filament's extruder variant.";
     def->set_default_value(new ConfigOptionStrings { "Direct Drive Standard" });
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("filament_self_index", coInts);
+    // internal use only, don't need translation
     def->label = "Filament self index";
     def->tooltip = "Filament self index.";
     def->set_default_value(new ConfigOptionInts { 1 });
@@ -5167,7 +5180,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("spiral_mode", coBool);
     def->label = L("Spiral vase");
-    def->tooltip = L("Spiralize smooths out the z moves of the outer contour. "
+    def->tooltip = L("Spiralize smooths out the Z moves of the outer contour. "
                      "And turns a solid model into a single walled print with solid bottom layers. "
                      "The final generated model has no seam.");
     def->mode = comSimple;
@@ -5382,7 +5395,7 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<SupportType>(stNormalAuto));
 
     def = this->add("support_object_xy_distance", coFloat);
-    def->label = L("Support/object xy distance");
+    def->label = L("Support/object XY distance");
     def->category = L("Support");
     def->tooltip = L("XY separation between an object and its support.");
     def->sidetext = "mm";	// milimeters, don't need translation
@@ -5682,7 +5695,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("independent_support_layer_height", coBool);
     def->label = L("Independent support layer height");
     def->category = L("Support");
-    def->tooltip = L("Support layer uses layer height independent with object layer. This is to support customizing z-gap and save print time. "
+    def->tooltip = L("Support layer uses layer height independent with object layer. This is to support customizing Z-gap and save print time. "
                      "This option will be invalid when the prime tower is enabled.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
@@ -9557,7 +9570,7 @@ CLIActionsConfigDef::CLIActionsConfigDef()
 
     def = this->add("uptodate", coBool);
     def->label = L("UpToDate");
-    def->tooltip = L("Update the configs values of 3mf to latest.");
+    def->tooltip = L("Update the config values of 3MF to latest.");
     def->cli = "uptodate";
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -9575,7 +9588,7 @@ CLIActionsConfigDef::CLIActionsConfigDef()
 
     def = this->add("min_save", coBool);
     def->label = L("Minimum save");
-    def->tooltip = L("export 3mf with minimum size.");
+    def->tooltip = L("Export 3MF with minimum size.");
     def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -9909,44 +9922,45 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("skip_modified_gcodes", coBool);
-    def->label = L("Skip modified G-code in 3mf");
-    def->tooltip = L("Skip the modified G-code in 3mf from Printer or filament Presets.");
+    def->label = L("Skip modified G-code in 3MF");
+    def->tooltip = L("Skip the modified G-code in 3MF from printer or filament presets.");
     def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("makerlab_name", coString);
     def->label = L("MakerLab name");
-    def->tooltip = L("MakerLab name to generate this 3mf.");
+    def->tooltip = L("MakerLab name to generate this 3MF.");
     def->cli_params = "name";
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("makerlab_version", coString);
     def->label = L("MakerLab version");
-    def->tooltip = L("MakerLab version to generate this 3mf.");
+    def->tooltip = L("MakerLab version to generate this 3MF.");
     def->cli_params = "version";
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("metadata_name", coStrings);
-    def->label = L("metadata name list");
-    def->tooltip = L("metadata name list added into 3mf.");
+    def->label = L("Metadata name list");
+    def->tooltip = L("Metadata name list added into 3MF.");
     def->cli_params = "\"name1;name2;...\"";
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("metadata_value", coStrings);
-    def->label = L("metadata value list");
-    def->tooltip = L("metadata value list added into 3mf.");
+    def->label = L("Metadata value list");
+    def->tooltip = L("Metadata value list added into 3MF.");
     def->cli_params = "\"value1;value2;...\"";
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("allow_newer_file", coBool);
-    def->label = L("Allow 3mf with newer version to be sliced");
-    def->tooltip = L("Allow 3mf with newer version to be sliced.");
+    def->label = L("Allow 3MF with newer version to be sliced");
+    def->tooltip = L("Allow 3MF with newer version to be sliced.");
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 
     def = this->add("allow_mix_temp", coBool);
+    // internal use only, don't need translation
     def->label = "Allow filaments with high/low temperature to be printed together";
-    def->tooltip = "Allow filaments with high/low temperature to be printed together";
+    def->tooltip = "Allow filaments with high/low temperature to be printed together.";
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 }
@@ -10134,7 +10148,7 @@ ObjectsInfoConfigDef::ObjectsInfoConfigDef()
     def->label = L("Scale per object");
     def->tooltip = L("Contains a string with the information about what scaling was applied to the individual objects. "
                      "Indexing of the objects is zero-based (first object has index 0).\n"
-                     "Example: 'x:100% y:50% z:100'.");
+                     "Example: 'x:100% y:50% z:100%'.");
 
     def = this->add("input_filename_base", coString);
     def->label = L("Input filename without extension");
@@ -10148,8 +10162,8 @@ DimensionsConfigDef::DimensionsConfigDef()
 {
     ConfigOptionDef* def;
 
-    const std::string point_tooltip   = L("The vector has two elements: x and y coordinate of the point. Values in mm.");
-    const std::string bb_size_tooltip = L("The vector has two elements: x and y dimension of the bounding box. Values in mm.");
+    const std::string point_tooltip   = L("The vector has two elements: X and Y coordinate of the point. Values in mm.");
+    const std::string bb_size_tooltip = L("The vector has two elements: X and Y dimension of the bounding box. Values in mm.");
 
     def = this->add("first_layer_print_convex_hull", coPoints);
     def->label = L("First layer convex hull");

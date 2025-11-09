@@ -1133,7 +1133,7 @@ msgstr "Distància del centre de text des de la superfície del model."
 msgid "Undo rotation"
 msgstr "Desfer la rotació"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "Rotar el text segons agulles del rellotge."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -1324,7 +1324,8 @@ msgstr "Tornar a carregar el fitxer SVG des del disc."
 msgid "Change file"
 msgstr "Canviar fitxer"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Canviar a un altre fitxer .svg"
 
 msgid "Forget the file path"
@@ -1351,7 +1352,7 @@ msgstr "Anomena i desa"
 msgid "Save SVG file"
 msgstr "Desar el fitxer SVG"
 
-msgid "Save as '.svg' file"
+msgid "Save as SVG file."
 msgstr "Desar com a fitxer \".svg\""
 
 msgid "Size in emboss direction."
@@ -1719,20 +1720,20 @@ msgstr "Carregant els valors perfils actuals"
 msgid "Loading a mode view"
 msgstr "Carregant un mode de visualització"
 
-msgid "Choose one file (3mf):"
-msgstr "Tria un fitxer ( 3mf ):"
+msgid "Choose one file (3MF):"
+msgstr "Tria un fitxer ( 3MF ):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
-msgstr "Trieu un o més fitxers ( 3mf/step/stl/svg/obj/amf/usd*/abc/ply ):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "Trieu un o més fitxers ( 3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY ):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Trieu un o més fitxers ( 3mf/step/stl/svg/obj/amf ):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Trieu un o més fitxers ( 3MF/STEP/STL/SVG/OBJ/AMF ):"
 
 msgid "Choose ZIP file"
 msgstr "Trieu el fitxer ZIP"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "Trieu un fitxer ( gcode/3mf ):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Trieu un fitxer ( GCODE/3MF ):"
 
 msgid "Some presets are modified."
 msgstr "Alguns perfils s'han modificat."
@@ -2744,7 +2745,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -3783,8 +3784,8 @@ msgstr "Rectangular"
 msgid "Circular"
 msgstr "Circular"
 
-msgid "Load shape from STL ..."
-msgstr "Carregar forma des de l'STL ..."
+msgid "Load shape from STL..."
+msgstr "Carregar forma des de l'STL..."
 
 msgid "Settings"
 msgstr "Configuració"
@@ -4142,10 +4143,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4154,7 +4155,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4348,9 +4349,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4977,10 +4975,10 @@ msgstr "Mida:"
 
 #, fuzzy, c-format, boost-format
 msgid ""
-"Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
+"Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
-"S'han trobat conflictes de rutes gcode a la capa %d, z = %.2lf mm. Si us "
+"S'han trobat conflictes de rutes gcode a la capa %d, Z = %.2lfmm. Si us "
 "plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
 msgid "An object is laid over the plate boundaries."
@@ -5003,7 +5001,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -5015,7 +5013,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -5310,8 +5308,8 @@ msgstr "Exportar tots els objectes com a diferents STLs"
 msgid "Export Generic 3MF"
 msgstr "Exportar 3MF Genèric"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "Exportar el fitxer 3mf sense utilitzar algunes extensions"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "Exportar el fitxer 3MF sense utilitzar algunes extensions"
 
 msgid "Export current sliced file"
 msgstr "Exportar el fitxer laminat actual"
@@ -5774,8 +5772,9 @@ msgstr "Vídeo"
 msgid "Switch to video files."
 msgstr "Canviar a fitxers de vídeo."
 
-msgid "Switch to 3mf model files."
-msgstr "Canviar a fitxers model 3mf."
+#, fuzzy
+msgid "Switch to 3MF model files."
+msgstr "Canviar a fitxers model 3MF."
 
 msgid "Delete selected files from printer."
 msgstr "Suprimir els fitxers seleccionats de la impressora."
@@ -6039,7 +6038,7 @@ msgstr "No es permet que el nom comenci amb caràcter d'espai."
 msgid "The name is not allowed to end with space character."
 msgstr "No es permet que el nom acabi amb caràcter d'espai."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -6144,7 +6143,7 @@ msgstr "La impressora està ocupada en altres treballs d'impressió"
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6367,14 +6366,14 @@ msgstr "%s informació"
 msgid "Skip"
 msgstr "Omet"
 
-msgid "Newer 3mf version"
-msgstr "Nova versió 3mf"
+msgid "Newer 3MF version"
+msgstr "Nova versió 3MF"
 
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
-"La versió d'arxiu 3mf està en Beta i és més recent que la versió actual "
+"La versió d'arxiu 3MF està en Beta i és més recent que la versió actual "
 "d'OrcaSlicer."
 
 msgid "If you would like to try Orca Slicer Beta, you may click to"
@@ -6383,14 +6382,14 @@ msgstr "Si voleu provar Orca Slicer Beta, podeu fer clic a"
 msgid "Download Beta Version"
 msgstr "Descarregar Versió Beta"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr ""
-"La versió del fitxer 3mf és més nova que la versió actual de l'Orca Slicer."
+"La versió del fitxer 3MF és més nova que la versió actual de l'Orca Slicer."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 "Actualitzar el vostre Orca Slicer podria habilitar totes les funcionalitats "
-"al fitxer 3mf."
+"al fitxer 3MF."
 
 msgid "Current Version: "
 msgstr "Versió actual: "
@@ -6901,7 +6900,7 @@ msgid "Sync filaments with AMS"
 msgstr "Sincronitzar filaments amb AMS"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -6976,12 +6975,13 @@ msgstr ""
 msgid "Loading file: %s"
 msgstr "Carregant fitxer: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr ""
-"El 3mf no és compatible amb OrcaSlicer, només carrega dades de geometria."
+"El 3MF no és compatible amb OrcaSlicer, només carrega dades de geometria."
 
-msgid "Load 3mf"
-msgstr "Carregar 3mf"
+msgid "Load 3MF"
+msgstr "Carregar 3MF"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -6996,10 +6996,10 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
-"La versió de 3mf %s és més nova que la versió de %s %s, S'han trobat les "
+"La versió de 3MF %s és més nova que la versió de %s %s, S'han trobat les "
 "següents claus no reconegudes:"
 
 msgid "You'd better upgrade your software.\n"
@@ -7007,25 +7007,31 @@ msgstr "És millor que actualitzeu el vostre programari.\n"
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
-"La versió de 3mf %s és més nova que la versió de %s %s, es suggereix que "
+"La versió de 3MF %s és més nova que la versió de %s %s, es suggereix que "
 "actualitzis el teu programari."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
+"El 3MF està generat amb una versió d'Orca Slicer antiga, només carrega "
+"dades de geometria."
 
-msgid "Invalid values found in the 3mf:"
-msgstr "Valors no vàlids trobats en el 3mf:"
+msgid "Invalid values found in the 3MF:"
+msgstr "Valors no vàlids trobats en el 3MF:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Corregiu-los a les pestanyes de paràmetres"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
-"El fitxer 3mf ha realitzat les següents modificacions al Codi-G de filament "
+"El fitxer 3MF ha realitzat les següents modificacions al Codi-G de filament "
 "o impressora:"
 
 #, fuzzy
@@ -7039,9 +7045,9 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "Codis-G modificats"
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr ""
-"El fitxer 3mf té els perfils personalitzats de filament o impressora "
+"El fitxer 3MF té els perfils personalitzats de filament o impressora "
 "següents:"
 
 #, fuzzy
@@ -7055,7 +7061,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Perfil personalitzat"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "El nom dels components dins del fitxer de passos no té format UTF8!"
 
 msgid "The name may show garbage characters!"
@@ -7297,7 +7304,7 @@ msgstr "Desar projecte"
 msgid "Importing Model"
 msgstr "Important Model"
 
-msgid "prepare 3mf file..."
+msgid "prepare 3MF file..."
 msgstr "preparar el fitxer 3MF..."
 
 msgid "Download failed, unknown file format."
@@ -7752,7 +7759,7 @@ msgstr "Carregar només geometria"
 msgid "Load behaviour"
 msgstr "Carregar comportament"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 "S'ha de carregar la configuració de la impressora/filament/procés en obrir "
 "un .3mf?"
@@ -7960,26 +7967,31 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Associar fitxers a OrcaSlicer"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Associar .3mf fitxers a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Si està habilitat, defineix OrcaSlicer com a l'aplicació predeterminada per "
 "obrir fitxers .3mf"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr "Associar fitxers .stl a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per "
 "obrir fitxers .stl"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr "Associar fitxers .step/.stp a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per "
 "obrir fitxers .step"
@@ -8219,10 +8231,10 @@ msgstr "Desconnectar-se"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Laminar tota la placa per obtenir estimació de temps i filament"
 
-msgid "Packing project data into 3mf file"
-msgstr "Empaquetar les dades del projecte en un fitxer 3mf"
+msgid "Packing project data into 3MF file"
+msgstr "Empaquetar les dades del projecte en un fitxer 3MF"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "Pujant 3mf"
 
 msgid "Jump to model publish web page"
@@ -8235,13 +8247,13 @@ msgstr ""
 msgid "Publish"
 msgstr "Publicar"
 
-msgid "Publish was cancelled"
-msgstr ""
+msgid "Publish was canceled"
+msgstr "La publicació ha estat cancel·lada"
 
 msgid "Slicing Plate 1"
 msgstr "Laminant Base 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Empaquetant dades a 3mf"
 
 msgid "Jump to webpage"
@@ -8893,12 +8905,17 @@ msgid ""
 "Are you sure to use them for support base? \n"
 msgstr ""
 
+#, fuzzy
 msgid ""
 "When using support material for the support interface, we recommend the "
 "following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and "
-"disable independent support layer height"
+"disable independent support layer height."
 msgstr ""
+"Quan utilitzeu material de suport per a la interfície de suport, us "
+"recomanem la configuració següent:\n"
+"0 distància Z superior, 0 espai d'interfície, patró rectilini entrellaçat "
+"i desactivar l'alçada de la capa de suport independent."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -8910,11 +8927,11 @@ msgstr ""
 "No - No canviar aquesta configuració"
 
 msgid ""
-"When using soluble material for the support interface, We recommend the "
+"When using soluble material for the support interface, we recommend the "
 "following settings:\n"
-"0 top z distance, 0 interface spacing, interlaced rectilinear pattern, "
-"disable independent support layer height \n"
-"and use soluble materials for both support interface and support base"
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
+"disable independent support layer height\n"
+"and use soluble materials for both support interface and support base."
 msgstr ""
 
 msgid ""
@@ -9795,16 +9812,16 @@ msgstr "La configuració està actualitzada."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Importar color de l'arxiu Obj"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10544,8 +10561,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Targeta d'Ampliació"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "El desament d'objectes al 3mf no ha funcionat."
+msgid "Saving objects into the 3MF failed."
+msgstr "El desament d'objectes al 3MF no ha funcionat."
 
 msgid "Only Windows 10 is supported."
 msgstr "Només s'admet Windows 10."
@@ -10568,22 +10585,22 @@ msgstr "No s'ha pogut reparar."
 msgid "Loading repaired objects"
 msgstr "Carregant els objectes reparats"
 
-msgid "Exporting 3mf file failed"
-msgstr "S'ha produït un error en l'exportació del fitxer 3mf"
+msgid "Exporting 3MF file failed"
+msgstr "S'ha produït un error en l'exportació del fitxer 3MF"
 
-msgid "Import 3mf file failed"
-msgstr "S'ha produït un error en l'importació del fitxer 3mf"
+msgid "Import 3MF file failed"
+msgstr "S'ha produït un error en l'importació del fitxer 3MF"
 
-msgid "Repaired 3mf file does not contain any object"
+msgid "Repaired 3MF file does not contain any object"
 msgstr "El fitxer 3MF reparat no conté cap objecte"
 
-msgid "Repaired 3mf file contains more than one object"
+msgid "Repaired 3MF file contains more than one object"
 msgstr "El fitxer 3MF reparat conté més d'un objecte"
 
-msgid "Repaired 3mf file does not contain any volume"
+msgid "Repaired 3MF file does not contain any volume"
 msgstr "El fitxer 3MF reparat no conté cap volum"
 
-msgid "Repaired 3mf file contains more than one volume"
+msgid "Repaired 3MF file contains more than one volume"
 msgstr "El fitxer 3MF reparat conté més d'un volum"
 
 msgid "Repair finished"
@@ -11264,7 +11281,7 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Orientació preferida"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr ""
 "Orientar automàticament els stls a l'eix Z després de la importació inicial"
 
@@ -12665,11 +12682,9 @@ msgid ""
 "option in most cases.\n"
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
-"benefits of Inner/Outer/Inner option. However, the z seams will appear less "
+"benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
 "consistent as the first extrusion of a new layer starts on a visible "
-"surface.\n"
-"\n"
-" "
+"surface."
 msgstr ""
 "Seqüència d'impressió de les parets interiors (interiors) i exteriors "
 "(exteriors).\n"
@@ -12694,9 +12709,7 @@ msgstr ""
 "externa i els mateixos avantatges de precisió dimensional de l'opció "
 "Interior / Exterior / Interior. Tanmateix, les costures z semblaran menys "
 "consistents a mesura que comenci la primera extrusió d'una nova capa en una "
-"superfície visible.\n"
-"\n"
-" "
+"superfície visible."
 
 msgid "Inner/Outer"
 msgstr "Interior/Exterior"
@@ -13274,14 +13287,14 @@ msgstr "Encongiment (XY)"
 #, no-c-format, no-boost-format
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
-"if you measure 94mm instead of 100mm). The part will be scaled in xy to "
+"if you measure 94mm instead of 100mm). The part will be scaled in XY to "
 "compensate. Only the filament used for the perimeter is taken into account.\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
 "Introduïu el percentatge de contracció que obtindrà el filament després del "
 "refredament ( 94% i si mesureu 94mm en lloc de 100mm ). La peça s'escalarà "
-"en xy per compensar. Només es té en compte el filament utilitzat per al "
+"en XY per compensar. Només es té en compte el filament utilitzat per al "
 "perímetre.\n"
 "Assegureu-vos de deixar prou espai entre objectes, ja que aquesta "
 "compensació es fa després de les comprovacions."
@@ -14117,7 +14130,7 @@ msgid "Precise Z height"
 msgstr "Alçada Z precisa"
 
 msgid ""
-"Enable this to get precise z height of object after slicing. It will get the "
+"Enable this to get precise Z height of object after slicing. It will get the "
 "precise object height by fine-tuning the layer heights of the last few "
 "layers. Note that this is an experimental parameter."
 msgstr ""
@@ -15939,7 +15952,7 @@ msgstr ""
 "Velocitat de farciment sòlid intern, no de la superfície superior i inferior"
 
 msgid ""
-"Spiralize smooths out the z moves of the outer contour. And turns a solid "
+"Spiralize smooths out the Z moves of the outer contour. And turns a solid "
 "model into a single walled print with solid bottom layers. The final "
 "generated model has no seam."
 msgstr ""
@@ -16193,14 +16206,14 @@ msgstr "Normal (manual)"
 msgid "Tree (manual)"
 msgstr "Arbre (manual)"
 
-msgid "Support/object xy distance"
-msgstr "Distància suport/objecte a xy"
+msgid "Support/object XY distance"
+msgstr "Distància suport/objecte a XY"
 
 msgid "XY separation between an object and its support."
 msgstr "Separació XY entre un objecte i el seu suport"
 
 msgid "Support/object first layer gap"
-msgstr "Distància suport/objecte a xy"
+msgstr ""
 
 msgid "XY separation between an object and its support at the first layer."
 msgstr "Separació XY entre un objecte i el seu suport a la primera capa."
@@ -16412,7 +16425,7 @@ msgstr "Alçada de la capa de suport independent"
 
 msgid ""
 "Support layer uses layer height independent with object layer. This is to "
-"support customizing z-gap and save print time. This option will be invalid "
+"support customizing Z-gap and save print time. This option will be invalid "
 "when the prime tower is enabled."
 msgstr ""
 "La capa de suport utilitza una alçada de capa independent de la capa "
@@ -17319,8 +17332,8 @@ msgstr "Mostra l'ajuda de comandes."
 msgid "UpToDate"
 msgstr "Actualitzar"
 
-msgid "Update the configs values of 3mf to latest."
-msgstr "Actualitzar els valors de configuració de 3mf a la darrera versió."
+msgid "Update the config values of 3MF to latest."
+msgstr "Actualitzar els valors de configuració de 3MF a la darrera versió."
 
 msgid "downward machines check"
 msgstr "comprovació descendent de màquines"
@@ -17341,7 +17354,7 @@ msgstr "Carregar el primer filament per defecte per als que no estan carregats"
 msgid "Minimum save"
 msgstr "Guardat mínim"
 
-msgid "export 3mf with minimum size."
+msgid "Export 3MF with minimum size."
 msgstr "exportar 3MF amb la mida mínima."
 
 msgid "mtcpp"
@@ -17585,43 +17598,43 @@ msgstr ""
 "Si està habilitat, l'arranjament evitarà la regió de calibratge d'extrusió "
 "quan col·loqueu l'objecte"
 
-msgid "Skip modified G-code in 3mf"
+msgid "Skip modified G-code in 3MF"
 msgstr "Omet els codis-g modificats en 3mf"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
-"Omet els codis-g modificats en 3mf des de la impressora o els presets de "
+"Omet els codis-g modificats en 3MF des de la impressora o els presets de "
 "filament."
 
 msgid "MakerLab name"
 msgstr "Nom MakerLab"
 
-msgid "MakerLab name to generate this 3mf."
-msgstr "Nom de MakerLab per generar aquest 3mf"
+msgid "MakerLab name to generate this 3MF."
+msgstr "Nom de MakerLab per generar aquest 3MF."
 
 msgid "MakerLab version"
 msgstr "Versió MakerLab"
 
-msgid "MakerLab version to generate this 3mf."
-msgstr "Versió de MakerLab per generar aquest 3mf"
+msgid "MakerLab version to generate this 3MF."
+msgstr "Versió de MakerLab per generar aquest 3MF."
 
-msgid "metadata name list"
-msgstr "llista de noms de metadades"
+msgid "Metadata name list"
+msgstr "Llista de noms de metadades"
 
-msgid "metadata name list added into 3mf."
-msgstr "llista de noms de metadades afegida a 3MF"
+msgid "Metadata name list added into 3MF."
+msgstr "Llista de noms de metadades afegida a 3MF."
 
-msgid "metadata value list"
-msgstr "llista de valors de metadades"
+msgid "Metadata value list"
+msgstr "Llista de valors de metadades"
 
-msgid "metadata value list added into 3mf."
-msgstr "llista de valors de metadades afegida a 3MF"
+msgid "Metadata value list added into 3MF."
+msgstr "Llista de valors de metadades afegida a 3MF."
 
-msgid "Allow 3mf with newer version to be sliced"
-msgstr ""
+msgid "Allow 3MF with newer version to be sliced"
+msgstr "Permet laminar 3MF amb la versió més recent"
 
-msgid "Allow 3mf with newer version to be sliced."
-msgstr "Permet laminar 3mf amb la versió més recent"
+msgid "Allow 3MF with newer version to be sliced."
+msgstr "Permet laminar 3MF amb la versió més recent."
 
 msgid "Current Z-hop"
 msgstr "Salt-z actual"
@@ -17789,12 +17802,12 @@ msgid ""
 "Contains a string with the information about what scaling was applied to the "
 "individual objects. Indexing of the objects is zero-based (first object has "
 "index 0).\n"
-"Example: 'x:100% y:50% z:100'."
+"Example: 'x:100% y:50% z:100%'."
 msgstr ""
 "Conté una cadena amb la informació sobre quin escalat s'ha aplicat als "
 "objectes individuals. La indexació dels objectes es basa en zero (el primer "
 "objecte té índex 0).\n"
-"Exemple: 'x:100% y:50% z:100'."
+"Exemple: 'x:100% y:50% z:100%'."
 
 msgid "Input filename without extension"
 msgstr "Nom del fitxer d'entrada sense extensió"
@@ -17803,14 +17816,14 @@ msgid "Source filename of the first object, without extension."
 msgstr "Nom del fitxer font del primer objecte, sense extensió."
 
 msgid ""
-"The vector has two elements: x and y coordinate of the point. Values in mm."
-msgstr "El vector té dos elements: coordenades x i y del punt. Valors en mm."
+"The vector has two elements: X and Y coordinate of the point. Values in mm."
+msgstr "El vector té dos elements: coordenades X i Y del punt. Valors en mm."
 
 msgid ""
-"The vector has two elements: x and y dimension of the bounding box. Values "
+"The vector has two elements: X and Y dimension of the bounding box. Values "
 "in mm."
 msgstr ""
-"El vector té dos elements: dimensió x i y de la caixa delimitadora. Valors "
+"El vector té dos elements: dimensió X i Y de la caixa delimitadora. Valors "
 "en mm."
 
 msgid "First layer convex hull"
@@ -20303,8 +20316,8 @@ msgstr "Nom del dispositiu"
 msgid "Device Status"
 msgstr "Estat del dispositiu"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "Estat AMS"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -20465,7 +20478,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -20513,8 +20526,8 @@ msgstr ""
 "Alguna cosa inesperada ha passat en intentar iniciar sessió, torneu-ho a "
 "provar."
 
-msgid "User cancelled."
-msgstr ""
+msgid "User canceled."
+msgstr "Usuari cancel·lat."
 
 msgid "Head diameter"
 msgstr "Diàmetre del cap"
@@ -21082,9 +21095,6 @@ msgstr ""
 #~ "L'AMS estimarà la capacitat restant del filament de Bambu després "
 #~ "d'actualitzar la informació del filament. Durant la impressió, la "
 #~ "capacitat restant s'actualitzarà automàticament."
-
-#~ msgid "AMS Status"
-#~ msgstr "Estat AMS"
 
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
@@ -21806,23 +21816,9 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Número no vàlid"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "La publicació ha estat cancel·lada"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "broquet memoritzat: %.2f %s"
-
-#~ msgid ""
-#~ "When using support material for the support interface, we recommend the "
-#~ "following settings:\n"
-#~ "0 top z distance, 0 interface spacing, interlaced rectilinear pattern and "
-#~ "disable independent support layer height"
-#~ msgstr ""
-#~ "Quan utilitzeu material de suport per a la interfície de suport, us "
-#~ "recomanem la configuració següent:\n"
-#~ "0 distància z superior, 0 espai d'interfície, patró rectilini entrellaçat "
-#~ "i desactivar l'alçada de la capa de suport independent"
 
 #~ msgid ""
 #~ "Bed temperature when the Cool Plate Supertack is installed. A value of 0 "
@@ -22018,8 +22014,8 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
-#~ msgstr "Carregar stl"
+#~ msgid "Load STL"
+#~ msgstr "Carregar STL"
 
 #~ msgid "Load svg"
 #~ msgstr "Carregar svg"
@@ -22093,9 +22089,6 @@ msgstr ""
 
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "No s'ha pogut connectar a Flashforge"
-
-#~ msgid "User canceled."
-#~ msgstr "Usuari cancel·lat."
 
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "Establir Vora d'Adherència a \"pintat\""
@@ -22686,11 +22679,6 @@ msgstr ""
 
 #~ msgid "The Config cannot be loaded."
 #~ msgstr "La Configuració no es pot carregar."
-
-#~ msgid "The 3mf is generated by old Orca Slicer, load geometry data only."
-#~ msgstr ""
-#~ "El 3mf està generat amb una versió d'Orca Slicer antiga, només carrega "
-#~ "dades de geometria."
 
 #~ msgid "Configuration package updated to "
 #~ msgstr "Paquet de configuració actualitzat a "

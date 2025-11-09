@@ -2873,10 +2873,10 @@ void GLGizmoEmboss::draw_advanced()
 
     m_imgui->disabled_end();  // allowe_surface_distance
 
-    // slider for Clock-wise angle in degress
+    // slider for Clockwise angle in degress
     // stored angle is optional CCW and in radians
     // Convert stored value to degress
-    // minus create clock-wise roation from CCW
+    // minus create clockwise roation from CCW
     float angle = current_style.angle.value_or(0.f);
     float angle_deg = static_cast<float>(-angle * 180 / M_PI);
     float def_angle_deg_val = 
@@ -2886,7 +2886,7 @@ void GLGizmoEmboss::draw_advanced()
         &def_angle_deg_val : nullptr;
     if (rev_slider(tr.rotation, angle_deg, def_angle_deg, _u8L("Undo rotation"), 
         limits.angle.min, limits.angle.max, u8"%.2f °",
-                   _L("Rotate text Clock-wise."))) {
+                   _L("Rotate text Clockwise."))) {
         // convert back to radians and CCW
         double angle_rad = -angle_deg * M_PI / 180.0;
         Geometry::to_range_pi_pi(angle_rad);                

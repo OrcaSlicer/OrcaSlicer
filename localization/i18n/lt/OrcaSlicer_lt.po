@@ -1134,7 +1134,7 @@ msgstr "Atstumas nuo teksto centro iki modelio paviršiaus."
 msgid "Undo rotation"
 msgstr "Panaikinti pasukimą"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "Sukti tekstą pagal laikrodžio rodyklę."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -1320,7 +1320,8 @@ msgstr "Pakartotinai įkelti SVG failą iš disko."
 msgid "Change file"
 msgstr "Pakeisti failą"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Pakeisti į kitą .svg failą"
 
 msgid "Forget the file path"
@@ -1347,7 +1348,7 @@ msgstr "Išsaugoti kaip"
 msgid "Save SVG file"
 msgstr "Išsaugoti SVG failą"
 
-msgid "Save as '.svg' file"
+msgid "Save as SVG file."
 msgstr "Išsaugoti kaip \".svg\" failą"
 
 msgid "Size in emboss direction."
@@ -1711,21 +1712,21 @@ msgstr "Įkeliami dabartiniai nustatymai"
 msgid "Loading a mode view"
 msgstr "Įkeliamas režimo rodinys"
 
-msgid "Choose one file (3mf):"
-msgstr "Pasirinkite vieną failą (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "Pasirinkite vieną failą (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 msgstr ""
-"Pasirinkite vieną ar kelis failus (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+"Pasirinkite vieną ar kelis failus (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Pasirinkite vieną ar kelis failus (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Pasirinkite vieną ar kelis failus (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "Pasirinkite ZIP failą"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "Pasirinkite vieną failą (gcode/3mf):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Pasirinkite vieną failą (GCODE/3MF):"
 
 msgid "Some presets are modified."
 msgstr "Kai kurie nustatymai pakeisti."
@@ -2743,7 +2744,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -3772,8 +3773,8 @@ msgstr "Stačiakampis"
 msgid "Circular"
 msgstr "Apvalus"
 
-msgid "Load shape from STL ..."
-msgstr "Įkelti formą iš STL ..."
+msgid "Load shape from STL..."
+msgstr "Įkelti formą iš STL..."
 
 msgid "Settings"
 msgstr "Nustatymai"
@@ -4137,10 +4138,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4149,7 +4150,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4343,9 +4344,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4978,10 +4976,10 @@ msgstr "Dydis:"
 
 #, c-format, boost-format
 msgid ""
-"Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
+"Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
-"Rasta G-kode judėjimo kelių konfliktų %d sluoksnyje, z = %.2lf mm. Prašome "
+"Rasta G-kode judėjimo kelių konfliktų %d sluoksnyje, Z = %.2lfmm. Prašome "
 "labiau atskirti konfliktinius objektus (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
@@ -5004,7 +5002,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -5016,7 +5014,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -5311,7 +5309,7 @@ msgstr "Eksportuoti visus objektus kaip STL"
 msgid "Export Generic 3MF"
 msgstr "Eksportuoti pagrindinį 3MF"
 
-msgid "Export 3mf file without using some 3mf-extensions"
+msgid "Export 3MF file without using some 3mf-extensions."
 msgstr "Eksportuoti 3MF failą nenaudojant kai kurių 3MF plėtinių"
 
 msgid "Export current sliced file"
@@ -5771,7 +5769,7 @@ msgstr "Video"
 msgid "Switch to video files."
 msgstr "Perjungti į video failus."
 
-msgid "Switch to 3mf model files."
+msgid "Switch to 3MF model files."
 msgstr "Perjungti į 3MF modelių failus."
 
 msgid "Delete selected files from printer."
@@ -6033,7 +6031,7 @@ msgstr "Neleidžiama, kad pavadinimas prasidėtų tarpo simboliu."
 msgid "The name is not allowed to end with space character."
 msgstr "Neleidžiama, kad pavadinimas baigtųsi tarpo simboliu."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -6138,7 +6136,7 @@ msgstr "Spausdintuvas užimtas kitu spausdinimo darbu"
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6362,11 +6360,12 @@ msgstr "%s informacija"
 msgid "Skip"
 msgstr "Praleisti"
 
-msgid "Newer 3mf version"
-msgstr "Naujesnė 3mf versija"
+#, fuzzy
+msgid "Newer 3MF version"
+msgstr "Naujesnė 3MF versija"
 
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
 "3MF failo versija yra Beta versijos, t.y. naujesnė, negu dabartinė Orca "
@@ -6378,12 +6377,13 @@ msgstr "Jei norite pabandyti Orca Slicer Beta, turėtumėte spustelėti"
 msgid "Download Beta Version"
 msgstr "Atsisiųsti Beta versiją"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "3MF versija yra naujesnė, negu dabar naudojama Orca Slicer versija."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+#, fuzzy
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
-"Atnaujinus Orca Slicer programinę įrangą galėsite naudoti visas 3mf failo "
+"Atnaujinus Orca Slicer programinę įrangą galėsite naudoti visas 3MF failo "
 "funkcijas."
 
 msgid "Current Version: "
@@ -6895,7 +6895,7 @@ msgid "Sync filaments with AMS"
 msgstr "Sinchronizuoti gijas su AMS"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -6971,10 +6971,11 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Įkeliamas failas: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "3MF nepalaikomas Orca Slicer. Įkeliami tik geometrijos duomenys."
 
-msgid "Load 3mf"
+msgid "Load 3MF"
 msgstr "Įkelti 3MF"
 
 msgid ""
@@ -6996,7 +6997,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr "3mf versija %s yra naujesnė už %s versiją %s, rasta nepažįstamų raktų:"
 
@@ -7005,23 +7006,26 @@ msgstr "Geriau jau atnaujinkite savo programinę įrangą\n"
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
 "3MF failo versija %s yra naujesnė nei %s versija %s. Siūloma atnaujinti jūsų "
 "programinę įrangą."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
 
-msgid "Invalid values found in the 3mf:"
+msgid "Invalid values found in the 3MF:"
 msgstr "3MF rasti netinkami duomenys:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Prašome juos ištaisyti parametrų skirtukuose"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
 "3MF faile yra šie modifikuoti G-kodai gijos ar spausdintuvo iš anksto "
 "nustatytuose parametruose:"
@@ -7036,7 +7040,7 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "Modifikuotas G-kodas"
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3MF faile yra pakeistų gijos ar spausdinimo nustatymų:"
 
 msgid ""
@@ -7049,7 +7053,7 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Pakeisti nustatymai"
 
-msgid "Name of components inside step file is not UTF8 format!"
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "Komponentų pavadinimai STEP faile nėra UTF-8 formato!"
 
 msgid "The name may show garbage characters!"
@@ -7290,7 +7294,7 @@ msgstr "Išsaugoti projektą"
 msgid "Importing Model"
 msgstr "Importuojamas modelis"
 
-msgid "prepare 3mf file..."
+msgid "prepare 3MF file..."
 msgstr "paruošti 3MF failą..."
 
 msgid "Download failed, unknown file format."
@@ -7738,7 +7742,7 @@ msgstr "Įkelti tik geometriją"
 msgid "Load behaviour"
 msgstr "Įkelti elgseną"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 "Ar atidarant .3mf failą reikia įkelti spausdintuvo / gijų / proceso "
 "nustatymus?"
@@ -7950,26 +7954,32 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Susieti failus su Orca Slicer"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Susieti .3mf failus su Orca Slicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Jei įjungta, \"Orca Slicer\" nustatoma kaip numatytasis .3mf failų atidarymo "
 "įrankis"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr "Susieti .stl failus su Orca Slicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "Jei įjungta, \"Orca Slicer\" nustatoma kaip numatytoji programa .stl failams "
 "atverti"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr "Susieti .step/.stp failus su Orca Slicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "Jei įjungta, \"Orca Slicer\" nustatoma kaip numatytoji programa .step "
 "failams atverti"
@@ -8209,10 +8219,10 @@ msgstr "Atsijungti"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Laiko ir gijos sąnaudoms sužinoti susluoksniuokite visą plokštę"
 
-msgid "Packing project data into 3mf file"
+msgid "Packing project data into 3MF file"
 msgstr "Projekto duomenys pakuojami į .3mf failą"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "Įkeliamas 3mf"
 
 msgid "Jump to model publish web page"
@@ -8224,13 +8234,13 @@ msgstr "Pastaba: paruošimas gali užtrukti kelias minutes. Būkite kantrūs."
 msgid "Publish"
 msgstr "Talpinti"
 
-msgid "Publish was cancelled"
+msgid "Publish was canceled"
 msgstr "Publikavimas buvo atšauktas"
 
 msgid "Slicing Plate 1"
 msgstr "Sluoksniuojama plokštė 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Duomenys pakuojami į 3mf"
 
 msgid "Jump to webpage"
@@ -8891,12 +8901,12 @@ msgid ""
 "When using support material for the support interface, we recommend the "
 "following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and "
-"disable independent support layer height"
+"disable independent support layer height."
 msgstr ""
 "Naudojant atraminę medžiagą atraminei sąsajai, rekomenduojame šiuos "
 "nustatymus:\n"
 "0 viršutinis Z atstumas, 0 sąsajos tarpas, susipynęs tiesinis modelis ir "
-"išjungtas nepriklausomas atraminio sluoksnio aukštis"
+"išjungtas nepriklausomas atraminio sluoksnio aukštis."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -8908,11 +8918,11 @@ msgstr ""
 "Ne - Nekeiskite šių nustatymų už mane"
 
 msgid ""
-"When using soluble material for the support interface, We recommend the "
+"When using soluble material for the support interface, we recommend the "
 "following settings:\n"
-"0 top z distance, 0 interface spacing, interlaced rectilinear pattern, "
-"disable independent support layer height \n"
-"and use soluble materials for both support interface and support base"
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
+"disable independent support layer height\n"
+"and use soluble materials for both support interface and support base."
 msgstr ""
 
 msgid ""
@@ -9818,16 +9828,16 @@ msgstr "Konfigūracija yra naujausia."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Obj failo importavimo spalva"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10561,8 +10571,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Išplėtimo plokštė"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "Saving objects into the 3mf failed.Nepavyko įrašyti objektų į 3mf."
+msgid "Saving objects into the 3MF failed."
+msgstr "Saving objects into the 3MF failed.Nepavyko įrašyti objektų į 3MF."
 
 msgid "Only Windows 10 is supported."
 msgstr "Palaikoma tik \"Windows 10\"."
@@ -10585,23 +10595,23 @@ msgstr "Taisymas nepavyko."
 msgid "Loading repaired objects"
 msgstr "Pataisytų objektų įkėlimas"
 
-msgid "Exporting 3mf file failed"
-msgstr "Nepavyko eksportuoti 3mf failo"
+msgid "Exporting 3MF file failed"
+msgstr "Nepavyko eksportuoti 3MF failo"
 
-msgid "Import 3mf file failed"
-msgstr "Nepavyko importuoti 3mf failo"
+msgid "Import 3MF file failed"
+msgstr "Nepavyko importuoti 3MF failo"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "Pataisytame 3mf faile nėra jokių objektų"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "Pataisytame 3MF faile nėra jokių objektų"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "Pataisytame 3mf faile yra daugiau nei vienas objektas"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "Pataisytame 3MF faile yra daugiau nei vienas objektas"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "Pataisytame 3mf faile nėra jokio tūrio"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "Pataisytame 3MF faile nėra jokio tūrio"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "Pataisytame 3mf faile yra daugiau nei vienas tomas"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "Pataisytame 3MF faile yra daugiau nei vienas tomas"
 
 msgid "Repair finished"
 msgstr "Taisymas baigtas"
@@ -11282,8 +11292,8 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Pageidautina orientacija"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
-msgstr "Automatiškai orientuoti stl failus pagal Z ašį pradinio importo metu."
+msgid "Automatically orient STL files on the Z axis upon initial import."
+msgstr "Automatiškai orientuoti STL failus pagal Z ašį pradinio importo metu."
 
 msgid "Printer preset names"
 msgstr "Spausdintuvo nustatymų pavadinimai"
@@ -12665,11 +12675,9 @@ msgid ""
 "option in most cases.\n"
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
-"benefits of Inner/Outer/Inner option. However, the z seams will appear less "
+"benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
 "consistent as the first extrusion of a new layer starts on a visible "
-"surface.\n"
-"\n"
-" "
+"surface."
 msgstr ""
 "Vidinių (vidinių) ir išorinių (išorinių) sienų spausdinimo seka.\n"
 "\n"
@@ -12691,9 +12699,7 @@ msgstr ""
 "Naudokite Išorinė / vidinė, kad išorinių sienų kokybė ir matmenų tikslumas "
 "būtų tokie patys, kaip ir pasirinkus Vidinė / išorinė / vidinė parinktį. "
 "Tačiau z siūlės atrodys ne tokios nuoseklios, nes pirmasis naujo sluoksnio "
-"išspaudimas prasideda matomame paviršiuje.\n"
-"\n"
-" "
+"išspaudimas prasideda matomame paviršiuje."
 
 msgid "Inner/Outer"
 msgstr "Vidinės/Išorinės"
@@ -13264,13 +13270,13 @@ msgstr "Susitraukimas (XY)"
 #, no-c-format, no-boost-format
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
-"if you measure 94mm instead of 100mm). The part will be scaled in xy to "
+"if you measure 94mm instead of 100mm). The part will be scaled in XY to "
 "compensate. Only the filament used for the perimeter is taken into account.\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
 "Įveskite susitraukimo procentą, kurį gija gaus po aušinimo (94%, jei "
-"matuojate 94 mm, o ne 100 mm). Dalis bus keičiama xy masteliu, kad būtų "
+"matuojate 94 mm, o ne 100 mm). Dalis bus keičiama XY masteliu, kad būtų "
 "kompensuota. Atsižvelgiama tik į perimetrui naudojamą giją.\n"
 "Būtinai palikite pakankamai vietos tarp objektų, nes ši kompensacija "
 "atliekama po patikrinimų."
@@ -14129,7 +14135,7 @@ msgid "Precise Z height"
 msgstr "Tikslus Z aukštis"
 
 msgid ""
-"Enable this to get precise z height of object after slicing. It will get the "
+"Enable this to get precise Z height of object after slicing. It will get the "
 "precise object height by fine-tuning the layer heights of the last few "
 "layers. Note that this is an experimental parameter."
 msgstr ""
@@ -15968,7 +15974,7 @@ msgstr ""
 "paviršiaus."
 
 msgid ""
-"Spiralize smooths out the z moves of the outer contour. And turns a solid "
+"Spiralize smooths out the Z moves of the outer contour. And turns a solid "
 "model into a single walled print with solid bottom layers. The final "
 "generated model has no seam."
 msgstr ""
@@ -16226,8 +16232,8 @@ msgstr "Įprastas (rankinis)"
 msgid "Tree (manual)"
 msgstr "Medis (rankinis)"
 
-msgid "Support/object xy distance"
-msgstr "Atramos/objekto xy atstumas"
+msgid "Support/object XY distance"
+msgstr "Atramos/objekto XY atstumas"
 
 msgid "XY separation between an object and its support."
 msgstr "Šiuo parametru nustatomas objekto ir atramos XY atstumas."
@@ -16444,7 +16450,7 @@ msgstr "Nepriklausomas atraminio sluoksnio aukštis"
 
 msgid ""
 "Support layer uses layer height independent with object layer. This is to "
-"support customizing z-gap and save print time. This option will be invalid "
+"support customizing Z-gap and save print time. This option will be invalid "
 "when the prime tower is enabled."
 msgstr ""
 "Atraminis sluoksnis naudoja sluoksnio aukštį, nepriklausomą nuo objekto "
@@ -17362,8 +17368,8 @@ msgstr "Rodoma komandos pagalba."
 msgid "UpToDate"
 msgstr "Atnaujinta"
 
-msgid "Update the configs values of 3mf to latest."
-msgstr "Atnaujinti 3mf konfigūracijos reikšmes į naujausias."
+msgid "Update the config values of 3MF to latest."
+msgstr "Atnaujinti 3MF konfigūracijos reikšmes į naujausias."
 
 msgid "downward machines check"
 msgstr "tikrinti mažėjančias mašinas"
@@ -17384,8 +17390,8 @@ msgstr "Įkelti pirmąją giją kaip numatytąją neįkeltoms gijoms."
 msgid "Minimum save"
 msgstr "Minimalus išsaugojimas"
 
-msgid "export 3mf with minimum size."
-msgstr "eksportuoti mažiausio dydžio 3mf."
+msgid "Export 3MF with minimum size."
+msgstr "eksportuoti mažiausio dydžio 3MF."
 
 msgid "mtcpp"
 msgstr "mtcpp"
@@ -17622,48 +17628,48 @@ msgid ""
 msgstr ""
 "Jei įjungta, išdėstant objektus bus vengiama išspaudimo kalibravimo srities."
 
-msgid "Skip modified G-code in 3mf"
-msgstr "Praleisti modifikuotus gkodus 3mf"
+msgid "Skip modified G-code in 3MF"
+msgstr "Praleisti modifikuotus gkodus 3MF"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
-"Praleiskite modifikuotą G kodą 3mf iš spausdintuvo arba gijos nustatymų."
+"Praleiskite modifikuotą G kodą 3MF iš spausdintuvo arba gijos nustatymų."
 
 msgid "MakerLab name"
 msgstr "MakerLab pavadinimas"
 
-msgid "MakerLab name to generate this 3mf."
-msgstr "„MakerLab“ pavadinimas šiam 3mf generuoti."
+msgid "MakerLab name to generate this 3MF."
+msgstr "„MakerLab“ pavadinimas šiam 3MF generuoti."
 
 msgid "MakerLab version"
 msgstr "„MakerLab“ versija"
 
-msgid "MakerLab version to generate this 3mf."
-msgstr "„MakerLab“ versija šiam 3mf generuoti."
+msgid "MakerLab version to generate this 3MF."
+msgstr "„MakerLab“ versija šiam 3MF generuoti."
 
-msgid "metadata name list"
-msgstr "metaduomenų pavadinimų sąrašas"
+msgid "Metadata name list"
+msgstr "Metaduomenų pavadinimų sąrašas"
 
-msgid "metadata name list added into 3mf."
-msgstr "metaduomenų pavadinimų sąrašas įtrauktas į 3mf."
+msgid "metadata name list added into 3MF."
+msgstr "metaduomenų pavadinimų sąrašas įtrauktas į 3MF."
 
-msgid "metadata value list"
-msgstr "metaduomenų reikšmių sąrašas"
+msgid "Metadata value list"
+msgstr "Metaduomenų reikšmių sąrašas"
 
-msgid "metadata value list added into 3mf."
-msgstr "į 3mf įtrauktas metaduomenų reikšmių sąrašas."
+msgid "metadata value list added into 3MF."
+msgstr "į 3MF įtrauktas metaduomenų reikšmių sąrašas."
 
-msgid "Allow 3mf with newer version to be sliced"
-msgstr "Leisti 3mf su naujesne versija sluoksniuoti"
+msgid "Allow 3MF with newer version to be sliced"
+msgstr "Leisti 3MF su naujesne versija sluoksniuoti"
 
-msgid "Allow 3mf with newer version to be sliced."
-msgstr "Leisti sluoksniuoti 3mf su naujesne versija."
+msgid "Allow 3MF with newer version to be sliced."
+msgstr "Leisti sluoksniuoti 3MF su naujesne versija."
 
 msgid "Current Z-hop"
-msgstr "Dabartinis z-šuolis"
+msgstr "Dabartinis Z-šuolis"
 
 msgid "Contains Z-hop present at the beginning of the custom G-code block."
-msgstr "Turi z-šuolį, esantį pasirinktinio G-kodo bloko pradžioje."
+msgstr "Turi Z-šuolį, esantį pasirinktinio G-kodo bloko pradžioje."
 
 msgid ""
 "Position of the extruder at the beginning of the custom G-code block. If the "
@@ -17824,12 +17830,12 @@ msgid ""
 "Contains a string with the information about what scaling was applied to the "
 "individual objects. Indexing of the objects is zero-based (first object has "
 "index 0).\n"
-"Example: 'x:100% y:50% z:100'."
+"Example: 'x:100% y:50% z:100%'."
 msgstr ""
 "Pateikiama eilutė su informacija apie tai, koks mastelio keitimas buvo "
 "pritaikytas atskiriems objektams. Objektai indeksuojami nuo nulio (pirmasis "
 "objektas turi indeksą 0).\n"
-"Pavyzdys: \"x:100% y:50% z:100\"."
+"Pavyzdys: \"x:100% y:50% z:100%\"."
 
 msgid "Input filename without extension"
 msgstr "Įvesties failo pavadinimas be plėtinio"
@@ -17837,12 +17843,14 @@ msgstr "Įvesties failo pavadinimas be plėtinio"
 msgid "Source filename of the first object, without extension."
 msgstr "Pirmojo objekto šaltinio failo pavadinimas be plėtinio."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y coordinate of the point. Values in mm."
+"The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr "Vektorių sudaro du elementai: taško x ir y koordinatės. Vertės mm."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y dimension of the bounding box. Values "
+"The vector has two elements: X and Y dimension of the bounding box. Values "
 "in mm."
 msgstr ""
 "Vektorių sudaro du elementai: x ir y ribojančio bloko matmenys. Reikšmės mm."
@@ -20345,8 +20353,8 @@ msgstr "Įrenginio pavadinimas"
 msgid "Device Status"
 msgstr "Įrenginio būsena"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "AMS būsena"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -20508,7 +20516,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -20554,7 +20562,7 @@ msgstr "Įgaliodami šią programą suteikite reikiamus leidimus."
 msgid "Something unexpected happened when trying to log in, please try again."
 msgstr "Bandant prisijungti įvyko kažkas netikėto. Bandykite dar kartą."
 
-msgid "User cancelled."
+msgid "User canceled."
 msgstr "Vartotojas atšaukė."
 
 msgid "Head diameter"
@@ -21159,9 +21167,7 @@ msgstr ""
 #~ "Atnaujinus gijų informaciją, AMS įvertins likusį Bambu gijų kiekį. "
 #~ "Spausdinimo metu likęs kiekis bus atnaujinamas automatiškai."
 
-#~ msgid "AMS Status"
-#~ msgstr "AMS būsena"
-
+#, fuzzy
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
 #~ "maximum temperature is greater than 300°C.\n"
@@ -21919,20 +21925,6 @@ msgstr ""
 #~ msgid "Ejecting of device %s(%s) has failed."
 #~ msgstr "Nepavyko išstumti įrenginio %s(%s)."
 
-#, c-format, boost-format
-#~ msgid ""
-#~ "The 3mf's version %s is newer than %s's version %s, found following keys "
-#~ "unrecognized:"
-#~ msgstr ""
-#~ "3MF failo versija %s yra naujesnė nei %s versija %s. Rasta šių "
-#~ "neatpažintų raktų:"
-
-#~ msgid "mm/s²"
-#~ msgstr "mm/s²"
-
-#~ msgid "mm/s"
-#~ msgstr "mm/s"
-
 #~ msgid ""
 #~ "This option can be changed later in preferences, under 'Load Behaviour'."
 #~ msgstr ""
@@ -21945,23 +21937,9 @@ msgstr ""
 #~ msgid "Switch cloud environment, please login again!"
 #~ msgstr "Perjungiama debesies aplinka, prašome prisijungti iš naujo!"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "Talpinimas atšauktas"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "purkštukas įsimintas: %.2f %s"
-
-#~ msgid ""
-#~ "When using support material for the support interface, we recommend the "
-#~ "following settings:\n"
-#~ "0 top z distance, 0 interface spacing, interlaced rectilinear pattern and "
-#~ "disable independent support layer height"
-#~ msgstr ""
-#~ "Naudojant atramos medžiagą atramos sąsajoje, rekomenduojame naudoti šiuos "
-#~ "nustatymus:\n"
-#~ "0 viršutinio z atstumo, 0 atstumo tarp sąsajų, susikertančio tiesiaeigio "
-#~ "modelio ir išjungti nepriklausomą atramos sluoksnio aukštį"
 
 #~ msgid ""
 #~ "Bed temperature when the Cool Plate Supertack is installed. A value of 0 "
@@ -22312,16 +22290,6 @@ msgstr ""
 #~ msgid "Load filament IDs for each object"
 #~ msgstr "Įkelti kiekvieno objekto gijų ID"
 
-#~ msgid "Skip the modified G-code in 3mf from Printer or filament Presets"
-#~ msgstr ""
-#~ "Praleisti modifikuotus 3mf gkodus iš spausdintuvo arba filamento nustatymų"
-
-#~ msgid "Current z-hop"
-#~ msgstr "Dabartinis z-šuolis"
-
-#~ msgid "Contains z-hop present at the beginning of the custom G-code block."
-#~ msgstr "Turi z-šuolį, esantį pasirinktinio G-kodo bloko pradžioje."
-
 #~ msgid ""
 #~ "We now have added the auto-calibration for different filaments, which is "
 #~ "fully automated and the result will be saved into the printer for future "
@@ -22348,8 +22316,8 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
-#~ msgstr "Įkelti stl"
+#~ msgid "Load STL"
+#~ msgstr "Įkelti STL"
 
 #~ msgid "Load svg"
 #~ msgstr "Įkelti scg"
@@ -22454,9 +22422,6 @@ msgstr ""
 
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "Nepavyko prisijungti prie \"Flashforge"
-
-#~ msgid "User canceled."
-#~ msgstr "Vartotojas atšauktas."
 
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "Nustatykite krašto tipą „pieštas“"

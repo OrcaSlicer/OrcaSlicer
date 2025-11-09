@@ -1120,7 +1120,7 @@ msgstr "Khoảng cách từ tâm chữ đến bề mặt model."
 msgid "Undo rotation"
 msgstr "Hoàn tác xoay"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "Xoay chữ thuận chiều kim đồng hồ."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -1302,7 +1302,8 @@ msgstr "Tải lại file SVG từ ổ đĩa."
 msgid "Change file"
 msgstr "Đổi file"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Đổi sang file .svg khác"
 
 msgid "Forget the file path"
@@ -1329,7 +1330,8 @@ msgstr "Lưu thành"
 msgid "Save SVG file"
 msgstr "Lưu file SVG"
 
-msgid "Save as '.svg' file"
+#, fuzzy
+msgid "Save as SVG file."
 msgstr "Lưu thành file '.svg'"
 
 msgid "Size in emboss direction."
@@ -1685,20 +1687,20 @@ msgstr "Đang tải preset hiện tại"
 msgid "Loading a mode view"
 msgstr "Đang tải chế độ xem"
 
-msgid "Choose one file (3mf):"
-msgstr "Chọn một file (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "Chọn một file (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
-msgstr "Chọn một hoặc nhiều file (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "Chọn một hoặc nhiều file (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Chọn một hoặc nhiều file (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Chọn một hoặc nhiều file (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "Chọn file ZIP"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "Chọn một file (gcode/3mf):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Chọn một file (GCODE/3MF):"
 
 msgid "Some presets are modified."
 msgstr "Một số preset đã được sửa đổi."
@@ -2690,7 +2692,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -3701,8 +3703,8 @@ msgstr "Hình chữ nhật"
 msgid "Circular"
 msgstr "Hình tròn"
 
-msgid "Load shape from STL ..."
-msgstr "Tải hình dạng từ STL ..."
+msgid "Load shape from STL..."
+msgstr "Tải hình dạng từ STL..."
 
 msgid "Settings"
 msgstr "Cài đặt"
@@ -4057,10 +4059,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4069,7 +4071,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4261,9 +4263,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4894,10 +4893,10 @@ msgstr "Kích thước:"
 
 #, c-format, boost-format
 msgid ""
-"Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
+"Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
-"Đã tìm thấy xung đột đường đi G-code tại lớp %d, z = %.2lf mm. Vui lòng tách "
+"Đã tìm thấy xung đột đường đi G-code tại lớp %d, Z = %.2lfmm. Vui lòng tách "
 "các vật thể xung đột ra xa hơn (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
@@ -4920,7 +4919,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -4932,7 +4931,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -5227,8 +5226,8 @@ msgstr "Xuất tất cả vật thể thành các STL"
 msgid "Export Generic 3MF"
 msgstr "Xuất 3MF chung"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "Xuất file 3mf không dùng một số phần mở rộng 3mf"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "Xuất file 3MF không dùng một số phần mở rộng 3mf"
 
 msgid "Export current sliced file"
 msgstr "Xuất file đã slice hiện tại"
@@ -5671,8 +5670,9 @@ msgstr "Video"
 msgid "Switch to video files."
 msgstr "Chuyển sang file video."
 
-msgid "Switch to 3mf model files."
-msgstr "Chuyển sang file model 3mf."
+#, fuzzy
+msgid "Switch to 3MF model files."
+msgstr "Chuyển sang file model 3MF."
 
 msgid "Delete selected files from printer."
 msgstr "Xóa file đã chọn khỏi máy in."
@@ -5931,7 +5931,7 @@ msgstr "Tên không được bắt đầu bằng ký tự khoảng trắng."
 msgid "The name is not allowed to end with space character."
 msgstr "Tên không được kết thúc bằng ký tự khoảng trắng."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -6035,7 +6035,7 @@ msgstr "Máy in đang bận với công việc in khác"
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6255,14 +6255,16 @@ msgstr "%s thông tin"
 msgid "Skip"
 msgstr "Bỏ qua"
 
-msgid "Newer 3mf version"
-msgstr "Phiên bản 3mf mới hơn"
+#, fuzzy
+msgid "Newer 3MF version"
+msgstr "Phiên bản 3MF mới hơn"
 
+#, fuzzy
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
-"Phiên bản file 3mf đang ở chế độ Beta và mới hơn phiên bản OrcaSlicer hiện "
+"Phiên bản file 3MF đang ở chế độ Beta và mới hơn phiên bản OrcaSlicer hiện "
 "tại."
 
 msgid "If you would like to try Orca Slicer Beta, you may click to"
@@ -6271,13 +6273,15 @@ msgstr "Nếu bạn muốn dùng thử Orca Slicer Beta, bạn có thể nhấp 
 msgid "Download Beta Version"
 msgstr "Tải phiên bản Beta"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
-msgstr "Phiên bản file 3mf mới hơn phiên bản Orca Slicer hiện tại."
+#, fuzzy
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
+msgstr "Phiên bản file 3MF mới hơn phiên bản Orca Slicer hiện tại."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+#, fuzzy
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 "Cập nhật Orca Slicer của bạn có thể kích hoạt tất cả chức năng trong file "
-"3mf."
+"3MF."
 
 msgid "Current Version: "
 msgstr "Phiên bản hiện tại: "
@@ -6780,7 +6784,7 @@ msgid "Sync filaments with AMS"
 msgstr "Đồng bộ filament với AMS"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -6854,11 +6858,13 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Đang tải file: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
-msgstr "File 3mf không được hỗ trợ bởi OrcaSlicer, chỉ tải dữ liệu hình học."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
+msgstr "File 3MF không được hỗ trợ bởi OrcaSlicer, chỉ tải dữ liệu hình học."
 
-msgid "Load 3mf"
-msgstr "Tải 3mf"
+#, fuzzy
+msgid "Load 3MF"
+msgstr "Tải 3MF"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -6876,37 +6882,40 @@ msgstr ""
 "Bạn có muốn OrcaSlicer tự động sửa lỗi này bằng cách xóa cài đặt mẫu xoay "
 "không?"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
-"Phiên bản 3mf %s mới hơn phiên bản %s của %s, tìm thấy các khóa không được "
+"Phiên bản 3MF %s mới hơn phiên bản %s của %s, tìm thấy các khóa không được "
 "nhận dạng sau:"
 
 msgid "You'd better upgrade your software.\n"
 msgstr "Bạn nên nâng cấp phần mềm của mình.\n"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
-"Phiên bản 3mf %s mới hơn phiên bản %s của %s, khuyến nghị nâng cấp phần mềm "
+"Phiên bản 3MF %s mới hơn phiên bản %s của %s, khuyến nghị nâng cấp phần mềm "
 "của bạn."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
 
-msgid "Invalid values found in the 3mf:"
-msgstr "Tìm thấy giá trị không hợp lệ trong file 3mf:"
+msgid "Invalid values found in the 3MF:"
+msgstr "Tìm thấy giá trị không hợp lệ trong file 3MF:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Vui lòng sửa chúng trong tab tham số"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
-msgstr "File 3mf có G-code đã chỉnh sửa sau trong preset filament hoặc máy in:"
+"The 3MF has the following modified G-code in filament or printer presets:"
+msgstr "File 3MF có G-code đã chỉnh sửa sau trong preset filament hoặc máy in:"
 
 msgid ""
 "Please confirm that all modified G-code is safe to prevent any damage to the "
@@ -6918,8 +6927,8 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "G-code đã chỉnh sửa"
 
-msgid "The 3mf has the following customized filament or printer presets:"
-msgstr "File 3mf có các preset filament hoặc máy in tùy chỉnh sau:"
+msgid "The 3MF has the following customized filament or printer presets:"
+msgstr "File 3MF có các preset filament hoặc máy in tùy chỉnh sau:"
 
 msgid ""
 "Please confirm that the G-code within these presets is safe to prevent any "
@@ -6931,8 +6940,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Preset tùy chỉnh"
 
-msgid "Name of components inside step file is not UTF8 format!"
-msgstr "Tên của các thành phần bên trong file step không phải định dạng UTF8!"
+msgid "Name of components inside STEP file is not UTF8 format!"
+msgstr "Tên của các thành phần bên trong file STEP không phải định dạng UTF8!"
 
 msgid "The name may show garbage characters!"
 msgstr "Tên có thể hiển thị ký tự rác!"
@@ -7172,8 +7181,8 @@ msgstr "Lưu dự án"
 msgid "Importing Model"
 msgstr "Đang nhập model"
 
-msgid "prepare 3mf file..."
-msgstr "chuẩn bị file 3mf..."
+msgid "prepare 3MF file..."
+msgstr "chuẩn bị file 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "Tải xuống thất bại, định dạng file không xác định."
@@ -7616,8 +7625,8 @@ msgstr "Chỉ tải hình học"
 msgid "Load behaviour"
 msgstr ""
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
-msgstr "Có nên tải cài đặt máy in/filament/quy trình khi mở file .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
+msgstr "Có nên tải cài đặt máy in/filament/quy trình khi mở file 3MF?"
 
 msgid "Maximum recent files"
 msgstr "Số file gần đây tối đa"
@@ -7817,23 +7826,24 @@ msgstr "Tắt để sử dụng plugin mạng mới nhất hỗ trợ firmware B
 msgid "Associate files to OrcaSlicer"
 msgstr "Liên kết file với OrcaSlicer"
 
-msgid "Associate .3mf files to OrcaSlicer"
-msgstr "Liên kết file .3mf với OrcaSlicer"
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Liên kết file 3MF với OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
-msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file .3mf"
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
+msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file 3MF."
 
-msgid "Associate .stl files to OrcaSlicer"
-msgstr "Liên kết file .stl với OrcaSlicer"
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Liên kết file STL với OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
-msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file .stl"
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
+msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STL."
 
-msgid "Associate .step/.stp files to OrcaSlicer"
-msgstr "Liên kết file .step/.stp với OrcaSlicer"
+msgid "Associate STEP files to OrcaSlicer"
+msgstr "Liên kết file STEP với OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
-msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file .step"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
+msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STEP."
 
 msgid "Associate web links to OrcaSlicer"
 msgstr "Liên kết liên kết web với OrcaSlicer"
@@ -8070,11 +8080,11 @@ msgstr "Đăng xuất"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Slice tất cả bản để có ước tính thời gian và filament"
 
-msgid "Packing project data into 3mf file"
+msgid "Packing project data into 3MF file"
 msgstr "Đang đóng gói dữ liệu dự án vào file 3mf"
 
-msgid "Uploading 3mf"
-msgstr "Đang tải 3mf lên"
+msgid "Uploading 3MF"
+msgstr "Đang tải 3MF lên"
 
 msgid "Jump to model publish web page"
 msgstr "Chuyển đến trang web xuất bản model"
@@ -8085,13 +8095,13 @@ msgstr "Lưu ý: Chuẩn bị có thể mất vài phút. Vui lòng kiên nhẫn
 msgid "Publish"
 msgstr "Xuất bản"
 
-msgid "Publish was cancelled"
+msgid "Publish was canceled"
 msgstr "Xuất bản đã bị hủy"
 
 msgid "Slicing Plate 1"
 msgstr "Đang slice bản 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Đang đóng gói dữ liệu vào 3mf"
 
 msgid "Jump to webpage"
@@ -8727,12 +8737,12 @@ msgid ""
 "When using support material for the support interface, we recommend the "
 "following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and "
-"disable independent support layer height"
+"disable independent support layer height."
 msgstr ""
 "Khi sử dụng vật liệu support cho giao diện support, chúng tôi khuyến nghị "
 "các cài đặt sau:\n"
 "Khoảng cách Z trên 0, khoảng cách giao diện 0, mẫu thẳng hàng xen kẽ và tắt "
-"chiều cao lớp support độc lập"
+"chiều cao lớp support độc lập."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -8744,11 +8754,11 @@ msgstr ""
 "Không  - Không thay đổi các cài đặt này cho tôi"
 
 msgid ""
-"When using soluble material for the support interface, We recommend the "
+"When using soluble material for the support interface, we recommend the "
 "following settings:\n"
-"0 top z distance, 0 interface spacing, interlaced rectilinear pattern, "
-"disable independent support layer height \n"
-"and use soluble materials for both support interface and support base"
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
+"disable independent support layer height\n"
+"and use soluble materials for both support interface and support base."
 msgstr ""
 
 msgid ""
@@ -9621,16 +9631,16 @@ msgstr "Cấu hình đã được cập nhật."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Màu nhập file Obj"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10356,8 +10366,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Bo mạch mở rộng"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "Lưu đối tượng vào 3mf thất bại."
+msgid "Saving objects into the 3MF failed."
+msgstr "Lưu đối tượng vào 3MF thất bại."
 
 msgid "Only Windows 10 is supported."
 msgstr "Chỉ hỗ trợ Windows 10."
@@ -10380,23 +10390,23 @@ msgstr "Sửa chữa thất bại."
 msgid "Loading repaired objects"
 msgstr "Đang tải đối tượng đã sửa"
 
-msgid "Exporting 3mf file failed"
-msgstr "Xuất file 3mf thất bại"
+msgid "Exporting 3MF file failed"
+msgstr "Xuất file 3MF thất bại"
 
-msgid "Import 3mf file failed"
-msgstr "Nhập file 3mf thất bại"
+msgid "Import 3MF file failed"
+msgstr "Nhập file 3MF thất bại"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "File 3mf đã sửa không chứa đối tượng nào"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "File 3MF đã sửa không chứa đối tượng nào"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "File 3mf đã sửa chứa nhiều hơn một đối tượng"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "File 3MF đã sửa chứa nhiều hơn một đối tượng"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "File 3mf đã sửa không chứa khối nào"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "File 3MF đã sửa không chứa khối nào"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "File 3mf đã sửa chứa nhiều hơn một khối"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "File 3MF đã sửa chứa nhiều hơn một khối"
 
 msgid "Repair finished"
 msgstr "Sửa chữa hoàn tất"
@@ -11057,8 +11067,8 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Định hướng ưa thích"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
-msgstr "Tự động định hướng stl trên trục Z khi nhập lần đầu."
+msgid "Automatically orient STL files on the Z axis upon initial import."
+msgstr "Tự động định hướng STL trên trục Z khi nhập lần đầu."
 
 msgid "Printer preset names"
 msgstr "Tên preset máy in"
@@ -12384,11 +12394,9 @@ msgid ""
 "option in most cases.\n"
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
-"benefits of Inner/Outer/Inner option. However, the z seams will appear less "
+"benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
 "consistent as the first extrusion of a new layer starts on a visible "
-"surface.\n"
-"\n"
-" "
+"surface."
 msgstr ""
 "Trình tự in của thành bên trong (trong) và bên ngoài (ngoài).\n"
 "\n"
@@ -12406,11 +12414,9 @@ msgstr ""
 "khuyến nghị thay cho tùy chọn Ngoài/Trong trong hầu hết các trường hợp.\n"
 "\n"
 "Sử dụng Ngoài/Trong để có cùng chất lượng thành ngoài và độ chính xác kích "
-"thước như tùy chọn Trong/Ngoài/Trong. Tuy nhiên, các đường nối z sẽ xuất "
+"thước như tùy chọn Trong/Ngoài/Trong. Tuy nhiên, các đường nối Z sẽ xuất "
 "hiện kém nhất quán hơn vì đùn đầu tiên của lớp mới bắt đầu trên bề mặt nhìn "
-"thấy.\n"
-"\n"
-" "
+"thấy."
 
 msgid "Inner/Outer"
 msgstr "Trong/Ngoài"
@@ -12968,13 +12974,13 @@ msgstr "Co ngót (XY)"
 #, no-c-format, no-boost-format
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
-"if you measure 94mm instead of 100mm). The part will be scaled in xy to "
+"if you measure 94mm instead of 100mm). The part will be scaled in XY to "
 "compensate. Only the filament used for the perimeter is taken into account.\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
 "Nhập phần trăm co ngót mà filament sẽ có sau khi làm mát (94% nếu bạn đo "
-"94mm thay vì 100mm). Phần sẽ được tỷ lệ trong xy để bù. Chỉ filament được sử "
+"94mm thay vì 100mm). Phần sẽ được tỷ lệ trong XY để bù. Chỉ filament được sử "
 "dụng cho chu vi được tính.\n"
 "Hãy chắc chắn để đủ khoảng cách giữa các đối tượng, vì bù này được thực hiện "
 "sau khi kiểm tra."
@@ -13806,7 +13812,7 @@ msgid "Precise Z height"
 msgstr "Chiều cao Z chính xác"
 
 msgid ""
-"Enable this to get precise z height of object after slicing. It will get the "
+"Enable this to get precise Z height of object after slicing. It will get the "
 "precise object height by fine-tuning the layer heights of the last few "
 "layers. Note that this is an experimental parameter."
 msgstr ""
@@ -15592,7 +15598,7 @@ msgid "Speed of internal solid infill, not the top and bottom surface."
 msgstr "Tốc độ của infill đặc bên trong, không phải bề mặt trên và dưới."
 
 msgid ""
-"Spiralize smooths out the z moves of the outer contour. And turns a solid "
+"Spiralize smooths out the Z moves of the outer contour. And turns a solid "
 "model into a single walled print with solid bottom layers. The final "
 "generated model has no seam."
 msgstr ""
@@ -15841,8 +15847,8 @@ msgstr "Thông thường (thủ công)"
 msgid "Tree (manual)"
 msgstr "Cây (thủ công)"
 
-msgid "Support/object xy distance"
-msgstr "Khoảng cách xy support/đối tượng"
+msgid "Support/object XY distance"
+msgstr "Khoảng cách XY support/đối tượng"
 
 msgid "XY separation between an object and its support."
 msgstr "Phân cách XY giữa đối tượng và support của nó."
@@ -16049,7 +16055,7 @@ msgstr "Chiều cao lớp support độc lập"
 
 msgid ""
 "Support layer uses layer height independent with object layer. This is to "
-"support customizing z-gap and save print time. This option will be invalid "
+"support customizing Z-gap and save print time. This option will be invalid "
 "when the prime tower is enabled."
 msgstr ""
 "Lớp support sử dụng chiều cao lớp độc lập với lớp đối tượng. Điều này là để "
@@ -16939,8 +16945,8 @@ msgstr "Hiển thị trợ giúp lệnh."
 msgid "UpToDate"
 msgstr "Cập nhật"
 
-msgid "Update the configs values of 3mf to latest."
-msgstr "Cập nhật giá trị cấu hình của 3mf lên mới nhất."
+msgid "Update the config values of 3MF to latest."
+msgstr "Cập nhật giá trị cấu hình của 3MF lên mới nhất."
 
 msgid "downward machines check"
 msgstr "kiểm tra máy tương thích ngược"
@@ -16961,8 +16967,8 @@ msgstr "Nạp filament đầu tiên làm mặc định cho những cái chưa đ
 msgid "Minimum save"
 msgstr "Lưu tối thiểu"
 
-msgid "export 3mf with minimum size."
-msgstr "xuất 3mf với kích thước tối thiểu."
+msgid "Export 3MF with minimum size."
+msgstr "xuất 3MF với kích thước tối thiểu."
 
 msgid "mtcpp"
 msgstr "mtcpp"
@@ -17195,42 +17201,49 @@ msgid ""
 "objects."
 msgstr "Nếu được bật, Sắp xếp sẽ tránh vùng hiệu chỉnh đùn khi đặt đối tượng."
 
-msgid "Skip modified G-code in 3mf"
-msgstr "Bỏ qua G-code đã sửa đổi trong 3mf"
+msgid "Skip modified G-code in 3MF"
+msgstr "Bỏ qua G-code đã sửa đổi trong 3MF"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+#, fuzzy
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
-"Bỏ qua G-code đã sửa đổi trong 3mf từ Máy in hoặc cài đặt sẵn filament."
+"Bỏ qua G-code đã sửa đổi trong 3MF từ Máy in hoặc cài đặt sẵn filament."
 
 msgid "MakerLab name"
 msgstr "Tên MakerLab"
 
-msgid "MakerLab name to generate this 3mf."
-msgstr "Tên MakerLab để tạo 3mf này."
+#, fuzzy
+msgid "MakerLab name to generate this 3MF."
+msgstr "Tên MakerLab để tạo 3MF này."
 
 msgid "MakerLab version"
 msgstr "Phiên bản MakerLab"
 
-msgid "MakerLab version to generate this 3mf."
-msgstr "Phiên bản MakerLab để tạo 3mf này."
+#, fuzzy
+msgid "MakerLab version to generate this 3MF."
+msgstr "Phiên bản MakerLab để tạo 3MF này."
 
-msgid "metadata name list"
-msgstr "danh sách tên metadata"
+msgid "Metadata name list"
+msgstr "Danh sách tên metadata"
 
-msgid "metadata name list added into 3mf."
-msgstr "danh sách tên metadata được thêm vào 3mf."
+#, fuzzy
+msgid "Metadata name list added into 3MF."
+msgstr "Danh sách tên metadata được thêm vào 3MF."
 
-msgid "metadata value list"
-msgstr "danh sách giá trị metadata"
+msgid "Metadata value list"
+msgstr "Danh sách giá trị metadata"
 
-msgid "metadata value list added into 3mf."
-msgstr "danh sách giá trị metadata được thêm vào 3mf."
+#, fuzzy
+msgid "Metadata value list added into 3MF."
+msgstr "Danh sách giá trị metadata được thêm vào 3MF."
 
-msgid "Allow 3mf with newer version to be sliced"
-msgstr "Cho phép 3mf với phiên bản mới hơn được slice"
+#, fuzzy
+msgid "Allow 3MF with newer version to be sliced"
+msgstr "Cho phép 3MF với phiên bản mới hơn được slice"
 
-msgid "Allow 3mf with newer version to be sliced."
-msgstr "Cho phép 3mf với phiên bản mới hơn được slice."
+#, fuzzy
+msgid "Allow 3MF with newer version to be sliced."
+msgstr "Cho phép 3MF với phiên bản mới hơn được slice."
 
 msgid "Current Z-hop"
 msgstr "Z-hop hiện tại"
@@ -17394,12 +17407,12 @@ msgid ""
 "Contains a string with the information about what scaling was applied to the "
 "individual objects. Indexing of the objects is zero-based (first object has "
 "index 0).\n"
-"Example: 'x:100% y:50% z:100'."
+"Example: 'x:100% y:50% z:100%'."
 msgstr ""
 "Chứa chuỗi với thông tin về tỷ lệ nào đã được áp dụng cho các đối tượng "
 "riêng lẻ. Lập chỉ mục của các đối tượng dựa trên không (đối tượng đầu tiên "
 "có chỉ số 0).\n"
-"Ví dụ: 'x:100% y:50% z:100'."
+"Ví dụ: 'x:100% y:50% z:100%'."
 
 msgid "Input filename without extension"
 msgstr "Tên file đầu vào không có phần mở rộng"
@@ -17407,12 +17420,14 @@ msgstr "Tên file đầu vào không có phần mở rộng"
 msgid "Source filename of the first object, without extension."
 msgstr "Tên file nguồn của đối tượng đầu tiên, không có phần mở rộng."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y coordinate of the point. Values in mm."
+"The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr "Vector có hai phần tử: tọa độ x và y của điểm. Giá trị tính bằng mm."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y dimension of the bounding box. Values "
+"The vector has two elements: X and Y dimension of the bounding box. Values "
 "in mm."
 msgstr ""
 "Vector có hai phần tử: kích thước x và y của hộp giới hạn. Giá trị tính bằng "
@@ -19872,8 +19887,8 @@ msgstr "Tên thiết bị"
 msgid "Device Status"
 msgstr "Trạng thái thiết bị"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "Trạng thái AMS"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -20032,7 +20047,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -20078,7 +20093,7 @@ msgid "Something unexpected happened when trying to log in, please try again."
 msgstr ""
 "Đã xảy ra điều gì đó không mong đợi khi cố gắng đăng nhập, vui lòng thử lại."
 
-msgid "User cancelled."
+msgid "User canceled."
 msgstr "Người dùng đã hủy."
 
 msgid "Head diameter"
@@ -20678,9 +20693,6 @@ msgstr ""
 #~ "filament được cập nhật. Trong khi in, dung lượng còn lại sẽ được cập nhật "
 #~ "tự động."
 
-#~ msgid "AMS Status"
-#~ msgstr "Trạng thái AMS"
-
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
 #~ "maximum temperature is greater than 300°C.\n"
@@ -20951,8 +20963,8 @@ msgstr ""
 #~ msgid "Load Behaviour"
 #~ msgstr "Hành vi tải"
 
-#~ msgid "Add model files (stl/step) to recent file list."
-#~ msgstr "Thêm file model (stl/step) vào danh sách file gần đây."
+#~ msgid "Add model files (STL/STEP) to recent file list."
+#~ msgstr "Thêm file model (STL/STEP) vào danh sách file gần đây."
 
 #~ msgid "No warnings when loading 3MF with modified G-code"
 #~ msgstr "Không cảnh báo khi tải 3MF với G-code đã chỉnh sửa"

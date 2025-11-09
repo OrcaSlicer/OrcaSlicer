@@ -63,7 +63,7 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
 
     top_sizer->Add(drag_sizer, 0, wxALIGN_CENTER | wxEXPAND);
 
-    m_tips = new Label(this, _L("Tips: You can drag the filaments to reassign them to different nozzles."));
+    m_tips = new Label(this, _L("Tip: You can drag the filaments to reassign them to different nozzles."));
     m_tips->SetFont(Label::Body_14);
     m_tips->SetForegroundColour(TextNormalGreyColor);
     top_sizer->AddSpacer(FromDIP(20));

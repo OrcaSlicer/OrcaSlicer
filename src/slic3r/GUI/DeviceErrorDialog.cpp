@@ -175,10 +175,10 @@ void DeviceErrorDialog::init_button_list()
     init_button(PROBLEM_SOLVED_RESUME, _L("Problem Solved and Resume"));
     init_button(TURN_OFF_FIRE_ALARM, _L("Got it, Turn off the Fire Alarm."));
     init_button(RETRY_PROBLEM_SOLVED, _L("Retry (problem solved)"));
-    init_button(CANCLE, _L("Cancle"));
+    init_button(CANCLE, _L("Cancel"));
     init_button(STOP_DRYING, _L("Stop Drying"));
     init_button(PROCEED, _L("Proceed"));
-    init_button(DBL_CHECK_CANCEL, _L("Cancle"));
+    init_button(DBL_CHECK_CANCEL, _L("Cancel"));
     init_button(DBL_CHECK_DONE, _L("Done"));
     init_button(DBL_CHECK_RETRY, _L("Retry"));
     init_button(DBL_CHECK_RESUME, _L("Resume"));

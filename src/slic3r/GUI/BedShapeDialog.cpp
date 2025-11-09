@@ -229,7 +229,7 @@ void BedShapePanel::build_panel(const Pointfs& default_pt, const std::string& cu
 	Line line{ "", "" };
 	line.full_width = 1;
 	line.widget = [this](wxWindow* parent) {
-        Button* shape_btn = new Button(parent, _L("Load shape from STL ..."));
+        Button* shape_btn = new Button(parent, _L("Load shape from STL..."));
         shape_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
 
         wxSizer* shape_sizer = new wxBoxSizer(wxHORIZONTAL);

@@ -1154,7 +1154,7 @@ msgstr "Abstand des Textmittelpunkts zur Modell-Oberfläche."
 msgid "Undo rotation"
 msgstr "Rotation rückgängig machen"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "im Uhrzeigersinn drehen."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -1346,7 +1346,8 @@ msgstr "Neu laden der SVG-Datei von der Festplatte."
 msgid "Change file"
 msgstr "Datei wechseln"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Wechsel zu einer anderen .svg-Datei"
 
 msgid "Forget the file path"
@@ -1373,7 +1374,8 @@ msgstr "Speichern als"
 msgid "Save SVG file"
 msgstr "SVG-Datei speichern"
 
-msgid "Save as '.svg' file"
+#, fuzzy
+msgid "Save as SVG file."
 msgstr "Speichern als '.svg'-Datei"
 
 msgid "Size in emboss direction."
@@ -1740,22 +1742,21 @@ msgstr "Aktuelle Profile laden"
 msgid "Loading a mode view"
 msgstr "Laden einer Modusansicht"
 
-msgid "Choose one file (3mf):"
-msgstr "Wählen sie eine Datei (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "Wählen sie eine Datei (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 msgstr ""
-"Wählen sie eine oder mehrere Dateien (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+"Wählen sie eine oder mehrere Dateien (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Wählen sie eine oder mehrere Dateien (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Wählen sie eine oder mehrere Dateien (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "ZIP Datei wählen"
 
-#, fuzzy
-msgid "Choose one file (gcode/3mf):"
-msgstr "Wählen sie eine Datei (3mf):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Wählen sie eine Datei (GCODE/3MF):"
 
 msgid "Some presets are modified."
 msgstr "Einige Profileinstellungen wurden geändert."
@@ -2788,7 +2789,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 "Die Aktivierung der Filtration während des Druckens kann die Kühlung "
 "verringern und die Druckqualität beeinträchtigen. Bitte wählen Sie sorgfältig"
@@ -3892,8 +3893,8 @@ msgstr "Rechteckig"
 msgid "Circular"
 msgstr "Kreisförmig"
 
-msgid "Load shape from STL ..."
-msgstr "Lade Form von STL ..."
+msgid "Load shape from STL..."
+msgstr "Lade Form von STL..."
 
 msgid "Settings"
 msgstr "Einstellungen"
@@ -4267,10 +4268,10 @@ msgstr "Pause (Fehler in der ersten Schicht)"
 msgid "Pause (nozzle clog)"
 msgstr "Pause (Düsenverstopfung)"
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr "Messung der Bewegungspräzision"
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr "Verbesserung der Bewegungspräzision"
 
 msgid "Measure motion accuracy"
@@ -4279,7 +4280,7 @@ msgstr "Messung der Bewegungsgenauigkeit"
 msgid "Nozzle offset calibration"
 msgstr "Kalibrierung des Düsenversatzes"
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr "Automatische Druckbettnivellierung bei hoher Temperatur"
 
 msgid "Auto Check: Quick Release Lever"
@@ -4492,9 +4493,6 @@ msgstr "Erneut versuchen (Problem behoben)"
 
 msgid "Stop Drying"
 msgstr "Trocknen stoppen"
-
-msgid "Cancle"
-msgstr "Abbrechen"
 
 msgid "Done"
 msgstr "Erledigt"
@@ -5159,10 +5157,10 @@ msgstr "Größe:"
 
 #, c-format, boost-format
 msgid ""
-"Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
+"Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
-"Konflikte von G-Code-Pfaden wurden bei Layer %d, z = %.2lf mm gefunden.Bitte "
+"Konflikte von G-Code-Pfaden wurden bei Layer %d, Z = %.2lf mm gefunden.Bitte "
 "trennen Sie die konfliktbehafteten Objekte weiter voneinander (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
@@ -5187,7 +5185,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 "Filamente %s sind im %s platziert, aber der generierte G-Code-Pfad "
@@ -5203,7 +5201,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 "Filamente %s sind im %s platziert, aber der generierte G-Code-Pfad "
@@ -5511,8 +5509,8 @@ msgstr "Exportiere alle Objekte als STLs"
 msgid "Export Generic 3MF"
 msgstr "Generisches 3MF exportieren"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "Exportieren einer 3mf-Datei ohne Verwendung von 3mf-Erweiterungen"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "Exportieren einer 3MF-Datei ohne Verwendung von 3mf-Erweiterungen."
 
 msgid "Export current sliced file"
 msgstr "Aktuelle Slice-Datei exportieren"
@@ -5982,7 +5980,8 @@ msgstr "Video"
 msgid "Switch to video files."
 msgstr "Wechseln Sie zu Videodateien."
 
-msgid "Switch to 3mf model files."
+#, fuzzy
+msgid "Switch to 3MF model files."
 msgstr "Wechsel zu 3mf-Modelldateien."
 
 msgid "Delete selected files from printer."
@@ -6255,7 +6254,7 @@ msgstr "Der Name darf nicht mit einem Leerzeichen beginnen."
 msgid "The name is not allowed to end with space character."
 msgstr "Der Name darf nicht mit einem Leerzeichen enden."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr "Der Name darf 32 Zeichen nicht überschreiten."
 
 msgid "Bind with Pin Code"
@@ -6360,7 +6359,7 @@ msgstr "Der Drucker ist mit einem anderen Druckauftrag beschäftigt."
 msgid "Current extruder is busy changing filament"
 msgstr "Der aktuelle Extruder ist mit dem Filamentwechsel beschäftigt."
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr "Der aktuelle Steckplatz wurde bereits geladen."
 
 msgid "The selected slot is empty."
@@ -6590,11 +6589,12 @@ msgstr "%s Information"
 msgid "Skip"
 msgstr "Überspringen"
 
-msgid "Newer 3mf version"
+#, fuzzy
+msgid "Newer 3MF version"
 msgstr "Neuere 3mf-Version"
 
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
 "Die 3mf-Dateiversion ist in der Beta und neuer als die aktuelle OrcaSlicer- "
@@ -6607,13 +6607,13 @@ msgstr ""
 msgid "Download Beta Version"
 msgstr "Beta-Version herunterladen"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "Die 3mf-Dateiversion ist neuer als die aktuelle Orca Slicer Version."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 "Ein Update von Orca Slicer ermöglicht die Nutzung aller Funktionen in der "
-"3mf-Datei."
+"3MF-Datei."
 
 msgid "Current Version: "
 msgstr "Aktuelle Version: "
@@ -7150,7 +7150,7 @@ msgid "Sync filaments with AMS"
 msgstr "Filamente mit AMS synchronisieren"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -7237,11 +7237,12 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Datei wird geladen: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
-msgstr "Der 3mf stammt nicht vom OrcaSlicer, lade nur die Geometriedaten."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
+msgstr "Der 3MF stammt nicht vom OrcaSlicer, lade nur die Geometriedaten."
 
-msgid "Load 3mf"
-msgstr "Lade 3mf"
+msgid "Load 3MF"
+msgstr "Lade 3MF"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -7260,40 +7261,44 @@ msgstr ""
 "Möchten Sie, dass OrcaSlicer dies automatisch behebt, indem die "
 "Vorlageneinstellungen für die Rotation gelöscht werden?"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
-"Die Version %s von 3mf ist neuer als die Version %s von %s, folgende "
+"Die Version %s von 3MF ist neuer als die Version %s von %s, folgende "
 "Schlüssel wurden nicht erkannt:"
 
 msgid "You'd better upgrade your software.\n"
 msgstr "Sie sollten Ihre Software aktualisieren.\n"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
-"Die Version %s der 3mf ist neuer als die Version %s %s. Bitte Ihre Software "
+"Die Version %s der 3MF ist neuer als die Version %s %s. Bitte Ihre Software "
 "aktualisieren."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
-"Die 3mf wurde von einer alten OrcaSlicer-Version erstellt, lade nur die "
+"Die 3MF wurde von einer alten OrcaSlicer-Version erstellt, lade nur die "
 "Geometriedaten."
 
-msgid "Invalid values found in the 3mf:"
+msgid "Invalid values found in the 3MF:"
 msgstr "Ungültige Werte in der 3MF-Datei gefunden:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Bitte korrigieren Sie sie in den Parameter-Einstellungen."
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
-"Die 3mf hat folgende modifizierte G-Codes in Filament- oder Druckerprofilen:"
+"Die 3MF hat folgende modifizierte G-Codes in Filament- oder Druckerprofilen:"
 
 #, fuzzy
 msgid ""
@@ -7306,8 +7311,8 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "Modifizierte G-Codes"
 
-msgid "The 3mf has the following customized filament or printer presets:"
-msgstr "Die 3mf hat folgende benutzerdefinierte Filament- oder Druckerprofile:"
+msgid "The 3MF has the following customized filament or printer presets:"
+msgstr "Die 3MF hat folgende benutzerdefinierte Filament- oder Druckerprofile:"
 
 #, fuzzy
 msgid ""
@@ -7320,7 +7325,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Benutzerdefinierte Profile"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "Der Name der Komponenten in der Step-Datei ist nicht im UTF8-Format!"
 
 msgid "The name may show garbage characters!"
@@ -7579,8 +7585,8 @@ msgstr "Projekt speichern"
 msgid "Importing Model"
 msgstr "Modell importieren"
 
-msgid "prepare 3mf file..."
-msgstr "3mf-Datei vorbereiten…"
+msgid "prepare 3MF file..."
+msgstr "3MF-Datei vorbereiten…"
 
 msgid "Download failed, unknown file format."
 msgstr "Download fehlgeschlagen, unbekanntes Dateiformat."
@@ -8056,7 +8062,7 @@ msgstr "Nur Geometrie laden"
 msgid "Load behaviour"
 msgstr "Ladeverhalten"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 "sollen Drucker/Filament/Prozess Einstellungen geladen werden beim Öffnen "
 "einer .3mf?"
@@ -8265,26 +8271,31 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Dateien mit OrcaSlicer verknüpfen"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Dateiendung .3mf mit OrcaSlicer verknüpfen"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .3mf-"
 "Dateien festgelegt"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr "Dateiendung .stl mit OrcaSlicer verknüpfen"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .stl-"
 "Dateien festgelegt"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr "Dateiendung .step/.stp mit OrcaSlicer verknüpfen"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "Wenn aktiviert, wird OrcaSlicer als Standardanwendung zum Öffnen von .step-"
 "Dateien festgelegt"
@@ -8530,10 +8541,10 @@ msgid "Slice all plate to obtain time and filament estimation"
 msgstr ""
 "Slicen Sie alle Druckplatten, um Zeit- und Filamentschätzungen zu erhalten"
 
-msgid "Packing project data into 3mf file"
-msgstr "Packen der Projektdaten in eine 3mf-Datei"
+msgid "Packing project data into 3MF file"
+msgstr "Packen der Projektdaten in eine 3MF-Datei"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "Hochladen der 3mf"
 
 msgid "Jump to model publish web page"
@@ -8546,14 +8557,14 @@ msgstr ""
 msgid "Publish"
 msgstr "Veröffentlichen"
 
-msgid "Publish was cancelled"
+msgid "Publish was canceled"
 msgstr "Veröffentlichung wurde abgebrochen"
 
 msgid "Slicing Plate 1"
 msgstr "Slicen der Druckplatte 1"
 
-msgid "Packing data to 3mf"
-msgstr "Daten in 3mf packen"
+msgid "Packing data to 3MF"
+msgstr "Daten in 3MF packen"
 
 msgid "Jump to webpage"
 msgstr "Zu einer Website springen"
@@ -9302,7 +9313,7 @@ msgid ""
 "When using support material for the support interface, we recommend the "
 "following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and "
-"disable independent support layer height"
+"disable independent support layer height."
 msgstr ""
 "Wenn Sie Stützmaterial für die Stützschnittstelle verwenden, empfehlen wir "
 "folgende Einstellungen:\n"
@@ -9319,11 +9330,11 @@ msgstr ""
 "Nein - Diese Einstellungen für mich nicht ändern."
 
 msgid ""
-"When using soluble material for the support interface, We recommend the "
+"When using soluble material for the support interface, we recommend the "
 "following settings:\n"
-"0 top z distance, 0 interface spacing, interlaced rectilinear pattern, "
-"disable independent support layer height \n"
-"and use soluble materials for both support interface and support base"
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
+"disable independent support layer height\n"
+"and use soluble materials for both support interface and support base."
 msgstr ""
 "Wenn Sie lösliches Material für die Stützschnittstelle verwenden, empfehlen "
 "wir folgende Einstellungen:\n"
@@ -10241,17 +10252,18 @@ msgstr "Die Konfiguration ist auf dem neuesten Stand."
 msgid "Open Wiki for more information >"
 msgstr "Öffnen Sie das Wiki für weitere Informationen >"
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Obj-Datei Importfarbe"
 
 msgid "Some faces don't have color defined."
 msgstr "Einige Flächen haben keine definierte Farbe."
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 "Fehler bei der Existenz der mtl-Datei, Material konnte nicht gefunden werden:"
 
-msgid "Please check obj or mtl file."
+#, fuzzy
+msgid "Please check OBJ or MTL file."
 msgstr "Bitte überprüfen Sie die obj- oder mtl-Datei."
 
 msgid "Specify number of colors:"
@@ -11037,8 +11049,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Erweiterungsboard"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "Das Speichern von Objekten in der 3mf ist fehlgeschlagen."
+msgid "Saving objects into the 3MF failed."
+msgstr "Das Speichern von Objekten in der 3MF ist fehlgeschlagen."
 
 msgid "Only Windows 10 is supported."
 msgstr "Es wird nur Windows 10 unterstützt."
@@ -11061,23 +11073,23 @@ msgstr "Reparatur fehlgeschlagen."
 msgid "Loading repaired objects"
 msgstr "Reparierte Objekte laden"
 
-msgid "Exporting 3mf file failed"
-msgstr "Exportieren der 3mf-Datei fehlgeschlagen"
+msgid "Exporting 3MF file failed"
+msgstr "Exportieren der 3MF-Datei fehlgeschlagen"
 
-msgid "Import 3mf file failed"
-msgstr "Importieren der 3mf-Datei fehlgeschlagen"
+msgid "Import 3MF file failed"
+msgstr "Importieren der 3MF-Datei fehlgeschlagen"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "Reparierte 3mf-Datei enthält kein Objekt"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "Reparierte 3MF-Datei enthält kein Objekt"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "Reparierte 3mf-Datei enthält mehr als ein Objekt"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "Reparierte 3MF-Datei enthält mehr als ein Objekt"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "Reparierte 3mf-Datei enthält kein Volumen"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "Reparierte 3MF-Datei enthält kein Volumen"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "Reparierte 3mf-Datei enthält mehr als ein Volumen"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "Reparierte 3MF-Datei enthält mehr als ein Volumen"
 
 msgid "Repair finished"
 msgstr "Reparatur abgeschlossen"
@@ -11797,7 +11809,7 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Bevorzugte Ausrichtung"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr "Automatische Ausrichtung von STLs auf der Z-Achse beim Import"
 
 msgid "Printer preset names"
@@ -13263,11 +13275,9 @@ msgid ""
 "option in most cases.\n"
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
-"benefits of Inner/Outer/Inner option. However, the z seams will appear less "
+"benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
 "consistent as the first extrusion of a new layer starts on a visible "
-"surface.\n"
-"\n"
-" "
+"surface."
 msgstr ""
 "Druckreihenfolge der inneren und äußeren Wände.\n"
 "\n"
@@ -13289,9 +13299,7 @@ msgstr ""
 "Verwenden Sie Außen/Innen für die gleiche externe Wandqualität und "
 "dimensionale Genauigkeit wie die Option Innen/Außen/Innen. Die Z-Nähte "
 "werden jedoch weniger konsistent erscheinen, da die erste Extrusion einer "
-"neuen Schicht auf einer sichtbaren Oberfläche beginnt.\n"
-"\n"
-" "
+"neuen Schicht auf einer sichtbaren Oberfläche beginnt."
 
 msgid "Inner/Outer"
 msgstr "Innen/Außen"
@@ -13887,7 +13895,7 @@ msgstr "Schrumpfung (XY)"
 #, no-c-format, no-boost-format
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
-"if you measure 94mm instead of 100mm). The part will be scaled in xy to "
+"if you measure 94mm instead of 100mm). The part will be scaled in XY to "
 "compensate. Only the filament used for the perimeter is taken into account.\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
@@ -14777,7 +14785,7 @@ msgid "Precise Z height"
 msgstr "Präzise Z-Höhe"
 
 msgid ""
-"Enable this to get precise z height of object after slicing. It will get the "
+"Enable this to get precise Z height of object after slicing. It will get the "
 "precise object height by fine-tuning the layer heights of the last few "
 "layers. Note that this is an experimental parameter."
 msgstr ""
@@ -16652,7 +16660,7 @@ msgstr ""
 "Oberfläche."
 
 msgid ""
-"Spiralize smooths out the z moves of the outer contour. And turns a solid "
+"Spiralize smooths out the Z moves of the outer contour. And turns a solid "
 "model into a single walled print with solid bottom layers. The final "
 "generated model has no seam."
 msgstr ""
@@ -16911,7 +16919,7 @@ msgstr "Normal (manuell)"
 msgid "Tree (manual)"
 msgstr "Baum (manuell)"
 
-msgid "Support/object xy distance"
+msgid "Support/object XY distance"
 msgstr "Stützen/Objekt XY-Abstand"
 
 msgid "XY separation between an object and its support."
@@ -17139,7 +17147,7 @@ msgstr "Unabhängige Stützstruktur-Schichthöhe"
 
 msgid ""
 "Support layer uses layer height independent with object layer. This is to "
-"support customizing z-gap and save print time. This option will be invalid "
+"support customizing Z-gap and save print time. This option will be invalid "
 "when the prime tower is enabled."
 msgstr ""
 "Die Stützschicht verwendet eine unabhängige Schichthöhe im Vergleich zur "
@@ -18044,7 +18052,7 @@ msgid "Export 3MF"
 msgstr "3mf exportieren"
 
 msgid "Export project as 3MF."
-msgstr "Projekt als 3mf exportieren."
+msgstr "Projekt als 3MF exportieren."
 
 msgid "Export slicing data"
 msgstr "Slicing-Daten exportieren"
@@ -18084,8 +18092,8 @@ msgstr "Befehlshilfe anzeigen."
 msgid "UpToDate"
 msgstr "Auf dem neuesten Stand"
 
-msgid "Update the configs values of 3mf to latest."
-msgstr "Aktualisierung der 3mf Konfigurationswerte auf die neueste Version."
+msgid "Update the config values of 3MF to latest."
+msgstr "Aktualisierung der 3MF Konfigurationswerte auf die neueste Version."
 
 msgid "downward machines check"
 msgstr "abwärts Kompatibilitätsprüfung"
@@ -18106,8 +18114,8 @@ msgstr "Das erste Filament als Standard für nicht geladene übernehmen"
 msgid "Minimum save"
 msgstr "Minimale Speicherung"
 
-msgid "export 3mf with minimum size."
-msgstr "Exportieren Sie 3mf mit minimaler Größe."
+msgid "Export 3MF with minimum size."
+msgstr "Exportieren Sie 3MF mit minimaler Größe."
 
 msgid "mtcpp"
 msgstr "mtcpp"
@@ -18351,43 +18359,43 @@ msgstr ""
 "Wenn aktiviert, wird die Anordnung den Extrusionskalibrierungsbereich beim "
 "Platzieren von Objekten vermeiden."
 
-msgid "Skip modified G-code in 3mf"
+msgid "Skip modified G-code in 3MF"
 msgstr "Überspringe geänderte G-Codes in 3mf"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
-"Überspringe die geänderten G-Codes in der 3mf für Drucker- oder "
+"Überspringe die geänderten G-Codes in der 3MF für Drucker- oder "
 "Filamentvorgaben."
 
 msgid "MakerLab name"
 msgstr "MakerLab-Name"
 
-msgid "MakerLab name to generate this 3mf."
-msgstr "MakerLab-Name zum Generieren dieses 3mf"
+msgid "MakerLab name to generate this 3MF."
+msgstr "MakerLab-Name zum Generieren dieses 3MF."
 
 msgid "MakerLab version"
 msgstr "MakerLab-Version"
 
-msgid "MakerLab version to generate this 3mf."
-msgstr "MakerLab-Version zum Generieren dieses 3mf"
+msgid "MakerLab version to generate this 3MF."
+msgstr "MakerLab-Version zum Generieren dieses 3MF."
 
-msgid "metadata name list"
+msgid "Metadata name list"
 msgstr "Metadatennamenliste"
 
-msgid "metadata name list added into 3mf."
-msgstr "Metadatennamenliste, wird in die 3mf hinzugefügt"
+msgid "Metadata name list added into 3MF."
+msgstr "Metadatennamenliste, wird in die 3MF hinzugefügt."
 
-msgid "metadata value list"
+msgid "Metadata value list"
 msgstr "Metadatenwertliste"
 
-msgid "metadata value list added into 3mf."
-msgstr "Metadatenwertliste, wird in die 3mf hinzugefügt"
+msgid "Metadata value list added into 3MF."
+msgstr "Metadatenwertliste, wird in die 3MF hinzugefügt."
 
-msgid "Allow 3mf with newer version to be sliced"
-msgstr "Erlauben Sie das Slicen von 3mf mit neuerer Version"
+msgid "Allow 3MF with newer version to be sliced"
+msgstr "Erlauben Sie das Slicen von 3MF mit neuerer Version"
 
-msgid "Allow 3mf with newer version to be sliced."
-msgstr "Erlauben Sie das Slicen von 3mf mit neuerer Version"
+msgid "Allow 3MF with newer version to be sliced."
+msgstr "Erlauben Sie das Slicen von 3MF mit neuerer Version."
 
 msgid "Current Z-hop"
 msgstr "Aktuelles Z-Hop"
@@ -18555,12 +18563,12 @@ msgid ""
 "Contains a string with the information about what scaling was applied to the "
 "individual objects. Indexing of the objects is zero-based (first object has "
 "index 0).\n"
-"Example: 'x:100% y:50% z:100'."
+"Example: 'x:100% y:50% z:100%'."
 msgstr ""
 "Enthält eine Zeichenfolge mit Informationen darüber, welche Skalierung auf "
 "die einzelnen Objekte angewendet wurde. Die Indizierung der Objekte ist "
 "nullbasiert (das erste Objekt hat den Index 0).\n"
-"Beispiel: 'x:100% y:50% z:100'."
+"Beispiel: 'x:100% y:50% z:100%'."
 
 msgid "Input filename without extension"
 msgstr "Eingabedateiname ohne Erweiterung"
@@ -18568,13 +18576,15 @@ msgstr "Eingabedateiname ohne Erweiterung"
 msgid "Source filename of the first object, without extension."
 msgstr "Quelldateiname des ersten Objekts, ohne Erweiterung."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y coordinate of the point. Values in mm."
+"The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr ""
 "Der Vektor hat zwei Elemente: x- und y-Koordinate des Punktes. Werte in mm."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y dimension of the bounding box. Values "
+"The vector has two elements: X and Y dimension of the bounding box. Values "
 "in mm."
 msgstr ""
 "Der Vektor hat zwei Elemente: x- und y-Dimension der Begrenzungsbox. Werte "
@@ -21227,7 +21237,7 @@ msgstr "Gerätename"
 msgid "Device Status"
 msgstr "Gerätestatus"
 
-msgid "Ams Status"
+msgid "AMS Status"
 msgstr "AMS-Status"
 
 msgid ""
@@ -21397,7 +21407,7 @@ msgstr "(Mit Drucker synchronisieren)"
 msgid "We will slice according to this grouping method:"
 msgstr "Wir werden entsprechend dieser Gruppierungsmethode schneiden:"
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 "Tipps: Sie können die Filamente ziehen, um sie verschiedenen Düsen "
 "zuzuweisen."
@@ -21453,7 +21463,7 @@ msgstr ""
 "Es ist etwas Unerwartetes passiert, als Sie versucht haben, sich anzumelden. "
 "Bitte versuchen Sie es erneut."
 
-msgid "User cancelled."
+msgid "User canceled."
 msgstr "Benutzer abgebrochen."
 
 msgid "Head diameter"
@@ -22081,9 +22091,6 @@ msgstr ""
 #~ "Das AMS schätzt die verbleibende Kapazität des Bambu-Filaments, nachdem "
 #~ "die Filamentinformationen aktualisiert wurden. Während des Drucks wird "
 #~ "die verbleibende Kapazität automatisch aktualisiert."
-
-#~ msgid "AMS Status"
-#~ msgstr "AMS-Status"
 
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
@@ -22856,23 +22863,9 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Ungültige Nummer"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "Veröffentlichung wurde abgebrochen"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "Düse gemerkt: %.2f %s"
-
-#~ msgid ""
-#~ "When using support material for the support interface, we recommend the "
-#~ "following settings:\n"
-#~ "0 top z distance, 0 interface spacing, interlaced rectilinear pattern and "
-#~ "disable independent support layer height"
-#~ msgstr ""
-#~ "Wenn Sie Stützmaterial für die Stützschnittstelle verwenden, empfehlen "
-#~ "wir die folgenden Einstellungen:\n"
-#~ "0 obere Z-Abstand, 0 Schnittstellenabstand, verflochtenes rechteckiges "
-#~ "Muster und unabhängige Stützschichthöhe deaktivieren"
 
 #~ msgid ""
 #~ "Bed temperature when the Cool Plate Supertack is installed. A value of 0 "
@@ -23065,7 +23058,7 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
+#~ msgid "Load STL"
 #~ msgstr "STL laden"
 
 #~ msgid "Load svg"
@@ -23141,9 +23134,6 @@ msgstr ""
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "Konnte keine Verbindung zu Flashforge herstellen"
 
-#~ msgid "User canceled."
-#~ msgstr "Benutzer abgebrochen."
-
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "Setze den Brim-Typ auf \"bemalt\""
 
@@ -23167,19 +23157,6 @@ msgstr ""
 #~ "wir die folgenden Einstellungen: Mindestens 2 Schnittstellschichten, "
 #~ "mindestens 0,1 mm oberer Z-Abstand oder die Verwendung von "
 #~ "Stützmaterialien bei der Schnittstelle."
-
-#~ msgid ""
-#~ "When using support material for the support interface, we recommend the "
-#~ "following settings:\n"
-#~ "0 top z distance, 0 interface spacing, concentric pattern and disable "
-#~ "independent support layer height"
-#~ msgstr ""
-#~ "Bei Verwendung von Supportmaterial für die Supportoberfläche empfehlen "
-#~ "wir die folgenden Einstellungen:\n"
-#~ " 0 Abstand nach oben (top z distance), 0 Abstand zwischen Oberflächen "
-#~ "(interface spacing), konzentrisches Muster und deaktivieren Sie "
-#~ "dieunabhängige Einstellung der Support-Lagenhöhe (independent support "
-#~ "layer height)."
 
 #~ msgid "Branch Diameter with double walls"
 #~ msgstr "Doppelte Wände für Ast-Durchmesser ab"
@@ -24350,14 +24327,6 @@ msgstr ""
 #~ msgid "The Config cannot be loaded."
 #~ msgstr "Die Konfiguration kann nicht geladen werden."
 
-#~ msgid "The 3mf is generated by old Orca Slicer, load geometry data only."
-#~ msgstr ""
-#~ "Die 3mf wurde mit einer alten Version von OrcaSlicer generiert, lade nur "
-#~ "die Geometriedaten."
-
-#~ msgid "wiki"
-#~ msgstr "wiki"
-
 #~ msgid "Movement:"
 #~ msgstr "Bewegung:"
 
@@ -24581,8 +24550,8 @@ msgstr ""
 #~ msgid "Export all objects as STL"
 #~ msgstr "Alle Objekte als STL exportieren"
 
-#~ msgid "The 3mf is not compatible, load geometry data only!"
-#~ msgstr "Der 3mf ist nicht kompatibel, lade nur die Geometriedaten!"
+#~ msgid "The 3MF is not compatible, load geometry data only!"
+#~ msgstr "Der 3MF ist nicht kompatibel, lade nur die Geometriedaten!"
 
 #~ msgid "Incompatible 3mf"
 #~ msgstr "Inkompatible 3mf"
