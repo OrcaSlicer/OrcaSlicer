@@ -1169,7 +1169,7 @@ void PrintConfigDef::init_fff_params()
                      "Theoretically, 100% means a solid bridge, but due to the tendency of bridge extrusions to sag, 100% may not be sufficient.\n\n"
                      "- Higher than 100% density (Recommended Max 125%):\n"
                      "  - Pros: Produces smoother bridge surfaces, as overlapping lines provide additional support during printing.\n"
-                     "  - Cons: Can cause overextrusion, which may reduce lower and upper surface quality and increase risk of warping.\n\n"
+                     "  - Cons: Can cause overextrusion, which may reduce lower and upper surface quality and increase the risk of warping.\n\n"
                      "- Lower than 100% density (Min 10%):\n"
                      "  - Pros: Can create a string-like first layer. Faster and with better cooling because there is more space for air to circulate around the extruded bridge.\n"
                      "  - Cons: May lead to sagging and poorer surface finish.\n\n"
@@ -1191,7 +1191,7 @@ void PrintConfigDef::init_fff_params()
                      "- Lower than 100% density (Min 10%):\n"
                      "  - Pros: Can reduce pillowing and improve cooling (more airflow through the bridge), and may speed up printing.\n"
                      "  - Cons: May reduce internal support, increasing the risk of sagging and top surface defects.\n\n"
-                     "This option works particularly well when combined with the second internal bridge over infill option to further improve bridging before solid infill is extruded.");
+                     "This option works particularly well when combined with the second internal bridge over infill option to improve bridging further before solid infill is extruded.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 125;
@@ -1202,8 +1202,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Bridge flow ratio");
     def->category = L("Quality");
     def->tooltip = L("Values above 1.0:\n"
-                     "  - Regular bridges: Keep spacing and thicken the filament. If Bridge line width is <= 100%, this can improve line contact and strength.\n"
-                     "  - Thick bridges: Increase width, height, and spacing. May be stronger but increases the risk of sagging.\n"
+                     "  - Regular bridges: Keep spacing and thicken the filament. If the Bridge line width is <= 100%, this can improve line contact and strength.\n"
+                     "  - Thick bridges: Increase width, height, and spacing. It may be stronger, but it increases the risk of sagging.\n"
                      "Values below 1.0:\n"
                      "  - Regular bridges: Reduce spacing; this can potentially add extra passes or alter paths.\n"
                      "  - Thick bridges: Decrease width, height, and spacing. Reduces sagging at the cost of lateral bonding.");
@@ -1215,10 +1215,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_line_width", coFloatOrPercent);
     def->label = L("Bridge");
     def->category = L("Quality");
-    def->tooltip = L("Bridge line width expressed either as an absolute value or as a percentage of the active nozzle diameter (percentages are computed from the nozzle diameter).\n"
+    def->tooltip = L("Bridge line width is expressed either as an absolute value or as a percentage of the active nozzle diameter (percentages are computed from the nozzle diameter).\n"
                      "Recommended to use with a higher Bridge density or Bridge flow ratio.\n\n"
-                     "Maximum value is 100% or nozzle diameter.\n"
-                     "If set to 0, the line width will be equal to Internal solid infill width.");
+                     "The maximum value is 100% or the nozzle diameter.\n"
+                     "If set to 0, the line width will match the Internal solid infill width.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
