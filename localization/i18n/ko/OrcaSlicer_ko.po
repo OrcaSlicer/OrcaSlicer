@@ -1308,7 +1308,8 @@ msgstr "디스크에서 SVG 파일을 다시 로드합니다."
 msgid "Change file"
 msgstr "파일 변경"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "다른 .svg 파일로 변경"
 
 msgid "Forget the file path"
@@ -1335,7 +1336,8 @@ msgstr "다른 이름으로 저장"
 msgid "Save SVG file"
 msgstr "SVG 파일 저장"
 
-msgid "Save as '.svg' file"
+#, fuzzy
+msgid "Save as SVG file."
 msgstr "'.svg' 파일로 저장"
 
 msgid "Size in emboss direction."
@@ -1690,20 +1692,20 @@ msgstr "현재 사전 설정 로드 중"
 msgid "Loading a mode view"
 msgstr "모드 보기 로드 중"
 
-msgid "Choose one file (3mf):"
-msgstr "하나의 파일을 선택 (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "하나의 파일을 선택 (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
-msgstr "하나 이상의 파일 선택 (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "하나 이상의 파일 선택 (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "하나 이상의 파일 선택 (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "하나 이상의 파일 선택 (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "ZIP 파일 선택"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "하나의 파일 선택 (gcode/3mf):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "하나의 파일 선택 (GCODE/3MF):"
 
 msgid "Some presets are modified."
 msgstr "일부 사전 설정이 수정 되었습니다."
@@ -3697,7 +3699,7 @@ msgstr "직사각형"
 msgid "Circular"
 msgstr "원형"
 
-msgid "Load shape from STL ..."
+msgid "Load shape from STL..."
 msgstr "STL에서 모양 불러오기..."
 
 msgid "Settings"
@@ -5202,8 +5204,8 @@ msgstr "모든 객체를 여러 STL로 내보내기"
 msgid "Export Generic 3MF"
 msgstr "일반 3MF 내보내기"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "일부 3mf 확장자를 사용하지 않고 3mf 파일 내보내기"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "일부 3MF 확장자를 사용하지 않고 3MF 파일 내보내기"
 
 msgid "Export current sliced file"
 msgstr "현재 슬라이스 파일 내보내기"
@@ -5644,7 +5646,8 @@ msgstr "비디오"
 msgid "Switch to video files."
 msgstr "비디오 파일로 전환합니다."
 
-msgid "Switch to 3mf model files."
+#, fuzzy
+msgid "Switch to 3MF model files."
 msgstr "3mf 모델 파일로 전환."
 
 msgid "Delete selected files from printer."
@@ -6228,11 +6231,13 @@ msgstr "%s 정보"
 msgid "Skip"
 msgstr "건너뛰기"
 
-msgid "Newer 3mf version"
-msgstr "최신 3mf 버전"
+#, fuzzy
+msgid "Newer 3MF version"
+msgstr "최신 3MF 버전"
 
+#, fuzzy
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
 "3mf 파일 버전은 베타 버전이며 현재 OrcaSlicer 버전보다 최신 버전입니다."
@@ -6243,12 +6248,14 @@ msgstr "Orca Slicer Beta를 사용해 보려면 다음을 클릭하세요"
 msgid "Download Beta Version"
 msgstr "베타 버전 다운로드"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+#, fuzzy
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "3mf 파일 버전은 현재 Orca Slicer 버전보다 최신 버전입니다."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+#, fuzzy
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
-"Orca Slicer를 업데이트하면 3mf 파일의 모든 기능을 활성화할 수 있습니다."
+"Orca Slicer를 업데이트하면 3MF 파일의 모든 기능을 활성화할 수 있습니다."
 
 msgid "Current Version: "
 msgstr "현재 버전: "
@@ -6825,10 +6832,12 @@ msgstr ""
 msgid "Loading file: %s"
 msgstr "파일 로드 중: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "이 3mf는 OrcaSlicer에서 지원되지 않습니다. 형상 데이터만 불러옵니다."
 
-msgid "Load 3mf"
+#, fuzzy
+msgid "Load 3MF"
 msgstr "3mf 불러오기"
 
 msgid ""
@@ -6842,9 +6851,9 @@ msgid ""
 "template settings?"
 msgstr ""
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
 "3mf의 버전 %s이(가) %s의 버전 %s보다 높습니다. 다음 키를 인식할 수 없습니다:"
@@ -6852,25 +6861,30 @@ msgstr ""
 msgid "You'd better upgrade your software.\n"
 msgstr "소프트웨어를 업그레이드하는 것이 좋습니다.\n"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
 "3mf의 %s 버전이 %s의 %s 버전보다 최신입니다. 소프트웨어를 업그레이드 하십시"
 "오."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
-msgstr ""
+#, fuzzy
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
+msgstr "이 3mf는 이전 Orca Slicer에서 생성되었으며, 형상 데이터만 로드합니다."
 
-msgid "Invalid values found in the 3mf:"
+
+msgid "Invalid values found in the 3MF:"
 msgstr "3mf에서 잘못된 값이 발견됨:"
 
 msgid "Please correct them in the param tabs"
 msgstr "매개변수 탭에서 수정하세요"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
 "3mf에는 필라멘트 또는 프린터 사전 설정에 다음과 같은 수정된 Gcode가 있습니다:"
 
@@ -6882,7 +6896,7 @@ msgstr "이 수정된 Gcode가 손상을 방지하기 위해 안전한지 확인
 msgid "Modified G-code"
 msgstr "수정된 Gcode"
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3mf에는 다음과 같은 맞춤형 필라멘트 또는 프린터 사전 설정이 있습니다:"
 
 msgid ""
@@ -6895,7 +6909,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "사용자 정의 프리셋"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "단계 파일 내의 구성 요소 이름이 UTF8 형식이 아닙니다!"
 
 msgid "The name may show garbage characters!"
@@ -7133,7 +7148,7 @@ msgstr "프로젝트 저장"
 msgid "Importing Model"
 msgstr "모델 가져오는 중"
 
-msgid "prepare 3mf file..."
+msgid "prepare 3MF file..."
 msgstr "3mf 파일 준비..."
 
 msgid "Download failed, unknown file format."
@@ -7574,7 +7589,7 @@ msgstr "형상만 로드"
 msgid "Load behaviour"
 msgstr "행동 로드"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ".3mf를 열 때 프린터/필라멘트/프로세스 설정이 로드되어야 합니까?"
 
 msgid "Maximum recent files"
@@ -7770,24 +7785,29 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "파일을 OrcaSlicer에 연결"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr ".3mf 파일을 OrcaSlicer에 연결"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "활성화된 경우 OrcaSlicer를 기본 응용 프로그램으로 설정하여 .3mf 파일을 엽니다"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr ".stl 파일을 OrcaSlicer에 연결"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "활성화된 경우 OrcaSlicer를 기본 응용 프로그램으로 설정하여 .stl 파일을 엽니다"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr ".step/.stp 파일을 OrcaSlicer에 연결"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "활성화된 경우 OrcaSlicer를 기본 응용 프로그램으로 설정하여 .step 파일을 엽니"
 "다"
@@ -8027,10 +8047,10 @@ msgstr "로그 아웃"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "시간 및 필라멘트 추정치를 얻기 위해 모든 플레이트를 슬라이스합니다"
 
-msgid "Packing project data into 3mf file"
-msgstr "프로젝트 데이터를 3mf 파일로 압축"
+msgid "Packing project data into 3MF file"
+msgstr "프로젝트 데이터를 3MF 파일로 압축"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "3mf 업로드 중"
 
 msgid "Jump to model publish web page"
@@ -8048,7 +8068,7 @@ msgstr ""
 msgid "Slicing Plate 1"
 msgstr "플레이트 1 슬라이싱"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "데이터를 3mf로 압축 중"
 
 msgid "Jump to webpage"
@@ -9556,16 +9576,16 @@ msgstr "구성이 최신 상태입니다."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Obj 파일 가져오기 색상"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10292,7 +10312,7 @@ msgstr ""
 msgid "Extension Board"
 msgstr "확장 보드"
 
-msgid "Saving objects into the 3mf failed."
+msgid "Saving objects into the 3MF failed."
 msgstr "객체를 3mf에 저장하지 못했습니다."
 
 msgid "Only Windows 10 is supported."
@@ -10316,23 +10336,23 @@ msgstr "수리에 실패하였습니다."
 msgid "Loading repaired objects"
 msgstr "수리된 객체 로드"
 
-msgid "Exporting 3mf file failed"
+msgid "Exporting 3MF file failed"
 msgstr "3mf 파일 내보내기 실패"
 
-msgid "Import 3mf file failed"
+msgid "Import 3MF file failed"
 msgstr "3mf 파일 가져오기 실패"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "수리된 3mf 파일에 객체가 없습니다"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "수리된 3MF 파일에 객체가 없습니다"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "수리된 3mf 파일에 둘 이상의 객체가 포함되어 있습니다"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "수리된 3MF 파일에 둘 이상의 객체가 포함되어 있습니다"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "수리된 3mf 파일에 부피가 없습니다"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "수리된 3MF 파일에 부피가 없습니다"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "수리된 3mf 파일에 둘 이상의 부피가 포함되어 있습니다"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "수리된 3MF 파일에 둘 이상의 부피가 포함되어 있습니다"
 
 msgid "Repair finished"
 msgstr "수리 완료"
@@ -10973,7 +10993,7 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "선호하는 방향"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr "최초 임포트 시 Z축에서 자동으로 스톨 방향 지정"
 
 msgid "Printer preset names"
@@ -16630,7 +16650,7 @@ msgstr "명령 도움말을 표시합니다."
 msgid "UpToDate"
 msgstr "최신 정보"
 
-msgid "Update the configs values of 3mf to latest."
+msgid "Update the config values of 3MF to latest."
 msgstr "3mf의 구성 값을 최신으로 업데이트합니다."
 
 msgid "downward machines check"
@@ -16650,7 +16670,7 @@ msgstr "로드되지 않은 경우 기본값으로 첫 번째 필라멘트 로�
 msgid "Minimum save"
 msgstr "최소 크기로 저장"
 
-msgid "export 3mf with minimum size."
+msgid "Export 3MF with minimum size."
 msgstr "최소 크기로 3mf를 내보냅니다."
 
 msgid "mtcpp"
@@ -16884,41 +16904,45 @@ msgid ""
 msgstr "활성화하면 객체를 배치할 때 돌출 보정 영역을 피합니다"
 
 #, fuzzy
-msgid "Skip modified G-code in 3mf"
+msgid "Skip modified G-code in 3MF"
 msgstr "3mf에서 수정된 Gcode 건너뛰기"
 
 #, fuzzy
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr "프린터 또는 필라멘트 사전 설정에서 3mf의 수정된 Gcode 건너뛰기"
 
 msgid "MakerLab name"
 msgstr "메이커 랩 이름"
 
-msgid "MakerLab name to generate this 3mf."
+#, fuzzy
+msgid "MakerLab name to generate this 3MF."
 msgstr "이 3mf를 생성하는 메이커랩 이름"
 
 msgid "MakerLab version"
 msgstr "메이커 랩 버전"
 
-msgid "MakerLab version to generate this 3mf."
+#, fuzzy
+msgid "MakerLab version to generate this 3MF."
 msgstr "이 3mf를 생성하기 위한 메이커랩 버전"
 
-msgid "metadata name list"
+msgid "Metadata name list"
 msgstr "메타데이터 이름 목록"
 
-msgid "metadata name list added into 3mf."
+#, fuzzy
+msgid "Metadata name list added into 3MF."
 msgstr "3mf에 메타데이터 이름 목록 추가됨"
 
-msgid "metadata value list"
+msgid "Metadata value list"
 msgstr "메타데이터 값 목록"
 
-msgid "metadata value list added into 3mf."
+msgid "Metadata value list added into 3MF."
 msgstr "메타데이터 값 목록이 3MF에 추가됨"
 
-msgid "Allow 3mf with newer version to be sliced"
+msgid "Allow 3MF with newer version to be sliced"
 msgstr ""
 
-msgid "Allow 3mf with newer version to be sliced."
+#, fuzzy
+msgid "Allow 3MF with newer version to be sliced."
 msgstr "최신 버전의 3mf를 슬라이스하도록 허용"
 
 msgid "Current Z-hop"
@@ -21167,7 +21191,7 @@ msgstr ""
 #~ "사전 설정의 이름을 \"선택한 공급업체 유형 직렬 @프린터\"로 변경합니다.\n"
 #~ "더 많은 프린터에 대한 사전 설정을 추가하려면 프린터 선택으로 이동하세요"
 
-#~ msgid "Load stl"
+#~ msgid "Load STL"
 #~ msgstr "STL 불러오기"
 
 #~ msgid "Load svg"
@@ -22201,10 +22225,6 @@ msgstr ""
 #~ msgid "The Config cannot be loaded."
 #~ msgstr "구성을 로드할 수 없습니다."
 
-#~ msgid "The 3mf is generated by old Orca Slicer, load geometry data only."
-#~ msgstr ""
-#~ "이 3mf는 이전 Orca Slicer에서 생성되었으며, 형상 데이터만 로드합니다."
-
 #~ msgid "wiki"
 #~ msgstr "위키"
 
@@ -22383,7 +22403,7 @@ msgstr ""
 #~ msgid "Export all objects as STL"
 #~ msgstr "모든 객체를 STL로 내보내기"
 
-#~ msgid "The 3mf is not compatible, load geometry data only!"
+#~ msgid "The 3MF is not compatible, load geometry data only!"
 #~ msgstr "이 3mf는 호환되지 않습니다. 형상 데이터만 로드합니다!"
 
 #~ msgid "Incompatible 3mf"

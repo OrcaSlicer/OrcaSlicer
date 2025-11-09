@@ -1297,7 +1297,8 @@ msgstr "從硬碟重新載入 SVG 檔案。"
 msgid "Change file"
 msgstr "更換檔案"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "更換為另一個 .svg 檔案"
 
 msgid "Forget the file path"
@@ -1321,10 +1322,12 @@ msgstr "固化至模型中作為不可編輯部分"
 msgid "Save as"
 msgstr "儲存為"
 
+#, fuzzy
 msgid "Save SVG file"
 msgstr "儲存 '.svg' 檔案"
 
-msgid "Save as '.svg' file"
+#, fuzzy
+msgid "Save as SVG file."
 msgstr "儲存為 '.svg' 檔案"
 
 msgid "Size in emboss direction."
@@ -1674,20 +1677,20 @@ msgstr "載入目前預設"
 msgid "Loading a mode view"
 msgstr "載入模式視圖"
 
-msgid "Choose one file (3mf):"
-msgstr "選擇一個檔案（3mf）"
+msgid "Choose one file (3MF):"
+msgstr "選擇一個檔案（3MF）"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
-msgstr "選擇一個或多個檔案（3mf/step/stl/svg/obj/amf/usd*/abc/ply）："
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "選擇一個或多個檔案(3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY)："
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "選擇一個或多個檔案（3mf/step/stl/svg/obj/amf）："
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "選擇一個或多個檔案(3MF/STEP/STL/SVG/OBJ/AMF)："
 
 msgid "Choose ZIP file"
 msgstr "選擇 ZIP 檔"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "選擇一個檔案（gcode/3mf）："
+msgid "Choose one file (GCODE/3MF):"
+msgstr "選擇一個檔案（GCODE/3MF）："
 
 msgid "Some presets are modified."
 msgstr "部分預設已被修改。"
@@ -3634,7 +3637,7 @@ msgstr "矩形"
 msgid "Circular"
 msgstr "圓"
 
-msgid "Load shape from STL ..."
+msgid "Load shape from STL..."
 msgstr "從 STL 檔案載入形狀..."
 
 msgid "Settings"
@@ -5140,8 +5143,8 @@ msgstr "將所有物件匯出為 STL 檔案"
 msgid "Export Generic 3MF"
 msgstr "匯出通用 3MF"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "匯出不含 3mf 擴展的 3mf 檔案"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "匯出不含 3MF 擴展的 3MF 檔案"
 
 msgid "Export current sliced file"
 msgstr "匯出目前已切片的檔案"
@@ -5577,8 +5580,9 @@ msgstr "錄影"
 msgid "Switch to video files."
 msgstr "切換到影片檔案清單。"
 
-msgid "Switch to 3mf model files."
-msgstr "切換到 3mf 模型檔案。"
+#, fuzzy
+msgid "Switch to 3MF model files."
+msgstr "切換到 3MF 模型檔案。"
 
 msgid "Delete selected files from printer."
 msgstr "從列印設備中刪除選中的檔案。"
@@ -6151,13 +6155,15 @@ msgstr "%s 資訊"
 msgid "Skip"
 msgstr "跳過"
 
-msgid "Newer 3mf version"
-msgstr "較新的 3mf 版本"
+#, fuzzy
+msgid "Newer 3MF version"
+msgstr "較新的 3MF 版本"
 
+#, fuzzy
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
-msgstr "該 3mf 檔案版本為測試版，並且較目前的 OrcaSlicer 版本更新。"
+msgstr "該 3MF 檔案版本為測試版，並且較目前的 OrcaSlicer 版本更新。"
 
 msgid "If you would like to try Orca Slicer Beta, you may click to"
 msgstr "如果您想嘗試 Orca Slicer 測試版，可以點擊以下載到"
@@ -6165,11 +6171,13 @@ msgstr "如果您想嘗試 Orca Slicer 測試版，可以點擊以下載到"
 msgid "Download Beta Version"
 msgstr "下載測試版"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
-msgstr "該 3mf 檔案版本較目前的 Orca Slicer 版本更新。"
+#, fuzzy
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
+msgstr "該 3MF 檔案版本較目前的 Orca Slicer 版本更新。"
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
-msgstr "更新您的 Orca Slicer 以啟用 3mf 檔案中的所有功能。"
+#, fuzzy
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
+msgstr "更新您的 Orca Slicer 以啟用 3MF 檔案中的所有功能。"
 
 msgid "Current Version: "
 msgstr "目前版本："
@@ -6735,10 +6743,12 @@ msgstr ""
 msgid "Loading file: %s"
 msgstr "載入檔案：%s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
-msgstr "該 3mf 檔案不是來自 Orca Slicer，將只載入幾何資料。"
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
+msgstr "該 3MF 檔案不是來自 Orca Slicer，將只載入幾何資料。"
 
-msgid "Load 3mf"
+#, fuzzy
+msgid "Load 3MF"
 msgstr "載入 3mf"
 
 msgid ""
@@ -6752,33 +6762,36 @@ msgid ""
 "template settings?"
 msgstr ""
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
-msgstr "該 3mf 的版本 %s 比 %s 的版本 %s 新，以下參數值無法識別："
+msgstr "該 3MF 的版本 %s 比 %s 的版本 %s 新，以下參數值無法識別："
 
 msgid "You'd better upgrade your software.\n"
 msgstr "建議升級您的軟體版本。\n"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
-msgstr "該 3mf 的版本 %s 比 %s 的版本 %s 要新，建議升級您的軟體。"
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
+msgstr "該 3MF 的版本 %s 比 %s 的版本 %s 要新，建議升級您的軟體。"
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
 
-msgid "Invalid values found in the 3mf:"
-msgstr "在 3mf 檔案中發現無效值："
+msgid "Invalid values found in the 3MF:"
+msgstr "在 3MF 檔案中發現無效值："
 
 msgid "Please correct them in the param tabs"
 msgstr "請在參數設定頁更正它們"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
-msgstr "該 3mf 檔案在耗材或列印機預設中具有以下修改過的 GCODE："
+"The 3MF has the following modified G-code in filament or printer presets:"
+msgstr "該 3MF 檔案在耗材或列印機預設中具有以下修改過的 GCODE："
 
 msgid ""
 "Please confirm that all modified G-code is safe to prevent any damage to the "
@@ -6788,8 +6801,8 @@ msgstr "請確認這些修改過的 GCODE 是安全的，以防止對機器造�
 msgid "Modified G-code"
 msgstr "已修改的 GCODE"
 
-msgid "The 3mf has the following customized filament or printer presets:"
-msgstr "該 3mf 檔案具有以下自訂的耗材或列印機預設："
+msgid "The 3MF has the following customized filament or printer presets:"
+msgstr "該 3MF 檔案具有以下自訂的耗材或列印機預設："
 
 msgid ""
 "Please confirm that the G-code within these presets is safe to prevent any "
@@ -6799,7 +6812,8 @@ msgstr "請確認這些預設中的 G-code 是安全的，以防止對機器造�
 msgid "Customized Preset"
 msgstr "自訂預設"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "step 檔案內部元件的名稱不是 UTF8 格式！"
 
 msgid "The name may show garbage characters!"
@@ -7032,8 +7046,8 @@ msgstr "儲存專案項目"
 msgid "Importing Model"
 msgstr "正在匯入模型"
 
-msgid "prepare 3mf file..."
-msgstr "正在準備 3mf 檔案..."
+msgid "prepare 3MF file..."
+msgstr "正在準備 3MF 檔案..."
 
 msgid "Download failed, unknown file format."
 msgstr "下載失敗，未知的檔案格式。"
@@ -7464,7 +7478,7 @@ msgstr "僅載入幾何資料"
 msgid "Load behaviour"
 msgstr "載入方式"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "開啟 .3mf 檔案時，是否需要載入印表機、線材和參數設定？"
 
 msgid "Maximum recent files"
@@ -7653,22 +7667,28 @@ msgstr "停用此選項將改用最新網路外掛，該外掛支援新版 Bambu
 msgid "Associate files to OrcaSlicer"
 msgstr "Orca Slicer 檔案關聯"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr "使用 Orca Slicer 打開 .3mf 檔案"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr "開啟後，將預設使用 Orca Slicer 打開 .3mf 檔案"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr "使用 Orca Slicer 打開 .stl 檔案"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr "開啟後，將預設使用 Orca Slicer 打開 .stl 檔案"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr "使用 Orca Slicer 打開 .step/.stp 檔案"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr "開啟後，將預設使用 Orca Slicer 打開 .step 檔案"
 
 msgid "Associate web links to OrcaSlicer"
@@ -7906,10 +7926,10 @@ msgstr "登出"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "正在切片以取得切片資訊和預估列印時間"
 
-msgid "Packing project data into 3mf file"
-msgstr "正在將專案資料打包到 3mf 檔案中"
+msgid "Packing project data into 3MF file"
+msgstr "正在將專案資料打包到 3MF 檔案中"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "正在上傳 3mf"
 
 msgid "Jump to model publish web page"
@@ -7927,7 +7947,7 @@ msgstr ""
 msgid "Slicing Plate 1"
 msgstr "正在切片列印板 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "將資料打包至 3mf"
 
 msgid "Jump to webpage"
@@ -9407,16 +9427,16 @@ msgstr "目前設定檔已經是最新版本。"
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Obj 檔案匯入顏色"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10128,8 +10148,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "擴展板"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "將物件儲存到 3mf 失敗。"
+msgid "Saving objects into the 3MF failed."
+msgstr "將物件儲存到 3MF 失敗。"
 
 msgid "Only Windows 10 is supported."
 msgstr "僅支援 Windows 10。"
@@ -10152,23 +10172,23 @@ msgstr "修復失敗。"
 msgid "Loading repaired objects"
 msgstr "正在載入修復的物件"
 
-msgid "Exporting 3mf file failed"
-msgstr "匯出 3mf 檔案失敗"
+msgid "Exporting 3MF file failed"
+msgstr "匯出 3MF 檔案失敗"
 
-msgid "Import 3mf file failed"
-msgstr "匯入 3mf 檔案失敗"
+msgid "Import 3MF file failed"
+msgstr "匯入 3MF 檔案失敗"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "已修復的 3mf 檔案不包含任何物件"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "已修復的 3MF 檔案不包含任何物件"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "已修復的 3mf 檔案包含了不止一個物件"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "已修復的 3MF 檔案包含了不止一個物件"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "修復的 3mf 檔案不包含任何零件"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "修復的 3MF 檔案不包含任何零件"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "已修復的 3mf 檔案包含多個零件"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "已修復的 3MF 檔案包含多個零件"
 
 msgid "Repair finished"
 msgstr "修復已完成"
@@ -10768,7 +10788,7 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "首選方向"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr "匯入 STL 時自動對齊 Z 軸"
 
 msgid "Printer preset names"
@@ -16108,7 +16128,7 @@ msgstr "顯示指令使用說明。"
 msgid "UpToDate"
 msgstr "保持最新狀態"
 
-msgid "Update the configs values of 3mf to latest."
+msgid "Update the config values of 3MF to latest."
 msgstr "更新 3MF 配置值至最新版本。"
 
 msgid "downward machines check"
@@ -16128,7 +16148,7 @@ msgstr "將第一種耗材設為預設，以供未載入的項目使用"
 msgid "Minimum save"
 msgstr "最低保存"
 
-msgid "export 3mf with minimum size."
+msgid "Export 3MF with minimum size."
 msgstr "匯出最小尺寸的 3mf。"
 
 msgid "mtcpp"
@@ -16352,40 +16372,40 @@ msgid ""
 "objects."
 msgstr "若啟用，物件排列時將避開擠出校正區域"
 
-msgid "Skip modified G-code in 3mf"
+msgid "Skip modified G-code in 3MF"
 msgstr "忽略 3MF 檔案內已修改的 G-code"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr "忽略 3MF 檔案內來自印表機或耗材預設的已修改 G-code"
 
 msgid "MakerLab name"
 msgstr "MakerLab 名稱"
 
-msgid "MakerLab name to generate this 3mf."
+msgid "MakerLab name to generate this 3MF."
 msgstr "產生此 3MF 檔案時所使用的 MakerLab 名稱"
 
 msgid "MakerLab version"
 msgstr "MakerLab 版本"
 
-msgid "MakerLab version to generate this 3mf."
+msgid "MakerLab version to generate this 3MF."
 msgstr "產生此 3MF 檔案時所使用的 MakerLab 版本"
 
-msgid "metadata name list"
+msgid "Metadata name list"
 msgstr "中繼資料名稱清單"
 
-msgid "metadata name list added into 3mf."
+msgid "Metadata name list added into 3MF."
 msgstr "新增至 3MF 檔案的中繼資料名稱清單"
 
-msgid "metadata value list"
+msgid "Metadata value list"
 msgstr "中繼資料值清單"
 
-msgid "metadata value list added into 3mf."
+msgid "Metadata value list added into 3MF."
 msgstr "新增至 3MF 檔案的中繼資料值清單"
 
-msgid "Allow 3mf with newer version to be sliced"
+msgid "Allow 3MF with newer version to be sliced"
 msgstr ""
 
-msgid "Allow 3mf with newer version to be sliced."
+msgid "Allow 3MF with newer version to be sliced."
 msgstr "允許對較新版本的 3MF 進行切片處理"
 
 msgid "Current Z-hop"
@@ -20458,7 +20478,7 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
+#~ msgid "Load STL"
 #~ msgstr "載入 STL"
 
 #~ msgid "Load svg"

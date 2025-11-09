@@ -1504,7 +1504,7 @@ void GLGizmoSVG::draw_filename(){
                 m_volume_shape.svg_file = svg_file_new; // clear data
             }
         } else if (ImGui::IsItemHovered()) {
-            tooltip = _u8L("Change to another .svg file");
+            tooltip = _u8L("Change to another SVG file.");
         }
 
         std::string forget_path = _u8L("Forget the file path");
@@ -1586,7 +1586,7 @@ void GLGizmoSVG::draw_filename(){
 
             }
         } else if (ImGui::IsItemHovered()) {
-            tooltip = _u8L("Save as '.svg' file");
+            tooltip = _u8L("Save as SVG file.");
         }
 
         //draw(get_icon(m_icons, IconType::save));

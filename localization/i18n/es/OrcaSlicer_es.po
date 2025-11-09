@@ -1325,7 +1325,8 @@ msgstr "Recargar el archivo SVG desde el disco."
 msgid "Change file"
 msgstr "Cambiar archivo"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Cambiar a otro archivo .svg"
 
 msgid "Forget the file path"
@@ -1352,7 +1353,7 @@ msgstr "Guardar como"
 msgid "Save SVG file"
 msgstr "Guardar archivo SVG"
 
-msgid "Save as '.svg' file"
+msgid "Save as SVG file."
 msgstr "Guardar como archivo '.svg"
 
 msgid "Size in emboss direction."
@@ -1724,20 +1725,20 @@ msgstr "Cargando los perfiles actuales"
 msgid "Loading a mode view"
 msgstr "Cargar un modo de vista"
 
-msgid "Choose one file (3mf):"
-msgstr "Escoja un archivo (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "Escoja un archivo (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
-msgstr "Escoja uno o más archivos (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "Escoja uno o más archivos (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Escoja uno o más archivos (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Escoja uno o más archivos (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "Escoja archivo ZIP"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "Escoja un archivo (gcode/3mf):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Escoja un archivo (GCODE/3MF):"
 
 msgid "Some presets are modified."
 msgstr "Algunos perfiles fueron modificados."
@@ -3799,8 +3800,8 @@ msgstr "Rectangular"
 msgid "Circular"
 msgstr "Circular"
 
-msgid "Load shape from STL ..."
-msgstr "Cargar forma desde STL ..."
+msgid "Load shape from STL..."
+msgstr "Cargar forma desde STL..."
 
 msgid "Settings"
 msgstr "Ajustes"
@@ -5333,8 +5334,8 @@ msgstr "Exportar todos los objetos como varios STL"
 msgid "Export Generic 3MF"
 msgstr "Exportar 3MF genérico"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "Exporte el archivo 3mf sin usar algunas de las extensiones"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "Exporte el archivo 3MF sin usar algunas de las extensiones."
 
 msgid "Export current sliced file"
 msgstr "Exportar la bandeja activa laminada a un archivo"
@@ -5795,8 +5796,8 @@ msgstr "Vídeo"
 msgid "Switch to video files."
 msgstr "Cambiar a archivos de vídeo."
 
-msgid "Switch to 3mf model files."
-msgstr "Cambiar a archivos de modelos 3mf."
+msgid "Switch to 3MF model files."
+msgstr "Cambiar a archivos de modelos 3MF."
 
 msgid "Delete selected files from printer."
 msgstr "Borrar archivos seleccionados desde la impresora."
@@ -6385,14 +6386,14 @@ msgstr "%s información"
 msgid "Skip"
 msgstr "Saltar"
 
-msgid "Newer 3mf version"
-msgstr "Nueva versión 3mf"
+msgid "Newer 3MF version"
+msgstr "Nueva versión 3MF"
 
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
-"La versión del archivo 3mf está en Beta y es más reciente que la versión "
+"La versión del archivo 3MF está en Beta y es más reciente que la versión "
 "actual de OrcaSlicer."
 
 msgid "If you would like to try Orca Slicer Beta, you may click to"
@@ -6401,15 +6402,15 @@ msgstr "Si desea probar Orca Slicer Beta, puede hacer clic para"
 msgid "Download Beta Version"
 msgstr "Descargar la versión beta"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr ""
-"La versión del archivo 3mf es más reciente que la versión actual de Orca "
+"La versión del archivo 3MF es más reciente que la versión actual de Orca "
 "Slicer."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 "Actualizar Orca Slicer podría habilitar toda la funcionalidad en el archivo "
-"3mf."
+"3MF."
 
 msgid "Current Version: "
 msgstr "Versión actual: "
@@ -6994,11 +6995,11 @@ msgstr ""
 msgid "Loading file: %s"
 msgstr "Cargando archivo: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
-msgstr "El 3mf no es de Orca Slicer, cargando sólo datos de geometría."
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
+msgstr "El 3MF no es de Orca Slicer, cargando sólo datos de geometría."
 
-msgid "Load 3mf"
-msgstr "Cargar 3mf"
+msgid "Load 3MF"
+msgstr "Cargar 3MF"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -7013,10 +7014,10 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
-"La versión de 3mf %s es más nueva que la versión de %s %s, encontradas las "
+"La versión de 3MF %s es más nueva que la versión de %s %s, encontradas las "
 "siguientes llaves no reconocidas:"
 
 msgid "You'd better upgrade your software.\n"
@@ -7024,25 +7025,32 @@ msgstr "Debería actualizar el software.\n"
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
-"La versión de 3mf %s es más nueva que la versión de %s %s. Se aconseja "
+"La versión de 3MF %s es más nueva que la versión de %s %s. Se aconseja "
 "actualizar su software."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
+"El 3MF está generado por un OrcaSlicer antiguo, cargar solo datos de "
+"geometría."
 
-msgid "Invalid values found in the 3mf:"
-msgstr "Valores inválidos encontrados en el 3mf:"
+
+msgid "Invalid values found in the 3MF:"
+msgstr "Valores inválidos encontrados en el 3MF:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Por favor, corríjalos en las pestañas de parámetros"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
-"El archivo 3mf ha realizado las siguientes modificaciones en el G-Code de "
+"El archivo 3MF ha realizado las siguientes modificaciones en el G-Code de "
 "los perfiles de filamento o impresora:"
 
 #, fuzzy
@@ -7056,9 +7064,9 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "G-Code modificado"
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr ""
-"El archivo 3mf tiene los siguientes perfiles personalizados de filamento o "
+"El archivo 3MF tiene los siguientes perfiles personalizados de filamento o "
 "impresora:"
 
 #, fuzzy
@@ -7072,7 +7080,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Perfil Personalizado"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr ""
 "¡El nombre de los componentes dentro del archivo de pasos no tiene formato "
 "UTF8!"
@@ -7319,8 +7328,8 @@ msgstr "Guardar proyecto"
 msgid "Importing Model"
 msgstr "Importando modelo"
 
-msgid "prepare 3mf file..."
-msgstr "Preparar el archivo 3mf..."
+msgid "prepare 3MF file..."
+msgstr "Preparar el archivo 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "Descarga fallida; formato de archivo desconocido."
@@ -7773,7 +7782,7 @@ msgstr ""
 msgid "Load behaviour"
 msgstr ""
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 
 msgid "Maximum recent files"
@@ -7978,29 +7987,30 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Asociar archivos a OrcaSlicer"
 
-msgid "Associate .3mf files to OrcaSlicer"
-msgstr "Asociar archivos .3mf a OrcaSlicer"
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Asociar archivos 3MF a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Si se activa, ajusta OrcaSlicer como aplicación por defecto para abrir "
-"archivos .3mf"
+"archivos 3MF."
 
-msgid "Associate .stl files to OrcaSlicer"
-msgstr "Asociar archivos .stl a OrcaSlicer"
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Asociar archivos STL a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "Si se activa, ajusta OrcaSlicer como aplicación por defecto para abrir "
-"archivos .stl"
+"archivos STL."
 
-msgid "Associate .step/.stp files to OrcaSlicer"
-msgstr "Asociar archivos .step/.stp a OrcaSlicer"
+msgid "Associate STEP files to OrcaSlicer"
+msgstr "Asociar archivos STEP a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "Si se activa, ajusta OrcaSlicer como aplicación por defecto para abrir "
-"archivos .step"
+"archivos STEP."
 
 msgid "Associate web links to OrcaSlicer"
 msgstr "Asociar enlaces web a OrcaSlicer"
@@ -8239,10 +8249,10 @@ msgstr ""
 "Laminar todas las piezas para obtener una estimación del tiempo y del "
 "filamento"
 
-msgid "Packing project data into 3mf file"
+msgid "Packing project data into 3MF file"
 msgstr "Empaquetar los datos del proyecto en un archivo 3mf"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "Cargando 3mf"
 
 msgid "Jump to model publish web page"
@@ -8261,7 +8271,7 @@ msgstr ""
 msgid "Slicing Plate 1"
 msgstr "Bandeja de Laminado 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Empaquetando datos a 3mf"
 
 msgid "Jump to webpage"
@@ -9825,16 +9835,16 @@ msgstr "La configuración está actualizada."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Importar color de archivo OBJ"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10567,8 +10577,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Placa de Ampliación"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "El guardado de objetos en el 3mf no ha funcionado."
+msgid "Saving objects into the 3MF failed."
+msgstr "El guardado de objetos en el 3MF no ha funcionado."
 
 msgid "Only Windows 10 is supported."
 msgstr "Sólo es compatible con Windows 10."
@@ -10591,23 +10601,23 @@ msgstr "La reparación no ha funcionado."
 msgid "Loading repaired objects"
 msgstr "Carga de objetos reparados"
 
-msgid "Exporting 3mf file failed"
-msgstr "La exportación del archivo 3mf ha fallado"
+msgid "Exporting 3MF file failed"
+msgstr "La exportación del archivo 3MF ha fallado"
 
-msgid "Import 3mf file failed"
-msgstr "La importación del archivo 3mf ha fallado"
+msgid "Import 3MF file failed"
+msgstr "La importación del archivo 3MF ha fallado"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "El archivo 3mf reparado no contiene ningún objeto"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "El archivo 3MF reparado no contiene ningún objeto"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "El archivo 3mf reparado contiene más de un objeto"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "El archivo 3MF reparado contiene más de un objeto"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "El archivo 3mf reparado no contiene ningún volumen"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "El archivo 3MF reparado no contiene ningún volumen"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "El archivo 3mf reparado contiene más de un volumen"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "El archivo 3MF reparado contiene más de un volumen"
 
 msgid "Repair finished"
 msgstr "Reparación terminada"
@@ -11280,7 +11290,7 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Orientación preferida"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr ""
 "Orientar automáticamente los stls en el eje Z en la importación inicial"
 
@@ -17195,8 +17205,8 @@ msgstr "Mostrar la ayuda del comando."
 msgid "UpToDate"
 msgstr "Actualizado"
 
-msgid "Update the configs values of 3mf to latest."
-msgstr "Actualice los valores de configuración de 3mf a la última versión."
+msgid "Update the config values of 3MF to latest."
+msgstr "Actualice los valores de configuración de 3MF a la última versión."
 
 msgid "downward machines check"
 msgstr ""
@@ -17215,8 +17225,8 @@ msgstr "Carga el primer filamento por defecto para los no cargados"
 msgid "Minimum save"
 msgstr "Salvado mínimo"
 
-msgid "export 3mf with minimum size."
-msgstr "exportar 3mf con el tamaño mínimo."
+msgid "Export 3MF with minimum size."
+msgstr "Exportar 3MF con el tamaño mínimo."
 
 msgid "mtcpp"
 msgstr "mtcpp"
@@ -17449,40 +17459,40 @@ msgid ""
 "objects."
 msgstr ""
 
-msgid "Skip modified G-code in 3mf"
+msgid "Skip modified G-code in 3MF"
 msgstr ""
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
 
 msgid "MakerLab name"
 msgstr ""
 
-msgid "MakerLab name to generate this 3mf."
+msgid "MakerLab name to generate this 3MF."
 msgstr ""
 
 msgid "MakerLab version"
 msgstr ""
 
-msgid "MakerLab version to generate this 3mf."
+msgid "MakerLab version to generate this 3MF."
 msgstr ""
 
-msgid "metadata name list"
+msgid "Metadata name list"
 msgstr ""
 
-msgid "metadata name list added into 3mf."
+msgid "Metadata name list added into 3MF."
 msgstr ""
 
-msgid "metadata value list"
+msgid "Metadata value list"
 msgstr ""
 
-msgid "metadata value list added into 3mf."
+msgid "Metadata value list added into 3MF."
 msgstr ""
 
-msgid "Allow 3mf with newer version to be sliced"
+msgid "Allow 3MF with newer version to be sliced"
 msgstr ""
 
-msgid "Allow 3mf with newer version to be sliced."
+msgid "Allow 3MF with newer version to be sliced."
 msgstr ""
 
 msgid "Current Z-hop"
@@ -17878,7 +17888,7 @@ msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
 "Formato de archivo desconocido: el archivo de entrada debe tener extensión ."
-"stl, .obj o .amf (.xml)."
+"STL, .obj o .amf (.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
@@ -21834,8 +21844,8 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
-#~ msgstr "Cargar stl"
+#~ msgid "Load STL"
+#~ msgstr "Cargar STL"
 
 #~ msgid "Load svg"
 #~ msgstr "Cargar svg"
@@ -22985,16 +22995,8 @@ msgstr ""
 #~ msgid "The Config cannot be loaded."
 #~ msgstr "La Configuración no será cargada."
 
-#~ msgid "The 3mf is generated by old Orca Slicer, load geometry data only."
-#~ msgstr ""
-#~ "El 3mf está generado por un Orca Slicer antiguo, cargar solo datos de "
-#~ "geometría."
-
 #~ msgid "Fan Speed: "
 #~ msgstr "Velocidad del ventilador:"
-
-#~ msgid "The 3mf is not from Bambu Lab, load geometry data only."
-#~ msgstr "El 3mf no es Bambu lab, solo se carga datos de geometría."
 
 #~ msgid "Bridge flow"
 #~ msgstr "Flujo del puente"
@@ -23219,8 +23221,8 @@ msgstr ""
 #~ msgid "Export all objects as STL"
 #~ msgstr "Exportar todos los objetos como STL"
 
-#~ msgid "The 3mf is not compatible, load geometry data only!"
-#~ msgstr "¡El 3mf no es compatible, cargue solamente los datos de geometría!"
+#~ msgid "The 3MF is not compatible, load geometry data only!"
+#~ msgstr "¡El 3MF no es compatible, cargue solamente los datos de geometría!"
 
 #~ msgid "Incompatible 3mf"
 #~ msgstr "3mf Incompatible"
@@ -23651,8 +23653,8 @@ msgstr ""
 #~ msgid "The Bambu Studio needs an upgrade"
 #~ msgstr "Bambu Studio necesita una actualización"
 
-#~ msgid "Choose one file (gcode/.gco/.g/.ngc/ngc):"
-#~ msgstr "Elija un archivo (gcode/.gco/.g/.ngc/ngc):"
+#~ msgid "Choose one file (GCODE/.gco/.g/.ngc/ngc):"
+#~ msgstr "Elija un archivo (GCODE/.gco/.g/.ngc/ngc):"
 
 #~ msgid ""
 #~ "The version of Bambu studio is too low and needs to be updated to the "
@@ -23695,47 +23697,12 @@ msgstr ""
 #~ "comunidad, por lo que no podemos enumerarlas una por una, sino que se "
 #~ "atribuirán en los comentarios del código correspondientes."
 
-#~ msgid "The 3mf is generated by old Bambu Studio, load geometry data only."
-#~ msgstr ""
-#~ "3mf generado con versión antigua de Bambu Studio, se cargan datos de "
-#~ "geometría unicamente."
-
 #~ msgid ""
 #~ "\"Fix Model\" feature is currently only on Windows. Please repair the "
 #~ "model on Bambu Studio(windows) or CAD softwares."
 #~ msgstr ""
 #~ "Actualmente, la función «Fix Model» solo está disponible en Windows. "
 #~ "Repare el modelo en Bambu Studio (Windows) o en el software CAD."
-
-#~ msgid "Associate files to BambuStudio"
-#~ msgstr "Asociar archivos a BambuStudio"
-
-#~ msgid "Associate .3mf files to BambuStudio"
-#~ msgstr "Asociar archivos .3mf a BambuStudio"
-
-#~ msgid ""
-#~ "If enabled, sets BambuStudio as default application to open .3mf files"
-#~ msgstr ""
-#~ "Si se activa, ajusta BambuStudio como aplicación por defecto para abrir "
-#~ "archivos .3mf"
-
-#~ msgid "Associate .stl files to BambuStudio"
-#~ msgstr "Asociar archivos .stl a BambuStudio"
-
-#~ msgid ""
-#~ "If enabled, sets BambuStudio as default application to open .stl files"
-#~ msgstr ""
-#~ "Si se activa, ajusta BambuStudio como aplicación por defecto para abrir "
-#~ "archivos .stl"
-
-#~ msgid "Associate .step/.stp files to BambuStudio"
-#~ msgstr "Asociar archivos .step/.stp a BambuStudio"
-
-#~ msgid ""
-#~ "If enabled, sets BambuStudio as default application to open .step files"
-#~ msgstr ""
-#~ "Si se activa, ajusta BambuStudio como aplicación por defecto para abrir "
-#~ "archivos .step"
 
 #~ msgid "Bridge direction"
 #~ msgstr "Dirección del puente"
@@ -23922,9 +23889,6 @@ msgstr ""
 #~ "La temperatura del lecho es superior a la temperatura de vitrificación de "
 #~ "este filamento.\n"
 #~ "Esto puede causar el bloqueo de la boquilla y el fracaso de la impresión"
-
-#~ msgid "Choose one or more files (3mf/step/stl/obj/amf):"
-#~ msgstr "Elija uno o varios archivos (3mf/step/stl/obj/amf):"
 
 #~ msgid "Clear all"
 #~ msgstr "Borrar todo"
@@ -24328,11 +24292,6 @@ msgstr ""
 #~ msgid "Swith cloud environment, please login again!"
 #~ msgstr "Cambiar el entorno de la nube, ¡Por favor, inicie sesión de nuevo!"
 
-#~ msgid ""
-#~ "The 3mf's version %s is newer than %s's version %s, Suggest to upgrade "
-#~ "your software.\n"
-#~ msgstr "\n"
-
 #~ msgid "The Config is not compatible and cannot be loaded."
 #~ msgstr "La configuración no es compatible y no se puede cargar."
 
@@ -24419,8 +24378,8 @@ msgstr ""
 #~ msgid "hybrid(auto)"
 #~ msgstr "híbrido(auto)"
 
-#~ msgid "the 3mf is not compatible, load geometry data only!"
-#~ msgstr "el 3mf no es compatible, ¡cargue sólo los datos geométricos!"
+#~ msgid "the 3MF is not compatible, load geometry data only!"
+#~ msgstr "el 3MF no es compatible, ¡cargue sólo los datos geométricos!"
 
 #~ msgid "tree"
 #~ msgstr "árbol"
@@ -24715,9 +24674,6 @@ msgstr ""
 #~ msgid "The %s filament is too soft to be used with the AMS"
 #~ msgstr "El filamento %s es demasiado blando para usarlo con el AMS"
 
-#~ msgid "The 3mf is not from Bambu lab, load geometry data only."
-#~ msgstr "El 3mf no es de Bambu lab, solo se cargaran datos de geometría."
-
 #~ msgid ""
 #~ "The P1P printer does not support smooth timelapse, use traditional "
 #~ "timelapse instead."
@@ -24798,5 +24754,5 @@ msgstr ""
 #~ msgid "default value"
 #~ msgstr "Valor por defecto"
 
-#~ msgid "preparing, export 3mf failed!"
+#~ msgid "preparing, export 3MF failed!"
 #~ msgstr "Preparando; ¡Error al exportar 3MF!"

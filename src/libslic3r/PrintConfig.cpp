@@ -708,7 +708,7 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("preferred_orientation", coFloat);
     def->label = L("Preferred orientation");
-    def->tooltip = L("Automatically orient stls on the Z axis upon initial import.");
+    def->tooltip = L("Automatically orient STL files on the Z axis upon initial import.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->max = 360;
     def->min = -360;
@@ -9564,7 +9564,7 @@ CLIActionsConfigDef::CLIActionsConfigDef()
 
     def = this->add("uptodate", coBool);
     def->label = L("UpToDate");
-    def->tooltip = L("Update the configs values of 3mf to latest.");
+    def->tooltip = L("Update the config values of 3MF to latest.");
     def->cli = "uptodate";
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -9582,7 +9582,7 @@ CLIActionsConfigDef::CLIActionsConfigDef()
 
     def = this->add("min_save", coBool);
     def->label = L("Minimum save");
-    def->tooltip = L("export 3mf with minimum size.");
+    def->tooltip = L("Export 3MF with minimum size.");
     def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -9916,38 +9916,38 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("skip_modified_gcodes", coBool);
-    def->label = L("Skip modified G-code in 3mf");
-    def->tooltip = L("Skip the modified G-code in 3mf from Printer or filament Presets.");
+    def->label = L("Skip modified G-code in 3MF");
+    def->tooltip = L("Skip the modified G-code in 3MF from printer or filament presets.");
     def->cli_params = "option";
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("makerlab_name", coString);
     def->label = L("MakerLab name");
-    def->tooltip = L("MakerLab name to generate this 3mf.");
+    def->tooltip = L("MakerLab name to generate this 3MF.");
     def->cli_params = "name";
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("makerlab_version", coString);
     def->label = L("MakerLab version");
-    def->tooltip = L("MakerLab version to generate this 3mf.");
+    def->tooltip = L("MakerLab version to generate this 3MF.");
     def->cli_params = "version";
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("metadata_name", coStrings);
-    def->label = L("metadata name list");
-    def->tooltip = L("metadata name list added into 3mf.");
+    def->label = L("Metadata name list");
+    def->tooltip = L("Metadata name list added into 3MF.");
     def->cli_params = "\"name1;name2;...\"";
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("metadata_value", coStrings);
-    def->label = L("metadata value list");
-    def->tooltip = L("metadata value list added into 3mf.");
+    def->label = L("Metadata value list");
+    def->tooltip = L("Metadata value list added into 3MF.");
     def->cli_params = "\"value1;value2;...\"";
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("allow_newer_file", coBool);
-    def->label = L("Allow 3mf with newer version to be sliced");
-    def->tooltip = L("Allow 3mf with newer version to be sliced.");
+    def->label = L("Allow 3MF with newer version to be sliced");
+    def->tooltip = L("Allow 3MF with newer version to be sliced.");
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
 

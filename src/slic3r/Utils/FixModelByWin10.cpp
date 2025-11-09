@@ -53,7 +53,7 @@ extern "C"{
 
 namespace Slic3r {
 
-static std::string saving_failed_str = L("Saving objects into the 3mf failed.");
+static std::string saving_failed_str = L("Saving objects into the 3MF failed.");
 
 HMODULE							s_hRuntimeObjectLibrary  = nullptr;
 FunctionRoInitialize			s_RoInitialize			 = nullptr;
@@ -372,7 +372,7 @@ bool fix_model_by_win10_sdk_gui(ModelObject &model_object, int volume_idx, GUI::
                 mo->add_instance();
 				if (!Slic3r::store_3mf(path_src.string().c_str(), &model, nullptr, false, nullptr, false)) {
 					boost::filesystem::remove(path_src);
-					throw Slic3r::RuntimeError(L("Exporting 3mf file failed"));
+					throw Slic3r::RuntimeError(L("Exporting 3MF file failed"));
 				}
 				model.clear_objects();
 				model.clear_materials();
@@ -388,15 +388,15 @@ bool fix_model_by_win10_sdk_gui(ModelObject &model_object, int volume_idx, GUI::
 				bool loaded = Slic3r::load_3mf(path_dst.string().c_str(), config, config_substitutions, &model, false);
 			    boost::filesystem::remove(path_dst);
 				if (! loaded)
-	 				throw Slic3r::RuntimeError(L("Import 3mf file failed"));
+					throw Slic3r::RuntimeError(L("Import 3MF file failed"));
 	 			if (model.objects.size() == 0)
-	 				throw Slic3r::RuntimeError(L("Repaired 3mf file does not contain any object"));
+					throw Slic3r::RuntimeError(L("Repaired 3MF file does not contain any object"));
 	 			if (model.objects.size() > 1)
-	 				throw Slic3r::RuntimeError(L("Repaired 3mf file contains more than one object"));
+					throw Slic3r::RuntimeError(L("Repaired 3MF file contains more than one object"));
 	 			if (model.objects.front()->volumes.size() == 0)
-	 				throw Slic3r::RuntimeError(L("Repaired 3mf file does not contain any volume"));
+					throw Slic3r::RuntimeError(L("Repaired 3MF file does not contain any volume"));
 				if (model.objects.front()->volumes.size() > 1)
-	 				throw Slic3r::RuntimeError(L("Repaired 3mf file contains more than one volume"));
+					throw Slic3r::RuntimeError(L("Repaired 3MF file contains more than one volume"));
 	 			meshes_repaired.emplace_back(std::move(model.objects.front()->volumes.front()->mesh()));
 			}
 			for (size_t i = 0; i < volumes.size(); ++ i) {

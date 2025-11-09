@@ -1317,7 +1317,8 @@ msgstr "SVG dosyasını diskten yeniden yükleyin."
 msgid "Change file"
 msgstr "Dosyayı değiştir"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Başka bir .svg dosyasına geçin"
 
 msgid "Forget the file path"
@@ -1344,7 +1345,8 @@ msgstr "Farklı kaydet"
 msgid "Save SVG file"
 msgstr "SVG dosyasını kaydet"
 
-msgid "Save as '.svg' file"
+#, fuzzy
+msgid "Save as SVG file."
 msgstr "'.svg' dosyası olarak kaydet"
 
 msgid "Size in emboss direction."
@@ -1703,21 +1705,21 @@ msgstr "Mevcut ön ayarlar yükleniyor"
 msgid "Loading a mode view"
 msgstr "Mod görünümü yükleniyor"
 
-msgid "Choose one file (3mf):"
-msgstr "Dosya seçin (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "Dosya seçin (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 msgstr ""
-"Bir veya daha fazla dosya seçin (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+"Bir veya daha fazla dosya seçin (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Bir veya daha fazla dosya seçin (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Bir veya daha fazla dosya seçin (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "ZIP dosyasını seçin"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "Bir dosya seçin (gcode/3mf):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Bir dosya seçin (GCODE/3MF):"
 
 msgid "Some presets are modified."
 msgstr "Bazı ön ayarlar değiştirildi."
@@ -3746,7 +3748,7 @@ msgstr "Dikdörtgen"
 msgid "Circular"
 msgstr "Dairesel"
 
-msgid "Load shape from STL ..."
+msgid "Load shape from STL..."
 msgstr "Şekli STL'den yükle..."
 
 msgid "Settings"
@@ -5278,8 +5280,8 @@ msgstr "Tüm nesneleri STLs olarak dışa aktarın"
 msgid "Export Generic 3MF"
 msgstr "Genel 3MF olarak dışa aktar"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "3mf dosyasını bazı 3mf uzantılarını kullanmadan dışa aktarın"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "3mf dosyasını bazı 3MF uzantılarını kullanmadan dışa aktarın"
 
 msgid "Export current sliced file"
 msgstr "Geçerli dilimlenmiş dosyayı dışa aktar"
@@ -5734,7 +5736,8 @@ msgstr "Video"
 msgid "Switch to video files."
 msgstr "Video dosyalarına geç."
 
-msgid "Switch to 3mf model files."
+#, fuzzy
+msgid "Switch to 3MF model files."
 msgstr "3mf model dosyalarına geçin."
 
 msgid "Delete selected files from printer."
@@ -6325,11 +6328,13 @@ msgstr "%s bilgisi"
 msgid "Skip"
 msgstr "Atla"
 
-msgid "Newer 3mf version"
-msgstr "Daha yeni 3mf sürümü"
+#, fuzzy
+msgid "Newer 3MF version"
+msgstr "Daha yeni 3MF sürümü"
 
+#, fuzzy
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
 "3mf dosya sürümü Beta’dadır ve mevcut OrcaSlicer sürümünden daha yenidir."
@@ -6340,12 +6345,14 @@ msgstr "Orca Slicer Beta’yı denemek isterseniz tıklayabilirsiniz"
 msgid "Download Beta Version"
 msgstr "Beta Sürümünü İndirin"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+#, fuzzy
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "3mf dosya sürümü mevcut Orca Slicer sürümünden daha yenidir."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+#, fuzzy
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
-"Orca Dilimleyicinizi güncellemek, 3mf dosyasındaki tüm işlevleri "
+"Orca Dilimleyicinizi güncellemek, 3MF dosyasındaki tüm işlevleri "
 "etkinleştirebilir."
 
 msgid "Current Version: "
@@ -6931,13 +6938,14 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Dosya yükleniyor: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr ""
-"OrcaSlicer, 3mf formatını desteklememektedir. Sadece geometri verilerini "
+"OrcaSlicer, 3MF formatını desteklememektedir. Sadece geometri verilerini "
 "yükle."
 
-msgid "Load 3mf"
-msgstr "3mf yükle"
+msgid "Load 3MF"
+msgstr "3MF yükle"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -6956,9 +6964,9 @@ msgstr ""
 "OrcaSlicer’ın, döndürme şablonu ayarlarını temizleyerek otomatik olarak "
 "düzeltmesini ister misiniz?"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
 "3mf'nin %s sürümü, %s'in %s sürümünden daha yeni, Aşağıdaki anahtarlar "
@@ -6967,25 +6975,31 @@ msgstr ""
 msgid "You'd better upgrade your software.\n"
 msgstr "Yazılımınızı yükseltseniz iyi olur.\n"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
 "3mf'nin %s sürümü, %s'in %s sürümünden daha yeni, Yazılımınızı yükseltmenizi "
 "öneririz."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
+"3MF, eski OrcaSlicer tarafından oluşturulmuştur, yalnızca geometri "
+"verilerini yükleyin."
 
-msgid "Invalid values found in the 3mf:"
+msgid "Invalid values found in the 3MF:"
 msgstr "3mf'de geçersiz değerler bulundu:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Lütfen bunları parametre sekmelerinde düzeltin"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
 "3mf dosyasında filament veya yazıcı ön ayarlarında şu değiştirilmiş G-"
 "kodları bulunmaktadır:"
@@ -7000,7 +7014,7 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "G-kodları Değişti"
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3mf dosyasında şu özel filament veya yazıcı ayarları bulunmaktadır:"
 
 msgid ""
@@ -7013,7 +7027,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Özel Ayar"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "Step dosyasındaki bileşenlerin adı UTF8 formatında değil!"
 
 msgid "The name may show garbage characters!"
@@ -7252,7 +7267,7 @@ msgstr "Projeyi kaydet"
 msgid "Importing Model"
 msgstr "Model İçe aktarılıyor"
 
-msgid "prepare 3mf file..."
+msgid "prepare 3MF file..."
 msgstr "3mf dosyasını hazırla..."
 
 msgid "Download failed, unknown file format."
@@ -7700,7 +7715,7 @@ msgstr "Yalnızca Geometriyi Yükle"
 msgid "Load behaviour"
 msgstr "Yükleme davranışı"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "Bir .3mf açılırken yazıcı/filament/işlem ayarları yüklenmeli mi?"
 
 msgid "Maximum recent files"
@@ -7907,26 +7922,32 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Dosyaları OrcaSlicer ile ilişkilendirin"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr ".3mf dosyalarını OrcaSlicer ile ilişkilendirin"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Etkinleştirilirse, OrcaSlicer'ı .3mf dosyalarını açacak varsayılan uygulama "
 "olarak ayarlar"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr ".stl dosyalarını OrcaSlicer ile ilişkilendirin"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "Etkinleştirilirse OrcaSlicer'ı .stl dosyalarını açmak için varsayılan "
 "uygulama olarak ayarlar"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr ".step/.stp dosyalarını OrcaSlicer ile ilişkilendirin"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "Etkinleştirilirse, OrcaSlicer'ı .step dosyalarını açmak için varsayılan "
 "uygulama olarak ayarlar"
@@ -8166,10 +8187,10 @@ msgstr "Çıkış"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Zaman ve filament tahminini elde etmek için tüm plakayı dilimleyin"
 
-msgid "Packing project data into 3mf file"
-msgstr "Proje verilerini 3mf dosyasına paketleme"
+msgid "Packing project data into 3MF file"
+msgstr "Proje verilerini 3MF dosyasına paketleme"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "3mf yükleniyor"
 
 msgid "Jump to model publish web page"
@@ -8187,7 +8208,7 @@ msgstr "Yayınlama iptal edildi"
 msgid "Slicing Plate 1"
 msgstr "Dilimleme Plakası 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Verileri 3mf'ye paketle"
 
 msgid "Jump to webpage"
@@ -9743,16 +9764,16 @@ msgstr "Yapılandırma güncel."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Obj dosyası renkli olarak içe aktar"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10484,7 +10505,7 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Uzatma Kartı"
 
-msgid "Saving objects into the 3mf failed."
+msgid "Saving objects into the 3MF failed."
 msgstr "Nesneleri 3mf'ye kaydetme işlemi başarısız oldu."
 
 msgid "Only Windows 10 is supported."
@@ -10508,23 +10529,23 @@ msgstr "Onarım başarısız oldu."
 msgid "Loading repaired objects"
 msgstr "Onarılan nesnelerin yüklenmesi"
 
-msgid "Exporting 3mf file failed"
+msgid "Exporting 3MF file failed"
 msgstr "3mf dosyasını dışa aktarma işlemi başarısız oldu"
 
-msgid "Import 3mf file failed"
+msgid "Import 3MF file failed"
 msgstr "3mf dosyasını içe aktarma başarısız oldu"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "Onarılan 3mf dosyası herhangi bir nesne içermiyor"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "Onarılan 3MF dosyası herhangi bir nesne içermiyor"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "Onarılan 3mf dosyası birden fazla nesne içeriyor"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "Onarılan 3MF dosyası birden fazla nesne içeriyor"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "Onarılan 3mf dosyası herhangi bir birim içermiyor"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "Onarılan 3MF dosyası herhangi bir birim içermiyor"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "Onarılan 3mf dosyası birden fazla birim içeriyor"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "Onarılan 3MF dosyası birden fazla birim içeriyor"
 
 msgid "Repair finished"
 msgstr "Onarım tamamlandı"
@@ -11200,9 +11221,9 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Tercih edilen yönlendirme"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr ""
-"İlk içe aktarma sonrasında stl'leri Z ekseninde otomatik olarak yönlendirin."
+"İlk içe aktarma sonrasında STL'leri Z ekseninde otomatik olarak yönlendirin."
 
 msgid "Printer preset names"
 msgstr "Yazıcı ön ayar adları"
@@ -17245,7 +17266,7 @@ msgstr "Komut yardımını göster."
 msgid "UpToDate"
 msgstr "Güncel"
 
-msgid "Update the configs values of 3mf to latest."
+msgid "Update the config values of 3MF to latest."
 msgstr "3mf'nin yapılandırma değerlerini en son sürüme güncelleyin."
 
 msgid "downward machines check"
@@ -17266,7 +17287,7 @@ msgstr "Yüklenmeyenler için ilk filamenti varsayılan olarak yükleyin."
 msgid "Minimum save"
 msgstr "Minimum tasarruf"
 
-msgid "export 3mf with minimum size."
+msgid "Export 3MF with minimum size."
 msgstr "3mf'yi minimum boyutta dışa aktarın."
 
 msgid "mtcpp"
@@ -17516,10 +17537,12 @@ msgstr ""
 "Etkinleştirilirse, nesne yerleştirildiğinde düzenleme ekstrüzyon kalibrasyon "
 "bölgesini önleyecektir."
 
-msgid "Skip modified G-code in 3mf"
+#, fuzzy
+msgid "Skip modified G-code in 3MF"
 msgstr "3mf’de değiştirilmiş gcode’ları atla"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+#, fuzzy
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
 "Yazıcı veya filament Ön Ayarlarından 3mf’deki değiştirilmiş gcode’ları "
 "atlayın."
@@ -17527,31 +17550,37 @@ msgstr ""
 msgid "MakerLab name"
 msgstr "MakerLab adı"
 
-msgid "MakerLab name to generate this 3mf."
+#, fuzzy
+msgid "MakerLab name to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab adı."
 
 msgid "MakerLab version"
 msgstr "MakerLab version"
 
-msgid "MakerLab version to generate this 3mf."
+#, fuzzy
+msgid "MakerLab version to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab sürümü."
 
-msgid "metadata name list"
+msgid "Metadata name list"
 msgstr "meta veri adı listesi"
 
-msgid "metadata name list added into 3mf."
+#, fuzzy
+msgid "Metadata name list added into 3MF."
 msgstr "3mf’ye meta veri adı listesi eklendi."
 
-msgid "metadata value list"
+msgid "Metadata value list"
 msgstr "meta veri değer listesi"
 
-msgid "metadata value list added into 3mf."
+#, fuzzy
+msgid "Metadata value list added into 3MF."
 msgstr "3mf’ye meta veri değeri listesi eklendi."
 
-msgid "Allow 3mf with newer version to be sliced"
+#, fuzzy
+msgid "Allow 3MF with newer version to be sliced"
 msgstr "Daha yeni sürümle 3mf'nin dilimlenmesine izin verin"
 
-msgid "Allow 3mf with newer version to be sliced."
+#, fuzzy
+msgid "Allow 3MF with newer version to be sliced."
 msgstr "Daha yeni sürüme sahip 3mf’nin dilimlenmesine izin ver."
 
 msgid "Current Z-hop"
@@ -22025,8 +22054,8 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
-#~ msgstr "Stl'i yükle"
+#~ msgid "Load STL"
+#~ msgstr "STL'i yükle"
 
 #~ msgid "Load svg"
 #~ msgstr "Svg'yi yükle"
@@ -23005,18 +23034,6 @@ msgstr ""
 #~ "4’ten fazla stüdyo/kullanışlı uzaktan erişim kullanıyor, bazılarını "
 #~ "kapatıp tekrar deneyebilirsiniz."
 
-#~ msgid "If you would like to try Bambu Studio Beta, you may click to"
-#~ msgstr "Bambu Studio Beta’yı denemek isterseniz tıklayabilirsiniz."
-
-#~ msgid "The 3mf file version is newer than the current Bambu Studio version."
-#~ msgstr "3mf dosya sürümü mevcut Bambu Studio sürümünden daha yenidir."
-
-#~ msgid ""
-#~ "Update your Bambu Studio could enable all functionality in the 3mf file."
-#~ msgstr ""
-#~ "Bambu Studio’nuzu güncellemek, 3mf dosyasındaki tüm işlevleri "
-#~ "etkinleştirebilir."
-
 #~ msgid "active"
 #~ msgstr "aktif"
 
@@ -23269,14 +23286,6 @@ msgstr ""
 #~ msgid "The Config cannot be loaded."
 #~ msgstr "Yapılandırma yüklenemiyor."
 
-#~ msgid "The 3mf is generated by old Orca Slicer, load geometry data only."
-#~ msgstr ""
-#~ "3mf, eski Orca Slicer tarafından oluşturulmuştur, yalnızca geometri "
-#~ "verilerini yükleyin."
-
-#~ msgid "wiki"
-#~ msgstr "wiki"
-
 #~ msgid "Movement:"
 #~ msgstr "Hareket:"
 
@@ -23457,7 +23466,7 @@ msgstr ""
 #~ msgid "Export all objects as STL"
 #~ msgstr "Tüm nesneleri STL olarak dışa aktar"
 
-#~ msgid "The 3mf is not compatible, load geometry data only!"
+#~ msgid "The 3MF is not compatible, load geometry data only!"
 #~ msgstr "3mf uyumlu değil, yalnızca geometri verilerini yükleyin!"
 
 #~ msgid "Incompatible 3mf"
@@ -23622,9 +23631,6 @@ msgstr ""
 
 #~ msgid "Total Time Estimation"
 #~ msgstr "Toplam Süre Tahmini"
-
-#~ msgid "The 3mf is not from Bambu Lab, load geometry data only."
-#~ msgstr "3mf, Bambu Lab'den değildir, yalnızca geometri verilerini yükleyin."
 
 #~ msgid "High Temp Plate"
 #~ msgstr "Tabla"

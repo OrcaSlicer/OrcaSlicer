@@ -163,7 +163,7 @@ bool ObjColorDialog::Show(bool show) {
 ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
-                _(L("Obj file Import color")),
+                _(L("OBJ file import color")),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxDEFAULT_DIALOG_STYLE /* | wxRESIZE_BORDER*/)
@@ -199,12 +199,12 @@ ObjColorDialog::ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out,
 
         wxStaticText *error_mtl_title       = new wxStaticText(this, wxID_ANY, _L("Some faces don't have color defined."));
         if (!in_out.lost_material_name.empty()) {
-            error_mtl_title->SetLabel(_L("mtl file exist error,could not find the material:") + " " + in_out.lost_material_name + ".");
+            error_mtl_title->SetLabel(_L("MTL file exist error, could not find the material:") + " " + in_out.lost_material_name + ".");
         }
         error_mtl_title->SetFont(Label::Head_12);
         error_mtl_sizer->Add(error_mtl_title, 0, wxALIGN_LEFT | wxBOTTOM | wxTOP, FromDIP(5));
 
-        wxStaticText *tip_title = new wxStaticText(this, wxID_ANY, _L("Please check obj or mtl file."));
+        wxStaticText *tip_title = new wxStaticText(this, wxID_ANY, _L("Please check OBJ or MTL file."));
         tip_title->SetFont(Label::Head_12);
         error_mtl_sizer->Add(tip_title, 0, wxALIGN_LEFT | wxBOTTOM | wxTOP, FromDIP(5));
 

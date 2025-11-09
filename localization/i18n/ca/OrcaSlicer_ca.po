@@ -1324,7 +1324,8 @@ msgstr "Tornar a carregar el fitxer SVG des del disc."
 msgid "Change file"
 msgstr "Canviar fitxer"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Canviar a un altre fitxer .svg"
 
 msgid "Forget the file path"
@@ -1351,7 +1352,7 @@ msgstr "Anomena i desa"
 msgid "Save SVG file"
 msgstr "Desar el fitxer SVG"
 
-msgid "Save as '.svg' file"
+msgid "Save as SVG file."
 msgstr "Desar com a fitxer \".svg\""
 
 msgid "Size in emboss direction."
@@ -1719,20 +1720,20 @@ msgstr "Carregant els valors perfils actuals"
 msgid "Loading a mode view"
 msgstr "Carregant un mode de visualització"
 
-msgid "Choose one file (3mf):"
-msgstr "Tria un fitxer ( 3mf ):"
+msgid "Choose one file (3MF):"
+msgstr "Tria un fitxer ( 3MF ):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
-msgstr "Trieu un o més fitxers ( 3mf/step/stl/svg/obj/amf/usd*/abc/ply ):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "Trieu un o més fitxers ( 3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY ):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Trieu un o més fitxers ( 3mf/step/stl/svg/obj/amf ):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Trieu un o més fitxers ( 3MF/STEP/STL/SVG/OBJ/AMF ):"
 
 msgid "Choose ZIP file"
 msgstr "Trieu el fitxer ZIP"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "Trieu un fitxer ( gcode/3mf ):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Trieu un fitxer ( GCODE/3MF ):"
 
 msgid "Some presets are modified."
 msgstr "Alguns perfils s'han modificat."
@@ -3783,8 +3784,8 @@ msgstr "Rectangular"
 msgid "Circular"
 msgstr "Circular"
 
-msgid "Load shape from STL ..."
-msgstr "Carregar forma des de l'STL ..."
+msgid "Load shape from STL..."
+msgstr "Carregar forma des de l'STL..."
 
 msgid "Settings"
 msgstr "Configuració"
@@ -5310,8 +5311,8 @@ msgstr "Exportar tots els objectes com a diferents STLs"
 msgid "Export Generic 3MF"
 msgstr "Exportar 3MF Genèric"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "Exportar el fitxer 3mf sense utilitzar algunes extensions"
+msgid "Export 3MF file without using some 3mf-extensions."
+msgstr "Exportar el fitxer 3MF sense utilitzar algunes extensions"
 
 msgid "Export current sliced file"
 msgstr "Exportar el fitxer laminat actual"
@@ -5774,8 +5775,9 @@ msgstr "Vídeo"
 msgid "Switch to video files."
 msgstr "Canviar a fitxers de vídeo."
 
-msgid "Switch to 3mf model files."
-msgstr "Canviar a fitxers model 3mf."
+#, fuzzy
+msgid "Switch to 3MF model files."
+msgstr "Canviar a fitxers model 3MF."
 
 msgid "Delete selected files from printer."
 msgstr "Suprimir els fitxers seleccionats de la impressora."
@@ -6367,14 +6369,14 @@ msgstr "%s informació"
 msgid "Skip"
 msgstr "Omet"
 
-msgid "Newer 3mf version"
-msgstr "Nova versió 3mf"
+msgid "Newer 3MF version"
+msgstr "Nova versió 3MF"
 
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
-"La versió d'arxiu 3mf està en Beta i és més recent que la versió actual "
+"La versió d'arxiu 3MF està en Beta i és més recent que la versió actual "
 "d'OrcaSlicer."
 
 msgid "If you would like to try Orca Slicer Beta, you may click to"
@@ -6383,14 +6385,14 @@ msgstr "Si voleu provar Orca Slicer Beta, podeu fer clic a"
 msgid "Download Beta Version"
 msgstr "Descarregar Versió Beta"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr ""
-"La versió del fitxer 3mf és més nova que la versió actual de l'Orca Slicer."
+"La versió del fitxer 3MF és més nova que la versió actual de l'Orca Slicer."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 "Actualitzar el vostre Orca Slicer podria habilitar totes les funcionalitats "
-"al fitxer 3mf."
+"al fitxer 3MF."
 
 msgid "Current Version: "
 msgstr "Versió actual: "
@@ -6976,12 +6978,13 @@ msgstr ""
 msgid "Loading file: %s"
 msgstr "Carregant fitxer: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr ""
-"El 3mf no és compatible amb OrcaSlicer, només carrega dades de geometria."
+"El 3MF no és compatible amb OrcaSlicer, només carrega dades de geometria."
 
-msgid "Load 3mf"
-msgstr "Carregar 3mf"
+msgid "Load 3MF"
+msgstr "Carregar 3MF"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -6996,10 +6999,10 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
-"La versió de 3mf %s és més nova que la versió de %s %s, S'han trobat les "
+"La versió de 3MF %s és més nova que la versió de %s %s, S'han trobat les "
 "següents claus no reconegudes:"
 
 msgid "You'd better upgrade your software.\n"
@@ -7007,25 +7010,31 @@ msgstr "És millor que actualitzeu el vostre programari.\n"
 
 #, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
-"La versió de 3mf %s és més nova que la versió de %s %s, es suggereix que "
+"La versió de 3MF %s és més nova que la versió de %s %s, es suggereix que "
 "actualitzis el teu programari."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
+"El 3MF està generat amb una versió d'Orca Slicer antiga, només carrega "
+"dades de geometria."
 
-msgid "Invalid values found in the 3mf:"
-msgstr "Valors no vàlids trobats en el 3mf:"
+msgid "Invalid values found in the 3MF:"
+msgstr "Valors no vàlids trobats en el 3MF:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Corregiu-los a les pestanyes de paràmetres"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
-"El fitxer 3mf ha realitzat les següents modificacions al Codi-G de filament "
+"El fitxer 3MF ha realitzat les següents modificacions al Codi-G de filament "
 "o impressora:"
 
 #, fuzzy
@@ -7039,9 +7048,9 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "Codis-G modificats"
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr ""
-"El fitxer 3mf té els perfils personalitzats de filament o impressora "
+"El fitxer 3MF té els perfils personalitzats de filament o impressora "
 "següents:"
 
 #, fuzzy
@@ -7055,7 +7064,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Perfil personalitzat"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "El nom dels components dins del fitxer de passos no té format UTF8!"
 
 msgid "The name may show garbage characters!"
@@ -7297,7 +7307,7 @@ msgstr "Desar projecte"
 msgid "Importing Model"
 msgstr "Important Model"
 
-msgid "prepare 3mf file..."
+msgid "prepare 3MF file..."
 msgstr "preparar el fitxer 3MF..."
 
 msgid "Download failed, unknown file format."
@@ -7752,7 +7762,7 @@ msgstr "Carregar només geometria"
 msgid "Load behaviour"
 msgstr "Carregar comportament"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 "S'ha de carregar la configuració de la impressora/filament/procés en obrir "
 "un .3mf?"
@@ -7960,26 +7970,31 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Associar fitxers a OrcaSlicer"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Associar .3mf fitxers a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Si està habilitat, defineix OrcaSlicer com a l'aplicació predeterminada per "
 "obrir fitxers .3mf"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr "Associar fitxers .stl a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per "
 "obrir fitxers .stl"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr "Associar fitxers .step/.stp a OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "Si està habilitada, defineix OrcaSlicer com a l'aplicació predeterminada per "
 "obrir fitxers .step"
@@ -8219,10 +8234,10 @@ msgstr "Desconnectar-se"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Laminar tota la placa per obtenir estimació de temps i filament"
 
-msgid "Packing project data into 3mf file"
-msgstr "Empaquetar les dades del projecte en un fitxer 3mf"
+msgid "Packing project data into 3MF file"
+msgstr "Empaquetar les dades del projecte en un fitxer 3MF"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "Pujant 3mf"
 
 msgid "Jump to model publish web page"
@@ -8241,7 +8256,7 @@ msgstr ""
 msgid "Slicing Plate 1"
 msgstr "Laminant Base 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Empaquetant dades a 3mf"
 
 msgid "Jump to webpage"
@@ -9800,16 +9815,16 @@ msgstr "La configuració està actualitzada."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Importar color de l'arxiu Obj"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -10549,8 +10564,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Targeta d'Ampliació"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "El desament d'objectes al 3mf no ha funcionat."
+msgid "Saving objects into the 3MF failed."
+msgstr "El desament d'objectes al 3MF no ha funcionat."
 
 msgid "Only Windows 10 is supported."
 msgstr "Només s'admet Windows 10."
@@ -10573,22 +10588,22 @@ msgstr "No s'ha pogut reparar."
 msgid "Loading repaired objects"
 msgstr "Carregant els objectes reparats"
 
-msgid "Exporting 3mf file failed"
-msgstr "S'ha produït un error en l'exportació del fitxer 3mf"
+msgid "Exporting 3MF file failed"
+msgstr "S'ha produït un error en l'exportació del fitxer 3MF"
 
-msgid "Import 3mf file failed"
-msgstr "S'ha produït un error en l'importació del fitxer 3mf"
+msgid "Import 3MF file failed"
+msgstr "S'ha produït un error en l'importació del fitxer 3MF"
 
-msgid "Repaired 3mf file does not contain any object"
+msgid "Repaired 3MF file does not contain any object"
 msgstr "El fitxer 3MF reparat no conté cap objecte"
 
-msgid "Repaired 3mf file contains more than one object"
+msgid "Repaired 3MF file contains more than one object"
 msgstr "El fitxer 3MF reparat conté més d'un objecte"
 
-msgid "Repaired 3mf file does not contain any volume"
+msgid "Repaired 3MF file does not contain any volume"
 msgstr "El fitxer 3MF reparat no conté cap volum"
 
-msgid "Repaired 3mf file contains more than one volume"
+msgid "Repaired 3MF file contains more than one volume"
 msgstr "El fitxer 3MF reparat conté més d'un volum"
 
 msgid "Repair finished"
@@ -11269,7 +11284,7 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Orientació preferida"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr ""
 "Orientar automàticament els stls a l'eix Z després de la importació inicial"
 
@@ -17320,8 +17335,8 @@ msgstr "Mostra l'ajuda de comandes."
 msgid "UpToDate"
 msgstr "Actualitzar"
 
-msgid "Update the configs values of 3mf to latest."
-msgstr "Actualitzar els valors de configuració de 3mf a la darrera versió."
+msgid "Update the config values of 3MF to latest."
+msgstr "Actualitzar els valors de configuració de 3MF a la darrera versió."
 
 msgid "downward machines check"
 msgstr "comprovació descendent de màquines"
@@ -17342,7 +17357,7 @@ msgstr "Carregar el primer filament per defecte per als que no estan carregats"
 msgid "Minimum save"
 msgstr "Guardat mínim"
 
-msgid "export 3mf with minimum size."
+msgid "Export 3MF with minimum size."
 msgstr "exportar 3MF amb la mida mínima."
 
 msgid "mtcpp"
@@ -17586,43 +17601,43 @@ msgstr ""
 "Si està habilitat, l'arranjament evitarà la regió de calibratge d'extrusió "
 "quan col·loqueu l'objecte"
 
-msgid "Skip modified G-code in 3mf"
+msgid "Skip modified G-code in 3MF"
 msgstr "Omet els codis-g modificats en 3mf"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
-"Omet els codis-g modificats en 3mf des de la impressora o els presets de "
+"Omet els codis-g modificats en 3MF des de la impressora o els presets de "
 "filament."
 
 msgid "MakerLab name"
 msgstr "Nom MakerLab"
 
-msgid "MakerLab name to generate this 3mf."
-msgstr "Nom de MakerLab per generar aquest 3mf"
+msgid "MakerLab name to generate this 3MF."
+msgstr "Nom de MakerLab per generar aquest 3MF."
 
 msgid "MakerLab version"
 msgstr "Versió MakerLab"
 
-msgid "MakerLab version to generate this 3mf."
-msgstr "Versió de MakerLab per generar aquest 3mf"
+msgid "MakerLab version to generate this 3MF."
+msgstr "Versió de MakerLab per generar aquest 3MF."
 
-msgid "metadata name list"
-msgstr "llista de noms de metadades"
+msgid "Metadata name list"
+msgstr "Llista de noms de metadades"
 
-msgid "metadata name list added into 3mf."
-msgstr "llista de noms de metadades afegida a 3MF"
+msgid "Metadata name list added into 3MF."
+msgstr "Llista de noms de metadades afegida a 3MF."
 
-msgid "metadata value list"
-msgstr "llista de valors de metadades"
+msgid "Metadata value list"
+msgstr "Llista de valors de metadades"
 
-msgid "metadata value list added into 3mf."
-msgstr "llista de valors de metadades afegida a 3MF"
+msgid "Metadata value list added into 3MF."
+msgstr "Llista de valors de metadades afegida a 3MF."
 
-msgid "Allow 3mf with newer version to be sliced"
-msgstr ""
+msgid "Allow 3MF with newer version to be sliced"
+msgstr "Permet laminar 3MF amb la versió més recent"
 
-msgid "Allow 3mf with newer version to be sliced."
-msgstr "Permet laminar 3mf amb la versió més recent"
+msgid "Allow 3MF with newer version to be sliced."
+msgstr "Permet laminar 3MF amb la versió més recent."
 
 msgid "Current Z-hop"
 msgstr "Salt-z actual"
@@ -22008,8 +22023,8 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
-#~ msgstr "Carregar stl"
+#~ msgid "Load STL"
+#~ msgstr "Carregar STL"
 
 #~ msgid "Load svg"
 #~ msgstr "Carregar svg"
@@ -22676,11 +22691,6 @@ msgstr ""
 
 #~ msgid "The Config cannot be loaded."
 #~ msgstr "La Configuració no es pot carregar."
-
-#~ msgid "The 3mf is generated by old Orca Slicer, load geometry data only."
-#~ msgstr ""
-#~ "El 3mf està generat amb una versió d'Orca Slicer antiga, només carrega "
-#~ "dades de geometria."
 
 #~ msgid "Configuration package updated to "
 #~ msgstr "Paquet de configuració actualitzat a "

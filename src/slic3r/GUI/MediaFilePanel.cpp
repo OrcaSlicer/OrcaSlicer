@@ -83,7 +83,7 @@ MediaFilePanel::MediaFilePanel(wxWindow * parent)
     m_button_video = new ::Button(m_type_panel, _L("Video"), "", wxBORDER_NONE);
     m_button_video->SetToolTip(_L("Switch to video files."));
     m_button_model = new ::Button(m_type_panel, _L("Model"), "", wxBORDER_NONE);
-    m_button_video->SetToolTip(_L("Switch to 3mf model files."));
+    m_button_video->SetToolTip(_L("Switch to 3MF model files."));
     for (auto b : {m_button_timelapse, m_button_video, m_button_model}) {
         b->SetBackgroundColor(background);
         b->SetCanFocus(false);
