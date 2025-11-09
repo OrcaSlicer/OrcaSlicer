@@ -313,7 +313,7 @@ void TextInput::messureSize()
 {
     wxSize size = GetSize();
     wxClientDC dc(this);
-    bool   align_right = GetWindowStyle() & wxRIGHT;
+    bool   align_right = GetWindowStyle() & wxALIGN_RIGHT;
     if (align_right)
         dc.SetFont(GetFont());
     else
