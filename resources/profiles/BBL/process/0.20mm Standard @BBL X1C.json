@@ -7,7 +7,6 @@
     "instantiation": "true",
     "description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
     "smooth_coefficient": "150",
-    "overhang_totally_speed": "50",
     "compatible_printers": [
         "Bambu Lab X1 Carbon 0.4 nozzle",
         "Bambu Lab X1 0.4 nozzle",

@@ -9,6 +9,9 @@
 namespace Slic3r {
 namespace GUI {
 
+// EIdBase::Volume must be greater than PartPlateList::MAX_PLATES_COUNT * PartPlate::GRABBER_COUNT
+static_assert((int) SceneRaycaster::EIdBase::Volume > PartPlateList::MAX_PLATES_COUNT * PartPlate::GRABBER_COUNT, "EIdBase::Volume too small");
+
 SceneRaycaster::SceneRaycaster() {
 #if ENABLE_RAYCAST_PICKING_DEBUG
     // hit point

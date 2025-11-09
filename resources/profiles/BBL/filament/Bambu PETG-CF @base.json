@@ -47,6 +47,9 @@
     "hot_plate_temp_initial_layer": [
         "70"
     ],
+    "impact_strength_z": [
+        "10.7"
+    ],
     "nozzle_temperature_range_high": [
         "270"
     ],

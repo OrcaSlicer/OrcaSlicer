@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "COEX PETG @BBL A1 0.2 nozzle",
+    "inherits": "COEX PETG @base",
+    "from": "system",
+    "setting_id": "CXPETX09",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.2 nozzle"
+    ]
+}

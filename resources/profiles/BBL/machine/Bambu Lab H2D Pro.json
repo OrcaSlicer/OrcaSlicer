@@ -1,0 +1,15 @@
+{
+    "type": "machine_model",
+    "name": "Bambu Lab H2D Pro",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "url": "http://www.bambulab.com/Parameters/printer_model/Bambu Lab X1.json",
+    "bed_model": "bbl-3dp-H2D.stl",
+    "bed_texture": "bbl-3dp-logo.svg",
+    "default_bed_type": "Textured PEI Plate",
+    "image_bed_type": "o",
+    "not_support_bed_type":"Cool Plate;Engineering Plate;Bambu Cool Plate SuperTack",
+    "family": "BBL-3DP",
+    "machine_tech": "FFF",
+    "model_id": "O1E",
+    "default_materials": "Bambu PLA Basic @BBL H2DP;Bambu PLA-CF @BBL H2DP;Bambu PETG Basic @BBL H2DP;Bambu ABS @BBL H2DP;Bambu PETG HF @BBL H2DP;Bambu PLA Silk @BBL H2DP;Bambu PLA Matte @BBL H2DP;Bambu PC @BBL H2DP;Bambu PA-CF @BBL H2DP"
+}

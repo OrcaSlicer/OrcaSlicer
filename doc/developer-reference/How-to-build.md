@@ -84,19 +84,34 @@ How to building with Visual Studio 2022 on Windows 64-bit.
      ```
 
 > [!NOTE]
+> The build process will take a long time depending on your system but even with high-end hardware it can take up to 40 minutes.
+
+> [!TIP]
 > If you encounter issues, you can try to uninstall ZLIB from your Vcpkg library.
 
-3. If successful, you will find the VS 2022 solution file in:
+3. If successful, you will find the Visual Studio solution file in:
    ```shell
    build\OrcaSlicer.sln
    ```
+4. Open the solution in Visual Studio, set the build configuration to `Release` and run the `Local Windows Debugger`.  
+   ![compile_vs2022_local_debugger](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/compile_vs2022_local_debugger.png?raw=true)
+5. Your resulting executable will be located in:
+   ```shell
+   \build\src\Release\orca-slicer.exe
+   ```
+
+> [!NOTE]
+> The first time you build a branch, it will take a long time.  
+> Changes to .cpp files are quickly compiled.  
+> Changes to .hpp files take longer, depending on what you change.  
+> If you switch back and forth between branches, it also takes a long time to rebuild, even if you haven't made any changes.
 
 > [!IMPORTANT]
 > Make sure that CMake version 3.31.x is actually being used. Run `cmake --version` and verify it returns a **3.31.x** version.
 > If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).
 > You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
 
-> [!NOTE]
+> [!TIP]
 > If the build fails, try deleting the `build/` and `deps/build/` directories to clear any cached build data. Rebuilding after a clean-up is usually sufficient to resolve most issues.
 
 ## MacOS 64-bit
@@ -264,9 +279,9 @@ The build system supports multiple Linux distributions including Ubuntu/Debian a
    ./build_linux.sh -d
    ```
 
-3. **Build OrcaSlicer:**
+3. **Build OrcaSlicer with tests:**
    ```shell
-   ./build_linux.sh -s
+   ./build_linux.sh -st
    ```
 
 4. **Build AppImage (optional):**
@@ -276,14 +291,15 @@ The build system supports multiple Linux distributions including Ubuntu/Debian a
 
 5. **All-in-one build (recommended):**
    ```shell
-   ./build_linux.sh -dsi
+   ./build_linux.sh -dsti
    ```
 
 **Additional build options:**
 
-- `-b`: Build in debug mode
+- `-b`: Build in debug mode (mostly broken at runtime for a long time; avoid unless you want to be fixing failed assertions)
 - `-c`: Force a clean build
 - `-C`: Enable ANSI-colored compile output (GNU/Clang only)
+- `-e`: Build RelWithDebInfo (release + symbols)
 - `-j N`: Limit builds to N cores (useful for low-memory systems)
 - `-1`: Limit builds to one core
 - `-l`: Use Clang instead of GCC
@@ -294,10 +310,14 @@ The build system supports multiple Linux distributions including Ubuntu/Debian a
 > The build script automatically detects your Linux distribution and uses the appropriate package manager (apt, pacman) to install dependencies.
 
 > [!TIP]
-> For first-time builds, use `./build_linux.sh -u` to install dependencies, then `./build_linux.sh -dsi` to build everything.
+> For first-time builds, use `./build_linux.sh -u` to install dependencies, then `./build_linux.sh -dsti` to build everything.
 
 > [!WARNING]
-> If you encounter memory issues during compilation, use `-j 1` or `-1` to limit parallel compilation, or `-r` to skip memory checks.
+> If you encounter memory issues during compilation, use `-j 1` or `-1` to limit parallel compilation and `-r` to skip memory checks.
+
+#### Unit Testing
+
+See [How to Test](How-to-test) for more details.
 
 ---
 

@@ -2,6 +2,8 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 
+#include "DeviceCore/DevManager.h"
+
 namespace Slic3r {
 namespace GUI {
 
@@ -18,7 +20,7 @@ MultiMachineItem::MultiMachineItem(wxWindow* parent, MachineObject* obj)
     Bind(wxEVT_LEFT_DOWN, &MultiMachineItem::OnLeftDown, this);
     Bind(wxEVT_MOTION, &MultiMachineItem::OnMove, this);
     Bind(EVT_MULTI_DEVICE_VIEW, [this, obj](auto& e) {
-        wxGetApp().mainframe->jump_to_monitor(obj->dev_id);
+        wxGetApp().mainframe->jump_to_monitor(obj->get_dev_id());
         if (wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()) {
             wxGetApp().mainframe->m_monitor->get_status_panel()->get_media_play_ctrl()->jump_to_play();
         }
@@ -40,8 +42,8 @@ void MultiMachineItem::OnLeaveWindow(wxMouseEvent& evt)
 
 void MultiMachineItem::OnLeftDown(wxMouseEvent& evt)
 {
-    int left = FromDIP(DEVICE_LEFT_PADDING_LEFT + 
-        DEVICE_LEFT_DEV_NAME + 
+    int left = FromDIP(DEVICE_LEFT_PADDING_LEFT +
+        DEVICE_LEFT_DEV_NAME +
         DEVICE_LEFT_PRO_NAME +
         DEVICE_LEFT_PRO_INFO);
     auto mouse_pos = ClientToScreen(evt.GetPosition());
@@ -152,7 +154,7 @@ void MultiMachineItem::doRender(wxDC& dc)
 
     if (obj_) {
         //dev name
-        wxString dev_name = wxString::FromUTF8(obj_->dev_name);
+        wxString dev_name = wxString::FromUTF8(obj_->get_dev_name());
         if (!obj_->is_online()) {
             dev_name = dev_name + "(" + _L("Offline") + ")";
         }
@@ -187,13 +189,13 @@ void MultiMachineItem::doRender(wxDC& dc)
         else if (state_device > 2 && state_device < 7) {
             dc.SetFont(Label::Body_12);
             dc.SetTextForeground(wxColour(0, 150, 136));
-            if (obj_->get_curr_stage().IsEmpty() && obj_->subtask_) {
+            if (obj_->get_curr_stage() == _L("Printing") && obj_->subtask_) {
                 //wxString layer_info = wxString::Format(_L("Layer: %d/%d"), obj_->curr_layer, obj_->total_layers);
                 wxString progress_info = wxString::Format("%d", obj_->subtask_->task_progress);
                 wxString left_time = wxString::Format("%s", get_left_time(obj_->mc_left_time));
 
                 DrawTextWithEllipsis(dc, progress_info + "%  |  " + left_time, FromDIP(DEVICE_LEFT_PRO_INFO), left, FromDIP(10));
-                
+
 
                 dc.SetPen(wxPen(wxColour(233,233,233)));
                 dc.SetBrush(wxBrush(wxColour(233,233,233)));
@@ -235,7 +237,7 @@ void MultiMachineItem::doRender(wxDC& dc)
 void MultiMachineItem::post_event(wxCommandEvent&& event)
 {
     event.SetEventObject(this);
-    event.SetString(obj_->dev_id);
+    event.SetString(obj_->get_dev_id());
     event.SetInt(state_selected);
     wxPostEvent(this, event);
 }
@@ -320,7 +322,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_table_head_panel->SetBackgroundColour(TABLE_HEAR_NORMAL_COLOUR);
     m_table_head_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_printer_name = new Button(m_table_head_panel, _L("Device Name"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SIZE);
+    m_printer_name = new Button(m_table_head_panel, _L("Device Name"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SINGLE_SIZE);
     m_printer_name->SetBackgroundColor(head_bg);
     m_printer_name->SetFont(TABLE_HEAD_FONT);
     m_printer_name->SetCornerRadius(0);
@@ -341,9 +343,9 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
         this->m_sort.set_role(sortcb, SortItem::SR_MACHINE_NAME, device_dev_name_big);
         this->refresh_user_device();
     });
-    
 
-    m_task_name = new Button(m_table_head_panel, _L("Task Name"), "", wxNO_BORDER, ICON_SIZE);
+
+    m_task_name = new Button(m_table_head_panel, _L("Task Name"), "", wxNO_BORDER, ICON_SINGLE_SIZE);
     m_task_name->SetBackgroundColor(TABLE_HEAR_NORMAL_COLOUR);
     m_task_name->SetFont(TABLE_HEAD_FONT);
     m_task_name->SetCornerRadius(0);
@@ -351,9 +353,9 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_task_name->SetMaxSize(wxSize(FromDIP(DEVICE_LEFT_DEV_NAME), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_task_name->SetCenter(false);
 
-    
 
-    m_status = new Button(m_table_head_panel, _L("Device Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SIZE);
+
+    m_status = new Button(m_table_head_panel, _L("Device Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SINGLE_SIZE);
     m_status->SetBackgroundColor(head_bg);
     m_status->SetFont(TABLE_HEAD_FONT);
     m_status->SetCornerRadius(0);
@@ -374,9 +376,9 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
         this->m_sort.set_role(sortcb, SortItem::SortRule::SR_MACHINE_STATE, device_state_big);
         this->refresh_user_device();
     });
-    
 
-    m_action = new Button(m_table_head_panel, _L("Actions"), "", wxNO_BORDER, ICON_SIZE, false);
+
+    m_action = new Button(m_table_head_panel, _L("Actions"), "", wxNO_BORDER, ICON_SINGLE_SIZE, false);
     m_action->SetBackgroundColor(TABLE_HEAR_NORMAL_COLOUR);
     m_action->SetFont(TABLE_HEAD_FONT);
     m_action->SetCornerRadius(0);
@@ -476,7 +478,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
         refresh_user_device();
         update_page_number();
     });
-   
+
     m_page_num_input = new ::TextInput(m_flipping_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(50), -1), wxTE_PROCESS_ENTER);
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     m_page_num_input->SetBackgroundColor(input_bg);
@@ -620,8 +622,8 @@ void MultiMachineManagerPage::sync_state(MachineObject* obj_)
     ObjState state_obj;
 
     if (obj_) {
-        state_obj.dev_id = obj_->dev_id;
-        state_obj.state_dev_name = obj_->dev_name;
+        state_obj.dev_id = obj_->get_dev_id();
+        state_obj.state_dev_name = obj_->get_dev_name();
 
         if (obj_->print_status == "IDLE") {
             state_obj.state_device = 0;

@@ -37,17 +37,6 @@ static const float SLIDER_RIGHT_MARGIN = 124.0f;
 static const float SLIDER_BOTTOM_MARGIN = 64.0f;
 class GCodeViewer
 {
-    // helper to render shells
-    struct Shells
-    {
-        GLVolumeCollection volumes;
-        bool visible{ false };
-        //BBS: always load shell when preview
-        int print_id{ -1 };
-        int print_modify_count { -1 };
-        bool previewing{ false };
-    };
-
 public:
     enum class EViewType : unsigned char;
     struct SequentialView
@@ -165,9 +154,29 @@ public:
         bool m_show_marker = false;
         void render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
     };
-
+    struct ExtruderFilament
+    {
+        std::string   type;
+        std::string   hex_color;
+        unsigned char filament_id;
+        bool is_support_filament;
+    };
+    // helper to render shells
+    struct Shells
+    {
+        GLVolumeCollection volumes;
+        bool               visible{false};
+        // BBS: always load shell when preview
+        int  print_id{-1};
+        int  print_modify_count{-1};
+        bool previewing{false};
+    };
     //BBS
     ConflictResultOpt m_conflict_result;
+    GCodeCheckResult  m_gcode_check_result;
+    FilamentPrintableResult filament_printable_reuslt;
+    Shells            m_shells;
+
 private:
     std::vector<int> m_plater_extruder;
     bool m_gl_data_initialized{ false };
@@ -176,6 +185,11 @@ private:
     const GCodeProcessorResult* m_gcode_result;
     //BBS: add only gcode mode
     bool m_only_gcode_in_preview {false};
+
+    //BBS: extruder dispensing filament
+    std::vector<ExtruderFilament> m_left_extruder_filament;
+    std::vector<ExtruderFilament> m_right_extruder_filament;
+    size_t m_nozzle_nums;
 
     // bounding box of toolpaths
     BoundingBoxf3 m_paths_bounding_box;
@@ -195,7 +209,6 @@ private:
     SequentialView m_sequential_view;
     IMSlider* m_moves_slider;
     IMSlider* m_layers_slider;
-    Shells m_shells;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     // whether or not to render the cog model with fixed screen size
     bool m_cog_marker_fixed_screen_size{ true };
@@ -355,6 +368,7 @@ private:
 
     //BBS: GUI refactor: add canvas size
     void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);
+    void render_legend_color_arr_recommen(float window_padding);
     void render_slider(int canvas_width, int canvas_height);
 };
 

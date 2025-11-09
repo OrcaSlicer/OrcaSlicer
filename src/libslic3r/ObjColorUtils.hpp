@@ -3,7 +3,7 @@
 #include <ctime>
 
 #include "opencv2/opencv.hpp"
-
+#include "libslic3r/Color.hpp"
 class QuantKMeans
 {
 public:
@@ -260,3 +260,9 @@ public:
         return image8UC3;
     }
 };
+
+bool obj_color_deal_algo(std::vector<Slic3r::RGBA> &input_colors,
+                         std::vector<Slic3r::RGBA>&   cluster_colors_from_algo,
+                         std::vector<int>&            cluster_labels_from_algo,
+                         char &                     cluster_number,
+                         int                        max_cluster);

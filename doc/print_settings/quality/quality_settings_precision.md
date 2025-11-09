@@ -61,9 +61,36 @@ To mitigate this effect, OrcaSlicer allows you to specify a negative distance th
 
 ![elephant-foot-compensation](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/elephant-foot-compensation.png?raw=true)
 
+The compensation works as follows:  
+When the `current_layer` is <= `input_compensation_layers`
+```c++
+compensation = input_compensation_distance - (input_compensation_distance / input_compensation_layers) × (current_layer - 1)
+```
+According to the equation, we can establish the following rules:
+- In the 1st layer, since it is layer `1 - 1 = 0`, compensation is 100%.
+- The intermediate layers (between the first and input_compensation_layers) will have linear compensation.
+- Layers above the specified amount will not be compensated.
+
+Assuming the compensation value is 0.25 mm:
+
+- Elephant Foot Compensation Layers = 1 :
+  - 1st layer: `0.25mm` compensation (100%)
+  - 2nd layer and beyond: No compensation (0 mm)
+- Elephant Foot Compensation Layers = 2 :
+  - 1st layer: `0.25mm` compensation (100%)
+  - 2nd layer: `0.25 − (0.25 / 2) × (2 - 1) = 0.125mm` compensation (50%)
+  - 3rd layer and beyond: No compensation (0 mm).
+- Elephant Foot Compensation Layers = 5 :
+  - 1st layer: `0.25mm` compensation (100%)
+  - 2nd layer: `0.25 − (0.25 / 5) × (2 - 1) = 0.2mm` compensation (80%)
+  - 3rd layer: `0.25 − (0.25 / 5) × (3 - 1) = 0.15mm` compensation (60%)
+  - 4th layer: `0.25 − (0.25 / 5) × (4 - 1) = 0.1mm` compensation (40%)
+  - 5th layer: `0.25 − (0.25 / 5) × (5 - 1) = 0.05mm` compensation (20%)
+  - 6th layer and beyond: No compensation (0 mm).
+
 ## Precise wall
 
-The 'Precise Wall' is a distinctive feature introduced by OrcaSlicer, aimed at improving the dimensional accuracy of prints and minimizing layer inconsistencies by slightly increasing the spacing between the outer wall and the inner wall.
+The 'Precise Wall' is a distinctive feature introduced by OrcaSlicer, aimed at improving the dimensional accuracy of prints and minimizing layer inconsistencies by slightly increasing the spacing between the outer wall and the inner wall when printing in [Inner Outer wall order](quality_settings_wall_and_surfaces#innerouter).
 
 ### Technical explanation
 

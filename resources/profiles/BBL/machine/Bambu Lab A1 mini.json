@@ -6,6 +6,8 @@
     "bed_model": "bbl-3dp-A1M.stl",
     "bed_texture": "bbl-3dp-logo.svg",
     "default_bed_type": "Textured PEI Plate",
+    "image_bed_type": "mini",
+    "not_support_bed_type": "Smooth Cool Plate;Engineering Plate",
     "family": "BBL-3DP",
     "machine_tech": "FFF",
     "model_id": "N1",

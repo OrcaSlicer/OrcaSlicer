@@ -696,3 +696,22 @@ wxAuiToolBarItem* BBLTopbar::FindToolByCurrentPosition()
     wxPoint client_pos = this->ScreenToClient(mouse_pos);
     return this->FindToolByPosition(client_pos.x, client_pos.y);
 }
+
+#ifdef __WIN32__
+WXLRESULT BBLTopbar::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
+{
+    switch (nMsg) {
+    case WM_NCHITTEST: {
+        const wxAuiToolBarItem* current_item = this->FindToolByCurrentPosition();
+        if (current_item != nullptr && current_item != m_title_item) {
+            break;
+        }
+
+        // Pass the event to main window if mouse is on the top bar and not on any of the buttons
+        return HTTRANSPARENT;
+    }
+    }
+
+    return wxAuiToolBar::MSWWindowProc(nMsg, wParam, lParam);
+}
+#endif

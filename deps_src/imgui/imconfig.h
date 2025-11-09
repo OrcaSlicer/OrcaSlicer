@@ -230,5 +230,7 @@ namespace ImGui
     const wchar_t OpenHoverDarkButton  = 0x085B;
 
     //    void MyFunction(const char* name, const MyMatrix44& v);
+
+    const wchar_t FilamentGreen     = 0x0850;
 }
 

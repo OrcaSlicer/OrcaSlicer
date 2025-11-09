@@ -11,7 +11,9 @@
     ],
     "fan_cooling_layer_time": "25",
     "fan_max_speed": "45",
-    "filament_max_volumetric_speed": "37",
+    "filament_max_volumetric_speed": [
+        "37"
+    ],
     "filament_retract_before_wipe": "50",
     "nozzle_temperature_initial_layer": "240",
     "overhang_fan_speed": "45",

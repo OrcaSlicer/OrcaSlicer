@@ -23,7 +23,7 @@ jobs:
       
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@v47
         with:
           files: |
             src/slic3r/GUI/Tab.cpp
@@ -56,6 +56,45 @@ jobs:
                   return Add-BrokenReference $sourceFile $line $target "Fragment does not exist" $type
               }
               return $null
+          }
+          
+          function Get-ImagesFromLine($line) {
+              $images = @()
+              $lineForParsing = [regex]::Replace($line, '`[^`]*`', '')
+              
+              # Process markdown and HTML images
+              $imagePatterns = @(
+                  @{ Pattern = "!\[([^\]]*)\]\(([^)]+)\)"; Type = "Markdown"; AltGroup = 1; UrlGroup = 2 }
+                  @{ Pattern = '<img\s+[^>]*>'; Type = "HTML"; AltGroup = -1; UrlGroup = -1 }
+              )
+              
+              foreach ($pattern in $imagePatterns) {
+                  foreach ($match in [regex]::Matches($lineForParsing, $pattern.Pattern)) {
+                      $altText = ""
+                      $url = ""
+                      
+                      if ($pattern.Type -eq "Markdown") {
+                          $altText = $match.Groups[$pattern.AltGroup].Value
+                          $url = $match.Groups[$pattern.UrlGroup].Value
+                      } else {
+                          # Extract from HTML
+                          $imgTag = $match.Value
+                          if ($imgTag -match 'alt\s*=\s*[`"'']([^`"'']*)[`"'']') { $altText = $matches[1] }
+                          if ($imgTag -match 'src\s*=\s*[`"'']([^`"'']*)[`"'']') { $url = $matches[1] }
+                      }
+                      
+                      $images += @{
+                          Match = $match.Value
+                          Type = $pattern.Type
+                          AltText = $altText
+                          Url = $url
+                          StartIndex = $match.Index
+                          Length = $match.Length
+                      }
+                  }
+              }
+              
+              return $images
           }
           
           # Initialize
@@ -99,8 +138,35 @@ jobs:
                   if ($inCodeFence) { continue }
                   
                   $lineForParsing = [regex]::Replace($line, '`[^`]*`', '')
-                  foreach ($linkMatch in [regex]::Matches($lineForParsing, '(?<!!)[^\]]*\]\(([^)]+)\)')) {
-                      $destRaw = $linkMatch.Groups[1].Value.Trim()
+                  
+                  # Get all images from this line to skip them in link processing
+                  $imagesInLine = Get-ImagesFromLine $line
+                  $imageRanges = @()
+                  foreach ($img in $imagesInLine) {
+                      # Exclude the entire image syntax from link processing
+                      $imageRanges += @{ Start = $img.StartIndex; End = $img.StartIndex + $img.Length }
+                  }
+                  
+                  # Find all markdown links, but exclude those that are part of images
+                  foreach ($linkMatch in [regex]::Matches($lineForParsing, '(?<!!)\[([^\]]*)\]\(([^)]+)\)')) {
+                      $linkStart = $linkMatch.Index
+                      $linkEnd = $linkMatch.Index + $linkMatch.Length
+                      
+                      # Check if this link overlaps with any image
+                      $isPartOfImage = $false
+                      foreach ($imageRange in $imageRanges) {
+                          if (($linkStart -ge $imageRange.Start -and $linkStart -lt $imageRange.End) -or
+                              ($linkEnd -gt $imageRange.Start -and $linkEnd -le $imageRange.End) -or
+                              ($linkStart -le $imageRange.Start -and $linkEnd -ge $imageRange.End)) {
+                              $isPartOfImage = $true
+                              break
+                          }
+                      }
+                      
+                      if ($isPartOfImage) { continue }
+                      
+                      $linkText = $linkMatch.Groups[1].Value.Trim()
+                      $destRaw = $linkMatch.Groups[2].Value.Trim()
                       
                       # Handle internal fragments
                       if ($destRaw.StartsWith('#')) {
@@ -207,54 +273,39 @@ jobs:
                   }
                   if ($inCodeFence) { continue }
                   
-                  $lineForParsing = [regex]::Replace($line, '`[^`]*`', '')
+                  # Use the unified image detection function
+                  $imagesInLine = Get-ImagesFromLine $line
                   
-                  # Process markdown and HTML images
-                  $imagePatterns = @(
-                      @{ Pattern = "!\[([^\]]*)\]\(([^)]+)\)"; Type = "Markdown"; AltGroup = 1; UrlGroup = 2 }
-                      @{ Pattern = '<img\s+[^>]*>'; Type = "HTML"; AltGroup = -1; UrlGroup = -1 }
-                  )
-                  
-                  foreach ($pattern in $imagePatterns) {
-                      foreach ($match in [regex]::Matches($lineForParsing, $pattern.Pattern)) {
-                          $altText = ""
-                          $url = ""
-                          
-                          if ($pattern.Type -eq "Markdown") {
-                              $altText = $match.Groups[$pattern.AltGroup].Value
-                              $url = $match.Groups[$pattern.UrlGroup].Value
-                          } else {
-                              # Extract from HTML
-                              $imgTag = $match.Value
-                              if ($imgTag -match 'alt\s*=\s*[`"'']([^`"'']*)[`"'']') { $altText = $matches[1] }
-                              if ($imgTag -match 'src\s*=\s*[`"'']([^`"'']*)[`"'']') { $url = $matches[1] }
-                          }
-                          
-                          if (-not $altText.Trim() -and $url) {
-                              $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $match.Value "[$($pattern.Type)] Missing alt text for image" "Image"
-                          } elseif ($url -and $altText) {
-                              # Validate URL format and file existence
-                              if ($url -match $expectedUrlPattern) {
-                                  $relativePathInUrl = $matches[1]
-                                  $fileNameFromUrl = [System.IO.Path]::GetFileNameWithoutExtension($relativePathInUrl)
-                                  
-                                  if ($altText -ne $fileNameFromUrl) {
-                                      $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $match.Value "[$($pattern.Type)] Alt text `"$altText`" ≠ filename `"$fileNameFromUrl`"" "Image"
-                                  }
-                                  
-                                  $expectedImagePath = Join-Path $PWD ($relativePathInUrl -replace "/", "\")
-                                  if (-not (Test-Path $expectedImagePath)) {
-                                      $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $match.Value "[$($pattern.Type)] Image not found at path: $relativePathInUrl" "Image"
-                                  }
-                              } else {
-                                  $urlIssues = @()
-                                  if (-not $url.StartsWith('https://github.com/SoftFever/OrcaSlicer/blob/main/')) { $urlIssues += "URL must start with expected prefix" }
-                                  if (-not $url.EndsWith('?raw=true')) { $urlIssues += "URL must end with '?raw=true'" }
-                                  if ($url -match '^https?://(?!github\.com/SoftFever/OrcaSlicer)') { $urlIssues += "External URLs not allowed" }
-                                  
-                                  $issueText = "[$($pattern.Type)] URL format issues: " + ($urlIssues -join '; ')
-                                  $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $match.Value $issueText "Image"
+                  foreach ($image in $imagesInLine) {
+                      $altText = $image.AltText
+                      $url = $image.Url
+                      $imageMatch = $image.Match
+                      $imageType = $image.Type
+                      
+                      if (-not $altText.Trim() -and $url) {
+                          $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $imageMatch "[$imageType] Missing alt text for image" "Image"
+                      } elseif ($url -and $altText) {
+                          # Validate URL format and file existence
+                          if ($url -match $expectedUrlPattern) {
+                              $relativePathInUrl = $matches[1]
+                              $fileNameFromUrl = [System.IO.Path]::GetFileNameWithoutExtension($relativePathInUrl)
+                              
+                              if ($altText -ne $fileNameFromUrl) {
+                                  $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $imageMatch "[$imageType] Alt text `"$altText`" ≠ filename `"$fileNameFromUrl`"" "Image"
                               }
+                              
+                              $expectedImagePath = Join-Path $PWD ($relativePathInUrl -replace "/", "\")
+                              if (-not (Test-Path $expectedImagePath)) {
+                                  $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $imageMatch "[$imageType] Image not found at path: $relativePathInUrl" "Image"
+                              }
+                          } else {
+                              $urlIssues = @()
+                              if (-not $url.StartsWith('https://github.com/SoftFever/OrcaSlicer/blob/main/')) { $urlIssues += "URL must start with expected prefix" }
+                              if (-not $url.EndsWith('?raw=true')) { $urlIssues += "URL must end with '?raw=true'" }
+                              if ($url -match '^https?://(?!github\.com/SoftFever/OrcaSlicer)') { $urlIssues += "External URLs not allowed" }
+                              
+                              $issueText = "[$imageType] URL format issues: " + ($urlIssues -join '; ')
+                              $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $imageMatch $issueText "Image"
                           }
                       }
                   }
@@ -315,21 +366,3 @@ jobs:
               Write-Host "::notice::All documentation is valid!"
               exit 0
           }
-      
-      - name: Comment on PR
-        if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const validationErrors = process.env.VALIDATION_ERRORS || '';
-            
-            const body = `❌ **Documentation validation failed**
-            
-            ${validationErrors || 'Please check the workflow logs for details about the validation errors.'}`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            })

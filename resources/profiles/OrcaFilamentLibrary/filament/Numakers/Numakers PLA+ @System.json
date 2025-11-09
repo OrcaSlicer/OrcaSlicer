@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "Numakers PLA+ @System",
+    "inherits": "Numakers PLA+ @base",
+    "from": "system",
+    "setting_id": "ONMK00",
+    "instantiation": "true",
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "compatible_printers": []
+}

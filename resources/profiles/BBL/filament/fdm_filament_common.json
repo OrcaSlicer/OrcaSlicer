@@ -6,6 +6,9 @@
     "activate_air_filtration": [
         "0"
     ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
     "chamber_temperatures": [
         "0"
     ],
@@ -21,8 +24,29 @@
     "cool_plate_temp_initial_layer": [
         "60"
     ],
+    "counter_coef_1": [
+        "0"
+    ],
+    "counter_coef_2": [
+        "0.008"
+    ],
+    "counter_coef_3": [
+        "-0.041"
+    ],
+    "counter_limit_min": [
+        "-0.035"
+    ],
+    "counter_limit_max": [
+        "0.033"
+    ],
+    "circle_compensation_speed": [
+        "200"
+    ],
     "during_print_exhaust_fan_speed": [
         "70"
+    ],
+    "diameter_limit": [
+        "50"
     ],
     "eng_plate_temp": [
         "60"
@@ -54,17 +78,32 @@
     "filament_flow_ratio": [
         "1"
     ],
+    "filament_flush_temp": [
+        "0"
+    ],
+    "filament_flush_volumetric_speed": [
+        "0"
+    ],
     "filament_is_support": [
         "0"
     ],
     "filament_long_retractions_when_cut": [
         "nil"
     ],
+    "filament_long_retractions_when_ec": [
+        "nil"
+    ],
     "filament_max_volumetric_speed": [
         "0"
     ],
+    "filament_ramming_volumetric_speed": [
+        "-1"
+    ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"
+    ],
+    "filament_printable": [
+        "3"
     ],
     "filament_retract_before_wipe": [
         "nil"
@@ -76,6 +115,9 @@
         "nil"
     ],
     "filament_retraction_distances_when_cut": [
+        "nil"
+    ],
+    "filament_retraction_distances_when_ec": [
         "nil"
     ],
     "filament_retraction_length": [
@@ -105,6 +147,9 @@
     "filament_wipe_distance": [
         "nil"
     ],
+    "filament_prime_volume": [
+        "45"
+    ],
     "filament_z_hop": [
         "nil"
     ],
@@ -113,6 +158,9 @@
     ],
     "full_fan_speed_layer": [
         "0"
+    ],
+    "filament_extruder_variant": [
+        "Direct Drive Standard"
     ],
     "filament_scarf_seam_type": [
         "none"
@@ -129,11 +177,44 @@
     "filament_shrink": [
         "100%"
     ],
+    "filament_pre_cooling_temperature": [
+        "0"
+    ],
+    "filament_ramming_travel_time": [
+        "0"
+    ],
     "hot_plate_temp": [
         "60"
     ],
     "hot_plate_temp_initial_layer": [
         "60"
+    ],
+    "hole_coef_1": [
+        "0"
+    ],
+    "hole_coef_2": [
+        "-0.008"
+    ],
+    "hole_coef_3": [
+        "0.23415"
+    ],
+    "hole_limit_min": [
+        "0.088"
+    ],
+    "hole_limit_max": [
+        "0.22"
+    ],
+    "impact_strength_z": [
+        "10"
+    ],
+    "long_retractions_when_ec": [
+        "0"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
     ],
     "nozzle_temperature": [
         "200"
@@ -152,6 +233,9 @@
     ],
     "required_nozzle_HRC": [
         "3"
+    ],
+    "retraction_distances_when_ec": [
+        "0"
     ],
     "supertack_plate_temp": [
         "45"
@@ -177,11 +261,20 @@
     "textured_plate_temp_initial_layer": [
         "60"
     ],
+    "filament_velocity_adaptation_factor":[
+        "1"
+    ],
     "compatible_printers": [],
     "filament_start_gcode": [
         "; Filament gcode\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
     ],
     "filament_end_gcode": [
         "; filament end gcode \nM106 P3 S0\n"
+    ],
+	"filament_adaptive_volumetric_speed":[
+		"0"
+	],
+    "volumetric_speed_coefficients":[
+        "0 0 0 0 0 0"
     ]
 }

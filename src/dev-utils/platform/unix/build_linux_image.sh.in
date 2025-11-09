@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 
+# Despite the script name, this doesn't necessarily create an "image";
+# it sets up a compatibility script wrapper for the binary and arranges some resources.
+
 export ROOT=$(echo $ROOT | grep . || pwd)
 export NCORES=`nproc --all`
+CONFIG=Release
 
-while getopts ":ih" opt; do
+while getopts ":ihR:" opt; do
   case ${opt} in
     i )
         export BUILD_IMAGE="1"
         ;;
-    h ) echo "Usage: ./build_linux_image.sh [-i]"
+    h ) echo "Usage: ./build_linux_image.sh [-i][-R config]"
         echo "   -i: Generate Appimage (optional)"
-        exit 0
+        echo "   -R: Specify from which config to obtain the binary: Release, RelWithDebInfo, or Debug"
+        exit 1
+        ;;
+    R )
+        CONFIG=$OPTARG
         ;;
   esac
 done
@@ -18,30 +26,26 @@ done
 echo -n "[9/9] Generating Linux app..."
 #{
     # create directory and copy into it
-    if [ -d "package" ]
-    then
-        rm -rf package/*
-        rm -rf package/.* 2&>/dev/null
-    else
-        mkdir package
+    if [ -d "package" ]; then
+	rm -rf package
     fi
-    mkdir package/bin
+    mkdir -p package/bin
 
-    # copy Resources
+    # Copy Resources
     cp -Rf ../resources package/resources
     
-    # Find and copy the @SLIC3R_APP_CMD@ binary from Multi-Config build
-    if [ -f "src/Release/@SLIC3R_APP_CMD@" ]; then
-        cp -f src/Release/@SLIC3R_APP_CMD@ package/bin/@SLIC3R_APP_CMD@
+    # Find and hard link the @SLIC3R_APP_CMD@ binary from Multi-Config build
+    ORIGINAL_BINARY_LOCATION=""
+    if [ -f "src/${CONFIG}/@SLIC3R_APP_CMD@" ]; then
+	ORIGINAL_BINARY_LOCATION="$(realpath "src/${CONFIG}/@SLIC3R_APP_CMD@")"
     elif [ -f "src/@SLIC3R_APP_CMD@" ]; then
         # Fallback for single-config builds
-        cp -f src/@SLIC3R_APP_CMD@ package/bin/@SLIC3R_APP_CMD@
+        ORIGINAL_BINARY_LOCATION="$(realpath "src/@SLIC3R_APP_CMD@")"
     else
         echo "Error: @SLIC3R_APP_CMD@ binary not found in any configuration directory"
         exit 1
     fi
-    # remove unneeded po from resources
-    ## find package/resources/localization -name "*.po" -type f -delete ## FIXME: DD - do we need this?
+    cp -fl "${ORIGINAL_BINARY_LOCATION}" package/bin/@SLIC3R_APP_CMD@
 
     # create bin
 cat << EOF >@SLIC3R_APP_CMD@
@@ -76,10 +80,13 @@ exec "\$DIR/bin/@SLIC3R_APP_CMD@" "\$@"
 EOF
 
     chmod ug+x @SLIC3R_APP_CMD@
-    cp -f @SLIC3R_APP_CMD@ package/@SLIC3R_APP_CMD@
-    pushd package > /dev/null
-    tar -cvf ../@SLIC3R_APP_KEY@.tar .  &>/dev/null
-    popd > /dev/null
+    cp -fl @SLIC3R_APP_CMD@ package/@SLIC3R_APP_CMD@
+    # Nothing uses this tar? Remove if nobody has complained and it's been a while since this comment added.
+    # Original commit was https://github.com/SoftFever/OrcaSlicer/commit/f5a4862da52fc68f77b5201ddf330a9800d83228
+    # and it doesn't appear to have been used there either.
+    #pushd package > /dev/null
+    #tar -cvf ../@SLIC3R_APP_KEY@.tar .  &>/dev/null
+    #popd > /dev/null
 #} &> $ROOT/Build.log # Capture all command output
 echo "done"
 
@@ -87,11 +94,20 @@ if [[ -n "$BUILD_IMAGE" ]]
 then
 echo -n "Creating Appimage for distribution..."
 #{
-    pushd package > /dev/null
+    # AppImage script modifies files in place, so make a copy and clean up after.
+    rm -rf package_appimage
+    cp -Rf package package_appimage
+    pushd package_appimage > /dev/null
     chmod +x ../build_appimage.sh
-    ../build_appimage.sh
-    popd > /dev/null
-    mv package/"@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage" "@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage"
+    if ../build_appimage.sh; then
+	# Clean up on success.
+	popd > /dev/null
+	mv package_appimage/"@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage" "@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage"
+	rm -fR package_appimage
+    else
+	# Leave files on failure so you can debug.
+	popd > /dev/null
+    fi
 #} &> $ROOT/Build.log # Capture all command output
 echo "done"
 fi

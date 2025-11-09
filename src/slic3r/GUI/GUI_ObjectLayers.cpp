@@ -451,7 +451,7 @@ coordf_t LayerRangeEditor::get_value()
     else {
         if (!str.ToDouble(&layer_height) || layer_height < 0.0f) {
             show_error(m_parent, _L("Invalid numeric."));
-            SetValue(double_to_string(layer_height));
+            SetValue(m_valid_value); // reset to a valid value
         }
     }
 

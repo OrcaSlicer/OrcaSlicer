@@ -248,8 +248,8 @@ void Bed3D::Axes::render()
 }
 
 //BBS: add part plate logic
-bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_height, const std::string& custom_model, bool force_as_custom,
-    const Vec2d& position, bool with_reset)
+bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_height, std::vector<Pointfs> extruder_areas, std::vector<double> extruder_heights, const std::string& custom_model, bool force_as_custom,
+    const Vec2d position, bool with_reset)
 {
     /*auto check_texture = [](const std::string& texture) {
         boost::system::error_code ec; // so the exists call does not throw (e.g. after a permission problem)
@@ -286,7 +286,7 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
     }
 
     //BBS: add position related logic
-    if (m_bed_shape == printable_area && m_build_volume.printable_height() == printable_height && m_type == type && m_model_filename == model_filename && position == m_position)
+    if (m_bed_shape == printable_area && m_build_volume.printable_height() == printable_height && m_type == type && m_model_filename == model_filename && position == m_position && m_extruder_shapes == extruder_areas  && m_extruder_heights == extruder_heights)
         // No change, no need to update the UI.
         return false;
 
@@ -294,16 +294,27 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":current position {%1%,%2%}, new position {%3%, %4%}") % m_position.x() % m_position.y() % position.x() % position.y();
     m_position = position;
     m_bed_shape = printable_area;
+    m_extruder_shapes = extruder_areas;
+    m_extruder_heights = extruder_heights;
     if ((position(0) != 0) || (position(1) != 0)) {
         Pointfs new_bed_shape;
         for (const Vec2d& p : m_bed_shape) {
             Vec2d point(p(0) + m_position.x(), p(1) + m_position.y());
             new_bed_shape.push_back(point);
         }
-        m_build_volume = BuildVolume { new_bed_shape, printable_height };
+        std::vector<Pointfs> new_extruder_shapes;
+        for (const std::vector<Vec2d>& shape : m_extruder_shapes) {
+            std::vector<Vec2d> new_extruder_shape;
+            for (const Vec2d& p : shape) {
+                Vec2d point(p(0) + m_position.x(), p(1) + m_position.y());
+                new_extruder_shape.push_back(point);
+            }
+            new_extruder_shapes.push_back(new_extruder_shape);
+        }
+        m_build_volume = BuildVolume { new_bed_shape, printable_height, new_extruder_shapes, m_extruder_heights };
     }
     else
-        m_build_volume = BuildVolume { printable_area, printable_height };
+        m_build_volume = BuildVolume { printable_area, printable_height, m_extruder_shapes, m_extruder_heights };
     m_type = type;
     //m_texture_filename = texture_filename;
     m_model_filename = model_filename;
@@ -339,7 +350,7 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
 //BBS: add api to set position for partplate related bed
 void Bed3D::set_position(Vec2d& position)
 {
-    set_shape(m_bed_shape, m_build_volume.printable_height(), m_model_filename, false, position, false);
+    set_shape(m_bed_shape, m_build_volume.printable_height(), m_extruder_shapes, m_extruder_heights, m_model_filename, false, position, false);
 }
 
 void Bed3D::set_axes_mode(bool origin)
@@ -677,15 +688,32 @@ void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& proj
     }
 
     if (!m_model.get_filename().empty()) {
-        GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+        const Camera &     camera      = wxGetApp().plater()->get_camera();
+        const Transform3d &view_matrix = camera.get_view_matrix();
+        const Transform3d &projection_matrix = camera.get_projection_matrix();
+        GLShaderProgram* shader = wxGetApp().get_shader("hotbed");
         if (shader != nullptr) {
             shader->start_using();
             shader->set_uniform("emission_factor", 0.0f);
             const Transform3d model_matrix = Geometry::assemble_transform(m_model_offset);
+            shader->set_uniform("volume_world_matrix",  model_matrix);
             shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
             shader->set_uniform("projection_matrix", projection_matrix);
             const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
             shader->set_uniform("view_normal_matrix", view_normal_matrix);
+            if (m_build_volume.get_extruder_area_count() > 0) {
+                const BuildVolume::BuildSharedVolume& shared_volume = m_build_volume.get_shared_volume();
+                std::array<float, 4>       xy_data       = shared_volume.data;
+                shader->set_uniform("print_volume.type", shared_volume.type);
+                shader->set_uniform("print_volume.xy_data", xy_data);
+                std::array<float, 2> zs = shared_volume.zs;
+                zs[0]                   = -1;
+                shader->set_uniform("print_volume.z_data", zs);
+            }
+            else {
+                //use -1 ad a invalid type
+                shader->set_uniform("print_volume.type", -1);
+            }
             m_model.render();
             shader->stop_using();
         }

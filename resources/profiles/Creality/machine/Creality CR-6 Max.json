@@ -2,6 +2,7 @@
     "type": "machine_model",
     "name": "Creality CR-6 Max",
     "nozzle_diameter": "0.2;0.4;0.6;0.8",
+    "bed_model": "creality_cr6max_buildplate_model.stl",
     "bed_texture": "creality_cr6se_buildplate_texture.png",
     "family": "Creality",
     "hotend_model": "",

@@ -8,6 +8,7 @@ add_library(Catch2 INTERFACE)
 list (APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules/Catch2)
 target_include_directories(Catch2 INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 add_library(Catch2::Catch2 ALIAS Catch2)
+target_compile_definitions(Catch2 INTERFACE -DCATCH_CONFIG_ENABLE_BENCHMARKING)
 if (APPLE)
 	# OSX builds targeting OSX 10.9 do not support new std::uncought_exception()
 	# see https://github.com/catchorg/Catch2/issues/1218

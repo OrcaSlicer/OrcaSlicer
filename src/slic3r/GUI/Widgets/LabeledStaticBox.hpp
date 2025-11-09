@@ -48,7 +48,6 @@ public:
 
 private:
     void PickDC(wxDC& dc);
-    virtual void DrawBorderAndLabel(wxDC& dc);
 
 protected:
     StateHandler state_handler;
@@ -64,6 +63,7 @@ protected:
     float        m_scale;
     wxPoint      m_pos;
 
+    virtual void DrawBorderAndLabel(wxDC& dc);
     void GetBordersForSizer(int *borderTop, int *borderOther) const override;
 
 };

@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "COEX TPU 60A @System",
+    "inherits": "COEX TPU 60A @base",
+    "from": "system",
+    "setting_id": "C0X60A17",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "filament_long_retractions_when_cut": [
+        "nil"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "nil"
+    ],
+    "compatible_printers": []
+}

@@ -6,8 +6,12 @@
     "setting_id": "GP061",
     "instantiation": "true",
     "description": "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. So, it results in higher strength of the prints, but more filament consumption and longer printing time.",
-    "default_acceleration": "6000",
-    "travel_speed": "700",
+    "default_acceleration": [
+        "6000"
+    ],
+    "travel_speed": [
+        "700"
+    ],
     "compatible_printers": [
         "Bambu Lab A1 mini 0.6 nozzle"
     ]

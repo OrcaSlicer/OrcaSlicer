@@ -79,6 +79,7 @@ using Interval = std::array<std::size_t, 2>;
 //
 enum class EViewType : uint8_t
 {
+    Summary, // ORCA
     FeatureType,
     Height,
     Width,

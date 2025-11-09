@@ -115,6 +115,11 @@ void TabButtonsListCtrl::SetSelection(int sel)
 
 void TabButtonsListCtrl::showNewTag(int sel, bool tag)
 {
+    if (m_pageButtons[sel]->GetShowNewTag() == tag)
+    {
+        return;
+    }
+
     m_pageButtons[sel]->ShowNewTag(tag);
     Refresh();
 }

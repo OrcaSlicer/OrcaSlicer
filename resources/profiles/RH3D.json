@@ -1,0 +1,134 @@
+{
+    "name": "RH3D",
+    "version": "00.06.10.25",
+    "force_update": "0",
+    "description": "RH3D - printer profiles",
+    "machine_model_list": [
+        {
+            "name": "E3NG v1.2S",
+            "sub_path": "machine/E3NG v1.2S.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_common_E3NG v1.2S",
+            "sub_path": "machine/fdm_common_E3NG v1.2S.json"
+        },
+        {
+            "name": "E3NG v1.2S - 0.2 nozzle",
+            "sub_path": "machine/E3NG v1.2S - 0.2 nozzle.json"
+        },
+        {
+            "name": "E3NG v1.2S - 0.3 nozzle",
+            "sub_path": "machine/E3NG v1.2S - 0.3 nozzle.json"
+        },
+        {
+            "name": "E3NG v1.2S - 0.4 nozzle",
+            "sub_path": "machine/E3NG v1.2S - 0.4 nozzle.json"
+        },
+        {
+            "name": "E3NG v1.2S - 0.5 nozzle",
+            "sub_path": "machine/E3NG v1.2S - 0.5 nozzle.json"
+        },
+        {
+            "name": "E3NG v1.2S - 0.6 nozzle",
+            "sub_path": "machine/E3NG v1.2S - 0.6 nozzle.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "process_common_E3NG v1.2S",
+            "sub_path": "process/process_common_E3NG v1.2S.json"
+        },
+        {
+            "name": "0.20mm Slow @E3NG v1.2S",
+            "sub_path": "process/0.20mm Slow @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.10mm Standard @E3NG v1.2S",
+            "sub_path": "process/0.10mm Standard @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.15mm Standard @E3NG v1.2S",
+            "sub_path": "process/0.15mm Standard @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.20mm Standard @E3NG v1.2S",
+            "sub_path": "process/0.20mm Standard @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.25mm Standard @E3NG v1.2S",
+            "sub_path": "process/0.25mm Standard @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.20mm Fast @E3NG v1.2S",
+            "sub_path": "process/0.20mm Fast @E3NG v1.2S.json"
+        },
+        {
+            "name": "0.25mm Fast @E3NG v1.2S",
+            "sub_path": "process/0.25mm Fast @E3NG v1.2S.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pccf",
+            "sub_path": "filament/fdm_filament_pccf.json"
+        },
+        {
+            "name": "fdm_filament_petg",
+            "sub_path": "filament/fdm_filament_petg.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "Generic ABS @E3NG v1.2S",
+            "sub_path": "filament/Generic ABS @E3NG v1.2S.json"
+        },
+        {
+            "name": "Generic ASA @E3NG v1.2S",
+            "sub_path": "filament/Generic ASA @E3NG v1.2S.json"
+        },
+        {
+            "name": "Generic PCCF @E3NG v1.2S",
+            "sub_path": "filament/Generic PCCF @E3NG v1.2S.json"
+        },
+        {
+            "name": "Generic PETG @E3NG v1.2S",
+            "sub_path": "filament/Generic PETG @E3NG v1.2S.json"
+        },
+        {
+            "name": "Generic PLA @E3NG v1.2S",
+            "sub_path": "filament/Generic PLA @E3NG v1.2S.json"
+        },
+        {
+            "name": "Generic TPU @E3NG v1.2S",
+            "sub_path": "filament/Generic TPU @E3NG v1.2S.json"
+        }
+    ]
+}

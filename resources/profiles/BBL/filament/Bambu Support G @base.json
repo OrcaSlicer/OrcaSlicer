@@ -21,6 +21,12 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "filament_adhesiveness_category": [
+        "701"
+    ],
     "nozzle_temperature": [
         "280"
     ],
@@ -29,9 +35,6 @@
     ],
     "required_nozzle_HRC": [
         "3"
-    ],
-    "filament_scarf_seam_type": [
-        "none"
     ],
     "slow_down_layer_time": [
         "6"

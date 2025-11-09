@@ -93,6 +93,7 @@ public:
     CommonGizmosDataObjects::SelectionInfo* selection_info() const;
     CommonGizmosDataObjects::InstancesHider* instances_hider() const;
 //    CommonGizmosDataObjects::HollowedMesh* hollowed_mesh() const;
+    CommonGizmosDataObjects::Raycaster *  raycaster_ptr();
     CommonGizmosDataObjects::Raycaster* raycaster() const;
     CommonGizmosDataObjects::ObjectClipper* object_clipper() const;
     // CommonGizmosDataObjects::SupportsClipper* supports_clipper() const;
@@ -211,6 +212,7 @@ public:
 
     const MeshRaycaster* raycaster() const { assert(m_raycasters.size() == 1); return m_raycasters.front().get(); }
     std::vector<const MeshRaycaster*> raycasters() const;
+    void  set_only_support_model_part_flag(bool);
 
 protected:
     void on_update() override;
@@ -219,6 +221,7 @@ protected:
 private:
     std::vector<std::unique_ptr<MeshRaycaster>> m_raycasters;
     std::vector<const TriangleMesh*> m_old_meshes;
+    bool  m_only_support_model_part{true};
 };
 
 

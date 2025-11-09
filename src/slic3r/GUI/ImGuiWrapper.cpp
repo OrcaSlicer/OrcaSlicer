@@ -26,6 +26,7 @@
 #include <imgui/imgui_internal.h>
 
 #include "libslic3r/libslic3r.h"
+#include <libslic3r/ClipperUtils.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Shape/TextShape.hpp"
@@ -137,6 +138,7 @@ static const std::map<const wchar_t, std::string> font_icons_large = {
     {ImGui::PrevArrowBtnIcon,             "notification_arrow_left"              },
     {ImGui::NextArrowBtnIcon,             "notification_arrow_right"             },
     {ImGui::CompleteIcon,                 "notification_slicing_complete"        },
+    {ImGui::FilamentGreen,                "filament_green"                       },
 
     {ImGui::PlayButton,                   "notification_play"                    },
     {ImGui::PlayDarkButton,               "notification_play_dark"               },
@@ -395,6 +397,7 @@ void ImGuiWrapper::set_language(const std::string &language)
         0,
     };
     m_font_cjk = false;
+    m_is_korean = false;
     if (lang == "cs" || lang == "pl") {
         ranges = ranges_latin2;
     } else if (lang == "ru" || lang == "uk") {
@@ -527,8 +530,42 @@ void ImGuiWrapper::new_frame()
         init_font(true);
     }
 
+    ImGuiIO& io = ImGui::GetIO();
+
     ImGui::NewFrame();
     m_new_frame_open = true;
+
+    // BBL: we should render the new frame first, than reset keys' status
+    // BBL: copy & paste form prusa github repo (https://github.com/prusa3d/PrusaSlicer/blob/master/src/slic3r/GUI/ImGuiWrapper.cpp#L375C5-L402C6)
+    // synchronize key states
+    // when the application loses the focus it may happen that the key up event is not processed
+
+    // synchronize modifier keys
+    constexpr std::array<std::pair<ImGuiKeyModFlags_, wxKeyCode>, 3> imgui_mod_keys{
+        std::make_pair(ImGuiKeyModFlags_Ctrl, WXK_CONTROL),
+        std::make_pair(ImGuiKeyModFlags_Shift, WXK_SHIFT),
+        std::make_pair(ImGuiKeyModFlags_Alt, WXK_ALT) };
+    for (const std::pair<ImGuiKeyModFlags_, wxKeyCode>& key : imgui_mod_keys) {
+        if ((io.KeyMods & key.first) != 0 && !wxGetKeyState(key.second))
+            io.KeyMods &= ~key.first;
+    }
+
+    // Not sure if it is neccessary
+    // values from 33 to 126 are reserved for the standard ASCII characters
+    for (size_t i = 33; i <= 126; ++i) {
+        wxKeyCode keycode = static_cast<wxKeyCode>(i);
+        if (io.KeysDown[i] && keycode != WXK_NONE && !wxGetKeyState(keycode))
+            io.KeysDown[i] = false;
+    }
+
+    // special keys: delete, backspace, ...
+    for (int key : io.KeyMap) {
+        wxKeyCode keycode = static_cast<wxKeyCode>(key);
+        if (io.KeysDown[key] && keycode != WXK_NONE && !wxGetKeyState(keycode))
+            io.KeysDown[key] = false;
+    }
+
+    // BBL: end copy & paste
 }
 
 void ImGuiWrapper::render()
@@ -1023,6 +1060,10 @@ void ImGuiWrapper::tooltip(const char *label, float wrap_width)
     ImGui::PopStyleColor(1);
     ImGui::PopTextWrapPos();
     ImGui::EndTooltip();
+}
+
+void ImGuiWrapper::tooltip(const std::string &label, float wrap_width) {
+    tooltip(label.c_str(), wrap_width);
 }
 
 void ImGuiWrapper::tooltip(const wxString &label, float wrap_width)
@@ -3204,6 +3245,94 @@ void ImGuiWrapper::clipboard_set(void* /* user_data */, const char* text)
         wxTheClipboard->SetData(new wxTextDataObject(wxString::FromUTF8(text)));   // object owned by the clipboard
         wxTheClipboard->Close();
     }
+}
+
+std::tuple<ImVec2, bool>  ImGuiWrapper::calculate_filament_group_text_size(const std::string& filament_type)
+{
+    ImVec2             text_size = ImGui::CalcTextSize(filament_type.c_str());
+    float         four_word_width = ImGui::CalcTextSize("ABCD").x;
+
+    float wrap_width = four_word_width;
+    float line_height = ImGui::GetTextLineHeight();
+
+    bool is_multiline = text_size.x > wrap_width;
+    int line_count = std::ceil(text_size.x / wrap_width);
+    float text_height = line_count * line_height;
+
+    float final_width = is_multiline ? wrap_width : text_size.x;
+    float final_height = line_count * line_height;
+
+    return { { final_width,final_height },is_multiline };
+}
+
+void ImGuiWrapper::filament_group(const std::string& filament_type, const char* hex_color, unsigned char filament_id, float align_width)
+{
+    //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+    std::string id = std::to_string(static_cast<unsigned int> (filament_id + 1));
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    static ImTextureID transparent;
+    ImVec2             text_size = ImGui::CalcTextSize(filament_type.c_str());
+    // BBS image sizing based on text width (DPI scaling)
+    float         img_width = ImGui::CalcTextSize("ABC").x;
+    ImVec2        img_size = { img_width, img_width };
+    ImVec2        id_text_size = this->calc_text_size(id);
+    unsigned char rgba[4];
+    rgba[3] = 0xff;
+    Slic3r::GUI::BitmapCache::parse_color4(hex_color, rgba);
+    std::string svg_path = "/images/outlined_rect.svg";
+    if (rgba[3] == 0x00) {
+        svg_path = "/images/outlined_rect_transparent.svg";
+    }
+    BitmapCache::load_from_svg_file_change_color(Slic3r::resources_dir() + svg_path, img_size.x, img_size.y, transparent, hex_color);
+    ImGui::BeginGroup();
+    {
+        ImVec2 cursor_pos = ImGui::GetCursorScreenPos();
+        draw_list->AddImage(transparent, cursor_pos, { cursor_pos.x + img_size.x, cursor_pos.y + img_size.y }, { 0, 0 }, { 1, 1 }, ImGui::GetColorU32(ImVec4(1.f, 1.f, 1.f, 1.f)));
+        // image border test
+        // draw_list->AddRect(cursor_pos, {cursor_pos.x + img_size.x, cursor_pos.y + img_size.y}, IM_COL32(0, 0, 0, 255));
+        ImVec2 current_cursor = ImGui::GetCursorPos();
+        ImGui::SetCursorPos({ current_cursor.x + (img_size.x - id_text_size.x) * 0.5f, current_cursor.y + (img_size.y - id_text_size.y) * 0.5f });
+
+        float gray = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2];
+        ImVec4 text_color = gray < 80 ? ImVec4(1.0f, 1.0f, 1.0f, 1.0f) : ImVec4(0, 0, 0, 1.0f);
+        this->text_colored(text_color, id.c_str());
+
+        auto wrapped_text_info = calculate_filament_group_text_size(filament_type);
+        ImVec2 wrapped_text_size = std::get<0>(wrapped_text_info);
+        bool is_multiline = std::get<1>(wrapped_text_info);
+
+        float text_y_offset = 4.f;
+        float text_x_offset = is_multiline ? (img_size.x - wrapped_text_size.x) * 0.5f + 2.f : (img_size.x - wrapped_text_size.x) * 0.5f + 2.f;
+
+        auto cursor_x_before_text = ImGui::GetCursorPosX();
+        current_cursor = ImGui::GetCursorPos();
+        ImGui::SetCursorPos({
+            current_cursor.x + text_x_offset,
+            current_cursor.y + text_y_offset
+            });
+
+        if (is_multiline) {
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + wrapped_text_size.x);
+        }
+        this->text(filament_type);
+        if (is_multiline) {
+            ImGui::PopTextWrapPos();
+        }
+        ImGui::Dummy(ImVec2(align_width, 0));
+        ImGui::EndGroup();
+    }
+    //ImGui::PopStyleVar(1);
+}
+
+void ImGuiWrapper::sub_title(const std::string &label)
+{
+    ImDrawList *draw_list = ImGui::GetWindowDrawList();
+    text_colored(ImVec4(1.0f, 1.0f, 1.0f, 0.5f), label);
+    ImGui::SameLine();
+    ImVec2 cursor_pos = ImGui::GetCursorScreenPos();
+    float available_width = ImGui::GetContentRegionAvail().x;
+    draw_list->AddLine(ImVec2(cursor_pos.x, cursor_pos.y + 8.0f), ImVec2(cursor_pos.x + available_width, cursor_pos.y + 8.0f), IM_COL32(255, 255, 255, 100));
+    ImGui::NewLine();
 }
 
 bool IMTexture::load_from_svg_file(const std::string& filename, unsigned width, unsigned height, ImTextureID& texture_id)

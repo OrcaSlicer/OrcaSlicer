@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Generic ASA @E3NG v1.2S",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "setting_id": "",
+    "filament_id": "Generic ASA @E3NG v1.2S",
+    "instantiation": "true",
+    "compatible_printers": [
+        "E3NG v1.2S - 0.2 nozzle",
+        "E3NG v1.2S - 0.3 nozzle",
+        "E3NG v1.2S - 0.4 nozzle",
+        "E3NG v1.2S - 0.5 nozzle",
+        "E3NG v1.2S - 0.6 nozzle"
+    ]
+}

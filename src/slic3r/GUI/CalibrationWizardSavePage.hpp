@@ -106,6 +106,7 @@ protected:
     wxPanel* m_complete_text_panel;
     wxPanel* m_part_failed_panel;
     wxPanel*    m_grid_panel{ nullptr };
+    wxPanel*    m_multi_extruder_grid_panel{ nullptr };
     std::map<int, PACalibResult> m_calib_results;// map<tray_id, PACalibResult>
     std::vector<PACalibResult> m_history_results;
     bool m_is_all_failed{ true };

@@ -63,7 +63,9 @@ namespace GUI {
 
 static std::string get_view_type_string(libvgcode::EViewType view_type)
 {
-    if (view_type == libvgcode::EViewType::FeatureType)
+    if (view_type == libvgcode::EViewType::Summary)
+        return _u8L("Summary");
+    else if (view_type == libvgcode::EViewType::FeatureType)
         return _u8L("Line Type");
     else if (view_type == libvgcode::EViewType::Height)
         return _u8L("Layer Height");
@@ -776,6 +778,18 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
 
     m_gl_data_initialized = true;
 
+    if (preset_bundle)
+        m_nozzle_nums = preset_bundle->get_printer_extruder_count();
+
+    // set to color print by default if use multi extruders
+    if (m_nozzle_nums > 1) {
+        m_view_type_sel = std::distance(view_type_items.begin(),std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::Summary));
+        set_view_type(libvgcode::EViewType::Summary);
+    } else {
+        m_view_type_sel = std::distance(view_type_items.begin(),std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::ColorPrint));
+        set_view_type(libvgcode::EViewType::ColorPrint);
+    }
+
     try
     {
         m_viewer.init(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
@@ -812,6 +826,7 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     options_items.clear();
 
     // BBS initialzed view_type items
+    view_type_items.push_back(libvgcode::EViewType::Summary);
     view_type_items.push_back(libvgcode::EViewType::FeatureType);
     view_type_items.push_back(libvgcode::EViewType::ColorPrint);
     view_type_items.push_back(libvgcode::EViewType::Speed);
@@ -894,12 +909,14 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     reset();
 
     //BBS: add mutex for protection of gcode result
+    wxGetApp().plater()->suppress_background_process(true);
     gcode_result.lock();
     //BBS: add safe check
     if (gcode_result.moves.size() == 0) {
         //result cleaned before slicing ,should return here
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": gcode result reset before, return directly!");
         gcode_result.unlock();
+        wxGetApp().plater()->schedule_background_process();
         return;
     }
 
@@ -1037,7 +1054,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     if (wxGetApp().is_editor())
         m_contained_in_bed = wxGetApp().plater()->build_volume().all_paths_inside(gcode_result, m_paths_bounding_box);
 
-    m_extruders_count = gcode_result.extruders_count;
+    m_extruders_count = gcode_result.filaments_count;
 
     //BBS: move the id to the end of reset
     m_last_result_id = gcode_result.id;
@@ -1053,6 +1070,22 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     m_max_print_height = gcode_result.printable_height;
     m_z_offset = gcode_result.z_offset;
+
+    // BBS: data for rendering color arrangement recommendation
+    m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    // Orca hack: Hide filament group for non-bbl printers
+    if (!print.is_BBL_printer()) m_nozzle_nums = 1;
+    std::vector<int>         filament_maps = print.get_filament_maps();
+    std::vector<std::string> color_opt     = print.config().option<ConfigOptionStrings>("filament_colour")->values;
+    std::vector<std::string> type_opt      = print.config().option<ConfigOptionStrings>("filament_type")->values;
+    std::vector<unsigned char> support_filament_opt = print.config().option<ConfigOptionBools>("filament_is_support")->values;
+    for (auto extruder_id : m_viewer.get_used_extruders_ids()) {
+        if (filament_maps[extruder_id] == 1) {
+            m_left_extruder_filament.push_back({type_opt[extruder_id], color_opt[extruder_id], extruder_id, (bool)(support_filament_opt[extruder_id])});
+        } else {
+            m_right_extruder_filament.push_back({type_opt[extruder_id], color_opt[extruder_id], extruder_id, (bool)(support_filament_opt[extruder_id])});
+        }
+    }
 
     m_settings_ids = gcode_result.settings_ids;
     m_filament_diameters = gcode_result.filament_diameters;
@@ -1070,6 +1103,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         Pointfs printable_area;
         //BBS: add bed exclude area
         Pointfs bed_exclude_area = Pointfs();
+        Pointfs wrapping_exclude_area = Pointfs();
+        std::vector<Pointfs> extruder_areas;
+        std::vector<double> extruder_heights;
         std::string texture;
         std::string model;
 
@@ -1089,7 +1125,15 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             if (!gcode_result.bed_exclude_area.empty())
                 bed_exclude_area = gcode_result.bed_exclude_area;
 
-            wxGetApp().plater()->set_bed_shape(printable_area, bed_exclude_area, gcode_result.printable_height, texture, model, gcode_result.printable_area.empty());
+            if (!gcode_result.wrapping_exclude_area.empty())
+                wrapping_exclude_area = gcode_result.wrapping_exclude_area;
+
+            if (!gcode_result.extruder_areas.empty())
+                extruder_areas = gcode_result.extruder_areas;
+            if (!gcode_result.extruder_heights.empty())
+                extruder_heights = gcode_result.extruder_heights;
+
+            wxGetApp().plater()->set_bed_shape(printable_area, bed_exclude_area, wrapping_exclude_area, gcode_result.printable_height, extruder_areas, extruder_heights, texture, model, gcode_result.printable_area.empty());
         }
         /*else {
             // adjust printbed size in dependence of toolpaths bbox
@@ -1147,12 +1191,16 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_layers_slider->set_as_dirty();
     m_moves_slider->set_as_dirty();
 
+    //BBS
     m_conflict_result = gcode_result.conflict_result;
-    if (m_conflict_result.has_value())
-        m_conflict_result->layer = m_viewer.get_layer_id_at(static_cast<float>(m_conflict_result->_height));
+    if (m_conflict_result) { m_conflict_result.value().layer = m_viewer.get_layer_id_at(m_conflict_result.value()._height); }
 
+    m_gcode_check_result = gcode_result.gcode_check_result;
+
+    filament_printable_reuslt = gcode_result.filament_printable_reuslt;
     //BBS: add mutex for protection of gcode result
     gcode_result.unlock();
+    wxGetApp().plater()->schedule_background_process();
 }
 
 void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
@@ -1208,6 +1256,8 @@ void GCodeViewer::reset()
     m_filament_densities = std::vector<float>();
     m_print_statistics.reset();
     m_custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
+    m_left_extruder_filament.clear();
+    m_right_extruder_filament.clear();
     m_sequential_view.gcode_window.reset();
     m_contained_in_bed = true;
 }
@@ -1860,7 +1910,8 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
             const Vec3d z_offset = slicing_parameters.object_print_z_min * Vec3d::UnitZ();
             for (size_t i = current_volumes_count; i < m_shells.volumes.volumes.size(); ++i) {
                 GLVolume* v = m_shells.volumes.volumes[i];
-                v->set_volume_offset(v->get_volume_offset() + z_offset);
+                auto offset  = v->get_instance_transformation().get_matrix_no_offset().inverse() * z_offset;
+                v->set_volume_offset(v->get_volume_offset() + offset);
             }
         }
 
@@ -1932,67 +1983,67 @@ void GCodeViewer::render_toolpaths()
     if (is_legend_shown()) {
         ImGuiWrapper& imgui = *wxGetApp().imgui();
         const Size cnv_size = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size();
-        ImGuiPureWrap::set_next_window_pos(static_cast<float>(cnv_size.get_width()), 0.0f, ImGuiCond_Always, 1.0f, 0.0f);
-        ImGuiPureWrap::begin(std::string("LibVGCode Viewer Debug"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
+        imgui.set_next_window_pos(static_cast<float>(cnv_size.get_width()), 0.0f, ImGuiCond_Always, 1.0f, 0.0f);
+        imgui.begin(std::string("LibVGCode Viewer Debug"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize);
 
         if (ImGui::BeginTable("Data", 2)) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "# vertices");
+            ImGuiWrapper::text_colored(ImGuiWrapper.COL_ORANGE_LIGHT, "# vertices");
             ImGui::TableSetColumnIndex(1);
-            ImGuiPureWrap::text(std::to_string(m_viewer.get_vertices_count()));
+            ImGuiWrapper::text(std::to_string(m_viewer.get_vertices_count()));
 
             ImGui::Separator();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "cpu memory");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "cpu memory");
             ImGui::TableSetColumnIndex(1);
-            ImGuiPureWrap::text(format_memsize(m_viewer.get_used_cpu_memory()));
+            ImGuiWrapper::text(format_memsize(m_viewer.get_used_cpu_memory()));
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "gpu memory");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "gpu memory");
             ImGui::TableSetColumnIndex(1);
-            ImGuiPureWrap::text(format_memsize(m_viewer.get_used_gpu_memory()));
+            ImGuiWrapper::text(format_memsize(m_viewer.get_used_gpu_memory()));
 
             ImGui::Separator();
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "layers range");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "layers range");
             ImGui::TableSetColumnIndex(1);
             const libvgcode::Interval& layers_range = m_viewer.get_layers_view_range();
-            ImGuiPureWrap::text(std::to_string(layers_range[0]) + " - " + std::to_string(layers_range[1]));
+            ImGuiWrapper::text(std::to_string(layers_range[0]) + " - " + std::to_string(layers_range[1]));
 
             glsafe(::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "view range (enabled)");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "view range (enabled)");
             ImGui::TableSetColumnIndex(1);
             const libvgcode::Interval& enabled_view_range = m_viewer.get_view_enabled_range();
-            ImGuiPureWrap::text(std::to_string(enabled_view_range[0]) + " - " + std::to_string(enabled_view_range[1]) + " | " +
+            ImGuiWrapper::text(std::to_string(enabled_view_range[0]) + " - " + std::to_string(enabled_view_range[1]) + " | " +
                 std::to_string(m_viewer.get_vertex_at(enabled_view_range[0]).gcode_id) + " - " +
                 std::to_string(m_viewer.get_vertex_at(enabled_view_range[1]).gcode_id));
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "view range (visible)");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "view range (visible)");
             ImGui::TableSetColumnIndex(1);
             const libvgcode::Interval& visible_view_range = m_viewer.get_view_visible_range();
-            ImGuiPureWrap::text(std::to_string(visible_view_range[0]) + " - " + std::to_string(visible_view_range[1]) + " | " +
+            ImGuiWrapper::text(std::to_string(visible_view_range[0]) + " - " + std::to_string(visible_view_range[1]) + " | " +
                 std::to_string(m_viewer.get_vertex_at(visible_view_range[0]).gcode_id) + " - " +
                 std::to_string(m_viewer.get_vertex_at(visible_view_range[1]).gcode_id));
 
             auto add_range_property_row = [&imgui](const std::string& label, const std::array<float, 2>& range) {
                 ImGui::TableNextRow();
                 ImGui::TableSetColumnIndex(0);
-                ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, label);
+                ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, label);
                 ImGui::TableSetColumnIndex(1);
                 char buf[128];
                 sprintf(buf, "%.3f - %.3f", range[0], range[1]);
-                ImGuiPureWrap::text(buf);
+                ImGuiWrapper::text(buf);
             };
 
             add_range_property_row("height range", m_viewer.get_color_range(libvgcode::EViewType::Height).get_range());
@@ -2065,7 +2116,7 @@ void GCodeViewer::render_toolpaths()
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "Travels radius");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "Travels radius");
             ImGui::TableSetColumnIndex(1);
             float travels_radius = m_viewer.get_travels_radius();
             ImGui::SetNextItemWidth(200.0f);
@@ -2074,7 +2125,7 @@ void GCodeViewer::render_toolpaths()
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiPureWrap::text_colored(ImGuiPureWrap::COL_ORANGE_LIGHT, "Wipes radius");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "Wipes radius");
             ImGui::TableSetColumnIndex(1);
             float wipes_radius = m_viewer.get_wipes_radius();
             ImGui::SetNextItemWidth(200.0f);
@@ -2423,6 +2474,298 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
     return;
 }
 
+void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
+{
+    ImGuiWrapper &imgui = *wxGetApp().imgui();
+
+    auto link_text = [&](const std::string &label) {
+        ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
+
+        ImColor HyperColor = ImColor(0, 150, 136, 255).Value;
+        ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
+        imgui.text(label.c_str());
+        ImGui::PopStyleColor();
+
+        // underline
+        ImVec2 lineEnd = ImGui::GetItemRectMax();
+        lineEnd.y -= 2.0f;
+        ImVec2 lineStart = lineEnd;
+        lineStart.x      = ImGui::GetItemRectMin().x;
+        ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
+        // click behavior
+        if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                Plater *plater = wxGetApp().plater();
+                wxCommandEvent evt(EVT_OPEN_FILAMENT_MAP_SETTINGS_DIALOG);
+                evt.SetEventObject(plater);
+                evt.SetInt(1); // 1 means from gcode viewer
+                wxPostEvent(plater, evt);
+            }
+        }
+    };
+
+    auto link_text_set_to_optional = [&](const std::string &label) {
+        ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
+
+        ImColor HyperColor = ImColor(0, 150, 136, 255).Value;
+        ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
+        imgui.text(label.c_str());
+        ImGui::PopStyleColor();
+        // underline
+        ImVec2 lineEnd = ImGui::GetItemRectMax();
+        lineEnd.y -= 2.0f;
+        ImVec2 lineStart = lineEnd;
+        lineStart.x      = ImGui::GetItemRectMin().x;
+        ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
+        // click behavior
+        if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                MessageDialog msg_dlg(nullptr, _L("Automatically re-slice according to the optimal filament grouping, and the grouping results will be displayed after slicing."), wxEmptyString, wxOK | wxCANCEL);
+                if (msg_dlg.ShowModal() == wxID_OK) {
+                    PartPlateList &partplate_list = wxGetApp().plater()->get_partplate_list();
+                    PartPlate     *plate          = partplate_list.get_curr_plate();
+                    plate->set_filament_map_mode(FilamentMapMode::fmmAutoForFlush);
+                    Plater        *plater = wxGetApp().plater();
+                    wxPostEvent(plater, SimpleEvent(EVT_GLTOOLBAR_SLICE_PLATE));
+                }
+            }
+        }
+    };
+
+    auto link_filament_group_wiki = [&](const std::string& label) {
+        ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
+
+        ImColor HyperColor = ImColor(0, 150, 136, 255).Value;
+        ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
+        imgui.text(label.c_str());
+        ImGui::PopStyleColor();
+
+        // underline
+        ImVec2 lineEnd = ImGui::GetItemRectMax();
+        lineEnd.y -= 2.0f;
+        ImVec2 lineStart = lineEnd;
+        lineStart.x = ImGui::GetItemRectMin().x;
+        ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
+        // click behavior
+        if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                std::string wiki_path = Slic3r::resources_dir() + "/wiki/filament_group_wiki_zh.html";
+                wxLaunchDefaultBrowser(wxString(wiki_path.c_str()));
+            }
+        }
+    };
+
+    auto draw_dash_line = [&](ImDrawList* draw_list, int dash_length = 5, int gap_length = 3) {
+        ImVec2 p1 = ImGui::GetCursorScreenPos();
+        ImVec2 p2 = ImVec2(p1.x + ImGui::GetContentRegionAvail().x, p1.y);
+        for (float i = p1.x; i < p2.x; i += (dash_length + gap_length)) {
+            draw_list->AddLine(ImVec2(i, p1.y), ImVec2(i + dash_length, p1.y), ImGui::GetColorU32(ImVec4(1.0f,1.0f,1.0f,0.6f))); // ORCA match color
+        }
+    };
+
+    ////BBS Color Arrangement Recommendation
+
+    auto config            = wxGetApp().plater()->get_partplate_list().get_current_fff_print().config();
+    auto stats_by_extruder = wxGetApp().plater()->get_partplate_list().get_current_fff_print().statistics_by_extruder();
+
+    float delta_weight_to_single_ext = stats_by_extruder.stats_by_single_extruder.filament_flush_weight - stats_by_extruder.stats_by_multi_extruder_curr.filament_flush_weight;
+    float delta_weight_to_best = stats_by_extruder.stats_by_multi_extruder_curr.filament_flush_weight - stats_by_extruder.stats_by_multi_extruder_best.filament_flush_weight;
+    int   delta_change_to_single_ext = stats_by_extruder.stats_by_single_extruder.filament_change_count - stats_by_extruder.stats_by_multi_extruder_curr.filament_change_count;
+    int   delta_change_to_best = stats_by_extruder.stats_by_multi_extruder_curr.filament_change_count - stats_by_extruder.stats_by_multi_extruder_best.filament_change_count;
+
+    bool any_less_to_single_ext = delta_weight_to_single_ext > EPSILON || delta_change_to_single_ext > 0;
+    bool any_more_to_best = delta_weight_to_best > EPSILON || delta_change_to_best > 0;
+    bool all_less_to_single_ext = delta_weight_to_single_ext > EPSILON && delta_change_to_single_ext > 0;
+    bool all_more_to_best = delta_weight_to_best > EPSILON && delta_change_to_best > 0;
+
+    auto get_filament_display_type = [](const ExtruderFilament& filament) {
+        if (filament.is_support_filament && (filament.type == "PLA" || filament.type == "PA" || filament.type == "ABS"))
+            return "Sup." + filament.type;
+        return filament.type;
+        };
+
+
+    // BBS AMS containers
+    float line_height          = ImGui::GetFrameHeight();
+    float ams_item_height = 0;
+    float filament_group_item_align_width = 0;
+    {
+        float three_words_width    = imgui.calc_text_size("ABC"sv).x;
+        const int line_capacity = 4;
+
+        for (const auto& extruder_filaments : {m_left_extruder_filament,m_right_extruder_filament })
+        {
+            float container_height = 0.f;
+            for (size_t idx = 0; idx < extruder_filaments.size(); idx += line_capacity) {
+                float text_line_height = 0;
+                for (int j = idx; j < extruder_filaments.size() && j < idx + line_capacity; ++j) {
+                    auto text_info = imgui.calculate_filament_group_text_size(get_filament_display_type(extruder_filaments[j]));
+                    auto text_size = std::get<0>(text_info);
+                    filament_group_item_align_width = max(filament_group_item_align_width, text_size.x);
+                    text_line_height = max(text_line_height, text_size.y);
+                }
+                container_height += (three_words_width * 1.3f + text_line_height );
+            }
+            container_height += 2 * line_height;
+            ams_item_height = std::max(ams_item_height, container_height);
+        }
+    }
+
+    int tips_count = 8;
+    if (any_more_to_best) {
+        tips_count = 8;
+        if (wxGetApp().app_config->get("language") != "zh_CN")
+            tips_count += 1;
+    }
+    else if (any_less_to_single_ext) {
+        tips_count = 6;
+        if (wxGetApp().app_config->get("language") != "zh_CN")
+            tips_count += 1;
+    }
+    else
+        tips_count = 5;
+
+    float AMS_container_height = ams_item_height + line_height * tips_count + line_height;
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0)); // this shold be 0 since its child of gcodeviewer
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(window_padding * 3, 0));
+
+    // ImGui::Dummy({window_padding, window_padding});
+    ImGui::BeginChild("#AMS", ImVec2(0, AMS_container_height), true, ImGuiWindowFlags_AlwaysUseWindowPadding);
+    {
+        float available_width   = ImGui::GetContentRegionAvail().x;
+        float half_width       = available_width * 0.49f;
+        float spacing           = 18.0f * m_scale;
+
+        ImGui::Dummy({window_padding, window_padding});
+        ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.0f,1.0f,1.0f,0.6f));
+        imgui.bold_text(_u8L("Filament Grouping"));
+        ImGui::SameLine();
+        std::string tip_str = _u8L("Why this grouping");
+        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize(tip_str.c_str()).x);
+        link_filament_group_wiki(tip_str);
+        ImGui::Separator();
+        ImGui::PopStyleColor();
+        ImGui::Dummy({window_padding, window_padding});
+
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(1, 1, 1, 0.05f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(window_padding * 2, window_padding));
+
+        ImDrawList *child_begin_draw_list = ImGui::GetWindowDrawList();
+        ImVec2      cursor_pos            = ImGui::GetCursorScreenPos();
+        child_begin_draw_list->AddRectFilled(cursor_pos, ImVec2(cursor_pos.x + half_width, cursor_pos.y + line_height), IM_COL32(255, 255, 255, 10));
+        ImGui::BeginChild("#LeftAMS", ImVec2(half_width, ams_item_height), false, ImGuiWindowFlags_AlwaysUseWindowPadding);
+        {
+            imgui.text(_u8L("Left nozzle"));
+            ImGui::Dummy({window_padding, window_padding});
+            int index = 1;
+            for (const auto &extruder_filament : m_left_extruder_filament) {
+                imgui.filament_group(get_filament_display_type(extruder_filament), extruder_filament.hex_color.c_str(), extruder_filament.filament_id, filament_group_item_align_width);
+                if (index % 4 != 0) { ImGui::SameLine(0, spacing); }
+                index++;
+            }
+            ImGui::EndChild();
+        }
+        ImGui::SameLine();
+        cursor_pos = ImGui::GetCursorScreenPos();
+        child_begin_draw_list->AddRectFilled(cursor_pos, ImVec2(cursor_pos.x + half_width, cursor_pos.y + line_height), IM_COL32(255, 255, 255, 10));
+        ImGui::BeginChild("#RightAMS", ImVec2(half_width, ams_item_height), false, ImGuiWindowFlags_AlwaysUseWindowPadding);
+        {
+            imgui.text(_u8L("Right nozzle"));
+            ImGui::Dummy({window_padding, window_padding});
+            int index = 1;
+            for (const auto &extruder_filament : m_right_extruder_filament) {
+                imgui.filament_group(get_filament_display_type(extruder_filament), extruder_filament.hex_color.c_str(), extruder_filament.filament_id, filament_group_item_align_width);
+                if (index % 4 != 0) { ImGui::SameLine(0, spacing); }
+                index++;
+            }
+            ImGui::EndChild();
+        }
+        ImGui::PopStyleColor(1);
+        ImGui::PopStyleVar(1);
+
+        ImGui::Dummy({window_padding, window_padding});
+        imgui.text_wrapped(from_u8(_u8L("Please place filaments on the printer based on grouping result.")), ImGui::GetContentRegionAvail().x);
+        ImGui::Dummy({window_padding, window_padding});
+
+        {
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            draw_dash_line(draw_list);
+        }
+
+        bool is_optimal_group = true;
+        float parent_width = ImGui::GetContentRegionAvail().x;
+        auto number_format = [](float num) {
+            if (num > 1000) {
+                std::string number_str = std::to_string(num);
+                std::string first_three_digits = number_str.substr(0, 3);
+                return std::stoi(first_three_digits);
+            }
+            return static_cast<int>(num);
+        };
+
+        if (any_more_to_best) {
+            ImGui::Dummy({window_padding, window_padding});
+            is_optimal_group = false;
+            ImVec4 orangeColor = ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
+            ImGui::PushStyleColor(ImGuiCol_Text, orangeColor);
+            imgui.text(_u8L("Tips:"));
+            imgui.text(_u8L("Current grouping of slice result is not optimal."));
+            wxString tip;
+            if (delta_weight_to_best >= 0 && delta_change_to_best >= 0)
+                tip = from_u8((boost::format(_u8L("Increase %1%g filament and %2% changes compared to optimal grouping."))
+                    % number_format(delta_weight_to_best)
+                    % delta_change_to_best).str());
+            else if (delta_weight_to_best >= 0 && delta_change_to_best < 0)
+                tip = from_u8((boost::format(_u8L("Increase %1%g filament and save %2% changes compared to optimal grouping."))
+                    % number_format(delta_weight_to_best)
+                    % std::abs(delta_change_to_best)).str());
+            else if (delta_weight_to_best < 0 && delta_change_to_best >= 0)
+                tip = from_u8((boost::format(_u8L("Save %1%g filament and increase %2% changes compared to optimal grouping."))
+                    % number_format(std::abs(delta_weight_to_best))
+                    % delta_change_to_best).str());
+
+            imgui.text_wrapped(tip, parent_width);
+            ImGui::PopStyleColor(1);
+        }
+        else if (any_less_to_single_ext) {
+            ImGui::Dummy({window_padding, window_padding});
+            wxString tip;
+            if (delta_weight_to_single_ext >= 0 && delta_change_to_single_ext >= 0)
+                tip = from_u8((boost::format(_u8L("Save %1%g filament and %2% changes compared to a printer with one nozzle."))
+                    % number_format(delta_weight_to_single_ext)
+                    % delta_change_to_single_ext).str());
+            else if (delta_weight_to_single_ext >= 0 && delta_change_to_single_ext < 0)
+                tip = from_u8((boost::format(_u8L("Save %1%g filament and increase %2% changes compared to a printer with one nozzle."))
+                    % number_format(delta_weight_to_single_ext)
+                    % std::abs(delta_change_to_single_ext)).str());
+            else if (delta_weight_to_single_ext < 0 && delta_change_to_single_ext >= 0)
+                tip = from_u8((boost::format(_u8L("Increase %1%g filament and save %2% changes compared to a printer with one nozzle."))
+                    % number_format(std::abs(delta_weight_to_single_ext))
+                    % delta_change_to_single_ext).str());
+
+            imgui.text_wrapped(tip, parent_width);
+        }
+
+        ImGui::Dummy({window_padding, window_padding});
+        if (!is_optimal_group) {
+            link_text_set_to_optional(_u8L("Set to Optimal"));
+            ImGui::SameLine();
+            ImGui::Dummy({window_padding, window_padding});
+            ImGui::SameLine();
+        }
+        link_text(_u8L("Regroup filament"));
+
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize("Tips").x);
+        link_filament_group_wiki(_u8L("Tips"));
+
+        ImGui::EndChild();
+    }
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(1);
+}
+
 void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin)
 {
     if (!is_legend_shown())
@@ -2442,6 +2785,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, ImVec4(0.42f, 0.42f, 0.42f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
     ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, ImVec4(0.93f, 0.93f, 0.93f, 1.00f));
+    //ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(1.f, 1.f, 1.f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Border, {1, 0, 0, 0});
     ImGui::SetNextWindowBgAlpha(0.8f);
     const float max_height = 0.75f * static_cast<float>(cnv_size.get_height());
     const float child_height = 0.3333f * max_height;
@@ -2543,7 +2888,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 ImGui::SameLine(checkbox_pos);
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0, 0.0)); // ensure no padding active
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0, 0.0)); // ensure no item spacing active
-                ImGui::Text(into_u8(visible ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str(), ImVec2(16 * m_scale, 16 * m_scale));
+                ImGui::Text("%s", into_u8(visible ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
                 ImGui::PopStyleVar(2);
             }
         }
@@ -2783,7 +3128,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine(window_width);                // ORCA use stored window width while folded. This prevents annoying position change on fold/expand button
         ImGui::Dummy({ 0, 0 });
         imgui.end();
-        ImGui::PopStyleColor(6);
+        ImGui::PopStyleColor(7);
         ImGui::PopStyleVar(2);
         return;
     }
@@ -3151,6 +3496,28 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         }
         break;
     }
+    case libvgcode::EViewType::Summary:
+    {
+        char buf[64];
+        imgui.text(_u8L("Total") + ":");
+        ImGui::SameLine();
+        ::sprintf(buf, imperial_units ? "%.2f in / %.2f oz" : "%.2f m / %.2f g", ps.total_used_filament / koef, ps.total_weight / unit_conver);
+        imgui.text(buf);
+
+        ImGui::Dummy({window_padding, window_padding});
+        ImGui::SameLine();
+        imgui.text(_u8L("Cost") + ":");
+        ImGui::SameLine();
+        ::sprintf(buf, "%.2f", ps.total_cost);
+        imgui.text(buf);
+
+        ImGui::Dummy({window_padding, window_padding});
+        ImGui::SameLine();
+        imgui.text(_u8L("Total time") + ":");
+        ImGui::SameLine();
+        imgui.text(short_time(get_time_dhms(time_mode.time)));
+        break;
+    }
     case libvgcode::EViewType::ColorPrint: {
         //BBS: replace model custom gcode with current plate custom gcode
         const std::vector<CustomGCode::Item>& custom_gcode_per_print_z = wxGetApp().is_editor() ? wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_custom_gcode_per_print_z;
@@ -3264,7 +3631,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         imgui.text(_u8L("Filament change times") + ":");
         ImGui::SameLine();
-        ::sprintf(buf, "%d", m_print_statistics.total_filamentchanges);
+        ::sprintf(buf, "%d", m_print_statistics.total_filament_changes);
         imgui.text(buf);
 
         //BBS display cost
@@ -3789,11 +4156,13 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         for (auto item : m_viewer.get_options())
             append_option_item(item, offsets);
     }
+    ImGui::Dummy({ window_padding, window_padding });
+    if (m_nozzle_nums > 1 && (m_viewer.get_view_type() == libvgcode::EViewType::Summary || m_viewer.get_view_type() == libvgcode::EViewType::ColorPrint)) // ORCA show only on summary and filament tab
+        render_legend_color_arr_recommen(window_padding);
 
     legend_height = ImGui::GetCurrentWindow()->Size.y;
-    ImGui::Dummy({ window_padding, window_padding});
     imgui.end();
-    ImGui::PopStyleColor(6);
+    ImGui::PopStyleColor(7);
     ImGui::PopStyleVar(2);
 }
 

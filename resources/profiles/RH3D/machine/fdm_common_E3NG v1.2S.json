@@ -1,0 +1,70 @@
+{
+    "type": "machine",
+    "name": "fdm_common_E3NG v1.2S",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "extruder_clearance_height_to_lid": "140",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_radius": "65",
+    "machine_max_acceleration_e": [
+        "7500",
+        "7500"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_travel": [
+        "10000",
+        "10000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "25",
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "400",
+        "400"
+    ],
+    "machine_max_speed_y": [
+        "400",
+        "400"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "printable_area": [
+        "0x0",
+        "232x0",
+        "232x232",
+        "0x232"
+    ],
+    "printable_height": "245",
+    "printer_model": "E3NG v1.2S",
+    "printer_notes": [
+        "Design by RH3D"
+    ],
+    "retract_before_wipe": "80%",
+    "retract_length_toolchange": "0",
+    "retract_lift_below": "240",
+    "retraction_minimum_travel": "1.5",
+    "travel_slope": "1"
+}
