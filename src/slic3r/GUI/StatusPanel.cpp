@@ -3491,14 +3491,14 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
             for (auto ext : obj->GetExtderSystem()->GetExtruders()) {
                 if (ext.GetSlotNow().ams_id == ams_id && ext.GetSlotNow().slot_id == slot_id)
                 {
-                    load_error_info = _L("Current slot has alread been loaded");
+                    load_error_info = _L("Current slot has already been loaded");
                 }
             }
         } else {
             for (auto ext : obj->GetExtderSystem()->GetExtruders()) {
                 if (ext.GetSlotNow().ams_id == ams_id && ext.GetSlotNow().slot_id == slot_id)
                 {
-                    load_error_info = _L("Current slot has alread been loaded");
+                    load_error_info = _L("Current slot has already been loaded");
                 }
             }
 

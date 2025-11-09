@@ -136,7 +136,7 @@ void PublishDialog::cancel()
 {
     m_was_cancelled = true;
     m_btn_cancel->Enable(false);
-    m_text_progress->SetLabelText(_L("Publish was cancelled"));
+    m_text_progress->SetLabelText(_L("Publish was canceled"));
     wxCloseEvent evt;
     this->on_close(evt);
 }

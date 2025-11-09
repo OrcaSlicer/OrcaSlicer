@@ -1135,7 +1135,7 @@ msgstr "Відстань від центру тексту до поверхні 
 msgid "Undo rotation"
 msgstr "Скасувати обертання"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "Обертати текст за годинниковою стрілкою."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -2742,7 +2742,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -4134,10 +4134,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4146,7 +4146,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4339,9 +4339,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4994,7 +4991,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -5006,7 +5003,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -6041,7 +6038,7 @@ msgstr "Ім'я не може починатися з пробілу."
 msgid "The name is not allowed to end with space character."
 msgstr "Ім'я не може закінчуватися пробілом."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -6144,7 +6141,7 @@ msgstr "Принтер зайнятий іншим завданням друку
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6913,7 +6910,7 @@ msgid "Sync filaments with AMS"
 msgstr "Синхронізація ниток з AMS"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -8244,8 +8241,8 @@ msgstr ""
 msgid "Publish"
 msgstr "Публікувати"
 
-msgid "Publish was cancelled"
-msgstr ""
+msgid "Publish was canceled"
+msgstr "Публікація скасована"
 
 msgid "Slicing Plate 1"
 msgstr "Пластина для нарізки 1"
@@ -20175,8 +20172,8 @@ msgstr "Назва пристрою"
 msgid "Device Status"
 msgstr "Статус пристрою"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "Статус AMS"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -20338,7 +20335,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -20384,8 +20381,8 @@ msgstr "Надайте необхідні дозволи під час авто�
 msgid "Something unexpected happened when trying to log in, please try again."
 msgstr "Під час спроби входу трапилося щось несподіване. Повторіть спробу."
 
-msgid "User cancelled."
-msgstr ""
+msgid "User canceled."
+msgstr "Користувача скасовано."
 
 msgid "Head diameter"
 msgstr "Діаметр голови"
@@ -20949,9 +20946,6 @@ msgstr ""
 #~ "AMS зчитує інформацію про витратний матеріал Bambu та розраховує його "
 #~ "залишкову ємність на котушці. Залишкова ємність автоматично оновлюється в "
 #~ "процесі друку."
-
-#~ msgid "AMS Status"
-#~ msgstr "Статус AMS"
 
 #, fuzzy
 #~ msgid ""
@@ -21652,9 +21646,6 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Неправильний номер"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "Публікація скасована"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "сопло у пам'яті: %.2f %s"
@@ -21889,9 +21880,6 @@ msgstr ""
 
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "Не вдалося підключитися до Flashforge"
-
-#~ msgid "User canceled."
-#~ msgstr "Користувача скасовано."
 
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "Встановіть тип кайми на \"Мальована\""

@@ -1135,7 +1135,7 @@ msgstr "Distancia del centro del texto a la superficie del modelo."
 msgid "Undo rotation"
 msgstr "Deshacer la rotación"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "Girar el texto en el sentido de las agujas del reloj."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -2752,7 +2752,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -4164,10 +4164,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4176,7 +4176,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4371,9 +4371,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -5027,7 +5024,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -5039,7 +5036,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -6055,7 +6052,7 @@ msgstr "No se permite que el nombre comience con un espacio."
 msgid "The name is not allowed to end with space character."
 msgstr "No se permite que el nombre termine con un espacio."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -6160,7 +6157,7 @@ msgstr "La impresora está ocupada con otro trabajo de impresión"
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6918,7 +6915,7 @@ msgid "Sync filaments with AMS"
 msgstr "Sincronizar filamentos con AMS"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -8265,8 +8262,8 @@ msgstr ""
 msgid "Publish"
 msgstr "Publicar"
 
-msgid "Publish was cancelled"
-msgstr ""
+msgid "Publish was canceled"
+msgstr "La publicación fue cancelada"
 
 msgid "Slicing Plate 1"
 msgstr "Bandeja de Laminado 1"
@@ -20187,8 +20184,8 @@ msgstr "Nombre del dispositivo"
 msgid "Device Status"
 msgstr "Estado del dispositivo"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "Estado del AMS"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -20348,7 +20345,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -20396,8 +20393,8 @@ msgid "Something unexpected happened when trying to log in, please try again."
 msgstr ""
 "Ha ocurrido algo inesperado al intentar iniciar sesión, inténtelo de nuevo."
 
-msgid "User cancelled."
-msgstr ""
+msgid "User canceled."
+msgstr "Cancelado por el usuario."
 
 msgid "Head diameter"
 msgstr "Diámetro de la cabeza"
@@ -20963,9 +20960,6 @@ msgstr ""
 #~ "El AMS estimará la capacidad del filamento Bambú restante después de que "
 #~ "la información sea actualizada. Durante la impresión, la capacidad "
 #~ "restante será actualizada automáticamente."
-
-#~ msgid "AMS Status"
-#~ msgstr "Estado del AMS"
 
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
@@ -21661,9 +21655,6 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Número inválido"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "La publicación fue cancelada"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "Boquilla memorizada: %.2f %s"
@@ -21920,9 +21911,6 @@ msgstr ""
 
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "No se ha podido conectar a Flashforge"
-
-#~ msgid "User canceled."
-#~ msgstr "Cancelador por el usuario."
 
 #~ msgid ""
 #~ "We have added an experimental style \"Tree Slim\" that features smaller "

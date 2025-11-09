@@ -959,7 +959,7 @@ void EditDevNameDialog::on_edit_name(wxCommandEvent &e)
 
     if (m_valid_type == Valid && new_dev_name.length() > 32)
     {
-        info_line    = _L("The name is not allowed to exceeds 32 characters.");
+        info_line    = _L("The name is not allowed to exceed 32 characters.");
         m_valid_type = NoValid;
     }
 

@@ -1140,7 +1140,7 @@ msgstr "Расстояние от центра текста до поверхн�
 msgid "Undo rotation"
 msgstr "Отменить вращение"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "Поворот текста по часовой стрелке."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -2755,7 +2755,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -4172,10 +4172,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4184,7 +4184,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4380,9 +4380,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -5050,7 +5047,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -5062,7 +5059,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -6095,7 +6092,7 @@ msgstr "Имя не должно начинаться с пробела."
 msgid "The name is not allowed to end with space character."
 msgstr "Имя не должно заканчиваться пробелом."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 # не длинно?
@@ -6200,7 +6197,7 @@ msgstr "Принтер занят другим заданием"
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6964,7 +6961,7 @@ msgid "Sync filaments with AMS"
 msgstr "Синхронизация филамента с AMS"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -8330,7 +8327,7 @@ msgstr ""
 msgid "Publish"
 msgstr "Опубликовать"
 
-msgid "Publish was cancelled"
+msgid "Publish was canceled"
 msgstr "Опубликование отменено"
 
 msgid "Slicing Plate 1"
@@ -20711,8 +20708,8 @@ msgstr "Имя устройства"
 msgid "Device Status"
 msgstr "Статус устройства"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "Статус AMS"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -20874,7 +20871,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -20922,7 +20919,7 @@ msgstr ""
 msgid "Something unexpected happened when trying to log in, please try again."
 msgstr "При попытке войти произошла какая-то ошибка, попробуйте ещё раз."
 
-msgid "User cancelled."
+msgid "User canceled."
 msgstr "Отменено пользователем."
 
 msgid "Head diameter"
@@ -21531,9 +21528,6 @@ msgstr ""
 #~ "AMS считывает информацию о материале Bambu и рассчитывает его остаточную "
 #~ "ёмкость на катушке. Остаточная ёмкость обновляется автоматически в "
 #~ "процессе печати."
-
-#~ msgid "AMS Status"
-#~ msgstr "Статус AMS"
 
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
@@ -22338,9 +22332,6 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Неправильное числовое значение"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "Публикация была отменена"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "сопло сохранённое: %.2f %s"
@@ -22615,9 +22606,6 @@ msgstr ""
 
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "Не удалось подключиться к Flashforge"
-
-#~ msgid "User canceled."
-#~ msgstr "Отменено пользователем."
 
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "Установить тип каймы на «Нарисовано»."

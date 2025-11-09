@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-11-05 17:33+0800\n"
-"PO-Revision-Date: 2025-10-05 10:08-0300\n"
+"PO-Revision-Date: 2025-11-08 11:50-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
 "Language: pt_BR\n"
@@ -17,42 +17,52 @@ msgstr ""
 "X-Crowdin-Language: pt-BR\n"
 "X-Crowdin-Project: orcaslicer-pt-br\n"
 "X-Crowdin-Project-ID: 664934\n"
-"X-Generator: Poedit 3.6\n"
+"X-Generator: Poedit 3.8\n"
 
 msgid ""
 "The filament may not be compatible with the current machine settings. "
 "Generic filament presets will be used."
 msgstr ""
+"O filamento pode não ser compatível com as configurações atuais da máquina. "
+"Serão usadas predefinições genéricas predefinidas de filamento."
 
 msgid ""
 "The filament model is unknown. Still using the previous filament preset."
 msgstr ""
+"O modelo do filamento é desconhecido. Usando a predefinição de filamento "
+"anterior."
 
 msgid "The filament model is unknown. Generic filament presets will be used."
 msgstr ""
+"O modelo do filamento é desconhecido. Serão usadas predefinições genéricas "
+"predefinidas de filamento."
 
 msgid ""
 "The filament may not be compatible with the current machine settings. A "
 "random filament preset will be used."
 msgstr ""
+"O filamento pode não ser compatível com as configurações atuais da máquina. "
+"Uma predefinição de filamento aleatória será usada."
 
 msgid "The filament model is unknown. A random filament preset will be used."
 msgstr ""
+"O modelo do filamento é desconhecido. Uma predefinição de filamento "
+"aleatória será usada."
 
 msgid "right"
-msgstr ""
+msgstr "direita"
 
 msgid "left"
-msgstr ""
+msgstr "esquerda"
 
 msgid "right extruder"
-msgstr ""
+msgstr "extrusora direita"
 
 msgid "left extruder"
-msgstr ""
+msgstr "extrusora esquerda"
 
 msgid "extruder"
-msgstr ""
+msgstr "extrusora"
 
 msgid "TPU is not supported by AMS."
 msgstr "TPU não é suportado pelo AMS."
@@ -66,11 +76,15 @@ msgstr ""
 
 msgid "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
 msgstr ""
+"O PVA úmido é flexível e pode ficar preso na extrusora. Seque-o antes de "
+"usar."
 
 msgid ""
 "The rough surface of PLA Glow can accelerate wear on the AMS system, "
 "particularly on the internal components of the AMS Lite."
 msgstr ""
+"A superfície áspera do PLA Glow pode acelerar o desgaste do sistema AMS, "
+"particularmente nos componentes internos do AMS Lite."
 
 msgid ""
 "CF/GF filaments are hard and brittle, it's easy to break or get stuck in "
@@ -81,19 +95,23 @@ msgstr ""
 
 msgid "PPS-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr ""
+"O PPS-CF é quebradiço e pode quebrar no tubo de PTFE dobrado acima da "
+"extrusora."
 
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr ""
+"O PPA-CF é quebradiço e pode quebrar no tubo de PTFE dobrado acima da "
+"extrusora."
 
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
-msgstr ""
+msgstr "%s não é suportado pela extrusora %s."
 
 msgid "Current AMS humidity"
 msgstr "Umidade AMS atual"
 
 msgid "Humidity"
-msgstr "Humidade"
+msgstr "Umidade"
 
 msgid "Temperature"
 msgstr "Temperatura"
@@ -266,7 +284,7 @@ msgid "Enter"
 msgstr "Enter"
 
 msgid "Toggle Wireframe"
-msgstr "Alternar malha"
+msgstr "Alternar Malha"
 
 msgid "Remap filaments"
 msgstr "Remapear filamentos"
@@ -312,13 +330,13 @@ msgid "Brush shape"
 msgstr "Formato do pincel"
 
 msgid "Add fuzzy skin"
-msgstr ""
+msgstr "Adicionar textura difusa"
 
 msgid "Remove fuzzy skin"
-msgstr ""
+msgstr "Remover textura difusa"
 
 msgid "Reset selection"
-msgstr ""
+msgstr "Redefinir seleção"
 
 msgid "Move"
 msgstr "Mover"
@@ -381,7 +399,7 @@ msgid "Volume Operations"
 msgstr "Operações de Volume"
 
 msgid "Translate"
-msgstr "Traduzir"
+msgstr "Translacionar"
 
 msgid "Group Operations"
 msgstr "Operações de Grupo"
@@ -405,7 +423,7 @@ msgid "World coordinates"
 msgstr "Coordenadas globais"
 
 msgid "Translate(Relative)"
-msgstr ""
+msgstr "Translacionar(Relativo)"
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Redefinir rotação para o valor de abertura da ferramenta de rotação."
@@ -2133,13 +2151,13 @@ msgid "Edit text"
 msgstr "Editar Texto"
 
 msgid "Ability to change text, font, size, ..."
-msgstr "Capacidade de alterar texto, fonte, tamanho, ..."
+msgstr "Capacidade de alterar texto, fonte, tamanho, …"
 
 msgid "Edit SVG"
 msgstr "Editar SVG"
 
 msgid "Change SVG source file, projection, size, ..."
-msgstr "Alterar arquivo fonte SVG, projeção, tamanho, ..."
+msgstr "Alterar arquivo fonte SVG, projeção, tamanho, …"
 
 msgid "Invalidate cut info"
 msgstr "Invalidar informações de corte"
@@ -2185,10 +2203,10 @@ msgid "Edit"
 msgstr "Editar"
 
 msgid "Delete this filament"
-msgstr ""
+msgstr "Apagar este filamento"
 
 msgid "Merge with"
-msgstr ""
+msgstr "Mesclar com"
 
 msgid "Select All"
 msgstr "Selecionar Tudo"
@@ -2227,28 +2245,29 @@ msgid "Remove the selected plate"
 msgstr "Remover a placa selecionada"
 
 msgid "Add instance"
-msgstr ""
+msgstr "Adicionar instância"
 
 msgid "Add one more instance of the selected object"
-msgstr ""
+msgstr "Adicionar uma ou mais instâncias do objeto selecionado"
 
 msgid "Remove instance"
-msgstr ""
+msgstr "Remover instância"
 
 msgid "Remove one instance of the selected object"
-msgstr ""
+msgstr "Remover uma instância do objeto selecionado"
 
 msgid "Set number of instances"
-msgstr ""
+msgstr "Definir o número de instâncias"
 
 msgid "Change the number of instances of the selected object"
-msgstr ""
+msgstr "Alterar o número de instâncias do objeto selecionado"
 
 msgid "Fill bed with instances"
-msgstr ""
+msgstr "Preencher a placa com instâncias"
 
 msgid "Fill the remaining area of bed with instances of the selected object"
-msgstr ""
+msgstr "Preencher a área remanescente da placa com instâncias do objeto "
+"selecionado"
 
 msgid "Clone"
 msgstr "Clonar"
@@ -2266,10 +2285,10 @@ msgid "Edit Process Settings"
 msgstr "Editar Configurações de Processo"
 
 msgid "Copy Process Settings"
-msgstr ""
+msgstr "Copiar Configurações de Processo"
 
 msgid "Paste Process Settings"
-msgstr ""
+msgstr "Colar Configurações de Processo"
 
 msgid "Edit print parameters for a single object"
 msgstr "Editar parâmetros de impressão para um único objeto"
@@ -2707,24 +2726,28 @@ msgid ""
 "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically "
 "load or unload filaments."
 msgstr ""
-"Escolha um slot AMS e pressione o botão \"Carregar\" ou \"Descarregar\" para "
-"carregar ou descarregar automaticamente o filamento."
+"Escolha um espaço do AMS e pressione o botão \"Carregar\" ou \"Descarregar\" "
+"para carregar ou descarregar automaticamente o filamento."
 
 msgid ""
 "Filament type is unknown which is required to perform this action. Please "
 "set target filament's informations."
 msgstr ""
+"O tipo de filamento necessário para realizar esta ação é desconhecido. "
+"Insira as informações do filamento desejado."
 
 msgid ""
 "Changing fan speed during printing may affect print quality, please choose "
 "carefully."
 msgstr ""
+"Mudar a velocidade do ventilador durante a impressão pode afetar a qualidade "
+"da impressão. Escolha com cuidado."
 
 msgid "Change Anyway"
-msgstr ""
+msgstr "Mudar Mesmo Assim"
 
 msgid "Off"
-msgstr ""
+msgstr "Desligado"
 
 msgid "Filter"
 msgstr "Filtrar"
@@ -2733,37 +2756,43 @@ msgid ""
 "Enabling filtration redirects the right fan to filter gas, which may reduce "
 "cooling performance."
 msgstr ""
+"Ativar a filtragem redireciona o ventilador direito para filtrar o gás, o "
+"que pode reduzir o desempenho de resfriamento."
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
 "qulity. Please choose carefully"
 msgstr ""
+"Habilitar a filtragem durante a impressão pode reduzir o resfriamento e "
+"afetar a qualidade da impressão. Escolha com cuidado."
 
 msgid ""
 "The selected material only supports the current fan mode, and it can't be "
 "changed during printing."
 msgstr ""
+"O material selecionado suporta apenas o modo de ventilação atual e não pode "
+"ser alterado durante a impressão."
 
 msgid "Cooling"
 msgstr "Resfriamento"
 
 msgid "Heating"
-msgstr ""
+msgstr "Aquecimento"
 
 msgid "Exhaust"
-msgstr ""
+msgstr "Exaustão"
 
 msgid "Full Cooling"
-msgstr ""
+msgstr "Resfriamento Completo"
 
 msgid "Init"
-msgstr ""
+msgstr "Inicialização"
 
 msgid "Chamber"
-msgstr ""
+msgstr "Câmara"
 
 msgid "Innerloop"
-msgstr ""
+msgstr "Circuito Interno"
 
 #. TRN To be shown in the main menu View->Top
 msgid "Top"
@@ -2774,53 +2803,63 @@ msgid ""
 "The system automatically adjusts the fan's switch and speed according to "
 "different printing materials."
 msgstr ""
+"O ventilador controla a temperatura durante a impressão para melhorar a "
+"qualidade da impressão. O sistema ajusta automaticamente a ativação e a "
+"velocidade do ventilador de acordo com os diferentes materiais de impressão."
 
 msgid ""
 "Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the "
 "chamber air."
 msgstr ""
+"O modo de resfriamento é adequado para impressão com materiais PLA/PETG/TPU "
+"e filtra o ar da câmara."
 
 msgid ""
 "Heating mode is suitable for printing ABS/ASA/PC/PA materials and circulates "
 "filters the chamber air."
 msgstr ""
+"O modo de aquecimento é adequado para impressão com materiais ABS/ASA/PC/PA "
+"e filtra a circulação do ar na câmara."
 
 msgid ""
 "Strong cooling mode is suitable for printing PLA/TPU materials. In this "
 "mode, the printouts will be fully cooled."
 msgstr ""
+"O modo de resfriamento intenso é adequado para impressão com materiais "
+"PLA/TPU. Nesse modo, as peças impressas serão completamente resfriadas."
 
 msgid "Cooling mode is suitable for printing PLA/PETG/TPU materials."
-msgstr ""
+msgstr "O modo de resfriamento é adequado para impressão com materiais "
+"PLA/PETG/TPU."
 
 msgctxt "air_duct"
 msgid "Right(Aux)"
-msgstr ""
+msgstr "Direita(Aux)"
 
 msgctxt "air_duct"
 msgid "Right(Filter)"
-msgstr ""
+msgstr "Direita(Filtro)"
 
 msgid "Hotend"
 msgstr ""
 
 msgid "Parts"
-msgstr ""
+msgstr "Peças"
 
 msgid "Aux"
 msgstr "Auxiliar"
 
 msgid "Nozzle1"
-msgstr ""
+msgstr "Bico1"
 
 msgid "MC Board"
-msgstr ""
+msgstr "Placa MC"
 
 msgid "Heat"
-msgstr ""
+msgstr "Calor"
 
 msgid "Fan"
-msgstr ""
+msgstr "Ventoinha"
 
 msgid "Idling..."
 msgstr "Em espera…"
@@ -2850,10 +2889,10 @@ msgid "Check filament location"
 msgstr "Verificar localização do filamento"
 
 msgid "The maximum temperature cannot exceed "
-msgstr ""
+msgstr "A temperatura máxima não pode exceder "
 
 msgid "The minmum temperature should not be less than "
-msgstr ""
+msgstr "A temperatura mínima não pode ser menor do que "
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -3044,24 +3083,33 @@ msgstr "Código de acesso:%s Endereço IP:%s"
 
 msgid "A Storage needs to be inserted before printing via LAN."
 msgstr ""
+"É necessário inserir um dispositivo de Armazenamento antes de imprimir via "
+"LAN."
 
 msgid ""
 "Sending print job over LAN, but the Storage in the printer is abnormal and "
 "print-issues may be caused by this."
 msgstr ""
+"O trabalho de impressão está sendo enviado pela LAN, mas o Armazenamento na "
+"impressora está anormal e isso pode causar problemas de impressão."
 
 msgid ""
 "The Storage in the printer is abnormal. Please replace it with a normal "
 "Storage before sending print job to printer."
 msgstr ""
+"O Armazenamento na impressora está com anormal. Substitua-o por um "
+"Armazenamento normal antes de enviar o trabalho de impressão."
 
 msgid ""
 "The Storage in the printer is read-only. Please replace it with a normal "
 "Storage before sending print job to printer."
 msgstr ""
+"O Armazenamento na impressora é somente para leitura. Substitua-o por um "
+"Armazenamento normal antes de enviar o trabalho de impressão."
 
 msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr ""
+"Ocorreu um erro desconhecido no estadu do Armazenamento. Tente novamente."
 
 msgid "Sending G-code file over LAN"
 msgstr "Enviando arquivo de G-code via LAN"
@@ -3074,22 +3122,28 @@ msgid "Successfully sent. Close current page in %s s"
 msgstr "Enviado com sucesso. Feche a página atual em %s s"
 
 msgid "Storage needs to be inserted before sending to printer."
-msgstr ""
+msgstr "É necessário inserir Armazenamento antes de enviar para a impressora."
 
 msgid ""
 "Sending G-code file over LAN, but the Storage in the printer is abnormal and "
 "print-issues may be caused by this."
 msgstr ""
+"O arquivo G-code está sendo enviado pela LAN, mas o Armazenamento na "
+"impressora está anormal e pode causar falhas na impressão."
 
 msgid ""
 "The Storage in the printer is abnormal. Please replace it with a normal "
 "Storage before sending to printer."
 msgstr ""
+"O Armazenamento na impressora está anormal. Substitua-o por um Armazenamento "
+"normal antes de enviar para a impressora."
 
 msgid ""
 "The Storage in the printer is read-only. Please replace it with a normal "
 "Storage before sending to printer."
 msgstr ""
+"O Armazenamento na impressora é somente para leitura. Substitua-o por um "
+"Armazenamento normal antes de enviar para a impressora."
 
 msgid "Importing SLA archive"
 msgstr "Importando arquivo SLA"
@@ -3239,12 +3293,12 @@ msgstr "Fator N"
 
 msgid "Setting AMS slot information while printing is not supported"
 msgstr ""
-"A configuração das informações do slot AMS durante a impressão não é "
+"A configuração das informações do espaço do AMS durante a impressão não é "
 "suportada"
 
 msgid "Setting Virtual slot information while printing is not supported"
 msgstr ""
-"A configuração de informações do slot virtual durante a impressão não é "
+"A configuração de informações do espaço virtual durante a impressão não é "
 "suportada"
 
 msgid "Are you sure you want to clear the filament information?"
@@ -3267,6 +3321,9 @@ msgid ""
 "the filament.\n"
 "'Device -> Print parts'"
 msgstr ""
+"O fluxo do bico não está configurado. Defina o fluxo do bico antes de editar "
+"o filamento.\n"
+"'Dispositivo -> Imprimir peças'"
 
 msgid "AMS"
 msgstr "AMS"
@@ -3374,13 +3431,13 @@ msgid "AMS Slots"
 msgstr "Espaços do AMS"
 
 msgid "Please select from the following filaments"
-msgstr ""
+msgstr "Escolha entre os seguintes filamentos"
 
 msgid "Select filament that installed to the left nozzle"
-msgstr ""
+msgstr "Selecione o filamento instalado no bico esquerdo"
 
 msgid "Select filament that installed to the right nozzle"
-msgstr ""
+msgstr "Selecione o filamento instalado no bico direito"
 
 msgid "Left AMS"
 msgstr "AMS Esquerdo"
@@ -3389,16 +3446,16 @@ msgid "External"
 msgstr "Externo"
 
 msgid "Reset current filament mapping"
-msgstr ""
+msgstr "Redefinir mapeamento atual de filamento"
 
 msgid "Right AMS"
 msgstr "AMS Direito"
 
 msgid "Left Nozzle"
-msgstr ""
+msgstr "Bico Esquerdo"
 
 msgid "Right Nozzle"
-msgstr ""
+msgstr "Bico Direito"
 
 msgid "Nozzle"
 msgstr "Bico"
@@ -3412,15 +3469,20 @@ msgid ""
 "slicing file. If you want to use this slot, you can install %s instead of %s "
 "and change slot information on the 'Device' page."
 msgstr ""
+"Nota: o tipo de filamento (%s) não corresponde ao tipo de filamento (%s) no "
+"arquivo de fatiamento. Se você quiser usar este slot, pode instalar %s em vez "
+"de %s e alterar as informações do slot na página 'Dispositivo'."
 
 #, c-format, boost-format
 msgid ""
 "Note: the slot is empty or undefined. If you want to use this slot, you can "
 "install %s and change slot information on the 'Device' page."
 msgstr ""
+"Nota: o slot está vazio ou indefinido. Se desejar usar este slot, você pode "
+"instalar %s e alterar as informações do slot na página 'Dispositivo'."
 
 msgid "Note: Only filament-loaded slots can be selected."
-msgstr ""
+msgstr "Nota: Apenas espaços com filamento carregado podem ser selecionados."
 
 msgid "Enable AMS"
 msgstr "Ativar AMS"
@@ -3489,7 +3551,7 @@ msgstr ""
 "seguinte ordem."
 
 msgid "Identical filament: same brand, type and color"
-msgstr ""
+msgstr "Filamento idêntico: mesma marca, tipo e cor"
 
 msgid "Group"
 msgstr "Grupo"
@@ -3498,6 +3560,8 @@ msgid ""
 "When the current material runs out, the printer would use identical filament "
 "to continue printing."
 msgstr ""
+"Quando o material atual acabar, a impressora usará um filamento idêntico "
+"para continuar a impressão."
 
 msgid "The printer does not currently support auto refill."
 msgstr "A impressora atualmente não suporta recarga automática."
@@ -3513,6 +3577,9 @@ msgid ""
 "to continue printing.\n"
 "*Identical filament: same brand, type and color."
 msgstr ""
+"Quando o filamento atual acabar, a impressora usará um filamento idêntico "
+"para continuar a impressão.\n"
+"*Filamento idêntico: mesma marca, tipo e cor."
 
 msgid "DRY"
 msgstr "SECO"
@@ -3824,11 +3891,11 @@ msgstr "Forma da Mesa"
 
 #, c-format, boost-format
 msgid "A minimum temperature above %d℃ is recommended for %s.\n"
-msgstr ""
+msgstr "Recomenda-se uma temperatura mínima acima de %d℃ para %s.\n"
 
 #, c-format, boost-format
 msgid "A maximum temperature below %d℃ is recommended for %s.\n"
-msgstr ""
+msgstr "Recomenda-se uma temperatura máxima inferior a %d℃ para %s.\n"
 
 msgid ""
 "The recommended minimum temperature cannot be higher than the recommended "
@@ -3992,7 +4059,6 @@ msgstr ""
 "seam_slope_start_height precisa ser menor que layer_height.\n"
 "Redefinir para 0."
 
-#, fuzzy, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4023,6 +4089,10 @@ msgid ""
 "detection by probing is disabled, top shell layers is 0, sparse infill "
 "density is 0 and timelapse type is traditional."
 msgstr ""
+"O modo espiral só funciona quando as voltas da parede são 1, o suporte está "
+"desativado, a detecção de aglomeração por sondagem está desativada, as "
+"camadas da casca de topo são 0, a densidade de preenchimento esparso é 0 e o "
+"tipo de timelapse é tradicional."
 
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Mas máquinas com estrutura I3 não gerarão vídeos de timelapse."
@@ -4055,13 +4125,13 @@ msgid "M400 pause"
 msgstr "Pausa M400"
 
 msgid "Paused (filament ran out)"
-msgstr ""
+msgstr "Pausado (filamento terminou)"
 
 msgid "Heating nozzle"
-msgstr ""
+msgstr "Bico aquecido"
 
 msgid "Calibrating dynamic flow"
-msgstr ""
+msgstr "Calibrando fluxo dinâmico"
 
 msgid "Scanning bed surface"
 msgstr "Digitalizando a superfície da mesa"
@@ -4085,22 +4155,22 @@ msgid "Checking extruder temperature"
 msgstr "Verificando temperatura da extrusora"
 
 msgid "Paused by the user"
-msgstr ""
+msgstr "Pausado pelo usuário"
 
 msgid "Pause (front cover fall off)"
-msgstr ""
+msgstr "Pausa (queda da cobertura frontal)"
 
 msgid "Calibrating the micro lidar"
 msgstr "Calibrando o micro lidar"
 
 msgid "Calibrating flow ratio"
-msgstr ""
+msgstr "Calibrando fluxo"
 
 msgid "Pause (nozzle temperature malfunction)"
-msgstr ""
+msgstr "Pausa (problema na temperatura do bico)"
 
 msgid "Pause (heatbed temperature malfunction)"
-msgstr ""
+msgstr "Pausa (problema na temperatura da mesa)"
 
 msgid "Filament unloading"
 msgstr "Descarregando filamento"
@@ -4115,61 +4185,61 @@ msgid "Motor noise cancellation"
 msgstr "Cancelamento de ruído do motor"
 
 msgid "Pause (AMS offline)"
-msgstr ""
+msgstr "Pausa (AMS offline)"
 
 msgid "Pause (low speed of the heatbreak fan)"
 msgstr ""
 
 msgid "Pause (chamber temperature control problem)"
-msgstr ""
+msgstr "Pausa (problema no controle de temperatura da câmara)"
 
 msgid "Cooling chamber"
 msgstr "Resfriando câmara"
 
 msgid "Pause (G-code inserted by user)"
-msgstr ""
+msgstr "Pausa (G-code inserido pelo usuário)"
 
 msgid "Motor noise showoff"
 msgstr "Demonstração de barulho do motor"
 
 msgid "Pause (nozzle clumping)"
-msgstr ""
+msgstr "Pausa (aglomeração do bico)"
 
 msgid "Pause (cutter error)"
-msgstr ""
+msgstr "Pausa (erro no cortador)"
 
 msgid "Pause (first layer error)"
-msgstr ""
+msgstr "Pausa (erro na primeira camada)"
 
 msgid "Pause (nozzle clog)"
-msgstr ""
+msgstr "Pausa (bico entupido)"
 
 msgid "Measuring motion percision"
-msgstr ""
+msgstr "Medindo precisão de movimento"
 
 msgid "Enhancing motion percision"
-msgstr ""
+msgstr "Aprimorando a precisão do movimento"
 
 msgid "Measure motion accuracy"
-msgstr ""
+msgstr "Medir a precisão do movimento"
 
 msgid "Nozzle offset calibration"
-msgstr ""
+msgstr "Calibração do deslocamento do bico"
 
 msgid "high temperature auto bed levelling"
-msgstr ""
+msgstr "nivelamento automático da mesa em alta temperatura"
 
 msgid "Auto Check: Quick Release Lever"
-msgstr ""
+msgstr "Verificação Automática: Alavanca de Liberação Rápida"
 
 msgid "Auto Check: Door and Upper Cover"
-msgstr ""
+msgstr "Verificação Automática: Porta e Cobertura Superior"
 
 msgid "Laser Calibration"
-msgstr ""
+msgstr "Calibração do Laser"
 
 msgid "Auto Check: Platform"
-msgstr ""
+msgstr "Verificação Automática: Plataforma"
 
 msgid "Confirming BirdsEye Camera location"
 msgstr ""
@@ -4178,40 +4248,41 @@ msgid "Calibrating BirdsEye Camera"
 msgstr ""
 
 msgid "Auto bed leveling -phase 1"
-msgstr ""
+msgstr "Auto nivelando mesa - fase 1"
 
 msgid "Auto bed leveling -phase 2"
-msgstr ""
+msgstr "Auto nivelando mesa - fase 2"
 
 msgid "Heating chamber"
-msgstr ""
+msgstr "Aquecendo câmara"
 
 msgid "Cooling heatbed"
-msgstr ""
+msgstr "Resfriando mesa"
 
 msgid "Printing calibration lines"
-msgstr ""
+msgstr "Imprimindo linhas de calibração"
 
 msgid "Auto Check: Material"
-msgstr ""
+msgstr "Verificação Automática: Material"
 
 msgid "Live View Camera Calibration"
 msgstr ""
 
 msgid "Waiting for heatbed to reach target temperature"
-msgstr ""
+msgstr "Aguardando mesa aquecida atingir a temperatura desejada"
 
 msgid "Auto Check: Material Position"
-msgstr ""
+msgstr "Verificação Automática: Posição do Material"
 
 msgid "Cutting Module Offset Calibration"
-msgstr ""
+msgstr "Calibração de Deslocamento do Módulo de Corte"
 
 msgid "Measuring Surface"
-msgstr ""
+msgstr "Medindo Superfície"
 
 msgid "Thermal Preconditioning for first layer optimization"
 msgstr ""
+"Pré-condicionamento térmico para otimização da primeira camada"
 
 msgid "Unknown"
 msgstr "Desconhecido"
@@ -4230,20 +4301,26 @@ msgstr "Atualização falhou."
 
 msgid "Timelapse is not supported on this printer."
 msgstr ""
+"Timelapse não é suportado nessa impressora."
 
 msgid "Timelapse is not supported while the storage does not exist."
 msgstr ""
+"Timelapse não é suportado enquanto o armazenamento não existe."
 
 msgid "Timelapse is not supported while the storage is unavailable."
 msgstr ""
+"Timelapse não é suportado enquanto o armazenamento não está disponível."
 
 msgid "Timelapse is not supported while the storage is readonly."
 msgstr ""
+"Timelapse não é suportado enquanto o armazenamento é apenas para leitura."
 
 msgid ""
 "To ensure your safety, certain processing tasks (such as laser) can only be "
 "resumed on printer."
 msgstr ""
+"Para garantir sua segurança, certas tarefas de processamento (como o laser) "
+"só podem ser retomadas na própria impressora."
 
 #, c-format, boost-format
 msgid ""
@@ -4251,23 +4328,34 @@ msgid ""
 "Please wait until the chamber temperature drops below %d℃. You may open the "
 "front door or enable fans to cool down."
 msgstr ""
+"A temperatura da câmara está muito alta, o que pode causar o amolecimento do "
+"filamento. Aguarde até que a temperatura da câmara caia abaixo de %d℃. Você "
+"pode abrir a porta frontal ou ligar os ventiladores para resfriar."
 
 #, c-format, boost-format
 msgid ""
 "AMS temperature is too high, which may cause the filament to soften. Please "
 "wait until the AMS temperature drops below %d℃."
 msgstr ""
+"A temperatura do AMS está muito alta, o que pode causar o amolecimento do "
+"filamento. Aguarde até que a temperatura do AMS caia abaixo de %d℃."
 
 msgid ""
 "The current chamber temperature or the target chamber temperature exceeds "
 "45℃. In order to avoid extruder clogging,low temperature filament(PLA/PETG/"
 "TPU) is not allowed to be loaded."
 msgstr ""
+"A temperatura atual da câmara ou a temperatura alvo da câmara excede 45°C. "
+"Para evitar o entupimento da extrusora, não é permitido o carregamento de "
+"filamentos de baixa temperatura (PLA/PETG/TPU)."
 
 msgid ""
 "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder.In order to "
 "avoid extruder clogging,it is not allowed to set the chamber temperature."
 msgstr ""
+"O filamento de baixa temperatura (PLA/PETG/TPU) está carregado na extrusora. "
+"Para evitar o entupimento da extrusora, não é permitido ajustar a "
+"temperatura da câmara."
 
 msgid ""
 "When you set the chamber temperature below 40℃, the chamber temperature "
@@ -4301,10 +4389,10 @@ msgid "Resume Printing"
 msgstr "Retomar impressão"
 
 msgid "Resume (defects acceptable)"
-msgstr ""
+msgstr "Retomar (defeitos aceitáveis)"
 
 msgid "Resume (problem solved)"
-msgstr ""
+msgstr "Retomar (problema resolvido)"
 
 msgid "Stop Printing"
 msgstr "Parar impressão"
@@ -4331,25 +4419,25 @@ msgid "View Liveview"
 msgstr "Exibir vista ao vivo"
 
 msgid "No Reminder Next Time"
-msgstr ""
+msgstr "Sem Aviso da Próxima Vez"
 
 msgid "Ignore. Don't Remind Next Time"
-msgstr ""
+msgstr "Ignorar. Não Avise da Próxima Vez"
 
 msgid "Ignore this and Resume"
-msgstr ""
+msgstr "Ignorar isso e Retomar"
 
 msgid "Problem Solved and Resume"
-msgstr ""
+msgstr "Problema Resolvido e Retome"
 
 msgid "Got it, Turn off the Fire Alarm."
-msgstr ""
+msgstr "Entendido, Desligar o Alareme de Incêndio."
 
 msgid "Retry (problem solved)"
-msgstr ""
+msgstr "Retentar (problema resolvido)"
 
 msgid "Stop Drying"
-msgstr ""
+msgstr "Parar de Secar"
 
 msgid "Cancle"
 msgstr ""
@@ -4364,7 +4452,7 @@ msgid "Resume"
 msgstr "Continuar"
 
 msgid "Unknown error."
-msgstr ""
+msgstr "Erro desconhecido."
 
 msgid "default"
 msgstr "padrão"
@@ -4499,7 +4587,7 @@ msgid "Pick"
 msgstr "Escolher"
 
 msgid "Summary"
-msgstr ""
+msgstr "Sumário"
 
 msgid "Layer Height"
 msgstr "Altura da Camada"
@@ -4582,16 +4670,16 @@ msgid ""
 msgstr ""
 
 msgid "Filament Grouping"
-msgstr ""
+msgstr "Agrupamento de Filamento"
 
 msgid "Why this grouping"
-msgstr ""
+msgstr "Motivo desse agrupamento"
 
 msgid "Left nozzle"
-msgstr ""
+msgstr "Bico esquerdo"
 
 msgid "Right nozzle"
-msgstr ""
+msgstr "Bico direito"
 
 msgid "Please place filaments on the printer based on grouping result."
 msgstr ""
@@ -4600,44 +4688,56 @@ msgid "Tips:"
 msgstr "Dicas:"
 
 msgid "Current grouping of slice result is not optimal."
-msgstr ""
+msgstr "O agrupamento atual do resultado do fatiamento não é o ótimo."
 
 #, boost-format
 msgid "Increase %1%g filament and %2% changes compared to optimal grouping."
 msgstr ""
+"Aumento de %1%g no filamento e %2% nas trocas em comparação com o "
+"agrupamento ótimo."
 
 #, boost-format
 msgid ""
 "Increase %1%g filament and save %2% changes compared to optimal grouping."
 msgstr ""
+"Aumento de %1%g no filamento e economia de %2% nas trocas em comparação com "
+"o agrupamento ótimo."
 
 #, boost-format
 msgid ""
 "Save %1%g filament and increase %2% changes compared to optimal grouping."
 msgstr ""
+"Economia de %1%g no filamento e aumento de %2% nas trocas em comparação com "
+"o agrupamento ótimo."
 
 #, boost-format
 msgid ""
 "Save %1%g filament and %2% changes compared to a printer with one nozzle."
 msgstr ""
+"Economia de %1%g no filamento e %2% nas trocas em comparação com uma "
+"impressora com um bico."
 
 #, boost-format
 msgid ""
 "Save %1%g filament and increase %2% changes compared to a printer with one "
 "nozzle."
 msgstr ""
+"Economia de %1%g no filamento e aumento de %2% nas trocas em comparação com "
+"uma impressora com um bico."
 
 #, boost-format
 msgid ""
 "Increase %1%g filament and save %2% changes compared to a printer with one "
 "nozzle."
 msgstr ""
+"Aumento de %1%g no filamento e economia de %2% nas trocas em comparação com "
+"uma impressora com um bico."
 
 msgid "Set to Optimal"
-msgstr ""
+msgstr "Definir para Ótimo"
 
 msgid "Regroup filament"
-msgstr ""
+msgstr "Reagrupar filamento"
 
 msgid "Tips"
 msgstr "Dicas"
@@ -4758,7 +4858,7 @@ msgid ""
 msgstr ""
 "Um objeto está sobreposto ao limite da placa ou excede o limite de altura.\n"
 "Por favor resolva o problema movendo-o totalmente para dentro ou para fora "
-"da placa e confirmando que a altura está dentro do volume de construção."
+"da placa e confirmando que a altura está dentro do volume de impressão."
 
 msgid "Variable layer height"
 msgstr "Altura de Camada Variável"
@@ -4815,38 +4915,47 @@ msgid ""
 "Following objects are laid over the boundary of plate or exceeds the height "
 "limit:\n"
 msgstr ""
+"Os seguintes objetos estão dispostos sobre o limite da placa ou excedem o "
+"limite de altura:\n"
 
 msgid ""
 "Please solve the problem by moving it totally on or off the plate, and "
 "confirming that the height is within the build volume.\n"
 msgstr ""
+"Por favor, resolva o problema movendo-o totalmente para dentro ou para "
+"fora da plataforma e confirmando se a altura está dentro do volume de "
+"impressão.\n"
 
 msgid "left nozzle"
-msgstr ""
+msgstr "bico esquerdo"
 
 msgid "right nozzle"
-msgstr ""
+msgstr "bico direito"
 
 #, c-format, boost-format
 msgid "The position or size of some models exceeds the %s's printable range."
 msgstr ""
+"A posição ou o tamanho de alguns modelos excede a área imprimível de %s."
 
 #, c-format, boost-format
 msgid "The position or size of the model %s exceeds the %s's printable range."
 msgstr ""
+"A posição ou o tamanho do modelo %s excede a área imprimível de %s."
 
 msgid ""
 " Please check and adjust the part's position or size to fit the printable "
 "range:\n"
 msgstr ""
+" Por favor, verifique e ajuste a posição ou o tamanho da peça para que se "
+"ajuste à área imprimível:\n"
 
 #, boost-format
 msgid "Left nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
-msgstr ""
+msgstr "Bico esquerdo: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 
 #, boost-format
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
-msgstr ""
+msgstr "Bico direito: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 msgid "Mirror Object"
 msgstr "Espelhar Objeto"
@@ -4895,11 +5004,11 @@ msgstr "Alinhar com o eixo Y"
 
 msgctxt "Camera"
 msgid "Left"
-msgstr ""
+msgstr "Esquerda"
 
 msgctxt "Camera"
 msgid "Right"
-msgstr ""
+msgstr "Direita"
 
 msgid "Add"
 msgstr "Adicionar"
@@ -4953,7 +5062,7 @@ msgid "Return"
 msgstr "Retornar"
 
 msgid "Toggle Axis"
-msgstr ""
+msgstr "Alternar Eixos"
 
 msgid "Paint Toolbar"
 msgstr "Barra de Ferramentas de Pintura"
@@ -5000,34 +5109,42 @@ msgid "A G-code path goes beyond the plate boundaries."
 msgstr "Um caminho de G-code ultrapassa a borda da placa."
 
 msgid "Not support printing 2 or more TPU filaments."
-msgstr ""
+msgstr "Não suporta a impressão de 2 ou mais filamentos de TPU."
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
+"O filamento %s foi colocado em %s, mas o caminho do G-code gerado excede a "
+"área imprimível de %s."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s is placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
+"Os filamentos %s foram colocado em %s, mas o caminho do G-code gerado excede "
+"a área imprimível de %s."
 
 #, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
+"O filamento %s foi colocado em %s, mas o caminho do G-code gerado excede a "
+"altura imprimível de %s."
 
 #, c-format, boost-format
 msgid ""
 "Filaments %s is placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
+"Os filamentos %s foram colocado em %s, mas o caminho do G-code gerado excede "
+"a altura imprimível de %s."
 
 msgid "Open wiki for more information."
-msgstr ""
+msgstr "Abra a wiki para obter mais informações."
 
 msgid "Only the object being edited is visible."
 msgstr "Apenas o objeto em edição está visível."
@@ -5035,20 +5152,24 @@ msgstr "Apenas o objeto em edição está visível."
 #, c-format, boost-format
 msgid "filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
+"os filamentos %s não podem ser impressos diretamente na superfície desta "
+"placa."
 
 msgid ""
 "PLA and PETG filaments detected in the mixture. Adjust parameters according "
 "to the Wiki to ensure print quality."
 msgstr ""
+"Filamentos PLA e PETG detectados na mistura. Ajuste os parâmetros de acordo "
+"com o Wiki para garantir a qualidade de impressão."
 
 msgid "The prime tower extends beyond the plate boundary."
-msgstr ""
+msgstr "A torre de preparo estende-se para além do limite da placa."
 
 msgid "Click Wiki for help."
-msgstr ""
+msgstr "Clique em Wiki para obter ajuda."
 
 msgid "Click here to regroup"
-msgstr ""
+msgstr "Clique aqui para reagrupar"
 
 msgid "Calibration step selection"
 msgstr "Seleção de etapa de calibração"
@@ -5060,7 +5181,7 @@ msgid "Bed leveling"
 msgstr "Nivelamento da mesa"
 
 msgid "High-temperature Heatbed Calibration"
-msgstr ""
+msgstr "Calibração de Mesa Aquecida de Alta Temperatura"
 
 msgid "Calibration program"
 msgstr "Programa de calibração"
@@ -5123,11 +5244,15 @@ msgid ""
 "You can find it in \"Settings > Network > Access code\"\n"
 "on the printer, as shown in the figure:"
 msgstr ""
+"Você pode encontrá-lo em \"Configurações > Rede > Código de acesso\"\n"
+"na impressora, como mostrado na figura:"
 
 msgid ""
 "You can find it in \"Setting > Setting > LAN only > Access Code\"\n"
 "on the printer, as shown in the figure:"
 msgstr ""
+"Você pode encontrá-lo em \"Configurações > Apenas LAN > Código de acesso\"\n"
+"na impressora, como mostrado na figura:"
 
 msgid "Invalid input."
 msgstr "Entrada inválida."
@@ -5818,12 +5943,14 @@ msgid ""
 "Browsing file in storage is not supported in current firmware. Please update "
 "the printer firmware."
 msgstr ""
+"Procurar arquivo no armazenamento não é suportado no firmware atual. "
+"Atualize o firmware da impressora."
 
 msgid "LAN Connection Failed (Failed to view sdcard)"
 msgstr "Falha na conexão LAN (Falha para ver o cartão SD)"
 
 msgid "Browsing file in storage is not supported in LAN Only Mode."
-msgstr ""
+msgstr "Procurar arquivo no armazenamento não é suportado no Modo Somente LAN."
 
 #, c-format, boost-format
 msgid "You are going to delete %u file from printer. Are you sure to continue?"
@@ -5891,7 +6018,7 @@ msgid "Downloading %d%%..."
 msgstr "Baixando %d%%…"
 
 msgid "Air Condition"
-msgstr ""
+msgstr "Condição do Ar"
 
 msgid ""
 "Reconnecting the printer, the operation cannot be completed immediately, "
@@ -5901,7 +6028,7 @@ msgstr ""
 "por favor tente novamente mais tarde."
 
 msgid "Timeout, please try again."
-msgstr ""
+msgstr "Limite de tempo excedido, tente novamente."
 
 msgid "File does not exist."
 msgstr "O arquivo não existe."
@@ -5916,42 +6043,46 @@ msgid ""
 "Please check if the storage is inserted into the printer.\n"
 "If it still cannot be read, you can try formatting the storage."
 msgstr ""
+"Verifique se o armazenamento está inserido na impressora.\n"
+"Se ainda não for possível lê-lo, tente formatar o armazenamento."
 
 msgid ""
 "The firmware version of the printer is too low. Please update the firmware "
 "and try again."
 msgstr ""
+"A versão do firmware da impressora é muito antiga. Atualize o firmware e "
+"tente novamente."
 
 msgid "The file already exists, do you want to replace it?"
-msgstr ""
+msgstr "O arquivo já existe, deseja substituí-lo?"
 
 msgid "Insufficient storage space, please clear the space and try again."
-msgstr ""
+msgstr "Espaço de armazenamento insuficiente, libere espaço e tente novamente."
 
 msgid "File creation failed, please try again."
-msgstr ""
+msgstr "Falha na criação do arquivo, tente novamente."
 
 msgid "File write failed, please try again."
-msgstr ""
+msgstr "Falha na gravação do arquivo, tente novamente."
 
 msgid "MD5 verification failed, please try again."
-msgstr ""
+msgstr "Falha na verificação MD5, tente novamente."
 
 msgid "File renaming failed, please try again."
-msgstr ""
+msgstr "Falha renomeando arquivo, tente novamente."
 
 msgid "File upload failed, please try again."
-msgstr ""
+msgstr "Falha no envio do arquivo, tente novamente."
 
 #, c-format, boost-format
 msgid "Error code: %d"
 msgstr "Código de erro: %d"
 
 msgid "User cancels task."
-msgstr ""
+msgstr "Usuário cancela tarefa."
 
 msgid "Failed to read file, please try again."
-msgstr ""
+msgstr "Falha ao ler arquivo, tente novamente."
 
 msgid "Speed:"
 msgstr "Velocidade:"
@@ -6043,8 +6174,8 @@ msgstr "O nome não pode começar com um espaço."
 msgid "The name is not allowed to end with space character."
 msgstr "O nome não pode terminar com um espaço."
 
-msgid "The name is not allowed to exceeds 32 characters."
-msgstr ""
+msgid "The name is not allowed to exceed 32 characters."
+msgstr "O nome não pode exceder 32 caracteres."
 
 msgid "Bind with Pin Code"
 msgstr "Vincular com Código PIN"
@@ -6054,19 +6185,19 @@ msgstr "Vincular com Código de Acesso"
 
 msgctxt "Quit_Switching"
 msgid "Quit"
-msgstr ""
+msgstr "Sair"
 
 msgid "Switching..."
-msgstr ""
+msgstr "Alternando…"
 
 msgid "Switching failed"
-msgstr ""
+msgstr "Falha na troca"
 
 msgid "Printing Progress"
 msgstr "Progresso da Impressão"
 
 msgid "Parts Skip"
-msgstr ""
+msgstr "Pular Peças"
 
 msgid "Stop"
 msgstr "Parar"
@@ -6127,7 +6258,7 @@ msgid "Debug Info"
 msgstr "Informações de Depuração"
 
 msgid "Filament loading..."
-msgstr ""
+msgstr "Carregando filamento…"
 
 msgid "No Storage"
 msgstr "Sem Armazenamento"
@@ -6139,19 +6270,19 @@ msgid "Cancel print"
 msgstr "Cancelar impressão"
 
 msgid "Are you sure you want to stop this print?"
-msgstr ""
+msgstr "Tem certeza de que deseja interromper esta impressão?"
 
 msgid "The printer is busy on other print job"
 msgstr "A impressora está ocupada com outro trabalho de impressão"
 
 msgid "Current extruder is busy changing filament"
-msgstr ""
+msgstr "A extrusora atual está ocupada trocando o filamento."
 
-msgid "Current slot has alread been loaded"
-msgstr ""
+msgid "Current slot has already been loaded"
+msgstr "O espaço atual já foi carregado"
 
 msgid "The selected slot is empty."
-msgstr ""
+msgstr "O espaço selecionado está vazio."
 
 msgid "Downloading..."
 msgstr "Baixando…"
@@ -6182,7 +6313,7 @@ msgid ""
 msgstr ""
 
 msgid "Please select an AMS slot before calibration"
-msgstr ""
+msgstr "Selecione um espaço AMS antes da calibração."
 
 msgid ""
 "Cannot read filament info: the filament is loaded to the tool head,please "
@@ -6210,6 +6341,8 @@ msgid ""
 "Turning off the lights during the task will cause the failure of AI "
 "monitoring, like spaghetti detection. Please choose carefully."
 msgstr ""
+"Apagar as luzes durante a tarefa causará falha no monitoramento por IA, "
+"como na detecção de emaranhado. Por favor, escolha com cuidado."
 
 msgid "Keep it On"
 msgstr ""
@@ -6330,7 +6463,7 @@ msgstr "Status"
 
 msgctxt "Firmware"
 msgid "Update"
-msgstr ""
+msgstr "Atualizar"
 
 msgid "Assistant(HMS)"
 msgstr ""
@@ -6342,7 +6475,7 @@ msgid "Go to"
 msgstr ""
 
 msgid "Later"
-msgstr ""
+msgstr "Depois"
 
 #, c-format, boost-format
 msgid "%s error"
@@ -6404,7 +6537,7 @@ msgstr "Última Versão: "
 
 msgctxt "Software"
 msgid "Update"
-msgstr ""
+msgstr "Atualizar"
 
 msgid "Not for now"
 msgstr "Não por enquanto"
@@ -6607,20 +6740,24 @@ msgstr ""
 "pausada se a etiqueta não estiver na faixa predefinida."
 
 msgid "Build Plate Detection"
-msgstr ""
+msgstr "Detecção de Placa"
 
 msgid ""
 "Identifies the type and position of the build plate on the heatbed. Pausing "
 "printing if a mismatch is detected."
 msgstr ""
+"Identifica o tipo e a posição da placa de impressão na mesa aquecida. "
+"Interrompe a impressão se for detectada alguma incompatibilidade."
 
 msgid "AI Detections"
-msgstr ""
+msgstr "Detecções de AI"
 
 msgid ""
 "Printer will send assistant message or pause printing if any of the "
 "following problem is detected."
 msgstr ""
+"A impressora enviará uma mensagem de assistência ou pausará a impressão se "
+"algum dos seguintes problemas for detectado."
 
 msgid "Enable AI monitoring of printing"
 msgstr "Ativar monitoramento de IA da impressão"
@@ -6629,25 +6766,28 @@ msgid "Pausing Sensitivity:"
 msgstr ""
 
 msgid "Spaghetti Detection"
-msgstr ""
+msgstr "Detecção de Emaranhado"
 
 msgid "Detect spaghetti failure(scattered lose filament)."
-msgstr ""
+msgstr "Detectar falha de emaranhado (filamentos soltos e dispersos)."
 
 msgid "Purge Chute Pile-Up Detection"
-msgstr ""
+msgstr "Detecção de Acúmulo na Calha de Purga"
 
 msgid "Monitor if the waste is piled up in the purge chute."
-msgstr ""
+msgstr "Verifique se os resíduos estão se acumulando na calha de purga."
 
 msgid "Nozzle Clumping Detection"
 msgstr "Detecção de acúmulo no bico"
 
 msgid "Check if the nozzle is clumping by filaments or other foreign objects."
 msgstr ""
+"Verifica se o bico está obstruído por filamentos ou outros objetos estranhos."
 
 msgid "Detects air printing caused by nozzle clogging or filament grinding."
 msgstr ""
+"Detecta falhas na impressão causadas por entupimento do bico ou erosão do "
+"filamento."
 
 msgid "First Layer Inspection"
 msgstr "Inspeção da Primeira Camada"
@@ -6656,16 +6796,16 @@ msgid "Auto-recovery from step loss"
 msgstr "Recuperação automática de perda de passo"
 
 msgid "Open Door Detection"
-msgstr ""
+msgstr "Detecção de Porta Aberta"
 
 msgid "Notification"
-msgstr ""
+msgstr "Notificação"
 
 msgid "Pause printing"
-msgstr ""
+msgstr "Pausar impressão"
 
 msgid "Store Sent Files on External Storage"
-msgstr ""
+msgstr "Armazenar Arquivos Enviados em Armazenamento Externo"
 
 msgid ""
 "Save the printing files initiated from Bambu Studio, Bambu Handy and "
@@ -6689,25 +6829,25 @@ msgid "Nozzle Flow"
 msgstr ""
 
 msgid "Please change the nozzle settings on the printer."
-msgstr ""
+msgstr "Altere as configurações de bico na impressora."
 
 msgid "View wiki"
-msgstr ""
+msgstr "Ver wiki"
 
 msgid "Hardened Steel"
-msgstr "Aço endurecido"
+msgstr "Aço Endurecido"
 
 msgid "Stainless Steel"
-msgstr "Aço inoxidável"
+msgstr "Aço Inoxidável"
 
 msgid "Tungsten Carbide"
-msgstr ""
+msgstr "Carbeto de Tungstênio"
 
 msgid "High flow"
-msgstr ""
+msgstr "Alto fluxo"
 
 msgid "No wiki link available for this printer."
-msgstr ""
+msgstr "Não há link wiki disponível para esta impressora."
 
 msgid "Global"
 msgstr "Global"
@@ -6743,7 +6883,7 @@ msgid "Lock current plate"
 msgstr "Travar a placa atual"
 
 msgid "Filament grouping"
-msgstr ""
+msgstr "Agrupamento de filamento"
 
 msgid "Edit current plate name"
 msgstr "Editar nome da placa atual"
@@ -6756,28 +6896,30 @@ msgstr "Personalizar a placa atual"
 
 #, c-format, boost-format
 msgid "The %s nozzle can not print %s."
-msgstr ""
+msgstr "O bico %s não pode imprimir %s."
 
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
-msgstr ""
+msgstr "Misturar %1% com %2% na impressão não é recomendado.\n"
 
 msgid " nozzle"
-msgstr ""
+msgstr " bico"
 
 #, boost-format
 msgid ""
 "It is not recommended to print the following filament(s) with %1%: %2%\n"
 msgstr ""
+"Não é recomendável imprimir os seguintes filamentos com %1%: %2%\n"
 
 msgid ""
 "It is not recommended to use the following nozzle and filament "
 "combinations:\n"
 msgstr ""
+"Não é recomendável usar as seguintes combinações de bico e filamento:\n"
 
 #, boost-format
 msgid "%1% with %2%\n"
-msgstr ""
+msgstr "%1% com %2%\n"
 
 #, boost-format
 msgid " plate %1%:"
@@ -6808,16 +6950,16 @@ msgid "Filament changes"
 msgstr "Mudanças de filamento"
 
 msgid "Set the number of AMS installed on the nozzle."
-msgstr ""
+msgstr "Defina o número do AMS instalado no bico."
 
 msgid "AMS(4 slots)"
-msgstr ""
+msgstr "AMS (4 espaços)"
 
 msgid "AMS(1 slot)"
-msgstr ""
+msgstr "AMS(1 espaço)"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Não instalado"
 
 msgid ""
 "The software does not support using different diameter of nozzles for one  "
@@ -6825,34 +6967,43 @@ msgid ""
 "with single-head printing. Please confirm which nozzle you would like to use "
 "for this project."
 msgstr ""
+"O software não suporta o uso de bicos de diâmetros diferentes para uma mesma "
+"impressão. Se os bicos esquerdo e direito forem incompatíveis, só é possível "
+"prosseguir com a impressão com um único bico. Confirme qual bico você "
+"gostaria de usar para este projeto."
 
 msgid "Switch diameter"
-msgstr ""
+msgstr "Trocar diâmetro"
 
 #, c-format, boost-format
 msgid "Left nozzle: %smm"
-msgstr ""
+msgstr "Bico esquerdo: %smm"
 
 #, c-format, boost-format
 msgid "Right nozzle: %smm"
-msgstr ""
+msgstr "Bico direito: %smm"
 
 msgid "Sync printer information"
-msgstr ""
+msgstr "Sincronizar informações da impressora"
 
 msgid ""
 "The currently selected machine preset is inconsistent with the connected "
 "printer type.\n"
 "Are you sure to continue syncing?"
 msgstr ""
+"A configuração predefinida da máquina selecionada atualmente é incompatível "
+"com o tipo de impressora conectada.\n"
+"Tem certeza de que deseja continuar a sincronização?"
 
 msgid ""
 "There are unset nozzle types. Please set the nozzle types of all extruders "
 "before synchronizing."
 msgstr ""
+"Existem tipos de bico não configurados. Configure os tipos de bico de todas "
+"as extrusoras antes de sincronizar."
 
 msgid "Sync extruder infomation"
-msgstr ""
+msgstr "Sincronizar informações da extrusora"
 
 msgid "Click to edit preset"
 msgstr "Clique para editar predefinição"
@@ -6861,13 +7012,13 @@ msgid "Connection"
 msgstr "Conexão"
 
 msgid "Sync info"
-msgstr ""
+msgstr "Sincronizar informações"
 
 msgid "Synchronize nozzle information and the number of AMS"
-msgstr ""
+msgstr "Sincronizar informações do bico e o número de AMS"
 
 msgid "Project Filaments"
-msgstr ""
+msgstr "Filamentos do Projeto"
 
 msgid "Flushing volumes"
 msgstr "Volumes de Purga"
@@ -6895,6 +7046,8 @@ msgid ""
 "After completing your operation, %s project will be closed and create a new "
 "project."
 msgstr ""
+"Após a conclusão da sua operação, o projeto %s será encerrado e um novo "
+"projeto será criado."
 
 msgid "There are no compatible filaments, and sync is not performed."
 msgstr "Não há filamentos compatíveis, e a sincronização não é realizada."
@@ -6907,11 +7060,17 @@ msgid ""
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
+"Existem alguns filamentos desconhecidos ou incompatíveis mapeados para "
+"predefinições genéricas.\n"
+"Atualize ou reinicie o OrcaSlicer para verificar se há alguma atualização "
+"para as predefinições do sistema."
 
 msgid ""
 "Filament type and color information have been synchronized, but slot "
 "information is not included."
 msgstr ""
+"As informações sobre o tipo e a cor do filamento foram sincronizadas, "
+"mas as informações sobre o slot não estão incluídas."
 
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
@@ -7614,7 +7773,7 @@ msgid "rear"
 msgstr ""
 
 msgid "Switching the language requires application restart.\n"
-msgstr "Mudar o idioma requer reiniciar o aplicativo.\n"
+msgstr "Alternanr o idioma requer reiniciar o aplicativo.\n"
 
 msgid "Do you want to continue?"
 msgstr "Você deseja continuar?"
@@ -7944,7 +8103,7 @@ msgid "Test"
 msgstr "Testar"
 
 msgid "Update & sync"
-msgstr ""
+msgstr "Atualizar e sincronizar"
 
 msgid "Check for stable updates only"
 msgstr "Verificar apenas atualizações estáveis"
@@ -8410,15 +8569,15 @@ msgid ""
 "Filament %s does not match the filament in AMS slot %s. Please update the "
 "printer firmware to support AMS slot assignment."
 msgstr ""
-"O filamento %s não corresponde ao filamento no slot AMS %s. Por favor, "
-"atualize o firmware da impressora para suportar a atribuição de slots AMS."
+"O filamento %s não corresponde ao filamento no espaço do AMS %s. Atualize o "
+"firmware da impressora para suportar a atribuição de espaços do AMS."
 
 msgid ""
 "Filament does not match the filament in AMS slot. Please update the printer "
 "firmware to support AMS slot assignment."
 msgstr ""
-"O filamento não corresponde ao filamento no slot AMS. Por favor, atualize o "
-"firmware da impressora para suportar a atribuição de slots AMS."
+"O filamento não corresponde ao filamento no espaço do AMS. Atualize o "
+"firmware da impressora para suportar a atribuição de espaços do AMS."
 
 #, c-format, boost-format
 msgid ""
@@ -8650,25 +8809,30 @@ msgid "Please refer to Wiki before use->"
 msgstr ""
 
 msgid "Send to Printer storage"
-msgstr ""
+msgstr "Enviar para armazenamento da Impressora"
 
 msgid "Try to connect"
-msgstr ""
+msgstr "Tentar conexão"
 
 msgid "click to retry"
-msgstr ""
+msgstr "clique para tentar novamente"
 
 msgid "Upload file timeout, please check if the firmware version supports it."
-msgstr ""
+msgstr "Limite de tempo de envio exedido, verifique se a versão do firmware "
+"tem suporte."
 
 msgid ""
 "No available external storage was obtained. Please confirm and try again."
 msgstr ""
+"Não foi possível obter armazenamento externo disponível. Confirme e tente "
+"novamente."
 
 msgid ""
 "Media capability acquisition timeout, please check if the firmware version "
 "supports it."
 msgstr ""
+"Tempo limite de aquisição de capacidade de mídia excedido. Verifique se a "
+"versão do firmware tem suporte."
 
 msgid ""
 "Please check the network and try again, You can restart or update the "
@@ -8682,9 +8846,12 @@ msgid ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
 msgstr ""
+"O limite de tempo para o envio do arquivo foi excedido. Verifique se a "
+"versão do firmware suporta esta operação ou verifique se a impressora está "
+"funcionando corretamente."
 
 msgid "Sending failed, please try again!"
-msgstr ""
+msgstr "Falha no envio, tente novamente!"
 
 msgid "Connection failed. Click the icon to retry"
 msgstr ""
@@ -8724,10 +8891,10 @@ msgid "Failed to publish login request"
 msgstr "Falha ao publicar a solicitação de login"
 
 msgid "Get ticket from device timeout"
-msgstr "Tempo esgotado ao obter o ticket do dispositivo"
+msgstr "Limite de tempo excedido ao obter o ticket do dispositivo"
 
 msgid "Get ticket from server timeout"
-msgstr "Tempo esgotado ao obter o ticket do servidor"
+msgstr "Limite de tempo excedido ao obter o ticket do servidor"
 
 msgid "Failed to post ticket to server"
 msgstr "Falha ao enviar o ticket para o servidor"
@@ -8736,7 +8903,7 @@ msgid "Failed to parse login report reason"
 msgstr "Falha ao analisar o motivo do relatório de login"
 
 msgid "Receive login report timeout"
-msgstr "Tempo esgotado ao receber o relatório de login"
+msgstr "Limite de tempo excedido ao receber o relatório de login"
 
 msgid "Unknown Failure"
 msgstr "Falha desconhecida"
@@ -9549,9 +9716,12 @@ msgid ""
 "Switching to a printer with different extruder types or numbers will discard "
 "or reset changes to extruder or multi-nozzle-related parameters."
 msgstr ""
+"Alternar para uma impressora com tipos ou números de extrusoras diferentes "
+"descartará ou redefinirá as alterações nos parâmetros relacionados à "
+"extrusora ou a múltiplos bicos."
 
 msgid "Use Modified Value"
-msgstr ""
+msgstr "Usar Valor Modificado"
 
 msgid "Detached"
 msgstr "Desanexado"
@@ -9591,7 +9761,7 @@ msgid ""
 msgstr ""
 "Tem certeza de que deseja excluir a predefinição selecionada?\n"
 "Se a predefinição corresponde a um filamento atualmente em uso em sua "
-"impressora, redefina as informações do filamento para esse slot."
+"impressora, redefina as informações do filamento para esse espaço."
 
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
@@ -10336,10 +10506,10 @@ msgid "Gizmo brim ears"
 msgstr "Gizmo orelhas da borda"
 
 msgid "Zoom in"
-msgstr "Dar zoom"
+msgstr "Aproximar zoom"
 
 msgid "Zoom out"
-msgstr "Dar zoom"
+msgstr "Afastar zoom"
 
 msgid "Switch between Prepare/Preview"
 msgstr "Alternar entre Preparar/Pré-visualizar"
@@ -10511,7 +10681,7 @@ msgid "Connection failed! Please refer to the wiki page."
 msgstr ""
 
 msgid "sending failed"
-msgstr ""
+msgstr "falha no envio"
 
 msgid ""
 "Failed to send. Click Retry to attempt sending again. If retrying does not "
@@ -10525,10 +10695,10 @@ msgid "Air Pump"
 msgstr "Bomba de Ar"
 
 msgid "Laser 10W"
-msgstr ""
+msgstr "Laser 10W"
 
 msgid "Laser 40W"
-msgstr ""
+msgstr "Laser 40W"
 
 msgid "Cutting Module"
 msgstr "Módulo de Corte"
@@ -19747,7 +19917,7 @@ msgid ""
 msgstr ""
 "Tem certeza de que deseja excluir a predefinição selecionada?\n"
 "Se a predefinição corresponde a um filamento atualmente em uso em sua "
-"impressora, redefina as informações do filamento para esse slot."
+"impressora, redefina as informações do filamento para esse espaço."
 
 msgid "Are you sure to delete the selected preset?"
 msgstr "Tem certeza de que deseja excluir a predefinição selecionada?"
@@ -19766,7 +19936,7 @@ msgstr ""
 "Todos as predefinições de filamento pertencentes a este filamento seriam "
 "excluídas.\n"
 "Se você estiver usando este filamento em sua impressora, redefina as "
-"informações do filamento para esse slot."
+"informações do filamento para esse espaço."
 
 msgid "Delete filament"
 msgstr "Excluir filamento"
@@ -19802,11 +19972,11 @@ msgstr "Dicas Diárias"
 
 #, c-format, boost-format
 msgid "nozzle size in preset: %d"
-msgstr ""
+msgstr "tamanho do bico na predefinição: %d"
 
 #, c-format, boost-format
 msgid "nozzle size memorized: %d"
-msgstr ""
+msgstr "tamanho do bico memorizado: %d"
 
 msgid ""
 "The size of nozzle type in preset is not consistent with memorized nozzle."
@@ -19815,20 +19985,23 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "nozzle[%d] in preset: %.1f"
-msgstr ""
+msgstr "bico[%d] na predefinição: %.1f"
 
 #, c-format, boost-format
 msgid "nozzle[%d] memorized: %.1f"
-msgstr ""
+msgstr "bico[%d] memorizado: %.1f"
 
 msgid ""
 "Your nozzle type in preset is not consistent with memorized nozzle.Did you "
 "change your nozzle lately ? "
 msgstr ""
+"O tipo de bico predefinido não corresponde ao bico memorizado. Você trocou "
+"o bico recentemente?"
 
 #, c-format, boost-format
 msgid "Printing %1s material with %2s nozzle may cause nozzle damage."
 msgstr ""
+"Imprimir material %1s com bico %2s pode causar danos ao bico."
 
 msgid "Need select printer"
 msgstr "É necessário selecionar uma impressora"
@@ -20018,7 +20191,7 @@ msgstr "%1% : sem espaço livre"
 #. TRN %1% = host
 #, boost-format
 msgid "Upload has failed. There is no suitable storage found at %1%."
-msgstr "Falha no ‘upload’. Não há armazenamento suficiente em %1%."
+msgstr "Falha no envio. Não há armazenamento adequado em %1%."
 
 msgid "Connection to Prusa Connect is working correctly."
 msgstr "A conexão com o Prusa Connect funciona corretamente."
@@ -20406,42 +20579,58 @@ msgstr ""
 
 msgid "High quality profile for 0.2mm nozzle, prioritizing print quality."
 msgstr ""
+"Perfil de alta qualidade para bico de 0,2 mm, priorizando a qualidade de "
+"impressão."
 
 msgid ""
 "High quality profile for 0.16mm layer height, prioritizing print quality and "
 "strength."
 msgstr ""
+"Perfil de alta qualidade para altura de camada de 0,16 mm, priorizando a "
+"qualidade de impressão e a resistência."
 
 msgid "Standard profile for 0.16mm layer height, prioritizing speed."
 msgstr ""
+"Perfil padrão para altura de camada de 0,16 mm, priorizando a velocidade."
 
 msgid ""
 "High quality profile for 0.2mm layer height, prioritizing strength and print "
 "quality."
 msgstr ""
+"Perfil de alta qualidade para altura de camada de 0,2 mm, priorizando "
+"resistência e qualidade de impressão."
 
 msgid "Standard profile for 0.4mm nozzle, prioritizing speed."
 msgstr ""
+"Perfil padrão para bico de 0,4 mm, priorizando a velocidade."
 
 msgid ""
 "High quality profile for 0.6mm nozzle, prioritizing print quality and "
 "strength."
 msgstr ""
+"Perfil de alta qualidade para bico de 0,6 mm, priorizando a qualidade de "
+"impressão e a resistência."
 
 msgid "Strength profile for 0.6mm nozzle, prioritizing strength."
 msgstr ""
+"Perfil de resistência para bico de 0,6 mm, priorizando a resistência."
 
 msgid "Standard profile for 0.6mm nozzle, prioritizing speed."
 msgstr ""
+"Perfil padrão para bico de 0,6 mm, priorizando a velocidade."
 
 msgid "High quality profile for 0.8mm nozzle, prioritizing print quality."
 msgstr ""
+"Perfil de alta qualidade para bico de 0,8 mm, priorizando a qualidade de "
+"impressão."
 
 msgid "Strength profile for 0.8mm nozzle, prioritizing strength."
 msgstr ""
+"Perfil de resistência para bico de 0,8 mm, priorizando a resistência."
 
 msgid "Standard profile for 0.8mm nozzle, prioritizing speed."
 msgstr ""
+"Perfil padrão para bico de 0,8 mm, priorizando a velocidade."
 
 msgid "No AMS"
 msgstr "Nenhum AMS"
@@ -20588,53 +20777,61 @@ msgid "Removed"
 msgstr "Removido"
 
 msgid "Don't remind me again"
-msgstr ""
+msgstr "Não me avise novamente"
 
 msgid "No further pop-up will appear. You can reopen it in 'Preferences'"
-msgstr ""
+msgstr "Nenhuma outra janela pop-up será exibida. Você pode reabri-la em "
+"'Preferências'."
 
 msgid "Filament-Saving Mode"
-msgstr ""
+msgstr "Modo Economia de Filamento"
 
 msgid "Convenience Mode"
-msgstr ""
+msgstr "Modo Conveniência"
 
 msgid "Custom Mode"
-msgstr ""
+msgstr "Modo Customizado"
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the most "
 "filament-saving principles to minimize waste"
 msgstr ""
+"Gera agrupamento de filamentos para os bicos esquerdo e direito com base nos princípios de máxima economia de filamento para minimizar o desperdício."
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the "
 "printer's actual filament status, reducing the need for manual filament "
 "adjustment"
 msgstr ""
+"Gera o agrupamento de filamentos para os bicos esquerdo e direito com base "
+"no estado real do filamento na impressora, reduzindo a necessidade de ajustes "
+"manuais."
 
 msgid "Manually assign filament to the left or right nozzle"
-msgstr ""
+msgstr "Atribuir manualmente o filamento ao bico esquerdo ou direito"
 
 msgid "Global settings"
-msgstr ""
+msgstr "Definições globais"
 
 msgid "Learn more"
-msgstr ""
+msgstr "Saber mais"
 
 msgid "(Sync with printer)"
-msgstr ""
+msgstr "(Sinc. com impressora)"
 
 msgid "We will slice according to this grouping method:"
-msgstr ""
+msgstr "Vamos fatiar de acordo com este método de agrupamento:"
 
 msgid "Tips: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
+"Dica: Você pode arrastar os filamentos para reatribuí-los a diferentes bicos."
 
 msgid ""
 "The filament grouping method for current plate is determined by the dropdown "
 "option at the slicing plate button."
 msgstr ""
+"O método de agrupamento de filamentos para a placa atual é determinado pela "
+"opção no botão de fatiamento da placa."
 
 msgid "Connected to Obico successfully!"
 msgstr "Conectado ao Obico com sucesso!"
@@ -20713,11 +20910,11 @@ msgid ""
 "Warning: The brim type is not set to \"painted\", the brim ears will not "
 "take effect!"
 msgstr ""
-"Aviso: O tipo de borda não estiver definido como \"pintado\", as orelhas da "
+"Aviso: O tipo de borda não estiver definido como \"pintada\", as orelhas da "
 "borda não terão efeito!"
 
 msgid "Set the brim type of this object to \"painted\""
-msgstr "Defina o tipo de borda deste objeto como \"pintado\""
+msgstr "Definir o tipo de borda deste objeto como \"pintada\""
 
 msgid " invalid brim ears"
 msgstr " orelhas da borda iválidas"
@@ -20729,63 +20926,63 @@ msgid "Please select single object."
 msgstr "Por favor selecione um único objeto."
 
 msgid "Zoom Out"
-msgstr ""
+msgstr "Afastar Zoom"
 
 msgid "Zoom In"
-msgstr ""
+msgstr "Aproximar Zoom"
 
 msgid "Load skipping objects information failed. Please try again."
-msgstr ""
+msgstr "Falha ao carregar ignorando as informações dos objetos. Tente novamente."
 
 msgid "Loading ..."
-msgstr ""
+msgstr "Carregando…"
 
 #, c-format, boost-format
 msgid "/%d Selected"
-msgstr ""
+msgstr "/%d Selecionados"
 
 msgid "Nothing selected"
-msgstr ""
+msgstr "Nada selecionado"
 
 msgid "Over 64 objects in single plate"
-msgstr ""
+msgstr "Mais de 64 objetos em uma única placa"
 
 msgid "The current print job cannot be skipped"
-msgstr ""
+msgstr "O trabalho de impressão atual não pode ser ignorado"
 
 msgid "Skipping all objects."
-msgstr ""
+msgstr "Ignorando todos os objetos."
 
 msgid "The printing job will be stopped. Continue?"
-msgstr ""
+msgstr "O trabalho de impressão será interrompido. Continuar?"
 
 #, c-format, boost-format
 msgid "Skipping %d objects."
-msgstr ""
+msgstr "Ignorando %d objetos."
 
 msgid "This action cannot be undone. Continue?"
-msgstr ""
+msgstr "Esta ação não pode ser desfeita. Continuar?"
 
 msgid "Skipping objects."
-msgstr ""
+msgstr "Ignorando objetos."
 
 msgid "Continue"
-msgstr ""
+msgstr "Continue"
 
 msgid "Select Filament"
-msgstr ""
+msgstr "Selecionar Filamento"
 
 msgid "Null Color"
-msgstr ""
+msgstr "Cor Nula"
 
 msgid "Multiple Color"
-msgstr ""
+msgstr "Múltiplas Cores"
 
 msgid "Official Filament"
-msgstr ""
+msgstr "Filamento Oficial"
 
 msgid "More Colors"
-msgstr ""
+msgstr "Mais Cores"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
@@ -21294,15 +21491,6 @@ msgstr ""
 #~ "A temperatura mínima recomendada é inferior a 190°C ou a temperatura "
 #~ "máxima recomendada é superior a 300°C.\n"
 
-#~ msgid ""
-#~ "Spiral mode only works when wall loops is 1, support is disabled, top "
-#~ "shell layers is 0, sparse infill density is 0 and timelapse type is "
-#~ "traditional."
-#~ msgstr ""
-#~ "O modo espiral só funciona quando as voltas da parede são 1, o suporte "
-#~ "está desativado, as camadas da casca de topo são 0, a densidade de "
-#~ "preenchimento esparso é 0 e o tipo de timelapse é tradicional."
-
 #~ msgid "Sweeping XY mech mode"
 #~ msgstr "Modo mecânico de varredura XY"
 
@@ -21392,16 +21580,6 @@ msgstr ""
 #~ msgstr "Bambu PET-CF/PA6-CF não é suportado pelo AMS."
 
 #~ msgid ""
-#~ "An object is laid over the plate boundaries or exceeds the height limit.\n"
-#~ "Please solve the problem by moving it totally on or off the plate, and "
-#~ "confirming that the height is within the build volume."
-#~ msgstr ""
-#~ "Um objeto está sobre a borda da placa ou ultrapassa o limite de altura.\n"
-#~ "Por favor, resolva o problema movendo-o totalmente para dentro ou para "
-#~ "fora da placa, e confirmando que a altura está dentro do volume de "
-#~ "impressão."
-
-#~ msgid ""
 #~ "You can find it in \"Settings > Network > Connection code\"\n"
 #~ "on the printer, as shown in the figure:"
 #~ msgstr ""
@@ -21438,7 +21616,7 @@ msgstr ""
 #~ msgstr "Ainda carregando"
 
 #~ msgid "Please select an AMS slot before calibration."
-#~ msgstr "Selecione um slot AMS antes da calibração."
+#~ msgstr "Selecione um espaço do AMS antes da calibração."
 
 #~ msgid "Can't start this without SD card."
 #~ msgstr "Não é possível iniciar sem um cartão SD."
@@ -21573,36 +21751,36 @@ msgstr ""
 #~ "Filament %s exceeds the number of AMS slots. Please update the printer "
 #~ "firmware to support AMS slot assignment."
 #~ msgstr ""
-#~ "O filamento %s excede o número de slots AMS. Por favor, atualize o "
-#~ "firmware da impressora para suportar a atribuição de slots AMS."
+#~ "O filamento %s excede o número de espaços do AMS. Por favor, atualize o "
+#~ "firmware da impressora para suportar a atribuição de espaços AMS."
 
 #~ msgid ""
 #~ "Filament exceeds the number of AMS slots. Please update the printer "
 #~ "firmware to support AMS slot assignment."
 #~ msgstr ""
-#~ "O filamento excede o número de slots AMS. Por favor, atualize o firmware "
-#~ "da impressora para suportar a atribuição de slots AMS."
+#~ "O filamento excede o número de espaços do AMS. Por favor, atualize o "
+#~ "firmware da impressora para suportar a atribuição de espaços AMS."
 
 #~ msgid ""
 #~ "Filaments to AMS slots mappings have been established. You can click a "
 #~ "filament above to change its mapping AMS slot"
 #~ msgstr ""
-#~ "Foram estabelecidos mapeamentos de filamentos para slots AMS. Você pode "
-#~ "clicar em um filamento acima para mudar seu slot AMS mapeado"
+#~ "Foram estabelecidos mapeamentos de filamentos para espaços do AMS. Você "
+#~ "pode clicar em um filamento acima para mudar seu espaço do AMS mapeado"
 
 #~ msgid ""
 #~ "Please click each filament above to specify its mapping AMS slot before "
 #~ "sending the print job"
 #~ msgstr ""
-#~ "Por favor, clique em cada filamento acima para especificar seu slot AMS "
-#~ "mapeado antes de enviar o trabalho de impressão"
+#~ "Por favor, clique em cada filamento acima para especificar seu espaço do "
+#~ "AMS mapeado antes de enviar o trabalho de impressão"
 
 #~ msgid ""
 #~ "The printer firmware only supports sequential mapping of filament => AMS "
 #~ "slot."
 #~ msgstr ""
 #~ "O firmware da impressora só suporta mapeamento sequencial de filamento => "
-#~ "slot AMS."
+#~ "espaço do AMS."
 
 #~ msgid "An SD card needs to be inserted before printing."
 #~ msgstr "Um cartão SD precisa ser inserido antes de imprimir."
@@ -21746,12 +21924,6 @@ msgstr ""
 #~ msgstr ""
 #~ "Passo 3. Obtenha o SN do dispositivo na impressora; ele geralmente é "
 #~ "encontrado nas informações do dispositivo na tela da impressora."
-
-#~ msgid "Laser 10 W"
-#~ msgstr "Laser 10 W"
-
-#~ msgid "Laser 40 W"
-#~ msgstr "Laser 40 W"
 
 #~ msgid " is too close to others, there may be collisions when printing."
 #~ msgstr ""

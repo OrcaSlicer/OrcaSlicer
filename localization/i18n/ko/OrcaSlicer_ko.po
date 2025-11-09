@@ -1125,7 +1125,7 @@ msgstr "텍스트 중심에서 모델 표면까지의 거리입니다."
 msgid "Undo rotation"
 msgstr "회전 실행 취소"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "텍스트를 시계 방향으로 회전합니다."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -2695,7 +2695,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -4041,10 +4041,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4053,7 +4053,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4245,9 +4245,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4898,7 +4895,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -4910,7 +4907,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -5907,7 +5904,7 @@ msgstr "이름은 공백으로 시작할 수 없습니다."
 msgid "The name is not allowed to end with space character."
 msgstr "이름은 공백으로 끝날 수 없습니다."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -6011,7 +6008,7 @@ msgstr "프린터가 다른 출력 작업을 수행 중입니다"
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6758,7 +6755,7 @@ msgid "Sync filaments with AMS"
 msgstr "AMS와 필라멘트 동기화"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -8062,8 +8059,8 @@ msgstr "참고: 준비하는 데 몇 분 정도 걸릴 수 있습니다. 조금�
 msgid "Publish"
 msgstr "게시"
 
-msgid "Publish was cancelled"
-msgstr ""
+msgid "Publish was canceled"
+msgstr "게시가 취소되었습니다"
 
 msgid "Slicing Plate 1"
 msgstr "플레이트 1 슬라이싱"
@@ -19496,8 +19493,8 @@ msgstr "장치 이름"
 msgid "Device Status"
 msgstr "장치 상태"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "AMS 상태"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -19657,7 +19654,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -19703,8 +19700,8 @@ msgid "Something unexpected happened when trying to log in, please try again."
 msgstr ""
 "로그인을 시도하는 동안 예기치 않은 문제가 발생했습니다. 다시 시도해 주세요."
 
-msgid "User cancelled."
-msgstr ""
+msgid "User canceled."
+msgstr "사용자가 취소했습니다."
 
 msgid "Head diameter"
 msgstr "헤드 직경"
@@ -20254,9 +20251,6 @@ msgstr ""
 #~ msgstr ""
 #~ "AMS는 필라멘트 정보가 업데이트된 후 뱀부 필라멘트의 잔여 용량을 추정할 것"
 #~ "입니다. 출력하는 동안 남은 용량이 자동으로 업데이트됩니다."
-
-#~ msgid "AMS Status"
-#~ msgstr "AMS 상태"
 
 #, fuzzy
 #~ msgid ""
@@ -20941,9 +20935,6 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "잘못된 번호"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "게시가 취소되었습니다"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "기억된 노즐: %.2f %s"
@@ -21261,9 +21252,6 @@ msgstr ""
 
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "플래시포지 연결할 수 없음"
-
-#~ msgid "User canceled."
-#~ msgstr "사용자가 취소했습니다."
 
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "브림 유형을 “페인트”로 설정합니다."

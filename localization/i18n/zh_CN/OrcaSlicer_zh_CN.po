@@ -1112,7 +1112,7 @@ msgstr "文字中心到模型曲面的距离。"
 msgid "Undo rotation"
 msgstr "撤消旋转"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "顺时针旋转文本。"
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -2661,7 +2661,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -3971,10 +3971,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -3983,7 +3983,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4174,9 +4174,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4831,7 +4828,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -4843,7 +4840,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -5831,7 +5828,7 @@ msgstr "名称不允许以空格开头。"
 msgid "The name is not allowed to end with space character."
 msgstr "名称不允许以空格结尾。"
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -5932,7 +5929,7 @@ msgstr "打印机正在执行其他打印任务"
 msgid "Current extruder is busy changing filament"
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded"
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6660,7 +6657,7 @@ msgid "Sync filaments with AMS"
 msgstr "同步到 AMS 的材料列表"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -7926,7 +7923,7 @@ msgstr "提示：发布前需要一些准备时间，请耐心等待。"
 msgid "Publish"
 msgstr "发布"
 
-msgid "Publish was cancelled"
+msgid "Publish was canceled"
 msgstr "发布已取消"
 
 msgid "Slicing Plate 1"
@@ -18708,8 +18705,8 @@ msgstr "设备名"
 msgid "Device Status"
 msgstr "设备状态"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "AMS状态"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -18866,7 +18863,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -18910,7 +18907,7 @@ msgstr "在您为此应用程序进行授权时，请允许所需的权限。"
 msgid "Something unexpected happened when trying to log in, please try again."
 msgstr "在尝试登录时发生了异常，请重试。"
 
-msgid "User cancelled."
+msgid "User canceled."
 msgstr "用户已取消。"
 
 msgid "Head diameter"
@@ -19463,9 +19460,6 @@ msgstr ""
 #~ msgstr ""
 #~ "AMS读取Bambu Lab耗材丝信息同时推算料卷的剩余容量。在打印过程中，剩余容量会"
 #~ "自动更新。"
-
-#~ msgid "AMS Status"
-#~ msgstr "AMS状态"
 
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
