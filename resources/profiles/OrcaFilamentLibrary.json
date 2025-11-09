@@ -693,6 +693,10 @@
             "sub_path": "filament/Overture/Overture TPU @base.json"
         },
         {
+            "name": "Numakers PLA+ @base",
+            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
+        },
+        {
             "name": "Bambu ABS @System",
             "sub_path": "filament/Bambu/Bambu ABS @System.json"
         },
@@ -1207,6 +1211,10 @@
         {
             "name": "COEX PLA+Silk @System",
             "sub_path": "filament/COEX/COEX PLA+Silk @System.json"
+        },
+        {
+            "name": "Numakers PLA+ @System",
+            "sub_path": "filament/Numakers/Numakers PLA+ @System.json"
         }
     ],
     "process_list": [],

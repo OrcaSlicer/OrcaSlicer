@@ -7014,6 +7014,46 @@
             "sub_path": "filament/Overture/Overture TPU @BBL X1C 0.2 nozzle.json"
         },
         {
+            "name": "Numakers PLA+ @base",
+            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL A1",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL A1 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1 0.2 nozzle.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL A1M",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1M.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL A1M 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1M 0.2 nozzle.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL P1P",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL P1P.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL P1P 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL P1P 0.2 nozzle.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL X1",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL X1C",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1C.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL X1C 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1C 0.2 nozzle.json"
+        },
+        {
             "name": "fdm_filament_dual_common",
             "sub_path": "filament/fdm_filament_dual_common.json"
         }
