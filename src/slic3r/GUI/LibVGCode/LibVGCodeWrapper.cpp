@@ -210,7 +210,9 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
         const EMoveType curr_type = convert(curr.type);
         const EOptionType option_type = move_type_to_option(curr_type);
         if (option_type == EOptionType::COUNT || option_type == EOptionType::Travels || option_type == EOptionType::Wipes) {
-            if (ret.vertices.empty() || prev.type != curr.type || prev.extrusion_role != curr.extrusion_role) {
+            if (ret.vertices.empty() || prev.type != curr.type || prev.extrusion_role != curr.extrusion_role
+                // ORCA: Fix issue with flow rate changes being visualized incorrectly
+                || prev.mm3_per_mm != curr.mm3_per_mm) {
                 // to allow libvgcode to properly detect the start/end of a path we need to add a 'phantom' vertex
                 // equal to the current one with the exception of the position, which should match the previous move position,
                 // and the times, which are set to zero

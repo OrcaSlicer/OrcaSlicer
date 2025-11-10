@@ -454,7 +454,8 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                     const float feedrate = interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
                     const float width = interpolate ? lerp(prev_move.width, curr_move.width, t) : curr_move.width;
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
-                    const float mm3_per_mm = interpolate ? lerp(prev_move.mm3_per_mm, curr_move.mm3_per_mm, t) : curr_move.mm3_per_mm;
+                    // ORCA: Fix issue with flow rate changes being visualized incorrectly
+                    const float mm3_per_mm = curr_move.mm3_per_mm;
                     const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
                     const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
                     actual_speed_moves.push_back({
@@ -482,7 +483,8 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                     const float feedrate = interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
                     const float width = interpolate ? lerp(prev_move.width, curr_move.width, t) : curr_move.width;
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
-                    const float mm3_per_mm = interpolate ? lerp(prev_move.mm3_per_mm, curr_move.mm3_per_mm, t) : curr_move.mm3_per_mm;
+                    // ORCA: Fix issue with flow rate changes being visualized incorrectly
+                    const float mm3_per_mm = curr_move.mm3_per_mm;
                     const float fan_speed = interpolate ? lerp(prev_move.fan_speed, curr_move.fan_speed, t) : curr_move.fan_speed;
                     const float temperature = interpolate ? lerp(prev_move.temperature, curr_move.temperature, t) : curr_move.temperature;
                     actual_speed_moves.push_back({
