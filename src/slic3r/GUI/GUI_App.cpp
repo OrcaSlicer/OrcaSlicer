@@ -953,8 +953,7 @@ void GUI_App::post_init()
     }
 #endif
 
-    if (!app_config->get_stealth_mode())
-        hms_query = new HMSQuery();
+    hms_query = new HMSQuery();
 
     m_show_gcode_window = app_config->get_bool("show_gcode_window");
     if (m_networking_need_update) {
