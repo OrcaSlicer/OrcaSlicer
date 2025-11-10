@@ -20,6 +20,8 @@ int get_hms_info_version(std::string& version)
     AppConfig* config = wxGetApp().app_config;
     if (!config)
         return -1;
+    if (config->get_stealth_mode())
+        return -1;
     std::string hms_host = config->get_hms_host();
     if(hms_host.empty()) {
         BOOST_LOG_TRIVIAL(error) << "hms_host is empty";
@@ -58,6 +60,7 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
 
     AppConfig* config = wxGetApp().app_config;
     if (!config) return -1;
+    if (config->get_stealth_mode()) return -1;
 
     std::string hms_host = wxGetApp().app_config->get_hms_host();
     std::string lang;
@@ -541,7 +544,11 @@ wxString HMSQuery::query_print_image_action(const MachineObject* obj, int print_
     char buf[32];
     ::sprintf(buf, "%08X", print_error);
     //The first three digits of SN number
-    return _query_error_image_action(get_dev_id_type(obj),std::string(buf), button_action);
+    const auto result = _query_error_image_action(get_dev_id_type(obj),std::string(buf), button_action);
+    if (wxGetApp().app_config->get_stealth_mode() && result.Contains("http")) {
+        return wxEmptyString;
+    }
+    return result;
 }
 
 wxImage HMSQuery::query_image_from_local(const wxString& image_name)
@@ -629,6 +636,7 @@ std::string get_hms_wiki_url(std::string error_code)
 {
     AppConfig* config = wxGetApp().app_config;
     if (!config) return "";
+    if (config->get_stealth_mode()) return "";
 
     std::string hms_host = wxGetApp().app_config->get_hms_host();
     std::string lang_code = HMSQuery::hms_language_code();
@@ -654,6 +662,8 @@ std::string get_hms_wiki_url(std::string error_code)
 
 std::string get_error_message(int error_code)
 {
+    if (wxGetApp().app_config->get_stealth_mode()) return "";
+
 	char buf[64];
     std::string result_str = "";
     std::sprintf(buf,"%08X",error_code);
