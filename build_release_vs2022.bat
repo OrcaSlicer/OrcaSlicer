@@ -46,6 +46,8 @@ if "%1"=="slicer" (
 echo "building deps.."
 
 echo on
+REM Set minimum CMake policy to avoid <3.5 errors
+set CMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake ../ -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=%build_type%
 cmake --build . --config %build_type% --target deps -- -m
 @echo off
