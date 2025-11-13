@@ -7224,10 +7224,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             config.set_key_value("filament_extruder_id", new ConfigOptionInt(int(get_extruder_id(old_filament_id))));
             if (!m_filament_instances_code.empty()) {
                 gcode += ("M624 " + m_filament_instances_code + "\n");
-                gcode += placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
                 m_filament_instances_code = "";
                 add_change_filament_624   = true;
             }
+            gcode += placeholder_parser_process("filament_end_gcode", filament_end_gcode, old_filament_id, &config);
             check_add_eol(gcode);
         }
     }
