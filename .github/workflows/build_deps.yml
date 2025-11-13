@@ -69,8 +69,8 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
             choco install strawberryperl
-            .\build_release_vs2022.bat deps
-            .\build_release_vs2022.bat pack
+            .\build_release_vs.bat deps
+            .\build_release_vs.bat pack
             cd ${{ github.workspace }}/deps/build
 
       - name: Build on Mac ${{ inputs.arch }}
