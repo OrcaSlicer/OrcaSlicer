@@ -22,12 +22,13 @@ Whether you're a contributor or just want a custom build, this guide will help y
       - [Common dependencies across distributions](#common-dependencies-across-distributions)
       - [Additional dependencies for specific distributions](#additional-dependencies-for-specific-distributions)
     - [Linux Instructions](#linux-instructions)
+    - [Unit Testing](#unit-testing)
 - [Portable User Configuration](#portable-user-configuration)
   - [Example folder structure](#example-folder-structure)
 
 ## Windows 64-bit
 
-How to building with Visual Studio 2022 on Windows 64-bit.
+How to building with Visual Studio on Windows 64-bit.
 
 ### Windows Tools Required
 
@@ -35,9 +36,9 @@ How to building with Visual Studio 2022 on Windows 64-bit.
   ```shell
   winget install --id=Microsoft.VisualStudio.2022.Professional -e
   ```
-- [CMake (version 3.31)](https://cmake.org/) — **⚠️ version 3.31.x is mandatory**
+- [CMake](https://cmake.org/)
   ```shell
-  winget install --id=Kitware.CMake -v "3.31.6" -e
+  winget install --id=Kitware.CMake -e
   ```
 - [Strawberry Perl](https://strawberryperl.com/)
   ```shell
@@ -58,6 +59,14 @@ How to building with Visual Studio 2022 on Windows 64-bit.
 > winget install --id=GitHub.GitHubDesktop -e
 > ```
 
+> [!IMPORTANT]
+> Check your CMake version. Run `cmake --version` in your terminal and verify it returns a **4.x** version.  
+> If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).  
+> You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
+
+![windows_variables_path](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/windows_variables_path.png?raw=true)
+![windows_variables_order](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/windows_variables_order.png?raw=true)
+
 ### Windows Instructions
 
 1. Clone the repository:
@@ -72,16 +81,33 @@ How to building with Visual Studio 2022 on Windows 64-bit.
      git lfs pull
      ```
 2. Open the appropriate command prompt:
-   - For Visual Studio 2019:  
-     Open **x64 Native Tools Command Prompt for VS 2019** and run:
-     ```shell
-     build_release.bat
+   - Visual Studio 2022:
+     ```MD
+     x64 Native Tools Command Prompt for VS 2022
      ```
-   - For Visual Studio 2022:  
-     Open **x64 Native Tools Command Prompt for VS 2022** and run:
-     ```shell
-     build_release_vs2022.bat
+   - Visual Studio 2019:
+     ```MD
+     x64 Native Tools Command Prompt for VS 2019
      ```
+   1. Navigate to correct drive (if needed), e.g.:
+      ```shell
+      N:
+      ```
+   2. Change directory to the cloned repository, e.g.:
+      ```shell
+      cd N:\Repos\OrcaSlicer
+      ```
+   3. Run the build script:
+      - Visual Studio 2022:
+        ```shell
+        build_release_vs2022.bat
+        ```
+      - Visual Studio 2019:
+        ```shell
+        build_release.bat
+        ```
+
+![vs2022cmd](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/vs2022cmd.png?raw=true)
 
 > [!NOTE]
 > The build process will take a long time depending on your system but even with high-end hardware it can take up to 40 minutes.
@@ -105,11 +131,6 @@ How to building with Visual Studio 2022 on Windows 64-bit.
 > Changes to .cpp files are quickly compiled.  
 > Changes to .hpp files take longer, depending on what you change.  
 > If you switch back and forth between branches, it also takes a long time to rebuild, even if you haven't made any changes.
-
-> [!IMPORTANT]
-> Make sure that CMake version 3.31.x is actually being used. Run `cmake --version` and verify it returns a **3.31.x** version.
-> If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).
-> You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
 
 > [!TIP]
 > If the build fails, try deleting the `build/` and `deps/build/` directories to clear any cached build data. Rebuilding after a clean-up is usually sufficient to resolve most issues.
