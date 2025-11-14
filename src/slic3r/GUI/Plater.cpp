@@ -12349,6 +12349,7 @@ void Plater::calib_retraction(const Calib_Params& params)
     print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(layer_height));
     obj->config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
     obj->config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    obj->config.set_key_value("seam_position", new ConfigOptionEnum<SeamPosition>(spAligned));
 
     changed_objects({ 0 });
 
