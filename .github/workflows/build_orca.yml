@@ -233,7 +233,7 @@ jobs:
         env:
           WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
           WindowsSDKVersion: '10.0.26100.0\'
-        run: .\build_release_vs2022.bat slicer
+        run: .\build_release_vs.bat slicer
 
       - name: Create installer Win
         if: inputs.os == 'windows-latest'
