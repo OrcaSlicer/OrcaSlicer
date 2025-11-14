@@ -1447,12 +1447,12 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
             double extrusion_width_min = config.get_abs_value(opt_key, min_nozzle_diameter);
             double extrusion_width_max = config.get_abs_value(opt_key, max_nozzle_diameter);
             double allowed_max = is_bridge_width ? max_nozzle_diameter : max_nozzle_diameter * MAX_LINE_WIDTH_MULTIPLIER;
-        	if (extrusion_width_min == 0) {
-        		// Default "auto-generated" extrusion width is always valid.
-        	} else if (extrusion_width_min <= layer_height) {
-                err_msg = L("Too small line width");
-				return false;
-            } else if (extrusion_width_max > allowed_max) {
+            if (extrusion_width_min == 0) {
+                // Default "auto-generated" extrusion width is always valid.
+            } else if (!is_bridge_width && extrusion_width_min <= layer_height) {
+                    err_msg = L("Too small line width");
+                    return false;
+                } else if (extrusion_width_max > allowed_max) {
                 err_msg = is_bridge_width ? L("Bridge line width must not exceed nozzle diameter") : L("Too large line width");
 				return false;
 			}
