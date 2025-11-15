@@ -376,13 +376,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Speed") + " (" + _u8L("mm/s") + ")", [&vertex, &buff]() {
-                    std::string text;
-                    if (vertex.is_extrusion()) {
-                        sprintf(buff, "%.1f", vertex.feedrate);
-                        text = std::string(buff);
-                    }
-                    else
-                        text = _u8L("N/A");
+                    sprintf(buff, "%.1f", vertex.feedrate);
+                    const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
                   append_table_row(_u8L("Volumetric flow rate") + " (" + _u8L("mm³/s") + ")", [&vertex, &buff]() {
@@ -396,13 +391,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWrapper::text(text);
                   });
                 append_table_row(_u8L("Fan speed") + " (" + _u8L("%") + ")", [&vertex, &buff]() {
-                    std::string text;
-                    if (vertex.is_extrusion()) {
-                        sprintf(buff, "%.0f", vertex.fan_speed);
-                        text = std::string(buff);
-                    }
-                    else
-                        text = _u8L("N/A");
+                    sprintf(buff, "%.0f", vertex.fan_speed);
+                    const std::string text = std::string(buff);
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Temperature") + " (" + _u8L("°C") + ")", [&vertex, &buff]() {
