@@ -323,7 +323,6 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGui::SameLine();
         if (imgui.image_button(properties_shown ? ImGui::HorizontalHide : ImGui::HorizontalShow, properties_shown ? _u8L("Hide properties") : _u8L("Show properties"))) {
             properties_shown = !properties_shown;
-            imgui.requires_extra_frame();
         }
 
         if (properties_shown) {
