@@ -7,6 +7,7 @@ Whether you're a contributor or just want a custom build, this guide will help y
 
 - [Windows 64-bit](#windows-64-bit)
   - [Windows Tools Required](#windows-tools-required)
+  - [Windows Hardware Requirements](#windows-hardware-requirements)
   - [Windows Instructions](#windows-instructions)
 - [MacOS 64-bit](#macos-64-bit)
   - [MacOS Tools Required](#macos-tools-required)
@@ -32,9 +33,14 @@ How to building with Visual Studio on Windows 64-bit.
 
 ### Windows Tools Required
 
-- [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) or Visual Studio 2019
+- [Visual Studio](https://visualstudio.microsoft.com/vs/) 2022, 2026 or Visual Studio 2019
+  - 2022
   ```shell
   winget install --id=Microsoft.VisualStudio.2022.Professional -e
+  ```
+   - 2026
+  ```shell
+  winget install --id=Microsoft.VisualStudio.Community -e
   ```
 - [CMake](https://cmake.org/)
   ```shell
@@ -67,6 +73,21 @@ How to building with Visual Studio on Windows 64-bit.
 ![windows_variables_path](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/windows_variables_path.png?raw=true)
 ![windows_variables_order](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/windows_variables_order.png?raw=true)
 
+> [!IMPORTANT]
+> **For Visual Studio 2026**, you must use the CMake included with Visual Studio 2026 **until CMake 4.2 is released as a stable version**.  
+> To do this, you must include the cmake path contained in Visual Studio above the variable of the official cmake installed on your computer.  
+> The path will look something like this:
+> ```shell
+> C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin
+> ```
+
+### Windows Hardware Requirements
+
+- Minimum 16 GB RAM
+- Minimum 23 GB free disk space
+- 64-bit CPU
+- 64-bit Windows 10 or later
+
 ### Windows Instructions
 
 1. Clone the repository:
@@ -81,14 +102,9 @@ How to building with Visual Studio on Windows 64-bit.
      git lfs pull
      ```
 2. Open the appropriate command prompt:
-   - Visual Studio 2022:
-     ```MD
-     x64 Native Tools Command Prompt for VS 2022
-     ```
-   - Visual Studio 2019:
-     ```MD
-     x64 Native Tools Command Prompt for VS 2019
-     ```
+   ```MD
+   x64 Native Tools Command Prompt for VS
+   ```
    1. Navigate to correct drive (if needed), e.g.:
       ```shell
       N:
@@ -98,16 +114,11 @@ How to building with Visual Studio on Windows 64-bit.
       cd N:\Repos\OrcaSlicer
       ```
    3. Run the build script:
-      - Visual Studio 2022:
-        ```shell
-        build_release_vs2022.bat
-        ```
-      - Visual Studio 2019:
-        ```shell
-        build_release.bat
-        ```
+      ```shell
+      build_release_vs.bat
+      ```
 
-![vs2022cmd](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/vs2022cmd.png?raw=true)
+![vs_cmd](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/vs_cmd.png?raw=true)
 
 > [!NOTE]
 > The build process will take a long time depending on your system but even with high-end hardware it can take up to 40 minutes.
@@ -115,13 +126,13 @@ How to building with Visual Studio on Windows 64-bit.
 > [!TIP]
 > If you encounter issues, you can try to uninstall ZLIB from your Vcpkg library.
 
-3. If successful, you will find the Visual Studio solution file in:
+1. If successful, you will find the Visual Studio solution file in:
    ```shell
    build\OrcaSlicer.sln
    ```
-4. Open the solution in Visual Studio, set the build configuration to `Release` and run the `Local Windows Debugger`.  
-   ![compile_vs2022_local_debugger](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/compile_vs2022_local_debugger.png?raw=true)
-5. Your resulting executable will be located in:
+2. Open the solution in Visual Studio, set the build configuration to `Release` and run the `Local Windows Debugger`.  
+   ![compile_vs_local_debugger](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/compile_vs_local_debugger.png?raw=true)
+3. Your resulting executable will be located in:
    ```shell
    \build\src\Release\orca-slicer.exe
    ```
