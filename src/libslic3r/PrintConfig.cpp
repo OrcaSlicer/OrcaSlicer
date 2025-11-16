@@ -1777,16 +1777,18 @@ void PrintConfigDef::init_fff_params()
     def = this->add("thick_bridges", coBool);
     def->label = L("Thick external bridges");
     def->category = L("Quality");
-    def->tooltip = L("If enabled, bridges are more reliable, can bridge longer distances, but may look worse. "
-        "If disabled, bridges look better but are reliable just for shorter bridged distances.");
+    def->tooltip = L("If enabled, bridge extrusion uses a line height equal to the nozzle diameter.\n"
+                     "This increases bridge strength and reliability, allowing longer spans, but may worsen appearance.\n"
+                     "If disabled, bridges may look better but are generally reliable only for shorter spans.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("thick_internal_bridges", coBool);
     def->label = L("Thick internal bridges");
     def->category = L("Quality");
-    def->tooltip  = L("If enabled, thick internal bridges will be used. It's usually recommended to have this feature turned on. However, "
-                       "consider turning it off if you are using large nozzles.");
+    def->tooltip  = L("If enabled, internal bridge extrusion uses a line height equal to the nozzle diameter.\n"
+                       "This increases internal bridge strength and reliability when printed over sparse infill, but may worsen appearance.\n"
+                       "If disabled, internal bridges may look better but can be less reliable over sparse infill.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     
