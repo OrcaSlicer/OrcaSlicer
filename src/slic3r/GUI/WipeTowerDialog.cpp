@@ -106,8 +106,8 @@ RammingPanel::RammingPanel(wxWindow* parent, const std::string& parameters)
     label->SetLabel(multiline_message);
     sizer_chart->Add(label, 0, wxEXPAND | wxALL, 5);
 
-    m_widget_time                             = new SpinInput(this, wxEmptyString, "ms" , wxDefaultPosition, wxSize(scale(120), -1), wxSP_ARROW_KEYS, 0 , 5000 , 3000, 250);
-    m_widget_volume                           = new SpinInput(this, wxEmptyString, wxString::FromUTF8("mm³"), wxDefaultPosition, wxSize(scale(120), -1), wxSP_ARROW_KEYS, 0 , 10000, 0   );
+    m_widget_time                             = new SpinInput(this, wxEmptyString, _L("ms"), wxDefaultPosition, wxSize(scale(120), -1), wxSP_ARROW_KEYS, 0 , 5000 , 3000, 250);
+    m_widget_volume                           = new SpinInput(this, wxEmptyString, _L("mm³"), wxDefaultPosition, wxSize(scale(120), -1), wxSP_ARROW_KEYS, 0 , 10000, 0   );
     m_widget_ramming_line_width_multiplicator = new SpinInput(this, wxEmptyString, "%"  , wxDefaultPosition, wxSize(scale(120), -1), wxSP_ARROW_KEYS, 10, 300  , 100 );
     m_widget_ramming_step_multiplicator       = new SpinInput(this, wxEmptyString, "%"  , wxDefaultPosition, wxSize(scale(120), -1), wxSP_ARROW_KEYS, 10, 300  , 100 );
 

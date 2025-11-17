@@ -127,21 +127,21 @@ void ExtrusionCalibration::create()
         wxWindow::GetTextExtent(_L("Bed Temperature")).x),
         wxWindow::GetTextExtent(_L("Max volumetric speed")).x),
         EXTRUSION_CALIBRATION_INPUT_SIZE.x);
-    m_nozzle_temp = new TextInput(m_step_1_panel, wxEmptyString, wxString::FromUTF8("\u2103") /* °C */, "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    m_nozzle_temp = new TextInput(m_step_1_panel, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
     nozzle_temp_sizer->Add(nozzle_temp_text, 0, wxALIGN_LEFT);
     nozzle_temp_sizer->AddSpacer(FromDIP(4));
     nozzle_temp_sizer->Add(m_nozzle_temp, 0, wxEXPAND);
 
     auto bed_temp_sizer = new wxBoxSizer(wxVERTICAL);
     auto bed_temp_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Bed temperature"));
-    m_bed_temp = new TextInput(m_step_1_panel, wxEmptyString, wxString::FromUTF8("\u2103") /* °C */, "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    m_bed_temp = new TextInput(m_step_1_panel, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
     bed_temp_sizer->Add(bed_temp_text, 0, wxALIGN_LEFT);
     bed_temp_sizer->AddSpacer(FromDIP(4));
     bed_temp_sizer->Add(m_bed_temp, 0, wxEXPAND);
 
     auto max_flow_sizer = new wxBoxSizer(wxVERTICAL);
     auto max_flow_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Max volumetric speed"));
-    m_max_flow_ratio = new TextInput(m_step_1_panel, wxEmptyString, wxString::FromUTF8("mm³"), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    m_max_flow_ratio = new TextInput(m_step_1_panel, wxEmptyString, _L("mm³"), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
     max_flow_sizer->Add(max_flow_text, 0, wxALIGN_LEFT);
     max_flow_sizer->AddSpacer(FromDIP(4));
     max_flow_sizer->Add(m_max_flow_ratio, 0, wxEXPAND);
