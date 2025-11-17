@@ -20,22 +20,31 @@ namespace Slic3r { namespace GUI {
 ImageDPIFrame::ImageDPIFrame()
     : DPIFrame(static_cast<wxWindow *>(wxGetApp().mainframe), wxID_ANY, "", wxDefaultPosition, wxDefaultSize, !wxCAPTION | !wxCLOSE_BOX | wxBORDER_NONE)
 {
-    m_image_px = 280;
+    m_image_px = 240;
     int width = 270;
     //SetTransparent(0);
     SetMinSize(wxSize(FromDIP(width), -1));
     SetMaxSize(wxSize(FromDIP(width), -1));
-    SetBackgroundColour(wxColour(242, 242, 242, 255));
+    SetBackgroundColour(wxColour(255, 255, 255, 255));
 #ifdef __APPLE__
     SetWindowStyleFlag(GetWindowStyleFlag() | wxSTAY_ON_TOP);
 #endif
-
+    
     m_sizer_main           = new wxBoxSizer(wxVERTICAL);
+
+    m_title = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    m_title->SetFont(Label::Head_14);
+    m_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+    m_title->SetMaxSize(wxSize(FromDIP(width), -1));
+
     auto image_sizer  = new wxBoxSizer(wxVERTICAL);
     auto imgsize           = FromDIP(width);
-    m_bitmap = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("printer_preview_C13", this, m_image_px), wxDefaultPosition, wxSize(imgsize, imgsize * 0.94), 0);
-    image_sizer->Add(m_bitmap, 0, wxALIGN_CENTER  | wxALL, FromDIP(0));
+    m_bitmap = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("printer_preview_C13", this, m_image_px), wxDefaultPosition, FromDIP(wxSize(m_image_px, m_image_px)), 0);
+    image_sizer->Add(m_bitmap, 0, wxALIGN_CENTER | wxALL, FromDIP(10));
+    m_sizer_main->Add(m_title, 0, wxALIGN_CENTER | wxTOP | wxLEFT | wxRIGHT, FromDIP(10));
     m_sizer_main->Add(image_sizer, FromDIP(0), wxALIGN_CENTER, FromDIP(0));
+
+    wxGetApp().UpdateDarkUI(this); // ORCA fix white bg on dark mode
 
     Bind(wxEVT_CLOSE_WINDOW, [this](auto &e) {
         on_hide();
@@ -60,10 +69,22 @@ void ImageDPIFrame::set_bitmap(const wxBitmap &bit_map) {
     m_bitmap->SetBitmap(bit_map);
 }
 
+void ImageDPIFrame::set_title(const wxString& title) {
+    m_title->Show(!title.empty());
+    if(!title.empty())
+        m_title->SetLabel(title);
+    Layout();
+}
+
 void ImageDPIFrame::on_dpi_changed(const wxRect &suggested_rect)
 {
    // m_image->Rescale();
     //m_bitmap->Rescale();
+}
+
+void ImageDPIFrame::sys_color_changed()
+{
+   wxGetApp().UpdateDarkUI(this);
 }
 
 void ImageDPIFrame::init_timer()
@@ -76,7 +97,7 @@ void ImageDPIFrame::init_timer()
 void ImageDPIFrame::on_timer(wxTimerEvent &event)
 {
     if (!IsShown()) {//after 1s  to show Frame
-        if (m_timer_count >= 50) {
+        if (m_timer_count >= 20) { // ORCA show frame faster to maatch time with tooltips
             Show();
             Raise();
         }
@@ -123,6 +144,7 @@ void ImageDPIFrame::on_hide()
             wxGetApp().mainframe->Raise();
         }
     }
+    set_title(""); // reset title on hide
 }
 
 } // namespace GUI
