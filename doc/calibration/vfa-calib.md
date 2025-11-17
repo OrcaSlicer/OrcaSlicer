@@ -11,12 +11,12 @@ Vertical Fine Artifacts (VFA) are small surface imperfections that appear on ver
 
 The VFA Speed Test in OrcaSlicer helps identify which print speeds trigger MRR artifacts. It prints a vertical tower with walls at various angles while progressively increasing the print speed.
 
-![vfa_test_menu](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/vfa/vfa_test_menu.png?raw=true)
+![vfa_test_menu](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/vfa/vfa_test_menu.png?raw=true)
 
-![vfa_test_print](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/vfa/vfa_test_print.jpg?raw=true)
+![vfa_test_print](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/vfa/vfa_test_print.jpg?raw=true)
 
 After printing, inspect the tower for MRR artifacts. Look for speeds where the surface becomes visibly smoother or rougher. This allows you to pinpoint problematic speed ranges.
 
 You can then configure the **Resonance Avoidance Speed Range** in the printer profile to skip speeds that cause visible artifacts.
 
-![vfa_resonance_avoidance](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/vfa/vfa_resonance_avoidance.png?raw=true)
+![vfa_resonance_avoidance](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/vfa/vfa_resonance_avoidance.png?raw=true)

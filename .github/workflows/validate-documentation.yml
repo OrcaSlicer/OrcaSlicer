@@ -258,7 +258,7 @@ jobs:
           
           # Validate images
           Write-Host "Validating images..." -ForegroundColor Blue
-          $expectedUrlPattern = '^https://github\.com/SoftFever/OrcaSlicer/blob/main/([^?]+)\?raw=true$'
+          $expectedUrlPattern = '^https://github\.com/OrcaSlicer/OrcaSlicer/blob/main/([^?]+)\?raw=true$'
           
           foreach ($file in $mdFiles) {
               $lines = Get-Content $file.FullName -Encoding UTF8
@@ -300,9 +300,9 @@ jobs:
                               }
                           } else {
                               $urlIssues = @()
-                              if (-not $url.StartsWith('https://github.com/SoftFever/OrcaSlicer/blob/main/')) { $urlIssues += "URL must start with expected prefix" }
+                              if (-not $url.StartsWith('https://github.com/OrcaSlicer/OrcaSlicer/blob/main/')) { $urlIssues += "URL must start with expected prefix" }
                               if (-not $url.EndsWith('?raw=true')) { $urlIssues += "URL must end with '?raw=true'" }
-                              if ($url -match '^https?://(?!github\.com/SoftFever/OrcaSlicer)') { $urlIssues += "External URLs not allowed" }
+                              if ($url -match '^https?://(?!github\.com/OrcaSlicer/OrcaSlicer)') { $urlIssues += "External URLs not allowed" }
                               
                               $issueText = "[$imageType] URL format issues: " + ($urlIssues -join '; ')
                               $brokenReferences += Add-BrokenReference $relPath ($lineNumber + 1) $imageMatch $issueText "Image"

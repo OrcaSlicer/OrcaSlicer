@@ -7,6 +7,7 @@ Whether you're a contributor or just want a custom build, this guide will help y
 
 - [Windows 64-bit](#windows-64-bit)
   - [Windows Tools Required](#windows-tools-required)
+  - [Windows Hardware Requirements](#windows-hardware-requirements)
   - [Windows Instructions](#windows-instructions)
 - [MacOS 64-bit](#macos-64-bit)
   - [MacOS Tools Required](#macos-tools-required)
@@ -22,22 +23,28 @@ Whether you're a contributor or just want a custom build, this guide will help y
       - [Common dependencies across distributions](#common-dependencies-across-distributions)
       - [Additional dependencies for specific distributions](#additional-dependencies-for-specific-distributions)
     - [Linux Instructions](#linux-instructions)
+    - [Unit Testing](#unit-testing)
 - [Portable User Configuration](#portable-user-configuration)
   - [Example folder structure](#example-folder-structure)
 
 ## Windows 64-bit
 
-How to building with Visual Studio 2022 on Windows 64-bit.
+How to building with Visual Studio on Windows 64-bit.
 
 ### Windows Tools Required
 
-- [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) or Visual Studio 2019
+- [Visual Studio](https://visualstudio.microsoft.com/vs/) 2022, 2026 or Visual Studio 2019
+  - 2022
   ```shell
   winget install --id=Microsoft.VisualStudio.2022.Professional -e
   ```
-- [CMake (version 3.31)](https://cmake.org/) — **⚠️ version 3.31.x is mandatory**
+   - 2026
   ```shell
-  winget install --id=Kitware.CMake -v "3.31.6" -e
+  winget install --id=Microsoft.VisualStudio.Community -e
+  ```
+- [CMake](https://cmake.org/)
+  ```shell
+  winget install --id=Kitware.CMake -e
   ```
 - [Strawberry Perl](https://strawberryperl.com/)
   ```shell
@@ -58,6 +65,29 @@ How to building with Visual Studio 2022 on Windows 64-bit.
 > winget install --id=GitHub.GitHubDesktop -e
 > ```
 
+> [!IMPORTANT]
+> Check your CMake version. Run `cmake --version` in your terminal and verify it returns a **4.x** version.  
+> If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).  
+> You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
+
+![windows_variables_path](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/windows_variables_path.png?raw=true)
+![windows_variables_order](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/windows_variables_order.png?raw=true)
+
+> [!IMPORTANT]
+> **For Visual Studio 2026**, you must use the CMake included with Visual Studio 2026 **until CMake 4.2 is released as a stable version**.  
+> To do this, you must include the cmake path contained in Visual Studio above the variable of the official cmake installed on your computer.  
+> The path will look something like this:
+> ```shell
+> C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin
+> ```
+
+### Windows Hardware Requirements
+
+- Minimum 16 GB RAM
+- Minimum 23 GB free disk space
+- 64-bit CPU
+- 64-bit Windows 10 or later
+
 ### Windows Instructions
 
 1. Clone the repository:
@@ -65,23 +95,30 @@ How to building with Visual Studio 2022 on Windows 64-bit.
    - If using the command line:
      1. Clone the repository:
      ```shell
-     git clone https://github.com/SoftFever/OrcaSlicer
+     git clone https://github.com/OrcaSlicer/OrcaSlicer
      ```
      2. Run lfs to download tools on Windows:
      ```shell
      git lfs pull
      ```
 2. Open the appropriate command prompt:
-   - For Visual Studio 2019:  
-     Open **x64 Native Tools Command Prompt for VS 2019** and run:
-     ```shell
-     build_release.bat
-     ```
-   - For Visual Studio 2022:  
-     Open **x64 Native Tools Command Prompt for VS 2022** and run:
-     ```shell
-     build_release_vs2022.bat
-     ```
+   ```MD
+   x64 Native Tools Command Prompt for VS
+   ```
+   1. Navigate to correct drive (if needed), e.g.:
+      ```shell
+      N:
+      ```
+   2. Change directory to the cloned repository, e.g.:
+      ```shell
+      cd N:\Repos\OrcaSlicer
+      ```
+   3. Run the build script:
+      ```shell
+      build_release_vs.bat
+      ```
+
+![vs_cmd](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/vs_cmd.png?raw=true)
 
 > [!NOTE]
 > The build process will take a long time depending on your system but even with high-end hardware it can take up to 40 minutes.
@@ -89,13 +126,13 @@ How to building with Visual Studio 2022 on Windows 64-bit.
 > [!TIP]
 > If you encounter issues, you can try to uninstall ZLIB from your Vcpkg library.
 
-3. If successful, you will find the Visual Studio solution file in:
+1. If successful, you will find the Visual Studio solution file in:
    ```shell
    build\OrcaSlicer.sln
    ```
-4. Open the solution in Visual Studio, set the build configuration to `Release` and run the `Local Windows Debugger`.  
-   ![compile_vs2022_local_debugger](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/compile_vs2022_local_debugger.png?raw=true)
-5. Your resulting executable will be located in:
+2. Open the solution in Visual Studio, set the build configuration to `Release` and run the `Local Windows Debugger`.  
+   ![compile_vs_local_debugger](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/compile_vs_local_debugger.png?raw=true)
+3. Your resulting executable will be located in:
    ```shell
    \build\src\Release\orca-slicer.exe
    ```
@@ -105,11 +142,6 @@ How to building with Visual Studio 2022 on Windows 64-bit.
 > Changes to .cpp files are quickly compiled.  
 > Changes to .hpp files take longer, depending on what you change.  
 > If you switch back and forth between branches, it also takes a long time to rebuild, even if you haven't made any changes.
-
-> [!IMPORTANT]
-> Make sure that CMake version 3.31.x is actually being used. Run `cmake --version` and verify it returns a **3.31.x** version.
-> If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).
-> You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
 
 > [!TIP]
 > If the build fails, try deleting the `build/` and `deps/build/` directories to clear any cached build data. Rebuilding after a clean-up is usually sufficient to resolve most issues.
@@ -160,7 +192,7 @@ cmake --version
 
 1. Clone the repository:
    ```shell
-   git clone https://github.com/SoftFever/OrcaSlicer
+   git clone https://github.com/OrcaSlicer/OrcaSlicer
    cd OrcaSlicer
    ```
 2. Build the application:
@@ -203,7 +235,7 @@ How to build and run OrcaSlicer using Docker.
 #### Docker Instructions
 
 ```shell
-git clone https://github.com/SoftFever/OrcaSlicer && cd OrcaSlicer && ./scripts/DockerBuild.sh && ./scripts/DockerRun.sh
+git clone https://github.com/OrcaSlicer/OrcaSlicer && cd OrcaSlicer && ./scripts/DockerBuild.sh && ./scripts/DockerRun.sh
 ```
 
 ### Troubleshooting

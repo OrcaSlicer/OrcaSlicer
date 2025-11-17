@@ -50,14 +50,14 @@ Select the underlying method used to produce the fuzzy effect. Each mode has dif
 
 ### Displacement
 
-![Fuzzy-skin-Displacement-mode](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-Displacement-mode.png?raw=true)
+![Fuzzy-skin-Displacement-mode](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-Displacement-mode.png?raw=true)
 
 The classic method is when the pattern on the walls is achieved by shifting the printhead perpendicular to the wall.  
 It gives a predictable result, but decreases the strength entire shells and open the pores inside the walls. It also increases the mechanical stress on the kinematics of the printer. The speed of general printing is slowing down.
 
 ### Extrusion
 
-![Fuzzy-skin-Extrusion-mode](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-Extrusion-mode.png?raw=true)
+![Fuzzy-skin-Extrusion-mode](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-Extrusion-mode.png?raw=true)
 
 The fuzzy skin condition is obtained by changing the amount of extruded plastic as the print head moves linearly. There is no extra load on the kinematics, there is no decrease in the printing speed, the pores do not open, but the drawing turns out to be smoother by a factor of 2. It is suitable for creating "loose" walls to reduce internal stress into extruded plastic, or masking printing defects on the side walls - a matte effect.
 
@@ -67,7 +67,7 @@ The fuzzy skin condition is obtained by changing the amount of extruded plastic 
 
 ### Combined
 
-![Fuzzy-skin-Combined-mode](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-Combined-mode.png?raw=true)
+![Fuzzy-skin-Combined-mode](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-Combined-mode.png?raw=true)
 
 This is a combination of Displacement and Extrusion modes. The clarity of the drawing is the same in the classic mode, but the walls remain strong and tight. The load on the kinematics is 2 times lower. The printing speed is faster than in Displacement mode, but the elapsed time will still be longer.
 
@@ -82,31 +82,31 @@ Select the noise algorithm used to generate the random offsets. Different noise 
 
 Simple uniform random noise. Produces a coarse, irregular texture.
 
-![Fuzzy-skin-classic](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-classic.png?raw=true)
+![Fuzzy-skin-classic](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-classic.png?raw=true)
 
 ### Perlin
 
 [Perlin noise](https://en.wikipedia.org/wiki/Perlin_noise) generates smooth, natural-looking variations with coherent structure.
 
-![Fuzzy-skin-perlin](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-perlin.png?raw=true)
+![Fuzzy-skin-perlin](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-perlin.png?raw=true)
 
 ### Billow
 
 Billow noise is similar to Perlin noise, but has a clumpier appearance. It can create more pronounced features and is often used for natural textures.
 
-![Fuzzy-skin-billow](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-billow.png?raw=true)
+![Fuzzy-skin-billow](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-billow.png?raw=true)
 
 ### Ridged Multifractal
 
 Creates sharp, jagged features and high-contrast detail. Useful for stone- or marble-like textures.
 
-![Fuzzy-skin-ridged-multifractal](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-ridged-multifractal.png?raw=true)
+![Fuzzy-skin-ridged-multifractal](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-ridged-multifractal.png?raw=true)
 
 ### Voronoi
 
 [Voronoi noise](https://en.wikipedia.org/wiki/Worley_noise) divides the surface into Voronoi cells and displaces each cell independently, creating a patchwork or cellular texture.
 
-![Fuzzy-skin-voronoi](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-voronoi.png?raw=true)
+![Fuzzy-skin-voronoi](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Fuzzy-skin/Fuzzy-skin-voronoi.png?raw=true)
 
 ## Point distance
 
