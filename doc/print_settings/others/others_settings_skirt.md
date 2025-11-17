@@ -20,7 +20,7 @@ Number of skirt loops to print.
 Usually 2 loops are recommended but increasing loops improve priming and give a larger buffer between the nozzle and the part, at the cost of extra filament and time.  
 Set to 0 to disable the skirt.
 
-![skirt](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/skirt/skirt.png?raw=true)
+![skirt](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/skirt/skirt.png?raw=true)
 
 ## Type
 
@@ -29,14 +29,14 @@ Set to 0 to disable the skirt.
 A single skirt that surrounds all objects on the bed.
   Recommended for general use.
 
-![skirt-combined](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/skirt/skirt-combined.png?raw=true)
+![skirt-combined](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/skirt/skirt-combined.png?raw=true)
 
 ### Per object
 
 Each object gets its own skirt printed separately.
   Recommended when using [Print sequence by object](others_settings_special_mode#by-object).
 
-![skirt-per-object](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/skirt/skirt-per-object.png?raw=true)
+![skirt-per-object](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/skirt/skirt-per-object.png?raw=true)
 
 ## Minimum extrusion Length
 

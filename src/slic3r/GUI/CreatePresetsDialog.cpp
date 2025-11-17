@@ -82,7 +82,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
     {{"Anker",             {"Anker M5",                   "Anker M5 All-Metal Hot End", "Anker M5C"}},
      {"Anycubic",          {"Anycubic i3 Mega S",    "Anycubic Chiron",       "Anycubic Vyper",        "Anycubic Kobra",        "Anycubic Kobra Max",
                             "Anycubic Kobra Plus",   "Anycubic 4Max Pro",     "Anycubic 4Max Pro 2",   "Anycubic Kobra 2",      "Anycubic Kobra 2 Plus",
-                            "Anycubic Kobra 2 Max",  "Anycubic Kobra 2 Pro",  "Anycubic Kobra 2 Neo",  "Anycubic Kobra 3",      "Anycubic Kobra S1"}},
+                            "Anycubic Kobra 2 Max",  "Anycubic Kobra 2 Pro",  "Anycubic Kobra 2 Neo",  "Anycubic Kobra 3",      "Anycubic Kobra S1", "Anycubic Predator", }},
      {"Artillery",         {"Artillery Sidewinder X1",      "Artillery Genius",             "Artillery Genius Pro",         "Artillery Sidewinder X2",      "Artillery Hornet",
                             "Artillery Sidewinder X3 Pro",  "Artillery Sidewinder X3 Plus", "Artillery Sidewinder X4 Pro",  "Artillery Sidewinder X4 Plus"}},
      {"Bambulab",          {"Bambu Lab X1 Carbon", "Bambu Lab X1",        "Bambu Lab X1E",       "Bambu Lab P1P",       "Bambu Lab P1S",
@@ -1967,7 +1967,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_bed_size_item(wxWindow *parent)
      // ORCA use icon on input box to match style with other Point fields
     horizontal_sizer->Add(length_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
     wxBoxSizer *length_input_sizer      = new wxBoxSizer(wxVERTICAL);
-    m_bed_size_x_input = new TextInput(parent, "200", "mm", "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
+    m_bed_size_x_input = new TextInput(parent, "200", _L("mm"), "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     wxTextValidator validator(wxFILTER_DIGITS);
     m_bed_size_x_input->GetTextCtrl()->SetValidator(validator);
     length_input_sizer->Add(m_bed_size_x_input, 0, wxEXPAND | wxLEFT, FromDIP(5));
@@ -1977,7 +1977,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_bed_size_item(wxWindow *parent)
     // ORCA use icon on input box to match style with other Point fields
     horizontal_sizer->Add(width_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
     wxBoxSizer *width_input_sizer      = new wxBoxSizer(wxVERTICAL);
-    m_bed_size_y_input            = new TextInput(parent, "200", "mm", "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
+    m_bed_size_y_input            = new TextInput(parent, "200", _L("mm"), "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     m_bed_size_y_input->GetTextCtrl()->SetValidator(validator);
     width_input_sizer->Add(m_bed_size_y_input, 0, wxEXPAND | wxALL, 0);
     horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -2000,7 +2000,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_origin_item(wxWindow *parent)
     // ORCA use icon on input box to match style with other Point fields
     horizontal_sizer->Add(length_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
     wxBoxSizer *length_input_sizer = new wxBoxSizer(wxVERTICAL);
-    m_bed_origin_x_input           = new TextInput(parent, "0", "mm", "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
+    m_bed_origin_x_input           = new TextInput(parent, "0", _L("mm"), "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     wxTextValidator validator(wxFILTER_DIGITS);
     m_bed_origin_x_input->GetTextCtrl()->SetValidator(validator);
     length_input_sizer->Add(m_bed_origin_x_input, 0, wxEXPAND | wxLEFT, FromDIP(5)); // Align with other
@@ -2010,7 +2010,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_origin_item(wxWindow *parent)
     // ORCA use icon on input box to match style with other Point fields
     horizontal_sizer->Add(width_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
     wxBoxSizer *width_input_sizer = new wxBoxSizer(wxVERTICAL);
-    m_bed_origin_y_input          = new TextInput(parent, "0", "mm", "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
+    m_bed_origin_y_input          = new TextInput(parent, "0", _L("mm"), "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     m_bed_origin_y_input->GetTextCtrl()->SetValidator(validator);
     width_input_sizer->Add(m_bed_origin_y_input, 0, wxEXPAND | wxALL, 0);
     horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -2081,7 +2081,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_max_print_height_item(wxWindow *pa
     horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
 
     wxBoxSizer *hight_input_sizer = new wxBoxSizer(wxVERTICAL);
-    m_print_height_input          = new TextInput(parent, "200", "mm", wxEmptyString, wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER); // Use same alignment with all other input boxes
+    m_print_height_input          = new TextInput(parent, "200", _L("mm"), wxEmptyString, wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER); // Use same alignment with all other input boxes
     wxTextValidator validator(wxFILTER_DIGITS);
     m_print_height_input->GetTextCtrl()->SetValidator(validator);
     hight_input_sizer->Add(m_print_height_input, 0, wxEXPAND | wxLEFT, FromDIP(5));

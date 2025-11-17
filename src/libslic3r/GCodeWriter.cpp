@@ -1029,7 +1029,7 @@ void GCodeWriter::add_object_end_labels(std::string& gcode)
         m_gcode_label_objects_end = "";
 
         // Orca: reset E so that e value remain correct after skipping the object
-        // ref to: https://github.com/SoftFever/OrcaSlicer/pull/205/commits/7f1fe0bd544077626080aa1a9a0576aa735da1a4#r1083470162
+        // ref to: https://github.com/OrcaSlicer/OrcaSlicer/pull/205/commits/7f1fe0bd544077626080aa1a9a0576aa735da1a4#r1083470162
         if (!this->config.use_relative_e_distances)
             gcode += reset_e(true);
     }

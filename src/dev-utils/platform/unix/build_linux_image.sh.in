@@ -82,7 +82,7 @@ EOF
     chmod ug+x @SLIC3R_APP_CMD@
     cp -fl @SLIC3R_APP_CMD@ package/@SLIC3R_APP_CMD@
     # Nothing uses this tar? Remove if nobody has complained and it's been a while since this comment added.
-    # Original commit was https://github.com/SoftFever/OrcaSlicer/commit/f5a4862da52fc68f77b5201ddf330a9800d83228
+    # Original commit was https://github.com/OrcaSlicer/OrcaSlicer/commit/f5a4862da52fc68f77b5201ddf330a9800d83228
     # and it doesn't appear to have been used there either.
     #pushd package > /dev/null
     #tar -cvf ../@SLIC3R_APP_KEY@.tar .  &>/dev/null

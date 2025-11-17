@@ -132,7 +132,7 @@ ObjectList::ObjectList(wxWindow* parent) :
 
 #ifdef __linux__
     // Temporary fix for incorrect dark mode application regarding list item's text color.
-    // See: https://github.com/SoftFever/OrcaSlicer/issues/2086
+    // See: https://github.com/OrcaSlicer/OrcaSlicer/issues/2086
     this->SetForegroundColour(*wxBLACK);
 #endif
 

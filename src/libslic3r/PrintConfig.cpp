@@ -664,7 +664,7 @@ void PrintConfigDef::init_common_params()
     def->label = L("Elephant foot compensation");
     def->category = L("Quality");
     def->tooltip = L("Shrinks the initial layer on build plate to compensate for elephant foot effect.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
@@ -684,14 +684,14 @@ void PrintConfigDef::init_common_params()
     def->label = L("Layer height");
     def->category = L("Quality");
     def->tooltip = L("Slicing height for each layer. Smaller layer height means more accurate and more printing time.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.2));
 
     def = this->add("printable_height", coFloat);
     def->label = L("Printable height");
     def->tooltip = L("Maximum printable height which is limited by mechanism of printer.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 214700;
     def->mode = comSimple;
@@ -700,7 +700,7 @@ void PrintConfigDef::init_common_params()
     def           = this->add("extruder_printable_height", coFloats);
     def->label    = L("Extruder printable height");
     def->tooltip  = L("Maximum printable height of this extruder which is limited by mechanism of printer.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 1000;
     def->mode     = comAdvanced;
@@ -852,7 +852,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
                      "A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
     def->max = 120;
@@ -862,7 +862,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
                      "A value of 0 means the filament does not support printing on the Cool Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
     def->max = 300;
@@ -872,7 +872,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
                      "A value of 0 means the filament does not support printing on the Textured Cool Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
     def->max = 300;
@@ -882,7 +882,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
                      "A value of 0 means the filament does not support printing on the Engineering Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
     def->max = 300;
@@ -892,7 +892,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
                      "A value of 0 means the filament does not support printing on the High Temp Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
     def->max = 300;
@@ -902,7 +902,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
                      "A value of 0 means the filament does not support printing on the Textured PEI Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
     def->min = 0;
     def->max = 300;
@@ -913,7 +913,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Initial layer bed temperature");
     def->tooltip = L("Bed temperature of the initial layer. "
                      "A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = 120;
     def->set_default_value(new ConfigOptionInts{ 35 });
@@ -923,7 +923,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Initial layer bed temperature");
     def->tooltip = L("Bed temperature of the initial layer. "
                      "A value of 0 means the filament does not support printing on the Cool Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = 120;
     def->set_default_value(new ConfigOptionInts{ 35 });
@@ -933,7 +933,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Initial layer bed temperature");
     def->tooltip = L("Bed temperature of the initial layer. "
                      "A value of 0 means the filament does not support printing on the Textured Cool Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = 120;
     def->set_default_value(new ConfigOptionInts{ 40 });
@@ -943,7 +943,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Initial layer bed temperature");
     def->tooltip = L("Bed temperature of the initial layer. "
                      "A value of 0 means the filament does not support printing on the Engineering Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{ 45 });
@@ -953,7 +953,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Initial layer bed temperature");
     def->tooltip = L("Bed temperature of the initial layer. "
                      "A value of 0 means the filament does not support printing on the High Temp Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{ 45 });
 
@@ -962,7 +962,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Initial layer bed temperature");
     def->tooltip = L("Bed temperature of the initial layer. "
                      "A value of 0 means the filament does not support printing on the Textured PEI Plate.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{45});
@@ -1061,7 +1061,7 @@ void PrintConfigDef::init_fff_params()
                      "thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that "
                      "this setting is disabled and thickness of bottom shell is absolutely determined by bottom shell layers.");
     def->full_label = L("Bottom shell thickness");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.));
 
@@ -1503,7 +1503,7 @@ void PrintConfigDef::init_fff_params()
                      "In addition, if Slow down for curled perimeters is disabled or Classic overhang mode is enabled, "
                      "it will be the print speed of overhang walls that are supported by less than 13%, "
                      "whether they are part of a bridge or an overhang.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(25));
@@ -1522,7 +1522,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Brim width");
     def->category = L("Support");
     def->tooltip = L("Distance from model to the outermost brim line.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 100;
     def->mode = comSimple;
@@ -1555,7 +1555,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Brim-object gap");
     def->category = L("Support");
     def->tooltip = L("A gap between innermost brim line and object can make brim be removed more easily.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 2;
     def->mode = comAdvanced;
@@ -1586,7 +1586,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The geometry will be decimated before detecting sharp angles. "
                      "This parameter indicates the minimum length of the deviation for the decimation.\n"
                      "0 to deactivate.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
@@ -1678,7 +1678,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("default_acceleration", coFloat);
     def->label = L("Normal printing");
     def->tooltip = L("The default acceleration of both normal printing and travel except initial layer.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(500.0));
@@ -1817,7 +1817,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Max bridge length");
     def->category = L("Support");
     def->tooltip = L("Max length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10));
@@ -1926,7 +1926,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Speed");
     def->tooltip = L("Speed of outer wall which is outermost and visible. "
                      "It's used to be slower than inner wall speed to get better quality.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(60));
@@ -1947,7 +1947,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Small perimeters threshold");
     def->category = L("Speed");
     def->tooltip = L("This sets the threshold for small perimeter length. Default threshold is 0mm.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -2015,7 +2015,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Height to rod");
     def->tooltip = L("Distance of the nozzle tip to the lower rod. "
         "Used for collision avoidance in by-object printing.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(40));
@@ -2025,7 +2025,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Height to lid");
     def->tooltip = L("Distance of the nozzle tip to the lid. "
         "Used for collision avoidance in by-object printing.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
@@ -2033,7 +2033,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("extruder_clearance_radius", coFloat);
     def->label = L("Radius");
     def->tooltip = L("Clearance radius around extruder. Used for collision avoidance in by-object printing.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(40));
@@ -2041,7 +2041,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("nozzle_height", coFloat);
     def->label = L("Nozzle height");
     def->tooltip = L("The height of nozzle tip.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionFloat(2.5));
@@ -2054,7 +2054,7 @@ void PrintConfigDef::init_fff_params()
         "set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max "
         "points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which "
         "means there are no limits, thus allowing probing across the entire bed.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoint(Vec2d(-99999, -99999)));
 
@@ -2066,7 +2066,7 @@ void PrintConfigDef::init_fff_params()
         "set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max "
         "points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which "
         "means there are no limits, thus allowing probing across the entire bed.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoint(Vec2d(99999, 99999)));
 
@@ -2075,20 +2075,20 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This option sets the preferred distance between probe points (grid size) for the X and Y directions, with the "
                      "default being 50mm for both X and Y.");
     def->min     = 0;
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionPoint(Vec2d(50, 50)));
 
     def          = this->add("adaptive_bed_mesh_margin", coFloat);
     def->label   = L("Mesh margin");
     def->tooltip = L("This option determines the additional distance by which the adaptive bed mesh area should be expanded in the XY directions.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("grab_length",coFloats);
     def->label = L("Grab length");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionFloats({0}));
@@ -2107,7 +2107,7 @@ void PrintConfigDef::init_fff_params()
     //               "to take it into account. This option lets you specify the displacement of each extruder "
     //               "with respect to the first one. It expects positive coordinates (they will be subtracted "
     //               "from the XY coordinate).");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoints { Vec2d(0,0) });
 
@@ -2235,7 +2235,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Layer time");
     def->tooltip = L("Part cooling fan will be enabled for layers of which estimated time is shorter than this value. "
                      "Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 1000;
     def->mode = comSimple;
@@ -2319,7 +2319,7 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->min = 0;
     def->max = max_temp;
-    def->sidetext = "°C";
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->set_default_value(new ConfigOptionIntsNullable{0});
 
     def = this->add("filament_flush_volumetric_speed", coFloats);
@@ -2329,7 +2329,7 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->min = 0;
     def->max = 200;
-    def->sidetext = u8"mm³/s";	// cubic milimeters per second, don't need translation
+    def->sidetext = L(u8"mm³/s");	// cubic milimeters per second, CIS languages need translation
     def->set_default_value(new ConfigOptionFloatsNullable{ 0 });
 
     def = this->add("filament_max_volumetric_speed", coFloats);
@@ -2337,7 +2337,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This setting stands for how much volume of filament can be melted and extruded per second. "
                      "Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. "
                      "Can't be zero.");
-    def->sidetext = u8"mm³/s";	// cubic milimeters per second, don't need translation
+    def->sidetext = L(u8"mm³/s");	// cubic milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 2. });
@@ -2346,7 +2346,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Filament load time");
     def->tooltip = L("Time to load new filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
                      "For tool changers or multi-tool machines, it's typically 0. For statistics only.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -2355,7 +2355,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Filament unload time");
     def->tooltip = L("Time to unload old filament when switch filament. It's usually applicable for single-extruder multi-material machines. "
                      "For tool changers or multi-tool machines, it's typically 0. For statistics only.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
@@ -2364,7 +2364,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tool change time");
     def->tooltip = L("Time taken to switch tools. It's usually applicable for tool changers or multi-tool machines. "
                      "For single-extruder multi-material machines, it's typically 0. For statistics only.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
@@ -2391,7 +2391,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_diameter", coFloats);
     def->label = L("Diameter");
     def->tooltip = L("Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloats { 1.75 });
 
@@ -2475,7 +2475,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_loading_speed", coFloats);
     def->label = L("Loading speed");
     def->tooltip = L("Speed used for loading the filament on the wipe tower.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 28. });
@@ -2483,7 +2483,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_loading_speed_start", coFloats);
     def->label = L("Loading speed at the start");
     def->tooltip = L("Speed used at the very beginning of loading phase.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 3. });
@@ -2492,7 +2492,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Unloading speed");
     def->tooltip = L("Speed used for unloading the filament on the wipe tower (does not affect "
                       "initial part of unloading just after ramming).");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 90. });
@@ -2500,7 +2500,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_unloading_speed_start", coFloats);
     def->label = L("Unloading speed at the start");
     def->tooltip = L("Speed used for unloading the tip of the filament immediately after ramming.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 100. });
@@ -2510,7 +2510,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Time to wait after the filament is unloaded. "
                    "May help to get reliable tool changes with flexible materials "
                    "that may need more time to shrink to original dimensions.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
@@ -2542,7 +2542,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_cooling_initial_speed", coFloats);
     def->label = L("Speed of the first cooling move");
     def->tooltip = L("Cooling moves are gradually accelerating beginning at this speed.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 2.2 });
@@ -2553,7 +2553,7 @@ void PrintConfigDef::init_fff_params()
                      "the nozzle may not be known, and the filament pressure is likely not yet stable. "
                      "Before purging the print head into an infill or a sacrificial object, Orca Slicer will always prime "
                      "this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably.");
-    def->sidetext = u8"mm³";	// cubic milimeters, don't need translation
+    def->sidetext = L(u8"mm³");	// cubic milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 15. });
@@ -2561,7 +2561,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_cooling_final_speed", coFloats);
     def->label = L("Speed of the last cooling move");
     def->tooltip = L("Cooling moves are gradually accelerating towards this speed.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 3.4 });
@@ -2584,7 +2584,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_multitool_ramming_volume", coFloats);
     def->label = L("Multi-tool ramming volume");
     def->tooltip = L("The volume to be rammed before the tool change.");
-    def->sidetext = u8"mm³";	// cubic milimeters, don't need translation
+    def->sidetext = L(u8"mm³");	// cubic milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
@@ -2592,7 +2592,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_multitool_ramming_flow", coFloats);
     def->label = L("Multi-tool ramming flow");
     def->tooltip = L("Flow used for ramming the filament before the tool change.");
-    def->sidetext = u8"mm³/s";	// cubic milimeters per second, don't need translation
+    def->sidetext = L(u8"mm³/s");	// cubic milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
@@ -2600,7 +2600,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_density", coFloats);
     def->label = L("Density");
     def->tooltip = L("Filament density. For statistics only.");
-    def->sidetext = u8"g/cm³";	// grams per cubic milimeter, don't need translation
+    def->sidetext = L(u8"g/cm³");	// grams per cubic centimeter, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
@@ -2628,7 +2628,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("filament_change_length", coFloats);
     def->label    = L("Filament ramming length");
     def->tooltip  = L("When changing the extruder, it is recommended to extrude a certain length of filament from the original extruder. This helps minimize nozzle oozing.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloats{10});
@@ -2654,7 +2654,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Softening temperature");
     def->tooltip = L("The material softens at this temperature, so when the bed temperature is equal to or greater than this, "
                      "it's highly recommended to open the front door and/or remove the upper glass to avoid clogging.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInts{ 100 });
 
@@ -2878,7 +2878,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_acceleration", coFloat);
     def->label = L("Outer wall");
     def->tooltip = L("Acceleration of outer walls.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10000));
@@ -2886,7 +2886,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_acceleration", coFloat);
     def->label = L("Inner wall");
     def->tooltip = L("Acceleration of inner walls.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10000));
@@ -2894,7 +2894,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("travel_acceleration", coFloat);
     def->label = L("Travel");
     def->tooltip = L("Acceleration of travel moves.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10000));
@@ -2902,7 +2902,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_acceleration", coFloat);
     def->label = L("Top surface");
     def->tooltip = L("Acceleration of top surface infill. Using a lower value may improve top surface quality.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(500));
@@ -2910,7 +2910,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_acceleration", coFloat);
     def->label = L("Outer wall");
     def->tooltip = L("Acceleration of outer wall. Using a lower value can improve quality.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(500));
@@ -2945,7 +2945,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_acceleration", coFloat);
     def->label = L("Initial layer");
     def->tooltip = L("Acceleration of initial layer. Using a lower value can improve build plate adhesion.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(300));
@@ -2968,7 +2968,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("default_jerk", coFloat);
     def->label = L("Default");
     def->tooltip = L("Default jerk.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -2976,7 +2976,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("default_junction_deviation", coFloat);
     def->label = L("Junction Deviation");
     def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -2984,7 +2984,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_jerk", coFloat);
     def->label = L("Outer wall");
     def->tooltip = L("Jerk of outer walls.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(9));
@@ -2992,7 +2992,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_jerk", coFloat);
     def->label = L("Inner wall");
     def->tooltip = L("Jerk of inner walls.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(9));
@@ -3000,7 +3000,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_jerk", coFloat);
     def->label = L("Top surface");
     def->tooltip = L("Jerk for top surface.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(9));
@@ -3008,7 +3008,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("infill_jerk", coFloat);
     def->label = L("Infill");
     def->tooltip = L("Jerk for infill.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(9));
@@ -3016,7 +3016,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_jerk", coFloat);
     def->label = L("Initial layer");
     def->tooltip = L("Jerk for initial layer.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(9));
@@ -3024,7 +3024,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("travel_jerk", coFloat);
     def->label = L("Travel");
     def->tooltip = L("Jerk for travel.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(12));
@@ -3046,7 +3046,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Initial layer height");
     def->category = L("Quality");
     def->tooltip = L("Height of initial layer. Making initial layer height to be thick slightly can improve build plate adhesion.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.2));
 
@@ -3061,7 +3061,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_speed", coFloat);
     def->label = L("Initial layer");
     def->tooltip = L("Speed of initial layer except the solid infill part.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(30));
@@ -3069,7 +3069,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_infill_speed", coFloat);
     def->label = L("Initial layer infill");
     def->tooltip = L("Speed of solid infill part of initial layer.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(60.0));
@@ -3098,7 +3098,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Initial layer");
     def->full_label = L("Initial layer nozzle temperature");
     def->tooltip = L("Nozzle temperature for printing initial layer when using this filament.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = max_temp;
     def->set_default_value(new ConfigOptionInts { 200 });
@@ -3171,7 +3171,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Fuzzy skin thickness");
     def->category = L("Others");
     def->tooltip = L("The width within which to jitter. It's advised to be below outer wall line width.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
     def->mode = comSimple;
@@ -3181,7 +3181,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Fuzzy skin point distance");
     def->category = L("Others");
     def->tooltip = L("The average distance between the random points introduced on each line segment.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 5;
     def->mode = comSimple;
@@ -3244,7 +3244,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Fuzzy skin feature size");
     def->category = L("Others");
     def->tooltip = L("The base size of the coherent noise features, in mm. Higher values will result in larger features.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0.1;
     def->max = 500;
     def->mode = comAdvanced;
@@ -3273,7 +3273,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Layers and Perimeters");
     def->tooltip = L("Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, "
                      "bottom and solid infill and, if using the classic perimeter generator, to wall gap fill.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
     
@@ -3281,7 +3281,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Gap infill");
     def->category = L("Speed");
     def->tooltip = L("Speed of gap infill. Gap usually has irregular line width and should be printed more slowly.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(30));
@@ -3395,7 +3395,7 @@ void PrintConfigDef::init_fff_params()
         "\nIt won't move fan commands from custom G-code (they act as a sort of 'barrier')."
         "\nIt won't move fan commands into the start G-code if the 'only custom start G-code' is activated."
         "\nUse 0 to deactivate.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -3411,7 +3411,7 @@ void PrintConfigDef::init_fff_params()
                     "\nThis is useful for fans where a low PWM/power may be insufficient to get the fan started spinning from a stop, or to "
                     "get the fan up to speed faster."
                     "\nSet to 0 to deactivate.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -3519,7 +3519,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Infill shift step");
     def->category = L("Strength");
     def->tooltip  = L("This parameter adds a slight displacement to each layer of infill to create a cross texture.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 10;
     def->mode     = comAdvanced;
@@ -3581,7 +3581,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Skin infill depth");
     def->category = L("Strength");
     def->tooltip  = L("The parameter sets the depth of skin.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
     def->mode     = comAdvanced;
@@ -3591,7 +3591,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Infill lock depth");
     def->category = L("Strength");
     def->tooltip  = L("The parameter sets the overlapping depth between the interior and skin.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
     def->mode     = comAdvanced;
@@ -3601,7 +3601,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Skin line width");
     def->category = L("Strength");
     def->tooltip  = L("Adjust the line width of the selected skin paths.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->ratio_over = "nozzle_diameter";
     def->min      = 0;
     def->mode     = comAdvanced;
@@ -3611,7 +3611,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Skeleton line width");
     def->category = L("Strength");
     def->tooltip  = L("Adjust the line width of the selected skeleton paths.");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->ratio_over = "nozzle_diameter";
     def->min      = 0;
     def->mode     = comAdvanced;
@@ -3711,7 +3711,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Sparse infill");
     def->category = L("Speed");
     def->tooltip = L("Speed of internal sparse infill.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(100));
@@ -3742,7 +3742,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("mmu_segmented_region_max_width", coFloat);
     def->label    = L("Maximum width of a segmented region");
     def->tooltip  = L("Maximum width of a segmented region. Zero disables this feature.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0;
     def->category = L("Advanced");
     def->mode     = comAdvanced;
@@ -3753,7 +3753,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip  = L("Interlocking depth of a segmented region. It will be ignored if "
                     "\"mmu_segmented_region_max_width\" is zero or if \"mmu_segmented_region_interlocking_depth\" "
                     "is bigger than \"mmu_segmented_region_max_width\". Zero disables this feature.");
-    def->sidetext = "mm";	// milimeters, don't need translation 
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation 
     def->min      = 0;
     def->category = L("Advanced");
     def->mode     = comAdvanced;
@@ -3769,7 +3769,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("interlocking_beam_width", coFloat);
     def->label    = L("Interlocking beam width");
     def->tooltip  = L("The width of the interlocking structure beams.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0.01;
     def->category = L("Advanced");
     def->mode     = comAdvanced;
@@ -3859,7 +3859,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Ironing line spacing");
     def->category = L("Quality");
     def->tooltip = L("The distance between the lines of ironing.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
     def->mode = comAdvanced;
@@ -3869,7 +3869,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Ironing inset");
     def->category = L("Quality");
     def->tooltip  = L("The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
     def->mode     = comAdvanced;
@@ -3879,7 +3879,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Ironing speed");
     def->category = L("Quality");
     def->tooltip = L("Print speed of ironing lines.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(20));
@@ -4012,7 +4012,7 @@ void PrintConfigDef::init_fff_params()
             (void)L("Maximum Y speed");
             (void)L("Maximum Z speed");
             (void)L("Maximum E speed");
-            def->sidetext = "mm/s";	// milimeters per second, don't need translation
+            def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
             def->min = 0;
             def->mode = comSimple;
             def->set_default_value(new ConfigOptionFloats(axis.max_feedrate));
@@ -4030,7 +4030,7 @@ void PrintConfigDef::init_fff_params()
             (void)L("Maximum acceleration of the Y axis");
             (void)L("Maximum acceleration of the Z axis");
             (void)L("Maximum acceleration of the E axis");
-            def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+            def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
             def->min = 0;
             def->mode = comSimple;
             def->set_default_value(new ConfigOptionFloats(axis.max_acceleration));
@@ -4048,7 +4048,7 @@ void PrintConfigDef::init_fff_params()
             (void)L("Maximum jerk of the Y axis");
             (void)L("Maximum jerk of the Z axis");
             (void)L("Maximum jerk of the E axis");
-            def->sidetext = "mm/s";	// milimeters per second, don't need translation
+            def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
             def->min = 0;
             def->mode = comSimple;
             def->set_default_value(new ConfigOptionFloats(axis.max_jerk));
@@ -4059,7 +4059,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Maximum Junction Deviation");
     def->category = L("Machine limits");
     def->tooltip = L("Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware\nIf your Marlin 2 printer uses Classic Jerk set this value to 0.)");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
     def->mode = comAdvanced;
@@ -4070,7 +4070,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Minimum speed for extruding");
     def->category = L("Machine limits");
     def->tooltip = L("Minimum speed for extruding (M205 S)");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionFloats{ 0., 0. });
@@ -4080,7 +4080,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Minimum travel speed");
     def->category = L("Machine limits");
     def->tooltip = L("Minimum travel speed (M205 T)");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionFloats{ 0., 0. });
@@ -4092,7 +4092,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Maximum acceleration for extruding (M204 P)");
     //                 "Marlin (legacy) firmware flavor will use this also "
     //                 "as travel acceleration (M204 T).");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->readonly = false;
     def->mode = comSimple;
@@ -4104,7 +4104,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Maximum acceleration for retracting");
     def->category = L("Machine limits");
     def->tooltip = L("Maximum acceleration for retracting (M204 R)");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->readonly = false;
     def->mode = comSimple;
@@ -4115,7 +4115,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Maximum acceleration for travel");
     def->category = L("Machine limits");
     def->tooltip = L("Maximum acceleration for travel (M204 T), it only applies to Marlin 2.");
-    def->sidetext = u8"mm/s²";	// milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->readonly = false;
     def->mode = comAdvanced;
@@ -4133,7 +4133,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("min_resonance_avoidance_speed", coFloat);
     def->label    = L("Min");
     def->tooltip  = L("Minimum speed of resonance avoidance.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min      = 0;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(70));
@@ -4141,7 +4141,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("max_resonance_avoidance_speed", coFloat);
     def->label    = L("Max");
     def->tooltip  = L("Maximum speed of resonance avoidance.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min      = 0;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
@@ -4160,7 +4160,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Max");
     def->tooltip = L("The highest printable layer height for the extruder. "
                      "Used to limit the maximum layer height when enable adaptive layer height.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
@@ -4181,7 +4181,7 @@ void PrintConfigDef::init_fff_params()
                      "A value of 10-15 mm³/s² is a good starting point for direct drive extruders and 5-10 mm³/s² for Bowden style.\n\n"
                      "This feature is known as Pressure Equalizer in Prusa slicer.\n\n"
                      "Note: this parameter disables arc fitting.");
-    def->sidetext = u8"mm³/s²";	// cubic milimeters per second per second, don't need translation
+    def->sidetext = L(u8"mm³/s²");	// cubic milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -4194,7 +4194,7 @@ void PrintConfigDef::init_fff_params()
                      "Allowed values: 0.5-5");
     def->min = 0.5;
     def->max = 5;
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(3.0));
     
@@ -4229,7 +4229,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Min");
     def->tooltip = L("The lowest printable layer height for the extruder. "
                      "Used to limit the minimum layer height when enable adaptive layer height.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0.07 });
@@ -4238,7 +4238,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Min print speed");
     def->tooltip = L("The minimum print speed to which the printer slows down to maintain the minimum layer time defined above "
                      "when the slowdown for better layer cooling is enabled.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
@@ -4246,7 +4246,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("nozzle_diameter", coFloats);
     def->label = L("Nozzle diameter");
     def->tooltip = L("The diameter of nozzle.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->max = 100;
     def->set_default_value(new ConfigOptionFloats { 0.4 });
@@ -4301,7 +4301,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("nozzle_volume", coFloats);
     def->label = L("Nozzle volume");
     def->tooltip = L("Volume of nozzle between the cutter and the end of nozzle.");
-    def->sidetext = u8"mm³";	// cubic milimeters, don't need translation
+    def->sidetext = L(u8"mm³");	// cubic milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->readonly = false;
     def->nullable = true;
@@ -4310,7 +4310,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("cooling_tube_retraction", coFloat);
     def->label = L("Cooling tube position");
     def->tooltip = L("Distance of the center-point of the cooling tube from the extruder tip.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(91.5));
@@ -4318,7 +4318,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("cooling_tube_length", coFloat);
     def->label = L("Cooling tube length");
     def->tooltip = L("Length of the cooling tube to limit space for cooling moves inside it.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(5.));
@@ -4335,7 +4335,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Filament parking position");
     def->tooltip = L("Distance of the extruder tip from the position where the filament is parked "
                       "when unloaded. This should match the value in printer firmware.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(92.));
@@ -4345,7 +4345,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("When set to zero, the distance the filament is moved from parking position during load "
                       "is exactly the same as it was moved back during unload. When positive, it is loaded further, "
                       "if negative, the loading move is shorter than unloading.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(-2.));
 
@@ -4402,7 +4402,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L("Maximum area of a hole in the base of the model before it's filled by conical material. "
                      "A value of 0 will fill all the holes in the model base.");
-    def->sidetext = u8"mm²";	// square millimeters, don't need translation
+    def->sidetext = L(u8"mm²");	// square milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->min = 0.;
     def->set_default_value(new ConfigOptionFloat(0.));
@@ -4440,7 +4440,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Inner wall");
     def->category = L("Speed");
     def->tooltip = L("Speed of inner wall.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->aliases = { "perimeter_feed_rate" };
     def->min = 1;
     def->mode = comAdvanced;
@@ -4511,7 +4511,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Raft contact Z distance");
     def->category = L("Support");
     def->tooltip = L("Z gap between object and raft. Ignored for soluble interface.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.1));
@@ -4520,7 +4520,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Raft expansion");
     def->category = L("Support");
     def->tooltip = L("Expand all raft layers in XY plane.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1.5));
@@ -4539,7 +4539,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Initial layer expansion");
     def->category = L("Support");
     def->tooltip = L("Expand the first raft or support layer to improve bed plate adhesion.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     //BBS: change from 3.0 to 2.0
@@ -4560,7 +4560,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Resolution");
     def->tooltip = L("The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. "
                      "Smaller value means higher resolution and more time to slice.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.01));
@@ -4568,7 +4568,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("retraction_minimum_travel", coFloats);
     def->label = L("Travel distance threshold");
     def->tooltip = L("Only trigger retraction when the travel distance is longer than this threshold.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 2. });
 
@@ -4590,7 +4590,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Retraction Length");
     def->tooltip = L("Some amount of material in extruder is pulled back to avoid ooze during long travel. "
                      "Set zero to disable retraction.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloats { 0.8 });
 
@@ -4625,7 +4625,7 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->min = 0;
     def->max = 10;
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->set_default_value(new ConfigOptionFloatsNullable{10});
 
     def = this->add("retract_length_toolchange", coFloats);
@@ -4635,7 +4635,7 @@ void PrintConfigDef::init_fff_params()
     //def->tooltip = L("When retraction is triggered before changing tool, filament is pulled back "
     //               "by the specified amount (the length is measured on raw filament, before it enters "
     //               "the extruder).");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
 
@@ -4644,7 +4644,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. "
                      "It prevents nozzle from hitting the print when travel move. "
                      "Using spiral lines to lift Z can prevent stringing.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comSimple;
     def->min = 0;
     def->max = 5;
@@ -4653,7 +4653,7 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("retract_lift_above", coFloats);
     def->label      = L("Z-hop lower boundary");
     def->tooltip    = L("Z-hop will only come into effect when Z is above this value and is below the parameter: \"Z-hop upper boundary\".");
-    def->sidetext   = "mm";	// milimeters, don't need translation
+    def->sidetext   = L("mm");	// milimeters, CIS languages need translation
     def->mode       = comAdvanced;
     def->min        = 0;
     def->set_default_value(new ConfigOptionFloats{0.});
@@ -4661,7 +4661,7 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("retract_lift_below", coFloats);
     def->label      = L("Z-hop upper boundary");
     def->tooltip    = L("If this value is positive, Z-hop will only come into effect when Z is above the parameter: \"Z-hop lower boundary\" and is below this value.");
-    def->sidetext   = "mm";	// milimeters, don't need translation
+    def->sidetext   = L("mm");	// milimeters, CIS languages need translation
     def->mode       = comAdvanced;
     def->min        = 0;
     def->set_default_value(new ConfigOptionFloats{0.});
@@ -4693,14 +4693,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("retract_lift_above", coFloats);
     def->label = L("Only lift Z above");
     def->tooltip = L("If you set this to a positive value, Z lift will only take place above the specified absolute Z.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats{0.});
 
     def = this->add("retract_lift_below", coFloats);
     def->label = L("Only lift Z below");
     def->tooltip = L("If you set this to a positive value, Z lift will only take place below the specified absolute Z.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats{0.});
 
@@ -4827,7 +4827,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Extra length on restart");
     def->tooltip = L("When the retraction is compensated after the travel move, the extruder will push "
                   "this additional amount of filament. This setting is rarely needed.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
 
@@ -4835,7 +4835,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Extra length on restart");
     def->tooltip = L("When the retraction is compensated after changing tool, the extruder will push "
                   "this additional amount of filament.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
 
@@ -4843,7 +4843,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Retraction Speed");
     def->full_label = L("Retraction Speed");
     def->tooltip = L("Speed for retracting filament from the nozzle.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 30. });
 
@@ -4851,7 +4851,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("De-retraction Speed");
     def->full_label = L("De-retraction Speed");
     def->tooltip = L("Speed for reloading filament into the nozzle. Zero means same speed of retraction.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
 
@@ -4989,7 +4989,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_slope_min_length", coFloat);
     def->label = L("Scarf length");
     def->tooltip = L("Length of the scarf. Setting this parameter to zero effectively disables the scarf.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(20));
@@ -5044,7 +5044,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("skirt_distance", coFloat);
     def->label = L("Skirt distance");
     def->tooltip = L("The distance from the skirt to the brim or the object.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 60;
     def->mode = comAdvanced;
@@ -5114,7 +5114,7 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Skirt speed");
     def->tooltip = L("Speed of skirt, in mm/s. Zero means use default layer extrusion speed.");
     def->min = 0;
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(50.0));
 
@@ -5125,7 +5125,7 @@ void PrintConfigDef::init_fff_params()
                      "Using a non-zero value is useful if the printer is set up to print without a prime line.\n"
                      "Final number of loops is not taking into account while arranging or validating objects distance. Increase loop number in such case.");
     def->min = 0;
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.0));
 
@@ -5133,7 +5133,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Layer time");
     def->tooltip = L("The printing speed in exported G-code will be slowed down when the estimated layer time is "
                      "shorter than this value in order to get better cooling for these layers.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 1000;
     def->mode = comSimple;
@@ -5143,7 +5143,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Minimum sparse infill threshold");
     def->category = L("Strength");
     def->tooltip = L("Sparse infill area which is smaller than threshold value is replaced by internal solid infill.");
-    def->sidetext = u8"mm²";	// square millimeters, don't need translation
+    def->sidetext = L(u8"mm²");	// square milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(15));
@@ -5173,7 +5173,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Internal solid infill");
     def->category = L("Speed");
     def->tooltip = L("Speed of internal solid infill, not the top and bottom surface.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(100));
@@ -5251,7 +5251,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Temperature difference to be applied when an extruder is not active. "
                      "The value is not used when 'idle_temperature' in filament settings "
                      "is set to non-zero value.");
-    def->sidetext = u8"∆\u2103";	// delta degrees Celsius, don't need translation
+    def->sidetext = L(u8"∆\u2103");	// delta degrees Celsius, CIS languages need translation
     def->min = -max_temp;
     def->max = max_temp;
     def->mode = comAdvanced;
@@ -5261,7 +5261,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Preheat time");
     def->tooltip = L("To reduce the waiting time after tool change, Orca can preheat the next tool while the current tool is still in use. "
                      "This setting specifies the time in seconds to preheat the next tool. Orca will insert a M104 command to preheat the tool in advance.");
-    def->sidetext = "s";	// seconds, don't need translation
+    def->sidetext = L("s");	// seconds, CIS languages need translation
     def->min = 0;
     def->max = 120;
     def->mode = comAdvanced;
@@ -5341,7 +5341,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L("Cracks smaller than 2x gap closing radius are being filled during the triangle mesh slicing. "
         "The gap closing operation may reduce the final print resolution, therefore it is advisable to keep the value reasonably low.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.049));
@@ -5366,7 +5366,7 @@ void PrintConfigDef::init_fff_params()
                    "in the output G-code. It is used to compensate for bad Z endstop position: "
                    "for example, if your endstop zero actually leaves the nozzle 0.3mm far "
                    "from the print bed, set this to -0.3 (or fix your endstop).");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
     
@@ -5398,7 +5398,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Support/object XY distance");
     def->category = L("Support");
     def->tooltip = L("XY separation between an object and its support.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 10;
     def->mode = comAdvanced;
@@ -5409,7 +5409,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Support/object first layer gap");
     def->category = L("Support");
     def->tooltip = L("XY separation between an object and its support at the first layer.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 10;
     def->mode = comAdvanced;
@@ -5456,7 +5456,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->category = L("Support");
     def->tooltip = L("The Z gap between the top support interface and object.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
 //    def->min = 0;
 #if 0
     //def->enum_values.push_back("0");
@@ -5473,7 +5473,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Bottom Z distance");
     def->category = L("Support");
     def->tooltip = L("The Z gap between the bottom support interface and object.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.2));
@@ -5574,7 +5574,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Support");
     def->tooltip = L("Spacing of interface lines. Zero means solid interface.\n"
                      "Force using solid interface when support ironing is enabled.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
@@ -5584,7 +5584,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Bottom interface spacing");
     def->category = L("Support");
     def->tooltip = L("Spacing of bottom interface lines. Zero means solid interface.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
@@ -5593,7 +5593,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Support interface");
     def->category = L("Speed");
     def->tooltip = L("Speed of support interface.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(80));
@@ -5642,7 +5642,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Base pattern spacing");
     def->category = L("Support");
     def->tooltip = L("Spacing between support lines.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(2.5));
@@ -5651,7 +5651,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Normal Support expansion");
     def->category = L("Support");
     def->tooltip = L("Expand (+) or shrink (-) the horizontal span of normal support.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -5659,7 +5659,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Support");
     def->category = L("Speed");
     def->tooltip = L("Speed of support.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(80));
@@ -5759,7 +5759,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Tree support branch distance");
     def->category = L("Support");
     def->tooltip  = L("This setting determines the distance between neighboring tree support nodes.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
     def->mode     = comAdvanced;
@@ -5769,7 +5769,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Tree support branch distance");
     def->category = L("Support");
     def->tooltip  = L("This setting determines the distance between neighboring tree support nodes.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
     def->mode     = comAdvanced;
@@ -5807,7 +5807,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Support");
     // TRN PrintSettings: "Organic supports" > "Tip Diameter"
     def->tooltip = L("Branch tip diameter for organic supports.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0.1f;
     def->max = 100.f;
     def->mode = comAdvanced;
@@ -5817,7 +5817,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Tree support branch diameter");
     def->category = L("Support");
     def->tooltip  = L("This setting determines the initial diameter of support nodes.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
     def->mode     = comAdvanced;
@@ -5841,7 +5841,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Tree support branch diameter");
     def->category = L("Support");
     def->tooltip  = L("This setting determines the initial diameter of support nodes.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
     def->mode     = comAdvanced;
@@ -5899,7 +5899,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Support Ironing line spacing");
     def->category = L("Support");
     def->tooltip = L("The distance between the lines of ironing.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
     def->mode = comAdvanced;
@@ -5929,7 +5929,7 @@ void PrintConfigDef::init_fff_params()
                      "This may be useful if your printer does not support M141/M191 commands, or if you desire "
                      "to handle heat soaking in the print start macro if no active chamber heater is installed."
                     );
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Chamber temperature");
     def->min = 0;
     def->max = max_temp;
@@ -5938,7 +5938,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("nozzle_temperature", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Nozzle temperature for layers after the initial one.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Nozzle temperature");
     def->min = 0;
     def->max = max_temp;
@@ -5947,7 +5947,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("nozzle_temperature_range_low", coInts);
     def->label = L("Min");
     //def->tooltip = L("");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = max_temp;
     def->set_default_value(new ConfigOptionInts { 190 });
@@ -5955,7 +5955,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("nozzle_temperature_range_high", coInts);
     def->label = L("Max");
     //def->tooltip = L("");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = max_temp;
     def->set_default_value(new ConfigOptionInts { 240 });
@@ -6007,7 +6007,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface");
     def->category = L("Speed");
     def->tooltip = L("Speed of top surface infill which is solid.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(100));
@@ -6030,7 +6030,7 @@ void PrintConfigDef::init_fff_params()
                      "thinner than this value. This can avoid having too thin shell when layer height is small. 0 means that "
                      "this setting is disabled and thickness of top shell is absolutely determined by top shell layers.");
     def->full_label = L("Top shell thickness");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.6));
 
@@ -6061,7 +6061,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("travel_speed", coFloat);
     def->label = L("Travel");
     def->tooltip = L("Speed of travel which is faster and without extrusion.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
@@ -6071,7 +6071,7 @@ void PrintConfigDef::init_fff_params()
     //def->tooltip = L("Speed of vertical travel along z axis. "
     //                 "This is typically lower because build plate or gantry is hard to be moved. "
     //                 "Zero means using travel speed directly in G-code, but will be limited by printer's ability when run G-code.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionFloat(0.));
@@ -6089,7 +6089,7 @@ void PrintConfigDef::init_fff_params()
                      "Depending on how long the wipe operation lasts, how fast and long the extruder/filament retraction settings are, "
                      "a retraction move may be needed to retract the remaining filament.\n\n"
                      "Setting a value in the retract amount before wipe setting below will perform any excess retraction before the wipe, else it will be performed after.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 1. });
@@ -6130,14 +6130,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("flush_multiplier", coFloats);
     def->label = L("Flush multiplier");
     def->tooltip = L("The actual flushing volumes is equal to the flush multiplier multiplied by the flushing volumes in the table.");
-    def->sidetext = "";
+    //def->sidetext = "";
     def->set_default_value(new ConfigOptionFloats{0.3});
 
     // BBS
     def = this->add("prime_volume", coFloat);
     def->label = L("Prime volume");
     def->tooltip = L("The volume of material to prime extruder on tower.");
-    def->sidetext = u8"mm³";	// cubic milimeters, don't need translation
+    def->sidetext = L(u8"mm³");	// cubic milimeters, CIS languages need translation
     def->min = 1.0;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(45.));
@@ -6145,7 +6145,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_tower_x", coFloats);
     //def->label = L("Position X");
     //def->tooltip = L("X coordinate of the left front corner of a wipe tower.");
-    //def->sidetext = "mm";	// milimeters, don't need translation
+    //def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comDevelop;
     // BBS: change data type to floats to add partplate logic
     def->set_default_value(new ConfigOptionFloats{ 15. });
@@ -6153,7 +6153,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_tower_y", coFloats);
     //def->label = L("Position Y");
     //def->tooltip = L("Y coordinate of the left front corner of a wipe tower.");
-    //def->sidetext = "mm";	// milimeters, don't need translation
+    //def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comDevelop;
     // BBS: change data type to floats to add partplate logic
     def->set_default_value(new ConfigOptionFloats{ 220. });
@@ -6161,7 +6161,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");
     def->tooltip = L("Width of the prime tower.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 2.0;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(60.));
@@ -6177,7 +6177,7 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
     def->label = L("Brim width");
     def->tooltip = L("Brim width of prime tower, negative number means auto calculated width based on the height of prime tower.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->min = -1;
     def->enum_values.push_back("-1");
@@ -6202,7 +6202,7 @@ void PrintConfigDef::init_fff_params()
                      "Increasing this speed may affect the tower's stability as well as increase the force with which the nozzle collides with any blobs that may have formed on the wipe tower.\n\n"
                      "Before increasing this parameter beyond the default of 90 mm/s, make sure your printer can reliably bridge at the increased speeds and that ooze when tool changing is well controlled.\n\n"
                      "For the wipe tower external perimeters the internal perimeter speed is used regardless of this setting.");
-    def->sidetext = "mm/s";	// milimeters per second, don't need translation
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->mode = comAdvanced;
     def->min = 10;
     def->set_default_value(new ConfigOptionFloat(90.));
@@ -6227,7 +6227,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Extra rib length");
     def->tooltip  = L("Positive values can increase the size of the rib wall, while negative values can reduce the size. "
                        "However, the size of the rib wall can not be smaller than that determined by the cleaning volume.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->max      = 300;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
@@ -6235,7 +6235,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("wipe_tower_rib_width", coFloat);
     def->label    = L("Rib width");
     def->tooltip  = L("Rib width is always less than half the prime tower side length.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode     = comAdvanced;
     def->min      = 0;
     def->max      = 300;
@@ -6311,7 +6311,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_tower_bridging", coFloat);
     def->label = L("Maximal bridging distance");
     def->tooltip = L("Maximal distance between supports on sparse infill sections.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10.));
 
@@ -6338,7 +6338,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Idle temperature");
     def->tooltip = L("Nozzle temperature when the tool is currently not used in multi-tool setups. "
                      "This is only used when 'Ooze prevention' is active in Print Settings. Set to 0 to disable.");
-    def->sidetext = u8"\u2103" /* °C */;	// degrees Celsius, don't need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = max_temp;
     def->set_default_value(new ConfigOptionInts{0});
@@ -6349,7 +6349,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Holes in objects will expand or contract in the XY plane by the configured value. "
                      "Positive values make holes bigger, negative values make holes smaller. "
                      "This function is used to adjust sizes slightly when the objects have assembling issues.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -6359,7 +6359,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Contours of objects will expand or contract in the XY plane by the configured value. "
                      "Positive values make contours bigger, negative values make contours smaller. "
                      "This function is used to adjust sizes slightly when the objects have assembling issues.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
@@ -6506,7 +6506,7 @@ void PrintConfigDef::init_fff_params()
     "NOTE: Bottom and top surfaces will not be affected by this value to prevent visual gaps on the outside of the model. "
     "Adjust 'One wall threshold' in the Advanced settings below to adjust the sensitivity of what is considered a top-surface. "
     "'One wall threshold' is only visible if this setting is set above the default value of 0.5, or if single-wall top surfaces is enabled.");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->min = 0.0;
     def->max = 25.0;
@@ -7120,7 +7120,7 @@ void PrintConfigDef::init_sla_params()
     //def->label = L("");
     //def->category = L("");
     //def->tooltip = L("");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(1.));
 
@@ -7261,7 +7261,7 @@ void PrintConfigDef::init_sla_params()
     //def->label = L("");
     //def->category = L("");
     //def->tooltip = L("");
-    def->sidetext = "mm";	// milimeters, don't need translation
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 10;
     def->mode = comAdvanced;

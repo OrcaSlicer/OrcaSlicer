@@ -4943,13 +4943,13 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     auto upto_label = [](double z) {
         char buf[64];
         ::sprintf(buf, "%.2f", z);
-        return _u8L("up to") + " " + std::string(buf) + " " + "mm";
+        return _u8L("up to") + " " + std::string(buf) + " " + _u8L("mm");
     };
 
     auto above_label = [](double z) {
         char buf[64];
         ::sprintf(buf, "%.2f", z);
-        return _u8L("above") + " " + std::string(buf) + " " + "mm";
+        return _u8L("above") + " " + std::string(buf) + " " + _u8L("mm");
     };
 
     auto fromto_label = [](double z1, double z2) {
@@ -4957,7 +4957,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf1, "%.2f", z1);
         char buf2[64];
         ::sprintf(buf2, "%.2f", z2);
-        return _u8L("from") + " " + std::string(buf1) + " " + _u8L("to") + " " + std::string(buf2) + " " + "mm";
+        return _u8L("from") + " " + std::string(buf1) + " " + _u8L("to") + " " + std::string(buf2) + " " + _u8L("mm");
     };
 
     auto role_time_and_percent = [time_mode](ExtrusionRole role) {
