@@ -1201,12 +1201,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bridge_flow", coFloat);
     def->label = L("Bridge flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("Values above 1.0:\n"
-                     "  - Regular bridges: Keep spacing and thicken the filament. If the Bridge line width is <= 100%, this can improve line contact and strength.\n"
-                     "  - Thick bridges: Increase width, height, and spacing. It may be stronger, but it increases the risk of sagging.\n"
-                     "Values below 1.0:\n"
-                     "  - Regular bridges: Reduce spacing; this can potentially add extra passes or alter paths.\n"
-                     "  - Thick bridges: Decrease width, height, and spacing. Reduces sagging at the cost of lateral bonding.");
+    def->tooltip = L("This value governs the thickness of the external (visible) bridge layer."
+                     "Values above 1.0: Increase the amount of material while maintaining line spacing. This can improve line contact and strength.\n"
+                     "Values below 1.0: Reduce the amount of material while adjusting line spacing to maintain contact. This can improve sagging.\n\n"
+                     "The actual bridge flow used is calculated by multiplying this value with the filament flow ratio, and if set, the object's flow ratio.");
     def->min = 0;
     def->max = 2.0;
     def->mode = comAdvanced;
@@ -1230,8 +1228,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_bridge_flow", coFloat);
     def->label = L("Internal bridge flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("This value governs the thickness of the internal bridge layer. This is the first layer over sparse infill. Decrease this value slightly (for example 0.9) to improve surface quality over sparse infill."
-                     "\n\nThe actual internal bridge flow used is calculated by multiplying this value with the bridge flow ratio, the filament flow ratio, and if set, the object's flow ratio.");
+    def->tooltip = L("This value governs the thickness of the internal bridge layer. This is the first layer over sparse infill so increasing it may increase strength and upper layer quality.\n"
+                     "Values above 1.0: Increase the amount of material while maintaining line spacing. This can improve line contact and strength.\n"
+                     "Values below 1.0: Reduce the amount of material while adjusting line spacing to maintain contact. This can improve sagging.\n\n"
+                     "The actual bridge flow used is calculated by multiplying this value with the filament flow ratio, and if set, the object's flow ratio.");
     def->min = 0;
     def->max = 2.0;
     def->mode = comAdvanced;
