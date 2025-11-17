@@ -7579,7 +7579,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += m_writer.set_pressure_advance(get_pressure_advance_for_extruder(new_filament_id));
         // Orca: Adaptive PA
         // Reset Adaptive PA processor last PA value
-        m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(new_filament_id));
+        m_pa_processor->resetPreviousPA(get_pressure_advance_for_extruder(new_filament_id));
     }
     //Orca: tool changer or IDEX's firmware may change Z position, so we set it to unknown/undefined
     m_last_pos_defined = false;
