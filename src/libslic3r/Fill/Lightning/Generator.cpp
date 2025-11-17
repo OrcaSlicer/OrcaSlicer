@@ -70,6 +70,7 @@ Generator::Generator(const PrintObject &print_object, const std::function<void()
     const PrintRegionConfig   &region_config        = print_object.shared_regions()->all_regions.front()->config();
     const std::vector<double> &nozzle_diameters     = print_config.nozzle_diameter.values;
     double                     max_nozzle_diameter  = *std::max_element(nozzle_diameters.begin(), nozzle_diameters.end());
+    const int                  n_multiline          = region_config.fill_multiline.value;
 //    const int                  infill_extruder      = region_config.infill_extruder.value;
     const double               default_infill_extrusion_width = Flow::auto_extrusion_width(FlowRole::frInfill, float(max_nozzle_diameter));
     // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
@@ -86,7 +87,7 @@ Generator::Generator(const PrintObject &print_object, const std::function<void()
             object_config.line_width.get_abs_value(max_nozzle_diameter)
         );
     
-    m_supporting_radius = coord_t(m_infill_extrusion_width) * 100 / region_config.sparse_infill_density;
+    m_supporting_radius = coord_t(m_infill_extrusion_width) * 100 * n_multiline / region_config.sparse_infill_density;
 
     const double lightning_infill_overhang_angle      = M_PI / 4; // 45 degrees
     const double lightning_infill_prune_angle         = M_PI / 4; // 45 degrees
