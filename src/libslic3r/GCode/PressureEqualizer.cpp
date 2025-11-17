@@ -491,21 +491,143 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
     // Orca:
     // Calculate the absolute difference in volumetric extrusion rate between the start and end point of the line.
     // Quantize it to 1mm3/min (0.016mm3/sec).
-    int delta_volumetric_rate = std::round(fabs(line.volumetric_extrusion_rate_end - line.volumetric_extrusion_rate_start));
+    int delta_volumetric_rate = std::round(std::max({
+        fabs(line.volumetric_extrusion_rate_end - line.volumetric_extrusion_rate_start),
+        // For line with accel-then-decel, we also calc the max difference to the peak
+        fabs(line.volumetric_extrusion_rate - line.volumetric_extrusion_rate_start),
+        fabs(line.volumetric_extrusion_rate - line.volumetric_extrusion_rate_end),
+    }));
     
     // Emit the line with lowered extrusion rates.
     // Orca:
     // First, check if the change in volumetric extrusion rate is trivial (less than 10mm3/min -> 0.16mm3/sec (5mm/sec speed for a 0.25 mm nozzle).
     // Or if the line size is equal in length with the smallest segment.
     // If so, then emit the line as a single extrusion, i.e. dont split into segments.
-    if ( nSegments == 1 || delta_volumetric_rate < 10) {
+    constexpr int NON_TRIVIAL_RATE_DELTA = 10;
+    if (nSegments == 1 || delta_volumetric_rate < NON_TRIVIAL_RATE_DELTA) {
         push_line_to_output(line_idx, line.feedrate() * line.volumetric_correction_avg(), comment);
     } else // The line needs to be split the line into segments and apply extrusion rate smoothing
     {
-        bool accelerating = line.volumetric_extrusion_rate_start < line.volumetric_extrusion_rate_end;
+        const float original_feedrate = line.feedrate();
         // Update the initial and final feed rate values.
         line.pos_start[4] = line.volumetric_extrusion_rate_start * line.pos_end[4] / line.volumetric_extrusion_rate;
         line.pos_end  [4] = line.volumetric_extrusion_rate_end   * line.pos_end[4] / line.volumetric_extrusion_rate;
+
+        // Handle special case where both start & end extrusion rates are smaller than the original extrusion rate,
+        // which means we need to do an accel-then-decel movements to achieve potentially max print speed
+        if (line.volumetric_extrusion_rate > line.volumetric_extrusion_rate_start &&
+            line.volumetric_extrusion_rate > line.volumetric_extrusion_rate_end) {
+            // total extrusion amount of the original line
+            const double original_extrusion = (double) l * line.volumetric_extrusion_rate / original_feedrate;
+
+            // make sure there is a steady segment that's no shorter than `m_max_segment_length`
+            const double min_steady_extrusion = original_extrusion * m_max_segment_length / l;
+            const double max_sloped_extrusion = original_extrusion - min_steady_extrusion;
+            assert(max_sloped_extrusion > 0);
+
+            // Calculate the maximum possible peak extrusion rate
+            // amount of extrusion if accelerate from volumetric_extrusion_rate_start to volumetric_extrusion_rate then
+            // decelerate from volumetric_extrusion_rate to volumetric_extrusion_rate_end with max slope rate
+            const auto   pow2              = [](const double x) { return x * x; };
+            const double e_2               = pow2(line.volumetric_extrusion_rate);
+            const double e0_2              = pow2(line.volumetric_extrusion_rate_start);
+            const double e1_2              = pow2(line.volumetric_extrusion_rate_end);
+            const double sp                = line.max_volumetric_extrusion_rate_slope_positive;
+            const double sn                = line.max_volumetric_extrusion_rate_slope_negative;
+            const double sloped_extrusion  = (e_2 - e0_2) / 2 / sp + (e_2 - e1_2) / 2 / sn;
+
+            double target_max_extrusion_rate = line.volumetric_extrusion_rate;
+            if (sloped_extrusion > max_sloped_extrusion) {
+                // We don't have enough time to accel to max possible extrusion rate
+                // now we calculate the actual possible value
+                target_max_extrusion_rate = std::sqrt((2 * max_sloped_extrusion * sp * sn + sn * e0_2 + sp * e1_2) / (sp + sn));
+            }
+            assert(target_max_extrusion_rate > line.volumetric_extrusion_rate_start);
+            assert(target_max_extrusion_rate > line.volumetric_extrusion_rate_end);
+            assert(target_max_extrusion_rate >= line.volumetric_extrusion_rate);
+
+            // if the extrusion rate change is trivial, then ignore this algorithm and use the single sloped version instead
+            delta_volumetric_rate = std::round(std::min({ // important! it's MIN here not max!
+                fabs(target_max_extrusion_rate - line.volumetric_extrusion_rate_start),
+                fabs(target_max_extrusion_rate - line.volumetric_extrusion_rate_end),
+            }));
+
+            if (delta_volumetric_rate >= NON_TRIVIAL_RATE_DELTA) {
+                // we then have the target max feedrate when we reach target_max_extrusion_rate
+                const double target_max_feedrate = original_feedrate * target_max_extrusion_rate / line.volumetric_extrusion_rate;
+                assert(target_max_feedrate <= original_feedrate);
+
+                // calculate the accel and deccel time & length
+                const double t_acc = (target_max_extrusion_rate - line.volumetric_extrusion_rate_start) / sp;
+                const double l_acc = t_acc * (target_max_feedrate + line.pos_start[4]) / 2;
+                const double t_dec = (target_max_extrusion_rate - line.volumetric_extrusion_rate_end) / sn;
+                const double l_dec = t_dec * (target_max_feedrate + line.pos_end[4]) / 2;
+
+                float pos_end_bak[5];
+                memcpy(pos_end_bak, line.pos_end, sizeof(float) * 5); // backup the final pos
+                float pos_start[5];
+                float pos_end[5];
+                memcpy(pos_start, line.pos_start, sizeof(float) * 5);
+                memcpy(pos_end, line.pos_end, sizeof(float) * 5);
+
+                // calculate the end pos of the accel slope
+                float t = l_acc / l;
+                for (int i = 0; i < 4; ++i) {
+                    pos_end[i]           = pos_start[i] + (pos_end_bak[i] - pos_start[i]) * t;
+                    line.pos_provided[i] = true;
+                }
+                // emit accel slope in nSegments
+                nSegments = size_t(ceil(l_acc / m_max_segment_length));
+                assert(nSegments > 0);
+                for (size_t i = 1; i <= nSegments; ++i) {
+                    t = float(i) / float(nSegments);
+                    for (size_t j = 0; j < 4; ++j) {
+                        line.pos_end[j]      = pos_start[j] + (pos_end[j] - pos_start[j]) * t;
+                        line.pos_provided[j] = true;
+                    }
+                    // Interpolate the feed rate at the center of the segment.
+                    push_line_to_output(line_idx, pos_start[4] + (target_max_feedrate - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), comment);
+                    comment = nullptr;
+                    memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
+                }
+
+                // calculate the end pos of the steady segment
+                t = (l - l_dec) / l;
+                for (int i = 0; i < 4; ++i) {
+                    line.pos_end[i] = pos_start[i] + (pos_end_bak[i] - pos_start[i]) * t;
+                }
+                // emit the steady feed rate segment
+                push_line_to_output(line_idx, target_max_feedrate, nullptr);
+                memcpy(line.pos_start, line.pos_end, sizeof(float) * 5);
+
+                // calculate the start pos of the decl slope
+                memcpy(pos_start, line.pos_end, sizeof(float) * 5);
+                line.pos_start[4] = target_max_feedrate;
+                pos_start[4]      = target_max_feedrate;
+                // emit deccel slope in nSegments
+                nSegments = size_t(ceil(l_dec / m_max_segment_length));
+                assert(nSegments > 0);
+                for (size_t i = 1; i <= nSegments; ++ i) {
+                    t = float(i) / float(nSegments);
+                    for (size_t j = 0; j < 4; ++ j) {
+                        line.pos_end[j] = pos_start[j] + (pos_end_bak[j] - pos_start[j]) * t;
+                    } 
+                    // Interpolate the feed rate at the center of the segment.
+                    push_line_to_output(line_idx, pos_start[4] + (pos_end_bak[4] - pos_start[4]) * (float(i) - 0.5f) / float(nSegments), nullptr);
+                    memcpy(line.pos_start, line.pos_end, sizeof(float)*5);
+                }
+
+                // finish the movement by moving to end pos
+                for (int i = 0; i < 4; ++i) {
+                    line.pos_end[i] = pos_end_bak[i];
+                }
+                push_line_to_output(line_idx, pos_end_bak[4], nullptr);
+
+                return;
+            }
+        }
+
+        bool accelerating = line.volumetric_extrusion_rate_start < line.volumetric_extrusion_rate_end;
         float feed_avg = 0.5f * (line.pos_start[4] + line.pos_end[4]);
         // Limiting volumetric extrusion rate slope for this segment.
         float max_volumetric_extrusion_rate_slope = accelerating ? line.max_volumetric_extrusion_rate_slope_positive :
@@ -515,7 +637,7 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
         float t_total = line.dist_xyz() / feed_avg;
         // Time of the acceleration / deceleration part of the segment, if accelerating / decelerating
         // with the maximum volumetric extrusion rate slope.
-        float t_acc    = 0.5f * (line.volumetric_extrusion_rate_start + line.volumetric_extrusion_rate_end) / max_volumetric_extrusion_rate_slope;
+        float t_acc    = std::fabs(line.volumetric_extrusion_rate_start - line.volumetric_extrusion_rate_end) / max_volumetric_extrusion_rate_slope;
         float l_acc    = l;
         float l_steady = 0.f;
         if (t_acc < t_total) {
@@ -590,30 +712,32 @@ void PressureEqualizer::output_gcode_line(const size_t line_idx)
     }
 }
 
-void PressureEqualizer::adjust_volumetric_rate(const size_t fist_line_idx, const size_t last_line_idx)
+void PressureEqualizer::adjust_volumetric_rate(const size_t first_line_idx, const size_t last_line_idx)
 {
     // don't bother adjusting volumetric rate if there's no gcode to adjust
-    if (last_line_idx-fist_line_idx < 2)
+    if (last_line_idx - first_line_idx < 2)
         return;
 
-    size_t       line_idx      = last_line_idx;
-    if (line_idx == fist_line_idx || !m_gcode_lines[line_idx].extruding())
+    size_t line_idx = last_line_idx;
+    if (line_idx == first_line_idx || !m_gcode_lines[line_idx].extruding())
         // Nothing to do, the last move is not extruding.
         return;
+
     std::array<float, size_t(ExtrusionRole::erCount)> feedrate_per_extrusion_role{};
     feedrate_per_extrusion_role.fill(std::numeric_limits<float>::max());
     feedrate_per_extrusion_role[int(m_gcode_lines[line_idx].extrusion_role)] = m_gcode_lines[line_idx].volumetric_extrusion_rate_start;
 
-    while (line_idx != fist_line_idx) {
+    while (line_idx != first_line_idx) {
         size_t idx_prev = line_idx - 1;
-        for (; !m_gcode_lines[idx_prev].extruding() && idx_prev != fist_line_idx; --idx_prev);
+        for (; !m_gcode_lines[idx_prev].extruding() && idx_prev != first_line_idx; --idx_prev);
         if (!m_gcode_lines[idx_prev].extruding())
             break;
         // Don't decelerate before ironing.
-        if (m_gcode_lines[line_idx].extrusion_role == ExtrusionRole::erIroning) {            line_idx = idx_prev;
+        if (m_gcode_lines[line_idx].extrusion_role == ExtrusionRole::erIroning) {
+            line_idx = idx_prev;
             continue;
         }
-        // Volumetric extrusion rate at the start of the succeding segment.
+        // Volumetric extrusion rate at the start of the succeeding segment.
         float rate_succ = m_gcode_lines[line_idx].volumetric_extrusion_rate_start;
         // What is the gradient of the extrusion rate between idx_prev and idx?
         line_idx        = idx_prev;
@@ -630,8 +754,8 @@ void PressureEqualizer::adjust_volumetric_rate(const size_t fist_line_idx, const
                 rate_end = rate_succ;
 
             // don't alter the flow rate for these extrusion types
-            // Orca: Limit ERS to external perimeters and overhangs if option selected by user
             if (!line.adjustable_flow || line.extrusion_role == ExtrusionRole::erBridgeInfill || line.extrusion_role == ExtrusionRole::erIroning ||
+                // Orca: Limit ERS to external perimeters and overhangs if option selected by user
                 (m_extrusion_rate_smoothing_external_perimeter_only && line.extrusion_role != ExtrusionRole::erOverhangPerimeter && line.extrusion_role != ExtrusionRole::erExternalPerimeter)) {
                 rate_end = line.volumetric_extrusion_rate_end;
             } else if (line.volumetric_extrusion_rate_end > rate_end) {
@@ -687,13 +811,13 @@ void PressureEqualizer::adjust_volumetric_rate(const size_t fist_line_idx, const
 
             float rate_start = feedrate_per_extrusion_role[iRole];
             // don't alter the flow rate for these extrusion types
-            // Orca: Limit ERS to external perimeters and overhangs if option selected by user
             if (!line.adjustable_flow || line.extrusion_role == ExtrusionRole::erBridgeInfill || line.extrusion_role == ExtrusionRole::erIroning ||
+                // Orca: Limit ERS to external perimeters and overhangs if option selected by user
                 (m_extrusion_rate_smoothing_external_perimeter_only && line.extrusion_role != ExtrusionRole::erOverhangPerimeter && line.extrusion_role != ExtrusionRole::erExternalPerimeter)) {
                 rate_start = line.volumetric_extrusion_rate_start;
             } else if (iRole == size_t(line.extrusion_role) && rate_prec < rate_start)
                 rate_start = rate_prec;
-            
+
             if (line.volumetric_extrusion_rate_start > rate_start) {
                 line.volumetric_extrusion_rate_start = rate_start;
                 line.max_volumetric_extrusion_rate_slope_positive = rate_slope;

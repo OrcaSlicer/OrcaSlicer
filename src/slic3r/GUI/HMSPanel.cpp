@@ -16,9 +16,10 @@ namespace GUI {
 
 wxDEFINE_EVENT(EVT_ALREADY_READ_HMS, wxCommandEvent);
 
-HMSNotifyItem::HMSNotifyItem(wxWindow *parent, HMSItem& item)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL) 
+HMSNotifyItem::HMSNotifyItem(const std::string& dev_id, wxWindow *parent, DevHMSItem& item)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
     , m_hms_item(item)
+    , dev_id(dev_id)
     , long_error_code(item.get_long_error_code())
     , m_url(get_hms_wiki_url(item.get_long_error_code()))
 {
@@ -40,7 +41,7 @@ HMSNotifyItem::HMSNotifyItem(wxWindow *parent, HMSItem& item)
     m_hms_content->SetForegroundColour(*wxBLACK);
     m_hms_content->SetSize(HMS_NOTIFY_ITEM_TEXT_SIZE);
     m_hms_content->SetMinSize(HMS_NOTIFY_ITEM_TEXT_SIZE);
-    m_hms_content->SetLabelText(_L(wxGetApp().get_hms_query()->query_hms_msg(m_hms_item.get_long_error_code())));
+    m_hms_content->SetLabelText(wxGetApp().get_hms_query()->query_hms_msg(dev_id, m_hms_item.get_long_error_code()));
     m_hms_content->Wrap(HMS_NOTIFY_ITEM_TEXT_SIZE.GetX());
 
     m_bitmap_arrow = new wxStaticBitmap(m_panel_hms, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, 0);
@@ -118,10 +119,11 @@ HMSNotifyItem::HMSNotifyItem(wxWindow *parent, HMSItem& item)
         }
         });
     m_hms_content->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
-        if (!m_url.empty()) wxLaunchDefaultBrowser(m_url);
             wxCommandEvent evt(EVT_ALREADY_READ_HMS);
             evt.SetString(long_error_code);
             wxPostEvent(wxGetApp().mainframe->m_monitor, evt);
+
+            if (!m_url.empty()) wxLaunchDefaultBrowser(m_url);
         });
 #endif
 }
@@ -138,21 +140,19 @@ void HMSNotifyItem::init_bitmaps() {
 
 wxBitmap & HMSNotifyItem::get_notify_bitmap()
 {
-    switch (m_hms_item.msg_level) {
-        case (HMS_FATAL): 
+    switch (m_hms_item.get_level()) {
+        case (HMS_FATAL):
             return m_img_notify_lv1;
             break;
         case (HMS_SERIOUS):
             return m_img_notify_lv2;
             break;
-        case (HMS_COMMON): 
+        case (HMS_COMMON):
             return m_img_notify_lv3;
             break;
-        case (HMS_INFO): 
+        case (HMS_INFO):
             //return m_img_notify_lv4;
             break;
-        case (HMS_UNKNOWN): 
-        case (HMS_MSG_LEVEL_MAX):
         default: break;
     }
     return wxNullBitmap;
@@ -185,12 +185,12 @@ HMSPanel::~HMSPanel() {
     ;
 }
 
-void HMSPanel::append_hms_panel(HMSItem& item) {
-    m_notify_item = new HMSNotifyItem(m_scrolledWindow, item);
-    wxString msg = wxGetApp().get_hms_query()->query_hms_msg(item.get_long_error_code());
-    if (!msg.empty())
-        m_top_sizer->Add(m_notify_item, 0, wxALIGN_CENTER_HORIZONTAL);
-    else {
+void HMSPanel::append_hms_panel(const std::string& dev_id, DevHMSItem& item) {
+    wxString msg = wxGetApp().get_hms_query()->query_hms_msg(dev_id, item.get_long_error_code());
+    if (!msg.empty()) {
+        HMSNotifyItem *notify_item = new HMSNotifyItem(dev_id, m_scrolledWindow, item);
+        m_top_sizer->Add(notify_item, 0, wxALIGN_CENTER_HORIZONTAL);
+    } else {
         // debug for hms display error info
         // m_top_sizer->Add(m_notify_item, 0, wxALIGN_CENTER_HORIZONTAL);
         BOOST_LOG_TRIVIAL(info) << "hms: do not display empty_item";
@@ -212,7 +212,7 @@ void HMSPanel::update(MachineObject *obj)
         this->Freeze();
         delete_hms_panels();
         wxString hms_text;
-        for (auto item : obj->hms_list) {
+        for (auto item : obj->GetHMS()->GetHMSItems()) {
             if (wxGetApp().get_hms_query()) {
 
                 auto key = item.get_long_error_code();
@@ -221,14 +221,14 @@ void HMSPanel::update(MachineObject *obj)
                     temp_hms_list[key] = item;
                 }
 
-                append_hms_panel(item);
+                append_hms_panel(obj->get_dev_id(), item);
             }
         }
-        
+
         for (auto it = temp_hms_list.begin(); it != temp_hms_list.end(); ) {
             auto key = it->second.get_long_error_code();
             bool inr = false;
-            for (auto hms : obj->hms_list) {
+            for (auto hms : obj->GetHMS()->GetHMSItems()) {
                 if (hms.get_long_error_code() == key) {
                     inr = true;
                     break;

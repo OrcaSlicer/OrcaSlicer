@@ -52,11 +52,11 @@ public:
                      long            style = wxTAB_TRAVERSAL,
                      const wxString &name  = wxEmptyString);
     ~AmsPanel();
-    
+
     void msw_rescale();
 };
 
-class ExtraAmsPanel : public AmsPanel 
+class ExtraAmsPanel : public AmsPanel
 {
 public:
     ExtraAmsPanel(wxWindow* parent,
@@ -126,6 +126,12 @@ protected:
     wxStaticLine*          m_laser_line_above = nullptr;;
     uiDeviceUpdateVersion* m_laser_version = nullptr;
 
+    /* fire extinguish*/
+    wxBoxSizer* m_extinguish_sizer = nullptr;
+    wxStaticBitmap* m_extinguish_img = nullptr;
+    wxStaticLine* m_extinguish_line_above = nullptr;;
+    uiDeviceUpdateVersion* m_extinguish_version = nullptr;
+
     /* upgrade widgets */
     wxBoxSizer*     m_upgrading_sizer;
     wxStaticText *  m_staticText_upgrading_info;
@@ -146,11 +152,14 @@ protected:
     ScalableBitmap m_img_air_pump;
     ScalableBitmap m_img_cutting;
     ScalableBitmap m_img_laser;
+    ScalableBitmap m_img_extinguish;
     ScalableBitmap upgrade_gray_icon;
     ScalableBitmap upgrade_green_icon;
     ScalableBitmap upgrade_yellow_icon;
     int last_status = -1;
     std::string last_status_str = "";
+
+    std::string m_last_laser_product_name = "";
 
     SecondaryCheckDialog* confirm_dlg = nullptr;
 
@@ -175,16 +184,10 @@ public:
     void update(MachineObject *obj);
     void update_version_text(MachineObject *obj);
     void update_ams_ext(MachineObject *obj);
-    void update_air_pump(MachineObject* obj);
-    void update_cut(MachineObject* obj);
-    void update_laszer(MachineObject* obj);
     void show_status(int status, std::string upgrade_status_str = "");
     void show_ams(bool show = false, bool force_update = false);
     void show_ext(bool show = false, bool force_update = false);
     void show_extra_ams(bool show = false, bool force_update = false);
-    void show_air_pump(bool show = true);
-    void show_cut(bool show = true);
-    void show_laszer(bool show = true);
 
     void on_upgrade_firmware(wxCommandEvent &event);
     void on_consisitency_upgrade_firmware(wxCommandEvent &event);
@@ -206,6 +209,17 @@ private:
     void createAirPumpWidgets(wxBoxSizer* main_left_sizer);
     void createCuttingWidgets(wxBoxSizer* main_left_sizer);
     void createLaserWidgets(wxBoxSizer* main_left_sizer);
+    void createExtinguishWidgets(wxBoxSizer* main_left_sizer);
+
+    void update_air_pump(MachineObject* obj);
+    void update_cut(MachineObject* obj);
+    void update_laszer(MachineObject* obj);
+    void update_extinguish(MachineObject* obj);
+
+    void show_air_pump(bool show = true);
+    void show_cut(bool show = true);
+    void show_laszer(bool show = true);
+    void show_extinguish(bool show = true);
 };
 
 //enum UpgradeMode {
@@ -226,8 +240,8 @@ protected:
     bool enable_select_firmware = false;
     bool m_need_update = false;
     //hint of force upgrade or consistency upgrade
-    int last_forced_hint_status = -1;
-    int last_consistency_hint_status = -1;
+    DevFirmwareUpgradingState last_forced_hint_status = DevFirmwareUpgradingState::DC;
+    DevFirmwareUpgradingState last_consistency_hint_status = DevFirmwareUpgradingState::DC;
     int last_status;
     bool m_show_forced_hint = true;
     bool m_show_consistency_hint = true;

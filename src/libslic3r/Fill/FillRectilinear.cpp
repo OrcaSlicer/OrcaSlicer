@@ -2998,7 +2998,6 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     assert(sweep_params.size() >= 1);
     assert(!params.full_infill());
     params.density /= double(sweep_params.size());
-    int n_multilines = params.multiline;
     assert(params.density > 0.0001f && params.density <= 1.f);
 
     ExPolygonWithOffset poly_with_offset_base(surface->expolygon, 0, float(scale_(this->overlap - 0.5 * this->spacing)));
@@ -3014,9 +3013,9 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
         // Rotate polygons so that we can work with vertical lines here
         float angle = rotate_vector.first + sweep.angle_base;
         //Fill Multiline
-        for (int i = 0; i < n_multilines; ++i) {
+        for (int i = 0; i < params.multiline; ++i) {
             coord_t group_offset = i * line_spacing;
-            coord_t internal_offset = (i - (n_multilines - 1) / 2.0f) * line_width;
+            coord_t internal_offset = (i - (params.multiline - 1) / 2.0f) * line_width;
             coord_t total_offset  = group_offset + internal_offset;
             coord_t pattern_shift = scale_(sweep.pattern_shift + unscale_(total_offset));
 

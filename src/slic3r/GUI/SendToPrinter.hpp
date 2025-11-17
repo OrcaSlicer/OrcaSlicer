@@ -38,6 +38,9 @@
 #include "Widgets/ScrolledWindow.hpp"
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
+#include "Printer/PrinterFileSystem.h"
+#include "Widgets/AnimaController.hpp"
+#include "Widgets/RadioBox.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -48,20 +51,26 @@ private:
 	void init_bind();
 	void init_timer();
 
+
 	int									m_print_plate_idx;
     int									m_current_filament_id;
     int                                 m_print_error_code = 0;
     int									timeout_count = 0;
+    int                                 m_connect_try_times = 0;
     bool								m_is_in_sending_mode{ false };
     bool								m_is_rename_mode{ false };
     bool								enable_prepare_mode{ true };
     bool								m_need_adaptation_screen{ false };
     bool								m_export_3mf_cancel{ false };
     bool								m_is_canceled{ false };
+    bool                                m_tcp_try_connect{true};
+    bool                                m_tutk_try_connect{false};
+    bool                                m_ftp_try_connect{false};
     std::string                         m_print_error_msg;
     std::string                         m_print_error_extra;
     std::string							m_print_info;
 	std::string							m_printer_last_select;
+    std::string                         m_device_select;
     wxString							m_current_project_name;
 
     TextInput*							m_rename_input{ nullptr };
@@ -83,11 +92,15 @@ private:
     wxPanel*							m_panel_image{ nullptr };
     wxPanel*							m_rename_normal_panel{ nullptr };
     wxPanel*							m_line_materia{ nullptr };
+    wxBoxSizer*                         m_storage_sizer{ nullptr };
+    wxPanel*                            m_storage_panel{ nullptr };
+    wxPanel *                           m_connecting_panel{nullptr};
 	wxSimplebook*						m_simplebook{ nullptr };
 	wxStaticText*						m_statictext_finish{ nullptr };
     wxStaticText*						m_stext_sending{ nullptr };
     wxStaticText*						m_staticText_bed_title{ nullptr };
     wxStaticText*						m_statictext_printer_msg{ nullptr };
+    wxStaticText *                      m_connecting_printer_msg{nullptr};
     wxStaticText*						m_stext_printer_title{ nullptr };
     wxStaticText*						m_rename_text{ nullptr };
     wxStaticText*						m_stext_time{ nullptr };
@@ -102,8 +115,10 @@ private:
 	wxBoxSizer*							sizer_thumbnail;
 	wxBoxSizer*							m_sizer_scrollable_region;
 	wxBoxSizer*							m_sizer_main;
+
 	wxStaticText*						m_file_name;
     PrintDialogStatus					m_print_status{ PrintStatusInit };
+    AnimaIcon *                         m_animaicon{nullptr};
 
     std::vector<wxString>               m_bedtype_list;
     std::map<std::string, ::CheckBox*>	m_checkbox_list;
@@ -111,11 +126,18 @@ private:
     wxColour							m_colour_def_color{ wxColour(255, 255, 255) };
     wxColour							m_colour_bold_color{ wxColour(38, 46, 48) };
 	wxTimer*							m_refresh_timer{ nullptr };
+    std::unique_ptr<wxTimer>            m_task_timer{ nullptr };
     std::shared_ptr<BBLStatusBarSend>   m_status_bar;
     std::unique_ptr<Worker>             m_worker;
 	wxScrolledWindow*                   m_sw_print_failed_info{nullptr};
     std::shared_ptr<int>                m_token = std::make_shared<int>(0);
-   
+    std::vector<RadioBox*>              m_storage_radioBox;
+
+    bool                                  m_waiting_support{ false };
+    bool                                  m_waiting_enable{ false };
+    boost::shared_ptr<PrinterFileSystem>  m_file_sys;
+    std::vector<std::string>              m_ability_list;
+
 public:
 	SendToPrinterDialog(Plater* plater = nullptr);
     ~SendToPrinterDialog();
@@ -153,8 +175,13 @@ public:
     void show_print_failed_info(bool show, int code = 0, wxString description = wxEmptyString, wxString extra = wxEmptyString);
     void update_print_error_info(int code, std::string msg, std::string extra);
     void on_change_color_mode() { wxGetApp().UpdateDlgDarkUI(this); }
+    void update_storage_list(const std::vector<std::string>& storages);
+    std::string get_storage_selected();
+
     wxString format_text(wxString& m_msg);
-	std::vector<std::string> sort_string(std::vector<std::string> strArray);
+    std::vector<std::string> sort_string(std::vector<std::string> strArray);
+
+    void fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs);
 };
 
 wxDECLARE_EVENT(EVT_CLEAR_IPADDRESS, wxCommandEvent);

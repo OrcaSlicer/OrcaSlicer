@@ -89,10 +89,10 @@ void Chart::draw() {
     }
     
     // axis labels:
-    wxString label = _(L("Time")) + " (" + _("s") + ")";
+    wxString label = _(L("Time")) + " (" + _(L("s")) + ")";
     dc.GetTextExtent(label,&text_width,&text_height);
     dc.DrawText(label,wxPoint(0.5*(m_rect.GetRight()+m_rect.GetLeft())-text_width/2.f, m_rect.GetBottom()+0.6*legend_side));
-    label = _(L("Volumetric speed")) + " (" + wxString::FromUTF8("mm³/s") + ")";
+    label = _(L("Volumetric speed")) + " (" + _(L(u8"mm³/s")) + ")";
     dc.GetTextExtent(label,&text_width,&text_height);
     dc.DrawRotatedText(label,wxPoint(0,0.5*(m_rect.GetBottom()+m_rect.GetTop())+text_width/2.f),90);
 

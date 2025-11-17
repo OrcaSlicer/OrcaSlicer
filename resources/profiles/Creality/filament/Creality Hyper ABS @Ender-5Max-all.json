@@ -30,8 +30,12 @@
     "filament_cooling_final_speed": "3.4",
     "filament_cooling_initial_speed": "2.2",
     "filament_cooling_moves": "4",
-    "filament_cost": "15",
-    "filament_density": "1.08",
+    "filament_cost": [
+        "15"
+    ],
+    "filament_density": [
+        "1.08"
+    ],
     "filament_deretraction_speed": "nil",
     "filament_diameter": "1.75",
     "filament_end_gcode": [
@@ -42,7 +46,9 @@
     "filament_load_time": "0",
     "filament_loading_speed": "28",
     "filament_loading_speed_start": "3",
-    "filament_max_volumetric_speed": "60",
+    "filament_max_volumetric_speed": [
+        "60"
+    ],
     "filament_minimal_purge_on_wipe_tower": "15",
     "filament_multitool_ramming": "0",
     "filament_multitool_ramming_flow": "10",
@@ -93,7 +99,9 @@
     "slow_down_layer_time": "5",
     "slow_down_min_speed": "10",
     "support_material_interface_fan_speed": "-1",
-    "temperature_vitrification": "110",
+    "temperature_vitrification": [
+        "110"
+    ],
     "textured_plate_temp": "90",
     "textured_plate_temp_initial_layer": "90"
 }

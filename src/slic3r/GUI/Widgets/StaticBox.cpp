@@ -22,8 +22,8 @@ StaticBox::StaticBox()
     , radius(8)
 {
     border_color = StateColor(
-        std::make_pair(0xF0F0F1, (int) StateColor::Disabled), 
-        std::make_pair(0x303A3C, (int) StateColor::Normal));
+        std::make_pair(0xF0F0F1, (int) StateColor::Disabled),
+        std::make_pair(0xCECECE, (int) StateColor::Normal));
 }
 
 StaticBox::StaticBox(wxWindow* parent,
@@ -49,6 +49,12 @@ bool StaticBox::Create(wxWindow* parent, wxWindowID id, const wxPoint& pos, cons
 void StaticBox::SetCornerRadius(double radius)
 {
     this->radius = radius;
+    Refresh();
+}
+
+void StaticBox::SetBorderStyle(wxPenStyle style)
+{
+    border_style = style;
     Refresh();
 }
 
@@ -108,6 +114,15 @@ wxColor StaticBox::GetParentBackgroundColor(wxWindow* parent)
     if (parent)
         return parent->GetBackgroundColour();
     return *wxWHITE;
+}
+
+void StaticBox::ShowBadge(bool show)
+{
+    if (show)
+        badge = ScalableBitmap(this, "badge", 18);
+    else
+        badge = ScalableBitmap {};
+    Refresh();
 }
 
 void StaticBox::eraseEvent(wxEraseEvent& evt)
@@ -188,7 +203,7 @@ void StaticBox::doRender(wxDC& dc)
                     rc.y += d;
                     rc.height -= d;
                 }
-                dc.SetPen(wxPen(border_color.colorForStates(states), border_width));
+                dc.SetPen(wxPen(border_color.colorForStates(states), border_width, border_style));
             } else {
                 dc.SetPen(wxPen(background_color.colorForStates(states)));
             }
@@ -217,5 +232,10 @@ void StaticBox::doRender(wxDC& dc)
             lg += dg; while (lg >= size.y) { ++g, lg -= size.y; } while (lg <= -size.y) { --g, lg += size.y; }
             lb += db; while (lb >= size.y) { ++b, lb -= size.y; } while (lb <= -size.y) { --b, lb += size.y; }
         }
+    }
+
+    if (badge.bmp().IsOk()) {
+        auto s = badge.bmp().GetScaledSize();
+        dc.DrawBitmap(badge.bmp(), size.x - s.x, 0);
     }
 }

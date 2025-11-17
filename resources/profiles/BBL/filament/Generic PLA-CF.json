@@ -18,5 +18,8 @@
         "Bambu Lab X1E 0.4 nozzle",
         "Bambu Lab X1E 0.6 nozzle",
         "Bambu Lab X1E 0.8 nozzle"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n\n"
     ]
 }

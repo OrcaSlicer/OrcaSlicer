@@ -14,7 +14,7 @@
 Detect the overhang percentage relative to line width and use different speed to print.
 When detecting line width with 100% overhang, bridge options are used.
 
-![overhang](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/overhangs/overhang.png?raw=true)
+![overhang](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/overhangs/overhang.png?raw=true)
 
 ## Make overhang printable
 
@@ -26,7 +26,7 @@ Every overhang exceeding the [maximum angle](#maximum-angle) will be modified to
 Maximum angle of overhangs to allow after making more steep overhangs printable.  
 90° will not change the model at all and allow any overhang, while 0 will replace all overhangs with conical material.
 
-![overhang-printable](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/overhangs/overhang-printable.png?raw=true)
+![overhang-printable](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/overhangs/overhang-printable.png?raw=true)
 
 > [!TIP]
 > Usually, a value between 45° and 60° works well for most printers and models.
@@ -40,7 +40,7 @@ A value of 0 will fill all the holes in the model base.
 
 Create additional perimeter (overhang wall) paths over steep overhangs and areas where bridges cannot be anchored.
 
-![extra-perimeters-on-overhangs](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/overhangs/extra-perimeters-on-overhangs.png?raw=true)
+![extra-perimeters-on-overhangs](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/overhangs/extra-perimeters-on-overhangs.png?raw=true)
 
 ## Reverse on even
 
@@ -52,7 +52,7 @@ It can also help reduce warping on floating regions over supports.
 For this setting to be the most effective, it is recommended to set the [Reverse Threshold](#reverse-threshold) to 0 so that all walls print in alternating directions on even layers irrespective of their overhang degree.
 A disadvantage of this setting is that the outer wall may show a texture due to the alternating extrusion direction.
 
-![reverse-odd-texture](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/reverse-odd-texture.png?raw=true)
+![reverse-odd-texture](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/reverse-odd-texture.png?raw=true)
 
 > [!NOTE]
 > Only be available if [Wall loop direction](quality_settings_wall_and_surfaces#wall-loop-direction) is set on **Auto** and [spiral vase mode](others_settings_special_mode#spiral-vase) is **disabled**.

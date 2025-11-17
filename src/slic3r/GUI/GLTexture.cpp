@@ -20,7 +20,7 @@
 #include <vector>
 #include <algorithm>
 #include <thread>
-
+#include "FileHelp.hpp"
 #define STB_DXT_IMPLEMENTATION
 #include "stb_dxt/stb_dxt.h"
 
@@ -101,6 +101,8 @@ void GLTexture::Compressor::send_compressed_data_to_gpu()
     	this->reset();
 }
 
+std::atomic<bool> GLTexture::Compressor::m_dirty = false;
+
 void GLTexture::Compressor::compress()
 {
     // reference: https://github.com/Cyan4973/RygsDXTc
@@ -123,6 +125,11 @@ void GLTexture::Compressor::compress()
         level.src_data.clear();
         ++ m_num_levels_compressed;
     }
+
+    // Trigger an idle event to refresh the scene once the texture data is ready
+    // This fixes the issue that the bed texture is black after switching printer model until mouse moves to the 3d scene
+    m_dirty = true;
+    wxWakeUpIdle();
 }
 
 GLTexture::Quad_UVs GLTexture::FullTextureUVs = { { 0.0f, 1.0f }, { 1.0f, 1.0f }, { 1.0f, 0.0f }, { 0.0f, 0.0f } };
@@ -153,12 +160,13 @@ bool GLTexture::load_from_file(const std::string& filename, bool use_mipmaps, EC
 bool GLTexture::load_from_svg_file(const std::string& filename, bool use_mipmaps, bool compress, bool apply_anisotropy, unsigned int max_size_px)
 {
     reset();
-
-    if (!boost::filesystem::exists(filename))
+    auto svg_file = filename;
+    Utils::slash_to_back_slash(svg_file);
+    if (!boost::filesystem::exists(svg_file))
         return false;
 
-    if (boost::algorithm::iends_with(filename, ".svg"))
-        return load_from_svg(filename, use_mipmaps, compress, apply_anisotropy, max_size_px);
+    if (boost::algorithm::iends_with(svg_file, ".svg"))
+        return load_from_svg(svg_file, use_mipmaps, compress, apply_anisotropy, max_size_px);
     else
         return false;
 }

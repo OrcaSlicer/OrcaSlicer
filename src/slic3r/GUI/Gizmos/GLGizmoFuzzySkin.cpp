@@ -265,7 +265,7 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         ImGui::AlignTextToFramePadding();
         m_imgui->text(m_desc["smart_fill_angle"]);
         std::string format_str = std::string("%.f") +
-                                 I18N::translate_utf8("°", "Degree sign to use in the respective slider in fuzzy skin gizmo,"
+                                 I18N::translate_utf8("°", "Degree sign to use in the respective slider in fuzzy skin gizmo, "
                                                            "placed after the number with no whitespace in between.");
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);

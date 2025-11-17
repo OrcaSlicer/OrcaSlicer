@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @E3NG v1.2S",
+    "inherits": "process_common_E3NG v1.2S",
+    "from": "system",
+    "setting_id": "NG2020",
+    "instantiation": "true",
+    "compatible_printers": [
+        "E3NG v1.2S - 0.3 nozzle",
+        "E3NG v1.2S - 0.4 nozzle",
+        "E3NG v1.2S - 0.5 nozzle",
+        "E3NG v1.2S - 0.6 nozzle"
+    ]
+}

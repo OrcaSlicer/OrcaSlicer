@@ -50,7 +50,7 @@ namespace Slic3r {
         SDCP_PRINT_CTRL_ACK_NOT_FOUND = 2,  // 未找到目标文件 file not found
         SDCP_PRINT_CTRL_ACK_MD5_FAILED = 3,  // MD5校验失败 MD5 check failed
         SDCP_PRINT_CTRL_ACK_FILEIO_FAILED = 4,  // 文件读取失败  file I/O error
-        SDCP_PRINT_CTRL_ACK_INVLAID_RESOLUTION = 5, // 文件分辨率不匹配 file resolution is invalid
+        SDCP_PRINT_CTRL_ACK_INVALID_RESOLUTION = 5, // 文件分辨率不匹配 file resolution is invalid
         SDCP_PRINT_CTRL_ACK_UNKNOW_FORMAT = 6,  // 无法识别的文件格式 file format is invalid
         SDCP_PRINT_CTRL_ACK_UNKNOW_MODEL = 7, // 文件机型不匹配 file model is invalid
     } ElegooLinkStartPrintAck;
@@ -746,7 +746,7 @@ namespace Slic3r {
                                         break;
                                     }
                                     case ElegooLinkStartPrintAck::SDCP_PRINT_CTRL_ACK_FILEIO_FAILED:
-                                    case ElegooLinkStartPrintAck::SDCP_PRINT_CTRL_ACK_INVLAID_RESOLUTION:
+                                    case ElegooLinkStartPrintAck::SDCP_PRINT_CTRL_ACK_INVALID_RESOLUTION:
                                     case ElegooLinkStartPrintAck::SDCP_PRINT_CTRL_ACK_UNKNOW_FORMAT:
                                     {
                                         error_message =_(L("Transmission abnormality, please check and try again."));

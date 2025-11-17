@@ -44,7 +44,7 @@ enum class InfoItemType;
 
 enum class NotificationType
 {
-	CustomNotification,
+	CustomNotification = 0,
         //	SlicingNotPossible,
 	// Notification on end of export to a removable media, with hyperling to eject the external media.
 	// Obsolete by ExportFinished
@@ -81,8 +81,12 @@ enum class NotificationType
 	// Slicing warnings, issued by the slicing process.
 	// Slicing warnings are registered for a particular Print milestone or a PrintObject and its milestone.
 	SlicingWarning,
+	// BBL: general error
+	BBLGeneralError,
 	// Object partially outside the print volume. Cannot slice.
 	PlaterError,
+	LeftExtruderUnprintableError,
+	RightExtruderUnprintableError,
 	// Object fully outside the print volume, or extrusion outside the print volume. Slicing is not disabled.
 	PlaterWarning,
 	// Progress bar instead of text.
@@ -150,6 +154,14 @@ enum class NotificationType
 	BBLPreviewOnlyMode,
     BBLPrinterConfigUpdateAvailable,
 	BBLUserPresetExceedLimit,
+    BBLFilamentPrintableError,
+    BBLSliceLimitError,
+    BBLSliceMultiExtruderHeightOutside,
+	BBLBedFilamentIncompatible,
+    BBLMixUsePLAAndPETG,
+	BBLNozzleFilamentIncompatible,
+    NotificationTypeCount
+
 };
 
 class NotificationManager
@@ -221,6 +233,9 @@ public:
 	// Release those slicing warnings, which refer to an ObjectID, which is not in the list.
 	// living_oids is expected to be sorted.
 	void remove_slicing_warnings_of_released_objects(const std::vector<ObjectID>& living_oids);
+	// general error message
+	void push_general_error_notification(const std::string& text);
+	void close_general_error_notification(const std::string& text);
 	// Object partially outside of the printer working space, cannot print. No fade out.
 	void push_plater_error_notification(const std::string& text);
 	// Object fully out of the printer working space and such. No fade out.
@@ -228,6 +243,10 @@ public:
 	// Closes error or warning of the same text
 	void close_plater_error_notification(const std::string& text);
 	void close_plater_warning_notification(const std::string& text);
+	// GCode exceeds the printing range of the extruder
+    void push_slicing_customize_error_notification(NotificationType type, NotificationLevel level, const std::string &text, const std::string &hypertext = "", std::function<bool(wxEvtHandler*)> callback = std::function<bool(wxEvtHandler*)>());
+    void close_slicing_customize_error_notification(NotificationType type, NotificationLevel level);
+
 	// Object warning with ObjectID, closes when object is deleted. ID used is of object not print like in slicing warning.
 	void push_simplify_suggestion_notification(const std::string& text, ObjectID object_id, const std::string& hypertext = "",
 		std::function<bool(wxEvtHandler*)> callback = std::function<bool(wxEvtHandler*)>());
@@ -291,6 +310,8 @@ public:
     void render_notifications(GLCanvas3D &canvas, float overlay_width, float bottom_margin, float right_margin);
 	// finds and closes all notifications of given type
 	void close_notification_of_type(const NotificationType type);
+    void remove_notification_of_type(const NotificationType type);
+    void clear_all();
 	// Hides warnings in G-code preview. Should be called from plater only when 3d view/ preview is changed
     void set_in_preview(bool preview);
 	// Calls set_in_preview to apply appearing or disappearing of some notificatons;
@@ -341,6 +362,16 @@ public:
 	//BBS--gcode overlap
     void bbl_show_gcode_overlap_notification();
     void bbl_close_gcode_overlap_notification();
+
+	//BBS--bed filament match
+	void bbl_show_bed_filament_incompatible_notification(const std::string& text);
+	void bbl_close_bed_filament_incompatible_notification();
+
+	void bbl_show_filament_map_invalid_notification_before_slice(const NotificationType type, const std::string& text);
+	void bbl_close_filament_map_invalid_notification_before_slice(const NotificationType type);
+
+	void bbl_show_filament_map_invalid_notification_after_slice(const NotificationType type, const std::string& text);
+	void bbl_close_filament_map_invalid_notification_after_slice(const NotificationType type);
 
 	//BBS--sole notification
     void bbl_show_sole_text_notification(NotificationType sType,const std::string &text, bool bOverride, int level, bool autohide);
@@ -402,7 +433,7 @@ private:
 		virtual void           render(GLCanvas3D& canvas, float initial_y, bool move_from_overlay, float overlay_width, float right_margin);
         virtual void bbl_render_block_notification(GLCanvas3D &canvas, float initial_y, bool move_from_overlay, float overlay_width, float right_margin);
 		// close will dissapear notification on next render
-		virtual void           close() { m_state = EState::ClosePending; wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0);}
+        virtual void close();
 		// data from newer notification of same type
 		void                   update(const NotificationData& n);
 		void                   append(const std::string& append_str);
@@ -420,7 +451,7 @@ private:
 		const bool             is_gray() const { return m_is_gray; }
 		void                   set_gray(bool g) { m_is_gray = g; }
 		virtual bool           compare_text(const std::string& text) const;
-        void                   hide(bool h) { if (is_finished()) return; m_state = h ? EState::Hidden : EState::Unknown; }
+        void                    hide(bool h);
 		// sets m_next_render with time of next mandatory rendering. Delta is time since last render.
 		virtual bool           update_state(bool paused, const int64_t delta);
 		int64_t 		       next_render() const { return is_finished() ? 0 : m_next_render; }
@@ -432,7 +463,9 @@ private:
         void set_Multiline(bool Multi) { m_multiline = Multi; }
 		virtual void on_change_color_mode(bool is_dark);
 		void set_scale(float scale) { m_scale = scale; }
-
+        typedef std::function<void(PopNotification*)> DeleteCallback;
+        void set_delete_callback(DeleteCallback);
+        bool is_valid_delete_callback();
 	protected:
 		// Call after every size change
 		virtual void init();
@@ -540,6 +573,7 @@ private:
 		std::string      error_start = "<Error>";
 		std::string      error_end = "</Error>";
 
+        DeleteCallback m_on_delete_callback;
 		// inner variables to position notification window, texts and buttons correctly
 
 		// all space without text
@@ -572,7 +606,7 @@ private:
 		float m_scale = 1.0f;
 	};
 
-
+    void close_and_delete_self(PopNotification*);
 
 	class ObjectIDNotification : public PopNotification
 	{
@@ -588,7 +622,7 @@ private:
 	{
 	public:
 		PlaterWarningNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler) : PopNotification(n, id_provider, evt_handler) {}
-		void	     close()  override { if(is_finished()) return; m_state = EState::Hidden; wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0); }
+        void close() override;
 		void		 real_close()      { m_state = EState::ClosePending; wxGetApp().plater()->get_current_canvas3D()->schedule_extra_frame(0); }
 		void         show()            { m_state = EState::Unknown; }
 	};
@@ -881,6 +915,7 @@ private:
 	// Cache of IDs to identify and reuse ImGUI windows.
 	NotificationIDProvider 		 m_id_provider;
 	std::deque<std::unique_ptr<PopNotification>> m_pop_notifications;
+    PopNotification* m_to_delete_after_finish_render{nullptr};
 	// delayed waiting notifications, first is remaining time
 	std::vector<DelayedNotification> m_waiting_notifications;
 	//timestamps used for slicing finished - notification could be gone so it needs to be stored here

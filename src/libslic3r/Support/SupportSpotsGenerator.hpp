@@ -5,6 +5,7 @@
 #include "Line.hpp"
 #include "PrintBase.hpp"
 #include "PrintConfig.hpp"
+#include "MaterialType.hpp"
 #include <boost/log/trivial.hpp>
 #include <cstddef>
 #include <vector>
@@ -64,15 +65,9 @@ struct Params
             return get_support_spots_adhesion_strength() * 2.0;
         }
 
-        if (filament_type == "PLA") {
-            return 0.02 * 1e6;
-        } else if (filament_type == "PET" || filament_type == "PETG") {
-            return 0.3 * 1e6;
-        } else if (filament_type == "ABS" || filament_type == "ASA") {
-            return 0.1 * 1e6; //TODO do measurements
-        } else { //PLA default value - defensive approach, PLA has quite low adhesion
-            return 0.02 * 1e6;
-        }
+    double yield_strength = 0.02;
+    MaterialType::get_yield_strength(filament_type, yield_strength);
+        return yield_strength * 1e6;
     }
 
     double get_support_spots_adhesion_strength() const {

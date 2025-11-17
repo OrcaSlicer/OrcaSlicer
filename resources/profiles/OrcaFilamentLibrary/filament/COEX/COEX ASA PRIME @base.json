@@ -1,0 +1,97 @@
+{
+    "type": "filament",
+    "name": "COEX ASA PRIME @base",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "CXASAB04",
+    "instantiation": "false",
+    "filament_vendor": [
+        "COEX 3D"
+    ],
+    "filament_cost": [
+        "34.00"
+    ],
+    "filament_density": [
+        "1.07"
+    ],
+    "filament_type": [
+        "ASA"
+    ],
+    "filament_notes": "UV and weather resistant - requires good ventilation",
+    "nozzle_temperature": [
+        "265"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "265"
+    ],
+    "bed_temperature": [
+        "100"
+    ],
+    "bed_temperature_initial_layer": [
+        "100"
+    ],
+    "temperature_vitrification": [
+        "95"
+    ],
+    "chamber_temperature": [
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_retraction_minimum_travel": [
+        "2"
+    ],
+    "filament_retract_before_wipe": [
+        "70%"
+    ],
+    "filament_retract_layer_change": [
+        "1"
+    ],
+    "filament_retract_when_changing_layer": [
+        "1"
+    ],
+    "filament_retraction_length": [
+        "2.5"
+    ],
+    "filament_retraction_speed": [
+        "40"
+    ],
+    "filament_deretraction_speed": [
+        "40"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "2"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "disable_fan_first_layers": [
+        "3"
+    ],
+    "full_fan_speed_layer": [
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "compatible_printers": [],
+    "compatible_printers_condition": "",
+    "compatible_prints": [],
+    "compatible_prints_condition": ""
+}

@@ -808,8 +808,10 @@ public:
             if (p1 != p2)
                 return p1 > p2;
             if (params.is_seq_print) {
-                return i1.bed_temp != i2.bed_temp ? (i1.bed_temp > i2.bed_temp) :
-                        (i1.height != i2.height ? (i1.height < i2.height) : (i1.area() > i2.area()));
+                return i1.bed_temp != i2.bed_temp                ? (i1.bed_temp > i2.bed_temp) :
+                       i1.height != i2.height                    ? (i1.height < i2.height) :
+                       std::abs(i1.area() / i2.area() - 1) > 0.2 ? (i1.area() > i2.area()) :
+                                                                   i1.extrude_ids.front() < i2.extrude_ids.front();
             }
             else {
                 return i1.bed_temp != i2.bed_temp ? (i1.bed_temp > i2.bed_temp) :

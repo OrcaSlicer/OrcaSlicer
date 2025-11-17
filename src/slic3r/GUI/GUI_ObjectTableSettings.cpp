@@ -290,7 +290,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
             if (field)
                 field->toggle(toggle);
         };
-        auto toggle_line = [this, optgroup](const t_config_option_key & opt_key, bool toggle)
+        auto toggle_line = [this, optgroup](const t_config_option_key &opt_key, bool toggle, int opt_index)
         {
             Line* line = optgroup->get_line(opt_key);
             if (line) line->toggle_visible = toggle;
@@ -392,7 +392,7 @@ void ObjectTableSettings::update_config_values(bool is_object, ModelObject* obje
         if (field)
             field->toggle(toggle);
     };
-    auto toggle_line = [this](const t_config_option_key &opt_key, bool toggle) {
+    auto toggle_line = [this](const t_config_option_key &opt_key, bool toggle, int opt_index) {
         for (auto og : m_og_settings) {
             Line *line = og->get_line(opt_key);
             if (line) { line->toggle_visible = toggle; break; }

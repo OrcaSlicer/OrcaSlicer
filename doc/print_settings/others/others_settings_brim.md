@@ -2,7 +2,7 @@
 
 Brim is a flat layer printed around a model's base to improve adhesion to the print bed. It is useful for models with small footprints or those prone to warping.
 
-![brim](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/brim/brim.png?raw=true)
+![brim](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/brim/brim.png?raw=true)
 
 - [Type](#type)
   - [Auto](#auto)
@@ -44,28 +44,28 @@ The computed brim width is capped at 20 mm and at 1.5× the thermal length. If t
 
 ### Painted
 
-Generates a brim only on areas that have been painted ![toolbar_brimears_dark](https://github.com/SoftFever/OrcaSlicer/blob/main/resources/images/toolbar_brimears_dark.svg?raw=true) in the Prepare tab .
+Generates a brim only on areas that have been painted ![toolbar_brimears_dark](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/toolbar_brimears_dark.svg?raw=true) in the Prepare tab .
 
 ### Outer
 
 Creates a brim around the model's outer perimeter.  
 Easier to remove than an inner brim, but may affect the model's appearance if not removed cleanly.
 
-![brim-outer](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/brim/brim-outer.png?raw=true)
+![brim-outer](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/brim/brim-outer.png?raw=true)
 
 ### Inner
 
 Creates a brim around inner perimeters.  
 More difficult to remove and less effective than an outer brim and may obscure fine inner details, but it can hide the brim removal seam.
 
-![brim-inner](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/brim/brim-inner.png?raw=true)
+![brim-inner](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/brim/brim-inner.png?raw=true)
 
 ### Outer and Inner
 
 Creates a brim around both the outer and inner perimeters of the model.  
 This approach combines the **disadvantages** of both brim types, making it more difficult to remove while potentially obscuring fine details but improving overall adhesion.
 
-![brim-outer-inner](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/brim/brim-outer-inner.png?raw=true)
+![brim-outer-inner](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/brim/brim-outer-inner.png?raw=true)
 
 > [!TIP]
 >> Consider using a [raft](support_settings_raft) on complex models/materials.
@@ -75,7 +75,7 @@ This approach combines the **disadvantages** of both brim types, making it more 
 Mouse ears are small, local brim extensions (typically placed near corners and sharp features) that improve bed adhesion and reduce warping while using less material than a full brim.  
 The geometry analysis routine selects candidate locations based on the configured angle threshold and detection radius.
 
-![brim-mouse-ears](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/brim/brim-mouse-ears.png?raw=true)
+![brim-mouse-ears](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/brim/brim-mouse-ears.png?raw=true)
 
 #### Ear max angle
 

@@ -19,8 +19,8 @@ namespace GUI {
 
 static wxString PUBLISH_STEP_STRING[STEP_COUNT] = {
     _L("Slice all plate to obtain time and filament estimation"),
-    _L("Packing project data into 3mf file"),
-    _L("Uploading 3mf"),
+    _L("Packing project data into 3MF file"),
+    _L("Uploading 3MF"),
     _L("Jump to model publish web page")
 };
 
@@ -136,7 +136,7 @@ void PublishDialog::cancel()
 {
     m_was_cancelled = true;
     m_btn_cancel->Enable(false);
-    m_text_progress->SetLabelText(_L("Publish was cancelled"));
+    m_text_progress->SetLabelText(_L("Publish was canceled"));
     wxCloseEvent evt;
     this->on_close(evt);
 }

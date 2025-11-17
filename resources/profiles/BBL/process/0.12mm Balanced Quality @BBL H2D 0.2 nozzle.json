@@ -1,0 +1,37 @@
+{
+    "type": "process",
+    "name": "0.12mm Balanced Quality @BBL H2D 0.2 nozzle",
+    "inherits": "fdm_process_dual_0.12_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP140",
+    "instantiation": "true",
+    "default_acceleration": [
+        "8000",
+        "8000",
+        "8000",
+        "8000"
+    ],
+    "initial_layer_speed": [
+        "40",
+        "40",
+        "40",
+        "40"
+    ],
+    "overhang_1_4_speed": [
+        "60",
+        "60",
+        "60",
+        "60"
+    ],
+    "prime_tower_brim_width": "-1",
+    "prime_tower_width": "60",
+    "travel_speed": [
+        "1000",
+        "1000",
+        "1000",
+        "1000"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D 0.2 nozzle"
+    ]
+}

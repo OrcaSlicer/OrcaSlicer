@@ -45,6 +45,7 @@ protected:
     PrintingTaskPanel*  m_printing_panel { nullptr };
     CaliPagePicture*    m_picture_panel;
     SecondaryCheckDialog* abort_dlg { nullptr };
+    int                 m_cur_extruder_id{0};
 };
 
 }} // namespace Slic3r::GUI

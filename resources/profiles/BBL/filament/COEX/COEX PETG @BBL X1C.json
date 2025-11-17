@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "COEX PETG @BBL X1C",
+    "inherits": "COEX PETG @base",
+    "from": "system",
+    "setting_id": "CXPETX01",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "14"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.4 nozzle",
+        "Bambu Lab X1 0.4 nozzle",
+        "Bambu Lab P1P 0.4 nozzle",
+        "Bambu Lab P1S 0.4 nozzle",
+        "Bambu Lab X1E 0.4 nozzle"
+    ]
+}

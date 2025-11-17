@@ -23,7 +23,7 @@ StepCtrlBase::StepCtrlBase(wxWindow *      parent,
     , font_tip(Label::Body_14)
     , clr_bar(0xACACAC)
     , clr_step(0xACACAC)
-    , clr_text(std::make_pair(0x009688, (int) StateColor::Checked), 
+    , clr_text(std::make_pair(0x009688, (int) StateColor::Checked),
             std::make_pair(0x6B6B6B, (int) StateColor::Normal))
     , clr_tip(0x828280)
 {
@@ -49,9 +49,9 @@ void StepCtrlBase::SelectItem(int item)
     Refresh();
 }
 
-void StepCtrlBase::Idle() 
-{ 
-    step = -1; 
+void StepCtrlBase::Idle()
+{
+    step = -1;
     sendStepCtrlEvent();
     Refresh();
 }
@@ -255,11 +255,11 @@ StepIndicator::StepIndicator(wxWindow *parent, wxWindowID id, const wxPoint &pos
     font_tip = Label::Body_10;
     clr_bar = 0xE1E1E1;
     clr_step = StateColor(
-            std::make_pair(0xACACAC, (int) StateColor::Disabled), 
+            std::make_pair(0xACACAC, (int) StateColor::Disabled),
             std::make_pair(0x009688, 0));
     clr_text = StateColor(
-            std::make_pair(0xACACAC, (int) StateColor::Disabled), 
-            std::make_pair(0x323A3D, (int) StateColor::Checked), 
+            std::make_pair(0xACACAC, (int) StateColor::Disabled),
+            std::make_pair(0x323A3D, (int) StateColor::Checked),
             std::make_pair(0x6B6B6B, 0));
     clr_tip = *wxWHITE;
     StaticBox::border_width = 0;
@@ -288,10 +288,10 @@ void StepIndicator::doRender(wxDC &dc)
     wxSize size   = GetSize();
 
     int    states = state_handler.states();
-    if (!IsEnabled()) { 
+    if (!IsEnabled()) {
         states = clr_step.Disabled;
-    } 
-    
+    }
+
     int textWidth = size.x - radius * 5;
     dc.SetFont(GetFont());
     wxString firstLine;
@@ -333,7 +333,7 @@ void StepIndicator::doRender(wxDC &dc)
             dc.DrawText(tip, circleX - sz.x / 2, circleY - sz.y / 2 + 1);
         }
         // Draw step text
-        dc.SetTextForeground(clr_text.colorForStates(states 
+        dc.SetTextForeground(clr_text.colorForStates(states
                 | (disabled ? StateColor::Disabled : checked ? StateColor::Checked : 0)));
         dc.SetFont(checked ? GetFont().Bold() : GetFont());
         wxString text;
@@ -350,4 +350,133 @@ void StepIndicator::doRender(wxDC &dc)
         dc.DrawText(text, circleX + radius * 3, circleY - (textSize.y / 2));
         circleY += itemWidth;
     }
+}
+
+
+/* FilamentStepIndicator */
+
+FilamentStepIndicator::FilamentStepIndicator(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
+    : StepCtrlBase(parent, id, pos, size, style)
+    , bmp_ok(this, "step_ok", 12)
+{
+    static Slic3r::GUI::BitmapCache cache;
+    //bmp_extruder = *cache.load_png("filament_load_extruder", FromDIP(300), FromDIP(200), false, false);
+    SetFont(Label::Body_12);
+    font_tip = Label::Body_12;
+    clr_bar = 0xE1E1E1;
+    clr_step = StateColor(
+        std::make_pair(0xACACAC, (int)StateColor::Disabled),
+        std::make_pair(0x009688, 0));
+    clr_text = StateColor(
+        std::make_pair(0xACACAC, (int)StateColor::Disabled),
+        std::make_pair(0x323A3D, (int)StateColor::Checked),
+        std::make_pair(0x6B6B6B, 0));
+    clr_tip = *wxWHITE;
+    StaticBox::border_width = 0;
+    radius = 9;
+    bar_width = 0;
+}
+
+void FilamentStepIndicator::Rescale()
+{
+    bmp_ok.msw_rescale();
+    radius = bmp_ok.GetBmpHeight() / 2;
+    bar_width = bmp_ok.GetBmpHeight() / 20;
+    if (bar_width < 2) bar_width = 2;
+}
+
+void FilamentStepIndicator::SelectNext() { SelectItem(step + 1); }
+
+
+void FilamentStepIndicator::doRender(wxDC& dc)
+{
+
+
+    if (steps.empty()) return;
+
+    StaticBox::doRender(dc);
+
+    wxSize size = GetSize();
+
+    int    states = state_handler.states();
+    if (!IsEnabled()) {
+        states = clr_step.Disabled;
+    }
+
+    dc.SetFont(::Label::Head_16);
+    dc.SetTextForeground(wxColour(0, 150, 136));
+    int circleX = 20;
+    int circleY = 20;
+    wxSize sz = dc.GetTextExtent(L"Loading");
+    dc.DrawText(L"Loading", circleX, circleY);
+
+    dc.SetFont(::Label::Body_13);
+
+    //dc.DrawBitmap(bmp_extruder, FromDIP(250), circleY);
+    circleY += sz.y;
+
+    int textWidth = size.x - radius * 5;
+    dc.SetFont(GetFont());
+    wxString firstLine;
+    if (step == 0) dc.SetFont(GetFont().Bold());
+    wxSize   firstLineSize = Label::split_lines(dc, textWidth, steps.front(), firstLine);
+    wxString lastLine;
+    if (step == steps.size() - 1) dc.SetFont(GetFont().Bold());
+    wxSize   lastLineSize = Label::split_lines(dc, textWidth, steps.back(), lastLine);
+    int      firstPadding = std::max(0, firstLineSize.y / 2 - radius);
+    int      lastPadding = std::max(0, lastLineSize.y / 2 - radius);
+
+    int    itemWidth = radius * 3;
+
+    // Draw thin bar stick
+    dc.SetPen(wxPen(clr_bar.colorForStates(states)));
+    dc.SetBrush(wxBrush(clr_bar.colorForStates(states)));
+    //dc.DrawRectangle(rcBar);
+
+    circleX += radius;
+    circleY += radius * 3 + firstPadding;
+    dc.SetPen(wxPen(clr_step.colorForStates(states)));
+    dc.SetBrush(wxBrush(clr_step.colorForStates(states)));
+    for (int i = 0; i < steps.size(); ++i) {
+        bool disabled = step > i;
+        bool checked = step == i;
+        // Draw circle point & texts in it
+        dc.DrawEllipse(circleX - radius, circleY - radius, radius * 2, radius * 2);
+        // Draw content ( icon or text ) in circle
+        if (disabled) {
+            wxSize sz = bmp_ok.GetBmpSize();
+            dc.DrawBitmap(bmp_ok.bmp(), circleX - sz.x / 2, circleY - sz.y / 2);
+        }
+        else {
+            dc.SetFont(font_tip);
+            dc.SetTextForeground(clr_tip.colorForStates(states));
+            auto tip = tips[i];
+            if (tip.IsEmpty()) tip.append(1, wchar_t(L'0' + i + 1));
+            wxSize sz = dc.GetTextExtent(tip);
+            dc.DrawText(tip, circleX - sz.x / 2, circleY - sz.y / 2 + 1);
+        }
+        // Draw step text
+        dc.SetTextForeground(clr_text.colorForStates(states
+            | (disabled ? StateColor::Disabled : checked ? StateColor::Checked : 0)));
+        dc.SetFont(checked ? GetFont().Bold() : GetFont());
+        wxString text;
+        wxSize textSize;
+        if (i == 0) {
+            text = firstLine;
+            textSize = firstLineSize;
+        }
+        else if (i == steps.size() - 1) {
+            text = lastLine;
+            textSize = lastLineSize;
+        }
+        else {
+            textSize = Label::split_lines(dc, textWidth, steps[i], text);
+        }
+        dc.DrawText(text, circleX + radius * 1.5, circleY - (textSize.y / 2));
+        circleY += itemWidth;
+    }
+}
+
+void FilamentStepIndicator::SetSlotInformation(wxString slot) {
+    this->m_slot_information = slot;
 }

@@ -33,6 +33,9 @@
     "full_fan_speed_layer": [
         "2"
     ],
+    "impact_strength_z": [
+        "13.3"
+    ],
     "overhang_fan_speed": [
         "40"
     ],

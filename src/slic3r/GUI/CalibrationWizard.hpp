@@ -30,6 +30,12 @@ public:
     }
 };
 
+struct ConfigIndexValue
+{
+    float value{0};
+    int   index{0};
+};
+
 class CalibrationWizard : public wxPanel {
 public:
     CalibrationWizard(wxWindow* parent, CalibMode mode,
@@ -61,6 +67,7 @@ public:
     CalibMode get_calibration_mode() { return m_mode; }
 
     bool save_preset(const std::string &old_preset_name, const std::string &new_preset_name, const std::map<std::string, ConfigOption *> &key_values, wxString& message);
+    bool save_preset_with_index(const std::string &old_preset_name, const std::string &new_preset_name, const std::map<std::string, ConfigIndexValue> &key_values, wxString &message);
 
     virtual void cache_preset_info(MachineObject* obj, float nozzle_dia);
     virtual void recover_preset_info(MachineObject *obj);
@@ -71,7 +78,6 @@ public:
 
 protected:
     void on_cali_go_home();
-    void get_tray_ams_and_slot_id(int in_tray_id, int &ams_id, int &slot_id, int &tray_id);
 
 protected:
     /* wx widgets*/
@@ -122,6 +128,8 @@ protected:
 
     void on_device_connected(MachineObject* obj) override;
 
+    bool can_save_cali_result(const std::vector<PACalibResult> &new_pa_cali_results);
+
     bool                       m_show_result_dialog = false;
     std::vector<PACalibResult> m_calib_results_history;
     int                        cali_version = -1;
@@ -150,6 +158,8 @@ protected:
     void update(MachineObject* obj) override;
 
     void on_device_connected(MachineObject* obj) override;
+
+    std::map<std::string, ConfigIndexValue> generate_index_key_value(MachineObject *obj, const std::string &key, float value);
 };
 
 class MaxVolumetricSpeedWizard : public CalibrationWizard {

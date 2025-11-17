@@ -1,0 +1,28 @@
+{
+    "type": "filament",
+    "name": "FlyingBear PLA Basic @Ghost7",
+    "inherits": "fdm_filament_pla @Ghost7",
+    "renamed_from": "FlyingBear PLA @Ghost7",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.034"
+    ],
+    "compatible_printers": [
+        "FlyingBear Ghost7 0.4 nozzle"
+    ]
+}

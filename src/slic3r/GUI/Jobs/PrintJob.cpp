@@ -9,6 +9,9 @@
 #include "slic3r/GUI/format.hpp"
 #include "bambu_networking.hpp"
 
+#include "slic3r/GUI/DeviceCore/DevManager.h"
+#include "slic3r/GUI/DeviceCore/DevUtil.h"
+
 namespace Slic3r {
 namespace GUI {
 
@@ -123,7 +126,7 @@ wxString PrintJob::get_http_error_msg(unsigned int status, std::string body)
         ;
     }
     return wxEmptyString;
-} 
+}
 
 void PrintJob::process(Ctl &ctl)
 {
@@ -241,6 +244,7 @@ void PrintJob::process(Ctl &ctl)
     params.auto_bed_leveling    = this->auto_bed_leveling;
     params.auto_flow_cali       = this->auto_flow_cali;
     params.auto_offset_cali     = this->auto_offset_cali;
+    params.task_ext_change_assist = this->task_ext_change_assist;
 
     if (m_print_type == "from_sdcard_view") {
         params.dst_file = m_dst_path;
@@ -269,23 +273,22 @@ void PrintJob::process(Ctl &ctl)
                 params.preset_name = profile_name->second;
             }
             catch (...) {}
-        } 
-        
-        auto model_name = model_info->metadata_items.find(BBL_DESIGNER_MODEL_TITLE_TAG);
-        if (model_name != model_info->metadata_items.end()) {
-            try {
+        }
 
-                std::string mall_model_name = model_name->second;
-                std::replace(mall_model_name.begin(), mall_model_name.end(), ' ', '_');
-                const char* unusable_symbols = "<>[]:/\\|?*\" ";
-                for (const char* symbol = unusable_symbols; *symbol != '\0'; ++symbol) {
-                    std::replace(mall_model_name.begin(), mall_model_name.end(), *symbol, '_');
-                }
+         if (m_print_type != "from_sdcard_view") {
+            auto model_name = model_info->metadata_items.find(BBL_DESIGNER_MODEL_TITLE_TAG);
+            if (model_name != model_info->metadata_items.end()) {
+                try {
+                    std::string mall_model_name = model_name->second;
+                    std::replace(mall_model_name.begin(), mall_model_name.end(), ' ', '_');
+                    const char *unusable_symbols = "<>[]:/\\|?*\" ";
+                    for (const char *symbol = unusable_symbols; *symbol != '\0'; ++symbol) { std::replace(mall_model_name.begin(), mall_model_name.end(), *symbol, '_'); }
 
-                std::regex pattern("_+");
-                params.project_name = std::regex_replace(mall_model_name, pattern, "_");
+                    std::regex pattern("_+");
+                    params.project_name = std::regex_replace(mall_model_name, pattern, "_");
+                    params.project_name = truncate_string(params.project_name, 100);
+                } catch (...) {}
             }
-            catch (...) {}
         }
     }
 
@@ -355,9 +358,9 @@ void PrintJob::process(Ctl &ctl)
     auto update_fn = [this, &ctl,
         &is_try_lan_mode,
         &is_try_lan_mode_failed,
-        &msg, 
-        &error_str, 
-        &curr_percent, 
+        &msg,
+        &error_str,
+        &curr_percent,
         &error_text,
         StagePercentPoint
     ](int stage, int code, std::string info) {
@@ -420,7 +423,7 @@ void PrintJob::process(Ctl &ctl)
                             }
                         }
 
-                        //get errors 
+                        //get errors
                         if (code > 100 || code < 0 || stage == BBL::SendingPrintJobStage::PrintingStageERROR) {
                             if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE) {
                                 m_plater->update_print_error_info(code, desc_file_too_large, info);
@@ -441,7 +444,7 @@ void PrintJob::process(Ctl &ctl)
             return ctl.was_canceled();
         };
 
-    
+
     DeviceManager* dev = wxGetApp().getDeviceManager();
     MachineObject* obj = dev->get_selected_machine();
 
@@ -457,7 +460,7 @@ void PrintJob::process(Ctl &ctl)
             try {
                 std::ignore = job_info_j.parse(job_info);
                 if (job_info_j.contains("job_id")) {
-                    curr_job_id = job_info_j["job_id"].get<std::string>();
+                    curr_job_id = DevJsonValParser::get_longlong_val(job_info_j["job_id"]);
                 }
                 BOOST_LOG_TRIVIAL(trace) << "print_job: curr_obj_id=" << curr_job_id;
 
@@ -492,8 +495,11 @@ void PrintJob::process(Ctl &ctl)
             return true;
     };
 
-
-    if (params.connection_type != "lan") {
+    if (m_print_type == "from_sdcard_view") {
+        BOOST_LOG_TRIVIAL(info) << "print_job: try to send with cloud, model is sdcard view";
+        ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
+        result = m_agent->start_sdcard_print(params, update_fn, cancel_fn);
+    } else if (params.connection_type != "lan") {
         if (params.dev_ip.empty())
             params.comments = "no_ip";
         else if (this->cloud_print_only)
@@ -505,12 +511,7 @@ void PrintJob::process(Ctl &ctl)
 
 
         //use ftp only
-        if (m_print_type == "from_sdcard_view") {
-            BOOST_LOG_TRIVIAL(info) << "print_job: try to send with cloud, model is sdcard view";
-            ctl.update_status(curr_percent, _u8L("Sending print job through cloud service"));
-            result = m_agent->start_sdcard_print(params, update_fn, cancel_fn);
-        }
-        else if (!wxGetApp().app_config->get("lan_mode_only").empty() && wxGetApp().app_config->get("lan_mode_only") == "1") {
+        if (!wxGetApp().app_config->get("lan_mode_only").empty() && wxGetApp().app_config->get("lan_mode_only") == "1") {
 
             if (params.password.empty() || params.dev_ip.empty()) {
                 error_text = wxString::Format(_L("Access code:%s IP address:%s"), params.password, params.dev_ip);
@@ -560,14 +561,31 @@ void PrintJob::process(Ctl &ctl)
                 result = m_agent->start_print(params, update_fn, cancel_fn, wait_fn);
             }
         } 
-    } else {
-        if (this->has_sdcard) {
-            ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
-            result = m_agent->start_local_print(params, update_fn, cancel_fn);
-        } else {
-            ctl.update_status(curr_percent, _u8L("An SD card needs to be inserted before printing via LAN."));
-            return;
-        }
+    } else {        
+        switch(this->sdcard_state) {
+                case DevStorage::SdcardState::NO_SDCARD:
+                    ctl.update_status(curr_percent, _u8L("A Storage needs to be inserted before printing via LAN."));
+                    return;
+                case DevStorage::SdcardState::HAS_SDCARD_ABNORMAL:
+                    if(this->has_sdcard) {
+                        // means the storage is abnormal but can be used option is enabled
+                         ctl.update_status(curr_percent, _u8L("Sending print job over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
+                         result = m_agent->start_local_print(params, update_fn, cancel_fn);
+                        break;
+                    }
+                    ctl.update_status(curr_percent, _u8L("The Storage in the printer is abnormal. Please replace it with a normal Storage before sending print job to printer."));
+                    return;              
+                case DevStorage::SdcardState::HAS_SDCARD_READONLY:
+                    ctl.update_status(curr_percent, _u8L("The Storage in the printer is read-only. Please replace it with a normal Storage before sending print job to printer."));
+                    return;  
+                case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
+                    ctl.update_status(curr_percent, _u8L("Sending print job over LAN"));
+                    result = m_agent->start_local_print(params, update_fn, cancel_fn);
+                    break;
+                default:                    
+                    ctl.update_status(curr_percent, _u8L("Encountered an unknown error with the Storage status. Please try again."));
+                    return;                    
+            }               
     }
 
     if (result < 0) {
@@ -593,7 +611,7 @@ void PrintJob::process(Ctl &ctl)
         if (result != BAMBU_NETWORK_ERR_CANCELED) {
             ctl.show_error_info(msg_text, 0, "", "");
         }
-        
+
         BOOST_LOG_TRIVIAL(error) << "print_job: failed, result = " << result;
     } else {
         // wait for printer mqtt ready the same job id

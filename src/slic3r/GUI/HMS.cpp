@@ -1,7 +1,16 @@
 #include "HMS.hpp"
 
+#include "DeviceManager.hpp"
+#include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevUtil.h"
+
 #include <boost/log/trivial.hpp>
 
+static const char* HMS_PATH = "hms";
+static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
+
+// the local HMS info
+static unordered_set<string> package_dev_id_types {"094", "239", "093"};
 
 namespace Slic3r {
 namespace GUI {
@@ -10,6 +19,8 @@ int get_hms_info_version(std::string& version)
 {
     AppConfig* config = wxGetApp().app_config;
     if (!config)
+        return -1;
+    if (config->get_stealth_mode())
         return -1;
     std::string hms_host = config->get_hms_host();
     if(hms_host.empty()) {
@@ -27,7 +38,7 @@ int get_hms_info_version(std::string& version)
             try {
                 json j = json::parse(body);
                 if (j.contains("ver")) {
-                    version = std::to_string(j["ver"].get<long long>());
+                    version = DevJsonValParser::get_longlong_val(j["ver"]);
                 }
             } catch (...) {
                 ;
@@ -41,45 +52,68 @@ int get_hms_info_version(std::string& version)
     return result;
 }
 
-int HMSQuery::download_hms_related(std::string hms_type, json* receive_json)
+// Note:  Download the hms into receive_json
+int HMSQuery::download_hms_related(const std::string& hms_type, const std::string& dev_id_type, json* receive_json)
 {
     std::string local_version = "0";
-    load_from_local(local_version, hms_type, receive_json);
+    load_from_local(hms_type, dev_id_type, receive_json, local_version);
+
     AppConfig* config = wxGetApp().app_config;
     if (!config) return -1;
+    if (config->get_stealth_mode()) return -1;
 
     std::string hms_host = wxGetApp().app_config->get_hms_host();
     std::string lang;
     std::string query_params = HMSQuery::build_query_params(lang);
     std::string url;
     if (hms_type.compare(QUERY_HMS_INFO) == 0) {
-        url = (boost::format("https://%1%/query.php?%2%&v=%3%") % hms_host % query_params % local_version).str();
+        url = (boost::format("https://%1%/query.php?%2%") % hms_host % query_params).str();
     }
     else if (hms_type.compare(QUERY_HMS_ACTION) == 0) {
-        url = (boost::format("https://%1%/hms/GetActionImage.php?v=%2%") % hms_host % local_version).str();
+        url = (boost::format("https://%1%/hms/GetActionImage.php?") % hms_host).str();
     }
+
+    if (!local_version.empty()) { url += (url.find('?') != std::string::npos ? "&" : "?") + (boost::format("v=%1%") % local_version).str(); }
+
+    if (!dev_id_type.empty()) { url += (url.find('?') != std::string::npos ? "&" : "?") + (boost::format("d=%1%") % dev_id_type).str(); }
+
+
+    bool to_save_local = false;
+    json j;
 
     BOOST_LOG_TRIVIAL(info) << "hms: download url = " << url;
     Slic3r::Http http = Slic3r::Http::get(url);
-    http.on_complete([this, receive_json, hms_type](std::string body, unsigned status) {
+    http.on_complete([this, receive_json, hms_type, &to_save_local, &j, & local_version](std::string body, unsigned status) {
         try {
-            json j = json::parse(body);
+            j = json::parse(body);
             if (j.contains("result")) {
                 if (j["result"] == 0 && j.contains("data")) {
-                    if (hms_type.compare(QUERY_HMS_INFO) == 0) {
+
+                    if (!j.contains("ver"))
+                    {
+                        return;
+                    }
+
+                    const std::string& remote_ver = DevJsonValParser::get_longlong_val(j["ver"]);
+                    if (remote_ver <= local_version)
+                    {
+                        return;
+                    }
+                    (*receive_json)["version"] = remote_ver;
+
+                    if (hms_type.compare(QUERY_HMS_INFO) == 0)
+                    {
                         (*receive_json) = j["data"];
-                        this->save_local = true;
+                        to_save_local = true;
                     }
-                    else if (hms_type.compare(QUERY_HMS_ACTION) == 0) {
+                    else if (hms_type.compare(QUERY_HMS_ACTION) == 0)
+                    {
                         (*receive_json)["data"] = j["data"];
-                        this->save_local = true;
+                        to_save_local = true;
                     }
-                    if (j.contains("ver"))
-                        (*receive_json)["version"] = std::to_string(j["ver"].get<long long>());
                 } else if (j["result"] == 201){
                     BOOST_LOG_TRIVIAL(info) << "HMSQuery: HMS info is the latest version";
                 }else{
-                    receive_json->clear();
                     BOOST_LOG_TRIVIAL(info) << "HMSQuery: update hms info error = " << j["result"].get<int>();
                 }
             }
@@ -92,21 +126,70 @@ int HMSQuery::download_hms_related(std::string hms_type, json* receive_json)
             BOOST_LOG_TRIVIAL(error) << "HMSQuery: update hms info error = " << error << ", body = " << body << ", status = " << status;
         }).perform_sync();
 
-        if (!receive_json->empty() && save_local == true) {
-            save_to_local(lang, hms_type, *receive_json);
-            save_local = false;
+        if (to_save_local && !receive_json->empty()) {
+            save_to_local(lang, hms_type, dev_id_type, j);
         }
     return 0;
 }
 
-int HMSQuery::load_from_local(std::string& version_info, std::string hms_type, json* load_json)
+
+static void
+_copy_dir(const fs::path& from_dir, const fs::path& to_dir) /* copy and override with local files*/
+{
+    try
+    {
+	    if (!fs::exists(from_dir))
+	    {
+	        return;
+	    }
+
+	    if (!fs::exists(to_dir))
+	    {
+	        fs::create_directory(to_dir);
+	    }
+
+	    for (const auto &entry : fs::directory_iterator(from_dir))
+	    {
+	        const fs::path &source_path   = entry.path();
+	        const fs::path &relative_path = fs::relative(source_path, from_dir);
+	        const fs::path &dest_path     = to_dir / relative_path;
+
+	        if (fs::is_regular_file(source_path))
+            {
+                if (fs::exists(dest_path))
+                {
+                    fs::remove(dest_path);
+                }
+
+                copy_file(source_path, dest_path);
+            }
+            else if (fs::is_directory(source_path))
+            {
+                _copy_dir(source_path, dest_path);
+            }
+	    }
+    }
+    catch (...)
+    {
+
+    }
+}
+
+void HMSQuery::copy_from_data_dir_to_local()
+{
+    const fs::path& from_dir = fs::path(Slic3r::resources_dir()) / HMS_PATH;
+    const fs::path& to_dir = fs::path(Slic3r::data_dir()) / HMS_PATH;
+    _copy_dir(from_dir, to_dir);
+}
+
+int HMSQuery::load_from_local(const std::string& hms_type, const std::string& dev_id_type, json* load_json, std::string& load_version)
 {
     if (data_dir().empty()) {
-        version_info = "0";
+        load_version = "0";
         BOOST_LOG_TRIVIAL(error) << "HMS: load_from_local, data_dir() is empty";
         return -1;
     }
-    std::string filename = get_hms_file(hms_type, HMSQuery::hms_language_code());
+    std::string filename = get_hms_file(hms_type, HMSQuery::hms_language_code(), dev_id_type);
     auto hms_folder = (boost::filesystem::path(data_dir()) / "hms");
     if (!fs::exists(hms_folder))
         fs::create_directory(hms_folder);
@@ -114,32 +197,44 @@ int HMSQuery::load_from_local(std::string& version_info, std::string hms_type, j
     std::string dir_str = (hms_folder / filename).make_preferred().string();
     std::ifstream json_file(encode_path(dir_str.c_str()));
     try {
-        if (json_file.is_open()) {
-            json_file >> (*load_json);
-            if ((*load_json).contains("version")) {
-                version_info = (*load_json)["version"].get<std::string>();
-                return 0;
-            } else {
-                BOOST_LOG_TRIVIAL(warning) << "HMS: load_from_local, no version info";
-                return 0;
+        if (json_file.is_open())
+        {
+            const json &j = json::parse(json_file);
+            if (hms_type.compare(QUERY_HMS_INFO) == 0) {
+                if (j.contains("data")) { (*load_json) = j["data"]; }
+            } else if (hms_type.compare(QUERY_HMS_ACTION) == 0) {
+                if (j.contains("data")) { (*load_json)["data"] = j["data"]; }
             }
+
+            if (j.contains("version")) {
+                load_version = DevJsonValParser::get_longlong_val(j["version"]);
+            }
+            else if (j.contains("ver")) {
+                load_version = DevJsonValParser::get_longlong_val(j["ver"]);
+            }
+            else
+            {
+                BOOST_LOG_TRIVIAL(warning) << "HMS: load_from_local, no version info";
+            }
+
+            return 0;
         }
     } catch(...) {
-        version_info = "0";
+        load_version = "0";
         BOOST_LOG_TRIVIAL(error) << "HMS: load_from_local failed";
         return -1;
     }
-    version_info = "0";
+    load_version = "0";
     return 0;
 }
 
-int HMSQuery::save_to_local(std::string lang, std::string hms_type, json save_json)
+int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string dev_id_type, json save_json)
 {
     if (data_dir().empty()) {
         BOOST_LOG_TRIVIAL(error) << "HMS: save_to_local, data_dir() is empty";
         return -1;
     }
-    std::string filename = get_hms_file(hms_type,lang);
+    std::string filename = get_hms_file(hms_type,lang, dev_id_type);
     auto hms_folder = (boost::filesystem::path(data_dir()) / "hms");
     if (!fs::exists(hms_folder))
         fs::create_directory(hms_folder);
@@ -182,76 +277,169 @@ std::string HMSQuery::build_query_params(std::string& lang)
     return query_params;
 }
 
-std::string HMSQuery::get_hms_file(std::string hms_type, std::string lang)
+std::string HMSQuery::get_hms_file(std::string hms_type, std::string lang, std::string dev_id_type)
 {
     //return hms action filename
     if (hms_type.compare(QUERY_HMS_ACTION) == 0) {
-        return (boost::format("hms_action.json")).str();
+        return (boost::format("hms_action_%1%.json") % dev_id_type).str();
     }
     //return hms filename
-    return (boost::format("hms_%1%.json") % lang).str();
+    return (boost::format("hms_%1%_%2%.json") % lang % dev_id_type).str();
 }
 
-wxString HMSQuery::query_hms_msg(std::string long_error_code)
+wxString HMSQuery::query_hms_msg(const MachineObject* obj, const std::string& long_error_code)
+{
+    if (!obj)
+    {
+        return wxEmptyString;
+    }
+
+    AppConfig* config = wxGetApp().app_config;
+    if (!config) return wxEmptyString;
+    const std::string& lang_code = HMSQuery::hms_language_code();
+    return _query_hms_msg(get_dev_id_type(obj),long_error_code, lang_code);
+}
+
+wxString HMSQuery::query_hms_msg(const std::string& dev_id, const std::string& long_error_code)
 {
     AppConfig* config = wxGetApp().app_config;
     if (!config) return wxEmptyString;
-    std::string lang_code = HMSQuery::hms_language_code();
-    return _query_hms_msg(long_error_code, lang_code);
+    const std::string& lang_code = HMSQuery::hms_language_code();
+    return _query_hms_msg(dev_id.substr(0, 3), long_error_code, lang_code);
 }
 
-wxString HMSQuery::_query_hms_msg(std::string long_error_code, std::string lang_code)
+string HMSQuery::get_dev_id_type(const MachineObject* obj) const
+{
+    if (obj)
+    {
+        return obj->get_dev_id().substr(0, 3);
+    }
+
+    return string();
+}
+
+wxString HMSQuery::_query_hms_msg(const string& dev_id_type, const string& long_error_code, const string& lang_code)
 {
     if (long_error_code.empty())
+    {
         return wxEmptyString;
+    }
 
-    if (m_hms_info_json.contains("device_hms")) {
-        if (m_hms_info_json["device_hms"].contains(lang_code)) {
-            for (auto item = m_hms_info_json["device_hms"][lang_code].begin(); item != m_hms_info_json["device_hms"][lang_code].end(); item++) {
-                if (item->contains("ecode")) {
-                    std::string temp_string =  (*item)["ecode"].get<std::string>();
-                    if (boost::to_upper_copy(temp_string) == long_error_code) {
-                        if (item->contains("intro")) {
-                            return wxString::FromUTF8((*item)["intro"].get<std::string>());
-                        }
-                    }
-                }
-            }
-            BOOST_LOG_TRIVIAL(info) << "hms: query_hms_msg, not found error_code = " << long_error_code;
-        } else {
-            BOOST_LOG_TRIVIAL(error) << "hms: query_hms_msg, do not contains lang_code = " << lang_code;
-            // return first language
-            if (!m_hms_info_json["device_hms"].empty()) {
-                for (auto lang : m_hms_info_json["device_hms"]) {
-                    for (auto item = lang.begin(); item != lang.end(); item++) {
-                        if (item->contains("ecode")) {
-                            std::string temp_string = (*item)["ecode"].get<std::string>();
-                            if (boost::to_upper_copy(temp_string) == long_error_code) {
-                                if (item->contains("intro")) {
-                                    return wxString::FromUTF8((*item)["intro"].get<std::string>());
-                                }
-                            }
+    init_hms_info(dev_id_type);
+    auto iter = m_hms_info_jsons.find(dev_id_type);
+    if (iter == m_hms_info_jsons.end())
+    {
+        BOOST_LOG_TRIVIAL(error) << "there are no hms info for the device";
+        return wxEmptyString;
+    }
+
+    const json& m_hms_info_json = iter->second;
+    if (!m_hms_info_json.is_object())
+    {
+        BOOST_LOG_TRIVIAL(error) << "the hms info is not a valid json object";
+        return wxEmptyString;
+    }
+
+    const json& device_hms_json = m_hms_info_json.value("device_hms", json());
+    if (device_hms_json.is_null() || !device_hms_json.is_object())
+    {
+        BOOST_LOG_TRIVIAL(error) << "there are no valid json object named device_hms";
+        return wxEmptyString;
+    }
+
+    const json& device_hms_msg_json = device_hms_json.value(lang_code, json());
+    if (device_hms_msg_json.is_null())
+    {
+        BOOST_LOG_TRIVIAL(error) << "hms: query_hms_msg, do not contains lang_code = " << lang_code;
+        if (lang_code.empty()) /*traverse all if lang_code is empty*/
+        {
+            for (const auto& lang_item : device_hms_json)
+            {
+                for (const auto& msg_item : lang_item)
+                {
+                    if (msg_item.is_object())
+                    {
+                        const std::string& error_code = msg_item.value("ecode", json()).get<std::string>();
+                        if (boost::to_upper_copy(error_code) == long_error_code && msg_item.contains("intro"))
+                        {
+                            BOOST_LOG_TRIVIAL(info) << "retry without lang_code successed.";
+                            return wxString::FromUTF8(msg_item["intro"].get<std::string>());
                         }
                     }
                 }
             }
         }
-    } else {
-        BOOST_LOG_TRIVIAL(info) << "device_hms is not exists";
+
         return wxEmptyString;
     }
+
+    for (const auto& item : device_hms_msg_json)
+    {
+        if (item.is_object())
+        {
+            const std::string& error_code = item.value("ecode", json()).get<std::string>();
+            if (boost::to_upper_copy(error_code) == long_error_code && item.contains("intro"))
+            {
+                return wxString::FromUTF8(item["intro"].get<std::string>());
+            }
+        }
+    }
+
+    BOOST_LOG_TRIVIAL(error) << "hms: query_hms_msg, do not contains valid message, lang_code = " << lang_code << " long_error_code = " << long_error_code;
     return wxEmptyString;
 }
 
-bool HMSQuery::_query_error_msg(wxString &error_msg, std::string error_code, std::string lang_code)
+bool HMSQuery::_is_internal_error(const string &dev_id_type,
+                                  const string &error_code,
+                                  const string &lang_code)
 {
+    init_hms_info(dev_id_type);
+    auto iter = m_hms_info_jsons.find(dev_id_type);
+    if (iter == m_hms_info_jsons.end()) { return false; }
+
+    const json &m_hms_info_json = iter->second;
+    if (m_hms_info_json.contains("device_error")) {
+        if (m_hms_info_json["device_error"].contains(lang_code)) {
+            for (auto item = m_hms_info_json["device_error"][lang_code].begin(); item != m_hms_info_json["device_error"][lang_code].end(); item++) {
+                if (item->contains("ecode") && boost::to_upper_copy((*item)["ecode"].get<std::string>()) == error_code) {
+                    if (item->contains("intro")) { return wxString::FromUTF8((*item)["intro"].get<std::string>()).IsEmpty(); }
+                }
+            }
+        } else {
+            // return first language
+            if (!m_hms_info_json["device_error"].empty()) {
+                for (auto lang : m_hms_info_json["device_error"]) {
+                    for (auto item = lang.begin(); item != lang.end(); item++) {
+                        if (item->contains("ecode") && boost::to_upper_copy((*item)["ecode"].get<std::string>()) == error_code) {
+                            if (item->contains("intro")) { return wxString::FromUTF8((*item)["intro"].get<std::string>()).IsEmpty(); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+wxString HMSQuery::_query_error_msg(const std::string &dev_id_type,
+                                    const std::string& error_code,
+                                    const std::string& lang_code)
+{
+    init_hms_info(dev_id_type);
+    auto iter = m_hms_info_jsons.find(dev_id_type);
+    if (iter == m_hms_info_jsons.end())
+    {
+        return wxEmptyString;
+    }
+
+    const json& m_hms_info_json = iter->second;
     if (m_hms_info_json.contains("device_error")) {
         if (m_hms_info_json["device_error"].contains(lang_code)) {
             for (auto item = m_hms_info_json["device_error"][lang_code].begin(); item != m_hms_info_json["device_error"][lang_code].end(); item++) {
                 if (item->contains("ecode") && boost::to_upper_copy((*item)["ecode"].get<std::string>()) == error_code) {
                     if (item->contains("intro")) {
-                        error_msg = wxString::FromUTF8((*item)["intro"].get<std::string>());
-                        return true;
+                        return wxString::FromUTF8((*item)["intro"].get<std::string>());
                     }
                 }
             }
@@ -264,8 +452,7 @@ bool HMSQuery::_query_error_msg(wxString &error_msg, std::string error_code, std
                     for (auto item = lang.begin(); item != lang.end(); item++) {
                         if (item->contains("ecode") && boost::to_upper_copy((*item)["ecode"].get<std::string>()) == error_code) {
                             if (item->contains("intro")) {
-                                error_msg = wxString::FromUTF8((*item)["intro"].get<std::string>());
-                                return true;
+                                return wxString::FromUTF8((*item)["intro"].get<std::string>());
                             }
                         }
                     }
@@ -275,19 +462,27 @@ bool HMSQuery::_query_error_msg(wxString &error_msg, std::string error_code, std
     }
     else {
         BOOST_LOG_TRIVIAL(info) << "device_error is not exists";
-        error_msg = wxEmptyString;
-        return false;
+        return wxEmptyString;
     }
-    error_msg = wxEmptyString;
-    return false;
+
+    return wxEmptyString;
 }
 
-wxString HMSQuery::_query_error_url_action(std::string long_error_code, std::string dev_id, std::vector<int>& button_action)
+wxString HMSQuery::_query_error_image_action(const std::string& dev_id_type, const std::string& long_error_code, std::vector<int>& button_action)
 {
+    init_hms_info(dev_id_type);
+
+    auto iter = m_hms_action_jsons.find(dev_id_type);
+    if (iter == m_hms_action_jsons.end())
+    {
+        return wxEmptyString;
+    }
+
+    const json& m_hms_action_json = iter->second;
     if (m_hms_action_json.contains("data")) {
         for (auto item = m_hms_action_json["data"].begin(); item != m_hms_action_json["data"].end(); item++) {
             if (item->contains("ecode") && boost::to_upper_copy((*item)["ecode"].get<std::string>()) == long_error_code) {
-                if (item->contains("device") && (boost::to_upper_copy((*item)["device"].get<std::string>()) == dev_id ||
+                if (item->contains("device") && (boost::to_upper_copy((*item)["device"].get<std::string>()) == dev_id_type ||
                     (*item)["device"].get<std::string>() == "default")) {
                     if (item->contains("actions")) {
                         for (auto item_actions = (*item)["actions"].begin(); item_actions != (*item)["actions"].end(); item_actions++) {
@@ -309,39 +504,139 @@ wxString HMSQuery::_query_error_url_action(std::string long_error_code, std::str
 }
 
 
-bool HMSQuery::query_print_error_msg(int print_error, wxString &error_msg)
+bool HMSQuery::is_internal_error(const MachineObject *obj, int print_error)
 {
     char buf[32];
     ::sprintf(buf, "%08X", print_error);
     std::string lang_code = HMSQuery::hms_language_code();
-    return _query_error_msg(error_msg, std::string(buf), lang_code);
+    return _is_internal_error(get_dev_id_type(obj), std::string(buf), lang_code);
 }
 
-wxString HMSQuery::query_print_error_url_action(int print_error, std::string dev_id, std::vector<int>& button_action)
+wxString HMSQuery::query_print_error_msg(const MachineObject *obj, int print_error)
+{
+    if (!obj)
+    {
+        return wxEmptyString;
+    }
+
+    char buf[32];
+    ::sprintf(buf, "%08X", print_error);
+    std::string lang_code = HMSQuery::hms_language_code();
+    return _query_error_msg(get_dev_id_type(obj), std::string(buf), lang_code);
+}
+
+wxString HMSQuery::query_print_error_msg(const std::string& dev_id, int print_error)
 {
     char buf[32];
     ::sprintf(buf, "%08X", print_error);
-    //The first three digits of SN number
-    dev_id = dev_id.substr(0, 3);
-    return _query_error_url_action(std::string(buf), dev_id, button_action);
+    std::string lang_code = HMSQuery::hms_language_code();
+    return _query_error_msg(dev_id.substr(0, 3), std::string(buf), lang_code);
 }
 
 
-int HMSQuery::check_hms_info()
+wxString HMSQuery::query_print_image_action(const MachineObject* obj, int print_error, std::vector<int>& button_action)
 {
-    boost::thread check_thread = boost::thread([this] {
+    if (!obj)
+    {
+        return wxEmptyString;
+    }
 
-        download_hms_related(QUERY_HMS_INFO, &m_hms_info_json);
-        download_hms_related(QUERY_HMS_ACTION, &m_hms_action_json);
-        return 0;
-    });
-    return 0;
+    char buf[32];
+    ::sprintf(buf, "%08X", print_error);
+    //The first three digits of SN number
+    const auto result = _query_error_image_action(get_dev_id_type(obj),std::string(buf), button_action);
+    if (wxGetApp().app_config->get_stealth_mode() && result.Contains("http")) {
+        return wxEmptyString;
+    }
+    return result;
+}
+
+wxImage HMSQuery::query_image_from_local(const wxString& image_name)
+{
+    if (image_name.empty() || image_name.Contains("http"))
+    {
+        return wxImage();
+    }
+
+    if (m_hms_local_images.empty())
+    {
+        const fs::path& local_img_dir = fs::path(Slic3r::data_dir()) / HMS_LOCAL_IMG_PATH;
+        if (fs::exists(local_img_dir))
+        {
+            for (const auto &entry : fs::directory_iterator(local_img_dir))
+            {
+                const fs::path& image_path = entry.path();
+                const fs::path& image_name = fs::relative(image_path, local_img_dir);
+                m_hms_local_images[image_name.string()] = wxImage(wxString::FromUTF8(image_path.string()));
+            }
+        }
+    }
+
+    auto iter = m_hms_local_images.find(image_name);
+    if (iter != m_hms_local_images.end())
+    {
+        return iter->second;
+    }
+
+    return wxImage();
+}
+
+void HMSQuery::clear_hms_info()
+{
+    std::unique_lock unique_lock(m_hms_mutex);
+    m_hms_info_jsons.clear();
+    m_hms_action_jsons.clear();
+    m_cloud_hms_last_update_time.clear();
+}
+
+void HMSQuery::init_hms_info(const std::string& dev_type_id)
+{
+    std::unique_lock unique_lock(m_hms_mutex);
+    if (package_dev_id_types.count(dev_type_id) != 0)
+    {
+        /*the local one only load once*/
+        if (m_hms_info_jsons.count(dev_type_id) == 0) {
+
+            std::string load_version;
+            load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*load from local first*/
+            if (load_version.empty() || load_version == "0") {
+                copy_from_data_dir_to_local(); // STUDIO-9512
+                load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
+            }
+        }
+
+        if (m_hms_action_jsons.count(dev_type_id) == 0) {
+            std::string load_version;
+            load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*load from local first*/
+            if (load_version.empty() || load_version == "0") {
+                copy_from_data_dir_to_local(); // STUDIO-9512
+                load_from_local(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id], load_version);/*copy files to local, and retry load*/
+            }
+        }
+    }
+
+    /*download from cloud*/
+    time_t info_last_update_time = m_cloud_hms_last_update_time[dev_type_id];
+
+    /* check hms is valid or not */
+    bool retry = false;
+    if(m_hms_info_jsons[dev_type_id].empty() || m_hms_action_jsons[dev_type_id].empty()){
+        retry =time(nullptr) - info_last_update_time > (60 * 1); // retry after 1 minute
+    }
+
+    if (time(nullptr) - info_last_update_time > (60 * 60 * 24) || retry)/*do not update in one day to reduce waiting*/
+    {
+        download_hms_related(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id]);
+        download_hms_related(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id]);
+        m_cloud_hms_last_update_time[dev_type_id] = time(nullptr);
+    }
 }
 
 std::string get_hms_wiki_url(std::string error_code)
 {
     AppConfig* config = wxGetApp().app_config;
     if (!config) return "";
+    if (config->get_stealth_mode()) return "";
 
     std::string hms_host = wxGetApp().app_config->get_hms_host();
     std::string lang_code = HMSQuery::hms_language_code();
@@ -355,11 +650,11 @@ std::string get_hms_wiki_url(std::string error_code)
     MachineObject* obj = dev->get_selected_machine();
     if (!obj) return url;
 
-    if (!obj->dev_id.empty()) {
+    if (!obj->get_dev_id().empty()) {
         url = (boost::format("https://%1%/index.php?e=%2%&d=%3%&s=device_hms&lang=%4%")
                        % hms_host
                        % error_code
-                       % obj->dev_id
+                       % obj->get_dev_id()
                        % lang_code).str();
     }
     return url;
@@ -367,6 +662,8 @@ std::string get_hms_wiki_url(std::string error_code)
 
 std::string get_error_message(int error_code)
 {
+    if (wxGetApp().app_config->get_stealth_mode()) return "";
+
 	char buf[64];
     std::string result_str = "";
     std::sprintf(buf,"%08X",error_code);
@@ -408,7 +705,7 @@ std::string get_error_message(int error_code)
         }
         })
         .on_error([](std::string body, std::string error, unsigned status) {
-            BOOST_LOG_TRIVIAL(trace) << boost::format("[BBL ErrorMessage]: status=%1%, error=%2%, body=%3%") % status % error % body;
+            BOOST_LOG_TRIVIAL(info) << boost::format("[BBL ErrorMessage]: status=%1%, error=%2%, body=%3%") % status % error % body;
         }).perform_sync();
 
         return result_str;

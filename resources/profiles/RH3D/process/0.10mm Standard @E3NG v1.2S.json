@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard @E3NG v1.2S",
+    "inherits": "process_common_E3NG v1.2S",
+    "from": "system",
+    "setting_id": "NG2010",
+    "instantiation": "true",
+    "layer_height": "0.1",
+    "initial_layer_print_height": "0.15",
+    "compatible_printers": [
+        "E3NG v1.2S - 0.2 nozzle",
+        "E3NG v1.2S - 0.3 nozzle",
+        "E3NG v1.2S - 0.4 nozzle"
+    ]
+}

@@ -108,7 +108,7 @@
     ],
     "machine_start_gcode": "G90 ;Use absolute coordinates\nM83 ;Extruder relative mode\nM104 S[first_layer_temperature] ;Set extruder temp\nM140 S[first_layer_bed_temperature] ;Set bed temp\nM190 S[first_layer_bed_temperature] ;Wait for bed temp\nM109 S[first_layer_temperature] ;Wait for extruder temp\nG28 ;Move X/Y/Z to min endstops\nG1 Z0.28 ;Lift nozzle a bit\nG92 E0 ;Specify current extruder position as zero\nG1 Y3 F1800 ;Move Y to purge point\nG1 X60 E25 F500 ;Extrude 25mm of filament in a 5cm line\nG92 E0 ;Zero the extruded length again\nG1 E-2 F500 ;Retract a little\nG1 X70 F4000 ;Quickly wipe away from the filament line\nM117",
     "machine_end_gcode": "M104 S0 ;Extruder off\nM140 S0 ;Heatbed off\nM107 ;Fan off\nG91 ;Relative positioning\nG1 E-5 F3000 ;Retract filament\nG1 Z+0.3 F3000 ;Lift print head\nG28 X0 F3000 ;Home X axis\nM84 ;Disable stepper motors",
-    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n[layer_num] @ [layer_z]mm/nG92 E0",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n[layer_num] @ [layer_z]mm\nG92 E0",
     "layer_change_gcode": ";AFTER_LAYER_CHANGE\n[layer_num] @ [layer_z]mm",
     "scan_first_layer": "0"
 }

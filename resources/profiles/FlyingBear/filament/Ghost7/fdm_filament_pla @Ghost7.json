@@ -29,7 +29,7 @@
         "60"
     ],
     "hot_plate_temp": [
-        "60"
+        "55"
     ],
     "textured_plate_temp": [
         "60"
@@ -41,13 +41,13 @@
         "60"
     ],
     "hot_plate_temp_initial_layer": [
-        "60"
+        "55"
     ],
     "textured_plate_temp_initial_layer": [
         "60"
     ],
     "nozzle_temperature_initial_layer": [
-        "220"
+        "210"
     ],
     "reduce_fan_stop_start_freq": [
         "1"
@@ -71,7 +71,7 @@
         "1"
     ],
     "nozzle_temperature": [
-        "220"
+        "210"
     ],
     "temperature_vitrification": [
         "60"

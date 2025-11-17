@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Translucent @BBL X1C",
+    "inherits": "Bambu PLA Translucent @base",
+    "from": "system",
+    "setting_id": "GFSA17_00",
+    "instantiation": "true",
+    "description": "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets.",
+    "filament_retract_before_wipe": [
+        "0"
+    ],
+    "nozzle_temperature_range_low": [
+        "200"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.4 nozzle",
+        "Bambu Lab X1 0.4 nozzle",
+        "Bambu Lab P1S 0.4 nozzle",
+        "Bambu Lab X1E 0.4 nozzle"
+    ]
+}

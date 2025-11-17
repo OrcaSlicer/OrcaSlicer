@@ -7,11 +7,15 @@
 #include "Widgets/RadioBox.hpp"
 #include <wx/listimpl.cpp>
 
+#include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevStorage.h"
+
 namespace Slic3r {
 namespace GUI {
 
-
-
+#define MATERIAL_ITEM_SIZE wxSize(FromDIP(64), FromDIP(34))
+#define MATERIAL_ITEM_REAL_SIZE wxSize(FromDIP(62), FromDIP(32))
+#define MAPPING_ITEM_REAL_SIZE wxSize(FromDIP(48), FromDIP(45))
 WX_DEFINE_LIST(AmsRadioSelectorList);
 
 class ScrolledWindow : public wxScrolledWindow {
@@ -198,11 +202,11 @@ void SendDeviceItem::doRender(wxDC& dc)
     if (state_local_task <= 1) {
         dc.DrawBitmap(m_bitmap_check_disable.bmp(), wxPoint(left, (size.y - m_bitmap_check_disable.GetBmpSize().y) / 2 ));
     }
- 
+
     left += FromDIP(SEND_LEFT_PRINTABLE);
-     
+
     //dev names
-    DrawTextWithEllipsis(dc, wxString::FromUTF8(get_obj()->dev_name),  FromDIP(SEND_LEFT_DEV_NAME), left);
+    DrawTextWithEllipsis(dc, wxString::FromUTF8(get_obj()->get_dev_name()),  FromDIP(SEND_LEFT_DEV_NAME), left);
     left += FromDIP(SEND_LEFT_DEV_NAME);
 
     //device state
@@ -224,7 +228,7 @@ void SendDeviceItem::doRender(wxDC& dc)
 
 
     //AMS
-    if (!obj_->has_ams()) {
+    if (!obj_->HasAms()) {
         DrawTextWithEllipsis(dc, _L("No AMS"), FromDIP(SEND_LEFT_DEV_NAME), left);
     }
     else {
@@ -240,7 +244,7 @@ void SendDeviceItem::doRender(wxDC& dc)
 void SendDeviceItem::post_event(wxCommandEvent&& event)
 {
     event.SetEventObject(this);
-    event.SetString(obj_->dev_id);
+    event.SetString(obj_->get_dev_id());
     event.SetInt(state_selected);
     wxPostEvent(this, event);
 }
@@ -347,6 +351,8 @@ void SendMultiMachinePage::on_dpi_changed(const wxRect& suggested_rect)
     for (auto it = m_device_items.begin(); it != m_device_items.end(); ++it) {
         it->second->Refresh();
     }
+
+    if (m_mapping_popup) { m_mapping_popup->msw_rescale();}
 
     Fit();
     Layout();
@@ -460,13 +466,13 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
         if (rs->m_param_name == "use_extra" && rs->m_radiobox->GetValue()) {
             use_ams = false;
         }
-        
+
         node = node->GetNext();
     }
 
     //use ams
 
-   
+
     PrintPrepareData job_data;
     m_plater->get_print_job_data(&job_data);
 
@@ -485,9 +491,9 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
     else
         curr_plate_idx = m_plater->get_partplate_list().get_curr_plate_index() + 1;
 
-    params.dev_ip = obj->dev_ip;
-    params.dev_id = obj->dev_id;
-    params.dev_name = obj->dev_name;
+    params.dev_ip = obj->get_dev_ip();
+    params.dev_id = obj->get_dev_id();
+    params.dev_name = obj->get_dev_name();
     params.ftp_folder = obj->get_ftp_folder();
     params.connection_type = obj->connection_type();
     params.print_type = "from_normal";
@@ -502,16 +508,49 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
 
     if (use_ams) {
         std::string ams_array;
+        std::string ams_array2;
         std::string mapping_info;
-        get_ams_mapping_result(ams_array, mapping_info);
+        get_ams_mapping_result(ams_array, ams_array2, mapping_info);
         params.ams_mapping = ams_array;
+        params.ams_mapping2 = ams_array2;
         params.ams_mapping_info = mapping_info;
     }
     else {
-        params.ams_mapping = "";
-        params.ams_mapping_info = "";
+        std::string temp;
+        std::string ams_array;
+        std::string ams_array2;
+        std::string mapping_info;
+
+        // change to old version
+        for(auto &info : m_ams_mapping_result){
+            info.tray_id = VIRTUAL_TRAY_DEPUTY_ID;
+            info.ams_id = VIRTUAL_AMS_DEPUTY_ID_STR;
+            info.slot_id = "0";
+        }
+        get_ams_mapping_result(ams_array, temp, mapping_info);
+
+        // change to new version
+        for(auto &info : m_ams_mapping_result){
+            info.tray_id = VIRTUAL_TRAY_DEPUTY_ID;
+            info.ams_id = VIRTUAL_AMS_MAIN_ID_STR;
+            info.slot_id = "0";
+        }
+        temp.clear();
+        mapping_info.clear();
+        get_ams_mapping_result(temp, ams_array2, mapping_info);
+
+        // restore
+        for(auto &info : m_ams_mapping_result){
+            info.tray_id = 0;
+            info.ams_id = "";
+            info.slot_id = "";
+        }
+
+        params.ams_mapping = ams_array;
+        params.ams_mapping2 = ams_array2;
+        params.ams_mapping_info = mapping_info;
     }
-    
+
     params.connection_type = obj->connection_type();
     params.task_use_ams = use_ams;
 
@@ -527,7 +566,7 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
     else {
         filename = m_current_project_name;
     }
-    
+
     if (m_print_plate_idx == PLATE_ALL_IDX && filename.empty()) {
         filename = _L("Untitled");
     }
@@ -565,7 +604,7 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
             params.comments = "no_ip";
         else if (obj->is_support_cloud_print_only)
             params.comments = "low_version";
-        else if (obj->get_sdcard_state() == MachineObject::SdcardState::NO_SDCARD)
+        else if (obj->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)
             params.comments = "no_sdcard";
         else if (params.password.empty())
             params.comments = "no_password";
@@ -574,13 +613,12 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
     return params;
 }
 
-bool SendMultiMachinePage::get_ams_mapping_result(std::string& mapping_array_str, std::string& ams_mapping_info)
+bool SendMultiMachinePage::get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info)
 {
-    if (m_ams_mapping_result.empty())
-        return false;
+    if (m_ams_mapping_result.empty()) return false;
 
     bool valid_mapping_result = true;
-    int invalid_count = 0;
+    int  invalid_count        = 0;
     for (int i = 0; i < m_ams_mapping_result.size(); i++) {
         if (m_ams_mapping_result[i].tray_id == -1) {
             valid_mapping_result = false;
@@ -590,38 +628,72 @@ bool SendMultiMachinePage::get_ams_mapping_result(std::string& mapping_array_str
 
     if (invalid_count == m_ams_mapping_result.size()) {
         return false;
-    }
-    else {
-        json          j = json::array();
+    } else {
+        json mapping_v0_json   = json::array();
+        json mapping_v1_json   = json::array();
         json mapping_info_json = json::array();
 
-        for (int i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); i++) {
-            int tray_id = -1;
-            json mapping_item;
-            mapping_item["ams"] = tray_id;
-            mapping_item["targetColor"] = "";
-            mapping_item["filamentId"] = "";
-            mapping_item["filamentType"] = "";
+        /* get filament maps */
+        std::vector<int> filament_maps;
+        Plater *         plater = wxGetApp().plater();
+        if (plater) {
+            PartPlate *curr_plate = plater->get_partplate_list().get_curr_plate();
+            if (curr_plate) {
+                filament_maps = curr_plate->get_filament_maps();
+            } else {
+                BOOST_LOG_TRIVIAL(error) << "get_ams_mapping_result, curr_plate is nullptr";
+            }
+        } else {
+            BOOST_LOG_TRIVIAL(error) << "get_ams_mapping_result, plater is nullptr";
+        }
 
+        for (int i = 0; i < wxGetApp().preset_bundle->filament_presets.size(); i++) {
+            int  tray_id = -1;
+            json mapping_item_v1;
+            mapping_item_v1["ams_id"]  = 0xff;
+            mapping_item_v1["slot_id"] = 0xff;
+            json mapping_item;
+            mapping_item["ams"]          = tray_id;
+            mapping_item["targetColor"]  = "";
+            mapping_item["filamentId"]   = "";
+            mapping_item["filamentType"] = "";
             for (int k = 0; k < m_ams_mapping_result.size(); k++) {
                 if (m_ams_mapping_result[k].id == i) {
-                    tray_id = m_ams_mapping_result[k].tray_id;
-                    mapping_item["ams"] = tray_id;
+                    tray_id                      = m_ams_mapping_result[k].tray_id;
+                    mapping_item["ams"]          = tray_id;
                     mapping_item["filamentType"] = m_filaments[k].type;
-                    auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
-                    if (it != nullptr) {
-                        mapping_item["filamentId"] = it->filament_id;
+                    if (i >= 0 && i < wxGetApp().preset_bundle->filament_presets.size()) {
+                        auto it = wxGetApp().preset_bundle->filaments.find_preset(wxGetApp().preset_bundle->filament_presets[i]);
+                        if (it != nullptr) { mapping_item["filamentId"] = it->filament_id; }
                     }
-                    //convert #RRGGBB to RRGGBBAA
+                    /* nozzle id */
+                    mapping_item["nozzleId"] = 0;
+
+                    // convert #RRGGBB to RRGGBBAA
                     mapping_item["sourceColor"] = m_filaments[k].color;
                     mapping_item["targetColor"] = m_ams_mapping_result[k].color;
+                    if (tray_id == VIRTUAL_TRAY_MAIN_ID || tray_id == VIRTUAL_TRAY_DEPUTY_ID) { tray_id = -1; }
+
+                    /*new ams mapping data*/
+                    try {
+                        if (m_ams_mapping_result[k].ams_id.empty() || m_ams_mapping_result[k].slot_id.empty()) { // invalid case
+                            mapping_item_v1["ams_id"]  = VIRTUAL_TRAY_MAIN_ID;
+                            mapping_item_v1["slot_id"] = VIRTUAL_TRAY_MAIN_ID;
+                        } else {
+                            mapping_item_v1["ams_id"]  = std::stoi(m_ams_mapping_result[k].ams_id);
+                            mapping_item_v1["slot_id"] = std::stoi(m_ams_mapping_result[k].slot_id);
+                        }
+                    } catch (...) {}
                 }
             }
-            j.push_back(tray_id);
+            mapping_v0_json.push_back(tray_id);
+            mapping_v1_json.push_back(mapping_item_v1);
             mapping_info_json.push_back(mapping_item);
         }
-        mapping_array_str = j.dump();
-        ams_mapping_info = mapping_info_json.dump();
+
+        mapping_array_str  = mapping_v0_json.dump();
+        mapping_array_str2 = mapping_v1_json.dump();
+        ams_mapping_info   = mapping_info_json.dump();
         return valid_mapping_result;
     }
     return true;
@@ -655,7 +727,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
     // export config 3mf if needed
     result = m_plater->export_config_3mf(m_print_plate_idx);
     if (result < 0) {
-        BOOST_LOG_TRIVIAL(trace) << "export_config_3mf failed, result = " << result;
+        BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
         return;
     }
 
@@ -873,16 +945,33 @@ void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
     AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
     auto                     groupid = 0;
 
-    while (node) {
-        AmsRadioSelector* rs = node->GetData();
-        if (rs->m_radiobox->GetId() == event.GetId()) groupid = rs->m_groupid;
-        node = node->GetNext();
-    }
+    //while (node) {
+    //    AmsRadioSelector* rs = node->GetData();
+    //    if (rs->m_radiobox->GetId() == event.GetId()) groupid = rs->m_groupid;
+    //    node = node->GetNext();
+    //}
 
     node = m_radio_group.GetFirst();
     while (node) {
-        AmsRadioSelector* rs = node->GetData();
-        if (rs->m_groupid == groupid && rs->m_radiobox->GetId() == event.GetId()) rs->m_radiobox->SetValue(true);
+        AmsRadioSelector *rs = node->GetData();
+        if (rs->m_groupid == groupid && rs->m_radiobox->GetId() == event.GetId()) {
+            rs->m_radiobox->SetValue(true);
+            if (rs->m_param_name == "use_external") {
+                MaterialHash::iterator iter = m_material_list.begin();
+                while (iter != m_material_list.end()) {
+                    Material *    item = iter->second;
+                    MaterialItem *m    = item->item;
+                    if (item->id == m_current_filament_id) { m->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>()); }
+                    iter++;
+                }
+            } else if (rs->m_param_name == "use_ams") {
+                m_current_filament_id = 1;
+                wxCommandEvent event(EVT_SET_FINISH_MAPPING);
+                event.SetInt(0);
+                event.SetString("206|206|206|255|A1|1|0|0");
+                wxPostEvent(this, event);
+            }
+        }
         if (rs->m_groupid == groupid && rs->m_radiobox->GetId() != event.GetId()) rs->m_radiobox->SetValue(false);
         node = node->GetNext();
     }
@@ -928,7 +1017,7 @@ void SendMultiMachinePage::on_set_finish_mapping(wxCommandEvent& evt)
 
     BOOST_LOG_TRIVIAL(info) << "The ams mapping selection result: data is " << selection_data;
 
-    if (selection_data_arr.size() == 6) {
+    if (selection_data_arr.size() == 8) {
         auto ams_colour = wxColour(wxAtoi(selection_data_arr[0]), wxAtoi(selection_data_arr[1]), wxAtoi(selection_data_arr[2]), wxAtoi(selection_data_arr[3]));
         int  old_filament_id = (int)wxAtoi(selection_data_arr[5]);
 
@@ -950,11 +1039,14 @@ void SendMultiMachinePage::on_set_finish_mapping(wxCommandEvent& evt)
         for (auto i = 0; i < m_ams_mapping_result.size(); i++) {
             if (m_ams_mapping_result[i].id == wxAtoi(selection_data_arr[5])) {
                 m_ams_mapping_result[i].tray_id = evt.GetInt();
-                auto ams_colour = wxColour(wxAtoi(selection_data_arr[0]), wxAtoi(selection_data_arr[1]), wxAtoi(selection_data_arr[2]), wxAtoi(selection_data_arr[3]));
-                wxString color = wxString::Format("#%02X%02X%02X%02X", ams_colour.Red(), ams_colour.Green(), ams_colour.Blue(), ams_colour.Alpha());
-                m_ams_mapping_result[i].color = color.ToStdString();
-                m_ams_mapping_result[i].ctype = ctype;
+                auto     ams_colour = wxColour(wxAtoi(selection_data_arr[0]), wxAtoi(selection_data_arr[1]), wxAtoi(selection_data_arr[2]), wxAtoi(selection_data_arr[3]));
+                wxString color      = wxString::Format("#%02X%02X%02X%02X", ams_colour.Red(), ams_colour.Green(), ams_colour.Blue(), ams_colour.Alpha());
+                m_ams_mapping_result[i].color  = color.ToStdString();
+                m_ams_mapping_result[i].ctype  = ctype;
                 m_ams_mapping_result[i].colors = tray_cols;
+
+                m_ams_mapping_result[i].ams_id  = selection_data_arr[6].ToStdString();
+                m_ams_mapping_result[i].slot_id = selection_data_arr[7].ToStdString();
             }
             BOOST_LOG_TRIVIAL(trace) << "The ams mapping result: id is " << m_ams_mapping_result[i].id << "tray_id is " << m_ams_mapping_result[i].tray_id;
         }
@@ -1073,7 +1165,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_sizer_basic_time->Add(m_stext_time, 0, wxALL, FromDIP(5));
     m_sizer_basic->Add(m_sizer_basic_time, 0, wxALIGN_CENTER, 0);
     m_sizer_basic->Add(0, 0, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
-    
+
     print_weight = new ScalableBitmap(m_title_panel, "print-weight", 18);
     weightimg = new wxStaticBitmap(m_title_panel, wxID_ANY, print_weight->bmp(), wxDefaultPosition, wxSize(FromDIP(18), FromDIP(18)), 0);
     m_sizer_basic_weight->Add(weightimg, 1, wxEXPAND | wxALL, FromDIP(5));
@@ -1101,7 +1193,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     // add ams item
     m_ams_list_sizer = new wxGridSizer(0, 4, 0, FromDIP(5));
-    //sync_ams_list();
+
     sizer->Add(m_ams_list_sizer, 0, wxLEFT, FromDIP(25));
     sizer->AddSpacer(FromDIP(10));
 
@@ -1127,7 +1219,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_select_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         if (m_select_checkbox->GetValue()) {
             for (auto it = m_device_items.begin(); it != m_device_items.end(); it++) {
-                
+
                 if (it->second->state_printable <= 2) {
                     it->second->selected();
                 }
@@ -1142,7 +1234,7 @@ wxPanel* SendMultiMachinePage::create_page()
         e.Skip();
     });
 
-    m_printer_name = new Button(m_table_head_panel, _L("Device Name"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SIZE);
+    m_printer_name = new Button(m_table_head_panel, _L("Device Name"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SINGLE_SIZE);
     m_printer_name->SetBackgroundColor(head_bg);
     m_printer_name->SetCornerRadius(0);
     m_printer_name->SetFont(TABLE_HEAD_FONT);
@@ -1164,7 +1256,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_table_head_sizer->Add( 0, 0, 0, wxLEFT, FromDIP(10) );
     m_table_head_sizer->Add(m_printer_name, 0, wxALIGN_CENTER_VERTICAL, 0);
 
-    m_device_status = new Button(m_table_head_panel, _L("Device Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SIZE);
+    m_device_status = new Button(m_table_head_panel, _L("Device Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SINGLE_SIZE);
     m_device_status->SetBackgroundColor(head_bg);
     m_device_status->SetFont(TABLE_HEAD_FONT);
     m_device_status->SetCornerRadius(0);
@@ -1207,7 +1299,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     //m_table_head_sizer->Add(m_task_status, 0, wxALIGN_CENTER_VERTICAL, 0);
 
-    m_ams = new Button(m_table_head_panel, _L("AMS Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SIZE, false);
+    m_ams = new Button(m_table_head_panel, _L("AMS Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SINGLE_SIZE, false);
     m_ams->SetBackgroundColor(head_bg);
     m_ams->SetCornerRadius(0);
     m_ams->SetFont(TABLE_HEAD_FONT);
@@ -1228,7 +1320,7 @@ wxPanel* SendMultiMachinePage::create_page()
     });
     m_table_head_sizer->Add(m_ams, 0, wxALIGN_CENTER_VERTICAL, 0);
 
-    m_refresh_button = new Button(m_table_head_panel, "", "mall_control_refresh", wxNO_BORDER, ICON_SIZE, false);
+    m_refresh_button = new Button(m_table_head_panel, "", "mall_control_refresh", wxNO_BORDER, ICON_SINGLE_SIZE, false);
     m_refresh_button->SetBackgroundColor(head_bg);
     m_refresh_button->SetCornerRadius(0);
     m_refresh_button->SetFont(TABLE_HEAD_FONT);
@@ -1376,7 +1468,7 @@ void SendMultiMachinePage::sync_ams_list()
         }
     }
 
-    auto           extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_used_extruders();
+    auto           extruders = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_used_filaments();
     BitmapCache    bmcache;
     MaterialHash::iterator iter = m_material_list.begin();
     while (iter != m_material_list.end()) {
@@ -1402,7 +1494,8 @@ void SendMultiMachinePage::sync_ams_list()
         if (extruder >= materials.size() || extruder < 0 || extruder >= display_materials.size()) continue;
 
         MaterialItem* item = new MaterialItem(m_main_page, colour_rgb, _L(display_materials[extruder]));
-        item->set_ams_info(wxColour("#CECECE"), "A1", 0, std::vector<wxColour>());
+        //item->set_ams_info(wxColour("#CECECE"), "A1", 0, std::vector<wxColour>());
+        item->set_ams_info(wxColour("#CECECE"), "Ext", 0, std::vector<wxColour>());
         m_ams_list_sizer->Add(item, 0, wxALL, FromDIP(4));
 
         item->Bind(wxEVT_LEFT_UP, [this, item, materials, extruder](wxMouseEvent& e) {});
@@ -1428,6 +1521,7 @@ void SendMultiMachinePage::sync_ams_list()
                 wxPoint pos = item->ClientToScreen(wxPoint(0, 0));
                 pos.y += item->GetRect().height;
                 m_mapping_popup->Move(pos);
+                m_mapping_popup->set_send_win(this);
                 m_mapping_popup->set_parent_item(item);
                 m_mapping_popup->set_current_filament_id(extruder);
                 m_mapping_popup->set_tag_texture(materials[extruder]);

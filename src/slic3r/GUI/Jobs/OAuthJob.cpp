@@ -105,7 +105,7 @@ void OAuthJob::process(Ctl& ctl)
 
     // Handle timeout
     if (!received && ctl.was_canceled()) {
-        _data.result->error_message = _u8L("User cancelled.");
+        _data.result->error_message = _u8L("User canceled.");
     } else {
         // Wait a while to ensure the response has sent
         std::this_thread::sleep_for(std::chrono::milliseconds(1500));

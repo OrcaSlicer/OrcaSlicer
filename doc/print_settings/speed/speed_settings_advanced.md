@@ -7,7 +7,7 @@ This happens by reducing the stresses put on the extrusion system as well as red
 
 This feature is especially helpful when printing at high accelerations and large flow rates as the deviations are larger in these cases.
 
-![ers-intro](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/ERS/ers-intro.png?raw=true)
+![ers-intro](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/ERS/ers-intro.png?raw=true)
 
 - [Theory](#theory)
   - [Acceleration vs. Extrusion rate smoothing](#acceleration-vs-extrusion-rate-smoothing)
@@ -28,7 +28,7 @@ In summary, **it takes the "edge" off rapid extrusion changes caused by accelera
 
 **The example below shows the artifact that is mitigated by ERS.**
 
-![ers-artefact](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/ERS/ers-artefact.jpg?raw=true)
+![ers-artefact](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/ERS/ers-artefact.jpg?raw=true)
 
 The bulging visible above is due to the extruder not being able to respond fast enough to the required speed change when printing with high accelerations and high speeds and being requested to slow down for an overhang.
 
@@ -70,7 +70,7 @@ t = \frac{v_f - v_i}{a}
 
 A printer printing at 200mm/sec with a 0.42 line width and 0.16 layer height would be extruding plastic at approx. 12.16mm³/sec, as can also be seen from the below visual.
 
-![ers-printspeed](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/ERS/ers-printspeed.png?raw=true)
+![ers-printspeed](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/ERS/ers-printspeed.png?raw=true)
 
 When the printer is extruding at 40mm/sec with the same line width and layer height as above, the flow rate is 2.43mm³/sec.
 

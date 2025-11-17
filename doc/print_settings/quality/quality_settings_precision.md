@@ -30,7 +30,7 @@ After a model is sliced this feature will replace straight line segments with ar
 
 This will result in a smaller G-code file for the same model, as arcs are used instead of many short line segments. This can improve print quality and reduce printing time, especially for curved surfaces.
 
-![arc-fitting](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/arc-fitting.svg?raw=true)
+![arc-fitting](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/arc-fitting.svg?raw=true)
 
 > [!IMPORTANT]
 > This option is only available for machines that support G2 and G3 commands and may impact in CPU usage on the printer.
@@ -44,7 +44,7 @@ Klipper does not benefit from arc commands as these are split again into line se
 Used to compensate external dimensions of the model.
 With this option you can compensate material expansion or shrinkage, which can occur due to various factors such as the type of filament used, temperature fluctuations, or printer calibration issues.
 
-Follow the [Calibration Guide](https://github.com/SoftFever/OrcaSlicer/wiki/Calibration) and [Filament Tolerance Calibration](https://github.com/SoftFever/OrcaSlicer/wiki/tolerance-calib) to determine the correct value for your printer and filament combination.
+Follow the [Calibration Guide](https://github.com/OrcaSlicer/OrcaSlicer/wiki/Calibration) and [Filament Tolerance Calibration](https://github.com/OrcaSlicer/OrcaSlicer/wiki/tolerance-calib) to determine the correct value for your printer and filament combination.
 
 ## Elephant foot compensation
 
@@ -55,15 +55,42 @@ This feature compensates for the "elephant foot" effect, which occurs when the f
 - Bed temperature being too high.
 - Inaccurate bed height.
 
-![elephant-foot](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/elephant-foot.svg?raw=true)
+![elephant-foot](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/elephant-foot.svg?raw=true)
 
 To mitigate this effect, OrcaSlicer allows you to specify a negative distance that will be applied to the first specified number of layers. This adjustment effectively reduces the width of the first few layers, helping to achieve a more accurate final print size.
 
-![elephant-foot-compensation](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/elephant-foot-compensation.png?raw=true)
+![elephant-foot-compensation](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/elephant-foot-compensation.png?raw=true)
+
+The compensation works as follows:  
+When the `current_layer` is <= `input_compensation_layers`
+```c++
+compensation = input_compensation_distance - (input_compensation_distance / input_compensation_layers) × (current_layer - 1)
+```
+According to the equation, we can establish the following rules:
+- In the 1st layer, since it is layer `1 - 1 = 0`, compensation is 100%.
+- The intermediate layers (between the first and input_compensation_layers) will have linear compensation.
+- Layers above the specified amount will not be compensated.
+
+Assuming the compensation value is 0.25 mm:
+
+- Elephant Foot Compensation Layers = 1 :
+  - 1st layer: `0.25mm` compensation (100%)
+  - 2nd layer and beyond: No compensation (0 mm)
+- Elephant Foot Compensation Layers = 2 :
+  - 1st layer: `0.25mm` compensation (100%)
+  - 2nd layer: `0.25 − (0.25 / 2) × (2 - 1) = 0.125mm` compensation (50%)
+  - 3rd layer and beyond: No compensation (0 mm).
+- Elephant Foot Compensation Layers = 5 :
+  - 1st layer: `0.25mm` compensation (100%)
+  - 2nd layer: `0.25 − (0.25 / 5) × (2 - 1) = 0.2mm` compensation (80%)
+  - 3rd layer: `0.25 − (0.25 / 5) × (3 - 1) = 0.15mm` compensation (60%)
+  - 4th layer: `0.25 − (0.25 / 5) × (4 - 1) = 0.1mm` compensation (40%)
+  - 5th layer: `0.25 − (0.25 / 5) × (5 - 1) = 0.05mm` compensation (20%)
+  - 6th layer and beyond: No compensation (0 mm).
 
 ## Precise wall
 
-The 'Precise Wall' is a distinctive feature introduced by OrcaSlicer, aimed at improving the dimensional accuracy of prints and minimizing layer inconsistencies by slightly increasing the spacing between the outer wall and the inner wall.
+The 'Precise Wall' is a distinctive feature introduced by OrcaSlicer, aimed at improving the dimensional accuracy of prints and minimizing layer inconsistencies by slightly increasing the spacing between the outer wall and the inner wall when printing in [Inner Outer wall order](quality_settings_wall_and_surfaces#innerouter).
 
 ### Technical explanation
 
@@ -74,11 +101,11 @@ Slic3r and its forks, such as PrusaSlicer, SuperSlicer and OrcaSlicer, assume th
 
 - **Precise Wall Off**
 
-  ![PreciseWallOff](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/PreciseWallOff.svg?raw=true)
+  ![PreciseWallOff](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/PreciseWallOff.svg?raw=true)
 
 - **Precise Wall On**
 
-  ![PreciseWallOn](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/PreciseWallOn.svg?raw=true)
+  ![PreciseWallOn](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/PreciseWallOn.svg?raw=true)
 
 This approach enhances the strength of 3D-printed parts. However, it does have some side effects. For instance, when the inner-outer wall order is used, the outer wall can be pushed outside, leading to potential size inaccuracy and more layer inconsistency.
 
@@ -96,17 +123,17 @@ By enabling this parameter, the layer height of the last five layers is adjusted
 
 - **Precise Z Height Off**
 
-  ![PreciseZOff](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/PreciseZOff.png?raw=true)
+  ![PreciseZOff](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/PreciseZOff.png?raw=true)
 
 - **Precise Z Height On**
 
-  ![PreciseZOn](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/PreciseZOn.png?raw=true)
+  ![PreciseZOn](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/PreciseZOn.png?raw=true)
 
 ## Polyholes
 
 A polyhole is a technique used in FFF 3D printing to improve the accuracy of circular holes. Instead of modeling a perfect circle, the hole is represented as a polygon with a reduced number of flat sides. This simplification forces the slicer to treat each segment as a straight line, which prints more reliably. By carefully choosing the number of sides and ensuring the polygon sits on the outer boundary of the hole, you can produce openings that more closely match the intended diameter.
 
-![PolyHoles](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Precision/PolyHoles.png?raw=true)
+![PolyHoles](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Precision/PolyHoles.png?raw=true)
 
 - Original implementation: [SuperSlicer Polyholes](https://github.com/supermerill/SuperSlicer/wiki/Polyholes)
 - Idea and mathematics: [Hydraraptor](https://hydraraptor.blogspot.com/2011/02/polyholes.html)

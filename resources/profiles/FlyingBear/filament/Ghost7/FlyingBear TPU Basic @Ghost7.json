@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "FlyingBear TPU Basic @Ghost7",
+    "inherits": "fdm_filament_tpu @Ghost7",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.034"
+    ],
+    "compatible_printers": [
+        "FlyingBear Ghost7 0.4 nozzle"
+    ]
+}

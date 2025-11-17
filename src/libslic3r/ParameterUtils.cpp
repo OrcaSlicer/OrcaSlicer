@@ -43,4 +43,36 @@ void get_other_layers_print_sequence(const std::vector<LayerPrintSequence> &cust
     }
 }
 
+int get_index_for_extruder_parameter(const DynamicPrintConfig &config, const std::string &opt_key, int cur_extruder_id, ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type)
+{
+    std::string  id_name, variant_name;
+    unsigned int stride = 1;
+    if (printer_options_with_variant_1.count(opt_key) > 0) { // printer parameter
+        id_name      = "printer_extruder_id";
+        variant_name = "printer_extruder_variant";
+    } else if (printer_options_with_variant_2.count(opt_key) > 0) {
+        id_name      = "printer_extruder_id";
+        variant_name = "printer_extruder_variant";
+        stride       = 2;
+    } else if (filament_options_with_variant.count(opt_key) > 0) {
+        // filament don't use id anymore
+        // id_name      = "filament_extruder_id";
+        variant_name = "filament_extruder_variant";
+    } else if (print_options_with_variant.count(opt_key) > 0) {
+        id_name      = "print_extruder_id";
+        variant_name = "print_extruder_variant";
+    } else {
+        return 0;
+    }
+
+    // variant index
+    int variant_index = config.get_index_for_extruder(cur_extruder_id + 1, id_name, extruder_type, nozzle_volume_type, variant_name, stride);
+    if (variant_index < 0) {
+        assert(false);
+        return 0;
+    }
+
+    return variant_index;
+}
+
 }; // namespace Slic3r

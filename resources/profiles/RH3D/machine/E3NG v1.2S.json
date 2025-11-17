@@ -1,0 +1,12 @@
+{
+  "type": "machine_model",
+  "name": "E3NG v1.2S",
+  "nozzle_diameter": "0.2;0.3;0.4;0.5;0.6",
+  "bed_model": "E3NG-bed.stl",
+  "bed_texture": "E3NG-bed-texture.svg",
+  "model_id": "E3NGV12S",
+  "family": "RH3D",
+  "hotend_model": "",
+  "machine_tech": "FFF",
+  "default_materials": "Generic ABS @E3NG v1.2S;Generic ASA @E3NG v1.2S;Generic PCCF @E3NG v1.2S;Generic PETG @E3NG v1.2S;Generic PLA @E3NG v1.2S;Generic TPU @E3NG v1.2S"
+}

@@ -10,7 +10,9 @@
         "Prusa MK4S 0.6 nozzle"
     ],
     "fan_cooling_layer_time": "22",
-    "filament_max_volumetric_speed": "17",
+    "filament_max_volumetric_speed": [
+        "17"
+    ],
     "overhang_fan_speed": "45",
     "slow_down_layer_time": "10"
 }

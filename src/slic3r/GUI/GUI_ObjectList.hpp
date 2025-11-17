@@ -166,6 +166,7 @@ private:
     ObjectDataViewModel         *m_objects_model{ nullptr };
     ModelConfig                 *m_config {nullptr};
     std::vector<ModelObject*>   *m_objects{ nullptr };
+    size_t                      m_variable_layer_obj_num = 0;
 
     BitmapComboBox              *m_extruder_editor { nullptr };
 
@@ -221,9 +222,12 @@ public:
     void                create_objects_ctrl();
     // BBS
     void                update_objects_list_filament_column(size_t filaments_count);
+    void                update_objects_list_filament_column_when_delete_filament(size_t filament_id, size_t filaments_count, int replace_filament_id = -1);
     void                update_filament_colors();
     // show/hide "Extruder" column for Objects List
     void                set_filament_column_hidden(const bool hide) const;
+    // show/hide variable height column for Objects List
+    void                set_variable_height_column_hidden(const bool hide) const;
     // BBS
     void                set_color_paint_hidden(const bool hide) const;
     void                set_support_paint_hidden(const bool hide) const;
@@ -235,6 +239,7 @@ public:
     void                update_name_in_model(const wxDataViewItem& item) const;
     void                update_name_in_list(int obj_idx, int vol_idx) const;
     void                update_filament_values_for_items(const size_t filaments_count);
+    void                update_filament_values_for_items_when_delete_filament(const size_t filament_id, const int replace_id = -1);
 
     //BBS: update plate
     void                update_plate_values_for_items();
@@ -414,7 +419,8 @@ public:
     void update_and_show_object_settings_item();
     void update_settings_item_and_selection(wxDataViewItem item, wxDataViewItemArray& selections);
     void update_object_list_by_printer_technology();
-    void update_info_items(size_t obj_idx, wxDataViewItemArray* selections = nullptr, bool added_object = false);
+    void update_info_items(size_t obj_idx, wxDataViewItemArray *selections = nullptr, bool added_object = false, bool color_mode_changed = false);
+    void update_variable_layer_obj_num(ObjectDataViewModelNode* obj_node, size_t layer_data_count);
 
     void instances_to_separated_object(const int obj_idx, const std::set<int>& inst_idx);
     void instances_to_separated_objects(const int obj_idx);
@@ -428,6 +434,7 @@ public:
     void paste_layers_into_list();
     void copy_settings_to_clipboard();
     void paste_settings_into_list();
+    bool can_paste_settings_into_list();
     bool clipboard_is_empty() const { return m_clipboard.empty(); }
     void paste_volumes_into_list(int obj_idx, const ModelVolumePtrs& volumes);
     void paste_objects_into_list(const std::vector<size_t>& object_idxs);
@@ -439,6 +446,7 @@ public:
     //update printable state for item from objects model
     void update_printable_state(int obj_idx, int instance_idx);
     void toggle_printable_state();
+    void enable_layers_editing();
 
     //BBS: remove const qualifier
     void set_extruder_for_selected_items(const int extruder);

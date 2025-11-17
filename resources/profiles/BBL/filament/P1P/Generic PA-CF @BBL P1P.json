@@ -1,33 +1,10 @@
 {
     "type": "filament",
     "name": "Generic PA-CF @BBL P1P",
-    "inherits": "fdm_filament_pa",
+    "inherits": "Generic PA-CF @base",
     "from": "system",
-    "filament_id": "GFN98",
     "setting_id": "GFSN99_10",
     "instantiation": "true",
-    "description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
-    "fan_cooling_layer_time": [
-        "5"
-    ],
-    "fan_max_speed": [
-        "30"
-    ],
-    "fan_min_speed": [
-        "10"
-    ],
-    "filament_type": [
-        "PA-CF"
-    ],
-    "full_fan_speed_layer": [
-        "2"
-    ],
-    "overhang_fan_speed": [
-        "40"
-    ],
-    "overhang_fan_threshold": [
-        "0%"
-    ],
     "compatible_printers": [
         "Bambu Lab P1P 0.4 nozzle",
         "Bambu Lab P1P 0.6 nozzle",

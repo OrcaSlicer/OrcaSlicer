@@ -102,7 +102,7 @@
         "1.75"
     ],
     "filament_end_gcode": [
-        "; filament end gcode \nG1 X-17 Y1 F9000\nG1 X-17 Y45 F9000\nG1 Y1 F9000\nG1 Y45 F9000"
+        "; filament end gcode\n{if current_extruder==0}\nG1 Z{layer_z+2} F900 ; safe distance for T0 while tool change\nG1 X-17 Y1 F9000\nG1 X-17 Y45 F9000\nG1 Y1 F9000\nG1 Y45 F9000\n{endif}\n\n{if current_extruder==1}\n{if current_extruder==0}T1{endif}\nG1 X-23 Y3 F9000\nG1 Y45 F9000\nG1 Y3 F9000\nG1 Y45 F9000\n{endif}\n"
     ],
     "filament_flow_ratio": [
         "1.089"
@@ -189,7 +189,7 @@
         "29"
     ],
     "filament_start_gcode": [
-        "; Filament gcode\nG1 X-17 Y1 F9000\nG1 Y45 F9000\nG1 Y1 F9000\nG1 Y45 F9000"
+        "; Filament gcode\n{if current_extruder==0}\nG1 X-17 Y1 F9000\nG1 Y45 F9000\nG1 Y1 F9000\nG1 Y45 F9000\n{if layer_z==0}G1 Z{first_layer_height + 2.0}{endif}\n{if layer_z==0}G1 X[first_layer_print_min_0] Y[first_layer_print_min_1]{endif}\n{if layer_z==0}G1 Z{layer_z}{endif}\n{endif}\n\n{if current_extruder==1}\nG1 X-23 Y3 F9000\nG1 Y45 F9000\nG1 Y3 F9000\nG1 Y45 F9000\n{endif}\n"
     ],
     "filament_toolchange_delay": [
         "0"

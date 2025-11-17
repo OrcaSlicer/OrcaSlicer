@@ -63,6 +63,10 @@
         {
             "name": "Anycubic i3 Mega S",
             "sub_path": "machine/Anycubic i3 Mega S.json"
+        },
+        {
+            "name": "Anycubic Predator",
+            "sub_path": "machine/Anycubic Predator.json"
         }
     ],
     "process_list": [
@@ -233,6 +237,10 @@
         {
             "name": "0.40mm Standard @Anycubic Kobra 3 0.8 nozzle",
             "sub_path": "process/0.40mm Standard @Anycubic Kobra 3 0.8 nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Anycubic Predator",
+            "sub_path": "process/0.20mm Standard @Anycubic Predator.json"
         }
     ],
     "filament_list": [
@@ -493,6 +501,10 @@
         {
             "name": "Anycubic i3 Mega S 0.4 nozzle",
             "sub_path": "machine/Anycubic i3 Mega S 0.4 nozzle.json"
+        },
+        {
+            "name": "Anycubic Predator 0.4 nozzle",
+            "sub_path": "machine/Anycubic Predator 0.4 nozzle.json"
         }
     ]
 }

@@ -2,7 +2,7 @@
 #include "GUI_App.hpp"
 #include "OptionsGroup.hpp"
 
-#include <wx/wx.h> 
+#include <wx/wx.h>
 #include <wx/numformatter.h>
 #include <wx/sizer.h>
 #include <wx/statbox.h>
@@ -11,6 +11,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 
 #include "Widgets/LabeledStaticBox.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -25,7 +26,7 @@ namespace GUI {
 
 BedShape::BedShape(const Pointfs& points)
 {
-    m_build_volume = { points, 0. };
+    m_build_volume = { points, 0.f, {}, {} };
 }
 
 static std::string get_option_label(BedShape::Parameter param)
@@ -49,7 +50,7 @@ void BedShape::append_option_line(ConfigOptionsGroupShp optgroup, Parameter para
         def.min = 0;
         def.max = 214700;
         def.width = 10; // increase width for large scale printers with 4 digit values
-        def.sidetext = "mm";	// milimeters, don't need translation
+        def.sidetext = L("mm");	// milimeters, CIS languages need translation
         def.label = get_option_label(param);
         def.tooltip = L("Size in X and Y of the rectangular plate.");
         key = "rect_size";
@@ -60,7 +61,7 @@ void BedShape::append_option_line(ConfigOptionsGroupShp optgroup, Parameter para
         def.min = -107350;
         def.max = 107350;
         def.width = 10; // increase width for large scale printers with 4 digit values
-        def.sidetext = "mm";	// milimeters, don't need translation
+        def.sidetext = L("mm");	// milimeters, CIS languages need translation
         def.label = get_option_label(param);
         def.tooltip = L("Distance of the 0,0 G-code coordinate from the front left corner of the rectangle.");
         key = "rect_origin";
@@ -69,7 +70,7 @@ void BedShape::append_option_line(ConfigOptionsGroupShp optgroup, Parameter para
         def.type = coFloat;
         def.set_default_value(new ConfigOptionFloat(200));
         def.width = 10; // match size
-        def.sidetext = "mm";	// milimeters, don't need translation
+        def.sidetext = L("mm");	// milimeters, CIS languages need translation
         def.label = get_option_label(param);
         def.tooltip = L("Diameter of the print bed. It is assumed that origin (0,0) is located in the center.");
         key = "diameter";
@@ -283,7 +284,7 @@ ConfigOptionsGroupShp BedShapePanel::init_shape_options_page(const wxString& tit
     optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
         update_shape();
     };
-	
+
     m_optgroups.push_back(optgroup);
 //    panel->SetSizerAndFit(optgroup->sizer);
     m_shape_options_book->AddPage(panel, title);
@@ -522,7 +523,7 @@ void BedShapePanel::update_shape()
     {
         double diameter;
 		try { diameter = boost::any_cast<double>(opt_group->get_value("diameter")); }
-		catch (const std::exception & /* e */) { return; } 
+		catch (const std::exception & /* e */) { return; }
 
  		if (diameter == 0.0) return ;
 		auto r = diameter / 2;

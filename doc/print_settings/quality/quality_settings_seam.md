@@ -42,7 +42,7 @@ However, as seams create weak points and slight surface "bulges" or "divots", [r
 
 Will attempt to align the seam to a hidden internal facet of the model.
 
-![seam-aligned](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-aligned.png?raw=true)
+![seam-aligned](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-aligned.png?raw=true)
 
 ### Aligned Back
 
@@ -50,26 +50,26 @@ Combines [Aligned](#aligned) and [Back](#back) strategies by prioritizing seam p
 This is particularly useful for directional models like sculptures or figurines that have a clear front view.  
 Unlike "Back" which always places seams at the rearmost position, "Aligned Back" uses intelligent positioning that avoids the front while maintaining sophisticated seam hiding capabilities.
 
-![seam-aligned-back](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-aligned-back.png?raw=true)
+![seam-aligned-back](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-aligned-back.png?raw=true)
 
 ### Nearest
 
 Will place the seam at the nearest starting point compared to where the nozzle stopped printing in the previous layer.
 This is optimized for speed, low travel, and acceptable strength.
 
-![seam-nearest](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-nearest.png?raw=true)
+![seam-nearest](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-nearest.png?raw=true)
 
 ### Back
 
 This option places the seam on the back side (Min Y point in that layer) of the object, away from the view. It is useful for objects that will be displayed with a specific orientation.
 
-![seam-back](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-back.png?raw=true)
+![seam-back](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-back.png?raw=true)
 
 ### Random
 
 This option places the seam randomly across the object, which can help to distribute the seam points and increase the overall strength of the print.
 
-![seam-random](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-random.png?raw=true)
+![seam-random](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-random.png?raw=true)
 
 ## Modifiers
 
@@ -77,7 +77,7 @@ This option places the seam randomly across the object, which can help to distri
 
 As the seam location forms a weak point in the print, staggering the seam on the internal perimeters can help reduce stress points. This setting moves the start of the internal wall's seam around across layers as well as away from the external perimeter seam. This way, the internal and external seams don't all align at the same point and between them across layers, distributing those weak points further away from the seam location, hence making the part stronger. It can also help improve the water tightness of your model.
 
-![seam-staggered-inner](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-staggered-inner.gif?raw=true)
+![seam-staggered-inner](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-staggered-inner.gif?raw=true)
 
 ### Seam gap
 
@@ -88,13 +88,13 @@ Controls the gap in mm or as a percentage of the nozzle size between the two end
 
  For a well-tuned printer with [pressure advance](pressure-advance-calib) and [filament retraction](retraction-calib), a value of **0-15%** is typically optimal.
 
-![seam-gap](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-gap.gif?raw=true)
+![seam-gap](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-gap.gif?raw=true)
 
 ### Scarf joint seam
 
 Adjusts the extrusion flow rate at seam points to create a smooth overlap between the start and end of each loop, minimizing visible defects.
 
-![scarf-joint-seam](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/scarf-joint-seam.png?raw=true)
+![scarf-joint-seam](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/scarf-joint-seam.png?raw=true)
 
 Advantages:
 
@@ -169,9 +169,9 @@ If role-based wipe speed is disabled, set this field to the absolute wipe speed 
 When finishing printing a "loop" (i.e., an extrusion that starts and ends at the same point), move the nozzle slightly inwards towards the part. That move aims to reduce seam unevenness by tucking in the end of the seam to the part. It also slightly cleans the nozzle before traveling to the next area of the model, reducing stringing.  
 This setting will use your printer/material Wipe Distance and retract amount before wipe values.
 
-![seam-wipe-on-loop](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-wipe-on-loop.png?raw=true)
+![seam-wipe-on-loop](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-wipe-on-loop.png?raw=true)
 
-![seam-wipe-on-loops-options](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-wipe-on-loops-options.png?raw=true)
+![seam-wipe-on-loops-options](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-wipe-on-loops-options.png?raw=true)
 
 ### Wipe Before External
 
@@ -197,7 +197,7 @@ There are several factors that influence how clean the seam of your model is, wi
 
 However, due to mechanical and material tolerances, as well as the very nature of 3D printing with FFF, that is not always possible. Hopefully with some tuning you'll be able to achieve prints like this!
 
-![seam-quality](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/seam/seam-quality.jpg?raw=true)
+![seam-quality](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/seam/seam-quality.jpg?raw=true)
 
 ### Troubleshooting the Start of a Seam
 

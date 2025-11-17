@@ -1,0 +1,41 @@
+{
+    "incompatible_nozzles":{
+        "Standard":{
+            "0.2":[
+                "Bambu PLA Marble",
+                "Bambu PLA Sparkle",
+                "Bambu PLA Wood",
+                "Bambu PLA Galaxy",
+                "Bambu PETG Translucent"
+            ],
+            "0.4":[],
+            "0.6":[
+                "Bambu PLA Silk+",
+                "Bambu PLA Silk",
+                "Bambu PLA Aero",
+                "Bambu ASA-Aero"
+            ],
+            "0.8":[
+                "Bambu PLA Silk+",
+                "Bambu PLA Silk",
+                "Bambu PLA Aero",
+                "Bambu ASA-Aero"
+            ]
+        },
+        "High Flow":{
+            "0.4":[
+                "Bambu PLA-CF",
+                "Bambu PETG-CF",
+                "Bambu ASA-CF",
+                "Bambu PAHT-CF",
+                "Bambu PET-CF",
+                "Bambu PA6-CF",
+                "Bambu PA6-GF",
+                "Bambu PPA-CF",
+                "Bambu PPS-CF"
+            ],
+            "0.6":[],
+            "0.8":[]
+        }
+    }
+}

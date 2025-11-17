@@ -1,16 +1,16 @@
 {
     "type": "filament",
-    "setting_id": "GFSN06_01",
     "name": "Bambu PPA-CF @BBL X1E",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Bambu PPA-CF @base",
+    "from": "system",
+    "setting_id": "GFSN06_01",
+    "instantiation": "true",
     "chamber_temperatures": [
         "60"
     ],
     "compatible_printers": [
-        "Bambu Lab X1E 0.4 nozzle",
         "Bambu Lab X1E 0.6 nozzle",
-        "Bambu Lab X1E 0.8 nozzle"
+        "Bambu Lab X1E 0.8 nozzle",
+        "Bambu Lab X1E 0.4 nozzle"
     ]
 }

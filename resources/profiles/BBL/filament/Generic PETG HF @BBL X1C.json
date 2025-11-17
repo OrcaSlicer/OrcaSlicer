@@ -5,6 +5,9 @@
     "from": "system",
     "setting_id": "GFSG96_00",
     "instantiation": "true",
+    "filament_retraction_length": [
+        "0.4"
+    ],
     "compatible_printers": [
         "Bambu Lab X1 Carbon 0.4 nozzle",
         "Bambu Lab X1 Carbon 0.6 nozzle",

@@ -124,6 +124,9 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         else {//if (is_local_coordinates()) {//for scale
             auto tran      = selection.get_first_volume()->get_instance_transformation();
             m_new_position = tran.get_matrix().inverse() * cs_center;
+            if (is_instance_coordinates()) {
+                m_new_position = Vec3d::Zero();
+            }
             m_new_size  = selection.get_bounding_box_in_current_reference_system().first.size();
             m_unscale_size = selection.get_full_unscaled_instance_local_bounding_box().size();
             m_new_scale    = m_new_size.cwiseQuotient(m_unscale_size) * 100.0;
@@ -887,7 +890,13 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     index      = 1;
     index_unit = 1;
     ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(_L("Position"));
+    if (selection.is_single_full_instance() && is_instance_coordinates()) {
+        imgui_wrapper->text(_L("Translate(Relative)"));
+    }
+    else {
+        imgui_wrapper->text(_L("Position"));
+    }
+
     ImGui::SameLine(caption_max + index * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_values[0][0], &display_position[0], 0.0f, 0.0f, "%.2f");

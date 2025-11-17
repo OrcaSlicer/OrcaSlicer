@@ -5,6 +5,10 @@
 #include "StateColor.hpp"
 
 #include <wx/tglbtn.h>
+#include "Label.hpp"
+#include "Button.hpp"
+
+wxDECLARE_EVENT(wxCUSTOMEVT_SWITCH_POS, wxCommandEvent);
 
 class SwitchButton : public wxBitmapToggleButton
 {
@@ -26,6 +30,8 @@ public:
 
 	void Rescale();
 
+    bool SetBackgroundColour(const wxColour& colour) override;
+
 private:
 	void update();
 
@@ -38,6 +44,41 @@ private:
     StateColor   text_color2;
 	StateColor   track_color;
 	StateColor   thumb_color;
+};
+
+class SwitchBoard : public wxWindow
+{
+public:
+    SwitchBoard(wxWindow *parent = NULL, wxString leftL = "", wxString right = "", wxSize size = wxDefaultSize);
+    wxString leftLabel;
+    wxString rightLabel;
+
+	void updateState(wxString target);
+
+	bool switch_left{false};
+    bool switch_right{false};
+    bool is_enable {true};
+
+    void* client_data = nullptr;/*MachineObject* in StatusPanel*/
+
+public:
+    void Enable();
+    void Disable();
+    bool IsEnabled(){return is_enable;};
+
+    void  SetClientData(void* data) { client_data = data; };
+    void* GetClientData() { return client_data; };
+
+    void SetAutoDisableWhenSwitch() { auto_disable_when_switch = true; };
+
+protected:
+    void paintEvent(wxPaintEvent& evt);
+    void render(wxDC& dc);
+    void doRender(wxDC& dc);
+    void on_left_down(wxMouseEvent& evt);
+
+private:
+    bool auto_disable_when_switch = false;
 };
 
 #endif // !slic3r_GUI_SwitchButton_hpp_

@@ -5,7 +5,7 @@
     "nozzle_diameter": "0.4",
     "machine_tech": "FFF",
     "family": "FLSun",
-    "bed_model": "FLSun_T1_buildplate_model.stl",
+    "bed_model": "flsun_T1_buildplate_model.stl",
     "bed_texture": "FLSun_T1_buildplate_texture.svg",
     "hotend_model": "",
     "default_materials": "FLSun T1 PLA High Speed;FLSun T1 PLA Silk;FLSun T1 PLA Generic;FLSun T1 PETG;FLSun T1 ASA;FLSun T1 TPU;FLSun T1 ABS"

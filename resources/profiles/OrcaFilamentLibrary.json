@@ -101,6 +101,14 @@
             "sub_path": "filament/Bambu/Bambu Support for ABS @base.json"
         },
         {
+            "name": "COEX ABS @base",
+            "sub_path": "filament/COEX/COEX ABS @base.json"
+        },
+        {
+            "name": "COEX ABS PRIME @base",
+            "sub_path": "filament/COEX/COEX ABS PRIME @base.json"
+        },
+        {
             "name": "FDplast ABS @base",
             "sub_path": "filament/FDplast/FDplast ABS @base.json"
         },
@@ -131,6 +139,10 @@
         {
             "name": "Bambu ASA-CF @base",
             "sub_path": "filament/Bambu/Bambu ASA-CF @base.json"
+        },
+        {
+            "name": "COEX ASA PRIME @base",
+            "sub_path": "filament/COEX/COEX ASA PRIME @base.json"
         },
         {
             "name": "Generic ASA @System",
@@ -189,6 +201,14 @@
             "sub_path": "filament/Bambu/Bambu Support G @base.json"
         },
         {
+            "name": "COEX NYLEX PA6-CF @base",
+            "sub_path": "filament/COEX/COEX NYLEX PA6-CF @base.json"
+        },
+        {
+            "name": "COEX NYLEX UNFILLED @base",
+            "sub_path": "filament/COEX/COEX NYLEX UNFILLED @base.json"
+        },
+        {
             "name": "Fiberon PA12-CF @base",
             "sub_path": "filament/Polymaker/Fiberon PA12-CF @base.json"
         },
@@ -225,6 +245,10 @@
             "sub_path": "filament/Generic PC @System.json"
         },
         {
+            "name": "COEX PCTG PRIME @base",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @base.json"
+        },
+        {
             "name": "Generic PCTG @System",
             "sub_path": "filament/Generic PCTG @System.json"
         },
@@ -259,6 +283,10 @@
         {
             "name": "Bambu PETG-CF @base",
             "sub_path": "filament/Bambu/Bambu PETG-CF @base.json"
+        },
+        {
+            "name": "COEX PETG @base",
+            "sub_path": "filament/COEX/COEX PETG @base.json"
         },
         {
             "name": "FDplast PETG @base",
@@ -383,6 +411,14 @@
         {
             "name": "Bambu Support W @base",
             "sub_path": "filament/Bambu/Bambu Support W @base.json"
+        },
+        {
+            "name": "COEX PLA @base",
+            "sub_path": "filament/COEX/COEX PLA @base.json"
+        },
+        {
+            "name": "COEX PLA PRIME @base",
+            "sub_path": "filament/COEX/COEX PLA PRIME @base.json"
         },
         {
             "name": "FDplast PLA @base",
@@ -629,6 +665,22 @@
             "sub_path": "filament/Bambu/Bambu TPU 95A HF @base.json"
         },
         {
+            "name": "COEX TPE 30D @base",
+            "sub_path": "filament/COEX/COEX TPE 30D @base.json"
+        },
+        {
+            "name": "COEX TPE 40D @base",
+            "sub_path": "filament/COEX/COEX TPE 40D @base.json"
+        },
+        {
+            "name": "COEX TPE 60D @base",
+            "sub_path": "filament/COEX/COEX TPE 60D @base.json"
+        },
+        {
+            "name": "COEX TPU 60A @base",
+            "sub_path": "filament/COEX/COEX TPU 60A @base.json"
+        },
+        {
             "name": "FDplast TPU @base",
             "sub_path": "filament/FDplast/FDplast TPU @base.json"
         },
@@ -641,6 +693,10 @@
             "sub_path": "filament/Overture/Overture TPU @base.json"
         },
         {
+            "name": "Numakers PLA+ @base",
+            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
+        },
+        {
             "name": "Bambu ABS @System",
             "sub_path": "filament/Bambu/Bambu ABS @System.json"
         },
@@ -651,6 +707,14 @@
         {
             "name": "Bambu Support for ABS @System",
             "sub_path": "filament/Bambu/Bambu Support for ABS @System.json"
+        },
+        {
+            "name": "COEX ABS @System",
+            "sub_path": "filament/COEX/COEX ABS @System.json"
+        },
+        {
+            "name": "COEX ABS PRIME @System",
+            "sub_path": "filament/COEX/COEX ABS PRIME @System.json"
         },
         {
             "name": "FDplast ABS @System",
@@ -679,6 +743,10 @@
         {
             "name": "Bambu ASA-CF @System",
             "sub_path": "filament/Bambu/Bambu ASA-CF @System.json"
+        },
+        {
+            "name": "COEX ASA PRIME @System",
+            "sub_path": "filament/COEX/COEX ASA PRIME @System.json"
         },
         {
             "name": "Overture ASA @System",
@@ -721,6 +789,10 @@
             "sub_path": "filament/Bambu/Bambu Support G @System.json"
         },
         {
+            "name": "COEX NYLEX PA6-CF @System",
+            "sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
+        },
+        {
             "name": "Fiberon PA12-CF @System",
             "sub_path": "filament/Polymaker/Fiberon PA12-CF @System.json"
         },
@@ -743,6 +815,10 @@
         {
             "name": "Bambu PC FR @System",
             "sub_path": "filament/Bambu/Bambu PC FR @System.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @System",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @System.json"
         },
         {
             "name": "AliZ PETG @System",
@@ -775,6 +851,10 @@
         {
             "name": "Bambu PETG-CF @System",
             "sub_path": "filament/Bambu/Bambu PETG-CF @System.json"
+        },
+        {
+            "name": "COEX PETG @System",
+            "sub_path": "filament/COEX/COEX PETG @System.json"
         },
         {
             "name": "FDplast PETG @System",
@@ -883,6 +963,14 @@
         {
             "name": "Bambu Support W @System",
             "sub_path": "filament/Bambu/Bambu Support W @System.json"
+        },
+        {
+            "name": "COEX PLA @System",
+            "sub_path": "filament/COEX/COEX PLA @System.json"
+        },
+        {
+            "name": "COEX PLA PRIME @System",
+            "sub_path": "filament/COEX/COEX PLA PRIME @System.json"
         },
         {
             "name": "FDplast PLA @System",
@@ -1061,6 +1149,10 @@
             "sub_path": "filament/eSUN/eSUN PLA+ @System.json"
         },
         {
+            "name": "COEX PLA+Silk @base",
+            "sub_path": "filament/COEX/COEX PLA+Silk @base.json"
+        },
+        {
             "name": "Generic PLA Silk @System",
             "sub_path": "filament/Generic PLA Silk @System.json"
         },
@@ -1085,6 +1177,22 @@
             "sub_path": "filament/Bambu/Bambu TPU 95A HF @System.json"
         },
         {
+            "name": "COEX TPE 30D @System",
+            "sub_path": "filament/COEX/COEX TPE 30D @System.json"
+        },
+        {
+            "name": "COEX TPE 40D @System",
+            "sub_path": "filament/COEX/COEX TPE 40D @System.json"
+        },
+        {
+            "name": "COEX TPE 60D @System",
+            "sub_path": "filament/COEX/COEX TPE 60D @System.json"
+        },
+        {
+            "name": "COEX TPU 60A @System",
+            "sub_path": "filament/COEX/COEX TPU 60A @System.json"
+        },
+        {
             "name": "FDplast TPU @System",
             "sub_path": "filament/FDplast/FDplast TPU @System.json"
         },
@@ -1099,6 +1207,14 @@
         {
             "name": "AliZ PETG-Metal @System",
             "sub_path": "filament/AliZ/AliZ PETG-Metal @System.json"
+        },
+        {
+            "name": "COEX PLA+Silk @System",
+            "sub_path": "filament/COEX/COEX PLA+Silk @System.json"
+        },
+        {
+            "name": "Numakers PLA+ @System",
+            "sub_path": "filament/Numakers/Numakers PLA+ @System.json"
         }
     ],
     "process_list": [],

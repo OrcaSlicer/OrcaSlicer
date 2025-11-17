@@ -99,7 +99,7 @@
     "internal_bridge_speed": "150%",
     "internal_solid_infill_acceleration": "100%",
     "internal_solid_infill_pattern": "monotonic",
-    "ironing_angle": "-1",
+    "ironing_angle": "0",
     "ironing_flow": "15%",
     "ironing_pattern": "zig-zag",
     "ironing_spacing": "0.1",

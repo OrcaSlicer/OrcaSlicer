@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "COEX PCTG PRIME @BBL A1",
+    "inherits": "COEX PCTG PRIME @base",
+    "from": "system",
+    "setting_id": "CXPCTX07",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle"
+    ]
+}

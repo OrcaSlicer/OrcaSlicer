@@ -21,7 +21,9 @@
     "filament_flow_ratio": [
         "0.98"
     ],
-    "filament_max_volumetric_speed": "25",
+    "filament_max_volumetric_speed": [
+        "25"
+    ],
     "enable_pressure_advance": [
         "1"
     ],

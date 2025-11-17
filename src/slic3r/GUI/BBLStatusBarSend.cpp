@@ -16,10 +16,10 @@
 
 namespace Slic3r {
 
-wxDEFINE_EVENT(EVT_SHOW_ERROR_INFO, wxCommandEvent);
+wxDEFINE_EVENT(EVT_SHOW_ERROR_INFO_SEND, wxCommandEvent);
 
 BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
- : m_self{new wxPanel(parent, id == -1 ? wxID_ANY : id)} 
+ : m_self{new wxPanel(parent, id == -1 ? wxID_ANY : id)}
     , m_sizer(new wxBoxSizer(wxHORIZONTAL))
 {
     m_self->SetBackgroundColour(wxColour(255,255,255));
@@ -57,11 +57,9 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     m_cancelbutton->SetBorderColor(btn_bd_white);
     m_cancelbutton->SetTextColor(btn_txt_white);
     m_cancelbutton->SetCornerRadius(m_self->FromDIP(12));
-    m_cancelbutton->Bind(wxEVT_BUTTON, 
+    m_cancelbutton->Bind(wxEVT_BUTTON,
         [this](wxCommandEvent &evt) {
-        m_was_cancelled = true;
-        if (m_cancel_cb_fina)
-            m_cancel_cb_fina();
+        cancel();
     });
 
     m_stext_percent = new wxStaticText(m_self, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, 0);
@@ -83,10 +81,10 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     m_link_show_error->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
         if (!m_show_error_info_state) { m_show_error_info_state = true; m_static_bitmap_show_error->SetBitmap(m_bitmap_show_error_close); }
         else { m_show_error_info_state = false; m_static_bitmap_show_error->SetBitmap(m_bitmap_show_error_open); }
-        wxCommandEvent* evt = new wxCommandEvent(EVT_SHOW_ERROR_INFO);
-        wxQueueEvent(this->m_self->GetParent(), evt); 
+        wxCommandEvent* evt = new wxCommandEvent(EVT_SHOW_ERROR_INFO_SEND);
+        wxQueueEvent(this->m_self->GetParent(), evt);
     });
-   
+
 
     m_link_show_error->Hide();
     m_static_bitmap_show_error->Hide();
@@ -97,7 +95,7 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     m_static_bitmap_show_error->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
         if (!m_show_error_info_state) {m_show_error_info_state = true;m_static_bitmap_show_error->SetBitmap(m_bitmap_show_error_close);}
         else {m_show_error_info_state = false;m_static_bitmap_show_error->SetBitmap(m_bitmap_show_error_open);}
-        wxCommandEvent* evt = new wxCommandEvent(EVT_SHOW_ERROR_INFO);
+        wxCommandEvent* evt = new wxCommandEvent(EVT_SHOW_ERROR_INFO_SEND);
         wxQueueEvent(this->m_self->GetParent(), evt);
     });
 
@@ -143,7 +141,7 @@ void BBLStatusBarSend::set_progress(int val)
     }
     m_prog->SetValue(val);
     set_percent_text(wxString::Format("%d%%", val));
-    
+
     m_sizer->Layout();
 }
 
@@ -206,9 +204,9 @@ void BBLStatusBarSend::stop_busy()
     m_busy = false;
 }
 
-void BBLStatusBarSend::set_cancel_callback_fina(BBLStatusBarSend::CancelFn ccb) 
-{ 
-    m_cancel_cb_fina = ccb; 
+void BBLStatusBarSend::set_cancel_callback_fina(BBLStatusBarSend::CancelFn ccb)
+{
+    m_cancel_cb_fina = ccb;
      if (ccb) {
         m_sizer->Show(m_cancelbutton);
     } else {
@@ -307,18 +305,18 @@ void BBLStatusBarSend::set_percent_text(const wxString &txt)
 }
 
 void BBLStatusBarSend::set_status_text(const std::string& txt)
-{ 
+{
     this->set_status_text(txt.c_str());
 }
 
 void BBLStatusBarSend::set_status_text(const char *txt)
-{ 
+{
     this->set_status_text(wxString::FromUTF8(txt));
     get_panel()->GetParent()->Layout();
     get_panel()->GetParent()->Update();
 }
 
-void BBLStatusBarSend::msw_rescale() { 
+void BBLStatusBarSend::msw_rescale() {
     //set_prog_block();
     m_cancelbutton->SetMinSize(wxSize(m_self->FromDIP(56), m_self->FromDIP(24)));
 }
@@ -372,7 +370,7 @@ void BBLStatusBarSend::hide_cancel_button()
     m_sizer->Layout();
 }
 
-void BBLStatusBarSend::change_button_label(wxString name) 
+void BBLStatusBarSend::change_button_label(wxString name)
 {
     m_cancelbutton->SetLabel(name);
 }
@@ -385,6 +383,12 @@ void BBLStatusBarSend::disable_cancel_button()
 void BBLStatusBarSend::enable_cancel_button()
 {
     m_cancelbutton->Enable();
+}
+
+void BBLStatusBarSend::cancel()
+{
+    m_was_cancelled = true;
+    if (m_cancel_cb_fina) m_cancel_cb_fina();
 }
 
 }

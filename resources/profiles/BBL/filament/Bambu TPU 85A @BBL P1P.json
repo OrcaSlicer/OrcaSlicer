@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 85A @BBL P1P",
+    "inherits": "Bambu TPU 85A @base",
+    "from": "system",
+    "setting_id": "GFSU04_01",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab P1P 0.6 nozzle",
+        "Bambu Lab P1P 0.8 nozzle"
+    ]
+}

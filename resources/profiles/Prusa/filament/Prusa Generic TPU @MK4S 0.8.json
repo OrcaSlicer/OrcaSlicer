@@ -10,5 +10,7 @@
         "Prusa MK4S 0.8 nozzle",
         "Prusa MK4S HF0.8 nozzle"
     ],
-    "filament_max_volumetric_speed": "9"
+    "filament_max_volumetric_speed": [
+        "9"
+    ]
 }

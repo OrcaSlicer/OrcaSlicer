@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "COEX PLA+Silk @BBL A1M 0.2 nozzle",
+    "inherits": "COEX PLA+Silk @base",
+    "from": "system",
+    "setting_id": "CXPLSX08",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.2 nozzle"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "slow_down_layer_time": [
+        "2"
+    ]
+}

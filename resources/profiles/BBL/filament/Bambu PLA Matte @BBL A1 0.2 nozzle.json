@@ -29,6 +29,9 @@
     "hot_plate_temp_initial_layer": [
         "65"
     ],
+    "pre_start_fan_time": [
+        "2"
+    ],
     "slow_down_layer_time": [
         "6"
     ],

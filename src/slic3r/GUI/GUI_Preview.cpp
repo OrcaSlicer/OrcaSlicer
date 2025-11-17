@@ -265,7 +265,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
     m_canvas->set_process(m_process);
     m_canvas->set_type(GLCanvas3D::ECanvasType::CanvasPreview);
     m_canvas->enable_legend_texture(true);
-    m_canvas->enable_dynamic_background(true);
+
     //BBS: GUI refactor: GLToolbar
     if (wxGetApp().is_editor()) {
         m_canvas->enable_select_plate_toolbar(true);

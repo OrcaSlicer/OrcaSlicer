@@ -83,7 +83,7 @@
     "internal_solid_infill_line_width": "0.42",
     "internal_solid_infill_pattern": "monotonic",
     "internal_solid_infill_speed": "250",
-    "ironing_angle": "-1",
+    "ironing_angle": "0",
     "ironing_flow": "15%",
     "ironing_pattern": "zig-zag",
     "ironing_spacing": "0.1",

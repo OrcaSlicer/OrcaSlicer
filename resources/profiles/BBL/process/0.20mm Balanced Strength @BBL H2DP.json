@@ -1,0 +1,76 @@
+{
+    "type": "process",
+    "name": "0.20mm Balanced Strength @BBL H2DP",
+    "inherits": "fdm_process_dual_0.20_nozzle_0.4",
+    "from": "system",
+    "setting_id": "GP131",
+    "instantiation": "true",
+    "description": "High quality profile for 0.2mm layer height, prioritizing strength and print quality.",
+    "bottom_shell_layers": "4",
+    "default_acceleration": [
+        "4000",
+        "4000",
+        "4000",
+        "4000"
+    ],
+    "initial_layer_speed": [
+        "50",
+        "50",
+        "50",
+        "50"
+    ],
+    "inner_wall_speed": [
+        "150",
+        "150",
+        "150",
+        "150"
+    ],
+    "internal_solid_infill_speed": [
+        "200",
+        "200",
+        "200",
+        "200"
+    ],
+    "outer_wall_speed": [
+        "60",
+        "60",
+        "60",
+        "60"
+    ],
+    "outer_wall_acceleration": [
+        "2000",
+        "2000",
+        "2000",
+        "2000"
+    ],
+    "overhang_2_4_speed": [
+        "30",
+        "30",
+        "30",
+        "30"
+    ],
+    "overhang_3_4_speed": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "prime_tower_width": "60",
+    "prime_tower_brim_width": "-1",
+    "sparse_infill_speed": [
+        "200",
+        "200",
+        "200",
+        "200"
+    ],
+    "top_shell_layers": "6",
+    "top_surface_speed": [
+        "150",
+        "150",
+        "150",
+        "150"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D Pro 0.4 nozzle"
+    ]
+}

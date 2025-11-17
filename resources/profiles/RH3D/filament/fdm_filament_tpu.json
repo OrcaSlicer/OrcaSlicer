@@ -1,0 +1,81 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_tpu",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "filament_id": "GFRH05",
+    "instantiation": "false",
+    "cool_plate_temp": [
+        "30"
+    ],
+    "eng_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "30"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "fan_cooling_layer_time": [
+        "50"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "filament_type": [
+        "TPU"
+    ],
+    "filament_density": [
+        "1.24"
+    ],
+    "filament_shrink": [
+        "99.95"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_cost": [
+        "20"
+    ],
+    "idle_temperature": "170",
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "fan_max_speed": [
+        "1000"
+    ],
+    "fan_min_speed": [
+        "80"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "temperature_vitrification": [
+        "60"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "slow_down_min_speed": [
+        "15"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ]
+}

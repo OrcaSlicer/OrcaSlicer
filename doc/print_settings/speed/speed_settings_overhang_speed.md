@@ -14,7 +14,7 @@ This can help improve print quality and reduce issues like stringing or sagging.
 
 Enable this option to slow down printing in areas where perimeters may have curled upwards. For example, additional slowdown will be applied when printing overhangs on sharp corners like the front of the Benchy hull, reducing curling which compounds over multiple layers.  
 
-![slow-down-for-curled-perimeters](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/speed/slow-down-for-curled-perimeters.png?raw=true)
+![slow-down-for-curled-perimeters](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/speed/slow-down-for-curled-perimeters.png?raw=true)
 
 It is generally recommended to have this option switched on unless your printer cooling is powerful enough or the print speed slow enough that perimeter curling does not happen. If printing with a high external perimeter speed, this parameter may introduce slight artifacts when slowing down due to the large variance in print speeds. If you notice artifacts, ensure your pressure advance is tuned correctly.  
 

@@ -52,7 +52,7 @@
     "infill_jerk": "9",
     "infill_wall_overlap": "15%",
     "initial_layer_acceleration": "500",
-    "initial_layer_infill_speed": "50",
+    "initial_layer_infill_speed": "75",
     "initial_layer_jerk": "9",
     "initial_layer_line_width": "0.5",
     "initial_layer_min_bead_width": "85%",
@@ -90,7 +90,7 @@
     "outer_wall_acceleration": "5000",
     "outer_wall_jerk": "9",
     "outer_wall_line_width": "0.42",
-    "outer_wall_speed": "200",
+    "outer_wall_speed": "150",
     "overhang_4_4_speed": "10",
     "overhang_speed_classic": "0",
     "post_process": [],
@@ -126,7 +126,7 @@
     "sparse_infill_density": "15%",
     "sparse_infill_filament": "1",
     "sparse_infill_line_width": "0.45",
-    "sparse_infill_pattern": "crosshatch",
+    "sparse_infill_pattern": "grid",
     "spiral_mode": "0",
     "staggered_inner_seams": "0",
     "standby_temperature_delta": "-5",
@@ -210,5 +210,5 @@
     ],
     "xy_contour_compensation": "0",
     "xy_hole_compensation": "0",
-    "exclude_object": "1"
+    "exclude_object": "0"
 }

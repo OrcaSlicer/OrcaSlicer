@@ -17,14 +17,20 @@
     "default_filament_colour": "#008000",
     "fan_max_speed": "50",
     "fan_min_speed": "30",
-    "filament_cost": "82",
-    "filament_density": "1.22",
+    "filament_cost": [
+        "82"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
     "filament_deretraction_speed": "20",
     "filament_end_gcode": [
         "; Filament-specific end gcode"
     ],
     "filament_flow_ratio": "1.08",
-    "filament_max_volumetric_speed": "3",
+    "filament_max_volumetric_speed": [
+        "3"
+    ],
     "filament_notes": [
         ""
     ],

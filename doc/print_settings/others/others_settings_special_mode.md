@@ -31,7 +31,7 @@ Use this for most prints where no special modifications are needed.
 Use "Close holes" to automatically close all holes in the model during slicing in the XY plane.  
 This can help with models that have gaps or incomplete surfaces, ensuring a more solid print.
 
-![close-holes](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/slicing-mode/close-holes.png?raw=true)
+![close-holes](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/slicing-mode/close-holes.png?raw=true)
 
 ### Even Odd
 

@@ -8,17 +8,14 @@
     "fan_cooling_layer_time": [
         "80"
     ],
+    "fan_min_speed": [
+        "50"
+    ],
     "filament_long_retractions_when_cut": [
         "1"
     ],
     "filament_retraction_distances_when_cut": [
         "18"
-    ],
-    "fan_min_speed": [
-        "50"
-    ],
-    "filament_max_volumetric_speed": [
-        "21"
     ],
     "hot_plate_temp": [
         "65"
@@ -39,5 +36,8 @@
         "Bambu Lab P1P 0.4 nozzle",
         "Bambu Lab P1P 0.6 nozzle",
         "Bambu Lab P1P 0.8 nozzle"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n\n"
     ]
 }

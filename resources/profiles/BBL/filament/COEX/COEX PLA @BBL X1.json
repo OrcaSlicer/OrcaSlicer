@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "COEX PLA @BBL X1",
+    "inherits": "COEX PLA @base",
+    "from": "system",
+    "setting_id": "CXPLAX03",
+    "instantiation": "true",
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 0.4 nozzle",
+        "Bambu Lab X1 0.8 nozzle",
+        "Bambu Lab X1 0.6 nozzle"
+    ]
+}

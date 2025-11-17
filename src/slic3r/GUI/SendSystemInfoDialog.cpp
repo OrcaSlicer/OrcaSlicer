@@ -728,7 +728,7 @@ bool SendSystemInfoDialog::send_info(wxString& message)
                 if (job_done) // UI thread wants us to cancel.
                     cancel = true;
                 if (cancel)
-                    //result = { Result::Cancelled, _L("Sending system info was cancelled.") };
+                    //result = { Result::Cancelled, _L("Sending system info was canceled.") };
                     result = {Result::Cancelled, wxEmptyString};
             })
             .perform_sync();

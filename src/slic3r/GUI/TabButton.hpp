@@ -45,6 +45,7 @@ public:
     void Rescale();
 
     void ShowNewTag(bool tag = false) {show_new_tag = tag; Refresh();};
+    bool GetShowNewTag() const { return show_new_tag; };
 
 private:
     void paintEvent(wxPaintEvent& evt);

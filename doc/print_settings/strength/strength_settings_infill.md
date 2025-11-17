@@ -37,7 +37,7 @@ Infill density determines the amount of material used to fill the interior of a 
 
 This setting allows you to generate your selected [infill pattern](#sparse-infill-pattern) using multiple parallel lines while preserving both the defined [infill density](#sparse-infill-density) and the overall material usage.
 
-![infill-multiline-1-5](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/infill-multiline-1-5.gif?raw=true)
+![infill-multiline-1-5](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/infill-multiline-1-5.gif?raw=true)
 
 > [!NOTE]
 > Orca's approach is different from other slicers that simply multiply the number of lines and material usage, generating a denser infill than expected.
@@ -62,12 +62,12 @@ This setting allows you to generate your selected [infill pattern](#sparse-infil
 - **Fire-retardant applications:** Some flame-resistant materials (like PolyMax PC-FR) require a minimum printed wall/infill thickness—often 1.5–3 mm—to comply with standards. Since infill contributes to overall part thickness, using multiple lines helps achieve the necessary thickness without switching to a large nozzle or printing with 100% infill. This is especially useful for high-temperature materials like PC, which are prone to warping when fully solid.
 - Creating **aesthetic** infill patterns (like [Grid](strength_settings_patterns#grid) or [Honeycomb](strength_settings_patterns#honeycomb)) with multiple line widths—without relying on CAD modeling or being limited to a single extrusion width.
 
-![infill-multiline-aesthetic](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/infill-multiline-aesthetic.gif?raw=true)
+![infill-multiline-aesthetic](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/infill-multiline-aesthetic.gif?raw=true)
 
 > [!WARNING]
 > For self intersecting infills (e.g. [Cubic](strength_settings_patterns#cubic), [Grid](strength_settings_patterns#grid)) multiline count greater than 3 may cause layer shift, extruder clog or other issues due to overlapping of lines on intersection points.
 >
-> ![infill-multiline-overlapping](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/infill-multiline-overlapping.gif?raw=true)
+> ![infill-multiline-overlapping](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/infill-multiline-overlapping.gif?raw=true)
 
 ## Direction and Rotation
 
@@ -78,7 +78,7 @@ This setting allows you to generate your selected [infill pattern](#sparse-infil
 
 Controls the direction of the infill lines to optimize or strengthen the print.
 
-![fill-direction](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/fill-direction.png?raw=true)
+![fill-direction](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/fill-direction.png?raw=true)
 
 ### Rotation
 
@@ -91,7 +91,7 @@ For example:
 0,90
 ```
 
-![fill-rotation](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/fill-rotation.png?raw=true)
+![fill-rotation](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/fill-rotation.png?raw=true)
 
 The first layer uses 0°, the second uses 90°, and the pattern repeats for subsequent layers.
 
@@ -117,11 +117,11 @@ Infill area is enlarged slightly to overlap with wall for better bonding. The pe
 
 - **Infill Wall Overlap Off**
 
-![InfillWallOverlapOff](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/InfillWallOverlapOff.svg?raw=true)
+![InfillWallOverlapOff](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/InfillWallOverlapOff.svg?raw=true)
 
 - **Infill Wall Overlap On**
 
-![InfillWallOverlapOn](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/InfillWallOverlapOn.svg?raw=true)
+![InfillWallOverlapOn](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/InfillWallOverlapOn.svg?raw=true)
 
 ## Apply gap fill
 
@@ -151,11 +151,11 @@ OrcaSlicer tries to connect two close infill lines to a short perimeter segment.
 
 - **Anchor Off**
 
-![InfillAnchorOff](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/InfillAnchorOff.png?raw=true)
+![InfillAnchorOff](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/InfillAnchorOff.png?raw=true)
 
 - **Anchor On**
 
-![InfillAnchorOn](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/InfillAnchorOn.png?raw=true)
+![InfillAnchorOn](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/InfillAnchorOn.png?raw=true)
 ## Internal Solid Infill
 
 Line pattern of internal solid infill. If the [detect narrow internal solid infill](strength_settings_advanced#detect-narrow-internal-solid-infill) be enabled, the [concentric pattern](strength_settings_patterns#concentric) will be used for the small area.
@@ -165,7 +165,7 @@ Line pattern of internal solid infill. If the [detect narrow internal solid infi
 
 Insert extra solid infills at specific layers to add strength at critical points in your print. This feature allows you to strategically reinforce your part without changing the overall sparse infill density.
 
-![extra-solid-infill](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/extra-solid-infill.gif?raw=true)
+![extra-solid-infill](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/extra-solid-infill.gif?raw=true)
 
 The pattern supports two formats:
 

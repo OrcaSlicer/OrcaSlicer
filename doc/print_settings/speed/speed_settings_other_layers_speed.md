@@ -40,7 +40,7 @@ Any shape (not only circles) will be considered as a small perimeter.
 If expressed as percentage (for example: 80%) it will be calculated on the [outer wall speed](#outer-wall).
 
 > [!NOTE]
-> Zero will use [50%](https://github.com/SoftFever/OrcaSlicer/blob/7d2a12aa3cbf2e7ca5d0523446bf1d1d4717f8d1/src/libslic3r/GCode.cpp#L4698) of [outer wall speed](#outer-wall).
+> Zero will use [50%](https://github.com/OrcaSlicer/OrcaSlicer/blob/7d2a12aa3cbf2e7ca5d0523446bf1d1d4717f8d1/src/libslic3r/GCode.cpp#L4698) of [outer wall speed](#outer-wall).
 
 ### Small perimeters threshold
 

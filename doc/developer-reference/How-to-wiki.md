@@ -40,12 +40,12 @@ The Home page is the starting point for the OrcaSlicer wiki. From there you can 
 When you create a new page or section, link it from the Home page under the appropriate category.  
 The Home page currently organizes content in these top-level entries:
 
-- ![printer](https://github.com/SoftFever/OrcaSlicer/blob/main/resources/images/printer.svg?raw=true) [Printer Settings](home#printer-settings)
-- ![filament](https://github.com/SoftFever/OrcaSlicer/blob/main/resources/images/filament.svg?raw=true) [Material Settings](home#material-settings)
-- ![process](https://github.com/SoftFever/OrcaSlicer/blob/main/resources/images/process.svg?raw=true) [Process Settings](home#process-settings)
-- ![tab_3d_active](https://github.com/SoftFever/OrcaSlicer/blob/main/resources/images/tab_3d_active.svg?raw=true) [Prepare](home#prepare)
-- ![tab_calibration_active](https://github.com/SoftFever/OrcaSlicer/blob/main/resources/images/tab_calibration_active.svg?raw=true) [Calibrations](home#calibrations)
-- ![im_code](https://github.com/SoftFever/OrcaSlicer/blob/main/resources/images/im_code.svg?raw=true) [Developer Section](home#developer-section)
+- ![printer](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/printer.svg?raw=true) [Printer Settings](home#printer-settings)
+- ![filament](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/filament.svg?raw=true) [Material Settings](home#material-settings)
+- ![process](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/process.svg?raw=true) [Process Settings](home#process-settings)
+- ![tab_3d_active](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/tab_3d_active.svg?raw=true) [Prepare](home#prepare)
+- ![tab_calibration_active](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/tab_calibration_active.svg?raw=true) [Calibrations](home#calibrations)
+- ![im_code](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/im_code.svg?raw=true) [Developer Section](home#developer-section)
 
 Each section can have multiple pages covering specific topics. For example, the [Process Settings](home#process-settings) section includes pages on [quality](home#quality-settings), [support](home#support-settings), and [others](home#others-settings).
 
@@ -86,7 +86,7 @@ When creating new pages, follow these file-naming conventions:
 
 OrcaSlicer can redirect users from the GUI to the appropriate wiki pages, making it easier to find relevant documentation.
 
-The option-to-wiki mapping is defined in [src/slic3r/GUI/Tab.cpp](https://github.com/SoftFever/OrcaSlicer/blob/main/src/slic3r/GUI/Tab.cpp). Any option added with `append_single_option_line` can be mapped to a wiki page using a second string argument.
+The option-to-wiki mapping is defined in [src/slic3r/GUI/Tab.cpp](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/src/slic3r/GUI/Tab.cpp). Any option added with `append_single_option_line` can be mapped to a wiki page using a second string argument.
 
 ```cpp
 optgroup->append_single_option_line("OPTION_NAME"); // Option without wiki page/redirection
@@ -167,7 +167,7 @@ Format = `![`filename`](` + Base URL + filename.extension + Raw tag + `)`
 - Base URL:
 
   ```markdown
-  https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/
+  https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/
   ```
 
 - Raw tag:
@@ -181,13 +181,13 @@ Format = `![`filename`](` + Base URL + filename.extension + Raw tag + `)`
 - For an image in `doc/images/` named `calibration.png`:
 
   ```markdown
-  ![calibration](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/calibration.png?raw=true)
+  ![calibration](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/calibration.png?raw=true)
   ```
 
 - For an image in a subdirectory like `doc/images/GUI/combobox.png`:
 
   ```markdown
-  ![combobox](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/GUI/combobox.png?raw=true)
+  ![combobox](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/GUI/combobox.png?raw=true)
   ```
 
 > [!IMPORTANT]
@@ -214,7 +214,7 @@ HTML Format = `<img alt="` + filename + `"` + `src="` + Base URL + filename.exte
 Example:
 
 ```html
-<img alt="IS_damp_marlin_print_measure" src="https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_marlin_print_measure.jpg?raw=true" height="200">
+<img alt="IS_damp_marlin_print_measure" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_marlin_print_measure.jpg?raw=true" height="200">
 ```
 
 ### Image Cropping and Highlighting

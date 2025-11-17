@@ -33,6 +33,9 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "filament_adhesiveness_category": [
+        "705"
+    ],
     "hot_plate_temp": [
         "60"
     ],

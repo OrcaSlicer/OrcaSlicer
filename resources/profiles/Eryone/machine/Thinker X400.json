@@ -2,7 +2,7 @@
     "type": "machine_model",
     "name": "Thinker X400",
     "model_id": "Thinker-X400",
-    "nozzle_diameter": "0.4",
+    "nozzle_diameter": "0.4;0.2",
     "machine_tech": "FFF",
     "family": "Eryone",
     "bed_model": "X400_bed.stl",

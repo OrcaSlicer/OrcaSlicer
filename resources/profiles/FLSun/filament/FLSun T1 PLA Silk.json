@@ -21,7 +21,9 @@
     "filament_cost": [
         "0"
     ],
-    "filament_density": "1.32",
+    "filament_density": [
+        "1.32"
+    ],
     "full_fan_speed_layer": [
         "3"
     ],
