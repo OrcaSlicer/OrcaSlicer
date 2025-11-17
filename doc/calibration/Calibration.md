@@ -17,9 +17,9 @@ The recommended order for calibration is as follows:
 
    <img alt="temp-tower" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Temp-calib/temp-tower.jpg?raw=true" height="200">
 
-2. **[Flow](flow-rate-calib):** Calibrate the flow rate to ensure that the correct amount of filament is being extruded. This is important for achieving accurate dimensions and good layer adhesion.
+2. **[Max Volumetric Speed](volumetric-speed-calib):** Calibrate the maximum volumetric speed of the filament. This is important for ensuring that the printer can handle the flow rate of the filament without causing issues like under-extrusion.
 
-   <img alt="flowcalibration-example" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Flow-Rate/flowcalibration-example.png?raw=true" height="200">
+   <img alt="mvf_measurement_point" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/MVF/mvf_measurement_point.jpg?raw=true" height="200">
 
 3. **[Pressure Advance](pressure-advance-calib):** Calibrate the pressure advance settings to improve print quality and reduce artifacts caused by pressure fluctuations in the nozzle.
 
@@ -27,13 +27,13 @@ The recommended order for calibration is as follows:
 
       <img alt="pa-tower" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/pa/pa-tower.jpg?raw=true" height="200">
 
-4. **[Retraction](retraction-calib):** Calibrate the retraction settings to minimize stringing and improve print quality. Doing this after Flow and Pressure Advance calibration is recommended, as it ensures that the printer is already set up for optimal extrusion.
+4. **[Flow](flow-rate-calib):** Calibrate the flow rate to ensure that the correct amount of filament is being extruded. This is important for achieving accurate dimensions and good layer adhesion.
+
+   <img alt="flowcalibration-example" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Flow-Rate/flowcalibration-example.png?raw=true" height="200">
+
+5. **[Retraction](retraction-calib):** Calibrate the retraction settings to minimize stringing and improve print quality. Doing this after Flow and Pressure Advance calibration is recommended, as it ensures that the printer is already set up for optimal extrusion.
 
    <img alt="retraction_test_print" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/retraction/retraction_test_print.jpg?raw=true" height="200">
-
-5. **[Max Volumetric Speed](volumetric-speed-calib):** Calibrate the maximum volumetric speed of the filament. This is important for ensuring that the printer can handle the flow rate of the filament without causing issues such as under-extrusion or over-extrusion.
-
-   <img alt="mvf_measurement_point" src="https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/MVF/mvf_measurement_point.jpg?raw=true" height="200">
 
 6. **[Cornering](cornering-calib):** Calibrate the Jerk/Junction Deviation settings to improve print quality and reduce artifacts caused by sharp corners and changes in direction.
 
