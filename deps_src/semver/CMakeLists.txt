@@ -8,7 +8,7 @@ add_library(semver STATIC
 )
 
 # Set include directories for the library
-target_include_directories(semver 
+target_include_directories(semver SYSTEM
     PUBLIC 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>

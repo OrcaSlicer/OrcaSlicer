@@ -1,0 +1,17 @@
+{
+    "type": "process",
+    "name": "0.30mm Strength @Afinia H+1(HS) 0.6 nozzle",
+    "inherits": "fdm_process_afinia_0.30_nozzle_0.6_HS",
+    "from": "system",
+    "setting_id": "GP024",
+    "instantiation": "true",
+    "description": "It has a big layer height with optimized settings for stronger parts.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "sparse_infill_density": "25%",
+    "wall_loops": "3",
+    "compatible_printers": [
+        "Afinia H+1(HS) 0.6 nozzle"
+    ]
+}

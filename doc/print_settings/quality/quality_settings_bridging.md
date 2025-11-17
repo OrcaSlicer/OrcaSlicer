@@ -21,7 +21,7 @@ The actual internal bridge flow used is calculated by multiplying this value wit
 
 ## Thick bridges
 
-![thick-bridges](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/bridging/thick-bridges.png?raw=true)
+![thick-bridges](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/bridging/thick-bridges.png?raw=true)
 
 When enabled, thick bridges increase the reliability and strength of bridges, allowing you to span longer distances. However, this may result in a rougher surface finish.  
 Disabling this option can improve the visual quality of bridges, but is recommended only for shorter spans or when using large nozzle sizes.  
@@ -64,8 +64,8 @@ This option creates bridges for counterbore holes, allowing them to be printed w
 Available modes include:
 
 - **None:** No bridge is created.  
-  ![bridge-counterbore-none](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/bridging/bridge-counterbore-none.png?raw=true)
+  ![bridge-counterbore-none](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/bridging/bridge-counterbore-none.png?raw=true)
 - **Partially Bridged:** Only a part of the unsupported area will be bridged, creating a supporting layer for the next layer.  
-  ![bridge-counterbore-partially](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/bridging/bridge-counterbore-partially.gif?raw=true)
+  ![bridge-counterbore-partially](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/bridging/bridge-counterbore-partially.gif?raw=true)
 - **Sacrificial Layer:** A full sacrificial bridge layer is created. This will close the counterbore hole, allowing the next layer to be printed without sagging. The sacrificial layer must be broken through after printing.  
-  ![bridge-counterbore-sacrificial](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/bridging/bridge-counterbore-sacrificial.png?raw=true)
+  ![bridge-counterbore-sacrificial](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/bridging/bridge-counterbore-sacrificial.png?raw=true)

@@ -19,8 +19,9 @@ add_library(imgui STATIC
     imstb_truetype.h
 )
 
-target_include_directories(imgui PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(imgui SYSTEM
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(Boost_FOUND)

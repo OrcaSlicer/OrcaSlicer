@@ -32,7 +32,7 @@ void DeviceItem::sync_state()
 {
     if (obj_) {
         state_online = obj_->is_online();
-        state_dev_name = obj_->dev_name;
+        state_dev_name = obj_->get_dev_name();
 
         //printable
         if (obj_->print_status == "IDLE") {
@@ -115,7 +115,7 @@ bool DeviceItem::is_blocking_printing(MachineObject* obj_)
     source_model = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
 
     if (source_model != target_model) {
-        std::vector<std::string> compatible_machine = dev->get_compatible_machine(target_model);
+        std::vector<std::string> compatible_machine = obj_->get_compatible_machine();
         vector<std::string>::iterator it = find(compatible_machine.begin(), compatible_machine.end(), source_model);
         if (it == compatible_machine.end()) {
             return true;
@@ -202,8 +202,8 @@ std::vector<DeviceItem*> selected_machines(const std::vector<DeviceItem*>& dev_i
     std::vector<DeviceItem*> res;
     for (const auto& item : dev_item_list) {
         const MachineObject* dev = item->get_obj();
-        const std::string& dev_name = dev->dev_name;
-        const std::string& dev_ip = dev->dev_ip;
+        const std::string& dev_name = dev->get_dev_name();
+        const std::string& dev_ip = dev->get_dev_ip();
 
         auto name_it = dev_name.find(search_text);
         auto ip_it = dev_ip.find(search_text);

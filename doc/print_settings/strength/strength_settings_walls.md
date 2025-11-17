@@ -3,7 +3,7 @@
 In 3D printing, "walls" refer to the outer layers of a printed object that provide its shape and structural integrity.  
 Adjusting wall settings can significantly affect layer adhesion, strength, appearance and print time of your model.
 
-![walls](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/walls/walls.png?raw=true)
+![walls](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/walls/walls.png?raw=true)
 
 - [Wall loops](#wall-loops)
 - [Alternate extra wall](#alternate-extra-wall)
@@ -39,7 +39,7 @@ Thin walls printed this way may have reduced surface quality and strength becaus
 > Usually, it is recommended to use [Arachne wall generator](quality_settings_wall_generator#arachne) which will disable "Detect thin walls" because it uses a different approach to wall generation.
 
 - In small details it can generate details that wouldn't be possible with traditional wall generation methods.  
-  ![walls-small-detect-thin-off](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/walls/walls-small-detect-thin-off.png?raw=true)
-  ![walls-small-detect-thin-on](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/walls/walls-small-detect-thin-on.png?raw=true)
+  ![walls-small-detect-thin-off](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/walls/walls-small-detect-thin-off.png?raw=true)
+  ![walls-small-detect-thin-on](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/walls/walls-small-detect-thin-on.png?raw=true)
 - In large prints, it can generate defects more easily due to the reduced wall thickness.
-  ![walls-big-detect-thin-off-on](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/walls/walls-big-detect-thin-off-on.png?raw=true)
+  ![walls-big-detect-thin-off-on](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/walls/walls-big-detect-thin-off-on.png?raw=true)

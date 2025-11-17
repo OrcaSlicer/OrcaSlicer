@@ -36,7 +36,7 @@ function(encoding_check TARGET)
 
         # Add checking of each source file as a subcommand of encoding-check-${TARGET}
         foreach(file ${T_SOURCES})
-            add_custom_command(TARGET encoding-check-${TARGET}
+            add_custom_command(TARGET encoding-check-${TARGET} PRE_BUILD
                 COMMAND $<TARGET_FILE:encoding-check> ${TARGET} ${file}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             )

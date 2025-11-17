@@ -8,8 +8,8 @@
     "gcode_label_objects": "0",
     "enable_support": "1",
     "support_type": "tree(auto)",
-    "support_filament": "1",
-    "support_interface_filament": "1",
+    "support_filament": "0",
+    "support_interface_filament": "0",
     "compatible_printers": [
         "iQ TiQ2 0.4 Nozzle"
     ],

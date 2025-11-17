@@ -4,6 +4,8 @@
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include "libslic3r/AppConfig.hpp"
 
+#include "DeviceCore/DevManager.h"
+
 namespace Slic3r { namespace GUI {
 ConnectPrinterDialog::ConnectPrinterDialog(wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &pos, const wxSize &size, long style)
     : DPIDialog(parent, id, _L("Connect Printer (LAN)"), pos, size, style)
@@ -74,7 +76,7 @@ ConnectPrinterDialog::ConnectPrinterDialog(wxWindow *parent, wxWindowID id, cons
 
     sizer_top->Add(0, FromDIP(35));
 
-    m_staticText_hints = new wxStaticText(this, wxID_ANY, _L("You can find it in \"Settings > Network > Connection code\"\non the printer, as shown in the figure:"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_hints = new wxStaticText(this, wxID_ANY, _L("You can find it in \"Settings > Network > Access code\"\non the printer, as shown in the figure:"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_hints->SetFont(Label::Body_15);
     m_staticText_hints->SetForegroundColour(wxColour(50, 58, 61));
     m_staticText_hints->Wrap(-1);
@@ -118,7 +120,7 @@ void ConnectPrinterDialog::init_bitmap()
     std::string language = config->get("language");
 
     if (m_obj) {
-        std::string img_str = DeviceManager::get_printer_diagram_img(m_obj->printer_type);
+        std::string img_str = DevPrinterConfigUtil::get_printer_connect_help_img(m_obj->printer_type);
         if(img_str.empty()){img_str = "input_access_code_x1"; }
 
         if (language == "zh_CN") {
@@ -126,6 +128,19 @@ void ConnectPrinterDialog::init_bitmap()
         }
         else {
             m_diagram_bmp = create_scaled_bitmap(img_str+"_en", nullptr, 190);
+        }
+
+        // traverse the guide text
+        {
+            // traverse the guide text
+            if (m_obj->printer_type == "O1D")
+            {
+                m_staticText_hints->SetLabel(_L("You can find it in \"Setting > Setting > LAN only > Access Code\"\non the printer, as shown in the figure:"));
+            }
+            else
+            {
+                m_staticText_hints->SetLabel(_L("You can find it in \"Settings > Network > Access code\"\non the printer, as shown in the figure:"));
+            }
         }
     }
     else{
@@ -156,7 +171,7 @@ void ConnectPrinterDialog::on_input_enter(wxCommandEvent& evt)
 }
 
 
-void ConnectPrinterDialog::on_button_confirm(wxCommandEvent &event) 
+void ConnectPrinterDialog::on_button_confirm(wxCommandEvent &event)
 {
     wxString code = m_textCtrl_code->GetTextCtrl()->GetValue();
     for (char c : code) {
@@ -167,9 +182,6 @@ void ConnectPrinterDialog::on_button_confirm(wxCommandEvent &event)
     }
     if (m_obj) {
         m_obj->set_user_access_code(code.ToStdString());
-        if (m_need_connect) {
-            wxGetApp().getDeviceManager()->set_selected_machine(m_obj->dev_id);
-        }
     }
     EndModal(wxID_OK);
 }

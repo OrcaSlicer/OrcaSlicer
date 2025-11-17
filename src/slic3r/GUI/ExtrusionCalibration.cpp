@@ -18,7 +18,7 @@ ExtrusionCalibration::ExtrusionCalibration(wxWindow *parent, wxWindowID id)
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
-void ExtrusionCalibration::init_bitmaps() 
+void ExtrusionCalibration::init_bitmaps()
 {
     auto lan = wxGetApp().app_config->get_language_code();
     if (lan == "zh-cn") {
@@ -127,21 +127,21 @@ void ExtrusionCalibration::create()
         wxWindow::GetTextExtent(_L("Bed Temperature")).x),
         wxWindow::GetTextExtent(_L("Max volumetric speed")).x),
         EXTRUSION_CALIBRATION_INPUT_SIZE.x);
-    m_nozzle_temp = new TextInput(m_step_1_panel, wxEmptyString, wxString::FromUTF8("\u2103") /* °C */, "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    m_nozzle_temp = new TextInput(m_step_1_panel, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
     nozzle_temp_sizer->Add(nozzle_temp_text, 0, wxALIGN_LEFT);
     nozzle_temp_sizer->AddSpacer(FromDIP(4));
     nozzle_temp_sizer->Add(m_nozzle_temp, 0, wxEXPAND);
 
     auto bed_temp_sizer = new wxBoxSizer(wxVERTICAL);
     auto bed_temp_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Bed temperature"));
-    m_bed_temp = new TextInput(m_step_1_panel, wxEmptyString, wxString::FromUTF8("\u2103") /* °C */, "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    m_bed_temp = new TextInput(m_step_1_panel, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
     bed_temp_sizer->Add(bed_temp_text, 0, wxALIGN_LEFT);
     bed_temp_sizer->AddSpacer(FromDIP(4));
     bed_temp_sizer->Add(m_bed_temp, 0, wxEXPAND);
 
     auto max_flow_sizer = new wxBoxSizer(wxVERTICAL);
     auto max_flow_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Max volumetric speed"));
-    m_max_flow_ratio = new TextInput(m_step_1_panel, wxEmptyString, wxString::FromUTF8("mm³"), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
+    m_max_flow_ratio = new TextInput(m_step_1_panel, wxEmptyString, _L("mm³"), "", wxDefaultPosition, { max_input_width, EXTRUSION_CALIBRATION_INPUT_SIZE.y }, wxTE_READONLY);
     max_flow_sizer->Add(max_flow_text, 0, wxALIGN_LEFT);
     max_flow_sizer->AddSpacer(FromDIP(4));
     max_flow_sizer->Add(m_max_flow_ratio, 0, wxEXPAND);
@@ -211,7 +211,7 @@ void ExtrusionCalibration::create()
     cali_sizer->Add(m_button_cali, 0, wxRIGHT | wxALIGN_CENTRE_VERTICAL, FromDIP(10));
     cali_sizer->Add(m_cali_cancel, 0, wxRIGHT | wxALIGN_CENTRE_VERTICAL, FromDIP(10));
     cali_sizer->Add(m_button_next_step, 0, wxRIGHT | wxALIGN_CENTRE_VERTICAL, FromDIP(10));
-    
+
     step_1_sizer->Add(cali_sizer, 0, wxEXPAND);
     step_1_sizer->Add(0, EXTRUSION_CALIBRATION_WIDGET_GAP, 0, 0);
 
@@ -377,7 +377,7 @@ void ExtrusionCalibration::open_bitmap(wxMouseEvent& event) {
     return;
 }
 
-void ExtrusionCalibration::input_value_finish() 
+void ExtrusionCalibration::input_value_finish()
 {
     ;
 }
@@ -414,7 +414,7 @@ void ExtrusionCalibration::show_info(bool show, bool is_error, wxString text)
 void ExtrusionCalibration::update()
 {
     if (obj) {
-        if (obj->is_in_extrusion_cali()) {            
+        if (obj->is_in_extrusion_cali()) {
             show_info(true, false, wxString::Format(_L("Calibrating... %d%%"), obj->mc_print_percent));
             m_cali_cancel->Show();
             m_cali_cancel->Enable();
@@ -469,7 +469,7 @@ void ExtrusionCalibration::on_click_cali(wxCommandEvent& event)
                             max_volumetric_speed = speed_opt->get_at(0);
                             if (bed_temp >= 0 && nozzle_temp >= 0 && max_volumetric_speed >= 0) {
                                 int curr_tray_id = ams_id * 4 + tray_id;
-                                if (tray_id == VIRTUAL_TRAY_ID)
+                                if (tray_id == VIRTUAL_TRAY_MAIN_ID)
                                     curr_tray_id = tray_id;
                                 obj->command_start_extrusion_cali(curr_tray_id, nozzle_temp, bed_temp, max_volumetric_speed, it->setting_id);
                                 return;
@@ -510,7 +510,7 @@ bool ExtrusionCalibration::check_k_validation(wxString k_text)
         ;
     }
 
-    if (k < MIN_PA_K_VALUE || k > MAX_PA_K_VALUE)
+    if (k <= MIN_PA_K_VALUE || k >= MAX_PA_K_VALUE)
         return false;
     return true;
 }
@@ -534,7 +534,7 @@ bool ExtrusionCalibration::check_k_n_validation(wxString k_text, wxString n_text
     catch (...) {
         ;
     }
-    if (k < MIN_PA_K_VALUE || k > MAX_PA_K_VALUE)
+    if (k <= MIN_PA_K_VALUE || k >= MAX_PA_K_VALUE)
         return false;
     if (n < 0.6 || n > 2.0)
         return false;
@@ -597,7 +597,7 @@ void ExtrusionCalibration::on_click_save(wxCommandEvent &event)
 
     // send command
     int curr_tray_id = ams_id * 4 + tray_id;
-    if (tray_id == VIRTUAL_TRAY_ID)
+    if (tray_id == VIRTUAL_TRAY_MAIN_ID)
         curr_tray_id = tray_id;
     obj->command_extrusion_cali_set(curr_tray_id, setting_id, name, k, n, bed_temp, nozzle_temp, max_volumetric_speed);
     Close();
@@ -613,13 +613,13 @@ void ExtrusionCalibration::on_click_next(wxCommandEvent& event)
     set_step(2);
 }
 
-bool ExtrusionCalibration::Show(bool show) 
-{ 
+bool ExtrusionCalibration::Show(bool show)
+{
     if (show) {
         m_k_val->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
         m_n_val->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
     }
-    return DPIDialog::Show(show); 
+    return DPIDialog::Show(show);
 }
 
 void ExtrusionCalibration::update_combobox_filaments()
@@ -809,7 +809,7 @@ void ExtrusionCalibration::update_filament_info()
                 bed_temp_int = get_bed_temp(&filament_it->config);
                 wxString bed_temp_text = wxString::Format("%d", bed_temp_int);
                 m_bed_temp->GetTextCtrl()->SetValue(bed_temp_text);
-                
+
                 // update max flow speed
                 ConfigOption* opt_flow_speed = filament_it->config.option("filament_max_volumetric_speed");
                 if (opt_flow_speed) {

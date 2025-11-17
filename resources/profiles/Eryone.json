@@ -1,6 +1,6 @@
 {
     "name": "Thinker X400",
-    "version": "02.03.01.00",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Eryone  configurations",
     "machine_model_list": [
@@ -29,32 +29,32 @@
         {
             "name": "0.24mm Standard @Thinker X400",
             "sub_path": "process/0.24mm Standard @Thinker X400.json"
+        },
+        {
+            "name": "0.10mm Standard @Thinker X400 0.2 nozzle",
+            "sub_path": "process/0.10mm Standard @Thinker X400 0.2 nozzle.json"
         }
     ],
     "filament_list": [
-        {
-            "name": "Eryone Standard PLA",
-            "sub_path": "filament/Eryone Standard PLA.json"
-        },
         {
             "name": "fdm_filament_common",
             "sub_path": "filament/fdm_filament_common.json"
         },
         {
-            "name": "Eryone ABS",
-            "sub_path": "filament/Eryone ABS.json"
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
         },
         {
-            "name": "Eryone ABS-CF",
-            "sub_path": "filament/Eryone ABS-CF.json"
+            "name": "Eryone Standard PLA",
+            "sub_path": "filament/Eryone Standard PLA.json"
         },
         {
-            "name": "Eryone ASA",
-            "sub_path": "filament/Eryone ASA.json"
+            "name": "Eryone PLA",
+            "sub_path": "filament/Eryone PLA.json"
         },
         {
-            "name": "Eryone ASA-CF",
-            "sub_path": "filament/Eryone ASA-CF.json"
+            "name": "Eryone PLA-CF",
+            "sub_path": "filament/Eryone PLA-CF.json"
         },
         {
             "name": "Eryone PA",
@@ -69,6 +69,22 @@
             "sub_path": "filament/Eryone PA-GF.json"
         },
         {
+            "name": "Eryone PP",
+            "sub_path": "filament/Eryone PP.json"
+        },
+        {
+            "name": "Eryone PP-CF",
+            "sub_path": "filament/Eryone PP-CF.json"
+        },
+        {
+            "name": "Eryone ABS",
+            "sub_path": "filament/Eryone ABS.json"
+        },
+        {
+            "name": "Eryone ABS-CF",
+            "sub_path": "filament/Eryone ABS-CF.json"
+        },
+        {
             "name": "Eryone PETG",
             "sub_path": "filament/Eryone PETG.json"
         },
@@ -77,20 +93,12 @@
             "sub_path": "filament/Eryone PETG-CF.json"
         },
         {
-            "name": "Eryone PLA",
-            "sub_path": "filament/Eryone PLA.json"
+            "name": "Eryone ASA",
+            "sub_path": "filament/Eryone ASA.json"
         },
         {
-            "name": "Eryone PLA-CF",
-            "sub_path": "filament/Eryone PLA-CF.json"
-        },
-        {
-            "name": "Eryone PP",
-            "sub_path": "filament/Eryone PP.json"
-        },
-        {
-            "name": "Eryone PP-CF",
-            "sub_path": "filament/Eryone PP-CF.json"
+            "name": "Eryone ASA-CF",
+            "sub_path": "filament/Eryone ASA-CF.json"
         },
         {
             "name": "Eryone Silk PLA",
@@ -101,18 +109,78 @@
             "sub_path": "filament/Eryone TPU.json"
         },
         {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
+            "name": "Eryone PLA @0.2 nozzle",
+            "sub_path": "filament/Eryone PLA @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PLA-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone PLA-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PA @0.2 nozzle",
+            "sub_path": "filament/Eryone PA @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PA-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone PA-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PA-GF @0.2 nozzle",
+            "sub_path": "filament/Eryone PA-GF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PP @0.2 nozzle",
+            "sub_path": "filament/Eryone PP @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PP-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone PP-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone ABS @0.2 nozzle",
+            "sub_path": "filament/Eryone ABS @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone ABS-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone ABS-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PETG @0.2 nozzle",
+            "sub_path": "filament/Eryone PETG @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone PETG-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone PETG-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone ASA @0.2 nozzle",
+            "sub_path": "filament/Eryone ASA @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone ASA-CF @0.2 nozzle",
+            "sub_path": "filament/Eryone ASA-CF @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone Silk PLA @0.2 nozzle",
+            "sub_path": "filament/Eryone Silk PLA @0.2 nozzle.json"
+        },
+        {
+            "name": "Eryone TPU @0.2 nozzle",
+            "sub_path": "filament/Eryone TPU @0.2 nozzle.json"
         }
     ],
     "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
         {
             "name": "Thinker X400 0.4 nozzle",
             "sub_path": "machine/Thinker X400 0.4 nozzle.json"
         },
         {
-            "name": "fdm_machine_common",
-            "sub_path": "machine/fdm_machine_common.json"
+            "name": "Thinker X400 0.2 nozzle",
+            "sub_path": "machine/Thinker X400 0.2 nozzle.json"
         }
     ]
 }

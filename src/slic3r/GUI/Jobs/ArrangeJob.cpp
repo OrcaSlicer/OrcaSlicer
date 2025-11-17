@@ -247,8 +247,11 @@ void ArrangeJob::prepare_all() {
 
     prepare_wipe_tower();
 
+    const DynamicPrintConfig& current_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, MAX_NUM_PLATES);
+    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, MAX_NUM_PLATES);
 }
 
 arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<int>& extruder_ids)
@@ -261,7 +264,9 @@ arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<i
     // we have to estimate the depth using the extruder number of all plates
     int extruder_size = extruder_ids.size();
 
-    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, extruder_size);
+    Vec3d wipe_tower_size, wipe_tower_pos;
+    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
+    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, wipe_tower_pos, wipe_tower_size, nozzle_nums, extruder_size);
     arrange_poly.bed_idx = plate_index;
     return arrange_poly;
 }
@@ -419,8 +424,11 @@ void ArrangeJob::prepare_partplate() {
         m_unselected.emplace_back(std::move(ap));
     }
 
+    const DynamicPrintConfig &current_config  = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, current_plate_index + 1);
+    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, current_plate_index + 1);
 }
 
 //BBS: add partplate logic
@@ -532,7 +540,8 @@ void ArrangeJob::process(Ctl &ctl)
 
     Points      bedpts = get_shrink_bedpts(m_plater->config(),params);
 
-    partplate_list.preprocess_exclude_areas(params.excluded_regions, 1, scale_(1));
+    bool   enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+    partplate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scale_(1));
 
     BOOST_LOG_TRIVIAL(debug) << "arrange bedpts:" << bedpts[0].transpose() << ", " << bedpts[1].transpose() << ", " << bedpts[2].transpose() << ", " << bedpts[3].transpose();
 

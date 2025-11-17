@@ -19,10 +19,10 @@ Once printed, take note of where the layers begin to fail and where the quality 
 > [!TIP]
 > A **change in surface sheen** (glossy vs. matte) is often a visual cue of material degradation or poor layer adhesion.
 
-![mvf_measurement_point](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/MVF/mvf_measurement_point.jpg?raw=true)
+![mvf_measurement_point](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/MVF/mvf_measurement_point.jpg?raw=true)
 
 Use calipers or a ruler to measure the **height** of the model just before the defects begin.  
-![mvf_caliper_sample_mvf](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/MVF/mvf_caliper_sample_mvf.jpg?raw=true)
+![mvf_caliper_sample_mvf](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/MVF/mvf_caliper_sample_mvf.jpg?raw=true)
 
  Then you can:
 
@@ -35,10 +35,10 @@ Use calipers or a ruler to measure the **height** of the model just before the d
   In this case (19mm), so the calculation would be: `5 + (19 * 0.5) = 14.5mm³/s`
 
 - Use OrcaSlicer in the "Preview" tab, make sure the color scheme "flow" is selected. Scroll down to the layer height that you measured, and click on the toolhead slider. This will indicate the max flow level for your filament.  
-![mvf_gui_flow](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/MVF/mvf_gui_flow.png?raw=true)
+![mvf_gui_flow](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/MVF/mvf_gui_flow.png?raw=true)
 
 After you have determined the maximum volumetric speed, you can set it in the filament settings. This will ensure that the printer does not exceed the maximum flow rate for the filament.  
-![mvf_material_settings](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/MVF/mvf_material_settings.png?raw=true)
+![mvf_material_settings](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/MVF/mvf_material_settings.png?raw=true)
 
 > [!NOTE]
 > This test is a best case scenario and doesn't take into account Retraction or other settings that can increase clogs or under-extrusion.  

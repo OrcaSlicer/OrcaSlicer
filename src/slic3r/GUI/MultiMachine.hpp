@@ -18,7 +18,7 @@ namespace GUI {
 #define CTRL_BUTTON_NORMAL_COLOUR   wxColour(255, 255, 255)
 #define CTRL_BUTTON_PRESSEN_COLOUR  wxColour(150, 150, 150)
 #define TABLE_HEAD_FONT             Label::Body_13
-#define ICON_SIZE                   FromDIP(16)
+
 
 class DeviceItem : public wxWindow
 {

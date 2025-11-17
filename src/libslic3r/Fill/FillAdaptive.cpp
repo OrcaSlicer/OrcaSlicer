@@ -349,8 +349,9 @@ std::pair<double, double> adaptive_fill_line_spacing(const PrintObject &print_ob
             } else
                 return 0.;
         };
-        adaptive_line_spacing = to_line_spacing(adaptive_cnt, adaptive_fill_density, adaptive_infill_extrusion_width);
-        support_line_spacing  = to_line_spacing(support_cnt, support_fill_density, support_infill_extrusion_width);
+        const int n_multiline = print_object.printing_region(0).config().fill_multiline.value;
+        adaptive_line_spacing = to_line_spacing(adaptive_cnt, adaptive_fill_density, adaptive_infill_extrusion_width) * n_multiline;
+        support_line_spacing  = to_line_spacing(support_cnt, support_fill_density, support_infill_extrusion_width) * n_multiline;
     }
 
     return std::make_pair(adaptive_line_spacing, support_line_spacing);

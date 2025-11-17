@@ -1,0 +1,7 @@
+{
+    "type": "process",
+    "name": "process_common_E3NG v1.2S",
+    "inherits": "fdm_process_common",
+    "from": "system",
+    "instantiation": "false"
+}

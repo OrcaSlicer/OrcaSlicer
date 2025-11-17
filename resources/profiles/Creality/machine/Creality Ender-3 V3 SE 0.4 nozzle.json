@@ -12,7 +12,6 @@
     "printer_structure": "i3",
     "default_print_profile": "0.20mm Standard @Creality Ender3V3SE 0.4",
     "extruder_clearance_height_to_rod": "47",
-    "extruder_clearance_max_radius": "90",
     "extruder_clearance_radius": "90",
     "machine_load_filament_time": "11",
     "nozzle_diameter": [

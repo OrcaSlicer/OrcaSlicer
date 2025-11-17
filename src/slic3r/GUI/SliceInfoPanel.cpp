@@ -4,12 +4,12 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "libslic3r/Utils.hpp"
+#include "GUI_App.hpp"//for  ICON_SIZE (wxSize(FromDIP(16), FromDIP(16)))
 
 namespace Slic3r {
 namespace GUI {
 
 #define THUMBNAIL_SIZE  (wxSize(FromDIP(60), FromDIP(60)))
-#define ICON_SIZE       (wxSize(FromDIP(16), FromDIP(16)))
 #define PRINT_ICON_SIZE (wxSize(FromDIP(18), FromDIP(18)))
 
 wxIMPLEMENT_CLASS(SliceInfoPopup, PopupWindow);
@@ -22,14 +22,6 @@ wxBEGIN_EVENT_TABLE(SliceInfoPopup, PopupWindow)
 wxEND_EVENT_TABLE()
 
 static wxColour BUTTON_BORDER_COL = wxColour(255, 255, 255);
-
-inline int hex_digit_to_int(const char c)
-{
-    return
-        (c >= '0' && c <= '9') ? int(c - '0') :
-        (c >= 'A' && c <= 'F') ? int(c - 'A') + 10 :
-        (c >= 'a' && c <= 'f') ? int(c - 'a') + 10 : -1;
-}
 
 inline float calc_gray(wxColour color)
 {
@@ -183,7 +175,7 @@ SliceInfoPanel::SliceInfoPanel(wxWindow *parent, wxBitmap &prediction, wxBitmap 
     this->SetBackgroundColour(*wxWHITE);
 
     m_item_top_sizer = new wxBoxSizer(wxHORIZONTAL);
-    
+
     m_bmp_item_thumbnail = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxDefaultSize, wxBU_AUTODRAW | 0);
     m_bmp_item_thumbnail->SetMinSize(THUMBNAIL_SIZE);
     m_bmp_item_thumbnail->SetSize(THUMBNAIL_SIZE);

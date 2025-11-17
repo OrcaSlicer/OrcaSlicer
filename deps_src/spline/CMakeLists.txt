@@ -5,7 +5,7 @@ project(spline)
 add_library(spline INTERFACE)
 
 # Set include directories for the interface library
-target_include_directories(spline 
+target_include_directories(spline SYSTEM
     INTERFACE 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>

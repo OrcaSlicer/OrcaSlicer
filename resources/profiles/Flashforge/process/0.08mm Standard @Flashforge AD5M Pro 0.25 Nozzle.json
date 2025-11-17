@@ -8,7 +8,7 @@
     "compatible_printers": [
         "Flashforge Adventurer 5M Pro 0.25 Nozzle"
     ],
-    "filename_format": "{input_filename_base}.gcode",
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
     "post_process": "",
     "layer_height": "0.08",
     "print_settings_id": "0.08mm Standard @Flashforge AD5M Pro 0.25 Nozzle",

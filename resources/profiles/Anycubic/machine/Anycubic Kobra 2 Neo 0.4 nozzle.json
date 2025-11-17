@@ -72,7 +72,7 @@
     "long_retractions_when_cut": [
         "0"
     ],
-    "machine_end_gcode": "M140 S0; Heatbed off\nM107; Fan off \nG91; relative positioning \nM83 ; extruder relative mode\nG1 E-2 F3000 ;retract the filament a bit before lifting the nozzle, to release some of the pressure\nG1 Z+0.5 E-5 F3000 ;move Z up a bit and retract filament even more\nM104 S0; Extruder off\nG28 ;move X/Y to min endstops, so the head is out of the way\nG90; absolute positioning \nG1 Y220 F3000\nM84 ;steppers off\nM300 S1318 P266",
+    "machine_end_gcode": "M140 S0; Heatbed off\nM107; Fan off \nG91; relative positioning \nM83 ; extruder relative mode\nG1 E-3 F3000 ;retract the filament a bit before lifting the nozzle, to release some of the pressure\nG1 Z+0.5 F3000 ;move Z up a bit and retract filament even more\nM104 S0; Extruder off\nG28 X Y;move X/Y to min endstops, so the head is out of the way\nG90; absolute positioning \nG1 Y220 F3000\nM84 ;steppers off\nM300 S1318 P266",
     "machine_load_filament_time": "42",
     "machine_max_acceleration_e": [
         "2000",

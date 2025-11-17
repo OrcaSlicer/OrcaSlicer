@@ -3,8 +3,9 @@ project(agg)
 
 add_library(agg INTERFACE)
 
-target_include_directories(agg INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(agg SYSTEM
+    INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_sources(agg INTERFACE

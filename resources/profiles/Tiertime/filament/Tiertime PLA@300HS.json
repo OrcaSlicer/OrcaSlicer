@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "name": "Tiertime PLA@300HS",
-    "inherits": "fdm_filament_pla",
-    "from": "system",
-    "setting_id": "GFSA00",
     "filament_id": "GFA00_01",
+    "setting_id": "GFSA00",
+    "name": "Tiertime PLA@300HS",
+    "from": "system",
     "instantiation": "true",
+    "inherits": "fdm_filament_pla",
     "filament_cost": [
         "24.99"
     ],

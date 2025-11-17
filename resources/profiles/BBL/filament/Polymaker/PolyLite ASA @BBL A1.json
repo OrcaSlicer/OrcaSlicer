@@ -5,18 +5,6 @@
     "from": "system",
     "setting_id": "GFSB61_07",
     "instantiation": "true",
-    "hot_plate_temp": [
-        "100"
-    ],
-    "hot_plate_temp_initial_layer": [
-        "100"
-    ],
-    "textured_plate_temp": [
-        "100"
-    ],
-    "textured_plate_temp_initial_layer": [
-        "100"
-    ],
     "compatible_printers": [
         "Bambu Lab A1 0.4 nozzle",
         "Bambu Lab A1 0.6 nozzle",

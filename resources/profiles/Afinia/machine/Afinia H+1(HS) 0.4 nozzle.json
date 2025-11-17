@@ -1,0 +1,21 @@
+{
+    "type": "machine",
+    "setting_id": "GM001",
+    "name": "Afinia H+1(HS) 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_afinia_common",
+    "printer_model": "Afinia H+1(HS)",
+    "default_print_profile": "0.20mm Standard @Afinia H+1(HS)",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "207x0",
+        "207x255",
+        "0x255"
+    ],
+    "printable_height": "230"
+}

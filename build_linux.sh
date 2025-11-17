@@ -7,19 +7,21 @@ SCRIPT_PATH=$(dirname "$(readlink -f "${0}")")
 pushd "${SCRIPT_PATH}" > /dev/null
 
 function usage() {
-    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
+    echo "Usage: ./${SCRIPT_NAME} [-1][-b][-c][-d][-D][-e][-h][-i][-j N][-p][-r][-s][-t][-u][-l][-L]"
     echo "   -1: limit builds to one core (where possible)"
     echo "   -j N: limit builds to N cores (where possible)"
-    echo "   -b: build in debug mode"
+    echo "   -b: build in Debug mode"
     echo "   -c: force a clean build"
     echo "   -C: enable ANSI-colored compile output (GNU/Clang only)"
     echo "   -d: download and build dependencies in ./deps/ (build prerequisite)"
+    echo "   -D: dry run"
+    echo "   -e: build in RelWithDebInfo mode"
     echo "   -h: prints this help text"
     echo "   -i: build the Orca Slicer AppImage (optional)"
     echo "   -p: boost ccache hit rate by disabling precompiled headers (default: ON)"
     echo "   -r: skip RAM and disk checks (low RAM compiling)"
     echo "   -s: build the Orca Slicer (optional)"
-    echo "   -t: build tests (optional)"
+    echo "   -t: build tests (optional), requires -s flag"
     echo "   -u: install system dependencies (asks for sudo password; build prerequisite)"
     echo "   -l: use Clang instead of GCC (default: GCC)"
     echo "   -L: use ld.lld as linker (if available)"
@@ -31,7 +33,9 @@ function usage() {
 SLIC3R_PRECOMPILED_HEADERS="ON"
 
 unset name
-while getopts ":1j:bcCdhiprstulL" opt ; do
+BUILD_DIR=build
+BUILD_CONFIG=Release
+while getopts ":1j:bcCdDehiprstulL" opt ; do
   case ${opt} in
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
@@ -40,7 +44,8 @@ while getopts ":1j:bcCdhiprstulL" opt ; do
         export CMAKE_BUILD_PARALLEL_LEVEL=$OPTARG
         ;;
     b )
-        BUILD_DEBUG="1"
+        BUILD_DIR=build-dbg
+        BUILD_CONFIG=Debug
         ;;
     c )
         CLEAN_BUILD=1
@@ -50,6 +55,13 @@ while getopts ":1j:bcCdhiprstulL" opt ; do
         ;;
     d )
         BUILD_DEPS="1"
+        ;;
+    D )
+        DRY_RUN="1"
+        ;;
+    e )
+        BUILD_DIR=build-dbginfo
+        BUILD_CONFIG=RelWithDebInfo
         ;;
     h ) usage
         exit 1
@@ -90,6 +102,11 @@ if [ ${OPTIND} -eq 1 ] ; then
     exit 1
 fi
 
+if [[ -n "${BUILD_TESTS}" ]] && [[ -z "${BUILD_ORCA}" ]] ; then
+    echo "-t flag requires -s flag in the same invocation"
+    exit 1
+fi
+
 function check_available_memory_and_disk() {
     FREE_MEM_GB=$(free --gibi --total | grep 'Mem' | rev | cut --delimiter=" " --fields=1 | rev)
     MIN_MEM_GB=10
@@ -109,6 +126,21 @@ function check_available_memory_and_disk() {
         echo && df --human-readable . && echo
         echo "Invoke with -r to skip ram and disk checks."
         exit 1
+    fi
+}
+
+function print_and_run() {
+    cmd=()
+    # Remove empty arguments, leading and trailing spaces
+    for item in "$@" ; do
+        if [[ -n $item ]]; then
+            cmd+=( "$(echo "${item}" | xargs)" )
+        fi
+    done
+
+    echo "${cmd[@]}"
+    if [[ -z "${DRY_RUN}" ]] ; then
+        "${cmd[@]}"
     fi
 }
 
@@ -133,10 +165,11 @@ if [ ! -f "./scripts/linux.d/${DISTRIBUTION}" ] ; then
     exit 1
 else
     echo "resolving system dependencies for distribution \"${DISTRIBUTION}\" ..."
+    # shellcheck source=/dev/null
     source "./scripts/linux.d/${DISTRIBUTION}"
 fi
 
-echo "FOUND_GTK3=${FOUND_GTK3}"
+echo "FOUND_GTK3_DEV=${FOUND_GTK3_DEV}"
 if [[ -z "${FOUND_GTK3_DEV}" ]] ; then
     echo "Error, you must install the dependencies before."
     echo "Use option -u with sudo"
@@ -155,17 +188,17 @@ if [[ -z "${SKIP_RAM_CHECK}" ]] ; then
     check_available_memory_and_disk
 fi
 
-export CMAKE_C_CXX_COMPILER_CLANG=""
+export CMAKE_C_CXX_COMPILER_CLANG=()
 if [[ -n "${USE_CLANG}" ]] ; then
-    export CMAKE_C_CXX_COMPILER_CLANG="-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
+    export CMAKE_C_CXX_COMPILER_CLANG=(-DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++)
 fi
 
 # Configure use of ld.lld as the linker when requested
-export CMAKE_LLD_LINKER_ARGS=""
+export CMAKE_LLD_LINKER_ARGS=()
 if [[ -n "${USE_LLD}" ]] ; then
     if command -v ld.lld >/dev/null 2>&1 ; then
         LLD_BIN=$(command -v ld.lld)
-        export CMAKE_LLD_LINKER_ARGS="-DCMAKE_LINKER=${LLD_BIN} -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld"
+        export CMAKE_LLD_LINKER_ARGS=(-DCMAKE_LINKER="${LLD_BIN}" -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld)
     else
         echo "Error: ld.lld not found. Please install the 'lld' package (e.g., sudo apt install lld) or omit -L."
         exit 1
@@ -174,84 +207,63 @@ fi
 
 if [[ -n "${BUILD_DEPS}" ]] ; then
     echo "Configuring dependencies..."
-    BUILD_ARGS="${DEPS_EXTRA_BUILD_ARGS} -DDEP_WX_GTK3=ON"
+    read -r -a BUILD_ARGS <<< "${DEPS_EXTRA_BUILD_ARGS}"
     if [[ -n "${CLEAN_BUILD}" ]]
     then
-        rm -fr deps/build
+        print_and_run rm -fr deps/$BUILD_DIR
     fi
-    mkdir -p deps/build
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        # build deps with debug and release else cmake will not find required sources
-        mkdir -p deps/build/release
-	CMAKE_CMD="cmake ${CMAKE_C_CXX_COMPILER_CLANG} ${CMAKE_LLD_LINKER_ARGS} -S deps -B deps/build/release -DSLIC3R_PCH=${SLIC3R_PRECOMPILED_HEADERS} -G Ninja -DDESTDIR=${SCRIPT_PATH}/deps/build/destdir -DDEP_DOWNLOAD_DIR=${SCRIPT_PATH}/deps/DL_CACHE ${COLORED_OUTPUT} ${BUILD_ARGS}"
-	echo "${CMAKE_CMD}"
-	${CMAKE_CMD}
-        cmake --build deps/build/release
-        BUILD_ARGS="${BUILD_ARGS} -DCMAKE_BUILD_TYPE=Debug"
+    mkdir -p deps/$BUILD_DIR
+    if [[ $BUILD_CONFIG != Release ]] ; then
+        BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
 
-    # If this isn't in one quote, then empty variables can add two single quotes and mess up argument parsing for cmake.
-    CMAKE_CMD="cmake -S deps -B deps/build ${CMAKE_C_CXX_COMPILER_CLANG} ${CMAKE_LLD_LINKER_ARGS} -G Ninja ${COLORED_OUTPUT} ${BUILD_ARGS}"
-    echo "${CMAKE_CMD}"
-    ${CMAKE_CMD}
-    cmake --build deps/build
+    print_and_run cmake -S deps -B deps/$BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G Ninja "${COLORED_OUTPUT}" "${BUILD_ARGS[@]}"
+    print_and_run cmake --build deps/$BUILD_DIR
 fi
 
 if [[ -n "${BUILD_ORCA}" ]] ; then
     echo "Configuring OrcaSlicer..."
     if [[ -n "${CLEAN_BUILD}" ]] ; then
-        rm -fr build
+        print_and_run rm -fr $BUILD_DIR
     fi
-    BUILD_ARGS="${ORCA_EXTRA_BUILD_ARGS}"
-    if [[ -n "${FOUND_GTK3_DEV}" ]] ; then
-        BUILD_ARGS="${BUILD_ARGS} -DSLIC3R_GTK=3"
-    fi
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        BUILD_ARGS="${BUILD_ARGS} -DCMAKE_BUILD_TYPE=Debug -DBBL_INTERNAL_TESTING=1"
-    else
-        BUILD_ARGS="${BUILD_ARGS} -DBBL_RELEASE_TO_PUBLIC=1 -DBBL_INTERNAL_TESTING=0"
+    read -r -a BUILD_ARGS <<< "${ORCA_EXTRA_BUILD_ARGS}"
+    if [[ $BUILD_CONFIG != Release ]] ; then
+        BUILD_ARGS+=(-DCMAKE_BUILD_TYPE="${BUILD_CONFIG}")
     fi
     if [[ -n "${BUILD_TESTS}" ]] ; then
-        BUILD_ARGS="${BUILD_ARGS} -DBUILD_TESTS=ON"
+        BUILD_ARGS+=(-DBUILD_TESTS=ON)
+    fi
+    if [[ -n "${ORCA_UPDATER_SIG_KEY}" ]] ; then
+        BUILD_ARGS+=(-DORCA_UPDATER_SIG_KEY="${ORCA_UPDATER_SIG_KEY}")
     fi
 
-    echo "Configuring OrcaSlicer..."
-    cmake -S . -B build ${CMAKE_C_CXX_COMPILER_CLANG} ${CMAKE_LLD_LINKER_ARGS} -G "Ninja Multi-Config" \
+    print_and_run cmake -S . -B $BUILD_DIR "${CMAKE_C_CXX_COMPILER_CLANG[@]}" "${CMAKE_LLD_LINKER_ARGS[@]}" -G "Ninja Multi-Config" \
 -DSLIC3R_PCH=${SLIC3R_PRECOMPILED_HEADERS} \
--DCMAKE_PREFIX_PATH=${SCRIPT_PATH}/deps/build/destdir/usr/local \
--DSLIC3R_STATIC=1 \
 -DORCA_TOOLS=ON \
-${COLORED_OUTPUT} \
-${BUILD_ARGS}
-    echo "${CMAKE_CMD}"
-    ${CMAKE_CMD}
+"${COLORED_OUTPUT}" \
+"${BUILD_ARGS[@]}"
     echo "done"
     echo "Building OrcaSlicer ..."
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        cmake --build build --config Debug --target OrcaSlicer
-    else
-        cmake --build build --config Release --target OrcaSlicer
-    fi
+    print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer
     echo "Building OrcaSlicer_profile_validator .."
-    if [[ -n "${BUILD_DEBUG}" ]] ; then
-        cmake --build build --config Debug --target OrcaSlicer_profile_validator
-    else
-        cmake --build build --config Release --target OrcaSlicer_profile_validator
-    fi
+    print_and_run cmake --build $BUILD_DIR --config "${BUILD_CONFIG}" --target OrcaSlicer_profile_validator
     ./scripts/run_gettext.sh
+    if [[ -n "${BUILD_TESTS}" ]] ; then
+	echo "Building tests ..."
+	print_and_run cmake --build ${BUILD_DIR} --config "${BUILD_CONFIG}" --target tests/all
+    fi
     echo "done"
 fi
 
 if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
-    pushd build > /dev/null
-    echo "[9/9] Generating Linux app..."
+    pushd $BUILD_DIR > /dev/null
     build_linux_image="./src/build_linux_image.sh"
     if [[ -e ${build_linux_image} ]] ; then
         extra_script_args=""
         if [[ -n "${BUILD_IMAGE}" ]] ; then
             extra_script_args="-i"
         fi
-        ${build_linux_image} ${extra_script_args}
+        print_and_run ${build_linux_image} ${extra_script_args} -R "${BUILD_CONFIG}"
 
         echo "done"
     fi

@@ -3,8 +3,8 @@
     "name": "Tiertime Generic PA-CF",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSN99",
     "filament_id": "GFN98",
+    "setting_id": "GFSN99",
     "instantiation": "true",
     "fan_cooling_layer_time": [
         "5"

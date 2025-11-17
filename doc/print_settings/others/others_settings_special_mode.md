@@ -31,7 +31,7 @@ Use this for most prints where no special modifications are needed.
 Use "Close holes" to automatically close all holes in the model during slicing in the XY plane.  
 This can help with models that have gaps or incomplete surfaces, ensuring a more solid print.
 
-![close-holes](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/slicing-mode/close-holes.png?raw=true)
+![close-holes](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/slicing-mode/close-holes.png?raw=true)
 
 ### Even Odd
 
@@ -67,6 +67,9 @@ This creates a smooth, vase-like appearance.
 
 When enabled, Smooth Spiral smooths out X and Y moves as well, resulting in no visible seams even on non-vertical walls.  
 This produces the smoothest possible spiral print.
+
+> [!NOTE]
+> If you are using absolute e distances, the smoothing may not work as expected.
 
 #### Max XY Smoothing
 

@@ -116,6 +116,5 @@
     "initial_layer_travel_speed": "50%",
     "filter_out_gap_fill": "2",
     "small_perimeter_threshold": "4",
-    "notes": "If you want to use Orca's chamber temperature control feature, check that printer.cfg has added the following M191 macro.\nTo add it: go to Fluidd web interface--configuration, copy the following code to the top of the printer.cfg document, SAVE&RESATART  \n\n[gcode_macro M191]\ngcode:\n    {% set s = params.S|float %}\n    {% if s == 0 %}\n        # If target temperature is 0, do nothing\n        M117 Chamber heating cancelled\n    {% else %}\n        SET_HEATER_TEMPERATURE HEATER=chamber_heater TARGET={s}\n        # Orca: uncomment the following line if you want to use heat bed to assist chamber heating\n        M140 S90\n        TEMPERATURE_WAIT SENSOR=\"heater_generic chamber_heater\" MINIMUM={s-1} MAXIMUM={s+1}\n        M117 Chamber at target temperature\n    {% endif %}",
     "exclude_object": "1"
 }

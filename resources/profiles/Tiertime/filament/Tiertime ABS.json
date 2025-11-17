@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "name": "Tiertime ABS",
-    "inherits": "fdm_filament_abs",
-    "from": "system",
-    "setting_id": "GFSB00",
     "filament_id": "GFB00",
+    "setting_id": "GFSB00",
+    "name": "Tiertime ABS",
+    "from": "system",
     "instantiation": "true",
+    "inherits": "fdm_filament_abs",
     "filament_flow_ratio": [
         "0.95"
     ],

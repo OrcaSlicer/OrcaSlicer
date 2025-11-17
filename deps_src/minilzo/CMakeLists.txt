@@ -16,7 +16,7 @@ if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
 endif()
 
 target_link_libraries(minilzo INTERFACE minilzo_static)
-target_include_directories(minilzo INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(minilzo SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 message(STATUS "Minilzo using bundled version...")
 

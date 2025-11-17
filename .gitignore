@@ -1,6 +1,8 @@
 Build
 Build.bat
 /build*/
+CMakeLists.txt.user
+**/CMakeLists.txt.autosave
 deps/build*
 MYMETA.json
 MYMETA.yml
@@ -37,3 +39,6 @@ src/OrcaSlicer-doc/
 resources/profiles/user/default
 *.code-workspace
 deps_src/build/
+test.js
+/.cache/
+.clangd

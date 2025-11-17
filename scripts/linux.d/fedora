@@ -1,4 +1,4 @@
-FOUND_GTK3=$(rpm -qa | grep -P '^gtk3' || true)
+#!/bin/bash
 
 REQUIRED_DEV_PACKAGES=(
     autoconf
@@ -34,16 +34,17 @@ REQUIRED_DEV_PACKAGES=(
 
 if [[ -n "$UPDATE_LIB" ]]
 then
-    NEEDED_PKGS=""
-    for PKG in ${REQUIRED_DEV_PACKAGES[@]}; do
-        rpm -q ${PKG} > /dev/null || NEEDED_PKGS+=" ${PKG}"
+    NEEDED_PKGS=()
+    for PKG in "${REQUIRED_DEV_PACKAGES[@]}"; do
+        rpm -q "${PKG}" > /dev/null || NEEDED_PKGS+=("${PKG}")
     done
 
-    if [ -n "${NEEDED_PKGS}" ]; then
-        sudo dnf install -y ${NEEDED_PKGS}
+    if [[ "${#NEEDED_PKGS[*]}" -gt 0 ]]; then
+        sudo dnf install -y "${NEEDED_PKGS[@]}"
     fi
     echo -e "done\n"
     exit 0
 fi
 
+export FOUND_GTK3_DEV
 FOUND_GTK3_DEV=$(rpm -qa | grep -P '^gtk3-devel' || true)

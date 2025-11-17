@@ -12,10 +12,15 @@ public:
 
     PopupWindow(wxWindow *parent, int style = wxBORDER_NONE)
         { Create(parent, style); }
-    
+
     bool Create(wxWindow *parent, int flags = wxBORDER_NONE);
 
 private:
+#ifdef __WXOSX__
+    void OnMouseEvent2(wxMouseEvent &evt);
+    wxEvtHandler * hovered { this };
+#endif
+
 #ifdef __WXGTK__
     void topWindowActiavate(wxActivateEvent &event);
 #endif

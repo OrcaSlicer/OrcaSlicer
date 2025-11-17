@@ -1,6 +1,6 @@
 {
     "name": "Creality",
-    "version": "02.03.01.00",
+    "version": "02.03.01.20",
     "force_update": "0",
     "description": "Creality configurations",
     "machine_model_list": [
@@ -1651,8 +1651,20 @@
             "sub_path": "machine/Creality Ender-3 V3 0.6 nozzle.json"
         },
         {
+            "name": "Creality Ender-3 V3 KE 0.2 nozzle",
+            "sub_path": "machine/Creality Ender-3 V3 KE 0.2 nozzle.json"
+        },
+        {
             "name": "Creality Ender-3 V3 KE 0.4 nozzle",
+            "sub_path": "machine/Creality Ender-3 V3 KE 0.4 nozzle.json"
+        },
+        {
+            "name": "Creality Ender-3 V3 KE 0.6 nozzle",
             "sub_path": "machine/Creality Ender-3 V3 KE 0.6 nozzle.json"
+        },
+        {
+            "name": "Creality Ender-3 V3 KE 0.8 nozzle",
+            "sub_path": "machine/Creality Ender-3 V3 KE 0.8 nozzle.json"
         },
         {
             "name": "Creality Ender-3 V3 Plus 0.4 nozzle",

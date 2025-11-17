@@ -59,14 +59,14 @@ for VENDOR in "$@"; do
 done
 
 # Create zip file
-cd "$TEMP_DIR"
+pushd "$TEMP_DIR" || exit 1
 zip -r "$OUTPUT_FILE" profiles/
 
 # Move zip file to original directory
 mv "$OUTPUT_FILE" "$ORIGINAL_DIR/"
 
 # Return to original directory
-cd "$ORIGINAL_DIR"
+popd || exit 1
 
 # Clean up
 rm -rf "$TEMP_DIR"
@@ -78,4 +78,4 @@ if [ -f "$OUTPUT_FILE" ]; then
 else
     echo "Error: Failed to create zip file"
     exit 1
-fi 
+fi

@@ -8,6 +8,15 @@
     "fan_max_speed": [
         "40"
     ],
+    "filament_deretraction_speed": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "0.4"
+    ],
+    "filament_retraction_speed": [
+        "nil"
+    ],
     "compatible_printers": [
         "Bambu Lab X1 Carbon 0.4 nozzle",
         "Bambu Lab X1 Carbon 0.6 nozzle",

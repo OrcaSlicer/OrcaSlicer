@@ -12,14 +12,23 @@
     "filament_density": [
         "1.22"
     ],
+    "filament_deretraction_speed": [
+        "10"
+    ],
     "filament_max_volumetric_speed": [
         "12"
     ],
     "filament_retraction_length": [
-        "0.8"
+        "2"
+    ],
+    "filament_retraction_speed": [
+        "10"
     ],
     "filament_vendor": [
         "Bambu Lab"
+    ],
+    "impact_strength_z": [
+        "86.3"
     ],
     "nozzle_temperature": [
         "230"

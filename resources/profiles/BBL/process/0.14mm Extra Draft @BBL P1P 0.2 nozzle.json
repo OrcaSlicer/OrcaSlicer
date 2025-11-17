@@ -6,9 +6,13 @@
     "setting_id": "GP066",
     "instantiation": "true",
     "description": "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height, and results in slightly visible layer lines, but shorter printing time.",
-    "default_acceleration": "5000",
+    "default_acceleration": [
+        "5000"
+    ],
     "elefant_foot_compensation": "0.15",
-    "outer_wall_acceleration": "2500",
+    "outer_wall_acceleration": [
+        "2500"
+    ],
     "compatible_printers": [
         "Bambu Lab P1P 0.2 nozzle"
     ]

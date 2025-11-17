@@ -11,8 +11,8 @@ add_executable(hintsToPot
     HintsToPot.cpp)
 
 # Set include directories for the executable
-target_include_directories(hintsToPot 
-    PRIVATE 
+target_include_directories(hintsToPot SYSTEM
+    PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
@@ -25,7 +25,7 @@ endif()
 add_library(hints INTERFACE)
 
 # Set include directories for the interface library
-target_include_directories(hints 
+target_include_directories(hints SYSTEM
     INTERFACE 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>

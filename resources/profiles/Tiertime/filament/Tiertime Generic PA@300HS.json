@@ -3,8 +3,8 @@
     "name": "Tiertime Generic PA@300HS",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSN98",
     "filament_id": "GFN99_01",
+    "setting_id": "GFSN98",
     "instantiation": "true",
     "chamber_temperatures": [
         "60"
