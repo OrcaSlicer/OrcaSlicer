@@ -3147,6 +3147,50 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts{ -1 });
 
+    // Filament ironing overrides
+    def = this->add("filament_ironing_flow", coPercents);
+    def->label = L("Ironing flow");
+    def->tooltip = L("Filament-specific override for ironing flow. This allows you to customize the ironing flow "
+                     "for each filament type. Too high value results in overextrusion on the surface.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionPercentsNullable{ ConfigOptionPercentsNullable::nil_value() });
+
+    def = this->add("filament_ironing_spacing", coFloats);
+    def->label = L("Ironing line spacing");
+    def->tooltip = L("Filament-specific override for ironing line spacing. This allows you to customize the spacing "
+                     "between ironing lines for each filament type.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->max = 1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_ironing_inset", coFloats);
+    def->label = L("Ironing inset");
+    def->tooltip = L("Filament-specific override for ironing inset. This allows you to customize the distance to keep "
+                     "from the edges when ironing for each filament type.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_ironing_speed", coFloats);
+    def->label = L("Ironing speed");
+    def->tooltip = L("Filament-specific override for ironing speed. This allows you to customize the print speed "
+                     "of ironing lines for each filament type.");
+    def->sidetext = "mm/s";
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
     def = this->add("fuzzy_skin", coEnum);
     def->label = L("Fuzzy Skin");
     def->category = L("Others");
