@@ -70,8 +70,8 @@ How to building with Visual Studio on Windows 64-bit.
 > If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).  
 > You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
 
-![windows_variables_path](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/windows_variables_path.png?raw=true)
-![windows_variables_order](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/windows_variables_order.png?raw=true)
+![windows_variables_path](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/windows_variables_path.png?raw=true)
+![windows_variables_order](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/windows_variables_order.png?raw=true)
 
 > [!IMPORTANT]
 > **For Visual Studio 2026**, you must use the CMake included with Visual Studio 2026 **until CMake 4.2 is released as a stable version**.  
@@ -95,7 +95,7 @@ How to building with Visual Studio on Windows 64-bit.
    - If using the command line:
      1. Clone the repository:
      ```shell
-     git clone https://github.com/SoftFever/OrcaSlicer
+     git clone https://github.com/OrcaSlicer/OrcaSlicer
      ```
      2. Run lfs to download tools on Windows:
      ```shell
@@ -118,7 +118,7 @@ How to building with Visual Studio on Windows 64-bit.
       build_release_vs.bat
       ```
 
-![vs_cmd](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/vs_cmd.png?raw=true)
+![vs_cmd](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/vs_cmd.png?raw=true)
 
 > [!NOTE]
 > The build process will take a long time depending on your system but even with high-end hardware it can take up to 40 minutes.
@@ -131,7 +131,7 @@ How to building with Visual Studio on Windows 64-bit.
    build\OrcaSlicer.sln
    ```
 2. Open the solution in Visual Studio, set the build configuration to `Release` and run the `Local Windows Debugger`.  
-   ![compile_vs_local_debugger](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/develop/compile_vs_local_debugger.png?raw=true)
+   ![compile_vs_local_debugger](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/compile_vs_local_debugger.png?raw=true)
 3. Your resulting executable will be located in:
    ```shell
    \build\src\Release\orca-slicer.exe
@@ -192,7 +192,7 @@ cmake --version
 
 1. Clone the repository:
    ```shell
-   git clone https://github.com/SoftFever/OrcaSlicer
+   git clone https://github.com/OrcaSlicer/OrcaSlicer
    cd OrcaSlicer
    ```
 2. Build the application:
@@ -235,7 +235,7 @@ How to build and run OrcaSlicer using Docker.
 #### Docker Instructions
 
 ```shell
-git clone https://github.com/SoftFever/OrcaSlicer && cd OrcaSlicer && ./scripts/DockerBuild.sh && ./scripts/DockerRun.sh
+git clone https://github.com/OrcaSlicer/OrcaSlicer && cd OrcaSlicer && ./scripts/DockerBuild.sh && ./scripts/DockerRun.sh
 ```
 
 ### Troubleshooting

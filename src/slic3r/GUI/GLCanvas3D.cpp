@@ -1842,7 +1842,7 @@ void GLCanvas3D::enable_picking(bool enable)
 
     // Orca: invalidate hover state when dragging is toggled, otherwise if we turned off dragging
     // while hovering above a volume, the hovering state won't update even if mouse has moved away.
-    // Fixes https://github.com/SoftFever/OrcaSlicer/pull/9979#issuecomment-3065575889
+    // Fixes https://github.com/OrcaSlicer/OrcaSlicer/pull/9979#issuecomment-3065575889
     m_hover_volume_idxs.clear();
 }
 

@@ -60,22 +60,22 @@ Every firmware and even its version may have a different default type but usuall
 2. Select the [Input Shaper Type](#types) you want to test. Each firmware has different types available and each type has different performance.
 3. Select a range of frequencies to test. The Default 15hz to 110hz range is usually a good start.
 4. Select your damping. Usually, a value between 0.1 and 0.2 is a good start but you can change it to 0 and your printer will use the firmware default value (if available).  
-   ![IS_freq_menu](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_menu.png?raw=true)
+   ![IS_freq_menu](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_menu.png?raw=true)
    1. Measure the X and Y heights and read the frequency set at that point in OrcaSlicer.  
-      ![IS_freq_marlin_print_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_marlin_print_measure.jpg?raw=true)
+      ![IS_freq_marlin_print_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_marlin_print_measure.jpg?raw=true)
    - Marlin:  
-     ![IS_freq_marlin_slicer_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_marlin_slicer_measure.png?raw=true)
+     ![IS_freq_marlin_slicer_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_marlin_slicer_measure.png?raw=true)
    - Klipper:  
-     ![IS_freq_klipper_slicer_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_klipper_slicer_measure.png?raw=true)
+     ![IS_freq_klipper_slicer_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_freq_klipper_slicer_measure.png?raw=true)
    2. If not a clear result, you can measure a X and Y min and max acceptable heights and repeat the test with that min and max value.
 5. Print the Damping test setting your X and Y frequency to the value you found in the previous step.  
-   ![IS_damp_menu](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_menu.png?raw=true)
+   ![IS_damp_menu](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_menu.png?raw=true)
    1. Measure the X and Y heights and read the damping set at that point in OrcaSlicer.  
-      ![IS_damp_marlin_print_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_marlin_print_measure.jpg?raw=true)
+      ![IS_damp_marlin_print_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_marlin_print_measure.jpg?raw=true)
    - Marlin:  
-     ![IS_damp_marlin_slicer_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_marlin_slicer_measure.png?raw=true)
+     ![IS_damp_marlin_slicer_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_marlin_slicer_measure.png?raw=true)
    - Klipper:  
-     ![IS_damp_klipper_slicer_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_klipper_slicer_measure.png?raw=true)
+     ![IS_damp_klipper_slicer_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/InputShaping/IS_damp_klipper_slicer_measure.png?raw=true)
 
 6. **Restore your 3D Printer settings to avoid keep using high acceleration and jerk values.**
 7. Save the settings

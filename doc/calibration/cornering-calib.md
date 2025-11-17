@@ -29,24 +29,24 @@ This test will be set detect automatically your printer firmware type and will a
       2. Speed high enough to trigger ringing (e.g., 100 mm/s).
    3. Use an opaque, high-gloss filament to make ringing more visible.
 2. Open the Cornering test.  
-   ![jd_first_menu](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_first_menu.png?raw=true)
+   ![jd_first_menu](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_first_menu.png?raw=true)
    1. In this first approximation, set a wide range of Start and End values.
       - If you don't see any loss of quality, increase the End value and retry.
       - If you do see a loss of quality, measure the maximum height when the corners start losing sharpness and read the Cornering/Jerk/JunctionDeviation value set at that point in OrcaSlicer.  
-      ![jd_first_print_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_first_print_measure.jpg?raw=true)  
-      ![jd_first_slicer_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_first_slicer_measure.png?raw=true)
+      ![jd_first_print_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_first_print_measure.jpg?raw=true)  
+      ![jd_first_slicer_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_first_slicer_measure.png?raw=true)
    2. Print a new calibration tower with a maximum set near the point where corners start losing sharpness.  
       **RECOMMENDED:** Use the *Ringing Tower* test model to more easily visualize the jerk limit.
    3. Print the second Cornering test with the new maximum value.  
-      ![jd_second_menu](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_second_menu.png?raw=true)
+      ![jd_second_menu](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_second_menu.png?raw=true)
    4. Measure the maximum height when the corners start losing sharpness and read the Cornering/Jerk/JunctionDeviation value set at that point in OrcaSlicer.  
-      ![jd_second_print_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_second_print_measure.jpg?raw=true)  
-      ![jd_second_slicer_measure](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_second_slicer_measure.png?raw=true)
+      ![jd_second_print_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_second_print_measure.jpg?raw=true)  
+      ![jd_second_slicer_measure](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_second_slicer_measure.png?raw=true)
 3. Save the settings
    - Into your OrcaSlicer printer profile (**RECOMMENDED**):
      1. Go to Printer settings → Motion ability → Jerk limitation:
      2. Set your maximum Jerk X and Y or Junction Deviation values.  
-        ![jd_printer_jerk_limitation](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_printer_jerk_limitation.png?raw=true)
+        ![jd_printer_jerk_limitation](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/JunctionDeviation/jd_printer_jerk_limitation.png?raw=true)
    - Directly into your printer firmware:
      - Restore your 3D Printer settings to avoid keeping high acceleration and jerk values used for the test.
 

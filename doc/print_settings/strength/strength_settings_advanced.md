@@ -13,7 +13,7 @@
 Aligns infill and surface fill directions to follow the model's orientation on the build plate.  
 When enabled, fill directions rotate with the model to maintain optimal characteristics.
 
-![fill-direction-to-model](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/fill-direction-to-model.png?raw=true)
+![fill-direction-to-model](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/fill-direction-to-model.png?raw=true)
 
 ## Bridge infill direction
 
@@ -30,7 +30,7 @@ This setting helps to ensure that small areas of sparse infill do not compromise
 
 Automatically combine [sparse infill](strength_settings_infill) of several layers so they print together and reduce print time and while increasing strength. While walls are still printed with the original [layer height](quality_settings_layer_height).
 
-![fill-combination](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/fill/fill-combination.png?raw=true)
+![fill-combination](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/fill/fill-combination.png?raw=true)
 
 ### Max layer height
 

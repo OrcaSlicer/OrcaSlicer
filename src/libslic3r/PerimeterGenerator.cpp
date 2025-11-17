@@ -159,7 +159,7 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             BoundingBox bbox(polygon.points);
             bbox.offset(SCALED_EPSILON);
 
-            // Always reverse extrusion if use fuzzy skin: https://github.com/SoftFever/OrcaSlicer/pull/2413#issuecomment-1769735357
+            // Always reverse extrusion if use fuzzy skin: https://github.com/OrcaSlicer/OrcaSlicer/pull/2413#issuecomment-1769735357
             if (overhangs_reverse && perimeter_generator.has_fuzzy_skin) {
                 if (loop.is_contour) {
                     steep_overhang_contour = true;
@@ -406,7 +406,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
             extrusion_paths_append(paths, clip_extrusion(extrusion_path, lower_slices_paths, ClipperLib_Z::ctIntersection), role,
                                    is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow);
 
-            // Always reverse extrusion if use fuzzy skin: https://github.com/SoftFever/OrcaSlicer/pull/2413#issuecomment-1769735357
+            // Always reverse extrusion if use fuzzy skin: https://github.com/OrcaSlicer/OrcaSlicer/pull/2413#issuecomment-1769735357
             if (overhangs_reverse && perimeter_generator.has_fuzzy_skin) {
                 if (pg_extrusion.is_contour) {
                     steep_overhang_contour = true;

@@ -176,12 +176,12 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     // Help links
     auto help_sizer = new wxBoxSizer(wxVERTICAL);
     auto help_link_pa = new wxHyperlinkCtrl(this, wxID_ANY, _L("Pressure Advance Guide"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/pressure-advance-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/pressure-advance-calib");
     help_link_pa->SetForegroundColour(wxColour("#1890FF"));
     help_sizer->Add(help_link_pa, 0, wxALL, FromDIP(5));
 
     auto help_link_apa = new wxHyperlinkCtrl(this, wxID_ANY, _L("Adaptive Pressure Advance Guide"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/adaptive-pressure-advance-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/adaptive-pressure-advance-calib");
     help_link_apa->SetForegroundColour(wxColour("#1890FF"));
     help_sizer->Add(help_link_apa, 0, wxALL, FromDIP(5));
 
@@ -387,7 +387,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     v_sizer->AddSpacer(FromDIP(5));
 
     auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Temperature Calibration"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/temp-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/temp-calib");
     help_link->SetForegroundColour(wxColour("#1890FF"));
     v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
@@ -566,7 +566,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->AddSpacer(FromDIP(5));
 
     auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Volumetric Speed Calibration"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/volumetric-speed-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/volumetric-speed-calib");
     help_link->SetForegroundColour(wxColour("#1890FF"));
     v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
@@ -672,7 +672,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     v_sizer->AddSpacer(FromDIP(5));
 
     auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: VFA"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/vfa-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/vfa-calib");
     help_link->SetForegroundColour(wxColour("#1890FF"));
     v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
@@ -779,7 +779,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     v_sizer->AddSpacer(FromDIP(5));
 
     auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Retraction Calibration"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/retraction-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/retraction-calib");
     help_link->SetForegroundColour(wxColour("#1890FF"));
     v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
@@ -956,7 +956,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->AddSpacer(FromDIP(5));
 
     auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Input Shaping Calibration"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/input-shaping-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/input-shaping-calib");
     help_link->SetForegroundColour(wxColour("#1890FF"));
     v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
@@ -1153,7 +1153,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->AddSpacer(FromDIP(5));
 
     auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Input Shaping Calibration"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/input-shaping-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/input-shaping-calib");
     help_link->SetForegroundColour(wxColour("#1890FF"));
     v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 
@@ -1344,7 +1344,7 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     v_sizer->AddSpacer(FromDIP(5));
 
     auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Cornering Calibration"),
-        "https://github.com/SoftFever/OrcaSlicer/wiki/cornering-calib");
+        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/cornering-calib");
     help_link->SetForegroundColour(wxColour("#1890FF"));
     v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
 

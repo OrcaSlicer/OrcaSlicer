@@ -22,29 +22,29 @@ Print sequence of the internal (inner) and external (outer) walls.
 
 Use Inner/Outer for best overhangs. This is because the overhanging walls can adhere to a neighboring perimeter while printing. However, this option results in slightly reduced surface quality as the external perimeter is deformed by being squashed to the internal perimeter.
 
-![inner-outer](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/inner-outer.gif?raw=true)
+![inner-outer](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/inner-outer.gif?raw=true)
 
 ### Inner/Outer/Inner
 
 Use Inner/Outer/Inner for the best external surface finish and dimensional accuracy as the external wall is printed undisturbed from an internal perimeter. However, overhang performance will reduce as there is no internal perimeter to print the external wall against. This option requires a minimum of 3 walls to be effective as it prints the internal walls from the 3rd perimeter onwards first, then the external perimeter and, finally, the first internal perimeter. This option is recommended against the Outer/Inner option in most cases.
 
-![inner-outer-inner](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/inner-outer-inner.gif?raw=true)
+![inner-outer-inner](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/inner-outer-inner.gif?raw=true)
 
 ### Outer/Inner
 
 Use Outer/Inner for the same external wall quality and dimensional accuracy benefits of [Inner/Outer/Inner](#innerouterinner) option. However, the z seams will appear less consistent as the first extrusion of a new layer starts on a visible surface.
 
-![outer-inner](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/outer-inner.gif?raw=true)
+![outer-inner](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/outer-inner.gif?raw=true)
 
 ### Print infill first
 
 When this option is enabled, the [infill](strength_settings_infill) and [top/bottom shells](strength_settings_top_bottom_shells) are printed first, followed by the walls. This can be useful for some overhangs where the infill can support the walls.
 
-![infill-first](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/infill-first.gif?raw=true)
+![infill-first](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/infill-first.gif?raw=true)
 
 **However**, the infill will slightly push out the printed walls where it is attached to them, resulting in a worse external surface finish. It can also cause the infill to shine through the external surfaces of the part.
 
-![infill-ghosting](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/infill-ghosting.png?raw=true)
+![infill-ghosting](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/infill-ghosting.png?raw=true)
 
 When using this option is recommended to use the [Precise Wall](quality_settings_precision#precise-wall), [Inner/Outer/Inner](#innerouterinner) wall printing order or reduce [Infill/Wall Overlap](strength_settings_infill#infill-wall-overlap) to avoid the infill pushing out the external wall.
 
@@ -72,14 +72,14 @@ Other flow ratios, such as ratios for the first layer (does not affect brims and
 Use only one wall on flat surfaces, to give more space to the [top infill pattern](strength_settings_top_bottom_shells#surface-pattern).
 Specially useful in small features, like letters, where the top surface is very small and [concentric pattern](strength_settings_patterns#concentric) from walls would not cover it properly.
 
-![only-one-wall](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/only-one-wall.gif?raw=true)
+![only-one-wall](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/only-one-wall.gif?raw=true)
 
 ### Threshold
 
 If a top surface has to be printed and it's partially covered by another layer, it won't be considered at a top layer where its width is below this value. This can be useful to not let the 'one perimeter on top' trigger on surface that should be covered only by perimeters.  
 This value can be a mm or a % of the perimeter extrusion width.
 
-![only-one-wall-threshold](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/only-one-wall-threshold.png?raw=true)
+![only-one-wall-threshold](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/only-one-wall-threshold.png?raw=true)
 
 > [!WARNING]
 > If enabled, artifacts can be created if you have some thin features on the next layer, like letters. Set this setting to 0 to remove these artifacts.
@@ -92,7 +92,7 @@ Instead of traveling directly through a wall, the print head will detour around 
 While this increases print time slightly, the improvement in print quality—especially with materials prone to stringing like **PETG** or **TPU**, often justifies the tradeoff.  
 Highly recommended for detailed or aesthetic prints.
 
-![avoid-crossing-walls](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/avoid-crossing-walls.png?raw=true)
+![avoid-crossing-walls](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/avoid-crossing-walls.png?raw=true)
 
 > [!NOTE]
 > This feature is not compatible with Timelapse mode, as it can cause unexpected travel moves.
@@ -114,7 +114,7 @@ Enables adaptive flow control for small infill areas.
 This feature helps address extrusion problems that often occur in small regions of solid infill, such as the tops of narrow letters or fine features.  
 In these cases, standard extrusion flow may be too much for the available space, leading to over-extrusion or poor surface quality.
 
-![flow-compensation-model](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/flow-compensation-model.png?raw=true)
+![flow-compensation-model](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/flow-compensation-model.png?raw=true)
 
 It works by dynamically adjusting the extrusion flow based on the length of the extrusion path, ensuring more precise material deposition in small spaces.
 
@@ -125,7 +125,7 @@ This is a native implementation of @Alexander-T-Moss [Small Area Flow Compensati
 The model uses a list of Extrusion Length and Flow Correction Factor value pairs. Each pair defines how much flow should be used for a specific Extrusion Length.  
 For values between the listed points, the flow is calculated using linear interpolation.
 
-![flow-compensation-model-graph](https://github.com/SoftFever/OrcaSlicer/blob/main/doc/images/Wall-Order/flow-compensation-model-graph.png?raw=true)
+![flow-compensation-model-graph](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/Wall-Order/flow-compensation-model-graph.png?raw=true)
 
 For example for the following model:
 
