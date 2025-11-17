@@ -1209,7 +1209,7 @@ void PreferencesDialog::create_items()
     auto item_gcodes_warning   = create_item_checkbox(_L("Don't warn when loading 3MF with modified G-code"), "", "no_warn_when_modified_gcodes");
     g_sizer->Add(item_gcodes_warning);
 
-    auto item_step_dialog      = create_item_checkbox(_L("Show options when importing STEP file"), _L("If enabled,a parameter settings dialog will appear during STEP file import."), "enable_step_mesh_setting");
+    auto item_step_dialog      = create_item_checkbox(_L("Show options when importing STEP file"), _L("If enabled, a parameter settings dialog will appear during STEP file import."), "enable_step_mesh_setting");
     g_sizer->Add(item_step_dialog);
 
     auto item_backup           = create_item_backup(_L("Auto backup"), _L("Backup your project periodically for restoring from the occasional crash."));
@@ -1251,7 +1251,7 @@ void PreferencesDialog::create_items()
 
     std::vector<wxString> FlushOptionLabels = {_L("All"),_L("Color"),_L("None")};
     std::vector<std::string> FlushOptionValues = { "all","color change","disabled" };
-    auto item_auto_flush = create_item_combobox(_L("Auto flush after changing ..."), _L("Auto calculate flushing volumes when selected values changed"), "auto_calculate_flush", FlushOptionLabels, FlushOptionValues);
+    auto item_auto_flush = create_item_combobox(_L("Auto flush after changing..."), _L("Auto calculate flushing volumes when selected values changed"), "auto_calculate_flush", FlushOptionLabels, FlushOptionValues);
     g_sizer->Add(item_auto_flush);
 
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
@@ -1280,7 +1280,7 @@ void PreferencesDialog::create_items()
     g_sizer->Add(reverse_mouse_zoom);
 
     //// CONTROL > Clear my choice on ...
-    g_sizer->Add(create_item_title(_L("Clear my choice on ...")), 1, wxEXPAND);
+    g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
 
     auto item_save_choise      = create_item_button(_L("Unsaved projects"), _L("Clear"), "", _L("Clear my choice on the unsaved projects."), []() {
         wxGetApp().app_config->set("save_project_choise", "");

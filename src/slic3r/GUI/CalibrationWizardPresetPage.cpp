@@ -897,7 +897,7 @@ void CalibrationPresetPage::create_filament_list_panel(wxWindow* parent)
 {
     auto panel_sizer = new wxBoxSizer(wxVERTICAL);
 
-    m_filament_list_tips = new Label(parent, _L("Tips for calibration material: \n- Materials that can share same hot bed temperature\n- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"));
+    m_filament_list_tips = new Label(parent, _L("Tips for calibration material:\n- Materials that can share same hot bed temperature\n- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"));
     m_filament_list_tips->Hide();
     m_filament_list_tips->SetFont(Label::Body_13);
     m_filament_list_tips->SetForegroundColour(wxColour(145, 145, 145));
@@ -1037,7 +1037,7 @@ void CalibrationPresetPage::create_multi_extruder_filament_list_panel(wxWindow *
 
     m_filament_list_tips = new Label(
         parent,
-        _L("Tips for calibration material: \n- Materials that can share same hot bed temperature\n- Different filament brand and family(Brand = Bambu, Family = Basic, Matte)"));
+        _L("Tips for calibration material:\n- Materials that can share same hot bed temperature\n- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"));
     m_filament_list_tips->Hide();
     m_filament_list_tips->SetFont(Label::Body_13);
     m_filament_list_tips->SetForegroundColour(wxColour(145, 145, 145));
@@ -1832,7 +1832,7 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Fit();
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNoUserLogin) {
-        wxString msg_text = _L("No login account, only printers in LAN mode are displayed");
+        wxString msg_text = _L("No login account, only printers in LAN mode are displayed.");
         update_print_status_msg(msg_text, false);
         Enable_Send_Button(false);
     }
@@ -1841,22 +1841,22 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusConnectingServer) {
-        wxString msg_text = _L("Connecting to server");
+        wxString msg_text = _L("Connecting to server...");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInUpgrading) {
-        wxString msg_text = _L("Cannot send the print job when the printer is updating firmware");
+        wxString msg_text = _L("Cannot send a print job while the printer is updating firmware.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInSystemPrinting) {
-        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends");
+        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInPrinting) {
-        wxString msg_text = _L("The printer is busy on other print job");
+        wxString msg_text = _L("The printer is busy with another print job.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
@@ -1890,7 +1890,7 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInConnecting) {
-        wxString msg_text = _L("Connecting to printer");
+        wxString msg_text = _L("Connecting to printer...");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }

@@ -1143,7 +1143,7 @@ void PrintConfigDef::init_fff_params()
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Bridging angle override. If left to zero, the bridging angle will be calculated "
         "automatically. Otherwise the provided angle will be used for external bridges. "
-        "Use 180°for zero angle.");
+        "Use 180° for zero angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -1155,7 +1155,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Internal bridging angle override. If left to zero, the bridging angle will be calculated "
         "automatically. Otherwise the provided angle will be used for internal bridges. "
-        "Use 180°for zero angle.\n\nIt is recommended to leave it at 0 unless there is a specific model need not to.");
+        "Use 180° for zero angle.\n\nIt is recommended to leave it at 0 unless there is a specific model need not to.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -1168,7 +1168,7 @@ void PrintConfigDef::init_fff_params()
                      "Lower density external bridges can help improve reliability as there is more space for air to circulate "
                      "around the extruded bridge, improving its cooling speed. Minimum is 10%.\n\n"
                      "Higher densities can produce smoother bridge surfaces, as overlapping lines provide "
-                     "additional support during printing. Maximum is 120%. \n"
+                     "additional support during printing. Maximum is 120%.\n"
                      "Note: Bridge density that is too high can cause warping or overextrusion.");
     def->sidetext = "%";
     def->min = 10;
@@ -3532,7 +3532,7 @@ void PrintConfigDef::init_fff_params()
                       "Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. "
                       "When a template is set, the standard infill direction setting is ignored. "
                       "Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care.");
-    def->sidetext = L("°");
+    def->sidetext = u8"°";	// degrees, don't need translation
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionString(""));
 

@@ -74,9 +74,9 @@ void                SelectMachineDialog::init_machine_bed_types()
     if (MACHINE_BED_TYPE_STRING.size() == 0) {
         MACHINE_BED_TYPE_STRING = {//_L("Auto"),
                                    _L("Bambu Cool Plate") + " / " + _L("PLA Plate"),
-                                   _L("Bamabu Engineering Plate"),
-                                   _L("Bamabu Smooth PEI Plate") + "/" + _L("High temperature Plate"),
-                                   _L("Bamabu Textured PEI Plate"),
+                                   _L("Bambu Engineering Plate"),
+                                   _L("Bambu Smooth PEI Plate") + "/" + _L("High temperature Plate"),
+                                   _L("Bambu Textured PEI Plate"),
                                    _L("Bambu Cool Plate SuperTack")
         };
         MachineBedTypeString    = {//"auto",

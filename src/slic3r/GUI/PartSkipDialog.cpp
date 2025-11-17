@@ -276,7 +276,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_loading_icon = new AnimaIcon(m_book_first_panel, wxID_ANY, list, "refresh_printer", 100);
     m_loading_icon->SetMinSize(wxSize(FromDIP(25), FromDIP(25)));
 
-    m_loading_label = new Label(m_book_first_panel, _L("Loading ..."));
+    m_loading_label = new Label(m_book_first_panel, _L("Loading..."));
     m_loading_label->Wrap(-1);
     m_loading_label->SetBackgroundColour(*wxWHITE);
 

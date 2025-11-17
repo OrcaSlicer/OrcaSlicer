@@ -190,7 +190,7 @@ static bool is_same_nozzle_diameters(const DynamicPrintConfig &full_config, cons
         if (config_nozzle_diameters.size() != machine_nozzle_diameters.size()) {
             wxString nozzle_in_preset  = wxString::Format(_L("nozzle size in preset: %d"), config_nozzle_diameters.size());
             wxString nozzle_in_printer = wxString::Format(_L("nozzle size memorized: %d"), machine_nozzle_diameters.size());
-            error_msg = _L("The size of nozzle type in preset is not consistent with memorized nozzle.Did you change your nozzle lately ? ") + "\n    " + nozzle_in_preset +
+            error_msg = _L("The size of nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?") + "\n    " + nozzle_in_preset +
                 "\n    " + nozzle_in_printer + "\n";
             return false;
         }
@@ -199,7 +199,7 @@ static bool is_same_nozzle_diameters(const DynamicPrintConfig &full_config, cons
             if (config_nozzle_diameters[idx] != machine_nozzle_diameters[idx]) {
                 wxString nozzle_in_preset = wxString::Format(_L("nozzle[%d] in preset: %.1f"), idx, config_nozzle_diameters[idx]);
                 wxString nozzle_in_printer = wxString::Format(_L("nozzle[%d] memorized: %.1f"), idx, machine_nozzle_diameters[idx]);
-                error_msg = _L("Your nozzle type in preset is not consistent with memorized nozzle.Did you change your nozzle lately ? ") + "\n    " + nozzle_in_preset +
+                error_msg = _L("Your nozzle type in preset is not consistent with memorized nozzle. Did you change your nozzle lately?") + "\n    " + nozzle_in_preset +
                     "\n    " + nozzle_in_printer + "\n";
                 return false;
             }
@@ -1747,15 +1747,15 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
     }
 
     if (obj_->is_in_upgrading()) {
-        error_message = _L("Cannot send the print job when the printer is updating firmware");
+        error_message = _L("Cannot send a print job while the printer is updating firmware.");
         return;
     }
     else if (obj_->is_system_printing()) {
-        error_message = _L("The printer is executing instructions. Please restart printing after it ends");
+        error_message = _L("The printer is executing instructions. Please restart printing after it ends.");
         return;
     }
     else if (obj_->is_in_printing()) {
-        error_message = _L("The printer is busy on other print job");
+        error_message = _L("The printer is busy with another print job.");
         return;
     }
 
@@ -1856,13 +1856,13 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
     }
 
     if (obj_->is_in_upgrading()) {
-        error_message = _L("Cannot send the print job when the printer is updating firmware");
+        error_message = _L("Cannot send a print job while the printer is updating firmware.");
         return;
     } else if (obj_->is_system_printing()) {
-        error_message = _L("The printer is executing instructions. Please restart printing after it ends");
+        error_message = _L("The printer is executing instructions. Please restart printing after it ends.");
         return;
     } else if (obj_->is_in_printing()) {
-        error_message = _L("The printer is busy on other print job");
+        error_message = _L("The printer is busy with another print job.");
         return;
     }
 

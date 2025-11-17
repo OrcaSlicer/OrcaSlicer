@@ -252,7 +252,7 @@ void Tab::create_preset_tab()
     m_btn_delete_preset->Hide();
 
     /*add_scaled_button(panel, &m_question_btn, "question");
-    m_question_btn->SetToolTip(_(L("Hover the cursor over buttons to find more information \n"
+    m_question_btn->SetToolTip(_(L("Hover the cursor over buttons to find more information\n"
                                    "or click this button.")));
 
     add_scaled_button(panel, &m_search_btn, "search");
@@ -1696,8 +1696,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         int filament_id           = m_config->opt_int("support_filament") - 1; // the displayed id is based from 1, while internal id is based from 0
         int interface_filament_id = m_config->opt_int("support_interface_filament") - 1;
         if (is_support_filament(filament_id, false) && !is_soluble_filament(filament_id) && !has_filaments({"TPU", "TPU-AMS"})) {
-            wxString           msg_text = _L("Non-soluble support materials are not recommended for support base. \n"
-                                                       "Are you sure to use them for support base? \n");
+            wxString           msg_text = _L("Non-soluble support materials are not recommended for support base.\n"
+                                                       "Are you sure to use them for support base?\n");
             MessageDialog      dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
             DynamicPrintConfig new_conf = *m_config;
             if (dialog.ShowModal() == wxID_NO) {
@@ -1728,7 +1728,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 msg_text = _L("When using soluble material for the support interface, we recommend the following settings:\n"
                               "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
                               "and use soluble materials for both support interface and support base.");
-                msg_text += "\n\n" + _L("Change these settings automatically? \n"
+                msg_text += "\n\n" + _L("Change these settings automatically?\n"
                                         "Yes - Change these settings automatically\n"
                                         "No  - Do not change these settings for me");
             }
@@ -4713,7 +4713,7 @@ if (is_marlin_flavor)
                                 // if value is differs from first nozzle diameter value
                                 if (fabs(cur_diam - frst_diam) > EPSILON) {
                                     const wxString msg_text = _(
-                                        L("Single Extruder Multi Material is selected, \n"
+                                        L("Single Extruder Multi Material is selected,\n"
                                           "and all extruders must have the same diameter.\n"
                                           "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"));
                                     MessageDialog dialog(parent(), msg_text, _(L("Nozzle diameter")), wxICON_WARNING | wxYES_NO);
@@ -6423,7 +6423,7 @@ void Tab::delete_preset()
     }
 
     if (is_base_preset && (current_preset.type == Preset::Type::TYPE_FILAMENT) && action == _utf8(L("Delete"))) {
-        msg += from_u8(_u8L("Are you sure to delete the selected preset? \nIf the preset corresponds to a filament currently in use on your printer, please reset the filament information for that slot."));
+        msg += from_u8(_u8L("Are you sure to delete the selected preset?\nIf the preset corresponds to a filament currently in use on your printer, please reset the filament information for that slot."));
     } else {
         msg += from_u8((boost::format(_u8L("Are you sure to %1% the selected preset?")) % action).str());
     }
