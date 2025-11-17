@@ -1,0 +1,31 @@
+{
+    "default_acceleration": "1500",
+    "default_jerk": "9",
+    "exclude_object": "1",
+    "from": "system",
+    "gap_infill_speed": "200",
+    "inherits": "fdm_process_common",
+    "initial_layer_acceleration": "1500",
+    "initial_layer_infill_speed": "100",
+    "initial_layer_speed": "50",
+    "inner_wall_acceleration": "1500",
+    "inner_wall_speed": "200",
+    "instantiation": "true",
+    "internal_solid_infill_speed": "200",
+    "name": "0.20mm Standard @Anycubic Predator",
+    "outer_wall_acceleration": "1500",
+    "outer_wall_speed": "120",
+    "overhang_1_4_speed": "80",
+    "setting_id": "GP001",
+    "sparse_infill_speed": "250",
+    "top_surface_acceleration": "1500",
+    "top_surface_speed": "200",
+    "travel_acceleration": "1500",
+    "travel_speed": "400",
+    "travel_jerk": "9",
+    "type": "process",
+    "compatible_printers": [
+        "Anycubic Predator 0.4 nozzle"
+    ]   
+}
+
