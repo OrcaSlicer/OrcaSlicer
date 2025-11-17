@@ -864,14 +864,14 @@ void MenuFactory::append_menu_item_reload_from_disk(wxMenu* menu)
 
 void MenuFactory::append_menu_item_replace_with_stl(wxMenu *menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Replace with STL") + dots, _L("Replace the selected part with new STL."),
+    append_menu_item(menu, wxID_ANY, _L("Replace with STL") + dots, _L("Replace the selected part with new STL"),
         [](wxCommandEvent &) { plater()->replace_with_stl(); }, "", menu,
         []() { return plater()->can_replace_with_stl(); }, m_parent);
 }
 
 void MenuFactory::append_menu_item_replace_all_with_stl(wxMenu *menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Replace all with STL") + dots, _L("Replace all selected parts with STL from folder."),
+    append_menu_item(menu, wxID_ANY, _L("Replace all with STL") + dots, _L("Replace all selected parts with STL from folder"),
         [](wxCommandEvent &) { plater()->replace_all_with_stl(); }, "", menu,
         []() { return plater()->can_replace_all_with_stl(); }, m_parent);
 }
@@ -1382,7 +1382,7 @@ void MenuFactory::create_sla_object_menu()
     m_sla_object_menu.AppendSeparator();
 
     // Add the automatic rotation sub-menu
-    append_menu_item(&m_sla_object_menu, wxID_ANY, _L("Auto orientation"), _L("Auto orient the object to improve print quality."),
+    append_menu_item(&m_sla_object_menu, wxID_ANY, _L("Auto orientation"), _L("Auto orient the object to improve print quality"),
         [](wxCommandEvent&) { plater()->optimize_rotation(); });
 }
 

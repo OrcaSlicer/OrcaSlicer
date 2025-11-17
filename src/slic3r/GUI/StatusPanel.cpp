@@ -3466,8 +3466,8 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
 
     if (obj->is_in_printing() && !obj->can_resume()) {
         if (!obj->can_resume() || obj->is_in_extrusion_cali()) {
-            load_error_info = _L("The printer is busy on other print job");
-            unload_error_info = _L("The printer is busy on other print job");
+            load_error_info = _L("The printer is busy with another print job.");
+            unload_error_info = _L("The printer is busy with another print job.");
         }
     } else {
         /*switch now*/
@@ -3480,8 +3480,8 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
         }
 
         if (in_switch_filament) {
-            load_error_info = _L("Current extruder is busy changing filament");
-            unload_error_info = _L("Current extruder is busy changing filament");
+            load_error_info = _L("Current extruder is busy changing filament.");
+            unload_error_info = _L("Current extruder is busy changing filament.");
         }
 
         if (ams_id.empty() || slot_id.empty()) {
@@ -3491,14 +3491,14 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
             for (auto ext : obj->GetExtderSystem()->GetExtruders()) {
                 if (ext.GetSlotNow().ams_id == ams_id && ext.GetSlotNow().slot_id == slot_id)
                 {
-                    load_error_info = _L("Current slot has already been loaded");
+                    load_error_info = _L("Current slot has already been loaded.");
                 }
             }
         } else {
             for (auto ext : obj->GetExtderSystem()->GetExtruders()) {
                 if (ext.GetSlotNow().ams_id == ams_id && ext.GetSlotNow().slot_id == slot_id)
                 {
-                    load_error_info = _L("Current slot has already been loaded");
+                    load_error_info = _L("Current slot has already been loaded.");
                 }
             }
 
@@ -4955,7 +4955,7 @@ void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
 
         /*Enable switch head while printing is paused STUDIO-9789*/
         if ((obj->is_in_printing() && !obj->is_in_printing_pause()) || obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE) {
-            MessageDialog dlg(nullptr, _L("The printer is busy on other print job"), _L("Error"), wxICON_WARNING | wxOK);
+            MessageDialog dlg(nullptr, _L("The printer is busy with another print job."), _L("Error"), wxICON_WARNING | wxOK);
             dlg.ShowModal();
             return;
         }

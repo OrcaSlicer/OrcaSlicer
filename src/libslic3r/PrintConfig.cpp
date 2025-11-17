@@ -1143,7 +1143,7 @@ void PrintConfigDef::init_fff_params()
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Bridging angle override. If left to zero, the bridging angle will be calculated "
         "automatically. Otherwise the provided angle will be used for external bridges. "
-        "Use 180°for zero angle.");
+        "Use 180° for zero angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -1155,7 +1155,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Strength");
     def->tooltip = L("Internal bridging angle override. If left to zero, the bridging angle will be calculated "
         "automatically. Otherwise the provided angle will be used for internal bridges. "
-        "Use 180°for zero angle.\n\nIt is recommended to leave it at 0 unless there is a specific model need not to.");
+        "Use 180° for zero angle.\n\nIt is recommended to leave it at 0 unless there is a specific model need not to.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -1168,7 +1168,7 @@ void PrintConfigDef::init_fff_params()
                      "Lower density external bridges can help improve reliability as there is more space for air to circulate "
                      "around the extruded bridge, improving its cooling speed. Minimum is 10%.\n\n"
                      "Higher densities can produce smoother bridge surfaces, as overlapping lines provide "
-                     "additional support during printing. Maximum is 120%. \n"
+                     "additional support during printing. Maximum is 120%.\n"
                      "Note: Bridge density that is too high can cause warping or overextrusion.");
     def->sidetext = "%";
     def->min = 10;
@@ -3147,6 +3147,50 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts{ -1 });
 
+    // Filament ironing overrides
+    def = this->add("filament_ironing_flow", coPercents);
+    def->label = L("Ironing flow");
+    def->tooltip = L("Filament-specific override for ironing flow. This allows you to customize the ironing flow "
+                     "for each filament type. Too high value results in overextrusion on the surface.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionPercentsNullable{ ConfigOptionPercentsNullable::nil_value() });
+
+    def = this->add("filament_ironing_spacing", coFloats);
+    def->label = L("Ironing line spacing");
+    def->tooltip = L("Filament-specific override for ironing line spacing. This allows you to customize the spacing "
+                     "between ironing lines for each filament type.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->max = 1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_ironing_inset", coFloats);
+    def->label = L("Ironing inset");
+    def->tooltip = L("Filament-specific override for ironing inset. This allows you to customize the distance to keep "
+                     "from the edges when ironing for each filament type.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
+    def = this->add("filament_ironing_speed", coFloats);
+    def->label = L("Ironing speed");
+    def->tooltip = L("Filament-specific override for ironing speed. This allows you to customize the print speed "
+                     "of ironing lines for each filament type.");
+    def->sidetext = "mm/s";
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->nullable = true;
+    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+
     def = this->add("fuzzy_skin", coEnum);
     def->label = L("Fuzzy Skin");
     def->category = L("Others");
@@ -3532,7 +3576,7 @@ void PrintConfigDef::init_fff_params()
                       "Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. "
                       "When a template is set, the standard infill direction setting is ignored. "
                       "Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care.");
-    def->sidetext = L("°");
+    def->sidetext = u8"°";	// degrees, don't need translation
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionString(""));
 

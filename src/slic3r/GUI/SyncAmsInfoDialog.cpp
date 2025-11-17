@@ -1730,31 +1730,31 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
     } else if (status == PrintDialogStatus::PrintStatusInvalidPrinter) {
         update_print_status_msg(wxEmptyString, true, true);
     } else if (status == PrintDialogStatus::PrintStatusConnectingServer) {
-        wxString msg_text = _L("Connecting to server");
+        wxString msg_text = _L("Connecting to server...");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusReading) {
-        wxString msg_text = _L("Synchronizing device information");
+        wxString msg_text = _L("Synchronizing device information...");
         update_print_status_msg(msg_text, false, true);
     } else if (status == PrintDialogStatus::PrintStatusReadingFinished) {
         update_print_status_msg(wxEmptyString, false, true);
     } else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
-        wxString msg_text = _L("Synchronizing device information time out");
+        wxString msg_text = _L("Synchronizing device information timed out.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInUpgrading) {
-        wxString msg_text = _L("Cannot send the print job when the printer is updating firmware");
+        wxString msg_text = _L("Cannot send a print job while the printer is updating firmware.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInSystemPrinting) {
-        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends");
+        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInPrinting) {
-        wxString msg_text = _L("The printer is busy on other print job");
+        wxString msg_text = _L("The printer is busy with another print job.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingSuccess) {
         update_print_status_msg(wxEmptyString, false, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingInvalid) {
         update_print_status_msg(wxEmptyString, true, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingMixInvalid) {
-        wxString msg_text = _L("Please do not mix-use the Ext with AMS");
+        wxString msg_text = _L("Please do not mix-use the Ext with AMS.");
         update_print_status_msg(msg_text, true, false);
     } else if (status == PrintDialogStatus::PrintStatusNozzleDataInvalid) {
         wxString msg_text = _L("Invalid nozzle information, please refresh or manually set nozzle information.");
@@ -1823,10 +1823,10 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
         wxString msg_text = _L("Cannot send the print job to a printer whose firmware is required to get updated.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusBlankPlate) {
-        wxString msg_text = _L("Cannot send the print job for empty plate");
+        wxString msg_text = _L("Cannot send a print job for an empty plate.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusNotSupportedPrintAll) {
-        wxString msg_text = _L("This printer does not support printing all plates");
+        wxString msg_text = _L("This printer does not support printing all plates.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusTimelapseWarning) {
         wxString   msg_text;

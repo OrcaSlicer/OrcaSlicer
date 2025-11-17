@@ -1085,6 +1085,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat, ironing_speed))
     ((ConfigOptionFloat, ironing_angle))
     ((ConfigOptionBool, ironing_angle_fixed))
+    // Filament Ironing
+    ((ConfigOptionPercentsNullable, filament_ironing_flow))
+    ((ConfigOptionFloatsNullable, filament_ironing_spacing))
+    ((ConfigOptionFloatsNullable, filament_ironing_inset))
+    ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
     ((ConfigOptionInt, wall_filament))
