@@ -2071,7 +2071,13 @@ void GUI_App::init_app_config()
         }
 
         // Change current dirtory of application
-        [[maybe_unused]] auto unused_result = chdir(encode_path((Slic3r::data_dir() + "/log").c_str()).c_str());
+
+#ifdef _WIN32
+    [[maybe_unused]] auto unused_result = _chdir(encode_path((Slic3r::data_dir() + "/log").c_str()).c_str());
+#else
+    [[maybe_unused]] auto unused_result = chdir(encode_path((Slic3r::data_dir() + "/log").c_str()).c_str());
+#endif
+
     } else {
         m_datadir_redefined = true;
     }

@@ -409,7 +409,6 @@ void SelectMObjectPopup::update_user_devices()
     m_scrolledWindow->Layout();
     m_scrolledWindow->Thaw();
     Layout();
-    Fit();
     this->Thaw();
     m_my_devices_count = i;
 }
