@@ -15,7 +15,10 @@ on:
       force-build:
         required: false
         type: boolean
-  
+
+permissions:
+  actions: write
+
 jobs:
   check_cache: # determines if there is a cache and outputs variables used in caching process
     name: Check Cache
