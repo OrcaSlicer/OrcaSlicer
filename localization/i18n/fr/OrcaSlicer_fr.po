@@ -2058,13 +2058,13 @@ msgstr "Recharger les pièces sélectionnées à partir du disque"
 msgid "Replace with STL"
 msgstr "Remplacer par le STL"
 
-msgid "Replace the selected part with new STL."
+msgid "Replace the selected part with new STL"
 msgstr "Remplacer la pièce sélectionnée par un nouveau STL"
 
 msgid "Replace all with STL"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder."
+msgid "Replace all selected parts with STL from folder"
 msgstr ""
 
 msgid "Change filament"
@@ -2201,7 +2201,7 @@ msgstr "Scinder l'objet sélectionné"
 msgid "Auto orientation"
 msgstr "Orientation automatique"
 
-msgid "Auto orient the object to improve print quality."
+msgid "Auto orient the object to improve print quality"
 msgstr ""
 "Orientez automatiquement l'objet pour améliorer la qualité d'impression."
 
@@ -4283,13 +4283,13 @@ msgstr ""
 
 msgid ""
 "The current chamber temperature or the target chamber temperature exceeds "
-"45℃. In order to avoid extruder clogging,low temperature filament(PLA/PETG/"
+"45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/"
 "TPU) is not allowed to be loaded."
 msgstr ""
 
 msgid ""
-"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder.In order to "
-"avoid extruder clogging,it is not allowed to set the chamber temperature."
+"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to "
+"avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr ""
 
 msgid ""
@@ -6167,13 +6167,13 @@ msgstr "Annuler l'impression"
 msgid "Are you sure you want to stop this print?"
 msgstr ""
 
-msgid "The printer is busy on other print job"
-msgstr "L'imprimante est occupée par un autre travail d'impression"
+msgid "The printer is busy with another print job."
+msgstr "L'imprimante est occupée par un autre travail d'impression."
 
-msgid "Current extruder is busy changing filament"
+msgid "Current extruder is busy changing filament."
 msgstr ""
 
-msgid "Current slot has already been loaded"
+msgid "Current slot has already been loaded."
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6209,7 +6209,7 @@ msgid ""
 msgstr ""
 
 msgid "Please select an AMS slot before calibration"
-msgstr ""
+msgstr "Veuillez sélectionner un emplacement AMS avant la calibration"
 
 msgid ""
 "Cannot read filament info: the filament is loaded to the tool head,please "
@@ -6847,7 +6847,7 @@ msgid "Not installed"
 msgstr ""
 
 msgid ""
-"The software does not support using different diameter of nozzles for one  "
+"The software does not support using different diameter of nozzles for one "
 "print. If the left and right nozzles are inconsistent, we can only proceed "
 "with single-head printing. Please confirm which nozzle you would like to use "
 "for this project."
@@ -7824,7 +7824,7 @@ msgid "Show options when importing STEP file"
 msgstr ""
 
 msgid ""
-"If enabled,a parameter settings dialog will appear during STEP file import."
+"If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr ""
 
 msgid "Auto backup"
@@ -7874,7 +7874,7 @@ msgstr ""
 msgid "All"
 msgstr "Tous"
 
-msgid "Auto flush after changing ..."
+msgid "Auto flush after changing..."
 msgstr ""
 
 msgid "Auto calculate flushing volumes when selected values changed"
@@ -7941,7 +7941,7 @@ msgstr ""
 "Si cette option est activée, elle inverse le sens du zoom avec la molette de "
 "la souris."
 
-msgid "Clear my choice on ..."
+msgid "Clear my choice on..."
 msgstr ""
 
 msgid "Unsaved projects"
@@ -8375,16 +8375,16 @@ msgstr "Plateau Cool Plate"
 msgid "PLA Plate"
 msgstr "Plaque PLA"
 
-msgid "Bamabu Engineering Plate"
+msgid "Bambu Engineering Plate"
 msgstr ""
 
-msgid "Bamabu Smooth PEI Plate"
+msgid "Bambu Smooth PEI Plate"
 msgstr ""
 
 msgid "High temperature Plate"
 msgstr "Plateau haute température"
 
-msgid "Bamabu Textured PEI Plate"
+msgid "Bambu Textured PEI Plate"
 msgstr ""
 
 msgid "Bambu Cool Plate SuperTack"
@@ -8609,37 +8609,38 @@ msgstr ""
 msgid "Click here if you can't connect to the printer"
 msgstr "Connexion impossible à l’imprimante"
 
-msgid "No login account, only printers in LAN mode are displayed"
+msgid "No login account, only printers in LAN mode are displayed."
 msgstr ""
-"Pas de connexion au cloud, seules les imprimantes en mode LAN sont affichées"
+"Pas de connexion au cloud, seules les imprimantes en mode LAN sont affichées."
 
-msgid "Connecting to server"
-msgstr "Connexion au serveur"
+msgid "Connecting to server..."
+msgstr "Connexion au serveur…"
 
-msgid "Synchronizing device information"
-msgstr "Synchronisation des informations sur l'appareil"
+msgid "Synchronizing device information..."
+msgstr "Synchronisation des informations sur l'appareil…"
 
-msgid "Synchronizing device information time out"
-msgstr "Expiration du délai de synchronisation des informations sur l'appareil"
+msgid "Synchronizing device information timed out."
+msgstr "Expiration du délai de synchronisation des informations sur "
+"l'appareil."
 
-msgid "Cannot send the print job when the printer is not at FDM mode"
+msgid "Cannot send a print job when the printer is not at FDM mode."
 msgstr ""
 
-msgid "Cannot send the print job when the printer is updating firmware"
+msgid "Cannot send a print job while the printer is updating firmware."
 msgstr ""
 "Impossible d'envoyer une tâche d'impression pendant la mise à jour du "
-"firmware de l'imprimante"
+"firmware de l'imprimante."
 
 msgid ""
-"The printer is executing instructions. Please restart printing after it ends"
+"The printer is executing instructions. Please restart printing after it ends."
 msgstr ""
 "L'imprimante exécute des instructions. Veuillez recommencer l'impression "
-"après la fin de l'exécution"
+"après la fin de l'exécution."
 
 msgid "AMS is setting up. Please try again later."
 msgstr ""
 
-msgid "Please do not mix-use the Ext with AMS"
+msgid "Please do not mix-use the Ext with AMS."
 msgstr ""
 
 msgid ""
@@ -8663,7 +8664,7 @@ msgstr ""
 "Impossible d'envoyer la tâche d'impression à une imprimante dont le firmware "
 "doit être mis à jour."
 
-msgid "Cannot send the print job for empty plate"
+msgid "Cannot send a print job for an empty plate."
 msgstr "Impossible d'envoyer une tâche d'impression d'un plateau vide"
 
 msgid "Storage needs to be inserted to record timelapse."
@@ -8683,9 +8684,9 @@ msgid ""
 "Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value."
 msgstr ""
 
-msgid "This printer does not support printing all plates"
+msgid "This printer does not support printing all plates."
 msgstr ""
-"Cette imprimante ne prend pas en charge l'impression de toutes les plaques"
+"Cette imprimante ne prend pas en charge l'impression de toutes les plaques."
 
 msgid ""
 "Please cold pull before printing TPU to avoid clogging. You may use cold "
@@ -8962,8 +8963,8 @@ msgid "Still print by object?"
 msgstr "Vous imprimez toujours par objet ?"
 
 msgid ""
-"Non-soluble support materials are not recommended for support base. \n"
-"Are you sure to use them for support base? \n"
+"Non-soluble support materials are not recommended for support base.\n"
+"Are you sure to use them for support base?\n"
 msgstr ""
 
 #, fuzzy
@@ -8994,12 +8995,6 @@ msgid ""
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
 "disable independent support layer height\n"
 "and use soluble materials for both support interface and support base."
-msgstr ""
-
-msgid ""
-"Change these settings automatically? \n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
 msgstr ""
 
 msgid ""
@@ -9548,7 +9543,7 @@ msgid "Number of extruders of the printer."
 msgstr "Nombre d’extrudeurs de l’imprimante."
 
 msgid ""
-"Single Extruder Multi Material is selected, \n"
+"Single Extruder Multi Material is selected,\n"
 "and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder "
 "nozzle diameter value?"
@@ -9635,12 +9630,6 @@ msgid "Following preset will be deleted too."
 msgid_plural "Following presets will be deleted too."
 msgstr[0] "Le préréglage suivant sera également supprimé."
 msgstr[1] "Les préréglages suivants seront également supprimés."
-
-msgid ""
-"Are you sure to delete the selected preset? \n"
-"If the preset corresponds to a filament currently in use on your printer, "
-"please reset the filament information for that slot."
-msgstr ""
 
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
@@ -11803,7 +11792,7 @@ msgstr "Direction du remplissage du pont extérieur"
 msgid ""
 "Bridging angle override. If left to zero, the bridging angle will be "
 "calculated automatically. Otherwise the provided angle will be used for "
-"external bridges. Use 180°for zero angle."
+"external bridges. Use 180° for zero angle."
 msgstr ""
 "Forçage de l’angle des ponts. S’il est laissé à zéro, l’angle des ponts sera "
 "calculé automatiquement. Sinon, l’angle fourni sera utilisé pour les ponts "
@@ -11815,7 +11804,7 @@ msgstr "Direction du remplissage du pont interne"
 msgid ""
 "Internal bridging angle override. If left to zero, the bridging angle will "
 "be calculated automatically. Otherwise the provided angle will be used for "
-"internal bridges. Use 180°for zero angle.\n"
+"internal bridges. Use 180° for zero angle.\n"
 "\n"
 "It is recommended to leave it at 0 unless there is a specific model need not "
 "to."
@@ -18733,7 +18722,7 @@ msgid "Filament For Calibration"
 msgstr "Filament pour la calibration"
 
 msgid ""
-"Tips for calibration material: \n"
+"Tips for calibration material:\n"
 "- Materials that can share same hot bed temperature\n"
 "- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"
 msgstr ""
@@ -18741,12 +18730,6 @@ msgstr ""
 "- Matériaux pouvant partager la même température du plateau\n"
 "- Différentes marques et familles de filaments (Marque = Bambu, Famille = "
 "Basique, Mat)"
-
-msgid ""
-"Tips for calibration material: \n"
-"- Materials that can share same hot bed temperature\n"
-"- Different filament brand and family(Brand = Bambu, Family = Basic, Matte)"
-msgstr ""
 
 msgid "Pattern"
 msgstr "Motif"
@@ -19888,8 +19871,8 @@ msgid "nozzle size memorized: %d"
 msgstr ""
 
 msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle."
-"Did you change your nozzle lately ? "
+"The size of nozzle type in preset is not consistent with memorized nozzle. "
+"Did you change your nozzle lately?"
 msgstr ""
 
 #, c-format, boost-format
@@ -19901,8 +19884,8 @@ msgid "nozzle[%d] memorized: %.1f"
 msgstr ""
 
 msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle.Did you "
-"change your nozzle lately ? "
+"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
+"change your nozzle lately?"
 msgstr ""
 
 #, c-format, boost-format
@@ -20677,13 +20660,13 @@ msgstr ""
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the most "
-"filament-saving principles to minimize waste"
+"filament-saving principles to minimize waste."
 msgstr ""
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the "
 "printer's actual filament status, reducing the need for manual filament "
-"adjustment"
+"adjustment."
 msgstr ""
 
 msgid "Manually assign filament to the left or right nozzle"
@@ -20810,9 +20793,6 @@ msgid "Zoom In"
 msgstr ""
 
 msgid "Load skipping objects information failed. Please try again."
-msgstr ""
-
-msgid "Loading ..."
 msgstr ""
 
 #, c-format, boost-format
@@ -21492,9 +21472,6 @@ msgstr ""
 
 #~ msgid "Still load"
 #~ msgstr "Charger encore"
-
-#~ msgid "Please select an AMS slot before calibration."
-#~ msgstr "Veuillez sélectionner un emplacement AMS avant la calibration"
 
 #~ msgid "Can't start this without SD card."
 #~ msgstr "Impossible de démarrer sans carte SD."

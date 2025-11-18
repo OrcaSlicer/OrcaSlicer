@@ -1438,13 +1438,13 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Refresh_Button(true);
 	}
 	else if (status == PrintDialogStatus::PrintStatusConnectingServer) {
-		wxString msg_text = _L("Connecting to server");
+		wxString msg_text = _L("Connecting to server...");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
     }
     else if (status == PrintDialogStatus::PrintStatusReading) {
-        wxString msg_text = _L("Synchronizing device information");
+        wxString msg_text = _L("Synchronizing device information...");
         update_print_status_msg(msg_text, false, true);
         Enable_Send_Button(false);
         Enable_Refresh_Button(false);
@@ -1456,7 +1456,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Refresh_Button(true);
 	}
 	else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
-		wxString msg_text = _L("Synchronizing device information time out");
+		wxString msg_text = _L("Synchronizing device information timed out.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);

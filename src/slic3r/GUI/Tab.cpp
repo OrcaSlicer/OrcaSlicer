@@ -39,6 +39,7 @@
 #include "UnsavedChangesDialog.hpp"
 #include "SavePresetDialog.hpp"
 #include "EditGCodeDialog.hpp"
+
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
 
@@ -252,7 +253,7 @@ void Tab::create_preset_tab()
     m_btn_delete_preset->Hide();
 
     /*add_scaled_button(panel, &m_question_btn, "question");
-    m_question_btn->SetToolTip(_(L("Hover the cursor over buttons to find more information \n"
+    m_question_btn->SetToolTip(_(L("Hover the cursor over buttons to find more information\n"
                                    "or click this button.")));
 
     add_scaled_button(panel, &m_search_btn, "search");
@@ -1696,8 +1697,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         int filament_id           = m_config->opt_int("support_filament") - 1; // the displayed id is based from 1, while internal id is based from 0
         int interface_filament_id = m_config->opt_int("support_interface_filament") - 1;
         if (is_support_filament(filament_id, false) && !is_soluble_filament(filament_id) && !has_filaments({"TPU", "TPU-AMS"})) {
-            wxString           msg_text = _L("Non-soluble support materials are not recommended for support base. \n"
-                                                       "Are you sure to use them for support base? \n");
+            wxString           msg_text = _L("Non-soluble support materials are not recommended for support base.\n"
+                                                       "Are you sure to use them for support base?\n");
             MessageDialog      dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxYES | wxNO);
             DynamicPrintConfig new_conf = *m_config;
             if (dialog.ShowModal() == wxID_NO) {
@@ -1728,7 +1729,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 msg_text = _L("When using soluble material for the support interface, we recommend the following settings:\n"
                               "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
                               "and use soluble materials for both support interface and support base.");
-                msg_text += "\n\n" + _L("Change these settings automatically? \n"
+                msg_text += "\n\n" + _L("Change these settings automatically?\n"
                                         "Yes - Change these settings automatically\n"
                                         "No  - Do not change these settings for me");
             }
@@ -3546,15 +3547,16 @@ void TabFilament::add_filament_overrides_page()
 {
     //BBS
     PageShp page = add_options_page(L("Setting Overrides"), "custom-gcode_setting_override"); // ORCA: icon only visible on placeholders
-    ConfigOptionsGroupShp optgroup = page->new_optgroup(L("Retraction"), L"param_retraction");
 
-    auto append_single_option_line = [optgroup, this](const std::string& opt_key, int opt_index)
+    const int extruder_idx = 0; // #ys_FIXME
+
+    ConfigOptionsGroupShp retraction_optgroup = page->new_optgroup(L("Retraction"), L"param_retraction");
+    auto append_retraction_option = [this, retraction_optgroup](const std::string& opt_key, int opt_index)
     {
         Line line {"",""};
-        //BBS
-        line = optgroup->create_single_option_line(optgroup->get_option(opt_key));
+        line = retraction_optgroup->create_single_option_line(retraction_optgroup->get_option(opt_key));
 
-        line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(optgroup), opt_key, opt_index](wxWindow* parent) {
+        line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(retraction_optgroup), opt_key, opt_index](wxWindow* parent) {
             auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
             check_box->Bind(wxEVT_TOGGLEBUTTON, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
                 const bool is_checked = evt.IsChecked();
@@ -3565,8 +3567,7 @@ void TabFilament::add_filament_overrides_page()
                         if (is_checked) {
                             field->update_na_value(_(L("N/A")));
                             field->set_last_meaningful_value();
-                        }
-                        else {
+                        } else {
                             const std::string printer_opt_key = opt_key.substr(strlen("filament_"));
                             const auto printer_config = m_preset_bundle->printers.get_edited_preset().config;
                             const boost::any printer_config_value = optgroup_sh->get_config_value(printer_config, printer_opt_key, opt_index);
@@ -3581,10 +3582,8 @@ void TabFilament::add_filament_overrides_page()
             return check_box;
         };
 
-        optgroup->append_line(line);
+        retraction_optgroup->append_line(line);
     };
-
-    const int extruder_idx = 0; // #ys_FIXME
 
     for (const std::string opt_key : {  "filament_retraction_length",
                                         "filament_z_hop",
@@ -3606,7 +3605,93 @@ void TabFilament::add_filament_overrides_page()
                                         //SoftFever
                                         // "filament_seam_gap"
                                      })
-        append_single_option_line(opt_key, extruder_idx);
+        append_retraction_option(opt_key, extruder_idx);
+
+    ConfigOptionsGroupShp ironing_optgroup = page->new_optgroup(L("Ironing"), L"param_ironing");
+    auto append_ironing_option = [this, ironing_optgroup](const std::string& opt_key, int opt_index)
+    {
+        Line line {"",""};
+        line = ironing_optgroup->create_single_option_line(ironing_optgroup->get_option(opt_key));
+
+        line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(ironing_optgroup), opt_key, opt_index](wxWindow* parent) {
+            auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
+            check_box->Bind(wxEVT_TOGGLEBUTTON, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
+                const bool is_checked = evt.IsChecked();
+                if (auto optgroup_sh = optgroup_wk.lock(); optgroup_sh) {
+                    if (Field *field = optgroup_sh->get_fieldc(opt_key, opt_index); field != nullptr) {
+                        field->toggle(is_checked);
+
+                        const std::string process_opt_key = opt_key.substr(strlen("filament_"));
+                        const auto process_config = m_preset_bundle->prints.get_edited_preset().config;
+                        const ConfigOption *process_option = process_config.option(process_opt_key);
+                        const auto *process_vector = dynamic_cast<const ConfigOptionVectorBase*>(process_option);
+                        const size_t target_index = opt_index < 0 ? 0 : static_cast<size_t>(opt_index);
+                        bool has_process_value = process_option != nullptr;
+                        if (has_process_value) {
+                            if (process_vector != nullptr) {
+                                has_process_value = target_index < process_vector->size() && !process_vector->is_nil(target_index);
+                            } else {
+                                has_process_value = !process_option->is_nil();
+                            }
+                        }
+
+                        if (is_checked) {
+                            bool applied_value = false;
+                            if (has_process_value && process_option != nullptr) {
+                                if (ConfigOption *filament_option = m_config->option(opt_key)) {
+                                    if (auto filament_vector = dynamic_cast<ConfigOptionVectorBase*>(filament_option)) {
+                                        std::unique_ptr<ConfigOption> process_clone(process_option->clone());
+                                        size_t source_index = 0;
+                                        if (process_vector != nullptr)
+                                            source_index = target_index;
+
+                                        filament_vector->set_at(process_clone.get(), target_index, source_index);
+
+                                        const boost::any filament_config_value = optgroup_sh->get_config_value(*m_config, opt_key, opt_index);
+                                        field->set_value(filament_config_value, false);
+                                        field->update_na_value(_(L("N/A")));
+                                        applied_value = true;
+                                    }
+                                }
+                            }
+
+                            if (applied_value)
+                                field->set_last_meaningful_value();
+                            else {
+                                field->update_na_value(_(L("N/A")));
+                                field->set_na_value();
+                            }
+                        } else {
+                            if (has_process_value) {
+                                const boost::any process_config_value = optgroup_sh->get_config_value(process_config, process_opt_key, opt_index);
+                                field->update_na_value(process_config_value);
+                            } else {
+                                field->update_na_value(_(L("N/A")));
+                            }
+                            field->set_na_value();
+
+                            if (ConfigOption *filament_option = m_config->option(opt_key)) {
+                                if (auto filament_vector = dynamic_cast<ConfigOptionVectorBase*>(filament_option))
+                                    filament_vector->set_at_to_nil(target_index);
+                            }
+                        }
+                    }
+                }
+            }, check_box->GetId());
+
+            m_overrides_options[opt_key] = check_box;
+            return check_box;
+        };
+
+        ironing_optgroup->append_line(line);
+    };
+
+    for (const std::string opt_key : {  "filament_ironing_flow",
+                                        "filament_ironing_spacing",
+                                        "filament_ironing_inset",
+                                        "filament_ironing_speed"
+                                     })
+        append_ironing_option(opt_key, extruder_idx);
 }
 
 void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* printers_config)
@@ -3683,6 +3768,44 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
                 boost::any printer_config_value = optgroup->get_config_value(*printers_config, printer_opt_key, extruder_idx);
                 field->update_na_value(printer_config_value);
                 field->set_value(printer_config_value, false);
+            }
+
+            field->toggle(is_checked);
+        }
+    }
+
+    // Handle ironing overrides
+    const auto og_ironing_it = std::find_if(page->m_optgroups.begin(), page->m_optgroups.end(), [](const ConfigOptionsGroupShp og) { return og->title == "Ironing"; });
+    if (og_ironing_it != page->m_optgroups.end())
+    {
+        ConfigOptionsGroupShp ironing_optgroup = *og_ironing_it;
+        
+        std::vector<std::string> ironing_opt_keys = {
+            "filament_ironing_flow",
+            "filament_ironing_spacing",
+            "filament_ironing_inset",
+            "filament_ironing_speed"
+        };
+
+        for (const std::string& opt_key : ironing_opt_keys)
+        {
+            if (m_overrides_options.find(opt_key) == m_overrides_options.end())
+                continue;
+                
+            bool is_checked = !dynamic_cast<ConfigOptionVectorBase*>(m_config->option(opt_key))->is_nil(extruder_idx);
+            m_overrides_options[opt_key]->Enable(true);
+            m_overrides_options[opt_key]->SetValue(is_checked);
+
+            Field* field = ironing_optgroup->get_fieldc(opt_key, 0);
+            if (field == nullptr) continue;
+
+            if (!is_checked) {
+                // Get the default value from the process config (ironing_* without filament_ prefix)
+                const std::string process_opt_key = opt_key.substr(strlen("filament_"));
+                const auto process_config = m_preset_bundle->prints.get_edited_preset().config;
+                const boost::any process_config_value = ironing_optgroup->get_config_value(process_config, process_opt_key, 0);
+                field->update_na_value(process_config_value);
+                field->set_value(process_config_value, false);
             }
 
             field->toggle(is_checked);
@@ -4713,7 +4836,7 @@ if (is_marlin_flavor)
                                 // if value is differs from first nozzle diameter value
                                 if (fabs(cur_diam - frst_diam) > EPSILON) {
                                     const wxString msg_text = _(
-                                        L("Single Extruder Multi Material is selected, \n"
+                                        L("Single Extruder Multi Material is selected,\n"
                                           "and all extruders must have the same diameter.\n"
                                           "Do you want to change the diameter for all extruders to first extruder nozzle diameter value?"));
                                     MessageDialog dialog(parent(), msg_text, _(L("Nozzle diameter")), wxICON_WARNING | wxYES_NO);
@@ -6424,7 +6547,7 @@ void Tab::delete_preset()
     }
 
     if (is_base_preset && (current_preset.type == Preset::Type::TYPE_FILAMENT) && action == _utf8(L("Delete"))) {
-        msg += from_u8(_u8L("Are you sure to delete the selected preset? \nIf the preset corresponds to a filament currently in use on your printer, please reset the filament information for that slot."));
+        msg += from_u8(_u8L("Are you sure to delete the selected preset?\nIf the preset corresponds to a filament currently in use on your printer, please reset the filament information for that slot."));
     } else {
         msg += from_u8((boost::format(_u8L("Are you sure to %1% the selected preset?")) % action).str());
     }

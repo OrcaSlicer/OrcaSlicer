@@ -62,8 +62,8 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
     const wxString AutoForMatchLabel = _L("Convenience Mode");
     const wxString ManualLabel       = _L("Custom Mode");
 
-    const wxString AutoForFlushDetail = _L("Generates filament grouping for the left and right nozzles based on the most filament-saving principles to minimize waste");
-    const wxString AutoForMatchDetail = _L("Generates filament grouping for the left and right nozzles based on the printer's actual filament status, reducing the need for manual filament adjustment");
+    const wxString AutoForFlushDetail = _L("Generates filament grouping for the left and right nozzles based on the most filament-saving principles to minimize waste.");
+    const wxString AutoForMatchDetail = _L("Generates filament grouping for the left and right nozzles based on the printer's actual filament status, reducing the need for manual filament adjustment.");
     const wxString ManualDetail       = _L("Manually assign filament to the left or right nozzle");
 
     const wxString AutoForFlushDesp = ""; //_L("(Post-slicing arrangement)");

@@ -136,13 +136,13 @@ OrcaSlicer is a powerful open source slicer for FFF (FDM) 3D Printers. This wiki
 ![tab_calibration_active](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/resources/images/tab_calibration_active.svg?raw=true) The [Calibration Guide](Calibration) outlines Orca’s key calibration tests and their suggested order of execution.
 
 - [Temperature](temp-calib)
-- [Flow Rate](flow-rate-calib)
+- [Volumetric Speed](volumetric-speed-calib)
 - [Pressure Advance](pressure-advance-calib)
   - [Adaptive Pressure Advance Guide](adaptive-pressure-advance-calib)
+- [Flow Rate](flow-rate-calib)
 - [Retraction](retraction-calib)
 - [Tolerance](tolerance-calib)
 - Advanced:
-  - [Volumetric Speed](volumetric-speed-calib)
   - [Cornering (Jerk & Junction Deviation)](cornering-calib)
   - [Input Shaping](input-shaping-calib)
   - [VFA](vfa-calib)

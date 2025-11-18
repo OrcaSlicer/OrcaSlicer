@@ -974,6 +974,8 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     //SoftFever
     "enable_pressure_advance", "pressure_advance","adaptive_pressure_advance","adaptive_pressure_advance_model","adaptive_pressure_advance_overhangs", "adaptive_pressure_advance_bridges","chamber_temperature", "filament_shrink","filament_shrinkage_compensation_z", "support_material_interface_fan_speed","internal_bridge_fan_speed", "filament_notes" /*,"filament_seam_gap"*/,
     "ironing_fan_speed",
+    // Filament ironing overrides
+    "filament_ironing_flow", "filament_ironing_spacing", "filament_ironing_inset", "filament_ironing_speed",
     "filament_loading_speed", "filament_loading_speed_start",
     "filament_unloading_speed", "filament_unloading_speed_start", "filament_toolchange_delay", "filament_cooling_moves", "filament_stamping_loading_speed", "filament_stamping_distance",
     "filament_cooling_initial_speed", "filament_cooling_final_speed", "filament_ramming_parameters",

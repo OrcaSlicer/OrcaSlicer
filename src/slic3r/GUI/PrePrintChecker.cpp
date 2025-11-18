@@ -68,29 +68,29 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
 wxString PrePrintChecker::get_pre_state_msg(PrintDialogStatus status)
 {
     switch (status) {
-    case PrintStatusNoUserLogin: return _L("No login account, only printers in LAN mode are displayed");
-    case PrintStatusConnectingServer: return _L("Connecting to server");
-    case PrintStatusReading: return _L("Synchronizing device information");
-    case PrintStatusReadingTimeout: return _L("Synchronizing device information time out");
-    case PrintStatusModeNotFDM: return _L("Cannot send the print job when the printer is not at FDM mode");
-    case PrintStatusInUpgrading: return _L("Cannot send the print job when the printer is updating firmware");
-    case PrintStatusInSystemPrinting: return _L("The printer is executing instructions. Please restart printing after it ends");
-    case PrintStatusInPrinting: return _L("The printer is busy on other print job");
+    case PrintStatusNoUserLogin: return _L("No login account, only printers in LAN mode are displayed.");
+    case PrintStatusConnectingServer: return _L("Connecting to server...");
+    case PrintStatusReading: return _L("Synchronizing device information...");
+    case PrintStatusReadingTimeout: return _L("Synchronizing device information timed out.");
+    case PrintStatusModeNotFDM: return _L("Cannot send a print job when the printer is not at FDM mode.");
+    case PrintStatusInUpgrading: return _L("Cannot send a print job while the printer is updating firmware.");
+    case PrintStatusInSystemPrinting: return _L("The printer is executing instructions. Please restart printing after it ends.");
+    case PrintStatusInPrinting: return _L("The printer is busy with another print job.");
     case PrintStatusAmsOnSettingup: return _L("AMS is setting up. Please try again later.");
     case PrintStatusAmsMappingInvalid: return _L("Not all filaments used in slicing are mapped to the printer. Please check the mapping of filaments.");
-    case PrintStatusAmsMappingMixInvalid: return _L("Please do not mix-use the Ext with AMS");
+    case PrintStatusAmsMappingMixInvalid: return _L("Please do not mix-use the Ext with AMS.");
     case PrintStatusNozzleDataInvalid: return _L("Invalid nozzle information, please refresh or manually set nozzle information.");
     case PrintStatusLanModeNoSdcard: return _L("Storage needs to be inserted before printing via LAN.");
     case PrintStatusLanModeSDcardNotAvailable: return _L("Storage is in abnormal state or is in read-only mode.");
     case PrintStatusNoSdcard: return _L("Storage needs to be inserted before printing.");
     case PrintStatusNeedForceUpgrading: return _L("Cannot send the print job to a printer whose firmware is required to get updated.");
     case PrintStatusNeedConsistencyUpgrading: return _L("Cannot send the print job to a printer whose firmware is required to get updated.");
-    case PrintStatusBlankPlate: return _L("Cannot send the print job for empty plate");
+    case PrintStatusBlankPlate: return _L("Cannot send a print job for an empty plate.");
     case PrintStatusTimelapseNoSdcard: return _L("Storage needs to be inserted to record timelapse.");
     case PrintStatusMixAmsAndVtSlotWarning: return _L("You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing.");
     case PrintStatusTPUUnsupportAutoCali: return _L("TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration.");
     case PrintStatusWarningKvalueNotUsed: return _L("Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value.");
-    case PrintStatusNotSupportedPrintAll: return _L("This printer does not support printing all plates");
+    case PrintStatusNotSupportedPrintAll: return _L("This printer does not support printing all plates.");
     case PrintStatusColorQuantityExceed: return _L("The current firmware supports a maximum of 16 materials. You can either reduce the number of materials to 16 or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support.");
     }
     return wxEmptyString;
