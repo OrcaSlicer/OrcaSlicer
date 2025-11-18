@@ -8,6 +8,12 @@
     "chamber_temperatures": [
         "60"
     ],
+    "eng_plate_temp": [
+        "100"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "100"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"

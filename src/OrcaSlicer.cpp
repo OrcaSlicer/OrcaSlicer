@@ -3182,7 +3182,7 @@ int CLI::run(int argc, char **argv)
                     if (filament_options_with_variant.find(opt_key) != filament_options_with_variant.end()) {
                         std::vector<int> temp_variant_indice;
                         temp_variant_indice.resize(new_variant_count, -1);
-                        opt_vec_dst->set_with_restore_2(opt_vec_src, temp_variant_indice, old_start_indice[filament_index - 1], old_variant_count);
+                        opt_vec_dst->set_with_restore_2(opt_vec_src, temp_variant_indice, old_start_indice[filament_index - 1], old_variant_count, true);
 
                         if (opt_key == "filament_extruder_variant")
                             new_variant_counts[filament_index - 1] = opt_vec_src->size();
@@ -3508,6 +3508,7 @@ int CLI::run(int argc, char **argv)
 
     m_print_config.option<ConfigOptionEnum<PrinterTechnology>>("printer_technology", true)->value = printer_technology;
 
+    bool has_wipe_tower_position = m_print_config.option<ConfigOptionFloats>("wipe_tower_x") && m_print_config.option<ConfigOptionFloats>("wipe_tower_y");
     // Initialize full print configs for both the FFF and SLA technologies.
     FullPrintConfig    fff_print_config;
     //SLAFullPrintConfig sla_print_config;
@@ -4737,7 +4738,7 @@ int CLI::run(int argc, char **argv)
                 bool is_seq_print = false;
                 get_print_sequence(cur_plate, m_print_config, is_seq_print);
 
-                if (!is_seq_print && assemble_plate.filaments_count > 1)
+                if (!is_seq_print && (assemble_plate.filaments_count > 1) && !has_wipe_tower_position)
                 {
                     //prepare the wipe tower
                     auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
@@ -5741,6 +5742,7 @@ int CLI::run(int argc, char **argv)
                                     mode = m_extra_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode")->value;
                                 else
                                     mode = part_plate->get_real_filament_map_mode(m_print_config);
+                                BOOST_LOG_TRIVIAL(info) << boost::format("%1% :filament map mode is %2% ") % __LINE__ %(int)mode;
                                 if (mode < FilamentMapMode::fmmManual) {
                                     std::vector<int> conflict_filament_vector;
                                     for (int index = 0; index < new_extruder_count; index++)
@@ -5777,6 +5779,43 @@ int CLI::run(int argc, char **argv)
                                     std::vector<int> filament_maps;
                                     if (m_extra_config.option<ConfigOptionInts>("filament_map")) {
                                         filament_maps = m_extra_config.option<ConfigOptionInts>("filament_map")->values;
+                                        int default_value = -1;
+                                        bool has_invalid_value = false;
+                                        for (int f_index = 0; f_index < filament_maps.size(); f_index++)
+                                        {
+                                            if (filament_maps[f_index] != -1)
+                                            {
+                                                if (default_value == -1)
+                                                    default_value = filament_maps[f_index];
+                                                else
+                                                    continue;
+                                            }
+                                            else
+                                                has_invalid_value = true;
+
+                                            if (has_invalid_value && (default_value != -1))
+                                                break;
+                                        }
+                                        BOOST_LOG_TRIVIAL(info) << boost::format("%1% :filament map default_value %2%, has_invalid_value %3% ") % __LINE__ %default_value %has_invalid_value;
+
+                                        if (has_invalid_value)
+                                        {
+                                            for (int f_index = 0; f_index < filament_maps.size(); f_index++)
+                                            {
+                                                if (filament_maps[f_index] == -1)
+                                                {
+                                                    if (default_value != -1) {
+                                                        filament_maps[f_index] = default_value;
+                                                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to first value %3%.")% (index + 1) %(f_index+1) %default_value;
+                                                    }
+                                                    else {
+                                                        filament_maps[f_index] = 1;
+                                                        BOOST_LOG_TRIVIAL(info) << boost::format("plate %1% : set filament_map of filament %2% to default value 1.")% (index + 1) %(f_index+1);
+                                                    }
+                                                }
+                                            }
+                                            m_extra_config.option<ConfigOptionInts>("filament_map")->values = filament_maps;
+                                        }
                                         part_plate->set_filament_maps(filament_maps);
                                     }
                                     else

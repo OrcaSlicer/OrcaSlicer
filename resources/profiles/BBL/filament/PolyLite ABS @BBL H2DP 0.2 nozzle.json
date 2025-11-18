@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "PolyLite ABS @BBL H2DP 0.2 nozzle",
-    "inherits": "PolyLite ABS @BBL X1C 0.2 nozzle",
+    "inherits": "PolyLite ABS @base",
     "from": "system",
     "setting_id": "GFSB60_13",
     "instantiation": "true",

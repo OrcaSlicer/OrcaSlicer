@@ -5,6 +5,7 @@
         "stainless_steel": 20,
         "tungsten_carbide": 85,
         "brass": 2,
+        "E3D": 55,
         "undefine": 0
     }
 }

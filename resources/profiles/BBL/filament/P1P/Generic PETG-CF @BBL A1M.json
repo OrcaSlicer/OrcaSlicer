@@ -1,24 +1,12 @@
 {
     "type": "filament",
     "name": "Generic PETG-CF @BBL A1M",
-    "inherits": "Generic PETG-CF @BBL P1P",
+    "inherits": "Generic PETG-CF @base",
     "from": "system",
     "setting_id": "GFSG98_00",
     "instantiation": "true",
-    "fan_cooling_layer_time": [
-        "20"
-    ],
-    "fan_max_speed": [
-        "30"
-    ],
-    "fan_min_speed": [
-        "0"
-    ],
     "filament_max_volumetric_speed": [
         "8"
-    ],
-    "overhang_fan_speed": [
-        "90"
     ],
     "compatible_printers": [
         "Bambu Lab A1 mini 0.4 nozzle",

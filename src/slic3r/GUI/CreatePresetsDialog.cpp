@@ -195,6 +195,23 @@ static bool caseInsensitiveCompare(const std::string& a, const std::string& b) {
     return lowerA < lowerB;
 }
 
+static float my_stof(std::string str) {
+
+    const char dec_sep     = is_decimal_separator_point() ? '.' : ',';
+    const char dec_sep_alt = dec_sep == '.' ? ',' : '.';
+
+    size_t alt_pos = str.find(dec_sep_alt);
+    if (alt_pos != std::string::npos) { str.replace(alt_pos, 1, 1, dec_sep); }
+
+    if (str == std::string(1, dec_sep)) { return 0.0f; }
+
+    try {
+        return static_cast<float>(std::stod(str));
+    } catch (...) {
+        return 0.f;
+    }
+}
+
 static bool delete_filament_preset_by_name(std::string delete_preset_name, std::string &selected_preset_name)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("select preset, name %1%") % delete_preset_name;
@@ -692,6 +709,11 @@ CreateFilamentPresetDialog::CreateFilamentPresetDialog(wxWindow *parent)
     Layout();
     Fit();
 
+    this->Bind(wxEVT_SIZE, [this](wxSizeEvent &event) {
+        this->Refresh();
+        event.Skip();
+    });
+
 	wxGetApp().UpdateDlgDarkUI(this);
 }
 
@@ -816,6 +838,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
         Refresh();
         Layout();
         Fit();
+
+        e.Skip();
     });
 
     comboBoxSizer->Add(vendor_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
@@ -1465,12 +1489,25 @@ void CreateFilamentPresetDialog::get_all_visible_printer_name()
 void CreateFilamentPresetDialog::update_dialog_size()
 {
     this->Freeze();
+    int height_before = m_filament_preset_panel->GetSize().GetHeight();
+
     m_filament_preset_panel->SetSizerAndFit(m_filament_presets_sizer);
-    int width      = m_filament_preset_panel->GetSize().GetWidth();
-    int height     = m_filament_preset_panel->GetSize().GetHeight();
-    m_scrolled_preset_panel->SetMinSize(wxSize(std::min(1400, width + FromDIP(26)), std::min(600, height + FromDIP(18))));
-    m_scrolled_preset_panel->SetMaxSize(wxSize(std::min(1400, width + FromDIP(26)), std::min(600, height + FromDIP(18))));
-    m_scrolled_preset_panel->SetSize(wxSize(std::min(1500, width + FromDIP(26)), std::min(600, height + FromDIP(18))));
+
+    int width  = m_filament_preset_panel->GetSize().GetWidth();
+    int height = m_filament_preset_panel->GetSize().GetHeight();
+
+    int    screen_height          = wxGetDisplaySize().GetHeight();
+    wxSize dialog_size            = this->GetSize();
+    int    max_available_height   = screen_height - FromDIP(100);
+    int    ideal_scroll_height    = height + FromDIP(26);
+    int    other_parts_height     = dialog_size.GetHeight() - m_scrolled_preset_panel->GetSize().GetHeight() + FromDIP(12);
+    int    max_safe_scroll_height = max_available_height - other_parts_height;
+    int    final_scroll_height    = std::min(ideal_scroll_height, max_safe_scroll_height);
+
+    m_scrolled_preset_panel->SetMinSize(wxSize(std::min(1400, width + FromDIP(26)), final_scroll_height));
+    m_scrolled_preset_panel->SetMaxSize(wxSize(std::min(1400, width + FromDIP(26)), final_scroll_height));
+    m_scrolled_preset_panel->SetSize(wxSize(std::min(1500, width + FromDIP(26)), final_scroll_height));
+
     Layout();
     Fit();
     Refresh();
@@ -1807,6 +1844,8 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
         Layout();
         m_page1->SetSizerAndFit(m_page1_sizer);
         Fit();
+
+        e.Skip();
     });
 
     vertical_sizer->Add(checkbox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
@@ -1831,8 +1870,12 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
     wxBoxSizer *comboBoxSizer = new wxBoxSizer(wxHORIZONTAL);
     m_nozzle_diameter         = new ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, OPTION_SIZE, 0, nullptr, wxCB_READONLY);
     wxArrayString nozzle_diameters;
+    const char    dec_sep = is_decimal_separator_point() ? '.' : ',';
     for (const std::string& nozzle : nozzle_diameter_vec) {
-        nozzle_diameters.Add(nozzle + " mm");
+        std::string display_nozzle = nozzle;
+        size_t pos = display_nozzle.find('.');
+        if (pos != std::string::npos) { display_nozzle.replace(pos, 1, 1, dec_sep); }
+        nozzle_diameters.Add(display_nozzle + " mm");
     }
     m_nozzle_diameter->Set(nozzle_diameters);
     m_nozzle_diameter->SetSelection(0);
@@ -1842,7 +1885,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
     m_custom_nozzle_diameter_ctrl->SetHint(_L("Input Custom Nozzle Diameter"));
     m_custom_nozzle_diameter_ctrl->Bind(wxEVT_CHAR, [this](wxKeyEvent &event) {
         int key = event.GetKeyCode();
-        if (key != 46 && cannot_input_key.find(key) != cannot_input_key.end()) { // "@" can not be inputed
+        if (key != 44 && key != 46 && cannot_input_key.find(key) != cannot_input_key.end()) { // "@" can not be inputed
             event.Skip(false);
             return;
         }
@@ -1881,6 +1924,8 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
         Layout();
         m_page1->SetSizerAndFit(m_page1_sizer);
         Fit();
+
+        e.Skip();
     });
 
     vertical_sizer->Add(checkbox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
@@ -2250,7 +2295,7 @@ void CreatePrinterPresetDialog::generate_process_presets_data(std::vector<Preset
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry, and nozzle is: " << nozzle;
     std::unordered_map<std::string, float> nozzle_diameter_map_ = nozzle_diameter_map;
-    float                                  nozzle_dia           = std::stof(get_nozzle_diameter());
+    float                                  nozzle_dia           = my_stof(get_nozzle_diameter());
     for (const Preset *preset : presets) {
         auto layer_height = dynamic_cast<ConfigOptionFloat *>(const_cast<Preset *>(preset)->config.option("layer_height", true));
         if (layer_height)
@@ -2391,7 +2436,7 @@ std::string CreatePrinterPresetDialog::get_nozzle_diameter() const
     }
     float nozzle = 0;
     try {
-        nozzle = std::stof(diameter);
+        nozzle = my_stof(diameter);
     }
     catch (...) { }
     if (nozzle == 0) diameter = "0.4";
@@ -2723,6 +2768,11 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
         // create preset name
         std::string printer_model_name = get_custom_printer_model();
         std::string printer_nozzle_name = get_nozzle_diameter();
+        // Replace comma with period in nozzle diameter for consistency
+        size_t comma_pos = printer_nozzle_name.find(',');
+        if (comma_pos != std::string::npos) {
+            printer_nozzle_name.replace(comma_pos, 1, ".");
+        }
         std::string nozzle_diameter     = printer_nozzle_name + " nozzle";
         std::string printer_preset_name = printer_model_name + " " + nozzle_diameter;
 
@@ -2884,7 +2934,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
                 if (nozzle_diameter_map.end() != iter) {
                     std::fill(nozzle_diameter->values.begin(), nozzle_diameter->values.end(), iter->second);
                 } else {
-                    std::fill(nozzle_diameter->values.begin(), nozzle_diameter->values.end(), std::stof(get_nozzle_diameter()));
+                    std::fill(nozzle_diameter->values.begin(), nozzle_diameter->values.end(), my_stof(get_nozzle_diameter()));
                 }
             }
         }
@@ -3064,7 +3114,7 @@ wxArrayString CreatePrinterPresetDialog::printer_preset_sort_with_nozzle_diamete
 
         for (const Slic3r::VendorProfile::PrinterVariant &variant : model.variants) {
             try {
-                float variant_diameter = std::stof(variant.name);
+                float variant_diameter = my_stof(variant.name);
                 preset_sort.push_back(std::make_pair(variant_diameter, model_name + " @ " + variant.name + " nozzle"));
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "nozzle: " << variant_diameter << "model: " << preset_sort.back().second;
             }
@@ -3307,11 +3357,11 @@ bool CreatePrinterPresetDialog::validate_input_valid()
     } else {
         nozzle_diameter = into_u8(m_nozzle_diameter->GetStringSelection());
         size_t index_mm = nozzle_diameter.find(" mm");
-        if (std::string::npos != index_mm) { nozzle_diameter.substr(0, index_mm); }
+        if (std::string::npos != index_mm) { nozzle_diameter = nozzle_diameter.substr(0, index_mm); }
     }
     float nozzle_dia = 0;
     try {
-        nozzle_dia = std::stof(nozzle_diameter);
+        nozzle_dia = my_stof(nozzle_diameter);
     } catch (...) { }
     if (nozzle_dia == 0) {
         MessageDialog dlg(this, _L("The entered nozzle diameter is invalid, please re-enter:\n"), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),

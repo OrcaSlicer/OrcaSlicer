@@ -163,6 +163,7 @@ public:
     //void update_partplate(PartPlateList& list);
     void update_presets(Slic3r::Preset::Type preset_type);
     //BBS
+    const std::vector<BedType>& get_cur_combox_bed_types() { return m_cur_combox_bed_types; }
     void update_presets_from_to(Slic3r::Preset::Type preset_type, std::string from, std::string to);
     BedType get_cur_select_bed_type();
     std::string get_cur_select_bed_image();
@@ -186,7 +187,7 @@ public:
     bool is_new_project_in_gcode3mf();
     // BBS
     void on_bed_type_change(BedType bed_type);
-    void load_ams_list(std::string const & device, MachineObject* obj);
+    void load_ams_list(MachineObject* obj);
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
     void sync_ams_list(bool is_from_big_sync_btn = false);
     bool sync_extruder_list();
@@ -212,6 +213,7 @@ public:
 
     ConfigOptionsGroup*     og_freq_chng_params(const bool is_fff);
     wxButton*               get_wiping_dialog_button();
+    void                    set_flushing_volume_warning(const bool flushing_volume_modify);
 
     // BBS
     void                    enable_buttons(bool enable);
@@ -350,6 +352,7 @@ public:
 
     bool is_multi_extruder_ams_empty();
     // BBS
+    bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
     wxString get_project_name();
     void update_all_plate_thumbnails(bool force_update = false);
     void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<Slic3r::ColorRGBA> colors, int camera_view_angle_type);
@@ -924,6 +927,7 @@ private:
     bool m_exported_file { false };
     bool skip_thumbnail_invalid { false };
     bool m_loading_project { false };
+    bool m_new_project_and_check_state{false};
     std::string m_preview_only_filename;
     int m_valid_plates_count { 0 };
     int m_check_status = 0; // 0 not check, 1 check success, 2 check failed

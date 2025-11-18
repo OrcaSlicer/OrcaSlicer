@@ -8,6 +8,8 @@ src/slic3r/GUI/DeviceCore/DevConfigUtil.cpp
 src/slic3r/GUI/DeviceCore/DevCtrl.h
 src/slic3r/GUI/DeviceCore/DevCtrl.cpp
 src/slic3r/GUI/DeviceCore/DevDefs.h
+src/slic3r/GUI/DeviceCore/DevExtensionTool.h
+src/slic3r/GUI/DeviceCore/DevExtensionTool.cpp
 src/slic3r/GUI/DeviceCore/DevExtruderSystem.h
 src/slic3r/GUI/DeviceCore/DevExtruderSystem.cpp
 src/slic3r/GUI/DeviceCore/DevExtruderSystemCtrl.cpp
@@ -94,6 +96,8 @@ src/slic3r/GUI/Jobs/RotoptimizeJob.cpp
 src/slic3r/GUI/Jobs/BindJob.cpp
 src/slic3r/GUI/Jobs/PrintJob.cpp
 src/slic3r/GUI/Jobs/SendJob.cpp
+src/slic3r/GUI/ThermalPreconditioningDialog.cpp
+src/slic3r/GUI/ThermalPreconditioningDialog.hpp
 src/slic3r/GUI/Jobs/SLAImportJob.cpp
 src/slic3r/GUI/Jobs/UpgradeNetworkJob.cpp
 src/slic3r/GUI/AboutDialog.cpp
@@ -136,6 +140,7 @@ src/slic3r/GUI/ObjectDataViewModel.cpp
 src/slic3r/GUI/OpenGLManager.cpp
 src/slic3r/GUI/OptionsGroup.cpp
 src/slic3r/GUI/PrintOptionsDialog.cpp
+src/slic3r/GUI/SafetyOptionsDialog.cpp
 src/slic3r/GUI/ParamsPanel.cpp
 src/slic3r/GUI/PartPlate.cpp
 src/slic3r/GUI/Plater.cpp

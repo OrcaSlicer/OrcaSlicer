@@ -78,6 +78,7 @@ struct PlateBBoxData
     int first_extruder = 0;
     float nozzle_diameter = 0.4;
     std::string bed_type;
+    float first_layer_time;
     // version 1: use view type ColorPrint (filament color)
     // version 2: use view type FilamentId (filament id)
     int version = 2;
@@ -91,6 +92,7 @@ struct PlateBBoxData
         j["nozzle_diameter"] = nozzle_diameter;
         j["version"]         = version;
         j["bed_type"]        = bed_type;
+        j["first_layer_time"] = first_layer_time;
         for (const auto& bbox : bbox_objs) {
             nlohmann::json j_bbox;
             bbox.to_json(j_bbox);

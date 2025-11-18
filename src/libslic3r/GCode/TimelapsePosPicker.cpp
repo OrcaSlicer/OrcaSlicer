@@ -380,19 +380,42 @@ namespace Slic3r {
 
         std::priority_queue<CandidatePoint> max_heap;
 
-        double min_distance = std::numeric_limits<double>::max();
-        Point nearest_point = DefaultTimelapsePos;
+        const double candidate_point_segment = scale_(5), weight_of_camera=1./3.;
+        auto penaltyFunc = [&weight_of_camera](const Point &curr_post, const Point &CameraPos, const Point &candidatet) -> double {
+            // move distance + Camera occlusion penalty function
+            double ret_pen = (curr_post - candidatet).cwiseAbs().sum() - weight_of_camera * (CameraPos - candidatet).cwiseAbs().sum();
+            return ret_pen;
+        };
 
         for (const auto& expoly : safe_areas) {
             Polygons polys = to_polygons(expoly);
             for (auto& poly : polys) {
                 for (size_t idx = 0; idx < poly.points.size(); ++idx) {
-                    Line line(poly.points[idx], poly.points[next_idx_modulo(idx, poly.points)]);
-                    Point candidate;
-                    double dist = line.distance_to_squared(curr_pos, &candidate);
-                    max_heap.push({ dist,candidate });
-                    if (max_heap.size() > MAX_CANDIDATE_SIZE)
-                        max_heap.pop();
+                    double             best_penalty   = std::numeric_limits<double>::max();
+                    Point              best_candidate = DefaultTimelapsePos; // the best candidate form current line
+                    //std::vector<Point> candidate_source;
+                    if ((poly.points[idx] - poly.points[next_idx_modulo(idx, poly.points)]).cwiseAbs().sum() < candidate_point_segment) {
+                        best_candidate = poly.points[idx]; // only check the start point if the line is short
+                        best_penalty   = penaltyFunc(curr_pos, DefaultCameraPos, best_candidate);
+                    }else{
+                        Point direct_of_line = poly.points[next_idx_modulo(idx, poly.points)] - poly.points[idx];
+                        double length_L1      = direct_of_line.cwiseAbs().sum();
+                        int    num_steps      = static_cast<int>(length_L1 / candidate_point_segment); // for long line use 5mm segmentation to check
+                        // devide by length_L1 instead of steps, prevent lose accuracy for the step length
+                        direct_of_line.x()    = static_cast<coord_t>(static_cast<double> (direct_of_line.x()) * candidate_point_segment / length_L1);
+                        direct_of_line.y()    = static_cast<coord_t>(static_cast<double> (direct_of_line.y()) * candidate_point_segment / length_L1);
+                        Point candidate;
+                        for (int line_seg_i = 0; line_seg_i <= num_steps; ++line_seg_i) {
+                            candidate=poly.points[idx] + direct_of_line * line_seg_i;
+                            double dist = penaltyFunc(curr_pos, DefaultCameraPos, candidate);
+                            if (dist < best_penalty) {
+                                best_penalty   = dist;
+                                best_candidate = candidate;
+                            }//only push the best point into heap for the whole line
+                        }
+                    }
+                    max_heap.push({best_penalty, best_candidate});
+                    if (max_heap.size() > MAX_CANDIDATE_SIZE) max_heap.pop();
                 }
             }
         }

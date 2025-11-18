@@ -322,7 +322,9 @@ void SyncAmsInfoDialog::update_plate_combox()
 {
     if (m_combobox_plate) {
         m_combobox_plate->Clear();
-        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) { m_combobox_plate->Append(m_plate_number_choices_str[i]); }
+        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) {
+            m_combobox_plate->Append(m_plate_number_choices_str[i]);
+        }
         auto iter = std::find(m_plate_choices.begin(), m_plate_choices.end(), m_specify_plate_idx);
         if (iter != m_plate_choices.end()) {
             auto index = iter - m_plate_choices.begin();
@@ -528,7 +530,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_choose_plate_sizer->Add(chose_combox_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxEXPAND | wxTOP, FromDIP(6));
     m_choose_plate_sizer->AddSpacer(FromDIP(10));
 
-    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(50), -1), 0, NULL, wxCB_READONLY);
+    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(60), -1), 0, NULL, wxCB_READONLY);
 
     m_combobox_plate->Bind(wxEVT_COMBOBOX, [this](auto &e) {
         if (e.GetSelection() < m_plate_choices.size()) {
@@ -931,6 +933,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
             auto flag = wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams");
             wxGetApp().app_config->set_bool("enable_append_color_by_sync_ams",!flag);
             m_append_color_checkbox->SetValue(!flag);
+            e.Skip();
         });
         m_append_color_checkbox->Hide();
         m_append_color_sizer->Add(m_append_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
@@ -951,6 +954,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
             auto flag = wxGetApp().app_config->get_bool("enable_merge_color_by_sync_ams");
             wxGetApp().app_config->set_bool("enable_merge_color_by_sync_ams",!flag);
             m_merge_color_checkbox->SetValue(!flag);
+            e.Skip();
         });
         m_merge_color_checkbox->Hide();
         m_merge_color_sizer->Add(m_merge_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
@@ -1497,7 +1501,7 @@ void SyncAmsInfoDialog::auto_supply_with_ext(std::vector<DevAmsTray> slots)
             if (slot.id.empty()) continue;
             m_ams_mapping_result[i].ams_id  = slot.id;
             m_ams_mapping_result[i].color   = slot.color;
-            m_ams_mapping_result[i].type    = slot.type;
+            m_ams_mapping_result[i].type    = slot.m_fila_type;
             m_ams_mapping_result[i].colors  = slot.cols;
             m_ams_mapping_result[i].tray_id = atoi(slot.id.c_str());
             m_ams_mapping_result[i].slot_id = "0";
@@ -2392,19 +2396,6 @@ void SyncAmsInfoDialog::update_show_status()
         }
     }
 
-    if (!m_mapping_popup.m_supporting_mix_print && nozzle_nums == 1) {
-        bool useAms = false;
-        bool useExt = false;
-        for (auto iter = m_ams_mapping_result.begin(); iter != m_ams_mapping_result.end(); iter++) {
-            if (iter->tray_id != VIRTUAL_TRAY_MAIN_ID) { useAms = true; }
-            if (iter->tray_id == VIRTUAL_TRAY_MAIN_ID) { useExt = true; }
-            if (useAms && useExt) {
-                show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
-                return;
-            }
-        }
-    }
-
     // check ams and vt_slot mix use status
     {
         struct ExtruderStatus
@@ -2529,6 +2520,7 @@ void SyncAmsInfoDialog::on_dpi_changed(const wxRect &suggested_rect)
     m_button_cancel->SetCornerRadius(FromDIP(12));
     m_merge_color_checkbox->Rescale();
     m_append_color_checkbox->Rescale();
+    m_combobox_plate->Rescale();
     Fit();
     Refresh();
 }

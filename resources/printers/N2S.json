@@ -37,15 +37,18 @@
 			"support_lidar_calibration": false,
 			"support_ai_monitoring": false,
 			"support_first_layer_inspect": false,
+			"support_chamber": false,
 			"support_chamber_temp_edit": false,
 			"support_extrusion_cali": true,
 			"support_user_preset": false,
-			"bed_temperature_limit": 100
+			"bed_temperature_limit": 100,
+			"support_ams_ext_mix_print": false
 		},
 		"model_id": "N2S",
 		"compatible_machine": [],
 		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
 		"support_wrapping_detection": false,
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_i3",
 		"printer_type": "N2S",
 		"ftp_folder": "sdcard/",
 		"printer_thumbnail_image": "printer_thumbnail_n2s",
@@ -57,7 +60,8 @@
 		"printer_series": "series_n",
 		"has_cali_line": false,
 		"printer_is_enclosed": false,
-		"enable_set_nozzle_info": false
+		"enable_set_nozzle_info": false,
+		"support_safety_options": false
 	},
 	"01.01.50.01": {
 		"print": {

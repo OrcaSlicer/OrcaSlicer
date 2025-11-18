@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "Bambu PET-CF @BBL H2DP",
-    "inherits": "Bambu PET-CF @BBL X1C",
+    "inherits": "Bambu PET-CF @base",
     "from": "system",
     "setting_id": "GFST01_05",
     "instantiation": "true",
@@ -13,6 +13,12 @@
     ],
     "counter_coef_3": [
         "-0.052"
+    ],
+    "eng_plate_temp": [
+        "100"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "100"
     ],
     "filament_deretraction_speed": [
         "nil",
@@ -126,14 +132,8 @@
         "270",
         "270"
     ],
-    "reduce_fan_stop_start_freq": [
-        "1"
-    ],
     "retraction_distances_when_ec": [
         "10",
-        "10"
-    ],
-    "slow_down_min_speed": [
         "10"
     ],
     "volumetric_speed_coefficients": [

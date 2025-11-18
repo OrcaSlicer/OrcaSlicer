@@ -5262,8 +5262,9 @@ void TabPrinter::toggle_options()
             //BBS
             toggle_option(el, retraction && !use_firmware_retraction, i);
 
-        bool wipe = retraction && m_config->opt_bool("wipe", i);
+        bool wipe = retraction && m_config->opt_bool("wipe", variant_index);
         toggle_option("retract_before_wipe", wipe, i);
+
         if (use_firmware_retraction && wipe) {
             //wxMessageDialog dialog(parent(),
             MessageDialog dialog(parent(),

@@ -6,6 +6,7 @@
     "setting_id": "GFSL04_04",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
+        "1.6",
         "1.6"
     ],
     "compatible_printers": [

@@ -2370,6 +2370,9 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionFloat { 0. });
 
 
+    def = this->add("support_object_skip_flush", coBool);
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("bed_temperature_formula", coEnum);
     def->label = L("Bed temperature type");
     def->tooltip = L("This option determines how the bed temperature is set during slicing: based on the temperature of the first filament or the highest temperature of the printed filaments.");
@@ -6275,10 +6278,11 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("wipe_tower_rib_width", coFloat);
     def->label    = L("Rib width");
-    def->tooltip  = L("Rib width.");
+    def->tooltip  = L("Rib width is always less than half the prime tower side length.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->mode     = comAdvanced;
     def->min      = 0;
+    def->max      = 300;
     def->set_default_value(new ConfigOptionFloat(8));
 
     def          = this->add("wipe_tower_fillet_wall", coBool);
@@ -7505,6 +7509,8 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "wipe_tower_fillet_wall";
     } else if (opt_key == "extruder_clearance_max_radius") {
         opt_key = "extruder_clearance_radius";
+    } else if (opt_key == "machine_switch_extruder_time") {
+        opt_key = "machine_tool_change_time";
     }
 
     // Ignore the following obsolete configuration keys:
@@ -8779,7 +8785,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
         auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
         std::vector<int> variant_index;
 
-        if (extruder_id > 0 && extruder_id <= extruder_count) {
+        if (extruder_id > 0 && extruder_id <= static_cast<unsigned> (extruder_count)) {
             variant_index.resize(1);
             ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(extruder_id - 1));
             NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(extruder_id - 1));

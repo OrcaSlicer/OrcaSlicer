@@ -1605,7 +1605,6 @@ void AMSControl::on_filament_load(wxCommandEvent &event)
         return;
     }
 
-    m_button_extruder_back->Disable();
     for (auto i = 0; i < m_ams_info.size(); i++) {
         if (m_ams_info[i].ams_id == m_current_ams) { m_ams_info[i].current_action = AMSAction::AMS_ACTION_LOAD; }
     }
@@ -1622,7 +1621,6 @@ void AMSControl::on_extrusion_cali(wxCommandEvent &event)
 
 void AMSControl::on_filament_unload(wxCommandEvent &event)
 {
-    m_button_extruder_feed->Disable();
     for (auto i = 0; i < m_ams_info.size(); i++) {
         if (m_ams_info[i].ams_id == m_current_ams) { m_ams_info[i].current_action = AMSAction::AMS_ACTION_UNLOAD; }
     }
@@ -1636,9 +1634,6 @@ void AMSControl::auto_refill(wxCommandEvent& event)
 
 void AMSControl::on_ams_setting_click(wxMouseEvent &event)
 {
-    for (auto i = 0; i < m_ams_info.size(); i++) {
-        if (m_ams_info[i].ams_id == m_current_ams) { m_ams_info[i].current_action = AMSAction::AMS_ACTION_CALI; }
-    }
     post_event(SimpleEvent(EVT_AMS_SETTINGS));
 }
 
