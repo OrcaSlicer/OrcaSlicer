@@ -1,0 +1,13 @@
+{
+  "compatible_printers": [
+    "Eryone ER20 0.6 nozzle"
+  ],
+  "elefant_foot_compensation": "0",
+  "from": "system",
+  "inherits": "fdm_process_ER20_0.30_nozzle_0.6",
+  "instantiation": "true",
+  "name": "0.30mm Strength @Eryone ER20 0.6 nozzle",
+  "sparse_infill_density": "25%",
+  "type": "process",
+  "wall_loops": "4"
+}
