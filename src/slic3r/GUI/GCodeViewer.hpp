@@ -225,13 +225,6 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
-    struct ViewTypeCache
-    {
-        bool write{ false };
-        bool load{ false };
-        libvgcode::EViewType value{ libvgcode::EViewType::FeatureType };
-    };
-    ViewTypeCache m_view_type_cache;
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;
@@ -318,10 +311,7 @@ public:
     bool is_only_gcode_in_preview() const { return m_only_gcode_in_preview; }
 
     void set_view_type(libvgcode::EViewType type) {
-        m_viewer.set_view_type((m_view_type_cache.load && m_view_type_cache.value != type) ? m_view_type_cache.value : type);
-        const libvgcode::EViewType view_type = get_view_type();
-        if (m_view_type_cache.write && m_view_type_cache.value != view_type)
-            m_view_type_cache.value = view_type;
+        m_viewer.set_view_type(type);
     }
     void reset_visible(libvgcode::EViewType type) {
         if (type == libvgcode::EViewType::FeatureType) {
@@ -336,10 +326,7 @@ public:
     }
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
-    void enable_view_type_cache_load(bool enable) { m_view_type_cache.load = enable; }
-    void enable_view_type_cache_write(bool enable) { m_view_type_cache.write = enable; }
-    bool is_view_type_cache_load_enabled() const { return m_view_type_cache.load; }
-    bool is_view_type_cache_write_enabled() const { return m_view_type_cache.write; }
+
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
     bool is_legend_shown() const { return m_legend_visible && m_legend_enabled; }

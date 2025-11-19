@@ -81,18 +81,18 @@ enum class EViewType : uint8_t
 {
     Summary, // ORCA
     FeatureType,
-    Height,
-    Width,
+    ColorPrint,
     Speed,
     ActualSpeed,
-    FanSpeed,
-    Temperature,
+    Height,
+    Width,
     VolumetricFlowRate,
     ActualVolumetricFlowRate,
     LayerTimeLinear,
     LayerTimeLogarithmic,
+    FanSpeed,
+    Temperature,
     Tool,
-    ColorPrint,
     COUNT
 };
 

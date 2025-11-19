@@ -3041,9 +3041,8 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     //when load gcode directly, it is too late
     m_gcode_viewer.init(wxGetApp().get_mode(), wxGetApp().preset_bundle);
     m_gcode_viewer.enable_legend(true);
-    m_gcode_viewer.enable_view_type_cache_write(true);
-    m_gcode_viewer.enable_view_type_cache_load(true);
-    m_gcode_viewer.set_view_type(m_gcode_viewer.get_view_type());
+
+
     m_gcode_viewer.load_as_gcode(gcode_result, *this->fff_print(), str_tool_colors, str_color_print_colors, wxGetApp().plater()->build_volume(), exclude_bounding_box,
         wxGetApp().get_mode(), only_gcode);
     m_gcode_layers_times_cache = m_gcode_viewer.get_layers_times();
@@ -3071,27 +3070,6 @@ void GLCanvas3D::load_sla_preview()
         _set_warning_notification_if_needed(EWarning::SlaSupportsOutside);
     }
 }
-
-/*void GLCanvas3D::load_preview(const std::vector<std::string>& str_tool_colors, const std::vector<std::string>& str_color_print_colors,
-    const std::vector<CustomGCode::Item>& color_print_values)
-{
-    const Print *print = this->fff_print();
-    if (print == nullptr)
-        return;
-
-    _set_current();
-
-    libvgcode::GCodeInputData data = libvgcode::convert(*print, str_tool_colors, str_color_print_colors, color_print_values,
-        static_cast<size_t>(wxGetApp().extruders_edited_cnt()));
-
-    // send data to the viewer
-    m_gcode_viewer.enable_legend(false);
-    m_gcode_viewer.enable_view_type_cache_write(false);
-    m_gcode_viewer.enable_view_type_cache_load(false);
-    m_gcode_viewer.set_view_type(libvgcode::EViewType::FeatureType);
-    m_gcode_viewer.load_as_preview(std::move(data));
-    _set_warning_notification_if_needed(EWarning::ToolpathOutside);
-}*/
 
 void GLCanvas3D::bind_event_handlers()
 {

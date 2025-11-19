@@ -526,7 +526,6 @@ void GCodeViewer::SequentialView::GCodeWindow::load_gcode(const std::string& fil
 
 //BBS: GUI refactor: move to right
 void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, float right, uint64_t curr_line_id) const
-//void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, uint64_t curr_line_id) const
 {
     // Orca: truncate long lines(>55 characters), add "..." at the end
     auto update_lines = [this](uint64_t start_id, uint64_t end_id) {
@@ -684,6 +683,14 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     }
 
     imgui.end();
+
+    #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+        imgui.set_requires_extra_frame();
+    #else
+        wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+        wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
+    #endif
+
     ImGui::PopStyleVar();
 }
 
@@ -770,6 +777,17 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
 
     m_gl_data_initialized = true;
 
+    try
+    {
+        m_viewer.init(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+        glcheck();
+    }
+    catch (const std::exception& e)
+    {
+        MessageDialog msg_dlg(wxGetApp().plater(), e.what(), _L("Error"), wxICON_ERROR | wxOK);
+        msg_dlg.ShowModal();
+    }
+
     if (preset_bundle)
         m_nozzle_nums = preset_bundle->get_printer_extruder_count();
 
@@ -782,16 +800,6 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
         set_view_type(libvgcode::EViewType::ColorPrint);
     }
 
-    try
-    {
-        m_viewer.init(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-        glcheck();
-    }
-    catch (const std::exception& e)
-    {
-        MessageDialog msg_dlg(wxGetApp().plater(), e.what(), _L("Error"), wxICON_ERROR | wxOK);
-        msg_dlg.ShowModal();
-    }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished");
 }
 
@@ -1169,9 +1177,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             }
         }
 
-        enable_view_type_cache_load(false);
         set_view_type(libvgcode::EViewType::ColorPrint);
-        enable_view_type_cache_load(true);
     }
 
     bool only_gcode_3mf = false;
@@ -3093,12 +3099,15 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             if (ImGui::BBLSelectable(view_type_items_str[i].c_str(), is_selected)) {
                 m_fold = false;
                 m_view_type_sel = i;
-                enable_view_type_cache_load(false);
                 set_view_type(view_type_items[m_view_type_sel]);
-                enable_view_type_cache_load(true);
                 reset_visible(view_type_items[m_view_type_sel]);
                 update_moves_slider();
+            #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
+                imgui.set_requires_extra_frame();
+            #else
                 wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
+                wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
+            #endif
             }
             if (is_selected) {
                 ImGui::SetItemDefaultFocus();
@@ -3362,7 +3371,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             append_item(EItemType::Rect, color, {{ label , offsets[0] }}, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type, visible]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
-                wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
                 });
         };
         const bool visible = m_viewer.is_option_visible(type);
@@ -3405,7 +3413,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 true, offsets.back(), visible, [this, role, visible]() {
                     m_viewer.toggle_extrusion_role_visibility(role);
                     update_moves_slider();
-                    wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
                 });
         }
 
@@ -3423,7 +3430,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item, visible]() {
                         m_viewer.toggle_option_visibility(item);
                         update_moves_slider();
-                        wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
                     });
             }
         }
@@ -3444,7 +3450,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
-            wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
             });
         ImGui::PopStyleVar(1);
         break;
@@ -3462,7 +3467,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
-            wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
             });
         ImGui::PopStyleVar(1);
         break;
@@ -4047,7 +4051,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::string prepare_str = _u8L("Prepare time");
     std::string print_str = _u8L("Model printing time");
     std::string total_str = _u8L("Total time");
- float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
+    float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
     if (m_viewer.get_layers_estimated_times().empty())
         max_len += ImGui::CalcTextSize(total_str.c_str()).x;
     else {
@@ -4120,7 +4124,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 imgui.set_requires_extra_frame();
 #else
                 wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-            wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
+                wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
             }
         }

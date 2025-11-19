@@ -35,26 +35,15 @@
 // Enable rework of Reload from disk command
 #define ENABLE_RELOAD_FROM_DISK_REWORK 1
 
-//====================
-// 2.4.0.beta1 techs
-//====================
-#define ENABLE_2_4_0_BETA1 1
-
 // Enable rendering modifiers and similar objects always as transparent
-#define ENABLE_MODIFIERS_ALWAYS_TRANSPARENT (1 && ENABLE_2_4_0_BETA1)
-
-
-//====================
-// 2.4.0.beta2 techs
-//====================
-#define ENABLE_2_4_0_BETA2 1
+#define ENABLE_MODIFIERS_ALWAYS_TRANSPARENT 1
 
 // Enable modified ImGuiWrapper::slider_float() to create a compound widget where
 // an additional button can be used to set the keyboard focus into the slider
 // to allow the user to type in the desired value
-#define ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT (1 && ENABLE_2_4_0_BETA2)
+#define ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT 1
 // Enable fit print volume command for circular printbeds
-#define ENABLE_ENHANCED_PRINT_VOLUME_FIT (1 && ENABLE_2_4_0_BETA2)
+#define ENABLE_ENHANCED_PRINT_VOLUME_FIT 1
 // Enable picking using raytracing
 #define ENABLE_RAYCAST_PICKING_DEBUG 0
 
