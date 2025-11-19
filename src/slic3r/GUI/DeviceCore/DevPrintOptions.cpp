@@ -107,7 +107,6 @@ void DevPrintOptionsParser::ParseDetectionV1_2(DevPrintOptions *opts, MachineObj
             }
         }
 
-
         if (time(nullptr) - opts->xcam_auto_recovery_hold_start > HOLD_TIME_3SEC) {
             if (print_json.contains("auto_recovery")) { opts->xcam_auto_recovery_step_loss = print_json["auto_recovery"].get<bool>(); }
         }
@@ -145,7 +144,11 @@ void DevPrintOptionsParser::ParseDetectionV2_0(DevPrintOptions *opts, std::strin
     if (time(nullptr) - opts->xcam_filament_tangle_detect_hold_start > HOLD_TIME_3SEC) {
         opts->xcam_filament_tangle_detect = DevUtil::get_flag_bits(print_json, 23);
     }
+}
 
+void DevPrintOptionsParser::ParseDetectionV2_1(DevPrintOptions *opts, std::string cfg) {
+    if (time(nullptr) - opts->idel_heating_protect_hold_strat > HOLD_TIME_3SEC)
+        opts->idel_heating_protect_enabled = DevUtil::get_flag_bits(cfg, 32, 2);
 }
 
 void DevPrintOptions::SetPrintingSpeedLevel(DevPrintingSpeedLevel speed_level)
@@ -168,8 +171,15 @@ int DevPrintOptions::command_xcam_control_ai_monitoring(bool on_off, std::string
     xcam_ai_monitoring_hold_start  = time(nullptr);
     xcam_ai_monitoring_sensitivity = lvl;
     return command_xcam_control("printing_monitor", on_off, m_obj, lvl);
-
 }
+
+int DevPrintOptions::command_xcam_control_idelheatingprotect_detector(bool on_off)
+{
+    idel_heating_protect_enabled    = on_off;
+    idel_heating_protect_hold_strat = time(nullptr);
+    return command_set_against_continued_heating_mode(on_off);
+}
+
 int DevPrintOptions::command_xcam_control_buildplate_marker_detector(bool on_off)
 {
     xcam_buildplate_marker_detector   = on_off;
@@ -237,6 +247,15 @@ int DevPrintOptions::command_xcam_control(std::string module_name, bool on_off ,
     if (!lvl.empty()) { j["xcam"]["halt_print_sensitivity"] = lvl; }
     BOOST_LOG_TRIVIAL(info) << "command:xcam_control_set" << ", module_name:" << module_name << ", control:" << on_off << ", halt_print_sensitivity:" << lvl;
     return obj->publish_json(j);
+}
+
+int DevPrintOptions::command_set_against_continued_heating_mode(bool on_off)
+{
+    json j;
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["print"]["command"]     = "set_against_continued_heating_mode";
+    j["print"]["enable"]      = on_off;
+    return m_obj->publish_json(j);
 }
 
 int DevPrintOptions::command_set_printing_option(bool auto_recovery, MachineObject *obj)

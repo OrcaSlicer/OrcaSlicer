@@ -354,7 +354,8 @@ void set_log_path_and_level(const std::string& file, unsigned int level)
 			<< expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S.%f")
 			<<"[Thread " << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "]"
 			<< ":" << expr::smessage
-		)
+		),
+		keywords::auto_flush = true
 	);
 
 	logging::add_common_attributes();

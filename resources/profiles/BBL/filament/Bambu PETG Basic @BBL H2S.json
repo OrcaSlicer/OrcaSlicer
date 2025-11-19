@@ -5,6 +5,12 @@
     "from": "system",
     "setting_id": "GFSG00_10",
     "instantiation": "true",
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"
@@ -26,8 +32,8 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "13",
-        "13"
+        "18",
+        "21"
     ],
     "filament_ramming_volumetric_speed": [
         "-1",
@@ -50,8 +56,8 @@
         "10"
     ],
     "filament_retraction_length": [
-        "nil",
-        "nil"
+        "0.4",
+        "0.4"
     ],
     "filament_retraction_minimum_travel": [
         "nil",
@@ -62,20 +68,20 @@
         "nil"
     ],
     "filament_wipe": [
-        "nil",
-        "nil"
+        "1",
+        "1"
     ],
     "filament_wipe_distance": [
-        "nil",
-        "nil"
+        "2",
+        "2"
     ],
     "filament_z_hop": [
         "nil",
         "nil"
     ],
     "filament_z_hop_types": [
-        "nil",
-        "nil"
+        "Spiral Lift",
+        "Spiral Lift"
     ],
     "filament_extruder_variant": [
         "Direct Drive Standard",
@@ -98,12 +104,16 @@
         "0"
     ],
     "nozzle_temperature": [
-        "255",
-        "255"
+        "245",
+        "245"
     ],
     "nozzle_temperature_initial_layer": [
-        "255",
-        "255"
+        "245",
+        "245"
+    ],
+    "override_process_overhang_speed": [
+        "0",
+        "0"
     ],
     "retraction_distances_when_ec": [
         "0",

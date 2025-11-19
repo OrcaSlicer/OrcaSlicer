@@ -31,6 +31,11 @@ PopupWindow::~PopupWindow()
 #ifdef __WXGTK__
     GetTopParent(this)->Unbind(wxEVT_ACTIVATE, &PopupWindow::topWindowActiavate, this);
 #endif
+#ifdef __WXMSW__
+    GetTopParent(this)->Unbind(wxEVT_ACTIVATE, &PopupWindow::topWindowActivate, this);
+    GetTopParent(this)->Unbind(wxEVT_ICONIZE, &PopupWindow::topWindowIconize, this);
+    GetTopParent(this)->Unbind(wxEVT_SHOW, &PopupWindow::topWindowShow, this);
+#endif
 }
 
 #ifdef __WXOSX__
@@ -82,5 +87,34 @@ void PopupWindow::topWindowActiavate(wxActivateEvent &event)
 {
     event.Skip();
     if (!event.GetActive() && IsShown()) DismissAndNotify();
+}
+#endif
+
+#ifdef __WXMSW__
+void PopupWindow::BindUnfocusEvent()
+{
+    GetTopParent(this)->Bind(wxEVT_ACTIVATE, &PopupWindow::topWindowActivate, this);
+    GetTopParent(this)->Bind(wxEVT_ICONIZE, &PopupWindow::topWindowIconize, this);
+    GetTopParent(this)->Bind(wxEVT_SHOW, &PopupWindow::topWindowShow, this);
+}
+
+void PopupWindow::topWindowActivate(wxActivateEvent &event)
+{
+    if (!event.GetActive())
+        Dismiss();
+}
+
+void PopupWindow::topWindowIconize(wxIconizeEvent &event)
+{
+    event.Skip();
+    if (event.IsIconized())
+        Dismiss();
+}
+
+void PopupWindow::topWindowShow(wxShowEvent &event)
+{
+    event.Skip();
+    if (!event.IsShown())
+        Dismiss();
 }
 #endif

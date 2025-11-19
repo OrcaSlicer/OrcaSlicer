@@ -902,10 +902,10 @@ void GUI_App::post_init()
         if (app_config->get("default_page") == "1")
             mainframe->select_tab(size_t(1));
         mainframe->Thaw();
-        plater_->trigger_restore_project(1);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", end load_gl_resources";
     }
-//#endif
+    plater_->trigger_restore_project(1);
+    //#endif
 
     //BBS: remove GCodeViewer as seperate APP logic
     /*if (this->init_params->start_as_gcodeviewer) {
@@ -1003,9 +1003,6 @@ void GUI_App::post_init()
             }
         });
     }
-
-    if (is_user_login())
-        request_user_handle(0);
 
     if(!m_networking_need_update && m_agent) {
         m_agent->set_on_ssdp_msg_fn(
@@ -1725,7 +1722,6 @@ void GUI_App::init_networking_callbacks()
                     obj->command_get_access_code();
                     if (m_agent)
                         m_agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
-                    GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
                 }
                 });
             });
@@ -1764,7 +1760,6 @@ void GUI_App::init_networking_callbacks()
                                 obj->command_get_version();
                                 event.SetInt(0);
                                 event.SetString(obj->get_dev_id());
-                                GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
                             } else if (state == ConnectStatus::ConnectStatusFailed) {
                                 // Orca: only update status if same device id
                                 if (m_device_manager->selected_machine != dev_id) return;
@@ -1821,23 +1816,18 @@ void GUI_App::init_networking_callbacks()
             CallAfter([this, dev_id, msg] {
                 if (is_closing())
                     return;
-                this->process_network_msg(dev_id, msg);
 
-                MachineObject* obj = this->m_device_manager->get_user_machine(dev_id);
-                if (obj) {
+                if (process_network_msg(dev_id, msg)) {
+                    return;
+                }
+
+                if (MachineObject* obj = this->m_device_manager->get_user_machine(dev_id)) {
                     auto sel = this->m_device_manager->get_selected_machine();
-
-                    if (sel && sel->get_dev_id() == dev_id)
-                    {
+                    if (sel && sel->get_dev_id() == dev_id) {
                         obj->parse_json("cloud", msg);
-                    }
-                    else {
+                        GUI::wxGetApp().sidebar().load_ams_list(obj);
+                    } else {
                         obj->parse_json("cloud", msg, true);
-                    }
-
-
-                    if (sel == obj || sel == nullptr) {
-                        GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
                     }
                 }
 
@@ -1875,13 +1865,14 @@ void GUI_App::init_networking_callbacks()
                 if (is_closing())
                     return;
 
-                this->process_network_msg(dev_id, msg);
-                MachineObject* obj = m_device_manager->get_my_machine(dev_id);
+                if (this->process_network_msg(dev_id, msg)) {
+                    return;
+                }
 
-                if (obj) {
+                if (MachineObject* obj = m_device_manager->get_my_machine(dev_id)) {
                     obj->parse_json("lan", msg);
                     if (this->m_device_manager->get_selected_machine() == obj) {
-                        GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
+                        GUI::wxGetApp().sidebar().load_ams_list(obj);
                     }
                 }
 
@@ -2096,6 +2087,8 @@ void GUI_App::init_app_config()
 #else
     set_log_path_and_level(log_filename, 3);
 #endif
+
+    BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1% build %2%") % SoftFever_VERSION % GIT_COMMIT_HASH;
 
     //BBS: remove GCodeViewer as seperate APP logic
 	if (!app_config)
@@ -2390,7 +2383,6 @@ bool GUI_App::on_init_inner()
     }
 #endif
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("gui mode, Current OrcaSlicer Version %1%")%SoftFever_VERSION;
     BOOST_LOG_TRIVIAL(info) << get_system_info();
 
 // initialize label colors and fonts
@@ -2663,7 +2655,6 @@ bool GUI_App::on_init_inner()
 
     preset_bundle->backup_user_folder();
 
-    Bind(EVT_SET_SELECTED_MACHINE, &GUI_App::on_set_selected_machine, this);
     Bind(EVT_UPDATE_MACHINE_LIST, &GUI_App::on_update_machine_list, this);
     Bind(EVT_USER_LOGIN, &GUI_App::on_user_login, this);
     Bind(EVT_USER_LOGIN_HANDLE, &GUI_App::on_user_login_handle, this);
@@ -3944,7 +3935,6 @@ void GUI_App::request_user_logout()
         wxGetApp().check_and_keep_current_preset_changes(_L("User logged out"), header, ActionButtons::KEEP | ActionButtons::SAVE, &transfer_preset_changes);
 
         m_device_manager->clean_user_info();
-        GUI::wxGetApp().sidebar().load_ams_list({}, {});
         remove_user_presets();
         enable_user_preset_folder(false);
         preset_bundle->load_user_presets(DEFAULT_USER_FOLDER_NAME, ForwardCompatibilitySubstitutionRule::Enable);
@@ -4306,18 +4296,6 @@ void GUI_App::enable_user_preset_folder(bool enable)
     }
 }
 
-void GUI_App::on_set_selected_machine(wxCommandEvent &evt)
-{
-    // Orca: do not connect to default device during app startup, because some of the lan machines might not online yet
-    // and user will be prompted by several "Connect XXX failed" error message.
-    return;
-
-    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-    if (dev) {
-        dev->set_selected_machine(m_agent->get_user_selected_machine());
-    }
-}
-
 void GUI_App::on_update_machine_list(wxCommandEvent &evt)
 {
     /* DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
@@ -4338,8 +4316,6 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 
     boost::thread update_thread = boost::thread([this, dev] {
         dev->update_user_machine_list_info();
-        auto evt = new wxCommandEvent(EVT_SET_SELECTED_MACHINE);
-        wxQueueEvent(this, evt);
     });
 
     if (online_login) {
@@ -4898,20 +4874,34 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
     http.perform();
 }
 
-void GUI_App::process_network_msg(std::string dev_id, std::string msg)
+// return true if handled
+bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
 {
     if (dev_id.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << msg;
     }
     else if (msg == "device_cert_installed") {
         BOOST_LOG_TRIVIAL(info) << "process_network_msg, device_cert_installed";
-        Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
-        if (!dev) return;
-        MachineObject* obj = dev->get_my_machine(dev_id);
-        if (obj) {
-            obj->update_device_cert_state(true);
+        if (Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
+            if (MachineObject* obj = dev->get_my_machine(dev_id)) {
+                obj->update_device_cert_state(true);
+            }
         }
+
+        return true;
     }
+    else if (msg == "device_cert_uninstalled") {
+        BOOST_LOG_TRIVIAL(info) << "process_network_msg, device_cert_uninstalled";
+        if (Slic3r::DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
+            if (MachineObject* obj = dev->get_my_machine(dev_id)){
+                obj->update_device_cert_state(false);
+            }
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 //BBS pop up a dialog and download files
@@ -6818,6 +6808,21 @@ bool GUI_App::run_wizard(ConfigWizard::RunReason reason, ConfigWizard::StartPage
 {
     wxCHECK_MSG(mainframe != nullptr, false, "Internal error: Main frame not created / null");
 
+#ifdef __APPLE__
+     if (is_adding_script_handler()) {
+        BOOST_LOG_TRIVIAL(info) << "run_wizard: Script handler is being added, delaying wizard creation";
+        auto timer = new wxTimer();
+        timer->Bind(wxEVT_TIMER, [this, reason, start_page, timer](wxTimerEvent &) {
+            timer->Stop();
+            run_wizard(reason, start_page);
+            delete timer;
+        });
+        timer->StartOnce(200);
+
+        return true;
+    }
+#endif
+
     //if (reason == ConfigWizard::RR_USER) {
     //    //TODO: turn off it currently, maybe need to turn on in the future
     //    if (preset_updater->config_update(app_config->orig_version(), PresetUpdater::UpdateParams::FORCED_BEFORE_WIZARD) == PresetUpdater::R_ALL_CANCELED)
@@ -7292,6 +7297,7 @@ bool is_soluble_filament(int extruder_id)
 
 bool has_filaments(const std::vector<string>& model_filaments) {
     auto &filament_presets = Slic3r::GUI::wxGetApp().preset_bundle->filament_presets;
+    if (!Slic3r::GUI::wxGetApp().plater()) return false;
     auto model_objects = Slic3r::GUI::wxGetApp().plater()->model().objects;
     const Slic3r::DynamicPrintConfig &config = wxGetApp().preset_bundle->full_config();
     Model::setExtruderParams(config, filament_presets.size());

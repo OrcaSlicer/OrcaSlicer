@@ -17,6 +17,7 @@
 namespace Slic3r {
 
 wxDEFINE_EVENT(EVT_SHOW_ERROR_INFO_SEND, wxCommandEvent);
+wxDEFINE_EVENT(EVT_SHOW_ERROR_FAIL_SEND, wxCommandEvent);
 
 BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
  : m_self{new wxPanel(parent, id == -1 ? wxID_ANY : id)}
@@ -69,7 +70,7 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
 
     m_sizer_status_text = new wxBoxSizer(wxHORIZONTAL);
     m_link_show_error = new Label(m_self, _L("Check the reason"));
-    m_link_show_error->SetForegroundColour(wxColour(0x6b6b6b));
+    m_link_show_error->SetForegroundColour(wxColour("#6b6b6b"));
     m_link_show_error->SetFont(::Label::Head_13);
 
     m_bitmap_show_error_close = create_scaled_bitmap("link_more_error_close", nullptr, 7);
@@ -174,6 +175,9 @@ void BBLStatusBarSend::show_error_info(wxString msg, int code, wxString descript
     m_cancelbutton->Show();
     m_self->Layout();
     m_sizer->Layout();
+
+    wxCommandEvent* evt = new wxCommandEvent(EVT_SHOW_ERROR_FAIL_SEND);
+    wxQueueEvent(this->m_self->GetParent(), evt);
 }
 
 void BBLStatusBarSend::show_progress(bool show)

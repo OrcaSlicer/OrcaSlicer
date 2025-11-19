@@ -1,7 +1,7 @@
 {
     "type": "process",
     "name": "0.10mm Standard @BBL A1M 0.2 nozzle",
-    "inherits": "0.10mm Standard @BBL P1P 0.2 nozzle",
+    "inherits": "fdm_process_single_0.10_nozzle_0.2",
     "from": "system",
     "setting_id": "GP039",
     "instantiation": "true",
@@ -9,7 +9,6 @@
     "default_acceleration": [
         "6000"
     ],
-    "elefant_foot_compensation": "0",
     "initial_layer_speed": [
         "16"
     ],

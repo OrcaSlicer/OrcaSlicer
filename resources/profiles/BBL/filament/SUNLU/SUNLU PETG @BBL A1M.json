@@ -1,21 +1,15 @@
 {
     "type": "filament",
     "name": "SUNLU PETG @BBL A1M 0.4 nozzle",
-    "inherits": "SUNLU PETG @BBL X1C",
+    "inherits": "SUNLU PETG @base",
     "from": "system",
     "setting_id": "GFSNLS08_05",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.94"
     ],
-    "filament_long_retractions_when_cut": [
-        "nil"
-    ],
     "filament_max_volumetric_speed": [
         "9"
-    ],
-    "filament_retraction_distances_when_cut": [
-        "nil"
     ],
     "compatible_printers": [
         "Bambu Lab A1 mini 0.4 nozzle"

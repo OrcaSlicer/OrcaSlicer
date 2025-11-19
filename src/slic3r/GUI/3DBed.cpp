@@ -318,22 +318,14 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
     m_type = type;
     //m_texture_filename = texture_filename;
     m_model_filename = model_filename;
-    //BBS: add part plate logic
-    m_extended_bounding_box = this->calc_extended_bounding_box(false);
-
-    //BBS: add part plate logic
-
     //BBS add default bed
     m_triangles.reset();
-
     if (with_reset) {
         //m_texture.reset();
         m_model.reset();
     }
     //BBS: add part plate logic, always update model offset
-    //else {
-        update_model_offset();
-    //}
+    update_model_offset();//include m_extended_bounding_box = this->calc_extended_bounding_box();
 
     // Set the origin and size for rendering the coordinate system axes.
     m_axes.set_origin({ 0.0, 0.0, static_cast<double>(GROUND_Z) });
@@ -407,9 +399,9 @@ void Bed3D::render_internal(GLCanvas3D& canvas, const Transform3d& view_matrix, 
 
 //BBS: add partplate related logic
 // Calculate an extended bounding box from axes and current model for visualization purposes.
-BoundingBoxf3 Bed3D::calc_extended_bounding_box(bool consider_model_offset) const
+BoundingBoxf3 Bed3D::calc_printable_bounding_box() const
 {
-    BoundingBoxf3 out { m_build_volume.bounding_volume() };
+    BoundingBoxf3 out{m_build_volume.bounding_volume()};
 
     const Vec3d size = out.size();
     // ensures that the bounding box is set as defined or the following calls to merge() will not work as intented
@@ -419,19 +411,22 @@ BoundingBoxf3 Bed3D::calc_extended_bounding_box(bool consider_model_offset) cons
     out.min.z() = 0.0;
     out.max.z() = 0.0;
     // extend to contain axes
-    //BBS: add part plate related logic.
-    Vec3d offset{ m_position.x(), m_position.y(), 0.f };
-    //out.merge(m_axes.get_origin() + offset + m_axes.get_total_length() * Vec3d::Ones());
+    // BBS: add part plate related logic.
+    Vec3d offset{m_position.x(), m_position.y(), 0.f};
+    // out.merge(m_axes.get_origin() + offset + m_axes.get_total_length() * Vec3d::Ones());
     out.merge(Vec3d(0.f, 0.f, GROUND_Z) + offset + m_axes.get_total_length() * Vec3d::Ones());
     out.merge(out.min + Vec3d(-Axes::DefaultTipRadius, -Axes::DefaultTipRadius, out.max.z()));
-    //BBS: add part plate related logic.
-    if (consider_model_offset) {
-        // extend to contain model, if any
-        BoundingBoxf3 model_bb = m_model.get_bounding_box();
-        if (model_bb.defined) {
-            model_bb.translate(m_model_offset);
-            out.merge(model_bb);
-        }
+    return out;
+}
+
+BoundingBoxf3 Bed3D::calc_extended_bounding_box() const
+{
+    BoundingBoxf3 out;
+    out.merge(m_printable_bounding_box);
+    BoundingBoxf3 model_bb = m_model.get_bounding_box();
+    if (model_bb.defined) {
+        model_bb.translate(m_model_offset);
+        out.merge(model_bb);
     }
     return out;
 }
@@ -633,7 +628,8 @@ void Bed3D::update_model_offset()
     (*model_offset_ptr)(2) = -0.41 + GROUND_Z;
 
     // update extended bounding box
-    const_cast<BoundingBoxf3&>(m_extended_bounding_box) = calc_extended_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_printable_bounding_box) = calc_printable_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_extended_bounding_box)  = calc_extended_bounding_box();
     m_triangles.reset();
 }
 
@@ -670,7 +666,8 @@ void Bed3D::update_bed_triangles()
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to update plate triangles\n";
     }
     // update extended bounding box
-    const_cast<BoundingBoxf3&>(m_extended_bounding_box) = calc_extended_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_printable_bounding_box) = calc_printable_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_extended_bounding_box)  = calc_extended_bounding_box();
 }
 
 void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& projection_matrix)

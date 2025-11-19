@@ -220,6 +220,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/GUI_Utils.hpp
     GUI/HintNotification.cpp
     GUI/HintNotification.hpp
+    GUI/ThermalPreconditioningDialog.cpp
+    GUI/ThermalPreconditioningDialog.hpp
     GUI/HMS.cpp
     GUI/HMS.hpp
     GUI/HMSPanel.cpp
@@ -476,6 +478,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/AMSItem.hpp
     GUI/Widgets/AxisCtrlButton.cpp
     GUI/Widgets/AxisCtrlButton.hpp
+    GUI/SafetyOptionsDialog.hpp
+    GUI/SafetyOptionsDialog.cpp
     GUI/Widgets/Button.cpp
     GUI/Widgets/Button.hpp
     GUI/Widgets/CheckBox.cpp
@@ -619,6 +623,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/WebSocketClient.hpp
     Utils/WxFontUtils.cpp
     Utils/WxFontUtils.hpp
+    Utils/FileTransferUtils.cpp
+    Utils/FileTransferUtils.hpp
 )
 
 add_subdirectory(GUI/DeviceCore)

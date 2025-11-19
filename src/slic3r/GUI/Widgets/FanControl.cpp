@@ -370,14 +370,14 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
     sizer_control_top->Add(m_static_bitmap_fan, 0, wxLEFT | wxTOP, FromDIP(8));
     sizer_control_top->Add(m_static_name, 0, wxLEFT | wxTOP, FromDIP(5));
     sizer_control_top->Add(0, 0, 1, wxEXPAND, 0);
-    sizer_control_top->Add(m_switch_button, 0, wxALIGN_RIGHT | wxRIGHT | wxTOP, FromDIP(10));
+    sizer_control_top->Add(m_switch_button, 0, wxALIGN_RIGHT | wxRIGHT | wxTOP, FromDIP(5));
 
     sizer_control->Add(sizer_control_top, 0, wxEXPAND, 0);
 
     m_static_status_name = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END | wxALIGN_CENTER_HORIZONTAL);
     m_static_status_name->SetForegroundColour(wxColour("#009688"));
     m_static_status_name->SetBackgroundColour(wxColour(248, 248, 248));
-    m_static_status_name->SetFont(Label::Head_18);
+    m_static_status_name->SetFont(Label::Head_16);
     m_static_status_name->SetMinSize(wxSize(FromDIP(100), -1));
     m_static_status_name->SetMaxSize(wxSize(FromDIP(100), -1));
     m_fan_operate = new FanOperate(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
@@ -403,10 +403,10 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
         command_control_fan();
     });
 
-    m_sizer_control_bottom->Add(m_static_status_name, 0, wxALL, FromDIP(10));
-    m_sizer_control_bottom->Add(m_fan_operate, 0, wxALL, FromDIP(10));
+    m_sizer_control_bottom->Add(m_static_status_name, 0, wxLEFT | wxALIGN_CENTER, FromDIP(30));
+    m_sizer_control_bottom->Add(m_fan_operate, 0, wxALL, FromDIP(5));
 
-    sizer_control->Add(m_sizer_control_bottom, 0, wxALL, 0);
+    sizer_control->Add(m_sizer_control_bottom, 0, wxALL | wxEXPAND, 0);
     m_sizer_main->Add(sizer_control, 0, wxALIGN_CENTER, 0);
     update_mode();
 
@@ -554,7 +554,24 @@ void FanControlNew::set_machine_obj(MachineObject* obj)
 
 void FanControlNew::set_name(wxString name)
 {
+    if (name.Contains('(') && name.Contains(')'))
+    {
+        wxClientDC dc(m_static_name);
+        dc.SetFont(m_static_name->GetFont());
+        if (dc.GetTextExtent(name).GetWidth() > m_static_name->GetSize().GetWidth())
+        {
+            const wxString& name_without_brackets = name.BeforeFirst('(');
+            const wxString& bracket_content = name.Right(name.Length() - name_without_brackets.Length());
+            const wxString& content = name_without_brackets + "\n" + bracket_content;
+            m_static_name->SetLabelText(content);
+
+            Layout();
+            return;
+        }
+    }
+
     m_static_name->SetLabelText(name);
+    Layout();
 }
 
 void FanControlNew::set_fan_speed(int g)
@@ -880,6 +897,10 @@ void FanControlPopupNew::on_left_down(wxMouseEvent& evt)
         fan->on_left_down(evt);
     }
 
+    Layout();
+    Fit();
+    Refresh();
+
     evt.Skip();
 }
 
@@ -956,6 +977,10 @@ void FanControlPopupNew::on_mode_changed(const wxMouseEvent &event)
             btn_iter.second->setSelected(false);
         }
     }
+
+    Layout();
+    Fit();
+    Refresh();
 }
 
 void FanControlPopupNew::on_fan_changed(const wxCommandEvent &event)
@@ -990,7 +1015,8 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
         const std::string& special_cooling_text = DevPrinterConfigUtil::get_fan_text(obj->printer_type, "special_cooling_text");
         if (!special_cooling_text.empty()) {
             L("Cooling mode is suitable for printing PLA/PETG/TPU materials."); //some potential text, add i18n flags
-            label_text[AIR_DUCT::AIR_DUCT_COOLING_FILT] = special_cooling_text;
+            L("Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air.");
+            label_text[AIR_DUCT::AIR_DUCT_COOLING_FILT] = _L(special_cooling_text);
         }
     }
 }
@@ -1004,6 +1030,7 @@ wxString FanControlPopupNew::get_fan_func_name(int mode, int submode, AIR_FUN fu
         {
             L_CONTEXT("Right(Aux)", "air_duct");
             L_CONTEXT("Right(Filter)", "air_duct");
+            L_CONTEXT("Left(Aux)", "air_duct");
             return _CTX(func_text, "air_duct");
         }
     }
@@ -1058,6 +1085,8 @@ FanControlNewSwitchPanel::FanControlNewSwitchPanel(wxWindow* parent, const wxStr
 
     SetBackgroundColour(wxColour(248, 248, 248));
     Layout();
+
+    wxGetApp().UpdateDarkUIWin(this);
 }
 
 void FanControlNewSwitchPanel::SetSwitchOn(bool on)

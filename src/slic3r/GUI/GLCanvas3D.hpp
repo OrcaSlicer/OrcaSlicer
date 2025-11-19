@@ -390,6 +390,7 @@ class GLCanvas3D
         PrimeTowerOutside,
         NozzleFilamentIncompatible,
         MixtureFilamentIncompatible,
+        FlushingVolumeZero
     };
 
     class RenderStats
@@ -1293,6 +1294,7 @@ private:
     // generates a warning notification containing the given message
     void _set_warning_notification(EWarning warning, bool state);
 
+    bool is_flushing_matrix_error();
     bool _is_any_volume_outside() const;
 
     // updates the selection from the content of m_hover_volume_idxs
