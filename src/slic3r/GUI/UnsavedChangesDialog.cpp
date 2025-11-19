@@ -2114,11 +2114,6 @@ void DiffPresetDialog::show(Preset::Type type /* = Preset::TYPE_INVALID*/)
 
     update_tree();
     wxGetApp().UpdateDlgDarkUI(this);
-#ifdef _WIN32 // ORCA ensure row colors updated after opening dialog again after switching Dark Mode
-    wxGetApp().UpdateAllStaticTextDarkUI(this);
-    wxGetApp().UpdateDarkUI(m_show_all_presets);
-    wxGetApp().UpdateDVCDarkUI(m_tree);
-#endif
 
     // if this dialog is shown it have to be Hide and show again to be placed on the very Top of windows
     if (IsShown())

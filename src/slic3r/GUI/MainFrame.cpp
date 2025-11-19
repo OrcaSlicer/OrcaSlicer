@@ -2272,6 +2272,8 @@ void MainFrame::on_sys_color_changed()
 #endif
 #endif
 
+    diff_dialog.on_sys_color_changed();
+
     // BBS
     m_tabpanel->Rescale();
     m_param_panel->msw_rescale();
