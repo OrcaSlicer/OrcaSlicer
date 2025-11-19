@@ -4,8 +4,11 @@
 
 #include "DevDefs.h"
 #include "DevFilaAmsSetting.h"
+#include "DevUtil.h"
 
 #include <map>
+#include <optional>
+#include <memory>
 #include <wx/string.h>
 #include <wx/colour.h>
 
@@ -28,7 +31,7 @@ public:
     std::string              tag_uid;             // tag_uid
     std::string              setting_id;          // tray_info_idx
     std::string              filament_setting_id; // setting_id
-    std::string              type;
+    std::string              m_fila_type;
     std::string              sub_brands;
     std::string              color;
     std::vector<std::string> cols;
@@ -57,7 +60,7 @@ public:
     // operators
     bool operator==(DevAmsTray const& o) const
     {
-        return id == o.id && type == o.type && filament_setting_id == o.filament_setting_id && color == o.color;
+        return id == o.id && m_fila_type == o.m_fila_type && filament_setting_id == o.filament_setting_id && color == o.color;
     }
     bool operator!=(DevAmsTray const& o) const { return !operator==(o); }
 
@@ -150,12 +153,14 @@ public:
     ~DevFilaSystem();
 
 public:
+    MachineObject* GetOwner() const { return m_owner; }
+
     bool        HasAms() const { return !amsList.empty(); }
     bool        IsAmsSettingUp() const;
 
     /* ams */
     DevAms*                         GetAmsById(const std::string& ams_id) const;
-    std::map<std::string, DevAms*>& GetAmsList() { return amsList; }
+    std::map<std::string, DevAms*, NumericStrCompare>& GetAmsList() { return amsList; }
     int                             GetAmsCount() const { return amsList.size(); }
 
     /* tray*/
@@ -167,10 +172,16 @@ public:
 
     /* AMS settings*/
     DevAmsSystemSetting& GetAmsSystemSetting() { return m_ams_system_setting; }
-    bool                 IsDetectOnInsertEnabled() const { return m_ams_system_setting.IsDetectOnInsertEnabled(); };
+    std::optional<bool>  IsDetectOnInsertEnabled() const { return m_ams_system_setting.IsDetectOnInsertEnabled(); };
     bool                 IsDetectOnPowerupEnabled() const { return m_ams_system_setting.IsDetectOnPowerupEnabled(); }
     bool                 IsDetectRemainEnabled() const { return m_ams_system_setting.IsDetectRemainEnabled(); }
     bool                 IsAutoRefillEnabled() const { return m_ams_system_setting.IsAutoRefillEnabled(); }
+
+    std::weak_ptr<DevAmsSystemFirmwareSwitch> GetAmsFirmwareSwitch() const { return m_ams_firmware_switch;}
+
+public:
+    // ctrls
+    int  CtrlAmsReset() const;
      
 public:
     static bool IsBBL_Filament(std::string tag_uid);
@@ -181,9 +192,10 @@ private:
     /* ams properties */
     int  m_ams_cali_stat = 0;
 
-    std::map<std::string, DevAms*> amsList;    // key: ams[id], start with 0
+    std::map<std::string, DevAms*, NumericStrCompare> amsList;// key: ams[id], start with 0
 
     DevAmsSystemSetting m_ams_system_setting{ this };
+    std::shared_ptr<DevAmsSystemFirmwareSwitch> m_ams_firmware_switch = DevAmsSystemFirmwareSwitch::Create(this);
 };// class DevFilaSystem
 
 

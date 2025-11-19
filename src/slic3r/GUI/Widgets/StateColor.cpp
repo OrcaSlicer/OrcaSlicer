@@ -190,7 +190,6 @@ inline wxColour darkModeColorFor2(wxColour const &color)
     if (!gDarkMode)
         return color;
     auto iter = gDarkColors.find(color);
-    wxASSERT(iter != gDarkColors.end());
     if (iter != gDarkColors.end()) return iter->second;
     return color;
 }
@@ -206,7 +205,6 @@ wxColour StateColor::lightModeColorFor(wxColour const &color)
 {
     static std::map<wxColour, wxColour> gLightColors = revert(gDarkColors);
     auto iter = gLightColors.find(color);
-    wxASSERT(iter != gLightColors.end());
     if (iter != gLightColors.end()) return iter->second;
     return color;
 }

@@ -13,34 +13,14 @@ namespace GUI
 static std::unordered_set<std::string> message_containing_retry{
     "0701-8004",
     "0701-8005",
-    "0701-8006",
-    "0701-8006",
     "0701-8007",
-    "0700-8012",
     "0701-8012",
     "0702-8012",
     "0703-8012",
-    "07FF-8003",
-    "07FF-8004",
-    "07FF-8005",
-    "07FF-8006",
-    "07FF-8007",
-    "07FF-8010",
-    "07FF-8011",
     "07FF-8012",
     "07FF-8013",
-    "12FF-8007",
-    "1200-8006"
 };
 
-static std::unordered_set<std::string> message_containing_done{
-    "07FF-8007",
-    "12FF-8007"
-};
-
-static std::unordered_set<std::string> message_containing_resume{
-    "0300-8013"
-};
 
 DeviceErrorDialog::DeviceErrorDialog(MachineObject* obj, wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
     :DPIDialog(parent, id, title, pos, size, style), m_obj(obj)
@@ -104,6 +84,10 @@ DeviceErrorDialog::DeviceErrorDialog(MachineObject* obj, wxWindow* parent, wxWin
     wxGetApp().UpdateDlgDarkUI(this);
 
     Bind(wxEVT_WEBREQUEST_STATE, &DeviceErrorDialog::on_webrequest_state, this);
+    Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent &e){
+        if (m_obj) { m_obj->command_clean_print_error_uiop(m_obj->print_error); }
+        e.Skip();
+    });
 }
 
 DeviceErrorDialog::~DeviceErrorDialog()
@@ -191,7 +175,9 @@ void DeviceErrorDialog::init_button_list()
     init_button(PROBLEM_SOLVED_RESUME, _L("Problem Solved and Resume"));
     init_button(TURN_OFF_FIRE_ALARM, _L("Got it, Turn off the Fire Alarm."));
     init_button(RETRY_PROBLEM_SOLVED, _L("Retry (problem solved)"));
+    init_button(CANCLE, _L("Cancel"));
     init_button(STOP_DRYING, _L("Stop Drying"));
+    init_button(PROCEED, _L("Proceed"));
     init_button(DBL_CHECK_CANCEL, _L("Cancel"));
     init_button(DBL_CHECK_DONE, _L("Done"));
     init_button(DBL_CHECK_RETRY, _L("Retry"));
@@ -204,6 +190,17 @@ void DeviceErrorDialog::on_dpi_changed(const wxRect& suggested_rect)
     for (auto used_button : m_used_button) { used_button->Rescale();}
     wxGetApp().UpdateDlgDarkUI(this);
     Refresh();
+}
+
+wxString DeviceErrorDialog::parse_error_level(int error_code)
+{
+    int level = (error_code & 0x0000F000) >> 12;
+    switch (level) {
+    case 0x4: return _L("Error");
+    case 0x8: return _L("Warning");
+    case 0xC: return _L("Info");
+    default: return _L("Unknown");
+    }
 }
 
 static const std::unordered_set<string> s_jump_liveview_error_codes = { "0300-8003", "0300-8002", "0300-800A"};
@@ -219,13 +216,16 @@ wxString DeviceErrorDialog::show_error_code(int error_code)
     wxString error_msg = wxGetApp().get_hms_query()->query_print_error_msg(m_obj, error_code);
     if (error_msg.IsEmpty()) { error_msg = _L("Unknown error.");}
 
+    /* parse error level */
+    wxString error_level = parse_error_level(error_code);
+
     /* error_str is old error code*/
-    if (message_containing_retry.count(error_str) || message_containing_done.count(error_str) || message_containing_resume.count(error_str)) {
+    if (message_containing_retry.count(error_str)) {
         /* convert old error code to pseudo buttons*/
         std::vector<int> pseudo_button = convert_to_pseudo_buttons(error_str);
 
         /* do update*/
-        update_contents(_L("Warning"), error_msg, error_str, wxEmptyString, pseudo_button);
+        update_contents(error_level, error_msg, error_str, wxEmptyString, pseudo_button);
     } else {
         /* action buttons*/
         std::vector<int> used_button;
@@ -233,7 +233,7 @@ wxString DeviceErrorDialog::show_error_code(int error_code)
         if (s_jump_liveview_error_codes.count(error_str)) { used_button.emplace_back(DeviceErrorDialog::JUMP_TO_LIVEVIEW); } // special case
 
         /* do update*/
-        update_contents(_L("Error"), error_msg, error_str, error_image_url, used_button);
+        update_contents(error_level, error_msg, error_str, error_image_url, used_button);
     }
 
     wxGetApp().UpdateDlgDarkUI(this);
@@ -248,22 +248,9 @@ wxString DeviceErrorDialog::show_error_code(int error_code)
 std::vector<int> DeviceErrorDialog::convert_to_pseudo_buttons(std::string error_str)
 {
     std::vector<int> pseudo_button;
-    if (message_containing_done.count(error_str) && message_containing_retry.count(error_str)) {
-        pseudo_button.emplace_back(DBL_CHECK_RETRY);
-        pseudo_button.emplace_back(DBL_CHECK_DONE);
-        pseudo_button.emplace_back(DBL_CHECK_OK);
-    } else if (message_containing_done.count(error_str)) {
-        pseudo_button.emplace_back(DBL_CHECK_DONE);
-        pseudo_button.emplace_back(DBL_CHECK_OK);
-    } else if (message_containing_retry.count(error_str)) {
-        pseudo_button.emplace_back(DBL_CHECK_RETRY);
-        pseudo_button.emplace_back(DBL_CHECK_OK);
-    } else if (message_containing_resume.count(error_str)) {
-        pseudo_button.emplace_back(DBL_CHECK_RESUME);
-        pseudo_button.emplace_back(DBL_CHECK_OK);
-    } else {
-        pseudo_button.emplace_back(DBL_CHECK_OK);
-    }
+
+    pseudo_button.emplace_back(DBL_CHECK_RETRY);
+    pseudo_button.emplace_back(DBL_CHECK_OK);
 
     return pseudo_button;
 }
@@ -451,8 +438,21 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
         m_obj->command_ams_control("resume");
         break;
     }
+    case DeviceErrorDialog::CANCLE: {
+        break;
+    }
     case DeviceErrorDialog::STOP_DRYING: {
         m_obj->command_ams_drying_stop();
+        break;
+    }
+    case DeviceErrorDialog::PROCEED: {
+        if(!m_action_json.is_null()){
+            try{
+                m_obj->command_ack_proceed(m_action_json);
+            } catch(...){
+                BOOST_LOG_TRIVIAL(error) << "DeviceErrorDialog: Action Proceed missing params.";
+            }
+        }
         break;
     }
     case DeviceErrorDialog::ERROR_BUTTON_COUNT: break;

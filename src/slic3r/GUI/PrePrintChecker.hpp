@@ -65,7 +65,6 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusNotSupportedPrintAll,
     PrintStatusBlankPlate,
     PrintStatusUnsupportedPrinter,
-    PrintStatusInvalidMapping,
     PrintStatusPrinterErrorEnd,
 
     // Errors for filament, Block Print
@@ -76,6 +75,7 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusAmsMappingMixInvalid,
     PrintStatusTPUUnsupportAutoCali,
     PrintStatusHasFilamentInBlackListError,
+    PrintStatusColorQuantityExceed,
     PrintStatusFilamentErrorEnd,
 
     PrintStatusErrorEnd,//->end error<-
@@ -88,13 +88,14 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusTimelapseNoSdcard,
     PrintStatusTimelapseWarning,
     PrintStatusMixAmsAndVtSlotWarning,
+    PrintStatusToolHeadCoolingFanWarning,
     PrintStatusPrinterWarningEnd,
 
     // Warnings for filament
     PrintStatusFilamentWarningBegin,
     PrintStatusWarningKvalueNotUsed,
-    PrintStatusWarningTpuRightColdPulling,
     PrintStatusHasFilamentInBlackListWarning,
+    PrintStatusFilamentWarningHighChamberTemp,
     PrintStatusFilamentWarningHighChamberTempCloseDoor,
     PrintStatusFilamentWarningHighChamberTempSoft,
     PrintStatusFilamentWarningUnknownHighChamberTempSoft,

@@ -1,21 +1,12 @@
 {
     "type": "filament",
     "name": "Bambu PA-CF @BBL H2DP",
-    "inherits": "Bambu PA-CF @BBL X1C",
+    "inherits": "Bambu PA-CF @base",
     "from": "system",
     "setting_id": "GFSN03_04",
     "instantiation": "true",
     "chamber_temperatures": [
         "60"
-    ],
-    "fan_cooling_layer_time": [
-        "4"
-    ],
-    "fan_max_speed": [
-        "60"
-    ],
-    "fan_min_speed": [
-        "0"
     ],
     "filament_deretraction_speed": [
         "nil",
@@ -88,9 +79,6 @@
     "filament_z_hop_types": [
         "nil",
         "nil"
-    ],
-    "full_fan_speed_layer": [
-        "0"
     ],
     "filament_extruder_variant": [
         "Direct Drive Standard",

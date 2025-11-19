@@ -5,6 +5,12 @@
     "from": "system",
     "setting_id": "GFSS04_10",
     "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"

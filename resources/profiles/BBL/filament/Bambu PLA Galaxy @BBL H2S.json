@@ -8,6 +8,12 @@
     "additional_cooling_fan_speed": [
         "75"
     ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "fan_min_speed": [
         "80"
     ],
@@ -117,6 +123,9 @@
     "retraction_distances_when_ec": [
         "0",
         "0"
+    ],
+    "slow_down_layer_time": [
+        "6"
     ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",

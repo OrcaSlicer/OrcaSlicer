@@ -6,6 +6,12 @@
     "setting_id": "GFSP99_11",
     "instantiation": "true",
     "description": "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances.",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"

@@ -6,10 +6,10 @@
     "setting_id": "GFSG00_08",
     "instantiation": "true",
     "fan_max_speed": [
-        "60"
+        "50"
     ],
     "fan_min_speed": [
-        "20"
+        "30"
     ],
     "filament_flow_ratio": [
         "0.94"
@@ -18,13 +18,34 @@
         "1"
     ],
     "filament_max_volumetric_speed": [
-        "12"
+        "13"
     ],
     "filament_retraction_distances_when_cut": [
         "18"
     ],
+    "filament_retraction_length": [
+        "0.4"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "1"
+    ],
+    "filament_z_hop": [
+        "0.2"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift"
+    ],
+    "nozzle_temperature": [
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245"
+    ],
     "pre_start_fan_time": [
-        "2"
+        "0"
     ],
     "compatible_printers": [
         "Bambu Lab A1 0.8 nozzle",

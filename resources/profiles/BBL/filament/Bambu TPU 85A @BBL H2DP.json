@@ -8,6 +8,12 @@
     "additional_cooling_fan_speed": [
         "100"
     ],
+    "eng_plate_temp": [
+        "35"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "35"
+    ],
     "filament_deretraction_speed": [
         "10",
         "10"

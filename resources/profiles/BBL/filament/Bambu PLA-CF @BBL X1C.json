@@ -6,19 +6,112 @@
     "setting_id": "GFSA50_01",
     "instantiation": "true",
     "filament_long_retractions_when_cut": [
+        "1",
         "1"
     ],
     "filament_max_volumetric_speed": [
+        "15",
         "15"
     ],
     "filament_retraction_distances_when_cut": [
+        "18",
         "18"
     ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_deretraction_speed": [
+        "nil",
+        "nil"
+    ],
+    "filament_flush_temp": [
+        "0",
+        "0"
+    ],
+    "filament_flush_volumetric_speed": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_volumetric_speed": [
+        "-1",
+        "-1"
+    ],
+    "filament_retract_before_wipe": [
+        "nil",
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
+        "nil",
+        "nil"
+    ],
+    "filament_retract_when_changing_layer": [
+        "nil",
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "nil",
+        "nil"
+    ],
+    "filament_retraction_minimum_travel": [
+        "nil",
+        "nil"
+    ],
+    "filament_retraction_speed": [
+        "nil",
+        "nil"
+    ],
+    "filament_wipe": [
+        "nil",
+        "nil"
+    ],
+    "filament_wipe_distance": [
+        "nil",
+        "nil"
+    ],
+    "filament_z_hop": [
+        "nil",
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "nil",
+        "nil"
+    ],
+    "filament_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
+    "filament_pre_cooling_temperature": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_adaptive_volumetric_speed": [
+        "0",
+        "0"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
     "nozzle_temperature": [
+        "230",
         "230"
     ],
     "nozzle_temperature_initial_layer": [
+        "230",
         "230"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "volumetric_speed_coefficients": [
+        "0 0 0 0 0 0",
+        "0 0 0 0 0 0"
     ],
     "compatible_printers": [
         "Bambu Lab X1 Carbon 0.4 nozzle",
@@ -28,8 +121,5 @@
     ],
     "filament_start_gcode": [
         "; filament start gcode\n{if  (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200\n{elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150\n{elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50\n{endif}\nM142 P1 R35 S40\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
-    ],
-    "filament_end_gcode": [
-        "; filament end gcode \n\n"
     ]
 }

@@ -101,6 +101,7 @@ private:
 
     void OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state);
     void OnSelectedMachineLost();
+    void OnSelectedMachineChanged(const std::string& pre_dev_id, const std::string& new_dev_id);
 
 
     /*TODO*/

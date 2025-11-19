@@ -42,7 +42,7 @@
     ],
     "filament_max_volumetric_speed": [
         "25",
-        "35"
+        "40"
     ],
     "filament_ramming_volumetric_speed": [
         "-1",
@@ -107,6 +107,9 @@
     "filament_adaptive_volumetric_speed": [
         "0",
         "0"
+    ],
+    "fan_max_speed": [
+        "30"
     ],
     "hole_coef_2": [
         "-0.006"

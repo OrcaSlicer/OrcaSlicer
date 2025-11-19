@@ -63,9 +63,11 @@ bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, 
 
 void Button::SetLabel(const wxString& label)
 {
-    wxWindow::SetLabel(label);
-    messureSize();
-    Refresh();
+    if (label != wxWindow::GetLabel()) {
+        wxWindow::SetLabel(label);
+        messureSize();
+        Refresh();
+    }
 }
 
 bool Button::SetFont(const wxFont& font)

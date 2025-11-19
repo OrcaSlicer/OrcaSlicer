@@ -18,6 +18,7 @@ void DevConfig::ParseConfig(const json& print_json)
 
 void DevConfig::ParseChamberConfig(const json& print_json)
 {
+    DevJsonValParser::ParseVal(print_json, "support_chamber", m_has_chamber);
     DevJsonValParser::ParseVal(print_json, "support_chamber_temp_edit", m_support_chamber_edit);
     if (m_support_chamber_edit)
     {
@@ -49,6 +50,7 @@ void DevConfig::ParseCalibrationConfig(const json& print_json)
     DevJsonValParser::ParseVal(print_json, "support_nozzle_offset_calibration", m_support_calibration_nozzle_offset);
     DevJsonValParser::ParseVal(print_json, "support_high_tempbed_calibration", m_support_calibration_high_temp_bed);
     DevJsonValParser::ParseVal(print_json, "support_auto_flow_calibration", m_support_calibration_pa_flow_auto);
+    DevJsonValParser::ParseVal(print_json, "support_clump_position_calibration", m_support_calibration_clump_pos);
 }
 
 }

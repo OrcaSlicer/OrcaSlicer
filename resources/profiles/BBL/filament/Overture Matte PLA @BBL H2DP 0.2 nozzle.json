@@ -1,10 +1,16 @@
 {
     "type": "filament",
     "name": "Overture Matte PLA @BBL H2DP 0.2 nozzle",
-    "inherits": "Overture Matte PLA @BBL X1C",
+    "inherits": "Overture Matte PLA @base",
     "from": "system",
     "setting_id": "GFSL05_16",
     "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"

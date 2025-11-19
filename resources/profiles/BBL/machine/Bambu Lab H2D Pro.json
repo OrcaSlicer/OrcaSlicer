@@ -7,7 +7,7 @@
     "bed_texture": "bbl-3dp-logo.svg",
     "default_bed_type": "Textured PEI Plate",
     "image_bed_type": "o",
-    "not_support_bed_type":"Cool Plate;Engineering Plate;Bambu Cool Plate SuperTack",
+    "not_support_bed_type": "Smooth Cool Plate;Textured Cool Plate",
     "family": "BBL-3DP",
     "machine_tech": "FFF",
     "model_id": "O1E",

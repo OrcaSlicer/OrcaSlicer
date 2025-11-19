@@ -21,8 +21,8 @@
 			},
 			"nozzle_temp_range": [ 0, 350 ],
 			"nozzle_replace_wiki": {
-				"zh": "https://wiki.bambulab.com/zh/h2/maintenance/replace-hotend",
-				"en": "https://wiki.bambulab.com/en/h2/maintenance/replace-hotend"
+				"zh": "https://wiki.bambulab.com/zh/h2s/maintenance/replace-silicone-sock-and-hotend",
+				"en": "https://wiki.bambulab.com/en/h2s/maintenance/replace-silicone-sock-and-hotend"
 			},
 			"bed_temp_range": [ 0, 120 ],
 			"support_motor_noise_cali": false,
@@ -58,9 +58,11 @@
 			"support_chamber_temp_edit_range": [0, 65],
 			"support_chamber_temp_switch_heating": 40,
 			"support_extrusion_cali": false,
-			"support_user_preset": false
+			"support_user_preset": false,
+			"support_ams_ext_mix_print": true
 		},
 		"model_id": "O1S",
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_single_o",
 		"printer_modes": [ "fdm", "laser", "cut" ],
 		"compatible_machine": [],
 		"printer_type": "O1S",
@@ -73,6 +75,7 @@
 		"printer_series": "series_o",
 		"has_cali_line": true,
 		"printer_is_enclosed": true,
-		"enable_set_nozzle_info": false
+		"enable_set_nozzle_info": false,
+		"support_safety_options": false
 	}
 }
