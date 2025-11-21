@@ -49,6 +49,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
   checks: write
 
 jobs:
@@ -186,4 +187,5 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+
 
