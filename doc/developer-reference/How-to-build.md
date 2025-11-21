@@ -33,12 +33,7 @@ How to building with Visual Studio on Windows 64-bit.
 
 ### Windows Tools Required
 
-- [Visual Studio](https://visualstudio.microsoft.com/vs/) 2022, 2026 or Visual Studio 2019
-  - 2022
-  ```shell
-  winget install --id=Microsoft.VisualStudio.2022.Professional -e
-  ```
-   - 2026
+- [Visual Studio](https://visualstudio.microsoft.com/vs/) 2026, 2022 or Visual Studio 2019
   ```shell
   winget install --id=Microsoft.VisualStudio.Community -e
   ```
@@ -68,18 +63,10 @@ How to building with Visual Studio on Windows 64-bit.
 > [!IMPORTANT]
 > Check your CMake version. Run `cmake --version` in your terminal and verify it returns a **4.x** version.  
 > If you see an older version (e.g. 3.29), it's likely due to another copy in your system's PATH (e.g. from Strawberry Perl).  
-> You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake (e.g. C:\Program Files\CMake\bin) appears before others like C:\Strawberry\c\bin.
+> You can run where cmake to check the active paths and rearrange your **System Environment Variables** > PATH, ensuring the correct CMake like `C:\Program Files\CMake\bin` appears before others like `C:\Strawberry\c\bin`.
 
 ![windows_variables_path](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/windows_variables_path.png?raw=true)
 ![windows_variables_order](https://github.com/OrcaSlicer/OrcaSlicer/blob/main/doc/images/develop/windows_variables_order.png?raw=true)
-
-> [!IMPORTANT]
-> **For Visual Studio 2026**, you must use the CMake included with Visual Studio 2026 **until CMake 4.2 is released as a stable version**.  
-> To do this, you must include the cmake path contained in Visual Studio above the variable of the official cmake installed on your computer.  
-> The path will look something like this:
-> ```shell
-> C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin
-> ```
 
 ### Windows Hardware Requirements
 
@@ -169,7 +156,7 @@ How to building with Xcode on MacOS 64-bit.
 
 Homebrew currently only offers the latest version of CMake (e.g. **4.X**), which is not compatible. To install the required version **3.31.X**, follow these steps:
 
-1. Download CMake **3.31.7** from: [https://cmake.org/download/](https://cmake.org/download/)
+1. Download CMake **3.31.10** from: [https://cmake.org/download/](https://cmake.org/download/)
 2. Install the application (drag it to `/Applications`).
 3. Add the following line to your shell configuration file (`~/.zshrc` or `~/.bash_profile`):
 
