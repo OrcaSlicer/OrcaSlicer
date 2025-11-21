@@ -7,9 +7,6 @@ on:
     types: [created]
   workflow_dispatch:
 
-permissions:
-  issues: write
-
 jobs:
   assign:
     permissions:

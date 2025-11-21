@@ -1,0 +1,22 @@
+{
+  "bridge_flow": "1",
+  "from": "system",
+  "inherits": "fdm_process_eryone_ER20_common",
+  "initial_layer_line_width": "0.62",
+  "initial_layer_print_height": "0.3",
+  "inner_wall_line_width": "0.62",
+  "instantiation": "false",
+  "internal_solid_infill_line_width": "0.62",
+  "ironing_inset": "0.31",
+  "layer_height": "0.18",
+  "line_width": "0.62",
+  "name": "fdm_process_ER20_0.18_nozzle_0.6",
+  "outer_wall_line_width": "0.62",
+  "overhang_3_4_speed": "15",
+  "sparse_infill_line_width": "0.62",
+  "support_bottom_z_distance": "0.18",
+  "support_line_width": "0.62",
+  "support_top_z_distance": "0.18",
+  "top_surface_line_width": "0.62",
+  "type": "process"
+}

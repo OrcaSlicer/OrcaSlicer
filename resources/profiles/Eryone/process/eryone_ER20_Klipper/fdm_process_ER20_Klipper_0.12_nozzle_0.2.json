@@ -1,0 +1,23 @@
+{
+  "bottom_shell_layers": "5",
+  "bridge_flow": "1",
+  "from": "system",
+  "inherits": "fdm_process_eryone_ER20_Klipper_common",
+  "initial_layer_line_width": "0.25",
+  "inner_wall_line_width": "0.22",
+  "instantiation": "false",
+  "internal_solid_infill_line_width": "0.22",
+  "ironing_inset": "0.11",
+  "layer_height": "0.12",
+  "line_width": "0.22",
+  "name": "fdm_process_ER20_Klipper_0.12_nozzle_0.2",
+  "outer_wall_line_width": "0.22",
+  "sparse_infill_line_width": "0.22",
+  "support_bottom_z_distance": "0.12",
+  "support_line_width": "0.22",
+  "support_top_z_distance": "0.12",
+  "top_shell_layers": "7",
+  "top_surface_line_width": "0.22",
+  "type": "process",
+  "wall_loops": "4"
+}

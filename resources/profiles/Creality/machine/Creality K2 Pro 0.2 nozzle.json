@@ -1,0 +1,149 @@
+{
+    "type": "machine",
+    "name": "Creality K2 Pro 0.2 nozzle",
+    "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Creality K2 Pro",
+    "gcode_flavor": "klipper",
+    "default_print_profile": "0.16mm Optimal @Creality K2 Pro 0.2 nozzle",
+    "nozzle_diameter": [
+        "0.2"
+    ],
+    "printer_variant": "0.2",
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "300",
+    "nozzle_type": "hardened_steel",
+    "nozzle_volume": "183",
+    "auxiliary_fan": "1",
+    "support_air_filtration": "1",
+    "support_multi_bed_types": "1",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_e": [
+        "50",
+        "50"
+    ],
+    "machine_max_speed_x": [
+        "800",
+        "800"
+    ],
+    "machine_max_speed_y": [
+        "800",
+        "800"
+    ],
+    "machine_max_speed_z": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_x": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_y": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_z": [
+        "5",
+        "5"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "Creality",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "retract_length_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "299"
+    ],
+    "enable_filament_ramming": "0",
+    "purge_in_prime_tower": "0",
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "parking_pos_retraction": "0",
+    "extra_loading_move": "0",
+    "extruder_clearance_height_to_lid": "118",
+    "extruder_clearance_height_to_rod": "24",
+    "extruder_clearance_radius": "64",
+    "z_hop": [
+        "0.4"
+    ],
+    "wipe_distance": [
+        "1"
+    ],
+    "single_extruder_multi_material": "1",
+    "manual_filament_change": "0",
+    "default_filament_profile": [
+        "Creality Generic PLA @K2-all"
+    ],
+    "machine_start_gcode": ";SET PRINT AREA MIN AND MAX COORDINATES TO ENABLE ADAPTIVE PROBING\n; MINX = {first_layer_print_min[0]}\n; MINY = {first_layer_print_min[1]}\n; MAXX = {first_layer_print_max[0]}\n; MAXY = {first_layer_print_max[1]}\n\nM140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM104 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y150 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y150 F6000\nG1 E0.8 F300\nG1 X0 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG1 X150 Y0 E9 F{filament_max_volumetric_speed[initial_extruder]/0.3*60}\nG92 E0\nG1 Z1 F600",
+    "machine_end_gcode": "END_PRINT",
+    "machine_pause_gcode": "PAUSE",
+    "change_filament_gcode": "G2 Z{z_after_toolchange + 0.4} I0.86 J0.86 P1 F10000 ; spiral lift a little from second lift\nG1 X0 Y245 F30000\nG1 Z{z_after_toolchange} F600",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "scan_first_layer": "0",
+    "thumbnails_format": "PNG",
+    "thumbnails": [
+        "300x300",
+        "96x96"
+    ]
+}

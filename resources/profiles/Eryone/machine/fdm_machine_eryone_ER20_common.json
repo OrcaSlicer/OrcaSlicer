@@ -1,0 +1,156 @@
+{
+    "type": "machine",
+    "name": "fdm_machine_eryone_ER20_common",
+    "from": "system",
+    "instantiation": "false",
+    "auxiliary_fan": "0",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n",
+    "best_object_pos": "0.5,0.5",
+    "change_extrusion_role_gcode": "",
+    "change_filament_gcode": "",
+    "deretraction_speed": [
+        "30"
+    ],
+    "enable_filament_ramming": "0",
+    "extruder_clearance_height_to_lid": "190",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_max_radius": "68",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "gcode_flavor": "marlin2",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_end_gcode": "G91 ;Relative positioning\nG1 Z5 F720 ;Raise Z\nG1 E-5 F300 ;Retract a bit to protect nozzle\nM104 S0 ;Turn off extruder\nM140 S0 ;Turn off bed\nM107 ;Turn off all fans\nG90 ;Absolute positioning\nG1 X200 Y200 F4800 ;Parking the hotend\nM84 X Y E ;All steppers off but left Z\n",
+    "machine_max_acceleration_e": [
+        "1000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "500"
+    ],
+    "machine_max_acceleration_travel": [
+        "1800"
+    ],
+    "machine_max_acceleration_x": [
+        "1500"
+    ],
+    "machine_max_acceleration_y": [
+        "1500"
+    ],
+    "machine_max_acceleration_z": [
+        "100"
+    ],
+    "machine_max_jerk_e": [
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "12"
+    ],
+    "machine_max_jerk_y": [
+        "12"
+    ],
+    "machine_max_jerk_z": [
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "150"
+    ],
+    "machine_max_speed_y": [
+        "150"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "machine_pause_gcode": "M25 ;pause print",
+    "machine_start_gcode": "G21 ;Metric values\nG90 ;Absolute positioning\nM82 ;Set extruder to absolute mode\nM107 ;Start with the fan off\nM140 S[bed_temperature_initial_layer] ; set bed temperature\nM190 S[bed_temperature_initial_layer] ; wait for bed to reach target temperature\nG28 ;Homing the hotend\nG29 ;Auto bed leveling detecting\nM104 S[nozzle_temperature_initial_layer] ; set nozzle temperature\nM109 S[nozzle_temperature_initial_layer] ; wait for nozzle to reach target temperature\nG92 E0 ;Reset the extruded length\nG1 F200 E3 ;Extrude 3mm of filament\nG92 E0 ;Reset the extruded length again\nG1 Y2.0 F1200 ;Move y axis to prime\nG1 X150 F6000 ;Move x axis to prime\nG1 Z0.2 F720 ;Move z axis to prime\nG1 X80.0 E8.0 F900 ;Prime line\nG1 X20.0 E10.0 F700 ;Prime line\nG92 E0 ;Reset the extruded length\nG5 ;Enable resume from power failure\nM117 Printing...\n",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_type": "stainless_steel",
+    "printable_area": [
+        "0x0",
+        "243x0",
+        "243x220",
+        "0x220"
+    ],
+    "printable_height": "200",
+    "printer_settings_id": "Eryone ER20 common",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "purge_in_prime_tower": "1",
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_length_toolchange": [
+        "5"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "200"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "0"
+    ],
+    "retraction_length": [
+        "5"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_speed": [
+        "50"
+    ],
+    "scan_first_layer": "0",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "0",
+    "support_air_filtration": "0",
+    "support_chamber_temp_control": "0",
+    "template_custom_gcode": "",
+    "thumbnails": "48x48/PNG, 300x300/PNG",
+    "thumbnails_format": "PNG",
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "0",
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "1"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ]
+}
