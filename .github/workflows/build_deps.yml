@@ -23,9 +23,6 @@ on:
         required: false
         type: boolean
 
-permissions:
-  actions: write
-
 jobs:
   build_deps:
     name: Build Deps

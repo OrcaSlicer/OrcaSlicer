@@ -15,7 +15,7 @@ on:
       force-build:
         required: false
         type: boolean
-
+  
 jobs:
   check_cache: # determines if there is a cache and outputs variables used in caching process
     name: Check Cache
@@ -60,4 +60,3 @@ jobs:
       build-deps-only: ${{ inputs.build-deps-only }}
       force-build: ${{ inputs.force-build }}
     secrets: inherit
-
