@@ -350,6 +350,7 @@ public:
         m_exported_file = exported_file;
     }
 
+    bool is_empty_project();
     bool is_multi_extruder_ams_empty();
     // BBS
     bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
