@@ -560,7 +560,7 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
     // BBS
@@ -588,7 +588,7 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
 
