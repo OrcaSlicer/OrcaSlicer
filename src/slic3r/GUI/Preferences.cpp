@@ -1095,7 +1095,7 @@ void PreferencesDialog::create()
 
     m_pref_tabs->SelectItem(0);
 
-    m_sizer_body->Add(m_pref_tabs, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
+    m_sizer_body->Add(m_pref_tabs, 0, wxEXPAND | wxBOTTOM | wxTOP, FromDIP(5));
     m_sizer_body->Add(m_parent, 1, wxEXPAND);
 
     SetSizer(m_sizer_body);

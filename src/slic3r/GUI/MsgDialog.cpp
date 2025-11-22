@@ -59,8 +59,8 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 
     m_dsa_sizer = new wxBoxSizer(wxHORIZONTAL);
     btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(120));
-    btn_sizer->AddStretchSpacer();
     btn_sizer->Add(m_dsa_sizer, 0, wxEXPAND);
+    btn_sizer->AddStretchSpacer();
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
 
     apply_style(style);
