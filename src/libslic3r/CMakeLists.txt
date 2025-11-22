@@ -92,6 +92,8 @@ set(lisbslic3r_sources
     clipper.hpp
     ClipperUtils.cpp
     ClipperUtils.hpp
+    Clipper2Utils.cpp
+    Clipper2Utils.hpp
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
@@ -578,6 +580,7 @@ target_link_libraries(libslic3r
         boost_libs
         cereal::cereal
         clipper
+        Clipper2
         eigen
         glu-libtess
         JPEG::JPEG
