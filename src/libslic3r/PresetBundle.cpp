@@ -1089,7 +1089,7 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
         if (inherits_config) {
             ConfigOptionString *option_str = dynamic_cast<ConfigOptionString *>(inherits_config);
             inherits_value                 = option_str->value;
-            inherit_preset                 = collection->find_preset(inherits_value, false, true);
+            inherit_preset                 = collection->find_preset2(inherits_value);
         }
         if (inherit_preset) {
             new_config = inherit_preset->config;

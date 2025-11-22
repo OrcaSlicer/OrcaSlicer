@@ -2731,7 +2731,7 @@ Preset* PresetCollection::find_preset(const std::string &name, bool first_visibl
         first_visible_if_not_found ? &this->first_visible() : nullptr;
 }
 
-Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match)
+Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match/* = true */)
 {
     auto preset = find_preset(name,false,true);
     if (preset == nullptr) {

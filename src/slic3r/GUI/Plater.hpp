@@ -127,7 +127,7 @@ public:
 class Sidebar : public wxPanel
 {
     ConfigOptionMode    m_mode;
-    Button *         btn_sync{nullptr};
+    //Button *         btn_sync{nullptr};
     ScalableButton *  ams_btn{nullptr};
     bool                                    m_last_slice_state = false;
     SyncNozzleAndAmsDialog*                 m_sna_dialog{nullptr};

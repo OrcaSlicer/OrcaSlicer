@@ -3235,8 +3235,8 @@ void Sidebar::on_full_screen(IntEvent &e) {
 
 void Sidebar::get_big_btn_sync_pos_size(wxPoint &pt, wxSize &size)
 {
-    size =btn_sync->GetSize();
-    pt = btn_sync->GetScreenPosition();
+    size = p->m_printer_bbl_sync->GetSize();
+    pt = p->m_printer_bbl_sync->GetScreenPosition();
 }
 
 void Sidebar::get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size) {
