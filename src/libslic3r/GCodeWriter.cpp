@@ -759,22 +759,56 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 
 std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment)
 {
-    m_pos(2) = z;
-
+    std::string output;
     double speed = this->config.travel_speed_z.value;
+
     if (speed == 0.) {
         speed = m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed")
                                  : this->config.travel_speed.value;
     }
 
-    std::string output = "G17\n";
-    GCodeG2G3Formatter w(true);
-    w.emit_z(z);
-    w.emit_ij(ij_offset);
-    w.emit_string(" P1 ");
-    w.emit_f(speed * 60.0);
-    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-    return output + w.string();
+    if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
+        std::ostringstream oss;
+        const double z_start = m_pos(2);
+        const int segments = 24;
+        const double cx = m_pos(0) + ij_offset(0);
+        const double cy = m_pos(1) + ij_offset(1);
+        const double radius = ij_offset.norm();
+        const double a0 = std::atan2(m_pos(1) - cy, m_pos(0) - cx);
+        const double delta = 2.0 * M_PI;
+
+        if (full_gcode_comment)
+            oss << ";" << comment << "\n";
+
+        oss << "G1 F" << (speed * 60.0) << "\n";
+
+        for (int i = 1; i < segments; ++i) {
+            double t = double(i) / segments;
+            double a = a0 + delta * t;   // CCW arc param
+            double x = cx + radius * std::cos(a);
+            double y = cy + radius * std::sin(a);
+            double zz = z_start + (z - z_start) * t;
+
+            oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
+        }
+
+        oss << "G1 X" << m_pos(0) << " Y" << m_pos(1) << " Z" << z << "\n";
+        output = oss.str();
+    } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
+        output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
+
+        GCodeG2G3Formatter w(true);
+        w.emit_z(z);
+        w.emit_ij(ij_offset);
+        w.emit_string(" P1 ");
+        w.emit_f(speed * 60.0);
+        w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+        output += w.string();
+    }
+
+    m_pos(2) = z;
+    return output;
 }
 
 bool GCodeWriter::will_move_z(double z) const
