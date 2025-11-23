@@ -1,5 +1,5 @@
-name: Claude Issue Dedupe
-description: Automatically dedupe GitHub issues using Claude Code
+name: Orca Issue Dedupe
+description: Automatically dedupe GitHub issues using AI
 on:
   issues:
     types: [opened]
@@ -11,7 +11,7 @@ on:
         type: string
 
 jobs:
-  claude-dedupe-issues:
+  dedupe-issues:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
