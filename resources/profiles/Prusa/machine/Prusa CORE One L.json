@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Prusa CORE One L",
+    "bed_model": "coreonel_bed.stl",
+    "bed_texture": "coreonel.svg",
+    "default_materials": "Prusa Generic ABS @CORE One;Prusa Generic ASA @CORE One;Prusa Generic PETG @CORE One;Prusa Generic PLA @CORE One;Prusa Generic PLA Silk @CORE One;Prusa Generic TPU @CORE One",
+    "family": "Prusa",
+    "hotend_model": "",
+    "machine_tech": "FFF",
+    "model_id": "Prusa_CORE_One_L",
+    "nozzle_diameter": "0.4;0.5;0.6;0.8"
+}
