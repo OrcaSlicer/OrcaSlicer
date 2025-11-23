@@ -5072,6 +5072,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::vector<std::string> used_filaments_length;
     std::vector<std::string> used_filaments_weight;
     std::string travel_percent;
+    std::string travel_distance;
+    std::string travel_moves;
     std::vector<double> model_used_filaments_m;
     std::vector<double> model_used_filaments_g;
     double total_model_used_filament_m = 0, total_model_used_filament_g = 0;
@@ -5203,10 +5205,33 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             else
                 percent > 0.001 ? ::sprintf(buffer, "%.1f", percent * 100) : ::sprintf(buffer, "<0.1");
             travel_percent = buffer;
+            percents.push_back(travel_percent);
+
+            // Set travel distance and moves for the Travel row Usage columns
+            if (m_print_statistics.total_travel_distance > 0.0f) {
+                ::sprintf(buffer, imperial_units ? "%.2fin" : "%.2fm", m_print_statistics.total_travel_distance / 1000.0f);
+                travel_distance = buffer;
+            } else {
+                ::sprintf(buffer, "0.00m");
+                travel_distance = buffer;
+            }
+            used_filaments_length.push_back(travel_distance);
+
+            // Perhaps use m_statistics.travel_segments_count instead of m_print_statistics.total_travel_moves?
+            // m_statistics.travel_segments_count is only available when ENABLE_GCODE_VIEWER_STATISTICS is defined
+            if (m_print_statistics.total_travel_moves > 0) {
+               ::sprintf(buffer, "%d seg", m_print_statistics.total_travel_moves);
+                travel_moves = buffer;
+            } else {
+                ::sprintf(buffer, "0 seg");
+                travel_moves = buffer;
+            }
+            used_filaments_weight.push_back(travel_moves);
         }
 
         // ORCA use % symbol for percentage and use "Usage" for "Used filaments"
         offsets = calculate_offsets({ {_u8L("Line Type"), labels}, {_u8L("Time"), times}, {"%", percents}, {"", used_filaments_length}, {"", used_filaments_weight}, {_u8L("Display"), {""}}}, icon_size);
+        percents.pop_back();
         append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}});
         break;
     }
@@ -5343,6 +5368,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 columns_offsets.push_back({ _u8L("Travel"), offsets[0] });
                 columns_offsets.push_back({ travel_time, offsets[1] });
                 columns_offsets.push_back({ travel_percent, offsets[2] });
+                columns_offsets.push_back({ travel_distance, offsets[3] }); // Usage column
+                columns_offsets.push_back({ travel_moves, offsets[4] });    // Usage column
                 append_item(EItemType::Rect, Travel_Colors[0], columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item, visible]() {
                         m_buffers[buffer_id(item)].visible = !m_buffers[buffer_id(item)].visible;
                         // update buffers' render paths
