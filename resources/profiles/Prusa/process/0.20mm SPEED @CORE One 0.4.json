@@ -4,7 +4,7 @@
     "inherits": "0.20mm SPEED @MK4S 0.4",
     "from": "system",
     "instantiation": "true",
-    "overhang_2_4_speed": "50",
+    "overhang_3_4_speed": "50",
     "travel_speed": "350",
     "travel_acceleration": "7000",
     "default_acceleration": "3000",
@@ -16,5 +16,6 @@
     "internal_solid_infill_acceleration": "6000",
     "inner_wall_acceleration": "6000",
     "outer_wall_acceleration": "3000",
-    "top_surface_acceleration": "2000"
+    "top_surface_acceleration": "2000",
+    "support_threshold_angle": "35"
 }
