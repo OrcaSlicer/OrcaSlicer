@@ -13,7 +13,7 @@ on:
 jobs:
   dedupe-issues:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
       contents: read
       issues: write
