@@ -3891,6 +3891,14 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             config.apply(config_src);
             extend_default_config_length(config, true, *default_config);
             if (instantiation == "false" && "Template" != vendor_name) {
+                // Report configuration fields, which are misplaced into a wrong group.
+                std::string incorrect_keys = Preset::remove_invalid_keys(config, *default_config);
+                if (!incorrect_keys.empty()) {
+                    ++m_errors;
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": The config " << subfile << " contains incorrect keys: " << incorrect_keys
+                                             << ", which were removed";
+                }
+
                 config_maps.emplace(preset_name, std::move(config));
                 if ((presets_collection->type() == Preset::TYPE_FILAMENT) && (!filament_id.empty()))
                     filament_id_maps.emplace(preset_name, filament_id);

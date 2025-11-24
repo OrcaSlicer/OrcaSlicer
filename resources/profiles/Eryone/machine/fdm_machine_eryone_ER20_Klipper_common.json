@@ -85,7 +85,7 @@
     "min_layer_height": [
         "0.08"
     ],
-    "notes": "optimized Eryone ER20 Klipper configuration with E3D Hotend, BMG directdrive, printable height limited to 190 because of the top of the directdrive and Z-Sync mod",
+    "printer_notes": "optimized Eryone ER20 Klipper configuration with E3D Hotend, BMG directdrive, printable height limited to 190 because of the top of the directdrive and Z-Sync mod",
     "nozzle_diameter": [
         "0.4"
     ],
