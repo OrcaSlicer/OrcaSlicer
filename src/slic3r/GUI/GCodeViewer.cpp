@@ -612,15 +612,39 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     // line number's column width
     const float id_width = ImGui::CalcTextSize(std::to_string(end_id).c_str()).x;
 
+    float required_width = 0.0f;
+    { // --- Compute required G-code window width ---
+        float max_text_width = id_width;
+        for (const Line& line : m_lines) {
+            float w = 0.0f;
+
+            if (!line.command.empty())
+                w += ImGui::CalcTextSize(line.command.c_str()).x;
+
+            if (!line.parameters.empty())
+                w += ImGui::CalcTextSize(line.parameters.c_str()).x;
+
+            if (!line.comment.empty())
+                w += ImGui::CalcTextSize(line.comment.c_str()).x;
+
+            // spacing between segments
+            w += 3 * ImGui::GetStyle().ItemSpacing.x;
+
+            if (w > max_text_width)
+                max_text_width = w;
+        }
+
+        required_width = id_width + max_text_width + 2.0f * ImGui::GetStyle().WindowPadding.x;
+    }
+
     ImGuiWrapper& imgui = *wxGetApp().imgui();
 
     //BBS: GUI refactor: move to right
-    //imgui.set_next_window_pos(0.0f, top, ImGuiCond_Always, 0.0f, 0.0f);
     imgui.set_next_window_pos(right, top + 6 * m_scale, ImGuiCond_Always, 1.0f, 0.0f); // ORCA add a small gap between legend and code viewer
-    imgui.set_next_window_size(0.0f, wnd_height, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(required_width, wnd_height), ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f * m_scale); // ORCA add window rounding to modernize / match style
     ImGui::SetNextWindowBgAlpha(0.8f);
-    imgui.begin(std::string("G-code"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
+    imgui.begin(std::string("G-code"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
 
     // center the text in the window by pushing down the first line
     const float f_lines_count = static_cast<float>(lines_count);
@@ -683,14 +707,6 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     }
 
     imgui.end();
-
-    #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
-        imgui.set_requires_extra_frame();
-    #else
-        wxGetApp().plater()->get_current_canvas3D()->set_as_dirty();
-        wxGetApp().plater()->get_current_canvas3D()->request_extra_frame();
-    #endif
-
     ImGui::PopStyleVar();
 }
 
