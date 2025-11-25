@@ -759,22 +759,59 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 
 std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment)
 {
-    m_pos(2) = z;
-
+    std::string output;
     double speed = this->config.travel_speed_z.value;
+
     if (speed == 0.) {
         speed = m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed")
                                  : this->config.travel_speed.value;
     }
 
-    std::string output = "G17\n";
-    GCodeG2G3Formatter w(true);
-    w.emit_z(z);
-    w.emit_ij(ij_offset);
-    w.emit_string(" P1 ");
-    w.emit_f(speed * 60.0);
-    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-    return output + w.string();
+    if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
+        std::ostringstream oss;
+        const double z_start = m_pos(2);                // starting Z height
+        const int segments = 24;                        // number of linear segments to use for approximating the arc
+        const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
+        const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
+        const double cx = px + ij_offset(0);            // center x
+        const double cy = py + ij_offset(1);            // center y
+        const double radius = ij_offset.norm();         // radius
+        const double a0 = std::atan2(py - cy, px - cx); // start angle
+        const double delta = 2.0 * M_PI;                // CCW full circle
+
+        if (full_gcode_comment)
+            oss << ";" << comment << "\n";
+
+        oss << "G1 F" << (speed * 60.0) << "\n";  // set feedrate
+
+        // approximate the arc with small linear segments (without the last point which is added later to ensure exactness)
+        for (int i = 1; i < segments; ++i) {
+            double t = double(i) / segments;            // parametric position along arc
+            double a = a0 + delta * t;                  // CCW arc param
+            double x = cx + radius * std::cos(a);       // point on circle
+            double y = cy + radius * std::sin(a);       // point on circle
+            double zz = z_start + (z - z_start) * t;    // interpolated Z height
+
+            oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
+        }
+
+        oss << "G1 X" << px << " Y" << py << " Z" << z << "\n";  // final point to ensure exactness
+        output = oss.str();
+    } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
+        output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
+
+        GCodeG2G3Formatter w(true);
+        w.emit_z(z);
+        w.emit_ij(ij_offset);
+        w.emit_string(" P1 ");
+        w.emit_f(speed * 60.0);
+        w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+        output += w.string();
+    }
+
+    m_pos(2) = z;
+    return output;
 }
 
 bool GCodeWriter::will_move_z(double z) const

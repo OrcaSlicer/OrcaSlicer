@@ -25,6 +25,7 @@
     "filament_settings_id": [
         "Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
         "220"
     ],
@@ -34,11 +35,12 @@
     "slow_down_layer_time": [
         "6"
     ],
+    "version": "2.1.2.2",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
-        "1.1"
+        "0.8"
     ],
     "filament_retraction_speed": [
         "20"
@@ -47,7 +49,7 @@
         "20"
     ],
     "additional_cooling_fan_speed": [
-        "100"
+        "50"
     ],
     "filament_start_gcode": [
         ""

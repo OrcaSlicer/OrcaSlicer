@@ -48,6 +48,7 @@
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
+    "is_custom_defined": "0",
     "layer_change_gcode": "G92 E0\n{if layer_num==2}\n\n;filter_fan\nM106 P3 S{during_print_exhaust_fan_speed[0]*255/100.0};\n\n;auxiliary_fan\nM106 P2 S{additional_cooling_fan_speed[0]*255/100.0}\n\n{endif}\n\n\n",
     "long_retractions_when_cut": [
         "0"
@@ -455,6 +456,7 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
+    "version": "2.1.1.0",
     "wipe": [
         "0"
     ],

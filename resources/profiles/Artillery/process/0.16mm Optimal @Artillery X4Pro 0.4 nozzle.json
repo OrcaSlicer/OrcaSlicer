@@ -12,5 +12,6 @@
     "print_settings_id": "0.16mm Optimal @Artillery X4Pro 0.4 nozzle",
     "sparse_infill_speed": "180",
     "support_line_width": "0.42",
-    "top_surface_line_width": "0.42"
+    "top_surface_line_width": "0.42",
+    "version": "2.0.2.0"
 }

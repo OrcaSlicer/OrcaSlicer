@@ -821,13 +821,14 @@ void GUI_App::post_init()
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", init with input files, size %1%, input_gcode %2%")
             %this->init_params->input_files.size() %this->init_params->input_gcode;
+
+        switch_to_3d = true;
+
         const auto first_url = this->init_params->input_files.front();
         if (this->init_params->input_files.size() == 1 && is_supported_open_protocol(first_url)) {
-            switch_to_3d = true;
             start_download(first_url);
             m_open_method = "url";
         } else {
-            switch_to_3d = true;
             if (this->init_params->input_gcode) {
                 mainframe->select_tab(size_t(MainFrame::tp3DEditor));
                 plater_->select_view_3D("3D");
@@ -904,6 +905,7 @@ void GUI_App::post_init()
         mainframe->Thaw();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", end load_gl_resources";
     }
+
     plater_->trigger_restore_project(1);
     //#endif
 

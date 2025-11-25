@@ -5,5 +5,7 @@
     "from": "system",
     "instantiation": "true",
     "bottom_shell_layers": "3",
-    "print_settings_id": "0.24mm Standard @Artillery M1 Pro 0.8 nozzle"
+    "print_settings_id": "0.24mm Standard @Artillery M1 Pro 0.8 nozzle",
+    "is_custom_defined": "0",
+    "version": "2.1.1.0"
 }

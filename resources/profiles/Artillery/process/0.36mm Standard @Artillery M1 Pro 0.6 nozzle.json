@@ -2,8 +2,9 @@
     "type": "process",
     "name": "0.36mm Standard @Artillery M1 Pro 0.6 nozzle",
     "inherits": "0.24mm Draft @Artillery M1 Pro 0.6 nozzle",
-    "from": "system",
     "instantiation": "true",
+    "is_custom_defined": "0",
     "layer_height": "0.36",
-    "print_settings_id": "0.36mm Standard @Artillery M1 Pro 0.6 nozzle"
+    "print_settings_id": "0.36mm Standard @Artillery M1 Pro 0.6 nozzle",
+    "version": "2.1.1.0"
 }

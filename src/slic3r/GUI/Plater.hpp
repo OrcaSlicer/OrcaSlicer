@@ -118,10 +118,11 @@ const wxString DEFAULT_PROJECT_NAME = "Untitled";
 class SidebarProps
 {
 public:
-    static int TitlebarMargin();
-    static int ContentMargin();
-    static int IconSpacing();
-    static int ElementSpacing();
+    static int TitlebarMargin(){ return 8 ;} // Use as side margins on titlebar. Has less margin on sides to create separation with its content
+    static int ContentMargin() { return 12;} // Use as side margins contents of title
+    static int ContentMarginV(){ return 9 ;} // Use as vertical margins contents of title
+    static int IconSpacing()   { return 10;} // Use on main elements
+    static int ElementSpacing(){ return 5 ;} // Use if elements has relation between them like edit button for combo box etc.
 };
 
 class Sidebar : public wxPanel
@@ -350,6 +351,7 @@ public:
         m_exported_file = exported_file;
     }
 
+    bool is_empty_project();
     bool is_multi_extruder_ams_empty();
     // BBS
     bool is_new_project_and_check_state() { return m_new_project_and_check_state; }

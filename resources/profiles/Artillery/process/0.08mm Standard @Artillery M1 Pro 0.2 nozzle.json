@@ -7,5 +7,6 @@
     "default_acceleration": "10000",
     "outer_wall_acceleration": "5000",
     "outer_wall_speed": "120",
-    "print_settings_id": "0.08mm Standard @Artillery M1 Pro 0.2 nozzle"
+    "print_settings_id": "0.08mm Standard @Artillery M1 Pro 0.2 nozzle",
+    "version": "2.1.1.0"
 }

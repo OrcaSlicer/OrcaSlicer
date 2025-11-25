@@ -20,7 +20,7 @@
         "100"
     ],
     "filament_flow_ratio": [
-        "0.95"
+        "1"
     ],
     "filament_max_volumetric_speed": [
         "27"
@@ -34,8 +34,9 @@
     "filament_type": [
         "PLA Matte"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
-        "210"
+        "220"
     ],
     "nozzle_temperature_initial_layer": [
         "220"
@@ -55,6 +56,7 @@
     "slow_down_layer_time": [
         "6"
     ],
+    "version": "2.1.2.2",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
@@ -83,6 +85,6 @@
         "15"
     ],
     "pressure_advance": [
-        "0.032"
+        "0.038"
     ]
 }
