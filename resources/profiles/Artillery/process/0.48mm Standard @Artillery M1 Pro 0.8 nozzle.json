@@ -7,5 +7,7 @@
     "bottom_shell_layers": "3",
     "layer_height": "0.48",
     "print_settings_id": "0.48mm Standard @Artillery M1 Pro 0.8 nozzle",
-    "slow_down_layers": "3"
+    "slow_down_layers": "3",
+    "is_custom_defined": "0",
+    "version": "2.1.1.0"
 }

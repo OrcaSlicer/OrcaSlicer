@@ -5,8 +5,10 @@
     "from": "system",
     "instantiation": "true",
     "default_acceleration": "10000",
+    "is_custom_defined": "0",
     "layer_height": "0.14",
     "outer_wall_acceleration": "5000",
     "outer_wall_speed": "120",
-    "print_settings_id": "0.14mm Standard @Artillery M1 Pro 0.2 nozzle"
+    "print_settings_id": "0.14mm Standard @Artillery M1 Pro 0.2 nozzle",
+    "version": "2.1.1.0"
 }
