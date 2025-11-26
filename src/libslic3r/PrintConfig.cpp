@@ -2726,7 +2726,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("align_infill_direction_to_model", coBool);
     def->label    = L("Align infill direction to model");
     def->category = L("Strength");
-    def->tooltip  = L("Aligns infill and surface fill directions to follow the model's orientation on the build plate. When enabled, fill directions rotate with the model to maintain optimal strength characteristics.");
+    def->tooltip  = L("Aligns infill, bridge and surface fill directions to follow the model's orientation on the build plate. When enabled, fill directions rotate with the model to maintain optimal strength characteristics.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

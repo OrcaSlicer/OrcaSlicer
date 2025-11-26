@@ -498,6 +498,16 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     static constexpr const size_t   max_nr_expansion_steps  = 5;
     // Radius (with added epsilon) to absorb empty regions emering from regularization of ensuring, viz  const float narrow_ensure_vertical_wall_thickness_region_radius = 0.5f * 0.65f * min_perimeter_infill_spacing;
     const float closing_radius = 0.55f * 0.65f * 1.05f * this->flow(frSolidInfill).scaled_spacing();
+    const double user_bridge_angle_deg = this->region().config().bridge_angle.value;
+    const bool   has_custom_bridge_angle = user_bridge_angle_deg > 0.0;
+    double       custom_bridge_angle = 0.0;
+    if (has_custom_bridge_angle) {
+        custom_bridge_angle = Geometry::deg2rad(user_bridge_angle_deg);
+        if (this->region().config().align_infill_direction_to_model) {
+            const auto trafo_matrix = this->layer()->object()->trafo().matrix();
+            custom_bridge_angle += std::atan2(double(trafo_matrix(1, 0)), double(trafo_matrix(0, 0)));
+        }
+    }
 
     // Expand the top / bottom / bridge surfaces into the shell thickness solid infills.
     double     layer_thickness;
@@ -516,9 +526,8 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     SurfaceCollection bridges;
     {
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges. layer" << this->layer()->print_z;
-        const double custom_angle = this->region().config().bridge_angle.value;
-        bridges.surfaces = custom_angle > 0 ?
-            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, Geometry::deg2rad(custom_angle)) :
+        bridges.surfaces = has_custom_bridge_angle ?
+            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_bridge_angle) :
             expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius);
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges - done";
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -781,9 +790,8 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 // would get merged into a single one while they need different directions
                 // also, supply the original expolygon instead of the grown one, because in case
                 // of very thin (but still working) anchors, the grown expolygon would go beyond them
-                double custom_angle = Geometry::deg2rad(this->region().config().bridge_angle.value);
-                if (custom_angle > 0.0) {
-                    bridges[idx_last].bridge_angle = custom_angle;
+                if (has_custom_bridge_angle) {
+                    bridges[idx_last].bridge_angle = custom_bridge_angle;
                 } else {
                     auto [bridging_dir, unsupported_dist] = detect_bridging_direction(to_polygons(initial), to_polygons(lower_layer->lslices));
                     bridges[idx_last].bridge_angle = PI + std::atan2(bridging_dir.y(), bridging_dir.x());
