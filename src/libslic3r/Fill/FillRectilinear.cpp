@@ -2764,9 +2764,8 @@ bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillPa
         rotate_vector.first += float(M_PI/2.);
     rotate_vector.first += angleBase;
 
-    assert(params.density > 0.0001f);
-    const float density = std::max(params.density, 0.0001f);
-    coord_t line_spacing = coord_t(scale_(this->spacing) / density);
+    assert(params.density > 0.0001f && params.density <= 1.f);
+    coord_t line_spacing = coord_t(scale_(this->spacing) / params.density);
 
     // On the polygons of poly_with_offset, the infill lines will be connected.
     ExPolygonWithOffset poly_with_offset(
@@ -2999,8 +2998,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     assert(sweep_params.size() >= 1);
     assert(!params.full_infill());
     params.density /= double(sweep_params.size());
-    assert(params.density > 0.0001f);
-    const float density = std::max(params.density, 0.0001f);
+    assert(params.density > 0.0001f && params.density <= 1.f);
 
     ExPolygonWithOffset poly_with_offset_base(surface->expolygon, 0, float(scale_(this->overlap + 0.5 * params.multiline * this->spacing)));//increase offset to crop infill lines when using multiline infill
     if (poly_with_offset_base.n_contours == 0)
@@ -3009,7 +3007,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
 
     Polylines fill_lines;
     coord_t line_width   = coord_t(scale_(this->spacing));
-    coord_t line_spacing = coord_t(scale_(this->spacing) * params.multiline / density);
+    coord_t line_spacing = coord_t(scale_(this->spacing) * params.multiline / params.density);
     std::pair<float, Point> rotate_vector = this->_infill_direction(surface);
     for (const SweepParams &sweep : sweep_params) {
         // Rotate polygons so that we can work with vertical lines here
