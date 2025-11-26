@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <memory>
+#include <algorithm>
 
 #include "../ClipperUtils.hpp"
 #include "../Geometry.hpp"
@@ -1288,13 +1289,17 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 			f->spacing = surface_fill.params.spacing;
 			surface_fill.surface.expolygon = std::move(expoly);
 
-			if(surface_fill.params.bridge && surface_fill.surface.is_external() && surface_fill.params.density > 99.0){
-				params.density = layerm->region().config().bridge_density.get_abs_value(1.0);
-				params.dont_adjust = true;
-			}
+            if(surface_fill.params.bridge && surface_fill.surface.is_external() && surface_fill.params.density > 99.0){
+                const float bridge_density_raw = std::max(0.0001f, float(layerm->region().config().bridge_density.get_abs_value(1.0)));
+                const float bridge_density = std::min(bridge_density_raw, 1.0f);
+                params.density = bridge_density;
+                params.dont_adjust = bridge_density < 0.9999f;
+            }
             if(surface_fill.surface.is_internal_bridge()){
-                params.density = f->print_object_config->internal_bridge_density.get_abs_value(1.0);
-                params.dont_adjust = true;
+                const float internal_bridge_density_raw = std::max(0.0001f, float(f->print_object_config->internal_bridge_density.get_abs_value(1.0)));
+                const float internal_bridge_density = std::min(internal_bridge_density_raw, 1.0f);
+                params.density = internal_bridge_density;
+                params.dont_adjust = internal_bridge_density < 0.9999f;
             }
 			// BBS: make fill
 			f->fill_surface_extrusion(&surface_fill.surface,

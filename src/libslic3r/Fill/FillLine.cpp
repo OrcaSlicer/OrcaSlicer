@@ -3,6 +3,8 @@
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 
+#include <algorithm>
+
 #include "FillLine.hpp"
 
 namespace Slic3r {
@@ -18,8 +20,9 @@ void FillLine::_fill_surface_single(
     expolygon.rotate(- direction.first);
 
     this->_min_spacing = scale_(this->spacing);
-    assert(params.density > 0.0001f && params.density <= 1.f);
-    this->_line_spacing = coord_t(coordf_t(this->_min_spacing) / params.density);
+    assert(params.density > 0.0001f);
+    const float density = std::max(params.density, 0.0001f);
+    this->_line_spacing = coord_t(coordf_t(this->_min_spacing) / density);
     this->_diagonal_distance = this->_line_spacing * 2;
     this->_line_oscillation = this->_line_spacing - this->_min_spacing; // only for Line infill
     BoundingBox bounding_box = expolygon.contour.bounding_box();
