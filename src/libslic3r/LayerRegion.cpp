@@ -785,8 +785,9 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 // would get merged into a single one while they need different directions
                 // also, supply the original expolygon instead of the grown one, because in case
                 // of very thin (but still working) anchors, the grown expolygon would go beyond them
-                if (has_custom_bridge_angle) {
-                    bridges[idx_last].bridge_angle = custom_bridge_angle;
+                double custom_angle = Geometry::deg2rad(this->region().config().bridge_angle.value);
+                if (custom_angle > 0.0) {
+                    bridges[idx_last].bridge_angle = custom_angle;
                 } else {
                     auto [bridging_dir, unsupported_dist] = detect_bridging_direction(to_polygons(initial), to_polygons(lower_layer->lslices));
                     bridges[idx_last].bridge_angle = PI + std::atan2(bridging_dir.y(), bridging_dir.x());
