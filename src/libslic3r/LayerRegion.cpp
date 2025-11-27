@@ -501,13 +501,8 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     const double user_bridge_angle_deg = this->region().config().bridge_angle.value;
     const bool   has_custom_bridge_angle = user_bridge_angle_deg > 0.0;
     double       custom_bridge_angle = 0.0;
-    if (has_custom_bridge_angle) {
+    if (has_custom_bridge_angle)
         custom_bridge_angle = Geometry::deg2rad(user_bridge_angle_deg);
-        if (this->region().config().align_infill_direction_to_model) {
-            const auto trafo_matrix = this->layer()->object()->trafo().matrix();
-            custom_bridge_angle += std::atan2(double(trafo_matrix(1, 0)), double(trafo_matrix(0, 0)));
-        }
-    }
 
     // Expand the top / bottom / bridge surfaces into the shell thickness solid infills.
     double     layer_thickness;

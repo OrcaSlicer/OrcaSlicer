@@ -3016,10 +3016,6 @@ void PrintObject::bridge_over_infill()
                     // ORCA: Internal bridge angle override
                     if (candidate.region->region().config().internal_bridge_angle > 0) {
                         bridging_angle = candidate.region->region().config().internal_bridge_angle.value * PI / 180.0; // Convert degrees to radians
-                        if (candidate.region->region().config().align_infill_direction_to_model) {
-                            const auto trafo_matrix = candidate.region->layer()->object()->trafo().matrix();
-                            bridging_angle += std::atan2(double(trafo_matrix(1, 0)), double(trafo_matrix(0, 0)));
-                        }
                     }
 
                     boundary_plines.insert(boundary_plines.end(), anchors.begin(), anchors.end());
