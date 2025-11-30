@@ -379,7 +379,7 @@ public:
 	void			load_config(const DynamicPrintConfig& config);
 	virtual void	reload_config();
     void            update_mode();
-    void            update_visibility();
+    void            update_visibility(bool active_page_only = false);
     virtual void    msw_rescale();
     virtual void	sys_color_changed();
 	Field*			get_field(const t_config_option_key& opt_key, int opt_index = -1) const;
