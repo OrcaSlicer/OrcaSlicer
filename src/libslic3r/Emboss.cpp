@@ -1299,6 +1299,16 @@ HealedExPolygons Emboss::text2shapes(FontFileWithCache &font_with_cache, const c
     return ::union_with_delta(vshapes, delta, MAX_HEAL_ITERATION_OF_TEXT);
 }
 
+indexed_triangle_set Emboss::text2model(FontFileWithCache &font, const char *text, const FontProp &font_prop, Vec3d &dx_y_z_size)
+{
+    const double scale  = 0.000001 * 25.4 / 72 * dx_y_z_size.y(); // convert points to millimeters (represent interliniage)
+    const double width  = dx_y_z_size.x() ? dx_y_z_size.x() : 1.0;
+    const auto   shapes = Emboss::text2shapes(font, text, font_prop, []() { return false; });
+    auto         pt     = std::make_unique<Emboss::ProjectZ>(dx_y_z_size.z());
+    Transform3d  tr     = Eigen::Translation<double, 3>() * Eigen::Scaling<double>(scale * width, scale, 1.);
+    return Emboss::polygons2model(shapes.expolygons, Emboss::ProjectTransform(std::move(pt), tr));
+}
+
 namespace {
 /// <summary>
 /// Align shape against pivot

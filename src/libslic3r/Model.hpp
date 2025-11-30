@@ -1689,6 +1689,7 @@ public:
     bool          is_fuzzy_skin_painted() const;
 
     std::unique_ptr<CalibPressureAdvancePattern> calib_pa_pattern;
+    Calib_Params                                 calib_params;
 
 private:
     explicit Model(int) : ObjectBase(-1)
