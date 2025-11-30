@@ -6189,9 +6189,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         }
 
         // if still in avoidance mode and under “max”, clamp to “min”
-        if (m_resonance_avoidance
-            && speed <= m_config.max_resonance_avoidance_speed.value) {
-            speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
+        if (m_resonance_avoidance && speed < m_config.max_resonance_avoidance_speed.value) {
+            if (speed < m_config.min_resonance_avoidance_speed.value +
+                            ((m_config.max_resonance_avoidance_speed.value - m_config.min_resonance_avoidance_speed.value) / 2)) {
+                speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
+            } else {
+                speed = m_config.max_resonance_avoidance_speed.value;
+            }
         }
 
         // reset flag for next segment
