@@ -1,0 +1,14 @@
+{
+  "type": "machine_model",
+  "name": "LONGER LK10",
+  "model_id": "LONGER-LK10",
+  "nozzle_diameter": "0.2;0.4;0.6;0.8",
+  "machine_tech": "FFF",
+  "family": "LONGER",
+  "printer_settings_id": "LONGER",
+  "bed_model": "longer_lk10_buildplate_model.stl", 
+  "bed_texture": "longer_lk10_buildplate_texture.png",
+  "bed_exclude_area": ["0x0"],
+  "hotend_model": "",
+  "default_materials": "Generic PLA @System;Generic PETG @System"
+}

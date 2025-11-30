@@ -1,0 +1,54 @@
+{
+    "type": "filament",
+    "name": "Generic PETG @LONGER LK10",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFLLK10G",
+    "filament_id": "GFLLK10PETG",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "compatible_printers": [
+        "LONGER LK10 (0.2 nozzle)",
+        "LONGER LK10 (0.4 nozzle)",
+        "LONGER LK10 (0.6 nozzle)",
+        "LONGER LK10 (0.8 nozzle)"
+    ]
+}
