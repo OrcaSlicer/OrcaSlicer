@@ -378,17 +378,5 @@ body
 
 #AddModelInfoBtn
 {
-	border-width: 1px;
-	border-style: solid;
-	padding: 0px 10px;
-	border-radius: 6px;
-	line-height: 26px;
-	height: 26px;
 	margin-top: 20px;
-	cursor: pointer;
-}
-
-#AddModelInfoBtn:hover
-{
-	background-color:#CDCECE;
 }

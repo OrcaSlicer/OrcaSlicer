@@ -34,8 +34,6 @@
 class SwitchButton;
 class StaticBox;
 
-#define TIPS_DIALOG_BUTTON_SIZE wxSize(FromDIP(60), FromDIP(24))
-
 namespace Slic3r {
 namespace GUI {
 

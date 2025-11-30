@@ -31,12 +31,6 @@ body
 
 
 /*----Left Menu Button----*/
-#LogoutBtn:hover
-{
-	background: #223C3C;
-	color: #efeff0;
-}
-
 .BtnItem
 {
 	color:#B3B3B5;
@@ -69,11 +63,6 @@ body
 {
 	border-color: #00675b;
 	background-color: #223C3C;
-}
-
-#RecentClearAllBtn:hover
-{
-	color: #000;
 }
 
 .FileImg

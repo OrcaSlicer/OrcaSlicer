@@ -1,0 +1,73 @@
+/*----ORCA UNIFIED STYLING FOR ALL CONTROLS----*/
+
+/*----GLOBAL VARIABLES ----*/
+:root {
+	--dialog-button-sizer-height : 62px; /*----32 + 15 * 2----*/
+	--dialog-button-gap          : 15px;
+}
+
+/*----GLOBAL COLORS ----*/
+:root { 
+	--main-color         : #009688;
+	--main-color-hover   : #26A69A;
+	--button-fg-light    : #FEFEFE;
+	--button-fg-text     : #262E30;
+	--button-fg-disabled : #6B6B6B;
+	--button-bg-normal   : #DFDFDF;
+	--button-bg-hover    : #D4D4D4;
+	--button-bg-disabled : var(--button-bg-normal);
+	--button-bg-alert    : #E14747;
+}
+  
+@media (prefers-color-scheme: dark) { 
+:root {
+	--main-color         : #00675B;
+	--main-color-hover   : #008172;
+	--button-fg-light    : #FEFEFE;
+	--button-fg-text     : #EFEFF0;
+	--button-fg-disabled : #818183;
+	--button-bg-normal   : #3E3E45;
+	--button-bg-hover    : #4D4D54;
+	--button-bg-disabled : var(--button-bg-normal);
+	--button-bg-alert    : #E14747;
+}
+}
+
+/*----BUTTONS ----*/
+/*----Values slightly different since renderer is different----*/
+/*----Currently no support for focus border----*/
+.ButtonTypeCompact   { font-size: 11px; padding: 0px 8px ; border-radius: 12px; line-height: 23px; height: 24px; text-align: center}
+.ButtonTypeWindow    { font-size: 13px; padding: 0px 11px; border-radius: 12px; line-height: 23px; height: 24px; text-align: center}
+.ButtonTypeChoice    { font-size: 15px; padding: 0px 13px; border-radius: 4px ; line-height: 31px; height: 32px; text-align: center}
+.ButtonTypeParameter { font-size: 15px; padding: 0px 12px; border-radius: 4px ; line-height: 25px; height: 26px; text-align: center}
+.ButtonTypeExpanded  { font-size: 15px; padding: 0px 12px; border-radius: 4px ; line-height: 31px; height: 32px; text-align: center}
+
+.ButtonTypeWindow,
+.ButtonTypeCompact {
+	min-width: 36px; /*----58 - 11*2(padding)----*/
+}
+
+.ButtonTypeWindow.ButtonStyleConfirm { /*---- Commonly used as "All" button before "Clear All" button----*/
+	margin-right:10px;
+}
+
+.ButtonTypeChoice {
+	min-width: 74px; /*----100 - 13*2(padding)----*/
+	margin-left:var(--dialog-button-gap);
+}
+
+.ButtonTypeExpanded {
+	width: 100%;
+}
+
+.ButtonTypeExpanded {
+	width: 120px;
+}
+
+.ButtonStyleConfirm        { background: var(--main-color        ); color: var(--button-fg-light   )}
+.ButtonStyleConfirm:hover  { background: var(--main-color-hover  ); color: var(--button-fg-light   )}
+.ButtonStyleRegular        { background: var(--button-bg-normal  ); color: var(--button-fg-text    )}
+.ButtonStyleRegular:hover  { background: var(--button-bg-hover   ); color: var(--button-fg-text    )}
+.ButtonStyleAlert          { background: var(--button-bg-normal  ); color: var(--button-fg-text    )}
+.ButtonStyleAlert:hover    { background: var(--button-bg-alert   ); color: var(--button-fg-light   )}
+.ButtonStyleDisabled       { background: var(--button-bg-disabled); color: var(--button-fg-disabled)}

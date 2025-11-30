@@ -5,6 +5,7 @@
 <meta http-equiv="Cache-Control" content="max-age=7200" />
 <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />	
 <title>homepage</title>
+<link rel="stylesheet" type="text/css" href="../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="./css/home.css" />
 <link rel="stylesheet" type="text/css" href="./css/dark.css" />	
 
@@ -23,7 +24,7 @@
 	<div id="LoginArea">
 	<div id="Login1">
 		<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
-		<div id="LoginBtn" class="TextS1" style="font-weight: 700;" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span>/<span class="trans" tid="t27">register</span></div>
+		<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
 	</div>
 		
 	<div id="Login2">
@@ -31,7 +32,7 @@
 			<img id="UserAvatarIcon" src="img/c.jpg" onerror="this.onerror=null;this.src='img/c.jpg';" />
 		</div>
 		<div id="UserName" class="TextS1"></div>
-		<div id="LogoutBtn" class="Btn trans" tid="t50" onClick="OnLogOut()">log out</div>
+		<div id="LogoutBtn" class="ButtonStyleAlert ButtonTypeWindow trans" tid="t50" onClick="OnLogOut()">log out</div>
 	</div>	
 		
 	<div id="NoPluginTip">	
@@ -80,7 +81,7 @@
 	<div id="RecentFileArea">
 		<div id="RecentTitleBlock">
 		    <div id="RecentTitle" class="Content-Title trans TextS1" tid="t35">recent open</div>
-			<div id="RecentClearAllBtn" class="trans TextS1" tid="t12" onClick="OnDeleteAllRecentFiles()">Clear all</div>
+			<div id="RecentClearAllBtn" class="ButtonStyleRegular ButtonTypeWindow trans" tid="t12" onClick="OnDeleteAllRecentFiles()">Clear all</div>
 		</div>
 		<div id="FileList">
 <!--		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>

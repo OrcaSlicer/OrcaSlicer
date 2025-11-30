@@ -37,20 +37,6 @@ input[type=checkbox]:checked{
 	background-color:#009688;
 }
 
-/*-----Button-----*/
-.GrayBtn, .SmallBtn /* ORCA match button style GrayBtn & SmallBtn */
-{
-	background-color:#3E3E45;
-	/* border: 1px solid #B9B9BC; */
-	color: #FFFFFF;	
-}
-
-.GrayBtn:hover, .SmallBtn:hover /* ORCA match button style GrayBtn & SmallBtn */
-{
-	background-color:#49494E;
-	color: #FFFFFF;
-}
-
 /*-------Text------*/
 
 .TextS1

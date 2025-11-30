@@ -129,42 +129,16 @@ wxBoxSizer *TipsDialog::create_item_checkbox(wxString title, wxWindow *parent, w
 Button *TipsDialog::add_button(wxWindowID btn_id, const wxString &label, bool set_focus /*= false*/)
 {
     Button* btn = new Button(this, label, "", 0, 0, btn_id);
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                            std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
 
-    StateColor btn_bd_green(std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
+    if (btn_id == wxID_OK || btn_id == wxID_YES)
+        btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
-    StateColor btn_text_green(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Normal));
-
-    StateColor btn_bg_white(
-        std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal)
-    );
-
-    StateColor btn_bd_white(std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal));
-
-    StateColor btn_text_white(std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal));
-
-    if (btn_id == wxID_OK || btn_id == wxID_YES) {
-        btn->SetBackgroundColor(btn_bg_green);
-        btn->SetBorderColor(btn_bd_green);
-        btn->SetTextColor(btn_text_green);
-    }
-
-    if (btn_id == wxID_CANCEL || btn_id == wxID_NO) {
-        btn->SetBackgroundColor(btn_bg_white);
-        btn->SetBorderColor(btn_bd_white);
-        btn->SetTextColor(btn_text_white);
-    }
+    if (btn_id == wxID_CANCEL || btn_id == wxID_NO)
+        btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     if (set_focus)
         btn->SetFocus();
 
-    btn->SetSize(TIPS_DIALOG_BUTTON_SIZE);
-    btn->SetMinSize(TIPS_DIALOG_BUTTON_SIZE);
-    btn->SetCornerRadius(FromDIP(12));
     btn->Bind(wxEVT_BUTTON, [this, btn_id](wxCommandEvent &) {
         if (m_show_again) {
             if (!m_app_key.empty()) {
@@ -184,8 +158,7 @@ Button *TipsDialog::add_button(wxWindowID btn_id, const wxString &label, bool se
 
 void TipsDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    if (m_confirm) m_confirm->SetMinSize(TIPS_DIALOG_BUTTON_SIZE);
-    if (m_cancel) m_cancel->SetMinSize(TIPS_DIALOG_BUTTON_SIZE);
+    if (m_confirm) m_confirm->Rescale(); // ORCA
     Fit();
     Refresh();
 }

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=7200" />
 <title>引导_P21</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="21.css" />
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
@@ -34,8 +35,8 @@
 <div class="BlockBanner">
 	<a>BBL-3DP</a>		
 	<div class="BannerBtns">
-		<div class="SmallBtn_Green trans" onClick="SelectPrinterAll('BBL')">所有</div>
-		<div class="SmallBtn trans" onClick="SelectPrinterNone('BBL')">无</div>
+		<div class="ButtonStyleConfirm ButtonTypeWindow trans" onClick="SelectPrinterAll('BBL')">所有</div>
+		<div class="ButtonStyleRegular ButtonTypeWindow trans" onClick="SelectPrinterNone('BBL')">无</div>
 	</div>
 </div>
 	
@@ -120,8 +121,8 @@
 	
 </div>
 <div id="AcceptArea">
-	<div class="GrayBtn trans" id="PreBtn" tid="t8"  onclick="window.open('../1/index.html','_self')">Back</div>
-	<div class="NormalBtn trans" id="AcceptBtn" tid="t9"  onclick="GotoFilamentPage()">Next</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice trans" id="PreBtn" tid="t8"  onclick="window.open('../1/index.html','_self')">Back</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" id="AcceptBtn" tid="t9"  onclick="GotoFilamentPage()">Next</div>
 </div>
 	
 <div id="NoticeMask"></div>
@@ -130,7 +131,7 @@
 	<div id="NoticeContent">
 	<div id="NoticeText" class="trans" tid="t37">At least one printer must be selected.</div>
 	<div id="NoticeBtns">
-		<div class="SmallBtn trans" tid="t36" onClick="ShowNotice(0)">ok</div>
+		<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t36" onClick="ShowNotice(0)">ok</div>
 	</div>
 	</div>
 </div>	

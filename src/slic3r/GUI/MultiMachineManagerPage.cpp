@@ -282,29 +282,10 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     );
 
     //edit prints
-    auto m_btn_bg_enable = StateColor(
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal)
-    );
-
-
-    StateColor clean_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
-        std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
-    StateColor clean_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor clean_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-
     auto sizer_button_printer = new wxBoxSizer(wxHORIZONTAL);
     sizer_button_printer->SetMinSize(wxSize(FromDIP(DEVICE_ITEM_MAX_WIDTH), -1));
     m_button_edit = new Button(m_main_panel, _L("Edit Printers"));
-    m_button_edit->SetBackgroundColor(clean_bg);
-    m_button_edit->SetBorderColor(clean_bd);
-    m_button_edit->SetTextColor(clean_text);
-    m_button_edit->SetFont(Label::Body_12);
-    m_button_edit->SetCornerRadius(6);
-    m_button_edit->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
-    m_button_edit->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
+    m_button_edit->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     m_button_edit->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
         MultiMachinePickPage dlg;
@@ -405,13 +386,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_tip_text->Wrap(-1);
 
     m_button_add = new Button(m_main_panel, _L("Add"));
-    m_button_add->SetBackgroundColor(m_btn_bg_enable);
-    m_button_add->SetBorderColor(m_btn_bg_enable);
-    m_button_add->SetTextColor(*wxWHITE);
-    m_button_add->SetFont(Label::Body_12);
-    m_button_add->SetCornerRadius(6);
-    m_button_add->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
-    m_button_add->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
+    m_button_add->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     m_button_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
         MultiMachinePickPage dlg;

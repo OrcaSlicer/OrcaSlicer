@@ -31,7 +31,7 @@ static std::string url_encode(const std::string& value) {
 	return escaped.str();
 }
 
-PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const wxString& title, enum ButtonStyle btn_style, const wxPoint& pos, const wxSize& size, long style)
+PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const wxString& title, enum VisibleButtons btn_style, const wxPoint& pos, const wxSize& size, long style) // ORCA VisibleButtons instead ButtonStyle 
     :DPIDialog(parent, id, title, pos, size, style)
 {
     SetBackgroundColour(*wxWHITE);
@@ -63,11 +63,6 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
     m_sizer_right->Add(m_vebview_release_note, 0, wxEXPAND | wxRIGHT | wxLEFT, FromDIP(15));
 
     auto sizer_button = new wxBoxSizer(wxHORIZONTAL);
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
-    StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(wxColour(220, 220, 220), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Normal));
 
 #ifndef __WINDOWS__
     m_vebview_release_note->Bind(wxEVT_WEBVIEW_LOADED, [this](auto& e) {
@@ -83,13 +78,7 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
     //m_vebview_release_note->Bind(wxEVT_WEBVIEW_NAVIGATING , &PrivacyUpdateDialog::OnNavigating, this);
 
     m_button_ok = new Button(this, _L("Accept"));
-    m_button_ok->SetBackgroundColor(btn_bg_green);
-    m_button_ok->SetBorderColor(*wxWHITE);
-    m_button_ok->SetTextColor(wxColour("#FFFFFE"));
-    m_button_ok->SetFont(Label::Body_12);
-    m_button_ok->SetSize(wxSize(-1, FromDIP(36)));
-    m_button_ok->SetMinSize(wxSize(-1, FromDIP(36)));
-    m_button_ok->SetCornerRadius(FromDIP(3));
+    m_button_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
     m_button_ok->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
         wxCommandEvent evt(EVT_PRIVACY_UPDATE_CONFIRM, GetId());
@@ -99,12 +88,7 @@ PrivacyUpdateDialog::PrivacyUpdateDialog(wxWindow* parent, wxWindowID id, const 
     });
 
     m_button_cancel = new Button(this, _L("Log Out"));
-    m_button_cancel->SetBackgroundColor(btn_bg_white);
-    m_button_cancel->SetBorderColor(*wxWHITE);
-    m_button_cancel->SetFont(Label::Body_12);
-    m_button_cancel->SetSize(wxSize(-1, FromDIP(36)));
-    m_button_cancel->SetMinSize(wxSize(-1, FromDIP(36)));
-    m_button_cancel->SetCornerRadius(FromDIP(3));
+    m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_button_cancel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
         wxCommandEvent evt(EVT_PRIVACY_UPDATE_CANCEL);

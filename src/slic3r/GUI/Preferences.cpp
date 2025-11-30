@@ -1594,7 +1594,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
                     wxGetApp().request_user_logout();
                     agent->set_country_code(country_code);
                 }
-                ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::ButtonStyle::ONLY_CONFIRM);
+                ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::VisibleButtons::ONLY_CONFIRM);  // ORCA VisibleButtons instead ButtonStyle 
                 confirm_dlg.update_text(_L("Cloud environment switched, please login again!"));
                 confirm_dlg.on_show();
             }

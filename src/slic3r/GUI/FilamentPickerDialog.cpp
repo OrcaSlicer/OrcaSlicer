@@ -7,6 +7,7 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/StateColor.hpp"
+#include "Widgets/DialogButtons.hpp"
 #include "wxExtensions.hpp"
 #include <wx/wx.h>
 #include <wx/sizer.h>
@@ -97,8 +98,11 @@ FilamentPickerDialog::FilamentPickerDialog(wxWindow *parent, const wxString& fil
     main_sizer->AddSpacer(FromDIP(8));
 
     // OK / Cancel buttons
-    wxBoxSizer* btn_sizer = CreateButtonPanel();
-    main_sizer->Add(btn_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    m_ok_btn = dlg_btns->GetOK();
+    m_cancel_btn = dlg_btns->GetCANCEL();
+
+    main_sizer->Add(dlg_btns, 0, wxEXPAND);
     container_sizer->Add(main_sizer, 1, wxEXPAND | wxALL, FromDIP(16));
 
     SetSizer(container_sizer);
@@ -540,61 +544,6 @@ void FilamentPickerDialog::CreateMoreInfoButton()
     m_more_btn->SetBackgroundColor(btn_bg);
     m_more_btn->SetBorderStyle(wxPENSTYLE_SHORT_DASH);
     m_more_btn->SetCornerRadius(FromDIP(0));
-}
-
-wxBoxSizer* FilamentPickerDialog::CreateButtonPanel()
-{
-    wxBoxSizer* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-    // Add spacer to push buttons to the right
-    btn_sizer->AddStretchSpacer();
-
-    // standard button color style
-    StateColor btn_bg_green(
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal)
-    );
-    StateColor btn_bd_green(
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal)
-    );
-    StateColor btn_text_green(
-        std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Normal)
-    );
-
-    StateColor btn_bg_white(
-        std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal)
-    );
-    StateColor btn_bd_white(
-        std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal)
-    );
-    StateColor btn_text_white(
-        std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal)
-    );
-
-    // Create Cancel button using project's Button class
-    m_cancel_btn = new Button(this, _L("Cancel"), "", 0, 0, wxID_CANCEL);
-    m_cancel_btn->SetMinSize(wxSize(FromDIP(55), FromDIP(24)));
-    m_cancel_btn->SetCornerRadius(FromDIP(12));
-    m_cancel_btn->SetBackgroundColor(btn_bg_white);
-    m_cancel_btn->SetBorderColor(btn_bd_white);
-    m_cancel_btn->SetTextColor(btn_text_white);
-    btn_sizer->Add(m_cancel_btn, 0, wxEXPAND, 0);
-    btn_sizer->AddSpacer(FromDIP(10));
-
-    // Create OK button using project's Button class
-    m_ok_btn = new Button(this, _L("OK"), "", 0, 0, wxID_OK);
-    m_ok_btn->SetMinSize(wxSize(FromDIP(55), FromDIP(24)));
-    m_ok_btn->SetCornerRadius(FromDIP(12));
-    m_ok_btn->SetBackgroundColor(btn_bg_green);
-    m_ok_btn->SetBorderColor(btn_bd_green);
-    m_ok_btn->SetTextColor(btn_text_green);
-    m_ok_btn->SetFocus();
-    btn_sizer->Add(m_ok_btn, 0, wxEXPAND, 0);
-
-    return btn_sizer;
 }
 
 wxColourData FilamentPickerDialog::GetSingleColorData()
