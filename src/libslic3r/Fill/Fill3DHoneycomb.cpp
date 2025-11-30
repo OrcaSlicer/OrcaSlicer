@@ -200,6 +200,10 @@ void Fill3DHoneycomb::_fill_surface_single(
     if (std::abs(infill_angle) >= EPSILON) expolygon.rotate(-infill_angle);
     BoundingBox bb = expolygon.contour.bounding_box();
 
+    // Expand the bounding box to avoid artifacts at the edges
+    coord_t expand = 5 * (scale_(this->spacing));
+    bb.offset(expand); 
+
     // Note: with equally-scaled X/Y/Z, the pattern will create a vertically-stretched
     // truncated octahedron; so Z is pre-adjusted first by scaling by sqrt(2)
     coordf_t zScale = sqrt(2);
