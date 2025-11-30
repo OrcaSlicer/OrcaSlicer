@@ -3862,14 +3862,18 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_flow_ratio", "", 0);
 
         optgroup->append_single_option_line("enable_pressure_advance", "pressure-advance-calib");
-        optgroup->append_single_option_line("pressure_advance", "pressure-advance-calib");
+        Option option = optgroup->get_option("pressure_advance");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = 15;
+        optgroup->append_single_option_line(option);
 
         // Orca: adaptive pressure advance and calibration model
         optgroup->append_single_option_line("adaptive_pressure_advance", "adaptive-pressure-advance-calib");
         optgroup->append_single_option_line("adaptive_pressure_advance_overhangs", "adaptive-pressure-advance-calib");
         optgroup->append_single_option_line("adaptive_pressure_advance_bridges", "adaptive-pressure-advance-calib");
 
-        Option option = optgroup->get_option("adaptive_pressure_advance_model");
+        option = optgroup->get_option("adaptive_pressure_advance_model");
         option.opt.full_width = true;
         option.opt.is_code = true;
         option.opt.height = 15;
