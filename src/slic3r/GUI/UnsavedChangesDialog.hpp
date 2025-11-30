@@ -10,6 +10,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/ScrolledWindow.hpp"
+#include "Widgets/CheckBox.hpp"
 
 class ScalableButton;
 class wxStaticText;
@@ -411,8 +412,8 @@ class DiffPresetDialog : public DPIDialog
     wxBoxSizer*             m_presets_sizer     { nullptr };
     wxStaticText*           m_top_info_line     { nullptr };
     wxStaticText*           m_bottom_info_line  { nullptr };
-    wxCheckBox*             m_show_all_presets  { nullptr };
-    wxCheckBox*             m_use_for_transfer  { nullptr };
+    ::CheckBox*             m_show_all_presets  { nullptr };
+    ::CheckBox*             m_use_for_transfer  { nullptr };
     wxBoxSizer*             m_buttons           { nullptr };
     wxBoxSizer*             m_edit_sizer        { nullptr };
 

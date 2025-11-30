@@ -80,7 +80,6 @@ public:
     Button           *m_switch_drag_btn;
     CheckBox         *m_all_checkbox;
     Button           *m_percent_label;
-    Label            *m_all_label;
     wxPanel          *m_line;
     wxPanel          *m_line_top;
     wxScrolledWindow *m_list_view;

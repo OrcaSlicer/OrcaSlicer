@@ -926,7 +926,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_append_color_sizer    = new wxBoxSizer(wxHORIZONTAL);
         m_append_color_sizer->AddSpacer(FromDIP(10));
 
-        m_append_color_checkbox = new ::CheckBox(m_scrolledWindow, wxID_ANY);
+        m_append_color_checkbox = new ::CheckBox(m_scrolledWindow, _L("Add unused AMS filaments to filaments list."));
         //m_append_color_checkbox->SetForegroundColour(wxColour(107, 107, 107, 100));
         m_append_color_checkbox->SetValue(wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams"));
         m_append_color_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
@@ -937,17 +937,12 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         });
         m_append_color_checkbox->Hide();
         m_append_color_sizer->Add(m_append_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
-        const int gap_between_checebox_and_text = 2;
-        m_append_color_text                     = new Label(m_scrolledWindow, _L("Add unused AMS filaments to filaments list."));
-        m_append_color_text->Hide();
-        m_append_color_sizer->AddSpacer(FromDIP(gap_between_checebox_and_text));
-        m_append_color_sizer->Add(m_append_color_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
 
         more_setting_sizer->Add(m_append_color_sizer, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
 
         m_merge_color_sizer    = new wxBoxSizer(wxHORIZONTAL);
         m_merge_color_sizer->AddSpacer(FromDIP(10));
-        m_merge_color_checkbox = new ::CheckBox(m_scrolledWindow, wxID_ANY);
+        m_merge_color_checkbox = new ::CheckBox(m_scrolledWindow, _L("Automatically merge the same colors in the model after mapping."));
         //m_merge_color_checkbox->SetForegroundColour(wxColour(107, 107, 107, 100));
         m_merge_color_checkbox->SetValue(wxGetApp().app_config->get_bool("enable_merge_color_by_sync_ams"));
         m_merge_color_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
@@ -958,12 +953,6 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         });
         m_merge_color_checkbox->Hide();
         m_merge_color_sizer->Add(m_merge_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
-
-
-        m_merge_color_text = new Label(m_scrolledWindow, _L("Automatically merge the same colors in the model after mapping."));
-        m_merge_color_text->Hide();
-        m_merge_color_sizer->AddSpacer(FromDIP(gap_between_checebox_and_text));
-        m_merge_color_sizer->Add(m_merge_color_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
 
         more_setting_sizer->Add(m_merge_color_sizer, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
 
@@ -1294,10 +1283,10 @@ bool SyncAmsInfoDialog::do_ams_mapping(MachineObject *obj_)
 void SyncAmsInfoDialog::deal_only_exist_ext_spool(MachineObject *obj_) {
     if (!obj_)
         return;
-    if (!m_append_color_text) { return; }
+    if (!m_append_color_checkbox) { return; }
     bool only_exist_ext_spool_flag = m_only_exist_ext_spool_flag = !obj_->GetFilaSystem()->HasAms();
     SetTitle(only_exist_ext_spool_flag ? _L("Synchronize Filament Information") : _L("Synchronize AMS Filament Information"));
-    m_append_color_text->SetLabel(only_exist_ext_spool_flag ? _L("Add unused filaments to filaments list.") :
+    m_append_color_checkbox->SetLabel(only_exist_ext_spool_flag ? _L("Add unused filaments to filaments list.") :
                                                               _L("Add unused AMS filaments to filaments list."));
     if (m_map_mode == MapModeEnum::ColorMap) {
         m_tip_attention_color_map = only_exist_ext_spool_flag ? _L("Only synchronize filament type and color, not including slot information.") :

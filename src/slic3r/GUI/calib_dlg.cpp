@@ -141,7 +141,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto cb_title = new wxStaticText(this, wxID_ANY, cb_print_no_str, wxDefaultPosition, st_size, 0);
     m_cbPrintNum = new CheckBox(this);
     m_cbPrintNum->SetValue(false);
-    m_cbPrintNum->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+    m_cbPrintNum->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
         (m_params.print_numbers) = (m_params.print_numbers) ? false : true;
         e.Skip();
     });

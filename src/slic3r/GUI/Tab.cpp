@@ -3558,12 +3558,12 @@ void TabFilament::add_filament_overrides_page()
 
         line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(retraction_optgroup), opt_key, opt_index](wxWindow* parent) {
             auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
-            check_box->Bind(wxEVT_TOGGLEBUTTON, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
+            check_box->Bind(wxEVT_CHECKBOX, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
                 const bool is_checked = evt.IsChecked();
                 if (auto optgroup_sh = optgroup_wk.lock(); optgroup_sh) {
                     if (Field *field = optgroup_sh->get_fieldc(opt_key, opt_index); field != nullptr) {
                         field->toggle(is_checked);
-
+                        
                         if (is_checked) {
                             field->update_na_value(_(L("N/A")));
                             field->set_last_meaningful_value();
@@ -3576,6 +3576,7 @@ void TabFilament::add_filament_overrides_page()
                         }
                     }
                 }
+                evt.Skip();
             }, check_box->GetId());
 
             m_overrides_options[opt_key] = check_box;
@@ -3615,7 +3616,7 @@ void TabFilament::add_filament_overrides_page()
 
         line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(ironing_optgroup), opt_key, opt_index](wxWindow* parent) {
             auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
-            check_box->Bind(wxEVT_TOGGLEBUTTON, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
+            check_box->Bind(wxEVT_CHECKBOX, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
                 const bool is_checked = evt.IsChecked();
                 if (auto optgroup_sh = optgroup_wk.lock(); optgroup_sh) {
                     if (Field *field = optgroup_sh->get_fieldc(opt_key, opt_index); field != nullptr) {
@@ -3677,6 +3678,7 @@ void TabFilament::add_filament_overrides_page()
                         }
                     }
                 }
+                evt.Skip();
             }, check_box->GetId());
 
             m_overrides_options[opt_key] = check_box;
@@ -6646,13 +6648,8 @@ void Tab::create_line_with_widget(ConfigOptionsGroup* optgroup, const std::strin
 // Return a callback to create a Tab widget to mark the preferences as compatible / incompatible to the current printer.
 wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &deps)
 {
-    deps.checkbox = new ::CheckBox(parent, wxID_ANY);
-    wxGetApp().UpdateDarkUI(deps.checkbox, false, true);
-
-    deps.checkbox_title = new wxStaticText(parent, wxID_ANY, _L("All"));
-    deps.checkbox_title->SetFont(Label::Body_14);
-    deps.checkbox_title->SetForegroundColour(wxColour("#363636"));
-    wxGetApp().UpdateDarkUI(deps.checkbox_title, false, true);
+    deps.checkbox = new ::CheckBox(parent, _L("All"));
+    //wxGetApp().UpdateDarkUI(deps.checkbox, false, true);
 
     // ORCA modernize button style
     Button* btn = new Button(parent, _(L("Set")) + " " + dots);
@@ -6660,56 +6657,25 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
     deps.btn = btn;
 
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
-    sizer->Add((deps.checkbox), 0, wxALIGN_CENTER_VERTICAL);
-    sizer->Add((deps.checkbox_title), 0, wxALIGN_CENTER_VERTICAL);
-    sizer->Add(new wxStaticText(parent, wxID_ANY, "  ")); // weirdly didnt apply AddSpacer or wxRIGHT border
+    sizer->Add((deps.checkbox), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
     sizer->Add((deps.btn), 0, wxALIGN_CENTER_VERTICAL);
-
-    auto on_toggle = [this, &deps](const bool &state){
-        deps.checkbox->SetValue(state);
-        deps.btn->Enable(!state);
-        // All printers have been made compatible with this preset.
-        if (state)
-            this->load_key_value(deps.key_list, std::vector<std::string> {});
-        this->get_field(deps.key_condition)->toggle(state);
-        this->update_changed_ui();
-    };
-
-    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([this, &deps, on_toggle](wxMouseEvent e) {
-        if (e.GetEventType() == wxEVT_LEFT_DCLICK) return;
-        on_toggle(!deps.checkbox->GetValue());
-        e.Skip();
-    }));
-
-    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([this, &deps, on_toggle](wxMouseEvent e) {
-        on_toggle(!deps.checkbox->GetValue());
-        e.Skip();
-    }));
-
-    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([this, on_toggle](wxCommandEvent e) {
-        on_toggle(e.IsChecked());
-        e.Skip();
-    }), deps.checkbox->GetId());
 
     if (deps.checkbox){
         bool is_empty = m_config->option<ConfigOptionStrings>(deps.key_list)->values.empty();
         deps.checkbox->SetValue(is_empty);
         deps.btn->Enable(!is_empty);
     }
-
-    /*
-    if (m_compatible_printers.checkbox) {
-        bool is_empty = m_config->option<ConfigOptionStrings>("compatible_printers")->values.empty();
-        m_compatible_printers.checkbox->SetValue(is_empty);
-        is_empty ? m_compatible_printers.btn->Disable() : m_compatible_printers.btn->Enable();
-    }
-
-    if (m_compatible_prints.checkbox) {
-        bool is_empty = m_config->option<ConfigOptionStrings>("compatible_prints")->values.empty();
-        m_compatible_prints.checkbox->SetValue(is_empty);
-        is_empty ? m_compatible_prints.btn->Disable() : m_compatible_prints.btn->Enable();
-    }
-    */
+    
+    deps.checkbox->Bind(wxEVT_CHECKBOX, ([this, deps](wxCommandEvent e) {
+        // IsChecked returns nullptr if defined before SetValue() that causes crash on toggle()
+        deps.btn->Enable(!e.IsChecked());
+        // All printers have been made compatible with this preset.
+        if (e.IsChecked()) 
+            this->load_key_value(deps.key_list, std::vector<std::string> {});
+        this->get_field(deps.key_condition)->toggle(e.IsChecked());
+        this->update_changed_ui();
+        e.Skip();
+    }), deps.checkbox->GetId());
 
     deps.btn->Bind(wxEVT_BUTTON, ([this, parent, &deps](wxCommandEvent e)
     {

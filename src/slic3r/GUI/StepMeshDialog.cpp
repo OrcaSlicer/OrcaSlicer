@@ -51,6 +51,8 @@ public:
 };
 
 void StepMeshDialog::on_dpi_changed(const wxRect& suggested_rect) {
+    m_checkbox->Rescale();
+    m_split_compound_checkbox->Rescale();
 };
 
 bool StepMeshDialog:: validate_number_range(const wxString& value, double min, double max) {
@@ -239,8 +241,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     bSizer->Add(angle_sizer, 1, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
 
     wxBoxSizer* check_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_split_compound_checkbox = new wxCheckBox(this, wxID_ANY, _L("Split compound and compsolid into multiple objects"), wxDefaultPosition, wxDefaultSize, 0);
-    m_split_compound_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_split_compound_checkbox = new ::CheckBox(this, _L("Split compound and compsolid into multiple objects"));
     m_split_compound_checkbox->SetValue(wxGetApp().app_config->get_bool("is_split_compound"));
     check_sizer->Add(m_split_compound_checkbox, 0, wxALIGN_LEFT);
     bSizer->Add(check_sizer, 1, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
@@ -257,8 +258,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
 
     wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
-    m_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-    m_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_checkbox = new ::CheckBox(this, _L("Don't show again"));
     bSizer_button->Add(m_checkbox, 0, wxALIGN_LEFT | wxLEFT | wxALIGN_CENTER_VERTICAL, LEFT_RIGHT_PADING);
     bSizer_button->AddStretchSpacer(1);
 

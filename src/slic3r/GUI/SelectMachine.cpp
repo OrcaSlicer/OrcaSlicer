@@ -463,24 +463,16 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         wxPostEvent(plater, evt);
     });
 
-    m_check_ext_change_assist = new CheckBox(m_scroll_area, wxID_ANY);
+    m_check_ext_change_assist = new CheckBox(m_scroll_area, _L("Multi-color with external"));
     m_check_ext_change_assist->SetValue(false);
     m_check_ext_change_assist->SetBackgroundColour(*wxWHITE);
     m_check_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
     m_check_ext_change_assist->Hide();
-    m_label_ext_change_assist = new Label(m_scroll_area, _L("Multi-color with external"));
-    m_label_ext_change_assist->Wrap(-1);
-    m_label_ext_change_assist->Hide();
-    m_label_ext_change_assist->SetMaxSize(wxSize(FromDIP(200), -1));
-    m_label_ext_change_assist->SetFont(::Label::Body_13);
-    m_label_ext_change_assist->SetBackgroundColour(*wxWHITE);
-    m_label_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
 
     wxSizer* suggestion_sizer = new wxBoxSizer(wxHORIZONTAL);
     suggestion_sizer->Add(m_link_edit_nozzle, 0, wxLEFT, 0);
     suggestion_sizer->Add(0, 0, 1, wxEXPAND, 0);
     suggestion_sizer->Add(m_check_ext_change_assist, 0, wxRIGHT, FromDIP(10));
-    suggestion_sizer->Add(m_label_ext_change_assist, 0, wxRIGHT, 0);
 
     m_mapping_sugs_sizer = new wxBoxSizer(wxHORIZONTAL);
     //auto m_img_mapping_sugs = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("warning", this, 16), wxDefaultPosition, wxSize(FromDIP(16), FromDIP(16)));
@@ -3268,10 +3260,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     /* multi color external change assist*/
     if(obj_->is_support_ext_change_assist && !m_check_ext_change_assist->IsShown()){
         m_check_ext_change_assist->Show(true);
-        m_label_ext_change_assist->Show(true);
     }else if(!obj_->is_support_ext_change_assist &&m_check_ext_change_assist->IsShown()){
         m_check_ext_change_assist->Hide();
-        m_label_ext_change_assist->Hide();
     }
     /*check external change assist*/
     if(!m_ams_mapping_result.empty() && is_enable_external_change_assist(m_ams_mapping_result)){

@@ -140,20 +140,9 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_list_sizer = new wxBoxSizer(wxVERTICAL);
     m_list_sizer->SetMinSize(wxSize(FromDIP(267), FromDIP(422)));
 
-    auto all_checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_all_checkbox          = new CheckBox(m_book_third_panel, wxID_ANY);
+    m_all_checkbox = new CheckBox(m_book_third_panel, _L("Select All"));
     m_all_checkbox->SetValue(false);
-    m_all_checkbox->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
     m_all_checkbox->SetBackgroundColour(*wxWHITE);
-    m_all_label = new Label(m_book_third_panel, _L("Select All"));
-    m_all_label->Wrap(-1);
-    m_all_label->SetMinSize(wxSize(-1, FromDIP(18)));
-    m_all_label->SetBackgroundColour(*wxWHITE);
-
-    m_all_label->SetMinSize(wxSize(267, -1));
-    m_all_label->SetMaxSize(wxSize(267, -1));
-    all_checkbox_sizer->Add(m_all_checkbox, 0, wxALIGN_CENTER_VERTICAL, 0);
-    all_checkbox_sizer->Add(m_all_label, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(8));
 
     m_line = new wxPanel(m_book_third_panel, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(267), FromDIP(1)), wxTAB_TRAVERSAL);
     m_line->SetMinSize(wxSize(FromDIP(267), 1));
@@ -201,7 +190,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_list_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
     m_list_sizer->Add(0, 0, 0, wxTOP, FromDIP(27));
-    m_list_sizer->Add(all_checkbox_sizer, 0, wxLEFT, FromDIP(0));
+    m_list_sizer->Add(m_all_checkbox, 0, wxLEFT, FromDIP(0));
     m_list_sizer->Add(m_line, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(12));
     m_list_sizer->Add(m_list_view, 0, wxEXPAND, 0);
     m_list_sizer->Add(0, 0, 1, wxEXPAND, 0);

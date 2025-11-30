@@ -470,10 +470,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      wxBoxSizer* sizer_privacy_body = new wxBoxSizer(wxHORIZONTAL);
      wxBoxSizer* sizere_notice_body = new wxBoxSizer(wxHORIZONTAL);
 
-     auto m_checkbox_privacy = new CheckBox(m_panel_agreement, wxID_ANY);
-     auto m_st_privacy_title = new Label(m_panel_agreement, _L("Read and accept"));
-     m_st_privacy_title->SetFont(Label::Body_13);
-     m_st_privacy_title->SetForegroundColour(wxColour(38, 46, 48));
+     auto m_checkbox_privacy = new CheckBox(m_panel_agreement, _L("Read and accept"));
 
      auto m_link_Terms_title = new Label(m_panel_agreement, _L("Terms and Conditions"));
      m_link_Terms_title->SetFont(Label::Head_13);
@@ -517,7 +514,6 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_link_privacy_title->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW);});
 
      sizere_notice_agreement->Add(0, 0, 0, wxTOP, FromDIP(4));
-     sizer_privacy_agreement->Add(m_st_privacy_title, 0, wxALIGN_CENTER, 0);
      sizer_privacy_agreement->Add(0, 0, 0, wxLEFT, FromDIP(5));
      sizer_privacy_agreement->Add(m_link_Terms_title, 0, wxALIGN_CENTER, 0);
      sizer_privacy_agreement->Add(m_st_and_title, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(5));
@@ -531,10 +527,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      wxString notice_title = _L("We ask for your help to improve everyone's printer");
      wxString notice_link_title = _L("Statement about User Experience Improvement Program");
 
-     auto m_checkbox_notice = new CheckBox(m_panel_agreement, wxID_ANY);
-     auto m_st_notice_title = new Label(m_panel_agreement, notice_title);
-     m_st_notice_title->SetFont(Label::Body_13);
-     m_st_notice_title->SetForegroundColour(wxColour(38, 46, 48));
+     auto m_checkbox_notice = new CheckBox(m_panel_agreement, notice_title);
 
      auto m_link_notice_title = new Label(m_panel_agreement, notice_link_title);
      m_link_notice_title->SetFont(Label::Head_13);
@@ -566,7 +559,6 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      });
 
      sizere_notice_agreement->Add(0, 0, 0, wxTOP, FromDIP(4));
-     sizere_notice_agreement->Add(m_st_notice_title, 0, 0, wxALIGN_CENTER, 0);
      sizere_notice_agreement->Add(0, 0, 0, wxLEFT, FromDIP(2));
      sizere_notice_agreement->Add(m_link_notice_title, 0, 0, wxALIGN_CENTER, 0);
 
@@ -579,12 +571,12 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_agreement->Add(sizere_notice_body, 1, wxEXPAND, 0);
 
 
-     m_checkbox_privacy->Bind(wxEVT_TOGGLEBUTTON, [this, m_checkbox_privacy](auto& e) {
+     m_checkbox_privacy->Bind(wxEVT_CHECKBOX, [this, m_checkbox_privacy](auto& e) {
          m_allow_privacy = m_checkbox_privacy->GetValue();
          m_button_bind->Enable(m_allow_privacy);
          e.Skip();
      });
-     m_checkbox_notice->Bind(wxEVT_TOGGLEBUTTON, [this, m_checkbox_notice](auto& e) {
+     m_checkbox_notice->Bind(wxEVT_CHECKBOX, [this, m_checkbox_notice](auto& e) {
          m_allow_notice = m_checkbox_notice->GetValue();
          e.Skip();
      });

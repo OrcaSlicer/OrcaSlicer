@@ -999,7 +999,7 @@ void CheckBox::BUILD() {
 	//temp->SetBackgroundColour(*wxWHITE);
 	temp->SetValue(check_value);
 
-	temp->Bind(wxEVT_TOGGLEBUTTON, ([this](wxCommandEvent & e) {
+	temp->Bind(wxEVT_CHECKBOX, ([this](wxCommandEvent & e) {
         m_is_na_val = false;
 	    on_change_field();
 		e.Skip();

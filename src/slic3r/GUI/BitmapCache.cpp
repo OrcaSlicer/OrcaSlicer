@@ -340,6 +340,8 @@ wxBitmap* BitmapCache::load_svg(const std::string &bitmap_name, unsigned target_
         replaces["#DBDBDB"] = "#4A4A51"; // ORCA border color
         replaces["#F0F0F1"] = "#333337"; // ORCA disabled background color
         replaces["#262E30"] = "#EFEFF0"; // ORCA
+        replaces["#BFE1DE"] = "#223C3C"; // ORCA ORCA color with %25 opacity on background color. for focus / highlight
+        replaces["#E5F0EE"] = "#283232"; // ORCA ORCA color with %10 opacity on background color. for focus / highlight
     } else {
         replaces["#949494"] = "#7C8282"; // ORCA replace icon line color for light theme
     }

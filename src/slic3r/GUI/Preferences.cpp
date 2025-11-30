@@ -696,7 +696,7 @@ wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tool
     m_sizer_checkbox->Add(checkbox      , 0, wxALIGN_CENTER | wxRIGHT | wxLEFT, FromDIP(5));
 
     //// save config
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent& e) {
+    checkbox->Bind(wxEVT_CHECKBOX, [this, checkbox, param](wxCommandEvent& e) {
         app_config->set(param, checkbox->GetValue() ? "1" : "0");
         app_config->save();
         wxGetApp().Update_dark_mode_flag();
@@ -762,7 +762,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     }
 
      //// save config
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent &e) {
+    checkbox->Bind(wxEVT_CHECKBOX, [this, checkbox, param](wxCommandEvent &e) {
         app_config->set_bool(param, checkbox->GetValue());
         app_config->save();
 
@@ -1035,7 +1035,7 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
 
     v_sizer->Add(registered_instance_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(DESIGN_LEFT_MARGIN));
 
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [=](wxCommandEvent& e) {
+    checkbox->Bind(wxEVT_CHECKBOX, [=](wxCommandEvent& e) {
         wxGetApp().associate_url(url_prefix.ToStdWstring());
         checkbox->Disable();
         update_current_association_str();
