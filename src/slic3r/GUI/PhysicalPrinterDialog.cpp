@@ -38,6 +38,7 @@
 #include "MsgDialog.hpp"
 #include "OAuthDialog.hpp"
 #include "SimplyPrint.hpp"
+#include "3DPrinterOS.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -188,6 +189,12 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                             h->save_oauth_credential(r);
                         } else {
                             msg = r.error_message;
+                        }
+                    } else if (const auto h = dynamic_cast<C3DPrinterOS*>(host.get()); h) {
+                        GUI::MessageDialog dlg(this, _L("Valid session not detected. Proceed with login to 3DPrinterOS?"), _L("Proceed"),
+                                               wxICON_INFORMATION | wxYES | wxNO);
+                        if (dlg.ShowModal() == wxID_YES) {
+                            result = h->login(msg);
                         }
                     } else {
                         PrinterCloudAuthDialog dlg(this->GetParent(), host.get());
@@ -556,7 +563,8 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 const auto current_host = temp->GetValue();
                 if (current_host == L"https://connect.prusa3d.com" ||
                     current_host == L"https://app.obico.io" ||
-                    current_host == "https://simplyprint.io" || current_host == "https://simplyprint.io/panel") {
+                    current_host == "https://simplyprint.io" || current_host == "https://simplyprint.io/panel" || 
+                    current_host == C3DPrinterOS::default_host()) {
                     temp->SetValue(wxString());
                     m_config->opt_string("print_host") = "";
                 }
@@ -589,7 +597,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                         m_config->opt_string("print_host") = "https://app.obico.io";
                     }
                 }
-            } else if (opt->value == htSimplyPrint) {
+            } else if (opt->value == htSimplyPrint)  {
                 // Set the host url
                 if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
                     printhost_field->disable();
@@ -626,7 +634,16 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->disable_field("printhost_ssl_ignore_revoke");
                 if (m_printhost_cafile_browse_btn)
                     m_printhost_cafile_browse_btn->Disable();
-            }
+            } else if (opt->value == ht3DPrinterOS) {
+                if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
+                    if (wxTextCtrl* temp = dynamic_cast<TextCtrl*>(printhost_field)->text_ctrl(); temp && temp->GetValue().IsEmpty()) {
+                        temp->SetValue(C3DPrinterOS::default_host());
+                        m_config->opt_string("print_host") = C3DPrinterOS::default_host();
+                    }
+                }
+                m_optgroup->hide_field("print_host_webui");
+                m_optgroup->hide_field("printhost_apikey");
+            } 
         }
         
         if (opt->value == htFlashforge) {
