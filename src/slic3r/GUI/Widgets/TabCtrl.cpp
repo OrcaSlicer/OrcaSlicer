@@ -103,8 +103,8 @@ int TabCtrl::AppendItem(const wxString &item,
     btn->Create(this, item, "", wxBORDER_NONE);
     btn->SetFont(GetFont());
     btn->SetTextColor(StateColor(
-        std::make_pair(0x6B6B6C, (int) StateColor::NotChecked),
-        std::make_pair(*wxLIGHT_GREY, (int) StateColor::Normal)));
+        std::make_pair(wxColour("#6B6B6C"), (int) StateColor::NotChecked),
+        std::make_pair(wxColour("#363636"), (int) StateColor::Normal)));
     btn->SetBackgroundColor(StateColor());
     btn->SetCornerRadius(0);
     btn->SetPaddingSize({TAB_BUTTON_PADDING});

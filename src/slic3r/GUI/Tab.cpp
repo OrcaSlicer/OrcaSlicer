@@ -360,7 +360,7 @@ void Tab::create_preset_tab()
     // Colors for ui "decoration"
     m_sys_label_clr			= wxGetApp().get_label_clr_sys();
     m_modified_label_clr	= wxGetApp().get_label_clr_modified();
-    m_default_text_clr      = wxGetApp().get_label_clr_default();
+    m_default_text_clr      = m_sys_label_clr; // wxGetApp().get_label_clr_default(); ORCA use same color for user values
 
     m_main_sizer = new wxBoxSizer( wxVERTICAL );
     m_top_sizer = new wxBoxSizer( wxHORIZONTAL );
@@ -718,11 +718,11 @@ void Tab::OnActivate()
 
 void Tab::update_label_colours()
 {
-    m_default_text_clr = wxGetApp().get_label_clr_default();
     if (m_sys_label_clr == wxGetApp().get_label_clr_sys() && m_modified_label_clr == wxGetApp().get_label_clr_modified())
         return;
     m_sys_label_clr = wxGetApp().get_label_clr_sys();
     m_modified_label_clr = wxGetApp().get_label_clr_modified();
+    m_default_text_clr = m_sys_label_clr; // wxGetApp().get_label_clr_default(); ORCA use same color for user values
 
     //update options "decoration"
     for (const auto& opt : m_options_list)
@@ -760,13 +760,21 @@ void Tab::update_label_colours()
             if (translate_category(page->title(), m_type) != title)
                 continue;
 
-            const wxColor *clr = !page->m_is_nonsys_values ? &m_sys_label_clr :
-                page->m_is_modified_values ? &m_modified_label_clr :
-                (m_type < Preset::TYPE_COUNT ? &m_default_text_clr : &m_modified_label_clr);
+            bool is_modified = (page->m_is_modified_values || m_type >= Preset::TYPE_COUNT);
+            //bool sys_page    = !page->m_is_nonsys_values;
 
-            m_tabctrl->SetItemTextColour(cur_item, clr == &m_modified_label_clr ? *clr : StateColor(
-                        std::make_pair(0x6B6B6C, (int) StateColor::NotChecked),
-                        std::make_pair(*clr, (int) StateColor::Normal)));
+            const StateColor tab_fg_color(
+                std::make_pair(
+                    is_modified ? m_modified_label_clr : wxColour("#6B6B6C")
+                    , (int) StateColor::NotChecked
+                ),
+                std::make_pair(
+                    is_modified ? m_modified_label_clr : m_sys_label_clr //(sys_page && !m_is_default_preset) ? m_sys_label_clr : m_default_text_clr
+                    , (int) StateColor::Normal
+                )
+            );
+
+            m_tabctrl->SetItemTextColour(cur_item, tab_fg_color);
             break;
         }
         cur_item = m_tabctrl->GetNextVisible(cur_item);
@@ -813,6 +821,12 @@ void Tab::decorate()
             // value is modified
             else
                 color = &m_modified_label_clr;
+        }
+        // ORCA always prefer modified color if value not matches with preset value
+        // previous behaviour; it uses different color if value matches with system value
+        // value is equal to system value & isn't equal to last saved
+        if ((opt.second & osSystemValue) != 0 && (opt.second & osInitValue) == 0) {
+            color = &m_modified_label_clr;
         }
         if ((opt.second & osInitValue) != 0)
         {
@@ -1087,13 +1101,20 @@ void Tab::update_changed_tree_ui()
                 }
             }
 
-            const wxColor *clr = sys_page ? (m_is_default_preset ? &m_default_text_clr : &m_sys_label_clr) :
-                                 (modified_page || m_type >= Preset::TYPE_COUNT) ? &m_modified_label_clr : &m_default_text_clr;
+            bool is_modified = (modified_page || m_type >= Preset::TYPE_COUNT);
+            const StateColor tab_fg_color(
+                std::make_pair(
+                    is_modified ? m_modified_label_clr : wxColour("#6B6B6C")
+                    , (int) StateColor::NotChecked
+                ),
+                std::make_pair(
+                    is_modified ? m_modified_label_clr : m_sys_label_clr //(sys_page && !m_is_default_preset) ? m_sys_label_clr : m_default_text_clr
+                    , (int) StateColor::Normal
+                )
+            );
 
-            if (page->set_item_colour(clr))
-                m_tabctrl->SetItemTextColour(cur_item, clr == &m_modified_label_clr ? *clr : StateColor(
-                        std::make_pair(0x6B6B6C, (int) StateColor::NotChecked),
-                        std::make_pair(*clr, (int) StateColor::Normal)));
+            if(page->set_item_colour(tab_fg_color))
+                m_tabctrl->SetItemTextColour(cur_item, tab_fg_color);
 
             page->m_is_nonsys_values = !sys_page;
             page->m_is_modified_values = modified_page;
@@ -5576,9 +5597,7 @@ void Tab::rebuild_page_tree()
         } else {
             m_tabctrl->SetItemText(curr_item, translate_category(p->title(), m_type));
         }
-        m_tabctrl->SetItemTextColour(curr_item, p->get_item_colour() == m_modified_label_clr ? p->get_item_colour() : StateColor(
-                        std::make_pair(0x6B6B6C, (int) StateColor::NotChecked),
-                        std::make_pair(p->get_item_colour(), (int) StateColor::Normal)));
+        m_tabctrl->SetItemTextColour(curr_item, p->get_item_colour());
         if (translate_category(p->title(), m_type) == selected)
             item = curr_item;
         curr_item++;
@@ -7036,7 +7055,10 @@ Page::Page(wxWindow* parent, const wxString& title, int iconID, wxPanel* tab_own
 {
     m_vsizer = (wxBoxSizer*)parent->GetSizer();
     m_page_title = NULL;
-    m_item_color = &wxGetApp().get_label_clr_default();
+    m_item_color = StateColor(
+        std::make_pair(wxColour("#6B6B6C")           , (int) StateColor::NotChecked),
+        std::make_pair(wxGetApp().get_label_clr_sys(), (int) StateColor::Normal)
+    );
 }
 
 void Page::reload_config()

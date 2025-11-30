@@ -3090,18 +3090,16 @@ const wxColour GUI_App::get_label_default_clr_modified()
 void GUI_App::init_label_colours()
 {
     bool is_dark_mode = dark_mode();
-    m_color_label_modified = is_dark_mode ? wxColour("#F1754E") : wxColour("#F1754E");
-    m_color_label_sys      = is_dark_mode ? wxColour("#B2B3B5") : wxColour("#363636");
+    m_color_label_modified = is_dark_mode ? wxColour("#F1754E") : wxColour("#F1754E"); // ORCA text color for modified preset values
+    m_color_label_sys      = is_dark_mode ? wxColour("#C8C8C8") : wxColour("#363636"); // ORCA text color for sys preset values
+    m_color_label_default  = is_dark_mode ? wxColour("#EFEFF0") : wxColour("#262E30"); // ORCA default text color
 
 #if defined(_WIN32) || defined(__linux__) || defined(__APPLE__)
-    m_color_label_default           = is_dark_mode ? wxColour(250, 250, 250) : m_color_label_sys; // wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
     m_color_highlight_label_default = is_dark_mode ? wxColour(230, 230, 230): wxSystemSettings::GetColour(/*wxSYS_COLOUR_HIGHLIGHTTEXT*/wxSYS_COLOUR_WINDOWTEXT);
     m_color_highlight_default       = is_dark_mode ? wxColour("#36363B") : wxColour("#F1F1F1"); // ORCA row highlighting
     m_color_hovered_btn_label       = is_dark_mode ? wxColour(255, 255, 254) : wxColour(0,0,0);
     m_color_default_btn_label       = is_dark_mode ? wxColour(255, 255, 254): wxColour(0,0,0);
     m_color_selected_btn_bg         = is_dark_mode ? wxColour(84, 84, 91)   : wxColour(206, 206, 206);
-#else
-    m_color_label_default = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
 #endif
     m_color_window_default          = is_dark_mode ? wxColour(43, 43, 43)   : wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
     StateColor::SetDarkMode(is_dark_mode);

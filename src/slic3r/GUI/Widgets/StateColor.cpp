@@ -35,7 +35,7 @@ static std::map<wxColour, wxColour> gDarkColors{
     {"#303A3C", "#E5E5E5"}, // rgb(48, 58, 60)     Object Table > Column header text color | StaticBox Border Color
     {"#FEFFFF", "#242428"}, // rgb(254, 255, 255)  Side Tabbar bg | 
     {"#A6A9AA", "#2D2D29"}, // rgb(166, 169, 170)  Seperator color
-    {"#363636", "#B2B3B5"}, // rgb(54, 54, 54)     Sidebar > Parameter Label/Title color | Sidebar tab text | Create Filament window text
+    {"#363636", "#C8C8C8"}, // rgb(54, 54, 54)     Sidebar > Parameter Label/Title color | Sidebar tab text | Create Filament window text
     {"#F0F0F1", "#333337"}, // rgb(240, 240, 241)  Disabled element background // ORCA Used better background color for dark mode
     {"#9E9E9E", "#53545A"}, // rgb(158, 158, 158)  ???
     {"#D7E8DE", "#1F2B27"}, // rgb(215, 232, 222)  Not Used anymore // Leftover from BBS
