@@ -1,0 +1,16 @@
+{
+    "compatible_printers": [
+        "MyMarlin 0.4 nozzle"
+    ],
+    "default_filament_colour": [
+        "#00FF00"
+    ],
+    "filament_settings_id": [
+        "Generic TPU @DMAKERS_MS1"
+    ],
+    "from": "User",
+    "inherits": "Generic TPU @System",
+    "is_custom_defined": "0",
+    "name": "Generic TPU @DMAKERS_MS1",
+    "version": "2.3.1.10"
+}

@@ -1,0 +1,10 @@
+{
+  "name": "DMAKERS",
+  "printers": [
+    {
+      "name": "DMAKERS_MS1",
+      "variants": ["0.4 nozzle"],
+      "default_nozzle": "0.4 nozzle"
+    }
+  ]
+}
