@@ -1,0 +1,22 @@
+{
+    "type": "filament",
+    "filament_id": "GFSEP012",
+    "setting_id": "GFSEP012_00",
+    "name": "Eolas Prints PETG Transition @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pet",
+    "filament_color": ["#4d9398"],
+    "filament_vendor": ["Eolas Prints"],
+    "filament_type": ["PETG"],
+    "nozzle_temperature": ["240"],
+    "nozzle_temperature_initial_layer": ["245"],
+    "nozzle_temperature_range_low": ["230"],
+    "nozzle_temperature_range_high": ["260"],
+    "hot_plate_temp": ["80"],
+    "hot_plate_temp_initial_layer": ["85"],
+    "filament_density": ["1.27"],
+    "filament_cost": ["17.40"],
+    "filament_spool_weight": ["1000"],
+    "filament_max_volumetric_speed": ["15"]
+}
