@@ -11,18 +11,15 @@
 #include <vector>
 namespace igl
 {
-  // Convert a list (std::vector) of row vectors of the same length to a matrix
-  // Template: 
-  //   Row  row vector type, must implement:
-  //     .size()
-  //   Mat  Matrix type, must implement:
-  //     .resize(m,n)
-  //     .row(i) = Row
-  // Inputs:
-  //   V  a m-long list of vectors of size n
-  // Outputs:
-  //   M  an m by n matrix
-  // Returns true on success, false on errors
+  /// Convert a list (std::vector) of row vectors of the same length to a matrix
+  /// @tparam Row  row vector type, must implement:
+  ///     .size()
+  /// @tparam Mat  Matrix type, must implement:
+  ///     .resize(m,n)
+  ///     .row(i) = Row
+  /// @param[in] V  a m-long list of vectors of size n
+  /// @param[out] M  an m by n matrix
+  /// @return true on success, false on errors
   template <class Row, class Mat>
   IGL_INLINE bool rows_to_matrix(const std::vector<Row> & V,Mat & M);
 }

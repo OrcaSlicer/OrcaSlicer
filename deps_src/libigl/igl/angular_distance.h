@@ -11,13 +11,12 @@
 #include <Eigen/Geometry>
 namespace igl
 {
-  // The "angular distance" between two unit quaternions is the angle of the
-  // smallest rotation (treated as an Axis and Angle) that takes A to B.
-  //
-  // Inputs:
-  //   A  unit quaternion
-  //   B  unit quaternion
-  // Returns angular distance
+  /// The "angular distance" between two unit quaternions is the angle of the
+  /// smallest rotation (treated as an Axis and Angle) that takes A to B.
+  ///
+  /// @param[in] A  unit quaternion
+  /// @param[in] B  unit quaternion
+  /// @return angular distance
   IGL_INLINE double angular_distance(
     const Eigen::Quaterniond & A,
     const Eigen::Quaterniond & B);

@@ -11,5 +11,4 @@
 #ifdef IGL_STATIC_LIBRARY
 #undef IGL_STATIC_LIBRARY
 #include "../../slice_mask.cpp"
-template void igl::slice_mask<Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, 3, 0,   -1, 3>, Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, 3, 0, -1, 3>   >(Eigen::DenseBase<Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, 3, 0,   -1, 3> > const&, Eigen::Array<bool, -1, 1, 0, -1, 1> const&, int,   Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Lazy_exact_nt<CGAL::Gmpq>, -1, 3,   0, -1, 3> >&);
 #endif

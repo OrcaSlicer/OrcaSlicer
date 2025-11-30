@@ -14,23 +14,21 @@
 
 namespace igl 
 {
-  // Given a triangle mesh and a scalar field, remesh so that a given isovalue
-  // of the scalar field follows (new) edges of the output mesh. Effectively
-  // running "marching triangles" on mesh, but not in any coherent order. The
-  // output mesh should be as manifold as the input.
-  //
-  // Inputs:
-  //   V  #V by dim list of mesh vertex positions
-  //   F  #F by 3 list of mesh triangle indices into V
-  //   S  #V by 1 list of scalar field
-  //   val  value of S to remesh along
-  // Outputs:
-  //  U  #U by dim list of mesh vertex positions #U>=#V
-  //  G  #G by 3 list of mesh triangle indices into U, #G>=#F
-  //  SU  #U list of scalar field values over new mesh
-  //  J  #G list of indices into G revealing birth triangles
-  //  BC  #U by #V sparse matrix of barycentric coordinates so that U = BC*V
-  //  L  #G list of bools whether scalar field in triangle below or above val
+  /// Given a triangle mesh and a scalar field, remesh so that a given isovalue
+  /// of the scalar field follows (new) edges of the output mesh. Effectively
+  /// running "marching triangles" on mesh, but not in any coherent order. The
+  /// output mesh should be as manifold as the input.
+  ///
+  /// @param[in] V  #V by dim list of mesh vertex positions
+  /// @param[in] F  #F by 3 list of mesh triangle indices into V
+  /// @param[in] S  #V by 1 list of scalar field
+  /// @param[in] val  value of S to remesh along
+  /// @param[out] U  #U by dim list of mesh vertex positions #U>=#V
+  /// @param[out] G  #G by 3 list of mesh triangle indices into U, #G>=#F
+  /// @param[out] SU  #U list of scalar field values over new mesh
+  /// @param[out] J  #G list of indices into F revealing birth triangles
+  /// @param[out] BC  #U by #V sparse matrix of barycentric coordinates so that U = BC*V
+  /// @param[out] L  #G list of bools whether scalar field in triangle below or above val
   template <
     typename DerivedV,
     typename DerivedF,
@@ -52,8 +50,8 @@ namespace igl
       Eigen::PlainObjectBase<DerivedJ> & J,
       Eigen::SparseMatrix<BCtype> & BC,
       Eigen::PlainObjectBase<DerivedL> & L);
-  // Input:
-  //   n  number of vertices (#V)
+  /// \overload
+  /// @param[in] n  number of vertices (#V)
   template <
     typename DerivedF,
     typename DerivedS,
@@ -75,7 +73,7 @@ namespace igl
 }
 
 #ifndef IGL_STATIC_LIBRARY
-#  include "remesh_along_isoline.h"
+#  include "remesh_along_isoline.cpp"
 #endif
 
 #endif

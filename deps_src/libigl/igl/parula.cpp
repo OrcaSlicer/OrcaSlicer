@@ -20,7 +20,6 @@ IGL_INLINE void igl::parula(const T f, T & r, T & g, T & b)
   igl::colormap(igl::COLOR_MAP_TYPE_PARULA, f, r, g, b);
 }
 
-
 template <typename DerivedZ, typename DerivedC>
 IGL_INLINE void igl::parula(
   const Eigen::MatrixBase<DerivedZ> & Z,

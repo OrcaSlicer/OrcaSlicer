@@ -14,13 +14,11 @@
 #include <vector>
 namespace igl
 {
-  // "Columnize" a list of quaternions (q1x,q1y,q1z,q1w,q2x,q2y,q2z,q2w,...)
-  //
-  // Inputs:
-  //   Q  n*4-long list of coefficients
-  // Outputs:
-  //   vQ  n-long list of quaternions
-  // Returns false if n%4!=0
+  /// de-"Columnize" a list of quaternions (q1x,q1y,q1z,q1w,q2x,q2y,q2z,q2w,...)
+  ///
+  /// @param[in] Q  n*4-long list of coefficients
+  /// @param[out] vQ  n-long list of quaternions
+  /// @return false if n%4!=0
   IGL_INLINE bool column_to_quats(
     const Eigen::VectorXd & Q,
     std::vector<

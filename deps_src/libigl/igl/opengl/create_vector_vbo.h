@@ -11,19 +11,17 @@
 #include "gl.h"
 #include <Eigen/Core>
 
-// Create a VBO (Vertex Buffer Object) for a list of vectors:
-// GL_ARRAY_BUFFER for the vectors (V)
 namespace igl
 {
   namespace opengl
   {
-    // Templates:
-    //   T  should be a eigen matrix primitive type like int or double
-    // Inputs:
-    //   V  m by n eigen Matrix of type T values
-    // Outputs:
-    //   V_vbo_id  buffer id for vectors
-    //
+    /// Create a VBO (Vertex Buffer Object) for a list of vectors:
+    /// GL_ARRAY_BUFFER for the vectors (V)
+    ///
+    /// @tparam T  should be a eigen matrix primitive type like int or double
+    /// @param[in] V  m by n eigen Matrix of type T values
+    /// @param[out] V_vbo_id  buffer id for vectors
+    ///
     template <typename T>
     IGL_INLINE void create_vector_vbo(
       const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> & V,

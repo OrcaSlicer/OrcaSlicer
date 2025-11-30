@@ -14,16 +14,15 @@
 #include <vector>
 namespace igl
 {
-  // "Columnize" a list of quaternions (q1x,q1y,q1z,q1w,q2x,q2y,q2z,q2w,...)
-  //
-  // Inputs:
-  //   vQ  n-long list of quaternions
-  // Outputs:
-  //   Q  n*4-long list of coefficients
+  /// "Columnize" a list of quaternions (q1x,q1y,q1z,q1w,q2x,q2y,q2z,q2w,...)
+  ///
+  /// @param[in] vQ  n-long list of quaternions
+  /// @param[out] Q  n*4-long list of coefficients
   IGL_INLINE void quats_to_column(
     const std::vector<
       Eigen::Quaterniond,Eigen::aligned_allocator<Eigen::Quaterniond> > vQ,
       Eigen::VectorXd & Q);
+  /// \overload
   IGL_INLINE Eigen::VectorXd quats_to_column(
     const std::vector<
       Eigen::Quaterniond,Eigen::aligned_allocator<Eigen::Quaterniond> > vQ);

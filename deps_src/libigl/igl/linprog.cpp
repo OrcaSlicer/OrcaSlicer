@@ -6,11 +6,9 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can 
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "linprog.h"
-#include "slice.h"
-#include "slice_into.h"
 #include "find.h"
 #include "colon.h"
-#include <iostream>
+#include "placeholders.h"
 
 //#define IGL_LINPROG_VERBOSE
 IGL_INLINE bool igl::linprog(
@@ -79,8 +77,7 @@ IGL_INLINE bool igl::linprog(
     J.head(j) = B.head(j);
     J.tail(B.size()-j-1) = B.tail(B.size()-j-1);
     B(j) = n+m;
-    MatrixXd AJ;
-    igl::slice(A,J,2,AJ);
+    MatrixXd AJ = A(igl::placeholders::all,J);
     const VectorXd a = b - AJ.rowwise().sum();
     {
       MatrixXd old_A = A;
@@ -109,7 +106,7 @@ IGL_INLINE bool igl::linprog(
     double df = -1;
     int t = std::numeric_limits<int>::max();
     // Lagrange mutipliers fro Ax=b
-    VectorXd yb = D.transpose() * igl::slice(s,B);
+    VectorXd yb = D.transpose() * s(B);
     while(true)
     {
       if(MAXIT>0 && it>=MAXIT)
@@ -126,8 +123,8 @@ IGL_INLINE bool igl::linprog(
         break;
       }
       // reduced costs
-      VectorXd sN = igl::slice(s,N);
-      MatrixXd AN = igl::slice(A,N,2);
+      VectorXd sN = s(N);
+      MatrixXd AN = A(igl::placeholders::all,N);
       VectorXd r = sN - AN.transpose() * yb;
       int q;
       // determine new basic variable
@@ -150,7 +147,7 @@ IGL_INLINE bool igl::linprog(
           success = false;
         }
         igl::find((r.array()<0).eval(),J);
-        double Nq = igl::slice(N,J).minCoeff();
+        double Nq = N(J).minCoeff();
         // again seems like q is assumed to be a scalar though matlab code
         // could produce a vector for multiple matches
         (N.array()==Nq).cast<int>().maxCoeff(&q);
@@ -168,7 +165,7 @@ IGL_INLINE bool igl::linprog(
         success = false;
         break;
       }
-      VectorXd xbd = igl::slice(xb,I).array()/igl::slice(d,I).array();
+      VectorXd xbd = xb(I).array()/d(I).array();
       // new use of r
       int p;
       {
@@ -179,7 +176,7 @@ IGL_INLINE bool igl::linprog(
         if(df>=0)
         {
           igl::find((xbd.array()==r).eval(),J);
-          double Bp = igl::slice(B,igl::slice(I,J)).minCoeff();
+          double Bp = B(I(J)).minCoeff();
           // idiotic way of finding index in B of Bp
           // code down the line seems to assume p is a scalar though the matlab
           // code could find a vector of matches)
@@ -193,7 +190,7 @@ IGL_INLINE bool igl::linprog(
       }
       // row vector
       RowVectorXd v = D.row(p)/d(p);
-      yb += v.transpose() * (s(N(q)) - d.transpose()*igl::slice(s,B));
+      yb += v.transpose() * (s(N(q)) - d.transpose()*s(B));
       d(p)-=1;
       // update inverse basis matrix
       D = D - d*v;
@@ -213,22 +210,21 @@ IGL_INLINE bool igl::linprog(
       }
     }
     // iterative refinement
-    xb = (xb+D*(b-igl::slice(A,B,2)*xb)).eval();
+    xb = (xb+D*(b-A(igl::placeholders::all,B)*xb)).eval();
     // must be due to rounding
     VectorXi I;
     igl::find((xb.array()<0).eval(),I);
     if(I.size()>0)
     {
       // so correct
-      VectorXd Z = VectorXd::Zero(I.size(),1);
-      igl::slice_into(Z,I,xb);
+      xb(I) = VectorXd::Zero(I.size(),1);
     }
     // B, xb,n,m,res=A(:,B)*xb-b
     if(phase == 2 || it<0)
     {
       break;
     }
-    if(xb.transpose()*igl::slice(s,B) > tol)
+    if(xb.transpose()*s(B) > tol)
     {
       it = -it;
 #ifdef IGL_LINPROG_VERBOSE
@@ -242,8 +238,8 @@ IGL_INLINE bool igl::linprog(
     s*=1e6*c.array().abs().maxCoeff();
     s.head(n) = c;
   }
-  x.resize(std::max(B.maxCoeff()+1,n));
-  igl::slice_into(xb,B,x);
+  x.setZero(std::max(B.maxCoeff()+1,n));
+  x(B) = xb;
   x = x.head(n).eval();
   return success;
 }
@@ -281,9 +277,12 @@ IGL_INLINE bool igl::linprog(
   MatrixXd BSP(0,2*n+m);
   if(p>0)
   {
-    MatrixXd BS(p,2*n);
-    BS<<B,MatrixXd::Zero(p,n);
+    // B ∈ ℝ^(p × n)
+    MatrixXd BS(p,n+m);
+    BS<<B,MatrixXd::Zero(p,m);
+    // BS ∈ ℝ^(p × n+m)
     BSP = BS*P;
+    // BSP ∈ ℝ^(p × 2n+m)
   }
 
   VectorXd fSP = VectorXd::Ones(2*n+m);
@@ -296,7 +295,24 @@ IGL_INLINE bool igl::linprog(
   bb<<bS,c;
 
   VectorXd xxs;
+  // min   ccᵀxxs
+  // s.t.  AA xxs ≤ bb
+  //          xxs ≥ 0
+  //        
+  // x = x⁺ - x⁻
+  //
+  //    P
+  // .--^---.
+  // [I -I 0  [x⁺   = [x
+  //  0  0 I]  x⁻      s]
+  //           s]
+  // Pᵀ [xᵀ sᵀ] = xxsᵀ
+  //
+  // min  [fᵀ -fᵀ 𝟙ᵀ] [x⁺;x⁻;s]
+  // s.t.  AA [x⁺;x⁻;s] ≤ b
+  // s.t.  [x⁺;x⁻;s] ≥ 0
   bool ret = linprog(cc,AA,bb,0,xxs);
+  // x = P(1:n,:) xxs
   x = P.block(0,0,n,2*n+m)*xxs;
   return ret;
 }

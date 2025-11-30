@@ -17,25 +17,23 @@ namespace igl
   {
     namespace tetgen
     {
-      // Mesh the interior of a given surface with tetrahedra which are graded
-      // (tend to be small near the surface and large inside) and conform to the
-      // given handles and samplings thereof.
-      //
-      // Inputs:
-      //  V  #V by 3 list of mesh vertex positions
-      //  F  #F by 3 list of triangle indices
-      //  C  #C by 3 list of vertex positions
-      //  P  #P list of point handle indices
-      //  BE #BE by 2 list of bone-edge indices
-      //  CE #CE by 2 list of cage-edge indices
-      //  samples_per_bone  #samples to add per bone
-      //  tetgen_flags  flags to pass to tetgen {""-->"pq2Y"} otherwise you're on
-      //    your own and it's your funeral if you pass nonsense flags
-      // Outputs:
-      //  VV  #VV by 3 list of tet-mesh vertex positions
-      //  TT  #TT by 4 list of tetrahedra indices
-      //  FF  #FF by 3 list of surface triangle indices
-      // Returns true only on success
+      /// Mesh the interior of a given surface with tetrahedra which are graded
+      /// (tend to be small near the surface and large inside) and conform to the
+      /// given handles and samplings thereof.
+      ///
+      /// @param[in] V  #V by 3 list of mesh vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices
+      /// @param[in] C  #C by 3 list of vertex positions
+      /// @param[in] P  #P list of point handle indices
+      /// @param[in] BE #BE by 2 list of bone-edge indices
+      /// @param[in] CE #CE by 2 list of cage-edge indices
+      /// @param[in] samples_per_bone  #samples to add per bone
+      /// @param[in] tetgen_flags  flags to pass to tetgen {""-->"pq2Y"} otherwise you're on
+      ///    your own and it's your funeral if you pass nonsense flags
+      /// @param[out] VV  #VV by 3 list of tet-mesh vertex positions
+      /// @param[out] TT  #TT by 4 list of tetrahedra indices
+      /// @param[out] FF  #FF by 3 list of surface triangle indices
+      /// @return true only on success
       IGL_INLINE bool mesh_with_skeleton(
         const Eigen::MatrixXd & V,
         const Eigen::MatrixXi & F,
@@ -48,7 +46,7 @@ namespace igl
         Eigen::MatrixXd & VV,
         Eigen::MatrixXi & TT,
         Eigen::MatrixXi & FF);
-      // Wrapper using default tetgen_flags
+      /// \overload
       IGL_INLINE bool mesh_with_skeleton(
         const Eigen::MatrixXd & V,
         const Eigen::MatrixXi & F,

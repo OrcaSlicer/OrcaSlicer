@@ -15,40 +15,39 @@
 
 namespace igl
 {
-  // save a tetrahedral volume mesh to a .mesh file
-  //
-  // Templates:
-  //   Scalar  type for positions and vectors (will be cast as double)
-  //   Index  type for indices (will be cast to int)
-  // Input:
-  //   mesh_file_name  path of .mesh file
-  //   V  double matrix of vertex positions  #V by 3
-  //   T  #T list of tet indices into vertex positions
-  //   F  #F list of face indices into vertex positions
-  //
-  // Known bugs: Holes and regions are not supported
+  /// save a tetrahedral volume mesh to a .mesh file
+  ///
+  /// @tparam Scalar  type for positions and vectors (will be cast as double)
+  /// @tparam Index  type for indices (will be cast to int)
+  /// @param[in] mesh_file_name  path of .mesh file
+  /// @param[in] V  double matrix of vertex positions  #V by 3
+  /// @param[in] T  #T list of tet indices into vertex positions
+  /// @param[in] F  #F list of face indices into vertex positions
+  /// @return true on success, false on errors
+  ///
+  /// \bug Holes and regions are not supported
   template <typename Scalar, typename Index>
   IGL_INLINE bool writeMESH(
     const std::string mesh_file_name,
     const std::vector<std::vector<Scalar > > & V,
     const std::vector<std::vector<Index > > & T,
     const std::vector<std::vector<Index > > & F);
-
-  // Templates:
-  //   DerivedV  real-value: i.e. from MatrixXd
-  //   DerivedT  integer-value: i.e. from MatrixXi
-  //   DerivedF  integer-value: i.e. from MatrixXi
-  // Input:
-  //   mesh_file_name  path of .mesh file
-  //   V  eigen double matrix #V by 3
-  //   T  eigen int matrix #T by 4
-  //   F  eigen int matrix #F by 3
+  /// save a tetrahedral volume mesh to a .mesh file
+  ///
+  /// @tparam DerivedV  real-value: i.e. from MatrixXd
+  /// @tparam DerivedT  integer-value: i.e. from MatrixXi
+  /// @tparam DerivedF  integer-value: i.e. from MatrixXi
+  /// @param[in] mesh_file_name  path of .mesh file
+  /// @param[in] V  eigen double matrix #V by 3
+  /// @param[in] T  eigen int matrix #T by 4
+  /// @param[in] F  eigen int matrix #F by 3
+  /// @return true on success, false on errors
   template <typename DerivedV, typename DerivedT, typename DerivedF>
   IGL_INLINE bool writeMESH(
     const std::string str,
-    const Eigen::PlainObjectBase<DerivedV> & V, 
-    const Eigen::PlainObjectBase<DerivedT> & T,
-    const Eigen::PlainObjectBase<DerivedF> & F);
+    const Eigen::MatrixBase<DerivedV> & V, 
+    const Eigen::MatrixBase<DerivedT> & T,
+    const Eigen::MatrixBase<DerivedF> & F);
 }
 
 #ifndef IGL_STATIC_LIBRARY

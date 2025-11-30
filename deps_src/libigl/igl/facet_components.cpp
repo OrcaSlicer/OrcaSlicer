@@ -1,30 +1,33 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2015 Alec Jacobson <alecjacobson@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+// Copyright (C) 2020 Alec Jacobson <alecjacobson@gmail.com>
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "facet_components.h"
-#include <igl/triangle_triangle_adjacency.h>
+#include "triangle_triangle_adjacency.h"
+#include "facet_adjacency_matrix.h"
+#include "connected_components.h"
 #include <vector>
 #include <queue>
+
 template <typename DerivedF, typename DerivedC>
-IGL_INLINE void igl::facet_components(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+IGL_INLINE int igl::facet_components(
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedC> & C)
 {
-  using namespace std;
-  typedef typename DerivedF::Index Index;
-  vector<vector<vector<Index > > > TT;
-  vector<vector<vector<Index > > > TTi;
-  triangle_triangle_adjacency(F,TT,TTi);
-  Eigen::VectorXi counts;
-  return facet_components(TT,C,counts);
+  typedef typename DerivedF::Scalar Index;
+  Eigen::SparseMatrix<Index> A;
+  igl::facet_adjacency_matrix(F,A);
+  Eigen::Matrix<Index,Eigen::Dynamic,1> counts;
+  C = DerivedC::Zero(1,1);
+  return connected_components(A,C,counts);
 }
 
 template <
-  typename TTIndex, 
+  typename TTIndex,
   typename DerivedC,
   typename Derivedcounts>
 IGL_INLINE void igl::facet_components(
@@ -88,5 +91,8 @@ IGL_INLINE void igl::facet_components(
 // Explicit template instantiation
 template void igl::facet_components<long, Eigen::Matrix<long, -1, 1, 0, -1, 1>, Eigen::Matrix<long, -1, 1, 0, -1, 1> >(std::vector<std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > >, std::allocator<std::vector<std::vector<long, std::allocator<long> >, std::allocator<std::vector<long, std::allocator<long> > > > > > const&, Eigen::PlainObjectBase<Eigen::Matrix<long, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<long, -1, 1, 0, -1, 1> >&);
 template void igl::facet_components<int, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(std::vector<std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > >, std::allocator<std::vector<std::vector<int, std::allocator<int> >, std::allocator<std::vector<int, std::allocator<int> > > > > > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
-template void igl::facet_components<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+template int igl::facet_components<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+#ifdef WIN32
+template void igl::facet_components<__int64,class Eigen::Matrix<__int64,-1,1,0,-1,1>,class Eigen::Matrix<__int64,-1,1,0,-1,1> >(class std::vector<class std::vector<class std::vector<__int64,class std::allocator<__int64> >,class std::allocator<class std::vector<__int64,class std::allocator<__int64> > > >,class std::allocator<class std::vector<class std::vector<__int64,class std::allocator<__int64> >,class std::allocator<class std::vector<__int64,class std::allocator<__int64> > > > > > const &,class Eigen::PlainObjectBase<class Eigen::Matrix<__int64,-1,1,0,-1,1> > &,class Eigen::PlainObjectBase<class Eigen::Matrix<__int64,-1,1,0,-1,1> > &);
+#endif
 #endif

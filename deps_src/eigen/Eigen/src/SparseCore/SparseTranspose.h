@@ -10,83 +10,74 @@
 #ifndef EIGEN_SPARSETRANSPOSE_H
 #define EIGEN_SPARSETRANSPOSE_H
 
-namespace Eigen { 
+// IWYU pragma: private
+#include "./InternalHeaderCheck.h"
+
+namespace Eigen {
 
 namespace internal {
-  template<typename MatrixType,int CompressedAccess=int(MatrixType::Flags&CompressedAccessBit)>
-  class SparseTransposeImpl
-    : public SparseMatrixBase<Transpose<MatrixType> >
-  {};
-  
-  template<typename MatrixType>
-  class SparseTransposeImpl<MatrixType,CompressedAccessBit>
-    : public SparseCompressedBase<Transpose<MatrixType> >
-  {
-    typedef SparseCompressedBase<Transpose<MatrixType> > Base;
-  public:
-    using Base::derived;
-    typedef typename Base::Scalar Scalar;
-    typedef typename Base::StorageIndex StorageIndex;
+template <typename MatrixType, int CompressedAccess = int(MatrixType::Flags & CompressedAccessBit)>
+class SparseTransposeImpl : public SparseMatrixBase<Transpose<MatrixType> > {};
 
-    inline Index nonZeros() const { return derived().nestedExpression().nonZeros(); }
-    
-    inline const Scalar* valuePtr() const { return derived().nestedExpression().valuePtr(); }
-    inline const StorageIndex* innerIndexPtr() const { return derived().nestedExpression().innerIndexPtr(); }
-    inline const StorageIndex* outerIndexPtr() const { return derived().nestedExpression().outerIndexPtr(); }
-    inline const StorageIndex* innerNonZeroPtr() const { return derived().nestedExpression().innerNonZeroPtr(); }
+template <typename MatrixType>
+class SparseTransposeImpl<MatrixType, CompressedAccessBit> : public SparseCompressedBase<Transpose<MatrixType> > {
+  typedef SparseCompressedBase<Transpose<MatrixType> > Base;
 
-    inline Scalar* valuePtr() { return derived().nestedExpression().valuePtr(); }
-    inline StorageIndex* innerIndexPtr() { return derived().nestedExpression().innerIndexPtr(); }
-    inline StorageIndex* outerIndexPtr() { return derived().nestedExpression().outerIndexPtr(); }
-    inline StorageIndex* innerNonZeroPtr() { return derived().nestedExpression().innerNonZeroPtr(); }
+ public:
+  using Base::derived;
+  typedef typename Base::Scalar Scalar;
+  typedef typename Base::StorageIndex StorageIndex;
+
+  inline Index nonZeros() const { return derived().nestedExpression().nonZeros(); }
+
+  inline const Scalar* valuePtr() const { return derived().nestedExpression().valuePtr(); }
+  inline const StorageIndex* innerIndexPtr() const { return derived().nestedExpression().innerIndexPtr(); }
+  inline const StorageIndex* outerIndexPtr() const { return derived().nestedExpression().outerIndexPtr(); }
+  inline const StorageIndex* innerNonZeroPtr() const { return derived().nestedExpression().innerNonZeroPtr(); }
+
+  inline Scalar* valuePtr() { return derived().nestedExpression().valuePtr(); }
+  inline StorageIndex* innerIndexPtr() { return derived().nestedExpression().innerIndexPtr(); }
+  inline StorageIndex* outerIndexPtr() { return derived().nestedExpression().outerIndexPtr(); }
+  inline StorageIndex* innerNonZeroPtr() { return derived().nestedExpression().innerNonZeroPtr(); }
+};
+}  // namespace internal
+
+template <typename MatrixType>
+class TransposeImpl<MatrixType, Sparse> : public internal::SparseTransposeImpl<MatrixType> {
+ protected:
+  typedef internal::SparseTransposeImpl<MatrixType> Base;
+};
+
+namespace internal {
+
+template <typename ArgType>
+struct unary_evaluator<Transpose<ArgType>, IteratorBased> : public evaluator_base<Transpose<ArgType> > {
+  typedef typename evaluator<ArgType>::InnerIterator EvalIterator;
+
+ public:
+  typedef Transpose<ArgType> XprType;
+
+  inline Index nonZerosEstimate() const { return m_argImpl.nonZerosEstimate(); }
+
+  class InnerIterator : public EvalIterator {
+   public:
+    EIGEN_STRONG_INLINE InnerIterator(const unary_evaluator& unaryOp, Index outer)
+        : EvalIterator(unaryOp.m_argImpl, outer) {}
+
+    Index row() const { return EvalIterator::col(); }
+    Index col() const { return EvalIterator::row(); }
   };
-}
-  
-template<typename MatrixType> class TransposeImpl<MatrixType,Sparse>
-  : public internal::SparseTransposeImpl<MatrixType>
-{
-  protected:
-    typedef internal::SparseTransposeImpl<MatrixType> Base;
+
+  enum { CoeffReadCost = evaluator<ArgType>::CoeffReadCost, Flags = XprType::Flags };
+
+  explicit unary_evaluator(const XprType& op) : m_argImpl(op.nestedExpression()) {}
+
+ protected:
+  evaluator<ArgType> m_argImpl;
 };
 
-namespace internal {
-  
-template<typename ArgType>
-struct unary_evaluator<Transpose<ArgType>, IteratorBased>
-  : public evaluator_base<Transpose<ArgType> >
-{
-    typedef typename evaluator<ArgType>::InnerIterator        EvalIterator;
-  public:
-    typedef Transpose<ArgType> XprType;
-    
-    inline Index nonZerosEstimate() const {
-      return m_argImpl.nonZerosEstimate();
-    }
+}  // end namespace internal
 
-    class InnerIterator : public EvalIterator
-    {
-    public:
-      EIGEN_STRONG_INLINE InnerIterator(const unary_evaluator& unaryOp, Index outer)
-        : EvalIterator(unaryOp.m_argImpl,outer)
-      {}
-      
-      Index row() const { return EvalIterator::col(); }
-      Index col() const { return EvalIterator::row(); }
-    };
-    
-    enum {
-      CoeffReadCost = evaluator<ArgType>::CoeffReadCost,
-      Flags = XprType::Flags
-    };
-    
-    explicit unary_evaluator(const XprType& op) :m_argImpl(op.nestedExpression()) {}
+}  // end namespace Eigen
 
-  protected:
-    evaluator<ArgType> m_argImpl;
-};
-
-} // end namespace internal
-
-} // end namespace Eigen
-
-#endif // EIGEN_SPARSETRANSPOSE_H
+#endif  // EIGEN_SPARSETRANSPOSE_H

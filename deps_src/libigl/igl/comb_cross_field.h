@@ -12,25 +12,21 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Computes principal matchings of the vectors of a cross field across face edges,
-  // and generates a combed cross field defined on the mesh faces
-  
-  // Inputs:
-  //   V          #V by 3 eigen Matrix of mesh vertex 3D positions
-  //   F          #F by 4 eigen Matrix of face (quad) indices
-  //   PD1in      #F by 3 eigen Matrix of the first per face cross field vector
-  //   PD2in      #F by 3 eigen Matrix of the second per face cross field vector
-  // Output:
-  //   PD1out      #F by 3 eigen Matrix of the first combed cross field vector
-  //   PD2out      #F by 3 eigen Matrix of the second combed cross field vector
-  //
-  
-  
+  /// Computes principal matchings of the vectors of a cross field across face edges,
+  /// and generates a combed cross field defined on the mesh faces
+  ///
+  /// @param[in]  V          #V by 3 eigen Matrix of mesh vertex 3D positions
+  /// @param[in]  F          #F by 4 eigen Matrix of face (quad) indices
+  /// @param[in]  PD1in      #F by 3 eigen Matrix of the first per face cross field vector
+  /// @param[in]  PD2in      #F by 3 eigen Matrix of the second per face cross field vector
+  /// @param[out] PD1out      #F by 3 eigen Matrix of the first combed cross field vector
+  /// @param[out] PD2out      #F by 3 eigen Matrix of the second combed cross field vector
+  ///
   template <typename DerivedV, typename DerivedF>
-  IGL_INLINE void comb_cross_field(const Eigen::PlainObjectBase<DerivedV> &V,
-                                   const Eigen::PlainObjectBase<DerivedF> &F,
-                                   const Eigen::PlainObjectBase<DerivedV> &PD1in,
-                                   const Eigen::PlainObjectBase<DerivedV> &PD2in,
+  IGL_INLINE void comb_cross_field(const Eigen::MatrixBase<DerivedV> &V,
+                                   const Eigen::MatrixBase<DerivedF> &F,
+                                   const Eigen::MatrixBase<DerivedV> &PD1in,
+                                   const Eigen::MatrixBase<DerivedV> &PD2in,
                                    Eigen::PlainObjectBase<DerivedV> &PD1out,
                                    Eigen::PlainObjectBase<DerivedV> &PD2out);
 }

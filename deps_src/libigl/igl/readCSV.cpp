@@ -1,5 +1,5 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2013 Alec Jacobson <alecjacobson@gmail.com>
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public License 
@@ -30,8 +30,12 @@ IGL_INLINE bool igl::readCSV(
     std::istringstream iss(line);
     vector<Scalar> temp;
     Scalar a;
-    while (iss >> a)
+    char ch;
+    while (iss >> a){
       temp.push_back(a);
+      if(!(iss >> ch))
+        break;
+    }
 
     if (temp.size() != 0) // skip empty lines
       Mt.push_back(temp);

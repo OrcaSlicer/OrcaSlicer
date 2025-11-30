@@ -9,8 +9,8 @@ typename DerivedV,
 typename DerivedF,
 typename DerivedW >
 IGL_INLINE size_t igl::copyleft::cgal::peel_winding_number_layers(
-        const Eigen::PlainObjectBase<DerivedV > & V,
-        const Eigen::PlainObjectBase<DerivedF > & F,
+        const Eigen::MatrixBase<DerivedV > & V,
+        const Eigen::MatrixBase<DerivedF > & F,
         Eigen::PlainObjectBase<DerivedW>& W) {
     const size_t num_faces = F.rows();
     Eigen::VectorXi labels(num_faces);

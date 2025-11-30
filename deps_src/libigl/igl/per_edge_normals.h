@@ -11,27 +11,28 @@
 #include <Eigen/Core>
 namespace igl
 {
+  /// Weighting schemes for per edge normals
   enum PerEdgeNormalsWeightingType
   {
-    // Incident face normals have uniform influence on edge normal
+    /// Incident face normals have uniform influence on edge normal
     PER_EDGE_NORMALS_WEIGHTING_TYPE_UNIFORM = 0,
-    // Incident face normals are averaged weighted by area
+    /// Incident face normals are averaged weighted by area
     PER_EDGE_NORMALS_WEIGHTING_TYPE_AREA = 1,
-    // Area weights
+    /// Area weights
     PER_EDGE_NORMALS_WEIGHTING_TYPE_DEFAULT = 2,
+    /// Total number of weighting types
     NUM_PER_EDGE_NORMALS_WEIGHTING_TYPE = 3
   };
-  // Compute face normals via vertex position list, face list
-  // Inputs:
-  //   V  #V by 3 eigen Matrix of mesh vertex 3D positions
-  //   F  #F by 3 eigen Matrix of face (triangle) indices
-  //   weight  weighting type
-  //   FN  #F by 3 matrix of 3D face normals per face
-  // Output:
-  //   N  #2 by 3 matrix of mesh edge 3D normals per row
-  //   E  #E by 2 matrix of edge indices per row
-  //   EMAP  #E by 1 matrix of indices from all edges to E
-  //
+  /// Compute face normals via vertex position list, face list
+  ///
+  /// @param[in] V  #V by 3 eigen Matrix of mesh vertex 3D positions
+  /// @param[in] F  #F by 3 eigen Matrix of face (triangle) indices
+  /// @param[in] weight  weighting type
+  /// @param[in] FN  #F by 3 matrix of 3D face normals per face
+  /// @param[out] N  #2 by 3 matrix of mesh edge 3D normals per row
+  /// @param[out] E  #E by 2 matrix of edge indices per row
+  /// @param[out] EMAP  #E by 1 matrix of indices from all edges to E
+  ///
   template <
     typename DerivedV, 
     typename DerivedF, 
@@ -47,6 +48,7 @@ namespace igl
     Eigen::PlainObjectBase<DerivedN> & N,
     Eigen::PlainObjectBase<DerivedE> & E,
     Eigen::PlainObjectBase<DerivedEMAP> & EMAP);
+  /// \overload
   template <
     typename DerivedV, 
     typename DerivedF, 
@@ -60,6 +62,7 @@ namespace igl
     Eigen::PlainObjectBase<DerivedN> & N,
     Eigen::PlainObjectBase<DerivedE> & E,
     Eigen::PlainObjectBase<DerivedEMAP> & EMAP);
+  /// \overload
   template <
     typename DerivedV, 
     typename DerivedF, 

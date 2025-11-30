@@ -11,17 +11,15 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Compute barycentric coordinates in a tet
-  //
-  // Inputs:
-  //   P  #P by 3 Query points in 3d
-  //   A  #P by 3 Tet corners in 3d
-  //   B  #P by 3 Tet corners in 3d
-  //   C  #P by 3 Tet corners in 3d
-  //   D  #P by 3 Tet corners in 3d
-  // Outputs:
-  //   L  #P by 4 list of barycentric coordinates
-  //   
+  /// Compute barycentric coordinates of each point in a corresponding tetrahedron.
+  ///
+  /// @param[in] P  #P by 3 Query points in 3d
+  /// @param[in] A  #P by 3 Tet corners in 3d
+  /// @param[in] B  #P by 3 Tet corners in 3d
+  /// @param[in] C  #P by 3 Tet corners in 3d
+  /// @param[in] D  #P by 3 Tet corners in 3d
+  /// @param[out] L  #P by 4 list of barycentric coordinates
+  ///   
   template <
     typename DerivedP,
     typename DerivedA,
@@ -36,16 +34,14 @@ namespace igl
     const Eigen::MatrixBase<DerivedC> & C,
     const Eigen::MatrixBase<DerivedD> & D,
     Eigen::PlainObjectBase<DerivedL> & L);
-  // Compute barycentric coordinates in a triangle
-  //
-  // Inputs:
-  //   P  #P by dim Query points
-  //   A  #P by dim Triangle corners
-  //   B  #P by dim Triangle corners
-  //   C  #P by dim Triangle corners
-  // Outputs:
-  //   L  #P by 3 list of barycentric coordinates
-  //   
+  /// Compute barycentric coordinates in a triangle
+  ///
+  ///   @param[in] P  #P by dim Query points
+  ///   @param[in] A  #P by dim Triangle corners
+  ///   @param[in] B  #P by dim Triangle corners
+  ///   @param[in] C  #P by dim Triangle corners
+  ///   @param[out] L  #P by 3 list of barycentric coordinates
+  ///   
   template <
     typename DerivedP,
     typename DerivedA,

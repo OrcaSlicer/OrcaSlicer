@@ -16,14 +16,12 @@ namespace igl
   // This is SSE version of svd3x3 (see svd3x3.h) which works on 4 matrices at a time
   // These four matrices are simply stacked in columns, the rest is the same as for svd3x3
   //
-  // Inputs:
-  //   A  12 by 3 stack of 3x3 matrices
-  // Outputs:
-  //   U  12x3 left singular vectors stacked
-  //   S  12x1 singular values stacked
-  //   V  12x3 right singular vectors stacked
-  //
-  // Known bugs: this will not work correctly for double precision.
+  /// @param[in] A  12 by 3 stack of 3x3 matrices
+  /// @param[out] U  12x3 left singular vectors stacked
+  /// @param[out] S  12x1 singular values stacked
+  /// @param[out] V  12x3 right singular vectors stacked
+  ///
+  /// \bug this will not work correctly for double precision.
   template<typename T>
   IGL_INLINE void svd3x3_sse(
     const Eigen::Matrix<T, 3*4, 3>& A, 

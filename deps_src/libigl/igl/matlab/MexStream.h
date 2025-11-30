@@ -12,18 +12,20 @@ namespace igl
 {
   namespace matlab
   {
-    // http://stackoverflow.com/a/249008/148668
     
-    // Class to implement "cout" for mex files to print to the matlab terminal
-    // window.
-    //
-    // Insert at the beginning of mexFunction():
-    //  MexStream mout;
-    //  std::streambuf *outbuf = std::cout.rdbuf(&mout); 
-    //  ...
-    //  ALWAYS restore original buffer to avoid memory leak problems in matlab
-    //  std::cout.rdbuf(outbuf);
-    //
+    /// Class to implement "cout" for mex files to print to the matlab terminal
+    /// window.
+    ///
+    /// \code{cpp}
+    ///  // very beginning of mexFunction():
+    ///  MexStream mout;
+    ///  std::streambuf *outbuf = std::cout.rdbuf(&mout); 
+    ///  ...
+    ///  // ALWAYS restore original buffer to avoid memory leaks in matlab
+    ///  std::cout.rdbuf(outbuf);
+    /// \encode
+    ///
+    /// http://stackoverflow.com/a/249008/148668
     class MexStream : public std::streambuf
     {
       public:

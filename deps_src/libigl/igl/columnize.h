@@ -12,25 +12,22 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // "Columnize" a stack of block matrices. If A = [A1,A2,A3,...,Ak] with each A*
-  // an m by n block then this produces the column vector whose entries are 
-  // B(j*m*k+i*k+b) = A(i,b*n+j);
-  // or if A = [A1;A2;...;Ak] then
-  // B(j*m*k+i*k+b) = A(i+b*m,j);
-  //
-  // Templates:
-  //   T  should be a eigen matrix primitive type like int or double
-  // Inputs:
-  //   A  m*k by n (dim: 1) or m by n*k (dim: 2) eigen Matrix of type T values
-  //   k  number of blocks
-  //   dim  dimension in which blocks are stacked
-  // Output
-  //   B  m*n*k eigen vector of type T values,
-  //
-  // See also: transpose_blocks
+  /// "Columnize" a stack of block matrices. If A = [A1,A2,A3,...,Ak] with each A*
+  /// an m by n block then this produces the column vector whose entries are 
+  /// B(j*m*k+i*k+b) = A(i,b*n+j);
+  /// or if A = [A1;A2;...;Ak] then
+  /// B(j*m*k+i*k+b) = A(i+b*m,j);
+  ///
+  /// @tparam T  should be a eigen matrix primitive type like int or double
+  /// @param[in] A  m*k by n (dim: 1) or m by n*k (dim: 2) eigen Matrix of type T values
+  /// @param[in] k  number of blocks
+  /// @param[in] dim  dimension in which blocks are stacked
+  /// @param[out] B  m*n*k eigen vector of type T values,
+  ///
+  /// \see transpose_blocks
   template <typename DerivedA, typename DerivedB>
   IGL_INLINE void columnize(
-    const Eigen::PlainObjectBase<DerivedA> & A,
+    const Eigen::MatrixBase<DerivedA> & A,
     const int k,
     const int dim,
     Eigen::PlainObjectBase<DerivedB> & B);

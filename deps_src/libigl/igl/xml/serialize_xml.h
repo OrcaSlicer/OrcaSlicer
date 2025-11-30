@@ -38,22 +38,18 @@ namespace igl
   namespace xml
   {
     struct XMLSerializableBase;
-    // serializes the given object either to a xml file or to the provided doc data
-    //
-    // Templates:
-    //   T  type of the object to serialize
-    // Inputs:
-    //   obj        object to serialize
-    //   objectName unique object name,used for the identification
-    //   filename   name of the file containing the serialization
-    //   binary     set to true to serialize the object in binary format (faster for big data)
-    //   overwrite  set to true to overwrite an existing xml file
-    //   element    tinyxml2 virtual representation of the current xml node
-    // Outputs:
-    //   doc        contains current tinyxml2 virtual representation of the xml data
-    //
-    template <typename T>
-    IGL_INLINE void serialize_xml(const T& obj,const std::string& filename);
+    /// Serialize object to file
+    /// @tparam T  type of the object to serialize
+    /// @param[in] obj        object to serialize
+    /// @param[in] filename   name of the file containing the serialization
+    /// Serialize object to file
+    ///
+    /// @tparam T  type of the object to serialize
+    /// @param[in] obj        object to serialize
+    /// @param[in] objectName unique object name,used for the identification
+    /// @param[in] filename   name of the file containing the serialization
+    /// @param[in] binary     set to true to serialize the object in binary format (faster for big data)
+    /// @param[in] overwrite  set to true to overwrite an existing xml file
     template <typename T>
     IGL_INLINE void serialize_xml(
       const T& obj,
@@ -61,6 +57,13 @@ namespace igl
       const std::string& filename,
       bool binary = false,
       bool overwrite = false);
+    /// \overload
+    template <typename T>
+    IGL_INLINE void serialize_xml(const T& obj,const std::string& filename);
+    /// \overload
+    ///
+    /// @param[in,out] doc        contains current tinyxml2 virtual representation of the xml data
+    /// @param[in,out] element    tinyxml2 virtual representation of the current xml node
     template <typename T>
     IGL_INLINE void serialize_xml(
       const T& obj,
@@ -69,29 +72,34 @@ namespace igl
       tinyxml2::XMLElement* element,
       bool binary = false);
 
-    // deserializes the given data from a xml file or doc data back to the provided object
-    //
-    // Templates:
-    //   T  type of the object to serialize
-    // Inputs:
-    //
-    //   objectName unique object name,used for the identification
-    //   filename   name of the file containing the serialization
-    //   binary     set to true to serialize the object in binary format (faster for big data)
-    //   overwrite  set to true to overwrite an existing xml file
-    //   doc        contains current tinyxml2 virtual representation of the xml data
-    //   element    tinyxml2 virtual representation of the current xml node
-    // Outputs:
-    //   obj        object to load back serialization to
-    //
-    template <typename T>
-    IGL_INLINE void deserialize_xml(T& obj,const std::string& filename);
+    /// deserialize object to file
+    ///
+    /// @tparam T  type of the object to serialize
+    /// @param[in] obj        object to serialize
+    /// @param[in] objectName unique object name,used for the identification
+    /// @param[in] filename   name of the file containing the serialization
+    /// @param[in] binary     set to true to serialize the object in binary format (faster for big data)
+    /// @param[in] overwrite  set to true to overwrite an existing xml file
+    ///
+    /// \fileinfo
     template <typename T>
     IGL_INLINE void deserialize_xml(T& obj,const std::string& objectName,const std::string& filename);
+    /// \overload
+    ///
+    /// \fileinfo
+    template <typename T>
+    IGL_INLINE void deserialize_xml(T& obj,const std::string& filename);
+    /// Deserialize to xml doc
+    ///
+    /// @param[in,out] doc        contains current tinyxml2 virtual representation of the xml data
+    /// @param[in,out] element    tinyxml2 virtual representation of the current xml node
+    ///
+    /// \fileinfo
     template <typename T>
     IGL_INLINE void deserialize_xml(T& obj,const std::string& objectName,const tinyxml2::XMLDocument* doc,const tinyxml2::XMLElement* element);
 
     // internal functions
+    /// @private
     namespace serialization_xml
     {
       // fundamental types

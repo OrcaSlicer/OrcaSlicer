@@ -16,41 +16,54 @@
 
 namespace igl {
 
-  // Dijstra's algorithm for shortest paths, with multiple targets.
-  // Adapted from http://rosettacode.org/wiki/Dijkstra%27s_algorithm .
-  //
-  // Inputs:
-  //   source           index of source vertex
-  //   targets          target vector set
-  //   VV               #V list of lists of incident vertices (adjacency list), e.g.
-  //                    as returned by igl::adjacency_list
-  //
-  // Output:
-  //   min_distance     #V by 1 list of the minimum distances from source to all vertices
-  //   previous         #V by 1 list of the previous visited vertices (for each vertex) - used for backtracking
-  //
+  /// Dijkstra's algorithm for vertex-weighted shortest paths, with multiple targets.
+  /// Adapted from http://rosettacode.org/wiki/Dijkstra%27s_algorithm .
+  ///
+  /// @param[in] source           index of source vertex
+  /// @param[in] targets          target vector set
+  /// @param[in] VV               #V list of lists of incident vertices (adjacency list), e.g.
+  ///                             as returned by igl::adjacency_list
+  /// @param[in] weights          #V list of scalar vertex weights
+  /// @param[out] min_distance     #V by 1 list of the minimum distances from source to all vertices
+  /// @param[out] previous         #V by 1 list of the previous visited vertices (for each vertex) - used for backtracking
+  ///
   template <typename IndexType, typename DerivedD, typename DerivedP>
-  IGL_INLINE int dijkstra_compute_paths(const IndexType &source,
-                                        const std::set<IndexType> &targets,
-                                        const std::vector<std::vector<IndexType> >& VV,
-                                        Eigen::PlainObjectBase<DerivedD> &min_distance,
-                                        Eigen::PlainObjectBase<DerivedP> &previous);
-
-  // Backtracking after Dijstra's algorithm, to find shortest path.
-  //
-  // Inputs:
-  //   vertex           vertex to which we want the shortest path (from same source as above)
-  //   previous         #V by 1 list of the previous visited vertices (for each vertex) - result of Dijkstra's algorithm
-  //
-  // Output:
-  //   path             #P by 1 list of vertex indices in the shortest path from source to vertex
-  //
+  IGL_INLINE int dijkstra(
+    const IndexType &source,
+    const std::set<IndexType> &targets,
+    const std::vector<std::vector<IndexType> >& VV,
+    const std::vector<double>& weights,
+    Eigen::PlainObjectBase<DerivedD> &min_distance,
+    Eigen::PlainObjectBase<DerivedP> &previous);
+  /// \overload
+  template <typename IndexType, typename DerivedV,
+  typename DerivedD, typename DerivedP>
+  IGL_INLINE int dijkstra(
+    const Eigen::MatrixBase<DerivedV> &V,
+    const std::vector<std::vector<IndexType> >& VV,
+    const IndexType &source,
+    const std::set<IndexType> &targets,
+    Eigen::PlainObjectBase<DerivedD> &min_distance,
+    Eigen::PlainObjectBase<DerivedP> &previous);
+  /// \overload
+  template <typename IndexType, typename DerivedD, typename DerivedP>
+  IGL_INLINE int dijkstra(
+    const IndexType &source,
+    const std::set<IndexType> &targets,
+    const std::vector<std::vector<IndexType> >& VV,
+    Eigen::PlainObjectBase<DerivedD> &min_distance,
+    Eigen::PlainObjectBase<DerivedP> &previous);
+  /// Backtracking after Dijkstra's algorithm, to find shortest path.
+  ///
+  /// @param[in] vertex           vertex to which we want the shortest path (from same source as above)
+  /// @param[in] previous         #V by 1 list of the previous visited vertices (for each vertex) - result of Dijkstra's algorithm
+  /// @param[out] path             #P by 1 list of vertex indices in the shortest path from vertex to source
   template <typename IndexType, typename DerivedP>
-  IGL_INLINE void dijkstra_get_shortest_path_to(const IndexType &vertex,
-                                                const Eigen::PlainObjectBase<DerivedP> &previous,
-                                                std::vector<IndexType> &path);
-};
-
+  IGL_INLINE void dijkstra(
+    const IndexType &vertex,
+    const Eigen::MatrixBase<DerivedP> &previous,
+    std::vector<IndexType> &path);
+}
 
 #ifndef IGL_STATIC_LIBRARY
 #include "dijkstra.cpp"

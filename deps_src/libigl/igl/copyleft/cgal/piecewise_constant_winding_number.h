@@ -16,21 +16,19 @@ namespace igl
   {
     namespace cgal
     {
-      // PIECEWISE_CONSTANT_WINDING_NUMBER Determine if a given mesh induces a
-      // piecewise constant winding number field: Is this mesh valid input to
-      // solid set operations.
-      // 
-      // Inputs:
-      //   V  #V by 3 list of mesh vertex positions
-      //   F  #F by 3 list of triangle indices into V
-      // Returns true if the mesh _combinatorially_ induces a piecewise
-      // constant winding number field.
+      /// Determine if a given mesh induces a piecewise constant winding number
+      /// field: Is this mesh valid input to solid set operations.
+      /// 
+      /// @param[in] V  #V by 3 list of mesh vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices into V
+      /// @return true if the mesh _combinatorially_ induces a piecewise
+      /// constant winding number field.
       template <
         typename DerivedV,
         typename DerivedF>
       IGL_INLINE bool piecewise_constant_winding_number(
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedF>& F);
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF>& F);
     }
   }
 }

@@ -12,7 +12,6 @@
 
 IGL_INLINE bool igl::embree::unproject_onto_mesh(
   const Eigen::Vector2f& pos,
-  const Eigen::MatrixXi& F,
   const Eigen::Matrix4f& model,
   const Eigen::Matrix4f& proj,
   const Eigen::Vector4f& viewport,
@@ -25,7 +24,7 @@ IGL_INLINE bool igl::embree::unproject_onto_mesh(
   const auto & shoot_ray = [&ei](
     const Eigen::Vector3f& s,
     const Eigen::Vector3f& dir,
-    igl::Hit & hit)->bool
+    igl::Hit<float>  & hit)->bool
   {
     return ei.intersectRay(s,dir,hit);
   };
@@ -43,7 +42,7 @@ IGL_INLINE bool igl::embree::unproject_onto_mesh(
   int& vid)
 {
   Eigen::Vector3f bc;
-  if(!igl::embree::unproject_onto_mesh(pos,F,model,proj,viewport,ei,fid,bc))
+  if(!igl::embree::unproject_onto_mesh(pos,model,proj,viewport,ei,fid,bc))
   {
     return false;
   }

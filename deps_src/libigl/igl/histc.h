@@ -13,32 +13,32 @@
 
 namespace igl
 {
-  // Like matlab's histc. Count occurrences of values in X between consecutive
-  // entries in E
-  //
-  // Inputs:
-  //   X  m-long Vector of values
-  //   E  n-long Monotonically increasing vector of edges
-  // Outputs:
-  //   N  n-long vector where N(k) reveals how many values in X fall between
-  //     E(k) <= X < E(k+1)
-  //   B  m-long vector of bin ids so that B(j) = k if E(k) <= X(j) < E(k+1).
-  //     B(j) = -1 if X(j) is outside of E.
-  //
-  // O(n+m*log(n))
+  /// Count occurrences of values in X between consecutive
+  /// entries in E. Like matlab's histc. 
+  /// O(n+m*log(n))
+  ///
+  /// @param[in] X  m-long Vector of values
+  /// @param[in] E  n-long Monotonically increasing vector of edges
+  /// @param[out] N  n-long vector where N(k) reveals how many values in X fall between
+  ///     E(k) <= X < E(k+1)
+  /// @param[out] B  m-long vector of bin ids so that B(j) = k if E(k) <= X(j) < E(k+1).
+  ///     B(j) = -1 if X(j) is outside of E.
+  ///
   template <typename DerivedX, typename DerivedE, typename DerivedN, typename DerivedB>
   IGL_INLINE void histc(
     const Eigen::MatrixBase<DerivedX > & X,
     const Eigen::MatrixBase<DerivedE > & E,
     Eigen::PlainObjectBase<DerivedN > & N,
     Eigen::PlainObjectBase<DerivedB > & B);
-  // Truly O(m*log(n))
+  /// \overload
+  /// \brief Truly O(m*log(n))
   template <typename DerivedX, typename DerivedE, typename DerivedB>
   IGL_INLINE void histc(
     const Eigen::MatrixBase<DerivedX > & X,
     const Eigen::MatrixBase<DerivedE > & E,
     Eigen::PlainObjectBase<DerivedB > & B);
-  // Scalar search wrapper
+  /// \overload
+  /// \brief Scalar search wrapper
   template <typename DerivedE>
   IGL_INLINE void histc(
     const typename DerivedE::Scalar & x,

@@ -10,14 +10,13 @@
 #include "igl_inline.h"
 namespace igl
 {
-  // Check if a file exists *and* is writable like PHP's is_writable function:
-  // http://www.php.net/manual/en/function.is-writable.php
-  // Input:
-  //   filename  path to file
-  // Returns true if file exists and is writable and false if file doesn't
-  // exist or *is not writable*
-  //
-  // Note: Windows version will not test group and user id
+  /// Check if a file exists *and* is writable like PHP's is_writable function:
+  /// http://www.php.net/manual/en/function.is-writable.php
+  /// @param[in] filename  path to file
+  /// @return true if file exists and is writable and false if file doesn't
+  /// exist or *is not writable*
+  ///
+  /// \note Windows version will not test group and user id
   IGL_INLINE bool is_writable(const char * filename);
 }
 

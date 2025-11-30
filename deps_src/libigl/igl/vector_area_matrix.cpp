@@ -6,18 +6,16 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "vector_area_matrix.h"
+#include "boundary_facets.h"
 #include <vector>
 
 // Bug in unsupported/Eigen/SparseExtra needs iostream first
 #include <iostream>
 #include <unsupported/Eigen/SparseExtra>
 
-//#include <igl/boundary_loop.h>
-#include <igl/boundary_facets.h>
-
 template <typename DerivedF, typename Scalar>
 IGL_INLINE void igl::vector_area_matrix(
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedF> & F,
   Eigen::SparseMatrix<Scalar>& A)
 {
   using namespace Eigen;
@@ -26,6 +24,7 @@ IGL_INLINE void igl::vector_area_matrix(
   // number of vertices
   const int n = F.maxCoeff()+1;
 
+  assert(F.cols() == 3);
   MatrixXi E;
   boundary_facets(F,E);
 
@@ -50,5 +49,5 @@ IGL_INLINE void igl::vector_area_matrix(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::vector_area_matrix<Eigen::Matrix<int, -1, -1, 0, -1, -1>, double>(Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::SparseMatrix<double, 0, int>&);
+template void igl::vector_area_matrix<Eigen::Matrix<int, -1, -1, 0, -1, -1>, double>(Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::SparseMatrix<double, 0, int>&);
 #endif

@@ -1,16 +1,16 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2016 Alec Jacobson <alecjacobson@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "eigs.h"
 
 #include "cotmatrix.h"
 #include "sort.h"
-#include "slice.h"
 #include "massmatrix.h"
+#include "placeholders.h"
 #include <iostream>
 
 template <
@@ -80,7 +80,6 @@ IGL_INLINE bool igl::eigs(
       sigma = x.dot(A*x)/x.dot(B*x);
       //x *= sigma>0?1.:-1.;
 
-      Scalar err_prev = err;
       err = (A*x-sigma*B*x).array().abs().maxCoeff();
       if(err<conv)
       {
@@ -111,10 +110,14 @@ IGL_INLINE bool igl::eigs(
             case Eigen::Success:
               break;
             case Eigen::NumericalIssue:
+#ifdef IGL_EIGS_DEBUG
               cerr<<"Error: Numerical issue."<<endl;
+#endif
               return false;
             default:
+#ifdef IGL_EIGS_DEBUG
               cerr<<"Error: Other."<<endl;
+#endif
               return false;
           }
           const VectorXS rhs = B*x;
@@ -135,7 +138,7 @@ IGL_INLINE bool igl::eigs(
       return false;
     }
     if(
-      i==0 || 
+      i==0 ||
       (S.head(i).array()-sigma).abs().maxCoeff()>1e-14 ||
       ((U.leftCols(i).transpose()*B*x).array().abs()<=1e-7).all()
       )
@@ -161,7 +164,7 @@ IGL_INLINE bool igl::eigs(
   // finally sort
   VectorXi I;
   igl::sort(S,1,false,sS,I);
-  igl::slice(U,I,2,sU);
+  sU = U(igl::placeholders::all,I);
   sS /= rescale;
   sU /= sqrt(rescale);
   return true;
@@ -170,7 +173,4 @@ IGL_INLINE bool igl::eigs(
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
 template bool igl::eigs<double, double, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::SparseMatrix<double, 0, int> const&, Eigen::SparseMatrix<double, 0, int> const&, const size_t, igl::EigsType, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&);
-#ifdef WIN32
-template bool igl::eigs<double, double, Eigen::Matrix<double,-1,-1,0,-1,-1>, Eigen::Matrix<double,-1,1,0,-1,1> >(Eigen::SparseMatrix<double,0,int> const &,Eigen::SparseMatrix<double,0,int> const &, const size_t, igl::EigsType, Eigen::PlainObjectBase< Eigen::Matrix<double,-1,-1,0,-1,-1> > &, Eigen::PlainObjectBase<Eigen::Matrix<double,-1,1,0,-1,1> > &);
-#endif
 #endif

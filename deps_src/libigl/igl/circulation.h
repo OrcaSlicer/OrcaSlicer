@@ -13,41 +13,78 @@
 
 namespace igl
 {
-  // Return list of faces around the end point of an edge. Assumes
-  // data-structures are built from an edge-manifold **closed** mesh.
-  //
-  // Inputs:
-  //   e  index into E of edge to circulate
-  //   ccw  whether to _continue_ in ccw direction of edge (circulate around
-  //     E(e,1))
-  //   F  #F by 3 list of face indices
-  //   E  #E by 2 list of edge indices
-  //   EMAP #F*3 list of indices into E, mapping each directed edge to unique
-  //     unique edge in E
-  //   EF  #E by 2 list of edge flaps, EF(e,0)=f means e=(i-->j) is the edge of
-  //     F(f,:) opposite the vth corner, where EI(e,0)=v. Similarly EF(e,1) "
-  //     e=(j->i)
-  //   EI  #E by 2 list of edge flap corners (see above).
-  // Returns list of faces touched by circulation (in cyclically order).
-  //   
+  /// Return list of faces around the end point of an edge. Assumes
+  /// data-structures are built from an edge-manifold **closed** mesh.
+  ///
+  /// @param[in] e  index into E of edge to circulate
+  /// @param[in] ccw  whether to _continue_ in ccw direction of edge (circulate around
+  ///     E(e,1))
+  /// @param[in] EMAP #F*3 list of indices into E, mapping each directed edge to unique
+  ///     unique edge in E
+  /// @param[in] EF  #E by 2 list of edge flaps, EF(e,0)=f means e=(i-->j) is the edge of
+  ///     F(f,:) opposite the vth corner, where EI(e,0)=v. Similarly EF(e,1) "
+  ///     e=(j->i)
+  /// @param[in] EI  #E by 2 list of edge flap corners (see above).
+  /// @return list of faces touched by circulation (in cyclically order).
+  ///   
+  /// \see edge_flaps
+  template <typename DerivedEMAP, typename DerivedEF, typename DerivedEI>
   IGL_INLINE std::vector<int> circulation(
     const int e,
     const bool ccw,
-    const Eigen::MatrixXi & F,
-    const Eigen::MatrixXi & E,
-    const Eigen::VectorXi & EMAP,
-    const Eigen::MatrixXi & EF,
-    const Eigen::MatrixXi & EI);
-  // Wrapper with VectorXi output.
+    const Eigen::MatrixBase<DerivedEMAP> & EMAP,
+    const Eigen::MatrixBase<DerivedEF> & EF,
+    const Eigen::MatrixBase<DerivedEI> & EI);
+  /// Return list of faces around the end point of an edge. Assumes
+  /// data-structures are built from an edge-manifold **closed** mesh.
+  ///
+  /// @param[in] e  index into E of edge to circulate
+  /// @param[in] ccw  whether to _continue_ in ccw direction of edge (circulate around
+  ///     E(e,1))
+  /// @param[in] EMAP #F*3 list of indices into E, mapping each directed edge to unique
+  ///     unique edge in E
+  /// @param[in] EF  #E by 2 list of edge flaps, EF(e,0)=f means e=(i-->j) is the edge of
+  ///     F(f,:) opposite the vth corner, where EI(e,0)=v. Similarly EF(e,1) "
+  ///     e=(j->i)
+  /// @param[in] EI  #E by 2 list of edge flap corners (see above).
+  /// @param[out] #vN list of of faces touched by circulation (in cyclically order).
+  ///   
+  /// \see edge_flaps
+  template <typename DerivedEMAP, typename DerivedEF, typename DerivedEI, typename DerivedvN>
   IGL_INLINE void circulation(
     const int e,
     const bool ccw,
-    const Eigen::MatrixXi & F,
-    const Eigen::MatrixXi & E,
-    const Eigen::VectorXi & EMAP,
-    const Eigen::MatrixXi & EF,
-    const Eigen::MatrixXi & EI,
-    Eigen::VectorXi & vN);
+    const Eigen::MatrixBase<DerivedEMAP> & EMAP,
+    const Eigen::MatrixBase<DerivedEF> & EF,
+    const Eigen::MatrixBase<DerivedEI> & EI,
+    Eigen::PlainObjectBase<DerivedvN> & vN);
+  /// Return list of faces around the end point of an edge. Assumes
+  /// data-structures are built from an edge-manifold **closed** mesh.
+  ///
+  /// @param[in] e  index into E of edge to circulate
+  /// @param[in] ccw  whether to _continue_ in ccw direction of edge (circulate around
+  ///     E(e,1))
+  /// @param[in] EMAP #F*3 list of indices into E, mapping each directed edge to unique
+  ///     unique edge in E
+  /// @param[in] EF  #E by 2 list of edge flaps, EF(e,0)=f means e=(i-->j) is the edge of
+  ///     F(f,:) opposite the vth corner, where EI(e,0)=v. Similarly EF(e,1) "
+  ///     e=(j->i)
+  /// @param[in] EI  #E by 2 list of edge flap corners (see above).
+  ///  @param[out] Nv  #Nv list of "next" vertex indices
+  ///  @param[out] Nf  #Nf list of face indices
+  ///   
+  /// \see edge_flaps
+  template <typename DerivedF, typename DerivedEMAP, typename DerivedEF, typename DerivedEI, typename Nv_type>
+  IGL_INLINE void circulation(
+    const int e,
+    const bool ccw,
+    const Eigen::MatrixBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedEMAP> & EMAP,
+    const Eigen::MatrixBase<DerivedEF> & EF,
+    const Eigen::MatrixBase<DerivedEI> & EI,
+    /*std::vector<int> & Ne,*/
+    std::vector<Nv_type> & Nv,
+    std::vector<Nv_type> & Nf);
 }
 
 #ifndef IGL_STATIC_LIBRARY

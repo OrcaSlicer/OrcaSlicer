@@ -13,15 +13,13 @@
 
 namespace igl 
 {
-  // Given 2 vectors centered on origin calculate the rotation matrix from
-  // first to the second
-  //
-  // Inputs:
-  //   v0  3D column vector
-  //   v1  3D column vector
-  // Output:
-  //   3 by 3 rotation matrix that takes v0 to v1
-  //
+  /// Given 2 vectors centered on origin calculate the rotation matrix from
+  /// first to the second
+  ///
+  /// @param[in] v0  3D column vector
+  /// @param[in] v1  3D column vector
+  /// @param[out] 3 by 3 rotation matrix that takes v0 to v1
+  ///
   template <typename Scalar>
   IGL_INLINE Eigen::Matrix<Scalar, 3, 3> rotation_matrix_from_directions(
     const Eigen::Matrix<Scalar, 3, 1> v0,

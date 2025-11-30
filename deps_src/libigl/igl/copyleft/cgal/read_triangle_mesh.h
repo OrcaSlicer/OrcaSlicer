@@ -16,15 +16,15 @@ namespace igl
   {
     namespace cgal
     {
-      // Simple wrapper, reads floating point precision but assigns to
-      // DerivedV::Scalar which may be a CGAL type
-      //
-      // Inputs:
-      //   str  path to file
-      // Outputs:
-      //   V  eigen double matrix #V by 3
-      //   F  eigen int matrix #F by 3
-      // Returns true iff success
+      /// Simple wrapper, reads floating point precision but assigns to
+      /// DerivedV::Scalar which may be a CGAL type
+      ///
+      /// @param[in] str  path to file
+      /// @param[out] V  eigen double matrix #V by 3
+      /// @param[out] F  eigen int matrix #F by 3
+      /// @return true iff success
+      ///
+      /// \see igl::read_triangle_mesh
       template <typename DerivedV, typename DerivedF>
       IGL_INLINE bool read_triangle_mesh(
         const std::string str,

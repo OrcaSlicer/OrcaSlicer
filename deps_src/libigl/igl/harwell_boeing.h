@@ -15,23 +15,20 @@
 
 namespace igl
 {
-  // Convert the matrix to Compressed sparse column (CSC or CCS) format,
-  // also known as Harwell Boeing format. As described:
-  // http://netlib.org/linalg/html_templates/node92.html
-  // or
-  // http://en.wikipedia.org/wiki/Sparse_matrix
-  //   #Compressed_sparse_column_.28CSC_or_CCS.29
-  // Templates:
-  //   Scalar  type of sparse matrix like double
-  // Inputs:
-  //   A  sparse m by n matrix
-  // Outputs:
-  //   num_rows  number of rows
-  //   V  non-zero values, row indices running fastest, size(V) = nnz 
-  //   R  row indices corresponding to vals, size(R) = nnz
-  //   C  index in vals of first entry in each column, size(C) = num_cols+1
-  //
-  // All indices and pointers are 0-based
+  /// Convert the matrix to Compressed sparse column (CSC or CCS) format,
+  /// also known as Harwell Boeing format. As described:
+  /// http://netlib.org/linalg/html_templates/node92.html
+  /// or
+  /// http://en.wikipedia.org/wiki/Sparse_matrix
+  ///   #Compressed_sparse_column_.28CSC_or_CCS.29
+  /// @tparam Scalar  type of sparse matrix like double
+  /// @param[in] A  sparse m by n matrix
+  /// @param[out] num_rows  number of rows
+  /// @param[out] V  non-zero values, row indices running fastest, size(V) = nnz 
+  /// @param[out] R  row indices corresponding to vals, size(R) = nnz
+  /// @param[out] C  index in vals of first entry in each column, size(C) = num_cols+1
+  ///
+  /// \note All indices and pointers are 0-based
   template <typename Scalar, typename Index>
   IGL_INLINE void harwell_boeing(
     const Eigen::SparseMatrix<Scalar> & A,

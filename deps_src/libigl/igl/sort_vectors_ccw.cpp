@@ -5,14 +5,14 @@
 // This Source Code Form is subject to the terms of the Mozilla Public License 
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can 
 // obtain one at http://mozilla.org/MPL/2.0/.
-#include <igl/sort_vectors_ccw.h>
-#include <igl/sort.h>
+#include "sort_vectors_ccw.h"
+#include "sort.h"
 #include <Eigen/Dense>
 
 template <typename DerivedS, typename DerivedI>
 IGL_INLINE void igl::sort_vectors_ccw(
-  const Eigen::PlainObjectBase<DerivedS>& P,
-  const Eigen::PlainObjectBase<DerivedS>& N,
+  const Eigen::MatrixBase<DerivedS>& P,
+  const Eigen::MatrixBase<DerivedS>& N,
   Eigen::PlainObjectBase<DerivedI> &order)
 {
   int half_degree = P.cols()/3;
@@ -45,8 +45,8 @@ IGL_INLINE void igl::sort_vectors_ccw(
 
 template <typename DerivedS, typename DerivedI>
 IGL_INLINE void igl::sort_vectors_ccw(
-  const Eigen::PlainObjectBase<DerivedS>& P,
-  const Eigen::PlainObjectBase<DerivedS>& N,
+  const Eigen::MatrixBase<DerivedS>& P,
+  const Eigen::MatrixBase<DerivedS>& N,
   Eigen::PlainObjectBase<DerivedI> &order,
   Eigen::PlainObjectBase<DerivedS> &sorted)
   {
@@ -59,8 +59,8 @@ IGL_INLINE void igl::sort_vectors_ccw(
 
 template <typename DerivedS, typename DerivedI>
 IGL_INLINE void igl::sort_vectors_ccw(
-  const Eigen::PlainObjectBase<DerivedS>& P,
-  const Eigen::PlainObjectBase<DerivedS>& N,
+  const Eigen::MatrixBase<DerivedS>& P,
+  const Eigen::MatrixBase<DerivedS>& N,
   Eigen::PlainObjectBase<DerivedI> &order,
   Eigen::PlainObjectBase<DerivedI> &inv_order)
   {
@@ -81,8 +81,8 @@ IGL_INLINE void igl::sort_vectors_ccw(
 
 template <typename DerivedS, typename DerivedI>
 IGL_INLINE void igl::sort_vectors_ccw(
-  const Eigen::PlainObjectBase<DerivedS>& P,
-  const Eigen::PlainObjectBase<DerivedS>& N,
+  const Eigen::MatrixBase<DerivedS>& P,
+  const Eigen::MatrixBase<DerivedS>& N,
   Eigen::PlainObjectBase<DerivedI> &order,
   Eigen::PlainObjectBase<DerivedS> &sorted,
   Eigen::PlainObjectBase<DerivedI> &inv_order)
@@ -98,6 +98,6 @@ IGL_INLINE void igl::sort_vectors_ccw(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::sort_vectors_ccw<Eigen::Matrix<double, 1, -1, 1, 1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
-template void igl::sort_vectors_ccw<Eigen::Matrix<double, 1, -1, 1, 1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> >&);
+template void igl::sort_vectors_ccw<Eigen::Matrix<double, 1, -1, 1, 1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+template void igl::sort_vectors_ccw<Eigen::Matrix<double, 1, -1, 1, 1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, 1, -1, 1, 1, -1> >&);
 #endif

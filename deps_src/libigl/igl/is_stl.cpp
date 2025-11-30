@@ -1,4 +1,4 @@
-#include "is_stl.h"
+#include "is_stl.h" 
 #include <string>
 IGL_INLINE bool igl::is_stl(FILE * stl_file, bool & is_ascii)
 {
@@ -41,6 +41,8 @@ IGL_INLINE bool igl::is_stl(FILE * stl_file, bool & is_ascii)
     f = false;
     goto finish;
   }
+  // make sure sscanf doesn't read past the end of the header, overwriting stack
+  header[sizeof(header)-1]='\0';
 
   sscanf(header,"%s",solid);
   if(std::string("solid") == solid)

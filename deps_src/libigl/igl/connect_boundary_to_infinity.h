@@ -11,42 +11,46 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Connect all boundary edges to a fictitious point at infinity.
-  //
-  // Inputs:
-  //   F  #F by 3 list of face indices into some V
-  // Outputs:
-  //   FO  #F+#O by 3 list of face indices into [V;inf inf inf], original F are
-  //     guaranteed to come first. If (V,F) was a manifold mesh, now it is
-  //     closed with a possibly non-manifold vertex at infinity (but it will be
-  //     edge-manifold).
+  /// Connect all boundary edges to a fictitious point at infinity.
+  ///
+  /// @param[in] F  #F by 3 list of face indices into some V
+  /// @param[out] FO  #F+#O by 3 list of face indices into [V;inf inf inf], original F are
+  ///     guaranteed to come first. If (V,F) was a manifold mesh, now it is
+  ///     closed with a possibly non-manifold vertex at infinity (but it will be
+  ///     edge-manifold).
   template <typename DerivedF, typename DerivedFO>
   IGL_INLINE void connect_boundary_to_infinity(
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedF> & F,
     Eigen::PlainObjectBase<DerivedFO> & FO);
-  // Inputs:
-  //   inf_index  index of point at infinity (usually V.rows() or F.maxCoeff())
+  /// Connect all boundary edges to a fictitious point at infinity.
+  ///
+  /// @param[in] F  #F by 3 list of face indices into some V
+  /// @param[in] inf_index  index of point at infinity (usually V.rows() or F.maxCoeff())
+  /// @param[out] FO  #F+#O by 3 list of face indices into [V;inf inf inf], original F are
+  ///     guaranteed to come first. If (V,F) was a manifold mesh, now it is
+  ///     closed with a possibly non-manifold vertex at infinity (but it will be
+  ///     edge-manifold).
   template <typename DerivedF, typename DerivedFO>
   IGL_INLINE void connect_boundary_to_infinity(
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedF> & F,
     const typename DerivedF::Scalar inf_index,
     Eigen::PlainObjectBase<DerivedFO> & FO);
-  // Inputs:
-  //   V  #V by 3 list of vertex positions
-  //   F  #F by 3 list of face indices into some V
-  // Outputs:
-  //   VO  #V+1 by 3 list of vertex positions, original V are guaranteed to
-  //     come first. Last point is inf, inf, inf
-  //   FO  #F+#O by 3 list of face indices into VO
-  // 
+  /// Connect all boundary edges to a fictitious point at infinity.
+  ///
+  /// @param[in] V  #V by 3 list of vertex positions
+  /// @param[in] F  #F by 3 list of face indices into some V
+  /// @param[out] VO  #V+1 by 3 list of vertex positions, original V are guaranteed to
+  ///     come first. Last point is inf, inf, inf
+  /// @param[out] FO  #F+#O by 3 list of face indices into VO
+  /// 
   template <
     typename DerivedV, 
     typename DerivedF, 
     typename DerivedVO, 
     typename DerivedFO>
   IGL_INLINE void connect_boundary_to_infinity(
-    const Eigen::PlainObjectBase<DerivedV> & V,
-    const Eigen::PlainObjectBase<DerivedF> & F,
+    const Eigen::MatrixBase<DerivedV> & V,
+    const Eigen::MatrixBase<DerivedF> & F,
     Eigen::PlainObjectBase<DerivedVO> & VO,
     Eigen::PlainObjectBase<DerivedFO> & FO);
 }

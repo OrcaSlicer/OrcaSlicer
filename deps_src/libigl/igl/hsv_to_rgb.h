@@ -11,25 +11,30 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Convert RGB to HSV
-  //
-  // Inputs:
-  //   h  hue value (degrees: [0,360])
-  //   s  saturation value ([0,1])
-  //   v  value value ([0,1])
-  // Outputs:
-  //   r  red value ([0,1]) 
-  //   g  green value ([0,1])
-  //   b  blue value ([0,1])
+  /// Convert RGB to HSV
+  ///
+  /// @param[in] hsv with
+  ///   - h hue value (degrees: [0,360]. Values outside this range will be mapped periodically to [0,360].)
+  ///   - s  saturation value ([0,1])
+  ///   - v  value value ([0,1])
+  /// @param[out] rgb with:
+  ///   - r  red value ([0,1]) 
+  ///   - g  green value ([0,1])
+  ///   - b  blue value ([0,1])
   template <typename T>
   IGL_INLINE void hsv_to_rgb(const T * hsv, T * rgb);
+  /// \overload
   template <typename T>
   IGL_INLINE void hsv_to_rgb( 
     const T & h, const T & s, const T & v, 
     T & r, T & g, T & b);
+  /// \overload
+  ///
+  /// @param[in] H #H by 3 list of hsv values
+  /// @param[out] R #H by 3 list of rgb values
   template <typename DerivedH, typename DerivedR>
   void hsv_to_rgb(
-    const Eigen::PlainObjectBase<DerivedH> & H,
+    const Eigen::MatrixBase<DerivedH> & H,
     Eigen::PlainObjectBase<DerivedR> & R);
 };
 

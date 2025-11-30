@@ -13,38 +13,34 @@
 #include "src/Core/util/DisableStupidWarnings.h"
 
 /** \defgroup LU_Module LU module
-  * This module includes %LU decomposition and related notions such as matrix inversion and determinant.
-  * This module defines the following MatrixBase methods:
-  *  - MatrixBase::inverse()
-  *  - MatrixBase::determinant()
-  *
-  * \code
-  * #include <Eigen/LU>
-  * \endcode
-  */
+ * This module includes %LU decomposition and related notions such as matrix inversion and determinant.
+ * This module defines the following MatrixBase methods:
+ *  - MatrixBase::inverse()
+ *  - MatrixBase::determinant()
+ *
+ * \code
+ * #include <Eigen/LU>
+ * \endcode
+ */
 
 #include "src/misc/Kernel.h"
 #include "src/misc/Image.h"
+
+// IWYU pragma: begin_exports
 #include "src/LU/FullPivLU.h"
 #include "src/LU/PartialPivLU.h"
 #ifdef EIGEN_USE_LAPACKE
-#ifdef EIGEN_USE_MKL
-#include "mkl_lapacke.h"
-#else
-#include "src/misc/lapacke.h"
-#endif
+#include "src/misc/lapacke_helpers.h"
 #include "src/LU/PartialPivLU_LAPACKE.h"
 #endif
 #include "src/LU/Determinant.h"
 #include "src/LU/InverseImpl.h"
 
-// Use the SSE optimized version whenever possible. At the moment the
-// SSE version doesn't compile when AVX is enabled
-#if defined EIGEN_VECTORIZE_SSE && !defined EIGEN_VECTORIZE_AVX
-  #include "src/LU/arch/Inverse_SSE.h"
+#if defined EIGEN_VECTORIZE_SSE || defined EIGEN_VECTORIZE_NEON
+#include "src/LU/arch/InverseSize4.h"
 #endif
+// IWYU pragma: end_exports
 
 #include "src/Core/util/ReenableStupidWarnings.h"
 
-#endif // EIGEN_LU_MODULE_H
-/* vim: set filetype=cpp et sw=2 ts=2 ai: */
+#endif  // EIGEN_LU_MODULE_H

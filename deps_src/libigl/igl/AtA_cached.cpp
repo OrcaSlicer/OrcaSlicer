@@ -6,6 +6,7 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "AtA_cached.h"
+#include "IGL_ASSERT.h"
 
 #include <iostream>
 #include <vector>
@@ -34,12 +35,12 @@ IGL_INLINE void igl::AtA_cached_precompute(
       int col = k;
       int row = *(A.innerIndexPtr()+l);
       int value_index = l;
-      assert(col < A.cols());
-      assert(col >= 0);
-      assert(row < A.rows());
-      assert(row >= 0);
-      assert(value_index >= 0);
-      assert(value_index < A.nonZeros());
+      IGL_ASSERT(col < A.cols());
+      IGL_ASSERT(col >= 0);
+      IGL_ASSERT(row < A.rows());
+      IGL_ASSERT(row >= 0);
+      IGL_ASSERT(value_index >= 0);
+      IGL_ASSERT(value_index < A.nonZeros());
 
       Col_RowPtr[col].push_back(row);
       Col_IndexPtr[col].push_back(value_index);
@@ -74,12 +75,12 @@ IGL_INLINE void igl::AtA_cached_precompute(
       int col = k;
       int row = *(AtA.innerIndexPtr()+l);
       int value_index = l;
-      assert(col < AtA.cols());
-      assert(col >= 0);
-      assert(row < AtA.rows());
-      assert(row >= 0);
-      assert(value_index >= 0);
-      assert(value_index < AtA.nonZeros());
+      IGL_ASSERT(col < AtA.cols());
+      IGL_ASSERT(col >= 0);
+      IGL_ASSERT(row < AtA.rows());
+      IGL_ASSERT(row >= 0);
+      IGL_ASSERT(value_index >= 0);
+      IGL_ASSERT(value_index < AtA.nonZeros());
 
       data.I_outer.push_back(data.I_row.size());
 

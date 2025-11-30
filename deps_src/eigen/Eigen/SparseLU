@@ -13,18 +13,19 @@
 
 #include "SparseCore"
 
-/** 
-  * \defgroup SparseLU_Module SparseLU module
-  * This module defines a supernodal factorization of general sparse matrices.
-  * The code is fully optimized for supernode-panel updates with specialized kernels.
-  * Please, see the documentation of the SparseLU class for more details.
-  */
+/**
+ * \defgroup SparseLU_Module SparseLU module
+ * This module defines a supernodal factorization of general sparse matrices.
+ * The code is fully optimized for supernode-panel updates with specialized kernels.
+ * Please, see the documentation of the SparseLU class for more details.
+ */
 
 // Ordering interface
 #include "OrderingMethods"
 
-#include "src/SparseLU/SparseLU_gemm_kernel.h"
+#include "src/Core/util/DisableStupidWarnings.h"
 
+// IWYU pragma: begin_exports
 #include "src/SparseLU/SparseLU_Structs.h"
 #include "src/SparseLU/SparseLU_SupernodalMatrix.h"
 #include "src/SparseLU/SparseLUImpl.h"
@@ -42,5 +43,8 @@
 #include "src/SparseLU/SparseLU_pruneL.h"
 #include "src/SparseLU/SparseLU_Utils.h"
 #include "src/SparseLU/SparseLU.h"
+// IWYU pragma: end_exports
 
-#endif // EIGEN_SPARSELU_MODULE_H
+#include "src/Core/util/ReenableStupidWarnings.h"
+
+#endif  // EIGEN_SPARSELU_MODULE_H

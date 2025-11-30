@@ -16,15 +16,13 @@ namespace igl
   {
     namespace cgal
     {
-      // Given a point P1 and triangle T2 find the points on each of closest
-      // approach and the squared distance thereof.
-      // 
-      // Inputs:
-      //   P1  point
-      //   T2  triangle
-      // Outputs:
-      //   P2  point on T2 closest to P1
-      //   d  distance betwee P1 and T2
+      /// Given a point P1 and triangle T2 find the points on each of closest
+      /// approach and the squared distance thereof.
+      /// 
+      /// @param[in] P1  point
+      /// @param[in] T2  triangle
+      /// @param[out] P2  point on T2 closest to P1
+      /// @param[out] d  distance betwee P1 and T2
       template < typename Kernel>
       IGL_INLINE void point_triangle_squared_distance(
         const CGAL::Point_3<Kernel> & P1,
