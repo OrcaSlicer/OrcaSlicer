@@ -3761,6 +3761,14 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         return;
 
     EMoveType type = move_type(delta_pos);
+
+    if (type == EMoveType::Travel &&
+        m_start_position[Z] == m_end_position[Z] &&
+        m_end_position[Z] == m_extruded_last_z &&
+        line.f() == 0) {
+        type = EMoveType::Extrude;
+    }
+
     if (type == EMoveType::Extrude) {
         const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
         m_travel_dist = delta_xyz;
@@ -4616,6 +4624,12 @@ void  GCodeProcessor::process_G2_G3(const GCodeReader::GCodeLine& line)
 
     EMoveType type = move_type(delta_pos[E]);
 
+    if (type == EMoveType::Travel &&
+        m_start_position[Z] == m_end_position[Z] &&
+        m_end_position[Z] == m_extruded_last_z &&
+        line.f() == 0) {
+        type = EMoveType::Extrude;
+    }
 
     const float delta_xyz = std::sqrt(sqr(arc_length) + sqr(delta_pos[Z]));
     m_travel_dist         = delta_xyz;

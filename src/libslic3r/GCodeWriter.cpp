@@ -930,13 +930,7 @@ std::string GCodeWriter::_retract(double length, double restart_extra, const std
             gcode = FLAVOR_IS(gcfMachinekit) ? "G22 ; retract\n" : "G10 ; retract\n";
         }
         else {
-            // BBS
-            GCodeG1Formatter w;
-            w.emit_e(filament()->E());
-            w.emit_f(filament()->retract_speed() * 60.);
-            // BBS
-            w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-            gcode = w.string();
+            this->emit_retract(filament()->E(), comment);
         }
     }
 
@@ -959,18 +953,37 @@ std::string GCodeWriter::unretract()
             gcode += this->reset_e();
         }
         else {
-            //BBS
-            // use G1 instead of G0 because G0 will blend the restart with the previous travel move
-            GCodeG1Formatter w;
-            w.emit_e(filament()->E());
-            w.emit_f(filament()->deretract_speed() * 60.);
-            //BBS
-            w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");
-            gcode += w.string();
+            this->emit_unretract(filament()->E(), " ; unretract");
         }
     }
-
+    
     return gcode;
+}
+
+std::string GCodeWriter::emit_retract(double E, std::string comment)
+{
+    //BBS
+    // use G1 instead of G0 because G0 will blend the restart with the previous travel move
+    GCodeG1Formatter w;
+    w.emit_e(-E);
+    w.emit_f(filament()->retract_speed() * 60.);
+    //BBS
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+    return w.string();
+}
+
+std::string GCodeWriter::emit_unretract(double E, std::string comment)
+{
+    //BBS
+    // use G1 instead of G0 because G0 will blend the restart with the previous travel move
+    GCodeG1Formatter w;
+    w.emit_e(E);
+    w.emit_f(filament()->deretract_speed() * 60.);
+    //BBS
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+    return w.string();
 }
 
 

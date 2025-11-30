@@ -3899,6 +3899,26 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(10));
 
+    def = this->add("ironing_retract", coFloat);
+    def->label = L("Ironing retract");
+    def->category = L("Quality");
+    def->tooltip = L("Retract length before ironing with zero flow.");
+    def->sidetext = "mm";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(20));
+
+    def = this->add("ironing_unretract_extra", coFloat);
+    def->label = L("Ironing unretract extra");
+    def->category = L("Quality");
+    def->tooltip = L("Extra unretract length after ironing with zero flow.");
+    def->sidetext = "mm";
+    def->min = -20;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def = this->add("ironing_spacing", coFloat);
     def->label = L("Ironing line spacing");
     def->category = L("Quality");

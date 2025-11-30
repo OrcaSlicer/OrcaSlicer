@@ -795,6 +795,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     for (auto el : { "ironing_pattern", "ironing_flow", "ironing_spacing", "ironing_angle", "ironing_inset", "ironing_angle_fixed" })
         toggle_line(el, has_ironing);
     
+    for (auto el : { "ironing_retract", "ironing_unretract_extra"})
+        toggle_line(el,  has_ironing && config->opt<ConfigOptionPercent>("ironing_flow")->value == 0);
+
     toggle_line("ironing_speed", has_ironing || has_support_ironing);
 
     bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);

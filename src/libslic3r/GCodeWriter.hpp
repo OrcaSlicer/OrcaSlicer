@@ -83,6 +83,8 @@ public:
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
     std::string unretract();
+    std::string emit_retract(double E, std::string comment);
+    std::string emit_unretract(double E, std::string comment);
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
