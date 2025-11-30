@@ -49,8 +49,8 @@ public:
     }
 
     // BBS
-    static ColorRGBA enforcers_color;
-    static ColorRGBA blockers_color;
+    static const ColorRGBA enforcers_color;
+    static const ColorRGBA blockers_color;
 
 #ifdef PRUSASLICER_TRIANGLE_SELECTOR_DEBUG
     void render_debug(ImGuiWrapper* imgui);

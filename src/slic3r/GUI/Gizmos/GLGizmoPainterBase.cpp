@@ -1126,8 +1126,8 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
     return TriangleSelector::ClippingPlane({float(normal_transformed.x()), float(normal_transformed.y()), float(normal_transformed.z()), offset_transformed});
 }
 
-ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
-ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
+const ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
+const ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
 
 ColorRGBA TriangleSelectorGUI::get_seed_fill_color(const ColorRGBA& base_color)
 {
@@ -1151,10 +1151,10 @@ void TriangleSelectorGUI::render(ImGuiWrapper* imgui, const Transform3d& matrix)
         return;
     assert(shader->get_name() == "gouraud" || shader->get_name() == "mm_gouraud");
 
-    for (auto iva : {std::make_pair(&m_iva_enforcers, enforcers_color),
-                     std::make_pair(&m_iva_blockers, blockers_color)}) {
-        iva.first->set_color(iva.second);
-        iva.first->render();
+    for (auto iva : {std::make_pair<GLModel &, const ColorRGBA &>(m_iva_enforcers, enforcers_color),
+                     std::make_pair(m_iva_blockers, blockers_color)}) {
+        iva.first.set_color(iva.second);
+        iva.first.render();
     }
 
     for (auto& iva : m_iva_seed_fills) {
