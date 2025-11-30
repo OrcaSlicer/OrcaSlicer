@@ -1,0 +1,166 @@
+{
+    "type": "machine",
+    "name": "M3D Enabler D8500 MM",
+    "printer_model": "M3D Enabler D8500 MM Model",
+    "printer_variant": "0.4",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "true",
+    "is_custom_defined": "0",
+    "setting_id": "M3D_D8500_MM_04",
+    "version": "1.0.0",
+    
+    "auxiliary_fan": "1",
+    "change_filament_gcode": "M18 E",
+    "deretraction_speed": [
+        "50",
+        "50"
+    ],
+    "extruder_clearance_height_to_rod": "19",
+    "extruder_clearance_radius": "100",
+    "extruder_colour": [
+        "#FCE94F",
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0",
+        "0x0"
+    ],
+    "fan_speedup_time": "1",
+    "host_type": "esp3d",
+    "long_retractions_when_cut": [
+        "0",
+        "0"
+    ],
+    "machine_end_gcode": "; ===== ORCA END GCODE =====\nM400\nM83\nG92 E0\nG1 E-17 F1800           ; retract BEFORE any moves or power changes\n\n; Now lift and park\nG91\nG1 Z2 F2000\nG90\nG1 X100 Y160 F3000      ; parking point\n\n; Power down in order\nM104 T0 S0\nM104 T1 S0\nM106 S50                ; keep fan at ~50% while cooling (adjust if desired)\n; (Leave steppers on by omitting M84)\n; ===== END ORCA END GCODE =====\n",
+    "machine_load_filament_time": "0.5",
+    "machine_max_acceleration_e": [
+        "10000",
+        "10000"
+    ],
+    "machine_max_acceleration_x": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_acceleration_y": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_acceleration_z": [
+        "400",
+        "400"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "400",
+        "400"
+    ],
+    "machine_max_speed_y": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_start_gcode": "; ===== ORCA START GCODE =====\n; minx:{first_layer_print_min[0]}\n; miny:{first_layer_print_min[1]}\n; maxx:{first_layer_print_max[0]}\n; maxy:{first_layer_print_max[1]}\n; used_0:{is_extruder_used[0]}\n; used_1:{is_extruder_used[1]}\n\n; Heaters\n{if is_extruder_used[0]}M104 T0 S{first_layer_temperature[0]}{endif}\n{if !is_extruder_used[0]}M104 T0 S150{endif}\n{if is_extruder_used[1]}M104 T1 S{first_layer_temperature[1]}{endif}\n{if !is_extruder_used[1]}M104 T1 S150{endif}\nM140 S0\nM106 S50\n\n; Home and clearance\nG28 X Y\nG28 Z\nG91\nG1 Z10 F1200            ; lift 10mm\nG90\n\n; Bed wait (dummy)\nM190 S0\n\n; Wait for target temps\n{if is_extruder_used[0]}M109 T0 S{first_layer_temperature[0]}{endif}\n{if is_extruder_used[1]}M109 T1 S{first_layer_temperature[1]}{endif}\n\n; Absolute XYZ / Relative E\nG90\nM83\n\n; ===== Dynamic Bed Leveling ====\nT0\nG1 Z3 F3000\nG1 X15 Y15 F6000\nG1 Z0.25 F1000; Otherwise Orca displays with a 3mm height\n; Single probe touch\nG30\nM420 S1\n; Bias the contact as -0.25 and fix Z-zero\nG92 Z-0.25        ; probed contact now treated as Z = -0.25\nG1 Z0.3 F300\n\n; ===== PRIME / TWO-LINE WIPES (sparse, no air extrude) =====\n\n; --- Tool 0: lines at Y=5 and Y=6 ---\n{if is_extruder_used[0]}\nT0\nG92 E0\nG1 X20 Y5 F3000\nG1 Z0.30 F600\nG1 X180 E18 F700\nG1 Y6.0 F1200\nG1 X20 E18 F700\nG92 E0\n{endif}\n\n; --- Tool 1: lines at Y=7 and Y=8 ---\n{if is_extruder_used[1]}\nT1\nG92 E0\nG1 X20 Y7 F3000\nG1 Z0.30 F600\nG1 X180 E18 F700\nG1 Y8.0 F1200\nG1 X20 E18 F700\nG92 E0\n{endif}\n\n; Activate initial tool (no retracts; Orca starts immediately)\nT{initial_extruder}\nG92 E0\n; ===== END ORCA START GCODE =====\n",
+    "machine_tool_change_time": "0.5",
+    "machine_unload_filament_time": "0.5",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_pause_gcode": "M601",
+    "max_layer_height": [
+        "0.32",
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.1",
+        "0.1"
+    ],
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ],
+    "nozzle_type": "brass",
+    "print_host": "m3d-enabler.local",
+    "printable_area": [
+        "0x0",
+        "210x0",
+        "210x150",
+        "0x150"
+    ],
+    "printer_settings_id": "M3D Enabler D8500 MM",
+    "retract_before_wipe": [
+        "100%",
+        "100%"
+    ],
+    "retract_length_toolchange": [
+        "17",
+        "17"
+    ],
+    "retract_lift_above": [
+        "0",
+        "0"
+    ],
+    "retract_lift_below": [
+        "0",
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces",
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0",
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0",
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1",
+        "1"
+    ],
+    "retraction_distances_when_cut": [
+        "18",
+        "18"
+    ],
+    "retraction_length": [
+        "4.5",
+        "4.5"
+    ],
+    "retraction_minimum_travel": [
+        "2.5",
+        "2.5"
+    ],
+    "retraction_speed": [
+        "60",
+        "60"
+    ],
+    "single_extruder_multi_material": "0",
+    "thumbnails": "120x60/PNG",
+    "travel_slope": [
+        "45",
+        "45"
+    ],
+    "wipe": [
+        "1",
+        "1"
+    ],
+    "wipe_distance": [
+        "2",
+        "2"
+    ],
+    "z_hop": [
+        "0",
+        "0"
+    ],
+    "z_hop_types": [
+        "Normal Lift",
+        "Normal Lift"
+    ]
+}
