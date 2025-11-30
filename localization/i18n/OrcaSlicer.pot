@@ -14019,7 +14019,7 @@ msgid ""
 "\n"
 "Using a non-zero value is useful if the printer is set up to print without a "
 "prime line.\n"
-"Final number of loops is not taking into account while arranging or "
+"Final number of loops is not taken into account while arranging or "
 "validating objects distance. Increase loop number in such case."
 msgstr ""
 
