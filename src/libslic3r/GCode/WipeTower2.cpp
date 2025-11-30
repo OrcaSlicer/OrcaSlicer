@@ -1240,12 +1240,21 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_infill_speed(default_region_config.sparse_infill_speed),
     m_perimeter_speed(default_region_config.inner_wall_speed),
     m_current_tool(initial_tool),
-    wipe_volumes(wiping_matrix), m_wipe_tower_max_purge_speed(float(config.wipe_tower_max_purge_speed)),
+    wipe_volumes(wiping_matrix), 
+    m_wipe_tower_max_purge_speed(float(config.wipe_tower_max_purge_speed)),
     m_enable_arc_fitting(config.enable_arc_fitting), 
     m_used_fillet(config.wipe_tower_fillet_wall), 
     m_rib_width(config.wipe_tower_rib_width), 
     m_extra_rib_length(config.wipe_tower_extra_rib_length),
-    m_wall_type((int)config.wipe_tower_wall_type)
+    m_wall_type((int)config.wipe_tower_wall_type),
+    // Orca: Pulsatile flushing
+    m_wipe_tower_pulsatile_purge(float(config.wipe_tower_pulsatile_purge)),
+    m_wipe_tower_pulse_low_speed(float(config.wipe_tower_pulse_low_speed)),
+    m_wipe_tower_pulse_high_speed(float(config.wipe_tower_pulse_high_speed)),
+    m_wipe_tower_retraction_distance(float(config.wipe_tower_retraction_distance)),
+    m_wipe_tower_retraction_speed(float(config.wipe_tower_retraction_speed))
+    // Orca: Pulsatile flushing
+
 {
     // Read absolute value of first layer speed, if given as percentage,
     // it is taken over following default. Speeds from config are not
@@ -1518,7 +1527,9 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
     writer.speed_override_backup();
 	writer.speed_override(100);
 
-	Vec2f initial_position = cleaning_box.ld + Vec2f(0.f, m_depth_traversed);
+    // Orca: Pulsatile purge - toolchange slightly out from the purge tower perimeter to reduce blobbing on the purge tower
+    Vec2f initial_position = m_wipe_tower_pulsatile_purge ? cleaning_box.ld + Vec2f(-m_perimeter_width*2, m_depth_traversed) :
+                                                            cleaning_box.ld + Vec2f(0.f, m_depth_traversed);
     writer.set_initial_position(initial_position, m_wipe_tower_width, m_wipe_tower_depth, m_internal_rotation);
 
     // Increase the extruder driver current to allow fast ramming.
@@ -1886,10 +1897,31 @@ void WipeTower2::toolchange_Wipe(
 		}
 
 		float traversed_x = writer.x();
-		if (m_left_to_right)
-            writer.extrude(xr - (i % 4 == 0 ? 0 : 1.5f*line_width), writer.y(), wipe_speed);
-		else
-            writer.extrude(xl + (i % 4 == 1 ? 0 : 1.5f*line_width), writer.y(), wipe_speed);
+        bool deretract = false; // Orca: Pulsatile purge deretraction flag
+        if(!m_wipe_tower_pulsatile_purge || is_first_layer()){ // Orca: Regular purging
+            if (m_left_to_right)
+                writer.extrude(xr - (i % 4 == 0 ? 0 : 1.5f*line_width), writer.y(), wipe_speed);
+            else
+                writer.extrude(xl + (i % 4 == 1 ? 0 : 1.5f*line_width), writer.y(), wipe_speed);
+        }else{ // ORCA: Pusatile purging
+            if (m_left_to_right){
+                if(i % 3 == 0 && i != 0){ // print every third left to right extrusion slowly, followed by a retraction and de-retraction to dislodge stuck filament in the nozzle walls
+                    writer.extrude(xr - (i % 4 == 0 ? line_width : 1.5f*line_width), writer.y(), m_wipe_tower_pulse_low_speed * 60.); // print slowly with low filament flow to allow for any "stuck" filament to the nozzle walls to move
+                    // Check wipe tower ending before applying retraction
+                    bool will_break_due_to_y = (writer.y() + float(EPSILON) > cleaning_box.lu.y() - 0.5f * line_width);
+                    bool will_break_due_to_x = (x_to_wipe - std::abs(traversed_x - writer.x()) < WT_EPSILON);
+                    if (!(will_break_due_to_y || will_break_due_to_x)) {
+                        // Perform retraction only if wipe tower will continue to a next X line
+                        writer.retract(m_wipe_tower_retraction_distance, m_wipe_tower_retraction_speed * 60.);
+                        deretract = true;
+                    }
+                } else {
+                    writer.extrude(xr - (i % 4 == 0 ? 0.25*line_width : 1.5f*line_width), writer.y(), m_wipe_tower_pulse_high_speed * 60.); // change ancorning point to reduce collisions
+                }
+            } else {
+                writer.extrude(xl + (i % 4 == 1 ? 0.25*line_width : 1.5f*line_width), writer.y(), m_wipe_tower_pulse_high_speed * 60.); // change ancorning point to reduce collisions
+            }
+        }
 
         if (writer.y()+float(EPSILON) > cleaning_box.lu.y()-0.5f*line_width)
             break;		// in case next line would not fit
@@ -1901,7 +1933,12 @@ void WipeTower2::toolchange_Wipe(
 			break;
 		}
 		// stepping to the next line:
-        writer.extrude(writer.x() + (i % 4 == 0 ? -1.f : (i % 4 == 1 ? 1.f : 0.f)) * 1.5f*line_width, writer.y() + dy);
+        if(deretract){ // ORCA: Pusatile flushing deretraction move
+            writer.travel(writer.x() + (i % 4 == 0 ? -1.f : (i % 4 == 1 ? 1.f : 0.f)) * 1.5f*line_width, writer.y() + dy);
+            writer.retract(-m_wipe_tower_retraction_distance,5*60.); // deretract slowly to ramp up pressure and allow the filament to flow through again without shearing off the nozzle walls
+        }else{ // Orca: regular purging move
+            writer.extrude(writer.x() + (i % 4 == 0 ? -1.f : (i % 4 == 1 ? 1.f : 0.f)) * 1.5f*line_width, writer.y() + dy);
+        }
 		m_left_to_right = !m_left_to_right;
 	}
 
