@@ -94,9 +94,8 @@ SCENARIO("Config accessor functions perform as expected.", "[Config]") {
             }
         }
         WHEN("A numeric option is set to a non-numeric value.") {
-	    auto prev_value = config.opt<ConfigOptionFloat>("default_acceleration")->getFloat();
             THEN("A BadOptionTypeException exception is thrown.") {
-                REQUIRE_THROWS_AS(config.set_deserialize_strict("default_acceleration", "zzzz"), BadOptionValueException);
+                REQUIRE_THROWS_AS(config.set_deserialize_strict("perimeter_speed", "zzzz"), BadOptionValueException);
             }
             THEN("The value does not change.") {
                 REQUIRE(config.opt<ConfigOptionFloat>("default_acceleration")->getFloat() == prev_value);
