@@ -215,6 +215,7 @@ src/slic3r/Utils/CalibUtils.cpp
 src/slic3r/GUI/PhysicalPrinterDialog.cpp
 src/slic3r/Utils/AstroBox.cpp
 src/slic3r/Utils/Duet.cpp
+src/slic3r/Utils/Ultimaker.cpp
 src/slic3r/Utils/FlashAir.cpp
 src/slic3r/Utils/MKS.cpp
 src/slic3r/Utils/OctoPrint.cpp

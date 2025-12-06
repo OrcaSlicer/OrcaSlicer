@@ -17296,6 +17296,12 @@ msgstr ""
 msgid "Could not connect to Duet"
 msgstr ""
 
+msgid "Connection to Ultimaker is working correctly."
+msgstr ""
+
+msgid "Could not connect to Ultimaker"
+msgstr ""
+
 msgid "Unknown error occurred"
 msgstr ""
 
