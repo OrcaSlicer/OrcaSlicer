@@ -22,6 +22,12 @@ public:
 	bool test(wxString &curl_msg) const override;
 	wxString get_test_ok_msg() const override;
 	wxString get_test_failed_msg(wxString &msg) const override;
+
+	bool hasAuthCreds();
+	bool isAuthorized();
+	std::string generateAuthCreds();
+	std::string testAuth();
+
 	bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
 	bool has_auto_discovery() const override { return false; }
 	bool can_test() const override { return true; }
@@ -29,7 +35,6 @@ public:
 	std::string get_host() const override { return host; }
 	const std::string& get_apikey() const { return m_apikey; }
     const std::string& get_cafile() const { return m_cafile; }
-	std::string isAuthorized();
 
 protected:
 	// Host authorization type.

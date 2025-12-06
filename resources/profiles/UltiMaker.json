@@ -30,6 +30,10 @@
         {
             "name": "0.25mm Draft @UltiMaker 2",
             "sub_path": "process/0.25mm Darft @UltiMaker 2.json"
+        },
+        {
+            "name": "0.18mm Standard @UltiMaker S5",
+            "sub_path": "process/0.18mm Standard @UltiMaker S5.json"
         }
     ],
     "filament_list": [],

@@ -44,12 +44,15 @@ bool Ultimaker::test(wxString &msg) const
 
 	// Since the request is performed synchronously here,
     // it is ok to refer to `msg` from within the closure
+	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Attempting to test machine");
+
     const char* name = get_name();
 
     bool res = true;
-    auto url = (boost::format("http://%1%/api/v1/system/variant") % m_host).str();
+    auto url = (boost::format("http://%1%/api/v1/system/variant") % host).str();
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Get system variant at: %2%") % name % url;
+	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: name %1% url %2%") % name % url;
+    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Get system variant at: %2%") % name % url;
 
     auto http = Http::get(std::move(url));
     set_auth(http);
@@ -59,10 +62,11 @@ bool Ultimaker::test(wxString &msg) const
         msg = format_error(body, error, status);
         })
         .on_complete([&, this](std::string body, unsigned) {
-            BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: Got system variant: %2%") % name % body;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got system variant: %2%") % name % body;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; // DEBUG
 
             try {
-                std::stringstream ss(body);
+                /*std::stringstream ss(body);
                 pt::ptree ptree;
                 pt::read_json(ss, ptree);
 
@@ -71,13 +75,16 @@ bool Ultimaker::test(wxString &msg) const
                     return;
                 }
 
-				const auto text = ptree.get_optional<std::string>("text");
+				const auto text = ptree.get_optional<std::string>("text");*/
+
 				// Validate that response is correct ("Ultimaker 3", "Ultimaker 3 extended" or "Ultimaker S5")
-				res = (text ? (boost::starts_with(*text, "Ultimaker 3") || boost::starts_with(*text, "Ultimaker S5")) : false);
+				res = (boost::starts_with(body, "\"Ultimaker 3") || body == "\"Ultimaker S5\"");
             }
-            catch (const std::exception&) {
+            catch (const std::exception &) {
                 res = false;
                 msg = "Could not parse server response";
+				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error") % name;
+				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
             }
         })
 #ifdef WIN32
@@ -90,9 +97,27 @@ bool Ultimaker::test(wxString &msg) const
 #endif // WIN32
         .perform_sync();
 
-     return res;
+
+	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; //DEBUG
+    return res;
 }
 
+
+wxString Ultimaker::get_test_ok_msg () const
+{
+	return _("Connection to Ultimaker works correctly.");
+}
+
+wxString Ultimaker::get_test_failed_msg (wxString &msg) const
+{
+    return GUI::from_u8((boost::format("%s: %s")
+                    // % _utf8(L("Could not connect to Ultimaker"))
+                    % _utf8("Could not connect to Ultimaker")
+                    % std::string(msg.ToUTF8())).str());
+}
+
+
+#pragma region Auth
 // Copied over from PrusaLink::set_auth in OctoPrint.cpp
 void Ultimaker::set_auth(Http& http) const
 {
@@ -103,7 +128,7 @@ void Ultimaker::set_auth(Http& http) const
     case atUserPassword:
         http.auth_digest(m_username, m_password);
         break;
-    }
+    };
 
     // if (!get_cafile().empty()) {
     //     http.ca_file(get_cafile());
@@ -111,26 +136,67 @@ void Ultimaker::set_auth(Http& http) const
 }
 
 
-std::string Ultimaker::isAuthorized () {
+bool Ultimaker::hasAuthCreds() {
+	// TODO: implement. True if has authentication credentials, false otherwise
+	return false;
+}
+
+
+bool Ultimaker::isAuthorized() {
 	//auto url = get_connect_url(false);
 	//auto http = Http::get(std::move(url));
 
 	// TODO: Implement this
-	return "Unimplemented";
+	return false;
+	
 
 }
 
-wxString Ultimaker::get_test_ok_msg () const
-{
-	return _(L("Connection to Ultimaker works correctly."));
+
+std::string Ultimaker::generateAuthCreds() {
+	//TODO: Implement.
+	// Send POST request to generate creds
+	// Get the ID and key from the request
+	// Wait for user to authorize on the physical machine
+	// Return the result.
+	return "Unimplemeneted.";
 }
 
-wxString Ultimaker::get_test_failed_msg (wxString &msg) const
-{
-    return GUI::from_u8((boost::format("%s: %s")
-                    % _utf8(L("Could not connect to Ultimaker"))
-                    % std::string(msg.ToUTF8())).str());
+
+
+std::string Ultimaker::testAuth() {
+	/* 
+	Used in Ultimaker::test(), creates creds if they don't already
+	exist, and returns various error strings if errors.
+	Returns "OK" if no errors and creds are valid.
+	*/
+	const char* name = get_name();
+	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Testing auth.") % name;
+
+	// Auth credentials are alreay existing (user-entered)
+	if (hasAuthCreds()) {
+		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials found.") % name;
+
+		if (isAuthorized()) {
+			BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials are valid. Returning OK") % name;
+			return "OK";
+
+		} else {
+			BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials are INVALID.") % name;
+			return "Invalid Credentials";
+		}
+	} else { // Auth credentials do not exist
+		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials do NOT already exist.") % name;
+		//TODO create the auth creds
+		generateAuthCreds();
+
+		return "OK";
+	}
+
 }
+
+#pragma endregion Auth
+
 
 bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
@@ -201,11 +267,16 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 
 Ultimaker::ConnectionType Ultimaker::connect(wxString &msg) const
 {
+	BOOST_LOG_TRIVIAL(warning) << "Ultimaker: Attempting to connect"; // TODO: Remove this. Testing to see if var substitution is the issue
+	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Attempting to connect"); // TODO: Remove this. Testing to see if var substitution is the issue
+	
 	auto res = ConnectionType::error;
 	auto url = get_connect_url(false);
 
 	auto http = Http::get(std::move(url));
 	set_auth(http);
+
+	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Attempting to connect to url %1%") % url;
 
 	http.on_error([&](std::string body, std::string error, unsigned status) {
 			auto dsfUrl = get_connect_url(true);
@@ -220,7 +291,7 @@ Ultimaker::ConnectionType Ultimaker::connect(wxString &msg) const
 				.perform_sync();
 		})
 		.on_complete([&](std::string body, unsigned) {
-			BOOST_LOG_TRIVIAL(debug) << boost::format("Ultimaker: Got: %1%") % body;
+			BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Got: %1%") % body;
 
 			int err_code = get_err_code_from_body(body);
 			switch (err_code) {
@@ -261,8 +332,11 @@ void Ultimaker::disconnect(ConnectionType connectionType) const
 	.perform_sync();
 }
 
+
+#pragma region Get Constants
 std::string Ultimaker::get_upload_url(const std::string &filename, ConnectionType connectionType) const
 {
+	// TODO: fix
     assert(connectionType != ConnectionType::error);
 
 	if (connectionType == ConnectionType::dsf) {
@@ -322,8 +396,11 @@ std::string Ultimaker::timestamp_str() const
 	return std::string(buffer);
 }
 
+#pragma endregion Get Cconstants
+
 bool Ultimaker::start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const
 {
+	// TODO: Fix
     assert(connectionType != ConnectionType::error);
 
 	bool res = false;
