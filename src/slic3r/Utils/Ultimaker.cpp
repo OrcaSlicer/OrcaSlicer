@@ -99,6 +99,10 @@ bool Ultimaker::test(wxString &msg) const
 
 
 	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; //DEBUG
+    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Now doing authentication test.") % name;
+	std::string auth_result = test_auth();
+    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Result: %2%") % name % auth_result;
+	
     return res;
 }
 
@@ -136,13 +140,13 @@ void Ultimaker::set_auth(Http& http) const
 }
 
 
-bool Ultimaker::hasAuthCreds() {
+bool Ultimaker::has_auth_creds() const{
 	// TODO: implement. True if has authentication credentials, false otherwise
 	return false;
 }
 
 
-bool Ultimaker::isAuthorized() {
+bool Ultimaker::is_authorized() const{
 	//auto url = get_connect_url(false);
 	//auto http = Http::get(std::move(url));
 
@@ -153,7 +157,7 @@ bool Ultimaker::isAuthorized() {
 }
 
 
-std::string Ultimaker::generateAuthCreds() {
+std::string Ultimaker::generate_auth_creds() {
 	//TODO: Implement.
 	// Send POST request to generate creds
 	// Get the ID and key from the request
@@ -164,7 +168,7 @@ std::string Ultimaker::generateAuthCreds() {
 
 
 
-std::string Ultimaker::testAuth() {
+std::string Ultimaker::test_auth() const {
 	/* 
 	Used in Ultimaker::test(), creates creds if they don't already
 	exist, and returns various error strings if errors.
@@ -174,10 +178,10 @@ std::string Ultimaker::testAuth() {
 	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Testing auth.") % name;
 
 	// Auth credentials are alreay existing (user-entered)
-	if (hasAuthCreds()) {
+	if (has_auth_creds()) {
 		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials found.") % name;
 
-		if (isAuthorized()) {
+		if (is_authorized()) {
 			BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials are valid. Returning OK") % name;
 			return "OK";
 
@@ -188,7 +192,7 @@ std::string Ultimaker::testAuth() {
 	} else { // Auth credentials do not exist
 		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials do NOT already exist.") % name;
 		//TODO create the auth creds
-		generateAuthCreds();
+		// generateAuthCreds(); // NOT a cost member function, what to do? Add another button?
 
 		return "OK";
 	}

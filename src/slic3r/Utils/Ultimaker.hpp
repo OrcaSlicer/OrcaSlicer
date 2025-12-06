@@ -23,10 +23,10 @@ public:
 	wxString get_test_ok_msg() const override;
 	wxString get_test_failed_msg(wxString &msg) const override;
 
-	bool hasAuthCreds();
-	bool isAuthorized();
-	std::string generateAuthCreds();
-	std::string testAuth();
+	bool has_auth_creds() const;
+	bool is_authorized() const;
+	std::string generate_auth_creds();
+	std::string test_auth() const;
 
 	bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
 	bool has_auto_discovery() const override { return false; }
