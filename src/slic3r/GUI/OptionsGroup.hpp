@@ -77,8 +77,8 @@ public:
 	void append_widget(const widget_t widget) {
 		m_extra_widgets.push_back(widget);
     }
-	Line(wxString label, wxString tooltip) :
-		label(_(label)), label_tooltip(_(tooltip)) {}
+	Line(wxString label, wxString tooltip, bool is_separator = false) :
+		label(_(label)), label_tooltip(_(tooltip)), m_is_separator(is_separator) {}
 	Line() : m_is_separator(true) {}
 
 	bool is_separator() const { return m_is_separator; }
@@ -150,6 +150,7 @@ public:
     Line		create_single_option_line(const Option& option, const std::string& path = std::string()) const;
     void		append_single_option_line(const Option& option, const std::string& path = std::string()) { append_line(create_single_option_line(option, path)); }
 	void		append_separator();
+    void		append_separator(const wxString& label, const wxString& tooltip); // ORCA: Implementation for labeled separators
 
     // return a non-owning pointer reference
     inline Field*	get_field(const t_config_option_key& id) const{
