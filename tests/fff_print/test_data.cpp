@@ -336,9 +336,9 @@ std::string slice(std::initializer_list<TriangleMesh> meshes, std::initializer_l
 
 } } // namespace Slic3r::Test
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
-SCENARIO("init_print functionality", "[test_data]") {
+SCENARIO("init_print functionality", "[test_data][.]") {
 	GIVEN("A default config") {
 		Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
 		WHEN("init_print is called with a single mesh.") {

@@ -90,6 +90,7 @@ jobs:
           sparse-checkout: |
             .github
             scripts
+            tests
       - name: Apt-Install Dependencies
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact

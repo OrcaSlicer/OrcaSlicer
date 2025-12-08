@@ -217,12 +217,12 @@ bool TriangleMesh::ReadSTLFile(const char *input_file, bool repair, ImportstlPro
     return from_stl(stl, repair);
 }
 
-bool TriangleMesh::write_ascii(const char* output_file)
+bool TriangleMesh::write_ascii(const char* output_file) const
 {
     return its_write_stl_ascii(output_file, "", this->its);
 }
 
-bool TriangleMesh::write_binary(const char* output_file)
+bool TriangleMesh::write_binary(const char* output_file) const
 {
     return its_write_stl_binary(output_file, "", this->its);
 }
