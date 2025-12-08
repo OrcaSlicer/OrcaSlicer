@@ -593,6 +593,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
         "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold" })
         toggle_field(el, have_perimeters);
 
+    WallSequence _wall_sequence = config->option<ConfigOptionEnum<WallSequence>>("wall_sequence")->value;
+    static WallSequence _wall_sequence_trig = WallSequence::Count;
+    for (auto el : {"even_loops_flow_ratio", "even_loops_speed", "loop_sequence", "outermost_wall_control"})
+        toggle_line(el, _wall_sequence == WallSequence::OddEven);
+
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
