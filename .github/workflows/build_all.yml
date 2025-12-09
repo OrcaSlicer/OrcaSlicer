@@ -84,7 +84,7 @@ jobs:
     if: ${{ !cancelled() && success() }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           sparse-checkout: |
             .github
@@ -145,7 +145,7 @@ jobs:
     - name: "Remove unneeded stuff to free disk space"
       run:
         rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Get the version and date
       run: |
         ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
