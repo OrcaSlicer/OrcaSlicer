@@ -1437,7 +1437,7 @@ Practical_Flow_Ratio_Test_Dlg::Practical_Flow_Ratio_Test_Dlg(wxWindow* parent, w
     wxString         quant_fr_str      = _L("Number of calibration layers (4~40):");
     wxString         speed_fr_str      = _L("Print speed:");
     wxString         interlaced_fr_str = _L("Interlaced:");
-    wxString         zhop_fr_str       = _L("Use Z-Hop:");
+    wxString         zhop_fr_str       = _L("Use Z-Hop at top surface:");
     wxString         scale_fr_str      = _L("Print Scale:");
     wxString         ruler_fr_str      = _L("Print Ruler:");
     int              text_max = GetTextMax(this, std::vector<wxString>{current_fr_str, start_fr_str, end_fr_str, quant_fr_str, speed_fr_str,
@@ -1525,7 +1525,7 @@ Practical_Flow_Ratio_Test_Dlg::Practical_Flow_Ratio_Test_Dlg(wxWindow* parent, w
     
     cb_title    = new wxStaticText(this, wxID_ANY, zhop_fr_str, wxDefaultPosition, st_size, 0);
     m_cbUseZHop = new CheckBox(this);
-    m_cbUseZHop->SetValue(true);
+    m_cbUseZHop->SetValue(false);
     cb_sizer = new wxBoxSizer(wxHORIZONTAL);
     cb_sizer->Add(cb_title, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     cb_sizer->Add(m_cbUseZHop, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1534,7 +1534,7 @@ Practical_Flow_Ratio_Test_Dlg::Practical_Flow_Ratio_Test_Dlg(wxWindow* parent, w
 
     cb_title       = new wxStaticText(this, wxID_ANY, scale_fr_str, wxDefaultPosition, st_size, 0);
     m_cbPrintScale = new CheckBox(this);
-    m_cbPrintScale->SetValue(true);
+    m_cbPrintScale->SetValue(false);
     cb_sizer = new wxBoxSizer(wxHORIZONTAL);
     cb_sizer->Add(cb_title, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     cb_sizer->Add(m_cbPrintScale, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1543,7 +1543,7 @@ Practical_Flow_Ratio_Test_Dlg::Practical_Flow_Ratio_Test_Dlg(wxWindow* parent, w
 
     cb_title       = new wxStaticText(this, wxID_ANY, ruler_fr_str, wxDefaultPosition, st_size, 0);
     m_cbPrintRuler = new CheckBox(this);
-    m_cbPrintRuler->SetValue(true);
+    m_cbPrintRuler->SetValue(false);
     cb_sizer = new wxBoxSizer(wxHORIZONTAL);
     cb_sizer->Add(cb_title, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     cb_sizer->Add(m_cbPrintRuler, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));

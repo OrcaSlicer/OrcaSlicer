@@ -1299,7 +1299,7 @@ HealedExPolygons Emboss::text2shapes(FontFileWithCache &font_with_cache, const c
     return ::union_with_delta(vshapes, delta, MAX_HEAL_ITERATION_OF_TEXT);
 }
 
-indexed_triangle_set Emboss::text2model(FontFileWithCache &font, const char *text, const FontProp &font_prop, Vec3d &dx_y_z_size)
+indexed_triangle_set Emboss::text2model(FontFileWithCache &font, const char *text, const FontProp &font_prop, Vec3d dx_y_z_size)
 {
     const double scale  = 0.000001 * 25.4 / 72 * dx_y_z_size.y(); // convert points to millimeters (represent interliniage)
     const double width  = dx_y_z_size.x() ? dx_y_z_size.x() : 1.0;

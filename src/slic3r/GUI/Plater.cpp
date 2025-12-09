@@ -232,7 +232,7 @@ Emboss::FontFileWithCache calib_font_with_cache(std::move(WxFontUtils::create_fo
 ///     "y" is the font height in millimeters.
 ///     "z" is the height of the extruded text in millimeters.</param>
 /// <param name="position">Position of model against text pivot.</param>
-static TriangleMesh get_ortho_box_mesh(Vec3d& size, Vec3f& position = Vec3f())
+static TriangleMesh get_ortho_box_mesh(Vec3d size, Vec3f position = Vec3f())
 {
     TriangleMesh mesh(make_cube(size.x(), size.y(), size.z())); // get box
     mesh.translate(position);                                   // move mesh to indeed place
@@ -248,7 +248,7 @@ static TriangleMesh get_ortho_box_mesh(Vec3d& size, Vec3f& position = Vec3f())
 ///     "z" is the height of the extruded shape in millimeters.</param>
 /// <param name="position">Position of model against its pivot.</param>
 /// <param name="rotation">Rotation angle of model against its pivot.</param>
-static TriangleMesh get_ortho_triangle_mesh(Vec3d &size, Vec3f &position = Vec3f(), double rotation = 0.)
+static TriangleMesh get_ortho_triangle_mesh(Vec3d size, Vec3f position = Vec3f(), double rotation = 0.)
 {
     TriangleMesh mesh(make_cube(size.y(), size.x(), size.z())); // get triangle side
     double       _ypos = size.x() * sin(PI / 3);
@@ -279,7 +279,7 @@ static TriangleMesh get_ortho_triangle_mesh(Vec3d &size, Vec3f &position = Vec3f
 /// <param name="background">Place background box under text {depth, offset}
 ///     "depth" is the depth of the background box. Its height is added to the height of the entire model.
 ///     "offset" external expansion relative to the borders of the text.</param>
-static TriangleMesh get_text_mesh(const char *text, FontProp &font_props, Vec3d &size, Vec3f &position = Vec3f(), Vec2f &background = Vec2f())
+static TriangleMesh get_text_mesh(const char *text, FontProp &font_props, Vec3d size, Vec3f position = Vec3f(), Vec2f background = Vec2f())
 {
     TriangleMesh mesh(
         Emboss::text2model(calib_font_with_cache, text, font_props, Vec3d(size.x(), size.y(), size.z() + background.x()))); // get text mesh

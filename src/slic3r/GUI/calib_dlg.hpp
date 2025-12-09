@@ -187,7 +187,7 @@ public:
     Practical_Flow_Ratio_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater);
     ~Practical_Flow_Ratio_Test_Dlg();
     void on_dpi_changed(const wxRect& suggested_rect) override;
-    wxString Practical_Flow_Ratio_Test_Dlg::get_status();
+    wxString get_status();
 
 protected:
     virtual void on_start(wxCommandEvent& event);
