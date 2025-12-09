@@ -1,4 +1,4 @@
-#include <catch_main.hpp>
+#include <catch2/catch_all.hpp>
 
 #include "slic3r/Utils/Http.hpp"
 

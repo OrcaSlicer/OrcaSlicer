@@ -4,6 +4,7 @@
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 

@@ -955,7 +955,7 @@ wxCoord OG_CustomCtrl::CtrlLine::draw_text(wxDC &dc, wxPoint pos, const wxString
         } else {
             pos.y = pos.y + lround((height - size.y) / 2);
         }
-        if (width > 0)
+        if (width > 0 && is_main)
             rect_label = wxRect(pos, wxSize(size.x, size.y));
 
         wxColour old_clr = dc.GetTextForeground();

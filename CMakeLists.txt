@@ -5,6 +5,12 @@ if ( (MSVC OR WIN32) AND (${CMAKE_VERSION} VERSION_LESS "3.5") )
     message(FATAL_ERROR "CMake current version ${CMAKE_VERSION} is too old. Minimum required is 3.5.")
 endif()
 
+# The following line used to be in tests/CMakeLists.txt
+# Having it there causes rebuilds of all targets on any CMakeLists.txt change under tests/
+# It has no effect on how code is compiled or linked.
+# It just lets you later do `set_property(TARGET foo PROPERTY FOLDER "bar")`
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 if (WIN32)
     # Detect known CI environments
     set(IS_CI FALSE)

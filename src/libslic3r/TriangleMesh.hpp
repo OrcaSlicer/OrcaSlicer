@@ -95,8 +95,8 @@ public:
     void clear() { this->its.clear(); this->m_stats.clear(); }
     bool from_stl(stl_file& stl, bool repair = true);
     bool  ReadSTLFile(const char *input_file, bool repair = true, ImportstlProgressFn stlFn = nullptr, int custom_header_length = 80);
-    bool write_ascii(const char* output_file);
-    bool write_binary(const char* output_file);
+    bool write_ascii(const char* output_file) const;
+    bool write_binary(const char* output_file) const;
     float volume();
     void WriteOBJFile(const char* output_file) const;
     void scale(float factor);

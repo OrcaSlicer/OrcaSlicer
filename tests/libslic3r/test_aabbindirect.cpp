@@ -1,5 +1,5 @@
-#include <catch2/catch.hpp>
-#include <test_utils.hpp>
+#include <catch2/catch_all.hpp>
+#include "test_utils.hpp"
 
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/AABBTreeIndirect.hpp>
@@ -22,7 +22,7 @@ TEST_CASE("Building a tree over a box, ray caster and closest query", "[AABBIndi
 		hit);
 
     REQUIRE(intersected);
-    REQUIRE(hit.t == Approx(5.));
+    REQUIRE(hit.t == Catch::Approx(5.));
 
     std::vector<igl::Hit> hits;
 	bool intersected2 = AABBTreeIndirect::intersect_ray_all_hits(
@@ -33,8 +33,8 @@ TEST_CASE("Building a tree over a box, ray caster and closest query", "[AABBIndi
 		hits);
     REQUIRE(intersected2);
     REQUIRE(hits.size() == 2);
-    REQUIRE(hits.front().t == Approx(5.));
-    REQUIRE(hits.back().t == Approx(6.));
+    REQUIRE(hits.front().t == Catch::Approx(5.));
+    REQUIRE(hits.back().t == Catch::Approx(6.));
 
     size_t hit_idx;
     Vec3d  closest_point;
@@ -43,18 +43,18 @@ TEST_CASE("Building a tree over a box, ray caster and closest query", "[AABBIndi
 		tree,
         Vec3d(0.3, 0.5, -5.),
 		hit_idx, closest_point);
-    REQUIRE(squared_distance == Approx(5. * 5.));
-    REQUIRE(closest_point.x() == Approx(0.3));
-    REQUIRE(closest_point.y() == Approx(0.5));
-    REQUIRE(closest_point.z() == Approx(0.));
+    REQUIRE(squared_distance == Catch::Approx(5. * 5.));
+    REQUIRE(closest_point.x() == Catch::Approx(0.3));
+    REQUIRE(closest_point.y() == Catch::Approx(0.5));
+    REQUIRE(closest_point.z() == Catch::Approx(0.));
 
     squared_distance = AABBTreeIndirect::squared_distance_to_indexed_triangle_set(
 		tmesh.its.vertices, tmesh.its.indices,
 		tree,
         Vec3d(0.3, 0.5, 5.),
 		hit_idx, closest_point);
-    REQUIRE(squared_distance == Approx(4. * 4.));
-    REQUIRE(closest_point.x() == Approx(0.3));
-    REQUIRE(closest_point.y() == Approx(0.5));
-    REQUIRE(closest_point.z() == Approx(1.));
+    REQUIRE(squared_distance == Catch::Approx(4. * 4.));
+    REQUIRE(closest_point.x() == Catch::Approx(0.3));
+    REQUIRE(closest_point.y() == Catch::Approx(0.5));
+    REQUIRE(closest_point.z() == Catch::Approx(1.));
 }

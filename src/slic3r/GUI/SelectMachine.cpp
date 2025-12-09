@@ -5121,40 +5121,42 @@ void PrinterInfoBox::UpdatePlate(const std::string& plate_name)
 {
     if (plate_name.empty())
     {
-        m_text_bed_type->Hide();
+        //m_text_bed_type->Hide();
     }
     else
     {
         wxString name;
         if (plate_name == "Cool Plate") {
-            name = _L("Cool");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool", this, 32));
+            name = _L("Smooth Cool Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool", this, 40));
         }
         else if (plate_name == "Engineering Plate") {
-            name = _L("Engineering");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_engineering", this, 32));
+            name = _L("Engineering Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_engineering", this, 40));
         }
         else if (plate_name == "High Temp Plate") {
-            name = _L("High Temp");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_high_templ", this, 32));
+            name = _L("Smooth High Temp Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_high_templ", this, 40));
         }
         else if (plate_name == "Textured PEI Plate") {
-            name = "PEI";
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 32));
+            name = _L("Textured PEI Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 40));
         }
         else if (plate_name == "Supertack Plate") {
-            name = _L("Cool(Supertack)");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 32));
+            name = _L("Cool Plate (Supertack)");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 40));
         }
 
-        if (name.length() > 8) {
-            m_text_bed_type->SetFont(Label::Body_9);
-        }
-        else{
-            m_text_bed_type->SetFont(Label::Body_12);
-        }
-        m_text_bed_type->SetLabelText(name);
-        m_text_bed_type->Show();
+        m_bed_image->SetToolTip(name);
+
+        //if (name.length() > 8) {
+        //    m_text_bed_type->SetFont(Label::Body_9);
+        //}
+        //else{
+        //    m_text_bed_type->SetFont(Label::Body_12);
+        //}
+        //m_text_bed_type->SetLabelText(name);
+        //m_text_bed_type->Show();
     }
 }
 
@@ -5304,24 +5306,26 @@ void PrinterInfoBox::Create()
 
     /*bed area*/
     auto bed_staticbox = new StaticBox(this);
-    bed_staticbox->SetMinSize(wxSize(FromDIP(98), FromDIP(68)));
-    bed_staticbox->SetMaxSize(wxSize(FromDIP(98), FromDIP(68)));
+    bed_staticbox->SetMinSize(wxSize(FromDIP(68), FromDIP(68)));
+    bed_staticbox->SetMaxSize(wxSize(FromDIP(68), FromDIP(68)));
     bed_staticbox->SetBorderColor(wxColour("#EEEEEE"));
 
-    m_bed_image = new wxStaticBitmap(bed_staticbox, wxID_ANY, create_scaled_bitmap("bed_cool", this, 32));
+    m_bed_image = new wxStaticBitmap(bed_staticbox, wxID_ANY, create_scaled_bitmap("bed_cool", this, 40));
     m_bed_image->SetBackgroundColour(*wxWHITE);
-    m_bed_image->SetMinSize(wxSize(FromDIP(32), FromDIP(32)));
-    m_bed_image->SetMaxSize(wxSize(FromDIP(32), FromDIP(32)));
+    m_bed_image->SetMinSize(wxSize(FromDIP(40), FromDIP(40)));
+    m_bed_image->SetMaxSize(wxSize(FromDIP(40), FromDIP(40)));
 
-    m_text_bed_type = new Label(bed_staticbox);
-    m_text_bed_type->SetForegroundColour(wxColour(144, 144, 144));
-    m_text_bed_type->SetMaxSize(wxSize(FromDIP(80), FromDIP(24)));
-    m_text_bed_type->SetFont(Label::Body_13);
+    //m_text_bed_type = new Label(bed_staticbox);
+    //m_text_bed_type->SetForegroundColour(wxColour(144, 144, 144));
+    //m_text_bed_type->SetMaxSize(wxSize(FromDIP(80), FromDIP(24)));
+    //m_text_bed_type->SetFont(Label::Body_13);
 
-    sizer_bed_staticbox->Add(0, 0, 0, wxTOP, FromDIP(10));
+    //sizer_bed_staticbox->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_bed_staticbox->AddStretchSpacer();
     sizer_bed_staticbox->Add(m_bed_image, 0, wxALIGN_CENTER, 0);
-    sizer_bed_staticbox->AddSpacer(FromDIP(6));
-    sizer_bed_staticbox->Add(m_text_bed_type, 0, wxALIGN_CENTER, 0);
+    sizer_bed_staticbox->AddStretchSpacer();
+    //sizer_bed_staticbox->AddSpacer(FromDIP(6));
+    //sizer_bed_staticbox->Add(m_text_bed_type, 0, wxALIGN_CENTER, 0);
 
     bed_staticbox->SetSizer(sizer_bed_staticbox);
     bed_staticbox->Layout();
@@ -5333,7 +5337,7 @@ void PrinterInfoBox::Create()
 
 
     wxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
-    main_sizer->Add(m_text_bed_type, 0, wxTOP, 0);
+    //main_sizer->Add(m_text_bed_type, 0, wxTOP, 0);
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     main_sizer->Add(sizer_split_printer, 1, wxEXPAND, 0);
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(8));
