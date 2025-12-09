@@ -25,6 +25,7 @@
     "change_filament_gcode": "\n;filament\n",
     "enable_filament_ramming": "0",
     "layer_change_gcode": "G92 E0.0\n",
+    "machine_tool_change_time": "6.625",
     "machine_max_acceleration_extruding": [
         "20000"
     ],
