@@ -30,7 +30,6 @@ on:
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
-     - 'resources/**'
 
 
   schedule:
