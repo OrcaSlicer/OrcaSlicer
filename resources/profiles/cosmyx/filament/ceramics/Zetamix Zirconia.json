@@ -1,18 +1,18 @@
 {
     "type": "filament",
     "filament_id": "GFA00",
-    "name": "Nanoe Zetamix Zycro",
+    "name": "Zetamix Zirconia",
     "from": "system",
     "instantiation": "true",
     "inherits": "Cosmyx PLA Basic @Cosmyx Nova",
     "filament_vendor": [
-        "Nanoe Zetamix"
+        "Zetamix"
     ],
     "filament_cost": [
-        "24.99"
+        "299"
     ],
     "filament_type": [
-        "ZYRCO"
+        "Zircronia"
     ],
     "activate_chamber_temp_control": [
         "1"
