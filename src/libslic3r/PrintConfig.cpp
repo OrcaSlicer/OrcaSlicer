@@ -3365,6 +3365,12 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    // Orca
+    def = this->add("enable_power_loss_recovery", coBool);
+    def->label = L("Turn on Power Loss Recovery");
+    def->tooltip = L("Enable this to insert power loss recovery commands in generated G-code.(Only for Bambu Lab printers and Marlin firmware based printers)");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     //BBS
     // def = this->add("spaghetti_detector", coBool);
