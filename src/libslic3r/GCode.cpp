@@ -3084,7 +3084,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         m_sorted_layer_filaments.emplace_back(lt.extruders);
                 }
 
-                // Orca: finish tracking power lost recovery
+                // Orca: disable power loss recovery
                 {
                     if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
                         file.write(m_writer.enable_power_loss_recovery(false));
@@ -3165,7 +3165,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     m_sorted_layer_filaments.emplace_back(lt.extruders);
             }
 
-            // Orca: finish tracking power lost recovery
+            // Orca: disable power loss recovery
             if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
                 file.write(m_writer.enable_power_loss_recovery(false));
             }
@@ -4381,7 +4381,7 @@ LayerResult GCode::process_layer(
     }
 
     if (!first_layer && !m_second_layer_things_done) {
-        // Orca: start tracking power lost recovery
+        // Orca: set power loss recovery
         gcode += m_writer.enable_power_loss_recovery(print.config().enable_power_loss_recovery.value);
 
         if (print.is_BBL_printer()) {
