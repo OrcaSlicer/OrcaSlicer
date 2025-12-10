@@ -4382,9 +4382,7 @@ LayerResult GCode::process_layer(
 
     if (!first_layer && !m_second_layer_things_done) {
         // Orca: start tracking power lost recovery
-        if (print.config().enable_power_loss_recovery.value == true) {
-            gcode += m_writer.enable_power_loss_recovery(true);
-        }
+        gcode += m_writer.enable_power_loss_recovery(print.config().enable_power_loss_recovery.value);
 
         if (print.is_BBL_printer()) {
             // BBS: open first layer inspection at second layer
