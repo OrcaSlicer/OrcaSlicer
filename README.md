@@ -52,7 +52,7 @@ If you come across any of these in search results, please <b>report them</b> as 
   Use varied infill [patterns](https://github.com/OrcaSlicer/OrcaSlicer/wiki/strength_settings_patterns) and accurate hole shapes for improved clarity.
 - **[Overhang](https://github.com/OrcaSlicer/OrcaSlicer/wiki/quality_settings_overhangs) and [Support Optimization](https://github.com/OrcaSlicer/OrcaSlicer/wiki#support-settings)**  
   Modify geometry for printable overhangs with precise support placement.
-- **[Granular Controls](https://github.com/OrcaSlicer/OrcaSlicer/wiki#process-settings and Customization)**  
+- **[Granular Controls and Customization](https://github.com/OrcaSlicer/OrcaSlicer/wiki#process-settings)**  
   Fine-tune print speed, layer height, pressure, and temperature with precision.
 - **Network Printer Support**  
   Seamless integration with Klipper, PrusaLink, and OctoPrint for remote control.

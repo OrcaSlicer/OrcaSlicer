@@ -2482,7 +2482,7 @@ void TabPrint::build()
 
         optgroup->append_single_option_line("slowdown_for_curled_perimeters", "speed_settings_overhang_speed#slow-down-for-curled-perimeters");
         Line line = { L("Overhang speed"), L("This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used") };
-        line.label_path = "slow-down-for-overhang";
+        line.label_path = "speed_settings_overhang_speed#speed";
         line.append_option(optgroup->get_option("overhang_1_4_speed"));
         line.append_option(optgroup->get_option("overhang_2_4_speed"));
         line.append_option(optgroup->get_option("overhang_3_4_speed"));
@@ -3866,7 +3866,7 @@ void TabFilament::build()
 
         // Orca: adaptive pressure advance and calibration model
         optgroup->append_single_option_line("adaptive_pressure_advance", "material_flow_ratio_and_pressure_advance#enable-adaptive-pressure-advance-beta");
-        optgroup->append_single_option_line("adaptive_pressure_advance_overhangs", "material_flow_ratio_and_pressure_advance##enable-adaptive-pressure-advance-for-overhangs-beta");
+        optgroup->append_single_option_line("adaptive_pressure_advance_overhangs", "material_flow_ratio_and_pressure_advance#enable-adaptive-pressure-advance-for-overhangs-beta");
         optgroup->append_single_option_line("adaptive_pressure_advance_bridges", "material_flow_ratio_and_pressure_advance#pressure-advance-for-bridges");
 
         Option option = optgroup->get_option("adaptive_pressure_advance_model");
@@ -4366,7 +4366,7 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
-        optgroup->append_single_option_line("enable_power_loss_recovery");
+        optgroup->append_single_option_line("enable_power_loss_recovery", "printer_basic_information_advanced#power-loss-recovery");
         //option  = optgroup->get_option("wrapping_exclude_area");
         //option.opt.full_width = true;
         //optgroup->append_single_option_line(option);
@@ -4714,11 +4714,11 @@ PageShp TabPrinter::build_kinematics_page()
 
     // resonance avoidance ported over from qidi slicer
     optgroup = page->new_optgroup(L("Resonance Avoidance"), "param_resonance_avoidance");
-    optgroup->append_single_option_line("resonance_avoidance", "printer_motion_ability_resonance_avoidance#resonance-avoidance");
+    optgroup->append_single_option_line("resonance_avoidance", "printer_motion_ability#resonance-avoidance");
     // Resonance‑avoidance speed inputs
     {
         Line resonance_line = {L("Resonance Avoidance Speed"), L""};
-        resonance_line.label_path = "printer_motion_ability_resonance_avoidance#resonance-avoidance-speed";
+        resonance_line.label_path = "printer_motion_ability#resonance-avoidance-speed";
         resonance_line.append_option(optgroup->get_option("min_resonance_avoidance_speed"));
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
         optgroup->append_line(resonance_line);
@@ -4896,7 +4896,7 @@ if (is_marlin_flavor)
         optgroup = page->new_optgroup(L("Single extruder multi-material parameters"), "param_settings");
         optgroup->append_single_option_line("cooling_tube_retraction", "printer_multimaterial_semm_parameters#cooling-tube-position");
         optgroup->append_single_option_line("cooling_tube_length", "printer_multimaterial_semm_parameters#cooling-tube-length");
-        optgroup->append_single_option_line("parking_pos_retraction", "printer_multimaterial_semm_parameters#filament-parking-positions");
+        optgroup->append_single_option_line("parking_pos_retraction", "printer_multimaterial_semm_parameters#filament-parking-position");
         optgroup->append_single_option_line("extra_loading_move", "printer_multimaterial_semm_parameters#extra-loading-distance");
         optgroup->append_single_option_line("high_current_on_filament_swap", "printer_multimaterial_semm_parameters#high-extruder-current-on-filament-swap");
 
