@@ -751,8 +751,14 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
     return append_menu_item(menu, wxID_ANY, _L("Change type"), "",
         [](wxCommandEvent&) { obj_list()->change_part_type(); }, "", menu,
         []() {
-            wxDataViewItem item = obj_list()->GetSelection();
-            return item.IsOk() || obj_list()->GetModel()->GetItemType(item) == itVolume;
+          wxDataViewItemArray selections;
+          obj_list()->GetSelections(selections);
+          if (selections.empty()) return false;
+          for (const auto& it : selections) {
+            if (!(obj_list()->GetModel()->GetItemType(it) & itVolume))
+              return false; // non-volume present -> disable
+          }
+          return true;
         }, m_parent);
 }
 
@@ -1798,6 +1804,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         }
         append_menu_item_per_object_process(menu);
         menu->AppendSeparator();
+        append_menu_item_change_type(menu);
         append_menu_item_change_filament(menu);
     }
     return menu;
