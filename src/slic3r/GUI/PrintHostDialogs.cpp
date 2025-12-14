@@ -643,7 +643,7 @@ void ElegooPrintHostSendDialog::init() {
     auto preset_bundle = wxGetApp().preset_bundle;
     auto model_id = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
 
-    if (!(model_id == "Elegoo-CC" || model_id == "Elegoo-C")) {
+    if (!boost::starts_with(model_id, "Elegoo-C")) {
         PrintHostSendDialog::init();
         return;
     }

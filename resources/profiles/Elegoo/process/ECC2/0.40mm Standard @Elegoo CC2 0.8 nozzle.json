@@ -1,0 +1,16 @@
+
+{
+  "type": "process",
+  "name": "0.40mm Standard @Elegoo CC2 0.8 nozzle",
+  "inherits": "fdm_process_ecc_08040",
+  "from": "system",
+  "setting_id": "PECC208040",
+  "instantiation": "true",
+  "sparse_infill_pattern": "zig-zag",
+  "filename_format": "ECC2_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
+  "min_width_top_surface": "50%",
+  "enable_prime_tower": "1",
+  "compatible_printers": [
+      "Elegoo Centauri Carbon 2 0.8 nozzle"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+    "type": "filament",
+    "name": "Elegoo TPU 95A @ECC2",
+    "inherits": "Elegoo TPU 95A @base",
+    "from": "system",
+    "setting_id": "ETPU95AECC2",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3.2"
+    ],
+    "pressure_advance": [
+        "0.024"
+    ],
+    "compatible_printers": [
+        "Elegoo Centauri Carbon 2 0.4 nozzle",
+        "Elegoo Centauri Carbon 2 0.6 nozzle",
+        "Elegoo Centauri Carbon 2 0.8 nozzle"
+    ]
+}
