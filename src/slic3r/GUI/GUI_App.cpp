@@ -5184,16 +5184,82 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
 {
     if (dev_id.empty()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << msg;
-
-        if (msg == "unsigned_studio") {
+        if (msg == "wait_info") {
+            BOOST_LOG_TRIVIAL(info) << "process_network_msg, wait_info";
+            Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+            if (!dev)
+                return true;
+            MachineObject* obj = dev->get_selected_machine();
+            if (obj && m_agent)
+                m_agent->install_device_cert(obj->get_dev_id(), obj->is_lan_mode_printer());
+            if (!m_show_error_msgdlg) {
+                MessageDialog msg_dlg(nullptr, _L("Retrieving printer information, please try again later."), "", wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
+            return true;
+        }
+        else if (msg == "update_studio") {
+            BOOST_LOG_TRIVIAL(info) << "process_network_msg, update_studio";
+            if (!m_show_error_msgdlg) {
+                MessageDialog msg_dlg(nullptr, _L("Please try updating OrcaSlicer and then try again."), "", wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
+            return true;
+        }
+        else if (msg == "update_fixed_studio") {
+            BOOST_LOG_TRIVIAL(info) << "process_network_msg, update_fixed_studio";
+            if (!m_show_error_msgdlg) {
+                MessageDialog msg_dlg(nullptr, _L("Please try updating OrcaSlicer and then try again."), "", wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
+            return true;
+        }
+        else if (msg == "cert_expired") {
+            BOOST_LOG_TRIVIAL(info) << "process_network_msg, cert_expired";
+            if (!m_show_error_msgdlg) {
+                MessageDialog msg_dlg(nullptr, _L("The certificate has expired. Please check the time settings or update OrcaSlicer and try again."), "", wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
+            return true;
+        }
+        else if (msg == "cert_revoked") {
+            BOOST_LOG_TRIVIAL(info) << "process_network_msg, cert_revoked";
+            if (!m_show_error_msgdlg) {
+                MessageDialog msg_dlg(nullptr, _L("The certificate is no longer valid and the printing functions are unavailable."), "", wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
+            return true;
+        }
+        else if (msg == "update_firmware_studio") {
+            BOOST_LOG_TRIVIAL(info) << "process_network_msg, firmware internal error";
+            if (!m_show_error_msgdlg) {
+                MessageDialog msg_dlg(nullptr, _L("Internal error. Please try upgrading the firmware and OrcaSlicer version. If the issue persists, contact support."), "", wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
+            return true;
+        }
+        else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
             MessageDialog msg_dlg(nullptr,
                 _L("Bambu Lab has implemented a signature verification check in their network plugin that restricts "
                    "third-party software from communicating with your printer.\n\n"
                    "As a result, some printing functions are unavailable in OrcaSlicer."),
-                _L("Network Plugin Restriction"), wxICON_WARNING | wxOK);
+                _L("Network Plugin Restriction"), wxAPPLY | wxOK);
+            m_show_error_msgdlg = true;
             msg_dlg.ShowModal();
+            m_show_error_msgdlg = false;
             return true;
         }
     }
@@ -5204,7 +5270,6 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
                 obj->update_device_cert_state(true);
             }
         }
-
         return true;
     }
     else if (msg == "device_cert_uninstalled") {
@@ -5214,7 +5279,6 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
                 obj->update_device_cert_state(false);
             }
         }
-
         return true;
     }
 
