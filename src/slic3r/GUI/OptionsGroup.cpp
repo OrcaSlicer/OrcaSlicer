@@ -170,6 +170,52 @@ void OptionsGroup::remove_option_if(std::function<bool(std::string const &)> con
     // TODO: remove items from g->m_options;
 }
 
+void OptionsGroup::msw_rescale()
+{
+    // update bitmaps for extra column items (like "mode markers" or buttons on settings panel)
+    if (rescale_extra_column_item)
+        for (auto extra_col : m_extra_column_item_ptrs)
+            rescale_extra_column_item(extra_col);
+
+    // update undo buttons : rescale bitmaps
+    for (const auto& field : m_fields)
+        field.second->msw_rescale();
+
+    auto rescale = [](wxSizer* sizer) {
+        for (wxSizerItem* item : sizer->GetChildren())
+            if (item->IsWindow()) {
+                wxWindow* win = item->GetWindow();
+                // check if window is ScalableButton
+                ScalableButton* sc_btn = dynamic_cast<ScalableButton*>(win);
+                if (sc_btn) {
+                    sc_btn->msw_rescale();
+                    sc_btn->SetSize(sc_btn->GetBestSize());
+                    return;
+                }
+                // check if window is wxButton
+                wxButton* btn = dynamic_cast<wxButton*>(win);
+                if (btn) {
+                    btn->SetSize(btn->GetBestSize());
+                    return;
+                }
+            }
+    };
+
+    // scale widgets and extra widgets if any exists
+    for (const Line& line : m_lines) {
+        if (line.widget_sizer)
+            rescale(line.widget_sizer);
+        if (line.extra_widget_sizer)
+            rescale(line.extra_widget_sizer);
+    }
+
+    if (custom_ctrl)
+        custom_ctrl->msw_rescale();
+
+    if (auto line = dynamic_cast<::StaticLine*>(stb))
+        line->Rescale();
+}
+
 void OptionsGroup::show_field(const t_config_option_key& opt_key, bool show/* = true*/)
 {
     Field* field = get_field(opt_key);
@@ -680,7 +726,7 @@ void ConfigOptionsGroup::back_to_sys_value(const std::string& opt_key)
 	back_to_config_value(m_get_sys_config(), opt_key);
 }
 
-void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, const std::string& opt_key)
+void ConfigOptionsGroup::back_to_config_value(const DynamicConfigWithDef& config, const std::string& opt_key)
 {
 	boost::any value;
 	if (opt_key == "extruders_count") {
@@ -825,52 +871,6 @@ bool ConfigOptionsGroup::update_visibility(ConfigOptionMode mode)
     return true;
 }
 
-void ConfigOptionsGroup::msw_rescale()
-{
-    // update bitmaps for extra column items (like "mode markers" or buttons on settings panel)
-    if (rescale_extra_column_item)
-        for (auto extra_col : m_extra_column_item_ptrs)
-            rescale_extra_column_item(extra_col);
-
-    // update undo buttons : rescale bitmaps
-    for (const auto& field : m_fields)
-        field.second->msw_rescale();
-
-    auto rescale = [](wxSizer* sizer) {
-        for (wxSizerItem* item : sizer->GetChildren())
-            if (item->IsWindow()) {
-                wxWindow* win = item->GetWindow();
-                // check if window is ScalableButton
-                ScalableButton* sc_btn = dynamic_cast<ScalableButton*>(win);
-                if (sc_btn) {
-                    sc_btn->msw_rescale();
-                    sc_btn->SetSize(sc_btn->GetBestSize());
-                    return;
-                }
-                // check if window is wxButton
-                wxButton* btn = dynamic_cast<wxButton*>(win);
-                if (btn) {
-                    btn->SetSize(btn->GetBestSize());
-                    return;
-                }
-            }
-    };
-
-    // scale widgets and extra widgets if any exists
-    for (const Line& line : m_lines) {
-        if (line.widget_sizer)
-            rescale(line.widget_sizer);
-        if (line.extra_widget_sizer)
-            rescale(line.extra_widget_sizer);
-    }
-
-    if (custom_ctrl)
-        custom_ctrl->msw_rescale();
-
-    if (auto line = dynamic_cast<::StaticLine*>(stb))
-        line->Rescale();
-}
-
 void ConfigOptionsGroup::sys_color_changed()
 {
 #ifdef _WIN32
@@ -937,7 +937,7 @@ boost::any ConfigOptionsGroup::config_value(const std::string& opt_key, int opt_
 	}
 }
 
-boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index /*= -1*/)
+boost::any ConfigOptionsGroup::get_config_value(const DynamicConfigWithDef& config, const std::string& opt_key, int opt_index /*= -1*/)
 {
 	size_t idx = opt_index == -1 ? 0 : opt_index;
 
@@ -1118,7 +1118,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 }
 
 // BBS: restore all pages in preset
-boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index /*= -1*/)
+boost::any ConfigOptionsGroup::get_config_value2(const DynamicConfigWithDef& config, const std::string& opt_key, int opt_index /*= -1*/)
 {
     size_t idx = opt_index == -1 ? 0 : opt_index;
 
@@ -1273,7 +1273,7 @@ std::pair<OG_CustomCtrl*, bool*> ConfigOptionsGroup::get_custom_ctrl_with_blinki
 void ConfigOptionsGroup::change_opt_value(const t_config_option_key& opt_key, const boost::any& value, int opt_index /*= 0*/)
 
 {
-	Slic3r::GUI::change_opt_value(const_cast<DynamicPrintConfig&>(*m_config), opt_key, value, opt_index);
+	Slic3r::GUI::change_opt_value(const_cast<DynamicConfigWithDef&>(*m_config), opt_key, value, opt_index);
 	if (m_modelconfig)
 		m_modelconfig->touch();
 }

@@ -15,6 +15,7 @@
 #include "clonable_ptr.hpp"
 #include "Exception.hpp"
 #include "Point.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -2715,6 +2716,7 @@ public:
     ConfigSubstitutions load_string_map(std::map<std::string, std::string> &key_values, ForwardCompatibilitySubstitutionRule compatibility_rule);
     //BBS: add json support
     int load_from_json(const std::string &file, ConfigSubstitutionContext& substitutions, bool load_inherits_in_config, std::map<std::string, std::string>& key_values, std::string& reason);
+    int load_from_json(const nlohmann::json &data, ConfigSubstitutionContext& substitutions, bool load_inherits_in_config, std::map<std::string, std::string>& key_values, std::string& reason, const std::string& file = "");
     ConfigSubstitutions load_from_json(const std::string &file, ForwardCompatibilitySubstitutionRule compatibility_rule, std::map<std::string, std::string>& key_values, std::string& reason);
 
     ConfigSubstitutions load_from_ini(const std::string &file, ForwardCompatibilitySubstitutionRule compatibility_rule);
@@ -2727,7 +2729,7 @@ public:
     void save(const std::string &file) const;
 
     //BBS: add json support
-    void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
+    nlohmann::json save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
 
 	// Set all the nullable values to nils.
     void null_nullables();
@@ -2948,6 +2950,14 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, const DynamicConfig::DynamicConfigDifference& diff);
+
+// An abstract class for a dynamic config that is expected to always return a valid def when calling this->def()
+class DynamicConfigWithDef : public DynamicConfig
+{
+    using DynamicConfig::DynamicConfig;
+public:
+    const ConfigDef* def() const override = 0;
+};
 
 // Configuration store with a static definition of configuration values.
 // In Slic3r, the static configuration stores are during the slicing / g-code generation for efficiency reasons,

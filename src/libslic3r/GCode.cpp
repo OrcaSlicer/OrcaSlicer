@@ -1976,6 +1976,18 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         result->filename = path;
     }
 
+    // Check the consumption of filament against the remaining filament as reported by Spoolman
+    for (const auto& est : print->get_spoolman_filament_consumption_estimates()) {
+        double remaining_length   = print->config().filament_remaining_length.get_at(est.print_config_idx);
+        double remaining_weight   = print->config().filament_remaining_weight.get_at(est.print_config_idx);
+
+        if (est.est_used_length > remaining_length || est.est_used_weight > remaining_weight) {
+            std::string msg = boost::str(boost::format(_("Filament %1% does not have enough material for the print. Used: %2$.2f m, %3$.2f g, Remaining: %4$.2f m, %5$.2f g")) %
+                                         est.filament_name % (est.est_used_length * 0.001) % est.est_used_weight % (remaining_length * 0.001) % remaining_weight);
+            print->active_step_add_warning(PrintStateBase::WarningLevel::CRITICAL, msg, PrintStateBase::SlicingNotificationType::SlicingNotEnoughFilament);
+        }
+    }
+
     //BBS: add some log for error output
     BOOST_LOG_TRIVIAL(debug) << boost::format("Finished processing gcode to %1% ") % path_tmp;
 

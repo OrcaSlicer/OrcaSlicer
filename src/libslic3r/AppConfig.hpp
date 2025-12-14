@@ -104,7 +104,7 @@ public:
 	std::string 		get(const std::string &key) const
 		{ std::string value; this->get("app", key, value); return value; }
 	bool				get_bool(const std::string &section, const std::string &key) const
-		{ return this->get(section, key) == "true" || this->get(key) == "1"; }
+		{ return this->get(section, key) == "true" || this->get(section, key) == "1"; }
 	bool				get_bool(const std::string &key) const
 		{ return this->get_bool("app", key); }
 	void			    set(const std::string &section, const std::string &key, const std::string &value)

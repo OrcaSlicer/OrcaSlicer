@@ -117,6 +117,16 @@ void DialogButtons::SetAlertButton(wxString translated_label) {
     btn->SetStyle(ButtonStyle::Alert, ButtonType::Choice);
 }
 
+void DialogButtons::SetLeftAlignIDs(std::set<wxStandardID> ids)
+{
+    m_left_align_IDs = ids;
+}
+
+void DialogButtons::SetLeftAlignLabels(std::set<wxString> translated_labels)
+{
+    m_left_align_labels = translated_labels;
+}
+
 void DialogButtons::UpdateButtons() {
     m_sizer->Clear();
     SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#FFFFFF")));
@@ -129,22 +139,22 @@ void DialogButtons::UpdateButtons() {
 
     int btn_gap = FromDIP(10);
 
-    auto list = m_left_align_IDs;
-    auto on_left = [list](int id){
-        return list.find(wxStandardID(id)) != list.end();
+    auto& id_list = m_left_align_IDs;
+    auto& label_list = m_left_align_labels;
+    auto  on_left = [&id_list, &label_list](const Button* button){
+        return id_list.find(wxStandardID(button->GetId())) != id_list.end() || label_list.find(button->GetLabel()) != label_list.end();
     };
 
     for (Button* btn : m_buttons)  // Left aligned
-        if(on_left(btn->GetId()))
+        if(on_left(btn))
             m_sizer->Add(btn, 0,  wxLEFT | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL, btn_gap);
 
     m_sizer->AddStretchSpacer();
 
-    if(m_sizer->IsEmpty()) // add left margin if no button on left. fixes no gap on small windows
-        m_sizer->AddSpacer(btn_gap);
+    m_sizer->AddSpacer(btn_gap);
 
     for (Button* btn : m_buttons) // Right aligned
-        if(!on_left(btn->GetId()))
+        if(!on_left(btn))
             m_sizer->Add(btn, 0, wxRIGHT | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL, btn_gap);
 
     SetPrimaryButton(m_primary);

@@ -188,4 +188,23 @@ private:
 };
 
 
+
+// ----------------------------------------------------------------------------
+// ColorRenderer
+// ----------------------------------------------------------------------------
+
+class ColorRenderer : public wxDataViewCustomRenderer
+{
+    wxColour color;
+
+public:
+    ColorRenderer() : wxDataViewCustomRenderer(wxT("wxColour")) {}
+
+    bool   SetValue(const wxVariant& value) override;
+    bool   GetValue(wxVariant& value) const override { return false; };
+
+    bool   Render(wxRect cell, wxDC* dc, int state) override;
+    wxSize GetSize() const override { return wxDefaultSize; };
+};
+
 #endif // slic3r_GUI_ExtraRenderers_hpp_

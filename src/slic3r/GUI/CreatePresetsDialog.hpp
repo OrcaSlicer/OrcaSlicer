@@ -17,6 +17,9 @@
 namespace Slic3r {
 namespace GUI {
 
+std::string remove_special_key(const std::string &str);
+std::string get_filament_id(std::string vendor_typr_serial);
+
 class CreateFilamentPresetDialog : public DPIDialog
 {
 public:

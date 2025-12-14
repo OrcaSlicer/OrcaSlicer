@@ -37,6 +37,9 @@ public:
 
     void SetAlertButton(wxString label);
 
+    void SetLeftAlignIDs(std::set<wxStandardID> ids);
+    void SetLeftAlignLabels(std::set<wxString> translated_labels);
+
     void UpdateButtons();
 
     ~DialogButtons();
@@ -111,6 +114,8 @@ private:
         wxID_BACKWARD,
         wxID_FORWARD
     };
+
+    std::set<wxString> m_left_align_labels;
 
     Button* PickFromList(std::set<wxStandardID> ID_list);
 

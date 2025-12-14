@@ -1995,6 +1995,7 @@ void SendToPrinterDialog::UploadFileRessultCallback(int res, int resp_ec, std::s
             show_status(PrintDialogStatus::PrintStatusReadingFinished);
             wxCommandEvent *evt = new wxCommandEvent(m_plater->get_send_finished_event());
             evt->SetString(from_u8(m_current_project_name.utf8_string()));
+            evt->SetInt(m_print_plate_idx);
             wxQueueEvent(m_plater, evt);
         }
         else {

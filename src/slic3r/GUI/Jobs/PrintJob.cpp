@@ -652,6 +652,7 @@ void PrintJob::process(Ctl &ctl)
                 evt->SetInt(sel);
             }
         }
+        evt->SetExtraLong(job_data.plate_idx == PLATE_ALL_IDX ? PLATE_ALL_IDX : curr_plate_idx - 1);
         wxQueueEvent(m_plater, evt);
         m_job_finished = true;
     }
