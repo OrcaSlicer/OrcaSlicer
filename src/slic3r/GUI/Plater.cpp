@@ -7766,7 +7766,38 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
 
     Model new_model;
     try {
-        new_model = Model::read_from_file(path, nullptr, nullptr, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel);
+        const bool is_step = boost::algorithm::iends_with(path, ".stp") || boost::algorithm::iends_with(path, ".step");
+        if (is_step) {
+            auto config = wxGetApp().app_config;
+            double linear = std::max(0.003, string_to_double_decimal_point(config->get("linear_defletion")));
+            double angle = std::max(0.5, string_to_double_decimal_point(config->get("angle_defletion")));
+            bool split_compound = config->get_bool("is_split_compound");
+            bool is_user_cancel = false;
+
+            auto callback = [&is_user_cancel, linear, angle, split_compound](Slic3r::Step &file, double &linear_value, double &angle_value, bool &is_split) -> int {
+                if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
+                    StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
+                    if (mesh_dlg.ShowModal() == wxID_OK) {
+                        linear_value = mesh_dlg.get_linear_defletion();
+                        angle_value  = mesh_dlg.get_angle_defletion();
+                        is_split     = mesh_dlg.get_split_compound_value();
+                        return 1;
+                    }
+                } else {
+                    linear_value = linear;
+                    angle_value  = angle;
+                    is_split     = split_compound;
+                    return 1;
+                }
+                is_user_cancel = true;
+                return -1;
+            };
+
+            new_model = Model::read_from_step(path, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, nullptr, nullptr, callback, linear, angle, split_compound);
+            if (is_user_cancel) return false;
+        } else {
+            new_model = Model::read_from_file(path, nullptr, nullptr, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel);
+        }
         for (ModelObject* model_object : new_model.objects) {
             model_object->center_around_origin();
             model_object->ensure_on_bed();
@@ -7865,7 +7896,7 @@ void Plater::priv::replace_with_stl()
         return;
     }
 
-    if (!replace_volume_with_stl(object_idx, volume_idx, out_path, "Replace with STL"))
+    if (!replace_volume_with_stl(object_idx, volume_idx, out_path, "Replace with 3D file"))
         return;
 
     // update 3D scene
@@ -7949,7 +7980,7 @@ void Plater::priv::replace_all_with_stl()
         return;
     }
 
-    std::string status = _L("Replaced with STLs from directory:\n").ToStdString() + out_path.string() + "\n\n";
+    std::string status = _L("Replaced with 3D files from directory:\n").ToStdString() + out_path.string() + "\n\n";
 
     for (unsigned int idx : volume_idxs) {
         const GLVolume* v = selection.get_volume(idx);
@@ -7982,7 +8013,7 @@ void Plater::priv::replace_all_with_stl()
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " replacing volume : " << input_path << " with " << new_path;
 
-        if (!replace_volume_with_stl(object_idx, volume_idx, new_path, "Replace with STL")) {
+        if (!replace_volume_with_stl(object_idx, volume_idx, new_path, "Replace with 3D file")) {
             status += boost::str(boost::format(_L("✖ Skipped %1%: failed to replace.\n").ToStdString()) % volume_name);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : failed to replace with " << new_path;
             continue;

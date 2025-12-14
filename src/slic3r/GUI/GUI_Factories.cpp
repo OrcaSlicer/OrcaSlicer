@@ -870,14 +870,14 @@ void MenuFactory::append_menu_item_reload_from_disk(wxMenu* menu)
 
 void MenuFactory::append_menu_item_replace_with_stl(wxMenu *menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Replace with STL") + dots, _L("Replace the selected part with new STL"),
+    append_menu_item(menu, wxID_ANY, _L("Replace 3D file") + dots, _L("Replace the selected part with a new 3D file"),
         [](wxCommandEvent &) { plater()->replace_with_stl(); }, "", menu,
         []() { return plater()->can_replace_with_stl(); }, m_parent);
 }
 
 void MenuFactory::append_menu_item_replace_all_with_stl(wxMenu *menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Replace all with STL") + dots, _L("Replace all selected parts with STL from folder"),
+    append_menu_item(menu, wxID_ANY, _L("Replace all with 3D files") + dots, _L("Replace all selected parts with 3D files from folder"),
         [](wxCommandEvent &) { plater()->replace_all_with_stl(); }, "", menu,
         []() { return plater()->can_replace_all_with_stl(); }, m_parent);
 }
