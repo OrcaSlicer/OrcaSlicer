@@ -68,6 +68,8 @@ public:
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
     ::CheckBox * m_legacy_networking_ckeckbox     = {nullptr};
+    ::ComboBox * m_network_version_combo     = {nullptr};
+    wxBoxSizer * m_network_version_sizer     = {nullptr};
 
     wxString m_developer_mode_def;
     wxString m_internal_developer_mode_def;

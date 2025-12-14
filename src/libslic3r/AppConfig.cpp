@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 #include <stdexcept>
+#include <sstream>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -1425,6 +1426,82 @@ std::string AppConfig::get_nozzle_volume_types_from_config(const std::string& pr
     }
 
     return nozzle_volume_types;
+}
+
+std::string AppConfig::get_network_plugin_version() const
+{
+    return get(SETTING_NETWORK_PLUGIN_VERSION);
+}
+
+void AppConfig::set_network_plugin_version(const std::string& version)
+{
+    set(SETTING_NETWORK_PLUGIN_VERSION, version);
+}
+
+std::vector<std::string> AppConfig::get_skipped_network_versions() const
+{
+    std::vector<std::string> result;
+    std::string skipped = get(SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS);
+    if (skipped.empty())
+        return result;
+
+    std::stringstream ss(skipped);
+    std::string version;
+    while (std::getline(ss, version, ';')) {
+        if (!version.empty())
+            result.push_back(version);
+    }
+    return result;
+}
+
+void AppConfig::add_skipped_network_version(const std::string& version)
+{
+    auto skipped = get_skipped_network_versions();
+    if (std::find(skipped.begin(), skipped.end(), version) == skipped.end()) {
+        skipped.push_back(version);
+        std::string joined;
+        for (size_t i = 0; i < skipped.size(); ++i) {
+            if (i > 0) joined += ";";
+            joined += skipped[i];
+        }
+        set(SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS, joined);
+    }
+}
+
+bool AppConfig::is_network_version_skipped(const std::string& version) const
+{
+    auto skipped = get_skipped_network_versions();
+    return std::find(skipped.begin(), skipped.end(), version) != skipped.end();
+}
+
+void AppConfig::clear_skipped_network_versions()
+{
+    set(SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS, "");
+}
+
+bool AppConfig::is_network_update_prompt_disabled() const
+{
+    return get_bool(SETTING_NETWORK_PLUGIN_UPDATE_DISABLED);
+}
+
+void AppConfig::set_network_update_prompt_disabled(bool disabled)
+{
+    set_bool(SETTING_NETWORK_PLUGIN_UPDATE_DISABLED, disabled);
+}
+
+bool AppConfig::should_remind_network_update_later() const
+{
+    return get_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER);
+}
+
+void AppConfig::set_remind_network_update_later(bool remind)
+{
+    set_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER, remind);
+}
+
+void AppConfig::clear_remind_network_update_later()
+{
+    set_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER, false);
 }
 
 void AppConfig::reset_selections()

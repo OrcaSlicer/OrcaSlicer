@@ -14,6 +14,8 @@
 #include "NetworkTestDialog.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
+#include "DownloadProgressDialog.hpp"
 
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
@@ -842,7 +844,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         if (param == "enable_high_low_temp_mixed_printing") {
             if (checkbox->GetValue()) {
                 const wxString warning_title = _L("Bed Temperature Difference Warning");
-                const wxString warning_message = 
+                const wxString warning_message =
                     _L("Using filaments with significantly different temperatures may cause:\n"
                         "• Extruder clogging\n"
                         "• Nozzle damage\n"
@@ -873,6 +875,14 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                     app_config->set_bool(param, false);
                     app_config->save();
                 }
+            }
+        }
+
+        if (param == "legacy_networking") {
+            bool legacy_mode = checkbox->GetValue();
+            if (m_network_version_sizer != nullptr) {
+                m_network_version_sizer->Show(!legacy_mode);
+                m_parent->Layout();
             }
         }
 
@@ -1344,6 +1354,92 @@ void PreferencesDialog::create_items()
     auto item_legacy_network   = create_item_checkbox(_L("Use legacy network plugin"), _L("Disable to use latest network plugin that supports new BambuLab firmwares."), "legacy_networking", _L("(Requires restart)"));
     g_sizer->Add(item_legacy_network);
 
+    m_network_version_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_network_version_sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+    auto version_title = new wxStaticText(m_parent, wxID_ANY, _L("Network plugin version"), wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    version_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    version_title->SetFont(::Label::Body_14);
+    version_title->SetToolTip(_L("Select the network plugin version to use"));
+    version_title->Wrap(DESIGN_TITLE_SIZE.x);
+    m_network_version_sizer->Add(version_title, 0, wxALIGN_CENTER);
+
+    m_network_version_combo = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(180), -1), 0, nullptr, wxCB_READONLY);
+    m_network_version_combo->SetFont(::Label::Body_14);
+    m_network_version_combo->GetDropDown().SetFont(::Label::Body_14);
+
+    std::string current_version = app_config->get("network_plugin_version");
+    int current_selection = 0;
+
+    for (size_t i = 0; i < BBL::AVAILABLE_NETWORK_VERSIONS_COUNT; i++) {
+        wxString label = wxString::FromUTF8(BBL::AVAILABLE_NETWORK_VERSIONS[i].display_name);
+        if (BBL::AVAILABLE_NETWORK_VERSIONS[i].is_latest) {
+            label += " " + _L("(Latest)");
+        }
+        m_network_version_combo->Append(label);
+        if (current_version == BBL::AVAILABLE_NETWORK_VERSIONS[i].version) {
+            current_selection = i;
+        }
+    }
+
+    m_network_version_combo->SetSelection(current_selection);
+    m_network_version_sizer->Add(m_network_version_combo, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
+
+    m_network_version_combo->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        int selection = e.GetSelection();
+        if (selection >= 0 && selection < (int)BBL::AVAILABLE_NETWORK_VERSIONS_COUNT) {
+            std::string new_version = BBL::AVAILABLE_NETWORK_VERSIONS[selection].version;
+            std::string old_version = app_config->get_network_plugin_version();
+            if (old_version.empty()) {
+                old_version = BBL::get_latest_network_version();
+            }
+
+            app_config->set(SETTING_NETWORK_PLUGIN_VERSION, new_version);
+            app_config->save();
+
+            if (new_version != old_version) {
+                BOOST_LOG_TRIVIAL(info) << "Network plugin version changed from " << old_version << " to " << new_version;
+
+                const char* warning = BBL::AVAILABLE_NETWORK_VERSIONS[selection].warning;
+                if (warning) {
+                    MessageDialog warn_dlg(this, wxString::FromUTF8(warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
+                    if (warn_dlg.ShowModal() != wxID_OK) {
+                        app_config->set(SETTING_NETWORK_PLUGIN_VERSION, old_version);
+                        app_config->save();
+                        e.Skip();
+                        return;
+                    }
+                }
+
+                if (Slic3r::NetworkAgent::versioned_library_exists(new_version)) {
+                    BOOST_LOG_TRIVIAL(info) << "Version " << new_version << " already exists on disk, triggering hot reload";
+                    if (wxGetApp().hot_reload_network_plugin()) {
+                        MessageDialog dlg(this, _L("Network plugin switched successfully."), _L("Success"), wxOK | wxICON_INFORMATION);
+                        dlg.ShowModal();
+                    } else {
+                        MessageDialog dlg(this, _L("Failed to load network plugin. Please restart the application."), _L("Restart Required"), wxOK | wxICON_WARNING);
+                        dlg.ShowModal();
+                    }
+                } else {
+                    wxString msg = wxString::Format(
+                        _L("You've selected network plugin version %s.\n\nWould you like to download and install this version now?\n\nNote: The application may need to restart after installation."),
+                        wxString::FromUTF8(new_version));
+
+                    MessageDialog dlg(this, msg, _L("Download Network Plugin"), wxYES_NO | wxICON_QUESTION);
+                    if (dlg.ShowModal() == wxID_YES) {
+                        DownloadProgressDialog progress_dlg(_L("Downloading Network Plugin"));
+                        progress_dlg.ShowModal();
+                    }
+                }
+            }
+        }
+        e.Skip();
+    });
+
+    bool legacy_mode = app_config->get_bool("legacy_networking");
+    m_network_version_sizer->Show(!legacy_mode);
+    g_sizer->Add(m_network_version_sizer);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
@@ -1412,6 +1508,18 @@ void PreferencesDialog::create_items()
     auto log_level_list  = std::vector<wxString>{_L("fatal"), _L("error"), _L("warning"), _L("info"), _L("debug"), _L("trace")};
     auto loglevel_combox = create_item_loglevel_combobox(_L("Log Level"), _L("Log Level"), log_level_list);
     g_sizer->Add(loglevel_combox);
+
+    g_sizer->Add(create_item_title(_L("Network Plugin")), 1, wxEXPAND);
+    auto item_reload_plugin = create_item_button(_L("Network plugin"), _L("Reload"), _L("Reload the network plugin without restarting the application"), "", [this]() {
+        if (wxGetApp().hot_reload_network_plugin()) {
+            MessageDialog dlg(this, _L("Network plugin reloaded successfully."), _L("Reload"), wxOK | wxICON_INFORMATION);
+            dlg.ShowModal();
+        } else {
+            MessageDialog dlg(this, _L("Failed to reload network plugin. Please restart the application."), _L("Reload Failed"), wxOK | wxICON_ERROR);
+            dlg.ShowModal();
+        }
+    });
+    g_sizer->Add(item_reload_plugin);
 
     //// DEVELOPER > Debug
 #if !BBL_RELEASE_TO_PUBLIC
@@ -1613,7 +1721,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
     bSizer->Add(enable_ssl_for_mqtt, 0, wxTOP, FromDIP(3));
     bSizer->Add(enable_ssl_for_ftp, 0, wxTOP, FromDIP(3));
     bSizer->Add(item_internal_developer, 0, wxTOP, FromDIP(3));
-    bSizer->Add(title_host, 0, wxEXPAND);
+    bSizer->Add(title_host, 0, wxEXPAND | wxTOP, FromDIP(10));
     bSizer->Add(radio_group, 0, wxEXPAND | wxLEFT, FromDIP(DESIGN_LEFT_MARGIN));
     bSizer->Add(debug_button, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(15));
 

@@ -98,7 +98,6 @@ namespace BBL {
 #define BAMBU_NETWORK_AGENT_NAME            "bambu_network_agent"
 
 #define BAMBU_NETWORK_AGENT_VERSION_LEGACY  "01.10.01.01"
-#define BAMBU_NETWORK_AGENT_VERSION         "02.03.00.62"
 
 //iot preset type strings
 #define IOT_PRINTER_TYPE_STRING     "printer"
@@ -306,6 +305,36 @@ struct CertificateInformation {
     std::string     serial_number;
 };
 
+struct NetworkLibraryVersion {
+    const char* version;
+    const char* display_name;
+    const char* url_override;
+    bool is_latest;
+    const char* warning;
+};
+
+static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
+    {"02.03.00.62", "02.03.00.62", nullptr, true, nullptr},
+    {"02.01.01.52", "02.01.01.52", nullptr, false, nullptr},
+    {"02.00.02.50", "02.00.02.50", nullptr, false, "This version may crash on startup due to Bambu Lab's signature verification."},
+};
+
+static const size_t AVAILABLE_NETWORK_VERSIONS_COUNT = sizeof(AVAILABLE_NETWORK_VERSIONS) / sizeof(AVAILABLE_NETWORK_VERSIONS[0]);
+
+inline const char* get_latest_network_version() {
+    for (size_t i = 0; i < AVAILABLE_NETWORK_VERSIONS_COUNT; ++i) {
+        if (AVAILABLE_NETWORK_VERSIONS[i].is_latest)
+            return AVAILABLE_NETWORK_VERSIONS[i].version;
+    }
+    return AVAILABLE_NETWORK_VERSIONS[0].version;
+}
+
+struct NetworkLibraryLoadError {
+    bool has_error = false;
+    std::string message;
+    std::string technical_details;
+    std::string attempted_path;
+};
 
 enum class MessageFlag : int
 {

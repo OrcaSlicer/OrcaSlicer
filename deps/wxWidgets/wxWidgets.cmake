@@ -24,6 +24,14 @@ else ()
     set(_wx_edge "-DwxUSE_WEBVIEW_EDGE=OFF")
 endif ()
 
+set(_wx_opengl_override "")
+if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    set(_wx_opengl_override
+        -DOPENGL_gl_LIBRARY="-framework OpenGL"
+        -DOPENGL_glu_LIBRARY="-framework OpenGL"
+    )
+endif()
+
 orcaslicer_add_cmake_project(
     wxWidgets
     GIT_REPOSITORY "https://github.com/SoftFever/Orca-deps-wxWidgets"
@@ -31,6 +39,7 @@ orcaslicer_add_cmake_project(
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
     ${_wx_flatpak_patch}
     CMAKE_ARGS
+        ${_wx_opengl_override}
         -DwxBUILD_PRECOMP=ON
         ${_wx_toolkit}
         "-DCMAKE_DEBUG_POSTFIX:STRING=${_wx_debug_postfix}"
