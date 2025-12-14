@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 #include <map>
+#include <vector>
 
 extern std::string g_log_folder;
 extern std::string g_log_start_time;
@@ -328,6 +329,48 @@ inline const char* get_latest_network_version() {
     }
     return AVAILABLE_NETWORK_VERSIONS[0].version;
 }
+
+struct NetworkLibraryVersionInfo {
+    std::string version;
+    std::string base_version;
+    std::string suffix;
+    std::string display_name;
+    std::string url_override;
+    bool is_latest;
+    std::string warning;
+    bool is_discovered;
+
+    static NetworkLibraryVersionInfo from_static(const NetworkLibraryVersion& v) {
+        return {
+            v.version,
+            v.version,
+            "",
+            v.display_name,
+            v.url_override ? v.url_override : "",
+            v.is_latest,
+            v.warning ? v.warning : "",
+            false
+        };
+    }
+
+    static NetworkLibraryVersionInfo from_discovered(const std::string& full_version,
+                                                      const std::string& base,
+                                                      const std::string& sfx) {
+        return {full_version, base, sfx, full_version, "", false, "", true};
+    }
+};
+
+inline std::string extract_base_version(const std::string& full_version) {
+    auto pos = full_version.find('-');
+    return (pos == std::string::npos) ? full_version : full_version.substr(0, pos);
+}
+
+inline std::string extract_suffix(const std::string& full_version) {
+    auto pos = full_version.find('-');
+    return (pos == std::string::npos) ? "" : full_version.substr(pos + 1);
+}
+
+std::vector<NetworkLibraryVersionInfo> get_all_available_versions();
 
 struct NetworkLibraryLoadError {
     bool has_error = false;

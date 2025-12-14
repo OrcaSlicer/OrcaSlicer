@@ -3225,7 +3225,8 @@ __retry:
         std::string loaded_version = Slic3r::NetworkAgent::get_version();
         if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
             std::string config_version = app_config->get_network_plugin_version();
-            if (config_version != loaded_version) {
+            std::string config_base = BBL::extract_base_version(config_version);
+            if (config_base != loaded_version) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded " << loaded_version;
                 app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
                 app_config->save();

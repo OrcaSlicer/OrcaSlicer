@@ -120,6 +120,7 @@ public:
     static bool versioned_library_exists(const std::string& version);
     static bool legacy_library_exists();
     static void remove_legacy_library();
+    static std::vector<std::string> scan_plugin_versions();
     static int initialize_network_module(bool using_backup = false, const std::string& version = "");
     static int unload_network_module();
     static bool is_network_module_loaded();

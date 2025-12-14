@@ -1,6 +1,8 @@
 #include "Tab.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 #include <wx/app.h>
 #include <wx/button.h>
@@ -525,10 +527,22 @@ void MonitorPanel::jump_to_LiveView()
 
 void MonitorPanel::update_network_version_footer()
 {
-    std::string network_ver = Slic3r::NetworkAgent::get_version();
-    if (!network_ver.empty()) {
-        m_tabpanel->SetFooterText(wxString::Format("Network plugin v%s", network_ver));
+    std::string binary_version = Slic3r::NetworkAgent::get_version();
+    if (binary_version.empty())
+        return;
+
+    std::string configured_version = wxGetApp().app_config->get_network_plugin_version();
+    std::string suffix = BBL::extract_suffix(configured_version);
+    std::string configured_base = BBL::extract_base_version(configured_version);
+
+    wxString footer_text;
+    if (!suffix.empty() && configured_base == binary_version) {
+        footer_text = wxString::Format("Network plugin v%s (%s)", binary_version, suffix);
+    } else {
+        footer_text = wxString::Format("Network plugin v%s", binary_version);
     }
+
+    m_tabpanel->SetFooterText(footer_text);
 }
 
 } // GUI

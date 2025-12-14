@@ -211,11 +211,17 @@ void NetworkPluginDownloadDialog::setup_version_selector()
         wxDefaultPosition, wxSize(FromDIP(380), FromDIP(28)), 0, nullptr, wxCB_READONLY);
     m_version_combo->SetFont(::Label::Body_13);
 
-    for (size_t i = 0; i < BBL::AVAILABLE_NETWORK_VERSIONS_COUNT; ++i) {
-        const auto& ver = BBL::AVAILABLE_NETWORK_VERSIONS[i];
-        wxString label = wxString::FromUTF8(ver.display_name);
-        if (ver.is_latest) {
-            label += wxString(" ") + _L("(Latest)");
+    m_available_versions = BBL::get_all_available_versions();
+    for (size_t i = 0; i < m_available_versions.size(); ++i) {
+        const auto& ver = m_available_versions[i];
+        wxString label;
+        if (!ver.suffix.empty()) {
+            label = wxString::FromUTF8("\xE2\x94\x94 ") + wxString::FromUTF8(ver.display_name);
+        } else {
+            label = wxString::FromUTF8(ver.display_name);
+            if (ver.is_latest) {
+                label += wxString(" ") + _L("(Latest)");
+            }
         }
         m_version_combo->Append(label);
     }
@@ -230,19 +236,19 @@ std::string NetworkPluginDownloadDialog::get_selected_version() const
     }
 
     int selection = m_version_combo->GetSelection();
-    if (selection < 0 || selection >= static_cast<int>(BBL::AVAILABLE_NETWORK_VERSIONS_COUNT)) {
+    if (selection < 0 || selection >= static_cast<int>(m_available_versions.size())) {
         return "";
     }
 
-    return BBL::AVAILABLE_NETWORK_VERSIONS[selection].version;
+    return m_available_versions[selection].version;
 }
 
 void NetworkPluginDownloadDialog::on_download(wxCommandEvent& evt)
 {
     int selection = m_version_combo ? m_version_combo->GetSelection() : 0;
-    if (selection >= 0 && selection < static_cast<int>(BBL::AVAILABLE_NETWORK_VERSIONS_COUNT)) {
-        const char* warning = BBL::AVAILABLE_NETWORK_VERSIONS[selection].warning;
-        if (warning) {
+    if (selection >= 0 && selection < static_cast<int>(m_available_versions.size())) {
+        const std::string& warning = m_available_versions[selection].warning;
+        if (!warning.empty()) {
             MessageDialog warn_dlg(this, wxString::FromUTF8(warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
             if (warn_dlg.ShowModal() != wxID_OK) {
                 return;

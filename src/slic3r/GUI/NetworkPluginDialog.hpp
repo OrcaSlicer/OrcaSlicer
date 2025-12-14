@@ -5,6 +5,7 @@
 #include "MsgDialog.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/Button.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 #include <wx/collpane.h>
 
 namespace Slic3r {
@@ -52,6 +53,7 @@ private:
     wxCollapsiblePane* m_details_pane{nullptr};
     std::string m_error_message;
     std::string m_error_details;
+    std::vector<BBL::NetworkLibraryVersionInfo> m_available_versions;
 };
 
 class NetworkPluginRestartDialog : public DPIDialog

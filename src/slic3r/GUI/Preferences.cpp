@@ -1371,13 +1371,23 @@ void PreferencesDialog::create_items()
     std::string current_version = app_config->get("network_plugin_version");
     int current_selection = 0;
 
-    for (size_t i = 0; i < BBL::AVAILABLE_NETWORK_VERSIONS_COUNT; i++) {
-        wxString label = wxString::FromUTF8(BBL::AVAILABLE_NETWORK_VERSIONS[i].display_name);
-        if (BBL::AVAILABLE_NETWORK_VERSIONS[i].is_latest) {
+    m_available_versions = BBL::get_all_available_versions();
+
+    for (size_t i = 0; i < m_available_versions.size(); i++) {
+        const auto& ver = m_available_versions[i];
+        wxString label;
+
+        if (!ver.suffix.empty()) {
+            label = wxString::FromUTF8("\xE2\x94\x94 ") + wxString::FromUTF8(ver.display_name);
+        } else {
+            label = wxString::FromUTF8(ver.display_name);
+        }
+
+        if (ver.is_latest) {
             label += " " + _L("(Latest)");
         }
         m_network_version_combo->Append(label);
-        if (current_version == BBL::AVAILABLE_NETWORK_VERSIONS[i].version) {
+        if (current_version == ver.version) {
             current_selection = i;
         }
     }
@@ -1387,8 +1397,9 @@ void PreferencesDialog::create_items()
 
     m_network_version_combo->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
         int selection = e.GetSelection();
-        if (selection >= 0 && selection < (int)BBL::AVAILABLE_NETWORK_VERSIONS_COUNT) {
-            std::string new_version = BBL::AVAILABLE_NETWORK_VERSIONS[selection].version;
+        if (selection >= 0 && selection < (int)m_available_versions.size()) {
+            const auto& selected_ver = m_available_versions[selection];
+            std::string new_version = selected_ver.version;
             std::string old_version = app_config->get_network_plugin_version();
             if (old_version.empty()) {
                 old_version = BBL::get_latest_network_version();
@@ -1400,9 +1411,8 @@ void PreferencesDialog::create_items()
             if (new_version != old_version) {
                 BOOST_LOG_TRIVIAL(info) << "Network plugin version changed from " << old_version << " to " << new_version;
 
-                const char* warning = BBL::AVAILABLE_NETWORK_VERSIONS[selection].warning;
-                if (warning) {
-                    MessageDialog warn_dlg(this, wxString::FromUTF8(warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
+                if (!selected_ver.warning.empty()) {
+                    MessageDialog warn_dlg(this, wxString::FromUTF8(selected_ver.warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
                     if (warn_dlg.ShowModal() != wxID_OK) {
                         app_config->set(SETTING_NETWORK_PLUGIN_VERSION, old_version);
                         app_config->save();

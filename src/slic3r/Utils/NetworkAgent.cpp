@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <set>
+#include <algorithm>
 #if defined(_MSC_VER) || defined(_WIN32)
 #include <Windows.h>
 #else
@@ -280,6 +282,52 @@ void NetworkAgent::remove_legacy_library()
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to remove legacy library: " << ec.message();
         }
     }
+}
+
+std::vector<std::string> NetworkAgent::scan_plugin_versions()
+{
+    std::vector<std::string> discovered_versions;
+    std::string data_dir_str = data_dir();
+    boost::filesystem::path plugin_folder = boost::filesystem::path(data_dir_str) / "plugins";
+
+    if (!boost::filesystem::is_directory(plugin_folder)) {
+        return discovered_versions;
+    }
+
+#if defined(_MSC_VER) || defined(_WIN32)
+    std::string prefix = std::string(BAMBU_NETWORK_LIBRARY) + "_";
+    std::string extension = ".dll";
+#elif defined(__WXMAC__)
+    std::string prefix = std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_";
+    std::string extension = ".dylib";
+#else
+    std::string prefix = std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_";
+    std::string extension = ".so";
+#endif
+
+    boost::system::error_code ec;
+    for (auto& entry : boost::filesystem::directory_iterator(plugin_folder, ec)) {
+        if (ec) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": error iterating directory: " << ec.message();
+            break;
+        }
+        if (!boost::filesystem::is_regular_file(entry.status()))
+            continue;
+
+        std::string filename = entry.path().filename().string();
+
+        if (filename.rfind(prefix, 0) != 0)
+            continue;
+        if (filename.size() <= extension.size() ||
+            filename.compare(filename.size() - extension.size(), extension.size(), extension) != 0)
+            continue;
+
+        std::string version = filename.substr(prefix.size(),
+                                               filename.size() - prefix.size() - extension.size());
+        discovered_versions.push_back(version);
+    }
+
+    return discovered_versions;
 }
 
 int NetworkAgent::initialize_network_module(bool using_backup, const std::string& version)
@@ -1770,3 +1818,63 @@ int NetworkAgent::get_model_mall_rating_result(int job_id, std::string &rating_r
 }
 
 } //namespace
+
+std::vector<BBL::NetworkLibraryVersionInfo> BBL::get_all_available_versions()
+{
+    std::vector<NetworkLibraryVersionInfo> result;
+    std::set<std::string> known_base_versions;
+    std::set<std::string> all_known_versions;
+
+    for (size_t i = 0; i < AVAILABLE_NETWORK_VERSIONS_COUNT; ++i) {
+        result.push_back(NetworkLibraryVersionInfo::from_static(AVAILABLE_NETWORK_VERSIONS[i]));
+        known_base_versions.insert(AVAILABLE_NETWORK_VERSIONS[i].version);
+        all_known_versions.insert(AVAILABLE_NETWORK_VERSIONS[i].version);
+    }
+
+    std::vector<std::string> discovered = Slic3r::NetworkAgent::scan_plugin_versions();
+
+    std::vector<std::pair<std::string, std::string>> suffixed_versions;
+
+    for (const auto& version : discovered) {
+        if (all_known_versions.count(version) > 0)
+            continue;
+
+        std::string base = extract_base_version(version);
+        std::string suffix = extract_suffix(version);
+
+        if (suffix.empty())
+            continue;
+
+        if (known_base_versions.count(base) == 0)
+            continue;
+
+        suffixed_versions.emplace_back(base, version);
+        all_known_versions.insert(version);
+    }
+
+    std::sort(suffixed_versions.begin(), suffixed_versions.end(),
+              [](const auto& a, const auto& b) {
+                  if (a.first != b.first) return a.first > b.first;
+                  return a.second < b.second;
+              });
+
+    for (const auto& [base, full] : suffixed_versions) {
+        size_t insert_pos = 0;
+        for (size_t i = 0; i < result.size(); ++i) {
+            if (result[i].base_version == base) {
+                insert_pos = i + 1;
+                while (insert_pos < result.size() &&
+                       result[insert_pos].base_version == base) {
+                    ++insert_pos;
+                }
+                break;
+            }
+        }
+
+        std::string sfx = extract_suffix(full);
+        result.insert(result.begin() + insert_pos,
+                      NetworkLibraryVersionInfo::from_discovered(full, base, sfx));
+    }
+
+    return result;
+}
