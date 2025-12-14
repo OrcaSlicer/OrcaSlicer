@@ -36,14 +36,17 @@
     ],
     "retract_length_toolchange": "2",
     "deretraction_speed": "35",
-    "z_hop": "0.4",
+    "retraction_speed": [
+        "30"
+    ],
+    "z_hop": "0.2",
     "single_extruder_multi_material": "1",
     "change_filament_gcode": "M600",
     "machine_pause_gcode": "M25",
     "default_filament_profile": [
         "Flashforge PLA"
     ],
-    "machine_start_gcode": "M140 S[bed_temperature_initial_layer] T0\nM104 S[nozzle_temperature_initial_layer] T0\nM107\nG90\nG28\nM132 X Y Z A B\nG1 Z50.000 F420\nG161 X Y F3300\nM7 T0\nM6 T0\nM651 S255\n",
+    "machine_start_gcode": "M118 X80.23 Y59.04 Z6.10 TO\nM140 S[bed_temperature_initial_layer] T0\nM104 S[nozzle_temperature_initial_layer] T0\nM107\nG90\nG28\nM132 X Y Z A B\nG1 Z50.000 F420\nG161 X Y F3300\nM7 T0\nM6 T0\nM651 S255\n",
     "machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F9000\nM104 S0 T0\nM140 S0 T0\nG162 Z F1800\nG28 X Y\nM132 X Y A B\nM652\nG91\nM18",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]",
     "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
