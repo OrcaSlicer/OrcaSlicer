@@ -61,6 +61,7 @@ public:
     std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
+    std::string enable_power_loss_recovery(bool enable);
     // return false if this extruder was already selected
     bool        need_toolchange(unsigned int filament_id) const;
     std::string set_extruder(unsigned int filament_id);

@@ -913,6 +913,14 @@ public:
     // Extruder ID is only valid for FFF. Returns -1 for SLA or if the extruder ID is not applicable (support volumes).
     int                 extruder_id() const;
 
+    //Orca: cache clearing procedure to ensure that the shape is positioned accurately when manipulating it
+    void clear_cache() {
+        m_cached_trans_matrix = Transform3d::Identity().inverse(); // get unvelivable matrix
+        m_cached_volume_bbox.reset();
+        m_convex_hull_2d.clear();
+        m_cached_2d_polygon.clear();
+    };
+
     bool                is_splittable() const;
 
     // BBS
@@ -954,39 +962,42 @@ public:
     // Get count of errors in the mesh
     int                 get_repaired_errors_count() const;
 
+    BoundingBox get_volume_bbox(const Transform3d &matrix, Point &shift, bool apply_cache);
+    void        reset_volume_bbox() { m_cached_volume_bbox.reset(); };
+
     // Helpers for loading / storing into AMF / 3MF files.
     static ModelVolumeType type_from_string(const std::string &s);
     static std::string  type_to_string(const ModelVolumeType t);
 
     const Geometry::Transformation& get_transformation() const { return m_transformation; }
-    void set_transformation(const Geometry::Transformation& transformation) { m_transformation = transformation; }
-    void set_transformation(const Transform3d& trafo) { m_transformation.set_matrix(trafo); }
+    void set_transformation(const Geometry::Transformation& transformation) { clear_cache(); m_transformation = transformation; }
+    void set_transformation(const Transform3d& trafo) { clear_cache(); m_transformation.set_matrix(trafo); }
 
     Vec3d get_offset() const { return m_transformation.get_offset(); }
 
     double get_offset(Axis axis) const { return m_transformation.get_offset(axis); }
 
-    void set_offset(const Vec3d& offset) { m_transformation.set_offset(offset); }
-    void set_offset(Axis axis, double offset) { m_transformation.set_offset(axis, offset); }
+    void set_offset(const Vec3d& offset) { clear_cache(); m_transformation.set_offset(offset); }
+    void set_offset(Axis axis, double offset) { clear_cache(); m_transformation.set_offset(axis, offset); }
 
     Vec3d get_rotation() const { return m_transformation.get_rotation(); }
     double get_rotation(Axis axis) const { return m_transformation.get_rotation(axis); }
 
-    void set_rotation(const Vec3d& rotation) { m_transformation.set_rotation(rotation); }
-    void set_rotation(Axis axis, double rotation) { m_transformation.set_rotation(axis, rotation); }
+    void set_rotation(const Vec3d& rotation) { clear_cache(); m_transformation.set_rotation(rotation); }
+    void set_rotation(Axis axis, double rotation) { clear_cache(); m_transformation.set_rotation(axis, rotation); }
 
     Vec3d get_scaling_factor() const { return m_transformation.get_scaling_factor(); }
     double get_scaling_factor(Axis axis) const { return m_transformation.get_scaling_factor(axis); }
 
-    void set_scaling_factor(const Vec3d& scaling_factor) { m_transformation.set_scaling_factor(scaling_factor); }
-    void set_scaling_factor(Axis axis, double scaling_factor) { m_transformation.set_scaling_factor(axis, scaling_factor); }
+    void set_scaling_factor(const Vec3d& scaling_factor) { clear_cache(); m_transformation.set_scaling_factor(scaling_factor); }
+    void set_scaling_factor(Axis axis, double scaling_factor) {clear_cache(); m_transformation.set_scaling_factor(axis, scaling_factor); }
 
     Vec3d get_mirror() const { return m_transformation.get_mirror(); }
     double get_mirror(Axis axis) const { return m_transformation.get_mirror(axis); }
     bool is_left_handed() const { return m_transformation.is_left_handed(); }
 
-    void set_mirror(const Vec3d& mirror) { m_transformation.set_mirror(mirror); }
-    void set_mirror(Axis axis, double mirror) { m_transformation.set_mirror(axis, mirror); }
+    void set_mirror(const Vec3d& mirror) { clear_cache(); m_transformation.set_mirror(mirror); }
+    void set_mirror(Axis axis, double mirror) { clear_cache(); m_transformation.set_mirror(axis, mirror); }
     void convert_from_imperial_units();
     void convert_from_meters();
 
@@ -1040,6 +1051,7 @@ private:
     mutable Transform3d                 m_cached_trans_matrix; //BBS, used for convex_hell_2d acceleration
     mutable Polygon                     m_cached_2d_polygon;   //BBS, used for convex_hell_2d acceleration
     Geometry::Transformation        	m_transformation;
+    mutable BoundingBox                 m_cached_volume_bbox; //Orca: used for separated infills
 
     //BBS: add convex_hell_2d related logic
     void  calculate_convex_hull_2d(const Geometry::Transformation &transformation) const;

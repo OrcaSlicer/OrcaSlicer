@@ -2426,6 +2426,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("bottom_shell_thickness", "strength_settings_top_bottom_shells#shell-thickness");
         optgroup->append_single_option_line("bottom_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("bottom_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
+        optgroup->append_separator(/*"Add"*/);
+        optgroup->append_single_option_line("center_of_surface_pattern", "strength_settings_top_bottom_shells#center-of-surface-pattern");
+        optgroup->append_single_option_line("anisotropic_surfaces", "strength_settings_top_bottom_shells#anisotropic-surfaces");
         optgroup->append_separator(/*"Overlap"*/);
         optgroup->append_single_option_line("top_bottom_infill_wall_overlap", "strength_settings_top_bottom_shells#infillwall-overlap");
 
@@ -2457,6 +2460,8 @@ void TabPrint::build()
         optgroup->append_separator(/*"Gaps"*/);
         optgroup->append_single_option_line("gap_fill_target", "strength_settings_infill#apply-gap-fill");
         optgroup->append_single_option_line("filter_out_gap_fill", "strength_settings_infill#filter-out-tiny-gaps");
+        optgroup->append_separator(/*"Add"*/);
+        optgroup->append_single_option_line("separated_infills", "strength_settings_infill");
         optgroup->append_separator(/*"Overlap"*/);
         optgroup->append_single_option_line("infill_wall_overlap", "strength_settings_infill#infill-wall-overlap");
 
@@ -4372,11 +4377,13 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("preferred_orientation", "printer_basic_information_printable_space#preferred-orientation");
 
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
+
         optgroup->append_single_option_line("printer_structure", "printer_basic_information_advanced#printer-structure");
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
+        optgroup->append_single_option_line("enable_power_loss_recovery");
         //option  = optgroup->get_option("wrapping_exclude_area");
         //option.opt.full_width = true;
         //optgroup->append_single_option_line(option);
@@ -5211,7 +5218,11 @@ void TabPrinter::toggle_options()
         // SoftFever: hide non-BBL settings
         for (auto el : {"use_firmware_retraction", "use_relative_e_distances", "support_multi_bed_types", "pellet_modded_printer", "bed_mesh_max", "bed_mesh_min", "bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "thumbnails"})
           toggle_line(el, !is_BBL_printer);
+
+        auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
+        toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf == gcfMarlinFirmware);
     }
+    
 
     if (m_active_page->title() == L("Machine G-code")) {
         PresetBundle *preset_bundle = wxGetApp().preset_bundle;
