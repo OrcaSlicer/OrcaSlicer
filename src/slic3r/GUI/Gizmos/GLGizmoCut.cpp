@@ -224,6 +224,8 @@ GLGizmoCut3D::GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename,
         {"Width"        , _u8L("Width")},
         {"Flap Angle"   , _u8L("Flap Angle")},
         {"Groove Angle" , _u8L("Groove Angle")},
+        {"Cut position" , _u8L("Cut position")}, // ORCA
+        {"Build Volume" , _u8L("Build Volume")}, // ORCA
     };
 
 //    update_connector_shape();
@@ -660,10 +662,11 @@ bool GLGizmoCut3D::render_reset_button(const std::string& label_id, const std::s
     const ImGuiStyle &style = ImGui::GetStyle();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, style.ItemSpacing.y});
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);       // ORCA match button style
 
     ImGui::PushStyleColor(ImGuiCol_Button, {0.25f, 0.25f, 0.25f, 0.0f});
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.4f, 0.4f, 0.4f, 1.0f});
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, {0.4f, 0.4f, 0.4f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0}); // ORCA match button style
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive,  {0, 0, 0, 0}); // ORCA match button style
 
     const bool revert = m_imgui->button(wxString(ImGui::RevertBtn) + "##" + wxString::FromUTF8(label_id));
 
@@ -672,7 +675,7 @@ bool GLGizmoCut3D::render_reset_button(const std::string& label_id, const std::s
     if (ImGui::IsItemHovered())
         m_imgui->tooltip(tooltip.c_str(), ImGui::GetFontSize() * 20.0f);
 
-    ImGui::PopStyleVar();
+    ImGui::PopStyleVar(2); // ORCA
 
     return revert;
 }
@@ -2254,7 +2257,7 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
     render_flip_plane_button(m_connectors_editing && connectors.empty());
 
     m_imgui->text(m_labels_map["Type"]);
-    ImGuiWrapper::push_radio_style();
+    ImGuiWrapper::push_radio_style(m_parent.get_scale()); // ORCA
     bool type_changed = render_connect_type_radio_button(CutConnectorType::Plug);
     type_changed     |= render_connect_type_radio_button(CutConnectorType::Dowel);
     type_changed     |= render_connect_type_radio_button(CutConnectorType::Snap);
@@ -2334,18 +2337,14 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
 
 void GLGizmoCut3D::render_build_size()
 {
-    double              koef     = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
-    wxString            unit_str = " " + (m_imperial_units ? _L("in") : _L("mm"));
-            
-    Vec3d    tbb_sz = m_transformed_bounding_box.size();
-    wxString size   =   "X: " + double_to_string(tbb_sz.x() * koef, 2) + unit_str +
-                     ",  Y: " + double_to_string(tbb_sz.y() * koef, 2) + unit_str +
-                     ",  Z: " + double_to_string(tbb_sz.z() * koef, 2) + unit_str;
+    double   koef     = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
+    wxString unit_str = m_imperial_units ? _L("in") : _L("mm");
+    Vec3d    tbb_sz   = m_transformed_bounding_box.size() * koef; // ORCA 
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(_L("Build Volume"));
-    ImGui::SameLine();
-    m_imgui->text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, size);
+    ImGui::SameLine(m_label_width);
+    ImGui::Text("%.2f x %.2f x %.2f %s", tbb_sz.x(), tbb_sz.y(), tbb_sz.z(), unit_str.ToUTF8().data()); // ORCA use regular text color and simplify format
 }
 
 void GLGizmoCut3D::reset_cut_plane()
@@ -2650,8 +2649,8 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
         render_build_size();
 
         ImGui::AlignTextToFramePadding();
-        m_imgui->text(_L("Cut position") + ": ");
-        ImGui::SameLine();
+        m_imgui->text(_L("Cut position"));
+        ImGui::SameLine(m_label_width);
         render_move_center_input(Z);
         ImGui::SameLine();
 
@@ -2933,6 +2932,10 @@ void GLGizmoCut3D::show_tooltip_information(float x, float y)
     caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 35.f;
 
     float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding

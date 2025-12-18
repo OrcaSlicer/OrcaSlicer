@@ -141,7 +141,7 @@ protected:
 
 	//BBS: GUI refactor
 	wxPanel*			m_top_panel;
-	wxStaticText* m_static_title;
+	ScalableButton* m_mode_icon; // ORCA m_static_title replacement
 	wxBoxSizer* m_main_sizer;
 	wxBoxSizer* m_top_sizer;
 	wxBoxSizer* m_top_left_sizer;
@@ -592,7 +592,7 @@ class TabPrinter : public Tab
 {
 private:
 	bool		m_use_silent_mode = false;
-	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key);
+	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
 	bool		m_rebuild_kinematics_page = false;
 
 	ogStaticText*	m_fff_print_host_upload_description_line {nullptr};

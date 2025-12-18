@@ -213,7 +213,7 @@ void ObjectDataViewModelNode::set_variable_height_icon(VaryHeightIndicator vari_
     if (m_variable_height == vari_height)
         return;
     m_variable_height = vari_height;
-    m_variable_height_icon = m_variable_height == hiUnVariable ? m_empty_bmp : create_scaled_bitmap("toolbar_variable_layer_height", nullptr, 20);
+    m_variable_height_icon = m_variable_height == hiUnVariable ? m_empty_bmp : create_scaled_bitmap("obj_variable_layer_height");
 }
 
 void ObjectDataViewModelNode::set_action_icon(bool enable)
@@ -311,9 +311,9 @@ void ObjectDataViewModelNode::msw_rescale()
         m_action_icon = create_scaled_bitmap(m_action_icon_name);
 
     if (m_printable != piUndef)
-        m_printable_icon = create_scaled_bitmap(m_printable == piPrintable ? "obj_printable" : "obj_unprintable");
+        m_printable_icon = create_scaled_bitmap(m_printable == piPrintable ? "check_on" : "check_off_focused");
 
-    m_variable_height_icon = m_variable_height == hiUnVariable ? m_empty_bmp : create_scaled_bitmap("toolbar_variable_layer_height", nullptr, 20);
+    m_variable_height_icon = m_variable_height == hiUnVariable ? m_empty_bmp : create_scaled_bitmap("obj_variable_layer_height");
 
     if (!m_opt_categories.empty())
         update_settings_digest_bitmaps();

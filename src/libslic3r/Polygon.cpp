@@ -4,6 +4,8 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 
+#include <cmath>
+
 namespace Slic3r {
 
 double Polygon::length() const
@@ -207,6 +209,7 @@ bool Polygon::intersections(const Line &line, Points *intersections) const
     }
     return intersections->size() > intersections_size;
 }
+
 bool Polygon::overlaps(const Polygons& other) const
 {
     if (this->empty() || other.empty())
@@ -219,6 +222,7 @@ bool Polygon::overlaps(const Polygons& other) const
         // If *this is completely inside other, then pl_out is empty, but the expolygons overlap. Test for that situation.
         std::any_of(other.begin(), other.end(), [this](auto& poly) {return poly.contains(this->points.front()); });
 }
+
 // Filter points from poly to the output with the help of FilterFn.
 // filter function receives two vectors:
 // v1: this_point - previous_point
@@ -236,8 +240,10 @@ Points filter_points_by_vectors(const Points &poly, FilterFn filter)
     for (Point p2 : poly) {
         // p2 is next point to the currently visited point p1.
         Vec2d v2 = (p2 - p1).cast<double>();
+	// std::cerr << ((void*) &poly) << ": p1=" << p1 << "\tp2=" << p2 << "\tv1="<<v1<<"\tv2="<<v2;
         if (filter(v1, v2))
             out.emplace_back(p1);
+	// std::cerr << "\n";
         v1 = v2;
         p1 = p2;
     }
@@ -245,19 +251,56 @@ Points filter_points_by_vectors(const Points &poly, FilterFn filter)
     return out;
 }
 
+/**
+ * @brief Filters points in a polygon based on a minimum angle threshold and a convex/concave criterion.
+ *
+ * This function iterates through the vertices of the input polygon and selects
+ * points where the internal angle meets or exceeds the specified \p angle_threshold
+ * and the point satisfies the condition defined by the \p convex_concave_filter.
+ *
+ * @tparam ConvexConcaveFilterFn The type of the callable filter object (e.g., function pointer, lambda, functor)
+ * that determines if a point is considered convex or concave.
+ * First vector is incoming line segment (ending at point), second vector is leaving current point.
+ * It should have the signature `bool(const Vec2d&, const Vec2d&)`
+ * @param poly Vertices of the input polygon.
+ * @param angle_threshold The **minimum** angle (in radians) that the internal angle at a vertex must meet or exceed. Must be less than Pi (because angle is always positive) and greater than zero.
+ * @param convex_concave_filter A callable object that returns `true` if the point should be included
+ * (e.g., if it's convex), and `false` otherwise.
+ * @return Points Point objects that meet both the angle threshold and the convex/concave filter criterion.
+ */
 template<typename ConvexConcaveFilterFn>
 Points filter_convex_concave_points_by_angle_threshold(const Points &poly, double angle_threshold, ConvexConcaveFilterFn convex_concave_filter)
 {
+    // The filter function is typically cross2(v1, v2) {>,<} 0
     assert(angle_threshold >= 0.);
+    assert(angle_threshold < M_PI);
     if (angle_threshold > EPSILON) {
-        double cos_angle  = cos(angle_threshold);
-        return filter_points_by_vectors(poly, [convex_concave_filter, cos_angle](const Vec2d &v1, const Vec2d &v2){
-            return convex_concave_filter(v1, v2) && v1.normalized().dot(v2.normalized()) < cos_angle;
+	// The methods con{cave,vex}_points are documented as
+	//   "with the angle at the vertex larger than a threshold."
+	// Due to the imprecision of floating point, this is difficult to get exactly right.
+	// So I'm adding just enough here that an input of (M_PI/2) does not match a right angle.
+	// Which doesn't mean it'll be correct for all values.
+	// And we might learn people actually want "at or larger than threshold" instead.
+        double cos_threshold  = cos(std::nextafter(angle_threshold, +INFINITY));
+        return filter_points_by_vectors(poly, [convex_concave_filter, cos_threshold](const Vec2d &v1, const Vec2d &v2){
+	    if (!convex_concave_filter(v1, v2)) { /*std::cerr << "FIL_FALS";*/ return false; }
+	    // Math lesson: Dot product is the product of the magnitudes and the cos(angle) between them.
+	    // So if we normalize both, their magnitudes are 1 and, thus, the dot product is cos(angle)
+	    // So we want to ensure we only pick angles *bigger* than our angle_threshold
+	    // cos(θ) goes 1->-1 as θ=0->Pi , the opposite direction
+	    // So if we want angle_vectors > angle_threshold
+	    // we must check dot_product_of_vectors < cos(angle_threshold)
+	    auto vec_dot = v1.normalized().dot(v2.normalized());
+	    // std::cerr << "\tvec_dot="<<vec_dot<<"\tcos_threshold="<<cos_threshold;
+            if ( vec_dot < cos_threshold ) {
+		// std::cerr << "TRUE";
+		return true;
+	    }
+	    // std::cerr <<"DOT_FALS";
+	    return false;
         });
     } else {
-        return filter_points_by_vectors(poly, [convex_concave_filter](const Vec2d &v1, const Vec2d &v2){
-            return convex_concave_filter(v1, v2);
-        });
+        return filter_points_by_vectors(poly, convex_concave_filter);
     }
 }
 

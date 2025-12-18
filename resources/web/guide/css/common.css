@@ -101,84 +101,14 @@ body
 
 #AcceptArea
 {
-	height:12%;
-	padding: 0mm 10mm;
+	height:var(--dialog-button-sizer-height); /*----ORCA Use fixed size to prevent position change----*/
+	max-height:var(--dialog-button-sizer-height);
+	min-height:var(--dialog-button-sizer-height);
+	padding: 0 var(--dialog-button-gap);
 	text-align: left;
 	display: flex;
 	justify-content:flex-end;
 	align-items: center;	
-}
-
-
-/*--Btn--*/
-.NormalBtn
-{
-	padding: 3mm 9mm;
-	font-size: 14px;
-	text-align: center;
-	background-color: #009688;
-	border-radius: 16px;
-	color: #fff;
-	cursor: pointer;
-	margin-left: 10px;
-}
-
-.NormalBtn:hover
-{
-	background-color:#4db6ac;
-}
-
-.GrayBtn
-{
-	padding: 3mm 9mm;
-	font-size: 14px;
-	text-align: center;
-	/* border: 1px solid #575757; */ /* ORCA match button style */
-	border-radius: 18px;
-	background-color: #D9D9D9;
-	color: #000;					/* ORCA match button style */
-	cursor: pointer;
-	margin-left: 10px;	
-}
-
-.GrayBtn:hover
-{
-	background-color:#CCCCCC;		/* ORCA match button style */
-}
-
-.SmallBtn
-{
-	padding: 2px 4mm;
-	font-size: 14px;
-	text-align: center;
-	background-color: #D9D9D9;
-	border-radius: 6px;
-	color: #000;
-	cursor: pointer;
-	display: inline-block;
-}
-
-.SmallBtn:hover
-{
-	background-color: #CCCCCC;
-}
-
-
-.SmallBtn_Green
-{
-	padding: 2px 4mm;
-	font-size: 14px;
-	text-align: center;
-	background-color: #009688;
-	border-radius: 6px;
-	color: #fff;
-	cursor: pointer;
-	display: inline-block;
-}
-
-.SmallBtn_Green:hover
-{
-	background-color: #4db6ac;
 }
 
 /*---HyperLink---*/
@@ -234,7 +164,6 @@ input[type="checkbox"]:checked {
 input[type="checkbox"]:checked::before {
     transform: scale(1);
 }
-
 
 /*----------------Light Mode-------------------*/
 

@@ -4,6 +4,7 @@
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <slic3r/GUI/Widgets/Label.hpp>
+#include <slic3r/GUI/Widgets/DialogButtons.hpp>
 
 #define BORDER FromDIP(25)
 #define DRAW_PANEL_SIZE wxSize(FromDIP(475), FromDIP(100))
@@ -27,34 +28,13 @@ RecenterDialog::RecenterDialog(wxWindow* parent, wxWindowID id, const wxString& 
     wxPanel* m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
 
-    m_button_confirm = new Button(this, _L("Go Home"));
-    m_button_confirm->SetFont(Label::Body_14);
-    m_button_confirm->SetMinSize(wxSize(-1, FromDIP(24)));
-    m_button_confirm->SetCornerRadius(FromDIP(12));
-    StateColor confirm_btn_bg(std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_button_confirm->SetBackgroundColor(confirm_btn_bg);
-    m_button_confirm->SetBorderColor(wxColour(0, 150, 136));
-    m_button_confirm->SetTextColor(*wxWHITE);
-
-    m_button_close = new Button(this, _L("Close"));
-    m_button_close->SetFont(Label::Body_14);
-    m_button_close->SetMinSize(wxSize(-1, FromDIP(24)));
-    m_button_close->SetCornerRadius(FromDIP(12));
-    StateColor close_btn_bg(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-    m_button_close->SetBackgroundColor(close_btn_bg);
-    m_button_close->SetBorderColor(wxColour(38, 46, 48));
-    m_button_close->SetTextColor(wxColour(38, 46, 48));
-
-    button_sizer->AddStretchSpacer();
-    button_sizer->Add(m_button_confirm);
-    button_sizer->AddSpacer(FromDIP(20));
-    button_sizer->Add(m_button_close);
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
+    dlg_btns->GetOK()->SetLabel(_L("Go Home"));
+    dlg_btns->GetCANCEL()->SetLabel(_L("Close"));
 
     main_sizer->Add(m_line_top, 0, wxEXPAND, 0);
     main_sizer->AddSpacer(DRAW_PANEL_SIZE.y);
-    main_sizer->Add(button_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND, BORDER);
+    main_sizer->Add(dlg_btns, 0, wxBOTTOM | wxRIGHT | wxEXPAND, FromDIP(ButtonProps::ChoiceButtonGap()));
 
     SetSizer(main_sizer);
 
@@ -65,8 +45,8 @@ RecenterDialog::RecenterDialog(wxWindow* parent, wxWindowID id, const wxString& 
     Layout();
     Fit();
     this->Bind(wxEVT_PAINT, &RecenterDialog::OnPaint, this);
-    m_button_confirm->Bind(wxEVT_BUTTON, &RecenterDialog::on_button_confirm, this);
-    m_button_close->Bind(wxEVT_BUTTON, &RecenterDialog::on_button_close, this);
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &RecenterDialog::on_button_confirm, this);
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &RecenterDialog::on_button_close, this);
 
     wxGetApp().UpdateDlgDarkUI(this);
 }
@@ -178,10 +158,7 @@ void RecenterDialog::on_button_close(wxCommandEvent& event) {
 
 void RecenterDialog::on_dpi_changed(const wxRect& suggested_rect) {
     init_bitmap();
-    m_button_confirm->SetMinSize(wxSize(-1, FromDIP(24)));
-    m_button_confirm->SetCornerRadius(FromDIP(12));
-    m_button_close->SetMinSize(wxSize(-1, FromDIP(24)));
-    m_button_close->SetCornerRadius(FromDIP(12));
+    // ORCA no need to reapply button sizes
     Layout();
 }
 

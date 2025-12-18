@@ -194,7 +194,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
             language_name = wxString::FromUTF8("\xe4\xb8\xad\xe6\x96\x87\x28\xe7\xae\x80\xe4\xbd\x93\x29");
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_CHINESE)) {
-            language_name = wxString::FromUTF8("\xe4\xb8\xad\xe6\x96\x87\x28\xe7\xb9\x81\xe4\xbd\x93\x29");
+            language_name = wxString::FromUTF8("\xe4\xb8\xad\xe6\x96\x87\x28\xe7\xb9\x81\xe9\xab\x94\x29");
         }
         else if (vlist[i] == wxLocale::GetLanguageInfo(wxLANGUAGE_SPANISH)) {
             language_name = wxString::FromUTF8("\x45\x73\x70\x61\xc3\xb1\x6f\x6c");
@@ -675,6 +675,74 @@ wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString toolt
 
     m_backup_interval_textinput = input;
     return m_sizer_input;
+}
+
+wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip)
+{
+    wxBoxSizer *sizer_row = new wxBoxSizer(wxHORIZONTAL);
+
+    sizer_row->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+    auto checkbox_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    checkbox_title->SetFont(::Label::Body_14);
+    checkbox_title->Wrap(DESIGN_TITLE_SIZE.x);
+    checkbox_title->SetToolTip(checkbox_tooltip);
+
+    auto checkbox = new ::CheckBox(m_parent);
+    checkbox->SetValue(app_config->get_bool("auto_slice_after_change"));
+    checkbox->SetToolTip(checkbox_tooltip);
+
+    wxString delay_value = app_config->get("auto_slice_change_delay_seconds");
+    if (delay_value.empty())
+        delay_value = "0";
+
+    auto input = new ::TextInput(m_parent, wxEmptyString, _L("sec"), wxEmptyString, wxDefaultPosition, wxSize(FromDIP(97), -1), wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(delay_value);
+    wxTextValidator validator(wxFILTER_DIGITS);
+    input->SetToolTip(delay_tooltip);
+    input->GetTextCtrl()->SetValidator(validator);
+
+    sizer_row->Add(checkbox_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
+    sizer_row->Add(checkbox, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(5));
+    sizer_row->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    auto commit_delay = [this, input]() {
+        wxString value = input->GetTextCtrl()->GetValue();
+        long seconds = 0;
+        if (!value.ToLong(&seconds) || seconds < 0)
+            seconds = 0;
+        wxString sanitized = wxString::Format("%ld", seconds);
+        input->GetTextCtrl()->SetValue(sanitized);
+        app_config->set("auto_slice_change_delay_seconds", std::string(sanitized.mb_str()));
+        app_config->save();
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [commit_delay](wxCommandEvent &e) {
+        commit_delay();
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [commit_delay](wxFocusEvent &e) {
+        commit_delay();
+        e.Skip();
+    });
+
+    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, input](wxCommandEvent &e) {
+        const bool enabled = checkbox->GetValue();
+        app_config->set_bool("auto_slice_after_change", enabled);
+        app_config->save();
+        input->Enable(enabled);
+        input->Refresh();
+        e.Skip();
+    });
+
+    input->Enable(checkbox->GetValue());
+    input->Refresh();
+
+    return sizer_row;
 }
 
 wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
@@ -1256,6 +1324,12 @@ void PreferencesDialog::create_items()
 
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
+
+    auto item_auto_reslice = create_item_auto_reslice(
+        _L("Auto slice after changes"),
+        _L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."),
+        _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
+    g_sizer->Add(item_auto_reslice);
  
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
@@ -1594,7 +1668,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
                     wxGetApp().request_user_logout();
                     agent->set_country_code(country_code);
                 }
-                ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::ButtonStyle::ONLY_CONFIRM);
+                ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::VisibleButtons::ONLY_CONFIRM);  // ORCA VisibleButtons instead ButtonStyle 
                 confirm_dlg.update_text(_L("Cloud environment switched, please login again!"));
                 confirm_dlg.on_show();
             }

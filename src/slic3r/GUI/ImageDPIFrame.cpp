@@ -146,7 +146,6 @@ void ImageDPIFrame::on_hide()
             wxGetApp().mainframe->Raise();
         }
     }
-    set_title(""); // reset title on hide
 }
 
 } // namespace GUI

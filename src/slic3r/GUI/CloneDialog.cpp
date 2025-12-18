@@ -42,13 +42,10 @@ CloneDialog::CloneDialog(wxWindow *parent)
     m_progress->Hide();
     bottom_sizer->Add(m_progress, 2, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
 
-    // used next button to get automatic left alignment
-    // will add a left_align_first_n parameter to DialogButtons. current method not good
-    auto dlg_btns = new DialogButtons(this, {"Next", "OK", "Cancel"});
+    auto dlg_btns = new DialogButtons(this, {"Fill", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 
-    dlg_btns->GetNEXT()->SetLabel(_L("Fill"));
-    dlg_btns->GetNEXT()->SetToolTip(_L("Fill bed with copies"));
-    dlg_btns->GetNEXT()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with copies"));
+    dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         m_plater->fill_bed_with_instances();
         EndModal(wxID_OK);
     });
@@ -63,7 +60,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
         m_progress->Show();
 
         dlg_btns->GetOK()->Hide();
-        dlg_btns->GetNEXT()->Hide();
+        dlg_btns->GetFIRST()->Hide();
 
         this->Layout();
         v_sizer->Fit(this);
