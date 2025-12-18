@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <algorithm>
 #include <numeric>
+#include <limits>
 #include <vector>
 #include <string>
 #include <regex>
@@ -4104,6 +4105,8 @@ struct Plater::priv
     bool m_ignore_event{false};
     bool m_slice_all{false};
     bool m_is_slicing {false};
+    bool auto_reslice_pending {false};
+    bool auto_reslice_after_cancel {false};
     bool m_is_publishing {false};
     int m_is_RightClickInLeftUI{-1};
     int m_cur_slice_plate;
@@ -4148,6 +4151,7 @@ struct Plater::priv
     std::string                 delayed_error_message;
 
     wxTimer                     background_process_timer;
+    wxTimer                     auto_reslice_timer;
 
     std::string                 label_btn_export;
     std::string                 label_btn_send;
@@ -4357,6 +4361,9 @@ struct Plater::priv
     std::vector<std::vector<DynamicPrintConfig>> get_extruder_filament_info();
     void update_print_volume_state();
     void schedule_background_process();
+    void schedule_auto_reslice_if_needed();
+    void trigger_auto_reslice_now();
+    int  auto_slice_delay_seconds() const;
     // Update background processing thread from the current config and Model.
     enum UpdateBackgroundProcessReturnState {
         // update_background_process() reports, that the Print / SLAPrint was updated in a way,
@@ -4742,10 +4749,18 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     panels.push_back(assemble_view);
 
     this->background_process_timer.SetOwner(this->q, 0);
+    this->auto_reslice_timer.SetOwner(this->q, 0);
     this->q->Bind(wxEVT_TIMER, [this](wxTimerEvent &evt)
     {
-        if (!this->suppressed_backround_processing_update)
-            this->update_restart_background_process(false, false);
+        if (&evt.GetTimer() == &this->background_process_timer) {
+            if (!this->suppressed_backround_processing_update)
+                this->update_restart_background_process(false, false);
+        } else if (&evt.GetTimer() == &this->auto_reslice_timer) {
+            this->auto_reslice_timer.Stop();
+            this->trigger_auto_reslice_now();
+        } else {
+            evt.Skip();
+        }
     });
 
     update();
@@ -7285,6 +7300,90 @@ void Plater::priv::schedule_background_process()
     this->view3D->get_canvas3d()->set_config(this->config);
 }
 
+void Plater::priv::schedule_auto_reslice_if_needed()
+{
+    AppConfig* cfg = wxGetApp().app_config;
+    if (cfg == nullptr || !cfg->get_bool("auto_slice_after_change"))
+        return;
+
+    if (model.objects.empty())
+        return;
+
+    PartPlate* plate = partplate_list.get_curr_plate();
+    if (plate == nullptr || !plate->has_printable_instances())
+        return;
+
+    if (background_process.running() || m_is_slicing) {
+        // Remember to restart once the current slice stops and cancel it now.
+        auto_reslice_after_cancel = true;
+        background_process.stop();
+        return;
+    }
+
+    const int delay_seconds = auto_slice_delay_seconds();
+    if (delay_seconds > 0) {
+        auto_reslice_pending = true;
+        auto_reslice_timer.Stop();
+        auto_reslice_timer.Start(delay_seconds * 1000, wxTIMER_ONE_SHOT);
+        return;
+    }
+
+    if (auto_reslice_pending)
+        return;
+
+    auto_reslice_pending = true;
+    auto_reslice_timer.Stop();
+    wxGetApp().CallAfter([this]() { this->trigger_auto_reslice_now(); });
+}
+
+void Plater::priv::trigger_auto_reslice_now()
+{
+    this->auto_reslice_pending = false;
+
+    AppConfig* cfg = wxGetApp().app_config;
+    if (cfg == nullptr || !cfg->get_bool("auto_slice_after_change"))
+        return;
+
+    if (this->model.objects.empty())
+        return;
+
+    if (this->background_process.running() || this->m_is_slicing)
+        return;
+
+    PartPlate* plate = this->partplate_list.get_curr_plate();
+    if (plate == nullptr || !plate->has_printable_instances())
+        return;
+
+    this->q->reslice();
+}
+
+int Plater::priv::auto_slice_delay_seconds() const
+{
+    AppConfig* cfg = wxGetApp().app_config;
+    if (cfg == nullptr)
+        return 0;
+
+    std::string delay_str = cfg->get("auto_slice_change_delay_seconds");
+    if (delay_str.empty())
+        return 0;
+
+    long delay_seconds = 0;
+    try {
+        delay_seconds = std::stol(delay_str);
+    } catch (...) {
+        delay_seconds = 0;
+    }
+
+    if (delay_seconds < 0)
+        delay_seconds = 0;
+
+    const long max_seconds = std::numeric_limits<int>::max() / 1000;
+    if (delay_seconds > max_seconds)
+        delay_seconds = max_seconds;
+
+    return static_cast<int>(delay_seconds);
+}
+
 std::vector<std::vector<DynamicPrintConfig>> Plater::priv::get_extruder_filament_info()
 {
     std::vector<std::vector<DynamicPrintConfig>> filament_infos;
@@ -9446,6 +9545,11 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
             }
         }
     }
+    if (auto_reslice_after_cancel) {
+        auto_reslice_after_cancel = false;
+        schedule_auto_reslice_if_needed();
+    }
+
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", exit.");
 }
 
@@ -15942,6 +16046,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
     if (p->main_frame->is_loaded()) {
         this->p->schedule_background_process();
         update_title_dirty_status();
+        p->schedule_auto_reslice_if_needed();
     }
 }
 
