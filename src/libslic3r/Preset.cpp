@@ -161,11 +161,18 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
     int process_variant_length = default_param_length;
     int machine_variant_length = default_param_length;
 
+    // Orca: use nozzle/extruder count as the default printer variant length
+    // because non-BBL multi-extruder printers currently do not support extruder variant.
+    if (config.has("nozzle_diameter")) {
+        auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(config.option("nozzle_diameter"));
+        machine_variant_length = nozzle_diameter->values.size();
+    }
+
     if(config.has("filament_extruder_variant"))
         filament_variant_length = config.option<ConfigOptionStrings>("filament_extruder_variant")->size();
     if(config.has("print_extruder_variant"))
         process_variant_length = config.option<ConfigOptionStrings>("print_extruder_variant")->size();
-    if(config.has("printer_extruder_variant"))
+    if(config.has("printer_extruder_variant"))  // Use existing variant list if specified, so BBL's multi-variant profiles still works
         machine_variant_length = config.option<ConfigOptionStrings>("printer_extruder_variant")->size();
 
     auto replace_nil_and_resize = [&](const std::string & key, int length){
