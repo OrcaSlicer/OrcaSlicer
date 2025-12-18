@@ -216,8 +216,8 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         };
 
         auto optgroup = std::make_shared<ConfigOptionsGroup>(m_og->ctrl_parent(), _(cat.first), &m_current_config, false, extra_column);
-        optgroup->label_width = 15;
-        optgroup->sidetext_width = 5;
+        optgroup->label_width    = 20; // ORCA match label width with sidebar
+        optgroup->sidetext_width = Field::def_width_thinner();
         optgroup->set_config_category_and_type(GUI::from_u8(group_category), Preset::TYPE_PRINT);
 
         std::weak_ptr<ConfigOptionsGroup> weak_optgroup(optgroup);
@@ -246,7 +246,7 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
         for (auto& opt : cat.second)
         {
             Option option = optgroup->get_option(opt.name);
-            option.opt.width = 18;
+            option.opt.width = Field::def_width_wider(); // ORCA match parameter box width
             if (is_extruders_cat)
                 option.opt.max = wxGetApp().extruders_edited_cnt();
             optgroup->append_single_option_line(option);

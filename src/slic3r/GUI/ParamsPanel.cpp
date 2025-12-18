@@ -259,8 +259,16 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         m_tips_arrow = new ScalableButton(m_top_panel, wxID_ANY, "tips_arrow");
         m_tips_arrow->Hide();
 
-        m_title_view = new Label(m_top_panel, Label::Body_12, _L("Advance")); // ORCA match size with advanced toggle on tab.cpp m_static_title
+        m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
+        m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
+            m_mode_view->SetValue(!m_mode_view->GetValue());
+            wxCommandEvent evt(wxEVT_TOGGLEBUTTON, m_mode_view->GetId()); // ParamsPanel::OnToggled(evt)
+            evt.SetEventObject(m_mode_view);
+            m_mode_view->wxEvtHandler::ProcessEvent(evt);
+        });
+        m_mode_icon->SetToolTip(_L("Show/Hide advanced parameters"));
         m_mode_view = new SwitchButton(m_top_panel, wxID_ABOUT);
+        m_mode_view->SetToolTip(_L("Show/Hide advanced parameters"));
 
         // BBS: new layout
         //m_search_btn = new ScalableButton(m_top_panel, wxID_ANY, "search", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
@@ -394,23 +402,16 @@ void ParamsPanel::create_layout()
 
     if (m_top_panel) {
         m_mode_sizer = new wxBoxSizer( wxHORIZONTAL );
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
-        m_mode_sizer->Add(m_process_icon, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
-        m_mode_sizer->Add( m_title_label, 0, wxALIGN_CENTER );
-        m_mode_sizer->AddStretchSpacer(2);
-        m_mode_sizer->Add(m_mode_region, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
-        m_mode_sizer->Add(m_tips_arrow, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddStretchSpacer(12);
-        m_mode_sizer->Add( m_title_view, 0, wxALIGN_CENTER );
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
-        m_mode_sizer->Add(m_mode_view, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing() * 6)); // ORCA using spacer prevents shaky mode_view when tips_arrow highlighting mode_region instead using AddStretchSpacer
-        m_mode_sizer->Add(m_setting_btn, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::IconSpacing()));
-        m_mode_sizer->Add(m_compare_btn, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
+        m_mode_sizer->Add(m_process_icon, 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::TitlebarMargin()));
+        m_mode_sizer->Add(m_title_label , 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::ElementSpacing()));
+        m_mode_sizer->Add(m_mode_region , 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::WideSpacing()));
+        m_mode_sizer->Add(m_tips_arrow  , 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::ElementSpacing()));
+        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::IconSpacing())); // ensure there is spacing after control when sidebar has less width
+        m_mode_sizer->AddStretchSpacer();
+        m_mode_sizer->Add(m_mode_icon   , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
+        m_mode_sizer->Add(m_mode_view   , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        m_mode_sizer->Add(m_setting_btn , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        m_mode_sizer->Add(m_compare_btn , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::TitlebarMargin()));
         //m_mode_sizer->Add( m_search_btn, 0, wxALIGN_CENTER );
         //m_mode_sizer->AddSpacer(16);
         m_mode_sizer->SetMinSize(-1, FromDIP(30));
@@ -690,6 +691,7 @@ void ParamsPanel::msw_rescale()
         m_mode_sizer->SetMinSize(-1, 3 * em_unit(this));
     if (m_mode_region)
         ((SwitchButton* )m_mode_region)->Rescale();
+    if (m_mode_icon) m_mode_icon->msw_rescale();
     if (m_mode_view)
         ((SwitchButton* )m_mode_view)->Rescale();
     for (auto tab : {m_tab_print, m_tab_print_plate, m_tab_print_object, m_tab_print_part, m_tab_print_layer, m_tab_filament, m_tab_printer}) {
@@ -791,10 +793,10 @@ void ParamsPanel::delete_subwindows()
         m_mode_view = nullptr;
     }
 
-    if (m_title_view)
+    if (m_mode_icon) // ORCA m_title_view replacement
     {
-        delete m_title_view;
-        m_title_view = nullptr;
+        delete m_mode_icon;
+        m_mode_icon = nullptr;
     }
 
     if (m_search_btn)
