@@ -16,13 +16,15 @@ namespace Slic3r { namespace GUI {
 class DialogButtons  : public wxPanel{
 public:
 
-    DialogButtons(wxWindow* parent, std::vector<wxString> non_translated_labels, const wxString& primary_btn_label = "");
+    DialogButtons(wxWindow* parent, std::vector<wxString> non_translated_labels, const wxString& primary_btn_label = "",  const int left_aligned_buttons_count = 0);
 
     wxBoxSizer* GetSizer() const { return m_sizer; }
 
     Button* GetButtonFromID(wxStandardID id);
 
     Button* GetButtonFromLabel(wxString label);
+
+    Button* GetButtonFromIndex(int index);
 
     Button* GetOK();
     Button* GetYES();
@@ -32,10 +34,14 @@ public:
     Button* GetCANCEL();
     Button* GetRETURN();
     Button* GetNEXT();
+    Button* GetFIRST();
+    Button* GetLAST();
 
     void SetPrimaryButton(wxString label);
 
     void SetAlertButton(wxString label);
+
+    void SetLeftAlignedButtonsCount(int left_aligned_buttons_count);
 
     void UpdateButtons();
 
@@ -47,6 +53,7 @@ private:
     std::vector<Button*> m_buttons;
     wxString             m_primary;
     wxString             m_alert;
+    int                  m_left_aligned_buttons_count;
 
     // missing ones Transfer / Update / Create
     const std::map<wxString, wxStandardID> m_standardIDs = {
@@ -104,12 +111,6 @@ private:
         wxID_RESET,
         wxID_CLEAR,
         wxID_EXIT
-    };
-
-    std::set<wxStandardID> m_left_align_IDs {
-        wxID_DELETE,
-        wxID_BACKWARD,
-        wxID_FORWARD
     };
 
     Button* PickFromList(std::set<wxStandardID> ID_list);

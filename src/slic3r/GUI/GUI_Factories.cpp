@@ -533,7 +533,7 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
 wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeType type) {
     auto sub_menu = new wxMenu;
 
-    for (auto &item : {L("Orca Cube"), L("Orca Tolerance Test"), L("3DBenchy"), L("Autodesk FDM Test"),
+    for (auto &item : {L("Orca Cube"), L("Orca Tolerance Test"), L("3DBenchy"), L("Cali Cat"), L("Autodesk FDM Test"),
                        L("Voron Cube"), L("Stanford Bunny"), L("Orca String Hell") }) {
         append_menu_item(
             sub_menu, wxID_ANY, _(item), "",
@@ -547,6 +547,8 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                     file_name = "OrcaToleranceTest.stl";
                 else if (file_name == L("3DBenchy"))
                     file_name = "3DBenchy.3mf";
+                else if (file_name == L("Cali Cat"))
+                    file_name = "calicat.stl";
                 else if (file_name == L("Autodesk FDM Test"))
                     file_name = "ksr_fdmtest_v4.3mf";
                 else if (file_name == L("Voron Cube"))

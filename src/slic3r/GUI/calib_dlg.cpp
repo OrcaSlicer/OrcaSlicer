@@ -284,6 +284,19 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
     ParseStringValues(m_tiBMAccels->GetTextCtrl()->GetValue().ToStdString(), m_params.accelerations);
     ParseStringValues(m_tiBMSpeeds->GetTextCtrl()->GetValue().ToStdString(), m_params.speeds);
 
+    if (!m_params.accelerations.empty() && !m_params.speeds.empty()) {
+        // Guard against swapped inputs by ensuring acceleration magnitudes exceed speeds.
+        const double min_accel = *std::min_element(m_params.accelerations.begin(), m_params.accelerations.end());
+        const double max_speed = *std::max_element(m_params.speeds.begin(), m_params.speeds.end());
+        if (min_accel <= max_speed) {
+            MessageDialog msg_dlg(nullptr,
+                _L("Acceleration values must be greater than speed values.\nPlease verify the inputs."),
+                wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
+            return;
+        }
+    }
+
     m_plater->calib_pa(m_params);
     EndModal(wxID_OK);
 

@@ -7996,8 +7996,41 @@ size_t DynamicPrintConfig::get_parameter_size(const std::string& param_name, siz
     return extruder_nums;
 }
 
+// Orca: Special handling for extruder variants
+// BBL printers have extruder variants pre-defined in system profiles, however for customized multi-extruder profile,
+// we need to set up these parameters automatically, otherwise per-extruder options won't work properly.
+static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned int num_extruders)
+{
+    // 1. Make sure the `extruder_variant_list` is the same length as extruder cnt
+    auto extruder_variant_opt = dynamic_cast<ConfigOptionStrings*>(config.option("extruder_variant_list"));
+    assert(extruder_variant_opt != nullptr);
+    extruder_variant_opt->resize(num_extruders, extruder_variant_opt); // Use the first option as the default value, so all extruders have the same variant
+
+    // 2. Update `printer_extruder_variant` and `printer_extruder_id` based on `extruder_variant_list`
+    auto printer_extruder_id_opt = dynamic_cast<ConfigOptionInts*>(config.option("printer_extruder_id"));
+    assert(printer_extruder_id_opt != nullptr);
+    printer_extruder_id_opt->values.clear();
+    auto printer_extruder_variant_opt = dynamic_cast<ConfigOptionStrings*>(config.option("printer_extruder_variant"));
+    assert(printer_extruder_variant_opt != nullptr);
+    printer_extruder_variant_opt->values.clear();
+    for (int i = 0; i < num_extruders; i++) {
+        // `extruder_variant_list` specifies supported variant of each nozzle/extruder,
+        // each item is a comma separated list of variants (extruder type + nozzle flow type) this extruder supported
+        std::string variant = extruder_variant_opt->get_at(i);
+        std::vector<std::string> variants_list;
+        boost::split(variants_list, variant, boost::is_any_of(","), boost::token_compress_on);
+
+        if (!variants_list.empty()) {
+            printer_extruder_id_opt->values.insert(printer_extruder_id_opt->values.end(), variants_list.size(), i + 1);
+            printer_extruder_variant_opt->values.insert(printer_extruder_variant_opt->values.end(), variants_list.begin(), variants_list.end());
+        }
+    }
+}
+
 void DynamicPrintConfig::set_num_extruders(unsigned int num_extruders)
 {
+    extend_extruder_variant(*this, num_extruders);
+
     const auto &defaults = FullPrintConfig::defaults();
     for (const std::string &key : print_config_def.extruder_option_keys()) {
         if (key == "default_filament_profile")

@@ -2737,7 +2737,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_template_item(wxWindow *pa
 
 wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *parent)
 {
-    auto dlg_btns = new DialogButtons(parent, {"Return", "OK", "Cancel"});
+    auto dlg_btns = new DialogButtons(parent, {"Return", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 
     dlg_btns->GetRETURN()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { show_page1(); });
 
@@ -4741,9 +4741,9 @@ wxBoxSizer *EditFilamentPresetDialog::create_preset_tree_sizer()
 
 wxWindow *EditFilamentPresetDialog::create_dialog_buttons()
 {
-    auto dlg_btns = new DialogButtons(this, {"Delete", "OK"});
+    auto dlg_btns = new DialogButtons(this, {"Delete", "OK"}, "", 1 /*left_aligned*/);
 
-    dlg_btns->GetButtonFromID(wxID_DELETE)->Bind(wxEVT_BUTTON, ([this](wxCommandEvent &e) {
+    dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, ([this](wxCommandEvent &e) {
         WarningDialog dlg(this, _L("All the filament presets belong to this filament would be deleted.\n"
                                    "If you are using this filament on your printer, please reset the filament information for that slot."),
                           _L("Delete filament"), wxYES | wxCANCEL | wxCANCEL_DEFAULT | wxCENTRE);

@@ -347,6 +347,7 @@ public:
     static const ImVec4 COL_SEPARATOR;
     static const ImVec4 COL_SEPARATOR_DARK;
     static const ImVec4 COL_ORCA;
+    static const ImVec4 COL_MODIFIED;
 
     //BBS
     static void on_change_color_mode(bool is_dark);
@@ -364,7 +365,7 @@ public:
     static void pop_button_disable_style();
     static void push_combo_style(const float scale);
     static void pop_combo_style();
-    static void push_radio_style();
+    static void push_radio_style(const float scale);
     static void pop_radio_style();
 
     //BBS
