@@ -35,7 +35,7 @@ jobs:
         with:
           path: ${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: false
 
       - uses: lukka/get-cmake@latest
         with:
