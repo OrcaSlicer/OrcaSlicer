@@ -149,9 +149,8 @@ void OrientJob::prepare()
     }
 }
 
-namespace {
 /// parameters to minimize support area
-void setMinimalSupportAreaPrams(Slic3r::orientation::OrientParams &out)
+static void setMinimalSupportAreaPrams(Slic3r::orientation::OrientParams &out)
 {
     out.TAR_A               = 0.015f;
     out.TAR_B               = 0.177f;
@@ -189,7 +188,6 @@ void setMinimalSupportAreaPrams(Slic3r::orientation::OrientParams &out)
     out.progressind         = {};
     out.stopcondition       = {};
 }
-} // namespace
 
 void OrientJob::process(Ctl &ctl)
 {
