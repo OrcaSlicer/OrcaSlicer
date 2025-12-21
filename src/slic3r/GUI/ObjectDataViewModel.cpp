@@ -1052,8 +1052,12 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
         ObjectDataViewModelNode* last_instance_node = node_parent->GetNthChild(0);
         PrintIndicator last_instance_printable = last_instance_node->IsPrintable();
         node_parent->GetChildren().Remove(last_instance_node);
-        ItemDeleted(parent, wxDataViewItem(last_instance_node));
         delete last_instance_node;
+        // `delete` before `ItemDeleted()` is valid wxWidget pattern
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuse-after-free"
+        ItemDeleted(parent, wxDataViewItem(last_instance_node));
+#pragma GCC diagnostic pop
 
         ObjectDataViewModelNode* obj_node = node_parent->GetParent();
         obj_node->set_printable_icon(last_instance_printable);
