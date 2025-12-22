@@ -220,9 +220,14 @@ wxDEFINE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 
 static string get_diameter_string(float diameter)
 {
-    std::ostringstream stream;
-    stream << std::fixed << std::setprecision(1) << diameter;
-    return stream.str();
+    std::ostringstream stream; // ORCA ensure 0.25 returned as 0.25. previous code returned as 0.2 because of std::setprecision(1)
+    stream << std::fixed << std::setprecision(2) << diameter;  // Use 2 decimals to capture 0.25 / 0.15 reliably
+    std::string s = stream.str();
+    if (s.find('.') != std::string::npos) {   // Remove trailing zeros, but keep at least one decimal if needed
+        s.erase(s.find_last_not_of('0') + 1);
+        if (s.back() == '.') s += '0';        // Ensure "1." → "1.0"
+    }
+    return s;
 }
 
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
@@ -1232,7 +1237,8 @@ bool Sidebar::priv::switch_diameter(bool single)
     }
     auto preset          = wxGetApp().preset_bundle->get_similar_printer_preset({}, diameter.ToStdString());
     if (preset == nullptr) {
-        MessageDialog dlg(this->plater, "", "");
+        // ORCA add a text. this appears when user tries to change nozzle value but config doesnt have a inherited or compatible preset
+        MessageDialog dlg(this->plater, _L("Configuration incompatible"), _L("Warning"), wxICON_WARNING | wxOK);
         dlg.ShowModal();
         return false;
     }
@@ -2538,9 +2544,18 @@ void Sidebar::update_presets(Preset::Type preset_type)
         p->layout_printer(preset_bundle.use_bbl_network(), isBBL && is_dual_extruder);
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
-        auto update_extruder_diameter = [&diameters, &diameter](ExtruderGroup & extruder) {
+        auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
             extruder.combo_diameter->Clear();
             int select = -1;
+            // ORCA if user defined a custom nozzle in printer config select it instead inherited one. this will show correct nozzle diameter in combobox if its exist in nozzle diameters list
+            auto nozzle_dia = get_diameter_string(nozzle_diameter->values[extruder_index]);
+            if(nozzle_dia != diameter && std::find(diameters.begin(), diameters.end(), nozzle_dia) != diameters.end())
+                diameter = nozzle_dia;
+            // ORCA try to add nozzle diameter from config if list is empty. fixes blank nozzle combo box when preset has no alias
+            if(diameters[0].empty() && !nozzle_dia.empty()){
+                diameters[0] = nozzle_dia;
+                diameter = nozzle_dia;
+            }
             for (size_t i = 0; i < diameters.size(); ++i) {
                 if (diameters[i] == diameter)
                     select = extruder.combo_diameter->GetCount();
@@ -2554,14 +2569,14 @@ void Sidebar::update_presets(Preset::Type preset_type)
             AMSCountPopupWindow::UpdateAMSCount(0, p->left_extruder);
             AMSCountPopupWindow::UpdateAMSCount(1, p->right_extruder);
             //if (!p->is_switching_diameter) {
-                update_extruder_diameter(*p->left_extruder);
-                update_extruder_diameter(*p->right_extruder);
+                update_extruder_diameter(0, *p->left_extruder);
+                update_extruder_diameter(1, *p->right_extruder);
             //}
             p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
         } else {
             AMSCountPopupWindow::UpdateAMSCount(0, p->single_extruder);
             //if (!p->is_switching_diameter)
-                update_extruder_diameter(*p->single_extruder);
+                update_extruder_diameter(0, *p->single_extruder);
 
             // ORCA sync unified nozzle combo box
             p->combo_nozzle_dia->Clear();
