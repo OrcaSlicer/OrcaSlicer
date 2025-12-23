@@ -15,7 +15,6 @@
 #include "../PrintConfig.hpp"
 
 #include "SmallAreaInfillFlowCompensator.hpp"
-#include "spline/spline.h"
 #include <boost/log/trivial.hpp>
 
 namespace Slic3r {
@@ -73,8 +72,7 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
             throw Slic3r::InvalidArgument("Final compensation factor for small area infill flow compensation model must be 1.0");
         }
 
-        flowModel = std::make_unique<tk::spline>();
-        flowModel->set_points(eLengths, flowComps);
+        flowModel = std::make_unique<PchipInterpolatorHelper>(eLengths, flowComps);
 
     } catch (std::exception& e) {
         BOOST_LOG_TRIVIAL(error) << "Error parsing small area infill compensation model: " << e.what();
@@ -92,7 +90,7 @@ double SmallAreaInfillFlowCompensator::flow_comp_model(const double line_length)
         return 1.0;
     }
 
-    return (*flowModel)(line_length);
+    return flowModel->interpolate(line_length);
 }
 
 double SmallAreaInfillFlowCompensator::modify_flow(const double line_length, const double dE, const ExtrusionRole role)
