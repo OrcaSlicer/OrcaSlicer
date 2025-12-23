@@ -6188,7 +6188,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
             // if still in avoidance mode and under "max", adjust speed:
             // - speeds in lower half of range: clamp down to "min"
-            // - speeds in upper half of range: boost up to "max"        if (m_resonance_avoidance && speed < m_config.max_resonance_avoidance_speed.value) {
+            // - speeds in upper half of range: boost up to "max"
+        if (m_resonance_avoidance && speed < m_config.max_resonance_avoidance_speed.value) {
             if (speed < m_config.min_resonance_avoidance_speed.value +
                             ((m_config.max_resonance_avoidance_speed.value - m_config.min_resonance_avoidance_speed.value) / 2)) {
                 speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
