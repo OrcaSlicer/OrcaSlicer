@@ -4143,6 +4143,9 @@ void TabFilament::reload_config()
     this->compatible_widget_reload(m_compatible_printers);
     this->compatible_widget_reload(m_compatible_prints);
     Tab::reload_config();
+
+    // Recompute derived override UI from the newly loaded config
+    update_filament_overrides_page(&m_preset_bundle->printers.get_edited_preset().config);
 }
 
 //void TabFilament::update_volumetric_flow_preset_hints()
