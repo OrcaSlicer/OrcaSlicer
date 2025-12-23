@@ -12,6 +12,7 @@
 #include "GCode/PrintExtents.hpp"
 #include "GCode/Thumbnails.hpp"
 #include "GCode/WipeTower.hpp"
+#include "GCode/PchipInterpolatorHelper.hpp"
 #include "ShortestPath.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
@@ -6872,29 +6873,46 @@ double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
 
     std::sort(pa_values.begin(), pa_values.end());
 
-    const double nozzle_diameter = m_config.nozzle_diameter.get_at(get_extruder_id(filament_id));
     constexpr double epsilon = 0.001;
+    const double nozzle_diameter = m_config.nozzle_diameter.get_at(get_extruder_id(filament_id));
 
-    // Use binary search to find the position where nozzle_diameter should be inserted
-    auto it = std::lower_bound(pa_values.begin(), pa_values.end(), nozzle_diameter,
+    // Deduplicate nozzle entries to avoid zero-length segments in the interpolator.
+    std::vector<std::pair<double, double>> unique_pa_values;
+    unique_pa_values.reserve(pa_values.size());
+    for (const auto& entry : pa_values) {
+        if (unique_pa_values.empty() || std::abs(entry.first - unique_pa_values.back().first) > epsilon) {
+            unique_pa_values.push_back(entry);
+        } else {
+            unique_pa_values.back().second = entry.second;
+        }
+    }
+
+    if (unique_pa_values.empty()) return 0.0;
+    if (unique_pa_values.size() == 1) return unique_pa_values.front().second;
+
+    std::vector<double> nozzle_points;
+    std::vector<double> pa_points;
+    nozzle_points.reserve(unique_pa_values.size());
+    pa_points.reserve(unique_pa_values.size());
+    for (const auto& [nozzle, pa] : unique_pa_values) {
+        nozzle_points.push_back(nozzle);
+        pa_points.push_back(pa);
+    }
+
+    try {
+        PchipInterpolatorHelper interpolator(nozzle_points, pa_points);
+        return interpolator.interpolate(nozzle_diameter);
+    } catch (...) {
+        // Fall back to linear interpolation if PCHIP construction fails.
+    }
+
+    auto it = std::lower_bound(unique_pa_values.begin(), unique_pa_values.end(), nozzle_diameter,
                                [](const std::pair<double, double>& p, double val) { return p.first < val; });
 
-    // Exact match (within epsilon)
-    if (it != pa_values.end() && std::abs(it->first - nozzle_diameter) < epsilon) {
-        return it->second;
-    }
+    if (it != unique_pa_values.end() && std::abs(it->first - nozzle_diameter) < epsilon) return it->second;
+    if (it == unique_pa_values.begin()) return unique_pa_values.front().second;
+    if (it == unique_pa_values.end()) return unique_pa_values.back().second;
 
-    // Below all values - use first
-    if (it == pa_values.begin()) {
-        return pa_values.front().second;
-    }
-
-    // Above all values - use last
-    if (it == pa_values.end()) {
-        return pa_values.back().second;
-    }
-
-    // Between two values - interpolate
     const auto& [upper_nozzle, upper_pa] = *it;
     const auto& [lower_nozzle, lower_pa] = *(it - 1);
     return lower_pa + (upper_pa - lower_pa) * (nozzle_diameter - lower_nozzle) / (upper_nozzle - lower_nozzle);
