@@ -53,7 +53,7 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
             }
         }
 
-        for (int i = 0; i < eLengths.size(); i++) {
+        for (size_t i = 0; i < eLengths.size(); i++) {
             if (i == 0) {
                 if (!nearly_equal(eLengths[i], 0.0)) {
                     throw Slic3r::InvalidArgument("First extrusion length for small area infill compensation model must be 0");
@@ -65,6 +65,12 @@ SmallAreaInfillFlowCompensator::SmallAreaInfillFlowCompensator(const Slic3r::GCo
                 if (eLengths[i] <= eLengths[i - 1]) {
                     throw Slic3r::InvalidArgument("Extrusion lengths for subsequent points must be increasing");
                 }
+            }
+        }
+
+        for (size_t i = 1; i < flowComps.size(); ++i) {
+            if (flowComps[i] <= flowComps[i - 1]) {
+                throw Slic3r::InvalidArgument("Flow compensation factors must strictly increase with extrusion length");
             }
         }
 
