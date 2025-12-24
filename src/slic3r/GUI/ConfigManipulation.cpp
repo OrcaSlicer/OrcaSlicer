@@ -935,12 +935,15 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool lattice_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralLattice;
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options);
+        
+    // Adaptative Cubic and support cubic infill patterns do not support infill rotation.
+    bool FillAdaptive = (pattern == InfillPattern::ipAdaptiveCubic || pattern == InfillPattern::ipSupportCubic);
 
-    //Orca: disable infill_direction/solid_infill_direction if sparse_infill_rotate_template/solid_infill_rotate_template is not empty value
-    toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "");
+    //Orca: disable infill_direction/solid_infill_direction if sparse_infill_rotate_template/solid_infill_rotate_template is not empty value and adaptive cubic/support cubic infill pattern is not selected
+    toggle_field("sparse_infill_rotate_template", !FillAdaptive);
+    toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "" && !FillAdaptive);
     toggle_field("solid_infill_direction", config->opt_string("solid_infill_rotate_template") == "");
-
-
+    
     toggle_line("infill_overhang_angle", config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralHoneycomb);
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);

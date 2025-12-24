@@ -1448,6 +1448,17 @@ static std::vector<CubeProperties> make_cubes_properties(double max_cube_edge_le
         if (edge_length > max_cube_edge_length)
             break;
     }
+    // Orca: Ensure at least 2 levels so build_octree() will insert triangles.
+    // Fixes scenario where adaptive fill is disconnected from walls on low densities
+    if (cubes_properties.size() == 1) {
+        CubeProperties p = cubes_properties.back();
+        p.edge_length      *= 2.0;
+        p.height           = p.edge_length * sqrt(3);
+        p.diagonal_length  = p.edge_length * sqrt(2);
+        p.line_z_distance  = p.edge_length / sqrt(3);
+        p.line_xy_distance = p.edge_length / sqrt(6);
+        cubes_properties.push_back(p);
+    }
     return cubes_properties;
 }
 
