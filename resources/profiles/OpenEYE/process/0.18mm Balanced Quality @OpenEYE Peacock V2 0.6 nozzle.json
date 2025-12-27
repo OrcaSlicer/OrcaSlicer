@@ -1,0 +1,26 @@
+{
+    "type": "process",
+    "name": "0.18mm Balanced Quality @OpenEYE Peacock V2 0.6 nozzle",
+    "inherits": "fdm_process_openeye_0.18_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP137",
+    "instantiation": "true",
+    "description": "High quality profile for 0.6mm nozzle, prioritizing print quality and strength.",
+    "bridge_speed": "50",
+    "default_acceleration": "8000",
+    "gap_infill_speed": "250",
+    "initial_layer_infill_speed": "105",
+    "initial_layer_speed": "50",
+    "inner_wall_speed": "300",
+    "internal_solid_infill_speed": "250",
+    "outer_wall_speed": "200",
+    "overhang_3_4_speed": "30",
+    "prime_tower_brim_width": "3",
+    "prime_tower_width": "60",
+    "sparse_infill_speed": "350",
+    "top_surface_speed": "200",
+    "travel_speed": "500",
+    "compatible_printers": [
+        "OpenEYE Peacock V2 0.6 nozzle"
+    ]
+}
