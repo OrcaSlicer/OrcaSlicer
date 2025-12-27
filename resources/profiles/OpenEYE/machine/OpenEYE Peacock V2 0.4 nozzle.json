@@ -1,0 +1,48 @@
+{
+	"default_print_profile": "0.20mm Standard @OpenEYE Peacock V2",
+    "default_bed_type": "Textured PEI Plate",
+	"from": "system",
+	"inherits": "fdm_openeye_common",
+	"instantiation": "true",
+    "layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}\n_MMU_UPDATE_HEIGHT",
+    "machine_end_gcode": "MMU_END\nEND_PRINT",
+	"machine_load_filament_time": "30",
+    "machine_max_speed_e": [
+        "60",
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "30",
+        "30"
+    ],
+	"machine_pause_gcode": "PAUSE",
+	"machine_start_gcode": "SET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\nMMU_START_SETUP INITIAL_TOOL={initial_tool} TOTAL_TOOLCHANGES=!total_toolchanges! REFERENCED_TOOLS=!referenced_tools! TOOL_COLORS=!colors! TOOL_TEMPS=!temperatures! TOOL_MATERIALS=!materials! FILAMENT_NAMES=!filament_names! PURGE_VOLUMES=!purge_volumes!\nMMU_START_CHECK\nSTART_PRINT BED_TEMP=[bed_temperature_initial_layer] EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TYPE=\"{curr_bed_type}\"\n; Enter YOUR exist start_print macro call here (minus purging logic because tool may not be loaded yet)\nMMU_START_LOAD_INITIAL_TOOL\n; Optionally add YOUR additional start logic (like purging) here to run just prior to start\nSTART_PRINT_SECONDARY\nSET_PRINT_STATS_INFO TOTAL_LAYER={total_layer_count} ; For pause at layer functionality and better print stats",
+	"machine_unload_filament_time": "30",
+	"name": "OpenEYE Peacock V2 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"1.5x7",
+		"235x7",
+		"235x235",
+		"1.5x235"
+	],
+	"printable_height": "200",
+	"printer_model": "OpenEYE Peacock V2",
+	"printer_variant": "0.4",
+    "retract_lift_below": [
+        "180",
+		"180"
+    ],
+	"setting_id": "GM001",
+	"type": "machine"
+}

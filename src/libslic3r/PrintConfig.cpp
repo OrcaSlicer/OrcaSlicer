@@ -2733,7 +2733,7 @@ void PrintConfigDef::init_fff_params()
     def->label      = L("Fill Multiline");
     def->tooltip    = L("Using multiple lines for the infill pattern, if supported by infill pattern.");
     def->min = 1;
-    def->max = 5; // Maximum number of lines for infill pattern
+    def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("sparse_infill_pattern", coEnum);
@@ -7646,6 +7646,9 @@ std::set<std::string> filament_options_with_variant = {
     "filament_retraction_length",
     "filament_z_hop",
     "filament_z_hop_types",
+    "filament_retract_lift_above",
+    "filament_retract_lift_below",
+    "filament_retract_lift_enforce",
     "filament_retract_restart_extra",
     "filament_retraction_speed",
     "filament_deretraction_speed",
@@ -7664,7 +7667,11 @@ std::set<std::string> filament_options_with_variant = {
     "filament_flush_volumetric_speed",
     "filament_flush_temp",
     "volumetric_speed_coefficients",
-    "filament_adaptive_volumetric_speed"
+    "filament_adaptive_volumetric_speed",
+    "filament_ironing_flow",
+    "filament_ironing_spacing",
+    "filament_ironing_inset",
+    "filament_ironing_speed"
 };
 
 // Parameters that are the same as the number of extruders

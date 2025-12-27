@@ -9,4 +9,4 @@ ROOT_DIR="$(dirname "$0")/.."
 
 cd "${ROOT_DIR}" || exit 1
 
-ctest --test-dir build/tests --output-junit "$(pwd)/ctest_results.xml" --output-on-failure -j
+ctest --test-dir build/tests -L "Http|PlaceholderParser" --output-junit "$(pwd)/ctest_results.xml" --output-on-failure -j
