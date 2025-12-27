@@ -48,16 +48,17 @@ concurrency:
   
 
 jobs:
-  build_linux:
+  build_linux: # Separate so unit tests can wait on just Linux builds to complete.
     name: Build Linux
     strategy:
       fail-fast: false
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    uses: ./.github/workflows/build_check_cache.yml
+    uses: ./.github/workflows/build_deps.yml
     with:
       os: ubuntu-24.04
       build-deps-only: ${{ inputs.build-deps-only || false }}
+      force-build: ${{ github.event_name == 'schedule' }}
     secrets: inherit
   build_all:
     name: Build Non-Linux
@@ -70,7 +71,7 @@ jobs:
             arch: arm64
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    uses: ./.github/workflows/build_check_cache.yml
+    uses: ./.github/workflows/build_deps.yml
     with:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
@@ -112,7 +113,7 @@ jobs:
           path: build/tests/**/*.log
       - name: Publish Test Results
         if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action/linux@v2
         with:
           files: "ctest_results.xml"
   flatpak:
