@@ -5786,7 +5786,8 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
         if (extrusions.empty())
             return gcode;
 
-        chain_and_reorder_extrusion_entities(extrusions, &m_last_pos);
+        if (!support_fills.no_sort)
+            chain_and_reorder_extrusion_entities(extrusions, &m_last_pos);
 
         const double  support_speed            = m_config.support_speed.value;
         const double  support_interface_speed  = m_config.get_abs_value("support_interface_speed");
