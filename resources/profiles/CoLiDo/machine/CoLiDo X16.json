@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "CoLiDo X16",
+    "model_id": "CoLiDo_X16",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "CoLiDo",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "CoLiDo Generic PLA @CoLiDo X16;CoLiDo Generic ABS @CoLiDo X16;CoLiDo Generic PETG @CoLiDo X16;CoLiDo Generic TPU @CoLiDo X16"
+}

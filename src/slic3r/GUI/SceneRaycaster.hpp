@@ -52,7 +52,7 @@ public:
     enum class EIdBase
     {
         Bed    = 0,
-        Volume = 1000,
+        Volume = 1000, // Must be greater than PartPlateList::MAX_PLATES_COUNT * PartPlate::GRABBER_COUNT
         Gizmo  = 1000000,
         FallbackGizmo = 2000000
     };

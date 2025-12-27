@@ -1,16 +1,16 @@
 {
     "name": "TwoTrees",
-    "version": "02.02.00.04",
+    "version": "02.03.01.10",
     "force_update": "1",
     "description": "TwoTrees configurations",
     "machine_model_list": [
         {
-            "name": "TwoTrees SP-5 Klipper",
-            "sub_path": "machine/TwoTrees SP-5 Klipper.json"
-        },
-        {
             "name": "TwoTrees SK1",
             "sub_path": "machine/TwoTrees SK1.json"
+        },
+        {
+            "name": "TwoTrees SP-5 Klipper",
+            "sub_path": "machine/TwoTrees SP-5 Klipper.json"
         }
     ],
     "process_list": [
@@ -19,8 +19,16 @@
             "sub_path": "process/fdm_process_common.json"
         },
         {
+            "name": "0.08mm Extra Fine @SK1",
+            "sub_path": "process/0.08mm Extra Fine @SK1.json"
+        },
+        {
             "name": "0.08mm Extra Fine @TwoTrees",
             "sub_path": "process/0.08mm Extra Fine @TwoTrees.json"
+        },
+        {
+            "name": "0.12mm Fine @SK1",
+            "sub_path": "process/0.12mm Fine @SK1.json"
         },
         {
             "name": "0.12mm Fine @TwoTrees",
@@ -29,26 +37,6 @@
         {
             "name": "0.15mm Optimal @TwoTrees",
             "sub_path": "process/0.15mm Optimal @TwoTrees.json"
-        },
-        {
-            "name": "0.20mm Standard @TwoTrees",
-            "sub_path": "process/0.20mm Standard @TwoTrees.json"
-        },
-        {
-            "name": "0.24mm Draft @TwoTrees",
-            "sub_path": "process/0.24mm Draft @TwoTrees.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @TwoTrees",
-            "sub_path": "process/0.28mm Extra Draft @TwoTrees.json"
-        },
-        {
-            "name": "0.08mm Extra Fine @SK1",
-            "sub_path": "process/0.08mm Extra Fine @SK1.json"
-        },
-        {
-            "name": "0.12mm Fine @SK1",
-            "sub_path": "process/0.12mm Fine @SK1.json"
         },
         {
             "name": "0.16mm Optimal @SK1",
@@ -63,8 +51,16 @@
             "sub_path": "process/0.20mm Standard @SK1.json"
         },
         {
+            "name": "0.20mm Standard @TwoTrees",
+            "sub_path": "process/0.20mm Standard @TwoTrees.json"
+        },
+        {
             "name": "0.24mm Draft @SK1",
             "sub_path": "process/0.24mm Draft @SK1.json"
+        },
+        {
+            "name": "0.24mm Draft @TwoTrees",
+            "sub_path": "process/0.24mm Draft @TwoTrees.json"
         },
         {
             "name": "0.24mm HSpeed @SK1",
@@ -73,85 +69,17 @@
         {
             "name": "0.28mm Extra Draft @SK1",
             "sub_path": "process/0.28mm Extra Draft @SK1.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @TwoTrees",
+            "sub_path": "process/0.28mm Extra Draft @TwoTrees.json"
+        },
+        {
+            "name": "fdm_process_TwoTrees_common",
+            "sub_path": "process/fdm_process_TwoTrees_common.json"
         }
     ],
     "filament_list": [
-        {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
-            "name": "TwoTrees Generic PLA",
-            "sub_path": "filament/TwoTrees Generic PLA.json"
-        },
-        {
-            "name": "TwoTrees Generic PLA-CF",
-            "sub_path": "filament/TwoTrees Generic PLA-CF.json"
-        },
-        {
-            "name": "TwoTrees Generic PETG",
-            "sub_path": "filament/TwoTrees Generic PETG.json"
-        },
-        {
-            "name": "TwoTrees Generic ABS",
-            "sub_path": "filament/TwoTrees Generic ABS.json"
-        },
-        {
-            "name": "TwoTrees Generic TPU",
-            "sub_path": "filament/TwoTrees Generic TPU.json"
-        },
-        {
-            "name": "TwoTrees Generic ASA",
-            "sub_path": "filament/TwoTrees Generic ASA.json"
-        },
-        {
-            "name": "TwoTrees Generic PC",
-            "sub_path": "filament/TwoTrees Generic PC.json"
-        },
-        {
-            "name": "TwoTrees Generic PVA",
-            "sub_path": "filament/TwoTrees Generic PVA.json"
-        },
-        {
-            "name": "TwoTrees Generic PA",
-            "sub_path": "filament/TwoTrees Generic PA.json"
-        },
-        {
-            "name": "TwoTrees Generic PA-CF",
-            "sub_path": "filament/TwoTrees Generic PA-CF.json"
-        },
         {
             "name": "TwoTrees Generic 95A TPU @SK1",
             "sub_path": "filament/TwoTrees Generic 95A TPU @SK1.json"
@@ -159,26 +87,6 @@
         {
             "name": "TwoTrees Generic HS PLA @SK1",
             "sub_path": "filament/TwoTrees Generic HS PLA @SK1.json"
-        },
-        {
-            "name": "TwoTrees Generic PETG @SK1",
-            "sub_path": "filament/TwoTrees Generic PETG @SK1.json"
-        },
-        {
-            "name": "TwoTrees Generic PLA @SK1",
-            "sub_path": "filament/TwoTrees Generic PLA @SK1.json"
-        },
-        {
-            "name": "TwoTrees Generic PLA-CF @SK1",
-            "sub_path": "filament/TwoTrees Generic PLA-CF @SK1.json"
-        },
-        {
-            "name": "TwoTrees Generic PLA Matte @SK1",
-            "sub_path": "filament/TwoTrees Generic PLA Matte @SK1.json"
-        },
-        {
-            "name": "TwoTrees Generic PLA Silk @SK1",
-            "sub_path": "filament/TwoTrees Generic PLA Silk @SK1.json"
         }
     ],
     "machine_list": [
@@ -191,12 +99,12 @@
             "sub_path": "machine/fdm_klipper_common.json"
         },
         {
-            "name": "TwoTrees SP-5 Klipper 0.4 nozzle",
-            "sub_path": "machine/TwoTrees SP-5 Klipper 0.4 nozzle.json"
-        },
-        {
             "name": "TwoTrees SK1 0.4 nozzle",
             "sub_path": "machine/TwoTrees SK1 0.4 nozzle.json"
+        },
+        {
+            "name": "TwoTrees SP-5 Klipper 0.4 nozzle",
+            "sub_path": "machine/TwoTrees SP-5 Klipper 0.4 nozzle.json"
         }
     ]
 }

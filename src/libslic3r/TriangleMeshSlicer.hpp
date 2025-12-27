@@ -107,6 +107,7 @@ void slice_mesh_slabs(
     const Transform3d                &trafo,
     std::vector<Polygons>            *out_top,
     std::vector<Polygons>            *out_bottom,
+    std::vector<std::pair<Vec3f, Vec3f>>   *vertical_points,
     std::function<void()>             throw_on_cancel);
 
 // Project mesh upwards pointing surfaces / downwards pointing surfaces into 2D polygons.

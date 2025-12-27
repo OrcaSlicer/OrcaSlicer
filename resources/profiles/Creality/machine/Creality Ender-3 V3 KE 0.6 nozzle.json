@@ -1,0 +1,128 @@
+{
+    "type": "machine",
+    "name": "Creality Ender-3 V3 KE 0.6 nozzle",
+    "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_settings_id": "Creality",
+    "printer_model": "Creality Ender-3 V3 KE",
+    "gcode_flavor": "klipper",
+    "printer_structure": "i3",
+    "default_print_profile": "0.20mm Standard @Creality Ender3V3KE",
+    "extruder_clearance_height_to_rod": "47",
+    "extruder_clearance_radius": "90",
+    "machine_load_filament_time": "11",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "245",
+    "nozzle_type": "brass",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_extruding": [
+        "8000",
+        "8000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "8000",
+        "8000"
+    ],
+    "machine_max_acceleration_x": [
+        "8000",
+        "8000"
+    ],
+    "machine_max_acceleration_y": [
+        "8000",
+        "8000"
+    ],
+    "machine_max_acceleration_z": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_e": [
+        "40",
+        "40"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "30",
+        "30"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "7",
+        "7"
+    ],
+    "machine_max_jerk_y": [
+        "7",
+        "7"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.48"
+    ],
+    "min_layer_height": [
+        "0.12"
+    ],
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "100%"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "z_hop": [
+        "0.2"
+    ],
+    "single_extruder_multi_material": "1",
+    "manual_filament_change": "1",
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "PAUSE",
+    "default_filament_profile": [
+        "Creality Generic PLA @Ender-3V3-all"
+    ],
+    "machine_start_gcode": "SET_GCODE_VARIABLE MACRO=PRINTER_PARAM VARIABLE=fan0_min VALUE=30 ;compensate for fan speed\nSET_VELOCITY_LIMIT ACCEL_TO_DECEL=2500 ;revert accel_to_decel back to 2500\nM220 S100 ;Reset Feedrate\nM221 S100 ;Reset Flowrate\n\nM140 S[bed_temperature_initial_layer_single] ;Set bed temp\nG28 X Y ;Home XY axes\nM190 S[bed_temperature_initial_layer_single] ;Wait for bed temp to stabilize\nG28 Z ;Home Z axis & load bed mesh\nBED_MESH_CALIBRATE PROBE_COUNT=5,5 ;Auto bed level\n\nM104 S[nozzle_temperature_initial_layer] ;Set nozzle temp\nG92 E0 ;Reset Extruder\nG1 X-2.0 Y20 Z0.3 F5000.0 ;Move to start position\nM109 S[nozzle_temperature_initial_layer] ;Wait for nozzle temp to stabilize\nG1 Z0.2 ;Lower nozzle to printing height\nG1 Y145.0 F1500.0 E15 ;Draw the first line\nG1 X-1.7 F5000.0 ;Move to side a little\nG1 Y30 F1500.0 E15 ;Draw the second line\nG92 E0 ;Reset Extruder",
+    "machine_end_gcode": "G92 E0 ;Reset Extruder\nG1 E-1.2 Z{max_layer_z + 0.5} F1800 ;Retract and raise Z\n{if max_layer_z < 50}\nG1 Z{max_layer_z + 25} F900 ;Raise Z more\n{endif}\n\nG1 X2 Y218 F3000 ;Present print\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\n\nM84 X Y E ;Disable all steppers but Z",
+    "scan_first_layer": "0",
+    "thumbnails": [
+        "96x96",
+        "300x300"
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Bambu ASA-Aero @System",
+    "inherits": "Bambu ASA-Aero @base",
+    "from": "system",
+    "setting_id": "OGFSB02_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

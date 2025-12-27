@@ -81,8 +81,8 @@ std::pair<std::string, std::vector<size_t>> SlicingProcessCompletedEvent::format
 			                  "of the program"))).str());
         error = std::string(errmsg.ToUTF8()) + "\n" + std::string(ex.what());
     } catch (const HardCrash &ex) {
-        error = GUI::format("A fatal error occurred: \"%1%\"", ex.what()) + "\n" +
-        		_u8L("Please save project and restart the program. ");
+        error = GUI::format(_u8L("A fatal error occurred: \"%1%\""), ex.what()) + "\n" +
+                            _u8L("Please save project and restart the program.");
     } catch (PlaceholderParserError &ex) {
 		error = ex.what();
 		monospace = 1;
@@ -195,11 +195,12 @@ std::string BackgroundSlicingProcess::output_filepath_for_project(const boost::f
 void BackgroundSlicingProcess::process_fff()
 {
     assert(m_print == m_fff_print);
-    m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+    PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
+    m_fff_print->is_BBL_printer() = preset_bundle.is_bbl_vendor();
 	//BBS: add the logic to process from an existed gcode file
 	if (m_print->finished()) {
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: skip slicing, to process previous gcode file")%__LINE__;
-		m_fff_print->set_status(80, _utf8(L("Processing G-Code from Previous file...")));
+		m_fff_print->set_status(80, _utf8(L("Processing G-code from Previous file...")));
 		wxCommandEvent evt(m_event_slicing_completed_id);
 		// Post the Slicing Finished message for the G-code viewer to update.
 		// Passing the timestamp 
@@ -228,7 +229,10 @@ void BackgroundSlicingProcess::process_fff()
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process")%__LINE__;
 		m_print->process();
 		BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: after print::process, send slicing complete event to gui...")%__LINE__;
-
+        if (m_current_plate->get_real_filament_map_mode(preset_bundle.project_config) < FilamentMapMode::fmmManual) {
+            std::vector<int> f_maps = m_fff_print->get_filament_maps();
+            m_current_plate->set_filament_maps(f_maps);
+		}
 		wxCommandEvent evt(m_event_slicing_completed_id);
 		// Post the Slicing Finished message for the G-code viewer to update.
 		// Passing the timestamp
@@ -677,6 +681,7 @@ StringObjectException BackgroundSlicingProcess::validate(StringObjectException *
     assert(m_print == m_fff_print);
 
     m_fff_print->is_BBL_printer() = wxGetApp().preset_bundle->is_bbl_vendor();
+	m_fff_print->is_QIDI_printer() = wxGetApp().preset_bundle->is_qidi_vendor();
     return m_print->validate(warning, collison_polygons, height_polygons);
 }
 
@@ -690,6 +695,15 @@ Print::ApplyStatus BackgroundSlicingProcess::apply(const Model &model, const Dyn
 	DynamicPrintConfig new_config = config;
 	new_config.apply(*m_current_plate->config());
 	Print::ApplyStatus invalidated = m_print->apply(model, new_config);
+
+	// Orca: prevent resetting under gcode viewer mode
+    if (invalidated != PrintBase::APPLY_STATUS_UNCHANGED) {
+        const auto plater = GUI::wxGetApp().mainframe->m_plater;
+        if (plater && plater->only_gcode_mode()) {
+            invalidated = PrintBase::APPLY_STATUS_UNCHANGED;
+        }
+    }
+
 	if ((invalidated & PrintBase::APPLY_STATUS_INVALIDATED) != 0 && m_print->technology() == ptFFF &&
 		!m_fff_print->is_step_done(psGCodeExport)) {
 		// Some FFF status was invalidated, and the G-code was not exported yet.
@@ -856,7 +870,7 @@ void BackgroundSlicingProcess::export_gcode()
 	}
 	catch (...)
 	{
-		throw Slic3r::ExportError(_utf8(L("Unknown error when export G-code.")));
+		throw Slic3r::ExportError(_utf8(L("Unknown error when exporting G-code.")));
 	}
 	switch (copy_ret_val) {
 	case CopyFileResult::SUCCESS: break; // no error
@@ -877,8 +891,8 @@ void BackgroundSlicingProcess::export_gcode()
 		//break;
 	default:
 		BOOST_LOG_TRIVIAL(error) << "Fail code(" << (int)copy_ret_val << ") when copy "<<output_path<<" to " << export_path << ".";
-		throw Slic3r::ExportError((boost::format(_utf8(L("Failed to save gcode file.\nError message: %1%.\nSource file %2%."))) % error_message % output_path).str());
-		//throw Slic3r::ExportError(_utf8(L("Unknown error when export G-code.")));
+		throw Slic3r::ExportError((boost::format(_utf8(L("Failed to save G-code file.\nError message: %1%.\nSource file %2%."))) % error_message % output_path).str());
+		//throw Slic3r::ExportError(_utf8(L("Unknown error when exporting G-code.")));
 		break;
 	}
 
@@ -913,7 +927,7 @@ void BackgroundSlicingProcess::prepare_upload()
 		    // todo: do we need to copy the file?
 		
             // Make a copy of the source path, as run_post_process_scripts() is allowed to change it when making a copy of the source file
-            // (not here, but when the final target is a file). 
+            // (not here, but when the final target is a file).
             if (!m_fff_print->is_BBL_printer()) {
                 std::string source_path_str = source_path.string();
                 std::string output_name_str = m_upload_job.upload_data.upload_path.string();

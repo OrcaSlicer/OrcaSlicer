@@ -1,0 +1,10 @@
+{
+    "type": "machine_model",
+    "name": "EXO42 Stage 2",
+    "model_id": "V420S2",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "VOLUMIC",
+    "bed_model": "EXO42_bed.STL",
+    "default_materials": "Volumic UNIVERSAL Ultra"
+}

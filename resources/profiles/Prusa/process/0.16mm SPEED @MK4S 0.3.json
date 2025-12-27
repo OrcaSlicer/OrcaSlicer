@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.16mm SPEED @MK4S 0.3",
+    "inherits": "0.16mm STRUCTURAL @MK4S 0.3",
+    "from": "system",
+    "instantiation": "true",
+    "inner_wall_acceleration": "2500",
+    "inner_wall_speed": "140",
+    "internal_solid_infill_acceleration": "3000",
+    "outer_wall_acceleration": "2500",
+    "outer_wall_speed": "120",
+    "small_perimeter_speed": "120",
+    "support_interface_speed": "45",
+    "support_speed": "100"
+}

@@ -1,30 +1,30 @@
 {
     "type": "filament",
-    "filament_id": "GFB98_2",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic ASA @MK3.5",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_asa",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB98_2",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "1"
     ],
-    "cool_plate_temp" : [
+    "cool_plate_temp": [
         "100"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "100"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "100"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "100"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "100"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "100"
     ],
     "filament_max_volumetric_speed": [
@@ -45,8 +45,7 @@
     "pressure_advance": [
         "0.02"
     ],
-
     "compatible_printers": [
         "Prusa MK3.5 0.4 nozzle"
-      ]
+    ]
 }

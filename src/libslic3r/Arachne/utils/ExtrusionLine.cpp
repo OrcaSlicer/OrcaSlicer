@@ -156,7 +156,7 @@ void ExtrusionLine::simplify(const int64_t smallest_line_segment_squared, const 
                 Point intersection_point;
                 bool has_intersection = Line(previous_previous.p, previous.p).intersection_infinite(Line(current.p, next.p), &intersection_point);
                 const auto dist_greater = [](const Point& p1, const Point& p2, const int64_t threshold) {
-                    const auto vec = (p1 - p2).cwiseAbs().cast<uint64_t>();
+                    const auto vec = (p1 - p2).cwiseAbs().cast<uint64_t>().eval();
                     if(vec.x() > threshold || vec.y() > threshold) {
                         // If this condition is true, the distance is definitely greater than the threshold.
                         // We don't need to calculate the squared norm at all, which avoid potential arithmetic overflow.
@@ -264,10 +264,9 @@ bool ExtrusionLine::is_contour() const
     return poly.is_clockwise();
 }
 
-double ExtrusionLine::area() const {
-    if (!this->is_closed)
-        return 0.;
-
+double ExtrusionLine::area() const
+{
+    assert(this->is_closed);
     double a = 0.;
     if (this->junctions.size() >= 3) {
         Vec2d p1 = this->junctions.back().p.cast<double>();
@@ -277,23 +276,7 @@ double ExtrusionLine::area() const {
             p1 = p2;
         }
     }
-
     return 0.5 * a;
-}
-
-Points to_points(const ExtrusionLine &extrusion_line) {
-    Points points;
-    points.reserve(extrusion_line.junctions.size());
-    for (const ExtrusionJunction &junction : extrusion_line.junctions)
-        points.emplace_back(junction.p);
-    return points;
-}
-
-BoundingBox get_extents(const ExtrusionLine &extrusion_line) {
-    BoundingBox bbox;
-    for (const ExtrusionJunction &junction : extrusion_line.junctions)
-        bbox.merge(junction.p);
-    return bbox;
 }
 
 } // namespace Slic3r::Arachne

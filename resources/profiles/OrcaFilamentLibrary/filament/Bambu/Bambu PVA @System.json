@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Bambu PVA @System",
+    "inherits": "Bambu PVA @base",
+    "from": "system",
+    "setting_id": "OGFSS04_00",
+    "instantiation": "true",
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "compatible_printers": []
+}

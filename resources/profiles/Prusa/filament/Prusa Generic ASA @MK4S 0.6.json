@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic ASA @MK4S 0.6",
+    "inherits": "Prusa Generic ASA @MK4S",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament ASA @MK4S 0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S 0.6 nozzle"
+    ],
+    "nozzle_temperature": "255",
+    "slow_down_layer_time": "15"
+}

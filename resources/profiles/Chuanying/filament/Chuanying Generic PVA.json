@@ -1,9 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFB99",
-    "setting_id": "GFSA04",
-    "instantiation": "true",
+    "name": "Chuanying Generic PVA",
+    "inherits": "Chuanying Generic PLA",
     "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "activate_air_filtration": [
         "0"
     ],
@@ -19,11 +21,11 @@
     "close_fan_the_first_x_layers": [
         "1"
     ],
-  "compatible_printers": [
-    "Chuanying X1 0.4 Nozzle",
-    "Chuanying X1 0.6 Nozzle",
-    "Chuanying X1 0.8 Nozzle"
-  ],
+    "compatible_printers": [
+        "Chuanying X1 0.4 Nozzle",
+        "Chuanying X1 0.6 Nozzle",
+        "Chuanying X1 0.8 Nozzle"
+    ],
     "compatible_printers_condition": "",
     "compatible_prints": [],
     "compatible_prints_condition": "",
@@ -201,8 +203,6 @@
     "hot_plate_temp_initial_layer": [
         "55"
     ],
-    "inherits": "Chuanying Generic PLA",
-    "name": "Chuanying Generic PVA",
     "nozzle_temperature": [
         "220"
     ],
@@ -250,6 +250,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "55"
-    ],
-    "version": "1.9.0.2"
+    ]
 }

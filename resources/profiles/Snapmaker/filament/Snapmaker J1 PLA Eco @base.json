@@ -1,14 +1,14 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PLA Eco @base",
-  "filament_id": "3383257822",
-  "inherits": "fdm_filament_pla_eco",
-  "filament_density": [
-    "1.26"
-  ],
-  "filament_max_volumetric_speed": [
-    "12"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA Eco @base",
+    "inherits": "fdm_filament_pla_eco",
+    "from": "system",
+    "filament_id": "3383257822",
+    "instantiation": "false",
+    "filament_density": [
+        "1.26"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ]
 }

@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Bambu PC FR @System",
+    "inherits": "Bambu PC FR @base",
+    "from": "system",
+    "setting_id": "OGFSC01_00",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "40"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "compatible_printers": []
+}

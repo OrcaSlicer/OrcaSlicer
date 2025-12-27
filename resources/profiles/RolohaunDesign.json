@@ -1,9 +1,13 @@
 {
     "name": "RolohaunDesign",
-    "version": "02.02.00.04",
+    "version": "02.03.02.10",
     "force_update": "0",
     "description": "RolohaunDesign Printer Profiles",
     "machine_model_list": [
+        {
+            "name": "Rolohaun Delta Flyer Refit",
+            "sub_path": "machine/Rolohaun Delta Flyer Refit.json"
+        },
         {
             "name": "Rook MK1 LDO",
             "sub_path": "machine/Rook MK1 LDO.json"
@@ -23,16 +27,36 @@
             "sub_path": "process/0.08mm Extra Fine @Rook MK1 LDO.json"
         },
         {
+            "name": "0.08mm Super Fine @Delta Flyer Refit",
+            "sub_path": "process/0.08mm Super Fine @Rolohaun Delta Flyer Refit.json"
+        },
+        {
+            "name": "0.10mm Fine @Delta Flyer Refit",
+            "sub_path": "process/0.10mm Fine @Rolohaun Delta Flyer Refit.json"
+        },
+        {
             "name": "0.12mm Fine @Rook MK1 LDO",
             "sub_path": "process/0.12mm Fine @Rook MK1 LDO.json"
+        },
+        {
+            "name": "0.16mm Optimal @Delta Flyer Refit",
+            "sub_path": "process/0.16mm Optimal @Rolohaun Delta Flyer Refit.json"
         },
         {
             "name": "0.16mm Optimal @Rook MK1 LDO",
             "sub_path": "process/0.16mm Optimal @Rook MK1 LDO.json"
         },
         {
+            "name": "0.20mm Standard @Delta Flyer Refit",
+            "sub_path": "process/0.20mm Standard @Rolohaun Delta Flyer Refit.json"
+        },
+        {
             "name": "0.20mm Standard @Rook MK1 LDO",
             "sub_path": "process/0.20mm Standard @Rook MK1 LDO.json"
+        },
+        {
+            "name": "0.24mm Draft @Delta Flyer Refit",
+            "sub_path": "process/0.24mm Draft @Rolohaun Delta Flyer Refit.json"
         },
         {
             "name": "0.24mm Draft @Rook MK1 LDO",
@@ -43,96 +67,27 @@
             "sub_path": "process/0.28mm Extra Draft @Rook MK1 LDO.json"
         },
         {
-            "name": "0.32mm Extra Draft @Rook MK1 LDO",
+            "name": "0.28mm Rough Draft @Delta Flyer Refit",
+            "sub_path": "process/0.28mm Rough Draft @Rolohaun Delta Flyer Refit.json"
+        },
+        {
+            "name": "0.2mm Vase Mode @Delta Flyer Refit",
+            "sub_path": "process/0.2mm Vase Mode @Rolohaun Delta Flyer Refit.json"
+        },
+        {
+            "name": "0.32mm Standard @Rook MK1 LDO",
             "sub_path": "process/0.32mm Extra Draft @Rook MK1 LDO.json"
         },
         {
-            "name": "0.40mm Extra Draft @Rook MK1 LDO",
+            "name": "0.40mm Standard @Rook MK1 LDO",
             "sub_path": "process/0.40mm Extra Draft @Rook MK1 LDO.json"
         },
         {
-            "name": "0.56mm Extra Draft @Rook MK1 LDO",
+            "name": "0.56mm Standard @Rook MK1 LDO",
             "sub_path": "process/0.56mm Extra Draft @Rook MK1 LDO.json"
         }
     ],
-    "filament_list": [
-        {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
-            "name": "Generic PLA @Rook MK1 LDO",
-            "sub_path": "filament/Generic PLA @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic PLA-CF @Rook MK1 LDO",
-            "sub_path": "filament/Generic PLA-CF @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic PETG @Rook MK1 LDO",
-            "sub_path": "filament/Generic PETG @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic ABS @Rook MK1 LDO",
-            "sub_path": "filament/Generic ABS @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic TPU @Rook MK1 LDO",
-            "sub_path": "filament/Generic TPU @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic ASA @Rook MK1 LDO",
-            "sub_path": "filament/Generic ASA @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic PC @Rook MK1 LDO",
-            "sub_path": "filament/Generic PC @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic PVA @Rook MK1 LDO",
-            "sub_path": "filament/Generic PVA @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic PA @Rook MK1 LDO",
-            "sub_path": "filament/Generic PA @Rook MK1 LDO.json"
-        },
-        {
-            "name": "Generic PA-CF @Rook MK1 LDO",
-            "sub_path": "filament/Generic PA-CF @Rook MK1 LDO.json"
-        }
-    ],
+    "filament_list": [],
     "machine_list": [
         {
             "name": "fdm_machine_common",
@@ -143,12 +98,16 @@
             "sub_path": "machine/fdm_common_Rook MK1 LDO.json"
         },
         {
-            "name": "Rook MK1 LDO 0.4 nozzle",
-            "sub_path": "machine/Rook MK1 LDO 0.4 nozzle.json"
+            "name": "Rolohaun Delta Flyer Refit 0.4 nozzle",
+            "sub_path": "machine/Rolohaun Delta Flyer Refit 0.4 nozzle.json"
         },
         {
             "name": "Rook MK1 LDO 0.2 nozzle",
             "sub_path": "machine/Rook MK1 LDO 0.2 nozzle.json"
+        },
+        {
+            "name": "Rook MK1 LDO 0.4 nozzle",
+            "sub_path": "machine/Rook MK1 LDO 0.4 nozzle.json"
         },
         {
             "name": "Rook MK1 LDO 0.6 nozzle",

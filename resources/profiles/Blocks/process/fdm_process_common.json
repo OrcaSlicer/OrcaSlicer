@@ -7,7 +7,7 @@
     "reduce_crossing_wall": "0",
     "bridge_flow": "0.95",
     "bridge_speed": "25",
-    "internal_bridge_speed" : "70",
+    "internal_bridge_speed": "70",
     "brim_width": "5",
     "compatible_printers": [],
     "print_sequence": "by layer",

@@ -87,6 +87,7 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         &slices,
         &compatible_regions,
         this->layer()->height,
+        this->layer()->slice_z,
         this->flow(frPerimeter),
         &region_config,
         &this->layer()->object()->config(),
@@ -106,7 +107,11 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         g.lower_slices = &this->layer()->lower_layer->lslices;
     if (this->layer()->upper_layer != NULL)
         g.upper_slices = &this->layer()->upper_layer->lslices;
-    
+
+    int region_id = this->region().print_object_region_id();
+    if (this->layer()->upper_layer != NULL)
+        g.upper_slices_same_region = &this->layer()->upper_layer->get_region(region_id)->slices;
+
     g.layer_id              = (int)this->layer()->id();
     g.ext_perimeter_flow    = this->flow(frExternalPerimeter);
     g.overhang_flow         = this->bridging_flow(frPerimeter, object_config.thick_bridges);

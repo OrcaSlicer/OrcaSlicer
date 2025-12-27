@@ -69,9 +69,9 @@ public:
     static const ColorRGB ORCA()		{ return {0.0f, 150.f / 255.0f, 136.0f / 255}; }
 	static const ColorRGB WARNING()     { return {241.0f / 255, 117.f / 255.0f, 78.0f / 255}; }
 
-	static const ColorRGB X()           { return { 0.75f, 0.0f, 0.0f }; }
-	static const ColorRGB Y()           { return { 0.0f, 0.75f, 0.0f }; }
-	static const ColorRGB Z()           { return { 0.0f, 0.0f, 0.75f }; }
+	static const ColorRGB X()           { return { 255 / 255.f, 60  / 255.f, 91  / 255.f};}
+	static const ColorRGB Y()           { return { 100 / 255.f, 200 / 255.f, 24  / 255.f};}
+	static const ColorRGB Z()           { return { 47  / 255.f, 136 / 255.f, 233 / 255.f};}
 };
 
 class ColorRGBA
@@ -140,9 +140,9 @@ public:
 	static const ColorRGBA WHITE()       { return { 1.0f, 1.0f, 1.0f, 1.0f }; }
     static const ColorRGBA ORCA()        { return {0.0f, 150.f / 255.0f, 136.0f / 255, 1.0f}; }
 
-	static const ColorRGBA X()           { return { 0.75f, 0.0f, 0.0f, 1.0f }; }
-	static const ColorRGBA Y()           { return { 0.0f, 0.75f, 0.0f, 1.0f }; }
-	static const ColorRGBA Z()           { return { 0.0f, 0.0f, 0.75f, 1.0f }; }
+	static const ColorRGBA X()           { return { ColorRGB::X().r(), ColorRGB::X().g(), ColorRGB::X().b(), 1.f };}
+	static const ColorRGBA Y()           { return { ColorRGB::Y().r(), ColorRGB::Y().g(), ColorRGB::Y().b(), 1.f };}
+	static const ColorRGBA Z()           { return { ColorRGB::Z().r(), ColorRGB::Z().g(), ColorRGB::Z().b(), 1.f };}
 };
 
 ColorRGB operator * (float value, const ColorRGB& other);

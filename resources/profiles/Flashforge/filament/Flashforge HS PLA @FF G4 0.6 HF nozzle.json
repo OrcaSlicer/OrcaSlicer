@@ -1,0 +1,79 @@
+{
+    "type": "filament",
+    "name": "Flashforge HS PLA @FF G4 0.6 HF nozzle",
+    "inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "1"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "40"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "40"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "43"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_ramming_parameters": [
+        "105 105 9.50538 9.56989 9.39785 10.2366 13.7634 18.129 19.9355 19.8495 19.8925 19.3548 13.6559 4.32258 0.0430108 0.301075 0.645161 0.55914| 0.05 9.43871 0.45 9.5957 0.95 10.5957 1.45 19.6978 1.95 19.6355 2.45 19.5484 2.95 0.417204 3.45 0.417204 3.95 0.417204 4.45 0.288172 4.95 0.245161"
+    ],
+    "filament_settings_id": [
+        "Flashforge HS PLA @FF G4 0.6 HF nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n; right_extruder_material:PLA\n\n\n"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 0.6 HF nozzle"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "pressure_advance": [
+        "0.025"
+    ],
+    "slow_down_layer_time": [
+        "9"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "temperature_vitrification": [
+        "45"
+    ],
+    "textured_cool_plate_temp": [
+        "45"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ]
+}

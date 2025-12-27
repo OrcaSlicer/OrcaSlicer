@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "Qidi TPU 95A-HF @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "Qidi TPU 95A-HF",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "fan_cooling_layer_time": [
         "60"
     ],
@@ -11,16 +15,6 @@
     "filament_settings_id": [
         "Qidi TPU 95A-HF @Qidi Q1 Pro 0.4 nozzle"
     ],
-    "from": "system",
-    "hot_plate_temp": [
-        "60"
-    ],
-    "hot_plate_temp_initial_layer": [
-        "60"
-    ],
-    "inherits": "Qidi TPU 95A-HF",
-    "is_custom_defined": "0",
-    "name": "Qidi TPU 95A-HF @Qidi Q1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "230"
     ],
@@ -28,6 +22,6 @@
         "230"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.4 nozzle"
-        ]
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
 }

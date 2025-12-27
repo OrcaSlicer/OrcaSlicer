@@ -1,0 +1,51 @@
+{
+    "type": "filament",
+    "name": "HATCHBOX ABS @Qidi Q1 Pro 0.6 nozzle",
+    "inherits": "HATCHBOX ABS @Qidi",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "activate_chamber_temp_control": [
+        "0"
+    ],
+    "chamber_temperature": [
+        "55"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "filament_max_volumetric_speed": [
+        "24.5"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "90"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "pressure_advance": [
+        "0.014"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "activate_air_filtration": [
+        "1"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.6 nozzle"
+    ]
+}

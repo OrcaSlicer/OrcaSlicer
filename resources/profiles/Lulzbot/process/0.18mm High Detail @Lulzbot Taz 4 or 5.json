@@ -1,0 +1,12 @@
+{
+    "type": "process",
+    "name": "0.18mm High Detail @Lulzbot Taz 4 or 5",
+    "inherits": "0.25mm Standard @Lulzbot Taz 4 or 5",
+    "from": "system",
+    "setting_id": "LZH04",
+    "instantiation": "true",
+    "layer_height": "0.18",
+    "compatible_printers": [
+        "Lulzbot Taz 4 or 5 0.5 nozzle"
+    ]
+}

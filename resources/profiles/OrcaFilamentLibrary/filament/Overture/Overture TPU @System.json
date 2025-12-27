@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Overture TPU @System",
+    "inherits": "Overture TPU @base",
+    "from": "system",
+    "setting_id": "OGFOT008",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ]
+}

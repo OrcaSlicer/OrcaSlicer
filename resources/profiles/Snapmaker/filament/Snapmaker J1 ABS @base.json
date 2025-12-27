@@ -1,32 +1,32 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 ABS @base",
-  "filament_id": "1223824394",
-  "inherits": "fdm_filament_abs",
-  "hot_plate_temp": [
-    "110"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "105"
-  ],
-  "overhang_fan_speed": [
-    "22"
-  ],
-  "filament_flow_ratio": [
-    "0.95"
-  ],
-  "filament_max_volumetric_speed": [
-    "9.6"
-  ],
-  "fan_max_speed": [
-    "22"
-  ],
-  "fan_min_speed": [
-    "22"
-  ],
-  "pressure_advance": [
-    "0.02"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "1223824394",
+    "instantiation": "false",
+    "hot_plate_temp": [
+        "110"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "105"
+    ],
+    "overhang_fan_speed": [
+        "22"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "9.6"
+    ],
+    "fan_max_speed": [
+        "22"
+    ],
+    "fan_min_speed": [
+        "22"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ]
 }

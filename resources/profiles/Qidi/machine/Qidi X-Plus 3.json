@@ -8,5 +8,5 @@
     "bed_model": "qidi_xplus3_buildplate_model.stl",
     "bed_texture": "qidi_xplus3_buildplate_texture.png",
     "hotend_model": "qidi_xseries_gen3_hotend.stl",
-	"default_materials": "QIDI PLA Rapido;QIDI ABS Rapido;QIDI PLA Rapido Matte;QIDI PETG Tough;QIDI ASA;Qidi Generic ASA;Qidi Generic ABS;Qidi Generic PETG;Qidi Generic PLA Silk;Qidi Generic PLA"
+    "default_materials": "QIDI PLA Rapido;QIDI ABS Rapido;QIDI PLA Rapido Matte;QIDI PETG Tough;QIDI ASA;Qidi Generic ASA;Qidi Generic ABS;Qidi Generic PETG;Qidi Generic PLA Silk;Qidi Generic PLA"
 }

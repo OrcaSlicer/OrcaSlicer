@@ -180,12 +180,14 @@ public:
     ~DesignerPanel();
 
     ::TextInput*        m_input_designer {nullptr};
-    ::TextInput*        m_imput_model_name {nullptr};
+    ::TextInput*        m_input_model_name {nullptr};
+    wxTextCtrl*         m_input_description {nullptr};
     ComboBox*           m_combo_license {nullptr};
     bool Show(bool show) override;
     void                init_license_list();
     void                on_input_enter_designer(wxCommandEvent &evt);
     void                on_input_enter_model(wxCommandEvent &evt);
+    void                on_input_enter_description(wxCommandEvent &evt);
     void                on_select_license(wxCommandEvent& evt);
     void                update_info();
     void                msw_rescale();

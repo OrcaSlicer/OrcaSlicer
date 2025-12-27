@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "Generic PCCF @E3NG v1.2S",
+    "inherits": "fdm_filament_pccf",
+    "from": "system",
+    "setting_id": "",
+    "filament_id": "Generic PCCF @E3NG v1.2S",
+    "instantiation": "true",
+    "compatible_printers": [
+        "E3NG v1.2S - 0.5 nozzle",
+        "E3NG v1.2S - 0.6 nozzle"
+    ]
+}

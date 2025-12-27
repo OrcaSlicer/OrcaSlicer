@@ -1,67 +1,68 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Qidi Q1 Pro 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_qidi_x3_common",
-	"printer_model": "Qidi Q1 Pro",
-	"gcode_flavor": "klipper",
-	"default_print_profile": "0.20mm Standard @Qidi Q1 Pro",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"245x0",
-		"245x245",
-		"0x245"
-	],
+    "type": "machine",
+    "name": "Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "fdm_qidi_x3_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Qidi Q1 Pro",
+    "gcode_flavor": "klipper",
+    "default_print_profile": "0.20mm Standard @Qidi Q1 Pro",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "245x0",
+        "245x245",
+        "0x245"
+    ],
     "bed_exclude_area": [
         "25x245",
         "25x240",
         "115x240",
-		"115x245",
+        "115x245",
         "208x245",
         "208x240",
-		"245x240",
-		"245x245",
-		"208x245"
+        "245x240",
+        "245x245",
+        "208x245"
     ],
-	"printable_height": "240",
-	"nozzle_type": "hardened_steel",
-	"max_layer_height": [
-		"0.28"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"printer_settings_id": "Qidi",
-	"retraction_minimum_travel": [
-		"1"
-	],
-	"retraction_length": [
-		"0.8"
-	],
-	"retract_length_toolchange": [
-		"2"
-	],
-	"deretraction_speed": [
-		"0"
-	],
-	"retract_before_wipe": [
+    "printable_height": "240",
+    "nozzle_type": "hardened_steel",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "Qidi",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "retract_before_wipe": [
         "0%"
     ],
     "wipe_distance": [
-        "2"],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "M0",
+        "2"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M0",
     "thumbnails": [
         "160x160",
         "112x112"
     ],
-	"machine_max_jerk_e": [
+    "machine_max_jerk_e": [
         "2"
     ],
     "machine_max_jerk_x": [
@@ -73,14 +74,14 @@
     "machine_max_jerk_z": [
         "3"
     ],
-	"extruder_clearance_radius": "70",
+    "extruder_clearance_radius": "70",
     "extruder_clearance_height_to_rod": "40",
     "extruder_clearance_height_to_lid": "120",
-	"layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nLOG_Z\nG92 E0\n",
-	"machine_end_gcode": "M141 S0\nM104 S0\nM140 S0\nG1 E-3 F1800\nG0 Z{min(max_print_height, max_layer_z + 3)} F600\nG0 X0 Y0 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}",
+    "layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nLOG_Z\nG92 E0\n",
+    "machine_end_gcode": "M141 S0\nM104 S0\nM140 S0\nG1 E-3 F1800\nG0 Z{min(max_print_height, max_layer_z + 3)} F600\nG0 X0 Y0 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}",
     "machine_start_gcode": "PRINT_START BED=[hot_plate_temp_initial_layer] HOTEND=[nozzle_temperature_initial_layer] CHAMBER=[chamber_temperature]\nM83\nM140 S[hot_plate_temp_initial_layer]\nM104 S[nozzle_temperature_initial_layer]\nG4 P3000\nG0 X{max((min(print_bed_max[0], first_layer_print_min[0] + 80) - 85),0)} Y{max((min(print_bed_max[1] - 5, first_layer_print_min[1] + 80) - 85), 0)} Z5 F6000\nG0 Z[initial_layer_print_height] F600\nG1 E3 F1800\nG1 X{(min(print_bed_max[0], first_layer_print_min[0] + 80))} E{85 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 5, first_layer_print_min[1] + 80) - 85), 0) + 2} E{2 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0], first_layer_print_min[0] + 80) - 85), 0)} E{85 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 5, first_layer_print_min[1] + 80) - 85), 0) + 85} E{83 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0], first_layer_print_min[0] + 80) - 85), 0) + 2} E{2 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 5, first_layer_print_min[1] + 80) - 85), 0) + 3} E{82 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0], first_layer_print_min[0] + 80) - 85), 0) + 3} Z0\nG1 X{max((min(print_bed_max[0], first_layer_print_min[0] + 80) - 85), 0) + 6}\nG1 Z1 F600\n",
     "thumbnails_format": "PNG",
-	"default_filament_profile": [
-		"Qidi Generic PLA @Qidi Q1 Pro 0.4 nozzle"
-	]
+    "default_filament_profile": [
+        "Qidi Generic PLA @Qidi Q1 Pro 0.4 nozzle"
+    ]
 }

@@ -1,0 +1,9 @@
+{
+    "type": "process",
+    "name": "0.32mm STRUCTURAL @MK4S HF0.5",
+    "inherits": "0.25mm STRUCTURAL @MK4S 0.5",
+    "from": "system",
+    "instantiation": "true",
+    "compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.5 and printer_notes=~/.*HF_NOZZLE.*/",
+    "layer_height": "0.32"
+}

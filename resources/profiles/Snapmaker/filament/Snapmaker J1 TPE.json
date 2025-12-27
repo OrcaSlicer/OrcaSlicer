@@ -1,40 +1,40 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 TPE",
-  "setting_id": "1976938920",
-  "inherits": "Snapmaker J1 TPU @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)",
-    "Snapmaker J1 (0.6 nozzle)",
-    "Snapmaker J1 (0.8 nozzle)"
-  ],
-  "hot_plate_temp": [
-    "45"
-  ],
-  "overhang_fan_speed": [
-    "65"
-  ],
-  "filament_flow_ratio": [
-    "1.1"
-  ],
-  "filament_density": [
-    "1.22"
-  ],
-  "filament_max_volumetric_speed": [
-    "7.2"
-  ],
-  "fan_max_speed": [
-    "65"
-  ],
-  "fan_min_speed": [
-    "65"
-  ],
-  "default_filament_colour": [
-    "#383737"
-  ],
-  "filament_notes": [
-    "eSUN eLastic TPE-83A\n"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 TPE",
+    "inherits": "Snapmaker J1 TPU @base",
+    "from": "system",
+    "setting_id": "1976938920",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)",
+        "Snapmaker J1 (0.6 nozzle)",
+        "Snapmaker J1 (0.8 nozzle)"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "overhang_fan_speed": [
+        "65"
+    ],
+    "filament_flow_ratio": [
+        "1.1"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_max_volumetric_speed": [
+        "7.2"
+    ],
+    "fan_max_speed": [
+        "65"
+    ],
+    "fan_min_speed": [
+        "65"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "filament_notes": [
+        "eSUN eLastic TPE-83A\n"
+    ]
 }

@@ -1,0 +1,22 @@
+{
+    "type": "filament",
+    "name": "Generic PP-GF @System",
+    "inherits": "fdm_filament_pp",
+    "from": "system",
+    "setting_id": "OGFSP97_03",
+    "instantiation": "true",
+    "description": "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances.",
+    "filament_cost": [
+        "59.99"
+    ],
+    "filament_density": [
+        "1.05"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_type": [
+        "PP-GF"
+    ],
+    "compatible_printers": []
+}

@@ -8,6 +8,8 @@
 #include "GLCanvas3D.hpp"
 #include "Plater.hpp"
 
+#include "Widgets/LabeledStaticBox.hpp"
+
 #include <boost/algorithm/string.hpp>
 
 #include "I18N.hpp"
@@ -29,7 +31,9 @@ ObjectLayers::ObjectLayers(wxWindow* parent) :
 
     m_og->activate();
     m_og->sizer->Clear(true);
-    m_og->sizer->Add(m_grid_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, wxOSX ? 0 : 5);
+    m_og->sizer->Add(m_grid_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
+    if (auto stb = dynamic_cast<LabeledStaticBox*>(m_og->stb))
+        stb->SetCornerRadius(0);
 
     m_bmp_delete    = ScalableBitmap(parent, "delete");
     m_bmp_add       = ScalableBitmap(parent, "add");
@@ -74,7 +78,7 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     };
 
     // Add text
-    auto head_text = new wxStaticText(m_parent, wxID_ANY, _L("Height Range"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    auto head_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("Height Range"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     head_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
     head_text->SetFont(wxGetApp().normal_font());
     m_grid_sizer->Add(head_text, 0, wxALIGN_CENTER_VERTICAL);
@@ -105,7 +109,7 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
 
     m_grid_sizer->Add(editor, 1, wxEXPAND);
 
-    auto middle_text = new wxStaticText(m_parent, wxID_ANY, _L("to"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    auto middle_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("to"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     middle_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
     middle_text->SetFont(wxGetApp().normal_font());
     m_grid_sizer->Add(middle_text, 0, wxALIGN_CENTER_VERTICAL);
@@ -135,12 +139,12 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     m_grid_sizer->Add(editor, 1, wxEXPAND);
 
     auto sizer2 = new wxBoxSizer(wxHORIZONTAL);
-    auto unit_text = new wxStaticText(m_parent, wxID_ANY, _L("mm"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    auto unit_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("mm"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     unit_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
     unit_text->SetFont(wxGetApp().normal_font());
     sizer2->Add(unit_text, 0, wxALIGN_CENTER_VERTICAL);
 
-    m_grid_sizer->Add(sizer2);
+    m_grid_sizer->Add(sizer2, 0, wxALIGN_CENTER_VERTICAL);
 
     // BBS
     // Add control for the "Layer height"
@@ -170,12 +174,12 @@ void ObjectLayers::create_layers_list()
 {
     for (const auto &layer : m_object->layer_config_ranges) {
         const t_layer_height_range& range = layer.first;
-        auto del_btn = new PlusMinusButton(m_parent, m_bmp_delete, range); 
+        auto del_btn = new PlusMinusButton(m_og->ctrl_parent(), m_bmp_delete, range); 
         del_btn->DisableFocusFromKeyboard();
         del_btn->SetBackgroundColour(m_parent->GetBackgroundColour());
         del_btn->SetToolTip(_L("Remove height range"));
 
-        auto add_btn = new PlusMinusButton(m_parent, m_bmp_add, range); 
+        auto add_btn = new PlusMinusButton(m_og->ctrl_parent(), m_bmp_add, range); 
         add_btn->DisableFocusFromKeyboard();
         add_btn->SetBackgroundColour(m_parent->GetBackgroundColour());
         wxString tooltip = wxGetApp().obj_list()->can_add_new_range_after_current(range);
@@ -183,8 +187,10 @@ void ObjectLayers::create_layers_list()
         add_btn->Enable(tooltip.IsEmpty());
 
         auto sizer = create_layer(range, del_btn, add_btn);
-        sizer->Add(del_btn, 0, wxRIGHT | wxLEFT, em_unit(m_parent));
-        sizer->Add(add_btn);
+        auto b_sizer = new wxBoxSizer(wxHORIZONTAL);
+        b_sizer->Add(del_btn, 0, wxRIGHT | wxLEFT, em_unit(m_parent));
+        b_sizer->Add(add_btn);
+        sizer->Add(b_sizer, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, m_parent->FromDIP(1)); // aligns +/- buttons vertically since we got 1px gap on bottom of icons
 
         del_btn->Bind(wxEVT_BUTTON, [del_btn](wxEvent &) {
             wxGetApp().obj_list()->del_layer_range(del_btn->range);
@@ -218,6 +224,8 @@ void ObjectLayers::update_layers_list()
     // only call sizer->Clear(true) via CallAfter, otherwise crash happens in Linux when press enter in Height Range
     // because an element cannot be destroyed while there are pending events for this element.(https://github.com/wxWidgets/Phoenix/issues/1854)
     wxGetApp().CallAfter([this, type, objects_ctrl, range]() {
+        m_og->ctrl_parent()->Freeze();
+
         // Delete all controls from options group
         m_grid_sizer->Clear(true);
 
@@ -228,8 +236,10 @@ void ObjectLayers::update_layers_list()
         else
             create_layer(range, nullptr, nullptr);
 
+        m_og->ctrl_parent()->Thaw();
+
         m_parent->Layout();
-        });
+    });
 }
 
 void ObjectLayers::update_scene_from_editor_selection() const
@@ -340,7 +350,7 @@ LayerRangeEditor::LayerRangeEditor( ObjectLayers* parent,
     m_valid_value(value),
     m_type(type),
     m_set_focus_data(set_focus_data_fn),
-    wxTextCtrl(parent->m_parent, wxID_ANY, value, wxDefaultPosition, 
+    wxTextCtrl(parent->m_og->ctrl_parent(), wxID_ANY, value, wxDefaultPosition, 
                wxSize(em_unit(parent->m_parent), wxDefaultCoord), wxTE_PROCESS_ENTER
 #ifdef _WIN32
         | wxBORDER_SIMPLE
@@ -441,7 +451,7 @@ coordf_t LayerRangeEditor::get_value()
     else {
         if (!str.ToDouble(&layer_height) || layer_height < 0.0f) {
             show_error(m_parent, _L("Invalid numeric."));
-            SetValue(double_to_string(layer_height));
+            SetValue(m_valid_value); // reset to a valid value
         }
     }
 

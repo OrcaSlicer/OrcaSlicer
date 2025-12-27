@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP011",
     "name": "0.10mm Standard 0.2 nozzle @Anker",
-    "from": "system",
     "inherits": "fdm_process_anker_common_0_2",
+    "from": "system",
+    "setting_id": "GP011",
     "instantiation": "true",
     "layer_height": "0.10",
     "initial_layer_print_height": "0.15",

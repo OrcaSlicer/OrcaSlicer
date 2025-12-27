@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Clipper2 VERSION 1.0.6 LANGUAGES C CXX)
+project(Clipper2 VERSION 1.5.2 LANGUAGES C CXX)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -19,12 +19,14 @@ set(CLIPPER2_INC
   Clipper2Lib/include/clipper2/clipper.minkowski.h
   Clipper2Lib/include/clipper2/clipper.offset.h
   Clipper2Lib/include/clipper2/clipper.rectclip.h
+  Clipper2Lib/include/clipper2/clipper2_z.hpp
 )
 
 set(CLIPPER2_SRC
   Clipper2Lib/src/clipper.engine.cpp
   Clipper2Lib/src/clipper.offset.cpp
   Clipper2Lib/src/clipper.rectclip.cpp
+  Clipper2Lib/src/clipper2_z.cpp
 )
 
 # 2d version of Clipper2
@@ -39,7 +41,9 @@ if (WIN32)
 else()
   target_compile_options(Clipper2 PRIVATE -Wall -Wextra -Wpedantic -Werror)
   target_link_libraries(Clipper2 PUBLIC -lm)
-
+  if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 14.1)
+    target_compile_options(Clipper2 PRIVATE -Wno-error=template-id-cdtor)
+  endif()
 endif()
 
 set_target_properties(Clipper2 PROPERTIES FOLDER Libraries

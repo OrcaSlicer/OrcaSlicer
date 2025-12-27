@@ -41,6 +41,12 @@ std::string GLGizmoAssembly::on_get_name() const
     }
 }
 
+bool GLGizmoAssembly::on_init()
+{
+    m_shortcut_key = WXK_CONTROL_Y;
+    return true;
+}
+
 bool GLGizmoAssembly::on_is_activable() const
 {
     const Selection& selection = m_parent.get_selection();

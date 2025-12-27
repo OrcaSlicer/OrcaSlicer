@@ -38,7 +38,7 @@ Points CameraUtils::project(const Camera &            camera,
     return result;
 }
 
-Point CameraUtils::project(const Camera &camera, const Vec3d &point)
+Slic3r::Point CameraUtils::project(const Camera &camera, const Vec3d &point)
 {
     // IMPROVE: do it faster when you need it (inspire in project multi point)
     return project(camera, std::vector{point}).front();

@@ -1,11 +1,11 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
-	"name": "0.12mm Fine @Qidi Q1 Pro",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "0.12mm Fine @Qidi X3",
-"compatible_printers": [
-	"Qidi Q1 Pro 0.4 nozzle"
-]
+    "type": "process",
+    "name": "0.12mm Fine @Qidi Q1 Pro",
+    "inherits": "0.12mm Fine @Qidi X3",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
 }

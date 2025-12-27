@@ -149,7 +149,7 @@ std::optional<RaycastManager::Hit> RaycastManager::first_hit(const Vec3d& point,
     // NOTE: Anisotropic transformation of normal is not perpendiculat to triangle
     const Vec3i32 tri = hit_mesh->indices(hit_face);
     std::array<Vec3d,3> pts;
-    auto tr = hit_tramsformation->linear();
+    auto tr = hit_tramsformation->linear().eval();
     for (int i = 0; i < 3; ++i)
         pts[i] = tr * hit_mesh->vertices(tri[i]).cast<double>();
     Vec3d normal_world = (pts[1] - pts[0]).cross(pts[2] - pts[1]);

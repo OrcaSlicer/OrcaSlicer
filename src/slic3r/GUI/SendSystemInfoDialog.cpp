@@ -166,7 +166,7 @@ static bool check_internet_connection_win()
 
 
 // Last version where the info was sent / dialog dismissed is saved in appconfig.
-// Only show the dialog when this info is not found (e.g. fresh install) or when
+// Only show the dialog when this info was not found (e.g. fresh install) or when
 // current version is newer. Only major and minor versions are compared.
 static bool should_dialog_be_shown()
 {
@@ -443,7 +443,7 @@ static std::string generate_system_info_json()
 
     pt::ptree hw_node;
     {
-        hw_node.put("ArchName", wxPlatformInfo::Get().GetArchName());
+        hw_node.put("ArchName", wxPlatformInfo::Get().GetBitnessName());
         size_t num = std::round(Slic3r::total_physical_memory()/107374100.);
         hw_node.put("RAM_GiB", std::to_string(num / 10) + "." + std::to_string(num % 10));
     }
@@ -498,7 +498,7 @@ static std::string generate_system_info_json()
         std::vector<std::wstring> blacklisted_libraries;
         BlacklistedLibraryCheck::get_instance().get_blacklisted(blacklisted_libraries);
         for (const std::wstring& wstr : blacklisted_libraries) {
-            std::string utf8 = boost::nowide::narrow(wstr);
+            std::string utf8 = into_u8(wstr);
             if (size_t last_bs_pos = utf8.find_last_of("\\"); last_bs_pos < utf8.size() - 1) {
                 // Remove anything before last backslash so we don't send the path to the DLL.
                 utf8.erase(0, last_bs_pos + 1);
@@ -728,7 +728,7 @@ bool SendSystemInfoDialog::send_info(wxString& message)
                 if (job_done) // UI thread wants us to cancel.
                     cancel = true;
                 if (cancel)
-                    //result = { Result::Cancelled, _L("Sending system info was cancelled.") };
+                    //result = { Result::Cancelled, _L("Sending system info was canceled.") };
                     result = {Result::Cancelled, wxEmptyString};
             })
             .perform_sync();

@@ -1,16 +1,20 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
-"reduce_fan_stop_start_freq": [
-    "1"
-],
-"slow_down_for_layer_cooling": [
-    "1"
-],
-"fan_cooling_layer_time": [
-    "30"
-],
+{
+    "type": "filament",
+    "name": "Qidi Generic PETG @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "Qidi Generic PETG",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
     "fan_max_speed": [
         "40"
     ],
@@ -20,23 +24,19 @@
     "filament_settings_id": [
         "Qidi Generic PETG @Qidi Q1 Pro 0.4 nozzle"
     ],
-    "from": "system",
     "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "inherits": "Qidi Generic PETG",
-    "is_custom_defined": "0",
-    "name": "Qidi Generic PETG @Qidi Q1 Pro 0.4 nozzle",
     "overhang_fan_speed": [
         "90"
     ],
     "slow_down_min_speed": [
         "20"
     ],
-     "slow_down_layer_time": [
-    "12"
-],
-    "pressure_advance":[
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "pressure_advance": [
         "0.086"
     ],
     "filament_flow_ratio": [
@@ -50,5 +50,5 @@
     ],
     "compatible_printers": [
         "Qidi Q1 Pro 0.4 nozzle"
-            ]
+    ]
 }

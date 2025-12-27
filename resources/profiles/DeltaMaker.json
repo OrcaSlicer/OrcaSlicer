@@ -1,0 +1,99 @@
+{
+    "name": "DeltaMaker",
+    "url": "",
+    "version": "02.03.01.11",
+    "force_update": "0",
+    "description": "DeltaMaker configurations",
+    "machine_model_list": [
+        {
+            "name": "DeltaMaker 2",
+            "sub_path": "machine/DeltaMaker 2.json"
+        },
+        {
+            "name": "DeltaMaker 2T",
+            "sub_path": "machine/DeltaMaker 2T.json"
+        },
+        {
+            "name": "DeltaMaker 2XT",
+            "sub_path": "machine/DeltaMaker 2XT.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "0.12mm Fine @DeltaMaker",
+            "sub_path": "process/0.12mm Fine @DeltaMaker.json"
+        },
+        {
+            "name": "0.18mm Standard @DeltaMaker",
+            "sub_path": "process/0.18mm Standard @DeltaMaker.json"
+        },
+        {
+            "name": "0.25mm Draft @DeltaMaker",
+            "sub_path": "process/0.25mm Draft @DeltaMaker.json"
+        },
+        {
+            "name": "fdm_process_klipper_common",
+            "sub_path": "process/fdm_process_klipper_common.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "DeltaMaker Generic PETG",
+            "sub_path": "filament/DeltaMaker Generic PETG.json"
+        },
+        {
+            "name": "DeltaMaker Brand PLA",
+            "sub_path": "filament/DeltaMaker Brand PLA.json"
+        },
+        {
+            "name": "DeltaMaker Generic PLA",
+            "sub_path": "filament/DeltaMaker Generic PLA.json"
+        },
+        {
+            "name": "DeltaMaker Generic TPU",
+            "sub_path": "filament/DeltaMaker Generic TPU.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "DeltaMaker 2 0.35 nozzle",
+            "sub_path": "machine/DeltaMaker 2 0.35 nozzle.json"
+        },
+        {
+            "name": "DeltaMaker 2T 0.5 nozzle",
+            "sub_path": "machine/DeltaMaker 2T 0.5 nozzle.json"
+        },
+        {
+            "name": "DeltaMaker 2XT 0.5 nozzle",
+            "sub_path": "machine/DeltaMaker 2XT 0.5 nozzle.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        }
+    ]
+}

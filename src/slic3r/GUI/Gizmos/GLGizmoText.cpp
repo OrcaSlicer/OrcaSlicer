@@ -278,7 +278,7 @@ bool GLGizmoText::on_init()
     m_desc["surface"]         = _L("Surface");
     m_desc["horizontal_text"] = _L("Horizontal text");
 
-    m_desc["rotate_text_caption"] = _L("Shift + Mouse move up or down");
+    m_desc["rotate_text_caption"] = _L("Shift+") + _L("Mouse move up or down");
     m_desc["rotate_text"]         = _L("Rotate text");
 
     return true;
@@ -972,7 +972,7 @@ void GLGizmoText::on_render_input_window(float x, float y, float bottom_limit)
 
     //ImGui::SameLine();
     //ImGui::AlignTextToFramePadding();
-    //m_imgui->text(_L("Status:"));
+    //m_imgui->text(_L("Status") + ": ");
     //float status_cap = m_imgui->calc_text_size(_L("Status:")).x + space_size + ImGui::GetStyle().WindowPadding.x;
     //ImGui::SameLine();
     //m_imgui->text(m_is_modify ? _L("Modify") : _L("Add"));
@@ -1022,20 +1022,6 @@ void GLGizmoText::show_tooltip_information(float x, float y)
         ImGui::EndTooltip();
     }
     ImGui::PopStyleVar(2);
-}
-
-ModelVolume *GLGizmoText::get_selected_single_volume(int &out_object_idx, int &out_volume_idx) const
-{
-    if (m_parent.get_selection().is_single_volume() || m_parent.get_selection().is_single_modifier()) {
-        const Selection &selection = m_parent.get_selection();
-        const GLVolume * gl_volume = selection.get_first_volume();
-        out_object_idx             = gl_volume->object_idx();
-        ModelObject *model_object  = selection.get_model()->objects[out_object_idx];
-        out_volume_idx             = gl_volume->volume_idx();
-        if (out_volume_idx < model_object->volumes.size())
-            return model_object->volumes[out_volume_idx];
-    }
-    return nullptr;
 }
 
 void GLGizmoText::reset_text_info()

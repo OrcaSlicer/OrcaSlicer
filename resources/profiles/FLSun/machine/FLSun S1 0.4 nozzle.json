@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM003",
     "name": "FLSun S1 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
     "printer_model": "FLSun S1",
     "default_print_profile": "0.20mm Standard @FLSun S1",
     "gcode_flavor": "klipper",
@@ -13,7 +13,7 @@
         "0.4"
     ],
     "bed_exclude_area": [
-      "0x0"
+        "0x0"
     ],
     "thumbnails": [
         "48x48/PNG, 300x300/PNG"
@@ -174,5 +174,4 @@
     "adaptive_bed_mesh_margin": "0",
     "emit_machine_limits_to_gcode": "0",
     "auxiliary_fan": "0"
-  }
-  
+}

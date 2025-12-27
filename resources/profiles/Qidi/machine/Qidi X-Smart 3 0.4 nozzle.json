@@ -1,53 +1,53 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Qidi X-Smart 3 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_qidi_x3_common",
-	"printer_model": "Qidi X-Smart 3",
-  	"gcode_flavor": "klipper",
-  	"default_print_profile": "0.20mm Standard @Qidi XSmart3",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"175x0",
-		"175x180",
-		"0x180"
-	],
-	"printable_height": "170",
-	"nozzle_type": "hardened_steel",
-	"auxiliary_fan": "1",
-	"max_layer_height": [
-		"0.3"
-	],
-	"min_layer_height": [
-		"0.07"
-	],
-	"printer_settings_id": "Qidi",
-	"retraction_minimum_travel": [
-		"1"
-	],
-	"retraction_length": [
-		"0.8"
-	],
-	"retract_length_toolchange": [
-		"2"
-	],
-	"deretraction_speed": [
-		"0"
-	],
-	"thumbnails": [
-    "205x205/COLPIC",
-    "140x140/COLPIC",
-	"110x110/PNG"
+    "type": "machine",
+    "name": "Qidi X-Smart 3 0.4 nozzle",
+    "inherits": "fdm_qidi_x3_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Qidi X-Smart 3",
+    "gcode_flavor": "klipper",
+    "default_print_profile": "0.20mm Standard @Qidi XSmart3",
+    "nozzle_diameter": [
+        "0.4"
     ],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "M0",
-	"default_filament_profile": [
-		"Qidi Generic PLA"
-	]
+    "printable_area": [
+        "0x0",
+        "175x0",
+        "175x180",
+        "0x180"
+    ],
+    "printable_height": "170",
+    "nozzle_type": "hardened_steel",
+    "auxiliary_fan": "1",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.07"
+    ],
+    "printer_settings_id": "Qidi",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "thumbnails": [
+        "205x205/COLPIC",
+        "140x140/COLPIC",
+        "110x110/PNG"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M0",
+    "default_filament_profile": [
+        "Qidi Generic PLA"
+    ]
 }

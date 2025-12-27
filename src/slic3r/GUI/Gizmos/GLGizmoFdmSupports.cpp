@@ -71,7 +71,7 @@ void GLGizmoFdmSupports::on_opening()
 
 std::string GLGizmoFdmSupports::on_get_name() const
 {
-    return _u8L("Supports Painting");
+    return _u8L("Support Painting");
 }
 
 bool GLGizmoFdmSupports::on_init()
@@ -79,25 +79,31 @@ bool GLGizmoFdmSupports::on_init()
     // BBS
     m_shortcut_key = WXK_CONTROL_L;
 
-    m_desc["clipping_of_view_caption"] = _L("Alt + Mouse wheel");
+    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
+    const wxString ctrl  = _L("Ctrl+");
+    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
+    const wxString alt   = _L("Alt+");
+    const wxString shift = _L("Shift+");
+
+    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
     m_desc["clipping_of_view"]      = _L("Section view");
     m_desc["reset_direction"]       = _L("Reset direction");
-    m_desc["cursor_size_caption"]   = _L("Ctrl + Mouse wheel");
+    m_desc["cursor_size_caption"]   = ctrl + _L("Mouse wheel");
     m_desc["cursor_size"]           = _L("Pen size");
     m_desc["enforce_caption"]       = _L("Left mouse button");
     m_desc["enforce"]               = _L("Enforce supports");
     m_desc["block_caption"]         = _L("Right mouse button");
     m_desc["block"]                 = _L("Block supports");
-    m_desc["remove_caption"]        = _L("Shift + Left mouse button");
+    m_desc["remove_caption"]        = shift + _L("Left mouse button");
     m_desc["remove"]                = _L("Erase");
     m_desc["remove_all"]            = _L("Erase all painting");
     m_desc["highlight_by_angle"]    = _L("Highlight overhang areas");
     m_desc["gap_fill"]              = _L("Gap fill");
     m_desc["perform"]               = _L("Perform");
-    m_desc["gap_area_caption"]      = _L("Ctrl + Mouse wheel");
+    m_desc["gap_area_caption"]      = ctrl + _L("Mouse wheel");
     m_desc["gap_area"]              = _L("Gap area");
     m_desc["tool_type"]             = _L("Tool type");
-    m_desc["smart_fill_angle_caption"] = _L("Ctrl + Mouse wheel");
+    m_desc["smart_fill_angle_caption"] = ctrl + _L("Mouse wheel");
     m_desc["smart_fill_angle"]      = _L("Smart fill angle");
     m_desc["on_overhangs_only"] = _L("On overhangs only");
 
@@ -149,54 +155,6 @@ bool GLGizmoFdmSupports::on_key_down_select_tool_type(int keyCode) {
         break;
     }
     return true;
-}
-
-// BBS
-void GLGizmoFdmSupports::render_triangles(const Selection& selection) const
-{
-    ClippingPlaneDataWrapper clp_data = this->get_clipping_plane_data();
-    auto* shader = wxGetApp().get_shader("mm_gouraud");
-    if (!shader)
-        return;
-    shader->start_using();
-    shader->set_uniform("clipping_plane", clp_data.clp_dataf);
-    shader->set_uniform("z_range", clp_data.z_range);
-    ScopeGuard guard([shader]() { if (shader) shader->stop_using(); });
-
-    const ModelObject* mo = m_c->selection_info()->model_object();
-    int                mesh_id = -1;
-    for (const ModelVolume* mv : mo->volumes) {
-        if (!mv->is_model_part())
-            continue;
-
-        ++mesh_id;
-
-        const Transform3d trafo_matrix = mo->instances[selection.get_instance_idx()]->get_transformation().get_matrix() * mv->get_matrix();
-
-        bool is_left_handed = trafo_matrix.matrix().determinant() < 0.;
-        if (is_left_handed)
-            glsafe(::glFrontFace(GL_CW));
-
-        const Camera& camera = wxGetApp().plater()->get_camera();
-        const Transform3d& view_matrix = camera.get_view_matrix();
-        shader->set_uniform("view_model_matrix", view_matrix * trafo_matrix);
-        shader->set_uniform("projection_matrix", camera.get_projection_matrix());
-        const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * trafo_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
-        shader->set_uniform("view_normal_matrix", view_normal_matrix);
-
-        float normal_z = -::cos(Geometry::deg2rad(m_highlight_by_angle_threshold_deg));
-        Matrix3f normal_matrix = static_cast<Matrix3f>(trafo_matrix.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
-
-        shader->set_uniform("volume_world_matrix", trafo_matrix);
-        shader->set_uniform("volume_mirrored", is_left_handed);
-        shader->set_uniform("slope.actived", m_parent.is_using_slope());
-        shader->set_uniform("slope.volume_world_normal_matrix", normal_matrix);
-        shader->set_uniform("slope.normal_z", normal_z);
-        m_triangle_selectors[mesh_id]->render(m_imgui, trafo_matrix);
-
-        if (is_left_handed)
-            glsafe(::glFrontFace(GL_CCW));
-    }
 }
 
 void GLGizmoFdmSupports::on_set_state()
@@ -521,6 +479,10 @@ void GLGizmoFdmSupports::show_tooltip_information(float caption_max, float x, fl
     caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 15.f;
 
     float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding

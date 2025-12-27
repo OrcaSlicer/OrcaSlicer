@@ -47,7 +47,7 @@ static char marker_by_type(Preset::Type type, PrinterTechnology pt)
     }
 }
 
-std::string Option::opt_key() const { return boost::nowide::narrow(key).substr(2); }
+std::string Option::opt_key() const { return into_u8(key).substr(2); }
 
 void FoundOption::get_marked_label_and_tooltip(const char **label_, const char **tooltip_) const
 {
@@ -119,6 +119,19 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
     }
 }
 
+inline void OptionsSearcher::sort_options()
+{
+    std::sort(options.begin(), options.end(), [](const Option &o1, const Option &o2) { return o1.label < o2.label; });
+    Option * last = nullptr;
+    for (auto& opt : options) {
+        if (last && last->label == opt.label && last->group == opt.group && last->type == opt.type && last->category != opt.category) {
+            last->multi_category = true;
+            opt.multi_category = true;
+        }
+        last = &opt;
+    }
+}
+
 // Mark a string using ColorMarkerStart and ColorMarkerEnd symbols
 static std::wstring mark_string(const std::wstring &str, const std::vector<uint16_t> &matches, Preset::Type type, PrinterTechnology pt)
 {
@@ -177,7 +190,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
         std::wstring out;
         if (marked) out += marker_by_type(opt.type, printer_technology);
         const std::wstring *prev = nullptr;
-        for (const std::wstring *const s : {view_params.category ? &opt.category_local : nullptr, &opt.group_local, &opt.label_local})
+        for (const std::wstring *const s : {view_params.category || opt.multi_category ? &opt.category_local : nullptr, &opt.group_local, &opt.label_local})
             if (s != nullptr && (prev == nullptr || *prev != *s)) {
                 if (out.size() > 2) out += sep;
                 out += *s;
@@ -190,7 +203,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
         std::wstring out;
         if (marked) out += marker_by_type(opt.type, printer_technology);
         const std::wstring *prev = nullptr;
-        for (const std::wstring *const s : {view_params.category ? &opt.category : nullptr, &opt.group, &opt.label})
+        for (const std::wstring *const s : {view_params.category || opt.multi_category ? &opt.category : nullptr, &opt.group, &opt.label})
             if (s != nullptr && (prev == nullptr || *prev != *s)) {
                 if (out.size() > 2) out += sep;
                 out += *s;
@@ -210,9 +223,9 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
             std::string label = into_u8(get_label(opt));
             //all
             if (type == Preset::TYPE_INVALID) { 
-                found.emplace_back(FoundOption{label, label, boost::nowide::narrow(get_tooltip(opt)), i, 0});
+                found.emplace_back(FoundOption{label, label, into_u8(get_tooltip(opt)), i, 0});
             } else if (type == opt.type){
-                found.emplace_back(FoundOption{label, label, boost::nowide::narrow(get_tooltip(opt)), i, 0});
+                found.emplace_back(FoundOption{label, label, into_u8(get_tooltip(opt)), i, 0});
             }
             
             continue;
@@ -253,9 +266,9 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
 #endif
 
             if (type == Preset::TYPE_INVALID) {
-                found.emplace_back(FoundOption{label_plain, label_u8, boost::nowide::narrow(get_tooltip(opt)), i, score});
+                found.emplace_back(FoundOption{label_plain, label_u8, into_u8(get_tooltip(opt)), i, score});
             } else if (type == opt.type) {
-                found.emplace_back(FoundOption{label_plain, label_u8, boost::nowide::narrow(get_tooltip(opt)), i, score});
+                found.emplace_back(FoundOption{label_plain, label_u8, into_u8(get_tooltip(opt)), i, score});
             }
             
         }
@@ -523,7 +536,7 @@ void SearchItem::on_mouse_left_up(wxMouseEvent &evt)
     }
 
     if (m_search_object_dialog) {
-        m_search_object_dialog->Dismiss();
+        m_search_object_dialog->Die();
         wxCommandEvent event(wxCUSTOMEVT_JUMP_TO_OBJECT);
         event.SetClientData(m_item);
         wxPostEvent(GUI::wxGetApp().plater(), event);
@@ -553,9 +566,7 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
 
     em = GUI::wxGetApp().em_unit();
 
-    m_text_color   = wxColour(38, 46, 48);
     m_bg_colour    = wxColour(255, 255, 255);
-    m_hover_colour = wxColour(248, 248, 248);
     m_thumb_color  = wxColour(196, 196, 196);
 
     SetFont(GUI::wxGetApp().normal_font());
@@ -582,10 +593,8 @@ SearchDialog::SearchDialog(OptionsSearcher *searcher, Preset::Type type, wxWindo
     search_line->SetFont(GUI::wxGetApp().bold_font());
 #endif
 
-    // default_string = _L("Enter a search term");
     search_line->Bind(wxEVT_TEXT, &SearchDialog::OnInputText, this);
     search_line->Bind(wxEVT_LEFT_UP, &SearchDialog::OnLeftUpInTextCtrl, this);
-    search_line->Bind(wxEVT_KEY_DOWN, &SearchDialog::OnKeyDown, this);
     search_line2 = search_line->GetTextCtrl();
 
     // scroll window
@@ -681,74 +690,19 @@ void SearchDialog::Die()
     wxPostEvent(search_line, event);
 }
 
-void SearchDialog::ProcessSelection(wxDataViewItem selection)
-{
-    if (!selection.IsOk()) return;
-    // this->EndModal(wxID_CLOSE);
-
-    // If call GUI::wxGetApp().sidebar.jump_to_option() directly from here,
-    // then mainframe will not have focus and found option will not be "active" (have cursor) as a result
-    // SearchDialog have to be closed and have to lose a focus
-    // and only after that jump_to_option() function can be called
-    // So, post event to plater:
-    wxCommandEvent event(wxCUSTOMEVT_JUMP_TO_OPTION);
-    event.SetInt(search_list_model->GetRow(selection));
-    wxPostEvent(GUI::wxGetApp().plater(), event);
-}
-
 void SearchDialog::OnInputText(wxCommandEvent &)
 {
     search_line2->SetInsertionPointEnd();
     wxString input_string = search_line2->GetValue();
-    if (input_string == default_string) input_string.Clear();
+    if (input_string == wxEmptyString) input_string.Clear();
     searcher->search(into_u8(input_string), true, search_type);
     update_list();
 }
 
 void SearchDialog::OnLeftUpInTextCtrl(wxEvent &event)
 {
-    if (search_line2->GetValue() == default_string) search_line2->SetValue("");
+    if (search_line2->GetValue() == wxEmptyString) search_line2->SetValue("");
     event.Skip();
-}
-
-void SearchDialog::OnKeyDown(wxKeyEvent &event)
-{
-    event.Skip();
-    /* int key = event.GetKeyCode();
-
-     if (key == WXK_UP || key == WXK_DOWN)
-     {
-         search_list->SetFocus();
-
-         auto item = search_list->GetSelection();
-
-         if (item.IsOk()) {
-             unsigned selection = search_list_model->GetRow(item);
-
-             if (key == WXK_UP && selection > 0)
-                 selection--;
-             if (key == WXK_DOWN && selection < unsigned(search_list_model->GetCount() - 1))
-                 selection++;
-
-             prevent_list_events = true;
-             search_list->Select(search_list_model->GetItem(selection));
-             prevent_list_events = false;
-         }
-     }
-
-     else if (key == WXK_NUMPAD_ENTER || key == WXK_RETURN)
-         ProcessSelection(search_list->GetSelection());
-     else
-         event.Skip();*/
-}
-
-void SearchDialog::OnActivate(wxDataViewEvent &event) { ProcessSelection(event.GetItem()); }
-
-void SearchDialog::OnSelect(wxDataViewEvent &event)
-{
-    if (prevent_list_events) return;
-    // if (wxGetMouseState().LeftIsDown())
-    // ProcessSelection(search_list->GetSelection());
 }
 
 void SearchDialog::update_list()
@@ -787,76 +741,11 @@ void SearchDialog::update_list()
 #ifndef __WXGTK__
     Thaw();
 #endif
-
-    // Under OSX model->Clear invoke wxEVT_DATAVIEW_SELECTION_CHANGED, so
-    // set prevent_list_events to true already here
-    // prevent_list_events = true;
-    // search_list_model->Clear();
-
-    /* const std::vector<FoundOption> &filters = searcher->found_options();
-      for (const FoundOption &item : filters)
-          search_list_model->Prepend(item.label);*/
-
-    // select first item, if search_list
-    /*if (search_list_model->GetCount() > 0)
-        search_list->Select(search_list_model->GetItem(0));
-        prevent_list_events = false;*/
-    // Refresh();
 }
-
-void SearchDialog::OnCheck(wxCommandEvent &event)
-{
-    OptionViewParameters &params = searcher->view_params;
-    params.category              = check_category->GetValue();
-
-    searcher->search();
-    update_list();
-}
-
-void SearchDialog::OnMotion(wxMouseEvent &event)
-{
-    wxDataViewItem    item;
-    wxWindow *        win = this;
-
-    // search_list->HitTest(wxGetMousePosition() - win->GetScreenPosition(), item, col);
-    // search_list->Select(item);
-
-    event.Skip();
-}
-
-void SearchDialog::OnLeftDown(wxMouseEvent &event) { ProcessSelection(search_list->GetSelection()); }
 
 void SearchDialog::msw_rescale()
 {
-    /* const int &em = GUI::wxGetApp().em_unit();
-
-     search_list_model->msw_rescale();
-     search_list->GetColumn(SearchListModel::colIcon      )->SetWidth(3  * em);
-     search_list->GetColumn(SearchListModel::colMarkedText)->SetWidth(45 * em);
-
-     msw_buttons_rescale(this, em, { wxID_CANCEL });
-
-     const wxSize& size = wxSize(40 * em, 30 * em);
-     SetMinSize(size);
-
-     Fit();
-     Refresh();*/
 }
-
-// void SearchDialog::on_sys_color_changed()
-//{
-//#ifdef _WIN32
-//    GUI::wxGetApp().UpdateAllStaticTextDarkUI(this);
-//    GUI::wxGetApp().UpdateDarkUI(static_cast<wxButton*>(this->FindWindowById(wxID_CANCEL, this)), true);
-//    for (wxWindow* win : std::vector<wxWindow*> {search_line, search_list, check_category, check_english})
-//        if (win) GUI::wxGetApp().UpdateDarkUI(win);
-//#endif
-//
-//    // msw_rescale updates just icons, so use it
-//    search_list_model->msw_rescale();
-//
-//    Refresh();
-//}
 
 // ----------------------------------------------------------------------------
 // SearchListModel
@@ -906,15 +795,16 @@ void SearchListModel::GetValueByRow(wxVariant &variant, unsigned int row, unsign
     }
 }
 
-SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* parent)
-    : PopupWindow(parent, wxBORDER_NONE), m_object_list(object_list)
+SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* parent, TextInput* input)
+    : PopupWindow(parent, wxBORDER_NONE | wxPU_CONTAINS_CONTROLS), m_object_list(object_list)
 {
+    search_line = input;
+
     Freeze();
     SetBackgroundColour(wxColour(238, 238, 238));
 
     em = GUI::wxGetApp().em_unit();
 
-    m_text_color = wxColour(38, 46, 48);
     m_bg_color = wxColour(255, 255, 255);
     m_thumb_color = wxColour(196, 196, 196);
 
@@ -933,6 +823,19 @@ SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* p
     m_client_panel = new wxPanel(m_border_panel, wxID_ANY, wxDefaultPosition, wxSize(POPUP_WIDTH * em, POPUP_HEIGHT * em), wxTAB_TRAVERSAL);
     m_client_panel->SetBackgroundColour(m_bg_color);
 
+    // search line
+#ifdef __WXGTK__
+    search_line = new TextInput(m_client_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0);
+    search_line->SetBackgroundColour(wxColour(238, 238, 238));
+    search_line->SetForegroundColour(wxColour(43, 52, 54));
+    search_line->SetFont(GUI::wxGetApp().bold_font());
+#endif
+
+    search_line->Bind(wxEVT_TEXT, &SearchObjectDialog::OnInputText, this);
+    search_line->Bind(wxEVT_LEFT_UP, &SearchObjectDialog::OnLeftUpInTextCtrl, this);
+    search_line2 = search_line->GetTextCtrl();
+
+
     // scroll window
     m_scrolledWindow = new ScrolledWindow(m_client_panel, wxID_ANY, wxDefaultPosition, wxSize(POPUP_WIDTH * em - (em + em / 2), POPUP_HEIGHT * em), wxVSCROLL, 6, 6);
     m_scrolledWindow->SetMarginColor(m_bg_color);
@@ -947,6 +850,10 @@ SearchObjectDialog::SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* p
     m_listPanel->Fit();
     m_scrolledWindow->SetScrollbars(1, 1, 0, m_listPanel->GetSize().GetHeight());
 
+#ifdef __WXGTK__
+    m_sizer_body->Add(search_line, 0, wxEXPAND | wxALL, em / 2);
+    search_line = input;
+#endif
     m_sizer_body->Add(m_scrolledWindow, 0, wxEXPAND | wxALL, em);
 
     m_client_panel->SetSizer(m_sizer_body);
@@ -970,15 +877,70 @@ SearchObjectDialog::~SearchObjectDialog() {}
 
 void SearchObjectDialog::Popup(wxPoint position /*= wxDefaultPosition*/)
 {
-    update_list();
+    if (m_is_dismissing || this->IsShown()) {
+        return;
+    }
+    search_line2->SetValue(wxString(""));
+#ifdef __WXOSX__
+    // On macOS we need to remove the focus from the text input before popping up the
+    // dropdown list, otherwise the text input won't be usable
+    m_object_list->SetFocus();
+#endif
     PopupWindow::Popup();
+    search_line2->SetFocus();
+
+    m_object_list->assembly_plate_object_name();
+    m_object_list->GetModel()->search_object(wxEmptyString);
+    update_list();
 }
+
+void SearchObjectDialog::MSWDismissUnfocusedPopup()
+{
+    Dismiss();
+    OnDismiss();
+}
+
+void SearchObjectDialog::OnDismiss() {}
 
 void SearchObjectDialog::Dismiss()
 {
-    auto focus_window = this->GetParent()->HasFocus();
+    auto pos = wxGetMousePosition();
+    auto focus_window = wxWindow::FindFocus();
     if (!focus_window)
-        PopupWindow::Dismiss();
+        Die();
+    else if (!search_line->GetScreenRect().Contains(pos) && !this->GetScreenRect().Contains(pos)) {
+        Die();
+    }
+}
+
+void SearchObjectDialog::Die()
+{
+    m_is_dismissing = true;
+    m_object_list->SetFocus();
+    PopupWindow::Dismiss();
+    wxCommandEvent event(wxCUSTOMEVT_EXIT_SEARCH);
+    wxPostEvent(m_object_list, event);
+    m_is_dismissing = false;
+}
+
+void SearchObjectDialog::OnInputText(wxCommandEvent&)
+{
+    search_line2->SetInsertionPointEnd();
+    wxString input_string = search_line2->GetValue();
+    if (input_string == wxEmptyString)
+        input_string.Clear();
+
+    m_object_list->assembly_plate_object_name();
+    m_object_list->GetModel()->search_object(input_string);
+
+    update_list();
+}
+
+void SearchObjectDialog::OnLeftUpInTextCtrl(wxEvent& event)
+{
+    if (search_line2->GetValue() == wxEmptyString)
+        search_line2->SetValue("");
+    event.Skip();
 }
 
 void SearchObjectDialog::update_list()

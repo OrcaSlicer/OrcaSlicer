@@ -1,0 +1,34 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 90A @BBL A1",
+    "inherits": "Bambu TPU 90A @base",
+    "from": "system",
+    "setting_id": "GFSU03_04",
+    "instantiation": "true",
+    "filament_density": [
+        "1.22"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "45"
+    ],
+    "impact_strength_z": [
+        "88.7"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "textured_plate_temp": [
+        "45"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "45"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

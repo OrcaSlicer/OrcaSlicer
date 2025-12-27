@@ -56,7 +56,7 @@ public:
     bool on_boundary(const Point &point, double eps) const;
     // Projection of a point onto the polygon.
     Point point_projection(const Point &point) const;
-
+    void symmetric_y(const coord_t &y_axis);
     // Does this expolygon overlap another expolygon?
     // Either the ExPolygons intersect, or one is fully inside the other,
     // and it is not inside a hole of the other expolygon.
@@ -457,6 +457,7 @@ inline ExPolygons expolygons_simplify(const ExPolygons &expolys, double toleranc
 bool expolygons_match(const ExPolygon &l, const ExPolygon &r);
 
 bool overlaps(const ExPolygons& expolys1, const ExPolygons& expolys2);
+bool overlaps(const ExPolygons& expolys, const ExPolygon& expoly);
 
 Point projection_onto(const ExPolygons& expolys, const Point& pt);
 

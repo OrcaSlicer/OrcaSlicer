@@ -1,0 +1,147 @@
+{
+    "type": "machine",
+    "name": "Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Co Print ChromaSet",
+    "default_print_profile": "0.2mm Standard @Co Print ChromaSet 0.4",
+    "printer_variant": "0.4",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "printable_area": [
+        "0x0",
+        "290x0",
+        "290x283",
+        "0x283"
+    ],
+    "printable_height": "330",
+    "gcode_flavor": "klipper",
+    "retraction_length": [
+        "0.5"
+    ],
+    "machine_max_speed_e": [
+        "100"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_max_acceleration_e": [
+        "2500"
+    ],
+    "machine_max_acceleration_extruding": [
+        "5000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "2500"
+    ],
+    "machine_max_acceleration_travel": [
+        "40000"
+    ],
+    "machine_max_acceleration_x": [
+        "5000"
+    ],
+    "machine_max_acceleration_y": [
+        "5000"
+    ],
+    "machine_max_acceleration_z": [
+        "100"
+    ],
+    "machine_max_jerk_e": [
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.2"
+    ],
+    "z_hop": [
+        "0.2"
+    ],
+    "retraction_speed": [
+        "60"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "thumbnails": [
+        "300x300",
+        "400x300",
+        "96x96",
+        "32x32"
+    ],
+    "retract_lift_below": [
+        "343"
+    ],
+    "thumbnails_format": "PNG",
+    "machine_start_gcode": "start_print  EXTRUDER=[initial_extruder] EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]",
+    "machine_end_gcode": "end_print",
+    "change_filament_gcode": "FILAMENT_CHANGE LAYER_NUM=[layer_num] NEXT_EXTRUDER=[next_extruder]",
+    "default_filament_profile": [
+        "CoPrint Generic PLA"
+    ],
+    "extruder_clearance_radius": [
+        "65"
+    ],
+    "extruder_clearance_height_to_rod": [
+        "36"
+    ],
+    "extruder_clearance_height_to_lid": [
+        "140"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "cooling_tube_retraction": [
+        "0"
+    ],
+    "cooling_tube_length": [
+        "0"
+    ],
+    "parking_pos_retraction": [
+        "25"
+    ],
+    "retract_when_changing_layer": [
+        "0"
+    ],
+    "extra_loading_move": [
+        "0"
+    ],
+    "high_current_on_filament_swap": [
+        "1"
+    ],
+    "z_hop_types": "Spiral Lift"
+}

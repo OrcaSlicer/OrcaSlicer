@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM004",
     "name": "Voron Trident 250 0.8 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM004",
+    "instantiation": "true",
     "printer_model": "Voron Trident 250",
     "default_print_profile": "0.40mm Standard 0.8 nozzle @Voron",
     "max_layer_height": [

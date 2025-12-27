@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "filament_id": "GFB00",
+    "setting_id": "GFSB00",
+    "name": "Tiertime ABS",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_abs",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_cost": [
+        "24.99"
+    ],
+    "filament_vendor": [
+        "Tiertime"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.4 nozzle",
+        "Tiertime UP400 Pro 0.6 nozzle",
+        "Tiertime UP400 Pro 0.8 nozzle",
+        "Tiertime UP310 Pro 0.4 nozzle"
+    ]
+}

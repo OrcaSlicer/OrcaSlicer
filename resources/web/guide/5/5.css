@@ -16,11 +16,12 @@
 	margin-top:10mm;
 	line-height: 30px;
 }
-
+/* ORCA brokes shape of custom css checkbox
 #InstallCheck
 {
 	width: 30px;
 }
+*/
 
 #RestartText
 {

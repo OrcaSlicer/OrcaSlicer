@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "Bambu ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "OGFB00",
+    "instantiation": "false",
+    "description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+    "filament_cost": [
+        "24.99"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ]
+}

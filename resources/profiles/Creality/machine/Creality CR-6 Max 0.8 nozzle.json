@@ -1,27 +1,27 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Creality CR-6 Max 0.8 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_creality_common",
-  "printer_model": "Creality CR-6 Max",
-  "printer_structure": "i3",
-  "default_filament_profile": [
-    "Creality Generic PLA"
-  ],
+    "type": "machine",
+    "name": "Creality CR-6 Max 0.8 nozzle",
+    "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Creality CR-6 Max",
+    "printer_structure": "i3",
+    "default_filament_profile": [
+        "Creality Generic PLA"
+    ],
     "printer_variant": "0.8",
     "default_print_profile": "0.32mm Standard @Creality CR-6 0.8",
     "nozzle_diameter": [
-    "0.8"
-  ],
-  "printable_area": [
-   "5x5",
-    "395x5",
-    "395x395",
-    "5x395"
-  ],
-  "printable_height": "400",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0"
+        "0.8"
+    ],
+    "printable_area": [
+        "5x5",
+        "395x5",
+        "395x395",
+        "5x395"
+    ],
+    "printable_height": "400",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0"
 }

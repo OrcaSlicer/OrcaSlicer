@@ -189,9 +189,13 @@ Http::priv::priv(const std::string &url)
 #ifdef __WINDOWS__
 	::curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_2);
 #endif
-	::curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 	::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	::curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+
+	// https://everything.curl.dev/http/post/expect100.html
+	// remove the Expect: header, it will add a second delay to each request,
+	// if the file is uploaded in packets, it will cause the upload time to be longer
+	headerlist = curl_slist_append(headerlist, "Expect:");
 }
 
 Http::priv::~priv()
@@ -599,6 +603,21 @@ Http& Http::ca_file(const std::string &name)
 	return *this;
 }
 
+Http& Http::form_clear() {
+	if (p) {
+        if (p->form) {
+            ::curl_formfree(p->form);
+            p->form     = nullptr;
+            p->form_end = nullptr;
+        }
+		for (auto &f : p->form_files) {
+			f.ifs.close();
+		}
+		p->form_files.clear();
+
+	}
+	return *this;
+}
 
 Http& Http::form_add(const std::string &name, const std::string &contents)
 {
@@ -646,7 +665,7 @@ Http& Http::form_add_file(const std::string &name, const fs::path &path, const s
 }
 
 #ifdef WIN32
-// Tells libcurl to ignore certificate revocation checks in case of missing or offline distribution points for those SSL backends where such behavior is present. 
+// Tells libcurl to ignore certificate revocation checks in case of missing or offline distribution points for those SSL backends where such behavior is present.
 // This option is only supported for Schannel (the native Windows SSL library).
 Http& Http::ssl_revoke_best_effort(bool set)
 {
@@ -782,6 +801,12 @@ void Http::set_extra_headers(std::map<std::string, std::string> headers)
 {
     std::lock_guard<std::mutex> l(g_mutex);
 	extra_headers.swap(headers);
+}
+
+std::map<std::string, std::string> Http::get_extra_headers()
+{
+    std::lock_guard<std::mutex> l(g_mutex);
+    return extra_headers;
 }
 
 bool Http::ca_file_supported()

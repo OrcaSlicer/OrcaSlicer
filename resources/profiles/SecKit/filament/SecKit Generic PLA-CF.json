@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFL98",
-    "setting_id": "GFSA04",
     "name": "SecKit Generic PLA-CF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL98",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.92"
     ],
@@ -15,13 +15,13 @@
     "filament_max_volumetric_speed": [
         "12"
     ],
-	"filament_z_hop": [
+    "filament_z_hop": [
         "0"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.05"
     ],
     "slow_down_layer_time": [
@@ -33,8 +33,8 @@
     "nozzle_temperature": [
         "205"
     ],
-"compatible_printers": [
+    "compatible_printers": [
         "SecKit SK-Tank 0.4 nozzle",
-		"SecKit Go3 0.4 nozzle"
+        "SecKit Go3 0.4 nozzle"
     ]
 }

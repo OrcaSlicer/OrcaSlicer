@@ -169,12 +169,12 @@ namespace fts {
 
         // Calculate score
         if (matched) {
-            static constexpr int sequential_bonus = 15;            // bonus for adjacent matches
-            static constexpr int separator_bonus = 10/*30*/;             // bonus if match occurs after a separator
-            // static constexpr int camel_bonus = 30;                 // bonus if match is uppercase and prev is lower
-            static constexpr int first_letter_bonus = 15;          // bonus if the first letter is matched
+            static constexpr int sequential_bonus = 75;            // bonus for adjacent matches
+            static constexpr int separator_bonus = 10;             // bonus if match occurs after a separator
+            // static constexpr int camel_bonus = 30;              // bonus if match is uppercase and prev is lower
+            static constexpr int first_letter_bonus = -30;         // bonus if the first letter is matched
 
-            static constexpr int leading_letter_penalty = -1/*-5*/;      // penalty applied for every letter in str before the first match
+            static constexpr int leading_letter_penalty = -1;      // penalty applied for every letter in str before the first match
             static constexpr int max_leading_letter_penalty = -15; // maximum penalty for leading letters
             static constexpr int unmatched_letter_penalty = -1;    // penalty for every letter that doesn't matter
 

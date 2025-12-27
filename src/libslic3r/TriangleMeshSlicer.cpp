@@ -957,7 +957,6 @@ inline std::pair<SlabLines, SlabLines> slice_slabs_make_lines(
                         }
                     slice_facet_with_slabs<true>(vertices, indices, face_idx, neighbors, edge_ids, num_edges, zs, lines_top, lines_mutex_top);
                 }
-                // BBS: add vertical faces option
                 if (bottom && (fo == FaceOrientation::Down || fo == FaceOrientation::Degenerate)) {
                     Vec3i32 neighbors = face_neighbors[face_idx];
                     // Reset neighborship of this triangle in case the other triangle is oriented backwards from this one.
@@ -2063,6 +2062,7 @@ void slice_mesh_slabs(
     const Transform3d                &trafo,
     std::vector<Polygons>            *out_top,
     std::vector<Polygons>            *out_bottom,
+    std::vector<std::pair<Vec3f, Vec3f>>   *vertical_points,
     std::function<void()>             throw_on_cancel)
 {
     BOOST_LOG_TRIVIAL(debug) << "slice_mesh_slabs to polygons";
@@ -2133,6 +2133,11 @@ void slice_mesh_slabs(
             // Is the triangle vertical or degenerate?
             assert(d == 0);
             fo = fa == fb || fa == fc || fb == fc ? FaceOrientation::Degenerate : FaceOrientation::Vertical;
+            if(vertical_points && fo==FaceOrientation::Vertical)
+            {
+                Vec3f normal = (fb - fa).cross(fc - fa).normalized();
+                vertical_points->push_back({ (fa + fb + fc) / 3,normal });
+            }
         }
         face_orientation[&tri - mesh.indices.data()] = fo;
     }
@@ -2163,7 +2168,7 @@ static void triangulate_slice(
     float                    z,
     bool                     triangulate,
     bool                     normals_down,
-    const std::map<int, Vec3f*> &section_vertices_map)
+    const std::map<int, Vec3f> &section_vertices_map)
 {
     sort_remove_duplicates(slice_vertices);
 
@@ -2235,7 +2240,7 @@ static void triangulate_slice(
                 int   idx = -1;
                 bool exist = false;
                 for (auto iter = section_vertices_map.begin(); iter != section_vertices_map.end(); iter++) {
-                    if (is_equal(v, *iter->second)) {
+                    if (is_equal(v, iter->second)) {
                         idx   = iter->first;
                         exist = true;
                         break;
@@ -2297,7 +2302,7 @@ void project_mesh(
 {
     std::vector<Polygons> top, bottom;
     std::vector<float>    zs { -1e10, 1e10 };
-    slice_mesh_slabs(mesh, zs, trafo, out_top ? &top : nullptr, out_bottom ? &bottom : nullptr, throw_on_cancel);
+    slice_mesh_slabs(mesh, zs, trafo, out_top ? &top : nullptr, out_bottom ? &bottom : nullptr, nullptr, throw_on_cancel);
     if (out_top)
         *out_top = std::move(top.front());
     if (out_bottom)
@@ -2311,7 +2316,7 @@ Polygons project_mesh(
 {
     std::vector<Polygons> top, bottom;
     std::vector<float>    zs { -1e10, 1e10 };
-    slice_mesh_slabs(mesh, zs, trafo, &top, &bottom, throw_on_cancel);
+    slice_mesh_slabs(mesh, zs, trafo, &top, &bottom, nullptr, throw_on_cancel);
     return union_(top.front(), bottom.back());
 }
 
@@ -2343,7 +2348,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
     IntersectionLines  upper_lines, lower_lines;
     std::vector<int>   upper_slice_vertices, lower_slice_vertices;
     std::vector<Vec3i32> facets_edge_ids = its_face_edge_ids(mesh);
-    std::map<int, Vec3f *> section_vertices_map;
+    std::map<int, Vec3f> section_vertices_map;
 
     for (int facet_idx = 0; facet_idx < int(mesh.indices.size()); ++ facet_idx) {
         const stl_triangle_vertex_indices &facet = mesh.indices[facet_idx];
@@ -2352,8 +2357,8 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
         float max_z = std::max(vertices[0].z(), std::max(vertices[1].z(), vertices[2].z()));
 
         for (size_t i = 0; i < 3; i++) {
-            if (is_equal(z, vertices[i].z()) && section_vertices_map[facet(i)] == nullptr) {
-                section_vertices_map[facet(i)] = new Vec3f(vertices[i].x(), vertices[i].y(), vertices[i].z());
+            if (is_equal(z, vertices[i].z()) && section_vertices_map.find(facet(i)) == section_vertices_map.end()) {
+                section_vertices_map.emplace(facet(i), vertices[i]);
             }
         }
         // intersect facet with cutting plane
@@ -2469,7 +2474,7 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
             // intersect v0-v1 and v2-v0 with cutting plane and make new vertices
             auto new_vertex = [upper, lower, &upper_slice_vertices, &lower_slice_vertices](const Vec3f &a, const int ia, const Vec3f &b, const int ib, const Vec3f &c,
                                                                                            const int ic, const Vec3f &new_pt, bool &is_new_vertex) {
-                int iupper, ilower;
+                int iupper = 0, ilower = 0;
                 is_new_vertex = false;
                 if (is_equal(new_pt, a))
                     iupper = ilower = ia;
@@ -2549,7 +2554,6 @@ void cut_mesh(const indexed_triangle_set& mesh, float z, indexed_triangle_set* u
         }
 #endif // NDEBUG
     }
-    std::map<int, Vec3f*>().swap(section_vertices_map);
 }
 
 } // namespace Slic3r

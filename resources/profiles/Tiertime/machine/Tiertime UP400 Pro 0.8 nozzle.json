@@ -1,0 +1,25 @@
+{
+    "type": "machine",
+    "setting_id": "GM008",
+    "name": "Tiertime UP400 Pro 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Tiertime UP400 Pro 0.4 nozzle",
+    "printer_model": "Tiertime UP400 Pro",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printer_variant": "0.8",
+    "max_layer_height": [
+        "0.56"
+    ],
+    "min_layer_height": [
+        "0.16"
+    ],
+    "retract_length_toolchange": [
+        "3"
+    ],
+    "retraction_length": [
+        "3"
+    ]
+}

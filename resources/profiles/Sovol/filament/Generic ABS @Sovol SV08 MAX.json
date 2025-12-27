@@ -1,0 +1,72 @@
+{
+    "type": "filament",
+    "filament_id": "GFL99",
+    "setting_id": "GFSA04",
+    "name": "Generic ABS @Sovol SV08 MAX",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Generic ABS @System",
+    "filament_flow_ratio": ["0.98"],
+    "filament_max_volumetric_speed": ["20"],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "300"
+    ],
+    "hot_plate_temp": [
+        "95"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "95"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "full_fan_speed_layer": [
+        "3"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "temperature_vitrification": [
+        "60"
+    ],
+    "activate_air_filtration": ["0"],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "50"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "50"
+    ],
+    "additional_cooling_fan_speed":["0"],
+    "compatible_printers": [
+        "Sovol SV08 MAX 0.4 nozzle",
+        "Sovol SV08 MAX 0.6 nozzle",
+        "Sovol SV08 MAX 0.8 nozzle"
+    ]
+}

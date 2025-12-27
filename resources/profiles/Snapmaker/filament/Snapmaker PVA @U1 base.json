@@ -1,0 +1,41 @@
+{
+    "type": "filament",
+    "name": "Snapmaker PVA @U1 base",
+    "inherits": "fdm_filament_pva",
+    "from": "system",
+    "filament_id": "31046369800",
+    "instantiation": "false",
+    "filament_end_gcode": [
+        ""
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ]
+}

@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFSL99",
     "name": "Peopoly Generic ABS",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "GFSL99",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.93"
     ],

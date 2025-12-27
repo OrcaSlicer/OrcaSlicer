@@ -1,0 +1,35 @@
+{
+    "type": "filament",
+    "name": "Tiertime Generic PPS-CF",
+    "inherits": "fdm_filament_pps",
+    "from": "system",
+    "filament_id": "GFT98",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "30"
+    ],
+    "filament_density": [
+        "1.3"
+    ],
+    "filament_max_volumetric_speed": [
+        "3"
+    ],
+    "filament_type": [
+        "PPS-CF"
+    ],
+    "nozzle_temperature_range_high": [
+        "350"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "temperature_vitrification": [
+        "220"
+    ],
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.4 nozzle",
+        "Tiertime UP400 Pro 0.6 nozzle",
+        "Tiertime UP400 Pro 0.8 nozzle",
+        "Tiertime UP310 Pro 0.4 nozzle"
+    ]
+}

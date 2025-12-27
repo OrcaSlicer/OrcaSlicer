@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM005",
     "name": "Artillery Sidewinder X3 Plus 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM005",
+    "instantiation": "true",
     "printer_model": "Artillery Sidewinder X3 Plus",
     "default_print_profile": "0.20mm Standard @Artillery Genius",
     "default_filament_profile": [

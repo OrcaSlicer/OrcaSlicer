@@ -1,45 +1,65 @@
 {
     "type": "filament",
-    "filament_id": "GFL99",
-    "setting_id": "GFSL99",
     "name": "Peopoly Lancer PET-CF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "filament_id": "GFL99",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.90"
     ],
-    "filament_density":["1.3"],
-    "nozzle_temperature_initial_layer":[
+    "filament_density": [
+        "1.3"
+    ],
+    "nozzle_temperature_initial_layer": [
         "280"
     ],
-    "nozzle_temperature":[
+    "nozzle_temperature": [
         "300"
     ],
-    "hot_plate_temp_initial_layer":["70"],
-    "hot_plate_temp":["80"],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
     "filament_max_volumetric_speed": [
         "35"
     ],
-    "fan_max_speed":[
+    "fan_max_speed": [
         "40"
     ],
     "slow_down_layer_time": [
         "8"
     ],
-    "overhang_fan_speed":["30"],
-    "reduce_fan_stop_start_freq":["0"],
+    "overhang_fan_speed": [
+        "30"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
     "filament_type": [
         "PET-CF"
     ],
     "enable_pressure_advance": [
         "1"
     ],
-    "filament_retraction_length":["0.8"],
-    "filament_retraction_speed":["60"],
-    "filament_deretraction_speed":["60"],
-    "filament_wipe":["1"],
-    "filament_wipe_distance":["1"],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "filament_retraction_speed": [
+        "60"
+    ],
+    "filament_deretraction_speed": [
+        "60"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "1"
+    ],
     "pressure_advance": [
         "0.005"
     ],

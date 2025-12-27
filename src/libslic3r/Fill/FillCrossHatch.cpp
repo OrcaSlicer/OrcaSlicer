@@ -2,7 +2,7 @@
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 #include <cmath>
-
+#include "FillBase.hpp"
 #include "FillCrossHatch.hpp"
 
 namespace Slic3r {
@@ -186,7 +186,8 @@ void FillCrossHatch ::_fill_surface_single(
     BoundingBox bb = expolygon.contour.bounding_box();
 
     // linespace modifier
-    coord_t line_spacing = coord_t(scale_(this->spacing) / params.density);
+    double density_adjusted = params.density / params.multiline;
+    coord_t line_spacing = coord_t(scale_(this->spacing) / density_adjusted);
 
     // reduce density
     if (params.density < 0.999) line_spacing *= 1.08;
@@ -204,6 +205,9 @@ void FillCrossHatch ::_fill_surface_single(
     // shift the pattern to the actual space
     for (Polyline &pl : polylines) { pl.translate(bb.min); }
 
+    // Apply multiline offset if needed
+    multiline_fill(polylines, params, spacing);
+
     polylines = intersection_pl(polylines, to_polygons(expolygon));
 
     // --- remove small remains from gyroid infill
@@ -218,10 +222,7 @@ void FillCrossHatch ::_fill_surface_single(
     if (!polylines.empty()) {
         int infill_start_idx = polylines_out.size(); // only rotate what belongs to us.
         // connect lines
-        if (params.dont_connect() || polylines.size() <= 1)
-            append(polylines_out, chain_polylines(std::move(polylines)));
-        else
-            this->connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
+        chain_or_connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
 
         // rotate back
         if (std::abs(infill_angle) >= EPSILON) {

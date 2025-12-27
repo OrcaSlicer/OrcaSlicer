@@ -1,0 +1,19 @@
+{
+    "type": "process",
+    "name": "0.55mm SPEED @MK4S HF0.8",
+    "inherits": "0.55mm DRAFT @MK4S 0.8",
+    "from": "system",
+    "instantiation": "true",
+    "compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.8 and printer_notes=~/.*HF_NOZZLE.*/",
+    "gap_infill_speed": "60",
+    "inner_wall_acceleration": "3000",
+    "inner_wall_speed": "75",
+    "internal_solid_infill_speed": "70",
+    "outer_wall_acceleration": "2500",
+    "outer_wall_speed": "70",
+    "small_perimeter_speed": "70",
+    "sparse_infill_speed": "80",
+    "support_speed": "80",
+    "top_surface_acceleration": "1500",
+    "top_surface_speed": "60"
+}

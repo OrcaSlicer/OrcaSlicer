@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Fiberon PET-CF @System",
+    "inherits": "Fiberon PET-CF @base",
+    "from": "system",
+    "setting_id": "OGFSL54_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

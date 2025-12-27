@@ -1,0 +1,32 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFPM001",
+    "instantiation": "false",
+    "filament_cost": [
+        "19.99"
+    ],
+    "filament_density": [
+        "1.32"
+    ],
+    "filament_vendor": [
+        "Polymaker"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "temperature_vitrification": [
+        "58"
+    ]
+}

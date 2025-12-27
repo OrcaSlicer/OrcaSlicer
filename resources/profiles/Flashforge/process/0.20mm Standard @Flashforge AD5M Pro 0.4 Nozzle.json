@@ -1,13 +1,17 @@
 {
-  "type": "process",
-  "name": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
-  "inherits": "fdm_process_flashforge_0.20",
-  "from": "system",
-  "setting_id": "GP002",
-  "instantiation": "true",
-  "compatible_printers": [
-    "Flashforge Adventurer 5M Pro 0.4 Nozzle"
-  ],
-  "only_one_wall_top": "0",
-  "infill_wall_overlap": "50%"
+    "type": "process",
+    "name": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
+    "inherits": "fdm_process_flashforge_0.20",
+    "from": "system",
+    "setting_id": "GP002",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Flashforge Adventurer 5M Pro 0.4 Nozzle"
+    ],
+    "filename_format": "{input_filename_base}_{filament_type[0]}_{print_time}.gcode",
+    "post_process": "",
+    "only_one_wall_top": "0",
+    "infill_wall_overlap": "50%",
+    "print_settings_id": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
+    "skirt_loops": "0"
 }

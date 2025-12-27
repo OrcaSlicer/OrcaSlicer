@@ -1,21 +1,21 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker ASA @0.2 nozzle",
-  "setting_id": "978004695",
-  "inherits": "Snapmaker ASA @base",
-  "compatible_printers": [
-    "Snapmaker A250 (0.2 nozzle)",
-    "Snapmaker A250 BKit (0.2 nozzle)",
-    "Snapmaker A250 QS+B Kit (0.2 nozzle)",
-    "Snapmaker A250 QSKit (0.2 nozzle)",
-    "Snapmaker A350 (0.2 nozzle)",
-    "Snapmaker A350 BKit (0.2 nozzle)",
-    "Snapmaker A350 QS+B Kit (0.2 nozzle)",
-    "Snapmaker A350 QSKit (0.2 nozzle)"
-  ],
-  "filament_max_volumetric_speed": [
-    "2.4"
-  ]
+    "type": "filament",
+    "name": "Snapmaker ASA @0.2 nozzle",
+    "inherits": "Snapmaker ASA @base",
+    "from": "system",
+    "setting_id": "978004695",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 (0.2 nozzle)",
+        "Snapmaker A250 BKit (0.2 nozzle)",
+        "Snapmaker A250 QS+B Kit (0.2 nozzle)",
+        "Snapmaker A250 QSKit (0.2 nozzle)",
+        "Snapmaker A350 (0.2 nozzle)",
+        "Snapmaker A350 BKit (0.2 nozzle)",
+        "Snapmaker A350 QS+B Kit (0.2 nozzle)",
+        "Snapmaker A350 QSKit (0.2 nozzle)"
+    ],
+    "filament_max_volumetric_speed": [
+        "2.4"
+    ]
 }

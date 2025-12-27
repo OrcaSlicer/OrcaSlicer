@@ -4,9 +4,9 @@
     "model_id": "BLOCKS Pro S100",
     "nozzle_diameter": "0.4;0.6;0.8;1.0;1.2",
     "machine_tech": "FFF",
-    "family":"Blocks",
+    "family": "Blocks",
     "bed_model": "PRO S100 HotBed model.stl",
-    "bed_texture":"PRO S100 HotBed texture.png",
-    "hotend_model":"BLOCKS PrintCore.stl",
-    "default_materials":"Blocks Generic PLA;Blocks Generic PETG;Blocks Generic TPU"
+    "bed_texture": "PRO S100 HotBed texture.png",
+    "hotend_model": "BLOCKS PrintCore.stl",
+    "default_materials": "Blocks Generic PLA;Blocks Generic PETG;Blocks Generic TPU"
 }

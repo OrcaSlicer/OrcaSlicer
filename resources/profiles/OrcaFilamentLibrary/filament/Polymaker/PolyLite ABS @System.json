@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "PolyLite ABS @System",
+    "inherits": "PolyLite ABS @base",
+    "from": "system",
+    "setting_id": "OGFSB60_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

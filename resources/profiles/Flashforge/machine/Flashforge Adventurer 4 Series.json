@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Flashforge Adventurer 4 Series",
+    "model_id": "Flashforge Adventurer 4 Series",
+    "nozzle_diameter": "0.3;0.4;0.6;HS",
+    "machine_tech": "FFF",
+    "family": "Flashforge",
+    "host_type": "Flashforge",
+    "bed_model": "flashforge_adventurer5m_series_buildplate_model.STL",
+    "bed_texture": "flashforge_adventurer5mpro_buildplate_texture.png",
+    "hotend_model": "flashforge_adventurer_5m_series_hotend.STL",
+    "default_filament_profile": "Generic ABS @Flashforge AD4;Generic PETG @Flashforge AD4;Generic PLA @Flashforge AD4;Generic PLA High Speed @Flashforge AD4;Generic TPU @Flashforge AD4"
+}

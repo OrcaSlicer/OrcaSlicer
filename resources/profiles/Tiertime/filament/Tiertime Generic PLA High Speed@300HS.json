@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Tiertime Generic PLA High Speed@300HS",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFL95_01",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "compatible_printers": [
+        "Tiertime UP300 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.6 nozzle",
+        "Tiertime UP600 HS 0.8 nozzle"
+    ]
+}

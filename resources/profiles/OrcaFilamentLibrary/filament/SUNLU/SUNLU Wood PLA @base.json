@@ -1,0 +1,53 @@
+{
+    "type": "filament",
+    "name": "SUNLU Wood PLA @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFSNL07",
+    "instantiation": "false",
+    "filament_cost": [
+        "26.99"
+    ],
+    "filament_density": [
+        "1.10"
+    ],
+    "filament_flow_ratio": [
+        "1.0"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "filament_retraction_length": [
+        "4"
+    ],
+    "filament_retraction_speed": [
+        "50"
+    ],
+    "filament_deretraction_speed": [
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_vendor": [
+        "SUNLU"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "filament_scarf_height": [
+        "5%"
+    ],
+    "filament_scarf_gap": [
+        "0%"
+    ],
+    "filament_scarf_length": [
+        "10"
+    ],
+    "temperature_vitrification": [
+        "54"
+    ]
+}

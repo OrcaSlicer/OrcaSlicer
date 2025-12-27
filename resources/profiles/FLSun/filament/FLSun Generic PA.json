@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFN99",
-    "setting_id": "GFSA04",
     "name": "FLSun Generic PA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFN99",
+    "instantiation": "true",
     "nozzle_temperature_initial_layer": [
         "280"
     ],
@@ -16,9 +16,9 @@
         "12"
     ],
     "compatible_printers": [
-		"FLSun Q5 0.4 nozzle",
-		"FLSun QQ-S Pro 0.4 nozzle",
-		"FLSun Super Racer 0.4 nozzle",
-		"FLSun V400 0.4 nozzle"
+        "FLSun Q5 0.4 nozzle",
+        "FLSun QQ-S Pro 0.4 nozzle",
+        "FLSun Super Racer 0.4 nozzle",
+        "FLSun V400 0.4 nozzle"
     ]
 }

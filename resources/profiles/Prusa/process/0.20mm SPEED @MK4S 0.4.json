@@ -1,0 +1,10 @@
+{
+    "type": "process",
+    "name": "0.20mm SPEED @MK4S 0.4",
+    "inherits": "process_common_mk4s",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_layers": "3",
+    "compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",
+    "top_surface_acceleration": "1500"
+}

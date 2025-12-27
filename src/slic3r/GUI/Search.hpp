@@ -62,6 +62,7 @@ struct Option
     std::wstring group_local;
     std::wstring category;
     std::wstring category_local;
+    bool multi_category { false };
 
     std::string opt_key() const;
 };
@@ -100,10 +101,7 @@ class OptionsSearcher
 
     void append_options(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode);
 
-    void sort_options()
-    {
-        std::sort(options.begin(), options.end(), [](const Option &o1, const Option &o2) { return o1.label < o2.label; });
-    }
+    void sort_options();
     void sort_found()
     {
         std::sort(found.begin(), found.end(),
@@ -184,25 +182,15 @@ class SearchListModel;
 class SearchDialog : public PopupWindow
 {
 public:
-    wxString search_str;
-    wxString default_string;
-
-    bool prevent_list_events{false};
-
-    wxColour m_text_color;
     wxColour m_bg_colour;
-    wxColour m_hover_colour;
-    wxColour m_bold_colour;
     wxColour m_thumb_color;
 
     wxBoxSizer *m_sizer_body{nullptr};
     wxBoxSizer *m_sizer_main{nullptr};
     wxBoxSizer *m_sizer_border{nullptr};
-    wxBoxSizer *m_listsizer{nullptr};
 
     wxWindow *m_border_panel{nullptr};
     wxWindow *m_client_panel{nullptr};
-    wxWindow *m_listPanel{nullptr};
 
     wxWindow *m_event_tag{nullptr};
     wxWindow *m_search_item_tag{nullptr};
@@ -215,23 +203,12 @@ public:
     wxTextCtrl *  search_line2{nullptr};
     Preset::Type     search_type = Preset::TYPE_INVALID;
 
-    wxDataViewCtrl * search_list{nullptr};
     ScrolledWindow * m_scrolledWindow{nullptr};
-    SearchListModel *search_list_model{nullptr};
-    wxCheckBox *     check_category{nullptr};
 
     OptionsSearcher *searcher{nullptr};
 
     void OnInputText(wxCommandEvent &event);
     void OnLeftUpInTextCtrl(wxEvent &event);
-    void OnKeyDown(wxKeyEvent &event);
-
-    void OnActivate(wxDataViewEvent &event);
-    void OnSelect(wxDataViewEvent &event);
-
-    void OnCheck(wxCommandEvent &event);
-    void OnMotion(wxMouseEvent &event);
-    void OnLeftDown(wxMouseEvent &event);
 
     void update_list();
 
@@ -244,12 +221,8 @@ public:
     void OnDismiss();
     void Dismiss();
     void Die();
-    void ProcessSelection(wxDataViewItem selection);
     void msw_rescale();
-    // void on_sys_color_changed() override;
 
-protected:
-    // void on_dpi_changed(const wxRect& suggested_rect) override { msw_rescale(); }
 };
 
 // ----------------------------------------------------------------------------
@@ -284,11 +257,17 @@ public:
 class SearchObjectDialog : public PopupWindow
 {
 public:
-    SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* parent);
+    SearchObjectDialog(GUI::ObjectList* object_list, wxWindow* parent, TextInput* input);
     ~SearchObjectDialog();
 
+    void MSWDismissUnfocusedPopup();
     void Popup(wxPoint position = wxDefaultPosition);
+    void OnDismiss();
     void Dismiss();
+    void Die();
+
+    void OnInputText(wxCommandEvent& event);
+    void OnLeftUpInTextCtrl(wxEvent& event);
 
     void update_list();
 
@@ -299,12 +278,13 @@ public:
     const int POPUP_WIDTH = 41;
     const int POPUP_HEIGHT = 45;
 
+    TextInput*  search_line{nullptr};
+    wxTextCtrl* search_line2{nullptr};
+
     ScrolledWindow* m_scrolledWindow{ nullptr };
 
-    wxColour m_text_color;
     wxColour m_bg_color;
     wxColour m_thumb_color;
-    wxColour m_bold_color;
 
     wxBoxSizer* m_sizer_body{ nullptr };
     wxBoxSizer* m_sizer_main{ nullptr };
@@ -312,7 +292,9 @@ public:
 
     wxWindow* m_border_panel{ nullptr };
     wxWindow* m_client_panel{ nullptr };
-    wxWindow* m_listPanel{ nullptr };
+
+private:
+    bool m_is_dismissing{ false };
 };
 
 } // namespace Search

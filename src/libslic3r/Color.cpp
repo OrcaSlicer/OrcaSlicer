@@ -257,7 +257,7 @@ ColorRGBA complementary(const ColorRGBA& color)
 
 ColorRGB saturate(const ColorRGB& color, float factor)
 {
-	float h, s, v;
+    float h = 0.0, s = 0.0, v = 0.0;
 	RGBtoHSV(color.r(), color.g(), color.b(), h, s, v);
 	s = std::clamp(s * factor, 0.0f, 1.0f);
 	float r, g, b;
@@ -272,7 +272,7 @@ ColorRGBA saturate(const ColorRGBA& color, float factor)
 
 ColorRGB opposite(const ColorRGB& color)
 {
-	float h, s, v;
+    float h = 0.0, s = 0.0, v = 0.0;
 	RGBtoHSV(color.r(), color.g(), color.b(), h, s, v);
 
 	h += 65.0f; // 65 instead 60 to avoid circle values

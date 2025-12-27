@@ -8,5 +8,5 @@
     "bed_model": "magnetox_model.stl",
     "bed_texture": "magnetox_model_texture.png",
     "hotend_model": "",
-	"default_materials": "Peopoly Generic PLA"
+    "default_materials": "Peopoly Generic PLA"
 }

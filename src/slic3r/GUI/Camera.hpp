@@ -31,13 +31,25 @@ struct Camera
         Perspective,
         Num_types
     };
-
+    enum class ViewAngleType : unsigned char {
+        Iso = 0,
+        Top_Front,
+        Left,
+        Right,
+        Top,
+        Bottom,
+        Front,
+        Rear,
+        Count_ViewAngleType,
+        Top_Plate,//for 3mf and Skip parts
+    };
     bool requires_zoom_to_bed{ false };
     //BBS
     bool requires_zoom_to_volumes{ false };
     int  requires_zoom_to_plate{ REQUIRES_ZOOM_TO_PLATE_IDLE };
 
 private:
+    bool m_prevent_auto_type = true;
     EType m_type{ EType::Perspective };
     bool m_update_config_on_type_change_enabled{ false };
     Vec3d m_target{ Vec3d::Zero() };
@@ -65,6 +77,7 @@ public:
     // valid values for type: "false" -> ortho, "true" -> perspective
     void set_type(const std::string& type) { set_type((type == "true") ? EType::Perspective : EType::Ortho); }
     void select_next_type();
+    void auto_type(EType preferred_type);
 
     void enable_update_config_on_type_change(bool enable) { m_update_config_on_type_change_enabled = enable; }
 
@@ -88,7 +101,7 @@ public:
 
 
     void select_view(const std::string& direction);
-
+    void select_view(ViewAngleType type);
     const std::array<int, 4>& get_viewport() const { return m_viewport; }
     const Transform3d& get_view_matrix() const { return m_view_matrix; }
     const Transform3d& get_projection_matrix() const { return m_projection_matrix; }

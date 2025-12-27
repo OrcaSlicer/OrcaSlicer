@@ -1,18 +1,18 @@
 {
-  "type": "filament",
-  "filament_id": "GFG99",
-	"setting_id": "GFSG99",
-  "name": "Elegoo PETG PRO @Elegoo Giga",
-  "inherits": "Elegoo Generic PETG PRO",
-  "from": "system",
-  "instantiation": "true",
-  "filament_max_volumetric_speed": [
-    "21"
-  ],
-  "compatible_printers": [
-    "Elegoo OrangeStorm Giga 0.4 nozzle",
-    "Elegoo OrangeStorm Giga 0.6 nozzle",
-    "Elegoo OrangeStorm Giga 0.8 nozzle",
-    "Elegoo OrangeStorm Giga 1.0 nozzle"
-  ]
+    "type": "filament",
+    "name": "Elegoo PETG PRO @Elegoo Giga",
+    "inherits": "Generic PETG PRO @Elegoo",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "compatible_printers": [
+        "Elegoo OrangeStorm Giga 0.4 nozzle",
+        "Elegoo OrangeStorm Giga 0.6 nozzle",
+        "Elegoo OrangeStorm Giga 0.8 nozzle",
+        "Elegoo OrangeStorm Giga 1.0 nozzle"
+    ]
 }

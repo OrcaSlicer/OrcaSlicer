@@ -1,8 +1,8 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker PVA @base",
-  "filament_id": "1344609062",
-  "inherits": "fdm_filament_pva"
+    "type": "filament",
+    "name": "Snapmaker PVA @base",
+    "inherits": "fdm_filament_pva",
+    "from": "system",
+    "filament_id": "1344609062",
+    "instantiation": "false"
 }

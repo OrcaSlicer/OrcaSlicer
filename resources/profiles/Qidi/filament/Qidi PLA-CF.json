@@ -1,47 +1,47 @@
 {
-	"type": "filament",
-	"filament_id": "GFL98",
-	"setting_id": "GFSL98",
-	"name": "Qidi PLA-CF",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_filament_pla",
-	"filament_flow_ratio": [
-		"0.96"
-	],
-	"filament_type": [
-		"PLA-CF"
-	],
-	"filament_max_volumetric_speed": [
-		"9"
-	],
-	"nozzle_temperature": [
-		"230"
-	],
-	"nozzle_temperature_initial_layer": [
-		"230"
-	],
-	"filament_density": [
-		"1.25"
-	],
-	"pressure_advance": [
-		"0.02"
-	],
-	"enable_overhang_bridge_fan": [
+    "type": "filament",
+    "name": "Qidi PLA-CF",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSL98",
+    "filament_id": "GFL98",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_type": [
+        "PLA-CF"
+    ],
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "enable_overhang_bridge_fan": [
         "1"
     ],
-	"overhang_fan_threshold": [
+    "overhang_fan_threshold": [
         "50%"
     ],
     "overhang_fan_speed": [
         "100"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.4 nozzle",
         "Qidi X-Max 0.4 nozzle",
         "Qidi X-CF Pro 0.4 nozzle",
-		"Qidi X-Smart 3 0.4 nozzle",
-		"Qidi X-Plus 3 0.4 nozzle",
-		"Qidi X-Max 3 0.4 nozzle"
-	]
+        "Qidi X-Smart 3 0.4 nozzle",
+        "Qidi X-Plus 3 0.4 nozzle",
+        "Qidi X-Max 3 0.4 nozzle"
+    ]
 }

@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_creality_common",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_common",
     "adaptive_layer_height": "0",
     "reduce_crossing_wall": "0",
     "max_travel_detour_distance": "0",

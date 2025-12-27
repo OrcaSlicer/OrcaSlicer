@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.20mm Standard @Creality K1Max (0.4 nozzle)",
-    "from": "system",
     "inherits": "fdm_process_common_klipper",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "adaptive_layer_height": "0",
     "reduce_crossing_wall": "0",

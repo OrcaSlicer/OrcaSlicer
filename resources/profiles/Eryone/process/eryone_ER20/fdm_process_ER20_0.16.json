@@ -1,0 +1,18 @@
+{
+  "bridge_flow": "1",
+  "bottom_shell_layers": "5",
+  "elefant_foot_compensation": "0",
+  "from": "system",
+  "inherits": "fdm_process_eryone_ER20_common",
+  "instantiation": "false",
+  "layer_height": "0.16",
+  "name": "fdm_process_ER20_0.16",
+  "overhang_1_4_speed": "60",
+  "overhang_2_4_speed": "30",
+  "overhang_3_4_speed": "10",
+  "support_bottom_z_distance": "0.16",
+  "support_top_z_distance": "0.16",
+  "top_shell_layers": "6",
+  "top_shell_thickness": "0",
+  "type": "process"
+}

@@ -65,7 +65,7 @@ bool FlashAir::test(wxString &msg) const
 
 wxString FlashAir::get_test_ok_msg () const
 {
-	return _(L("Connection to FlashAir works correctly and upload is enabled."));
+	return _(L("Connection to FlashAir is working correctly and upload is enabled."));
 }
 
 wxString FlashAir::get_test_failed_msg (wxString &msg) const

@@ -1,8 +1,10 @@
 {
-  "inherits": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
-  "layer_height": "0.18",
-  "name": "0.18mm Fine @Elegoo Giga 0.6 nozzle",
-  "compatible_printers": [
-    "Elegoo OrangeStorm Giga 0.6 nozzle"
-  ]
+    "type": "process",
+    "name": "0.18mm Fine @Elegoo Giga 0.6 nozzle",
+    "inherits": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
+    "instantiation": "true",
+    "layer_height": "0.18",
+    "compatible_printers": [
+        "Elegoo OrangeStorm Giga 0.6 nozzle"
+    ]
 }

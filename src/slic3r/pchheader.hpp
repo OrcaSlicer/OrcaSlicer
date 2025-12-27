@@ -6,6 +6,7 @@
 		#define NOMINMAX
 	#endif
 	#include <Windows.h>
+	#include <CommCtrl.h>
 #endif
 
 #include <float.h>
@@ -75,8 +76,8 @@
 #include <boost/locale.hpp>
 #include <boost/locale/encoding_utf.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/nowide/cenv.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/nowide/cstdlib.hpp>
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/optional.hpp>

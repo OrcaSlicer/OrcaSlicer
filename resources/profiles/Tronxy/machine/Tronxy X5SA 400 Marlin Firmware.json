@@ -8,5 +8,5 @@
     "bed_model": "",
     "bed_texture": "tronxy_logo.png",
     "hotend_model": "",
-    "default_materials": "Tronxy Generic ABS;Tronxy Generic PLA;Tronxy Generic PLA-CF;Tronxy Generic PETG;Tronxy Generic TPU;Tronxy Generic ASA;Tronxy Generic PC;Tronxy Generic PVA;Tronxy Generic PA;Tronxy Generic PA-CF"
+    "default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

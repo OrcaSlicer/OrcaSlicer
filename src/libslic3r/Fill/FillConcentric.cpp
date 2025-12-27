@@ -9,25 +9,6 @@
 
 namespace Slic3r {
 
-template<typename LINE_T>
-int stagger_seam_index(int ind, LINE_T line, double shift, bool dir)
-{
-    Point const *point = &line.points[ind];
-    double dist = 0;
-    while (dist < shift / SCALING_FACTOR) {
-        if (dir)
-            ind = (ind + 1) % line.points.size();
-        else
-            ind = ind > 0 ? --ind : line.points.size() - 1;
-        Point const &next = line.points[ind];
-        dist += point->distance_to(next);
-        point = &next;
-    };
-    return ind;
-}
-
-#define STAGGER_SEAM_THRESHOLD 0.9
-
 void FillConcentric::_fill_surface_single(
     const FillParams                &params, 
     unsigned int                     thickness_layers,
@@ -38,7 +19,7 @@ void FillConcentric::_fill_surface_single(
     // no rotation is supported for this infill pattern
     BoundingBox bounding_box = expolygon.contour.bounding_box();
     
-    coord_t min_spacing = scale_(this->spacing);
+    coord_t min_spacing = scale_(this->spacing) * params.multiline;
     coord_t distance = coord_t(min_spacing / params.density);
     
     if (params.density > 0.9999f && !params.dont_adjust) {
@@ -46,8 +27,12 @@ void FillConcentric::_fill_surface_single(
         this->spacing = unscale<double>(distance);
     }
 
-    Polygons   loops = to_polygons(expolygon);
-    ExPolygons last { std::move(expolygon) };
+    // Contract surface polygon by half line width to avoid excesive overlap with perimeter
+    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * (params.multiline - 1) * this->spacing )));
+
+    Polygons loops = to_polygons(contracted);
+
+    ExPolygons last { std::move(contracted) };
     while (! last.empty()) {
         last = offset2_ex(last, -(distance + min_spacing/2), +min_spacing/2);
         append(loops, to_polygons(last));
@@ -60,22 +45,13 @@ void FillConcentric::_fill_surface_single(
     // split paths using a nearest neighbor search
     size_t iPathFirst = polylines_out.size();
     Point last_pos(0, 0);
-    
-    double min_nozzle_diameter;
-    bool dir;
-    if (this->print_config != nullptr && params.density >= STAGGER_SEAM_THRESHOLD) {
-        min_nozzle_diameter = *std::min_element(print_config->nozzle_diameter.values.begin(), print_config->nozzle_diameter.values.end());
-        dir = rand() % 2;
-    }
-    
     for (const Polygon &loop : loops) {
-        int ind = (this->print_config != nullptr && params.density > STAGGER_SEAM_THRESHOLD) ?
-                    stagger_seam_index(last_pos.nearest_point_index(loop.points), loop, min_nozzle_diameter / 2, dir) :
-                    last_pos.nearest_point_index(loop.points);
-
-        polylines_out.emplace_back(loop.split_at_index(ind));
+        polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
         last_pos = polylines_out.back().last_point();
     }
+
+    // Apply multiline offset if needed
+    multiline_fill(polylines_out, params, spacing);
 
     // clip the paths to prevent the extruder from getting exactly on the first point of the loop
     // Keep valid paths only.
@@ -135,18 +111,13 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
         // Split paths using a nearest neighbor search.
         size_t firts_poly_idx = thick_polylines_out.size();
         Point  last_pos(0, 0);
-        bool dir = rand() % 2;
         for (const Arachne::ExtrusionLine* extrusion : all_extrusions) {
             if (extrusion->empty())
                 continue;
+
             ThickPolyline thick_polyline = Arachne::to_thick_polyline(*extrusion);
-            
-            if (extrusion->is_closed) {
-                int ind = (params.density >= STAGGER_SEAM_THRESHOLD) ?
-                            stagger_seam_index(last_pos.nearest_point_index(thick_polyline.points), thick_polyline, min_nozzle_diameter / 2, dir) :
-                            last_pos.nearest_point_index(thick_polyline.points);
-                thick_polyline.start_at_index(ind);
-            }
+            if (extrusion->is_closed)
+                thick_polyline.start_at_index(last_pos.nearest_point_index(thick_polyline.points));
             thick_polylines_out.emplace_back(std::move(thick_polyline));
             last_pos = thick_polylines_out.back().last_point();
         }

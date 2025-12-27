@@ -44,7 +44,7 @@ bool Duet::test(wxString &msg) const
 
 wxString Duet::get_test_ok_msg () const
 {
-	return _(L("Connection to Duet works correctly."));
+	return _(L("Connection to Duet is working correctly."));
 }
 
 wxString Duet::get_test_failed_msg (wxString &msg) const
@@ -205,7 +205,7 @@ std::string Duet::get_connect_url(const bool dsfUrl) const
 	} else {
 		return (boost::format("%1%rr_connect?password=%2%&%3%")
 				% get_base_url()
-				% (password.empty() ? "reprap" : password)
+				% Http::url_encode(password.empty() ? "reprap" : password) // url_encode is needed because password can contain special characters like `&`, "#", etc.
 				% timestamp_str()).str();
 	}
 }

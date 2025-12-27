@@ -1,32 +1,72 @@
 {
     "type": "filament",
-    "filament_id": "GFG99",
-    "setting_id": "GFSA04",
     "name": "FLSun S1 PETG",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "FLSun Generic PETG",
-    "fan_max_speed": ["60"],
-    "fan_min_speed": ["50"],
-    "activate_air_filtration": ["1"],
-    "complete_print_exhaust_fan_speed": ["0"],
-    "during_print_exhaust_fan_speed": ["100"],
-    "fan_cooling_layer_time": ["100"],
-    "filament_cost": ["0"],
-    "full_fan_speed_layer": ["2"],
-    "hot_plate_temp": ["80"],
-    "hot_plate_temp_initial_layer": ["80"],
-    "nozzle_temperature": ["260"],
-    "nozzle_temperature_initial_layer": ["260"],
-    "nozzle_temperature_range_low": ["230"],
-    "nozzle_temperature_range_high": ["270"],
-    "overhang_fan_speed": ["35"],
-    "slow_down_layer_time": ["2"],
-    "slow_down_min_speed": ["30"],
-    "temperature_vitrification": ["70"],
-    "filament_max_volumetric_speed": ["15"],
-    "dont_slow_down_outer_wall": ["1"],
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "50"
+    ],
+    "activate_air_filtration": [
+        "1"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "100"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "full_fan_speed_layer": [
+        "2"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "nozzle_temperature": [
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "overhang_fan_speed": [
+        "35"
+    ],
+    "slow_down_layer_time": [
+        "2"
+    ],
+    "slow_down_min_speed": [
+        "30"
+    ],
+    "temperature_vitrification": [
+        "70"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "dont_slow_down_outer_wall": [
+        "1"
+    ],
     "compatible_printers": [
-		"FLSun S1 0.4 nozzle"
+        "FLSun S1 0.4 nozzle"
     ]
 }

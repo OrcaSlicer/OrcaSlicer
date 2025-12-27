@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP006",
     "name": "0.25mm Speed @RatRig V-Core 4 IDEX 0.8",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_ratrig_common",
+    "from": "system",
+    "setting_id": "GP006",
+    "instantiation": "true",
     "layer_height": "0.25",
     "inital_layer_height": "0.3",
     "wall_count": "2",
@@ -54,13 +54,13 @@
     "elefant_foot_compensation": "0.1",
     "compatible_printers": [
         "RatRig V-Core 4 IDEX 300 0.8 nozzle",
-        "RatRig V-Core 4 IDEX 400 0.8 nozzle", 
+        "RatRig V-Core 4 IDEX 400 0.8 nozzle",
         "RatRig V-Core 4 IDEX 500 0.8 nozzle",
         "RatRig V-Core 4 IDEX 300 COPY MODE 0.8 nozzle",
-        "RatRig V-Core 4 IDEX 400 COPY MODE 0.8 nozzle", 
+        "RatRig V-Core 4 IDEX 400 COPY MODE 0.8 nozzle",
         "RatRig V-Core 4 IDEX 500 COPY MODE 0.8 nozzle",
-		"RatRig V-Core 4 IDEX 300 MIRROR MODE 0.8 nozzle",
-        "RatRig V-Core 4 IDEX 400 MIRROR MODE 0.8 nozzle", 
+        "RatRig V-Core 4 IDEX 300 MIRROR MODE 0.8 nozzle",
+        "RatRig V-Core 4 IDEX 400 MIRROR MODE 0.8 nozzle",
         "RatRig V-Core 4 IDEX 500 MIRROR MODE 0.8 nozzle"
     ]
 }

@@ -1,154 +1,154 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Dremel 3D20 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_dremel_common",
-  "printer_model": "Dremel 3D20",
-  "printer_variant": "0.4",
-  "printer_structure": "hbot",
-  "gcode_flavor": "marlin",
-  "default_filament_profile": [
-    "Dremel Generic PLA @3D20 all"
-  ],
-  "default_print_profile": ".20mm Standard @Dremel 3D20 0.4",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printer_settings_id": "Dremel",
-  "printable_area": [
-      "0x0",
-      "230x0",
-      "230x150",
-      "0x150"
-  ],
-  "printable_height": "140",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0",
-  "deretraction_speed": [
-    "40"
-  ],
-  "emit_machine_limits_to_gcode": "1",
-  "extruder_clearance_height_to_lid": "101",
-  "extruder_clearance_height_to_rod": "45",
-  "extruder_clearance_radius": "45",
-  "max_layer_height": [
-    "0.3"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "retract_before_wipe": [
-    "70%"
-  ],
-  "retract_length_toolchange": [
-    "1"
-  ],
-  "retract_lift_above": [
-      "0"
-  ],
-  "retract_lift_below": [
-      "0"
-  ],
-  "retract_lift_enforce": [
-      "Top Only"
-  ],
-  "retract_restart_extra": [
-      "0"
-  ],
-  "retract_restart_extra_toolchange": [
-      "0"
-  ],
-  "retract_when_changing_layer": [
-      "1"
-  ],
-  "retraction_length": [
-      "0.5"
-  ],
-  "retraction_minimum_travel": [
-      "2"
-  ],
-  "retraction_speed": [
-      "40"
-  ],
-  "wipe": [
-    "1"
-  ],
-  "wipe_distance": [
-      "1"
-  ],
-  "z_hop": [
-      "0.2"
-  ],
-  "z_hop_types": [
-      "Normal Lift"
-  ],
-  "machine_max_acceleration_e": [
-      "6200",
-      "5000"
-  ],
-  "machine_max_acceleration_extruding": [
-      "6200",
-      "20000"
-  ],
-  "machine_max_acceleration_retracting": [
-      "5000",
-      "5000"
-  ],
-  "machine_max_acceleration_travel": [
-      "9000",
-      "9000"
-  ],
-  "machine_max_acceleration_x": [
-      "6200",
-      "20000"
-  ],
-  "machine_max_acceleration_y": [
-      "6200",
-      "20000"
-  ],
-  "machine_max_acceleration_z": [
-      "500",
-      "500"
-  ],
-  "machine_max_jerk_e": [
-      "2.5",
-      "2.5"
-  ],
-  "machine_max_jerk_x": [
-      "12",
-      "12"
-  ],
-  "machine_max_jerk_y": [
-      "12",
-      "12"
-  ],
-  "machine_max_jerk_z": [
-      "2",
-      "2"
-  ],
-  "machine_max_speed_e": [
-      "3000",
-      "100"
-  ],
-  "machine_max_speed_x": [
-      "1000",
-      "1000"
-  ],
-  "machine_max_speed_y": [
-      "1000",
-      "1000"
-  ],
-  "machine_max_speed_z": [
-      "30",
-      "30"
-  ],
-  "machine_start_gcode": "G90\nG28\nM132 X Y Z A\nG1 Z100 F3300\nG1 X-110.5 Y-74 F6000\nM6 T0\nM907 X100 Y100 Z60 A100\nG1 Z0.6 F3300\nG4 P2000\nM108 T0",
-  "machine_end_gcode": "M104 S0 T0\nG1 Z140 F3300\nG28 X0 Y0\nM132 X Y Z A\nG91\nM18",
-  "thumbnails_format": "PNG",
-  "thumbnails": [
-      "96x96",
-      "300x300"
-  ]  
+    "type": "machine",
+    "name": "Dremel 3D20 0.4 nozzle",
+    "inherits": "fdm_dremel_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Dremel 3D20",
+    "printer_variant": "0.4",
+    "printer_structure": "hbot",
+    "gcode_flavor": "marlin",
+    "default_filament_profile": [
+        "Dremel Generic PLA @3D20 all"
+    ],
+    "default_print_profile": ".20mm Standard @Dremel 3D20 0.4",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_settings_id": "Dremel",
+    "printable_area": [
+        "0x0",
+        "230x0",
+        "230x150",
+        "0x150"
+    ],
+    "printable_height": "140",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "deretraction_speed": [
+        "40"
+    ],
+    "emit_machine_limits_to_gcode": "1",
+    "extruder_clearance_height_to_lid": "101",
+    "extruder_clearance_height_to_rod": "45",
+    "extruder_clearance_radius": "45",
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "Top Only"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "1"
+    ],
+    "z_hop": [
+        "0.2"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ],
+    "machine_max_acceleration_e": [
+        "6200",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "6200",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "9000",
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "6200",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "6200",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_y": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_z": [
+        "2",
+        "2"
+    ],
+    "machine_max_speed_e": [
+        "3000",
+        "100"
+    ],
+    "machine_max_speed_x": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_speed_y": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_speed_z": [
+        "30",
+        "30"
+    ],
+    "machine_start_gcode": "G90\nG28\nM132 X Y Z A\nG1 Z100 F3300\nG1 X-110.5 Y-74 F6000\nM6 T0\nM907 X100 Y100 Z60 A100\nG1 Z0.6 F3300\nG4 P2000\nM108 T0",
+    "machine_end_gcode": "M104 S0 T0\nG1 Z140 F3300\nG28 X0 Y0\nM132 X Y Z A\nG91\nM18",
+    "thumbnails_format": "PNG",
+    "thumbnails": [
+        "96x96",
+        "300x300"
+    ]
 }

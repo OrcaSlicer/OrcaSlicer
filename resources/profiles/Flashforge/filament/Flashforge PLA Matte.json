@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "name": "Flashforge PLA Matte",
+    "inherits": "Flashforge Generic PLA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "22"
+    ],
+    "filament_settings_id": [
+        "Flashforge PLA Matte"
+    ],
+    "compatible_printers": [
+        "Flashforge Adventurer 5M 0.4 Nozzle",
+        "Flashforge Adventurer 5M 0.6 Nozzle",
+        "Flashforge Adventurer 5M 0.8 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.4 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.6 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.8 Nozzle",
+        "Flashforge AD5X 0.4 nozzle",
+        "Flashforge AD5X 0.6 nozzle",
+        "Flashforge AD5X 0.8 nozzle"
+    ]
+}

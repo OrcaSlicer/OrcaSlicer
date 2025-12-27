@@ -1,14 +1,14 @@
 {
     "type": "filament",
-    "setting_id": "GFSS99_00",
     "name": "OrcaArena Generic PVA @0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "OrcaArena Generic PVA @base",
+    "from": "system",
+    "setting_id": "GFSS99_00",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "0.5"
     ],
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.2 nozzle"
+        "Orca Arena X1 Carbon 0.2 nozzle"
     ]
 }

@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Valment PLA-CF @System",
+    "inherits": "Valment PLA-CF @base",
+    "from": "system",
+    "setting_id": "VLMNT_03",
+    "instantiation": "true",
+    "compatible_printers": []
+}

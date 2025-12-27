@@ -2,10 +2,12 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 
+#include "DeviceCore/DevManager.h"
+
 namespace Slic3r {
 namespace GUI {
 
-    
+
 MultiMachinePage::MultiMachinePage(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
     : wxPanel(parent, id, pos, size, style)
 {
@@ -15,7 +17,7 @@ MultiMachinePage::MultiMachinePage(wxWindow* parent, wxWindowID id, const wxPoin
     SetSizerAndFit(m_main_sizer);
     Layout();
     Fit();
-    
+
     wxGetApp().UpdateDarkUIWin(this);
 
     init_timer();
@@ -279,13 +281,13 @@ void DevicePickItem::doRender(wxDC& dc)
     left += FromDIP(PICK_LEFT_PRINTABLE);
 
     //dev names
-    DrawTextWithEllipsis(dc, wxString::FromUTF8(get_obj()->dev_name), FromDIP(PICK_LEFT_DEV_NAME), left);
+    DrawTextWithEllipsis(dc, wxString::FromUTF8(get_obj()->get_dev_name()), FromDIP(PICK_LEFT_DEV_NAME), left);
     left += FromDIP(PICK_LEFT_DEV_NAME);
 }
 void DevicePickItem::post_event(wxCommandEvent&& event)
 {
     event.SetEventObject(this);
-    event.SetString(obj_->dev_id);
+    event.SetString(obj_->get_dev_id());
     event.SetInt(state_selected);
     wxPostEvent(this, event);
 }
@@ -307,15 +309,12 @@ MultiMachinePickPage::MultiMachinePickPage(Plater* plater /*= nullptr*/)
     app_config = get_app_config();
 
     SetBackgroundColour(*wxWHITE);
-    // icon
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
-    SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     line_top->SetBackgroundColour(wxColour(166, 169, 170));
-    
+
     m_label = new Label(this, _L("Select connected printers (0/6)"));
 
     scroll_macine_list = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
@@ -366,7 +365,7 @@ void MultiMachinePickPage::update_selected_count()
     int count = 0;
     for (auto it = m_device_items.begin(); it != m_device_items.end(); it++) {
         if (it->second->state_selected == 1 ) {
-            selected_multi_devices.push_back(it->second->obj_->dev_id);
+            selected_multi_devices.push_back(it->second->obj_->get_dev_id());
             count++;
         }
     }
@@ -376,8 +375,8 @@ void MultiMachinePickPage::update_selected_count()
 
     if (m_selected_count > PICK_DEVICE_MAX) {
         MessageDialog msg_wingow(nullptr, wxString::Format(_L("The maximum number of printers that can be selected is %d"), PICK_DEVICE_MAX), "", wxAPPLY | wxOK);
-        if (msg_wingow.ShowModal() == wxOK) { 
-            return; 
+        if (msg_wingow.ShowModal() == wxOK) {
+            return;
         }
     }
 
@@ -426,6 +425,9 @@ void MultiMachinePickPage::refresh_user_device()
     std::vector<std::string> subscribe_list;
 
     for (auto it = user_machine.begin(); it != user_machine.end(); ++it) {
+        if (it->second->GetExtderSystem()->GetTotalExtderCount() > 1) { continue; }
+        if (it->second->printer_type == "O1D") { continue;} /*maybe total_extder_count is not valid, hard codes here. to be moved to printers json*/
+
         DevicePickItem* di = new DevicePickItem(scroll_macine_list, it->second);
 
         di->Bind(EVT_MULTI_DEVICE_SELECTED_FINHSH, [this, di](auto& e) {
@@ -451,7 +453,7 @@ void MultiMachinePickPage::refresh_user_device()
         }
 
         //update selected
-        auto dev_it = std::find(selected_multi_devices.begin(), selected_multi_devices.end(), it->second->dev_id );
+        auto dev_it = std::find(selected_multi_devices.begin(), selected_multi_devices.end(), it->second->get_dev_id() );
         if (dev_it != selected_multi_devices.end()) {
             di->state_selected = 1;
         }

@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "FDplast HIPS @System",
+    "inherits": "FDplast HIPS @base",
+    "from": "system",
+    "setting_id": "HIPS01_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

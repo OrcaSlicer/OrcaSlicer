@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "instantiation": "true",
-    "inherits": "fdm_filament_pla",
-    "filament_id": "GFL100",
-    "setting_id": "GFSL100",
     "name": "TwoTrees Generic HS PLA @SK1",
+    "inherits": "fdm_filament_pla",
     "from": "system",
+    "setting_id": "GFSL100",
+    "filament_id": "GFL100",
+    "instantiation": "true",
     "compatible_printers": [
         "TwoTrees SK1 0.4 nozzle"
     ],
@@ -21,7 +21,9 @@
     "filament_flow_ratio": [
         "0.98"
     ],
-    "filament_max_volumetric_speed": "25",
+    "filament_max_volumetric_speed": [
+        "25"
+    ],
     "enable_pressure_advance": [
         "1"
     ],

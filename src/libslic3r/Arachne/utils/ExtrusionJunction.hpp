@@ -59,7 +59,8 @@ inline const Point& make_point(const ExtrusionJunction& ej)
     return ej.p;
 }
 
-using LineJunctions = std::vector<ExtrusionJunction>; //<! The junctions along a line without further information. See \ref ExtrusionLine for a more extensive class.
+using LineJunctions      = std::vector<ExtrusionJunction>; //<! The junctions along a line without further information. See \ref ExtrusionLine for a more extensive class.
+using ExtrusionJunctions = std::vector<ExtrusionJunction>;
 
 }
 #endif // UTILS_EXTRUSION_JUNCTION_H

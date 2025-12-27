@@ -171,7 +171,7 @@ void ArrangeJob::prepare_selected() {
             m_selected.swap(m_unselected);
         else {
             m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
-                NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("All the selected objects are on the locked plate,\nWe can not do auto-arrange on these objects.")));
+                NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("All the selected objects are on a locked plate.\nCannot auto-arrange these objects.")));
             }
         }
 
@@ -241,14 +241,17 @@ void ArrangeJob::prepare_all() {
         }
         else {
             m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
-                NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("All the selected objects are on the locked plate,\nWe can not do auto-arrange on these objects.")));
+                NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("All the selected objects are on a locked plate.\nCannot auto-arrange these objects.")));
         }
     }
 
     prepare_wipe_tower();
 
+    const DynamicPrintConfig& current_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, MAX_NUM_PLATES);
+    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, MAX_NUM_PLATES);
 }
 
 arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<int>& extruder_ids)
@@ -261,7 +264,9 @@ arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<i
     // we have to estimate the depth using the extruder number of all plates
     int extruder_size = extruder_ids.size();
 
-    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, extruder_size);
+    Vec3d wipe_tower_size, wipe_tower_pos;
+    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
+    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, wipe_tower_pos, wipe_tower_size, nozzle_nums, extruder_size);
     arrange_poly.bed_idx = plate_index;
     return arrange_poly;
 }
@@ -379,7 +384,7 @@ void ArrangeJob::prepare_partplate() {
 
     if (plate->is_locked()) {
         m_plater->get_notification_manager()->push_notification(NotificationType::BBLPlateInfo,
-            NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("This plate is locked,\nWe can not do auto-arrange on this plate.")));
+            NotificationManager::NotificationLevel::WarningNotificationLevel, into_u8(_L("This plate is locked.\nCannot auto-arrange on this plate.")));
         return;
     }
 
@@ -419,8 +424,11 @@ void ArrangeJob::prepare_partplate() {
         m_unselected.emplace_back(std::move(ap));
     }
 
+    const DynamicPrintConfig &current_config  = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    bool   enable_wrapping = current_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+
     // add the virtual object into unselect list if has
-    plate_list.preprocess_exclude_areas(m_unselected, current_plate_index + 1);
+    plate_list.preprocess_exclude_areas(m_unselected, enable_wrapping, current_plate_index + 1);
 }
 
 //BBS: add partplate logic
@@ -458,17 +466,7 @@ void ArrangeJob::prepare()
         auto& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
         auto print_config = print.config();
         bed_poly.points = get_bed_shape(*m_plater->config());
-        Pointfs excluse_area_points = print_config.bed_exclude_area.values;
-        Polygons exclude_polys;
-        Polygon exclude_poly;
-        for (int i = 0; i < excluse_area_points.size(); i++) {
-            auto pt = excluse_area_points[i];
-            exclude_poly.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
-            if (i % 4 == 3) {  // exclude areas are always rectangle
-                exclude_polys.push_back(exclude_poly);
-                exclude_poly.points.clear();
-            }
-        }
+        Polygons exclude_polys = get_bed_excluded_area(print_config);
         bed_poly = diff({ bed_poly }, exclude_polys)[0];
     }
 
@@ -542,7 +540,8 @@ void ArrangeJob::process(Ctl &ctl)
 
     Points      bedpts = get_shrink_bedpts(m_plater->config(),params);
 
-    partplate_list.preprocess_exclude_areas(params.excluded_regions, 1, scale_(1));
+    bool   enable_wrapping = global_config.option<ConfigOptionBool>("enable_wrapping_detection")->value;
+    partplate_list.preprocess_exclude_areas(params.excluded_regions, enable_wrapping, 1, scale_(1));
 
     BOOST_LOG_TRIVIAL(debug) << "arrange bedpts:" << bedpts[0].transpose() << ", " << bedpts[1].transpose() << ", " << bedpts[2].transpose() << ", " << bedpts[3].transpose();
 
@@ -775,7 +774,6 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
     params.printable_height                    = print_config.printable_height.value;
     params.allow_rotations                     = settings.enable_rotation;
     params.nozzle_height                       = print_config.nozzle_height.value;
-    params.all_objects_are_short               = print.is_all_objects_are_short();
     params.align_center                        = print_config.best_object_pos.value;
     params.allow_multi_materials_on_same_plate = settings.allow_multi_materials_on_same_plate;
     params.avoid_extrusion_cali_region         = settings.avoid_extrusion_cali_region;

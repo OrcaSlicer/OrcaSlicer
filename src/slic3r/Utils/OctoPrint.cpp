@@ -290,7 +290,7 @@ bool OctoPrint::test(wxString& msg) const
 
 wxString OctoPrint::get_test_ok_msg () const
 {
-    return _(L("Connection to OctoPrint works correctly."));
+    return _(L("Connection to OctoPrint is working correctly."));
 }
 
 wxString OctoPrint::get_test_failed_msg (wxString &msg) const
@@ -298,7 +298,7 @@ wxString OctoPrint::get_test_failed_msg (wxString &msg) const
     return GUI::format_wxstr("%s: %s\n\n%s"
         , _L("Could not connect to OctoPrint")
         , msg
-        , _L("Note: OctoPrint version at least 1.1.0 is required."));
+        , _L("Note: OctoPrint version 1.1.0 or higher is required."));
 }
 
 bool OctoPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
@@ -554,7 +554,7 @@ const char* SL1Host::get_name() const { return "SL1Host"; }
 
 wxString SL1Host::get_test_ok_msg () const
 {
-    return _(L("Connection to Prusa SL1 / SL1S works correctly."));
+    return _(L("Connection to Prusa SL1 / SL1S is working correctly."));
 }
 
 wxString SL1Host::get_test_failed_msg (wxString &msg) const
@@ -581,7 +581,7 @@ const char* PrusaLink::get_name() const { return "PrusaLink"; }
 
 wxString PrusaLink::get_test_ok_msg() const
 {
-    return _(L("Connection to PrusaLink works correctly."));
+    return _(L("Connection to PrusaLink is working correctly."));
 }
 
 wxString PrusaLink::get_test_failed_msg(wxString& msg) const
@@ -1176,7 +1176,7 @@ void PrusaConnect::set_http_post_header_args(Http& http, PrintHostPostUploadActi
 
 wxString PrusaConnect::get_test_ok_msg() const
 {
-    return _(L("Connection to Prusa Connect works correctly."));
+    return _(L("Connection to Prusa Connect is working correctly."));
 }
 
 wxString PrusaConnect::get_test_failed_msg(wxString& msg) const

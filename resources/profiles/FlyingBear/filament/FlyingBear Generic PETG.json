@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFG99",
-    "setting_id": "GFSA04",
     "name": "FlyingBear Generic PETG",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFG99",
+    "instantiation": "true",
     "reduce_fan_stop_start_freq": [
         "1"
     ],
@@ -44,12 +44,12 @@
     ],
     "enable_pressure_advance": [
         "1"
-      ],
-      "pressure_advance": [
+    ],
+    "pressure_advance": [
         "0.084"
-      ],
+    ],
     "compatible_printers": [
-      "FlyingBear Reborn3 0.4 nozzle",
-      "FlyingBear Ghost 6 0.4 nozzle"
+        "FlyingBear Reborn3 0.4 nozzle",
+        "FlyingBear Ghost 6 0.4 nozzle"
     ]
 }

@@ -8,9 +8,12 @@
 #include <utility>
 #include <vector>
 
-namespace ClipperLib { class PolyNode; }
-
 namespace Slic3r {
+
+	namespace ClipperLib {
+		class PolyNode;
+		using PolyNodes = std::vector<PolyNode*, PointsAllocator<PolyNode*>>;
+	}
 
 std::vector<size_t> 				 chain_points(const Points &points, Point *start_near = nullptr);
 std::vector<size_t> 				 chain_expolygons(const ExPolygons &input_exploy);
@@ -39,7 +42,7 @@ template<typename T> inline void reorder_by_shortest_traverse(std::vector<T> &po
     for (size_t i:order) polylines_out.emplace_back(std::move(Temp[i]));
 }
 
-std::vector<ClipperLib::PolyNode*>	 chain_clipper_polynodes(const Points &points, const std::vector<ClipperLib::PolyNode*> &items);
+ClipperLib::PolyNodes				 chain_clipper_polynodes(const Points &points, const ClipperLib::PolyNodes &items);
 
 // Chain instances of print objects by an approximate shortest path.
 // Returns pairs of PrintObject idx and instance of that PrintObject.

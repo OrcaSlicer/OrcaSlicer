@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "fdm_process_tiertime_HS_common",
+    "inherits": "fdm_process_tiertime_common",
+    "from": "system",
+    "instantiation": "false",
+    "default_acceleration": "4000",
+    "travel_acceleration": "4000",
+    "outer_wall_acceleration": "2500",
+    "inner_wall_acceleration": "3000",
+    "initial_layer_acceleration": "500",
+    "top_surface_acceleration": "2000",
+    "travel_speed": "200",
+    "compatible_printers": []
+}

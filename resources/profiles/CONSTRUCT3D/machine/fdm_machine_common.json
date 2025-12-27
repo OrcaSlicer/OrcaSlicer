@@ -14,8 +14,8 @@
         "0x0"
     ],
     "gcode_flavor": "reprapfirmware",
-	"host_type": "duet",
-	"printhost_apikey": "",
+    "host_type": "duet",
+    "printhost_apikey": "",
     "printhost_authorization_type": "key",
     "printhost_cafile": "",
     "printhost_password": "",
@@ -117,15 +117,15 @@
     "wipe": [
         "1"
     ],
-	"thumbnails_format": "QOI",
-	    "thumbnails": [
+    "thumbnails_format": "QOI",
+    "thumbnails": [
         "160x160"
     ],
     "z_lift_type": "Auto Lift",
     "default_print_profile": "",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
     "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM106 S0 ; Turn Fan off\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM190 S[first_layer_bed_temperature] ; set bed temp\nM109 S160 ; set extruder temp\nG28 ; home all\nG1 Z15 F6000 ; move the printer down 15mm\nG1 Y1.0 Z0.3 F4000 ; move print head up\nM109 S[first_layer_temperature] ; set extruder temp\n\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\n;prime the extruder\nG1 X5 Y2 Z0.3 F6000; go to edge of build volume\nG1 X60 E10 F1000 ;gentle purge start\nG1 X110 E25 F1000; heavy purge\nG1 X60;",
     "machine_end_gcode": ";Retract the filament\nG92 E1\nG1 E-5 F900\n;Move nozzle fast\nG1 X5 Y258 F15000\n;Move Bed Down\nG1 Z180 F6000\n\n;Set machine to idle\nM104 S0\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nM84 ; disable motors",
     "auxiliary_fan": "0"
-	}
+}

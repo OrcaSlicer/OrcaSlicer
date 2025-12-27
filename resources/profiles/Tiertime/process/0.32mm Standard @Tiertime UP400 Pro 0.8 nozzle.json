@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.32mm Standard @Tiertime UP400 Pro 0.8 nozzle",
+    "inherits": "fdm_process_tiertime_0.32_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP028",
+    "instantiation": "true",
+    "description": "It has a balanced layer height for good quality and reasonable printing time.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.8 nozzle"
+    ]
+}

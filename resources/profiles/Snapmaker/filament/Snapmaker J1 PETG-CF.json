@@ -1,13 +1,13 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 PETG-CF",
-  "setting_id": "961448549",
-  "inherits": "Snapmaker J1 PETG-CF @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)",
-    "Snapmaker J1 (0.6 nozzle)",
-    "Snapmaker J1 (0.8 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PETG-CF",
+    "inherits": "Snapmaker J1 PETG-CF @base",
+    "from": "system",
+    "setting_id": "961448549",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)",
+        "Snapmaker J1 (0.6 nozzle)",
+        "Snapmaker J1 (0.8 nozzle)"
+    ]
 }

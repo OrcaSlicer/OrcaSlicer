@@ -1,0 +1,36 @@
+{
+    "type": "filament",
+    "name": "QIDI UltraPA-CF25 @Qidi X-Plus 4 0.8 nozzle",
+    "inherits": "QIDI UltraPA-CF25",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "QD_0_1_26",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_settings_id": [
+        "QIDI UltraPA-CF25 @Qidi X-Plus 4 0.8 nozzle"
+    ],
+    "nozzle_temperature": [
+        "300"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "300"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.8 nozzle"
+    ]
+}

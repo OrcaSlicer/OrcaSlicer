@@ -6,7 +6,7 @@
 #include "libslic3r/Preset.hpp"
 #include "wxExtensions.hpp"
 #include "GUI_Utils.hpp"
-#include "Widgets/RadioBox.hpp"
+#include "Widgets/RadioGroup.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/Label.hpp"
@@ -69,17 +69,14 @@ class SavePresetDialog : public DPIDialog
         PresetCollection*   m_presets       {nullptr};
 
         //BBS: add project embedded preset relate logic
-        RadioBox *          m_radio_user{nullptr};
-        RadioBox *          m_radio_project{nullptr};
         bool                m_save_to_project {false};
+        RadioGroup*         m_radio_group; // ORCA
 
         void update();
     };
 
     std::vector<Item*>   m_items;
 
-    Button*             m_confirm           {nullptr};
-    Button*             m_cancel            {nullptr};
     wxBoxSizer*         m_presets_sizer     {nullptr};
     wxStaticText*       m_label             {nullptr};
     wxBoxSizer*         m_radio_sizer       {nullptr};  

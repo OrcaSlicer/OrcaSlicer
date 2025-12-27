@@ -1,86 +1,86 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Wanhao D12-300 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_wanhao_common",
-  "printer_model": "Wanhao D12-300",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "300x0",
-    "300x300",
-    "0x300"
-  ],
-  "printable_height": "400",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0",
-  "deretraction_speed": [
-    "70"
-],
-"gcode_flavor": "marlin",
-"machine_max_acceleration_e": [
-    "10000"
-],
-"machine_max_acceleration_extruding": [
-    "1000"
-],
-"machine_max_acceleration_retracting": [
-    "1000"
-],
-"machine_max_acceleration_x": [
-    "1000"
-],
-"machine_max_acceleration_y": [
-    "1000"
-],
-"machine_max_acceleration_z": [
-    "100"
-],
-"machine_max_speed_e": [
-    "60"
-],
-"machine_max_speed_x": [
-    "500"
-],
-"machine_max_speed_y": [
-    "500"
-],
-"machine_max_speed_z": [
-    "10"
-],
-"machine_max_jerk_e": [
-    "5"
-],
-"machine_max_jerk_x": [
-    "10"
-],
-"machine_max_jerk_y": [
-    "10"
-],
-"machine_max_jerk_z": [
-    "0.3"
-],
-"max_layer_height": [
-    "0.32"
-],
-"min_layer_height": [
-    "0.10"
-],
-"printer_variant": "0.4",
-"retraction_minimum_travel": [
-    "1.5"
-],
-"retraction_length": [
-    "5"
-],
-"retraction_speed": [
-    "40"
-],
-"default_print_profile": "0.15mm Optimal @Wanhao D12-300",
-"machine_start_gcode": "; Wanhao D12-300 Start G-code\n; M117 Initial homing sequence.                         ; Home so that the probe is positioned to heat\nG28\nM117 Probe heating position\nG0 X65 Y5 Z1                                                   ; Move the probe to the heating position.\nM117 Getting the heaters up to temp!\nM104 S140                                                          ; Set Extruder temperature, no wait\nM140 S60                                                            ; Set Heat Bed temperature\nM190 S60                                                            ; Wait for Heat Bed temperature\nM117 Waiting for probe to warm!                        ; Wait another 90s for the probe to absorb heat.\nG4 S90\nM117 Post warming re-home\nG28                                                                      ; Home all axes again after warming\nM117 Z-Dance of my people\nG34\nM117 ABL Probing\nG29\nM900 K0 L0 T0                                 ;Edit the K and L values if you have calibrated a k factor for your filament\nM900 T0 S0\nG1 Z2.0 F3000                                        ; Move Z Axis up little to prevent scratching of Heat Bed\nG1 X4.1 Y10 Z0.3 F5000.0                      ; Move to start position\nM117 Getting the extruder up to temp\nM140 S[first_layer_bed_temperature]      ; Set Heat Bed temperature\nM104 S[first_layer_temperature]    ; Set Extruder temperature\nM109 S[first_layer_temperature]    ; Wait for Extruder temperature\nM190 S[first_layer_bed_temperature]      ; Wait for Heat Bed temperature\nG92 E0                                        ; Reset Extruder\nM117 Purging\nG1 X4.1 Y200.0 Z0.3 F1500.0 E15               ; Draw the first line\nG1 X4.4 Y200.0 Z0.3 F5000.0                   ; Move to side a little\nG1 X4.4 Y20 Z0.3 F1500.0 E30                  ; Draw the second line\nG92 E0                                        ; Reset Extruder\nM117 Lets make\nG1 X8 Y20 Z0.3 F5000.0                        ; Move over to prevent blob squish",
-"machine_end_gcode": "; Wanhao D12-300 Default End Gcode\nG91                            ;Relative positioning\nG1 E-2 F2700                   ;Retract a bit\nG1 E-2 Z0.2 F2400              ;Retract a bit more and raise Z\nG1 X5 Y5 F3000                 ;Wipe out\nG1 Z10                         ;Raise Z by 10mm\nG90                            ;Return to absolute positioning\nG1 X0 Y{print_bed_max[1]}         ;TaDaaaa\nM106 S0                        ;Turn-off fan\nM104 S0                        ;Turn-off hotend\nM140 S0                        ;Turn-off bed\nM84 X Y E                      ;Disable all steppers but Z"
+    "type": "machine",
+    "name": "Wanhao D12-300 0.4 nozzle",
+    "inherits": "fdm_wanhao_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Wanhao D12-300",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "400",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "deretraction_speed": [
+        "70"
+    ],
+    "gcode_flavor": "marlin",
+    "machine_max_acceleration_e": [
+        "10000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "1000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_acceleration_x": [
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "0.3"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.10"
+    ],
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1.5"
+    ],
+    "retraction_length": [
+        "5"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "default_print_profile": "0.15mm Optimal @Wanhao D12-300",
+    "machine_start_gcode": "; Wanhao D12-300 Start G-code\n; M117 Initial homing sequence.                         ; Home so that the probe is positioned to heat\nG28\nM117 Probe heating position\nG0 X65 Y5 Z1                                                   ; Move the probe to the heating position.\nM117 Getting the heaters up to temp!\nM104 S140                                                          ; Set Extruder temperature, no wait\nM140 S60                                                            ; Set Heat Bed temperature\nM190 S60                                                            ; Wait for Heat Bed temperature\nM117 Waiting for probe to warm!                        ; Wait another 90s for the probe to absorb heat.\nG4 S90\nM117 Post warming re-home\nG28                                                                      ; Home all axes again after warming\nM117 Z-Dance of my people\nG34\nM117 ABL Probing\nG29\nM900 K0 L0 T0                                 ;Edit the K and L values if you have calibrated a k factor for your filament\nM900 T0 S0\nG1 Z2.0 F3000                                        ; Move Z Axis up little to prevent scratching of Heat Bed\nG1 X4.1 Y10 Z0.3 F5000.0                      ; Move to start position\nM117 Getting the extruder up to temp\nM140 S[first_layer_bed_temperature]      ; Set Heat Bed temperature\nM104 S[first_layer_temperature]    ; Set Extruder temperature\nM109 S[first_layer_temperature]    ; Wait for Extruder temperature\nM190 S[first_layer_bed_temperature]      ; Wait for Heat Bed temperature\nG92 E0                                        ; Reset Extruder\nM117 Purging\nG1 X4.1 Y200.0 Z0.3 F1500.0 E15               ; Draw the first line\nG1 X4.4 Y200.0 Z0.3 F5000.0                   ; Move to side a little\nG1 X4.4 Y20 Z0.3 F1500.0 E30                  ; Draw the second line\nG92 E0                                        ; Reset Extruder\nM117 Lets make\nG1 X8 Y20 Z0.3 F5000.0                        ; Move over to prevent blob squish",
+    "machine_end_gcode": "; Wanhao D12-300 Default End Gcode\nG91                            ;Relative positioning\nG1 E-2 F2700                   ;Retract a bit\nG1 E-2 Z0.2 F2400              ;Retract a bit more and raise Z\nG1 X5 Y5 F3000                 ;Wipe out\nG1 Z10                         ;Raise Z by 10mm\nG90                            ;Return to absolute positioning\nG1 X0 Y{print_bed_max[1]}         ;TaDaaaa\nM106 S0                        ;Turn-off fan\nM104 S0                        ;Turn-off hotend\nM140 S0                        ;Turn-off bed\nM84 X Y E                      ;Disable all steppers but Z"
 }

@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Tiertime UP300 HS",
+    "model_id": "my_tiertime_up300_01",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Tiertime",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "Tiertime ABS;Tiertime PLA"
+}

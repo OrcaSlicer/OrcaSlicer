@@ -1,35 +1,35 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 ABS @0.2 nozzle",
-  "setting_id": "418980201",
-  "inherits": "Snapmaker J1 ABS @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.2 nozzle)"
-  ],
-  "hot_plate_temp": [
-    "90"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "90"
-  ],
-  "overhang_fan_speed": [
-    "80"
-  ],
-  "filament_flow_ratio": [
-    "0.93"
-  ],
-  "filament_max_volumetric_speed": [
-    "2"
-  ],
-  "fan_max_speed": [
-    "80"
-  ],
-  "fan_min_speed": [
-    "15"
-  ],
-  "pressure_advance": [
-    "0.015"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 ABS @0.2 nozzle",
+    "inherits": "Snapmaker J1 ABS @base",
+    "from": "system",
+    "setting_id": "418980201",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.2 nozzle)"
+    ],
+    "hot_plate_temp": [
+        "90"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "90"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "filament_flow_ratio": [
+        "0.93"
+    ],
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "15"
+    ],
+    "pressure_advance": [
+        "0.015"
+    ]
 }

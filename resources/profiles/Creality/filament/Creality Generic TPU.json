@@ -1,27 +1,29 @@
 {
     "type": "filament",
-    "filament_id": "GFU99",
-    "setting_id": "GFSA04",
     "name": "Creality Generic TPU",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFU99",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "3.2"
     ],
     "compatible_printers": [
+        "Creality CR-10 V3 0.4 nozzle",
+        "Creality CR-10 V3 0.6 nozzle",
         "Creality K1 (0.4 nozzle)",
         "Creality K1 (0.6 nozzle)",
         "Creality K1 (0.8 nozzle)",
         "Creality K1 Max (0.4 nozzle)",
         "Creality K1 Max (0.6 nozzle)",
         "Creality K1 Max (0.8 nozzle)",
-	"Creality Sermoon V1 0.4 nozzle",
+        "Creality Sermoon V1 0.4 nozzle",
         "Creality CR-10 SE 0.2 nozzle",
-	"Creality CR-10 SE 0.4 nozzle",
-	"Creality CR-10 SE 0.6 nozzle",
-	"Creality CR-10 SE 0.8 nozzle",
+        "Creality CR-10 SE 0.4 nozzle",
+        "Creality CR-10 SE 0.6 nozzle",
+        "Creality CR-10 SE 0.8 nozzle",
         "Creality Ender-3 S1 Pro 0.4 nozzle",
-	"Creality Ender-3 S1 0.4 nozzle"
+        "Creality Ender-3 S1 0.4 nozzle"
     ]
 }

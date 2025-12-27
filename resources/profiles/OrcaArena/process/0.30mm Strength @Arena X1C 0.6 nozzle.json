@@ -1,14 +1,14 @@
 {
-  "type": "process",
-  "setting_id": "GP036",
-  "name": "0.30mm Strength @Arena X1C 0.6 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_process_bbl_0.30_nozzle_0.6",
-  "wall_loops": "4",
-  "sparse_infill_density":"25%",
-  "compatible_printers": [
-    "Orca Arena X1 Carbon 0.6 nozzle",
-    "Orca Arena X1 0.6 nozzle"
-  ]
+    "type": "process",
+    "name": "0.30mm Strength @Arena X1C 0.6 nozzle",
+    "inherits": "fdm_process_arena_0.30_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP036",
+    "instantiation": "true",
+    "wall_loops": "4",
+    "sparse_infill_density": "25%",
+    "compatible_printers": [
+        "Orca Arena X1 Carbon 0.6 nozzle",
+        "Orca Arena X1 0.6 nozzle"
+    ]
 }

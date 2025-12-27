@@ -51,7 +51,7 @@ AdaptivePAInterpolator* AdaptivePAProcessor::getInterpolator(unsigned int tool_i
     if (it != m_AdaptivePAInterpolators.end()) {
         return it->second.get();
     }
-    return nullptr;  // Handle the case where the tool_id is not found
+    return nullptr;  // Handle the case where the tool_id was not found
 }
 
 /**

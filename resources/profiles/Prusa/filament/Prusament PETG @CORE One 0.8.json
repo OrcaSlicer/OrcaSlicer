@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "Prusament PETG @CORE One 0.8",
+    "inherits": "Prusament PETG @CORE One",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament PETG @CORE One 0.8",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa CORE One 0.8 nozzle"
+    ],
+    "fan_cooling_layer_time": [
+        "35"
+    ],
+    "fan_max_speed": [
+        "65"
+    ],
+    "filament_max_volumetric_speed": [
+        "22"
+    ],
+    "filament_retract_before_wipe": [
+        "50"
+    ],
+    "filament_z_hop": [
+        "0.6"
+    ],
+    "overhang_fan_speed": [
+        "65"
+    ],
+    "slow_down_layer_time": [
+        "20"
+    ]
+}

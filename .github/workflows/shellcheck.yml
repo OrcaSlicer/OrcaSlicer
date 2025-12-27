@@ -1,0 +1,44 @@
+on:
+  push:
+    paths:
+      - '**.sh'
+      - 'scripts/linux.d/*'
+  pull_request:
+    paths:
+      - '**.sh'
+      - 'scripts/linux.d/*'
+  schedule:
+      - cron: '55 7 * * *' # run once a day near midnight US Pacific time
+  workflow_dispatch: # allows for manual dispatch
+
+name: "Shellcheck"
+permissions: {}
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache shellcheck download
+        id: cache-shellcheck-v0_11
+        uses: actions/cache@v4
+        with:
+          path: ~/shellcheck
+          key: ${{ runner.os }}-shellcheck-v0_11
+
+      - name: Download shellcheck
+        if: steps.cache-shellcheck-v0_11.outputs.cache-hit != 'true'
+        shell: bash
+        env:
+          INPUT_VERSION: "v0.11.0"
+        run: |
+          curl -L#o ~/sc.tar.xz "https://github.com/koalaman/shellcheck/releases/download/${INPUT_VERSION}/shellcheck-${INPUT_VERSION}.linux.x86_64.tar.xz"
+          tar -xvf ~/sc.tar.xz -C ~
+          mv ~/shellcheck-"${INPUT_VERSION}"/shellcheck ~/shellcheck
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Shellcheck scripts
+        run: 'find . -not -name \*.md \( -path ./scripts/linux.d/\* -o -name \*.sh \) -print0 | xargs -0 ~/shellcheck'

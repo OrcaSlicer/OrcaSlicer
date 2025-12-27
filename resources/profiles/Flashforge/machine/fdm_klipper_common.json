@@ -1,141 +1,141 @@
 {
-  "type": "machine",
-  "name": "fdm_klipper_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_machine_common",
-  "gcode_flavor": "klipper",
-  "machine_max_acceleration_e": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_extruding": [
-    "50000",
-    "50000"
-  ],
-  "machine_max_acceleration_retracting": [
-    "10000",
-    "10000"
-  ],
-  "machine_max_acceleration_travel": [
-    "50000",
-    "50000"
-  ],
-  "machine_max_acceleration_x": [
-    "50000",
-    "50000"
-  ],
-  "machine_max_acceleration_y": [
-    "50000",
-    "50000"
-  ],
-  "machine_max_acceleration_z": [
-    "1000",
-    "500"
-  ],
-  "machine_max_speed_e": [
-    "100",
-    "100"
-  ],
-  "machine_max_speed_x": [
-    "2000",
-    "2000"
-  ],
-  "machine_max_speed_y": [
-    "2000",
-    "2000"
-  ],
-  "machine_max_speed_z": [
-    "15",
-    "15"
-  ],
-  "machine_max_jerk_e": [
-    "0",
-    "0"
-  ],
-  "machine_max_jerk_x": [
-    "0",
-    "0"
-  ],
-  "machine_max_jerk_y": [
-    "0",
-    "0"
-  ],
-  "machine_max_jerk_z": [
-    "0",
-    "0"
-  ],
-  "machine_min_extruding_rate": [
-    "0",
-    "0"
-  ],
-  "machine_min_travel_rate": [
-    "0",
-    "0"
-  ],
-  "max_layer_height": [
-    "0.32"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "printable_height": "200",
-  "extruder_clearance_radius": "45",
-  "extruder_clearance_height_to_rod": "36",
-  "extruder_clearance_height_to_lid": "140",
-  "printer_settings_id": "",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "retraction_minimum_travel": [
-    "1"
-  ],
-  "retract_before_wipe": [
-    "70%"
-  ],
-  "retract_when_changing_layer": [
-    "1"
-  ],
-  "retraction_length": [
-    "0.5"
-  ],
-  "retract_length_toolchange": [
-    "2"
-  ],
-  "z_hop": [
-    "0"
-  ],
-  "retract_restart_extra": [
-    "0"
-  ],
-  "retract_restart_extra_toolchange": [
-    "0"
-  ],
-  "retraction_speed": [
-    "30"
-  ],
-  "deretraction_speed": [
-    "80"
-  ],
-  "z_lift_type": "NormalLift",
-  "silent_mode": "0",
-  "single_extruder_multi_material": "1",
-  "change_filament_gcode": "",
-  "machine_pause_gcode": "M25",
-  "wipe": [
-    "1"
-  ],
-  "default_filament_profile": [
-    "Flashforge Generic ABS"
-  ],
-  "default_print_profile": "0.20mm Standard @Flashforge AD5M",
-  "bed_exclude_area": [
-    "0x0"
-  ],
-  "machine_start_gcode": "BED_MESH_PROFILE LOAD=default \nM190 S[bed_temperature_initial_layer_single] ;set bed temp \nG28; \nG1 X2 Y2 Z0 F9000  ; move to corner \nM109 S[nozzle_temperature_initial_layer] ; set nozzle temp \nG1 Z0.2 F300 ; raise nozzle to 0.2\nG92 E0.0 ; reset extruder distance position\nG1 X60.0 E9.0 F1000.0 ; intro line\nG1 X100.0 E21.5 F1000.0 ; intro line\nG0 Z2\n\nG92 E0.0 ; reset extruder distance position",
-  "machine_end_gcode": "G91; //rel pos\nG1 E-5 f2000\nG1 Z10 F600 ; lift nozzle 10mm/s\nG1 E-29 f600\nM104 S0\nM140 S0 ; turn off bed\n\nM107\nG90\nG0 X117 Y200  F6000; move to back\nM84     ; disable motors\nDSLR_SNAPSHOT\nRSCS_off\n\nexhaustfan_on\nTIMELAPSE_RENDER\n\nG4 P60000 ; //Dwell for 1min\nM107 \nexhaustfan_off\n\nG4 P120000\n\npower_off ; //this is with moonraker",
-  "layer_change_gcode": ";DSLR_SNAPSHOT\nTIMELAPSE_TAKE_FRAME",
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
-  "scan_first_layer": "0",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0"
+    "type": "machine",
+    "name": "fdm_klipper_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "machine_max_acceleration_e": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "50000",
+        "50000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "10000",
+        "10000"
+    ],
+    "machine_max_acceleration_travel": [
+        "50000",
+        "50000"
+    ],
+    "machine_max_acceleration_x": [
+        "50000",
+        "50000"
+    ],
+    "machine_max_acceleration_y": [
+        "50000",
+        "50000"
+    ],
+    "machine_max_acceleration_z": [
+        "1000",
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "100",
+        "100"
+    ],
+    "machine_max_speed_x": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_speed_y": [
+        "2000",
+        "2000"
+    ],
+    "machine_max_speed_z": [
+        "15",
+        "15"
+    ],
+    "machine_max_jerk_e": [
+        "0",
+        "0"
+    ],
+    "machine_max_jerk_x": [
+        "0",
+        "0"
+    ],
+    "machine_max_jerk_y": [
+        "0",
+        "0"
+    ],
+    "machine_max_jerk_z": [
+        "0",
+        "0"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printable_height": "200",
+    "extruder_clearance_radius": "45",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_height_to_lid": "140",
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "80"
+    ],
+    "z_lift_type": "NormalLift",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M25",
+    "wipe": [
+        "1"
+    ],
+    "default_filament_profile": [
+        "Flashforge Generic ABS"
+    ],
+    "default_print_profile": "0.20mm Standard @Flashforge AD5M",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "machine_start_gcode": "BED_MESH_PROFILE LOAD=default \nM190 S[bed_temperature_initial_layer_single] ;set bed temp \nG28; \nG1 X2 Y2 Z0 F9000  ; move to corner \nM109 S[nozzle_temperature_initial_layer] ; set nozzle temp \nG1 Z0.2 F300 ; raise nozzle to 0.2\nG92 E0.0 ; reset extruder distance position\nG1 X60.0 E9.0 F1000.0 ; intro line\nG1 X100.0 E21.5 F1000.0 ; intro line\nG0 Z2\n\nG92 E0.0 ; reset extruder distance position",
+    "machine_end_gcode": "G91; //rel pos\nG1 E-5 f2000\nG1 Z10 F600 ; lift nozzle 10mm/s\nG1 E-29 f600\nM104 S0\nM140 S0 ; turn off bed\n\nM107\nG90\nG0 X117 Y200  F6000; move to back\nM84     ; disable motors\nDSLR_SNAPSHOT\nRSCS_off\n\nexhaustfan_on\nTIMELAPSE_RENDER\n\nG4 P60000 ; //Dwell for 1min\nM107 \nexhaustfan_off\n\nG4 P120000\n\npower_off ; //this is with moonraker",
+    "layer_change_gcode": ";DSLR_SNAPSHOT\nTIMELAPSE_TAKE_FRAME",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "scan_first_layer": "0",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0"
 }

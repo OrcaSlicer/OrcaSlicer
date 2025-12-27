@@ -1,0 +1,29 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PVA HF @MINIIS 0.6",
+    "inherits": "fdm_filament_pva",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "4"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.1"
+    ],
+    "compatible_printers": [
+        "Prusa MINIIS 0.6 nozzle"
+    ]
+}

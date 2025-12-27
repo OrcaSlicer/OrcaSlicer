@@ -421,11 +421,12 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
                 current_role = ExtrusionEntity::string_to_role(extrusion_string);
             }
             if (line.raw().size() > 16) {
-                if (line.raw().rfind("; custom gcode", 0) != std::string::npos)
+                if (line.raw().rfind("; custom gcode", 0) != std::string::npos) {
                     if (line.raw().rfind("; custom gcode end", 0) != std::string::npos)
                         m_is_custom_gcode = false;
                     else
                         m_is_custom_gcode = true;
+                }
             }
         }
     }

@@ -2,7 +2,7 @@
     "type": "machine_model",
     "name": "RatRig V-Core 4 300",
     "model_id": "V-Core_4_300",
-    "nozzle_diameter": "0.4;0.5;0.6",
+    "nozzle_diameter": "0.4;0.5;0.6;0.8",
     "machine_tech": "FFF",
     "family": "RatRig_V-Core",
     "bed_model": "ratrig-vcore-bed-300.stl",

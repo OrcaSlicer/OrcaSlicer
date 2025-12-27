@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.60mm Draft 1.0 nozzle @Voron",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_voron_common_1_0",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "bottom_shell_layers": "2",
     "top_shell_layers": "3",
     "layer_height": "0.60"

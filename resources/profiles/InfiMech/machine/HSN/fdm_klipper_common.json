@@ -1,211 +1,201 @@
 {
-  "type": "machine",
-  "name": "fdm_klipper_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_machine_common",
-  "gcode_flavor": "klipper",
-
-
-  "auxiliary_fan": "1",
-  "bed_exclude_area": [
-      "0x0"
-  ],
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
-  "change_filament_gcode": "",
-  "cooling_tube_length": "5",
-  "cooling_tube_retraction": "91.5",
-  "default_filament_profile": [
-      "InfiMech PLA"
-  ],
-  "default_print_profile": "0.20mm Standard @InfiMech TX",
-  "deretraction_speed": [
-      "30"
-  ],
-  "enable_filament_ramming": "1",
-  "extra_loading_move": "-2",
-  "extruder_clearance_height_to_lid": "69",
-  "extruder_clearance_height_to_rod": "69",
-  "extruder_clearance_radius": "49",
-  "extruder_colour": [
-      "#FCE94F"
-  ],
-  "extruder_offset": [
-      "0x0"
-  ],
-  "fan_kickstart": "0",
-  "fan_speedup_overhangs": "1",
-  "fan_speedup_time": "0",
-
-  "high_current_on_filament_swap": "0",
-
-
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "machine_end_gcode": "PRINT_END",
-  "machine_load_filament_time": "0",
-  "machine_max_acceleration_e": [
-      "5000",
-      "5000"
-  ],
-  "machine_max_acceleration_extruding": [
-      "20000",
-      "20000"
-  ],
-  "machine_max_acceleration_retracting": [
-      "5000",
-      "5000"
-  ],
-  "machine_max_acceleration_travel": [
-      "20000",
-      "20000"
-  ],
-  "machine_max_acceleration_x": [
-      "20000",
-      "20000"
-  ],
-  "machine_max_acceleration_y": [
-      "20000",
-      "20000"
-  ],
-  "machine_max_acceleration_z": [
-      "500",
-      "200"
-  ],
-  "machine_max_jerk_e": [
-      "2.5",
-      "2.5"
-  ],
-  "machine_max_jerk_x": [
-      "9",
-      "9"
-  ],
-  "machine_max_jerk_y": [
-      "9",
-      "9"
-  ],
-  "machine_max_jerk_z": [
-      "3",
-      "0.4"
-  ],
-  "machine_max_speed_e": [
-      "30",
-      "25"
-  ],
-  "machine_max_speed_x": [
-      "600",
-      "200"
-  ],
-  "machine_max_speed_y": [
-      "600",
-      "200"
-  ],
-  "machine_max_speed_z": [
-      "20",
-      "12"
-  ],
-  "machine_min_extruding_rate": [
-      "0",
-      "0"
-  ],
-  "machine_min_travel_rate": [
-      "0",
-      "0"
-  ],
-  "machine_pause_gcode": "PAUSE",
-  "machine_start_gcode": ";v2.9.2-20240814;\n;wiping nozzle start\nM106 P3 S0\nM140 S[bed_temperature_initial_layer_single]\nclean_nozzle_position\n;wiping nozzle end\n;*************preheat nozzle and hotbed for Z_TILT_ADJUST*************\nM140 S[bed_temperature_initial_layer_single]\nM104 S130\nG1 X110 Y110 F10000 \nG4 P200\nprobe\nSET_KINEMATIC_POSITION Z=0 ;Z homing\nG1 Z5\nM190 S[bed_temperature_initial_layer_single]\nZ_TILT_ADJUST \n;*************Z_TILT_ADJUST end*************\nM140 S[bed_temperature_initial_layer_single] ;heat hotbed temp set by user\nG1 X5 Y5 F8000 \nG28 \nG1 X{first_layer_print_min[0]-1.5} Y{min(first_layer_print_min[1] + 100,print_bed_max[0])} F6000 \nG1 Z0 F400\nM104 S[nozzle_temperature_initial_layer] ;heat nozzle temp set by user\nM106 S100 ;close head_nozzle fan\nG4 P3000\nM106 S255 ;close head_nozzle fan\nG4 P3000\nM106 S100 ;close head_nozzle fan\n;*************PRINT START*************\nM109 S[nozzle_temperature_initial_layer] ;heat nozzle temp set by user and wait \nM190 S[bed_temperature_initial_layer_single];heat bed temp set by user and wait \nM106 S0 ;close head_nozzle fan\nBED_MESH_CLEAR                                  \nBED_MESH_PROFILE LOAD=default   # bedmesh load\nG92 E0 ;Reset Extruder\n;G1 Z4.0 F200 ;Move Z Axis up\nG90 ;absolute position\n ; ; ; ; ; ; ; ; ; draw line along model\n;G92 E0 ;reset extruder\nG1 E3 F300 ;extrude filament\nG1 X{first_layer_print_min[0]-1.5} Y{min(first_layer_print_min[1] + 100,print_bed_max[0])} F6000 \nG1 Z0.22 F600\nG1 X{first_layer_print_min[0]-1.5} Y{max(0, first_layer_print_min[1]-1.5)}  F2000 E10\nG1 Z0.22 F600\nG1 X{min(first_layer_print_min[0] + 60,print_bed_max[0])} F1200 E12\n ; ; ; ; ; ; ; ; ;draw line along model end \nG4 P200\nG1 Z2\nG92 E0 ;Reset Extruder\nCLEAR_PAUSE\n;***********model start************\n",
-  "machine_unload_filament_time": "0",
-  "max_layer_height": [
-      "0.28"
-  ],
-  "min_layer_height": [
-      "0.08"
-  ],
-
-  "nozzle_diameter": [
-      "0.4"
-  ],
-  "nozzle_hrc": "0",
-  "nozzle_type": "hardened_steel",
-  "nozzle_volume": "151.32",
-  "parking_pos_retraction": "92",
-
-  "print_host_webui": "",
-  "printable_area": [
-      "0x0",
-      "220x0",
-      "220x220",
-      "0x220"
-  ],
-  "printable_height": "250",
-  "printer_model": "Generic Klipper Printer",
-  "printer_notes": "",
-  "printer_settings_id": "InfiMech TX 0.4 nozzle",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "printhost_apikey": "",
-  "printhost_authorization_type": "key",
-  "printhost_cafile": "",
-  "printhost_password": "",
-  "printhost_port": "",
-  "printhost_ssl_ignore_revoke": "0",
-  "printhost_user": "",
-  "purge_in_prime_tower": "1",
-  "retract_before_wipe": [
-      "0%"
-  ],
-  "retract_length_toolchange": [
-      "0"
-  ],
-  "retract_lift_above": [
-      "0"
-  ],
-  "retract_lift_below": [
-      "249"
-  ],
-  "retract_lift_enforce": [
-      "All Surfaces"
-  ],
-  "retract_restart_extra": [
-      "0"
-  ],
-  "retract_restart_extra_toolchange": [
-      "0"
-  ],
-  "retract_when_changing_layer": [
-      "1"
-  ],
-  "retraction_length": [
-      "0.5"
-  ],
-  "retraction_minimum_travel": [
-      "1"
-  ],
-  "retraction_speed": [
-      "30"
-  ],
-  "scan_first_layer": "0",
-  "silent_mode": "0",
-  "single_extruder_multi_material": "1",
-  "template_custom_gcode": "",
-  "thumbnails": [
-      "300x300"
-  ],
-  "upward_compatible_machine": [],
-  "use_firmware_retraction": "0",
-  "use_relative_e_distances": "1",
-  "version": "1.6.0.0",
-  "wipe": [
-      "1"
-  ],
-  "wipe_distance": [
-      "2"
-  ],
-  "z_hop": [
-      "0.4"
-  ],
-  "z_hop_types": [
-      "Normal Lift"
-  ]
-
-  
+    "type": "machine",
+    "name": "fdm_klipper_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "auxiliary_fan": "1",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
+    "change_filament_gcode": "",
+    "cooling_tube_length": "5",
+    "cooling_tube_retraction": "91.5",
+    "default_filament_profile": [
+        "InfiMech Generic PLA"
+    ],
+    "default_print_profile": "0.20mm Standard @InfiMech TX",
+    "deretraction_speed": [
+        "30"
+    ],
+    "enable_filament_ramming": "1",
+    "extra_loading_move": "-2",
+    "extruder_clearance_height_to_lid": "69",
+    "extruder_clearance_height_to_rod": "69",
+    "extruder_clearance_radius": "49",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "1",
+    "fan_speedup_time": "0",
+    "high_current_on_filament_swap": "0",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_end_gcode": "PRINT_END",
+    "machine_load_filament_time": "0",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "600",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "600",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "12"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": ";v2.9.2-20240814;\n;wiping nozzle start\nM106 P3 S0\nM140 S[bed_temperature_initial_layer_single]\nclean_nozzle_position\n;wiping nozzle end\n;*************preheat nozzle and hotbed for Z_TILT_ADJUST*************\nM140 S[bed_temperature_initial_layer_single]\nM104 S130\nG1 X110 Y110 F10000 \nG4 P200\nprobe\nSET_KINEMATIC_POSITION Z=0 ;Z homing\nG1 Z5\nM190 S[bed_temperature_initial_layer_single]\nZ_TILT_ADJUST \n;*************Z_TILT_ADJUST end*************\nM140 S[bed_temperature_initial_layer_single] ;heat hotbed temp set by user\nG1 X5 Y5 F8000 \nG28 \nG1 X{first_layer_print_min[0]-1.5} Y{min(first_layer_print_min[1] + 100,print_bed_max[0])} F6000 \nG1 Z0 F400\nM104 S[nozzle_temperature_initial_layer] ;heat nozzle temp set by user\nM106 S100 ;close head_nozzle fan\nG4 P3000\nM106 S255 ;close head_nozzle fan\nG4 P3000\nM106 S100 ;close head_nozzle fan\n;*************PRINT START*************\nM109 S[nozzle_temperature_initial_layer] ;heat nozzle temp set by user and wait \nM190 S[bed_temperature_initial_layer_single];heat bed temp set by user and wait \nM106 S0 ;close head_nozzle fan\nBED_MESH_CLEAR                                  \nBED_MESH_PROFILE LOAD=default   # bedmesh load\nG92 E0 ;Reset Extruder\n;G1 Z4.0 F200 ;Move Z Axis up\nG90 ;absolute position\n ; ; ; ; ; ; ; ; ; draw line along model\n;G92 E0 ;reset extruder\nG1 E3 F300 ;extrude filament\nG1 X{first_layer_print_min[0]-1.5} Y{min(first_layer_print_min[1] + 100,print_bed_max[0])} F6000 \nG1 Z0.22 F600\nG1 X{first_layer_print_min[0]-1.5} Y{max(0, first_layer_print_min[1]-1.5)}  F2000 E10\nG1 Z0.22 F600\nG1 X{min(first_layer_print_min[0] + 60,print_bed_max[0])} F1200 E12\n ; ; ; ; ; ; ; ; ;draw line along model end \nG4 P200\nG1 Z2\nG92 E0 ;Reset Extruder\nCLEAR_PAUSE\n;***********model start************\n",
+    "machine_unload_filament_time": "0",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_hrc": "0",
+    "nozzle_type": "hardened_steel",
+    "nozzle_volume": "151.32",
+    "parking_pos_retraction": "92",
+    "print_host_webui": "",
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "250",
+    "printer_model": "Generic Klipper Printer",
+    "printer_notes": "",
+    "printer_settings_id": "InfiMech TX 0.4 nozzle",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "printhost_apikey": "",
+    "printhost_authorization_type": "key",
+    "printhost_cafile": "",
+    "printhost_password": "",
+    "printhost_port": "",
+    "printhost_ssl_ignore_revoke": "0",
+    "printhost_user": "",
+    "purge_in_prime_tower": "1",
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_length_toolchange": [
+        "0"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "249"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "scan_first_layer": "0",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "template_custom_gcode": "",
+    "thumbnails": [
+        "300x300"
+    ],
+    "upward_compatible_machine": [],
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "1",
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ]
 }

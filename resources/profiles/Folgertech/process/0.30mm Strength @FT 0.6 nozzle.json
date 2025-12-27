@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP036",
     "name": "0.30mm Strength @FT 0.6 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_folgertech_common",
+    "from": "system",
+    "setting_id": "GP036",
+    "instantiation": "true",
     "layer_height": "0.3",
     "initial_layer_print_height": "0.3",
     "wall_loops": "4",
@@ -15,7 +15,7 @@
     "outer_wall_line_width": "0.62",
     "initial_layer_line_width": "0.62",
     "sparse_infill_line_width": "0.62",
-    "sparse_infill_density":"25%",
+    "sparse_infill_density": "25%",
     "inner_wall_line_width": "0.62",
     "internal_solid_infill_line_width": "0.62",
     "support_line_width": "0.62",
@@ -34,8 +34,8 @@
     "overhang_3_4_speed": "15",
     "overhang_4_4_speed": "10",
     "compatible_printers": [
-      "Folgertech i3 0.6 nozzle",
-      "Folgertech FT-5 0.6 nozzle",
-      "Folgertech FT-6 0.6 nozzle"
+        "Folgertech i3 0.6 nozzle",
+        "Folgertech FT-5 0.6 nozzle",
+        "Folgertech FT-6 0.6 nozzle"
     ]
 }

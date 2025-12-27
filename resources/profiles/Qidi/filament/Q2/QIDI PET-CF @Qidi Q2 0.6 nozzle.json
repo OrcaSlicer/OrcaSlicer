@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "QIDI PET-CF @Qidi Q2 0.6 nozzle",
+    "inherits": "QIDI PET-CF@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSN99",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.025"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.6 nozzle"
+    ]
+}

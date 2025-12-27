@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "Qidi PC-ABS-FR @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "Qidi PC-ABS-FR",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "activate_chamber_temp_control": [
         "0"
     ],
@@ -17,16 +21,12 @@
     "filament_settings_id": [
         "Qidi PC-ABS-FR @Qidi Q1 Pro 0.4 nozzle"
     ],
-    "from": "system",
     "hot_plate_temp": [
         "100"
     ],
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Qidi PC-ABS-FR",
-    "is_custom_defined": "0",
-    "name": "Qidi PC-ABS-FR @Qidi Q1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "250"
     ],
@@ -39,13 +39,13 @@
     "slow_down_min_speed": [
         "20"
     ],
-    "activate_air_filtration":[
-         "0"
+    "activate_air_filtration": [
+        "0"
     ],
-    "during_print_exhaust_fan_speed":[
-         "0"
+    "during_print_exhaust_fan_speed": [
+        "0"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.4 nozzle"
-        ]
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
 }

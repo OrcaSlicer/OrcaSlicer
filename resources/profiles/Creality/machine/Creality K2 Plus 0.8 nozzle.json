@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Creality K2 Plus 0.8 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Creality K2 Plus",
     "gcode_flavor": "klipper",
     "default_print_profile": "0.32mm Optimal @Creality K2 Plus 0.8 nozzle",
@@ -20,9 +20,10 @@
     ],
     "printable_height": "350",
     "nozzle_type": "hardened_steel",
+    "nozzle_volume": "183",
     "auxiliary_fan": "1",
     "support_air_filtration": "1",
-    "support_multi_bed_types": "0",
+    "support_multi_bed_types": "1",
     "machine_max_acceleration_e": [
         "5000",
         "5000"
@@ -91,7 +92,7 @@
     ],
     "printer_settings_id": "Creality",
     "retraction_minimum_travel": [
-        "2"
+        "1"
     ],
     "retract_before_wipe": [
         "70%"
@@ -108,7 +109,14 @@
     "deretraction_speed": [
         "40"
     ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "349"
+    ],
     "enable_filament_ramming": "0",
+    "purge_in_prime_tower": "0",
     "cooling_tube_length": "0",
     "cooling_tube_retraction": "0",
     "parking_pos_retraction": "0",
@@ -127,12 +135,13 @@
     "default_filament_profile": [
         "Creality Generic PLA @K2-all"
     ],
-    "machine_start_gcode":"M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y150 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y150 F6000\nG1 X0 Y0 E15 F1500\nG1 X150 Y0 E15 F1500\nG92 E0\nG1 Z1 F600",
+    "machine_start_gcode": "M140 S0\nM104 S0 \nSTART_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\nT[initial_no_support_extruder]\nM109 S[nozzle_temperature_initial_layer]\nM204 S2000\nG1 Z3 F600\nM83\nG1 Y150 F12000\nG1 X0 F12000\nG1 Z0.2 F600\nG1 X0 Y150 F6000\nG1 X0 Y0 E15 F6000\nG1 X150 Y0 E15 F6000\nG92 E0\nG1 Z1 F600",
     "machine_end_gcode": "END_PRINT",
     "machine_pause_gcode": "PAUSE",
     "change_filament_gcode": "G2 Z{z_after_toolchange + 0.4} I0.86 J0.86 P1 F10000 ; spiral lift a little from second lift\nG1 X0 Y245 F30000\nG1 Z{z_after_toolchange} F600",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
     "scan_first_layer": "0",
-    "thumbnails_format":"PNG",
+    "thumbnails_format": "PNG",
     "thumbnails": [
         "300x300",
         "96x96"

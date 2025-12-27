@@ -1,79 +1,79 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "fdm_filament_petg",
-  "inherits": "fdm_filament_common",
-  "hot_plate_temp": [
-    "70"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "70"
-  ],
-  "overhang_fan_threshold": [
-    "25%"
-  ],
-  "overhang_fan_speed": [
-    "90"
-  ],
-  "filament_flow_ratio": [
-    "0.95"
-  ],
-  "reduce_fan_stop_start_freq": [
-    "1"
-  ],
-  "fan_cooling_layer_time": [
-    "30"
-  ],
-  "filament_cost": [
-    "30"
-  ],
-  "filament_density": [
-    "1.27"
-  ],
-  "filament_max_volumetric_speed": [
-    "10"
-  ],
-  "filament_retraction_minimum_travel": [
-    "0"
-  ],
-  "filament_retraction_length": [
-    "1.8"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "255"
-  ],
-  "nozzle_temperature": [
-    "245"
-  ],
-  "temperature_vitrification": [
-    "160"
-  ],
-  "fan_max_speed": [
-    "90"
-  ],
-  "fan_min_speed": [
-    "40"
-  ],
-  "slow_down_min_speed": [
-    "20"
-  ],
-  "enable_pressure_advance": [
-    "1"
-  ],
-  "pressure_advance": [
-    "0.03"
-  ],
-  "default_filament_colour": [
-    "#DF6734"
-  ],
-  "filament_type": [
-    "PETG"
-  ],
-  "nozzle_temperature_range_low": [
-    "220"
-  ],
-  "nozzle_temperature_range_high": [
-    "270"
-  ]
+    "type": "filament",
+    "name": "fdm_filament_petg",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "instantiation": "false",
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "filament_cost": [
+        "30"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "filament_retraction_minimum_travel": [
+        "0"
+    ],
+    "filament_retraction_length": [
+        "1.8"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "255"
+    ],
+    "nozzle_temperature": [
+        "245"
+    ],
+    "temperature_vitrification": [
+        "160"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.03"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ]
 }

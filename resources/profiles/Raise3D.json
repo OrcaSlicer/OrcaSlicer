@@ -1,7 +1,7 @@
 {
     "name": "Raise3D",
     "url": "",
-    "version": "02.02.00.04",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Raise3D configurations",
     "machine_model_list": [
@@ -44,52 +44,7 @@
             "sub_path": "process/0.25mm Draft @Raise3D Pro3Plus.json"
         }
     ],
-    "filament_list": [
-        {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "Raise3D Generic ASA",
-            "sub_path": "filament/Raise3D Generic ASA.json"
-        },
-        {
-            "name": "Raise3D Generic PETG",
-            "sub_path": "filament/Raise3D Generic PETG.json"
-        },
-        {
-            "name": "Raise3D Generic PLA",
-            "sub_path": "filament/Raise3D Generic PLA.json"
-        },
-        {
-            "name": "Raise3D Generic PVA",
-            "sub_path": "filament/Raise3D Generic PVA.json"
-        },
-        {
-            "name": "Raise3D Generic TPU",
-            "sub_path": "filament/Raise3D Generic TPU.json"
-        }
-    ],
+    "filament_list": [],
     "machine_list": [
         {
             "name": "fdm_machine_common",

@@ -4,6 +4,7 @@
 #include "../libslic3r.h"
 #include <map>
 #include <string>
+#include <cfloat>
 
 namespace Slic3r {
 

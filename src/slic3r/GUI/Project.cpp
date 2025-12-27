@@ -76,6 +76,16 @@ ProjectPanel::ProjectPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, 
 
 ProjectPanel::~ProjectPanel() {}
 
+// Helper to convert newlines to <br>
+static std::string convert_newlines_to_br(const std::string& text) {
+    std::string result = text;
+    size_t pos = 0;
+    while ((pos = result.find('\n', pos)) != std::string::npos) {
+        result.replace(pos, 1, "<br>");
+        pos += 4;
+    }
+    return result;
+}
 
 void ProjectPanel::onWebNavigating(wxWebViewEvent& evt)
 {
@@ -189,7 +199,7 @@ void ProjectPanel::on_reload(wxCommandEvent& evt)
         j["model"]["name"] = wxGetApp().url_encode(model_name);
         j["model"]["author"] = wxGetApp().url_encode(model_author);;
         j["model"]["cover_img"] = wxGetApp().url_encode(cover_file);
-        j["model"]["description"] = wxGetApp().url_encode(description);
+        j["model"]["description"] = wxGetApp().url_encode(convert_newlines_to_br(description));
         j["model"]["preview_img"] = files["Model Pictures"];
         j["model"]["upload_type"] = update_type;
 
@@ -237,7 +247,7 @@ void ProjectPanel::OnScriptMessage(wxWebViewEvent& evt)
 {
     try {
         wxString strInput = evt.GetString();
-        json     j = json::parse(strInput);
+        json     j = json::parse(strInput.utf8_string());
 
         wxString strCmd = j["command"];
 

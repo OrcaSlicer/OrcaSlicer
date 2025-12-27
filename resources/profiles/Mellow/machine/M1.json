@@ -8,5 +8,5 @@
     "bed_model": "M1_bed_model.stl",
     "bed_texture": "mellow_bed_texture.png",
     "hotend_model": "",
-    "default_materials": "Generic ABS @M1;Generic PLA @M1;Generic PLA-CF @M1;Generic PETG @M1;Generic TPU @M1;Generic ASA @M1;Generic PC @M1;Generic PVA @M1;Generic PA @M1;Generic PA-CF @M1"
+    "default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

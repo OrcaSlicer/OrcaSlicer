@@ -8,5 +8,5 @@
     "bed_model": "Prusa XL_bed.stl",
     "bed_texture": "Prusa XL.svg",
     "hotend_model": "",
-    "default_materials": "Prusa Generic PLA @XL;Prusament PLA @XL;Prusament rPLA @XL;Prusa Generic PETG @XL;Prusament PETG @XL;Prusa Generic ABS @XL;Prusament ASA @XL;Prusament PC Blend @XL;Prusament PC-CF @XL;Prusament PVB @XL;Prusament PA-CF @XL"
+    "default_materials": "Prusa Generic PLA @XL;Prusament PLA @XL;Prusament rPLA @XL;Prusa Generic PETG @XL;Prusament PETG @XL;Prusa Generic ABS @XL;Prusament ASA @XL;Prusament PC Blend @XL;Prusament PC-CF @XL;Prusament PVB @XL;Prusament PA-CF @XL;Prusa Generic FLEX @XL"
 }

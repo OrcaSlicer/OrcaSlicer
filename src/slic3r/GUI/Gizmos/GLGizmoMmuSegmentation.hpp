@@ -71,8 +71,6 @@ public:
 
     void data_changed(bool is_serializing) override;
 
-    void render_triangles(const Selection& selection) const override;
-
     // TriangleSelector::serialization/deserialization has a limit to store 19 different states.
     // EXTRUDER_LIMIT + 1 states are used to storing the painting because also uncolored triangles are stored.
     // When increasing EXTRUDER_LIMIT, it needs to ensure that TriangleSelector::serialization/deserialization
@@ -113,6 +111,10 @@ protected:
     // BBS
     wchar_t                           m_current_tool = 0;
     bool                              m_detect_geometry_edge = true;
+    
+    // Filament remap feature
+    std::vector<size_t>               m_extruder_remap;      // index → target extruder index
+    bool                              m_show_filament_remap_ui = false;
 
     static const constexpr float      CursorRadiusMin = 0.1f; // cannot be zero
 
@@ -134,6 +136,10 @@ private:
     // BBS
     void update_triangle_selectors_colors();
     void init_extruders_data();
+    
+    // Filament remapping methods
+    void remap_filament_assignments();
+    void render_filament_remap_ui(float window_width, float max_tooltip_width);
 
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.

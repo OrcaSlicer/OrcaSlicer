@@ -1,6 +1,7 @@
 #Content
 {
 	overflow-y:auto;
+	padding: 32px; /* ORCA Specify & Reduce horizontal paddings to fit 4 items per row */
 }
 
 .BlockBanner
@@ -8,19 +9,19 @@
 	padding: 0px;
 	border-bottom:#009688 1px solid;
 	width: 100%;
+	display: flex;
+	justify-content:space-between;
+	align-items: center;
 }
-
 
 .BannerBtns
 {
-	float: right;
 	display: flex;
 	white-space: nowrap;
 	justify-content: space-around;
 	align-items: center;
-	height: 40px;
 	text-align: center;
-	margin-right: 10px;
+	margin-right: 0px; /* ORCA align buttons with end of horizontal separator/line */
 }
 
 /*.Banner-Btn
@@ -59,7 +60,7 @@
 
 .PrinterArea
 {
-	padding: 10px;
+	padding: 10px 0px; /* ORCA Reduce horizontal paddings to fit 4 items per row */
 	display: flex;
 	flex-wrap: wrap;
 }
@@ -71,25 +72,49 @@
 	padding: 10px;
 }
 
-.PrinterBlock img
+.PImg
 {
-	width:160px;
-	height: 160px;
+	position:relative;
+	width:120px;      /* ORCA use covers as 120x120px but use source file as 240x240 for better quality on hidpi */
+	height:120px;	  /* ORCA fit image to fill frame */
+	padding:10px 20px /* ORCA use less vertical padding */
+}
+
+.ModelCheckBox
+{
+	flex: 0 0 18px;			/* ORCA match checkbox style and size */
+	margin: 10px 5px 0 0;
+	width: 18px;
+	height: 18px;
+	background-image: url("../img/emptycheck.svg");
+	background-size: cover;
+}
+
+.ModelCheckBox.ModelCheckBoxSelected
+{
+	background-image: url("../img/greencheck.svg");
+}
+
+img.ModelThumbnail
+{
+	width:  100%;
+	height: 100%;
 }
 
 .PName
 {
 	font-weight: 700;
-	text-align:left;
+	line-height: 20px; /* ORCA */
+	text-align: left;
 }
 
 .pNozzel
 {
-	display: flex;
+	display: none;
 	align-items: center;
 	justify-content:flex-start;
 	color: #5A5A5A;	
-	padding-left: 10px;
+	padding-left: 0px; /* ORCA Align checkboxes with with model text */
 }
 
 .pNozzel input
@@ -145,33 +170,54 @@
 {
 	margin-top: 4mm;
 	display: flex;
-	justify-content:space-around;
+	justify-content:flex-end;
 }
 
 .search {
 	width: 100%;
 	position: relative;
 	display: flex;
-  }
+}
   
-  .searchTerm {
+.searchTerm {
 	width: 100%;
-	border: 3px solid #009688;
+	border: 1px solid #DBDBDB; /* ORCA Searchbox > match border style */
 	/*border-right: none;*/
 	padding: 5px;
-	height: 20px;
+	padding-left:32px;
+	height: 20px;      /* ORCA match height */
+	line-height: 20px; /* ORCA center text vertically */
 	border-radius: 5px 5px 5px 5px;
 	outline: none;
 	color: #9DBFAF;
-  }
-  
-  .searchTerm:focus{
-	color: #009688;
-  }
-  
-  /*Resize the wrap to see the search bar change!*/
-  .wrap{
+}
+@media (prefers-color-scheme: dark) {  /* ORCA Searchbox > add dark mode support */
+	.searchTerm {border: 1px solid #4A4A51;}
+}
+
+.searchTerm:focus{
+	color: #363636;       /* ORCA Searchbox > use normal text color */
+	border-color:#009688; /* ORCA Searchbox > highlight border color when focused. like on normal UI */
+}
+@media (prefers-color-scheme: dark) {  /* ORCA Searchbox > add dark mode support */
+	.searchTerm:focus{color: #FFFFFF}
+}
+
+#search-icon{ /* ORCA */
+	position:absolute;
+    top: 50%;
+    transform: translateY(-50%);
+	left:8px;
+	margin:0px auto;
+	fill:#7C8282
+}
+@media (prefers-color-scheme: dark) { /* ORCA Searchbox > add dark mode support */
+	#search-icon{fill:#949494}
+}
+
+/*Resize the wrap to see the search bar change!*/
+.wrap{
 	width: 30%;
 	padding-bottom: 5px;
-	padding-left: 42px;
-  }
+	padding-left: 32px; /* ORCA Align with content */
+}

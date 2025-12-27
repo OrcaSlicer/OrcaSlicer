@@ -1,0 +1,91 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic TPU HF @MINIIS",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "1.15"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "filament_type": [
+        "FLEX"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "filament_retraction_length": [
+        "3"
+    ],
+    "filament_retraction_speed": [
+        "40"
+    ],
+    "filament_deretraction_speed": [
+        "16"
+    ],
+    "filament_retraction_minimum_travel": [
+        "6"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "full_fan_speed_layer": [
+        "3"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "enable_overhang_bridge_fan": [
+        "1"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "overhang_fan_speed": [
+        "50"
+    ],
+    "support_material_interface_fan_speed": [
+        "-1"
+    ],
+    "pressure_advance": [
+        "0"
+    ],
+    "compatible_printers": [
+        "Prusa MINIIS 0.4 nozzle",
+        "Prusa MINIIS 0.6 nozzle",
+        "Prusa MINIIS 0.8 nozzle"
+    ]
+}

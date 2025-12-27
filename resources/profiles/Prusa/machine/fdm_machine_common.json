@@ -126,7 +126,6 @@
     "deretraction_speed": [
         "30"
     ],
-    "silent_mode": "0",
     "single_extruder_multi_material": "1",
     "change_filament_gcode": "",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",

@@ -1,55 +1,82 @@
 {
-  "name": "Co Print",
-  "version": "02.02.00.04",
-  "force_update": "0",
-  "description": "CoPrint configurations",
-  "machine_model_list": [
-      {
-          "name": "Co Print ChromaSet",
-          "sub_path": "machine/Co Print ChromaSet.json"
-      }
-  ],
-  "process_list": [
-      {
-    "name": "fdm_process_common",
-    "sub_path": "process/fdm_process_common.json"
-  }, {
-    "name": "fdm_process_coprint_common",
-    "sub_path": "process/fdm_process_coprint_common.json"
-  }, {
-    "name": "0.2mm Standard @Co Print ChromaSet 0.4",
-    "sub_path": "process/0.2mm Standard @Co Print ChromaSet 0.4.json"
-  }, {
-    "name": "0.2mm Fast @Co Print ChromaSet 0.4",
-    "sub_path": "process/0.2mm Fast @Co Print ChromaSet 0.4.json"
-  }
-  ],
-  "filament_list": [
-		{
-			"name": "fdm_filament_common",
-			"sub_path": "filament/fdm_filament_common.json"
-		},
-		{
-			"name": "fdm_filament_pla",
-			"sub_path": "filament/fdm_filament_pla.json"
-		},
-    {
-      "name": "CoPrint Generic PLA",
-      "sub_path": "filament/CoPrint Generic PLA.json"
-    }
-	],
-  "machine_list": [
-      {
-    "name": "fdm_machine_common",
-    "sub_path": "machine/fdm_machine_common.json"
-  },
-  {
-      "name": "Co Print ChromaSet 0.4 nozzle",
-      "sub_path": "machine/Co Print ChromaSet 0.4 nozzle.json"
-  },
-  {
-      "name": "Co Print ChromaSet 0.4 nozzle fast",
-      "sub_path": "machine/Co Print ChromaSet 0.4 nozzle fast.json"
-  }
-      ]
+    "name": "Co Print",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "CoPrint configurations",
+    "machine_model_list": [
+        {
+            "name": "Co Print ChromaSet",
+            "sub_path": "machine/Co Print ChromaSet.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_coprint_common",
+            "sub_path": "process/fdm_process_coprint_common.json"
+        },
+        {
+            "name": "0.2mm Fast @Co Print ChromaSet 0.4",
+            "sub_path": "process/0.2mm Fast @Co Print ChromaSet 0.4.json"
+        },
+        {
+            "name": "0.2mm Standard @Co Print ChromaSet 0.4",
+            "sub_path": "process/0.2mm Standard @Co Print ChromaSet 0.4.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "CoPrint Generic PLA",
+            "sub_path": "filament/CoPrint Generic PLA.json"
+        },
+        {
+            "name": "CoPrint Generic ABS",
+            "sub_path": "filament/CoPrint Generic ABS.json"
+        },
+        {
+            "name": "CoPrint Generic PETG",
+            "sub_path": "filament/CoPrint Generic PETG.json"
+        },
+        {
+            "name": "CoPrint Generic TPU",
+            "sub_path": "filament/CoPrint Generic TPU.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "Co Print ChromaSet 0.4 nozzle",
+            "sub_path": "machine/Co Print ChromaSet 0.4 nozzle.json"
+        },
+        {
+            "name": "Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
+            "sub_path": "machine/Co Print ChromaSet 0.4 nozzle - Ender-3 V3.json"
+        },
+        {
+            "name": "Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
+            "sub_path": "machine/Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus.json"
+        },
+        {
+            "name": "Co Print ChromaSet 0.4 nozzle fast",
+            "sub_path": "machine/Co Print ChromaSet 0.4 nozzle fast.json"
+        },
+        {
+            "name": "fdm_coprint_common",
+            "sub_path": "machine/fdm_coprint_common.json"
+        }
+    ]
 }

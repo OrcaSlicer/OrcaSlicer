@@ -1,0 +1,61 @@
+{
+    "type": "filament",
+    "name": "Flashforge TPU 95A @FF G4",
+    "inherits": "Flashforge Generic TPU",
+    "from": "system",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "45"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "45"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "45"
+    ],
+    "filament_max_volumetric_speed": [
+        "3.6"
+    ],
+    "filament_settings_id": [
+        "Flashforge TPU 95A @FF G4"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 0.4 nozzle"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "overhang_fan_threshold": [
+        "95%"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "support_material_interface_fan_speed": [
+        "-1"
+    ],
+    "textured_plate_temp": [
+        "45"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "45"
+    ]
+}

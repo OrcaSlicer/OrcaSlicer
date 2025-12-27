@@ -1,13 +1,13 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 PLA Silk",
-  "setting_id": "155396375",
-  "inherits": "Snapmaker J1 PLA Silk @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)",
-    "Snapmaker J1 (0.6 nozzle)",
-    "Snapmaker J1 (0.8 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA Silk",
+    "inherits": "Snapmaker J1 PLA Silk @base",
+    "from": "system",
+    "setting_id": "155396375",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)",
+        "Snapmaker J1 (0.6 nozzle)",
+        "Snapmaker J1 (0.8 nozzle)"
+    ]
 }

@@ -1,24 +1,24 @@
 {
-  "type": "filament",
-  "filament_id": "GFU99",
-  "setting_id": "GFSA04",
-  "name": "Other TPU @S1",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_filament_tpu_other @S1",
-  "filament_max_volumetric_speed": [
-      "3"
-  ],
-  "filament_flow_ratio": [
-    "0.94"
-  ],
-  "enable_pressure_advance": [
-    "1"
-  ],
-  "pressure_advance": [
-    "0.13"
-  ],
-  "compatible_printers": [
-    "FlyingBear S1 0.4 nozzle"
-  ]
+    "type": "filament",
+    "name": "Other TPU @S1",
+    "inherits": "fdm_filament_tpu_other @S1",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3"
+    ],
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.13"
+    ],
+    "compatible_printers": [
+        "FlyingBear S1 0.4 nozzle"
+    ]
 }

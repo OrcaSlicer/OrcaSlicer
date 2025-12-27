@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "settings_id": "GM010",
     "name": "BLOCKS RF50 0.6 nozzle",
+    "inherits": "fdm_klipper_common",
     "from": "system",
     "instantiation": "true",
-    "inherits": "fdm_klipper_common",
+    "settings_id": "GM010",
     "printer_model": "BLOCKS RF50",
     "default_print_profile": "0.26mm Standard 0.6 nozzle @Blocks_RF50",
     "max_layer_height": [
@@ -23,31 +23,50 @@
         "0x500"
     ],
     "machine_max_acceleration_x": [
-      "30000",
-      "30000"
+        "20000",
+        "20000"
     ],
     "machine_max_acceleration_y": [
-      "30000",
-      "30000"
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "200",
+        "200"
     ],
     "machine_max_acceleration_extruding": [
-      "30000",
-      "30000"
+        "20000",
+        "20000"
+    ],
+    "machine_max_speed_e": [
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "12"
     ],
     "retraction_length": [
-      "0.8"
+        "1"
     ],
     "retraction_speed": [
-      "30"
+        "60"
     ],
     "deretraction_speed": [
-      "80"
+        "30"
     ],
     "z_hop": [
-      "0.2"
+        "0.4"
     ],
-    "z_hop_types": "Auto Lift",
+    "z_hop_types": [
+        "Slope Lift"
+    ],
     "auxiliary_fan": "1",
+    "support_air_filtration": "1",
     "printable_height": "500",
     "extruder_clearance_radius": "106",
     "extruder_clearance_height_to_rod": "30",
@@ -55,9 +74,15 @@
     "upward_compatible_machine": [
         "BLOCKS RF50"
     ],
-    "machine_start_gcode":[
-      "PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer]",
-      "SET_PRESSURE_ADVANCE ADVANCE=0.046"
+    "machine_start_gcode": [
+        "PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer]",
+        "SET_PRESSURE_ADVANCE ADVANCE=0.046"
     ],
-    "printer_variant": "0.6"
+    "printer_variant": "0.6",
+    "wipe_distance": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "0"
+    ]
 }

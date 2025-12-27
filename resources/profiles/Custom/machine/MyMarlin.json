@@ -8,5 +8,5 @@
     "bed_model": "",
     "bed_texture": "orcaslicer_bed_texture.svg",
     "hotend_model": "",
-    "default_materials": "My Generic ABS;My Generic PLA;My Generic PLA-CF;My Generic PETG;My Generic TPU;My Generic ASA;My Generic PC;My Generic PVA;My Generic PA;My Generic PA-CF"
+    "default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

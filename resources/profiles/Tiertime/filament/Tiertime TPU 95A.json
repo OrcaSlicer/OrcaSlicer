@@ -1,0 +1,29 @@
+{
+    "type": "filament",
+    "name": "Tiertime TPU 95A",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "GFU01",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Tiertime"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "filament_cost": [
+        "41.99"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.4 nozzle",
+        "Tiertime UP400 Pro 0.6 nozzle",
+        "Tiertime UP400 Pro 0.8 nozzle",
+        "Tiertime UP310 Pro 0.4 nozzle"
+    ]
+}

@@ -42,12 +42,12 @@ void CreateFontStyleImagesJob::process(Ctl &ctl)
         // create image description
         StyleManager::StyleImage &image = m_images[index];
         BoundingBox &bounding_box = image.bounding_box;
-        for (ExPolygon &shape : shapes)
+        for (const ExPolygon &shape : shapes)
             bounding_box.merge(BoundingBox(shape.contour.points));
         for (ExPolygon &shape : shapes) shape.translate(-bounding_box.min);
         
         // calculate conversion from FontPoint to screen pixels by size of font
-        double scale = get_text_shape_scale(item.prop, *item.font.font_file);
+        double scale = get_text_shape_scale(item.prop, *item.font.font_file) * m_input.ppm;
         scales[index] = scale;
 
         //double scale = font_prop.size_in_mm * SCALING_FACTOR;

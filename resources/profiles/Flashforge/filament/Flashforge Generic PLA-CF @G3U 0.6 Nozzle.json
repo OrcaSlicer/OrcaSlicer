@@ -1,65 +1,63 @@
 {
-  "type": "filament",
-  "name": "Flashforge Generic PLA-CF @G3U 0.6 Nozzle",
-  "inherits": "Flashforge Generic PLA",
-  "filament_id": "GFB99",
-  "setting_id": "GFSA04",
-  "instantiation": "true",
-  "from": "system",
-  "compatible_printers": [
-    "Flashforge Guider 3 Ultra 0.6 Nozzle"
-  ],
-  "fan_cooling_layer_time": [
-    "50"
-  ],
-  "fan_min_speed": [
-    "70"
-  ],
-  "filament_density": [
-    "1.28"
-  ],
-  "filament_flow_ratio": [
-    "1"
-  ],
-  "filament_max_volumetric_speed": [
-    "20"
-  ],
-  "filament_minimal_purge_on_wipe_tower": [
-    "5"
-  ],
-  "filament_settings_id": [
-    "Flashforge Generic PLA-CF @G3U 0.6 Nozzle"
-  ],
-  "filament_start_gcode": [
-    "; filament start gcode\n"
-  ],
-  "filament_type": [
-    "PLA-CF"
-  ],
-  "filament_unloading_speed": [
-    "40"
-  ],
-  "filament_unloading_speed_start": [
-    "40"
-  ],
-  "is_custom_defined": "0",
-  "nozzle_temperature": [
-    "210"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "215"
-  ],
-  "nozzle_temperature_range_low": [
-    "200"
-  ],
-  "pressure_advance": [
-    "0.044"
-  ],
-  "slow_down_layer_time": [
-    "15"
-  ],
-  "slow_down_min_speed": [
-    "15"
-  ],
-  "version": "1.9.0.2"
+    "type": "filament",
+    "name": "Flashforge Generic PLA-CF @G3U 0.6 Nozzle",
+    "inherits": "Flashforge Generic PLA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Flashforge Guider 3 Ultra 0.6 Nozzle"
+    ],
+    "fan_cooling_layer_time": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "70"
+    ],
+    "filament_density": [
+        "1.28"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "5"
+    ],
+    "filament_settings_id": [
+        "Flashforge Generic PLA-CF @G3U 0.6 Nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_type": [
+        "PLA-CF"
+    ],
+    "filament_unloading_speed": [
+        "40"
+    ],
+    "filament_unloading_speed_start": [
+        "40"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "nozzle_temperature_range_low": [
+        "200"
+    ],
+    "pressure_advance": [
+        "0.044"
+    ],
+    "slow_down_layer_time": [
+        "15"
+    ],
+    "slow_down_min_speed": [
+        "15"
+    ]
 }

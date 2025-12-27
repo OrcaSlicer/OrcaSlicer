@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "Tiertime Generic PP-GF@300HS",
+    "inherits": "fdm_filament_pp",
+    "from": "system",
+    "filament_id": "GFP95_01",
+    "instantiation": "true",
+    "filament_cost": [
+        "59.99"
+    ],
+    "filament_density": [
+        "1.05"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_type": [
+        "PP-GF"
+    ],
+    "compatible_printers": [
+        "Tiertime UP300 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.6 nozzle",
+        "Tiertime UP600 HS 0.8 nozzle"
+    ]
+}

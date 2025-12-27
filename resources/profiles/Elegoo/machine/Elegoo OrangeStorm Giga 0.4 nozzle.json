@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "EOSG04",
     "name": "Elegoo OrangeStorm Giga 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_elegoo_3dp_001_common",
+    "from": "system",
+    "setting_id": "EOSG04",
+    "instantiation": "true",
     "printer_model": "Elegoo OrangeStorm Giga",
     "printer_variant": "0.4",
     "printer_structure": "i3",
@@ -13,10 +13,10 @@
         "0.4"
     ],
     "printable_area": [
-      "0x0",
-      "810x0",
-      "810x805",
-      "0x805"
+        "0x0",
+        "810x0",
+        "810x805",
+        "0x805"
     ],
     "printable_height": [
         "1010"
@@ -46,8 +46,8 @@
         "300"
     ],
     "machine_max_acceleration_travel": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_jerk_e": [
         "3",
@@ -74,8 +74,8 @@
     "fan_speedup_time": "0.5",
     "thumbnails_format": "COLPIC",
     "thumbnails": [
-        "400x400/COLPIC", 
-        "114x114/COLPIC", 
+        "400x400/COLPIC",
+        "114x114/COLPIC",
         "160x160/PNG"
     ],
     "machine_unload_filament_time": "29",

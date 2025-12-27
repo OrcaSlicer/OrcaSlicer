@@ -82,8 +82,8 @@ BonjourDialog::BonjourDialog(wxWindow *parent, Slic3r::PrinterTechnology tech)
 	vsizer->Add(list, 1, wxEXPAND | wxALL, em);
 
 	wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-	button_sizer->Add(new wxButton(this, wxID_OK, "OK"), 0, wxALL, em);
-	button_sizer->Add(new wxButton(this, wxID_CANCEL, "Cancel"), 0, wxALL, em);
+	button_sizer->Add(new wxButton(this, wxID_OK, _L("OK")), 0, wxALL, em);
+	button_sizer->Add(new wxButton(this, wxID_CANCEL, _L("Cancel")), 0, wxALL, em);
 	// ^ Note: The Ok/Cancel labels are translated by wxWidgets
 
 	vsizer->Add(button_sizer, 0, wxALIGN_CENTER);
@@ -260,8 +260,8 @@ IPListDialog::IPListDialog(wxWindow* parent, const wxString& hostname, const std
 	vsizer->Add(m_list, 1, wxEXPAND | wxALL, em);
 
 	wxBoxSizer* button_sizer = new wxBoxSizer(wxHORIZONTAL);
-	button_sizer->Add(new wxButton(this, wxID_OK, "OK"), 0, wxALL, em);
-	button_sizer->Add(new wxButton(this, wxID_CANCEL, "Cancel"), 0, wxALL, em);
+	button_sizer->Add(new wxButton(this, wxID_OK, _L("OK")), 0, wxALL, em);
+	button_sizer->Add(new wxButton(this, wxID_CANCEL, _L("Cancel")), 0, wxALL, em);
 
 	vsizer->Add(button_sizer, 0, wxALIGN_CENTER);
 	SetSizerAndFit(vsizer);

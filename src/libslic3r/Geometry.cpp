@@ -478,6 +478,16 @@ Transform3d Transformation::get_rotation_matrix() const
     return extract_rotation_matrix(m_matrix);
 }
 
+Vec3d Transformation::get_rotation_by_quaternion() const
+{
+    Matrix3d           rotation_matrix = m_matrix.matrix().block(0, 0, 3, 3);
+    Eigen::Quaterniond quaternion(rotation_matrix);
+    quaternion.normalize();
+    Vec3d temp_rotation = quaternion.matrix().eulerAngles(2, 1, 0);
+    std::swap(temp_rotation(0), temp_rotation(2));
+    return temp_rotation;
+}
+
 void Transformation::set_rotation(const Vec3d& rotation)
 {
     const Vec3d offset = get_offset();
@@ -693,10 +703,10 @@ Transformation Transformation::volume_to_bed_transformation(const Transformation
         pts(7, 0) = bbox.max.x(); pts(7, 1) = bbox.max.y(); pts(7, 2) = bbox.max.z();
 
         // Corners of the bounding box transformed into the modifier mesh coordinate space, with inverse rotation applied to the modifier.
-        auto qs = pts *
+        auto qs = (pts *
             (instance_rotation_trafo *
             Eigen::Scaling(instance_transformation.get_scaling_factor().cwiseProduct(instance_transformation.get_mirror())) *
-            volume_rotation_trafo).inverse().transpose();
+            volume_rotation_trafo).inverse().transpose()).eval();
         // Fill in scaling based on least squares fitting of the bounding box corners.
         Vec3d scale;
         for (int i = 0; i < 3; ++i)
@@ -767,7 +777,7 @@ double rotation_diff_z(const Vec3d &rot_xyz_from, const Vec3d &rot_xyz_to)
 
 TransformationSVD::TransformationSVD(const Transform3d& trafo)
 {
-    const auto &m0 = trafo.matrix().block<3, 3>(0, 0);
+    const Matrix3d m0 = trafo.matrix().block<3, 3>(0, 0);
     mirror = m0.determinant() < 0.0;
 
     Matrix3d m;
@@ -832,11 +842,22 @@ TransformationSVD::TransformationSVD(const Transform3d& trafo)
     qua_world.normalize();
     Transform3d cur_matrix_world;
     temp_world.set_matrix(cur_matrix_world.fromPositionOrientationScale(pt, qua_world, Vec3d(1., 1., 1.)));
-    auto temp_xyz = temp_world.get_matrix().inverse() * xyz;
-    auto new_pos  = temp_world.get_matrix() * (rotateMat4.get_matrix() * temp_xyz);
+    Vec3d temp_xyz = temp_world.get_matrix().inverse() * xyz;
+    Vec3d new_pos  = temp_world.get_matrix() * (rotateMat4.get_matrix() * temp_xyz);
     curMat.set_offset(new_pos);
 
     return curMat;
+}
+
+Transformation generate_transform(const Vec3d& x_dir, const Vec3d& y_dir, const Vec3d& z_dir, const Vec3d& origin) {
+     Matrix3d m;
+     m.col(0) = x_dir.normalized();
+     m.col(1) = y_dir.normalized();
+     m.col(2) = z_dir.normalized();
+     Transform3d    mm(m);
+     Transformation tran(mm);
+     tran.set_offset(origin);
+     return tran;
 }
 
 bool is_point_inside_polygon_corner(const Point &a, const Point &b, const Point &c, const Point &query_point) {

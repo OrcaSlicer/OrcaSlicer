@@ -1,0 +1,27 @@
+{
+    "type": "filament",
+    "name": "Bambu PA-CF @System",
+    "inherits": "Bambu PA-CF @base",
+    "from": "system",
+    "setting_id": "OGFSN00",
+    "instantiation": "true",
+    "nozzle_temperature_initial_layer": [
+        "290"
+    ],
+    "nozzle_temperature": [
+        "290"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "full_fan_speed_layer": [
+        "2"
+    ],
+    "compatible_printers": []
+}

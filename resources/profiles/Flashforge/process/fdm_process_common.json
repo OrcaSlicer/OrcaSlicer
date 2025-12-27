@@ -17,7 +17,7 @@
     "line_width": "0.45",
     "infill_direction": "45",
     "sparse_infill_density": "15%",
-    "sparse_infill_pattern": "grid",
+    "sparse_infill_pattern": "crosshatch",
     "initial_layer_line_width": "0.42",
     "initial_layer_print_height": "0.2",
     "initial_layer_speed": "20",

@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.12mm Fine @CoLiDo X16",
+    "inherits": "fdm_process_colidox16_common",
+    "from": "system",
+    "setting_id": "GP005",
+    "instantiation": "true",
+    "bottom_shell_layers": "5",
+    "layer_height": "0.12",
+    "top_shell_layers": "6"
+}

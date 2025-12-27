@@ -228,7 +228,7 @@ FileArchiveDialog::FileArchiveDialog(wxWindow* parent_window, mz_zip_archive* ar
                 path = boost::filesystem::path(extra.substr(0, extra_size));
             } else {
                 wxString wname = boost::nowide::widen(stat.m_filename);
-                std::string name = boost::nowide::narrow(wname);
+                std::string name = into_u8(wname);
                 path = boost::filesystem::path(name);
             }
             assert(!path.empty());
@@ -378,62 +378,33 @@ wxBoxSizer* FileArchiveDialog::create_btn_sizer()
 {
     auto btn_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    auto apply_highlighted_btn_colors = [](Button* btn) {
-        btn->SetBackgroundColor(StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                                           std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                                           std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal)));
-
-        btn->SetBorderColor(StateColor(std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal)));
-
-        btn->SetTextColor(StateColor(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Normal)));
-    };
-
-    auto apply_std_btn_colors = [](Button* btn) {
-        btn->SetBackgroundColor(StateColor(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-                                           std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                                           std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal)));
-
-        btn->SetBorderColor(StateColor(std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal)));
-
-        btn->SetTextColor(StateColor(std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Normal)));
-    };
-
-    auto style_btn = [this, apply_highlighted_btn_colors, apply_std_btn_colors](Button* btn, bool highlight) {
-        btn->SetMinSize(BTN_SIZE);
-        btn->SetCornerRadius(FromDIP(12));
-        if (highlight)
-            apply_highlighted_btn_colors(btn);
-        else
-            apply_std_btn_colors(btn);
-    };
-
     Button* all_btn = new Button(this, _L("All"));
-    style_btn(all_btn, false);
+    all_btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
     all_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) { on_all_button(); });
     btn_sizer->Add(all_btn, 0, wxALIGN_CENTER_VERTICAL);
     m_button_list.push_back(all_btn);
 
     Button* none_btn = new Button(this, _L("None"));
-    style_btn(none_btn, false);
+    none_btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
     none_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) { on_none_button(); });
-    btn_sizer->Add(none_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, BTN_GAP);
+    btn_sizer->Add(none_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::WindowButtonGap()));
     m_button_list.push_back(none_btn);
 
     btn_sizer->AddStretchSpacer();
 
     Button* open_btn = new Button(this, _L("Open"));
-    style_btn(open_btn, true);
+    open_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     open_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) { on_open_button(); });
     open_btn->SetFocus();
     open_btn->SetId(wxID_OK);
-    btn_sizer->Add(open_btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, BTN_GAP);
+    btn_sizer->Add(open_btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
     m_button_list.push_back(open_btn);
 
     Button* cancel_btn = new Button(this, _L("Cancel"));
-    style_btn(cancel_btn, false);
+    cancel_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     cancel_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) { this->EndModal(wxID_CANCEL); });
     cancel_btn->SetId(wxID_CANCEL);
-    btn_sizer->Add(cancel_btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, BTN_GAP);
+    btn_sizer->Add(cancel_btn, 0, wxALIGN_CENTER_VERTICAL);
     m_button_list.push_back(cancel_btn);
 
     return btn_sizer;

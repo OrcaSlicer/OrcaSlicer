@@ -1,0 +1,278 @@
+{
+    "type": "filament",
+    "name": "YUMI PETG",
+    "inherits": "Yumi Generic PETG",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Yumi"
+    ],
+    "filament_settings_id": [
+        "YUMI PETG"
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "activate_air_filtration": [
+        "0"
+    ],
+    "activate_chamber_temp_control": [
+        "0"
+    ],
+    "additional_cooling_fan_speed": [
+        "70"
+    ],
+    "bed_type": [
+        "Cool Plate"
+    ],
+    "chamber_temperature": [
+        "0"
+    ],
+    "close_fan_the_first_x_layers": [
+        "5"
+    ],
+    "compatible_printers_condition": "",
+    "compatible_prints": [],
+    "compatible_prints_condition": "",
+    "complete_print_exhaust_fan_speed": [
+        "80"
+    ],
+    "cool_plate_temp": [
+        "35"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "35"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "during_print_exhaust_fan_speed": [
+        "60"
+    ],
+    "enable_overhang_bridge_fan": [
+        "1"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "0"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "0"
+    ],
+    "fan_cooling_layer_time": [
+        "20"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "15"
+    ],
+    "filament_cooling_final_speed": [
+        "0"
+    ],
+    "filament_cooling_initial_speed": [
+        "0"
+    ],
+    "filament_cooling_moves": [
+        "0"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "filament_density": [
+        "0"
+    ],
+    "filament_deretraction_speed": [
+        "80"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ],
+    "filament_is_support": [
+        "0"
+    ],
+    "filament_load_time": [
+        "42"
+    ],
+    "filament_loading_speed": [
+        "0"
+    ],
+    "filament_loading_speed_start": [
+        "0"
+    ],
+    "filament_long_retractions_when_cut": [
+        "nil"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_multitool_ramming": [
+        "0"
+    ],
+    "filament_multitool_ramming_flow": [
+        "10"
+    ],
+    "filament_multitool_ramming_volume": [
+        "10"
+    ],
+    "filament_notes": [
+        ""
+    ],
+    "filament_ramming_parameters": [
+        "120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
+    ],
+    "filament_retract_before_wipe": [
+        "80%"
+    ],
+    "filament_retract_lift_above": [
+        "nil"
+    ],
+    "filament_retract_lift_below": [
+        "nil"
+    ],
+    "filament_retract_lift_enforce": [
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
+        "nil"
+    ],
+    "filament_retract_when_changing_layer": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "2"
+    ],
+    "filament_retraction_minimum_travel": [
+        "1"
+    ],
+    "filament_retraction_speed": [
+        "80"
+    ],
+    "filament_shrink": [
+        "100%"
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_toolchange_delay": [
+        "0"
+    ],
+    "filament_unload_time": [
+        "0"
+    ],
+    "filament_unloading_speed": [
+        "0"
+    ],
+    "filament_unloading_speed_start": [
+        "0"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "nil"
+    ],
+    "filament_z_hop": [
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "nil"
+    ],
+    "full_fan_speed_layer": [
+        "6"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "230"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "pressure_advance": [
+        "0.05"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "required_nozzle_HRC": [
+        "0"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "25"
+    ],
+    "support_material_interface_fan_speed": [
+        "-1"
+    ],
+    "temperature_vitrification": [
+        "60"
+    ],
+    "textured_plate_temp": [
+        "45"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "45"
+    ],
+    "compatible_printers": [
+        "D12 230 PRO M2 DIRECT 0.4 nozzle",
+        "D12 230 PRO SMARTPAD DIRECT 0.4 nozzle",
+        "D12 300 PRO M2 DIRECT 0.4 nozzle",
+        "D12 300 PRO SMARTPAD DIRECT 0.4 nozzle",
+        "D12 500 PRO M2 DIRECT 0.4 nozzle",
+        "D12 500 PRO SMARTPAD DIRECT 0.4 nozzle",
+        "D12 230 PRO M2 MONO DUAL 0.4 nozzle",
+        "D12 230 PRO M2 MONO DUAL PoopTool 0.4 nozzle",
+        "D12 300 PRO M2 MONO DUAL PoopTool 0.4 nozzle",
+        "D12 500 PRO M2 MONO DUAL PoopTool 0.4 nozzle",
+        "D12 230 PRO SMARTPAD MONO DUAL 0.4 nozzle",
+        "D12 230 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
+        "D12 300 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
+        "D12 500 PRO SMARTPAD MONO DUAL PoopTool 0.4 nozzle",
+        "D12 300 PRO M2 MONO DUAL 0.4 nozzle",
+        "D12 300 PRO SMARTPAD MONO DUAL 0.4 nozzle",
+        "D12 500 PRO M2 MONO DUAL 0.4 nozzle",
+        "D12 500 PRO SMARTPAD MONO DUAL 0.4 nozzle"
+    ]
+}

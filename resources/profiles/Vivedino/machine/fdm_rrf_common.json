@@ -1,141 +1,141 @@
 {
-  "type": "machine",
-  "name": "fdm_rrf_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_machine_common",
-  "gcode_flavor": "reprapfirmware",
-  "machine_max_acceleration_e": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_extruding": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_retracting": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_travel": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_x": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_y": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_z": [
-    "500",
-    "200"
-  ],
-  "machine_max_speed_e": [
-    "25",
-    "25"
-  ],
-  "machine_max_speed_x": [
-    "500",
-    "200"
-  ],
-  "machine_max_speed_y": [
-    "500",
-    "200"
-  ],
-  "machine_max_speed_z": [
-    "12",
-    "12"
-  ],
-  "machine_max_jerk_e": [
-    "2.5",
-    "2.5"
-  ],
-  "machine_max_jerk_x": [
-    "9",
-    "9"
-  ],
-  "machine_max_jerk_y": [
-    "9",
-    "9"
-  ],
-  "machine_max_jerk_z": [
-    "0.2",
-    "0.4"
-  ],
-  "machine_min_extruding_rate": [
-    "0",
-    "0"
-  ],
-  "machine_min_travel_rate": [
-    "0",
-    "0"
-  ],
-  "max_layer_height": [
-    "0.32"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "printable_height": "330",
-  "extruder_clearance_radius": "65",
-  "extruder_clearance_height_to_rod": "36",
-  "extruder_clearance_height_to_lid": "140",
-  "printer_settings_id": "",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "retraction_minimum_travel": [
-    "1"
-  ],
-  "retract_before_wipe": [
-    "70%"
-  ],
-  "retract_when_changing_layer": [
-    "1"
-  ],
-  "retraction_length": [
-    "0.8"
-  ],
-  "retract_length_toolchange": [
-    "2"
-  ],
-  "z_hop": [
-    "0.4"
-  ],
-  "retract_restart_extra": [
-    "0"
-  ],
-  "retract_restart_extra_toolchange": [
-    "0"
-  ],
-  "retraction_speed": [
-    "30"
-  ],
-  "deretraction_speed": [
-    "30"
-  ],
-  "z_hop_types": "Normal Lift",
-  "silent_mode": "0",
-  "single_extruder_multi_material": "1",
-  "change_filament_gcode": "",
-  "machine_pause_gcode": "PAUSE\n",
-  "wipe": [
-    "1"
-  ],
-  "default_filament_profile": [
-    "Troodon Generic ABS"
-  ],
-  "default_print_profile": "0.20mm Standard @Troodon2",
-  "bed_exclude_area": [
-    "0x0"
-  ],
-  "machine_start_gcode": "M104 S0\nM190 S0\nM98 P\"start_print.g\" A[first_layer_bed_temperature] B\"[filament_type]\" C[first_layer_temperature] D[nozzle_diameter] E{first_layer_print_min[0]} F{first_layer_print_max[0]} H{first_layer_print_min[1]} J{first_layer_print_max[1]}",
-  "machine_end_gcode": "M0",
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
-  "scan_first_layer": "0",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0"
+    "type": "machine",
+    "name": "fdm_rrf_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "reprapfirmware",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "25",
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "0.2",
+        "0.4"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printable_height": "330",
+    "extruder_clearance_radius": "65",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_height_to_lid": "140",
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "z_hop_types": "Normal Lift",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "PAUSE\n",
+    "wipe": [
+        "1"
+    ],
+    "default_filament_profile": [
+        "Generic ABS @System"
+    ],
+    "default_print_profile": "0.20mm Standard @Troodon2",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "machine_start_gcode": "M104 S0\nM190 S0\nM98 P\"start_print.g\" A[first_layer_bed_temperature] B\"[filament_type]\" C[first_layer_temperature] D[nozzle_diameter] E{first_layer_print_min[0]} F{first_layer_print_max[0]} H{first_layer_print_min[1]} J{first_layer_print_max[1]}",
+    "machine_end_gcode": "M0",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "scan_first_layer": "0",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0"
 }

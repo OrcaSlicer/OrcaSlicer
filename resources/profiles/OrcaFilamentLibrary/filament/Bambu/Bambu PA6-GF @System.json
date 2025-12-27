@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Bambu PA6-GF @System",
+    "inherits": "Bambu PA6-GF @base",
+    "from": "system",
+    "setting_id": "OGFSN08_00",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_max_volumetric_speed": [
+        "10.5"
+    ],
+    "nozzle_temperature": [
+        "265"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "265"
+    ],
+    "compatible_printers": []
+}

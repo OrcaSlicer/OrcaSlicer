@@ -1,0 +1,86 @@
+{
+    "type": "filament",
+    "name": "Generic PLA @Flashforge AD4",
+    "inherits": "Flashforge Generic PLA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1.07"
+    ],
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "support_material_interface_fan_speed": [
+        "100"
+    ],
+    "additional_cooling_fan_speed": [
+        "100"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material: PLA\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode\n"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.8"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_range_high": [
+        "230"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "compatible_printers": [
+        "Flashforge Adventurer 4 Series 0.3 Nozzle",
+        "Flashforge Adventurer 4 Series 0.4 Nozzle",
+        "Flashforge Adventurer 4 Series 0.6 Nozzle"
+    ],
+    "close_fan_the_first_x_layers": [
+        "2"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_retract_when_changing_layer": [
+        "0"
+    ],
+    "filament_retraction_length": [
+        "5"
+    ],
+    "filament_wipe": [
+        "0"
+    ],
+    "filament_vendor": [
+        "Generic"
+    ]
+}

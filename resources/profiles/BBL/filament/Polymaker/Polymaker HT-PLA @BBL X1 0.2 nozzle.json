@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Polymaker HT-PLA @BBL X1 0.2 nozzle",
+    "inherits": "Polymaker HT-PLA @base",
+    "from": "system",
+    "setting_id": "GFSPM017_07",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab X1 0.2 nozzle"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.6"
+    ]
+}

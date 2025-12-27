@@ -26,6 +26,7 @@
 #include "Obico.hpp"
 #include "Flashforge.hpp"
 #include "SimplyPrint.hpp"
+#include "ElegooLink.hpp"
 
 namespace fs = boost::filesystem;
 using boost::optional;
@@ -65,6 +66,7 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
             case htObico:     return new Obico(config);
             case htFlashforge: return new Flashforge(config);
             case htSimplyPrint: return new SimplyPrint(config);
+            case htElegooLink: return new ElegooLink(config);
             default:          return nullptr;
         }
     } else {
@@ -78,7 +80,16 @@ wxString PrintHost::format_error(const std::string &body, const std::string &err
         auto wxbody = wxString::FromUTF8(body.data());
         return wxString::Format("HTTP %u: %s", status, wxbody);
     } else {
-        return wxString::FromUTF8(error.data());
+        if (error.find("curl:Timeout was reached") != std::string::npos) {
+            return _L("Connection timed out. Please check if the printer and computer network are functioning properly, and confirm that they are on the same network.");
+        }else if(error.find("curl:Couldn't resolve host name")!= std::string::npos){
+            return _L("The Hostname/IP/URL could not be parsed, please check it and try again.");
+        } else if (error.find("Connection was reset") != std::string::npos){
+            return _L("File/data transfer interrupted. Please check the printer and network, then try it again.");
+        }
+        else {
+            return wxString::FromUTF8(error.data());
+        }
     }
 }
 

@@ -1,7 +1,7 @@
 #ifndef slic3r_GUI_CalibrationWizard_hpp_
 #define slic3r_GUI_CalibrationWizard_hpp_
 
-#include "../slic3r/Utils/CalibUtils.hpp"
+#include "slic3r/Utils/CalibUtils.hpp"
 
 #include "DeviceManager.hpp"
 #include "CalibrationWizardPage.hpp"
@@ -19,7 +19,7 @@ public:
     CalibrationWizardPageStep(CalibrationWizardPage* data) {
         page = data;
     }
-    
+
     CalibrationWizardPageStep* prev { nullptr };
     CalibrationWizardPageStep* next { nullptr };
     CalibrationWizardPage*     page { nullptr };
@@ -28,6 +28,12 @@ public:
         this->next = step;
         step->prev = this;
     }
+};
+
+struct ConfigIndexValue
+{
+    float value{0};
+    int   index{0};
 };
 
 class CalibrationWizard : public wxPanel {
@@ -57,12 +63,13 @@ public:
     }
 
     virtual void set_cali_method(CalibrationMethod method);
-    
+
     CalibMode get_calibration_mode() { return m_mode; }
 
     bool save_preset(const std::string &old_preset_name, const std::string &new_preset_name, const std::map<std::string, ConfigOption *> &key_values, wxString& message);
+    bool save_preset_with_index(const std::string &old_preset_name, const std::string &new_preset_name, const std::map<std::string, ConfigIndexValue> &key_values, wxString &message);
 
-    virtual void cache_preset_info(MachineObject* obj, float nozzle_dia);
+    virtual void cache_preset_info(MachineObject *obj, float nozzle_dia, BedType bed_type);
     virtual void recover_preset_info(MachineObject *obj);
     virtual void back_preset_info(MachineObject *obj, bool cali_finish, bool back_cali_flag = true);
 
@@ -89,7 +96,7 @@ protected:
     CalibrationWizardPageStep* preset_step { nullptr };
     CalibrationWizardPageStep* cali_step { nullptr };
     CalibrationWizardPageStep* save_step { nullptr };
-    
+
     CalibrationWizardPageStep* cali_coarse_step { nullptr };
     CalibrationWizardPageStep* coarse_save_step { nullptr };
     CalibrationWizardPageStep* cali_fine_step { nullptr };
@@ -121,6 +128,8 @@ protected:
 
     void on_device_connected(MachineObject* obj) override;
 
+    bool can_save_cali_result(const std::vector<PACalibResult> &new_pa_cali_results);
+
     bool                       m_show_result_dialog = false;
     std::vector<PACalibResult> m_calib_results_history;
     int                        cali_version = -1;
@@ -149,6 +158,8 @@ protected:
     void update(MachineObject* obj) override;
 
     void on_device_connected(MachineObject* obj) override;
+
+    std::map<std::string, ConfigIndexValue> generate_index_key_value(MachineObject *obj, const std::string &key, float value);
 };
 
 class MaxVolumetricSpeedWizard : public CalibrationWizard {

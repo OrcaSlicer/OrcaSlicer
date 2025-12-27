@@ -1,50 +1,50 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker Dual PLA Metal @base",
-  "filament_id": "2029994346",
-  "inherits": "fdm_filament_pla",
-  "filament_cost": [
-    "90"
-  ],
-  "filament_density": [
-    "1.25"
-  ],
-  "filament_max_volumetric_speed": [
-    "16"
-  ],
-  "filament_loading_speed_start": [
-    "35"
-  ],
-  "filament_loading_speed": [
-    "35"
-  ],
-  "filament_unloading_speed_start": [
-    "35"
-  ],
-  "filament_unloading_speed": [
-    "35"
-  ],
-  "filament_load_time": [
-    "2"
-  ],
-  "filament_unload_time": [
-    "2"
-  ],
-  "filament_cooling_moves": [
-    "2"
-  ],
-  "filament_cooling_initial_speed": [
-    "35"
-  ],
-  "filament_cooling_final_speed": [
-    "60"
-  ],
-  "nozzle_temperature": [
-    "220"
-  ],
-  "default_filament_colour": [
-    "#767A7E"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual PLA Metal @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "2029994346",
+    "instantiation": "false",
+    "filament_cost": [
+        "90"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "default_filament_colour": [
+        ""
+    ]
 }

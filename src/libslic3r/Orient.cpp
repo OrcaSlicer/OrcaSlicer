@@ -132,7 +132,7 @@ public:
         BOOST_LOG_TRIVIAL(info) << CostItems::field_names();
         std::cout << CostItems::field_names() << std::endl;
         for (int i = 0; i < orientations.size();i++) {
-            auto orientation = -orientations[i];
+            Vec3f orientation = -orientations[i];
 
             project_vertices(orientation);
 
@@ -382,9 +382,9 @@ public:
 
         float total_min_z = z_projected.minCoeff();
         // filter bottom area
-        auto bottom_condition = z_max.array() < total_min_z + this->params.FIRST_LAY_H - EPSILON;
-        auto bottom_condition_hull = z_max_hull.array() < total_min_z + this->params.FIRST_LAY_H - EPSILON;
-        auto bottom_condition_2nd = z_max.array() < total_min_z + this->params.FIRST_LAY_H/2.f - EPSILON;
+        auto bottom_condition = (z_max.array() < total_min_z + this->params.FIRST_LAY_H - EPSILON).eval();
+        auto bottom_condition_hull = (z_max_hull.array() < total_min_z + this->params.FIRST_LAY_H - EPSILON).eval();
+        auto bottom_condition_2nd  = (z_max.array() < total_min_z + this->params.FIRST_LAY_H / 2.f - EPSILON).eval();
         //The first layer is sliced on half of the first layer height. 
         //The bottom area is measured by accumulating first layer area with the facets area below first layer height.
         //By combining these two factors, we can avoid the wrong orientation of large planar faces while not influence the
@@ -397,8 +397,8 @@ public:
         {
             normal_projection(i) = normals.row(i).dot(orientation);
         }
-        auto areas_appearance = areas.cwiseProduct((is_apperance * params.APPERANCE_FACE_SUPP + Eigen::VectorXf::Ones(is_apperance.rows(), is_apperance.cols())));
-        auto overhang_areas = ((normal_projection.array() < params.ASCENT) * (!bottom_condition_2nd)).select(areas_appearance, 0);
+        auto areas_appearance = areas.cwiseProduct((is_apperance * params.APPERANCE_FACE_SUPP + Eigen::VectorXf::Ones(is_apperance.rows(), is_apperance.cols()))).eval();
+        auto overhang_areas = ((normal_projection.array() < params.ASCENT) * (!bottom_condition_2nd)).select(areas_appearance, 0).eval();
         Eigen::MatrixXf inner = normal_projection.array() - params.ASCENT;
         inner = inner.cwiseMin(0).cwiseAbs();
         if (min_volume)
@@ -437,7 +437,7 @@ public:
         costs.bottom_hull = (bottom_condition_hull).select(areas_hull, 0).sum();
 
         // low angle faces
-        auto normal_projection_abs = normal_projection.cwiseAbs();
+        auto normal_projection_abs = normal_projection.cwiseAbs().eval();
         Eigen::MatrixXf laf_areas = ((normal_projection_abs.array() < params.LAF_MAX) * (normal_projection_abs.array() > params.LAF_MIN) * (z_max.array() > total_min_z + params.FIRST_LAY_H)).select(areas, 0);
         costs.area_laf = laf_areas.sum();
 

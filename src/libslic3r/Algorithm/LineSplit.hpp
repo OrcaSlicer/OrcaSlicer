@@ -1,7 +1,6 @@
 #ifndef SRC_LIBSLIC3R_ALGORITHM_LINE_SPLIT_HPP_
 #define SRC_LIBSLIC3R_ALGORITHM_LINE_SPLIT_HPP_
 
-#include "clipper2/clipper.core.h"
 #include "ClipperZUtils.hpp"
 
 namespace Slic3r {

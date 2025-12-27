@@ -1,0 +1,24 @@
+name: Assign Issue
+
+on:
+  schedule:
+    - cron: 0 0 * * *
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  assign:
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign the user or unassign stale assignments
+        uses: takanome-dev/assign-issue-action@v2.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          maintainers: 'noisyfox,softfever'
+          days_until_unassign: 30
+          block_assignment: false
+          reminder_days: 7
+          max_assignments: 12

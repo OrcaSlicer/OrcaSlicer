@@ -1,25 +1,24 @@
 {
-  "type": "process",
-  "name": "0.24mm Draft @Flashforge AD5M 0.4 Nozzle",
-  "inherits": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "layer_height": "0.24",
-  "infill_wall_overlap": "25%",
-  "initial_layer_print_height": "0.3",
-  "is_custom_defined": "0",
-  "print_settings_id": "0.24mm Draft @Flashforge AD5M 0.4 Nozzle",
-  "support_bottom_interface_spacing": "0.3",
-  "support_bottom_z_distance": "0.15",
-  "support_interface_bottom_layers": "0",
-  "support_interface_spacing": "0.3",
-  "support_interface_speed": "40",
-  "support_speed": "100",
-  "support_top_z_distance": "0.15",
-  "version": "2.0.2.0",
-  "compatible_printers": [
-    "Flashforge Adventurer 5M 0.4 Nozzle"
-  ],
-  "filename_format": "{input_filename_base}.gcode",
-  "post_process": ""
+    "type": "process",
+    "name": "0.24mm Draft @Flashforge AD5M 0.4 Nozzle",
+    "inherits": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "layer_height": "0.24",
+    "infill_wall_overlap": "25%",
+    "initial_layer_print_height": "0.3",
+    "print_settings_id": "0.24mm Draft @Flashforge AD5M 0.4 Nozzle",
+    "support_bottom_interface_spacing": "0.3",
+    "support_bottom_z_distance": "0.15",
+    "support_interface_bottom_layers": "0",
+    "support_interface_spacing": "0.3",
+    "support_interface_speed": "40",
+    "support_speed": "100",
+    "support_top_z_distance": "0.15",
+    "compatible_printers": [
+        "Flashforge Adventurer 5M 0.4 Nozzle"
+    ],
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
+    "post_process": "",
+    "skirt_loops": "0"
 }

@@ -1,0 +1,22 @@
+{
+    "type": "filament",
+    "name": "Elegoo ASA @EC",
+    "inherits": "Elegoo ASA @base",
+    "from": "system",
+    "setting_id": "EASAEC",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.024"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "compatible_printers": [
+        "Elegoo Centauri 0.4 nozzle",
+        "Elegoo Centauri 0.6 nozzle",
+        "Elegoo Centauri 0.8 nozzle"
+    ]
+}

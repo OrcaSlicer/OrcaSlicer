@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "Z-Bolt ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSL200",
+    "filament_id": "GFL200",
+    "instantiation": "false",
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "fan_min_speed": [
+        "25"
+    ],
+    "hot_plate_temp": [
+        "110"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "textured_plate_temp": [
+        "110"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "110"
+    ]
+}

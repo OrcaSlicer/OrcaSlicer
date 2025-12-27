@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.20mm Standard @Vzbot 0.5nozzle",
-    "from": "system",
     "inherits": "fdm_process_Vzbot_common_0.5_nozzle",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "layer_height": "0.2",
     "bottom_shell_layers": "3",

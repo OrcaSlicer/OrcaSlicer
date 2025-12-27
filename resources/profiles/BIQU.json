@@ -1,21 +1,21 @@
 {
     "name": "BIQU",
-    "version": "02.02.00.04",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "BIQU configurations",
     "machine_model_list": [
-		{
+        {
             "name": "BIQU B1",
             "sub_path": "machine/BIQU B1.json"
-		},
-		{
+        },
+        {
             "name": "BIQU BX",
             "sub_path": "machine/BIQU BX.json"
-		},
-		{
+        },
+        {
             "name": "BIQU Hurakan",
             "sub_path": "machine/BIQU Hurakan.json"
-		}
+        }
     ],
     "process_list": [
         {
@@ -26,45 +26,45 @@
             "name": "fdm_process_biqu_common",
             "sub_path": "process/fdm_process_biqu_common.json"
         },
-		{
-            "name": "fdm_process_hurakan_common",
-            "sub_path": "process/fdm_process_hurakan_common.json"
+        {
+            "name": "0.12mm Fine @BIQU B1 (0.4 nozzle)",
+            "sub_path": "process/0.12mm Fine @BIQU B1 (0.4 nozzle).json"
         },
         {
             "name": "0.12mm Fine @BIQU BX (0.4 nozzle)",
             "sub_path": "process/0.12mm Fine @BIQU BX (0.4 nozzle).json"
         },
         {
-            "name": "0.15mm Optimal @BIQU BX (0.4 nozzle)",
-            "sub_path": "process/0.15mm Optimal @BIQU BX (0.4 nozzle).json"
-        },
-        {
-            "name": "0.20mm Standard @BIQU BX (0.4 nozzle)",
-            "sub_path": "process/0.20mm Standard @BIQU BX (0.4 nozzle).json"
-        },
-        {
-            "name": "0.24mm Draft @BIQU BX (0.4 nozzle)",
-            "sub_path": "process/0.24mm Draft @BIQU BX (0.4 nozzle).json"
-        },
-		{
-            "name": "0.12mm Fine @BIQU B1 (0.4 nozzle)",
-            "sub_path": "process/0.12mm Fine @BIQU B1 (0.4 nozzle).json"
+            "name": "0.12mm Fine @BIQU Hurakan (0.4 nozzle)",
+            "sub_path": "process/0.12mm Fine @BIQU Hurakan (0.4 nozzle).json"
         },
         {
             "name": "0.15mm Optimal @BIQU B1 (0.4 nozzle)",
             "sub_path": "process/0.15mm Optimal @BIQU B1 (0.4 nozzle).json"
         },
         {
+            "name": "0.15mm Optimal @BIQU BX (0.4 nozzle)",
+            "sub_path": "process/0.15mm Optimal @BIQU BX (0.4 nozzle).json"
+        },
+        {
             "name": "0.20mm Standard @BIQU B1 (0.4 nozzle)",
             "sub_path": "process/0.20mm Standard @BIQU B1 (0.4 nozzle).json"
+        },
+        {
+            "name": "0.20mm Standard @BIQU BX (0.4 nozzle)",
+            "sub_path": "process/0.20mm Standard @BIQU BX (0.4 nozzle).json"
         },
         {
             "name": "0.24mm Draft @BIQU B1 (0.4 nozzle)",
             "sub_path": "process/0.24mm Draft @BIQU B1 (0.4 nozzle).json"
         },
-		{
-            "name": "0.12mm Fine @BIQU Hurakan (0.4 nozzle)",
-            "sub_path": "process/0.12mm Fine @BIQU Hurakan (0.4 nozzle).json"
+        {
+            "name": "0.24mm Draft @BIQU BX (0.4 nozzle)",
+            "sub_path": "process/0.24mm Draft @BIQU BX (0.4 nozzle).json"
+        },
+        {
+            "name": "fdm_process_hurakan_common",
+            "sub_path": "process/fdm_process_hurakan_common.json"
         },
         {
             "name": "0.15mm Optimal @BIQU Hurakan (0.4 nozzle)",
@@ -79,92 +79,7 @@
             "sub_path": "process/0.24mm Draft @BIQU Hurakan (0.4 nozzle).json"
         }
     ],
-    "filament_list": [
-        {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-		{
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-		        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-		{
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "BIQU Generic ABS",
-            "sub_path": "filament/BIQU Generic ABS.json"
-        },
-        {
-            "name": "BIQU Generic ASA",
-            "sub_path": "filament/BIQU Generic ASA.json"
-        },
-        {
-            "name": "BIQU Generic PA",
-            "sub_path": "filament/BIQU Generic PA.json"
-        },
-		{
-            "name": "BIQU Generic PA-CF",
-            "sub_path": "filament/BIQU Generic PA-CF.json"
-        },
-        {
-            "name": "BIQU Generic PC",
-            "sub_path": "filament/BIQU Generic PC.json"
-        },
-        {
-            "name": "BIQU Generic PETG",
-            "sub_path": "filament/BIQU Generic PETG.json"
-        },
-		{
-            "name": "BIQU Generic PETG-CF",
-            "sub_path": "filament/BIQU Generic PETG-CF.json"
-        },
-        {
-            "name": "BIQU Generic PLA Silk",
-            "sub_path": "filament/BIQU Generic PLA Silk.json"
-        },
-        {
-            "name": "BIQU Generic PLA",
-            "sub_path": "filament/BIQU Generic PLA.json"
-        },
-		{
-            "name": "BIQU Generic PLA-CF",
-            "sub_path": "filament/BIQU Generic PLA-CF.json"
-        },
-        {
-            "name": "BIQU Generic PVA",
-            "sub_path": "filament/BIQU Generic PVA.json"
-        },
-        {
-            "name": "BIQU Generic TPU",
-            "sub_path": "filament/BIQU Generic TPU.json"
-        }
-    ],
+    "filament_list": [],
     "machine_list": [
         {
             "name": "fdm_machine_common",
@@ -174,19 +89,19 @@
             "name": "fdm_biqu_common",
             "sub_path": "machine/fdm_biqu_common.json"
         },
-		{
+        {
             "name": "fdm_klipper_common",
             "sub_path": "machine/fdm_klipper_common.json"
         },
-		{
-            "name": "BIQU BX (0.4 nozzle)",
-            "sub_path": "machine/BIQU BX (0.4 nozzle).json"
-        },
-		{
+        {
             "name": "BIQU B1 (0.4 nozzle)",
             "sub_path": "machine/BIQU B1 (0.4 nozzle).json"
         },
-		{
+        {
+            "name": "BIQU BX (0.4 nozzle)",
+            "sub_path": "machine/BIQU BX (0.4 nozzle).json"
+        },
+        {
             "name": "BIQU Hurakan (0.4 nozzle)",
             "sub_path": "machine/BIQU Hurakan (0.4 nozzle).json"
         }

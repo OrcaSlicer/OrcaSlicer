@@ -8,5 +8,5 @@
     "bed_model": "",
     "bed_texture": "OrcaSlicer-Troodon2-Bed-Texture.png",
     "hotend_model": "",
-    "default_materials": "Troodon Generic ABS;Troodon Generic PLA;Troodon Generic PLA-CF;Troodon Generic PETG;Troodon Generic TPU;Troodon Generic ASA;Troodon Generic PC;Troodon Generic PVA;Troodon Generic PA;Troodon Generic PA-CF"
+    "default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

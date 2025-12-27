@@ -8,5 +8,5 @@
     "bed_model": "elegoo_neptune4pro_buildplate_model.stl",
     "bed_texture": "elegoo_neptune4pro_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Elegoo Generic PLA @0.2 nozzle;Elegoo Generic PETG @0.2 nozzle;Elegoo Generic ABS @0.2 nozzle;Elegoo Generic PLA @0.4 nozzle;Elegoo Generic PETG @0.4 nozzle;Elegoo Generic ABS @0.4 nozzle;Elegoo Generic PLA @0.6 nozzle;Elegoo Generic PETG @0.6 nozzle;Elegoo Generic ABS @0.6 nozzle;Elegoo Generic PLA @0.8 nozzle;Elegoo Generic PETG @0.8 nozzle;Elegoo Generic ABS @0.8 nozzle"
+    "default_materials": "Generic PLA @Elegoo;Generic PETG @Elegoo;Generic ABS @Elegoo"
 }

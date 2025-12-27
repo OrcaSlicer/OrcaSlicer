@@ -1005,7 +1005,7 @@ bool SupportTreeBuildsteps::search_pillar_and_connect(const Head &source)
     Vec3d querypt = source.junction_point();
 
     while(nearest_id < 0 && !spindex.empty()) { m_thr();
-        // loop until a suitable head is not found
+        // loop until a suitable head was not found
         // if there is a pillar closer than the cluster center
         // (this may happen as the clustering is not perfect)
         // than we will bridge to this closer pillar

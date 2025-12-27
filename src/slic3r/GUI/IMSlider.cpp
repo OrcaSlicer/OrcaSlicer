@@ -21,7 +21,7 @@ static const float  HORIZONTAL_SLIDER_WINDOW_HEIGHT  = 64.0f;
 static const float  VERTICAL_SLIDER_WINDOW_WIDTH     = 160.0f;
 static const float  GROOVE_WIDTH      = 12.0f;
 static const ImVec2 ONE_LAYER_MARGIN  = ImVec2(20.0f, 20.0f);
-static const ImVec2 ONE_LAYER_BUTTON_SIZE  = ImVec2(28.0f, 28.0f);
+static const ImVec2 ONE_LAYER_BUTTON_SIZE  = ImVec2(56.0f, 56.0f);
 
 static const ImU32 BACKGROUND_COLOR_DARK  = IM_COL32(65, 65, 71, 255);
 static const ImU32 BACKGROUND_COLOR_LIGHT = IM_COL32(255, 255, 255, 255);
@@ -145,14 +145,14 @@ bool IMSlider::init_texture()
     bool result = true;
     if (!is_horizontal()) {
         // BBS init image texture id
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on.svg", 24, 24, m_one_layer_on_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_hover.svg", 28, 28, m_one_layer_on_hover_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off.svg", 28, 28, m_one_layer_off_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_hover.svg", 28, 28, m_one_layer_off_hover_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_dark.svg", 24, 24, m_one_layer_on_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_hover_dark.svg", 28, 28, m_one_layer_on_hover_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_dark.svg", 28, 28, m_one_layer_off_dark_id);
-        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_hover_dark.svg", 28, 28, m_one_layer_off_hover_dark_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on.svg", 56, 56, m_one_layer_on_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_hover.svg", 56, 56, m_one_layer_on_hover_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off.svg", 56, 56, m_one_layer_off_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_hover.svg", 56, 56, m_one_layer_off_hover_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_dark.svg", 56, 56, m_one_layer_on_dark_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_on_hover_dark.svg", 56, 56, m_one_layer_on_hover_dark_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_dark.svg", 56, 56, m_one_layer_off_dark_id);
+        result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/one_layer_off_hover_dark.svg", 56, 56, m_one_layer_off_hover_dark_id);
         result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_pause.svg", 14, 14, m_pause_icon_id);
         result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_gcode_custom.svg", 14, 14, m_custom_icon_id);
         result &= IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/im_slider_delete.svg", 14, 14, m_delete_icon_id);
@@ -190,6 +190,10 @@ void IMSlider::SetSelectionSpan(const int lower_val, const int higher_val)
     m_lower_value  = std::max(lower_val, m_min_value);
     m_higher_value = std::max(std::min(higher_val, m_max_value), m_lower_value);
     if (m_lower_value < m_higher_value) m_is_one_layer = false;
+
+    // ORCA reset single layer position when min max values changed
+    // This will trigger when print height changed. but stays same on reslicing if layer count is same 
+    m_one_layer_value = int((m_higher_value - m_lower_value)/2); 
 
     set_as_dirty();
 }
@@ -310,8 +314,8 @@ void IMSlider::SetLayersTimes(const std::vector<double> &layers_times)
 
 void IMSlider::SetDrawMode(bool is_sequential_print)
 {
-    m_draw_mode = is_sequential_print   ? dmSequentialFffPrint  : 
-                                          dmRegular; 
+    m_draw_mode = is_sequential_print   ? dmSequentialFffPrint  :
+                                          dmRegular;
     m_can_change_color = m_can_change_color && !(m_draw_mode == dmSequentialFffPrint);
 }
 
@@ -422,7 +426,7 @@ bool IMSlider::check_ticks_changed_event(Type type)
                                                              _L("The last color change data was saved for a multi extruder printing.")) +
                            "\n" + _L("Your current changes will delete all saved color changes.") + "\n\n\t" + _L("Are you sure you want to continue?");
 
-        
+
         GUI::MessageDialog msg(this, message, _L("Notice"), wxYES_NO);
         if (msg.ShowModal() == wxID_YES) {
             m_ticks.erase_all_ticks_with_code(ColorChange);
@@ -443,9 +447,20 @@ bool IMSlider::switch_one_layer_mode()
         return false;
 
     m_is_one_layer = !m_is_one_layer;
-    if (!m_is_one_layer) {
+    if (!m_is_one_layer) {                       // DEACTIVATE
+        m_one_layer_value = GetHigherValue();       // ORCA Backup value on deactivate
         SetLowerValue(m_min_value);
-        SetHigherValue(m_max_value);
+        SetHigherValue(m_max_value);             // Higher value resets on toggling off one layer mode to show whole model
+    }else{                                       // ACTIVATE
+                                                 // ORCA Ensure value fits range. value set in IMSlider::SetSelectionSpan but added this just in case
+        if(!m_one_layer_value || m_one_layer_value > m_max_value || m_one_layer_value < m_min_value){
+            m_one_layer_value = int((m_max_value - m_min_value)/2);
+            SetHigherValue(m_one_layer_value);  
+        }
+        else if(GetHigherValue() == m_max_value) // ORCA Prefer backup value if higher value reseted
+            SetHigherValue(m_one_layer_value);      // ORCA Restore value
+        else                                     // ORCA Prefer higher value if user changed higher value. so it will show section on same view
+            SetHigherValue(GetHigherValue());    // ORCA use same position with higher value if user changed its position. visible section stays same when switching one layer mode with this
     }
     m_selection == ssLower ? correct_lower_value() : correct_higher_value();
     if (m_selection == ssUndef) m_selection = ssHigher;
@@ -492,7 +507,7 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
 
     // calculate groove size
-    const ImVec2 groove_start = ImVec2(pos.x + handle_dummy_width, pos.y + size.y - ONE_LAYER_MARGIN.y * m_scale - ONE_LAYER_BUTTON_SIZE.y * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f);
+    const ImVec2 groove_start = ImVec2(pos.x + handle_dummy_width, pos.y + size.y - ONE_LAYER_MARGIN.y * m_scale - (ONE_LAYER_BUTTON_SIZE.y / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f);
     const ImVec2 groove_size = ImVec2(size.x - 2 * handle_dummy_width - text_right_dummy, GROOVE_WIDTH * m_scale);
     const ImRect groove = ImRect(groove_start, groove_start + groove_size);
     const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
@@ -872,7 +887,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     const ImU32 handle_clr = BRAND_COLOR;
     const ImU32 handle_border_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
     // calculate slider groove size
-    const ImVec2 groove_start = ImVec2(pos.x + size.x - ONE_LAYER_MARGIN.x * m_scale - ONE_LAYER_BUTTON_SIZE.x * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f, pos.y + text_dummy_height);
+    const ImVec2 groove_start = ImVec2(pos.x + size.x - ONE_LAYER_MARGIN.x * m_scale - (ONE_LAYER_BUTTON_SIZE.x / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f, pos.y + text_dummy_height);
     const ImVec2 groove_size = ImVec2(GROOVE_WIDTH * m_scale, size.y - 2 * text_dummy_height);
     const ImRect groove = ImRect(groove_start, groove_start + groove_size);
     const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
@@ -907,16 +922,16 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     ImRect one_handle = ImRect(higher_handle.Min - ImVec2(one_handle_offset, 0), higher_handle.Max - ImVec2(one_handle_offset, 0));
 
     bool value_changed = false;
-    if (!one_layer_flag) 
+    if (!one_layer_flag)
     {
         // select higher handle by default
         static bool h_selected = (selection == ssHigher);
         if (ImGui::ItemHoverable(higher_handle, id) && context.IO.MouseClicked[0]) {
-            selection = ssHigher; 
+            selection = ssHigher;
             h_selected = true;
         }
         if (ImGui::ItemHoverable(lower_handle, id) && context.IO.MouseClicked[0]) {
-            selection = ssLower; 
+            selection = ssLower;
             h_selected = false;
         }
 
@@ -924,7 +939,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         if (h_selected)
         {
             value_changed = slider_behavior(id, higher_slideable_region, v_min, v_max,
-                higher_value, &higher_handle, ImGuiSliderFlags_Vertical, 
+                higher_value, &higher_handle, ImGuiSliderFlags_Vertical,
                 m_tick_value, m_tick_rect);
         }
         if (!h_selected) {
@@ -1014,7 +1029,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
             draw_tick_on_mouse_position(h_selected ? higher_slideable_region : lower_slideable_region);
         }
     }
-    if (one_layer_flag) 
+    if (one_layer_flag)
     {
         // update handle position
         value_changed = slider_behavior(id, one_slideable_region, v_min, v_max,
@@ -1029,7 +1044,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         if ((!ImGui::ItemHoverable(one_handle, id) && context.IO.MouseClicked[1]) ||
             context.IO.MouseClicked[0])
             m_show_menu = false;
-        
+
         ImVec2 bar_center = higher_handle.GetCenter();
 
         // draw ticks
@@ -1340,7 +1355,7 @@ void IMSlider::render_add_menu()
             }
             if (hovered) { show_tooltip(_u8L("Insert a pause command at the beginning of this layer.")); }
 
-            
+
             if (menu_item_with_icon(_u8L("Add Custom G-code").c_str(), "", ImVec2(0, 0), 0, false, menu_item_enable, &hovered)) {
                 m_show_custom_gcode_window = true;
             }
@@ -1464,7 +1479,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
     }
     else if (wxGetKeyState(WXK_RAW_CONTROL)) {
         wheel *= 5;
-    } 
+    }
 #else
     if (wxGetKeyState(WXK_COMMAND) || wxGetKeyState(WXK_SHIFT))
         wheel *= 5;
@@ -1487,6 +1502,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
             if (is_one_layer()) {
                 const int new_pos = GetHigherValue() + wheel;
                 SetHigherValue(new_pos);
+                m_one_layer_value = new_pos; // ORCA backup value for single layer mode
             }
             else {
                 const int new_pos = m_selection == ssLower ? GetLowerValue() + wheel : GetHigherValue() + wheel;
@@ -1519,6 +1535,9 @@ void IMSlider::correct_higher_value()
 
 bool IMSlider::is_wipe_tower_layer(int tick) const
 {
+    // BBS: This function is useless in BBS
+    return false;
+
     if (!m_is_wipe_tower || tick >= (int) m_values.size()) return false;
     if (tick == 0 || (tick == (int) m_values.size() - 1 && m_values[tick] > m_values[tick - 1])) return false;
     if ((m_values[tick - 1] == m_values[tick + 1] && m_values[tick] < m_values[tick + 1]) ||

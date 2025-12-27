@@ -1,0 +1,59 @@
+{
+    "type": "filament",
+    "name": "Snapmaker ABS @U1 base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "1682237920",
+    "instantiation": "false",
+    "filament_end_gcode": [
+        ""
+    ],
+    "hot_plate_temp": [
+        "110"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "105"
+    ],
+    "overhang_fan_speed": [
+        "20"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "15"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ]
+}

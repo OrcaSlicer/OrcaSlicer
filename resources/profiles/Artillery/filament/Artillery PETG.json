@@ -1,11 +1,14 @@
-{	
-	"instantiation": "true",
-	"from": "system",
+{
+    "type": "filament",
+    "name": "Artillery PETG",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
+    "instantiation": "true",
     "compatible_printers": [
-		"Artillery Sidewinder X3 Pro 0.4 nozzle",
-		"Artillery Sidewinder X3 Plus 0.4 nozzle",
-		"Artillery Sidewinder X4 Pro 0.4 nozzle",
-		"Artillery Sidewinder X4 Plus 0.4 nozzle"
+        "Artillery Sidewinder X3 Pro 0.4 nozzle",
+        "Artillery Sidewinder X3 Plus 0.4 nozzle",
+        "Artillery Sidewinder X4 Pro 0.4 nozzle",
+        "Artillery Sidewinder X4 Plus 0.4 nozzle"
     ],
     "filament_retraction_length": [
         "1.3"
@@ -34,8 +37,6 @@
     "hot_plate_temp_initial_layer": [
         "70"
     ],
-    "inherits": "Artillery Generic PLA",
-    "name": "Artillery PETG",
     "nozzle_temperature": [
         "250"
     ],
@@ -66,20 +67,19 @@
     "temperature_vitrification": [
         "220"
     ],
-	"close_fan_the_first_x_layers": [
+    "close_fan_the_first_x_layers": [
         "3"
     ],
-	"overhang_fan_threshold": [
+    "overhang_fan_threshold": [
         "10%"
     ],
-	"overhang_fan_speed": [
+    "overhang_fan_speed": [
         "90"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.05"
-    ],
-    "version": "2.0.2.0"
+    ]
 }

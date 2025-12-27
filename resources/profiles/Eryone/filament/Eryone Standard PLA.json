@@ -1,6 +1,5 @@
 {
     "type": "filament",
-
     "name": "Eryone Standard PLA",
     "from": "system",
     "instantiation": "false",

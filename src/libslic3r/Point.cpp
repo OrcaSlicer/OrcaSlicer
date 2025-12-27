@@ -50,7 +50,7 @@ void Point::rotate(double angle, const Point &center)
     Vec2d  cur = this->cast<double>();
     double s   = ::sin(angle);
     double c   = ::cos(angle);
-    auto   d   = cur - center.cast<double>();
+    Vec2d  d   = cur - center.cast<double>();
     this->x() = fast_round_up<coord_t>(center.x() + c * d.x() - s * d.y());
     this->y() = fast_round_up<coord_t>(center.y() + s * d.x() + c * d.y());
 }

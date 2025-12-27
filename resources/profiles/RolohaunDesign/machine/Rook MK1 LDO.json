@@ -8,5 +8,5 @@
     "bed_model": "",
     "bed_texture": "bedtexture-rook-green-120.png",
     "hotend_model": "",
-    "default_materials": "Generic ABS @Rook MK1 LDO;Generic PLA @Rook MK1 LDO;Generic PLA-CF @Rook MK1 LDO;Generic PETG @Rook MK1 LDO;Generic TPU @Rook MK1 LDO;Generic ASA @Rook MK1 LDO;Generic PC @Rook MK1 LDO;Generic PVA @Rook MK1 LDO;Generic PA @Rook MK1 LDO;Generic PA-CF @Rook MK1 LDO"
+    "default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

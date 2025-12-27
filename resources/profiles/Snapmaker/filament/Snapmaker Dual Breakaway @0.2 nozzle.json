@@ -1,22 +1,22 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker Dual Breakaway @0.2 nozzle",
-  "setting_id": "98433967",
-  "inherits": "Snapmaker Dual Breakaway @base",
-  "compatible_printers": [
-    "Snapmaker A250 Dual (0.2 nozzle)",
-    "Snapmaker A250 Dual BKit (0.2 nozzle)",
-    "Snapmaker A250 Dual QS+B Kit (0.2 nozzle)",
-    "Snapmaker A250 Dual QSKit (0.2 nozzle)",
-    "Snapmaker A350 Dual (0.2 nozzle)",
-    "Snapmaker A350 Dual BKit (0.2 nozzle)",
-    "Snapmaker A350 Dual QS+B Kit (0.2 nozzle)",
-    "Snapmaker A350 Dual QSKit (0.2 nozzle)",
-    "Snapmaker Artisan (0.2 nozzle)"
-  ],
-  "filament_max_volumetric_speed": [
-    "1.4"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual Breakaway @0.2 nozzle",
+    "inherits": "Snapmaker Dual Breakaway @base",
+    "from": "system",
+    "setting_id": "98433967",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 Dual (0.2 nozzle)",
+        "Snapmaker A250 Dual BKit (0.2 nozzle)",
+        "Snapmaker A250 Dual QS+B Kit (0.2 nozzle)",
+        "Snapmaker A250 Dual QSKit (0.2 nozzle)",
+        "Snapmaker A350 Dual (0.2 nozzle)",
+        "Snapmaker A350 Dual BKit (0.2 nozzle)",
+        "Snapmaker A350 Dual QS+B Kit (0.2 nozzle)",
+        "Snapmaker A350 Dual QSKit (0.2 nozzle)",
+        "Snapmaker Artisan (0.2 nozzle)"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.4"
+    ]
 }

@@ -1,73 +1,73 @@
 {
-  "type": "machine",
-  "from": "system",
-  "instantiation": "false",
-  "name": "fdm_linear2",
-  "inherits": "fdm_common",
-  "wipe": [
-    "1"
-  ],
-  "wipe_distance": [
-    "2"
-  ],
-  "z_hop_types": [
-    "Normal Lift"
-  ],
-  "extruder_clearance_radius": "75",
-  "extruder_clearance_height_to_rod": "35",
-  "extruder_clearance_height_to_lid": "325",
-  "machine_max_acceleration_x": [
-    "1100"
-  ],
-  "machine_max_acceleration_y": [
-    "1000"
-  ],
-  "machine_max_acceleration_z": [
-    "500"
-  ],
-  "machine_max_acceleration_e": [
-    "3000"
-  ],
-  "machine_max_acceleration_travel": [
-    "1100"
-  ],
-  "machine_max_acceleration_extruding": [
-    "1100"
-  ],
-  "machine_max_acceleration_retracting": [
-    "1100"
-  ],
-  "machine_max_speed_x": [
-    "150"
-  ],
-  "machine_max_speed_y": [
-    "150"
-  ],
-  "machine_max_speed_z": [
-    "40"
-  ],
-  "machine_max_speed_e": [
-    "45"
-  ],
-  "machine_max_jerk_x": [
-    "5"
-  ],
-  "machine_max_jerk_y": [
-    "1"
-  ],
-  "machine_max_jerk_z": [
-    "1"
-  ],
-  "machine_max_jerk_e": [
-    "3"
-  ],
-  "thumbnails": [
-    "300x150"
-  ],
-  "retract_length_toolchange": [
-    "2"
-  ],
-  "default_filament_profile": [
-    "Snapmaker PLA"
-  ]
+    "type": "machine",
+    "name": "fdm_linear2",
+    "inherits": "fdm_common",
+    "from": "system",
+    "instantiation": "false",
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ],
+    "extruder_clearance_radius": "75",
+    "extruder_clearance_height_to_rod": "35",
+    "extruder_clearance_height_to_lid": "325",
+    "machine_max_acceleration_x": [
+        "1100"
+    ],
+    "machine_max_acceleration_y": [
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "500"
+    ],
+    "machine_max_acceleration_e": [
+        "3000"
+    ],
+    "machine_max_acceleration_travel": [
+        "1100"
+    ],
+    "machine_max_acceleration_extruding": [
+        "1100"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1100"
+    ],
+    "machine_max_speed_x": [
+        "150"
+    ],
+    "machine_max_speed_y": [
+        "150"
+    ],
+    "machine_max_speed_z": [
+        "40"
+    ],
+    "machine_max_speed_e": [
+        "45"
+    ],
+    "machine_max_jerk_x": [
+        "5"
+    ],
+    "machine_max_jerk_y": [
+        "1"
+    ],
+    "machine_max_jerk_z": [
+        "1"
+    ],
+    "machine_max_jerk_e": [
+        "3"
+    ],
+    "thumbnails": [
+        "300x150"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "default_filament_profile": [
+        "Snapmaker PLA"
+    ]
 }

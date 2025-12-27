@@ -15,8 +15,8 @@ namespace Slic3r {
 namespace Measure {
 bool get_point_projection_to_plane(const Vec3d &pt, const Vec3d &plane_origin, const Vec3d &plane_normal, Vec3d &intersection_pt)
 {
-    auto normal     = plane_normal.normalized();
-    auto BA         = plane_origin - pt;
+    Vec3d normal     = plane_normal.normalized();
+    Vec3d BA         = plane_origin - pt;
     auto length     = BA.dot(normal);
     intersection_pt = pt + length * normal;
     return true;
@@ -29,7 +29,7 @@ Vec3d get_one_point_in_plane(const Vec3d &plane_origin, const Vec3d &plane_norma
     if (abs(plane_normal.dot(dir)) > 1 - eps) {
         dir = Vec3d(0, 1, 0);
     }
-    auto new_pt = plane_origin + dir;
+    Vec3d new_pt = plane_origin + dir;
     Vec3d retult;
     get_point_projection_to_plane(new_pt, plane_origin, plane_normal, retult);
     return retult;
@@ -1413,8 +1413,8 @@ void SurfaceFeature::translate(const Transform3d &tran)
         auto calc_world_radius = [&local_center, &local_normal, &tran, &world_center](const Vec3d &pt, double &value) {
             Vec3d intersection_pt;
             get_point_projection_to_plane(pt, local_center, local_normal, intersection_pt);
-            auto local_radius_pt = (intersection_pt - local_center).normalized() * value + local_center;
-            auto radius_pt       = tran * local_radius_pt;
+            Vec3d local_radius_pt = (intersection_pt - local_center).normalized() * value + local_center;
+            Vec3d radius_pt       = tran * local_radius_pt;
             value                = (radius_pt - world_center).norm();
         };
         //m_value is radius

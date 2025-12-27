@@ -15,6 +15,8 @@ enum class EnforcerBlockerType : int8_t {
     NONE      = 0,
     ENFORCER  = 1,
     BLOCKER   = 2,
+    // For the fuzzy skin, we use just two values (NONE and FUZZY_SKIN).
+    FUZZY_SKIN = ENFORCER,
     // Maximum is 15. The value is serialized in TriangleSelector into 6 bits using a 2 bit prefix code.
     Extruder1 = ENFORCER,
     Extruder2 = BLOCKER,
@@ -34,6 +36,9 @@ enum class EnforcerBlockerType : int8_t {
     Extruder16,
     ExtruderMax = Extruder16
 };
+
+// Type alias for the state mapping array to improve code readability
+using EnforcerBlockerStateMap = std::array<EnforcerBlockerType, (size_t)EnforcerBlockerType::ExtruderMax + 1>;
 
 // Following class holds information about selected triangles. It also has power
 // to recursively subdivide the triangles and make the selection finer.
@@ -342,6 +347,10 @@ public:
     // Remove all unnecessary data.
     void garbage_collect();
 
+    // Orca: remap the state of triangles according to the state_map
+    void remap_triangle_state(const EnforcerBlockerStateMap& state_map);
+
+
     // Store the division trees in compact form (a long stream of bits for each triangle of the original mesh).
     // First vector contains pairs of (triangle index, first bit in the second vector).
     TriangleSplittingData serialize() const;
@@ -349,7 +358,9 @@ public:
     // Load serialized data. Assumes that correct mesh is loaded.
     void deserialize(const TriangleSplittingData& data,
                      bool                         needs_reset = true,
-                     EnforcerBlockerType          max_ebt     = EnforcerBlockerType::ExtruderMax);
+                     EnforcerBlockerType          max_ebt     = EnforcerBlockerType::ExtruderMax,
+                     EnforcerBlockerType          to_delete_filament = EnforcerBlockerType::NONE,
+                     EnforcerBlockerType          replace_filament = EnforcerBlockerType::NONE);
 
     // Extract all used facet states from the given TriangleSplittingData.
     static std::vector<EnforcerBlockerType> extract_used_facet_states(const TriangleSplittingData &data);
@@ -414,10 +425,17 @@ protected:
         // or index of a vertex shared by the two split edges (for number_of_splits == 2).
         // For number_of_splits == 3, special_side_idx is always zero.
         char special_side_idx { 0 };
-        EnforcerBlockerType state;
         bool m_selected_by_seed_fill : 1;
         // Is this triangle valid or marked to be removed?
         bool m_valid : 1;
+
+        // Orca:
+        // IMPORTANT: `state` is intentionally placed after all other small members
+        // to prevent compilers from packing it in a way that would create
+        // data races during parallel processing. A write to `state` could
+        // otherwise become a non-atomic read-modify-write on a memory word
+        // that also contains other (bit-field) members, causing race conditions.
+        EnforcerBlockerType state;
     };
 
     struct Vertex {

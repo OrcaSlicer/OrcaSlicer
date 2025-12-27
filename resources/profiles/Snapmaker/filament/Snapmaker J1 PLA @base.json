@@ -1,14 +1,14 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PLA @base",
-  "filament_id": "377675245",
-  "inherits": "fdm_filament_pla",
-  "filament_retraction_length": [
-    "nil"
-  ],
-  "nozzle_temperature": [
-    "220"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "377675245",
+    "instantiation": "false",
+    "filament_retraction_length": [
+        "nil"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ]
 }

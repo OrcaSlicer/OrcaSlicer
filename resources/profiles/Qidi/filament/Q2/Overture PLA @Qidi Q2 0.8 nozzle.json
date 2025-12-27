@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Overture PLA @Qidi Q2 0.8 nozzle",
+    "inherits": "Overture PLA@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.012"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.8 nozzle"
+    ]
+}

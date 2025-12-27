@@ -1,23 +1,23 @@
 {
-  "type": "machine",
-  "setting_id": "GM002",
-  "name": "Comgrow T500 0.6 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_comgrow_common",
-  "printer_model": "Comgrow T500",
-  "printer_variant": "0.6",
-  "retraction_length": [
-    "1.0"
-  ],
-  "nozzle_diameter": [
-    "0.6"
-  ],
-  "printable_area": [
-    "0x0",
-    "500x0",
-    "500x500",
-    "0x500"
-  ],
-  "printable_height": "500"
+    "type": "machine",
+    "name": "Comgrow T500 0.6 nozzle",
+    "inherits": "fdm_comgrow_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Comgrow T500",
+    "printer_variant": "0.6",
+    "retraction_length": [
+        "1.0"
+    ],
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printable_area": [
+        "0x0",
+        "500x0",
+        "500x500",
+        "0x500"
+    ],
+    "printable_height": "500"
 }

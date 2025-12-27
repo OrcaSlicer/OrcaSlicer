@@ -20,6 +20,9 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "impact_strength_z": [
+        "19.8"
+    ],
     "temperature_vitrification": [
         "45"
     ],

@@ -1,14 +1,14 @@
 {
 	"name": "OrcaSlicer",
 	"build": {
-	"dockerfile": "Dockerfile",
-		"args": {
-			"PLATFORM": "linux/amd64",
-			"BASE_IMAGE": "mcr.microsoft.com/devcontainers/cpp:ubuntu-20.04"
-		},
-		"options": ["--platform=linux/amd64"]
+		"dockerfile": "Dockerfile",
+			"args": {
+				"PLATFORM": "linux/amd64",
+				"BASE_IMAGE": "mcr.microsoft.com/devcontainers/cpp:ubuntu-22.04"
+			},
+			"options": ["--platform=linux/amd64"]
 	},
-	"runArgs": ["--env-file", "/tmp/devcontainer.env"],
+	"runArgs": ["--platform=linux/amd64"],
     "features": {
         "ghcr.io/devcontainers/features/desktop-lite:1": {
 			"password": "orca"
@@ -16,17 +16,7 @@
     },
 	"customizations": {
 		"vscode": {
-			"settings": { 
-				"cmake.configureArgs": [
-					"-DSLIC3R_GTK=3",
-					"-DBBL_RELEASE_TO_PUBLIC=1",
-					"-DBBL_INTERNAL_TESTING=0",
-					"-DSLIC3R_STATIC=1",
-					"-DCMAKE_PREFIX_PATH=${workspaceFolder}/deps/build/destdir/usr/local"
-				],
-				"cmake.buildToolArgs": [
-					"-l${containerEnv:CORES}"
-				]
+			"settings": {
 			},
 			
 			// Add the IDs of extensions you want installed when the container is created.
@@ -46,10 +36,6 @@
     },
 	"otherPortsAttributes": {
 		"onAutoForward": "ignore"
-	},
-	
-	"initializeCommand": {
-		"Setup Temporary Env File": "echo \"CORES=`nproc --all`\" > /tmp/devcontainer.env"
 	},
 	"onCreateCommand": {
 		"Set postCreate executable flag": "chmod +x .devcontainer/postCreate.sh"

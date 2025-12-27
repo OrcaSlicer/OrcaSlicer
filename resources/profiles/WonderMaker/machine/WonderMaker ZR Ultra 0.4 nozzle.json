@@ -1,0 +1,65 @@
+{
+    "type": "machine",
+    "name": "WonderMaker ZR Ultra 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM013",
+    "instantiation": "true",
+    "printer_model": "WonderMaker ZR Ultra",
+    "default_print_profile": "0.20mm Standard @WonderMaker ZR Ultra",
+    "default_bed_type": "4",
+    "default_filament_profile": [
+        "WonderMaker PLA Basic"
+    ],
+    "single_extruder_multi_material": "0",
+    "nozzle_diameter": [
+        "0.4",
+        "0.4",
+        "0.4",
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x270",
+        "0x270"
+    ],
+    "bed_exclude_area": [],
+    "printable_height": "290",
+    "extruder_clearance_radius": "134",
+    "bed_mesh_min": [
+        "10",
+        "10"
+    ],
+    "bed_mesh_max": [
+        "290",
+        "260"
+    ],
+    "bed_mesh_probe_distance": [
+        "50",
+        "50"
+    ],
+    "support_air_filtration": "0",
+    "support_chamber_temp_control": "0",
+    "machine_tool_change_time": "10",
+    "machine_load_filament_time": "0",
+    "machine_unload_filament_time": "0",
+    "retract_lift_below": [
+        "279",
+        "279",
+        "279",
+        "279"
+    ],
+    "enable_long_retraction_when_cut": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "long_retractions_when_cut": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ]
+}

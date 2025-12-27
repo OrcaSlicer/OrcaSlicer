@@ -1,23 +1,23 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PET @base",
-  "filament_id": "1009481135",
-  "inherits": "fdm_filament_pet",
-  "overhang_fan_speed": [
-    "40"
-  ],
-  "filament_max_volumetric_speed": [
-    "6.8"
-  ],
-  "fan_max_speed": [
-    "50"
-  ],
-  "fan_min_speed": [
-    "26"
-  ],
-  "slow_down_min_speed": [
-    "35"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PET @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "1009481135",
+    "instantiation": "false",
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "filament_max_volumetric_speed": [
+        "6.8"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "26"
+    ],
+    "slow_down_min_speed": [
+        "35"
+    ]
 }

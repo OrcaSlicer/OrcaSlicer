@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Translucent @System",
+    "inherits": "Bambu PETG Translucent @base",
+    "from": "system",
+    "setting_id": "OGFSG01_00",
+    "instantiation": "true",
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "filament_retraction_length": [
+        "0.3"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "compatible_printers": []
+}

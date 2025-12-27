@@ -6,6 +6,8 @@
 #include <cmath>
 #include <string>
 
+#include <libslic3r/Point.hpp>
+
 struct indexed_triangle_set;
 
 namespace Slic3r {
@@ -13,7 +15,7 @@ namespace Slic3r {
 class ExPolygon;
 class Polygon;
 using ExPolygons = std::vector<ExPolygon>;
-using Polygons = std::vector<Polygon>;
+using Polygons = std::vector<Polygon, PointsAllocator<Polygon>>;
 
 namespace sla {
 

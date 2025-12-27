@@ -16,6 +16,8 @@ class GLGizmoMove3D : public GLGizmoBase
     static const double Offset;
 
     Vec3d m_displacement{ Vec3d::Zero() };
+    Vec3d m_center{ Vec3d::Zero() };
+    BoundingBoxf3 m_bounding_box;
     double m_snap_step{ 1.0 };
     Vec3d m_starting_drag_position{ Vec3d::Zero() };
     Vec3d m_starting_box_center{ Vec3d::Zero() };
@@ -57,6 +59,7 @@ protected:
     bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    virtual void on_set_state() override;
     void on_start_dragging() override;
     void on_stop_dragging() override;
     void on_dragging(const UpdateData& data) override;
@@ -68,6 +71,9 @@ protected:
 
 private:
     double calc_projection(const UpdateData& data) const;
+    void   change_cs_by_selection(); //cs mean Coordinate System
+private:
+    int m_last_selected_obejct_idx, m_last_selected_volume_idx;
 };
 
 

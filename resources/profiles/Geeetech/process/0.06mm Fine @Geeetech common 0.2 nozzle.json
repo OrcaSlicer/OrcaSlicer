@@ -4,14 +4,14 @@
     "inherits": "fdm_process_geeetech_0.06_nozzle_0.2",
     "from": "system",
     "setting_id": "GP_Geeetech_001",
-    "instantiation": "true",   
+    "instantiation": "true",
     "compatible_printers": [
-             "Geeetech A10 Pro 0.2 nozzle",
-             "Geeetech A20 0.2 nozzle",
-             "Geeetech A30 Pro 0.2 nozzle",
-             "Geeetech Mizar 0.2 nozzle",
-             "Geeetech Mizar S 0.2 nozzle",
-             "Geeetech Mizar Pro 0.2 nozzle",
-             "Geeetech Mizar Max 0.2 nozzle"
+        "Geeetech A10 Pro 0.2 nozzle",
+        "Geeetech A20 0.2 nozzle",
+        "Geeetech A30 Pro 0.2 nozzle",
+        "Geeetech Mizar 0.2 nozzle",
+        "Geeetech Mizar S 0.2 nozzle",
+        "Geeetech Mizar Pro 0.2 nozzle",
+        "Geeetech Mizar Max 0.2 nozzle"
     ]
 }

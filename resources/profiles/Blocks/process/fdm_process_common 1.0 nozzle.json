@@ -23,7 +23,7 @@
     "bridge_no_support": "0",
     "elefant_foot_compensation": "0.1",
     "sparse_infill_density": "15%",
-    "sparse_infill_pattern": "grid",
+    "sparse_infill_pattern": "crosshatch",
     "infill_combination": "0",
     "infill_wall_overlap": "15%",
     "interface_shells": "0",

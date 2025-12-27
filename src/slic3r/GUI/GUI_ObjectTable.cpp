@@ -1090,9 +1090,9 @@ void ObjectGrid::paste_data( wxTextDataObject& text_data )
 		
     }
     else {
-        wxLogWarning(_L("multiple cells copy is not supported"));
+        wxLogWarning(_L("Copying multiple cells is not supported."));
         /*if ((src_col_cnt != 1) || (dst_left_col != src_left_col))
-            wxLogWarning(_L("multiple columns copy is not supported"));
+            wxLogWarning(_L("Copying multiple columns is not supported."));
         else {
             split(buf, string_array);
             int count = string_array.GetCount();
@@ -1890,6 +1890,7 @@ void ObjectGridTable::init_cols(ObjectGrid *object_grid)
     col->size = object_grid->GetTextExtent(L("Auto Brim")).x + 8; //add 8 for border
     col->choices.Add(_L("Auto"));
     col->choices.Add(_L("Mouse ear"));
+    col->choices.Add(_L("Painted"));
     col->choices.Add(_L("Outer brim only"));
     col->choices.Add(_L("Inner brim only"));
     col->choices.Add(_L("Outer and inner brim"));
@@ -3310,10 +3311,6 @@ ObjectTableDialog::ObjectTableDialog(wxWindow* parent, Plater* platerObj, Model 
     // And also actually enable them.
     //m_panel->SetScrollRate(10, 10);
     auto m_main_sizer = new wxBoxSizer(wxVERTICAL);
-
-    // icon
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicer.ico") % resources_dir()).str();
-    SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     //top line
     auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 2), wxTAB_TRAVERSAL);

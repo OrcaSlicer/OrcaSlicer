@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=7200" />
 <title>引导_P1</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="31.css" />
 <script type="text/javascript" src="../js/jquery-2.1.1.min.js"></script>
@@ -25,14 +26,14 @@
 	</div>
 <br/>	
 
-	<div>
+	<label><!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
 	<input id="ChoosePrivacy" type="checkbox" onClick="SendPrivacySelect()"  onChange="SendPrivacySelect()" />
 	<span class="trans" tid="t7">Allow sending anonymous data</span>
-</div>
+</label>
 </div>		
 <div id="AcceptArea">
-	<div class="GrayBtn trans" tid="t8" id="PreBtn"  onclick="window.open('../11/index.html','_self')">Back</div>
-	<div class="NormalBtn trans" tid="t9" id="AcceptBtn"  onclick="GotoNextPage()">Next</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t8" id="PreBtn"  onclick="window.open('../11/index.html','_self')">Back</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t9" id="AcceptBtn"  onclick="GotoNextPage()">Next</div>
 </div>
 </body>
 </html>

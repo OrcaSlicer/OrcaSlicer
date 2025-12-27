@@ -1,14 +1,14 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.12mm Fine @Wanhao D12-400",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_wanhao_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "layer_height": "0.12",
     "bottom_shell_layers": "5",
     "top_shell_layers": "6",
-	"compatible_printers": [
-	  "Wanhao D12-300 0.4 nozzle"
+    "compatible_printers": [
+        "Wanhao D12-300 0.4 nozzle"
     ]
 }

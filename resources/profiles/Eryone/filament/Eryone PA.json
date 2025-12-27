@@ -1,0 +1,84 @@
+{
+    "type": "filament",
+    "name": "Eryone PA",
+    "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA71",
+    "filament_id": "EFL71",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Thinker X400 0.4 nozzle"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "20"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+    ],
+    "filament_flow_ratio": [
+        "0.92"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_notes": [
+        "brim width >= 20;"
+    ],
+    "filament_retraction_length": [
+        "1"
+    ],
+    "filament_settings_id": [
+        "Eryone PA"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+    ],
+    "filament_type": [
+        "PA"
+    ],
+    "filament_vendor": [
+        "Eryone"
+    ],
+    "hot_plate_temp": [
+        "115"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "115"
+    ],
+    "nozzle_temperature": [
+        "265"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "15"
+    ],
+    "support_material_interface_fan_speed": [
+        "60"
+    ],
+    "temperature_vitrification": [
+        "200"
+    ],
+    "nozzle_temperature_range_high": [
+        "280"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ]
+}

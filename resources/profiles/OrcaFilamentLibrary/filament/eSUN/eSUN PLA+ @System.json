@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "eSUN PLA+ @System",
+    "inherits": "eSUN PLA+ @base",
+    "from": "system",
+    "setting_id": "OGFSL03_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

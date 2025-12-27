@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "FDplast ABS @System",
+    "inherits": "FDplast ABS @base",
+    "from": "system",
+    "setting_id": "ABS01_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

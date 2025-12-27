@@ -14,8 +14,8 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "wxExtensions.hpp"
-#include "../libslic3r/BlacklistedLibraryCheck.hpp"
-#include "../libslic3r/Color.hpp"
+#include "libslic3r/BlacklistedLibraryCheck.hpp"
+#include "libslic3r/Color.hpp"
 #include "format.hpp"
 
 #ifdef _WIN32

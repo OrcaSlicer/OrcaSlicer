@@ -1,0 +1,25 @@
+{
+    "type": "process",
+    "name": "0.20 Support @Snapmaker U1 (0.4 nozzle)",
+    "inherits": "fdm_process_U1_0.20",
+    "from": "system",
+    "setting_id": "GP0040",
+    "instantiation": "true",
+    "description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "ooze_prevention": "1",
+    "slowdown_for_curled_perimeters": "0",
+    "standby_temperature_delta": "-150",
+    "wipe_tower_filament": "0",
+    "preheat_time": "30",
+    "wipe_tower_cone_angle": "15",
+    "prime_tower_brim_width": "5",
+    "enable_support": "1",
+    "initial_layer_print_height": "0.25",
+    "support_interface_spacing": "0",
+    "support_interface_top_layers": "3"
+}

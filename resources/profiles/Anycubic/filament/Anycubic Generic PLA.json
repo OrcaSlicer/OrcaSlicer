@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFL99",
-    "setting_id": "GFSA04",
     "name": "Anycubic Generic PLA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.98"
     ],
@@ -16,14 +16,14 @@
         "8"
     ],
     "compatible_printers": [
-		"Anycubic i3 Mega S 0.4 nozzle",
-		"Anycubic Chiron 0.4 nozzle",
-		"Anycubic Vyper 0.4 nozzle",
+        "Anycubic i3 Mega S 0.4 nozzle",
+        "Anycubic Chiron 0.4 nozzle",
+        "Anycubic Vyper 0.4 nozzle",
         "Anycubic Kobra 0.4 nozzle",
-		"Anycubic Kobra Max 0.4 nozzle",
+        "Anycubic Kobra Max 0.4 nozzle",
         "Anycubic Kobra Plus 0.4 nozzle",
-		"Anycubic 4Max Pro 0.4 nozzle",
-		"Anycubic 4Max Pro 2 0.4 nozzle",
+        "Anycubic 4Max Pro 0.4 nozzle",
+        "Anycubic 4Max Pro 2 0.4 nozzle",
         "Anycubic Kobra 2 0.4 nozzle",
         "Anycubic Kobra 3 0.2 nozzle",
         "Anycubic Kobra 3 0.4 nozzle",

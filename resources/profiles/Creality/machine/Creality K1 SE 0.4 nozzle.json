@@ -1,13 +1,13 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Creality K1 SE 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Creality K1 SE",
     "gcode_flavor": "klipper",
-    "default_print_profile": "0.20mm Fast @Creality K1 SE 0.4",
+    "default_print_profile": "0.20mm Standard @Creality K1 SE 0.4",
     "nozzle_diameter": [
         "0.4"
     ],

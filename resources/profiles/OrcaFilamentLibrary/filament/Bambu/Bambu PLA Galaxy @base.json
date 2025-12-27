@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Galaxy @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFA15",
+    "instantiation": "false",
+    "filament_cost": [
+        "29.99"
+    ],
+    "filament_density": [
+        "1.19"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ]
+}

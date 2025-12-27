@@ -217,12 +217,12 @@ bool TriangleMesh::ReadSTLFile(const char *input_file, bool repair, ImportstlPro
     return from_stl(stl, repair);
 }
 
-bool TriangleMesh::write_ascii(const char* output_file)
+bool TriangleMesh::write_ascii(const char* output_file) const
 {
     return its_write_stl_ascii(output_file, "", this->its);
 }
 
-bool TriangleMesh::write_binary(const char* output_file)
+bool TriangleMesh::write_binary(const char* output_file) const
 {
     return its_write_stl_binary(output_file, "", this->its);
 }
@@ -1000,6 +1000,62 @@ indexed_triangle_set its_make_frustum(double r, double h, double fa)
     facets.emplace_back( 3, 1,     id);
     facets.emplace_back(id, 2,      3);
     facets.emplace_back(id, id - 1, 2);
+
+    return mesh;
+}
+
+// Generate the mesh for a torus
+// r: major radius (distance from center of tube to center of torus)
+// h: minor radius (radius of the tube)
+// fa: angular step in radians (smaller = more segments)
+indexed_triangle_set its_make_torus(double r, double h, double fa)
+{
+    indexed_triangle_set mesh;
+    auto& vertices = mesh.vertices;
+    auto& facets = mesh.indices;
+
+    // Number of segments around the main ring and the tube
+    size_t n_major = (size_t)ceil(2. * PI / fa);
+    size_t n_minor = (size_t)ceil(2. * PI / fa);
+
+    double major_step = 2. * PI / n_major;
+    double minor_step = 2. * PI / n_minor;
+
+    // Reserve memory for performance
+    vertices.reserve(n_major * n_minor);
+    facets.reserve(n_major * n_minor * 2);
+
+    // Generate vertices
+    for (size_t i = 0; i < n_major; ++i) {
+        double major_angle = i * major_step;
+        double cos_major = cos(major_angle);
+        double sin_major = sin(major_angle);
+        for (size_t j = 0; j < n_minor; ++j) {
+            double minor_angle = j * minor_step;
+            double cos_minor = cos(minor_angle);
+            double sin_minor = sin(minor_angle);
+            // Parametric equation for torus
+            float x = float((r + h * cos_minor) * cos_major);
+            float y = float((r + h * cos_minor) * sin_major);
+            float z = float(h * sin_minor);
+            vertices.emplace_back(Vec3f(x, y, z));
+        }
+    }
+
+    // Generate faces
+    for (size_t i = 0; i < n_major; ++i) {
+        size_t inext = (i + 1) % n_major;
+        for (size_t j = 0; j < n_minor; ++j) {
+            size_t jnext = (j + 1) % n_minor;
+            int v0 = int(i * n_minor + j);
+            int v1 = int(inext * n_minor + j);
+            int v2 = int(inext * n_minor + jnext);
+            int v3 = int(i * n_minor + jnext);
+            // Two triangles per quad
+            facets.emplace_back(v0, v1, v2);
+            facets.emplace_back(v0, v2, v3);
+        }
+    }
 
     return mesh;
 }

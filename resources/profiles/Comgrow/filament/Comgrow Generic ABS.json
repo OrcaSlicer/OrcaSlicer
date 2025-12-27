@@ -1,17 +1,23 @@
 {
-	"type": "filament",
-	"filament_id": "GFB99",
-	"setting_id": "GFSA04",
-	"name": "Comgrow Generic ABS",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_filament_abs",
-	"filament_flow_ratio": ["0.926"],
-	"filament_max_volumetric_speed": ["30"],
-	"filament_retraction_length": ["0.5"],
-	"compatible_printers": [
-		"Comgrow T500 0.4 nozzle",
-		"Comgrow T500 0.6 nozzle",
-		"Comgrow T500 0.8 nozzle"
-	]
+    "type": "filament",
+    "name": "Comgrow Generic ABS",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.926"
+    ],
+    "filament_max_volumetric_speed": [
+        "30"
+    ],
+    "filament_retraction_length": [
+        "0.5"
+    ],
+    "compatible_printers": [
+        "Comgrow T500 0.4 nozzle",
+        "Comgrow T500 0.6 nozzle",
+        "Comgrow T500 0.8 nozzle"
+    ]
 }

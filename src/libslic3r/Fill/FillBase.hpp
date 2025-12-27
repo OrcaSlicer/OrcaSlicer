@@ -36,6 +36,15 @@ public:
     InfillFailedException() : Slic3r::RuntimeError("Infill failed") {}
 };
 
+struct LockRegionParam
+{
+    LockRegionParam() {}
+    std::map<float, ExPolygons> skin_density_params;
+    std::map<float, ExPolygons> skeleton_density_params;
+    std::map<Flow, ExPolygons>  skin_flow_params;
+    std::map<Flow, ExPolygons>  skeleton_flow_params;
+};
+
 struct FillParams
 {
     bool        full_infill() const { return density > 0.9999f; }
@@ -44,6 +53,7 @@ struct FillParams
 
     // Fill density, fraction in <0, 1>
     float       density 		{ 0.f };
+    int   multiline{1};
 
     // Length of an infill anchor along the perimeter.
     // 1000mm is roughly the maximum length line that fits into a 32bit coord_t.
@@ -69,6 +79,14 @@ struct FillParams
     // Layer height for Concentric infill with Arachne.
     coordf_t    layer_height    { 0.f };
 
+    // For Lateral lattice
+    coordf_t    lateral_lattice_angle_1    { 0.f };
+    coordf_t    lateral_lattice_angle_2    { 0.f };
+    InfillPattern pattern{ ipRectilinear };
+
+    // For Lateral Honeycomb
+    float       infill_overhang_angle    { 60 };
+
     // BBS
     Flow            flow;
     ExtrusionRole   extrusion_role{ ExtrusionRole(0) };
@@ -78,6 +96,13 @@ struct FillParams
     const           PrintRegionConfig* config{ nullptr };
     bool            dont_sort{ false }; // do not sort the lines, just simply connect them
     bool            can_reverse{true};
+
+    float           horiz_move{0.0}; //move infill to get cross zag pattern
+    bool            symmetric_infill_y_axis{false};
+    coord_t         symmetric_y_axis{0};
+    bool            locked_zag{false};
+    float           infill_lock_depth{0.0};
+    float           skin_infill_depth{0.0};
 };
 static_assert(IsTriviallyCopyable<FillParams>::value, "FillParams class is not POD (and it should be - see constructor).");
 
@@ -94,8 +119,9 @@ public:
     coordf_t    overlap;
     // in radians, ccw, 0 = East
     float       angle;
-    // Orca: enable angle shifting for layer change
-    bool        rotate_angle{ true };
+
+    // Orca: Fill direction is fixed absolute angle if SurfaceFillParams.fixed_angle or config.ironing_angle_fixed
+    bool        fixed_angle{false};
     // In scaled coordinates. Maximum lenght of a perimeter segment connecting two infill lines.
     // Used by the FillRectilinear2, FillGrid2, FillTriangles, FillStars and FillCubic.
     // If left to zero, the links will not be limited.
@@ -128,20 +154,25 @@ public:
     static bool  use_bridge_flow(const InfillPattern type);
 
     void         set_bounding_box(const Slic3r::BoundingBox &bbox) { bounding_box = bbox; }
-
+    BoundingBox  extended_object_bounding_box() const;
     // Use bridge flow for the fill?
     virtual bool use_bridge_flow() const { return false; }
 
     // Do not sort the fill lines to optimize the print head path?
     virtual bool no_sort() const { return false; }
 
+    virtual bool is_self_crossing() = 0;
+
+    // Return true if infill has a consistent pattern between layers.
+    virtual bool has_consistent_pattern() const { return false; }
+
     // Perform the fill.
     virtual Polylines fill_surface(const Surface *surface, const FillParams &params);
     virtual ThickPolylines fill_surface_arachne(const Surface* surface, const FillParams& params);
-    
+    virtual void set_lock_region_param(const LockRegionParam &lock_param){};
     // BBS: this method is used to fill the ExtrusionEntityCollection.
     // It call fill_surface by default
-    virtual void fill_surface_extrusion(const Surface* surface, const FillParams& params, ExtrusionEntitiesPtr& out);
+    virtual void fill_surface_extrusion(const Surface *surface, const FillParams &params, ExtrusionEntitiesPtr &out);
 
 protected:
     Fill() :
@@ -152,7 +183,6 @@ protected:
         overlap(0.),
         // Initial angle is undefined.
         angle(FLT_MAX),
-        rotate_angle(true),
         link_max_length(0),
         loop_clipping(0),
         // The initial bounding box is empty, therefore undefined.
@@ -161,11 +191,11 @@ protected:
 
     // The expolygon may be modified by the method to avoid a copy.
     virtual void    _fill_surface_single(
-        const FillParams                & /* params */, 
+        const FillParams                & /* params */,
         unsigned int                      /* thickness_layers */,
-        const std::pair<float, Point>   & /* direction */, 
+        const std::pair<float, Point>   & /* direction */,
         ExPolygon                         /* expolygon */,
-        Polylines                       & /* polylines_out */) {};
+        Polylines                       & /* polylines_out */) {}
 
     // Used for concentric infill to generate ThickPolylines using Arachne.
     virtual void _fill_surface_single(const FillParams& params,
@@ -174,7 +204,7 @@ protected:
         ExPolygon                      expolygon,
         ThickPolylines& thick_polylines_out) {}
 
-    virtual float _layer_angle(size_t idx) const { return (rotate_angle && (idx & 1)) ? float(M_PI/2.) : 0; }
+    virtual float _layer_angle(size_t idx) const { return fixed_angle ? 0.f : (idx & 1) ? float(M_PI/2.) : 0.f; }
 
     virtual std::pair<float, Point> _infill_direction(const Surface *surface) const;
     
@@ -187,12 +217,15 @@ public:
     static void connect_infill(Polylines &&infill_ordered, const Polygons &boundary, const BoundingBox& bbox, Polylines &polylines_out, const double spacing, const FillParams &params);
     static void connect_infill(Polylines &&infill_ordered, const std::vector<const Polygon*> &boundary, const BoundingBox &bbox, Polylines &polylines_out, double spacing, const FillParams &params);
 
+    static void chain_or_connect_infill(Polylines &&infill_ordered, const ExPolygon &boundary, Polylines &polylines_out, const double spacing, const FillParams &params);
+
     static void connect_base_support(Polylines &&infill_ordered, const std::vector<const Polygon*> &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params);
     static void connect_base_support(Polylines &&infill_ordered, const Polygons &boundary_src, const BoundingBox &bbox, Polylines &polylines_out, const double spacing, const FillParams &params);
 
     static coord_t  _adjust_solid_spacing(const coord_t width, const coord_t distance);
 };
-
+   //Fill  Multiline 
+   void multiline_fill(Polylines& polylines, const FillParams& params, float spacing);
 } // namespace Slic3r
 
 #endif // slic3r_FillBase_hpp_

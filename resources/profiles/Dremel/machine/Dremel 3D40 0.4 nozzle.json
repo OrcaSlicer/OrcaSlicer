@@ -1,26 +1,26 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Dremel 3D40 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_dremel_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Dremel 3D40",
     "printer_variant": "0.4",
     "printer_structure": "hbot",
     "gcode_flavor": "marlin",
     "default_filament_profile": [
-      "Dremel Generic PLA @3D40 all"
+        "Dremel Generic PLA @3D40 all"
     ],
     "default_print_profile": ".20mm Standard @Dremel 3D40 0.4",
     "nozzle_diameter": [
-      "0.4"
+        "0.4"
     ],
     "printable_area": [
-        "0x0",
-        "255x0",
-        "255x155",
-        "0x155"
+        "-127.5x-77.5",
+        "97.5x-77.5",
+        "97.5x77.5",
+        "-127.5x77.5"
     ],
     "printable_height": "170",
     "nozzle_type": "undefine",
@@ -143,11 +143,12 @@
         "0",
         "0"
     ],
+    "use_relative_e_distances": "0",
     "machine_start_gcode": "G90\nG28\nM132 X Y Z A\nG1 Z100 F3300\nG1 X-110.5 Y-74 F6000\nM6 T0\nM907 X100 Y100 Z60 A100\nG1 Z0.6 F3300\nG4 P2000\nM108 T0",
     "machine_end_gcode": "M104 S0\nM140 S0\nG92 E1\nG1 E-1 F300\nG162 Z F600\nG162 X Y F2000\nM84",
     "thumbnails_format": "PNG",
     "thumbnails": [
         "96x96",
         "300x300"
-    ]    
+    ]
 }

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Metallic @System",
+    "inherits": "Panchroma PLA Metallic @base",
+    "from": "system",
+    "setting_id": "OGFSPM012",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

@@ -5,8 +5,8 @@
     "nozzle_diameter": "0.4",
     "machine_tech": "FFF",
     "family": "BIQU",
-    "bed_model": "biqu_hurakan_buildplate_model.stl",
-    "bed_texture": "biqu_hurakan_buildplate_texture.png",
+    "bed_model": "BIQU_Hurakan_buildplate_model.stl",
+    "bed_texture": "BIQU_Hurakan_buildplate_model.png",
     "hotend_model": "biqu_hurakan_hotend.stl",
-    "default_materials": "BIQU Generic PLA;BIQU Generic PETG;BIQU Generic ABS"
+    "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System"
 }

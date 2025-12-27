@@ -1,8 +1,8 @@
 {
     "type": "machine_model",
+    "name": "Anycubic Kobra 2 Plus",
     "machine_tech": "FFF",
     "family": "Anycubic",
-    "name": "Anycubic Kobra 2 Plus",
     "model_id": "Anycubic Kobra 2 Plus",
     "nozzle_diameter": "0.4",
     "bed_model": "Anycubic Kobra 2 Plus_buildplate_model.stl",

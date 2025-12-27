@@ -1,22 +1,22 @@
 /*******************************************************************************
 * Author    :  Angus Johnson                                                   *
-* Date      :  15 October 2022                                                 *
-* Website   :  http://www.angusj.com                                           *
-* Copyright :  Angus Johnson 2010-2022                                         *
+* Date      :  1 November 2023                                                 *
+* Website   :  https://www.angusj.com                                          *
+* Copyright :  Angus Johnson 2010-2023                                         *
 * Purpose   :  Minkowski Sum and Difference                                    *
-* License   :  http://www.boost.org/LICENSE_1_0.txt                            *
+* License   :  https://www.boost.org/LICENSE_1_0.txt                           *
 *******************************************************************************/
 
 #ifndef CLIPPER_MINKOWSKI_H
 #define CLIPPER_MINKOWSKI_H
 
-#include <cstdlib>
-#include <vector>
-#include <string>
-#include "clipper.core.h"
+#include "clipper2/clipper.core.h"
 
-namespace Clipper2Lib 
-{
+#ifdef USINGZ
+namespace Clipper2Lib_Z {
+#else
+namespace Clipper2Lib {
+#endif
 
   namespace detail
   {
@@ -35,7 +35,7 @@ namespace Clipper2Lib
           Path64 path2(pattern.size());
           std::transform(pattern.cbegin(), pattern.cend(),
             path2.begin(), [p](const Point64& pt2) {return p + pt2; });
-          tmp.push_back(path2);
+          tmp.emplace_back(std::move(path2));
         }
       }
       else
@@ -45,7 +45,7 @@ namespace Clipper2Lib
           Path64 path2(pattern.size());
           std::transform(pattern.cbegin(), pattern.cend(),
             path2.begin(), [p](const Point64& pt2) {return p - pt2; });
-          tmp.push_back(path2);
+          tmp.emplace_back(std::move(path2));
         }
       }
 
@@ -59,14 +59,14 @@ namespace Clipper2Lib
           Path64 quad;
           quad.reserve(4);
           {
-            quad.push_back(tmp[g][h]);
-            quad.push_back(tmp[i][h]);
-            quad.push_back(tmp[i][j]);
-            quad.push_back(tmp[g][j]);
+            quad.emplace_back(tmp[g][h]);
+            quad.emplace_back(tmp[i][h]);
+            quad.emplace_back(tmp[i][j]);
+            quad.emplace_back(tmp[g][j]);
           };
           if (!IsPositive(quad))
             std::reverse(quad.begin(), quad.end());
-          result.push_back(quad);
+          result.emplace_back(std::move(quad));
           h = j;
         }
         g = i;
@@ -92,11 +92,12 @@ namespace Clipper2Lib
 
   inline PathsD MinkowskiSum(const PathD& pattern, const PathD& path, bool isClosed, int decimalPlaces = 2)
   {
+    int error_code = 0;
     double scale = pow(10, decimalPlaces);
-    Path64 pat64 = ScalePath<int64_t, double>(pattern, scale);
-    Path64 path64 = ScalePath<int64_t, double>(path, scale);
+    Path64 pat64 = ScalePath<int64_t, double>(pattern, scale, error_code);
+    Path64 path64 = ScalePath<int64_t, double>(path, scale, error_code);
     Paths64 tmp = detail::Union(detail::Minkowski(pat64, path64, true, isClosed), FillRule::NonZero);
-    return ScalePaths<double, int64_t>(tmp, 1 / scale);
+    return ScalePaths<double, int64_t>(tmp, 1 / scale, error_code);
   }
 
   inline Paths64 MinkowskiDiff(const Path64& pattern, const Path64& path, bool isClosed)
@@ -106,11 +107,12 @@ namespace Clipper2Lib
 
   inline PathsD MinkowskiDiff(const PathD& pattern, const PathD& path, bool isClosed, int decimalPlaces = 2)
   {
+    int error_code = 0;
     double scale = pow(10, decimalPlaces);
-    Path64 pat64 = ScalePath<int64_t, double>(pattern, scale); 
-    Path64 path64 = ScalePath<int64_t, double>(path, scale);
+    Path64 pat64 = ScalePath<int64_t, double>(pattern, scale, error_code);
+    Path64 path64 = ScalePath<int64_t, double>(path, scale, error_code);
     Paths64 tmp = detail::Union(detail::Minkowski(pat64, path64, false, isClosed), FillRule::NonZero);
-    return ScalePaths<double, int64_t>(tmp, 1 / scale);
+    return ScalePaths<double, int64_t>(tmp, 1 / scale, error_code);
   }
 
 } // Clipper2Lib namespace

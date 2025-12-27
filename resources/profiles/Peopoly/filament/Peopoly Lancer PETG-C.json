@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFL99",
-    "setting_id": "GFSL99",
     "name": "Peopoly Lancer PETG-C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_petg",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "filament_id": "GFL99",
+    "instantiation": "true",
     "fan_cooling_layer_time": [
         "20"
     ],
@@ -18,10 +18,10 @@
     "filament_max_volumetric_speed": [
         "32"
     ],
-    "nozzle_temperature_initial_layer":[
+    "nozzle_temperature_initial_layer": [
         "235"
     ],
-    "nozzle_temperature":[
+    "nozzle_temperature": [
         "225"
     ],
     "filament_flow_ratio": [

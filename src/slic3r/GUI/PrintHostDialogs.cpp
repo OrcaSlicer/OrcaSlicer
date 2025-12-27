@@ -39,7 +39,7 @@ static const char *CONFIG_KEY_GROUP = "printhost_group";
 static const char* CONFIG_KEY_STORAGE = "printhost_storage";
 
 PrintHostSendDialog::PrintHostSendDialog(const fs::path &path, PrintHostPostUploadActions post_actions, const wxArrayString &groups, const wxArrayString& storage_paths, const wxArrayString& storage_names, bool switch_to_device_tab)
-    : MsgDialog(static_cast<wxWindow*>(wxGetApp().mainframe), _L("Send G-Code to printer host"), _L("Upload to Printer Host with the following filename:"), 0) // Set style = 0 to avoid default creation of the "OK" button. 
+    : MsgDialog(static_cast<wxWindow*>(wxGetApp().mainframe), _L("Send G-code to printer host"), _L("Upload to Printer Host with the following filename:"), 0) // Set style = 0 to avoid default creation of the "OK" button. 
                                                                                                                                                                // All buttons will be added later in this constructor 
     , txt_filename(new wxTextCtrl(this, wxID_ANY))
     , combo_groups(!groups.IsEmpty() ? new wxComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, groups, wxCB_READONLY) : nullptr)
@@ -47,11 +47,22 @@ PrintHostSendDialog::PrintHostSendDialog(const fs::path &path, PrintHostPostUplo
     , post_upload_action(PrintHostPostUploadAction::None)
     , m_paths(storage_paths)
     , m_switch_to_device_tab(switch_to_device_tab)
+    , m_path(path)
+    , m_post_actions(post_actions)
+    , m_storage_names(storage_names)
 {
 #ifdef __APPLE__
     txt_filename->OSXDisableAllSmartSubstitutions();
 #endif
-    const AppConfig *app_config = wxGetApp().app_config;
+}
+void PrintHostSendDialog::init()
+{
+    const auto& path = m_path;
+    const auto& storage_paths = m_paths;
+    const auto& post_actions = m_post_actions;
+    const auto& storage_names = m_storage_names;
+
+    const AppConfig* app_config = wxGetApp().app_config;
 
     auto *label_dir_hint = new wxStaticText(this, wxID_ANY, _L("Use forward slashes ( / ) as a directory separator if needed."));
     label_dir_hint->Wrap(CONTENT_WIDTH * wxGetApp().em_unit());
@@ -216,7 +227,7 @@ std::string PrintHostSendDialog::storage() const
         return GUI::format("%1%", m_preselected_storage);
     if (combo_storage->GetSelection() < 0 || combo_storage->GetSelection() >= int(m_paths.size()))
         return {};
-    return boost::nowide::narrow(m_paths[combo_storage->GetSelection()]);
+    return into_u8(m_paths[combo_storage->GetSelection()]);
 }
 
 void PrintHostSendDialog::EndModal(int ret)
@@ -382,7 +393,7 @@ void PrintHostQueueDialog::append_job(const PrintHostJob &job)
     wxVector<wxVariant> fields;
     fields.push_back(wxVariant(wxString::Format("%d", job_list->GetItemCount() + 1)));
     fields.push_back(wxVariant(0));
-    fields.push_back(wxVariant(_L("Enqueued")));
+    fields.push_back(wxVariant(_L("Queued")));
     fields.push_back(wxVariant(job.printhost->get_host()));
     boost::system::error_code ec;
     boost::uintmax_t size_i = boost::filesystem::file_size(job.upload_data.source_path, ec);
@@ -437,11 +448,11 @@ void PrintHostQueueDialog::set_state(int idx, JobState state)
     job_list->SetItemData(job_list->RowToItem(idx), static_cast<wxUIntPtr>(state));
 
     switch (state) {
-        case ST_NEW:        job_list->SetValue(_L("Enqueued"), idx, COL_STATUS); break;
+        case ST_NEW:        job_list->SetValue(_L("Queued"), idx, COL_STATUS); break;
         case ST_PROGRESS:   job_list->SetValue(_L("Uploading"), idx, COL_STATUS); break;
         case ST_ERROR:      job_list->SetValue(_L("Error"), idx, COL_STATUS); break;
-        case ST_CANCELLING: job_list->SetValue(_L("Cancelling"), idx, COL_STATUS); break;
-        case ST_CANCELLED:  job_list->SetValue(_L("Cancelled"), idx, COL_STATUS); break;
+        case ST_CANCELLING: job_list->SetValue(_L("Canceling"), idx, COL_STATUS); break;
+        case ST_CANCELLED:  job_list->SetValue(_L("Canceled"), idx, COL_STATUS); break;
         case ST_COMPLETED:  job_list->SetValue(_L("Completed"), idx, COL_STATUS); break;
     }
     // This might be ambigous call, but user data needs to be saved time to time
@@ -480,7 +491,7 @@ void PrintHostQueueDialog::on_progress(Event &evt)
         wxVariant nm, hst;
         job_list->GetValue(nm, evt.job_id, COL_FILENAME);
         job_list->GetValue(hst, evt.job_id, COL_HOST);
-        wxGetApp().notification_manager()->set_upload_job_notification_percentage(evt.job_id + 1, boost::nowide::narrow(nm.GetString()), boost::nowide::narrow(hst.GetString()), evt.progress / 100.f);
+        wxGetApp().notification_manager()->set_upload_job_notification_percentage(evt.job_id + 1, into_u8(nm.GetString()), into_u8(hst.GetString()), evt.progress / 100.f);
     }
 }
 
@@ -501,7 +512,7 @@ void PrintHostQueueDialog::on_error(Event &evt)
     wxVariant nm, hst;
     job_list->GetValue(nm, evt.job_id, COL_FILENAME);
     job_list->GetValue(hst, evt.job_id, COL_HOST);
-    wxGetApp().notification_manager()->upload_job_notification_show_error(evt.job_id + 1, boost::nowide::narrow(nm.GetString()), boost::nowide::narrow(hst.GetString()));
+    wxGetApp().notification_manager()->upload_job_notification_show_error(evt.job_id + 1, into_u8(nm.GetString()), into_u8(hst.GetString()));
 }
 
 void PrintHostQueueDialog::on_cancel(Event &evt)
@@ -516,7 +527,7 @@ void PrintHostQueueDialog::on_cancel(Event &evt)
     wxVariant nm, hst;
     job_list->GetValue(nm, evt.job_id, COL_FILENAME);
     job_list->GetValue(hst, evt.job_id, COL_HOST);
-    wxGetApp().notification_manager()->upload_job_notification_show_canceled(evt.job_id + 1, boost::nowide::narrow(nm.GetString()), boost::nowide::narrow(hst.GetString()));
+    wxGetApp().notification_manager()->upload_job_notification_show_canceled(evt.job_id + 1, into_u8(nm.GetString()), into_u8(hst.GetString()));
 }
 
 void PrintHostQueueDialog::on_info(Event& evt)
@@ -527,17 +538,17 @@ void PrintHostQueueDialog::on_info(Event& evt)
     if (evt.tag == L"resolve") {
         wxVariant hst(evt.status);
         job_list->SetValue(hst, evt.job_id, COL_HOST);
-        wxGetApp().notification_manager()->set_upload_job_notification_host(evt.job_id + 1, boost::nowide::narrow(evt.status));
+        wxGetApp().notification_manager()->set_upload_job_notification_host(evt.job_id + 1, into_u8(evt.status));
     } else if (evt.tag == L"complete") {
         wxVariant hst(evt.status);
         job_list->SetValue(hst, evt.job_id, COL_ERRORMSG);
         wxGetApp().notification_manager()->set_upload_job_notification_completed(evt.job_id + 1);
-        wxGetApp().notification_manager()->set_upload_job_notification_status(evt.job_id + 1, boost::nowide::narrow(evt.status));
+        wxGetApp().notification_manager()->set_upload_job_notification_status(evt.job_id + 1, into_u8(evt.status));
     } else if(evt.tag == L"complete_with_warning"){
         wxVariant hst(evt.status);
         job_list->SetValue(hst, evt.job_id, COL_ERRORMSG);
         wxGetApp().notification_manager()->set_upload_job_notification_completed_with_warning(evt.job_id + 1);
-        wxGetApp().notification_manager()->set_upload_job_notification_status(evt.job_id + 1, boost::nowide::narrow(evt.status));
+        wxGetApp().notification_manager()->set_upload_job_notification_status(evt.job_id + 1, into_u8(evt.status));
     } else if (evt.tag == L"set_complete_off") {
         wxGetApp().notification_manager()->set_upload_job_notification_comp_on_100(evt.job_id + 1, false);
     }
@@ -614,4 +625,331 @@ bool PrintHostQueueDialog::load_user_data(int udt, std::vector<int>& vector)
     }
     return true;
 }
+
+ElegooPrintHostSendDialog::ElegooPrintHostSendDialog(const fs::path&            path,
+                                                     PrintHostPostUploadActions post_actions,
+                                                     const wxArrayString&       groups,
+                                                     const wxArrayString&       storage_paths,
+                                                     const wxArrayString&       storage_names,
+                                                     bool                       switch_to_device_tab)
+    : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
+    , m_timeLapse(0)
+    , m_heatedBedLeveling(0)
+    , m_BedType(BedType::btPTE)
+{}
+
+void ElegooPrintHostSendDialog::init() {
+
+    auto preset_bundle = wxGetApp().preset_bundle;
+    auto model_id = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+
+    if (!(model_id == "Elegoo-CC" || model_id == "Elegoo-C")) {
+        PrintHostSendDialog::init();
+        return;
+    }
+           
+    const auto& path = m_path;
+    const auto& storage_paths = m_paths;
+    const auto& post_actions  = m_post_actions;
+    const auto& storage_names = m_storage_names;
+
+    this->SetMinSize(wxSize(500, 300));
+    const AppConfig* app_config = wxGetApp().app_config;
+
+    std::string uploadAndPrint = app_config->get("recent", CONFIG_KEY_UPLOADANDPRINT);
+    if (!uploadAndPrint.empty())
+        post_upload_action = static_cast<PrintHostPostUploadAction>(std::stoi(uploadAndPrint));
+
+    std::string timeLapse = app_config->get("recent", CONFIG_KEY_TIMELAPSE);
+    if (!timeLapse.empty())
+        m_timeLapse = std::stoi(timeLapse);
+    std::string heatedBedLeveling = app_config->get("recent", CONFIG_KEY_HEATEDBEDLEVELING);
+    if (!heatedBedLeveling.empty())
+        m_heatedBedLeveling = std::stoi(heatedBedLeveling);
+    std::string bedType = app_config->get("recent", CONFIG_KEY_BEDTYPE);
+    if (!bedType.empty())
+        m_BedType = static_cast<BedType>(std::stoi(bedType));
+
+    auto* label_dir_hint = new wxStaticText(this, wxID_ANY, _L("Use forward slashes ( / ) as a directory separator if needed."));
+    label_dir_hint->Wrap(CONTENT_WIDTH * wxGetApp().em_unit());
+
+    wxSizerFlags flags = wxSizerFlags().Border(wxRIGHT, 16).Expand();
+
+    content_sizer->Add(txt_filename, flags);
+    content_sizer->AddSpacer(4);
+    content_sizer->Add(label_dir_hint);
+    content_sizer->AddSpacer(VERT_SPACING);
+
+    if (combo_groups != nullptr) {
+        // Repetier specific: Show a selection of file groups.
+        auto* label_group = new wxStaticText(this, wxID_ANY, _L("Group"));
+        content_sizer->Add(label_group);
+        content_sizer->Add(combo_groups, 0, wxBOTTOM, 2 * VERT_SPACING);
+        wxString recent_group = from_u8(app_config->get("recent", CONFIG_KEY_GROUP));
+        if (!recent_group.empty())
+            combo_groups->SetValue(recent_group);
+    }
+
+    if (combo_storage != nullptr) {
+        // PrusaLink specific: User needs to choose a storage
+        auto* label_group = new wxStaticText(this, wxID_ANY, _L("Upload to storage") + ":");
+        content_sizer->Add(label_group);
+        content_sizer->Add(combo_storage, 0, wxBOTTOM, 2 * VERT_SPACING);
+        combo_storage->SetValue(storage_names.front());
+        wxString recent_storage = from_u8(app_config->get("recent", CONFIG_KEY_STORAGE));
+        if (!recent_storage.empty())
+            combo_storage->SetValue(recent_storage);
+    } else if (storage_names.GetCount() == 1) {
+        // PrusaLink specific: Show which storage has been detected.
+        auto* label_group = new wxStaticText(this, wxID_ANY, _L("Upload to storage") + ": " + storage_names.front());
+        content_sizer->Add(label_group);
+        m_preselected_storage = m_paths.front();
+    }
+
+    wxString recent_path = from_u8(app_config->get("recent", CONFIG_KEY_PATH));
+    if (recent_path.Length() > 0 && recent_path[recent_path.Length() - 1] != '/') {
+        recent_path += '/';
+    }
+    const auto recent_path_len = recent_path.Length();
+    recent_path += path.filename().wstring();
+    wxString   stem(path.stem().wstring());
+    const auto stem_len = stem.Length();
+
+    txt_filename->SetValue(recent_path);
+
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this, wxID_APPLY);
+        checkbox->SetValue(m_switch_to_device_tab);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            m_switch_to_device_tab = e.IsChecked();
+            e.Skip();
+        });
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Switch to Device tab after upload."), wxDefaultPosition, wxDefaultSize, 0);
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        content_sizer->Add(checkbox_sizer);
+        content_sizer->AddSpacer(VERT_SPACING);
+    }
+    warning_text = new wxStaticText(this, wxID_ANY,
+                                    _L("The selected bed type does not match the file. Please confirm before starting the print."),
+                                    wxDefaultPosition, wxDefaultSize, 0);
+    uploadandprint_sizer = new wxBoxSizer(wxVERTICAL);
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this);
+        checkbox->SetValue(post_upload_action == PrintHostPostUploadAction::StartPrint);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            if (e.IsChecked()) {
+                post_upload_action = PrintHostPostUploadAction::StartPrint;
+            } else {
+                post_upload_action = PrintHostPostUploadAction::None;
+            }
+            refresh();
+            e.Skip();
+        });
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Upload and Print"), wxDefaultPosition, wxDefaultSize, 0);
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        content_sizer->Add(checkbox_sizer);
+        content_sizer->AddSpacer(VERT_SPACING);
+    }
+
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this);
+        checkbox->SetValue(m_timeLapse == 1);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            m_timeLapse = e.IsChecked() ? 1 : 0;
+            e.Skip();
+        });
+        checkbox_sizer->AddSpacer(16);
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Time-lapse"), wxDefaultPosition, wxDefaultSize, 0);
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        uploadandprint_sizer->Add(checkbox_sizer);
+        uploadandprint_sizer->AddSpacer(VERT_SPACING);
+    }
+
+    {
+        auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto checkbox       = new ::CheckBox(this);
+        checkbox->SetValue(m_heatedBedLeveling == 1);
+        checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            m_heatedBedLeveling = e.IsChecked() ? 1 : 0;
+            e.Skip();
+        });
+        checkbox_sizer->AddSpacer(16);
+        checkbox_sizer->Add(checkbox, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+        auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Heated Bed Leveling"), wxDefaultPosition, wxDefaultSize, 0);
+        checkbox_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+        checkbox_text->SetFont(::Label::Body_13);
+        checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        uploadandprint_sizer->Add(checkbox_sizer);
+        uploadandprint_sizer->AddSpacer(VERT_SPACING);
+    }
+
+    {
+        auto radioBoxA = new ::RadioBox(this);
+        auto radioBoxB = new ::RadioBox(this);
+        if (m_BedType == BedType::btPC)
+            radioBoxB->SetValue(true);
+        else
+            radioBoxA->SetValue(true);
+
+        radioBoxA->Bind(wxEVT_LEFT_DOWN, [this, radioBoxA, radioBoxB](wxMouseEvent& e) {
+            radioBoxA->SetValue(true);
+            radioBoxB->SetValue(false);
+            m_BedType = BedType::btPTE;
+            refresh();
+        });
+        radioBoxB->Bind(wxEVT_LEFT_DOWN, [this, radioBoxA, radioBoxB](wxMouseEvent& e) {
+            radioBoxA->SetValue(false);
+            radioBoxB->SetValue(true);
+            m_BedType = BedType::btPC;
+            refresh();
+        });
+
+        {
+            auto radio_sizer = new wxBoxSizer(wxHORIZONTAL);
+            radio_sizer->AddSpacer(16);
+            radio_sizer->Add(radioBoxA, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+            auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Textured Build Plate (Side A)"), wxDefaultPosition, wxDefaultSize, 0);
+            radio_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+            checkbox_text->SetFont(::Label::Body_13);
+            checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+            uploadandprint_sizer->Add(radio_sizer);
+            uploadandprint_sizer->AddSpacer(VERT_SPACING);
+        }
+        {
+            auto radio_sizer = new wxBoxSizer(wxHORIZONTAL);
+            radio_sizer->AddSpacer(16);
+            radio_sizer->Add(radioBoxB, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+
+            auto checkbox_text = new wxStaticText(this, wxID_ANY, _L("Smooth Build Plate (Side B)"), wxDefaultPosition, wxDefaultSize, 0);
+            radio_sizer->Add(checkbox_text, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+            checkbox_text->SetFont(::Label::Body_13);
+            checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+            uploadandprint_sizer->Add(radio_sizer);
+            uploadandprint_sizer->AddSpacer(VERT_SPACING);
+        }
+    }
+    {
+        auto h_sizer = new wxBoxSizer(wxHORIZONTAL);
+        warning_text->SetFont(::Label::Body_13);
+        warning_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#FF1001")));
+        // wrapping the text
+        warning_text->Wrap(350);
+        h_sizer->AddSpacer(16);
+        h_sizer->Add(warning_text);
+
+        uploadandprint_sizer->Add(h_sizer);
+        uploadandprint_sizer->AddSpacer(VERT_SPACING);
+    }
+
+    content_sizer->Add(uploadandprint_sizer);
+    uploadandprint_sizer->Show(post_upload_action == PrintHostPostUploadAction::StartPrint);
+    warning_text->Show(post_upload_action == PrintHostPostUploadAction::StartPrint && appBedType() != m_BedType);
+
+    uploadandprint_sizer->Layout();
+
+    if (size_t extension_start = recent_path.find_last_of('.'); extension_start != std::string::npos)
+        m_valid_suffix = recent_path.substr(extension_start);
+    // .gcode suffix control
+    auto validate_path = [this](const wxString& path) -> bool {
+        if (!path.Lower().EndsWith(m_valid_suffix.Lower())) {
+            MessageDialog msg_wingow(this,
+                                     wxString::Format(_L("Upload filename doesn't end with \"%s\". Do you wish to continue?"),
+                                                      m_valid_suffix),
+                                     wxString(SLIC3R_APP_NAME), wxYES | wxNO);
+            if (msg_wingow.ShowModal() == wxID_NO)
+                return false;
+        }
+        return true;
+    };
+
+    auto* btn_ok = add_button(wxID_OK, true, _L("Upload"));
+    btn_ok->Bind(wxEVT_BUTTON, [this, validate_path](wxCommandEvent&) {
+        if (validate_path(txt_filename->GetValue())) {
+            // post_upload_action = PrintHostPostUploadAction::None;
+            EndDialog(wxID_OK);
+        }
+    });
+    txt_filename->SetFocus();
+
+    add_button(wxID_CANCEL, false, _L("Cancel"));
+    finalize();
+
+#ifdef __linux__
+    // On Linux with GTK2 when text control lose the focus then selection (colored background) disappears but text color stay white
+    // and as a result the text is invisible with light mode
+    // see https://github.com/prusa3d/PrusaSlicer/issues/4532
+    // Workaround: Unselect text selection explicitly on kill focus
+    txt_filename->Bind(
+        wxEVT_KILL_FOCUS,
+        [this](wxEvent& e) {
+            e.Skip();
+            txt_filename->SetInsertionPoint(txt_filename->GetLastPosition());
+        },
+        txt_filename->GetId());
+#endif /* __linux__ */
+
+    Bind(wxEVT_SHOW, [=](const wxShowEvent&) {
+        // Another similar case where the function only works with EVT_SHOW + CallAfter,
+        // this time on Mac.
+        CallAfter([=]() {
+            txt_filename->SetInsertionPoint(0);
+            txt_filename->SetSelection(recent_path_len, recent_path_len + stem_len);
+        });
+    });
+}
+
+void ElegooPrintHostSendDialog::EndModal(int ret)
+{
+    if (ret == wxID_OK) {
+
+        AppConfig* app_config = wxGetApp().app_config;
+        app_config->set("recent", CONFIG_KEY_UPLOADANDPRINT, std::to_string(static_cast<int>(post_upload_action)));
+        app_config->set("recent", CONFIG_KEY_TIMELAPSE, std::to_string(m_timeLapse));
+        app_config->set("recent", CONFIG_KEY_HEATEDBEDLEVELING, std::to_string(m_heatedBedLeveling));
+        app_config->set("recent", CONFIG_KEY_BEDTYPE, std::to_string(static_cast<int>(m_BedType)));
+    }
+
+    PrintHostSendDialog::EndModal(ret);
+}
+
+BedType ElegooPrintHostSendDialog::appBedType() const
+{
+    std::string str_bed_type = wxGetApp().app_config->get("curr_bed_type");
+    int bed_type_value = atoi(str_bed_type.c_str());
+    return static_cast<BedType>(bed_type_value);
+}
+
+void ElegooPrintHostSendDialog::refresh()
+{
+    if (uploadandprint_sizer) {
+        if (post_upload_action == PrintHostPostUploadAction::StartPrint) {
+            uploadandprint_sizer->Show(true);
+        } else {
+            uploadandprint_sizer->Show(false);
+        }
+    }
+    if (warning_text) {
+        warning_text->Show(post_upload_action == PrintHostPostUploadAction::StartPrint && appBedType() != m_BedType);
+    }
+    this->Layout();
+    this->Fit();
+}
+
 }}

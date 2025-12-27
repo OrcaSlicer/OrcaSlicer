@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Generic TPU @E3NG v1.2S",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "",
+    "filament_id": "Generic TPU @E3NG v1.2S",
+    "instantiation": "true",
+    "compatible_printers": [
+        "E3NG v1.2S - 0.4 nozzle",
+        "E3NG v1.2S - 0.5 nozzle",
+        "E3NG v1.2S - 0.6 nozzle"
+    ]
+}

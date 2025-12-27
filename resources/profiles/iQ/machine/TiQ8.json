@@ -1,0 +1,11 @@
+{
+    "type": "machine_model",
+    "name": "TiQ8",
+    "model_id": "TiQ8",
+    "nozzle_diameter": "0.25;0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "TiQ",
+    "bed_model": "TiQ8.stl",
+    "bed_texture": "TiQ8_texture.png",
+    "default_materials": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle"
+}

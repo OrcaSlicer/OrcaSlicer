@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFU01",
     "name": "Arena TPU 95A @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "GFU01",
+    "instantiation": "false",
     "filament_vendor": [
         "Orca Arena"
     ],

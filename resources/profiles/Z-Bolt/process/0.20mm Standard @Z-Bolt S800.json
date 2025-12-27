@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @Z-Bolt S800",
+    "inherits": "fdm_process_zbolt_0.20",
+    "from": "system",
+    "setting_id": "GP311",
+    "instantiation": "true",
+    "description": "It has a general layer height, and results in general layer lines and printing quality. It is suitable for most general printing cases.",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Z-Bolt S800 Dual 0.4 nozzle"
+    ]
+}

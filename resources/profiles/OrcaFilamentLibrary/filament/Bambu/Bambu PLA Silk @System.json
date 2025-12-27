@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Silk @System",
+    "inherits": "Bambu PLA Silk @base",
+    "from": "system",
+    "setting_id": "OGFSA05_01",
+    "instantiation": "true",
+    "compatible_printers": []
+}

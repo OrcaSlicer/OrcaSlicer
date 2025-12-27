@@ -8,5 +8,5 @@
     "bed_model": "Folgertech_FT5_buildplate_model.stl",
     "bed_texture": "Folgertech_FT5_buildplate_texture.png",
     "hotend_model": "hotend.stl",
-    "default_materials": "Folgertech Generic PLA;Folgertech Generic PETG;Folgertech Generic ABS;"
+    "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System;"
 }

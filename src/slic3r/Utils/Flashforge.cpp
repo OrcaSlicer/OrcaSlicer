@@ -33,51 +33,100 @@ namespace pt = boost::property_tree;
 
 namespace Slic3r {
 
-Flashforge::Flashforge(DynamicPrintConfig* config) : m_host(config->opt_string("print_host")), m_console_port("8899")
-{
-}
+Flashforge::Flashforge(DynamicPrintConfig* config)
+    : m_host(config->opt_string("print_host"))
+    , m_console_port("8899")
+    , m_gcFlavor(config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value)
+    , m_bufferSize(4096) // 4K buffer size
+{}
 
 const char* Flashforge::get_name() const { return "Flashforge"; }
 
 bool Flashforge::test(wxString& msg) const
 {
-    BOOST_LOG_TRIVIAL(debug) << boost::format("[Flashforge] testing connection");
+    BOOST_LOG_TRIVIAL(debug) << boost::format("[Flashforge Serial] testing connection");
     // Utils::TCPConsole console(m_host, m_console_port);
     Utils::TCPConsole client(m_host, m_console_port);
     client.enqueue_cmd(controlCommand);
     bool res = client.run_queue();
     if (!res) {
         msg = wxString::FromUTF8(client.error_message().c_str());
-        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] testing connection failed");
+        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] testing connection failed");
     } else {
-        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] testing connection success");
+        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] testing connection success");
     }
     return res;
 }
 
-wxString Flashforge::get_test_ok_msg() const { return _(L("Connection to Flashforge works correctly.")); }
+wxString Flashforge::get_test_ok_msg() const { return _(L("Serial connection to Flashforge is working correctly.")); }
 
 wxString Flashforge::get_test_failed_msg(wxString& msg) const
 {
-    return GUI::from_u8((boost::format("%s: %s") % _utf8(L("Could not connect to Flashforge")) % std::string(msg.ToUTF8())).str());
+    return GUI::from_u8((boost::format("%s: %s") % _utf8(L("Could not connect to Flashforge via serial")) % std::string(msg.ToUTF8())).str());
+}
+
+
+bool Flashforge::connect(wxString& msg) const
+{
+    
+    Utils::TCPConsole client(m_host, m_console_port);
+
+    client.enqueue_cmd(controlCommand);
+    client.enqueue_cmd(deviceInfoCommand);
+
+    if (m_gcFlavor == gcfKlipper)
+        client.enqueue_cmd(connectKlipperCommand);
+    else {
+        client.enqueue_cmd(connectLegacyCommand);
+
+    }
+
+    client.enqueue_cmd(statusCommand);
+    
+
+    bool res = client.run_queue();
+
+    if (!res) {
+        msg = wxString::FromUTF8(client.error_message().c_str());
+        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Failed to initiate connection");
+    } else
+        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Successfully initiated Connection");
+
+    return res;
+}
+
+bool Flashforge::start_print(wxString& msg, const std::string& filename) const
+{
+    Utils::TCPConsole            client(m_host, m_console_port);
+    Slic3r::Utils::SerialMessage startPrintCommand = {(boost::format("~M23 0:/user/%1%") % filename).str(), Slic3r::Utils::Command};
+    client.enqueue_cmd(startPrintCommand);
+    bool res = client.run_queue();
+
+    if (!res) {
+        msg = wxString::FromUTF8(client.error_message().c_str());
+        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Failed to start print %1%") % filename;
+    } else
+        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Started print %1%") % filename;
+
+    return res;
 }
 
 bool Flashforge::upload(PrintHostUpload upload_data, ProgressFn progress_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
     bool res = true;
+    wxString errormsg;
 
     Utils::TCPConsole client(m_host, m_console_port);
-    client.enqueue_cmd(controlCommand);
-   
-    client.enqueue_cmd(connect5MCommand);
-   
-    client.enqueue_cmd(statusCommand);
-    wxString errormsg;
+
     try {
+
+        res = connect(errormsg);
+
         std::ifstream newfile;
         newfile.open(upload_data.source_path.c_str(), std::ios::binary); // open a file to perform read operation using file object
+        std::string gcodeFile;
         if (newfile.is_open()) {                                         // checking whether the file is open
-            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] Reading file...");
+            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Reading file...");
             newfile.seekg(0, std::ios::end);
             std::ifstream::pos_type pos = newfile.tellg();
 
@@ -85,37 +134,55 @@ bool Flashforge::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Err
 
             newfile.seekg(0, std::ios::beg);
             newfile.read(&result[0], pos);
-            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] Reading file...done size is %1%") % result.size();
 
-            Slic3r::Utils::SerialMessage fileuploadCommand =
-                {(boost::format("~M28 %1% 0:/user/%2%") % result.size() % upload_data.upload_path.generic_string()).str(),
-                 Slic3r::Utils::Command};
-            client.enqueue_cmd(fileuploadCommand);
-            Slic3r::Utils::SerialMessage dataCommand = {std::string(result.begin(), result.end()), Slic3r::Utils::Data};
-            client.enqueue_cmd(dataCommand);
+            gcodeFile = std::string(result.begin(), result.end()); // TODO: Find more efficient way of breaking ifstream
+
+            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Reading file...done size is %1%") % gcodeFile.size();
+
             newfile.close(); // close the file object.
-            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] Sent %1% ") % result.size();
         }
-        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] Sending file save command ");
-        client.enqueue_cmd(saveFileCommand);
-        if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
-            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] Starting print %1%") % upload_data.upload_path.string();
-            Slic3r::Utils::SerialMessage startPrintCommand = {(boost::format("~M23 0:/user/%1%") % upload_data.upload_path.string()).str(),
-                                                              Slic3r::Utils::Command};
-            client.enqueue_cmd(startPrintCommand);
+        Slic3r::Utils::SerialMessage fileuploadCommand =
+            {(boost::format("~M28 %1% 0:/user/%2%") % gcodeFile.size() % upload_data.upload_path.generic_string()).str(),
+             Slic3r::Utils::Command};
+        client.enqueue_cmd(fileuploadCommand);
+
+        //client.set_tcp_queue_delay(std::chrono::nanoseconds(10000));
+
+        for (int bytePos = 0; bytePos < gcodeFile.size(); bytePos += m_bufferSize) { // TODO: Find more efficient way of breaking ifstream
+
+            int bytePosEnd  = (gcodeFile.size() - bytePos > m_bufferSize - 1) ? m_bufferSize : gcodeFile.size();
+            Slic3r::Utils::SerialMessage dataCommand = {gcodeFile.substr(bytePos, bytePosEnd), Slic3r::Utils::Data}; // Break into smaller byte chunks
+
+            client.enqueue_cmd(dataCommand);
+
         }
 
         res = client.run_queue();
 
+        if (res)
+            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Sent %1% ") % gcodeFile.size();
+
+
         if (!res) {
-            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] error %1%") % client.error_message().c_str();
+            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] error %1%") % client.error_message().c_str();
             errormsg = wxString::FromUTF8(client.error_message().c_str());
-        }
-        if (!res) {
             error_fn(std::move(errormsg));
+        } else {
+
+            client.set_tcp_queue_delay(std::chrono::milliseconds(3000));
+
+            BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] Sending file save command ");
+            
+            client.enqueue_cmd(saveFileCommand);
+
+            res = client.run_queue();
+
+            if (upload_data.post_action == PrintHostPostUploadAction::StartPrint)
+                res = start_print(errormsg, upload_data.upload_path.string());
         }
+
     } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge] error %1%") % e.what();
+        BOOST_LOG_TRIVIAL(info) << boost::format("[Flashforge Serial] error %1%") % e.what();
         errormsg = wxString::FromUTF8(e.what());
         error_fn(std::move(errormsg));
     }

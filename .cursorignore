@@ -1,0 +1,10 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+deps/
+build_*/
+build/
+localization/
+sandboxes/
+resources/*
+!resources/web/
+!resources/dailytip
+!resources/shaders

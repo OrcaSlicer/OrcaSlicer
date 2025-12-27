@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Luminous @System",
+    "inherits": "Panchroma PLA Luminous @base",
+    "from": "system",
+    "setting_id": "OGFSPM011",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

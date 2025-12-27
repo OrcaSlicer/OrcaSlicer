@@ -48,8 +48,8 @@ using SplitNode = std::vector<ClipperZUtils::ZPath*>;
 static bool point_on_line(const Point& p, const Line& l)
 {
     // Check collinear
-    const auto d1 = l.b - l.a;
-    const auto d2 = p - l.a;
+    const Vec2crd d1 = l.b - l.a;
+    const Vec2crd d2 = p - l.a;
     if (d1.x() * d2.y() != d1.y() * d2.x()) { 
         return false;
     }
@@ -200,7 +200,7 @@ SplittedLine do_split_line(const ClipperZUtils::ZPath& path, const ExPolygons& c
 
             // Chain segment back to the original path
             ClipperZUtils::ZPoint& front = segment.front();
-            const ClipperZUtils::ZPoint* previous_src_point;
+            const ClipperZUtils::ZPoint* previous_src_point = nullptr;
             if (is_src(front)) {
                 // The segment starts with a point from src path, which means apart from the last point,
                 // all other points on this segment should come from the src path or the clip polygon

@@ -1,0 +1,29 @@
+{
+    "type": "filament",
+    "name": "Tiertime PC",
+    "inherits": "fdm_filament_pc",
+    "from": "system",
+    "filament_id": "GFC00",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Tiertime"
+    ],
+    "filament_cost": [
+        "39.99"
+    ],
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "fan_max_speed": [
+        "40"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.4 nozzle",
+        "Tiertime UP400 Pro 0.6 nozzle",
+        "Tiertime UP400 Pro 0.8 nozzle",
+        "Tiertime UP310 Pro 0.4 nozzle"
+    ]
+}

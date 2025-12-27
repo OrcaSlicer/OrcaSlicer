@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "HATCHBOX PLA @Qidi Q2 0.6 nozzle",
+    "inherits": "HATCHBOX PLA@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.016"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.6 nozzle"
+    ]
+}

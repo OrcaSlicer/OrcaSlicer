@@ -1,8 +1,8 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker ABS @base",
-  "filament_id": "3811508002",
-  "inherits": "fdm_filament_abs"
+    "type": "filament",
+    "name": "Snapmaker ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "3811508002",
+    "instantiation": "false"
 }

@@ -7,6 +7,7 @@
 #include "MsgDialog.hpp"
 #include "format.hpp"
 #include "Widgets/StaticLine.hpp"
+#include "Widgets/LabeledStaticBox.hpp"
 
 #include <utility>
 #include <wx/bookctrl.h>
@@ -21,8 +22,8 @@
 
 namespace Slic3r { namespace GUI {
 
-	// BBS: new layout
-	constexpr int titleWidth = 20;
+// BBS: new layout
+constexpr int titleWidth = 20;
 
 const t_field& OptionsGroup::build_field(const Option& opt) {
     return build_field(opt.opt_id, opt.opt);
@@ -154,6 +155,21 @@ void OptionsGroup::set_max_win_width(int max_win_width)
         custom_ctrl->set_max_win_width(max_win_width);
 }
 
+void OptionsGroup::remove_option_if(std::function<bool(std::string const &)> const &comp)
+{
+    for (auto &l : m_lines) {
+        auto &opts = const_cast<std::vector<Option> &>(l.get_options());
+        opts.erase(std::remove_if(opts.begin(), opts.end(), [&comp](Option &o) { return comp(o.opt.opt_key); }), opts.end());
+        l.undo_to_sys = true;
+    }
+    for (int i = m_lines.size() - 1; i >= 0; --i) {
+        if (m_lines[i].get_options().empty())
+            m_options_mode.erase(m_options_mode.begin() + i);
+    }
+    m_lines.erase(std::remove_if(m_lines.begin(), m_lines.end(), [](auto &l) { return l.get_options().empty(); }), m_lines.end());
+    // TODO: remove items from g->m_options;
+}
+
 void OptionsGroup::show_field(const t_config_option_key& opt_key, bool show/* = true*/)
 {
     Field* field = get_field(opt_key);
@@ -228,12 +244,11 @@ void OptionsGroup::append_line(const Line& line)
 //BBS: get line for opt_key
 Line* OptionsGroup::get_line(const std::string& opt_key)
 {
-    for (auto& l : m_lines)
+    for (int index = 0; index < m_lines.size(); index++)
     {
-        if(l.is_separator())
-            continue;
-        if (l.get_first_option_key() == opt_key)
-            return &l;
+        for (auto & opt : m_lines[index].get_options())
+            if (opt.opt_id == opt_key)
+                return &(m_lines[index]);
     }
 
     return nullptr;
@@ -257,10 +272,10 @@ void OptionsGroup::activate_line(Line& line)
         ) {
         // BBS: new layout
         const auto h_sizer = new wxBoxSizer(wxHORIZONTAL);
-        sizer->Add(h_sizer, 1, wxEXPAND | wxALL, wxOSX ? 0 : 15);
+        sizer->Add(h_sizer, 1, wxEXPAND | wxALL, (wxOSX && !staticbox) ? 0 : 15);
         if (line.widget != nullptr) {
             // description lines
-            sizer->Add(line.widget(this->ctrl_parent()), 0, wxEXPAND | wxALL, wxOSX ? 0 : 15);
+            sizer->Add(line.widget(this->ctrl_parent()), 0, wxEXPAND | wxALL, (wxOSX && !staticbox) ? 0 : 15);
             return;
         }
         if (!line.get_extra_widgets().empty()) {
@@ -281,9 +296,9 @@ void OptionsGroup::activate_line(Line& line)
 		// BBS: new layout
 		custom_ctrl->SetLabel("");
 		if (is_legend_line)
-			sizer->Add(custom_ctrl, 0, wxEXPAND | wxLEFT, wxOSX ? 0 : 10);
+			sizer->Add(custom_ctrl, 0, wxEXPAND | wxLEFT, (wxOSX && !staticbox) ? 0 : 10);
 		else
-            sizer->Add(custom_ctrl, 0, wxEXPAND | wxALL, wxOSX || !staticbox ? 0 : 5);
+            sizer->Add(custom_ctrl, 0, wxEXPAND | wxALL, !staticbox ? 0 : 5);
     }
 
 	// Set sidetext width for a better alignment of options in line
@@ -303,7 +318,7 @@ void OptionsGroup::activate_line(Line& line)
 
 		// BBS: new layout
 		const auto h_sizer = new wxBoxSizer(wxHORIZONTAL);
-		sizer->Add(h_sizer, 1, wxEXPAND | wxALL, wxOSX ? 0 : 5);
+		sizer->Add(h_sizer, 1, wxEXPAND | wxALL, (wxOSX && !staticbox) ? 0 : 5);
 		if (is_window_field(field))
 			h_sizer->Add(field->getWindow(), 1, wxEXPAND | wxLEFT, option.opt.multiline ? 0 : titleWidth * wxGetApp().em_unit());
 		if (is_sizer_field(field))
@@ -470,14 +485,11 @@ bool OptionsGroup::activate(std::function<void()> throw_if_canceled/* = [](){}*/
 
 	try {
 		if (staticbox) {
-			wxStaticBox * stb = new wxStaticBox(m_parent, wxID_ANY, _(title));
-			if (!wxOSX) stb->SetBackgroundStyle(wxBG_STYLE_PAINT);
-            stb->SetBackgroundColour(m_parent->GetBackgroundColour());
-			stb->SetFont(wxOSX ? wxGetApp().normal_font() : wxGetApp().bold_font());
-			wxGetApp().UpdateDarkUI(stb);
-			// BBS: new layout
-			sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
+            // ORCA match style of wxStaticBox between platforms
+			LabeledStaticBox * stb = new LabeledStaticBox(m_parent, _(title));
+			//wxGetApp().UpdateDarkUI(stb);
 			this->stb = stb;
+			sizer = new wxStaticBoxSizer(stb, wxVERTICAL);
 		}
 		else {
 			// BBS: new layout
@@ -511,7 +523,7 @@ bool OptionsGroup::activate(std::function<void()> throw_if_canceled/* = [](){}*/
 		static_cast<wxFlexGridSizer*>(m_grid_sizer)->SetFlexibleDirection(wxBOTH);
 		static_cast<wxFlexGridSizer*>(m_grid_sizer)->AddGrowableCol(grow_col);
 
-		sizer->Add(m_grid_sizer, 0, wxEXPAND | wxALL, wxOSX || !staticbox ? 0 : 5);
+		sizer->Add(m_grid_sizer, 0, wxEXPAND | wxALL, !staticbox ? 0 : 5);
 
 		// activate lines
 		for (Line& line: m_lines) {
@@ -645,8 +657,7 @@ void ConfigOptionsGroup::on_change_OG(const t_config_option_key& opt_id, const b
 
 		auto 				itOption  = it->second;
 		const std::string  &opt_key   = itOption.first;
-		int 			    opt_index = itOption.second;
-
+        int                 opt_index = itOption.second;
 		this->change_opt_value(opt_key, value, opt_index == -1 ? 0 : opt_index);
 	}
 
@@ -729,40 +740,14 @@ void ConfigOptionsGroup::on_kill_focus(const std::string& opt_key)
 
 void ConfigOptionsGroup::reload_config()
 {
-#if 0
-    // BBS
-    auto bed_type_field = this->get_field("bed_type");
-    int default_bed_type = BedType::btPC;
-    if (bed_type_field != nullptr) {
-        auto iter = m_opt_map.find("bed_temperature");
-        const ConfigOptionDef& option = m_options.at("bed_temperature").opt;
-        if (iter != m_opt_map.end()) {
-            for (int bed_type = BedType::btPC; bed_type < BedType::btCount; bed_type++) {
-                int bed_temp = boost::any_cast<int>(config_value("bed_temperature", bed_type, option.gui_flags == "serialized"));
-                if (bed_temp != 0) {
-                    default_bed_type = bed_type;
-                    break;
-                }
-            }
-        }
-
-        bed_type_field->set_value(default_bed_type, false);
-    }
-#endif
-
 	for (auto &kvp : m_opt_map) {
 		// Name of the option field (name of the configuration key, possibly suffixed with '#' and the index of a scalar inside a vector.
 		const std::string &opt_id    = kvp.first;
 		// option key (may be scalar or vector)
 		const std::string &opt_key   = kvp.second.first;
 		// index in the vector option, zero for scalars
-		int 			   opt_index = kvp.second.second;
+        int 			   opt_index = kvp.second.second;
 		const ConfigOptionDef &option = m_options.at(opt_id).opt;
-#if 0
-        // BBS
-        if ((opt_id == "bed_temperature" || opt_id == "bed_temperature_initial_layer") && bed_type_field != nullptr)
-            opt_index = default_bed_type;
-#endif
 		this->set_value(opt_id, config_value(opt_key, opt_index, option.gui_flags == "serialized"));
 	}
 }
@@ -966,15 +951,29 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
         {
         case coPercents:
         case coFloats: {
-            if (config.option(opt_key)->is_nil())
+            if (opt_index < 0 ? config.option(opt_key)->is_nil() : dynamic_cast<ConfigOptionVectorBase const*>(config.option(opt_key))->is_nil(opt_index))
                 ret = _(L("N/A"));
             else {
                 double val = opt->type == coFloats ?
                             config.option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx) :
                             config.option<ConfigOptionPercentsNullable>(opt_key)->get_at(idx);
-                ret = double_to_string(val); }
+                ret = double_to_string(val);
             }
             break;
+        }
+        case coFloatsOrPercents: {
+            if (opt_index < 0 ? config.option(opt_key)->is_nil() : dynamic_cast<ConfigOptionVectorBase const*>(config.option(opt_key))->is_nil(opt_index))
+                ret = _(L("N/A"));
+            else {
+                const auto& value = config.option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx);
+                text_value = double_to_string(value.value);
+                if (value.percent)
+                    text_value += "%";
+
+                ret = text_value;
+            }
+            break;
+        }
         case coBools:
             ret = config.option<ConfigOptionBoolsNullable>(opt_key)->values[idx];
             break;
@@ -1001,7 +1000,16 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 		ret = text_value;
 		break;
 	}
-	case coPercent:{
+    case coFloatsOrPercents: {
+        const auto &value = config.option<ConfigOptionFloatsOrPercents>(opt_key)->get_at(idx);
+
+        text_value = double_to_string(value.value);
+        if (value.percent) text_value += "%";
+
+        ret = text_value;
+        break;
+    }
+    case coPercent: {
 		double val = config.option<ConfigOptionPercent>(opt_key)->value;
 		ret = double_to_string(val);// += "%";
 	}
@@ -1009,13 +1017,22 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 	case coPercents:
 	case coFloats:
 	case coFloat:{
-		double val = opt->type == coFloats ?
-					config.opt_float(opt_key, idx) :
-						opt->type == coFloat ? config.opt_float(opt_key) :
-						config.option<ConfigOptionPercents>(opt_key)->get_at(idx);
-		ret = double_to_string(val);
-		}
-		break;
+        if (opt_key == "extruder_printable_height") {
+            auto opt_values = dynamic_cast<const ConfigOptionFloatsNullable *>(config.option(opt_key))->values;
+            if (!opt_values.empty()) {
+                double val = opt_values[idx];
+                ret  = double_to_string(val);
+            }
+        }
+        else {
+            double val = opt->type == coFloats ?
+                config.opt_float(opt_key, idx) :
+                opt->type == coFloat ? config.opt_float(opt_key) :
+                config.option<ConfigOptionPercents>(opt_key)->get_at(idx);
+            ret = double_to_string(val);
+        }
+        break;
+    }
 	case coString:
 		ret = from_u8(config.opt_string(opt_key));
 		break;
@@ -1079,8 +1096,19 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else if (opt_key == "bed_exclude_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+        else if (opt_key == "wrapping_exclude_area")
+            ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
 		else
 			ret = config.option<ConfigOptionPoints>(opt_key)->get_at(idx);
+        break;
+    case coPointsGroups:
+        if (opt_key == "extruder_printable_area") {
+            auto values = config.option<ConfigOptionPointsGroups>(opt_key)->values;
+            if (!values.empty())
+                ret = get_thumbnails_string(config.option<ConfigOptionPointsGroups>(opt_key)->get_at(idx));
+        }
+        else
+            ret = config.option<ConfigOptionPointsGroups>(opt_key)->get_at(idx);
 		break;
 	case coNone:
 	default:
@@ -1111,7 +1139,20 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
                     config.option<ConfigOptionPercentsNullable>(opt_key)->get_at(idx);
                 ret = val; }
         }
-                     break;
+            break;
+        case coFloatsOrPercents: {
+            if (config.option(opt_key)->is_nil())
+                ret = ConfigOptionFloatsOrPercentsNullable::nil_value();
+            else {
+                const auto& value = config.option<ConfigOptionFloatsOrPercentsNullable>(opt_key)->get_at(idx);
+                wxString text_value = double_to_string(value.value);
+                if (value.percent)
+                    text_value += "%";
+
+                ret = text_value;
+            }
+            break;
+        }
         case coBools:
             ret = config.option<ConfigOptionBoolsNullable>(opt_key)->values[idx];
             break;
@@ -1192,6 +1233,8 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else if (opt_key == "bed_exclude_area")
             ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+        else if (opt_key == "wrapping_exclude_area")
+            ret = get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         else
             ret = config.option<ConfigOptionPoints>(opt_key)->get_at(idx);
         break;
@@ -1204,17 +1247,11 @@ boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& confi
 
 Field* ConfigOptionsGroup::get_fieldc(const t_config_option_key& opt_key, int opt_index)
 {
-	Field* field = get_field(opt_key);
+    Field *field = get_field(opt_key);
 	if (field != nullptr)
 		return field;
-	std::string opt_id = "";
-	for (t_opt_map::iterator it = m_opt_map.begin(); it != m_opt_map.end(); ++it) {
-		if (opt_key == m_opt_map.at(it->first).first && opt_index == m_opt_map.at(it->first).second) {
-			opt_id = it->first;
-			break;
-		}
-	}
-	return opt_id.empty() ? nullptr : get_field(opt_id);
+    std::string opt_id = opt_key + '#' + std::to_string(opt_index);
+	return get_field(opt_id);
 }
 
 std::pair<OG_CustomCtrl*, bool*> ConfigOptionsGroup::get_custom_ctrl_with_blinking_ptr(const t_config_option_key& opt_key, int opt_index/* = -1*/)
@@ -1256,17 +1293,8 @@ void ExtruderOptionsGroup::on_change_OG(const t_config_option_key& opt_id, const
         auto 				itOption = it->second;
         const std::string& opt_key = itOption.first;
 
-        auto opt = m_config->option(opt_key);
-        const ConfigOptionVectorBase* opt_vec = dynamic_cast<const ConfigOptionVectorBase*>(opt);
-        if (opt_vec != nullptr) {
-            for (int opt_index = 0; opt_index < opt_vec->size(); opt_index++) {
-                this->change_opt_value(opt_key, value, opt_index);
-            }
-        }
-        else {
-            int opt_index = itOption.second;
-            this->change_opt_value(opt_key, value, opt_index == -1 ? 0 : opt_index);
-        }
+        int opt_index = itOption.second;
+        this->change_opt_value(opt_key, value, opt_index == -1 ? 0 : opt_index);
     }
 
     OptionsGroup::on_change_OG(opt_id, value);
@@ -1284,7 +1312,7 @@ wxString OptionsGroup::get_url(const std::string& path_end)
         str = str.Left(pos) + anchor;
     }
     // Orca: point to sf wiki for seam parameters
-    return wxString::Format(L"https://github.com/SoftFever/OrcaSlicer/wiki/%s", from_u8(path_end));
+    return wxString::Format(L"https://github.com/OrcaSlicer/OrcaSlicer/wiki/%s", from_u8(path_end));
 
 }
 
@@ -1333,8 +1361,8 @@ void ogStaticText::SetPathEnd(const std::string& link)
     } );
     Bind(wxEVT_ENTER_WINDOW, [this, link](wxMouseEvent& event) {
         SetToolTip(OptionsGroup::get_url(std::string()));
-        FocusText(true); 
-        event.Skip(); 
+        FocusText(true);
+        event.Skip();
     });
     Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& event) { FocusText(false); event.Skip(); });
 }

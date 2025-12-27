@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "SUNLU PETG @BBL A1 0.2 nozzle",
+    "inherits": "SUNLU PETG @base",
+    "from": "system",
+    "setting_id": "GFSNLS08_03",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.2 nozzle"
+    ]
+}

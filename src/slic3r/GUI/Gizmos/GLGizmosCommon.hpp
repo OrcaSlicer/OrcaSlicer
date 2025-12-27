@@ -93,6 +93,7 @@ public:
     CommonGizmosDataObjects::SelectionInfo* selection_info() const;
     CommonGizmosDataObjects::InstancesHider* instances_hider() const;
 //    CommonGizmosDataObjects::HollowedMesh* hollowed_mesh() const;
+    CommonGizmosDataObjects::Raycaster *  raycaster_ptr();
     CommonGizmosDataObjects::Raycaster* raycaster() const;
     CommonGizmosDataObjects::ObjectClipper* object_clipper() const;
     // CommonGizmosDataObjects::SupportsClipper* supports_clipper() const;
@@ -211,6 +212,7 @@ public:
 
     const MeshRaycaster* raycaster() const { assert(m_raycasters.size() == 1); return m_raycasters.front().get(); }
     std::vector<const MeshRaycaster*> raycasters() const;
+    void  set_only_support_model_part_flag(bool);
 
 protected:
     void on_update() override;
@@ -219,6 +221,7 @@ protected:
 private:
     std::vector<std::unique_ptr<MeshRaycaster>> m_raycasters;
     std::vector<const TriangleMesh*> m_old_meshes;
+    bool  m_only_support_model_part{true};
 };
 
 
@@ -232,9 +235,10 @@ public:
     CommonGizmosDataID get_dependencies() const override { return CommonGizmosDataID::SelectionInfo; }
 #endif // NDEBUG
     double get_position() const { return m_clp_ratio; }
+    void set_position_to_init_layer();
     const ClippingPlane* get_clipping_plane(bool ignore_hide_clipped = false) const;
     void render_cut(const std::vector<size_t>* ignore_idxs = nullptr) const;
-    void set_position_by_ratio(double pos, bool keep_normal);
+    void set_position_by_ratio(double pos, bool keep_normal, bool vertical_normal=false);
     void set_range_and_pos(const Vec3d& cpl_normal, double cpl_offset, double pos);
     void set_behavior(bool hide_clipped, bool fill_cut, double contour_width);
     

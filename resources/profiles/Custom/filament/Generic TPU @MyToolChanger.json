@@ -1,0 +1,19 @@
+{
+    "type": "filament",
+    "name": "Generic TPU @MyToolChanger",
+    "renamed_from": "My Generic TPU @MyToolChanger",
+    "inherits": "Generic TPU @System",
+    "from": "system",
+    "setting_id": "GFU99_MTC_0",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3.2"
+    ],
+    "compatible_printers": [
+        "MyToolChanger 0.4 nozzle",
+        "MyToolChanger 0.2 nozzle",
+        "MyToolChanger 0.6 nozzle",
+        "MyToolChanger 0.8 nozzle"
+    ]
+}

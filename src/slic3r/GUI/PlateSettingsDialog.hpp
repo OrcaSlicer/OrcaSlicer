@@ -112,14 +112,9 @@ public:
         if (m_print_seq_choice != nullptr)
             choice =  m_print_seq_choice->GetSelection();
         return choice;
-    };
+    }
 
-    int get_bed_type_choice() {
-        int choice = 0;
-        if (m_bed_type_choice != nullptr)
-            choice =  m_bed_type_choice->GetSelection();
-        return choice;
-    };
+    BedType get_bed_type_choice();
 
     wxString get_plate_name() const;
     void set_plate_name(const wxString& name);
@@ -167,13 +162,12 @@ protected:
 
 protected:
     ComboBox* m_bed_type_choice { nullptr };
+    std::vector<BedType> m_cur_combox_bed_types;
     ComboBox* m_print_seq_choice { nullptr };
     ComboBox* m_first_layer_print_seq_choice { nullptr };
     ComboBox* m_spiral_mode_choice { nullptr };
     DragCanvas* m_drag_canvas;
     OtherLayersSeqPanel* m_other_layers_seq_panel;
-    Button* m_button_ok;
-    Button* m_button_cancel;
     TextInput *m_ti_plate_name;
 };
 
@@ -195,8 +189,6 @@ public:
     void     set_plate_name(const wxString &name);
 
 protected:
-    Button *   m_button_ok;
-    Button *   m_button_cancel;
     TextInput *m_ti_plate_name;
 };
 }} // namespace Slic3r::GUI

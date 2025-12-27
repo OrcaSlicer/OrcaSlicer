@@ -1,0 +1,20 @@
+{
+    "type": "machine",
+    "name": "Prusa MK4S HF0.4 nozzle",
+    "inherits": "Prusa MK4S 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "default_filament_profile": "Prusa Generic PLA @MK4S HF0.4",
+    "default_print_profile": "0.20mm SPEED @MK4S HF0.4",
+    "machine_start_gcode": [
+        "M17 ; enable steppers\nM862.1 P[nozzle_diameter] ; nozzle check\nM862.3 P \"MK4S\" ; printer model check\nM862.5 P2 ; g-code level check\nM862.6 P\"Input shaper\" ; FW feature check\nM115 U6.1.3+7898\n\nM555 X{(min(print_bed_max[0], first_layer_print_min[0] + 32) - 32)} Y{(max(0, first_layer_print_min[1]) - 4)} W{((min(print_bed_max[0], max(first_layer_print_min[0] + 32, first_layer_print_max[0])))) - ((min(print_bed_max[0], first_layer_print_min[0] + 32) - 32))} H{((first_layer_print_max[1])) - ((max(0, first_layer_print_min[1]) - 4))}\n\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\n\nM140 S[first_layer_bed_temperature] ; set bed temp\nM104 T0 S{((filament_notes[0]=~/.*HT_MBL10.*/) ? (first_layer_temperature[0] - 10) : (filament_type[0] == \"PC\" or filament_type[0] == \"PA\") ? (first_layer_temperature[0] - 25) : (filament_type[0] == \"FLEX\") ? 210 : (filament_type[0]=~/.*PET.*/) ? 175 : 170)} ; set extruder temp for bed leveling\nM109 T0 R{((filament_notes[0]=~/.*HT_MBL10.*/) ? (first_layer_temperature[0] - 10) : (filament_type[0] == \"PC\" or filament_type[0] == \"PA\") ? (first_layer_temperature[0] - 25) : (filament_type[0] == \"FLEX\") ? 210 : (filament_type[0]=~/.*PET.*/) ? 175 : 170)} ; wait for temp\n\nM84 E ; turn off E motor\n\nG28 ; home all without mesh bed level\n\nG1 X42 Y-4 Z5 F4800\n\nM302 S160 ; lower cold extrusion limit to 160C\n\n{if filament_type[initial_tool]==\"FLEX\"}\nG1 E-4 F2400 ; retraction\n{else}\nG1 E-2 F2400 ; retraction\n{endif}\n\nM84 E ; turn off E motor\n\nG29 P9 X10 Y-4 W32 H4\n\n{if first_layer_bed_temperature[initial_tool]<=60}M106 S100{endif}\n\nG0 Z40 F10000\n\nM190 S[first_layer_bed_temperature] ; wait for bed temp\n\nM107\n\n;\n; MBL\n;\nM84 E ; turn off E motor\nG29 P1 ; invalidate mbl & probe print area\nG29 P1 X0 Y0 W50 H20 C ; probe near purge place\nG29 P3.2 ; interpolate mbl probes\nG29 P3.13 ; extrapolate mbl outside probe area\nG29 A ; activate mbl\n\n; prepare for purge\nM104 S{first_layer_temperature[0]}\nG0 X0 Y-4 Z15 F4800 ; move away and ready for the purge\nM109 S{first_layer_temperature[0]}\n\nG92 E0\nM569 S0 E ; set spreadcycle mode for extruder\n\n;\n; Extrude purge line\n;\nG92 E0 ; reset extruder position\nG1 E{(filament_type[0] == \"FLEX\" ? 4 : 2)} F2400 ; deretraction after the initial one before nozzle cleaning\nG0 E7 X15 Z0.2 F500 ; purge\nG0 X25 E4 F500 ; purge\nG0 X35 E4 F650 ; purge\nG0 X45 E4 F800 ; purge\nG0 X48 Z0.05 F8000 ; wipe, move close to the bed\nG0 X51 Z0.2 F8000 ; wipe, move quickly away from the bed\n\nG92 E0\nM221 S100 ; set flow to 100%"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_model": "Prusa MK4S HF",
+    "printer_notes": [
+        "Don't remove the following keywords! These keywords are used in the \"compatible printer\" condition of the print and filament profiles to link the particular print and filament profiles to this printer profile.\nPRINTER_MODEL_MK4S\nPG\nHF_NOZZLE\nNO_TEMPLATES"
+    ],
+    "printer_variant": "0.4"
+}

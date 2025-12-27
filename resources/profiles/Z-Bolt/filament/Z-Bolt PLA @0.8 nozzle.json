@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Z-Bolt PLA @0.8 nozzle",
+    "inherits": "Z-Bolt PLA @base",
+    "from": "system",
+    "setting_id": "GFSL108",
+    "filament_id": "GFL108",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "compatible_printers": [
+        "Z-Bolt S300 0.8 nozzle",
+        "Z-Bolt S300 Dual 0.8 nozzle",
+        "Z-Bolt S400 0.8 nozzle",
+        "Z-Bolt S400 Dual 0.8 nozzle",
+        "Z-Bolt S600 0.8 nozzle",
+        "Z-Bolt S600 Dual 0.8 nozzle",
+        "Z-Bolt S800 Dual 0.8 nozzle",
+        "Z-Bolt S1000 0.8 nozzle",
+        "Z-Bolt S1000 Dual 0.8 nozzle"
+    ]
+}

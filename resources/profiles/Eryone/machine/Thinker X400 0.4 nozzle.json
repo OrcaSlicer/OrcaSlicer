@@ -1,12 +1,12 @@
 {
     "type": "machine",
-    "setting_id": "GM003",
     "name": "Thinker X400 0.4 nozzle",
     "from": "system",
+    "setting_id": "GM003",
     "instantiation": "true",
     "printer_model": "Thinker X400",
     "default_print_profile": "0.20mm Standard @Thinker X400",
-    "default_filament_profile":"Eryone Generic PLA;Eryone Generic ABS;Eryone Generic ASA;Eryone Generic PETG;Eryone Generic Silk PLA;Eryone Generic TPU",
+    "default_filament_profile": "Eryone PLA;Eryone ABS;Eryone ASA;Eryone PETG;Eryone Silk PLA;Eryone TPU;Eryone ABS-CF;Eryone ASA-CF;Eryone PA;Eryone PA-CF;Eryone PA-GF;Eryone PETG-CF;Eryone PLA-CF;Eryone PP;Eryone PP-CF;",
     "auxiliary_fan": "0",
     "bed_custom_model": "",
     "bed_custom_texture": "",
@@ -42,11 +42,11 @@
     "machine_end_gcode": "PRINT_END",
     "machine_load_filament_time": "0",
     "machine_max_acceleration_e": [
-        "10000",
+        "5000",
         "5000"
     ],
     "machine_max_acceleration_extruding": [
-        "5000",
+        "10000",
         "20000"
     ],
     "machine_max_acceleration_retracting": [
@@ -110,7 +110,7 @@
         "0"
     ],
     "machine_pause_gcode": "PAUSE",
-    "machine_start_gcode": "M117 Heating\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nPRINT_START \nG90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\n\nM104 S0\nM140 S[bed_temperature_initial_layer_single] ; set bed temp\nM117 Heating\nM190 S[bed_temperature_initial_layer_single]\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\n\n;QUAD_GANTRY_LEVEL\nCLEAN_N S=[first_layer_temperature] X=240 Y=-3 A=0\nM117 Quad Level\n_QUAD_GANTRY_LEVEL  horizontal_move_z=10 retry_tolerance=1 LIFT_SPEED=5\nG28 Z\nM117 Quad Level\n_QUAD_GANTRY_LEVEL  horizontal_move_z=5 retry_tolerance=0.05 LIFT_SPEED=5\nHOME_Z X=132.5 Y=197.5\nM117 Bed Mesh Level\nBED_MESH_CALIBRATE\nM117 Heating\nG1 Y0.0 Z0.3 F1500 ; move print head up\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nM117 .\nG92 E0.0\n; intro line\nG1 X175.0 E12 F1000\nG1 Y0.6\nG1 X5.0 E10 F1000\nG92 E0.0\n; intro line\nG1 Y1.0 Z0.2 F1000\nG1 X200.0 E15.0 F1000\nG92 E0.0",
+    "machine_start_gcode": "M117 Heating\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nPRINT_START \nG90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM104 S0\nM140 S[bed_temperature_initial_layer_single] ; set bed temp\nM117 Heating\nM190 S[bed_temperature_initial_layer_single]\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\n;QUAD_GANTRY_LEVEL\nCLEAN_N S=[first_layer_temperature] X=240 Y=-3 A=0 D=0.4\nM117 Quad Level\n_QUAD_GANTRY_LEVEL  horizontal_move_z=10 retry_tolerance=1 LIFT_SPEED=5\nG28 Z\nM117 Quad Level\n_QUAD_GANTRY_LEVEL  horizontal_move_z=5 retry_tolerance=0.05 LIFT_SPEED=5\nM117 Bed Mesh Level\nG1 X132.5 Y197.5\nG28 N\nBED_MESH_CALIBRATE\nM117 Heating\nG1 X275.0 Y0.0 Z0.3 F1500 ; move print head up\nM104 S[first_layer_temperature] ; set extruder temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nM117 .\nINTRO_LINE D=0.4 ;intro line with 0.4 mm nozzle",
     "machine_unload_filament_time": "0",
     "manual_filament_change": "0",
     "max_layer_height": [
@@ -126,7 +126,7 @@
     "nozzle_type": "hardened_steel",
     "nozzle_volume": "0",
     "parking_pos_retraction": "92",
-    "print_host": "192.168.2.8",
+    "print_host": "192.168.2.2",
     "print_host_webui": "",
     "printable_area": [
         "0x0",

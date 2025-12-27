@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "Bambu ASA @System",
+    "inherits": "Bambu ASA @base",
+    "from": "system",
+    "setting_id": "OGFSB01_00",
+    "instantiation": "true",
+    "fan_min_speed": [
+        "25"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "compatible_printers": []
+}

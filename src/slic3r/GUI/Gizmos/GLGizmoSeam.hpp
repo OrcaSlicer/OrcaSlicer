@@ -24,8 +24,6 @@ protected:
     std::string on_get_name() const override;
     PainterGizmoType get_painter_type() const override;
 
-    void render_triangles(const Selection &selection) const override;
-
     void show_tooltip_information(float caption_max, float x, float y);
 
     void tool_changed(wchar_t old_tool, wchar_t new_tool);

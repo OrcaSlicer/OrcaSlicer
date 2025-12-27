@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PETG @MINIIS",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "reduce_fan_stop_start_freq": [
         "1"
     ],
@@ -56,8 +56,16 @@
     "pressure_advance": [
         "0.4"
     ],
-
+    "filament_retraction_speed": [
+        "45"
+    ],
+    "filament_deretraction_speed": [
+        "25"
+    ],
+    "filament_retraction_minimum_travel": [
+        "1"
+    ],
     "compatible_printers": [
         "Prusa MINIIS 0.4 nozzle"
-      ]
+    ]
 }

@@ -1,19 +1,19 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.2mm Fast @Co Print ChromaSet 0.4",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_coprint_common",
-    "elefant_foot_compensation": "0.15",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "elefant_foot_compensation": "0.1",
     "initial_layer_speed": "60",
     "initial_layer_infill_speed": "100",
-    "inner_wall_speed": "300",
+    "inner_wall_speed": "200",
     "small_perimeter_speed": "50%",
     "internal_solid_infill_speed": "300",
     "travel_speed": "500",
     "gap_infill_speed": "300",
-    "outer_wall_speed":"100",
+    "outer_wall_speed": "120",
     "top_surface_speed": "150",
     "default_acceleration": "10000",
     "outer_wall_acceleration": "3000",
@@ -24,8 +24,11 @@
     "internal_solid_infill_acceleration": "80%",
     "top_surface_acceleration": "2000",
     "travel_acceleration": "10000",
-    "default_jerk": "9",
+    "default_jerk": "0",
+    "wipe_tower_max_purge_speed": "200",
     "compatible_printers": [
-        "Co Print ChromaSet 0.4 nozzle fast"
+        "Co Print ChromaSet 0.4 nozzle fast",
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus"
     ]
 }

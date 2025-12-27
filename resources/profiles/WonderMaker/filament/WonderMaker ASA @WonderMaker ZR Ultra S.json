@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "WonderMaker ASA @WonderMaker ZR Ultra S",
+    "inherits": "WonderMaker ASA",
+    "from": "system",
+    "setting_id": "GFSB01_07",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "activate_chamber_temp_control": [
+        "1"
+    ],
+    "filament_multitool_ramming": [
+        "1"
+    ],
+    "compatible_printers": [
+        "WonderMaker ZR Ultra S 0.2 nozzle",
+        "WonderMaker ZR Ultra S 0.4 nozzle",
+        "WonderMaker ZR Ultra S 0.6 nozzle",
+        "WonderMaker ZR Ultra S 0.8 nozzle"
+    ]
+}

@@ -3,10 +3,11 @@
 apt update
 apt upgrade -y          
 
+build_linux="./build_linux.sh -u"
 echo "-----------------------------------------"	
-echo "Running BuildLinux.sh with update flag..."
+echo "Running ${build_linux}..."
 echo "-----------------------------------------"	
-./BuildLinux.sh -u
+${build_linux}
 
 echo "------------------------------"
 echo "Installing missing packages..."

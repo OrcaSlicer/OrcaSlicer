@@ -1,14 +1,14 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.20mm Standard @BIQU B1 (0.4 nozzle)",
-    "from": "system",
     "inherits": "fdm_process_biqu_common",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "layer_height": "0.2",
     "bottom_shell_layers": "3",
     "top_shell_layers": "4",
-	"compatible_printers": [
-	  "BIQU B1 (0.4 nozzle)"
+    "compatible_printers": [
+        "BIQU B1 (0.4 nozzle)"
     ]
 }

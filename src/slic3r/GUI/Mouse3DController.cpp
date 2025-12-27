@@ -1151,12 +1151,12 @@ bool Mouse3DController::connect_device()
     if (m_device != nullptr) {
         wchar_t buffer[1024];
         hid_get_manufacturer_string(m_device, buffer, 1024);
-        m_device_str = boost::nowide::narrow(buffer);
+        m_device_str = into_u8(buffer);
         // #3479 seems to show that sometimes an extra whitespace is added, so we remove it
         boost::algorithm::trim(m_device_str);
 
         hid_get_product_string(m_device, buffer, 1024);
-        m_device_str += "/" + boost::nowide::narrow(buffer);
+        m_device_str += "/" + into_u8(buffer);
         // #3479 seems to show that sometimes an extra whitespace is added, so we remove it
         boost::algorithm::trim(m_device_str);
 

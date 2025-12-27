@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.16mm STRUCTURAL @MK4S 0.3",
+    "inherits": "0.12mm STRUCTURAL @MK4S 0.3",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_layers": "5",
+    "default_acceleration": "2000",
+    "inner_wall_acceleration": "2000",
+    "layer_height": "0.16",
+    "outer_wall_acceleration": "1500",
+    "raft_contact_distance": "0.16",
+    "small_perimeter_speed": "45",
+    "sparse_infill_acceleration": "4000",
+    "sparse_infill_speed": "120",
+    "support_top_z_distance": "0.16",
+    "top_shell_layers": "6"
+}

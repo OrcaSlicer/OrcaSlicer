@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "QIDI PLA Rapido Metal @Qidi X-Plus 4 0.6 nozzle",
+    "inherits": "QIDI PLA Rapido Metal",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "QD_0_1_3",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -20,7 +24,6 @@
     "filament_settings_id": [
         "QIDI PLA Rapido Metal @Qidi X-Plus 4 0.6 nozzle"
     ],
-    "from": "system",
     "full_fan_speed_layer": [
         "3"
     ],
@@ -30,9 +33,6 @@
     "hot_plate_temp_initial_layer": [
         "60"
     ],
-    "inherits": "QIDI PLA Rapido Metal",
-    "is_custom_defined": "0",
-    "name": "QIDI PLA Rapido Metal @Qidi X-Plus 4 0.6 nozzle",
     "nozzle_temperature": [
         "210"
     ],
@@ -43,6 +43,6 @@
         "20"
     ],
     "compatible_printers": [
-    "Qidi X-Plus 4 0.6 nozzle"
-        ]
+        "Qidi X-Plus 4 0.6 nozzle"
+    ]
 }

@@ -1,0 +1,48 @@
+{
+    "type": "filament",
+    "name": "Eryone TPU",
+    "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA05",
+    "filament_id": "EFL95",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Thinker X400 0.4 nozzle"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=1"
+    ],
+    "fan_min_speed": [
+        "90"
+    ],
+    "filament_max_volumetric_speed": [
+        "5"
+    ],
+    "filament_retraction_length": [
+        "1.6"
+    ],
+    "filament_settings_id": [
+        "Eryone TPU"
+    ],
+    "filament_type": [
+        "TPU"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ]
+}

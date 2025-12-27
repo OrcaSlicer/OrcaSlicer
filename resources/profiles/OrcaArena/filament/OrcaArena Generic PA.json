@@ -1,26 +1,26 @@
 {
     "type": "filament",
-    "filament_id": "GFN99",
-    "setting_id": "GFSN98",
     "name": "OrcaArena Generic PA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "GFSN98",
+    "filament_id": "GFN99",
+    "instantiation": "true",
     "required_nozzle_HRC": [
-      "3"
+        "3"
     ],
     "nozzle_temperature_initial_layer": [
-      "280"
+        "280"
     ],
     "nozzle_temperature": [
-      "280"
+        "280"
     ],
     "filament_max_volumetric_speed": [
-      "16"
+        "16"
     ],
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 Carbon 0.6 nozzle",
-      "Orca Arena X1 Carbon 0.8 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 Carbon 0.6 nozzle",
+        "Orca Arena X1 Carbon 0.8 nozzle"
     ]
 }

@@ -28,10 +28,6 @@
 #endif
 
 static const float GROUND_Z = -0.04f;
-static const Slic3r::ColorRGBA DEFAULT_MODEL_COLOR             = { 0.3255f, 0.337f, 0.337f, 1.0f };
-static const Slic3r::ColorRGBA DEFAULT_MODEL_COLOR_DARK        = { 0.255f, 0.255f, 0.283f, 1.0f };
-static const Slic3r::ColorRGBA DEFAULT_SOLID_GRID_COLOR        = { 0.9f, 0.9f, 0.9f, 1.0f };
-static const Slic3r::ColorRGBA DEFAULT_TRANSPARENT_GRID_COLOR  = { 0.9f, 0.9f, 0.9f, 0.6f };
 
 namespace Slic3r {
 namespace GUI {
@@ -185,6 +181,12 @@ const float Bed3D::Axes::DefaultStemLength = 25.0f;
 const float Bed3D::Axes::DefaultTipRadius = 2.5f * Bed3D::Axes::DefaultStemRadius;
 const float Bed3D::Axes::DefaultTipLength = 5.0f;
 
+// ORCA make bed colors accessable for 2D bed
+ColorRGBA Bed3D::DEFAULT_MODEL_COLOR             = { 0.3255f, 0.337f, 0.337f, 1.0f };
+ColorRGBA Bed3D::DEFAULT_MODEL_COLOR_DARK        = { 0.255f, 0.255f, 0.283f, 1.0f };
+ColorRGBA Bed3D::DEFAULT_SOLID_GRID_COLOR        = { 0.9f, 0.9f, 0.9f, 1.0f };
+ColorRGBA Bed3D::DEFAULT_TRANSPARENT_GRID_COLOR  = { 0.9f, 0.9f, 0.9f, 0.6f };
+
 ColorRGBA Bed3D::AXIS_X_COLOR = ColorRGBA::X();
 ColorRGBA Bed3D::AXIS_Y_COLOR = ColorRGBA::Y();
 ColorRGBA Bed3D::AXIS_Z_COLOR = ColorRGBA::Z();
@@ -210,22 +212,23 @@ void Bed3D::Axes::render()
         const Transform3d& view_matrix = camera.get_view_matrix();
         shader->set_uniform("view_model_matrix", view_matrix * transform);
         shader->set_uniform("projection_matrix", camera.get_projection_matrix());
-        const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * transform.matrix().block(0, 0, 3, 3).inverse().transpose();
-        shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        //const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * transform.matrix().block(0, 0, 3, 3).inverse().transpose();
+        //shader->set_uniform("view_normal_matrix", view_normal_matrix);
         m_arrow.render();
     };
 
     if (!m_arrow.is_initialized())
-        m_arrow.init_from(stilized_arrow(16, DefaultTipRadius, DefaultTipLength, DefaultStemRadius, m_stem_length));
+        //m_arrow.init_from(stilized_arrow(16, DefaultTipRadius, DefaultTipLength, DefaultStemRadius, m_stem_length));
+        m_arrow.init_from(smooth_cylinder(16, /*Radius*/ m_stem_length / 75.f, m_stem_length)); // ORCA use simple cylinder and scale thickness depends on length
 
-    GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+    GLShaderProgram* shader = wxGetApp().get_shader("flat"); // ORCA dont use shading to get closer color tone
     if (shader == nullptr)
         return;
 
     glsafe(::glEnable(GL_DEPTH_TEST));
 
     shader->start_using();
-    shader->set_uniform("emission_factor", 0.0f);
+    //shader->set_uniform("emission_factor", 0.0f);
 
     // x axis
     m_arrow.set_color(AXIS_X_COLOR);
@@ -245,7 +248,7 @@ void Bed3D::Axes::render()
 }
 
 //BBS: add part plate logic
-bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_height, const std::string& custom_model, bool force_as_custom,
+bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_height, std::vector<Pointfs> extruder_areas, std::vector<double> extruder_heights, const std::string& custom_model, bool force_as_custom,
     const Vec2d position, bool with_reset)
 {
     /*auto check_texture = [](const std::string& texture) {
@@ -283,7 +286,7 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
     }
 
     //BBS: add position related logic
-    if (m_bed_shape == printable_area && m_build_volume.printable_height() == printable_height && m_type == type && m_model_filename == model_filename && position == m_position)
+    if (m_bed_shape == printable_area && m_build_volume.printable_height() == printable_height && m_type == type && m_model_filename == model_filename && position == m_position && m_extruder_shapes == extruder_areas  && m_extruder_heights == extruder_heights)
         // No change, no need to update the UI.
         return false;
 
@@ -291,35 +294,38 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":current position {%1%,%2%}, new position {%3%, %4%}") % m_position.x() % m_position.y() % position.x() % position.y();
     m_position = position;
     m_bed_shape = printable_area;
+    m_extruder_shapes = extruder_areas;
+    m_extruder_heights = extruder_heights;
     if ((position(0) != 0) || (position(1) != 0)) {
         Pointfs new_bed_shape;
         for (const Vec2d& p : m_bed_shape) {
             Vec2d point(p(0) + m_position.x(), p(1) + m_position.y());
             new_bed_shape.push_back(point);
         }
-        m_build_volume = BuildVolume { new_bed_shape, printable_height };
+        std::vector<Pointfs> new_extruder_shapes;
+        for (const std::vector<Vec2d>& shape : m_extruder_shapes) {
+            std::vector<Vec2d> new_extruder_shape;
+            for (const Vec2d& p : shape) {
+                Vec2d point(p(0) + m_position.x(), p(1) + m_position.y());
+                new_extruder_shape.push_back(point);
+            }
+            new_extruder_shapes.push_back(new_extruder_shape);
+        }
+        m_build_volume = BuildVolume { new_bed_shape, printable_height, new_extruder_shapes, m_extruder_heights };
     }
     else
-        m_build_volume = BuildVolume { printable_area, printable_height };
+        m_build_volume = BuildVolume { printable_area, printable_height, m_extruder_shapes, m_extruder_heights };
     m_type = type;
     //m_texture_filename = texture_filename;
     m_model_filename = model_filename;
-    //BBS: add part plate logic
-    m_extended_bounding_box = this->calc_extended_bounding_box(false);
-
-    //BBS: add part plate logic
-
     //BBS add default bed
     m_triangles.reset();
-
     if (with_reset) {
         //m_texture.reset();
         m_model.reset();
     }
     //BBS: add part plate logic, always update model offset
-    //else {
-        update_model_offset();
-    //}
+    update_model_offset();//include m_extended_bounding_box = this->calc_extended_bounding_box();
 
     // Set the origin and size for rendering the coordinate system axes.
     m_axes.set_origin({ 0.0, 0.0, static_cast<double>(GROUND_Z) });
@@ -336,7 +342,7 @@ bool Bed3D::set_shape(const Pointfs& printable_area, const double printable_heig
 //BBS: add api to set position for partplate related bed
 void Bed3D::set_position(Vec2d& position)
 {
-    set_shape(m_bed_shape, m_build_volume.printable_height(), m_model_filename, false, position, false);
+    set_shape(m_bed_shape, m_build_volume.printable_height(), m_extruder_shapes, m_extruder_heights, m_model_filename, false, position, false);
 }
 
 void Bed3D::set_axes_mode(bool origin)
@@ -393,9 +399,9 @@ void Bed3D::render_internal(GLCanvas3D& canvas, const Transform3d& view_matrix, 
 
 //BBS: add partplate related logic
 // Calculate an extended bounding box from axes and current model for visualization purposes.
-BoundingBoxf3 Bed3D::calc_extended_bounding_box(bool consider_model_offset) const
+BoundingBoxf3 Bed3D::calc_printable_bounding_box() const
 {
-    BoundingBoxf3 out { m_build_volume.bounding_volume() };
+    BoundingBoxf3 out{m_build_volume.bounding_volume()};
 
     const Vec3d size = out.size();
     // ensures that the bounding box is set as defined or the following calls to merge() will not work as intented
@@ -405,19 +411,22 @@ BoundingBoxf3 Bed3D::calc_extended_bounding_box(bool consider_model_offset) cons
     out.min.z() = 0.0;
     out.max.z() = 0.0;
     // extend to contain axes
-    //BBS: add part plate related logic.
-    Vec3d offset{ m_position.x(), m_position.y(), 0.f };
-    //out.merge(m_axes.get_origin() + offset + m_axes.get_total_length() * Vec3d::Ones());
+    // BBS: add part plate related logic.
+    Vec3d offset{m_position.x(), m_position.y(), 0.f};
+    // out.merge(m_axes.get_origin() + offset + m_axes.get_total_length() * Vec3d::Ones());
     out.merge(Vec3d(0.f, 0.f, GROUND_Z) + offset + m_axes.get_total_length() * Vec3d::Ones());
     out.merge(out.min + Vec3d(-Axes::DefaultTipRadius, -Axes::DefaultTipRadius, out.max.z()));
-    //BBS: add part plate related logic.
-    if (consider_model_offset) {
-        // extend to contain model, if any
-        BoundingBoxf3 model_bb = m_model.get_bounding_box();
-        if (model_bb.defined) {
-            model_bb.translate(m_model_offset);
-            out.merge(model_bb);
-        }
+    return out;
+}
+
+BoundingBoxf3 Bed3D::calc_extended_bounding_box() const
+{
+    BoundingBoxf3 out;
+    out.merge(m_printable_bounding_box);
+    BoundingBoxf3 model_bb = m_model.get_bounding_box();
+    if (model_bb.defined) {
+        model_bb.translate(m_model_offset);
+        out.merge(model_bb);
     }
     return out;
 }
@@ -432,7 +441,7 @@ std::tuple<Bed3D::Type, std::string, std::string> Bed3D::detect_type(const Point
         while (curr != nullptr) {
             if (curr->config.has("printable_area")) {
                 std::string texture_filename, model_filename;
-                if (shape == dynamic_cast<const ConfigOptionPoints*>(curr->config.option("printable_area"))->values) {
+                if (shape == make_counter_clockwise(dynamic_cast<const ConfigOptionPoints*>(curr->config.option("printable_area"))->values)) {
                     if (curr->is_system)
                         model_filename = PresetUtils::system_printer_bed_model(*curr);
                     else {
@@ -612,20 +621,15 @@ void Bed3D::render_system(GLCanvas3D& canvas, const Transform3d& view_matrix, co
 void Bed3D::update_model_offset()
 {
     // move the model so that its origin (0.0, 0.0, 0.0) goes into the bed shape center and a bit down to avoid z-fighting with the texture quad
-    Vec3d shift = m_extended_bounding_box.center();
+    Vec3d shift = m_build_volume.bounding_volume().center();
     shift(2) = -0.03;
     Vec3d* model_offset_ptr = const_cast<Vec3d*>(&m_model_offset);
     *model_offset_ptr = shift;
-    //BBS: TODO: hack for current stl for BBL printer
-    if (std::string::npos != m_model_filename.find("bbl-3dp-"))
-    {
-        (*model_offset_ptr)(0) -= m_bed_shape[2].x() / 2.0f;
-        (*model_offset_ptr)(1) -= m_bed_shape[2].y() / 2.0f;
-    }
     (*model_offset_ptr)(2) = -0.41 + GROUND_Z;
 
     // update extended bounding box
-    const_cast<BoundingBoxf3&>(m_extended_bounding_box) = calc_extended_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_printable_bounding_box) = calc_printable_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_extended_bounding_box)  = calc_extended_bounding_box();
     m_triangles.reset();
 }
 
@@ -649,8 +653,8 @@ void Bed3D::update_bed_triangles()
     (*model_offset_ptr)(2) = -0.41 + GROUND_Z;
 
     std::vector<Vec2d> origin_bed_shape;
-    for (size_t i = 0; i < m_bed_shape.size(); i++) { 
-        origin_bed_shape.push_back(m_bed_shape[i] - m_bed_shape[0]);
+    for (size_t i = 0; i < m_bed_shape.size(); i++) {
+         origin_bed_shape.push_back(m_bed_shape[i]);
     }
     std::vector<Vec2d> new_bed_shape; // offset to correct origin
     for (auto point : origin_bed_shape) {
@@ -662,7 +666,8 @@ void Bed3D::update_bed_triangles()
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Unable to update plate triangles\n";
     }
     // update extended bounding box
-    const_cast<BoundingBoxf3&>(m_extended_bounding_box) = calc_extended_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_printable_bounding_box) = calc_printable_bounding_box();
+    const_cast<BoundingBoxf3 &>(m_extended_bounding_box)  = calc_extended_bounding_box();
 }
 
 void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& projection_matrix)
@@ -674,21 +679,38 @@ void Bed3D::render_model(const Transform3d& view_matrix, const Transform3d& proj
         m_model.set_color(m_is_dark ? DEFAULT_MODEL_COLOR_DARK : DEFAULT_MODEL_COLOR);
 
         update_model_offset();
-		
+
         // BBS: remove the bed picking logic
         //register_raycasters_for_picking(m_model.model.get_geometry(), Geometry::assemble_transform(m_model_offset));
     }
 
     if (!m_model.get_filename().empty()) {
-        GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+        const Camera &     camera      = wxGetApp().plater()->get_camera();
+        const Transform3d &view_matrix = camera.get_view_matrix();
+        const Transform3d &projection_matrix = camera.get_projection_matrix();
+        GLShaderProgram* shader = wxGetApp().get_shader("hotbed");
         if (shader != nullptr) {
             shader->start_using();
             shader->set_uniform("emission_factor", 0.0f);
             const Transform3d model_matrix = Geometry::assemble_transform(m_model_offset);
+            shader->set_uniform("volume_world_matrix",  model_matrix);
             shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
             shader->set_uniform("projection_matrix", projection_matrix);
             const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
             shader->set_uniform("view_normal_matrix", view_normal_matrix);
+            if (m_build_volume.get_extruder_area_count() > 0) {
+                const BuildVolume::BuildSharedVolume& shared_volume = m_build_volume.get_shared_volume();
+                std::array<float, 4>       xy_data       = shared_volume.data;
+                shader->set_uniform("print_volume.type", shared_volume.type);
+                shader->set_uniform("print_volume.xy_data", xy_data);
+                std::array<float, 2> zs = shared_volume.zs;
+                zs[0]                   = -1;
+                shader->set_uniform("print_volume.z_data", zs);
+            }
+            else {
+                //use -1 ad a invalid type
+                shader->set_uniform("print_volume.type", -1);
+            }
             m_model.render();
             shader->stop_using();
         }
@@ -729,7 +751,9 @@ void Bed3D::render_default(bool bottom, const Transform3d& view_matrix, const Tr
         if (m_model.get_filename().empty() && !bottom) {
             // draw background
             glsafe(::glDepthMask(GL_FALSE));
-            m_triangles.set_color(DEFAULT_MODEL_COLOR);
+            ColorRGBA color = m_is_dark ? DEFAULT_MODEL_COLOR_DARK : DEFAULT_MODEL_COLOR;   // ORCA add dark mode support
+            color = ColorRGBA(color[0] * 0.8f, color[1] * 0.8f,color[2] * 0.8f, color[3]);  // ORCA shift color a darker tone to fix difference between flat / gouraud_light shader
+            m_triangles.set_color(color);
             m_triangles.render();
             glsafe(::glDepthMask(GL_TRUE));
         }

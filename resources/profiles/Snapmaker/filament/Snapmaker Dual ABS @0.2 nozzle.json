@@ -1,67 +1,67 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker Dual ABS @0.2 nozzle",
-  "setting_id": "2402717089",
-  "inherits": "Snapmaker Dual ABS @base",
-  "compatible_printers": [
-    "Snapmaker A250 Dual (0.2 nozzle)",
-    "Snapmaker A250 Dual BKit (0.2 nozzle)",
-    "Snapmaker A250 Dual QS+B Kit (0.2 nozzle)",
-    "Snapmaker A250 Dual QSKit (0.2 nozzle)",
-    "Snapmaker A350 Dual (0.2 nozzle)",
-    "Snapmaker A350 Dual BKit (0.2 nozzle)",
-    "Snapmaker A350 Dual QS+B Kit (0.2 nozzle)",
-    "Snapmaker A350 Dual QSKit (0.2 nozzle)",
-    "Snapmaker Artisan (0.2 nozzle)"
-  ],
-  "hot_plate_temp": [
-    "90"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "90"
-  ],
-  "overhang_fan_speed": [
-    "80"
-  ],
-  "filament_flow_ratio": [
-    "0.93"
-  ],
-  "filament_max_volumetric_speed": [
-    "2"
-  ],
-  "filament_loading_speed_start": [
-    "3"
-  ],
-  "filament_loading_speed": [
-    "25"
-  ],
-  "filament_unloading_speed_start": [
-    "3"
-  ],
-  "filament_unloading_speed": [
-    "25"
-  ],
-  "filament_load_time": [
-    "0"
-  ],
-  "filament_unload_time": [
-    "0"
-  ],
-  "filament_cooling_moves": [
-    "0"
-  ],
-  "filament_cooling_initial_speed": [
-    "2.2"
-  ],
-  "filament_cooling_final_speed": [
-    "3.4"
-  ],
-  "fan_max_speed": [
-    "80"
-  ],
-  "pressure_advance": [
-    "0.015"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual ABS @0.2 nozzle",
+    "inherits": "Snapmaker Dual ABS @base",
+    "from": "system",
+    "setting_id": "2402717089",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 Dual (0.2 nozzle)",
+        "Snapmaker A250 Dual BKit (0.2 nozzle)",
+        "Snapmaker A250 Dual QS+B Kit (0.2 nozzle)",
+        "Snapmaker A250 Dual QSKit (0.2 nozzle)",
+        "Snapmaker A350 Dual (0.2 nozzle)",
+        "Snapmaker A350 Dual BKit (0.2 nozzle)",
+        "Snapmaker A350 Dual QS+B Kit (0.2 nozzle)",
+        "Snapmaker A350 Dual QSKit (0.2 nozzle)",
+        "Snapmaker Artisan (0.2 nozzle)"
+    ],
+    "hot_plate_temp": [
+        "90"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "90"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "filament_flow_ratio": [
+        "0.93"
+    ],
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "filament_loading_speed_start": [
+        "3"
+    ],
+    "filament_loading_speed": [
+        "25"
+    ],
+    "filament_unloading_speed_start": [
+        "3"
+    ],
+    "filament_unloading_speed": [
+        "25"
+    ],
+    "filament_load_time": [
+        "0"
+    ],
+    "filament_unload_time": [
+        "0"
+    ],
+    "filament_cooling_moves": [
+        "0"
+    ],
+    "filament_cooling_initial_speed": [
+        "2.2"
+    ],
+    "filament_cooling_final_speed": [
+        "3.4"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "pressure_advance": [
+        "0.015"
+    ]
 }

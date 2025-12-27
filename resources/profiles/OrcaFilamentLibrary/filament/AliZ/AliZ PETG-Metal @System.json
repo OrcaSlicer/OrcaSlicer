@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "AliZ PETG-Metal @System",
+    "inherits": "AliZ PETG-Metal @base",
+    "from": "system",
+    "setting_id": "AliZGFSG50",
+    "instantiation": "true",
+    "compatible_printers": []
+}

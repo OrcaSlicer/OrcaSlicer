@@ -1,0 +1,39 @@
+{
+    "type": "filament",
+    "name": "Eryone PLA",
+    "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA00",
+    "filament_id": "EFL90",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Thinker X400 0.4 nozzle"
+    ],
+    "fan_min_speed": [
+        "90"
+    ],
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "filament_settings_id": [
+        "Eryone PLA"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=1"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "slow_down_min_speed": [
+        "15"
+    ]
+}

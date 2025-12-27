@@ -1,0 +1,30 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG HF @System",
+    "inherits": "Bambu PETG HF @base",
+    "from": "system",
+    "setting_id": "OGFSG02_00",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "20"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "compatible_printers": []
+}

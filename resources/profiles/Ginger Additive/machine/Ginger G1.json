@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Ginger G1",
+    "renamed_from": "ginger G1",
+    "model_id": "Ginger_G1",
+    "nozzle_diameter": "1.2;3.0;5.0;8.0",
+    "machine_tech": "FGF",
+    "family": "Ginger",
+    "bed_model": "Ginger_G1.stl",
+    "bed_texture": "Ginger_One_texture.png",
+    "default_materials": "Ginger Generic PETG;Ginger Generic PLA"
+}

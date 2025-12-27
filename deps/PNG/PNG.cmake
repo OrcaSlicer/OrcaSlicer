@@ -12,7 +12,7 @@ if(APPLE AND IS_CROSS_COMPILE)
         GIT_TAG v1.6.35
         DEPENDS ${ZLIB_PKG}
         PATCH_COMMAND       ${GIT_EXECUTABLE} checkout -f -- . && git clean -df &&
-                            ${GIT_EXECUTABLE} apply --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/macos-arm64.patch
+                            ${GIT_EXECUTABLE} apply --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/macos-arm64.patch ${CMAKE_CURRENT_LIST_DIR}/0002-clang19-macos.patch
         CMAKE_ARGS
             -DPNG_SHARED=OFF
             -DPNG_STATIC=ON
@@ -24,7 +24,7 @@ if(APPLE AND IS_CROSS_COMPILE)
 else ()
 set(_patch_step "")
     if (APPLE)
-        set(_patch_step PATCH_COMMAND ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/PNG.patch)
+        set(_patch_step PATCH_COMMAND ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/PNG.patch ${CMAKE_CURRENT_LIST_DIR}/0002-clang19-macos.patch)
     endif ()
     orcaslicer_add_cmake_project(PNG 
         # GIT_REPOSITORY https://github.com/glennrp/libpng.git 

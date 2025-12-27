@@ -4,11 +4,11 @@
     "inherits": "Chuanying Generic ASA",
     "from": "system",
     "setting_id": "GFSA04_05",
-    "instantiation": "true",
-  "compatible_printers": [
-    "Chuanying X1 0.25 Nozzle"
-  ],
     "filament_id": "GFL99",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Chuanying X1 0.25 Nozzle"
+    ],
     "filament_settings_id": [
         "Chuanying ASA @Chuanying X1 0.25 Nozzle"
     ],
@@ -29,6 +29,5 @@
     ],
     "pressure_advance": [
         "0.1"
-    ],
-    "version": "1.8.0.0"
+    ]
 }

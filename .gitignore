@@ -1,6 +1,8 @@
 Build
 Build.bat
 /build*/
+CMakeLists.txt.user
+**/CMakeLists.txt.autosave
 deps/build*
 MYMETA.json
 MYMETA.yml
@@ -17,6 +19,7 @@ xs/assertlib*
 local-lib
 /src/TAGS
 /.vscode/
+/.vscode
 build-linux/*
 deps/build*/*
 **/.DS_Store
@@ -35,3 +38,7 @@ src/OrcaSlicer-doc/
 **/.flatpak-builder/
 resources/profiles/user/default
 *.code-workspace
+deps_src/build/
+test.js
+/.cache/
+.clangd

@@ -1,0 +1,83 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_sbs",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "filament_id": "OFLSBS99",
+    "instantiation": "false",
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_type": [
+        "SBS"
+    ],
+    "filament_density": [
+        "1.02"
+    ],
+    "filament_cost": [
+        "15"
+    ],
+    "cool_plate_temp": [
+        "70"
+    ],
+    "eng_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "70"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "235"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "nozzle_temperature": [
+        "235"
+    ],
+    "temperature_vitrification": [
+        "70"
+    ],
+    "nozzle_temperature_range_low": [
+        "215"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ]
+}

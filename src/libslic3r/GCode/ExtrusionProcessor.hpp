@@ -144,7 +144,7 @@ std::vector<ExtendedPoint> estimate_points_properties(const POINTS              
                     double t1 = std::max(a0, a1);
 
                     if (t0 < 1.0) {
-                        auto p0     = curr.position + t0 * (next.position - curr.position);
+                        Vec2d p0     = curr.position + t0 * (next.position - curr.position);
                         auto [p0_dist, p0_near_l,
                               p0_x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(p0.cast<AABBScalar>());
                         ExtendedPoint new_p{};
@@ -161,7 +161,7 @@ std::vector<ExtendedPoint> estimate_points_properties(const POINTS              
                         }
                     }
                     if (t1 > 0.0) {
-                        auto p1     = curr.position + t1 * (next.position - curr.position);
+                        Vec2d p1     = curr.position + t1 * (next.position - curr.position);
                         auto [p1_dist, p1_near_l,
                               p1_x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(p1.cast<AABBScalar>());
                         ExtendedPoint new_p{};
@@ -442,6 +442,10 @@ public:
             };
             
             float extrusion_speed = std::min(calculate_speed(curr.distance), calculate_speed(next.distance));
+            // ORCA: Clamp resulting speed to lowest of calculated speed based on the overhang values and the current speed
+            // Fixes bug where resulting overhang speed is higher than the current speed due to (for example) volumetric flow limits.
+            extrusion_speed = std::min(extrusion_speed, original_speed);
+            
             if(slowdown_for_curled_edges) {
                 float curled_speed = calculate_speed(artificial_distance_to_curled_lines);
             	extrusion_speed       = std::min(curled_speed, extrusion_speed); // adjust extrusion speed based on what is smallest - the calculated overhang speed or the artificial curled speed

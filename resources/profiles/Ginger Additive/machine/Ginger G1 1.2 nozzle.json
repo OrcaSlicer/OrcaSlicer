@@ -1,0 +1,16 @@
+{
+    "type": "machine",
+    "name": "Ginger G1 1.2 nozzle",
+    "renamed_from": "ginger G1 1.2 nozzle",
+    "inherits": "Ginger_G1_common",
+    "instantiation": "true",
+    "printer_settings_id": "Ginger G1 1.2 nozzle",
+    "max_layer_height": [
+        "1"
+    ],
+    "nozzle_diameter": [
+        "1.2"
+    ],
+    "printer_variant": "1.2",
+    "printer_model": "Ginger G1"
+}

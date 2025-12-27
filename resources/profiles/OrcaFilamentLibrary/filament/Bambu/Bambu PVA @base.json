@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "Bambu PVA @base",
+    "inherits": "fdm_filament_pva",
+    "from": "system",
+    "filament_id": "OGFS04",
+    "instantiation": "false",
+    "description": "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide.",
+    "filament_cost": [
+        "79.98"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "210"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ]
+}

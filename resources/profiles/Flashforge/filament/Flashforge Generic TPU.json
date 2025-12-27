@@ -1,193 +1,192 @@
 {
-  "type": "filament",
-  "filament_id": "GFG99",
-  "setting_id": "GFSA04",
-  "name": "Flashforge Generic TPU",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_filament_tpu",
-  "additional_cooling_fan_speed": [
-    "100"
-  ],
-  "bed_temperature_difference": [
-    "10"
-  ],
-  "chamber_temperature": "0",
-  "close_fan_the_first_x_layers": [
-    "1"
-  ],
-  "compatible_printers": [
-    "Flashforge Adventurer 5M 0.4 Nozzle",
-    "Flashforge Adventurer 5M 0.6 Nozzle",
-	"Flashforge Adventurer 5M 0.8 Nozzle",
-    "Flashforge Adventurer 5M Pro 0.4 Nozzle",
-    "Flashforge Adventurer 5M Pro 0.6 Nozzle",
-	"Flashforge Adventurer 5M Pro 0.8 Nozzle"
-  ],
-  "compatible_printers_condition": "",
-  "compatible_prints": [],
-  "compatible_prints_condition": "",
-  "cool_plate_temp": [
-    "60"
-  ],
-  "cool_plate_temp_initial_layer": [
-    "60"
-  ],
-  "default_filament_colour": [
-    ""
-  ],
-  "enable_overhang_bridge_fan": [
-    "1"
-  ],
-  "enable_pressure_advance": [
-    "1"
-  ],
-  "eng_plate_temp": [
-    "60"
-  ],
-  "eng_plate_temp_initial_layer": [
-    "60"
-  ],
-  "fan_cooling_layer_time": [
-    "100"
-  ],
-  "fan_max_speed": [
-    "100"
-  ],
-  "fan_min_speed": [
-    "100"
-  ],
-  "filament_cost": [
-    "20"
-  ],
-  "filament_density": [
-    "1.24"
-  ],
-  "filament_deretraction_speed": [
-    "nil"
-  ],
-  "filament_diameter": [
-    "1.75"
-  ],
-  "filament_end_gcode": [
-    "; filament end gcode \n"
-  ],
-  "filament_flow_ratio": [
-    "1"
-  ],
-  "filament_is_support": [
-    "0"
-  ],
-  "filament_max_volumetric_speed": [
-    "3.5"
-  ],
-  "filament_minimal_purge_on_wipe_tower": [
-    "15"
-  ],
-  "filament_retract_before_wipe": [
-    "nil"
-  ],
-  "filament_retract_restart_extra": [
-    "nil"
-  ],
-  "filament_retract_when_changing_layer": [
-    "nil"
-  ],
-  "filament_retraction_length": [
-    "1.2"
-  ],
-  "filament_retraction_minimum_travel": [
-    "nil"
-  ],
-  "filament_retraction_speed": [
-    "nil"
-  ],
-  "filament_settings_id": [
-    "Flashforge TPU"
-  ],
-  "filament_shrink": [
-    "100%"
-  ],
-  "filament_soluble": [
-    "0"
-  ],
-  "filament_start_gcode": [
-    "; filament start gcode\n;right_extruder_material:TPU\n"
-  ],
-  "filament_type": [
-    "TPU"
-  ],
-  "filament_vendor": [
-    "Generic"
-  ],
-  "filament_wipe": [
-    "nil"
-  ],
-  "filament_wipe_distance": [
-    "nil"
-  ],
-  "filament_z_hop": [
-    "nil"
-  ],
-  "filament_z_hop_types": [
-    "nil"
-  ],
-  "full_fan_speed_layer": [
-    "0"
-  ],
-  "hot_plate_temp": [
-    "45"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "45"
-  ],
-  "nozzle_temperature": [
-    "225"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "225"
-  ],
-  "nozzle_temperature_range_high": [
-    "250"
-  ],
-  "nozzle_temperature_range_low": [
-    "190"
-  ],
-  "overhang_fan_speed": [
-    "100"
-  ],
-  "overhang_fan_threshold": [
-    "50%"
-  ],
-  "pressure_advance": [
-    "0.035"
-  ],
-  "reduce_fan_stop_start_freq": [
-    "1"
-  ],
-  "required_nozzle_HRC": [
-    "0"
-  ],
-  "slow_down_for_layer_cooling": [
-    "1"
-  ],
-  "slow_down_layer_time": [
-    "8"
-  ],
-  "slow_down_min_speed": [
-    "20"
-  ],
-  "support_material_interface_fan_speed": [
-    "100"
-  ],
-  "temperature_vitrification": [
-    "60"
-  ],
-  "textured_plate_temp": [
-    "60"
-  ],
-  "textured_plate_temp_initial_layer": [
-    "60"
-  ],
-  "version": "1.5.1.2"
+    "type": "filament",
+    "name": "Flashforge Generic TPU",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "100"
+    ],
+    "bed_temperature_difference": [
+        "10"
+    ],
+    "chamber_temperature": "0",
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "compatible_printers": [
+        "Flashforge Adventurer 5M 0.4 Nozzle",
+        "Flashforge Adventurer 5M 0.6 Nozzle",
+        "Flashforge Adventurer 5M 0.8 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.4 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.6 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.8 Nozzle"
+    ],
+    "compatible_printers_condition": "",
+    "compatible_prints": [],
+    "compatible_prints_condition": "",
+    "cool_plate_temp": [
+        "60"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "60"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "enable_overhang_bridge_fan": [
+        "1"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "eng_plate_temp": [
+        "60"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "60"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_cost": [
+        "20"
+    ],
+    "filament_density": [
+        "1.24"
+    ],
+    "filament_deretraction_speed": [
+        "nil"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_is_support": [
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "3.5"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_retract_before_wipe": [
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
+        "nil"
+    ],
+    "filament_retract_when_changing_layer": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "1.2"
+    ],
+    "filament_retraction_minimum_travel": [
+        "nil"
+    ],
+    "filament_retraction_speed": [
+        "nil"
+    ],
+    "filament_settings_id": [
+        "Flashforge TPU"
+    ],
+    "filament_shrink": [
+        "100%"
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material:TPU\n"
+    ],
+    "filament_type": [
+        "TPU"
+    ],
+    "filament_vendor": [
+        "Generic"
+    ],
+    "filament_wipe": [
+        "nil"
+    ],
+    "filament_wipe_distance": [
+        "nil"
+    ],
+    "filament_z_hop": [
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "nil"
+    ],
+    "full_fan_speed_layer": [
+        "0"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "45"
+    ],
+    "nozzle_temperature": [
+        "225"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "pressure_advance": [
+        "0.035"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "required_nozzle_HRC": [
+        "0"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "support_material_interface_fan_speed": [
+        "100"
+    ],
+    "temperature_vitrification": [
+        "60"
+    ],
+    "textured_plate_temp": [
+        "60"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ]
 }

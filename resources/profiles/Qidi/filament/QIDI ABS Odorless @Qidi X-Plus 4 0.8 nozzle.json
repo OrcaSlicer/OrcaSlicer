@@ -1,13 +1,16 @@
 {
     "type": "filament",
-    "filament_id": "GFB99",
+    "name": "QIDI ABS Odorless @Qidi X-Plus 4 0.8 nozzle",
+    "inherits": "QIDI ABS Odorless",
+    "from": "system",
     "setting_id": "GFSA04",
+    "filament_id": "GFB99",
     "instantiation": "true",
-    "activate_air_filtration":[
-         "1"
+    "activate_air_filtration": [
+        "1"
     ],
-    "during_print_exhaust_fan_speed":[
-         "0"
+    "during_print_exhaust_fan_speed": [
+        "0"
     ],
     "filament_flow_ratio": [
         "0.92"
@@ -27,13 +30,9 @@
     "filament_max_volumetric_speed": [
         "24.5"
     ],
-    "from": "system",
     "hot_plate_temp_initial_layer": [
         "90"
     ],
-    "inherits": "QIDI ABS Odorless",
-    "is_custom_defined": "0",
-    "name": "QIDI ABS Odorless @Qidi X-Plus 4 0.8 nozzle",
     "nozzle_temperature": [
         "250"
     ],
@@ -47,6 +46,6 @@
         "10"
     ],
     "compatible_printers": [
-"Qidi X-Plus 4 0.8 nozzle"
-	]
+        "Qidi X-Plus 4 0.8 nozzle"
+    ]
 }

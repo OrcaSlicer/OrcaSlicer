@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
 
 #include "TCPConsole.hpp"
 #include "SerialMessage.hpp"
@@ -28,6 +29,8 @@ void TCPConsole::transmit_next_command()
         m_io_context.stop();
         return;
     }
+
+    std::this_thread::sleep_for(m_tcp_queue_delay);
 
     SerialMessage cmd = m_cmd_queue.front();
     m_cmd_queue.pop_front();
@@ -117,10 +120,10 @@ void TCPConsole::handle_write(
         m_io_context.stop();
     }
     else {
-        if(messageType == Command){
-        wait_next_line();
+        if(messageType == Command) {
+            wait_next_line();
         }
-        else{
+        else {
             transmit_next_command();
         }
     }

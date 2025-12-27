@@ -1,16 +1,85 @@
 {
     "type": "filament",
-    "filament_id": "BSFI002",
-    "setting_id": "BSSI002",
     "name": "Blocks Generic PETG",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_petg",
+    "from": "system",
+    "setting_id": "BSSI002",
+    "filament_id": "BSFI002",
+    "instantiation": "true",
     "filament_flow_ratio": [
-        "0.95"
+        "0.94"
+    ],
+    "filament_density": [
+        "1.24"
+    ],
+    "filament_shrink": [
+        "99.9%"
     ],
     "filament_max_volumetric_speed": [
-        "20"
+        "12"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "nozzle_temperature": [
+        "245"
+    ],
+    "nozzle_temperature_range_low": [
+        "210"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_min_speed": [
+        "30"
+    ],
+    "enable_overhang_bridge_fan": [
+        "1"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "overhang_fan_speed": [
+        "100%"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "80"
+    ],
+    "activate_air_filtration": [
+        "1"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "slow_down_layer_time": [
+        "5"
     ],
     "compatible_printers": [
         "BLOCKS Pro S100 0.4 nozzle",
@@ -27,6 +96,5 @@
         "BLOCKS RF50 0.6 nozzle",
         "BLOCKS RF50 0.8 nozzle",
         "BLOCKS RF50"
-
     ]
 }

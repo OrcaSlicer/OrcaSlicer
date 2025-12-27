@@ -1,7 +1,9 @@
 {
+    "type": "process",
+    "name": "0.20mm Standard @Artillery X3Pro 0.4 nozzle",
+    "inherits": "fdm_process_common",
     "from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_process_common",
+    "instantiation": "true",
     "accel_to_decel_enable": "1",
     "accel_to_decel_factor": "50%",
     "alternate_extra_wall": "0",
@@ -109,7 +111,6 @@
     "minimum_sparse_infill_area": "10",
     "mmu_segmented_region_interlocking_depth": "0",
     "mmu_segmented_region_max_width": "0",
-    "name": "0.20mm Standard @Artillery X3Pro 0.4 nozzle",
     "notes": "",
     "only_one_wall_first_layer": "0",
     "only_one_wall_top": "0",
@@ -186,7 +187,7 @@
     "sparse_infill_density": "15%",
     "sparse_infill_filament": "1",
     "sparse_infill_line_width": "0.45",
-    "sparse_infill_pattern": "grid",
+    "sparse_infill_pattern": "crosshatch",
     "sparse_infill_speed": "150",
     "spiral_mode": "0",
     "spiral_mode_max_xy_smoothing": "200%",
@@ -281,5 +282,5 @@
     ],
     "xy_contour_compensation": "0",
     "xy_hole_compensation": "0",
-	"top_bottom_infill_wall_overlap":"15%"
+    "top_bottom_infill_wall_overlap": "15%"
 }

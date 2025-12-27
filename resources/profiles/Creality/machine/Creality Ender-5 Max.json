@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Creality Ender-5 Max",
+    "model_id": "Creality-Ender5-Max",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Creality",
+    "bed_model": "creality_ender5max_buildplate_model.stl",
+    "bed_texture": "creality_ender5max_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Creality Hyper PLA-CF @Ender-5Max-all;Creality Hyper PLA @Ender-5Max-all;Creality Hyper ABS @Ender-5Max-all;Creality Generic TPU @Ender-5Max-all;Creality Generic ASA @Ender-5Max-all;Creality Silk PLA @Ender-5Max-all;Creality Generic PLA @Ender-5Max-all;Creality Generic PETG @Ender-5Max-all;Creality Generic ABS @Ender-5Max-all;Creality Generic PA @Ender-5Max-all"
+}

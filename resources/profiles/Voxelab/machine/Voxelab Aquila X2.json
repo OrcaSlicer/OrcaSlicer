@@ -8,5 +8,5 @@
     "bed_model": "voxelab_aquilax2_buildplate_model.stl",
     "bed_texture": "voxelab_aquilax2_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Voxelab Generic ABS;Voxelab Generic PETG;Voxelab Generic PLA"
+    "default_materials": "Generic ABS @System;Generic PETG @System;Generic PLA @System"
 }

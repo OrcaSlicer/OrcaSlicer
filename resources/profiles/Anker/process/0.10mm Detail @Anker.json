@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP003",
     "name": "0.10mm Detail @Anker",
-    "from": "system",
     "inherits": "fdm_process_anker_common",
+    "from": "system",
+    "setting_id": "GP003",
     "instantiation": "true",
     "layer_height": "0.10",
     "initial_layer_print_height": "0.15",

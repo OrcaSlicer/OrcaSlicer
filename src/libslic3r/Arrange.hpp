@@ -135,7 +135,6 @@ struct ArrangeParams {
     float clearance_radius = 0;
     float object_skirt_offset = 0;
     float nozzle_height = 0;
-    bool  all_objects_are_short = false;
     float printable_height = 256.0;
     Vec2d align_center{ 0.5,0.5 };
 

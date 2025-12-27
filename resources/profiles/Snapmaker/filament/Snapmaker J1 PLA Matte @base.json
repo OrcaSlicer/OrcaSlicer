@@ -1,20 +1,20 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PLA Matte @base",
-  "filament_id": "1192769348",
-  "inherits": "fdm_filament_pla",
-  "filament_density": [
-    "1.32"
-  ],
-  "filament_max_volumetric_speed": [
-    "9.6"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "215"
-  ],
-  "default_filament_colour": [
-    "#EAC3C3"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA Matte @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "1192769348",
+    "instantiation": "false",
+    "filament_density": [
+        "1.32"
+    ],
+    "filament_max_volumetric_speed": [
+        "9.6"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "default_filament_colour": [
+        ""
+    ]
 }

@@ -1,4 +1,9 @@
 {
+    "type": "process",
+    "name": "0.20mm Standard @Creality Sermoon V1",
+    "inherits": "fdm_process_creality_common",
+    "from": "User",
+    "instantiation": "true",
     "accel_to_decel_enable": "1",
     "accel_to_decel_factor": "65%",
     "bottom_shell_thickness": "0.6",
@@ -15,12 +20,10 @@
     "enable_arc_fitting": "0",
     "enable_support": "1",
     "exclude_object": "1",
-    "from": "User",
     "gap_infill_speed": "195",
     "gcode_comments": "1",
     "infill_combination": "0",
     "infill_wall_overlap": "30%",
-    "inherits": "fdm_process_creality_common",
     "initial_layer_acceleration": "3000",
     "initial_layer_infill_speed": "75",
     "initial_layer_jerk": "5",
@@ -36,7 +39,6 @@
     "ironing_flow": "10%",
     "ironing_spacing": "0.15",
     "ironing_speed": "45",
-    "is_custom_defined": "0",
     "layer_height": "0.20",
     "line_width": "0.61",
     "max_bridge_length": "20",
@@ -44,7 +46,6 @@
     "min_bead_width": "80%",
     "min_feature_size": "20%",
     "minimum_sparse_infill_area": "8",
-    "name": "0.20mm Standard @Creality Sermoon V1",
     "only_one_wall_first_layer": "1",
     "only_one_wall_top": "1",
     "outer_wall_acceleration": "4000",
@@ -100,12 +101,11 @@
     "tree_support_wall_count": "1",
     "wall_loops": "2",
     "tree_support_adaptive_layer_height": "0",
-    "version": "2.0.0.0",
     "wall_infill_order": "infill/inner wall/outer wall",
-    "xy_hole_compensation": "0.05",	
+    "xy_hole_compensation": "0.05",
     "xy_contour_compensation": "-0.05",
     "independent_support_layer_height": "0",
     "compatible_printers": [
-    	"Creality Sermoon V1 0.4 nozzle"
+        "Creality Sermoon V1 0.4 nozzle"
     ]
 }

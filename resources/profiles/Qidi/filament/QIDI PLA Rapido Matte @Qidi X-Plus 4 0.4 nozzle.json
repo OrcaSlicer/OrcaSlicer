@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "QIDI PLA Rapido Matte @Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "QIDI PLA Rapido Matte",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "QD_0_1_2",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -23,7 +27,6 @@
     "filament_settings_id": [
         "QIDI PLA Rapido Matte @Qidi X-Plus 4 0.4 nozzle"
     ],
-    "from": "system",
     "full_fan_speed_layer": [
         "3"
     ],
@@ -33,9 +36,6 @@
     "hot_plate_temp_initial_layer": [
         "60"
     ],
-    "inherits": "QIDI PLA Rapido Matte",
-    "is_custom_defined": "0",
-    "name": "QIDI PLA Rapido Matte @Qidi X-Plus 4 0.4 nozzle",
     "nozzle_temperature": [
         "200"
     ],
@@ -49,6 +49,6 @@
         "200"
     ],
     "compatible_printers": [
-    "Qidi X-Plus 4 0.4 nozzle"
-        ]
+        "Qidi X-Plus 4 0.4 nozzle"
+    ]
 }

@@ -23,7 +23,7 @@ namespace Slic3r { namespace GUI {
     m_printing_img = ScalableBitmap(this, "printer", 16);
     m_arrow_img    = ScalableBitmap(this, "monitor_arrow", 14);
 
-    m_none_printing_img = ScalableBitmap(this, "tab_monitor_active", 24);
+    m_none_printing_img = ScalableBitmap(this, "tab_monitor_active", 20); // ORCA match icon size with exact resolution to fix blurry icon
     m_none_arrow_img    = ScalableBitmap(this, "monitor_none_arrow", 14);
     m_none_add_img      = ScalableBitmap(this, "monitor_none_add", 14);
 
@@ -45,8 +45,8 @@ namespace Slic3r { namespace GUI {
 
 SideToolsPanel::~SideToolsPanel() { delete m_intetval_timer; }
 
-void SideToolsPanel::set_none_printer_mode() 
-{ 
+void SideToolsPanel::set_none_printer_mode()
+{
     m_none_printer = true;
     Refresh();
 }
@@ -55,26 +55,28 @@ void SideToolsPanel::on_timer(wxTimerEvent &event)
 {
 }
 
-void SideToolsPanel::set_current_printer_name(std::string dev_name) 
+void SideToolsPanel::set_current_printer_name(std::string dev_name)
 {
+     if (m_dev_name == from_u8(dev_name) && !m_none_printer) return;
+
      m_none_printer = false;
      m_dev_name     = from_u8(dev_name);
      Refresh();
 }
 
-void SideToolsPanel::set_current_printer_signal(WifiSignal sign) 
+void SideToolsPanel::set_current_printer_signal(WifiSignal sign)
 {
-     if (last_printer_signal == sign) return;
-    
+     if (last_printer_signal == sign && !m_none_printer) return;
+
      last_printer_signal = sign;
      m_none_printer = false;
      m_wifi_type    = sign;
      Refresh();
 }
 
-void SideToolsPanel::start_interval() 
-{ 
-    m_intetval_timer->Start(SIDE_TOOL_CLICK_INTERVAL); 
+void SideToolsPanel::start_interval()
+{
+    m_intetval_timer->Start(SIDE_TOOL_CLICK_INTERVAL);
     m_is_in_interval = true;
 }
 
@@ -85,13 +87,13 @@ void SideToolsPanel::stop_interval(wxTimerEvent& event)
 }
 
 
-bool SideToolsPanel::is_in_interval() 
+bool SideToolsPanel::is_in_interval()
 {
     return m_is_in_interval;
 }
 
-void SideToolsPanel::msw_rescale() 
-{ 
+void SideToolsPanel::msw_rescale()
+{
     m_printing_img.msw_rescale();
     m_arrow_img.msw_rescale();
 
@@ -138,7 +140,7 @@ void SideToolsPanel::doRender(wxDC &dc)
 {
     auto   left = FromDIP(15);
     wxSize size = GetSize();
-    
+
     //if (m_none_printer) {
     //    dc.SetPen(SIDE_TOOLS_LIGHT_GREEN);
     //    dc.SetBrush(SIDE_TOOLS_LIGHT_GREEN);
@@ -196,14 +198,14 @@ void SideToolsPanel::doRender(wxDC &dc)
 
         auto sizet = dc.GetTextExtent(m_dev_name);
         auto text_end = size.x - m_wifi_none_img.GetBmpSize().x - 20;
-        
-        std::string finally_name = m_dev_name.ToStdString();
+
+        wxString finally_name = m_dev_name;
         if (sizet.x > (text_end - left)) {
             auto limit_width = text_end - left - dc.GetTextExtent("...").x - 20;
             for (auto i = 0; i < m_dev_name.length(); i++) {
                 auto curr_width = dc.GetTextExtent(m_dev_name.substr(0, i));
                 if (curr_width.x >= limit_width) {
-                    finally_name = (m_dev_name.substr(0, i) + wxString("...")).ToStdString();
+                    finally_name = m_dev_name.substr(0, i) + "...";
                     break;
                 }
             }
@@ -233,7 +235,7 @@ void SideToolsPanel::on_mouse_left_down(wxMouseEvent &evt)
     Refresh();
 }
 
-void SideToolsPanel::on_mouse_left_up(wxMouseEvent &evt) 
+void SideToolsPanel::on_mouse_left_up(wxMouseEvent &evt)
 {
      m_click = false;
      Refresh();
@@ -326,7 +328,7 @@ SideTools::SideTools(wxWindow *parent, wxWindowID id, const wxPoint &pos, const 
     wxBoxSizer* sizer_error_desc = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* sizer_extra_info = new wxBoxSizer(wxHORIZONTAL);
 
-    m_link_network_state = new wxHyperlinkCtrl(m_side_error_panel, wxID_ANY,_L("Check the status of current system services"),"",wxDefaultPosition,wxDefaultSize,wxALIGN_CENTER_HORIZONTAL | wxST_ELLIPSIZE_END);
+    m_link_network_state = new wxHyperlinkCtrl(m_side_error_panel, wxID_ANY,_L("Check the status of current system services"),"",wxDefaultPosition,wxDefaultSize, wxHL_ALIGN_CENTRE |wxST_ELLIPSIZE_END);
     m_link_network_state->SetMinSize(wxSize(FromDIP(220), -1));
     m_link_network_state->SetMaxSize(wxSize(FromDIP(220), -1));
     m_link_network_state->SetFont(::Label::Body_12);
@@ -404,7 +406,7 @@ SideTools::SideTools(wxWindow *parent, wxWindowID id, const wxPoint &pos, const 
     Fit();
 }
 
-void SideTools::msw_rescale() 
+void SideTools::msw_rescale()
 {
     m_side_tools->msw_rescale();
     m_connection_info->SetCornerRadius(0);
@@ -457,12 +459,15 @@ void SideTools::update_status(MachineObject* obj)
     if (!obj) return;
 
     /* Update Device Info */
-    m_side_tools->set_current_printer_name(obj->dev_name);
+    m_side_tools->set_current_printer_name(obj->get_dev_name());
 
     // update wifi signal image
     int wifi_signal_val = 0;
     if (!obj->is_connected() || obj->is_connecting()) {
         m_side_tools->set_current_printer_signal(WifiSignal::NONE);
+    }
+    else if (!obj->is_lan_mode_printer() && !obj->is_online()) {
+        m_side_tools->set_current_printer_signal(WifiSignal::NONE);/*STUDIO-10185*/
     }
     else {
         if (obj->network_wired) {

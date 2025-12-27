@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "BSFI006",
-    "setting_id": "BSSI006",
     "name": "Blocks Generic PA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "BSSI006",
+    "filament_id": "BSFI006",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.98"
     ],

@@ -1,11 +1,11 @@
 {
-  "type": "machine_model",
-  "machine_tech": "FFF",
-  "family": "Snapmaker",
-  "name": "Snapmaker J1",
-  "url": "https://github.com/macdylan",
-  "model_id": "199828459",
-  "bed_model": "Snapmaker J1_bed.stl",
-  "bed_texture": "Snapmaker J1_texture.svg",
-  "nozzle_diameter": "0.2;0.4;0.6;0.8"
+    "type": "machine_model",
+    "name": "Snapmaker J1",
+    "machine_tech": "FFF",
+    "family": "Snapmaker",
+    "url": "https://github.com/macdylan",
+    "model_id": "199828459",
+    "bed_model": "Snapmaker J1_bed.stl",
+    "bed_texture": "Snapmaker J1_texture.svg",
+    "nozzle_diameter": "0.2;0.4;0.6;0.8"
 }

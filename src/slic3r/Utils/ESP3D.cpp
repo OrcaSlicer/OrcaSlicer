@@ -55,7 +55,7 @@ bool ESP3D::test(wxString& msg) const
     return ret;
 }
 
-wxString ESP3D::get_test_ok_msg() const { return _(L("Connection to ESP3D works correctly.")); }
+wxString ESP3D::get_test_ok_msg() const { return _(L("Connection to ESP3D is working correctly.")); }
 
 wxString ESP3D::get_test_failed_msg(wxString& msg) const
 {

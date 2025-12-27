@@ -1,0 +1,31 @@
+{
+    "type": "filament",
+    "name": "Snapmaker TPU High-Flow @U1",
+    "inherits": "Snapmaker TPU @U1 base",
+    "from": "system",
+    "setting_id": "10729188540",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)",
+        "Snapmaker U1 (0.6 nozzle)",
+        "Snapmaker U1 (0.8 nozzle)"
+    ],
+    "filament_flow_ratio": [
+        "0.983"
+    ],
+    "filament_deretraction_speed": [
+        "nil"
+    ],
+    "filament_max_volumetric_speed": [
+        "7.6"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "filament_retraction_speed": [
+        "nil"
+    ],
+    "filament_notes": [
+        "!! It needs to be dried before use.\nSnapmaker TPU 95A High-Flow\n"
+    ]
+}

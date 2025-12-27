@@ -1,0 +1,51 @@
+{
+    "type": "filament",
+    "name": "Creality Generic PETG @Hi-all",
+    "inherits": "Creality Generic PETG",
+    "from": "system",
+    "setting_id": "GFSG99_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "cool_plate_temp": [
+        "70"
+    ],
+    "eng_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "70"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else}\nM104 S[first_layer_temperature]\n{endif}\n"
+    ],
+    "compatible_printers": [
+        "Creality Hi 0.4 nozzle",
+        "Creality Hi 0.6 nozzle"
+    ]
+}

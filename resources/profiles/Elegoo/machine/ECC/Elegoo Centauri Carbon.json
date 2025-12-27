@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Elegoo Centauri Carbon",
+    "model_id": "Elegoo-CC",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Elegoo",
+    "bed_model": "elegoo_centuri_carbon_buildplate_model.stl",
+    "bed_texture": "elegoo_centuri_carbon_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Elegoo ASA @0.2 nozzle;Elegoo ASA @ECC;Elegoo PETG PRO @0.2 nozzle;Elegoo PETG PRO @ECC;Elegoo PLA @0.2 nozzle;Elegoo PLA Matte @0.2 nozzle;Elegoo PLA Matte @ECC;Elegoo PLA PRO @0.2 nozzle;Elegoo PLA PRO @ECC;Elegoo PLA Silk @0.2 nozzle;Elegoo PLA Silk @ECC;Elegoo PLA-CF @ECC;Elegoo PLA @ECC;Elegoo PLA+ @0.2 nozzle;Elegoo PLA+ @ECC;Elegoo RAPID PETG @0.2 nozzle;Elegoo RAPID PETG @ECC;Elegoo RAPID PETG+;Elegoo RAPID PLA+ @0.2 nozzle;Elegoo RAPID PLA+ @ECC;Elegoo TPU 95A @ECC"
+}

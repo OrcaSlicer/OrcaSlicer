@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Tiertime UP600 HS",
+    "model_id": "my_tiertime_up600_01",
+    "nozzle_diameter": "0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Tiertime",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "Tiertime ABS;Tiertime PLA"
+}

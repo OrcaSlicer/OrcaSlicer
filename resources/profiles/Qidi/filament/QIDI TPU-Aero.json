@@ -1,0 +1,67 @@
+{
+    "type": "filament",
+    "name": "QIDI TPU-Aero",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSR99",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_type": [
+        "TPU-AERO"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "filament_flow_ratio": [
+        "0.5"
+    ],
+    "pressure_advance": [
+        "0.03"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "hot_plate_temp": [
+        "35"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_density": [
+        "1.15"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "slow_down_layer_time": [
+        "14"
+    ],
+    "filament_retraction_length": [
+        "0"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 0.4 nozzle",
+        "Qidi X-Max 0.4 nozzle",
+        "Qidi X-CF Pro 0.4 nozzle",
+        "Qidi X-Smart 3 0.4 nozzle",
+        "Qidi X-Plus 3 0.4 nozzle",
+        "Qidi X-Max 3 0.4 nozzle",
+        "Qidi X-Max 0.6 nozzle",
+        "Qidi X-CF Pro 0.6 nozzle",
+        "Qidi X-Smart 3 0.6 nozzle",
+        "Qidi X-Plus 3 0.6 nozzle",
+        "Qidi X-Max 3 0.6 nozzle"
+    ]
+}

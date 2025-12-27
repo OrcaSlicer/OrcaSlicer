@@ -1,62 +1,62 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker Dual PETG @base",
-  "filament_id": "2209001062",
-  "inherits": "fdm_filament_petg",
-  "overhang_fan_speed": [
-    "25"
-  ],
-  "filament_density": [
-    "1.25"
-  ],
-  "filament_z_hop_types": [
-    "Spiral Lift"
-  ],
-  "filament_retraction_speed": [
-    "35"
-  ],
-  "filament_loading_speed_start": [
-    "35"
-  ],
-  "filament_loading_speed": [
-    "35"
-  ],
-  "filament_unloading_speed_start": [
-    "35"
-  ],
-  "filament_unloading_speed": [
-    "35"
-  ],
-  "filament_load_time": [
-    "2"
-  ],
-  "filament_unload_time": [
-    "2"
-  ],
-  "filament_cooling_moves": [
-    "2"
-  ],
-  "filament_cooling_initial_speed": [
-    "35"
-  ],
-  "filament_cooling_final_speed": [
-    "60"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "250"
-  ],
-  "temperature_vitrification": [
-    "178"
-  ],
-  "fan_max_speed": [
-    "20"
-  ],
-  "fan_min_speed": [
-    "0"
-  ],
-  "nozzle_temperature_range_low": [
-    "240"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual PETG @base",
+    "inherits": "fdm_filament_petg",
+    "from": "system",
+    "filament_id": "2209001062",
+    "instantiation": "false",
+    "overhang_fan_speed": [
+        "25"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift"
+    ],
+    "filament_retraction_speed": [
+        "35"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "temperature_vitrification": [
+        "178"
+    ],
+    "fan_max_speed": [
+        "20"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ]
 }

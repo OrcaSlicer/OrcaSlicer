@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04_CREALITY_00",
     "name": "Creality Generic ABS @K1-all",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Creality Generic ABS",
+    "from": "system",
+    "setting_id": "GFSA04_CREALITY_00",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "14"
     ],

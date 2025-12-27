@@ -13,7 +13,7 @@ namespace Slic3r {
 
 class TriangleMesh;
 class Polygon;
-using Polygons = std::vector<Polygon>;
+using Polygons = std::vector<Polygon, PointsAllocator<Polygon>>;
 class BuildVolume;
 
 namespace GUI {

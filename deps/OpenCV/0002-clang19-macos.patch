@@ -1,0 +1,54 @@
+From 893b8113f04d408cc6177c6de19c9889a48faa24 Mon Sep 17 00:00:00 2001
+From: Zixu Wang <zixu_wang@apple.com>
+Date: Thu, 18 Jan 2024 11:12:00 -0800
+Subject: [PATCH] Fix unused platform check and configuration for macOS
+
+In a similar manner as zlib (https://github.com/madler/zlib/pull/895),
+libpng contains a header configuration that's no longer valid and
+hasn't been exercised for the macOS target.
+
+- The target OS conditional macros are misused. Specifically
+  `TARGET_OS_MAC` covers all Apple targets, including iOS, and it
+  should not be checked with `#if defined` as they would always be
+  defined (to either 1 or 0) on Apple platforms.
+- `#include <fp.h>` no longer works for the macOS target and results
+  in a compilation failure. macOS ships all required functions in
+  `math.h`, and clients should use `math.h` instead.
+
+This problem has not been noticed until a recent extension in clang
+(https://github.com/llvm/llvm-project/pull/74676) exposed the issue
+and broke libpng builds on Apple platforms. The failure can be
+reproduced now by adding `#include <TargetConditionals.h>` before the
+block.
+
+Signed-off-by: Cosmin Truta <ctruta@gmail.com>
+---
+ AUTHORS   |  2 ++
+ pngpriv.h | 14 ++------------
+ 2 files changed, 4 insertions(+), 12 deletions(-)
+
+diff --git a/3rdparty/libpng/pngpriv.h b/3rdparty/libpng/pngpriv.h
+index 6c7280cf53..190eb85cbf 100644
+--- a/3rdparty/libpng/pngpriv.h
++++ b/3rdparty/libpng/pngpriv.h
+@@ -556,18 +556,8 @@
+     */
+ #  include <float.h>
+ 
+-#  if (defined(__MWERKS__) && defined(macintosh)) || defined(applec) || \
+-    defined(THINK_C) || defined(__SC__) || defined(TARGET_OS_MAC)
+-   /* We need to check that <math.h> hasn't already been included earlier
+-    * as it seems it doesn't agree with <fp.h>, yet we should really use
+-    * <fp.h> if possible.
+-    */
+-#    if !defined(__MATH_H__) && !defined(__MATH_H) && !defined(__cmath__)
+-#      include <fp.h>
+-#    endif
+-#  else
+-#    include <math.h>
+-#  endif
++#  include <math.h>
++
+ #  if defined(_AMIGA) && defined(__SASC) && defined(_M68881)
+    /* Amiga SAS/C: We must include builtin FPU functions when compiling using
+     * MATH=68881

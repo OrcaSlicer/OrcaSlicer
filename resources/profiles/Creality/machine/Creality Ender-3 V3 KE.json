@@ -2,7 +2,7 @@
     "type": "machine_model",
     "name": "Creality Ender-3 V3 KE",
     "model_id": "Creality-Ender3-V3-KE",
-    "nozzle_diameter": "0.4",
+    "nozzle_diameter": "0.2;0.4;0.6;0.8",
     "machine_tech": "FFF",
     "family": "Creality",
     "bed_model": "creality_ender3v3ke_buildplate_model.stl",

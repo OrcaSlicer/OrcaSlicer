@@ -1,13 +1,10 @@
 {
-
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.24mm Draft @FlyingBear Reborn3",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_process_common",
-    "bottom_shell_layers": "3",
-
+    "inherits": "fdm_process_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "bottom_shell_layers": "3",
     "overhang_1_4_speed": "50",
     "overhang_2_4_speed": "50",

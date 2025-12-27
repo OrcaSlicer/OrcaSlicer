@@ -1535,7 +1535,7 @@ void GLGizmoEmboss::draw_text_input()
         float width = ImGui::GetContentRegionAvailWidth();
         const ImVec2& padding = style.FramePadding;
         ImVec2 icon_pos(width - m_gui_cfg->icon_width - scrollbar_width + padding.x, 
-                        cursor.y - m_gui_cfg->icon_width - scrollbar_height - 2*padding.y);
+                        cursor.y - 2 * m_gui_cfg->icon_width - scrollbar_height - 2*padding.y);  // ORCA fix vertical position
         
         ImGui::SetCursorPos(icon_pos);
         draw(get_icon(m_icons, IconType::exclamation, IconState::hovered));
@@ -1646,7 +1646,7 @@ void GLGizmoEmboss::draw_font_list_line()
     bool exist_change_in_font = m_style_manager.is_font_changed();
     const std::string& font_text = m_gui_cfg->translations.font;
     if (exist_change_in_font || !exist_stored_style)
-        ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, font_text);
+        ImGuiWrapper::text_colored(ImGuiWrapper::COL_MODIFIED, font_text); // ORCA match color
     else
         ImGuiWrapper::text(font_text);
 
@@ -1673,7 +1673,8 @@ void GLGizmoEmboss::draw_font_list_line()
     EmbossStyle &style = m_style_manager.get_style();
     if (exist_change_in_font) {
         ImGui::SameLine(ImGui::GetStyle().WindowPadding.x);
-        if (draw_button(m_icons, IconType::undo)) {
+        auto r_icon = get_icon(m_icons, IconType::undo, IconState::hovered);
+        if (Slic3r::GUI::button(r_icon, r_icon, r_icon)) { // ORCA draw bottom with same orange color
             const EmbossStyle *stored_style = m_style_manager.get_stored_style();
 
             style.path          = stored_style->path;
@@ -1848,7 +1849,7 @@ void GLGizmoEmboss::draw_model_type()
     ModelVolumeType type = m_volume->type();
 
     //TRN EmbossOperation
-    ImGuiWrapper::push_radio_style();
+    ImGuiWrapper::push_radio_style(m_parent.get_scale()); // ORCA
     if (ImGui::RadioButton(_u8L("Join").c_str(), type == part))
         new_type = part;
     else if (ImGui::IsItemHovered())
@@ -1911,7 +1912,7 @@ void GLGizmoEmboss::draw_model_type()
 void GLGizmoEmboss::draw_style_rename_popup() {
     std::string& new_name = m_style_manager.get_style().name;
     const std::string &old_name = m_style_manager.get_stored_style()->name;
-    std::string text_in_popup = GUI::format(_L("Rename style(%1%) for embossing text"), old_name) + ": ";
+    std::string text_in_popup = GUI::format(_L("Rename style (%1%) for embossing text"), old_name) + ": ";
     ImGui::Text("%s", text_in_popup.c_str());
         
     bool is_unique = (new_name == old_name) || // could be same as before rename
@@ -2405,7 +2406,7 @@ bool GLGizmoEmboss::revertible(const std::string &name,
     ImGui::AlignTextToFramePadding();
     bool changed = exist_change(value, default_value);
     if (changed || default_value == nullptr)
-        ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, name);
+        ImGuiWrapper::text_colored(ImGuiWrapper::COL_MODIFIED, name); // ORCA Match color
     else
         ImGuiWrapper::text(name);
 
@@ -2414,7 +2415,8 @@ bool GLGizmoEmboss::revertible(const std::string &name,
         ImGuiWindow *window = ImGui::GetCurrentWindow();
         float prev_x = window->DC.CursorPosPrevLine.x;
         ImGui::SameLine(undo_offset); // change cursor postion
-        if (draw_button(m_icons, IconType::undo)) {
+        auto r_icon = get_icon(m_icons, IconType::undo, IconState::hovered);
+        if (Slic3r::GUI::button(r_icon, r_icon, r_icon)) { // ORCA draw bottom with same orange color
             value = *default_value;
 
             // !! Fix to detect change of value after revert of float-slider
@@ -2717,7 +2719,8 @@ void GLGizmoEmboss::draw_advanced()
         else if (draw_button(icons, IconType::align_horizontal_right)) { align.first=FontProp::HorizontalAlign::right; is_change = true; }
         else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Right", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
 
-        ImGui::SameLine();
+        ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x * 2.f); // ORCA use wider spacing for separation between horizontal / vertical alignment
+
         if (align.second==FontProp::VerticalAlign::top) draw(get_icon(icons, IconType::align_vertical_top, IconState::hovered));
         else if (draw_button(icons, IconType::align_vertical_top)) { align.second=FontProp::VerticalAlign::top; is_change = true; }
         else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Top", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
@@ -2873,10 +2876,10 @@ void GLGizmoEmboss::draw_advanced()
 
     m_imgui->disabled_end();  // allowe_surface_distance
 
-    // slider for Clock-wise angle in degress
+    // slider for Clockwise angle in degress
     // stored angle is optional CCW and in radians
     // Convert stored value to degress
-    // minus create clock-wise roation from CCW
+    // minus create clockwise roation from CCW
     float angle = current_style.angle.value_or(0.f);
     float angle_deg = static_cast<float>(-angle * 180 / M_PI);
     float def_angle_deg_val = 
@@ -2886,7 +2889,7 @@ void GLGizmoEmboss::draw_advanced()
         &def_angle_deg_val : nullptr;
     if (rev_slider(tr.rotation, angle_deg, def_angle_deg, _u8L("Undo rotation"), 
         limits.angle.min, limits.angle.max, u8"%.2f °",
-                   _L("Rotate text Clock-wise."))) {
+                   _L("Rotate text Clockwise."))) {
         // convert back to radians and CCW
         double angle_rad = -angle_deg * M_PI / 180.0;
         Geometry::to_range_pi_pi(angle_rad);                
@@ -3037,7 +3040,7 @@ bool GLGizmoEmboss::choose_font_by_wxdialog()
         (!use_deserialized_font && !m_style_manager.load_style(emboss_style, wx_font))) {
         m_style_manager.erase(font_index);
         wxString message = GUI::format_wxstr(
-            "Font \"%1%\" can't be used. Please select another.",
+            _L("Font \"%1%\" can't be used. Please select another."),
             emboss_style.name);
         wxString      title = "Selected font is NOT True-type.";
         MessageDialog not_loaded_font_message(nullptr, message, title, wxOK);
@@ -3116,8 +3119,8 @@ void GLGizmoEmboss::create_notification_not_valid_font(
     }
     const std::string &face_name = face_name_opt.value_or(face_name_by_wx.value_or(es.path));
     std::string text =
-        GUI::format(_L("Can't load exactly same font(\"%1%\"). "
-                       "Application selected a similar one(\"%2%\"). "
+        GUI::format(_L("Can't load exactly same font (\"%1%\"). "
+                       "Application selected a similar one (\"%2%\"). "
                        "You have to specify font for enable edit text."),
                     face_name_3mf, face_name);
     create_notification_not_valid_font(text);
@@ -3598,7 +3601,7 @@ GuiCfg create_gui_configuration()
     float space = line_height_with_spacing - line_height;
     const ImGuiStyle &style  = ImGui::GetStyle();
 
-    cfg.max_style_name_width = ImGui::CalcTextSize("Maximal font name, extended").x;
+    cfg.max_style_name_width = ImGui::CalcTextSize("Maximal style name..").x;
 
     cfg.icon_width = static_cast<unsigned int>(std::ceil(line_height));
     // make size pair number
@@ -3692,11 +3695,11 @@ GuiCfg create_gui_configuration()
     // "Text is to object" + radio buttons
     cfg.height_of_volume_type_selector = separator_height + line_height_with_spacing + input_height;
 
-    int max_style_image_width = static_cast<int>(std::round(cfg.max_style_name_width/2 - 2 * style.FramePadding.x));
+    int max_style_image_width = static_cast<int>(std::round(cfg.max_style_name_width - 2 * style.FramePadding.x));
     int max_style_image_height = static_cast<int>(std::round(input_height));
     cfg.max_style_image_size = Vec2i32(max_style_image_width, line_height);
     cfg.face_name_size = Vec2i32(cfg.input_width, line_height_with_spacing);
-    cfg.face_name_texture_offset_x = cfg.face_name_size.x() + space;
+    cfg.face_name_texture_offset_x = cfg.face_name_size.x() + style.WindowPadding.x + space;
 
     cfg.max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 

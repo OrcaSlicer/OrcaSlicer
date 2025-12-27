@@ -1071,7 +1071,7 @@ bool StackImpl::has_redo_snapshot() const
 
 	// BBS: undo-redo until modify record
 	auto it = std::lower_bound(m_snapshots.begin(), m_snapshots.end(), Snapshot(m_active_snapshot_time));
-	for (it; it != m_snapshots.end(); ++it) {
+	for (; it != m_snapshots.end(); ++it) {
 		if (snapshot_modifies_project(*it))
 			return true;
 	}
@@ -1340,12 +1340,12 @@ bool StackImpl::has_real_change_from(size_t time) const
                                       Snapshot(m_active_snapshot_time));
     if (it_active == m_snapshots.end()) return true;
     if (it_active > it_time) {
-        for (it_time; it_time < it_active; ++it_time) {
+        for (; it_time < it_active; ++it_time) {
             if (snapshot_modifies_project(*it_time))
                 return true;
 		}
     } else {
-        for (it_active; it_active < it_time; ++it_active) {
+        for (; it_active < it_time; ++it_active) {
             if (snapshot_modifies_project(*it_active))
                 return true;
         }

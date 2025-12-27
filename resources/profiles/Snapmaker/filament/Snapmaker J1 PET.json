@@ -1,13 +1,13 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 PET",
-  "setting_id": "802807698",
-  "inherits": "Snapmaker J1 PET @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)",
-    "Snapmaker J1 (0.6 nozzle)",
-    "Snapmaker J1 (0.8 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PET",
+    "inherits": "Snapmaker J1 PET @base",
+    "from": "system",
+    "setting_id": "802807698",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)",
+        "Snapmaker J1 (0.6 nozzle)",
+        "Snapmaker J1 (0.8 nozzle)"
+    ]
 }

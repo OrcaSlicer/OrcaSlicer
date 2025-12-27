@@ -54,7 +54,7 @@ bool MKS::test(wxString& msg) const
 
 wxString MKS::get_test_ok_msg() const
 {
-	return _(L("Connection to MKS works correctly."));
+	return _(L("Connection to MKS is working correctly."));
 }
 
 wxString MKS::get_test_failed_msg(wxString& msg) const

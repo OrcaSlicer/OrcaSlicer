@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "QIDI PA12-CF @Qidi Q1 Pro 0.6 nozzle",
+    "inherits": "QIDI PA12-CF",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "fan_max_speed": [
         "40"
     ],
@@ -11,10 +15,6 @@
     "filament_settings_id": [
         "QIDI PA12-CF @Qidi Q1 Pro 0.6 nozzle"
     ],
-    "from": "system",
-    "inherits": "QIDI PA12-CF",
-    "is_custom_defined": "0",
-    "name": "QIDI PA12-CF @Qidi Q1 Pro 0.6 nozzle",
     "nozzle_temperature": [
         "280"
     ],
@@ -34,6 +34,6 @@
         "13"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.6 nozzle"
-        ]
+        "Qidi Q1 Pro 0.6 nozzle"
+    ]
 }

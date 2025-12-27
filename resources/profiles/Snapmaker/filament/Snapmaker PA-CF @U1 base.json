@@ -1,0 +1,56 @@
+{
+    "type": "filament",
+    "name": "Snapmaker PA-CF @U1 base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "34931774250",
+    "instantiation": "false",
+    "filament_end_gcode": [
+        ""
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "95"
+    ],
+    "overhang_fan_speed": [
+        "50"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "15"
+    ]
+}

@@ -1,0 +1,62 @@
+{
+    "type": "filament",
+    "name": "YUMI PLA Direct Drive",
+    "inherits": "Yumi Generic PLA",
+    "from": "system",
+    "setting_id": "GFSR99",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Yumi"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "cool_plate_temp": [
+        "60"
+    ],
+    "eng_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "textured_plate_temp": [
+        "60"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "60"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "compatible_printers": [
+        "D12 230 PRO M2 DIRECT 0.4 nozzle",
+        "D12 230 PRO SMARTPAD DIRECT 0.4 nozzle",
+        "D12 300 PRO M2 DIRECT 0.4 nozzle",
+        "D12 300 PRO SMARTPAD DIRECT 0.4 nozzle",
+        "D12 500 PRO M2 DIRECT 0.4 nozzle",
+        "D12 500 PRO SMARTPAD DIRECT 0.4 nozzle"
+    ]
+}

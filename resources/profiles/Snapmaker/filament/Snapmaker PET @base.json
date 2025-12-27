@@ -1,8 +1,8 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker PET @base",
-  "filament_id": "2549587591",
-  "inherits": "fdm_filament_pet"
+    "type": "filament",
+    "name": "Snapmaker PET @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "2549587591",
+    "instantiation": "false"
 }

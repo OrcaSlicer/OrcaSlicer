@@ -1,0 +1,16 @@
+{
+    "type": "process",
+    "name": "0.56mm Standard @Artillery M1 Pro 0.8 nozzle",
+    "inherits": "0.24mm Draft @Artillery M1 Pro 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_layers": "3",
+    "layer_height": "0.56",
+    "print_settings_id": "0.56mm Standard @Artillery M1 Pro 0.8 nozzle",
+    "support_style": "default",
+    "support_type": "tree(auto)",
+    "tree_support_branch_diameter_angle": "15",
+    "tree_support_branch_diameter_double_wall": "1",
+    "is_custom_defined": "0",
+    "version": "2.1.1.0"
+}

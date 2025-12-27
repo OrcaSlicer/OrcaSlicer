@@ -65,8 +65,6 @@ protected:
     void on_sys_color_changed() override;
 
     void selection_changed(wxDataViewEvent& evt);
-
-    wxBoxSizer* create_btn_sizer(long flags);
 };
 
 

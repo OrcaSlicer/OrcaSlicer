@@ -9,8 +9,6 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/wupdlock.h>
-// BBS: add radio button for project embedded preset logic
-#include <wx/radiobut.h>
 
 #include "libslic3r/PresetBundle.hpp"
 
@@ -18,6 +16,8 @@
 #include "GUI_App.hpp"
 #include "format.hpp"
 #include "Tab.hpp"
+
+#include "Widgets/DialogButtons.hpp"
 
 using Slic3r::GUI::format_wxstr;
 
@@ -54,7 +54,7 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
     }
 
     wxStaticText *label_top = new wxStaticText(m_parent, wxID_ANY, from_u8((boost::format(_utf8(L("Save %s as"))) % into_u8(tab->title())).str()));
-    label_top->SetFont(::Label::Body_13);
+    label_top->SetFont(::Label::Body_14);
     label_top->SetForegroundColour(wxColour(38,46,48));
 
 
@@ -103,70 +103,20 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
 
     if (m_type == Preset::TYPE_PRINTER) m_parent->add_info_for_edit_ph_printer(sizer);
 
-    // BBS: add project embedded presets logic
-    wxBoxSizer *radio_sizer = new wxBoxSizer(wxHORIZONTAL);
+    // ORCA RadioGroup
+    m_radio_group = new RadioGroup(m_parent, {
+        _L("User Preset"),          // 0
+        _L("Preset Inside Project") // 1
+    }, wxVERTICAL);
 
-    wxBoxSizer *m_sizer_left = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(m_radio_group, 0, wxEXPAND | wxTOP | wxLEFT, BORDER_W);
 
-    m_sizer_left->Add(0, 0, 0, wxLEFT, 25);
-
-    m_radio_user     = new RadioBox(parent);
-    m_radio_user->SetBackgroundColour(SAVE_PRESET_DIALOG_DEF_COLOUR);
-
-    m_sizer_left->Add(m_radio_user, 0, wxALIGN_CENTER, 0);
-
-    m_sizer_left->Add(0, 0, 0, wxLEFT, 10);
-
-    auto m_left_text = new wxStaticText(parent, wxID_ANY, _L("User Preset"), wxDefaultPosition, wxDefaultSize, 0);
-    m_left_text->Wrap(-1);
-    m_left_text->SetFont(::Label::Body_13);
-    m_left_text->SetForegroundColour(wxColour(107,107,107));
-    m_sizer_left->Add(m_left_text, 0, wxALIGN_CENTER, 0);
-
-    radio_sizer->Add(m_sizer_left, 1, wxALIGN_CENTER, 5);
-
-    wxBoxSizer *m_sizer_right = new wxBoxSizer(wxHORIZONTAL);
-
-    m_sizer_right->Add(0, 0, 0, wxLEFT, 15);
-
-    m_radio_project   = new RadioBox(parent);
-    m_radio_project->SetBackgroundColour(SAVE_PRESET_DIALOG_DEF_COLOUR);
-
-    m_sizer_right->Add(m_radio_project, 0, wxALIGN_CENTER, 0);
-
-    m_sizer_right->Add(0, 0, 0, wxLEFT, 10);
-
-    auto m_right_text = new wxStaticText(parent, wxID_ANY, _L("Preset Inside Project"), wxDefaultPosition, wxDefaultSize, 0);
-    m_right_text->SetForegroundColour(wxColour(107,107,107));
-    m_right_text->SetFont(::Label::Body_13);
-    m_right_text->Wrap(-1);
-    m_sizer_right->Add(m_right_text, 0, wxALIGN_CENTER, 0);
-
-    radio_sizer->Add(m_sizer_right, 1, wxEXPAND, 5);
-
-    sizer->Add(radio_sizer, 0, wxEXPAND | wxTOP, BORDER_W);
-
-    auto radio_clicked = [this](wxMouseEvent &e) {
-        if (m_radio_user->GetId() == e.GetId()) {
-            m_radio_user->SetValue(true);
-            m_radio_project->SetValue(false);
-            m_save_to_project = false;
-        }
-
-        if (m_radio_project->GetId() == e.GetId()) {
-            m_radio_user->SetValue(false);
-            m_radio_project->SetValue(true);
-            m_save_to_project = true;
-        }
-    };
-    m_radio_user->Bind(wxEVT_LEFT_DOWN, radio_clicked);
-    m_radio_project->Bind(wxEVT_LEFT_DOWN, radio_clicked);
+    m_radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this](wxCommandEvent &e) {
+        m_save_to_project = m_radio_group->GetSelection() == 1;
+    });
 
     bool is_project_embedded = m_presets->get_edited_preset().is_project_embedded;
-    if (is_project_embedded)
-        m_radio_project->SetValue(true);
-    else
-        m_radio_user->SetValue(true);
+    m_radio_group->SetSelection(is_project_embedded ? 1 : 0);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", create item: type" << Preset::get_type_string(m_type) << ", preset " << m_preset_name
                             << ", is_project_embedded = " << is_project_embedded;
@@ -204,7 +154,7 @@ void SavePresetDialog::Item::update()
 
     const Preset *existing = m_presets->find_preset(m_preset_name, false);
     if (m_valid_type == Valid && existing && (existing->is_default || existing->is_system)) {
-        info_line = _L("Overwrite a system profile is not allowed");
+        info_line = _L("Overwriting a system profile is not allowed.");
         m_valid_type = NoValid;
     }
 
@@ -212,8 +162,8 @@ void SavePresetDialog::Item::update()
         if (existing->is_compatible)
             info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists.")) % m_preset_name).str());
         else
-            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with current printer.")) % m_preset_name).str());
-        info_line += "\n" + _L("Please note that saving action will replace this preset");
+            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with the current printer.")) % m_preset_name).str());
+        info_line += "\n" + _L("Please note that saving will overwrite this preset.");
         m_valid_type = Warning;
     }
 
@@ -238,22 +188,18 @@ void SavePresetDialog::Item::update()
     }
 
     // BBS: add project embedded presets logic
-    if (existing) {
+    if (existing) { // ORCA RadioGroup
         if (existing->is_project_embedded) {
-            m_radio_project->SetValue(true);
+            m_radio_group->SetSelection(1);
             m_save_to_project = true;
         } else {
-            m_radio_user->SetValue(true);
+            m_radio_group->SetSelection(0);
             m_save_to_project = false;
         }
-        m_radio_user->Disable();
-        m_radio_project->Disable();
+        m_radio_group->Disable();
     } else {
-        m_radio_user->Enable();
-        m_radio_project->Enable();
-
-        m_radio_user->SetValue(!m_save_to_project);
-        m_radio_project->SetValue(m_save_to_project);
+        m_radio_group->Enable();
+        m_radio_group->SetSelection(m_save_to_project ? 1 : 0);
     }
 
     m_valid_label->SetLabel(info_line);
@@ -321,10 +267,6 @@ void SavePresetDialog::build(std::vector<Preset::Type> types, std::string suffix
     SetBackgroundColour(SAVE_PRESET_DIALOG_DEF_COLOUR);
     SetFont(wxGetApp().normal_font());
 
-    // icon
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
-    SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
-
     if (suffix.empty()) suffix = _CTX_utf8(L_CONTEXT("Copy", "PresetName"), "PresetName");
 
     wxBoxSizer *m_Sizer_main = new wxBoxSizer(wxVERTICAL);
@@ -334,42 +276,14 @@ void SavePresetDialog::build(std::vector<Preset::Type> types, std::string suffix
     // Add first item
     for (Preset::Type type : types) AddItem(type, suffix);
 
-    wxBoxSizer *btns;
-    btns = new wxBoxSizer(wxHORIZONTAL);
-    btns->Add(0, 0, 1, wxEXPAND, 5);
+    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
 
-    m_confirm = new Button(this, _L("OK"));
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                            std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_confirm->SetBackgroundColor(btn_bg_green);
-    m_confirm->SetBorderColor(wxColour(0, 150, 136));
-    m_confirm->SetTextColor(wxColour("#FFFFFE"));
-    m_confirm->SetMinSize(SAVE_PRESET_DIALOG_BUTTON_SIZE);
-    m_confirm->SetCornerRadius(FromDIP(12));
-    m_confirm->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
-    btns->Add(m_confirm, 0, wxEXPAND, 0);
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &SavePresetDialog::accept, this);
 
-    auto block_middle = new wxWindow(this, -1);
-    block_middle->SetBackgroundColour(SAVE_PRESET_DIALOG_DEF_COLOUR);
-    btns->Add(block_middle, 0, wxRIGHT, 10);
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
 
-    m_cancel = new Button(this, _L("Cancel"));
-    m_cancel->SetMinSize(SAVE_PRESET_DIALOG_BUTTON_SIZE);
-    m_cancel->SetCornerRadius(FromDIP(12));
-    m_cancel->Bind(wxEVT_BUTTON, &SavePresetDialog::on_select_cancel, this);
-    btns->Add(m_cancel, 0, wxEXPAND, 0);
-
-    auto block_right = new wxWindow(this, -1);
-    block_right->SetBackgroundColour(SAVE_PRESET_DIALOG_DEF_COLOUR);
-    btns->Add(block_right, 0, wxRIGHT, 40);
-
-    auto m_line = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
-    m_line->SetBackgroundColour(wxColour(166, 169, 170));
-
-    m_Sizer_main->Add( m_line, 0, wxEXPAND, 0 );
     m_Sizer_main->Add(m_presets_sizer, 0, wxEXPAND | wxALL, BORDER_W);
-    m_Sizer_main->Add(btns, 0, wxEXPAND | wxBOTTOM, BORDER_W + 7);
+    m_Sizer_main->Add(dlg_btns, 0, wxEXPAND);
 
     SetSizer(m_Sizer_main);
     m_Sizer_main->SetSizeHints(this);
@@ -491,16 +405,10 @@ void SavePresetDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
     const int &em = em_unit();
 
-    msw_buttons_rescale(this, em, {wxID_OK, wxID_CANCEL});
-
     //for (Item *item : m_items) item->update_valid_bmp();
 
     // const wxSize& size = wxSize(45 * em, 35 * em);
     //SetMinSize(/*size*/ wxSize(100, 50));
-
-    m_confirm->SetMinSize(SAVE_PRESET_DIALOG_BUTTON_SIZE);
-    m_cancel->SetMinSize(SAVE_PRESET_DIALOG_BUTTON_SIZE);
-
 
     Fit();
     Refresh();

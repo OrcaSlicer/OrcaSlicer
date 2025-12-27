@@ -1,37 +1,37 @@
 {
-	"type": "filament",
-	"filament_id": "GFA05",
-	"setting_id": "GFSL99_01",
-	"name": "Qidi Generic PLA Silk @Qidi X-Plus 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "Qidi Generic PLA Silk",
-	"enable_pressure_advance":"1",
-	"pressure_advance": [
+    "type": "filament",
+    "name": "Qidi Generic PLA Silk @Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "Qidi Generic PLA Silk",
+    "from": "system",
+    "setting_id": "GFSL99_01",
+    "filament_id": "GFA05",
+    "instantiation": "true",
+    "enable_pressure_advance": "1",
+    "pressure_advance": [
         "0.032"
     ],
-	"nozzle_temperature_initial_layer":[
-		"220"
-	],
-	"filament_max_volumetric_speed": [
-		"7.5"
-	],
-	"filament_retraction_length": [
-		"0.5"
-	],
-	"filament_flow_ratio": [
-		"0.98"
-	],
-	"slow_down_layer_time": [
-		"8"
-	],
-	"hot_plate_temp_initial_layer" : [
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "filament_max_volumetric_speed": [
+        "7.5"
+    ],
+    "filament_retraction_length": [
+        "0.5"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "hot_plate_temp_initial_layer": [
         "55"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "55"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 4 0.4 nozzle"
-	]
+    ]
 }

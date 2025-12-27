@@ -1,0 +1,65 @@
+{
+    "type": "filament",
+    "name": "Z-Bolt PLA",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSL100",
+    "filament_id": "GFL100",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "full_fan_speed_layer": [
+        "4"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "215"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "textured_plate_temp": [
+        "60"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ],
+    "compatible_printers": [
+        "Z-Bolt S300 0.4 nozzle",
+        "Z-Bolt S300 0.6 nozzle",
+        "Z-Bolt S300 0.8 nozzle",
+        "Z-Bolt S300 Dual 0.4 nozzle",
+        "Z-Bolt S300 Dual 0.6 nozzle",
+        "Z-Bolt S300 Dual 0.8 nozzle",
+        "Z-Bolt S400 0.4 nozzle",
+        "Z-Bolt S400 0.6 nozzle",
+        "Z-Bolt S400 0.8 nozzle",
+        "Z-Bolt S400 Dual 0.4 nozzle",
+        "Z-Bolt S400 Dual 0.6 nozzle",
+        "Z-Bolt S400 Dual 0.8 nozzle",
+        "Z-Bolt S600 0.4 nozzle",
+        "Z-Bolt S600 0.6 nozzle",
+        "Z-Bolt S600 0.8 nozzle",
+        "Z-Bolt S600 Dual 0.4 nozzle",
+        "Z-Bolt S600 Dual 0.6 nozzle",
+        "Z-Bolt S600 Dual 0.8 nozzle",
+        "Z-Bolt S800 Dual 0.4 nozzle",
+        "Z-Bolt S800 Dual 0.6 nozzle",
+        "Z-Bolt S800 Dual 0.8 nozzle",
+        "Z-Bolt S1000 0.4 nozzle",
+        "Z-Bolt S1000 0.6 nozzle",
+        "Z-Bolt S1000 0.8 nozzle",
+        "Z-Bolt S1000 Dual 0.4 nozzle",
+        "Z-Bolt S1000 Dual 0.6 nozzle",
+        "Z-Bolt S1000 Dual 0.8 nozzle"
+    ]
+}

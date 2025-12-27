@@ -1,0 +1,41 @@
+{
+    "type": "filament",
+    "name": "Snapmaker TPE @U1",
+    "inherits": "Snapmaker TPU @U1 base",
+    "from": "system",
+    "setting_id": "27040303590",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "45"
+    ],
+    "overhang_fan_speed": [
+        "65"
+    ],
+    "filament_flow_ratio": [
+        "1.1"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_max_volumetric_speed": [
+        "7.2"
+    ],
+    "fan_max_speed": [
+        "65"
+    ],
+    "fan_min_speed": [
+        "65"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "filament_notes": [
+        "eSUN eLastic TPE-83A\n"
+    ]
+}

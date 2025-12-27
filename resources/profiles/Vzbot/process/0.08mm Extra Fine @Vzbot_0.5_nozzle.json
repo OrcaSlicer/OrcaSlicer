@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "VZ004",
     "name": "0.08mm Extra Fine @Vzbot 0.5nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_Vzbot_common_0.5_nozzle",
+    "from": "system",
+    "setting_id": "VZ004",
+    "instantiation": "true",
     "layer_height": "0.08",
     "bottom_shell_layers": "7",
     "top_shell_layers": "9"

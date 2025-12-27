@@ -1,11 +1,11 @@
 {
     "type": "process",
-    "setting_id": "GP009",
     "name": "0.40mm Standard @Arena X1C 0.8 nozzle",
+    "inherits": "fdm_process_arena_0.40_nozzle_0.8",
     "from": "system",
+    "setting_id": "GP009",
     "instantiation": "true",
-    "inherits": "fdm_process_bbl_0.40_nozzle_0.8",
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.8 nozzle"
+        "Orca Arena X1 Carbon 0.8 nozzle"
     ]
 }

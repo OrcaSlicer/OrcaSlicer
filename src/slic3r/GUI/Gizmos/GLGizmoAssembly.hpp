@@ -24,7 +24,7 @@ public:
     std::string get_gizmo_entering_text() const override { return _u8L("Entering Assembly gizmo"); }
     std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Assembly gizmo"); }
 protected:
-    //bool on_init() override;
+    bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
     //void on_render() override;

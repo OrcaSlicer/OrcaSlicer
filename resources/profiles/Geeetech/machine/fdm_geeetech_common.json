@@ -1,9 +1,9 @@
 {
     "type": "machine",
     "name": "fdm_geeetech_common",
+    "inherits": "fdm_machine_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_machine_common",
     "gcode_flavor": "marlin",
     "machine_max_acceleration_e": [
         "5000",
@@ -125,7 +125,7 @@
         "1"
     ],
     "default_filament_profile": [
-        "Generic PLA @Geeetech"
+        "Generic PLA @System"
     ],
     "bed_exclude_area": [
         "0x0"

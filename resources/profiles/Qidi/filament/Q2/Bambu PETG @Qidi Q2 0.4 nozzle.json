@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG @Qidi Q2 0.4 nozzle",
+    "inherits": "Bambu PETG@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.056"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.4 nozzle"
+    ]
+}

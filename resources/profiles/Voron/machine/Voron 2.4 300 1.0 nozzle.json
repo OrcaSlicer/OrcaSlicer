@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM004",
     "name": "Voron 2.4 300 1.0 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM004",
+    "instantiation": "true",
     "printer_model": "Voron 2.4 300",
     "default_print_profile": "0.50mm Standard 1.0 nozzle @Voron",
     "max_layer_height": [

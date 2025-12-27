@@ -1,6 +1,7 @@
+#include "../ClipperUtils.hpp"
 #include "../Print.hpp"
 #include "../ShortestPath.hpp"
-
+#include "FillBase.hpp"
 #include "FillLightning.hpp"
 #include "Lightning/Generator.hpp"
 
@@ -16,10 +17,12 @@ void Filler::_fill_surface_single(
     const Layer &layer      = generator->getTreesForLayer(this->layer_id);
     Polylines    fill_lines = layer.convertToLines(to_polygons(expolygon), scaled<coord_t>(0.5 * this->spacing - this->overlap));
 
-    if (params.dont_connect() || fill_lines.size() <= 1) {
-        append(polylines_out, chain_polylines(std::move(fill_lines)));
-    } else
-        connect_infill(std::move(fill_lines), expolygon, polylines_out, this->spacing, params);
+    // Apply multiline offset if needed
+    multiline_fill(fill_lines, params, spacing);
+
+    fill_lines = Slic3r::intersection_pl(std::move(fill_lines), expolygon);
+
+    chain_or_connect_infill(std::move(fill_lines), expolygon, polylines_out, this->spacing, params);
 }
 
 void GeneratorDeleter::operator()(Generator *p) {

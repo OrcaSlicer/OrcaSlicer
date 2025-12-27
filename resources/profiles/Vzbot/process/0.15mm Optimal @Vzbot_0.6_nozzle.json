@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.15mm Optimal @Vzbot 0.6nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_Vzbot_common_0.6_nozzle",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "bottom_shell_layers": "4",
     "top_shell_layers": "5",
     "layer_height": "0.15"

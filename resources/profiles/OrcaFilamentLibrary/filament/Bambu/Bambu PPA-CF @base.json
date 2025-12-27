@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu PPA-CF @base",
+    "inherits": "fdm_filament_ppa",
+    "from": "system",
+    "filament_id": "OGFN06",
+    "instantiation": "false",
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials."
+}

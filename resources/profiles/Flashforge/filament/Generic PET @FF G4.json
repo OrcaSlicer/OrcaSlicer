@@ -1,0 +1,79 @@
+{
+    "type": "filament",
+    "name": "Generic PET @FF G4",
+    "inherits": "Flashforge Generic TPU",
+    "from": "system",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "50"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "fan_cooling_layer_time": [
+        "10"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "filament_density": [
+        "1.4"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_settings_id": [
+        "Generic PET @FF G4"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material:PET\n"
+    ],
+    "filament_type": [
+        "PET"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 0.4 nozzle"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "nozzle_temperature_range_high": [
+        "300"
+    ],
+    "nozzle_temperature_range_low": [
+        "260"
+    ],
+    "overhang_fan_speed": [
+        "30"
+    ],
+    "overhang_fan_threshold": [
+        "95%"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "support_material_interface_fan_speed": [
+        "-1"
+    ],
+    "temperature_vitrification": [
+        "80"
+    ]
+}

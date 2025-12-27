@@ -1672,7 +1672,7 @@ Vec3d Emboss::suggest_up(const Vec3d normal, double up_limit)
 
 std::optional<float> Emboss::calc_up(const Transform3d &tr, double up_limit)
 {
-    auto tr_linear = tr.linear();
+    auto tr_linear = tr.linear().eval();
     // z base of transformation ( tr * UnitZ )
     Vec3d normal = tr_linear.col(2);
     // scaled matrix has base with different size

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA UV Shift @System",
+    "inherits": "Panchroma PLA UV Shift @base",
+    "from": "system",
+    "setting_id": "OGFSPM014",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

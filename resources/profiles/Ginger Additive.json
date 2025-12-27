@@ -1,102 +1,78 @@
 {
-  "name": "Ginger Additive",
-  "version": "02.02.00.04",
-  "force_update": "1",
-  "description": "Ginger configuration",
-  "machine_model_list": [
-    {
-      "name": "ginger G1",
-      "sub_path": "machine/ginger G1.json"
-    }
-  ],
-  "machine_list": [
-    {
-      "name": "fdm_machine_common",
-      "sub_path": "machine/fdm_machine_common.json"
-    },
-    {
-      "name": "ginger_one_common",
-      "sub_path": "machine/ginger_one_common.json"
-    },
-    {
-      "name": "ginger G1 1.2 nozzle",
-      "sub_path": "machine/ginger G1 1.2 nozzle.json"
-    },
-    {
-      "name": "ginger G1 3.0 nozzle",
-      "sub_path": "machine/ginger G1 3.0 nozzle.json"
-    },
-    {
-      "name": "ginger G1 5.0 nozzle",
-      "sub_path": "machine/ginger G1 5.0 nozzle.json"
-    },
-    {
-      "name": "ginger G1 8.0 nozzle",
-      "sub_path": "machine/ginger G1 8.0 nozzle.json"
-    }
-  ],
-  "process_list": [
-    {
-      "name": "fdm_process_common",
-      "sub_path": "process/fdm_process_common.json"
-    },
-    {
-      "name": "0.60mm Standard",
-      "sub_path": "process/0.60mm Standard.json"
-    },
-    {
-      "name": "1.50mm Standard",
-      "sub_path": "process/1.50mm Standard.json"
-    },
-    {
-      "name": "1.80mm Vasemode",
-      "sub_path": "process/1.80mm Vasemode.json"
-    },
-    {
-      "name": "2.50mm Standard",
-      "sub_path": "process/2.50mm Standard.json"
-    },
-    {
-      "name": "4.00mm Standard",
-      "sub_path": "process/4.00mm Standard.json"
-    }
-  ],
-  "filament_list": [
-    {
-      "name": "fdm_filament_common",
-      "sub_path": "filament/fdm_filament_common.json"
-    },
-    {
-      "name": "fdm_filament_petg",
-      "sub_path": "filament/fdm_filament_petg.json"
-    },
-    {
-      "name": "fdm_filament_pla",
-      "sub_path": "filament/fdm_filament_pla.json"
-    },
-    {
-      "name": "fdm_filament_rpetg",
-      "sub_path": "filament/fdm_filament_rpetg.json"
-    },
-    {
-      "name": "fdm_filament_rpla",
-      "sub_path": "filament/fdm_filament_rpla.json"
-    },
-    {
-      "name": "Ginger Generic PETG",
-      "sub_path": "filament/Ginger Generic PETG.json"
-    },
-    {
-      "name": "Ginger Generic PLA",
-      "sub_path": "filament/Ginger Generic PLA.json"
-    },
-    {
-      "name": "Ginger Generic rPETG",
-      "sub_path": "filament/Ginger Generic rPETG.json"
-    },
-    {
-      "name": "Ginger Generic rPLA",
-      "sub_path": "filament/Ginger Generic rPLA.json"
-    }
-  ]
+    "name": "Ginger Additive",
+    "version": "02.03.01.11",
+    "force_update": "1",
+    "description": "Ginger configuration",
+    "machine_model_list": [
+        {
+            "name": "Ginger G1",
+            "sub_path": "machine/Ginger G1.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "Ginger_G1_common",
+            "sub_path": "machine/Ginger_G1_common.json"
+        },
+        {
+            "name": "Ginger G1 1.2 nozzle",
+            "sub_path": "machine/Ginger G1 1.2 nozzle.json"
+        },
+        {
+            "name": "Ginger G1 3.0 nozzle",
+            "sub_path": "machine/Ginger G1 3.0 nozzle.json"
+        },
+        {
+            "name": "Ginger G1 5.0 nozzle",
+            "sub_path": "machine/Ginger G1 5.0 nozzle.json"
+        },
+        {
+            "name": "Ginger G1 8.0 nozzle",
+            "sub_path": "machine/Ginger G1 8.0 nozzle.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "0.60mm Standard",
+            "sub_path": "process/0.60mm Standard.json"
+        },
+        {
+            "name": "1.50mm Standard",
+            "sub_path": "process/1.50mm Standard.json"
+        },
+        {
+            "name": "1.80mm Vasemode",
+            "sub_path": "process/1.80mm Vasemode.json"
+        },
+        {
+            "name": "2.50mm Standard",
+            "sub_path": "process/2.50mm Standard.json"
+        },
+        {
+            "name": "4.00mm Standard",
+            "sub_path": "process/4.00mm Standard.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "Ginger Generic PETG",
+            "sub_path": "filament/Ginger Generic PETG.json"
+        },
+        {
+            "name": "Ginger Generic PLA",
+            "sub_path": "filament/Ginger Generic PLA.json"
+        }
+    ]
 }

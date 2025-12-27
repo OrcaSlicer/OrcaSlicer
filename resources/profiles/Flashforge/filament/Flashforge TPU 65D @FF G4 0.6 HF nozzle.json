@@ -1,0 +1,112 @@
+{
+    "type": "filament",
+    "name": "Flashforge TPU 65D @FF G4 0.6 HF nozzle",
+    "inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "40"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "40"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "50"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "50"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_cost": [
+        "40"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_ramming_parameters": [
+        "105 105 6.62366 6.75269 6.98925 7.5914 8.94624 10.9892 13.2903 15.2043 16.129 16.2366 16.1505 16.1075 16.0645 16.0215 16.0215 16.0215 15.957 15.8495 15.8065 15.8495| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 11.7839 1.95 15.8075 2.45 16.1936 2.95 16.1162 3.45 16.0301 3.95 16.0301 4.45 15.8151 4.95 15.9011"
+    ],
+    "filament_settings_id": [
+        "Flashforge TPU 65D @FF G4 0.6 HF nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n; right_extruder_material:TPU"
+    ],
+    "filament_type": [
+        "TPU"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 0.6 HF nozzle"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "pressure_advance": [
+        "0.03"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "support_material_interface_fan_speed": [
+        "100"
+    ],
+    "temperature_vitrification": [
+        "30"
+    ],
+    "textured_cool_plate_temp": [
+        "45"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "textured_plate_temp": [
+        "50"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "50"
+    ]
+}

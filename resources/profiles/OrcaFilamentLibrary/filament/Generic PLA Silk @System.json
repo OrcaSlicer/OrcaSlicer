@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Generic PLA Silk @System",
+    "renamed_from": "Generic Silk PLA @System",
+    "inherits": "fdm_filament_pla_silk",
+    "from": "system",
+    "setting_id": "OGFSL99_01",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "7.5"
+    ],
+    "filament_retraction_length": [
+        "0.5"
+    ],
+    "compatible_printers": []
+}

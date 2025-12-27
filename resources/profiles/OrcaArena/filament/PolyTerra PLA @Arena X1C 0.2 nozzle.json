@@ -1,14 +1,14 @@
 {
     "type": "filament",
-    "setting_id": "GFSL24",
     "name": "PolyTerra PLA @Arena X1C 0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "PolyTerra PLA @Arena X1C",
+    "from": "system",
+    "setting_id": "GFSL24",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "1"
     ],
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.2 nozzle"
+        "Orca Arena X1 Carbon 0.2 nozzle"
     ]
 }

@@ -174,7 +174,9 @@ void GLGizmoRotate::on_render()
             render_angle_arc(m_highlight_color, hover_radius_changed);
         }
 
-        render_grabber_connection(color, radius_changed);
+        // ORCA dont use axis color on line because they are not on same direction with axis
+        const ColorRGBA line_color = (m_hover_id != -1) ? m_drag_color : ColorRGBA(.6f, .6f ,.6f, 1.f);
+        render_grabber_connection(line_color, radius_changed); 
         shader->stop_using();
     }
 
@@ -527,25 +529,6 @@ bool GLGizmoRotate3D::on_mouse(const wxMouseEvent &mouse_event)
     return use_grabbers(mouse_event);
 }
 
-void GLGizmoRotate3D::data_changed(bool is_serializing) {
-    const Selection &selection = m_parent.get_selection();
-    bool is_wipe_tower = selection.is_wipe_tower();
-    if (is_wipe_tower) {
-        DynamicPrintConfig& config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
-        float wipe_tower_rotation_angle =
-            dynamic_cast<const ConfigOptionFloat *>(
-                config.option("wipe_tower_rotation_angle"))
-                ->value;
-        set_rotation(Vec3d(0., 0., (M_PI / 180.) * wipe_tower_rotation_angle));
-        m_gizmos[0].disable_grabber();
-        m_gizmos[1].disable_grabber();
-    } else {
-        set_rotation(Vec3d::Zero());
-        m_gizmos[0].enable_grabber();
-        m_gizmos[1].enable_grabber();
-    }
-}
-
 bool GLGizmoRotate3D::on_init()
 {
     for (GLGizmoRotate& g : m_gizmos) 
@@ -561,7 +544,57 @@ bool GLGizmoRotate3D::on_init()
 
 std::string GLGizmoRotate3D::on_get_name() const
 {
-    return _u8L("Rotate");
+    if (!on_is_activable() && m_state == EState::Off) {
+        return _u8L("Rotate") + ":\n" + _u8L("Please select at least one object.");
+    } else {
+        return _u8L("Rotate");
+    }
+}
+
+void GLGizmoRotate3D::on_set_state()
+{
+    for (GLGizmoRotate &g : m_gizmos)
+        g.set_state(m_state);
+    if (get_state() == On) {
+        m_object_manipulation->set_coordinates_type(ECoordinatesType::World);
+    } else {
+        m_last_volume = nullptr;
+    }
+}
+
+void GLGizmoRotate3D::data_changed(bool is_serializing) {
+    const Selection &selection = m_parent.get_selection();
+    const GLVolume * volume    = selection.get_first_volume();
+    if (volume == nullptr) {
+        m_last_volume = nullptr;
+        return;
+    }
+    if (m_last_volume != volume) {
+        m_last_volume = volume;
+        Geometry::Transformation tran;
+        if (selection.is_single_full_instance()) {
+            tran = volume->get_instance_transformation();
+        } else {
+            tran = volume->get_volume_transformation();
+        }
+        m_object_manipulation->set_init_rotation(tran);
+    }
+
+    bool is_wipe_tower = selection.is_wipe_tower();
+    if (is_wipe_tower) {
+        DynamicPrintConfig& config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+        float wipe_tower_rotation_angle =
+            dynamic_cast<const ConfigOptionFloat *>(
+                config.option("wipe_tower_rotation_angle"))
+                ->value;
+        set_rotation(Vec3d(0., 0., (M_PI / 180.) * wipe_tower_rotation_angle));
+        m_gizmos[0].disable_grabber();
+        m_gizmos[1].disable_grabber();
+    } else {
+        set_rotation(Vec3d::Zero());
+        m_gizmos[0].enable_grabber();
+        m_gizmos[1].enable_grabber();
+    }
 }
 
 bool GLGizmoRotate3D::on_is_activable() const

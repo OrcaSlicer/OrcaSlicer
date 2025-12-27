@@ -20,8 +20,6 @@ public:
 
 protected:
     ComboBox *type_comboBox   = nullptr;
-    Button *  m_button_ok     = nullptr;
-    Button *  m_button_cancel = nullptr;
 };
 
 }} // namespace Slic3r::GUI

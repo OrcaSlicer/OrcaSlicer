@@ -1,0 +1,28 @@
+{
+    "type": "machine",
+    "name": "Z-Bolt S600 Dual 0.6 nozzle",
+    "inherits": "Z-Bolt S600 Dual 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM025",
+    "instantiation": "true",
+    "printer_settings_id": "Z-Bolt",
+    "nozzle_diameter": [
+        "0.6",
+        "0.6"
+    ],
+    "printer_model": "Z-Bolt S600 Dual",
+    "printer_variant": "0.6",
+    "default_print_profile": "0.30mm Standard @Z-Bolt S600 0.6 nozzle",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.12"
+    ],
+    "retraction_length": [
+        "1.4"
+    ],
+    "retraction_minimum_travel": [
+        "2"
+    ]
+}

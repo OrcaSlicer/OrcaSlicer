@@ -1,9 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFB99",
-    "setting_id": "GFSA04",
-    "instantiation": "true",
+    "name": "Flashforge Generic ASA @G3U",
+    "inherits": "Flashforge Generic ABS",
     "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "activate_air_filtration": [
         "0"
     ],
@@ -19,10 +21,12 @@
     "close_fan_the_first_x_layers": [
         "2"
     ],
-  "compatible_printers": [
-    "Flashforge Guider 3 Ultra 0.4 Nozzle",
-    "Flashforge Guider 2s 0.4 nozzle"
-  ],
+    "compatible_printers": [
+        "Flashforge Guider 3 Ultra 0.4 Nozzle",
+        "Flashforge Guider 3 Ultra 0.6 Nozzle",
+        "Flashforge Guider 3 Ultra 0.8 Nozzle",
+        "Flashforge Guider 2s 0.4 nozzle"
+    ],
     "compatible_printers_condition": "",
     "compatible_prints": [],
     "compatible_prints_condition": "",
@@ -200,8 +204,6 @@
     "hot_plate_temp_initial_layer": [
         "105"
     ],
-    "inherits": "Flashforge Generic ABS",
-    "name": "Flashforge Generic ASA @G3U",
     "nozzle_temperature": [
         "240"
     ],
@@ -249,6 +251,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "80"
-    ],
-    "version": "1.9.0.2"
+    ]
 }

@@ -1,23 +1,23 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PLA Metal @base",
-  "filament_id": "4012961186",
-  "inherits": "fdm_filament_pla",
-  "filament_cost": [
-    "90"
-  ],
-  "filament_density": [
-    "1.25"
-  ],
-  "filament_max_volumetric_speed": [
-    "16"
-  ],
-  "nozzle_temperature": [
-    "220"
-  ],
-  "default_filament_colour": [
-    "#767A7E"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA Metal @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "4012961186",
+    "instantiation": "false",
+    "filament_cost": [
+        "90"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "default_filament_colour": [
+        ""
+    ]
 }

@@ -1,0 +1,42 @@
+{
+    "type": "filament",
+    "name": "CoLiDo Generic TPU @CoLiDo DIY 4.0",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSU99",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_max_volumetric_speed": [
+        "3.6"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_vendor": [
+        "CoLiDo"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "45"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "textured_plate_temp": [
+        "45"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "45"
+    ],
+    "compatible_printers": [
+        "CoLiDo DIY 4.0 0.4 nozzle"
+    ]
+}

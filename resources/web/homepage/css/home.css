@@ -95,20 +95,11 @@ body
 	height:36px;
 	line-height: 36px;
 	display: flex;
-	justify-content: center;
+	flex-direction: column;		/*ORCA*/
+	align-items: center;		/*Allow icon centered vertically*/
+	justify-content: center;	/*and use login button in new line*/
 	user-select: none;
 }
-
-#LoginBtn
-{
-	cursor:pointer;
-}
-
-#LoginBtn:hover
-{
-	font-size:17px;
-}
-
 
 #NoPluginTip
 {
@@ -138,7 +129,7 @@ body
 
 #BBLIcon
 {
-	height:36px;
+	height:96px; /*ORCA use bigger icon to fit logo size*/
 }
 
 #Login2
@@ -166,23 +157,8 @@ body
 
 #LogoutBtn
 {
-	font-size: 14px;
-	height: 24px;
-	line-height: 24px;
-	color: #4db6ac;
-	border: 1px solid  #009688;
-	border-radius: 4px;
-	cursor: pointer;
 	margin-top: 5px;
-	padding: 0px 8px;
 }
-
-#LogoutBtn:hover
-{
-	background: #00f0d8;
-	color: #fff;
-}
-
 
 /*------------------*/
 #BtnArea
@@ -356,20 +332,8 @@ body
 
 #RecentClearAllBtn
 {
-	border-width: 1px;
-	border-style: solid;
-	padding: 0px 10px;
-	border-radius: 6px;
-	line-height: 26px;
-	height: 26px;
 	margin-left: 20px;
-	cursor: pointer;
 	display: none;
-}
-
-#RecentClearAllBtn:hover
-{
-	background-color:#CDCECE;
 }
 
 #RecentTitle

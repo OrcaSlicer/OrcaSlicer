@@ -1,0 +1,100 @@
+{
+    "type": "filament",
+    "name": "Flashforge ABS-CF @FF G4 0.6 nozzle",
+    "inherits": "Flashforge Generic ABS @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "1"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "115"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "115"
+    ],
+    "fan_cooling_layer_time": [
+        "35"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "25"
+    ],
+    "filament_cost": [
+        "30"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_settings_id": [
+        "Flashforge ABS-CF @FF G4 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material:ABS"
+    ],
+    "filament_type": [
+        "ABS-CF"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 0.6 nozzle"
+    ],
+    "hot_plate_temp": [
+        "115"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "115"
+    ],
+    "nozzle_temperature": [
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "nozzle_temperature_range_high": [
+        "280"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "pressure_advance": [
+        "0.025"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "support_material_interface_fan_speed": [
+        "90"
+    ],
+    "textured_cool_plate_temp": [
+        "0"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "textured_plate_temp": [
+        "115"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "115"
+    ]
+}

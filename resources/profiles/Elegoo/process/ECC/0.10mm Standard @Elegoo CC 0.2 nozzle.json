@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard @Elegoo CC 0.2 nozzle",
+    "inherits": "fdm_process_ecc_02010",
+    "from": "system",
+    "setting_id": "PECC02010",
+    "instantiation": "true",
+    "sparse_infill_pattern": "zig-zag",
+    "filename_format": "ECC_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
+    "elefant_foot_compensation": "0.15",
+    "compatible_printers": [
+        "Elegoo Centauri Carbon 0.2 nozzle"
+    ]
+}

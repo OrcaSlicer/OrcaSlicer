@@ -16,10 +16,23 @@ struct FuzzySkinConfig
     coord_t       thickness;
     coord_t       point_distance;
     bool          fuzzy_first_layer;
+    NoiseType     noise_type;
+    double        noise_scale;
+    int           noise_octaves;
+    double        noise_persistence;
+    FuzzySkinMode mode;
 
     bool operator==(const FuzzySkinConfig& r) const
     {
-        return type == r.type && thickness == r.thickness && point_distance == r.point_distance && fuzzy_first_layer == r.fuzzy_first_layer;
+        return type == r.type
+            && thickness == r.thickness
+            && point_distance == r.point_distance
+            && fuzzy_first_layer == r.fuzzy_first_layer
+            && noise_type == r.noise_type
+            && noise_scale == r.noise_scale
+            && noise_octaves == r.noise_octaves
+            && noise_persistence == r.noise_persistence
+            && mode == r.mode;
     }
 
     bool operator!=(const FuzzySkinConfig& r) const { return !(*this == r); }
@@ -35,6 +48,10 @@ template<> struct hash<Slic3r::FuzzySkinConfig>
         boost::hash_combine(seed, std::hash<coord_t>{}(c.thickness));
         boost::hash_combine(seed, std::hash<coord_t>{}(c.point_distance));
         boost::hash_combine(seed, std::hash<bool>{}(c.fuzzy_first_layer));
+        boost::hash_combine(seed, std::hash<Slic3r::NoiseType>{}(c.noise_type));
+        boost::hash_combine(seed, std::hash<double>{}(c.noise_scale));
+        boost::hash_combine(seed, std::hash<int>{}(c.noise_octaves));
+        boost::hash_combine(seed, std::hash<double>{}(c.noise_persistence));
         return seed;
     }
 };
@@ -48,9 +65,11 @@ public:
     const SurfaceCollection     *slices;
     const LayerRegionPtrs       *compatible_regions;
     const ExPolygons            *upper_slices;
+    const SurfaceCollection     *upper_slices_same_region;
     const ExPolygons            *lower_slices;
     double                       layer_height;
     int                          layer_id;
+    coordf_t                     slice_z;
     Flow                         perimeter_flow;
     Flow                         ext_perimeter_flow;
     Flow                         overhang_flow;
@@ -70,9 +89,6 @@ public:
     std::vector<Polygons>       m_lower_polygons_series;
     std::vector<Polygons>       m_external_lower_polygons_series;
     std::vector<Polygons>       m_smaller_external_lower_polygons_series;
-    std::pair<double, double>   m_lower_overhang_dist_boundary;
-    std::pair<double, double>   m_external_overhang_dist_boundary;
-    std::pair<double, double>   m_smaller_external_overhang_dist_boundary;
 
     bool                                            has_fuzzy_skin = false;
     bool                                            has_fuzzy_hole = false;
@@ -83,6 +99,7 @@ public:
         const SurfaceCollection*    slices,
         const LayerRegionPtrs       *compatible_regions,
         double                      layer_height,
+        coordf_t                    slice_z,
         Flow                        flow,
         const PrintRegionConfig*    config,
         const PrintObjectConfig*    object_config,
@@ -98,7 +115,7 @@ public:
         //BBS
         ExPolygons*                 fill_no_overlap)
         : slices(slices), compatible_regions(compatible_regions), upper_slices(nullptr), lower_slices(nullptr), layer_height(layer_height),
-            layer_id(-1), perimeter_flow(flow), ext_perimeter_flow(flow),
+            slice_z(slice_z), layer_id(-1), perimeter_flow(flow), ext_perimeter_flow(flow),
             overhang_flow(flow), solid_infill_flow(flow),
             config(config), object_config(object_config), print_config(print_config),
             m_spiral_vase(spiral_mode),
@@ -124,7 +141,6 @@ private:
     void split_top_surfaces(const ExPolygons &orig_polygons, ExPolygons &top_fills, ExPolygons &non_top_polygons, ExPolygons &fill_clip) const;
     void apply_extra_perimeters(ExPolygons& infill_area);
     void process_no_bridge(Surfaces& all_surfaces, coord_t perimeter_spacing, coord_t ext_perimeter_width);
-    std::pair<double, double> dist_boundary(double width);
 
 private:
     bool        m_spiral_vase;

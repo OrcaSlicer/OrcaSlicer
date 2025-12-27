@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Valment PLA Galaxy @System",
+    "inherits": "Valment PLA Galaxy @base",
+    "from": "system",
+    "setting_id": "VLMNT_04",
+    "instantiation": "true",
+    "compatible_printers": []
+}

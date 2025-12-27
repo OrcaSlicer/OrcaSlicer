@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "eSUN PLA+ @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFL03",
+    "instantiation": "false",
+    "filament_cost": [
+        "22.99"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_vendor": [
+        "eSUN"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ]
+}

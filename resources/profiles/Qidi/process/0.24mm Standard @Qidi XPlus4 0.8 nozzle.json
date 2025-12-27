@@ -1,11 +1,12 @@
 {
-  "type": "process",
-  "setting_id": "GP032",
-  "name": "0.24mm Standard @Qidi XPlus4 0.8 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_process_QIDI_0.24_nozzle_0.8",
-  "compatible_printers": [
-    "Qidi X-Plus 4 0.8 nozzle"
-  ]
+    "type": "process",
+    "name": "0.24mm Standard @Qidi XPlus4 0.8 nozzle",
+    "inherits": "fdm_process_QIDI_0.24_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP032",
+    "instantiation": "true",
+    "enable_arc_fitting": "1",
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.8 nozzle"
+    ]
 }

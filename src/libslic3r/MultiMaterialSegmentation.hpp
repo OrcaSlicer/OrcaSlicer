@@ -6,8 +6,11 @@
 
 namespace Slic3r {
 
-class PrintObject;
 class ExPolygon;
+class ModelVolume;
+class PrintObject;
+class FacetsAnnotation;
+
 using ExPolygons = std::vector<ExPolygon>;
 
 struct ColoredLine
@@ -20,8 +23,34 @@ struct ColoredLine
 
 using ColoredLines = std::vector<ColoredLine>;
 
-// Returns MMU segmentation based on painting in MMU segmentation gizmo
+enum class IncludeTopAndBottomLayers {
+    Yes,
+    No
+};
+
+struct ModelVolumeFacetsInfo {
+    const FacetsAnnotation &facets_annotation;
+    // Indicate if model volume is painted.
+    const bool              is_painted;
+    // Indicate if the default extruder (TriangleStateType::NONE) should be replaced with the volume extruder.
+    const bool              replace_default_extruder;
+};
+
+// Returns segmentation based on painting in segmentation gizmos.
+std::vector<std::vector<ExPolygons>> segmentation_by_painting(const PrintObject                                               &print_object,
+                                                              const std::function<ModelVolumeFacetsInfo(const ModelVolume &)> &extract_facets_info,
+                                                              size_t                                                           num_facets_states,
+                                                              float                                                            segmentation_max_width,
+                                                              float                                                            segmentation_interlocking_depth,
+                                                              bool                                                             segmentation_interlocking_beam,
+                                                              IncludeTopAndBottomLayers                                        include_top_and_bottom_layers,
+                                                              const std::function<void()>                                     &throw_on_cancel_callback);
+
+// Returns multi-material segmentation based on painting in multi-material segmentation gizmo
 std::vector<std::vector<ExPolygons>> multi_material_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
+
+// Returns fuzzy skin segmentation based on painting in fuzzy skin segmentation gizmo
+std::vector<std::vector<ExPolygons>> fuzzy_skin_segmentation_by_painting(const PrintObject &print_object, const std::function<void()> &throw_on_cancel_callback);
 
 } // namespace Slic3r
 

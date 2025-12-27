@@ -146,6 +146,13 @@ Point ExPolygon::point_projection(const Point &point) const
     }
 }
 
+void ExPolygon::symmetric_y(const coord_t &y_axis)
+{
+    this->contour.symmetric_y(y_axis);
+    for (Polygon &hole : holes)
+        hole.symmetric_y(y_axis);
+}
+
 bool ExPolygon::overlaps(const ExPolygon &other) const
 {
     if (this->empty() || other.empty())
@@ -181,6 +188,15 @@ bool overlaps(const ExPolygons& expolys1, const ExPolygons& expolys2)
             if (expoly1.overlaps(expoly2))
                 return true;
         }
+    }
+    return false;
+}
+
+bool overlaps(const ExPolygons& expolys, const ExPolygon& expoly)
+{
+    for (const ExPolygon& el : expolys) {
+        if (el.overlaps(expoly))
+                return true;
     }
     return false;
 }
@@ -431,7 +447,7 @@ bool has_duplicate_points(const ExPolygon &expoly)
     size_t cnt = expoly.contour.points.size();
     for (const Polygon &hole : expoly.holes)
         cnt += hole.points.size();
-    std::vector<Point> allpts;
+    Points allpts;
     allpts.reserve(cnt);
     allpts.insert(allpts.begin(), expoly.contour.points.begin(), expoly.contour.points.end());
     for (const Polygon &hole : expoly.holes)
@@ -452,14 +468,8 @@ bool has_duplicate_points(const ExPolygons &expolys)
 {
 #if 1
     // Check globally.
-    size_t cnt = 0;
-    for (const ExPolygon &expoly : expolys) {
-        cnt += expoly.contour.points.size();
-        for (const Polygon &hole : expoly.holes)
-            cnt += hole.points.size();
-    }
-    std::vector<Point> allpts;
-    allpts.reserve(cnt);
+    Points allpts;
+    allpts.reserve(count_points(expolys));
     for (const ExPolygon &expoly : expolys) {
         allpts.insert(allpts.begin(), expoly.contour.points.begin(), expoly.contour.points.end());
         for (const Polygon &hole : expoly.holes)

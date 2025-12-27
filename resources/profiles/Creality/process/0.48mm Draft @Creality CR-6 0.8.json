@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.48mm Draft @Creality CR-6 0.8",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_creality_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "initial_layer_line_width": "0.8",
     "initial_layer_print_height": "0.48",
     "inner_wall_line_width": "0.8",

@@ -1,36 +1,43 @@
 {
     "type": "filament",
-	"filament_id": "GFG99",
-    "setting_id": "GFSG99",
     "name": "Volumic PETG Ultra",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
-	"filament_flow_ratio": [
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
         "1.00"
     ],
     "nozzle_temperature": [
-      "230"
+        "235"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "60"
     ],
     "fan_max_speed": [
-        "70"
+        "80"
     ],
     "fan_min_speed": [
-        "40"
+        "50"
     ],
     "filament_max_volumetric_speed": [
-      "42"
+        "22"
     ],
     "compatible_printers": [
-	  "EXO42 (0.4 nozzle)",
-	  "EXO65 (0.6 nozzle)",
-	  "SH65 (0.4 nozzle)",
-	  "VS30MK3 (0.4 nozzle)",
-	  "VS30SC2 (0.4 nozzle)",
-	  "VS30MK2 (0.4 nozzle)",
-	  "VS20MK2 (0.4 nozzle)"
+        "EXO42 (0.4 nozzle)",
+        "EXO65 (0.6 nozzle)",
+        "SH65 (0.4 nozzle)",
+        "VS30MK3 (0.4 nozzle)",
+        "VS30SC2 (0.4 nozzle)",
+        "VS30SC (0.4 nozzle)",
+        "VS30ULTRA (0.4 nozzle)",
+        "VS30MK2 (0.4 nozzle)",
+        "VS20MK2 (0.4 nozzle)",
+        "EXO42 Stage 2 (0.4 nozzle)",
+        "EXO65 Stage 2 (0.6 nozzle)",
+        "SH65 Stage 2 (0.4 nozzle)",
+        "VS30SC2 Stage 2 (0.4 nozzle)",
+        "VS30MK3 Stage 2 (0.4 nozzle)"
     ]
 }

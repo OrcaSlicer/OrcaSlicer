@@ -1,0 +1,10 @@
+{
+    "type": "machine_model",
+    "name": "VS30SC2 Stage 2",
+    "model_id": "V300S2",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "VOLUMIC",
+    "bed_model": "VS30U_bed.STL",
+    "default_materials": "Volumic UNIVERSAL Ultra"
+}

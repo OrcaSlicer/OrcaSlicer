@@ -1,29 +1,29 @@
 {
-  "type": "machine",
-  "from": "system",
-  "instantiation": "false",
-  "name": "fdm_linear2_dual",
-  "inherits": "fdm_linear2",
-  "retraction_speed": [
-    "35",
-    "35"
-  ],
-  "deretraction_speed": [
-    "35",
-    "35"
-  ],
-  "extruder_clearance_height_to_rod": "60",
-  "extruder_clearance_height_to_lid": "285",
-  "retract_length_toolchange": [
-    "18",
-    "18"
-  ],
-  "default_filament_profile": [
-    "Snapmaker PLA",
-    "Snapmaker PETG"
-  ],
-  "extruder_offset": [
-    "0x0",
-    "0x0"
-  ]
+    "type": "machine",
+    "name": "fdm_linear2_dual",
+    "inherits": "fdm_linear2",
+    "from": "system",
+    "instantiation": "false",
+    "retraction_speed": [
+        "35",
+        "35"
+    ],
+    "deretraction_speed": [
+        "35",
+        "35"
+    ],
+    "extruder_clearance_height_to_rod": "60",
+    "extruder_clearance_height_to_lid": "285",
+    "retract_length_toolchange": [
+        "18",
+        "18"
+    ],
+    "default_filament_profile": [
+        "Snapmaker PLA",
+        "Snapmaker PETG"
+    ],
+    "extruder_offset": [
+        "0x0",
+        "0x0"
+    ]
 }

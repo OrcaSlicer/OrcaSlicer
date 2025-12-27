@@ -7,15 +7,7 @@
 
 namespace Slic3r { namespace GUI {
 
-#define SELECT_MACHINE_GREY900 wxColour(38, 46, 48)
-#define SELECT_MACHINE_GREY600 wxColour(144,144,144)
-#define SELECT_MACHINE_GREY400 wxColour(206, 206, 206)
-#define SELECT_MACHINE_BRAND wxColour(0, 150, 136)
-#define SELECT_MACHINE_REMIND wxColour(255,111,0)
-#define SELECT_MACHINE_LIGHT_GREEN wxColour(219, 253, 231)
-
 #define CALI_MODE_COUNT  2
-
 
 wxString get_calibration_type_name(CalibMode cali_mode);
 

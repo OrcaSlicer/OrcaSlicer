@@ -3,11 +3,13 @@
     "name": "0.40mm Standard @Flashforge AD5M 0.8 Nozzle",
     "inherits": "0.30mm Standard @Flashforge AD5M 0.6 Nozzle",
     "from": "system",
+    "setting_id": "GP002",
     "instantiation": "true",
     "compatible_printers": [
         "Flashforge Adventurer 5M 0.8 Nozzle"
     ],
-    "setting_id": "GP002",
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
+    "post_process": "",
     "print_settings_id": "0.40mm Standard @Flashforge AD5M 0.8 Nozzle",
     "elefant_foot_compensation": "0",
     "initial_layer_infill_speed": "55",
@@ -31,6 +33,5 @@
     "top_shell_thickness": "0.8",
     "top_surface_line_width": "0.82",
     "tree_support_tip_diameter": "1.2",
-    "version": "1.8.0.0",
     "wipe_speed": "60%"
 }

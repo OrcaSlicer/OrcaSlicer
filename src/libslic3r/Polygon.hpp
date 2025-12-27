@@ -12,9 +12,9 @@
 namespace Slic3r {
 
 class Polygon;
-using Polygons          = std::vector<Polygon>;
-using PolygonPtrs       = std::vector<Polygon*>;
-using ConstPolygonPtrs  = std::vector<const Polygon*>;
+using Polygons          = std::vector<Polygon, PointsAllocator<Polygon>>;
+using PolygonPtrs       = std::vector<Polygon*, PointsAllocator<Polygon*>>;
+using ConstPolygonPtrs  = std::vector<const Polygon*, PointsAllocator<const Polygon*>>;
 
 // Returns true if inside. Returns border_result if on boundary.
 bool contains(const Polygon& polygon, const Point& p, bool border_result = true);

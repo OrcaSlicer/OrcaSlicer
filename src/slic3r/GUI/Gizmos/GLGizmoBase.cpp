@@ -26,16 +26,16 @@ ColorRGBA GLGizmoBase::DEFAULT_BASE_COLOR = { 0.625f, 0.625f, 0.625f, 1.0f };
 ColorRGBA GLGizmoBase::DEFAULT_DRAG_COLOR = { 1.0f, 1.0f, 1.0f, 1.0f };
 ColorRGBA GLGizmoBase::DEFAULT_HIGHLIGHT_COLOR = {1.0f, 0.38f, 0.0f, 1.0f};
 std::array<ColorRGBA, 3> GLGizmoBase::AXES_HOVER_COLOR = {{
-                                                                { 0.7f, 0.0f, 0.0f, 1.0f },
-                                                                { 0.0f, 0.7f, 0.0f, 1.0f },
-                                                                { 0.0f, 0.0f, 0.7f, 1.0f }
-                                                                }};
+    {ColorRGBA::X().r() * 1.2f, ColorRGBA::X().g() * 1.4f, ColorRGBA::X().b() * 1.4f, 1.0f},
+    {ColorRGBA::Y().r() * 1.2f, ColorRGBA::Y().g() * 1.2f, ColorRGBA::Y().b() * 1.2f, 1.0f},
+    {ColorRGBA::Z().r() * 1.2f, ColorRGBA::Z().g() * 1.2f, ColorRGBA::Z().b() * 1.2f, 1.0f},
+}};
 
 std::array<ColorRGBA, 3> GLGizmoBase::AXES_COLOR = {{
-                                                                { 1.0, 0.0f, 0.0f, 1.0f },
-                                                                { 0.0f, 1.0f, 0.0f, 1.0f },
-                                                                { 0.0f, 0.0f, 1.0f, 1.0f }
-                                                                }};
+    ColorRGBA::X(),
+    ColorRGBA::Y(),
+    ColorRGBA::Z()
+}};
 
 ColorRGBA            GLGizmoBase::CONSTRAINED_COLOR   = {0.5f, 0.5f, 0.5f, 1.0f};
 ColorRGBA            GLGizmoBase::FLATTEN_COLOR       = {0.96f, 0.93f, 0.93f, 0.5f};
@@ -74,11 +74,11 @@ PickingModel GLGizmoBase::Grabber::s_cone;
 
 GLGizmoBase::Grabber::~Grabber()
 {
-    if (s_cube.model.is_initialized())
-        s_cube.model.reset();
+    //if (s_cube.model.is_initialized())
+    //    s_cube.model.reset();
 
-    if (s_cone.model.is_initialized())
-        s_cone.model.reset();
+    //if (s_cone.model.is_initialized())
+    //    s_cone.model.reset();
 }
 
 float GLGizmoBase::Grabber::get_half_size(float size) const
@@ -227,7 +227,71 @@ bool GLGizmoBase::render_combo(const std::string &label, const std::vector<std::
     return is_changed;
 }
 
-GLGizmoBase::GLGizmoBase(GLCanvas3D& parent, const std::string& icon_filename, unsigned int sprite_id)
+void GLGizmoBase::render_cross_mark(const Vec3f &target, bool is_single)
+{
+    const float half_length = 4.0f;
+
+    glsafe(::glLineWidth(2.0f));
+
+    auto render_line = [](const Vec3f& p1, const Vec3f& p2, const ColorRGBA& color) {
+        GLModel::Geometry init_data;
+        init_data.format = {GLModel::Geometry::EPrimitiveType::Lines, GLModel::Geometry::EVertexLayout::P3};
+        init_data.color  = color;
+        init_data.reserve_vertices(2);
+        init_data.reserve_indices(2);
+
+        // vertices
+        init_data.add_vertex(p1);
+        init_data.add_vertex(p2);
+
+        // indices
+        init_data.add_line(0, 1);
+
+        GLModel model;
+        model.init_from(std::move(init_data));
+        model.render();
+    };
+
+    // draw line for x axis
+    if (!is_single) {
+        render_line(
+            {target(0) - half_length, target(1), target(2)}, 
+            {target(0) + half_length, target(1), target(2)},
+            ColorRGBA::X()); // ORCA match axis colors
+    }
+    else {
+        render_line(
+            {target(0), target(1), target(2)}, 
+            {target(0) + half_length, target(1), target(2)},
+            ColorRGBA::X()); // ORCA match axis colors
+    }
+    // draw line for y axis
+    if (!is_single) {
+        render_line(
+            {target(0), target(1) - half_length, target(2)}, 
+            {target(0), target(1) + half_length, target(2)},
+            ColorRGBA::Y()); // ORCA match axis colors
+    } else {
+        render_line(
+            {target(0), target(1), target(2)}, 
+            {target(0), target(1) + half_length, target(2)},
+            ColorRGBA::Y()); // ORCA match axis colors
+    }
+    // draw line for z axis
+    if (!is_single) {
+        render_line(
+            {target(0), target(1), target(2) - half_length}, 
+            {target(0), target(1), target(2) + half_length},
+            ColorRGBA::Z()); // ORCA match axis colors
+    } else {
+        render_line(
+            {target(0), target(1), target(2)}, 
+            {target(0), target(1), target(2) + half_length},
+            ColorRGBA::Z()); // ORCA match axis colors
+    }
+}
+
+GLGizmoBase::GLGizmoBase(GLCanvas3D &parent, const std::string &icon_filename, unsigned int sprite_id)
     : m_parent(parent)
     , m_group_id(-1)
     , m_state(Off)

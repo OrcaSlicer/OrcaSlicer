@@ -37,6 +37,7 @@ void Camera::set_type(EType type)
 {
     if (m_type != type && (type == EType::Ortho || type == EType::Perspective)) {
         m_type = type;
+        m_prevent_auto_type = true;
         if (m_update_config_on_type_change_enabled) {
             wxGetApp().app_config->set_bool("use_perspective_camera", m_type == EType::Perspective);
         }
@@ -50,6 +51,20 @@ void Camera::select_next_type()
         next = 1;
 
     set_type((EType)next);
+}
+
+void Camera::auto_type(EType preferred_type)
+{
+    if (!wxGetApp().app_config->get_bool("auto_perspective")) return;
+    if (preferred_type == EType::Perspective) {
+        if (!m_prevent_auto_type) {
+            set_type(preferred_type);
+            m_prevent_auto_type = false;
+        }
+    } else {
+        set_type(preferred_type);
+        m_prevent_auto_type = false;
+    }
 }
 
 void Camera::translate(const Vec3d& displacement) {
@@ -85,24 +100,80 @@ void Camera::set_zoom(double zoom)
 
 void Camera::select_view(const std::string& direction)
 {
-    if (direction == "iso")
+    if (direction == "iso") {
         set_default_orientation();
-    else if (direction == "left")
+        auto_type(EType::Perspective);
+    }
+    else if (direction == "left") {
         look_at(m_target - m_distance * Vec3d::UnitX(), m_target, Vec3d::UnitZ());
-    else if (direction == "right")
+        auto_type(EType::Ortho);
+    }
+    else if (direction == "right") {
         look_at(m_target + m_distance * Vec3d::UnitX(), m_target, Vec3d::UnitZ());
-    else if (direction == "top")
+        auto_type(EType::Ortho);
+    }
+    else if (direction == "top") {
         look_at(m_target + m_distance * Vec3d::UnitZ(), m_target, Vec3d::UnitY());
-    else if (direction == "bottom")
+        auto_type(EType::Ortho);
+    }
+    else if (direction == "bottom") {
         look_at(m_target - m_distance * Vec3d::UnitZ(), m_target, -Vec3d::UnitY());
-    else if (direction == "front")
+        auto_type(EType::Ortho);
+    }
+    else if (direction == "front") {
         look_at(m_target - m_distance * Vec3d::UnitY(), m_target, Vec3d::UnitZ());
-    else if (direction == "rear")
+        auto_type(EType::Ortho);
+    }
+    else if (direction == "rear") {
         look_at(m_target + m_distance * Vec3d::UnitY(), m_target, Vec3d::UnitZ());
-    else if (direction == "topfront")
+        auto_type(EType::Ortho);
+    }
+    else if (direction == "topfront") {
         look_at(m_target - 0.707 * m_distance * Vec3d::UnitY() + 0.707 * m_distance * Vec3d::UnitZ(), m_target, Vec3d::UnitY() + Vec3d::UnitZ());
+        auto_type(EType::Perspective);
+    }
     else if (direction == "plate") {
         look_at(m_target - 0.707 * m_distance * Vec3d::UnitY() + 0.707 * m_distance * Vec3d::UnitZ(), m_target, Vec3d::UnitY() + Vec3d::UnitZ());
+        auto_type(EType::Perspective);
+    }
+}
+void Camera::select_view(ViewAngleType type)
+{
+    switch (type) {
+    case Slic3r::GUI::Camera::ViewAngleType::Iso: {
+        select_view("iso");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Top_Front: {
+        select_view("topfront");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Left: {
+        select_view("left");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Right: {
+        select_view("right");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Top_Plate:
+    case Slic3r::GUI::Camera::ViewAngleType::Top: {
+        select_view("top");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Bottom: {
+        select_view("bottom");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Front: {
+        select_view("front");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Rear: {
+        select_view("rear");
+        break;
+    }
+    default: break;
     }
 }
 

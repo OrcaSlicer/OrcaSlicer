@@ -1,0 +1,31 @@
+{
+    "type": "process",
+    "name": "High speed (Stage 2) - 0.30mm",
+    "inherits": "fdm_process_volumic_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.3",
+    "initial_layer_print_height": "0.3",
+    "bottom_shell_layers": "3",
+    "top_shell_layers": "3",
+    "initial_layer_speed": "100",
+    "initial_layer_infill_speed": "100",
+    "outer_wall_speed": "120",
+    "inner_wall_speed": "150",
+    "internal_solid_infill_speed": "150",
+    "top_surface_speed": "120",
+    "gap_infill_speed": "150",
+    "sparse_infill_speed": "150",
+    "travel_speed": "200",
+    "support_speed": "150",
+    "support_interface_speed": "150",
+    "skirt_speed": "150",
+    "compatible_printers": [
+        "EXO42 Stage 2 (0.4 nozzle)",
+        "EXO65 Stage 2 (0.6 nozzle)",
+        "SH65 Stage 2 (0.4 nozzle)",
+        "VS30SC2 Stage 2 (0.4 nozzle)",
+        "VS30MK3 Stage 2 (0.4 nozzle)"
+    ]
+}

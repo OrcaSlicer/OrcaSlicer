@@ -1,8 +1,8 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker PA-CF @base",
-  "filament_id": "581236806",
-  "inherits": "fdm_filament_pa"
+    "type": "filament",
+    "name": "Snapmaker PA-CF @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "581236806",
+    "instantiation": "false"
 }

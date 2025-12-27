@@ -1,25 +1,24 @@
 {
-  "type": "process",
-  "name": "0.18mm Fine @Flashforge AD5M Pro 0.6 Nozzle",
-  "inherits": "0.30mm Standard @Flashforge AD5M Pro 0.6 Nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "compatible_printers": [
-    "Flashforge Adventurer 5M Pro 0.6 Nozzle"
-  ],
-  "filename_format": "{input_filename_base}.gcode",
-  "post_process": "",
-  "layer_height": "0.18",
-  "infill_wall_overlap": "40%",
-  "initial_layer_line_width": "0.65",
-  "is_custom_defined": "0",
-  "print_settings_id": "0.18mm Fine @Flashforge AD5M Pro 0.6 Nozzle",
-  "seam_gap": "6%",
-  "support_bottom_interface_spacing": "0.35",
-  "support_interface_bottom_layers": "0",
-  "support_interface_spacing": "0.35",
-  "support_interface_speed": "40",
-  "support_object_xy_distance": "0.4",
-  "support_speed": "100",
-  "version": "2.0.2.0"
+    "type": "process",
+    "name": "0.18mm Fine @Flashforge AD5M Pro 0.6 Nozzle",
+    "inherits": "0.30mm Standard @Flashforge AD5M Pro 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Flashforge Adventurer 5M Pro 0.6 Nozzle"
+    ],
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
+    "post_process": "",
+    "layer_height": "0.18",
+    "infill_wall_overlap": "40%",
+    "initial_layer_line_width": "0.65",
+    "print_settings_id": "0.18mm Fine @Flashforge AD5M Pro 0.6 Nozzle",
+    "seam_gap": "6%",
+    "support_bottom_interface_spacing": "0.35",
+    "support_interface_bottom_layers": "0",
+    "support_interface_spacing": "0.35",
+    "support_interface_speed": "40",
+    "support_object_xy_distance": "0.4",
+    "support_speed": "100",
+    "skirt_loops": "0"
 }

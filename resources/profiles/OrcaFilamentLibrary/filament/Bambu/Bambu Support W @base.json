@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "Bambu Support W @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFS00",
+    "instantiation": "false",
+    "description": "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function.",
+    "cool_plate_temp": [
+        "40"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "40"
+    ],
+    "filament_cost": [
+        "69.98"
+    ],
+    "filament_density": [
+        "1.30"
+    ],
+    "filament_is_support": [
+        "1"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ]
+}

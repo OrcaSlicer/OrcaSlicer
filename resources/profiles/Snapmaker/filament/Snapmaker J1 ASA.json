@@ -1,13 +1,13 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 ASA",
-  "setting_id": "1131956201",
-  "inherits": "Snapmaker J1 ASA @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)",
-    "Snapmaker J1 (0.6 nozzle)",
-    "Snapmaker J1 (0.8 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 ASA",
+    "inherits": "Snapmaker J1 ASA @base",
+    "from": "system",
+    "setting_id": "1131956201",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)",
+        "Snapmaker J1 (0.6 nozzle)",
+        "Snapmaker J1 (0.8 nozzle)"
+    ]
 }

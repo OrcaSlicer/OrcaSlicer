@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Sparkle @System",
+    "inherits": "Bambu PLA Sparkle @base",
+    "from": "system",
+    "setting_id": "OGFSA08_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

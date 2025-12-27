@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Prusament PLA @CORE One 0.6",
+    "inherits": "Prusament PLA @CORE One",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament PLA @CORE One 0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa CORE One 0.6 nozzle"
+    ],
+    "filament_max_volumetric_speed": [
+        "15.5"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "slow_down_layer_time": [
+        "15"
+    ]
+}

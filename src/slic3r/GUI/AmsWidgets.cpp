@@ -10,6 +10,8 @@
 #include "Widgets/Label.hpp"
 #include "format.hpp"
 
+#include "DeviceCore/DevFilaSystem.h"
+
 
 namespace Slic3r {
 namespace GUI {
@@ -139,20 +141,23 @@ void TrayListModel::update(MachineObject* obj)
     m_saturabilityColValues.clear();
     m_transmittanceColValues.clear();
 
-    std::map<std::string, Ams*>::iterator ams_it;
-    std::map<std::string, AmsTray*>::iterator tray_it;
+    std::map<std::string, DevAms*>::iterator ams_it;
+    std::map<std::string, DevAmsTray*>::const_iterator tray_it;
     int tray_index = 0;
-    for (ams_it = obj->amsList.begin(); ams_it != obj->amsList.end(); ams_it++) {
+
+    const auto& ams_list = obj->GetFilaSystem()->GetAmsList();
+    for (auto ams_it = ams_list.begin(); ams_it != ams_list.end(); ams_it++)
+    {
         if (ams_it->second) {
-            for (tray_it = ams_it->second->trayList.begin(); tray_it != ams_it->second->trayList.end(); tray_it++) {
-                AmsTray* tray = tray_it->second;
+            for (tray_it = ams_it->second->GetTrays().cbegin(); tray_it != ams_it->second->GetTrays().cend(); tray_it++) {
+                DevAmsTray* tray = tray_it->second;
                 if (tray) {
                     tray_index++;
-                    wxString title_text = wxString::Format("tray %s(ams %s)", tray->id, ams_it->second->id);
+                    wxString title_text = wxString::Format("tray %s(ams %s)", tray->id, ams_it->second->GetAmsId());
                     m_titleColValues.push_back(title_text);
                     wxString color_text = wxString::Format("%s", tray->wx_color.GetAsString());
                     m_colorColValues.push_back(color_text);
-                    wxString meterial_text = wxString::Format("%s", tray->type);
+                    wxString meterial_text = wxString::Format("%s", tray->m_fila_type);
                     m_meterialColValues.push_back(meterial_text);
                     wxString weight_text = wxString::Format("%sg", tray->weight);
                     m_weightColValues.push_back(weight_text);

@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.12mm Fine @MyRRF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_rrf_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "layer_height": "0.12",
     "bottom_shell_layers": "5",
     "top_shell_layers": "6"

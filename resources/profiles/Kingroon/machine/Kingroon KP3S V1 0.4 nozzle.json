@@ -1,85 +1,151 @@
 {
-  "type": "machine",
-  "setting_id": "GM003",
-  "name": "Kingroon KP3S V1 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "Kingroon KP3S V1",
-  "default_filament_profile": "Kingroon Generic PLA",
-  "default_print_profile": "0.20mm Standard @Kingroon KP3S V1",
-
-  "thumbnails": [ "100x100" ],
-  "change_filament_gcode": "",
-  "best_object_pos": "0.5,0.5",
-  "change_extrusion_role_gcode": "",
-  "cooling_tube_length": "0",
-  "cooling_tube_retraction": "0",
-  "deretraction_speed": [ "30" ],
-  "disable_m73": "0",
-  "emit_machine_limits_to_gcode": "1",
-  "enable_filament_ramming": "0",
-  "head_wrap_detect_zone": [],
-  "enable_long_retraction_when_cut": "0",
-  "long_retractions_when_cut": [
-    "0"
-  ],
-  "retract_before_wipe": [ "0%" ],
-  "retraction_distances_when_cut": [
-    "18"
-  ],
-  "extra_loading_move": "0",
-  "extruder_clearance_height_to_rod": "36",
-  "extruder_clearance_radius": "65",
-  "high_current_on_filament_swap": "0",
-  "machine_unload_filament_time": "0",
-  "min_layer_height": "0.08",
-  "parking_pos_retraction": "0",
-  "preferred_orientation": "0",
-  "printing_by_object_gcode": "",
-  "purge_in_prime_tower": "0",
-  "retract_lift_above": [ "0" ],
-  "retract_lift_below": [ "0" ],
-  "retract_lift_enforce": ["All Surfaces"],
-  "bed_exclude_area": ["0x0"],
-  "extruder_colour": ["#FCE94F"],
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
-  "machine_end_gcode": "G91; relative positioning\n G1 Z1.0 F3000 ; move z up little to prevent scratching of print\n G90; absolute positioning\n G1 X0 Y180 F1000 ; prepare for part removal\n M104 S0; turn off extruder\n M140 S0 ; turn off bed\n G1 X0 Y180 F1000 ; prepare for part removal\n M84 ; disable motors\n M106 S0 ; turn off fan",
-  "machine_max_acceleration_e": ["5000", "5000"],
-  "machine_max_acceleration_extruding": ["10000", "20000"],
-  "machine_max_acceleration_retracting": ["5000", "5000"],
-  "machine_max_acceleration_travel": ["20000", "20000"],
-  "machine_max_acceleration_x": ["10000", "20000"],
-  "machine_max_acceleration_y": ["10000", "20000"],
-  "machine_max_acceleration_z": ["500", "200"],
-  "machine_max_jerk_e": ["2.5", "2.5"],
-  "machine_max_jerk_x": ["9", "9"],
-  "machine_max_jerk_y": ["9", "9"],
-  "machine_max_jerk_z": ["0.2", "0.4"],
-  "machine_max_speed_e": ["100", "25"],
-  "machine_max_speed_z": ["12", "12"],
-  "machine_pause_gcode": "PAUSE",
-  "machine_start_gcode": "M104 S{first_layer_temperature[0]} ; set final nozzle temp\nM190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nM83\nG28 ; h1ome all axes\nG1 Z0.2                                   ; lift nozzle a bit \nG92 E0 \nG1 Y-3 F2400   \nG1 X50 F2400                                  ; zero the extruded length \nG1 X115  E40 F500                       ; Extrude 25mm of filament in a 5cm line. \nG92 E0                                     ; zero the extruded length again \nG1 E-0.2 F3000                                ; Retract a little \nG1 X180 F4000                              ; Quickly wipe away from the filament line\nM117",
-  "manual_filament_change": "0",
-  "nozzle_height": "4",
-  "nozzle_type": "brass",
-  "max_layer_height": ["0.32"],
-  "retraction_length": ["0.8"],
-  "retraction_speed": ["30"],
-  "support_air_filtration": "1",
-  "support_chamber_temp_control": "1",
-  "support_multi_bed_types": "0",
-  "use_firmware_retraction": "0",
-  "wipe": ["1"],
-  "z_hop": ["0"],
-  "z_offset": "0",
-  "printable_area": [
-    "0x0",
-    "180x0",
-    "180x180",
-    "0x180"
-],
-"printable_height": "180",
-"nozzle_diameter": ["0.4"]
+    "type": "machine",
+    "name": "Kingroon KP3S V1 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
+    "printer_model": "Kingroon KP3S V1",
+    "default_filament_profile": "Generic PLA @System",
+    "default_print_profile": "0.20mm Standard @Kingroon KP3S V1",
+    "thumbnails": [
+        "100x100"
+    ],
+    "change_filament_gcode": "",
+    "best_object_pos": "0.5,0.5",
+    "change_extrusion_role_gcode": "",
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "deretraction_speed": [
+        "30"
+    ],
+    "disable_m73": "0",
+    "emit_machine_limits_to_gcode": "1",
+    "enable_filament_ramming": "0",
+    "head_wrap_detect_zone": [],
+    "enable_long_retraction_when_cut": "0",
+    "long_retractions_when_cut": [
+        "0"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retraction_distances_when_cut": [
+        "18"
+    ],
+    "extra_loading_move": "0",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_radius": "65",
+    "high_current_on_filament_swap": "0",
+    "machine_unload_filament_time": "0",
+    "min_layer_height": "0.08",
+    "parking_pos_retraction": "0",
+    "preferred_orientation": "0",
+    "printing_by_object_gcode": "",
+    "purge_in_prime_tower": "0",
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "machine_end_gcode": "G91; relative positioning\n G1 Z1.0 F3000 ; move z up little to prevent scratching of print\n G90; absolute positioning\n G1 X0 Y180 F1000 ; prepare for part removal\n M104 S0; turn off extruder\n M140 S0 ; turn off bed\n G1 X0 Y180 F1000 ; prepare for part removal\n M84 ; disable motors\n M106 S0 ; turn off fan",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "10000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "10000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "10000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "0.2",
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "100",
+        "25"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": "M104 S{first_layer_temperature[0]} ; set final nozzle temp\nM190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nM83\nG28 ; h1ome all axes\nG1 Z0.2                                   ; lift nozzle a bit \nG92 E0 \nG1 Y-3 F2400   \nG1 X50 F2400                                  ; zero the extruded length \nG1 X115  E40 F500                       ; Extrude 25mm of filament in a 5cm line. \nG92 E0                                     ; zero the extruded length again \nG1 E-0.2 F3000                                ; Retract a little \nG1 X180 F4000                              ; Quickly wipe away from the filament line\nM117",
+    "manual_filament_change": "0",
+    "nozzle_height": "4",
+    "nozzle_type": "brass",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "support_air_filtration": "1",
+    "support_chamber_temp_control": "1",
+    "support_multi_bed_types": "0",
+    "use_firmware_retraction": "0",
+    "wipe": [
+        "1"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "z_offset": "0",
+    "printable_area": [
+        "0x0",
+        "180x0",
+        "180x180",
+        "0x180"
+    ],
+    "printable_height": "180",
+    "nozzle_diameter": [
+        "0.4"
+    ]
 }

@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Dynamic @System",
+    "inherits": "Bambu PLA Dynamic @base",
+    "from": "system",
+    "setting_id": "OGFSA13_00",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "compatible_printers": []
+}

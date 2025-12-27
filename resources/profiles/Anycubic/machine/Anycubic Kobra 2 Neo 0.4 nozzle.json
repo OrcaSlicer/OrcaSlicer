@@ -1,19 +1,23 @@
 {
     "type": "machine",
+    "name": "Anycubic Kobra 2 Neo 0.4 nozzle",
+    "inherits": "fdm_machine_common",
     "from": "system",
     "setting_id": "GM005",
-    "inherits": "fdm_machine_common",
     "instantiation": "true",
     "printer_technology": "FFF",
     "printer_settings_id": "Anycubic Kobra 2 Neo 0.4 nozzle",
     "printer_model": "Anycubic Kobra 2 Neo",
     "printer_variant": "0.4",
-    "name": "Anycubic Kobra 2 Neo 0.4 nozzle",
-    "nozzle_diameter": [ "0.4" ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
     "default_print_profile": "0.20mm Standard @Anycubic Kobra 2 Neo 0.4 nozzle",
-    "default_filament_profile": [ "Anycubic PLA @Anycubic Kobra 2 Neo 0.4 nozzle" ],
+    "default_filament_profile": [
+        "Anycubic PLA @Anycubic Kobra 2 Neo 0.4 nozzle"
+    ],
     "disable_m73": "1",
-    "gcode_flavor": "marlin",
+    "gcode_flavor": "marlin2",
     "printable_area": [
         "0x0",
         "220x0",
@@ -31,12 +35,12 @@
     "bed_custom_model": "",
     "bed_custom_texture": "",
     "bed_exclude_area": [
-    	"0x0"
+        "0x0"
     ],
     "bed_mesh_max": "0,0",
     "bed_mesh_min": "0,0",
     "bed_mesh_probe_distance": "0,0",
-    "before_layer_change_gcode": "; BEFORE_LAYER_CHANGE [layer_num] @ [layer_z]mm",
+    "before_layer_change_gcode": "G92 E0 ; zero the extruded length again\n; BEFORE_LAYER_CHANGE [layer_num] @ [layer_z]mm",
     "best_object_pos": "0.5,0.5",
     "change_extrusion_role_gcode": "",
     "change_filament_gcode": "",
@@ -64,12 +68,11 @@
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
-    "is_custom_defined": "0",
     "layer_change_gcode": "; AFTER_LAYER_CHANGE [layer_num] @ [layer_z]mm",
     "long_retractions_when_cut": [
         "0"
     ],
-    "machine_end_gcode": "M104 S0; Extruder off\nM140 S0 Heatbed off\nM107                                       ; Fan off \nG91                                        ; relative positioning \nG1 E-5 F3000  \nG1 Z+0.3 F3000                             ; lift print head \nG28 X0  F3000\nM84                    ",
+    "machine_end_gcode": "M140 S0; Heatbed off\nM107; Fan off \nG91; relative positioning \nM83 ; extruder relative mode\nG1 E-3 F3000 ;retract the filament a bit before lifting the nozzle, to release some of the pressure\nG1 Z+0.5 F3000 ;move Z up a bit and retract filament even more\nM104 S0; Extruder off\nG28 X Y;move X/Y to min endstops, so the head is out of the way\nG90; absolute positioning \nG1 Y220 F3000\nM84 ;steppers off\nM300 S1318 P266",
     "machine_load_filament_time": "42",
     "machine_max_acceleration_e": [
         "2000",
@@ -140,7 +143,7 @@
         "0"
     ],
     "machine_pause_gcode": "M601",
-    "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nG28; move X/Y/Z to min endstops\nG1 Z0.28; lift nozzle a bit\nG92 E0\nG1 Y3 F1800                                    ; zero the extruded length \nG1 X60  E25 F500                       ; Extrude 25mm of filament in a 5cm line. \nG92 E0                                     ; zero the extruded length again \nG1 E-2 F500                                ; Retract a little \nG1 X70 F4000                              ; Quickly wipe away from the filament line\nM117",
+    "machine_start_gcode": "G21 ; metric values\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\nG28; move X/Y/Z to min endstops\nM420 S1\nM300 S1318 P266\nG1 Z5 F5000 ; lift nozzle\nG1 X0 Y0  F3000\nG1 Z0.3; lift nozzle a bit\nG92 E0 ; zero after lift\nG1 X10 Y5 F1800 ; move to purge line start position\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nG1 X60 Y5 E20 F500 ; Extrude 20mm of filament in a 5cm line. \nG92 E0 ; zero the extruded length again \nG1 E-4.5 F4000 ; Retract a little \nG92 E0 ; zero the extruded length again\nG1 X120 F4000 ; Quickly wipe away from the filament line\nM117 Printing... ; Display status message",
     "machine_unload_filament_time": "0",
     "manual_filament_change": "0",
     "max_layer_height": [
@@ -208,7 +211,7 @@
     "time_lapse_gcode": "",
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
-    "use_relative_e_distances": "0",
+    "use_relative_e_distances": "1",
     "wipe": [
         "1"
     ],

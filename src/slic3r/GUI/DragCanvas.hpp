@@ -58,6 +58,8 @@ private:
     wxPoint                    m_drag_start_pos;
     wxBitmap                   m_arrow_bmp;
     wxPoint                    m_max_shape_pos;
+    wxColour                   m_background_color; // ORCA
+    wxColour                   m_border_color; // ORCA
 };
 
 

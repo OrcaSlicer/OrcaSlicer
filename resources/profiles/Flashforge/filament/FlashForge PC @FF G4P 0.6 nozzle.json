@@ -1,0 +1,94 @@
+{
+    "type": "filament",
+    "name": "FlashForge PC @FF G4P 0.6 nozzle",
+    "inherits": "FusRock Generic S-PAHT @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "110"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "110"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "filament_density": [
+        "1.04"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_settings_id": [
+        "FlashForge PC @FF G4P 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material:PC"
+    ],
+    "filament_type": [
+        "PC"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 Pro 0.6 nozzle"
+    ],
+    "hot_plate_temp": [
+        "110"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "265"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
+    "nozzle_temperature_range_low": [
+        "250"
+    ],
+    "overhang_fan_speed": [
+        "50"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "support_material_interface_fan_speed": [
+        "50"
+    ],
+    "temperature_vitrification": [
+        "120"
+    ],
+    "textured_cool_plate_temp": [
+        "0"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "textured_plate_temp": [
+        "110"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "110"
+    ]
+}

@@ -6,7 +6,7 @@
 
 body
 {
-	background-color:#3E3E45;
+	background-color:#2D2D31; /* ORCA match background color */
 	color: #efeff0;
 }
 
@@ -23,17 +23,18 @@ body
 	color: #009688;
 }
 
-/*-----Button-----*/
-.GrayBtn
-{
-	border: 1px solid #B9B9BC;
-	color: #B9B9BC;	
+.search>input[type=text]{
+	background-color:#2D2D31;
 }
 
-.GrayBtn:hover
-{
-	background-color:#E8E8E8;
-	color: #565656;
+/*---Checkboxes ORCA---*/
+input[type=checkbox]{
+	background-color:#2D2D31;
+	border-color:#4A4A51;
+}
+
+input[type=checkbox]:checked{
+	background-color:#009688;
 }
 
 /*-------Text------*/

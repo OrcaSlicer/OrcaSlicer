@@ -5,6 +5,6 @@
     "nozzle_diameter": "0.4",
     "machine_tech": "FFF",
     "family": "CONSTRUCT3D",
-	"bed_model": "construct_1_buildplate_model.stl",
-	"default_materials": "C1 Generic PLA;C1 Generic PETG;C1 Generic High Flow PETG"
+    "bed_model": "construct_1_buildplate_model.stl",
+    "default_materials": "C1 Generic PLA;C1 Generic PETG;C1 Generic High Flow PETG"
 }

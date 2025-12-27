@@ -167,6 +167,8 @@ public:
             this->ceilRadius(radius + m_current_min_xy_dist_delta) - m_current_min_xy_dist_delta;
     }
 
+    Polygon m_bed_area;
+
 private:
     // Caching polygons for a range of layers.
     class LayerPolygonCache {

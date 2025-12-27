@@ -27,6 +27,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/nowide/cstdlib.hpp>
 
 // Spirit v2.5 allows you to suppress automatic generation
 // of predefined terminals to speed up complation. With
@@ -71,6 +72,7 @@ PlaceholderParser::PlaceholderParser(const DynamicConfig *external_config) : m_e
     this->set("version", std::string(SoftFever_VERSION));
     this->apply_env_variables();
     this->update_timestamp();
+    this->update_user_name();
 }
 
 void PlaceholderParser::update_timestamp(DynamicConfig &config)
@@ -78,7 +80,7 @@ void PlaceholderParser::update_timestamp(DynamicConfig &config)
     time_t rawtime;
     time(&rawtime);
     struct tm* timeinfo = localtime(&rawtime);
-    
+
     {
         std::ostringstream ss;
         ss << (1900 + timeinfo->tm_year);
@@ -96,6 +98,12 @@ void PlaceholderParser::update_timestamp(DynamicConfig &config)
     config.set_key_value("hour",   new ConfigOptionInt(timeinfo->tm_hour));
     config.set_key_value("minute", new ConfigOptionInt(timeinfo->tm_min));
     config.set_key_value("second", new ConfigOptionInt(timeinfo->tm_sec));
+}
+
+void PlaceholderParser::update_user_name(DynamicConfig &config)
+{
+    const char* user = boost::nowide::getenv("USER") ? boost::nowide::getenv("USER") : boost::nowide::getenv("USERNAME") ? boost::nowide::getenv("USERNAME") : "unknown";
+    config.set_key_value("user", new ConfigOptionString(user));
 }
 
 static inline bool opts_equal(const DynamicConfig &config_old, const DynamicConfig &config_new, const std::string &opt_key)
@@ -206,7 +214,7 @@ namespace client
         explicit expr(const char *s) : m_type(TYPE_STRING) { m_data.s = new std::string(s); }
         explicit expr(const std::string &s) : m_type(TYPE_STRING) { m_data.s = new std::string(s); }
         explicit expr(std::string &&s) : m_type(TYPE_STRING) { m_data.s = new std::string(std::move(s)); }
-        explicit expr(const std::string &s, const Iterator &it_begin, const Iterator &it_end) : 
+        explicit expr(const std::string &s, const Iterator &it_begin, const Iterator &it_end) :
             m_type(TYPE_STRING), it_range(it_begin, it_end) { m_data.s = new std::string(s); }
         explicit expr(expr &&rhs, const Iterator &it_begin, const Iterator &it_end) : m_type(rhs.type()), it_range{ it_begin, it_end }
         {
@@ -225,8 +233,8 @@ namespace client
             return *this;
         }
 
-        expr &operator=(expr &&rhs) 
-        { 
+        expr &operator=(expr &&rhs)
+        {
             if (this != &rhs) {
                 this->reset();
                 m_type          = rhs.type();
@@ -237,7 +245,7 @@ namespace client
             return *this;
         }
 
-        void                reset()   
+        void                reset()
         { 
             if (this->type() == TYPE_STRING)
                 delete m_data.s;
@@ -290,8 +298,8 @@ namespace client
             else
                 this->set_s_take_ownership(new std::string(s));
         }
-        
-        std::string         to_string() const 
+
+        std::string         to_string() const
         {
             std::string out;
             switch (this->type()) {
@@ -300,7 +308,7 @@ namespace client
                 break;
 			case TYPE_BOOL:   out = this->b() ? "true" : "false"; break;
             case TYPE_INT:    out = std::to_string(this->i()); break;
-            case TYPE_DOUBLE: 
+            case TYPE_DOUBLE:
 #if 0
                 // The default converter produces trailing zeros after the decimal point.
 				out = std::to_string(data.d);
@@ -325,7 +333,7 @@ namespace client
         IteratorRange  it_range;
 
         expr unary_minus(const Iterator start_pos) const
-        { 
+        {
             switch (this->type()) {
             case TYPE_EMPTY:
                 // Inside an if / else block to be skipped.
@@ -343,7 +351,7 @@ namespace client
         }
 
         expr unary_integer(const Iterator start_pos) const
-        { 
+        {
             switch (this->type()) {
             case TYPE_EMPTY:
                 // Inside an if / else block to be skipped.
@@ -361,7 +369,7 @@ namespace client
         }
 
         expr round(const Iterator start_pos) const
-        { 
+        {
             switch (this->type()) {
             case TYPE_EMPTY:
                 // Inside an if / else block to be skipped.
@@ -378,8 +386,38 @@ namespace client
             return expr();
         }
 
+        expr floor(const Iterator start_pos)const
+        {
+            switch (this->type()) {
+            case TYPE_INT:
+                return expr(this->i(), start_pos, this->it_range.end());
+            case TYPE_DOUBLE:
+                return expr(static_cast<int>(std::floor(this->d())), start_pos, this->it_range.end());
+            default:
+                this->throw_exception("Cannot floor a non-numeric value.");
+            }
+            assert(false);
+            // Suppress compiler warnings.
+            return expr();
+        }
+
+        expr ceil(const Iterator start_pos)const
+        {
+            switch (this->type()) {
+            case TYPE_INT:
+                return expr(this->i(), start_pos, this->it_range.end());
+            case TYPE_DOUBLE:
+                return expr(static_cast<int>(std::ceil(this->d())), start_pos, this->it_range.end());
+            default:
+                this->throw_exception("Cannot ceil a non-numeric value.");
+            }
+            assert(false);
+            // Suppress compiler warnings.
+            return expr();
+        }
+
         expr unary_not(const Iterator start_pos) const
-        { 
+        {
             switch (this->type()) {
             case TYPE_EMPTY:
                 // Inside an if / else block to be skipped.
@@ -395,7 +433,7 @@ namespace client
         }
 
         expr &operator+=(const expr &rhs)
-        { 
+        {
             if (this->type() == TYPE_EMPTY) {
                 // Inside an if / else block to be skipped.
             } else if (this->type() == TYPE_STRING) {
@@ -418,7 +456,7 @@ namespace client
         }
 
         expr &operator-=(const expr &rhs)
-        { 
+        {
             if (this->type() == TYPE_EMPTY) {
                 // Inside an if / else block to be skipped.
                 this->reset();
@@ -436,7 +474,7 @@ namespace client
         }
 
         expr &operator*=(const expr &rhs)
-        { 
+        {
             if (this->type() == TYPE_EMPTY) {
                 // Inside an if / else block to be skipped.
                 this->reset();
@@ -527,16 +565,16 @@ namespace client
                 // Both types are numeric.
                 switch (op) {
                     case '=':
-                        value = (lhs.type() == TYPE_DOUBLE || rhs.type() == TYPE_DOUBLE) ? 
+                        value = (lhs.type() == TYPE_DOUBLE || rhs.type() == TYPE_DOUBLE) ?
                             (std::abs(lhs.as_d() - rhs.as_d()) < 1e-8) : (lhs.i() == rhs.i());
                         break;
                     case '<':
-                        value = (lhs.type() == TYPE_DOUBLE || rhs.type() == TYPE_DOUBLE) ? 
+                        value = (lhs.type() == TYPE_DOUBLE || rhs.type() == TYPE_DOUBLE) ?
                             (lhs.as_d() < rhs.as_d()) : (lhs.i() < rhs.i());
                         break;
                     case '>':
                     default:
-                        value = (lhs.type() == TYPE_DOUBLE || rhs.type() == TYPE_DOUBLE) ? 
+                        value = (lhs.type() == TYPE_DOUBLE || rhs.type() == TYPE_DOUBLE) ?
                             (lhs.as_d() > rhs.as_d()) : (lhs.i() > rhs.i());
                         break;
                 }
@@ -548,7 +586,7 @@ namespace client
                 value = lhs.b() == rhs.b();
             } else if (lhs.type() == TYPE_STRING || rhs.type() == TYPE_STRING) {
                 // One type is string, the other could be converted to string.
-                value = (op == '=') ? (lhs.to_string() == rhs.to_string()) : 
+                value = (op == '=') ? (lhs.to_string() == rhs.to_string()) :
                         (op == '<') ? (lhs.to_string() < rhs.to_string()) : (lhs.to_string() > rhs.to_string());
             } else {
                 boost::throw_exception(qi::expectation_failure<Iterator>(
@@ -568,7 +606,7 @@ namespace client
         static void throw_if_not_numeric(const expr &param)
         {
             const char *err_msg = "Not a numeric type.";
-            param.throw_if_not_numeric(err_msg);            
+            param.throw_if_not_numeric(err_msg);
         }
 
         enum Function2ParamsType {
@@ -577,7 +615,7 @@ namespace client
         };
         // Store the result into param1.
         static void function_2params(expr &param1, expr &param2, Function2ParamsType fun)
-        { 
+        {
             if (param1.type() == TYPE_EMPTY)
                 // Inside an if / else block to be skipped
                 return;
@@ -607,7 +645,7 @@ namespace client
 
         // Store the result into param1.
         static void random(expr &param1, expr &param2, std::mt19937 &rng)
-        { 
+        {
             if (param1.type() == TYPE_EMPTY)
                 // Inside an if / else block to be skipped
                 return;
@@ -623,7 +661,7 @@ namespace client
         // param3 is optional
         template<bool leading_zeros>
         static void digits(expr &param1, expr &param2, expr &param3)
-        { 
+        {
             if (param1.type() == TYPE_EMPTY)
                 // Inside an if / else block to be skipped
                 return;
@@ -730,13 +768,13 @@ namespace client
         static void logical_or (expr &lhs, expr &rhs) { logical_op(lhs, rhs, '|'); }
         static void logical_and(expr &lhs, expr &rhs) { logical_op(lhs, rhs, '&'); }
 
-        void throw_exception(const char *message) const 
+        void throw_exception(const char *message) const
         {
             boost::throw_exception(qi::expectation_failure<Iterator>(
                 this->it_range.begin(), this->it_range.end(), spirit::info(std::string("*") + message)));
         }
 
-        void throw_if_not_numeric(const char *message) const 
+        void throw_if_not_numeric(const char *message) const
         {
             if (! this->numeric_type())
                 this->throw_exception(message);
@@ -786,7 +824,7 @@ namespace client
         mutable DynamicConfig   *config_outputs         = nullptr;
         // Local variables, read / write
         mutable DynamicConfig    config_local;
-        size_t                   current_extruder_id    = 0;
+        size_t                   current_extruder_id    = 0;  // This is filament_id actually
         // Random number generator and optionally global variables.
         PlaceholderParser::ContextData *context_data    = nullptr;
         // If false, the macro_processor will evaluate a full macro.
@@ -797,7 +835,14 @@ namespace client
         // Table to translate symbol tag to a human readable error message.
         static std::map<std::string, std::string> tag_to_error_message;
 
-        // Should the parser consider the parsed string to be a macro or a boolean expression?
+        size_t get_extruder_id() const {
+            const ConfigOptionInts * filament_map_opt = external_config->option<ConfigOptionInts>("filament_map");
+            if (filament_map_opt && current_extruder_id < filament_map_opt->values.size()) {
+                return filament_map_opt->values[current_extruder_id];
+            }
+            return 0;
+        }
+
         static bool             evaluate_full_macro(const MyContext *ctx) { return ! ctx->just_boolean_expression; }
 
         // Entering a conditional block.
@@ -900,7 +945,7 @@ namespace client
         }
 
         static void legacy_variable_expansion2(
-            const MyContext *ctx, 
+            const MyContext *ctx,
             IteratorRange   &opt_key,
             IteratorRange   &opt_vector_index,
             std::string     &output)
@@ -966,10 +1011,10 @@ namespace client
            OptWithPos       &output)
         {
             if (! ctx->skipping()) {
-                if (! opt.opt->is_vector())
-                    ctx->throw_exception("Cannot index a scalar variable", opt.it_range);
                 if (index < 0)
-                    ctx->throw_exception("Referencing a vector variable with a negative index", opt.it_range);
+                    index = 0; // Orca: fallback to first element if index < 0, this matches the behavior of BambuStudio
+                if (!opt.opt->is_vector())
+                    index = -1; // Orca: ignore the index if variable is scalar, this matches the behavior of BambuStudio
                 output = opt;
                 output.index = index;
             } else
@@ -1000,8 +1045,8 @@ namespace client
             case coFloatOrPercent:
             {
                 std::string opt_key(opt.it_range.begin(), opt.it_range.end());
-                if (boost::ends_with(opt_key, "extrusion_width")) {
-                    // Extrusion width supports defaults and a complex graph of dependencies.
+                if (boost::ends_with(opt_key, "line_width")) {
+                    // Line width supports defaults and a complex graph of dependencies.
                     output.set_d(Flow::extrusion_width(opt_key, *ctx, static_cast<unsigned int>(ctx->current_extruder_id)));
                 } else if (! static_cast<const ConfigOptionFloatOrPercent*>(opt.opt)->percent) {
                     // Not a percent, just return the value.
@@ -1015,8 +1060,8 @@ namespace client
     			        const ConfigOption *opt_parent = opt_def->ratio_over.empty() ? nullptr : ctx->resolve_symbol(opt_def->ratio_over);
     			        if (opt_parent == nullptr)
     			            ctx->throw_exception("FloatOrPercent variable failed to resolve the \"ratio_over\" dependencies", opt.it_range);
-    			        if (boost::ends_with(opt_def->ratio_over, "extrusion_width")) {
-                    		// Extrusion width supports defaults and a complex graph of dependencies.
+    			        if (boost::ends_with(opt_def->ratio_over, "line_width")) {
+                    		// Line width supports defaults and a complex graph of dependencies.
                             assert(opt_parent->type() == coFloatOrPercent);
                         	v *= Flow::extrusion_width(opt_def->ratio_over, static_cast<const ConfigOptionFloatOrPercent*>(opt_parent), *ctx, static_cast<unsigned int>(ctx->current_extruder_id));
                         	break;
@@ -1048,24 +1093,47 @@ namespace client
                 return;
 
             assert(opt.opt->is_vector());
-            if (! opt.has_index())
-                ctx->throw_exception("Referencing a vector variable when scalar is expected", opt.it_range);
             const ConfigOptionVectorBase* vec = static_cast<const ConfigOptionVectorBase*>(opt.opt);
             if (vec->empty())
                 ctx->throw_exception("Indexing an empty vector variable", opt.it_range);
-            size_t idx = (opt.index < 0) ? 0 : (opt.index >= int(vec->size())) ? 0 : size_t(opt.index);
-            if (vec->is_nil(idx))
-                ctx->throw_exception("Trying to reference an undefined (nil) element of vector of optional values", opt.it_range);
-            switch (opt.opt->type()) {
-            case coFloats:   output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->values[idx]); break;
-            case coInts:     output.set_i(static_cast<const ConfigOptionInts*>(opt.opt)->values[idx]); break;
-            case coStrings:  output.set_s(static_cast<const ConfigOptionStrings*>(opt.opt)->values[idx]); break;
-            case coPercents: output.set_d(static_cast<const ConfigOptionPercents*>(opt.opt)->values[idx]); break;
-            case coPoints:   output.set_s(to_string(static_cast<const ConfigOptionPoints*>(opt.opt)->values[idx])); break;
-            case coBools:    output.set_b(static_cast<const ConfigOptionBools*>(opt.opt)->values[idx] != 0); break;
-            case coEnums:    output.set_i(static_cast<const ConfigOptionInts    *>(opt.opt)->values[idx]); break;
-            default:
-                ctx->throw_exception("Unsupported vector variable type", opt.it_range);
+            if (!opt.has_index()) {
+                // Allow omitting extruder id when referencing vectors
+                switch (opt.opt->type()) {
+                case coFloats: {
+                    const ConfigOptionFloatsNullable* opt_floatsnullable = static_cast<const ConfigOptionFloatsNullable *>(opt.opt);
+                    if (opt_floatsnullable) {
+                        if (opt_floatsnullable->size() == 1) { // old version
+                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(0));
+                        } else {
+                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                        }
+                    } else {
+                        const ConfigOptionFloats* opt_floats = static_cast<const ConfigOptionFloats*>(opt.opt);
+                        if (opt_floats->size() == 1) { // old version
+                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(0));
+                        } else {
+                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                        }
+                    }
+                    break;
+                }
+                default: ctx->throw_exception("Referencing a vector variable when scalar is expected", opt.it_range);
+                }
+            } else {
+                size_t idx = (opt.index < 0) ? 0 : (opt.index >= int(vec->size())) ? 0 : size_t(opt.index);
+                if (vec->is_nil(idx))
+                    ctx->throw_exception("Trying to reference an undefined (nil) element of vector of optional values", opt.it_range);
+                switch (opt.opt->type()) {
+                case coFloats:   output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->values[idx]); break;
+                case coInts:     output.set_i(static_cast<const ConfigOptionInts*>(opt.opt)->values[idx]); break;
+                case coStrings:  output.set_s(static_cast<const ConfigOptionStrings*>(opt.opt)->values[idx]); break;
+                case coPercents: output.set_d(static_cast<const ConfigOptionPercents*>(opt.opt)->values[idx]); break;
+                case coPoints:   output.set_s(to_string(static_cast<const ConfigOptionPoints*>(opt.opt)->values[idx])); break;
+                case coBools:    output.set_b(static_cast<const ConfigOptionBools*>(opt.opt)->values[idx] != 0); break;
+                case coEnums:    output.set_i(static_cast<const ConfigOptionInts    *>(opt.opt)->values[idx]); break;
+                default:
+                    ctx->throw_exception("Unsupported vector variable type", opt.it_range);
+                }
             }
         }
 
@@ -1538,7 +1606,7 @@ namespace client
         static void evaluate_index(expr &expr_index, int &output)
         {
             if (expr_index.type() != expr::TYPE_EMPTY) {
-                if (expr_index.type() != expr::TYPE_INT)                
+                if (expr_index.type() != expr::TYPE_INT)
                     expr_index.throw_exception("Non-integer index is not allowed to address a vector variable.");
                 output = expr_index.i();
             }
@@ -1553,6 +1621,12 @@ namespace client
                 ctx->throw_exception("Random number generator not available in this context.",
                     IteratorRange(param1.it_range.begin(), param2.it_range.end()));
             expr::random(param1, param2, ctx->context_data->rng);
+        }
+
+        static void filament_change(const MyContext* ctx, expr& param)
+        {
+            MyContext *context = const_cast<MyContext *>(ctx);
+            context->current_extruder_id = param.as_i();
         }
 
         static void throw_exception(const std::string &msg, const IteratorRange &it_range)
@@ -1730,11 +1804,11 @@ namespace client
     // This parser is to be used inside a raw[] directive to accept a single valid UTF-8 character.
     // If an invalid UTF-8 sequence is encountered, a qi::expectation_failure is thrown.
     struct utf8_char_parser : qi::primitive_parser<utf8_char_parser>
-    { 
-        // Define the attribute type exposed by this parser component 
+    {
+        // Define the attribute type exposed by this parser component
         template <typename Context, typename Iterator>
         struct attribute
-        { 
+        {
             typedef wchar_t type;
         };
 
@@ -1742,7 +1816,7 @@ namespace client
         // Also it throws if it encounters valid or invalid UTF-8 sequence.
         template <typename Iterator, typename Context , typename Skipper, typename Attribute>
         bool parse(Iterator &first, Iterator const &last, Context &context, Skipper const &skipper, Attribute& attr) const
-        { 
+        {
             // The skipper shall always be empty, any white space will be accepted.
             // skip_over(first, last, skipper);
             if (first == last)
@@ -1786,7 +1860,7 @@ namespace client
         // This function is called during error handling to create a human readable string for the error context.
         template <typename Context>
         spirit::info what(Context&) const
-        { 
+        {
             return spirit::info("unicode_char");
         }
     };
@@ -1905,6 +1979,10 @@ namespace client
                 { out = value.unary_integer(out.it_range.begin()); }
         static void round(expr &value, expr &out)
                 { out = value.round(out.it_range.begin()); }
+        static void floor(expr &value, expr &out)
+                { out = value.floor(out.it_range.begin()); }
+        static void ceil(expr &value, expr &out)
+                { out = value.ceil(out.it_range.begin());}
         // For indicating "no optional parameter".
         static void noexpr(expr &out) { out.reset(); }
     };
@@ -2031,7 +2109,7 @@ namespace client
             legacy_variable_expansion =
                     (identifier >> &lit(']'))
                         [ px::bind(&MyContext::legacy_variable_expansion, _r1, _1, _val) ]
-                |   (identifier > lit('[') > identifier > ']') 
+                |   (identifier > lit('[') > identifier > ']')
                         [ px::bind(&MyContext::legacy_variable_expansion2, _r1, _1, _2, _val) ]
                 ;
             legacy_variable_expansion.name("legacy_variable_expansion");
@@ -2049,12 +2127,12 @@ namespace client
                     eps[px::bind(&MyContext::block_enter, _r1, ! _a)] > conditional_expression(_r1)[px::bind(&MyContext::block_exit_ternary, _r1, ! _a, _1, _val)]);
             conditional_expression.name("conditional_expression");
 
-            logical_or_expression = 
+            logical_or_expression =
                 logical_and_expression(_r1)                [_val = _1]
                 >> *(   ((kw["or"] | "||") > logical_and_expression(_r1) ) [px::bind(&expr::logical_or, _val, _1)] );
             logical_or_expression.name("logical_or_expression");
 
-            logical_and_expression = 
+            logical_and_expression =
                 equality_expression(_r1)                   [_val = _1]
                 >> *(   ((kw["and"] | "&&") > equality_expression(_r1) ) [px::bind(&expr::logical_and, _val, _1)] );
             logical_and_expression.name("logical_and_expression");
@@ -2074,7 +2152,7 @@ namespace client
             bool_expr_eval = conditional_expression(_r1) [ px::bind(&expr::evaluate_boolean, _1, _val) ];
             bool_expr_eval.name("bool_expr_eval");
 
-            relational_expression = 
+            relational_expression =
                     additive_expression(_r1)                [_val  = _1]
                 >> *(   ("<="     > additive_expression(_r1) ) [px::bind(&expr::leq,     _val, _1)]
                     |   (">="     > additive_expression(_r1) ) [px::bind(&expr::geq,     _val, _1)]
@@ -2119,9 +2197,8 @@ namespace client
                         initializer_list(_r1)[px::bind(&MyContext::vector_variable_new_from_initializer_list, _r1, _a, _b, _1)]
                         // Process it before conditional_expression, as conditional_expression requires a vector reference to be augmented with an index.
                         // Only process such variable references, which return a naked vector variable.
-                    // Orca todo: following code cause strange build errors with MSVC C++17
-                    // |  eps(px::bind(&MyContext::could_be_vector_variable_reference, _b)) >>
-                    //         variable_reference(_r1)[px::val(qi::_pass) = px::bind(&MyContext::vector_variable_new_from_copy, _r1, _a, _b, _1)]
+                    |  eps(px::bind(&MyContext::could_be_vector_variable_reference, _b)) >>
+                            variable_reference(_r1)[qi::_pass = px::bind(&MyContext::vector_variable_new_from_copy, _r1, _a, _b, _1)]
                        // Would NOT consume '(' conditional_expression ')' because such value was consumed with the expression above.
                     |  conditional_expression(_r1)
                             [px::bind(&MyContext::scalar_variable_new_from_scalar_expression, _r1, _a, _b, _1)]
@@ -2142,18 +2219,21 @@ namespace client
                 |   (lit('-')  > unary_expression(_r1)           )  [ px::bind(&FactorActions::minus_,  _1,     _val) ]
                 |   (lit('+')  > unary_expression(_r1) > iter_pos)  [ px::bind(&FactorActions::expr_,   _1, _2, _val) ]
                 |   ((kw["not"] | '!') > unary_expression(_r1) > iter_pos) [ px::bind(&FactorActions::not_, _1, _val) ]
-                |   (kw["min"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')') 
+                |   (kw["min"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')')
                                                                     [ px::bind(&expr::min, _val, _2) ]
-                |   (kw["max"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')') 
+                |   (kw["max"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')')
                                                                     [ px::bind(&expr::max, _val, _2) ]
-                |   (kw["random"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')') 
+                |   (kw["random"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > ')')
                                                                     [ px::bind(&MyContext::random, _r1, _val, _2) ]
+                |   (kw["filament_change"] > '(' > conditional_expression(_r1) > ')') [ px::bind(&MyContext::filament_change, _r1, _1) ]
                 |   (kw["digits"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > optional_parameter(_r1))
                                                                     [ px::bind(&expr::digits<false>, _val, _2, _3) ]
                 |   (kw["zdigits"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > optional_parameter(_r1))
                                                                     [ px::bind(&expr::digits<true>, _val, _2, _3) ]
                 |   (kw["int"]   > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::to_int,  _1, _val) ]
                 |   (kw["round"] > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::round,   _1, _val) ]
+                |   (kw["ceil"]  > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::ceil,    _1, _val) ]
+                |   (kw["floor"] > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::floor,   _1, _val) ]
                 |   (kw["is_nil"] > '(' > variable_reference(_r1) > ')') [px::bind(&MyContext::is_nil_test, _r1, _1, _val)]
                 |   (kw["one_of"] > '(' > one_of(_r1) > ')')        [ _val = _1 ]
                 |   (kw["empty"] > '(' > variable_reference(_r1) > ')') [px::bind(&MyContext::is_vector_empty, _r1, _1, _val)]
@@ -2231,8 +2311,11 @@ namespace client
                 ("min")
                 ("max")
                 ("random")
+                ("filament_change")
                 ("repeat")
                 ("round")
+                ("floor")
+                ("ceil")
                 ("not")
                 ("one_of")
                 ("or")

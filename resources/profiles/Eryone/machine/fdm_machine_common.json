@@ -5,10 +5,10 @@
     "instantiation": "false",
     "gcode_flavor": "marlin2",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n\n",
-    "machine_start_gcode": "M4899 T3 ; Enable v3 jerk and S-curve acceleration \nM104 S150 ; Set hotend temp to 150 degrees to prevent ooze\nM190 S{first_layer_bed_temperature[0]} ; set and wait for bed temp to stabilize\nM109 S{first_layer_temperature[0]} ; set final nozzle temp to stabilize\nG28 ;Home",
+    "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\n\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\n\nG28 ; home all\nQUAD_GANTRY_LEVEL\n\nG28\n\nBED_MESH_CALIBRATE\n\nG1 Y1.0 Z0.3 F1500 ; move print head up\n\nG92 E0.0\n; intro line\nG1 X205.0 E10 F1000\nG1 Y1.6\nG1 X5.0 E15 F1000\nG92 E0.0\n; intro line\nG1 Y2.0 Z0.2 F1000\nG1 X200.0 E20.0 F1000\nG92 E0.0\n",
     "machine_end_gcode": "M104 S0\nM140 S0\n;Retract the filament\nG92 E1\nG1 E-1 F300\nG28 X0 Y0\nM18",
     "change_filament_gcode": "M600",
-    "machine_pause_gcode": "M601",
+    "machine_pause_gcode": "PAUSE",
     "extruder_colour": [
         "#018001"
     ],
@@ -83,8 +83,6 @@
         "0",
         "0"
     ],
-    "machine_pause_gcode": "PAUSE",
-    "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\n\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\n\nG28 ; home all\nQUAD_GANTRY_LEVEL\n\nG28\n\nBED_MESH_CALIBRATE\n\nG1 Y1.0 Z0.3 F1500 ; move print head up\n\nG92 E0.0\n; intro line\nG1 X205.0 E10 F1000\nG1 Y1.6\nG1 X5.0 E15 F1000\nG92 E0.0\n; intro line\nG1 Y2.0 Z0.2 F1000\nG1 X200.0 E20.0 F1000\nG92 E0.0\n",
     "machine_unload_filament_time": "0",
     "manual_filament_change": "0",
     "max_layer_height": [
@@ -157,7 +155,6 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
-    "version": "1.6.0.0",
     "wipe": [
         "1"
     ],

@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "PolyLite PLA @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFL00",
+    "instantiation": "false",
+    "filament_cost": [
+        "25.4"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_vendor": [
+        "Polymaker"
+    ]
+}

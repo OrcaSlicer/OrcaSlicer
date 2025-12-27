@@ -1,0 +1,7 @@
+{
+    "type": "process",
+    "name": "cubicon default @Cubicon xCeler-I 0.4 nozzle",
+    "inherits": "cubicon common @Cubicon xCeler-I 0.4 nozzle",
+    "instantiation": "true",
+    "print_settings_id": "cubicon default @Cubicon xCeler-I 0.4 nozzle"
+}

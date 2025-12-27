@@ -56,21 +56,20 @@ NetworkTestDialog::NetworkTestDialog(wxWindow* parent, wxWindowID id, const wxSt
 
 wxBoxSizer* NetworkTestDialog::create_top_sizer(wxWindow* parent)
 {
-    StateColor btn_bg(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled));
 	auto sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto line_sizer = new wxBoxSizer(wxHORIZONTAL);
 	btn_start = new Button(this, _L("Start Test Multi-Thread"));
-    btn_start->SetBackgroundColor(btn_bg);
+    btn_start->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 	line_sizer->Add(btn_start, 0, wxALL, 5);
 
 	btn_start_sequence = new Button(this, _L("Start Test Single-Thread"));
-    btn_start_sequence->SetBackgroundColor(btn_bg);
+    btn_start_sequence->SetStyle(ButtonStyle::Regular, ButtonType::Window);
 
 	line_sizer->Add(btn_start_sequence, 0, wxALL, 5);
 
 	btn_download_log = new Button(this, _L("Export Log"));
-    btn_download_log->SetBackgroundColor(btn_bg);
+    btn_download_log->SetStyle(ButtonStyle::Regular, ButtonType::Window);
 	line_sizer->Add(btn_download_log, 0, wxALL, 5);
 	btn_download_log->Hide();
 
@@ -138,31 +137,30 @@ wxBoxSizer* NetworkTestDialog::create_content_sizer(wxWindow* parent)
 	grid_sizer->SetFlexibleDirection(wxBOTH);
 	grid_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-    StateColor btn_bg(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255,255,255), StateColor::Enabled));
-	btn_link = new Button(this, _L("Test OrcaSlicer(GitHub)"));
-    btn_link->SetBackgroundColor(btn_bg);
+	btn_link = new Button(this, _L("Test OrcaSlicer (GitHub)"));
+    btn_link->SetStyle(ButtonStyle::Regular, ButtonType::Window);
 	grid_sizer->Add(btn_link, 0, wxEXPAND | wxALL, 5);
 
-	text_link_title = new wxStaticText(this, wxID_ANY, _L("Test OrcaSlicer(GitHub):"), wxDefaultPosition, wxDefaultSize, 0);
+	text_link_title = new wxStaticText(this, wxID_ANY, _L("Test OrcaSlicer (GitHub):"), wxDefaultPosition, wxDefaultSize, 0);
 	text_link_title->Wrap(-1);
-	grid_sizer->Add(text_link_title, 0, wxALIGN_RIGHT | wxALL, 5);
+	grid_sizer->Add(text_link_title, 0, wxALIGN_RIGHT | wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 	text_link_val = new wxStaticText(this, wxID_ANY, _L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
 	text_link_val->Wrap(-1);
-	grid_sizer->Add(text_link_val, 0, wxALL, 5);
+	grid_sizer->Add(text_link_val, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
-	btn_bing = new Button(this, _L("Test Bing.com"));
-    btn_bing->SetBackgroundColor(btn_bg);
+	btn_bing = new Button(this, _L("Test bing.com"));
+    btn_bing->SetStyle(ButtonStyle::Regular, ButtonType::Window);
 	grid_sizer->Add(btn_bing, 0, wxEXPAND | wxALL, 5);
 
     text_bing_title = new wxStaticText(this, wxID_ANY, _L("Test bing.com:"), wxDefaultPosition, wxDefaultSize, 0);
 
 	text_bing_title->Wrap(-1);
-	grid_sizer->Add(text_bing_title, 0, wxALIGN_RIGHT | wxALL, 5);
+	grid_sizer->Add(text_bing_title, 0, wxALIGN_RIGHT | wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 	text_bing_val = new wxStaticText(this, wxID_ANY, _L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
 	text_bing_val->Wrap(-1);
-	grid_sizer->Add(text_bing_val, 0, wxALL, 5);
+	grid_sizer->Add(text_bing_val, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 	sizer->Add(grid_sizer, 1, wxEXPAND, 5);
 
 	btn_link->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
@@ -250,7 +248,7 @@ void NetworkTestDialog::start_all_job_sequence()
 		update_status(-1, "start_test_sequence");
         start_test_url(TEST_BING_JOB, "Bing", "http://www.bing.com");
         if (m_closing) return;
-		start_test_url(TEST_ORCA_JOB, "OrcaSlicer(GitHub)", "https://github.com/SoftFever/OrcaSlicer");
+		start_test_url(TEST_ORCA_JOB, "OrcaSlicer(GitHub)", "https://github.com/OrcaSlicer/OrcaSlicer");
 		if (m_closing) return;
 		update_status(-1, "end_test_sequence");
 	});
@@ -308,7 +306,7 @@ void NetworkTestDialog::start_test_github_thread()
     if (m_in_testing[TEST_ORCA_JOB])
         return;
     test_job[TEST_ORCA_JOB] = new boost::thread([this] {
-        start_test_url(TEST_ORCA_JOB, "OrcaSlicer(GitHub)", "https://github.com/SoftFever/OrcaSlicer");
+        start_test_url(TEST_ORCA_JOB, "OrcaSlicer(GitHub)", "https://github.com/OrcaSlicer/OrcaSlicer");
     });
 }
 void NetworkTestDialog::start_test_bing_thread()

@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.40mm Standard @Tiertime UP400 Pro 0.8 nozzle",
+    "inherits": "fdm_process_tiertime_0.40_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP029",
+    "instantiation": "true",
+    "description": "It has a very big layer height, and results in very apparent layer lines, low printing quality and general printing time.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.8 nozzle"
+    ]
+}

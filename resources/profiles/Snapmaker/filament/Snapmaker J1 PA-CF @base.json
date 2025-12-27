@@ -1,20 +1,20 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PA-CF @base",
-  "filament_id": "1210173120",
-  "inherits": "fdm_filament_pa",
-  "overhang_fan_speed": [
-    "55"
-  ],
-  "filament_flow_ratio": [
-    "0.96"
-  ],
-  "fan_max_speed": [
-    "55"
-  ],
-  "fan_min_speed": [
-    "29"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PA-CF @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "1210173120",
+    "instantiation": "false",
+    "overhang_fan_speed": [
+        "55"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "fan_max_speed": [
+        "55"
+    ],
+    "fan_min_speed": [
+        "29"
+    ]
 }

@@ -1,29 +1,29 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Orca Arena X1 Carbon 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_bbl_3dp_001_common",
-  "printer_model": "Orca Arena X1 Carbon",
-  "default_filament_profile": [
-      "Arena PLA Basic @Arena X1C"
-  ],
-  "default_print_profile": "0.20mm Standard @Arena X1C",
-  "nozzle_diameter": [
-      "0.4"
-  ],
-  "extruder_offset": [
-      "0x0"
-  ],
-  "machine_max_speed_z": [
-    "20",
-    "20"
-  ],
-  "scan_first_layer": "1",
-  "machine_load_filament_time": "29",
-  "machine_unload_filament_time": "28",
-  "nozzle_type": "hardened_steel",
-  "nozzle_hrc": "55",
-  "auxiliary_fan": "0"
+    "type": "machine",
+    "name": "Orca Arena X1 Carbon 0.4 nozzle",
+    "inherits": "fdm_bbl_3dp_001_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Orca Arena X1 Carbon",
+    "default_filament_profile": [
+        "Arena PLA Basic @Arena X1C"
+    ],
+    "default_print_profile": "0.20mm Standard @Arena X1C",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ],
+    "scan_first_layer": "1",
+    "machine_load_filament_time": "29",
+    "machine_unload_filament_time": "28",
+    "nozzle_type": "hardened_steel",
+    "nozzle_hrc": "55",
+    "auxiliary_fan": "0"
 }

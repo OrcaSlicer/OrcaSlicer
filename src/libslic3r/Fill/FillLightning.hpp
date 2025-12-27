@@ -20,6 +20,7 @@ class Filler : public Slic3r::Fill
 {
 public:
     ~Filler() override = default;
+    bool is_self_crossing() override { return false; }
 
     Generator   *generator { nullptr };
 protected:

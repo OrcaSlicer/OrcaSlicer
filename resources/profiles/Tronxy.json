@@ -1,6 +1,6 @@
 {
     "name": "Tronxy",
-    "version": "02.02.00.04",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Tronxy configurations",
     "machine_model_list": [
@@ -37,88 +37,15 @@
         {
             "name": "0.28mm Extra Draft @Tronxy",
             "sub_path": "process/0.28mm Extra Draft @Tronxy.json"
+        },
+        {
+            "name": "fdm_process_tronxy_common",
+            "sub_path": "process/fdm_process_tronxy_common.json"
         }
     ],
-    "filament_list": [
-        {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
-            "name": "Tronxy Generic PLA",
-            "sub_path": "filament/Tronxy Generic PLA.json"
-        },
-        {
-            "name": "Tronxy Generic PLA-CF",
-            "sub_path": "filament/Tronxy Generic PLA-CF.json"
-        },
-        {
-            "name": "Tronxy Generic PETG",
-            "sub_path": "filament/Tronxy Generic PETG.json"
-        },
-        {
-            "name": "Tronxy Generic ABS",
-            "sub_path": "filament/Tronxy Generic ABS.json"
-        },
-        {
-            "name": "Tronxy Generic TPU",
-            "sub_path": "filament/Tronxy Generic TPU.json"
-        },
-        {
-            "name": "Tronxy Generic ASA",
-            "sub_path": "filament/Tronxy Generic ASA.json"
-        },
-        {
-            "name": "Tronxy Generic PC",
-            "sub_path": "filament/Tronxy Generic PC.json"
-        },
-        {
-            "name": "Tronxy Generic PVA",
-            "sub_path": "filament/Tronxy Generic PVA.json"
-        },
-        {
-            "name": "Tronxy Generic PA",
-            "sub_path": "filament/Tronxy Generic PA.json"
-        },
-        {
-            "name": "Tronxy Generic PA-CF",
-            "sub_path": "filament/Tronxy Generic PA-CF.json"
-        }
-    ],
+    "filament_list": [],
     "machine_list": [
-	    {
+        {
             "name": "fdm_machine_common",
             "sub_path": "machine/fdm_machine_common.json"
         },

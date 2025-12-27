@@ -5,14 +5,14 @@
     "from": "system",
     "setting_id": "GP_Geeetech_007",
     "instantiation": "true",
-	"elefant_foot_compensation": "0.15",
+    "elefant_foot_compensation": "0.15",
     "compatible_printers": [
-             "Geeetech A10 Pro 0.2 nozzle",
-             "Geeetech A20 0.2 nozzle",
-             "Geeetech A30 Pro 0.2 nozzle",
-             "Geeetech Mizar 0.2 nozzle",
-             "Geeetech Mizar S 0.2 nozzle",
-             "Geeetech Mizar Pro 0.2 nozzle",
-             "Geeetech Mizar Max 0.2 nozzle"
+        "Geeetech A10 Pro 0.2 nozzle",
+        "Geeetech A20 0.2 nozzle",
+        "Geeetech A30 Pro 0.2 nozzle",
+        "Geeetech Mizar 0.2 nozzle",
+        "Geeetech Mizar S 0.2 nozzle",
+        "Geeetech Mizar Pro 0.2 nozzle",
+        "Geeetech Mizar Max 0.2 nozzle"
     ]
 }

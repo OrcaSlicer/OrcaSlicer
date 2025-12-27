@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.15mm SPEED @MK4S 0.4",
+    "inherits": "process_common_mk4s",
+    "from": "system",
+    "instantiation": "true",
+    "bridge_speed": "45",
+    "compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",
+    "default_acceleration": "3000",
+    "inner_wall_acceleration": "3500",
+    "internal_solid_infill_acceleration": "3500",
+    "layer_height": "0.15",
+    "outer_wall_acceleration": "2500",
+    "support_interface_speed": "50",
+    "support_top_z_distance": "0.17",
+    "top_shell_layers": "6",
+    "top_surface_acceleration": "1500"
+}

@@ -17,10 +17,10 @@
 
 namespace Slic3r
 {
-
+    // The number of vertices in each circle.
+    static constexpr const size_t SUPPORT_TREE_CIRCLE_RESOLUTION = 25;
 namespace TreeSupport3D
 {
-
 using LayerIndex = int;
 
 enum class InterfacePreference
@@ -40,18 +40,18 @@ struct TreeSupportMeshGroupSettings {
         const PrintObjectConfig &config             = print_object.config();
         const SlicingParameters &slicing_params     = print_object.slicing_parameters();
     //    const std::vector<unsigned int>  printing_extruders = print_object.object_extruders();
-    
+
         // Support must be enabled and set to Tree style.
-        assert(config.enable_support || config.enforce_support_layers > 0);
-        assert(is_tree(config.support_type));
-    
+        //assert(config.support_material);
+        //assert(config.support_material_style == smsTree || config.support_material_style == smsOrganic);
+
         // Calculate maximum external perimeter width over all printing regions, taking into account the default layer height.
         coordf_t external_perimeter_width = 0.;
         for (size_t region_id = 0; region_id < print_object.num_printing_regions(); ++ region_id) {
             const PrintRegion &region = print_object.printing_region(region_id);
             external_perimeter_width = std::max<coordf_t>(external_perimeter_width, region.flow(print_object, frExternalPerimeter, config.layer_height).width());
         }
-    
+
         this->layer_height              = scaled<coord_t>(config.layer_height.value);
         this->resolution                = scaled<coord_t>(print_config.resolution.value);
         // Arache feature
@@ -69,56 +69,28 @@ struct TreeSupportMeshGroupSettings {
             0;
         this->support_material_buildplate_only = config.support_on_build_plate_only;
         this->support_xy_distance       = scaled<coord_t>(config.support_object_xy_distance.value);
+        this->support_xy_distance_1st_layer = scaled<coord_t>(config.support_object_first_layer_gap.value);
         // Separation of interfaces, it is likely smaller than support_xy_distance.
         this->support_xy_distance_overhang = std::min(this->support_xy_distance, scaled<coord_t>(0.5 * external_perimeter_width));
         this->support_top_distance      = scaled<coord_t>(slicing_params.gap_support_object);
         this->support_bottom_distance   = scaled<coord_t>(slicing_params.gap_object_support);
-    //    this->support_interface_skip_height =
-    //    this->support_infill_angles     = 
         this->support_roof_enable       = config.support_interface_top_layers.value > 0;
-        this->support_roof_layers       = this->support_roof_enable ? config.support_interface_top_layers.value : 0;
-        this->support_floor_enable      = config.support_interface_top_layers.value > 0 && config.support_interface_bottom_layers.value > 0;
-        this->support_floor_layers      = this->support_floor_enable ? config.support_interface_bottom_layers.value : 0;
-    //    this->minimum_roof_area         = 
-    //    this->support_roof_angles       = 
+        this->support_roof_layers       = config.support_interface_top_layers.value;
+        this->support_floor_enable      = config.support_interface_bottom_layers.value > 0;
+        this->support_floor_layers      = config.support_interface_bottom_layers.value;
         this->support_roof_pattern      = config.support_interface_pattern;
         this->support_pattern           = config.support_base_pattern;
         this->support_line_spacing      = scaled<coord_t>(config.support_base_pattern_spacing.value);
-    //    this->support_bottom_offset     = 
-    //    this->support_wall_count        = config.support_material_with_sheath ? 1 : 0;
-        this->support_wall_count        = 1;
+        this->support_wall_count        = std::max(1, config.tree_support_wall_count.value);  // at least 1 wall for organic tree support
         this->support_roof_line_distance = scaled<coord_t>(config.support_interface_spacing.value) + this->support_roof_line_width;
-    //    this->minimum_support_area      = 
-    //    this->minimum_bottom_area       = 
-    //    this->support_offset            = 
         this->support_tree_branch_distance = scaled<coord_t>(config.tree_support_branch_distance_organic.value);
         this->support_tree_angle          = std::clamp<double>(config.tree_support_branch_angle_organic * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
         this->support_tree_angle_slow     = std::clamp<double>(config.tree_support_angle_slow * M_PI / 180., 0., this->support_tree_angle - EPSILON);
         this->support_tree_branch_diameter = scaled<coord_t>(config.tree_support_branch_diameter_organic.value);
-        this->support_tree_branch_diameter_angle = std::clamp<double>(config.tree_support_branch_diameter_angle * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
+        this->support_tree_branch_diameter_angle  = std::clamp<double>(config.tree_support_branch_diameter_angle * M_PI / 180., 0., 0.5 * M_PI - EPSILON);
         this->support_tree_top_rate       = config.tree_support_top_rate.value; // percent
     //    this->support_tree_tip_diameter = this->support_line_width;
         this->support_tree_tip_diameter = std::clamp(scaled<coord_t>(config.tree_support_tip_diameter.value), (coord_t)0, this->support_tree_branch_diameter);
-    
-        std::cout << "\n---------------\n"
-                  << "layer_height: " << layer_height << "\nresolution: " << resolution << "\nmin_feature_size: " << min_feature_size
-                  << "\nsupport_angle: " << support_angle << "\nconfig.support_threshold_angle: " << config.support_threshold_angle << "\nsupport_line_width: " << support_line_width
-                  << "\nsupport_roof_line_width: " << support_roof_line_width << "\nsupport_bottom_enable: " << support_bottom_enable
-                  << "\nsupport_bottom_height: " << support_bottom_height
-                  << "\nsupport_material_buildplate_only: " << support_material_buildplate_only
-                  << "\nsupport_xy_distance: " << support_xy_distance << "\nsupport_xy_distance_overhang: " << support_xy_distance_overhang
-                  << "\nsupport_top_distance: " << support_top_distance << "\nsupport_bottom_distance: " << support_bottom_distance
-                  << "\nsupport_roof_enable: " << support_roof_enable << "\nsupport_roof_layers: " << support_roof_layers
-                  << "\nsupport_floor_enable: " << support_floor_enable << "\nsupport_floor_layers: " << support_floor_layers
-                  << "\nsupport_roof_pattern: " << support_roof_pattern << "\nsupport_pattern: " << support_pattern
-                  << "\nsupport_line_spacing: " << support_line_spacing << "\nsupport_wall_count: " << support_wall_count
-                  << "\nsupport_roof_line_distance: " << support_roof_line_distance
-                  << "\nsupport_tree_branch_distance: " << support_tree_branch_distance
-                  << "\nsupport_tree_angle_slow: " << support_tree_angle_slow
-                  << "\nsupport_tree_branch_diameter: " << support_tree_branch_diameter
-                  << "\nsupport_tree_branch_diameter_angle: " << support_tree_branch_diameter_angle
-                  << "\nsupport_tree_top_rate: " << support_tree_top_rate << "\nsupport_tree_tip_diameter: " << support_tree_tip_diameter
-                  << "\n---------------\n";
     }
 
 /*********************************************************************/
@@ -158,6 +130,7 @@ struct TreeSupportMeshGroupSettings {
     // Distance of the support structure from the print in the X/Y directions.
     // minimum: 0, maximum warning: 1.5 * machine_nozzle_tip_outer_diameter
     coord_t                         support_xy_distance                     { scaled<coord_t>(0.7) };
+    coord_t                         support_xy_distance_1st_layer           { scaled<coord_t>(0.7) };
     // Minimum Support X/Y Distance
     // Distance of the support structure from the overhang in the X/Y directions.
     // minimum_value: 0,  minimum warning": support_xy_distance - support_line_width * 2, maximum warning: support_xy_distance
@@ -765,6 +738,17 @@ private:
     // Mutexes, guards
     std::mutex                                          m_mutex_layer_storage;
 };
+
+enum class LineStatus
+{
+    INVALID,
+    TO_MODEL,
+    TO_MODEL_GRACIOUS,
+    TO_MODEL_GRACIOUS_SAFE,
+    TO_BP,
+    TO_BP_SAFE
+};
+
 
 } // namespace TreeSupport3D
 

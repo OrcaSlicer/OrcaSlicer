@@ -30,6 +30,9 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "impact_strength_z": [
+        "5.3"
+    ],
     "overhang_fan_speed": [
         "30"
     ],

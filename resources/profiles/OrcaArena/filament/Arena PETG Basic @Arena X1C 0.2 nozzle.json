@@ -1,14 +1,14 @@
 {
-  "type": "filament",
-  "setting_id": "GFSG00_00",
-  "name": "Arena PETG Basic @Arena X1C 0.2 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "Arena PETG Basic @base",
-  "filament_max_volumetric_speed": [
-    "1"
-  ],
-  "compatible_printers": [
-    "Orca Arena X1 Carbon 0.2 nozzle"
-  ]
+    "type": "filament",
+    "name": "Arena PETG Basic @Arena X1C 0.2 nozzle",
+    "inherits": "Arena PETG Basic @base",
+    "from": "system",
+    "setting_id": "GFSG00_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "compatible_printers": [
+        "Orca Arena X1 Carbon 0.2 nozzle"
+    ]
 }

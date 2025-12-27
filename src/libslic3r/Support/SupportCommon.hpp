@@ -12,15 +12,6 @@ namespace Slic3r {
 class PrintObject;
 class SupportLayer;
 
-// Remove bridges from support contact areas.
-// To be called if PrintObjectConfig::dont_support_bridges.
-void remove_bridges_from_contacts(
-    const PrintConfig   &print_config, 
-    const Layer         &lower_layer,
-    const LayerRegion   &layerm,
-    float                fw, 
-    Polygons            &contact_polygons);
-
 // Turn some of the base layers into base interface layers.
 // For soluble interfaces with non-soluble bases, print maximum two first interface layers with the base
 // extruder to improve adhesion of the soluble filament to the base.
@@ -49,6 +40,11 @@ SupportGeneratorLayersPtr generate_raft_base(
 	const SupportGeneratorLayersPtr &base_interface_layers,
 	const SupportGeneratorLayersPtr &base_layers,
 	SupportGeneratorLayerStorage    &layer_storage);
+
+void tree_supports_generate_paths(ExtrusionEntitiesPtr &dst, const Polygons &polygons, const Flow &flow, const SupportParameters &support_params);
+
+void fill_expolygons_with_sheath_generate_paths(
+    ExtrusionEntitiesPtr &dst, const Polygons &polygons, Fill *filler, float density, ExtrusionRole role, const Flow &flow, const SupportParameters& support_params, bool with_sheath, bool no_sort);
 
 // returns sorted layers
 SupportGeneratorLayersPtr generate_support_layers(

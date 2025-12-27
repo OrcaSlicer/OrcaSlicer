@@ -39,12 +39,6 @@ input
 	align-items: center;
 }
 
-#ItemSelectArea .SmallBtn
-{
-	margin-left:5px;
-}
-
-
 #ItemBlockArea
 {
 	flex: 1 0 236px;
@@ -60,7 +54,7 @@ input
 
 .MItem
 {
-	min-width: 220px;
+	min-width: 180px; /* ORCA Filtered items > slightly reduce min width to fit more items*/
 	height: 32px;
 }
 
@@ -110,7 +104,7 @@ input
 {
 	margin-top: 4mm;
 	display: flex;
-	justify-content:space-around;
+	justify-content:flex-end;
 }
 
 #GotoNetPluginBtn

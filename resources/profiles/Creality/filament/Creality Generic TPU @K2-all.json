@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFU99_CREALITY_00",
     "name": "Creality Generic TPU @K2-all",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Creality Generic TPU",
+    "from": "system",
+    "setting_id": "GFU99_CREALITY_00",
+    "instantiation": "true",
     "hot_plate_temp": [
         "40"
     ],
@@ -32,10 +32,17 @@
     "reduce_fan_stop_start_freq": [
         "1"
     ],
+    "filament_start_gcode": [
+        ";filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else} \nM104 S[first_layer_temperature]\n{endif}"
+    ],
     "compatible_printers": [
-		"Creality K2 Plus 0.2 nozzle",
+        "Creality K2 Plus 0.2 nozzle",
         "Creality K2 Plus 0.4 nozzle",
         "Creality K2 Plus 0.6 nozzle",
-        "Creality K2 Plus 0.8 nozzle"
+        "Creality K2 Plus 0.8 nozzle",
+        "Creality K2 Pro 0.2 nozzle",
+        "Creality K2 Pro 0.4 nozzle",
+        "Creality K2 Pro 0.6 nozzle",
+        "Creality K2 Pro 0.8 nozzle"
     ]
 }

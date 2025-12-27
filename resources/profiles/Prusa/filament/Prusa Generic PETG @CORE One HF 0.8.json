@@ -1,0 +1,42 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PETG @CORE One HF 0.8",
+    "inherits": "Prusa Generic PETG @CORE One",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusa Generic PETG @CORE One HF 0.8",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa CORE One HF 0.8 nozzle"
+    ],
+    "fan_cooling_layer_time": [
+        "35"
+    ],
+    "fan_max_speed": [
+        "65"
+    ],
+    "filament_max_volumetric_speed": [
+        "37"
+    ],
+    "filament_retract_before_wipe": [
+        "50"
+    ],
+    "filament_start_gcode": [
+        "M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.05{elsif nozzle_diameter[filament_extruder_id]==0.5}0.044{elsif nozzle_diameter[filament_extruder_id]==0.6}0.035{elsif nozzle_diameter[filament_extruder_id]==0.8}0.022{elsif nozzle_diameter[filament_extruder_id]==0.25}0.18{elsif nozzle_diameter[filament_extruder_id]==0.3}0.1{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+    ],
+    "filament_z_hop": [
+        "0.6"
+    ],
+    "nozzle_temperature": [
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245"
+    ],
+    "overhang_fan_speed": [
+        "65"
+    ],
+    "slow_down_layer_time": [
+        "20"
+    ]
+}

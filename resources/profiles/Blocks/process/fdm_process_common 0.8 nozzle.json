@@ -5,12 +5,12 @@
     "from": "system",
     "instantiation": "false",
     "compatible_printers": [
-      "BLOCKS Pro S100",
-      "BLOCKS Pro S100 0.8 nozzle",
-      "BLOCKS RD50 V2",
-      "BLOCKS RD50 V2 0.8 nozzle",
-      "BLOCKS RF50",
-      "BLOCKS RF50 0.8 nozzle"
+        "BLOCKS Pro S100",
+        "BLOCKS Pro S100 0.8 nozzle",
+        "BLOCKS RD50 V2",
+        "BLOCKS RD50 V2 0.8 nozzle",
+        "BLOCKS RF50",
+        "BLOCKS RF50 0.8 nozzle"
     ],
     "sparse_infill_line_width": "0.82",
     "outer_wall_line_width": "0.82",
@@ -30,7 +30,7 @@
     "bridge_no_support": "0",
     "elefant_foot_compensation": "0.1",
     "sparse_infill_density": "15%",
-    "sparse_infill_pattern": "grid",
+    "sparse_infill_pattern": "crosshatch",
     "infill_combination": "0",
     "infill_wall_overlap": "15%",
     "interface_shells": "0",

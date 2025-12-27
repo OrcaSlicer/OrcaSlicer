@@ -12,7 +12,7 @@
 #include "GUI_Utils.hpp"
 #include "MsgDialog.hpp"
 #include "../Utils/PrintHost.hpp"
-
+#include "libslic3r/PrintConfig.hpp"
 class wxButton;
 class wxTextCtrl;
 class wxChoice;
@@ -27,6 +27,7 @@ class PrintHostSendDialog : public GUI::MsgDialog
 {
 public:
     PrintHostSendDialog(const boost::filesystem::path &path, PrintHostPostUploadActions post_actions, const wxArrayString& groups, const wxArrayString& storage_paths, const wxArrayString& storage_names, bool switch_to_device_tab);
+    virtual ~PrintHostSendDialog() {}
     boost::filesystem::path filename() const;
     PrintHostPostUploadAction post_action() const;
     std::string group() const;
@@ -34,7 +35,10 @@ public:
     bool switch_to_device_tab() const {return m_switch_to_device_tab;}
 
     virtual void EndModal(int ret) override;
-private:
+    virtual void init();
+    virtual std::map<std::string, std::string> extendedInfo() const { return {}; }
+
+protected:
     wxTextCtrl *txt_filename;
     wxComboBox *combo_groups;
     wxComboBox* combo_storage;
@@ -43,6 +47,10 @@ private:
     wxString    m_preselected_storage;
     wxArrayString m_paths;
     bool m_switch_to_device_tab;
+
+    boost::filesystem::path m_path;
+    PrintHostPostUploadActions m_post_actions;
+    wxArrayString m_storage_names;
 };
 
 
@@ -129,6 +137,47 @@ private:
     std::vector<std::pair<std::string, std::string>> upload_names;
     void save_user_data(int);
     bool load_user_data(int, std::vector<int>&);
+};
+
+class ElegooPrintHostSendDialog : public PrintHostSendDialog
+{
+public:
+    ElegooPrintHostSendDialog(const boost::filesystem::path& path,
+                              PrintHostPostUploadActions     post_actions,
+                              const wxArrayString&           groups,
+                              const wxArrayString&           storage_paths,
+                              const wxArrayString&           storage_names,
+                              bool                           switch_to_device_tab);
+
+    virtual void EndModal(int ret) override;
+    int          timeLapse() const { return m_timeLapse; }
+    int          heatedBedLeveling() const { return m_heatedBedLeveling; }
+    BedType      bedType() const { return m_BedType; }
+
+    virtual void                               init() override;
+    virtual std::map<std::string, std::string> extendedInfo() const
+    {
+        return {{"bedType", std::to_string(static_cast<int>(m_BedType))},
+                {"timeLapse", std::to_string(m_timeLapse)},
+                {"heatedBedLeveling", std::to_string(m_heatedBedLeveling)}};
+    }
+
+private:
+    BedType appBedType() const;
+    void    refresh();
+
+    const char* CONFIG_KEY_UPLOADANDPRINT    = "elegoolink_upload_and_print";
+    const char* CONFIG_KEY_TIMELAPSE         = "elegoolink_timelapse";
+    const char* CONFIG_KEY_HEATEDBEDLEVELING = "elegoolink_heated_bed_leveling";
+    const char* CONFIG_KEY_BEDTYPE           = "elegoolink_bed_type";
+
+private:
+    wxStaticText* warning_text{nullptr};
+    wxBoxSizer*   uploadandprint_sizer{nullptr};
+
+    int     m_timeLapse;
+    int     m_heatedBedLeveling;
+    BedType m_BedType;
 };
 
 wxDECLARE_EVENT(EVT_PRINTHOST_PROGRESS, PrintHostQueueDialog::Event);

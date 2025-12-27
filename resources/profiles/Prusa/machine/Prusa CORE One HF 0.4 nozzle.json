@@ -1,0 +1,132 @@
+{
+    "type": "machine",
+    "name": "Prusa CORE One HF 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "true",
+    "before_layer_change_gcode": [
+        ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n{if layer_z > 150}\nM201 X{interpolate_table(layer_z, (0,7000), (150,7000), (200,4000), (270,2000))} Y{interpolate_table(layer_z, (0,7000), (150,7000), (200,4000), (270,2000))}\n{endif}\n"
+    ],
+    "change_filament_gcode": [
+        "M600\nG1 E0.3 F1500 ; prime after color change"
+    ],
+    "default_filament_profile": "Prusament PLA @CORE One HF 0.4",
+    "default_print_profile": "0.20mm SPEED @CORE One 0.4",
+    "deretraction_speed": "25",
+    "emit_machine_limits_to_gcode": "1",
+    "extruder_clearance_height_to_lid": "50",
+    "extruder_clearance_height_to_rod": "33",
+    "extruder_clearance_radius": "75",
+    "printer_structure": "corexy",
+    "gcode_flavor": "marlin2",
+    "host_type": "prusalink",
+    "layer_change_gcode": [
+        ";AFTER_LAYER_CHANGE\n;[layer_z]"
+    ],
+    "machine_end_gcode": [
+        "{if layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+1, max_print_height)} F720 ; move print head up{endif}\nG1 E-1 F2400 ; additional retraction\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM141 S0 ; disable chamber control\nM107 ; turn off fan\nG1 X242 Y-9 F10200 ; park\nG4 ; wait\nM572 S0 ; reset PA\nM84 X Y E ; disable motors\n; max_layer_z = [max_layer_z]"
+    ],
+    "machine_max_acceleration_e": [
+        "5000",
+        "2500"
+    ],
+    "machine_max_acceleration_extruding": [
+        "7000",
+        "2500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "2500",
+        "1200"
+    ],
+    "machine_max_acceleration_travel": [
+        "7000",
+        "2500"
+    ],
+    "machine_max_acceleration_x": [
+        "10000",
+        "2500"
+    ],
+    "machine_max_acceleration_y": [
+        "10000",
+        "2500"
+    ],
+    "machine_max_acceleration_z": [
+        "400",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_x": [
+        "10",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "10",
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "2",
+        "2"
+    ],
+    "machine_max_speed_e": [
+        "100",
+        "100"
+    ],
+    "machine_max_speed_x": [
+        "350",
+        "160"
+    ],
+    "machine_max_speed_y": [
+        "350",
+        "160"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_pause_gcode": "M601",
+    "machine_start_gcode": [
+        "; --- Printer Initialization and Checks ---\n\nM17 ; enable steppers\nM862.1 P[nozzle_diameter] A{(printer_notes=~/.*ABRASIVE_NOZZLE.*/ ? 1 : 0)} F{(printer_notes=~/.*HF_NOZZLE.*/ ? 1 : 0)} ; nozzle check\nM862.3 P \"COREONE\" ; printer model check\nM862.5 P2 ; g-code level check\nM862.6 P\"Input shaper\" ; FW feature check\nM115 U6.3.0+10073\n\n; --- Print Area and Coordinate System ---\n\nM555 X{(min(print_bed_max[0], first_layer_print_min[0] + 32) - 32)} Y{(max(0, first_layer_print_min[1]) - 4)} W{((min(print_bed_max[0], max(first_layer_print_min[0] + 32, first_layer_print_max[0])))) - ((min(print_bed_max[0], first_layer_print_min[0] + 32) - 32))} H{((first_layer_print_max[1])) - ((max(0, first_layer_print_min[1]) - 4))} ; define print area\n\nG90 ; use absolute coordinates\nM83 ; extruder in relative mode\n\n; --- Preparation ---\n\n{if chamber_temperature[initial_tool] > 35} \n; we need to preheat the chamber\nM140 S115 ; set bed temp for chamber heating\n{else} \n; just set the selected bed temp otherwise\nM140 S[first_layer_bed_temperature] ; set bed temp\n{endif}\n\nM109 R{((filament_notes[0]=~/.*HT_MBL10.*/) ? (first_layer_temperature[0] - 10) : (filament_type[0] == \"PC\" or filament_type[0] == \"PA\") ? (first_layer_temperature[0] - 25) : (filament_type[0] == \"FLEX\") ? 210 : 170)} ; wait for temp\n\nM84 E ; turn off E motor\n\nG28 ; home all axes without mesh bed leveling\n\n\n; -- Chamber Temperature Control --\n{if chamber_temperature[initial_tool] > 35} ; if we need to heat the chamber\n; min chamber temp section\nM104 T{initial_tool} S{if idle_temperature[initial_tool] == 0}100{else}{idle_temperature[initial_tool]}{endif} ; set idle temp\nG1 Z10 F720 ; set bed position\nG1 X242 Y-9 F4800 ; set print head position\nM191 S{chamber_temperature[initial_tool]} ; wait for minimal chamber temp\nM141 S0 ; set nominal chamber temp\nM107\nM140 S[first_layer_bed_temperature] ; set bed temp\n\n{else}\nM141 S{if chamber_temperature[initial_tool] == 0}20{else}{chamber_temperature[initial_tool]}{endif} ; set nominal chamber temp\n{endif}\n\n{if first_layer_bed_temperature[initial_tool]<=60}M106 S70{endif}\nG0 Z40 F10000\nM104 T{initial_tool} S{if idle_temperature[initial_tool] == 0}100{else}{idle_temperature[initial_tool]}{endif}\nM190 R[first_layer_bed_temperature] ; wait for bed temp\nM107\n\nG29 G ; absorb heat\n\nM109 R{((filament_notes[0]=~/.*HT_MBL10.*/) ? (first_layer_temperature[0] - 10) : (filament_type[0] == \"PC\" or filament_type[0] == \"PA\") ? (first_layer_temperature[0] - 25) : (filament_type[0] == \"FLEX\") ? 210 : 170)} ; wait for MBL temp\n\nM302 S160 ; lower cold extrusion limit to 160C\n\n{if filament_type[initial_tool]==\"FLEX\"}\nG1 E-4 F2400 ; retraction\n{else}\nG1 E-2 F2400 ; retraction\n{endif}\n\nM84 E ; turn off E motor\n\n; --- Mesh Bed Leveling (MBL) ---\n\nG29 P9 X208 Y-2.5 W32 H4 ; limited MBL\nM84 E ; turn off E motor\n\nG29 P1 ; invalidate MBL and probe print area\nG29 P1 X150 Y0 W100 H20 C ; probe near purge area\nG29 P3.2 ; MBL interpolation\nG29 P3.13 ; MBL extrapolation outside probe area\nG29 A ; activate MBL\n\n; --- Preparation for Purge Line ---\n\nM104 S{first_layer_temperature[initial_extruder]}\nG0 X249 Y-2.5 Z15 F4800 ; move away and ready for the purge\nM109 S{first_layer_temperature[initial_extruder]}\n\nG92 E0 ; reset extruder position\nM569 S0 E ; set spreadcycle mode for extruder\n\n; --- Extrude Purge Line ---\n\nG92 E0 ; reset extruder position\nG1 E{(filament_type[0] == \"FLEX\" ? 4 : 2)} F2400 ; deretraction after the initial one\nG0 E5 X235 Z0.2 F500 ; purge\nG0 X225 E4 F500 ; purge\nG0 X215 E4 F650 ; purge\nG0 X205 E4 F800 ; purge\nG0 X202 Z0.05 F8000 ; wipe, close to bed\nG0 X199 Z0.2 F8000 ; wipe, quickly away from bed\n\nG92 E0 ; reset extruder position\nM221 S100 ; set flow to 100%"
+    ],
+    "max_layer_height": "0.30",
+    "min_layer_height": "0.07",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "250x0",
+        "250x220",
+        "0x220"
+    ],
+    "printable_height": "270",
+    "printer_model": "Prusa CORE One HF",
+    "printer_notes": [
+        "Don't remove the following keywords! These keywords are used in the \"compatible printer\" condition of the print and filament profiles to link the particular print and filament profiles to this printer profile.\nPRINTER_MODEL_COREONE\nHF_NOZZLE\nPG\nNO_TEMPLATES"
+    ],
+    "printer_variant": "0.4",
+    "retract_before_wipe": "80",
+    "retract_length_toolchange": "0",
+    "retract_lift_above": "0",
+    "retract_lift_below": "269",
+    "retract_when_changing_layer": "1",
+    "retraction_length": "0.7",
+    "retraction_minimum_travel": "1.5",
+    "retraction_speed": "45",
+    "single_extruder_multi_material": "0",
+    "thumbnails": [
+        "16x16/QOI",
+        "313x173/QOI",
+        "440x240/QOI",
+        "480x240/QOI",
+        "640x480/PNG"
+    ],
+    "travel_slope": "1",
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "1",
+    "wipe": "0",
+    "z_hop": "0.2",
+    "z_hop_types": "Slope Lift"
+}

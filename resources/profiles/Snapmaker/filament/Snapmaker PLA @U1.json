@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Snapmaker PLA @U1",
+    "inherits": "Snapmaker PLA @U1 base",
+    "from": "system",
+    "setting_id": "11953139350",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "55"
+    ]
+}

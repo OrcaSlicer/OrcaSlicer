@@ -1,54 +1,53 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "MM hqs SF 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_machine_common",
-	"printer_model": "MM hqs SF",
-	"default_print_profile": "0.10mm Fine @MM hqs SF",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"220x0",
-		"220x210",
-		"0x210"
-	],
-	"printable_height": "300",
-	"auxiliary_fan": "0",
-	"machine_max_acceleration_travel": [
-		"3000",
-		"3000"
-	],
-	"machine_max_acceleration_z": [
-		"500",
-		"500"
-	],
-	"machine_max_speed_z": [
-		"12",
-		"12"
-	],
-	"max_layer_height": [
-		"0.3"
-	],
-	"printer_settings_id": "MM",
-	"retract_before_wipe": [
-		"70%"
-	],
-	"wipe_distance": [
+    "type": "machine",
+    "name": "MM hqs SF 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "MM hqs SF",
+    "default_print_profile": "0.10mm Fine @MM hqs SF",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x210",
+        "0x210"
+    ],
+    "printable_height": "300",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_travel": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "max_layer_height": [
+        "0.3"
+    ],
+    "printer_settings_id": "MM",
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "wipe_distance": [
         "1"
     ],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"scan_first_layer": "0",
-	"cooling_tube_length": "20",
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "scan_first_layer": "0",
+    "cooling_tube_length": "20",
     "cooling_tube_retraction": "60",
     "extruder_clearance_height_to_lid": "100",
     "extruder_clearance_height_to_rod": "32",
     "extruder_clearance_radius": "50",
-    "machine_end_gcode": "M104 S0 ;extruder heater off\nM140 S0 ;heated bed heater off (if you have it)\nG91 ;relative positioning\nG1 E-1 F300  ;retract the filament a bit before lifting the nozzle, to release some of the pressure\nG1 Z+0.5 X-20 Y-20 F9000 ;move Z up a bit and retract filament even more\nG28 X0 Y0 ;move X/Y to min endstops, so the head is out of the way\nG1 E3 F300\nG1 E-10 F9000\nM84 ;steppers off\nG90 ;absolute positioning\nM107 ; turn off fan\nPRINT_END",
     "machine_max_acceleration_e": [
         "6000"
     ],
@@ -57,7 +56,6 @@
         "120"
     ],
     "machine_pause_gcode": "M601",
-    "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nPRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single]\nG21 ;metric values\nG90 ;absolute positioning\nM82 ;set extruder to absolute mode\nM107 ;start with the fan off\nG28 ;Home\nG1 Z1 F9000 ;move the platform to 15mm\nG92 E0\nG1 F500 E10\nG0 X0 Y0\nG92 E0 ;zero the extruded length\nG1 F1000 Y100 E20\nG92 E0 ;zero the extruded length again\nG1 F9000\nM117 Printing...",
     "min_layer_height": [
         "0.05"
     ],
@@ -84,12 +82,9 @@
     "thumbnails": [
         "220x220"
     ],
-
-
     "deretraction_speed": [
         "30"
     ],
-    "is_custom_defined": "0",
     "machine_max_acceleration_extruding": [
         "5000",
         "1500"
@@ -97,14 +92,6 @@
     "machine_max_acceleration_retracting": [
         "5000",
         "1500"
-    ],
-    "machine_max_acceleration_x": [
-        "20000",
-        "3000"
-    ],
-    "machine_max_acceleration_y": [
-        "20000",
-        "3000"
     ],
     "machine_max_jerk_z": [
         "2",
@@ -127,11 +114,21 @@
     "z_hop": [
         "0.4"
     ],
-    "z_hop_types": [
-        "Spiral Lift"
+    "default_filament_profile": [
+        "Generic PLA @System"
     ],
-	"default_filament_profile": [
-		"MM Generic PLA"
-	],
-    "version": "2.0.0.0"
+    "gcode_flavor": "marlin2",
+    "machine_end_gcode": "M104 S0 ;extruder heater off\nM140 S0 ;heated bed heater off (if you have it)\nG91 ;relative positioning\nM83\nG1 E-1 F1200  ;retract the filament a bit before lifting the nozzle, to release some of the pressure\nG1 Z+1 F300 \nG90 ;absolute positioning\nG1 X100 Y0 F6000\nG1 E-4 F1200\nM84 ;steppers off\nM107 ; turn off fan\nPRINT_END",
+    "machine_max_acceleration_x": [
+        "10000",
+        "3000"
+    ],
+    "machine_max_acceleration_y": [
+        "10000",
+        "3000"
+    ],
+    "machine_start_gcode": "G0 Z3 F300\nM190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nPRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single]\nG21 ;metric values\nG90 ;absolute positioning\nM82 ;set extruder to absolute mode\nM107 ;start with the fan off\nG28 ;Home\n ;G29\nG0 Z5 F300\nG1 X0 Y100 F6000\nG92 E0\nG0 Z0.5 F300\nG1 F1000 Y0 E15\nG1 F1000 X100 E25\nG92 E0 ;zero the extruded length again\nG1 F9000\nM117 Printing...",
+    "z_hop_types": [
+        "Slope Lift"
+    ]
 }

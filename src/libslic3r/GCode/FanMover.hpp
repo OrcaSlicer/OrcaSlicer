@@ -65,7 +65,9 @@ public:
         : regex_fan_speed("S[0-9]+"), 
         nb_seconds_delay(nb_seconds_delay>0 ? std::max(0.01f,nb_seconds_delay) : 0),
         with_D_option(with_D_option)
-        , relative_e(relative_e), only_overhangs(only_overhangs), kickstart(kickstart), m_writer(writer){}
+        , relative_e(relative_e), only_overhangs(only_overhangs), kickstart(kickstart), m_writer(writer){
+        m_parser.apply_config(writer.config);
+    }
 
     // Adds the gcode contained in the given string to the analysis and returns it after removing the workcodes
     const std::string& process_gcode(const std::string& gcode, bool flush);

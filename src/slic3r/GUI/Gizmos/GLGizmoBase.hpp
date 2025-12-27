@@ -32,6 +32,7 @@ class ImGuiWrapper;
 class GLCanvas3D;
 enum class CommonGizmosDataID;
 class CommonGizmosDataPool;
+class Selection;
 
 class GLGizmoBase
 {
@@ -151,7 +152,7 @@ protected:
 
     bool render_combo(const std::string &label, const std::vector<std::string> &lines,
         int &selection_idx, float label_width, float item_width);
-
+    void render_cross_mark(const Vec3f& target,bool is_single =false);
 public:
     GLGizmoBase(GLCanvas3D& parent,
                 const std::string& icon_filename,

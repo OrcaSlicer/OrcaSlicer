@@ -8,5 +8,5 @@
     "bed_model": "ThePositron_bed_model.stl",
     "bed_texture": "ThePositron_bed_texture.svg",
     "hotend_model": "",
-    "default_materials": "Positron Generic ABS;Positron Generic PLA;Positron Generic PLA-CF;Positron Generic PETG;Positron Generic TPU;Positron Generic ASA;Positron Generic PC;Positron Generic PVA;Positron Generic PA;Positron Generic PA-CF"
+    "default_materials": "Generic PLA @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

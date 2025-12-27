@@ -1,0 +1,30 @@
+{
+    "type": "process",
+    "setting_id": "GP026",
+    "name": "0.12mm Fine @Tiertime UP600 HS",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_process_tiertime_HS_common",
+    "layer_height": "0.12",
+    "elefant_foot_compensation": "0.15",
+    "bottom_shell_layers": "5",
+    "top_shell_layers": "8",
+    "top_shell_thickness": "1.0",
+    "bridge_flow": "1",
+    "initial_layer_speed": "50",
+    "initial_layer_infill_speed": "105",
+    "outer_wall_speed": "150",
+    "inner_wall_speed": "200",
+    "sparse_infill_speed": "200",
+    "internal_solid_infill_speed": "200",
+    "gap_infill_speed": "150",
+    "overhang_1_4_speed": "60",
+    "overhang_2_4_speed": "30",
+    "overhang_3_4_speed": "10",
+    "support_threshold_angle": "25",
+    "support_top_z_distance": "0.12",
+    "support_bottom_z_distance": "0.12",
+    "compatible_printers": [
+        "Tiertime UP600 HS 0.4 nozzle"
+    ]
+} 

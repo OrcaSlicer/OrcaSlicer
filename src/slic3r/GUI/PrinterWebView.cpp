@@ -77,10 +77,24 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
         return;
     m_apikey = apikey;
     m_apikey_sent = false;
-    
-    m_browser->LoadURL(url);
+
+    if (this->IsShown()) {
+        m_url_deferred.clear();
+        m_browser->LoadURL(url);
+    } else {
+        m_url_deferred = url;
+    }
     //m_browser->SetFocus();
     UpdateState();
+}
+
+bool PrinterWebView::Show(bool show)
+{
+    if (show && !m_url_deferred.empty()) {
+        m_browser->LoadURL(m_url_deferred);
+        m_url_deferred.clear();
+    }
+    return wxPanel::Show(show);
 }
 
 void PrinterWebView::reload()

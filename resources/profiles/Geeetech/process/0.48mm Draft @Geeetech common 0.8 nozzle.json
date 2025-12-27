@@ -6,12 +6,12 @@
     "setting_id": "GP_Geeetech_036",
     "instantiation": "true",
     "compatible_printers": [
-             "Geeetech A10 Pro 0.8 nozzle",
-             "Geeetech A20 0.8 nozzle",
-             "Geeetech A30 Pro 0.8 nozzle",
-             "Geeetech Mizar 0.8 nozzle",
-             "Geeetech Mizar S 0.8 nozzle",
-             "Geeetech Mizar Pro 0.8 nozzle",
-             "Geeetech Mizar Max 0.8 nozzle"
+        "Geeetech A10 Pro 0.8 nozzle",
+        "Geeetech A20 0.8 nozzle",
+        "Geeetech A30 Pro 0.8 nozzle",
+        "Geeetech Mizar 0.8 nozzle",
+        "Geeetech Mizar S 0.8 nozzle",
+        "Geeetech Mizar Pro 0.8 nozzle",
+        "Geeetech Mizar Max 0.8 nozzle"
     ]
 }

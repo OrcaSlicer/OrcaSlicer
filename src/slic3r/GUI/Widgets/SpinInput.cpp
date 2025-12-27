@@ -5,7 +5,7 @@
 
 #include <wx/dcgraph.h>
 
-BEGIN_EVENT_TABLE(SpinInput, wxPanel)
+BEGIN_EVENT_TABLE(SpinInput, StaticBox)
 
 EVT_KEY_DOWN(SpinInput::keyPressed)
 //EVT_MOUSEWHEEL(SpinInput::mouseWheelMoved)
@@ -38,10 +38,10 @@ SpinInput::SpinInput(wxWindow *parent,
                      const wxPoint &pos,
                      const wxSize & size,
                      long           style,
-                     int min, int max, int initial)
+                     int min, int max, int initial, const int& step)
     : SpinInput()
 {
-    Create(parent, text, label, pos, size, style, min, max, initial);
+    Create(parent, text, label, pos, size, style, min, max, initial, step);
 }
 
 void SpinInput::Create(wxWindow *parent, 
@@ -50,7 +50,7 @@ void SpinInput::Create(wxWindow *parent,
                      const wxPoint &pos,
                      const wxSize & size,
                      long           style,
-                     int min, int max, int initial)
+                     int min, int max, int initial, int step)
 {
     StaticBox::Create(parent, wxID_ANY, pos, size);
     SetFont(Label::Body_12);
@@ -76,6 +76,7 @@ void SpinInput::Create(wxWindow *parent,
     if (text.ToLong(&initialFromText)) initial = initialFromText;
     SetRange(min, max);
     SetValue(initial);
+    SetStep(step);
     messureSize();
 }
 
@@ -229,7 +230,7 @@ Button *SpinInput::createButton(bool inc)
     btn->DisableFocusFromKeyboard();
     btn->Bind(wxEVT_LEFT_DOWN, [=](auto &e) {
         delta = inc ? 1 : -1;
-        SetValue(val + delta);
+        SetValue(val + delta * step);
         text_ctrl->SetFocus();
         if (!btn->HasCapture())
             btn->CaptureMouse();
@@ -241,7 +242,7 @@ Button *SpinInput::createButton(bool inc)
         delta = inc ? 1 : -1;
         if (!btn->HasCapture())
             btn->CaptureMouse();
-        SetValue(val + delta);
+        SetValue(val + delta * step);
         sendSpinEvent();
     });
     btn->Bind(wxEVT_LEFT_UP, [=](auto &e) {
@@ -259,7 +260,7 @@ void SpinInput::onTimer(wxTimerEvent &evnet) {
         delta /= 2;
         return;
     }
-    SetValue(val + delta);
+    SetValue(val + delta * step);
     sendSpinEvent();
 }
 
@@ -293,7 +294,7 @@ void SpinInput::onTextEnter(wxCommandEvent &event)
 void SpinInput::mouseWheelMoved(wxMouseEvent &event)
 {
     auto delta = event.GetWheelRotation() < 0 ? 1 : -1;
-    SetValue(val + delta);
+    SetValue(val + delta * step);
     sendSpinEvent();
     text_ctrl->SetFocus();
 }
@@ -305,10 +306,10 @@ void SpinInput::keyPressed(wxKeyEvent &event)
     case WXK_DOWN:
         long value;
         if (!text_ctrl->GetValue().ToLong(&value)) { value = val; }
-        if (event.GetKeyCode() == WXK_DOWN && value > min) {
-            --value;
-        } else if (event.GetKeyCode() == WXK_UP && value + 1 < max) {
-            ++value;
+        if        (event.GetKeyCode() == WXK_DOWN && value - step >= min) {
+            value = value - step;
+        } else if (event.GetKeyCode() == WXK_UP   && value + step <= max) {
+            value = value + step;
         }
         if (value != val) {
             SetValue(value);

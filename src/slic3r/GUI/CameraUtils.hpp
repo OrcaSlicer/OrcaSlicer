@@ -25,7 +25,7 @@ public:
     /// <returns>projected points by camera into coordinate of camera.
     /// x(from left to right), y(from top to bottom)</returns>
 	static Points project(const Camera& camera, const std::vector<Vec3d> &points);
-	static Point project(const Camera& camera, const Vec3d &point);
+	static Slic3r::Point project(const Camera& camera, const Vec3d &point);
 
 	/// <summary>
 	/// Create hull around GLVolume in 2d space of camera

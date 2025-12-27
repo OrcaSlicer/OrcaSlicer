@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=7200" />
 <title>引导_P1</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />		
 <link rel="stylesheet" type="text/css" href="5.css" />
@@ -31,14 +32,14 @@
     </div>
 	
 	
-	
-	<div id="CheckArea"><input id="InstallCheck" onClick="SendInstallPluginCheck()" type="checkbox"><a tid="t69" class="trans TextS1">Install Bambu Network Plug-in. </a></div>
+	<!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
+	<label id="CheckArea"><input id="InstallCheck" onClick="SendInstallPluginCheck()" type="checkbox"><a tid="t69" class="trans TextS1">Install Bambu Network Plug-in. </a></label>
 	<div id="RestartText" tid="t70" class="trans" ></div>
 	
 </div>
 <div id="AcceptArea">
-	<div class="GrayBtn trans" tid="t8" id="PreBtn"  onclick="window.history.back()">Back</div>
-	<div class="NormalBtn trans" tid="t25" id="AcceptBtn"  onclick="FinishGuide()">Finish</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t8" id="PreBtn"  onclick="window.history.back()">Back</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t25" id="AcceptBtn"  onclick="FinishGuide()">Finish</div>
 </div>	
 </body>
 </html>

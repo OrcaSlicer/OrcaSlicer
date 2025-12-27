@@ -1,0 +1,13 @@
+{
+    "type": "machine",
+    "name": "E3NG v1.2S - 0.3 nozzle",
+	"printer_model": "E3NG v1.2S",
+    "inherits": "fdm_common_E3NG v1.2S",
+    "from": "system",
+    "instantiation": "true",
+    "default_print_profile": "0.15mm Standard @E3NG v1.2S",
+    "nozzle_diameter": [
+	"0.3"
+	],
+    "printer_variant": "0.3"
+}

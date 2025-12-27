@@ -27,8 +27,10 @@ public:
 
     bool selected{ false };
     float percent;
-    GLTexture image_texture;
-    GLTexture image_texture_transparent;
+    GLTexture image_stats;
+    GLTexture image_slicing;
+    GLTexture image_idle;
+    GLTexture image_failed;
     SliceState slice_state;
 
     ImTextureID texture_id { 0 };

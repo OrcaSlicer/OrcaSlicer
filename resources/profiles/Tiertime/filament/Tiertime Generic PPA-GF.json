@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Tiertime Generic PPA-GF",
+    "inherits": "fdm_filament_ppa",
+    "from": "system",
+    "filament_id": "GFN96",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_type": [
+        "PPA-GF"
+    ],
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.4 nozzle",
+        "Tiertime UP400 Pro 0.6 nozzle",
+        "Tiertime UP400 Pro 0.8 nozzle",
+        "Tiertime UP310 Pro 0.4 nozzle"
+    ]
+}

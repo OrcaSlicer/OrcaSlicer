@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Generic PPA-CF @System",
+    "inherits": "fdm_filament_ppa",
+    "from": "system",
+    "setting_id": "OGFSN97_00",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "35"
+    ],
+    "filament_max_volumetric_speed": [
+        "6.5"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "filament_type": [
+        "PPA-CF"
+    ],
+    "compatible_printers": []
+}

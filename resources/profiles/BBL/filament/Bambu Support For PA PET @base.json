@@ -21,6 +21,9 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "filament_adhesiveness_category": [
+        "703"
+    ],
     "nozzle_temperature": [
         "280"
     ],

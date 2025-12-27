@@ -1,0 +1,86 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_hips",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "filament_id": "OGFS98",
+    "instantiation": "false",
+    "cool_plate_temp": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "90"
+    ],
+    "hot_plate_temp": [
+        "90"
+    ],
+    "textured_plate_temp": [
+        "90"
+    ],
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "90"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "90"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "90"
+    ],
+    "fan_cooling_layer_time": [
+        "10"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_type": [
+        "HIPS"
+    ],
+    "filament_density": [
+        "1.06"
+    ],
+    "filament_cost": [
+        "22.99"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ]
+}

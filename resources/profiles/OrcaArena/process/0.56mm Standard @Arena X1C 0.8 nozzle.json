@@ -1,12 +1,12 @@
 {
-  "type": "process",
-  "setting_id": "GP035",
-  "name": "0.56mm Standard @Arena X1C 0.8 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_process_bbl_0.56_nozzle_0.8",
-  "compatible_printers": [
-    "Orca Arena X1 Carbon 0.8 nozzle",
-    "Orca Arena X1 0.8 nozzle"
-  ]
+    "type": "process",
+    "name": "0.56mm Standard @Arena X1C 0.8 nozzle",
+    "inherits": "fdm_process_arena_0.56_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP035",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Orca Arena X1 Carbon 0.8 nozzle",
+        "Orca Arena X1 0.8 nozzle"
+    ]
 }

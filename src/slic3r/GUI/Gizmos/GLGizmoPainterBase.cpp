@@ -75,23 +75,27 @@ GLGizmoPainterBase::ClippingPlaneDataWrapper GLGizmoPainterBase::get_clipping_pl
 
 void GLGizmoPainterBase::render_triangles(const Selection& selection) const
 {
-    auto* shader = wxGetApp().get_shader("gouraud");
-    if (! shader)
+    auto* shader = wxGetApp().get_shader("mm_gouraud");
+    if (!shader)
         return;
     shader->start_using();
-    shader->set_uniform("slope.actived", false);
-    shader->set_uniform("print_volume.type", 0);
-    shader->set_uniform("clipping_plane", this->get_clipping_plane_data().clp_dataf);
     ScopeGuard guard([shader]() { if (shader) shader->stop_using(); });
 
-    const ModelObject *mo      = m_c->selection_info()->model_object();
+    ClippingPlaneDataWrapper clp_data = this->get_clipping_plane_data();
+    shader->set_uniform("clipping_plane", clp_data.clp_dataf);
+    shader->set_uniform("z_range", clp_data.z_range);
+
+    // BBS: to improve the random white pixel issue
+    glsafe(::glDisable(GL_CULL_FACE));
+
+    const ModelObject* mo = m_c->selection_info()->model_object();
     int                mesh_id = -1;
     for (const ModelVolume* mv : mo->volumes) {
-        if (! mv->is_model_part())
+        if (!mv->is_model_part())
             continue;
 
         ++mesh_id;
-        
+
         Transform3d trafo_matrix;
         if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
             trafo_matrix = mo->instances[selection.get_instance_idx()]->get_assemble_transformation().get_matrix() * mv->get_matrix();
@@ -112,13 +116,16 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection) const
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * trafo_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
 
-        // For printers with multiple extruders, it is necessary to pass trafo_matrix
-        // to the shader input variable print_box.volume_world_matrix before
-        // rendering the painted triangles. When this matrix is not set, the
-        // wrong transformation matrix is used for "Clipping of view".
-        shader->set_uniform("volume_world_matrix", trafo_matrix);
+        float normal_z = -::cos(Geometry::deg2rad(m_highlight_by_angle_threshold_deg));
+        Matrix3f normal_matrix = static_cast<Matrix3f>(trafo_matrix.matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>());
 
+        shader->set_uniform("volume_world_matrix", trafo_matrix);
+        shader->set_uniform("volume_mirrored", is_left_handed);
+        shader->set_uniform("slope.actived", m_parent.is_using_slope());
+        shader->set_uniform("slope.volume_world_normal_matrix", normal_matrix);
+        shader->set_uniform("slope.normal_z", normal_z);
         m_triangle_selectors[mesh_id]->render(m_imgui, trafo_matrix);
+
         if (is_left_handed)
             glsafe(::glFrontFace(GL_CCW));
     }
@@ -1061,6 +1068,7 @@ void GLGizmoPainterBase::on_set_state()
         return;
 
     if (m_state == On && m_old_state != On) { // the gizmo was just turned on
+        m_parent.enable_picking(false);
         on_opening();
 
         const Selection& selection = m_parent.get_selection();
@@ -1072,6 +1080,7 @@ void GLGizmoPainterBase::on_set_state()
         //camera.look_at(position, rotate_target, Vec3d::UnitZ());
     }
     if (m_state == Off && m_old_state != Off) { // the gizmo was just turned Off
+        m_parent.enable_picking(true);
         // we are actually shutting down
         on_shutdown();
         m_old_mo_id = -1;

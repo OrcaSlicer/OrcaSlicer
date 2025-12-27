@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:  
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -24,7 +24,7 @@ jobs:
 
       - name: Update translation catalog
         run: |
-          ./run_gettext.sh --full
+          ./scripts/run_gettext.sh --full
           git add localization/i18n/*
 
       - name: Commit translation catalog updates

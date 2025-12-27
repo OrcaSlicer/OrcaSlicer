@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "WipeTower.hpp"
 namespace Slic3r
 {
@@ -85,7 +86,8 @@ public:
 		while (!m_plan.empty() && m_layer_info->z < print_z - WT_EPSILON && m_layer_info+1 != m_plan.end())
 			++m_layer_info;
 
-		m_current_shape = (! this->is_first_layer() && m_current_shape == SHAPE_NORMAL) ? SHAPE_REVERSED : SHAPE_NORMAL;
+		//m_current_shape = (! this->is_first_layer() && m_current_shape == SHAPE_NORMAL) ? SHAPE_REVERSED : SHAPE_NORMAL;
+        m_current_shape = SHAPE_NORMAL;
 		if (this->is_first_layer()) {
             m_num_layer_changes = 0;
             m_num_tool_changes 	= 0;
@@ -156,6 +158,8 @@ public:
 		bool			    multitool_ramming;
 		float               multitool_ramming_time = 0.f;
 		float               filament_minimal_purge_on_wipe_tower = 0.f;
+        float               retract_length;
+        float               retract_speed;
     };
 
 private:
@@ -195,6 +199,14 @@ private:
 	float  m_perimeter_speed    = 0.f;
     float  m_first_layer_speed  = 0.f;
     size_t m_first_layer_idx    = size_t(-1);
+
+	int m_wall_type;
+    bool   m_used_fillet                  = true;
+    float  m_rib_width                    = 10;
+    float  m_extra_rib_length             = 0;
+    float  m_rib_length                   = 0;
+
+    bool   m_enable_arc_fitting           = false;
 
 	// G-code generator parameters.
     float           m_cooling_tube_retraction   = 0.f;
@@ -315,6 +327,24 @@ private:
 		WipeTowerWriter2 &writer,
 		const WipeTower::box_coordinates  &cleaning_box,
 		float wipe_volume);
+
+
+    Polygon generate_support_rib_wall(WipeTowerWriter2&                 writer,
+                                      const WipeTower::box_coordinates& wt_box,
+                                      double                 feedrate,
+                                      bool                   first_layer,
+                                      bool                   rib_wall,
+                                      bool                   extrude_perimeter,
+                                      bool                   skip_points);
+
+    Polygon generate_support_cone_wall(
+        WipeTowerWriter2& writer, 
+		const WipeTower::box_coordinates& wt_box, 
+		double feedrate, 
+		bool infill_cone, 
+		float spacing);
+
+    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
 };
 
 

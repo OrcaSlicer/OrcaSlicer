@@ -1,0 +1,21 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard @WonderMaker ZR Ultra 0.2 nozzle",
+    "inherits": "fdm_process_wm_0.10_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP014",
+    "instantiation": "true",
+    "description": "It has a small layer height, and results in almost negligible layer lines and high printing quality. It is suitable for most general printing cases.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "ooze_prevention": "1",
+    "preheat_time": "30",
+    "standby_temperature_delta": "-80",
+    "prime_tower_width": "24",
+    "prime_volume": "15",
+    "compatible_printers": [
+        "WonderMaker ZR Ultra 0.2 nozzle",
+        "WonderMaker ZR Ultra S 0.2 nozzle"
+    ]
+}

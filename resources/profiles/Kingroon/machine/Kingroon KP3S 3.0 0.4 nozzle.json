@@ -1,96 +1,98 @@
 {
-  "setting_id": "GM003",
-  "name": "Kingroon KP3S 3.0 0.4 nozzle",
-  "instantiation": "true",
-  "inherits": "fdm_machine_common",
-  "printer_model": "Kingroon KP3S 3.0",
-  "default_print_profile": "0.30mm Standard @Kingroon KP3S 3.0",
-  "machine_end_gcode": "G1 E-1.0 F2100 ; retract\nG92 E0.0\nG1{if max_layer_z < max_print_height} Z{z_offset+min(max_layer_z+30, max_print_height)}{endif} E-34.0 F720 ; move print head up & retract filament\nG4 ; wait\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y105 F3000 ; park print head\nM84 ; disable motors",
-  "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\nG28 ; home all\nG1 Y1.0 Z0.3 F1000 ; move print head up\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nG92 E0.0\n; initial load\n M117 Purge extruder\n G1 X2 Y20 Z0.3 F5000.0 ; move to start-line position\n G1 X2 Y175.0 Z0.3 F1500.0 E15 ; draw 1st line\n G1 X2 Y175.0 Z0.4 F5000.0 ; move to side a little\n G1 X2 Y20 Z0.4 F1500.0 E30 ; draw 2nd line\n G92 E0 ; reset extruder\n G1 Z1.0 F3000 ; move z up little to prevent scratching of surface",
-  "type": "machine",
-  "nozzle_diameter": ["0.4"],
-  "cooling_tube_length": "0",
-  "cooling_tube_retraction": "0",
-  "enable_filament_ramming": "0",
-  "extra_loading_move": "0",
-  "fan_speedup_overhangs": "0",
-  "fan_speedup_time": "1",
-  "from": "system",
-  "machine_max_acceleration_e": [
-      "10000",
-      "5000"
-  ],
-  "machine_max_acceleration_extruding": [
-      "10000",
-      "9000"
-  ],
-  "machine_max_acceleration_retracting": [
-      "10000",
-      "9000"
-  ],
-  "machine_max_acceleration_x": [
-      "4000",
-      "9000"
-  ],
-  "machine_max_acceleration_y": [
-      "4000",
-      "9000"
-  ],
-  "machine_max_acceleration_z": [
-      "1100",
-      "100"
-  ],
-  "machine_max_speed_e": [
-      "50",
-      "60"
-  ],
-  "machine_max_speed_x": [
-      "300",
-      "200"
-  ],
-  "machine_max_speed_y": [
-      "300",
-      "200"
-  ],
-  "machine_max_speed_z": [
-      "30",
-      "12"
-  ],
-  "manual_filament_change": "1",
-  "min_layer_height": [
-      "0.1"
-  ],
-  "nozzle_type": "brass",
-  "parking_pos_retraction": "0",
-  "printable_area": [
-      "0x0",
-      "180x0",
-      "180x180",
-      "0x180"
-  ],
-  "printable_height": "180",
-  "purge_in_prime_tower": "0",
-  "retract_length_toolchange": [
-      "0.5"
-  ],
-  "retract_when_changing_layer": [
-      "1"
-  ],
-  "retraction_length": [
-      "0.3"
-  ],
-  "retraction_minimum_travel": [
-      "3"
-  ],
-  "retraction_speed": [
-      "30"
-  ],
-  "support_air_filtration": "0",
-  "support_chamber_temp_control": "0",
-  "wipe": [
-      "1"
-  ],
-  "z_hop": [
-      "0.2"
-  ]
+    "type": "machine",
+    "name": "Kingroon KP3S 3.0 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
+    "printer_model": "Kingroon KP3S 3.0",
+    "default_print_profile": "0.30mm Standard @Kingroon KP3S 3.0",
+    "machine_end_gcode": "G1 E-1.0 F2100 ; retract\nG92 E0.0\nG1{if max_layer_z < max_print_height} Z{z_offset+min(max_layer_z+30, max_print_height)}{endif} E-34.0 F720 ; move print head up & retract filament\nG4 ; wait\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y105 F3000 ; park print head\nM84 ; disable motors",
+    "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\nG28 ; home all\nG1 Y1.0 Z0.3 F1000 ; move print head up\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nG92 E0.0\n; initial load\n M117 Purge extruder\n G1 X2 Y20 Z0.3 F5000.0 ; move to start-line position\n G1 X2 Y175.0 Z0.3 F1500.0 E15 ; draw 1st line\n G1 X2 Y175.0 Z0.4 F5000.0 ; move to side a little\n G1 X2 Y20 Z0.4 F1500.0 E30 ; draw 2nd line\n G92 E0 ; reset extruder\n G1 Z1.0 F3000 ; move z up little to prevent scratching of surface",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "enable_filament_ramming": "0",
+    "extra_loading_move": "0",
+    "fan_speedup_overhangs": "0",
+    "fan_speedup_time": "1",
+    "machine_max_acceleration_e": [
+        "10000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "10000",
+        "9000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "10000",
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "4000",
+        "9000"
+    ],
+    "machine_max_acceleration_y": [
+        "4000",
+        "9000"
+    ],
+    "machine_max_acceleration_z": [
+        "1100",
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "50",
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "300",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "300",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "30",
+        "12"
+    ],
+    "manual_filament_change": "1",
+    "min_layer_height": [
+        "0.1"
+    ],
+    "nozzle_type": "brass",
+    "parking_pos_retraction": "0",
+    "printable_area": [
+        "0x0",
+        "180x0",
+        "180x180",
+        "0x180"
+    ],
+    "printable_height": "180",
+    "purge_in_prime_tower": "0",
+    "retract_length_toolchange": [
+        "0.5"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.3"
+    ],
+    "retraction_minimum_travel": [
+        "3"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "support_air_filtration": "0",
+    "support_chamber_temp_control": "0",
+    "wipe": [
+        "1"
+    ],
+    "z_hop": [
+        "0.2"
+    ]
 }

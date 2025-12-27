@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Elegoo PETG PRO @ECC",
+    "inherits": "Elegoo PETG PRO @base",
+    "from": "system",
+    "setting_id": "EPETGPROECC",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.024"
+    ],
+    "compatible_printers": [
+        "Elegoo Centauri Carbon 0.4 nozzle",
+        "Elegoo Centauri Carbon 0.6 nozzle",
+        "Elegoo Centauri Carbon 0.8 nozzle"
+    ]
+}

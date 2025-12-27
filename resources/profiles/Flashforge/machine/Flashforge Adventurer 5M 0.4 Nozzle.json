@@ -1,16 +1,24 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Flashforge Adventurer 5M 0.4 Nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_adventurer5m_common",
-	"printer_model": "Flashforge Adventurer 5M",
-	"default_print_profile": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
-	"nozzle_diameter": [ "0.4" ],
-	"printer_variant": "0.4",
-	"max_layer_height": [ "0.28" ],
-	"min_layer_height": [ "0.08" ],
-	"retraction_length": [ "0.8" ],
-	"nozzle_type": "stainless_steel"
+    "type": "machine",
+    "name": "Flashforge Adventurer 5M 0.4 Nozzle",
+    "inherits": "fdm_adventurer5m_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Flashforge Adventurer 5M",
+    "default_print_profile": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "nozzle_type": "stainless_steel"
 }

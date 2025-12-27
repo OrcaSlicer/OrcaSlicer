@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.16mm Optimal @Z-Bolt S800",
+    "inherits": "fdm_process_zbolt_0.16",
+    "from": "system",
+    "setting_id": "GP309",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, and results in less apparent layer lines and higher printing quality, but longer printing time.",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Z-Bolt S800 Dual 0.4 nozzle"
+    ]
+}

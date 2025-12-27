@@ -1,7 +1,7 @@
 {
     "name": "UltiMaker",
     "url": "",
-    "version": "02.02.00.04",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "UltiMaker configurations",
     "machine_model_list": [
@@ -28,36 +28,7 @@
             "sub_path": "process/0.25mm Darft @UltiMaker 2.json"
         }
     ],
-    "filament_list": [
-        {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "UltiMaker Generic ABS",
-            "sub_path": "filament/UltiMaker Generic ABS.json"
-        },
-        {
-            "name": "UltiMaker Generic PETG",
-            "sub_path": "filament/UltiMaker Generic PETG.json"
-        },
-        {
-            "name": "UltiMaker Generic PLA",
-            "sub_path": "filament/UltiMaker Generic PLA.json"
-        }
-    ],
+    "filament_list": [],
     "machine_list": [
         {
             "name": "fdm_machine_common",

@@ -1,7 +1,7 @@
 {
     "type": "process",
     "name": "fdm_process_Geeetech_HS",
-	"inherits": "fdm_process_geeetech_common",
+    "inherits": "fdm_process_geeetech_common",
     "from": "system",
     "instantiation": "false",
     "default_acceleration": "7000",

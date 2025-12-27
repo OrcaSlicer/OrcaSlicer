@@ -1,25 +1,25 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Creality Ender-5 Pro (2019) 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_creality_common",
-  "printer_model": "Creality Ender-5 Pro (2019)",
-  "default_filament_profile": [
-    "Creality Generic PLA"
-  ],
-  "default_print_profile": "0.20mm Standard @Creality Ender5Pro (2019)",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "220x0",
-    "220x220",
-    "0x220"
-  ],
-  "printable_height": "300",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0"
+    "type": "machine",
+    "name": "Creality Ender-5 Pro (2019) 0.4 nozzle",
+    "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Creality Ender-5 Pro (2019)",
+    "default_filament_profile": [
+        "Creality Generic PLA"
+    ],
+    "default_print_profile": "0.20mm Standard @Creality Ender5Pro (2019)",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "300",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0"
 }

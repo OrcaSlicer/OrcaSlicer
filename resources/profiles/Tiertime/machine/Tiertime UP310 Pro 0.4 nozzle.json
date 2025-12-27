@@ -1,0 +1,20 @@
+{
+    "type": "machine",
+    "setting_id": "GM001",
+    "name": "Tiertime UP310 Pro 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_tiertime_common",
+    "printer_model": "Tiertime UP310 Pro",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "300"
+}

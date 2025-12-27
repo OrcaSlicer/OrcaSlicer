@@ -1,214 +1,216 @@
 {
-  "type": "machine",
-	"setting_id": "GM001",
-	"from": "system",
-	"instantiation": "true",
-  "auxiliary_fan": "1",
-  "bed_custom_model": "",
-  "bed_custom_texture": "",
-  "bed_exclude_area": [
-    "0x0"
-  ],
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
-  "best_object_pos": "0.5,0.5",
-  "change_extrusion_role_gcode": "",
-  "change_filament_gcode": "; change filament start\n{if total_toolchanges == 0 and current_extruder == 1}\nM104 S0 T0\n{elsif total_toolchanges > 0 and current_extruder == 0}\nM104 S{nozzle_temperature[0]}\n{if layer_z == initial_layer_print_height}\nT1\nM109 S{nozzle_temperature_initial_layer[1]} T1\n{else}\nT1\nM109 S{nozzle_temperature[1]} T1\n{endif}\n{elsif total_toolchanges > 0 and current_extruder == 1}\nM104 S{nozzle_temperature[1]}\n{if layer_z == initial_layer_print_height}\nT0\nM109 S{nozzle_temperature_initial_layer[0]} T0\n{else}\nT0\nM109 S{nozzle_temperature[0]} T0\n{endif}\n{endif}\n",
-  "cooling_tube_length": "0",
-  "cooling_tube_retraction": "0",
-	"default_filament_profile": [ "Flashforge Generic PLA @G3U" ],
-  "default_print_profile": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
-  "deretraction_speed": [
-    "35"
-  ],
-  "enable_filament_ramming": "0",
-  "extra_loading_move": "0",
-  "extruder_clearance_height_to_lid": "150",
-  "extruder_clearance_height_to_rod": "50",
-  "extruder_clearance_radius": "57",
-  "extruder_colour": [
-    "#FCE94F"
-  ],
-  "extruder_offset": [
-    "0x0"
-  ],
-  "fan_kickstart": "0",
-  "fan_speedup_overhangs": "1",
-  "fan_speedup_time": "0",
-  "gcode_flavor": "marlin",
-  "high_current_on_filament_swap": "0",
-  "host_type": "octoprint",
-  "inherits": "fdm_guider3_common",
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F30000\nM104 S0 T0\nM104 S0 T1",
-  "machine_load_filament_time": "0",
-  "machine_max_acceleration_e": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_extruding": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_retracting": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_travel": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_x": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_y": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_z": [
-    "500",
-    "500"
-  ],
-  "machine_max_jerk_e": [
-    "2.5",
-    "2.5"
-  ],
-  "machine_max_jerk_x": [
-    "9",
-    "9"
-  ],
-  "machine_max_jerk_y": [
-    "9",
-    "9"
-  ],
-  "machine_max_jerk_z": [
-    "3",
-    "3"
-  ],
-  "machine_max_speed_e": [
-    "30",
-    "30"
-  ],
-  "machine_max_speed_x": [
-    "600",
-    "600"
-  ],
-  "machine_max_speed_y": [
-    "600",
-    "600"
-  ],
-  "machine_max_speed_z": [
-    "20",
-    "20"
-  ],
-  "machine_min_extruding_rate": [
-    "0",
-    "0"
-  ],
-  "machine_min_travel_rate": [
-    "0",
-    "0"
-  ],
-  "machine_pause_gcode": "M25",
-  "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\n{if total_toolchanges < 1}\nM109 S[nozzle_temperature_initial_layer] T[initial_extruder]\nT[initial_extruder]\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\n{else}\nM109 S{nozzle_temperature_initial_layer[0] - 30} T0\nM109 S{nozzle_temperature_initial_layer[1] - 30} T1\n{if initial_extruder==0}\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[1]-30} T1\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{elsif current_extruder == 1}\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[0]-30} T0\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{endif}\n{endif}\n\n",
-  "machine_unload_filament_time": "0",
-  "manual_filament_change": "0",
-  "max_layer_height": [
-    "0.28"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "name": "Flashforge Guider 3 Ultra 0.4 Nozzle",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "nozzle_hrc": "0",
-  "nozzle_type": "stainless_steel",
-  "nozzle_volume": "0",
-  "parking_pos_retraction": "0",
-  "print_host": "",
-  "print_host_webui": "",
-  "printable_area": [
-    "-150x-165",
-    "150x-165",
-    "150x165",
-    "-150x165"
-  ],
-  "printable_height": "600",
-  "printer_model": "Flashforge Guider 3 Ultra",
-  "printer_notes": "",
-  "printer_settings_id": "Flashforge",
-  "printer_structure": "undefine",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "printhost_apikey": "",
-  "printhost_authorization_type": "key",
-  "printhost_cafile": "",
-  "printhost_password": "",
-  "printhost_port": "",
-  "printhost_ssl_ignore_revoke": "0",
-  "printhost_user": "",
-  "purge_in_prime_tower": "0",
-  "retract_before_wipe": [
-    "100%"
-  ],
-  "retract_length_toolchange": [
-    "15"
-  ],
-  "retract_lift_above": [
-    "0"
-  ],
-  "retract_lift_below": [
-    "0"
-  ],
-  "retract_lift_enforce": [
-    "All Surfaces"
-  ],
-  "retract_restart_extra": [
-    "0"
-  ],
-  "retract_restart_extra_toolchange": [
-    "-0.8"
-  ],
-  "retract_when_changing_layer": [
-    "1"
-  ],
-  "retraction_length": [
-    "0.8"
-  ],
-  "retraction_minimum_travel": [
-    "1"
-  ],
-  "retraction_speed": [
-    "35"
-  ],
-  "scan_first_layer": "0",
-  "silent_mode": "0",
-  "single_extruder_multi_material": "1",
-  "support_air_filtration": "1",
-  "support_chamber_temp_control": "1",
-  "template_custom_gcode": "",
-  "thumbnails": [
-    "140x110"
-  ],
-  "thumbnails_format": "PNG",
-  "time_cost": "0",
-  "time_lapse_gcode": "",
-  "upward_compatible_machine": [],
-  "use_firmware_retraction": "0",
-  "use_relative_e_distances": "1",
-  "wipe": [
-    "1"
-  ],
-  "wipe_distance": [
-    "2"
-  ],
-  "z_hop": [
-    "0.4"
-  ],
-  "z_hop_types": [
-    "Normal Lift"
-  ],
-  "z_offset": "0"
+    "type": "machine",
+    "name": "Flashforge Guider 3 Ultra 0.4 Nozzle",
+    "inherits": "fdm_guider3_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "auxiliary_fan": "1",
+    "bed_custom_model": "",
+    "bed_custom_texture": "",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
+    "best_object_pos": "0.5,0.5",
+    "change_extrusion_role_gcode": "",
+    "change_filament_gcode": "; change filament start\n{if total_toolchanges == 0 and current_extruder == 1}\nM104 S0 T0\n{elsif total_toolchanges > 0 and current_extruder == 0}\nM104 S{nozzle_temperature[0]}\n{if layer_z == initial_layer_print_height}\nT1\nM109 S{nozzle_temperature_initial_layer[1]} T1\n{else}\nT1\nM109 S{nozzle_temperature[1]} T1\n{endif}\n{elsif total_toolchanges > 0 and current_extruder == 1}\nM104 S{nozzle_temperature[1]}\n{if layer_z == initial_layer_print_height}\nT0\nM109 S{nozzle_temperature_initial_layer[0]} T0\n{else}\nT0\nM109 S{nozzle_temperature[0]} T0\n{endif}\n{endif}\n",
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "default_filament_profile": [
+        "Flashforge Generic PLA @G3U"
+    ],
+    "default_print_profile": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
+    "deretraction_speed": [
+        "35"
+    ],
+    "enable_filament_ramming": "0",
+    "extra_loading_move": "0",
+    "extruder_clearance_height_to_lid": "150",
+    "extruder_clearance_height_to_rod": "50",
+    "extruder_clearance_radius": "57",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "1",
+    "fan_speedup_time": "0",
+    "gcode_flavor": "klipper",
+    "high_current_on_filament_swap": "0",
+    "host_type": "octoprint",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F30000\nM104 S0 T0\nM104 S0 T1",
+    "machine_load_filament_time": "0",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "3"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_y": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "machine_pause_gcode": "M25",
+    "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\n{if total_toolchanges < 1}\nM109 S[nozzle_temperature_initial_layer] T[initial_extruder]\nT[initial_extruder]\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\n{else}\nM109 S{nozzle_temperature_initial_layer[0] - 30} T0\nM109 S{nozzle_temperature_initial_layer[1] - 30} T1\n{if initial_extruder==0}\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[1]-30} T1\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{elsif current_extruder == 1}\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[0]-30} T0\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{endif}\n{endif}\n\n",
+    "machine_unload_filament_time": "0",
+    "manual_filament_change": "0",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_hrc": "0",
+    "nozzle_type": "stainless_steel",
+    "nozzle_volume": "0",
+    "parking_pos_retraction": "0",
+    "print_host": "",
+    "print_host_webui": "",
+    "printable_area": [
+        "-150x-165",
+        "150x-165",
+        "150x165",
+        "-150x165"
+    ],
+    "printable_height": "600",
+    "printer_model": "Flashforge Guider 3 Ultra",
+    "printer_notes": "",
+    "printer_settings_id": "Flashforge",
+    "printer_structure": "undefine",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "printhost_apikey": "",
+    "printhost_authorization_type": "key",
+    "printhost_cafile": "",
+    "printhost_password": "",
+    "printhost_port": "",
+    "printhost_ssl_ignore_revoke": "0",
+    "printhost_user": "",
+    "purge_in_prime_tower": "0",
+    "retract_before_wipe": [
+        "100%"
+    ],
+    "retract_length_toolchange": [
+        "15"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "-0.8"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_speed": [
+        "35"
+    ],
+    "scan_first_layer": "0",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "support_air_filtration": "1",
+    "support_chamber_temp_control": "1",
+    "template_custom_gcode": "",
+    "thumbnails": [
+        "140x110"
+    ],
+    "thumbnails_format": "PNG",
+    "time_cost": "0",
+    "time_lapse_gcode": "",
+    "upward_compatible_machine": [],
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "1",
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ],
+    "z_offset": "0"
 }

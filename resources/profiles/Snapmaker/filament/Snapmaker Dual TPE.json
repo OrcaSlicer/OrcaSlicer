@@ -1,64 +1,64 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker Dual TPE",
-  "setting_id": "2704030359",
-  "inherits": "Snapmaker Dual TPU @base",
-  "compatible_printers": [
-    "Snapmaker A250 Dual (0.4 nozzle)",
-    "Snapmaker A250 Dual (0.6 nozzle)",
-    "Snapmaker A250 Dual (0.8 nozzle)",
-    "Snapmaker A250 Dual BKit (0.4 nozzle)",
-    "Snapmaker A250 Dual BKit (0.6 nozzle)",
-    "Snapmaker A250 Dual BKit (0.8 nozzle)",
-    "Snapmaker A250 Dual QS+B Kit (0.4 nozzle)",
-    "Snapmaker A250 Dual QS+B Kit (0.6 nozzle)",
-    "Snapmaker A250 Dual QS+B Kit (0.8 nozzle)",
-    "Snapmaker A250 Dual QSKit (0.4 nozzle)",
-    "Snapmaker A250 Dual QSKit (0.6 nozzle)",
-    "Snapmaker A250 Dual QSKit (0.8 nozzle)",
-    "Snapmaker A350 Dual (0.4 nozzle)",
-    "Snapmaker A350 Dual (0.6 nozzle)",
-    "Snapmaker A350 Dual (0.8 nozzle)",
-    "Snapmaker A350 Dual BKit (0.4 nozzle)",
-    "Snapmaker A350 Dual BKit (0.6 nozzle)",
-    "Snapmaker A350 Dual BKit (0.8 nozzle)",
-    "Snapmaker A350 Dual QS+B Kit (0.4 nozzle)",
-    "Snapmaker A350 Dual QS+B Kit (0.6 nozzle)",
-    "Snapmaker A350 Dual QS+B Kit (0.8 nozzle)",
-    "Snapmaker A350 Dual QSKit (0.4 nozzle)",
-    "Snapmaker A350 Dual QSKit (0.6 nozzle)",
-    "Snapmaker A350 Dual QSKit (0.8 nozzle)",
-    "Snapmaker Artisan (0.4 nozzle)",
-    "Snapmaker Artisan (0.6 nozzle)",
-    "Snapmaker Artisan (0.8 nozzle)"
-  ],
-  "hot_plate_temp": [
-    "45"
-  ],
-  "overhang_fan_speed": [
-    "65"
-  ],
-  "filament_flow_ratio": [
-    "1.1"
-  ],
-  "filament_density": [
-    "1.22"
-  ],
-  "filament_max_volumetric_speed": [
-    "7.2"
-  ],
-  "fan_max_speed": [
-    "65"
-  ],
-  "fan_min_speed": [
-    "65"
-  ],
-  "default_filament_colour": [
-    "#383737"
-  ],
-  "filament_notes": [
-    "eSUN eLastic TPE-83A\n"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual TPE",
+    "inherits": "Snapmaker Dual TPU @base",
+    "from": "system",
+    "setting_id": "2704030359",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 Dual (0.4 nozzle)",
+        "Snapmaker A250 Dual (0.6 nozzle)",
+        "Snapmaker A250 Dual (0.8 nozzle)",
+        "Snapmaker A250 Dual BKit (0.4 nozzle)",
+        "Snapmaker A250 Dual BKit (0.6 nozzle)",
+        "Snapmaker A250 Dual BKit (0.8 nozzle)",
+        "Snapmaker A250 Dual QS+B Kit (0.4 nozzle)",
+        "Snapmaker A250 Dual QS+B Kit (0.6 nozzle)",
+        "Snapmaker A250 Dual QS+B Kit (0.8 nozzle)",
+        "Snapmaker A250 Dual QSKit (0.4 nozzle)",
+        "Snapmaker A250 Dual QSKit (0.6 nozzle)",
+        "Snapmaker A250 Dual QSKit (0.8 nozzle)",
+        "Snapmaker A350 Dual (0.4 nozzle)",
+        "Snapmaker A350 Dual (0.6 nozzle)",
+        "Snapmaker A350 Dual (0.8 nozzle)",
+        "Snapmaker A350 Dual BKit (0.4 nozzle)",
+        "Snapmaker A350 Dual BKit (0.6 nozzle)",
+        "Snapmaker A350 Dual BKit (0.8 nozzle)",
+        "Snapmaker A350 Dual QS+B Kit (0.4 nozzle)",
+        "Snapmaker A350 Dual QS+B Kit (0.6 nozzle)",
+        "Snapmaker A350 Dual QS+B Kit (0.8 nozzle)",
+        "Snapmaker A350 Dual QSKit (0.4 nozzle)",
+        "Snapmaker A350 Dual QSKit (0.6 nozzle)",
+        "Snapmaker A350 Dual QSKit (0.8 nozzle)",
+        "Snapmaker Artisan (0.4 nozzle)",
+        "Snapmaker Artisan (0.6 nozzle)",
+        "Snapmaker Artisan (0.8 nozzle)"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "overhang_fan_speed": [
+        "65"
+    ],
+    "filament_flow_ratio": [
+        "1.1"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_max_volumetric_speed": [
+        "7.2"
+    ],
+    "fan_max_speed": [
+        "65"
+    ],
+    "fan_min_speed": [
+        "65"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "filament_notes": [
+        "eSUN eLastic TPE-83A\n"
+    ]
 }

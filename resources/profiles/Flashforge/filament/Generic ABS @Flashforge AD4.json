@@ -1,0 +1,68 @@
+{
+    "type": "filament",
+    "name": "Generic ABS @Flashforge AD4",
+    "inherits": "Flashforge Generic ABS",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1.093"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "support_material_interface_fan_speed": [
+        "80"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "chamber_temperature": [
+        "40"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material: ABS\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode\n"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "filament_density": [
+        "1.04"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "temperature_vitrification": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "105"
+    ],
+    "hot_plate_temp": [
+        "105"
+    ],
+    "compatible_printers": [
+        "Flashforge Adventurer 4 Series 0.3 Nozzle",
+        "Flashforge Adventurer 4 Series 0.4 Nozzle",
+        "Flashforge Adventurer 4 Series 0.6 Nozzle"
+    ],
+    "filament_vendor": [
+        "Generic"
+    ]
+}

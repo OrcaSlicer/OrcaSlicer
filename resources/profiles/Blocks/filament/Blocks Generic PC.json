@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "BSFI008",
-    "setting_id": "BSSI008",
     "name": "Blocks Generic PC",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pc",
+    "from": "system",
+    "setting_id": "BSSI008",
+    "filament_id": "BSFI008",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.94"
     ],

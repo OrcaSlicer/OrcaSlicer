@@ -1,14 +1,14 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 PLA Matte @0.8 nozzle",
-  "setting_id": "2291459336",
-  "inherits": "Snapmaker J1 PLA Matte @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.8 nozzle)"
-  ],
-  "slow_down_min_speed": [
-    "20"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA Matte @0.8 nozzle",
+    "inherits": "Snapmaker J1 PLA Matte @base",
+    "from": "system",
+    "setting_id": "2291459336",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.8 nozzle)"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ]
 }

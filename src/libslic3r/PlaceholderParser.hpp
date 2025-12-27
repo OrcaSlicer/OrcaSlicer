@@ -71,6 +71,9 @@ public:
     // Update timestamp, year, month, day, hour, minute, second variables at m_config.
     void update_timestamp() { update_timestamp(m_config); }
 
+    static void update_user_name(DynamicConfig &config);
+    void update_user_name() { update_user_name(m_config); }
+
 private:
 	// config has a higher priority than external_config when looking up a symbol.
     DynamicConfig 			 m_config;

@@ -5,6 +5,9 @@
 #include <memory>
 #include <Eigen/Geometry>
 
+#include <libslic3r/Polygon.hpp>
+#include <libslic3r/ExPolygon.hpp>
+
 #include <libslic3r/SLA/Pad.hpp>
 #include <libslic3r/SLA/IndexedMesh.hpp>
 #include <libslic3r/SLA/SupportPoint.hpp>
@@ -16,11 +19,6 @@ class TriangleMesh;
 class Model;
 class ModelInstance;
 class ModelObject;
-class Polygon;
-class ExPolygon;
-
-using Polygons = std::vector<Polygon>;
-using ExPolygons = std::vector<ExPolygon>;
 
 namespace sla {
 

@@ -1,10 +1,10 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
+    "type": "process",
+    "name": "0.22mm Standard @Construct 1",
     "inherits": "fdm_process_common",
-	"name": "0.22mm Standard @Construct 1",
-	"from": "system",	
-	"instantiation": "true",	
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "bridge_speed": "60",
     "default_acceleration": "4000",
     "default_jerk": "12",
@@ -23,7 +23,6 @@
     "inner_wall_speed": "300",
     "internal_solid_infill_line_width": "0.44",
     "internal_solid_infill_speed": "300",
-    "is_custom_defined": "0",
     "layer_height": "0.22",
     "only_one_wall_top": "1",
     "outer_wall_acceleration": "2800",
@@ -48,8 +47,9 @@
     "top_surface_speed": "160",
     "travel_acceleration": "6400",
     "travel_speed": "320",
-    "version": "1.8.0.0",
     "wall_loops": "2",
     "wall_sequence": "inner-outer-inner wall",
-	"compatible_printers": ["Construct 1 0.4 nozzle"]
+    "compatible_printers": [
+        "Construct 1 0.4 nozzle"
+    ]
 }

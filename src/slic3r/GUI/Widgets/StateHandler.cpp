@@ -35,7 +35,7 @@ void StateHandler::attach_child(wxWindow *child)
 
 void StateHandler::remove_child(wxWindow *child)
 {
-    children_.erase(std::remove_if(children_.begin(), children_.end(), 
+    children_.erase(std::remove_if(children_.begin(), children_.end(),
             [child](auto &c) { return c->owner_ == child; }), children_.end());
     states2_ = 0;
     for (auto & c : children_) states2_ |= c->states();
@@ -51,7 +51,7 @@ void StateHandler::update_binds()
     int diff = bind_states ^ bind_states_;
     State       states[] = {Enabled, Checked, Focused, Hovered, Pressed};
     wxEventType events[] = {EVT_ENABLE_CHANGED, wxEVT_CHECKBOX, wxEVT_SET_FOCUS, wxEVT_ENTER_WINDOW, wxEVT_LEFT_DOWN};
-    wxEventType events2[] = {{0}, {0}, wxEVT_KILL_FOCUS, wxEVT_LEAVE_WINDOW, wxEVT_LEFT_UP};
+    wxEventType events2[] = {0, 0, wxEVT_KILL_FOCUS, wxEVT_LEAVE_WINDOW, wxEVT_LEFT_UP};
     for (int i = 0; i < 5; ++i) {
         int s = states[i];
         if (diff & s) {
@@ -74,7 +74,7 @@ void StateHandler::set_state(int state, int mask)
 {
     if ((states_ & mask) == (state & mask)) return;
     int old = states_;
-    states_ = states_ & ~mask | state & mask;
+    states_ = (states_ & ~mask) | (state & mask);
     if (old != states_ && (old | states2_) != (states_ | states2_)) {
         if (parent_)
             parent_->changed(states_ | states2_);
@@ -94,7 +94,7 @@ void StateHandler::changed(wxEvent &event)
 {
     event.Skip();
     wxEventType events[] = {EVT_ENABLE_CHANGED, wxEVT_CHECKBOX, wxEVT_SET_FOCUS, wxEVT_ENTER_WINDOW, wxEVT_LEFT_DOWN};
-    wxEventType events2[] = {{0}, {0}, wxEVT_KILL_FOCUS, wxEVT_LEAVE_WINDOW, wxEVT_LEFT_UP};
+    wxEventType events2[] = {0, 0, wxEVT_KILL_FOCUS, wxEVT_LEAVE_WINDOW, wxEVT_LEFT_UP};
     int old = states_;
     // some events are from another window (ex: text_ctrl of TextInput), save state in states2_ to avoid conflicts
     for (int i = 0; i < 5; ++i) {

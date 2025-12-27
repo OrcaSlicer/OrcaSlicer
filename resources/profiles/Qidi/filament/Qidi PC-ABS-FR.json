@@ -1,11 +1,14 @@
 {
     "type": "filament",
-    "filament_id": "GFB99",
-    "setting_id": "GFSA04",
     "name": "Qidi PC-ABS-FR",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_type": [
+        "PC-ABS-FR"
+    ],
     "filament_flow_ratio": [
         "0.92"
     ],
@@ -21,23 +24,23 @@
     "overhang_fan_speed": [
         "90"
     ],
-    "fan_max_speed":[
+    "fan_max_speed": [
         "40"
     ],
-    "fan_min_speed":[
+    "fan_min_speed": [
         "10"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "hot_plate_temp" : [
-      "100"
+    "hot_plate_temp": [
+        "100"
     ],
     "slow_down_layer_time": [
-      "4"
+        "4"
     ],
-    "filament_density":[
-      "1.19"
+    "filament_density": [
+        "1.19"
     ],
     "chamber_temperature": [
         "55"
@@ -48,7 +51,7 @@
     "slow_down_min_speed": [
         "20"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.4 nozzle",
         "Qidi X-Max 0.4 nozzle",
         "Qidi X-CF Pro 0.4 nozzle",
@@ -57,14 +60,14 @@
         "Qidi X-Max 3 0.4 nozzle",
         "Qidi X-Max 0.6 nozzle",
         "Qidi X-CF Pro 0.6 nozzle",
-    "Qidi X-Smart 3 0.6 nozzle",
-    "Qidi X-Plus 3 0.6 nozzle",
-    "Qidi X-Max 3 0.6 nozzle",
-    "Qidi X-Plus 0.8 nozzle",
-    "Qidi X-Max 0.8 nozzle",
-    "Qidi X-CF Pro 0.8 nozzle",
-  "Qidi X-Smart 3 0.8 nozzle",
-  "Qidi X-Plus 3 0.8 nozzle",
-  "Qidi X-Max 3 0.8 nozzle"
-	]
+        "Qidi X-Smart 3 0.6 nozzle",
+        "Qidi X-Plus 3 0.6 nozzle",
+        "Qidi X-Max 3 0.6 nozzle",
+        "Qidi X-Plus 0.8 nozzle",
+        "Qidi X-Max 0.8 nozzle",
+        "Qidi X-CF Pro 0.8 nozzle",
+        "Qidi X-Smart 3 0.8 nozzle",
+        "Qidi X-Plus 3 0.8 nozzle",
+        "Qidi X-Max 3 0.8 nozzle"
+    ]
 }

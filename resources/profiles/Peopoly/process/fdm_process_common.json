@@ -11,7 +11,7 @@
     "print_sequence": "by layer",
     "default_acceleration": "10000",
     "bridge_no_support": "0",
-    "only_one_wall_top":"0",
+    "only_one_wall_top": "0",
     "elefant_foot_compensation": "0.1",
     "outer_wall_line_width": "0.42",
     "outer_wall_speed": "120",

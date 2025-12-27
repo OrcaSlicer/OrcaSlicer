@@ -8,5 +8,5 @@
     "bed_model": "raise3d_pro3plus_buildplate_model.stl",
     "bed_texture": "raise3d_pro3plus_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Raise3D Generic ASA;Raise3D Generic PETG;Raise3D Generic PLA;Raise3D Generic PVA;Raise3D Generic TPU"
+    "default_materials": "Generic ASA @System;Generic PETG @System;Generic PLA @System;Generic PVA @System;Generic TPU @System"
 }

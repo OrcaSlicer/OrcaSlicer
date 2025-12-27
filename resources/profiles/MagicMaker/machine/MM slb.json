@@ -8,5 +8,5 @@
     "bed_model": "125_buildplate_model.stl",
     "bed_texture": "MM_buildplate_texture.png",
     "hotend_model": "MM_hotend.stl",
-	"default_materials": "MM Generic PLA;MM Generic PETG;MM Generic ABS;MM Generic TPU"
+    "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System;Generic TPU @System"
 }

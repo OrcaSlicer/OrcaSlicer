@@ -1,25 +1,25 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker Dual PETG @0.8 nozzle",
-  "setting_id": "1060879577",
-  "inherits": "Snapmaker Dual PETG @base",
-  "compatible_printers": [
-    "Snapmaker A250 Dual (0.8 nozzle)",
-    "Snapmaker A250 Dual BKit (0.8 nozzle)",
-    "Snapmaker A250 Dual QS+B Kit (0.8 nozzle)",
-    "Snapmaker A250 Dual QSKit (0.8 nozzle)",
-    "Snapmaker A350 Dual (0.8 nozzle)",
-    "Snapmaker A350 Dual BKit (0.8 nozzle)",
-    "Snapmaker A350 Dual QS+B Kit (0.8 nozzle)",
-    "Snapmaker A350 Dual QSKit (0.8 nozzle)",
-    "Snapmaker Artisan (0.8 nozzle)"
-  ],
-  "fan_max_speed": [
-    "25"
-  ],
-  "fan_min_speed": [
-    "10"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual PETG @0.8 nozzle",
+    "inherits": "Snapmaker Dual PETG @base",
+    "from": "system",
+    "setting_id": "1060879577",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 Dual (0.8 nozzle)",
+        "Snapmaker A250 Dual BKit (0.8 nozzle)",
+        "Snapmaker A250 Dual QS+B Kit (0.8 nozzle)",
+        "Snapmaker A250 Dual QSKit (0.8 nozzle)",
+        "Snapmaker A350 Dual (0.8 nozzle)",
+        "Snapmaker A350 Dual BKit (0.8 nozzle)",
+        "Snapmaker A350 Dual QS+B Kit (0.8 nozzle)",
+        "Snapmaker A350 Dual QSKit (0.8 nozzle)",
+        "Snapmaker Artisan (0.8 nozzle)"
+    ],
+    "fan_max_speed": [
+        "25"
+    ],
+    "fan_min_speed": [
+        "10"
+    ]
 }

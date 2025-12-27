@@ -22,7 +22,6 @@ https://github.com/nigels-com/glew
 		* [Install build tools](#install-build-tools)
 		* [Build](#build-1)
 		* [Linux EGL](#linux-egl)
-		* [Linux OSMesa](#linux-osmesa)
 		* [Linux mingw-w64](#linux-mingw-w64)
 	* [Using cmake](#using-cmake)
 		* [Install build tools](#install-build-tools-1)
@@ -95,11 +94,6 @@ _Note: you may need to call `make` in the  **auto** folder first_
 	$ sudo apt install libegl1-mesa-dev
 	$ make SYSTEM=linux-egl
 
-##### Linux OSMesa
-
-	$ sudo apt install libosmesa-dev
-	$ make SYSTEM=linux-osmesa
-
 ##### Linux mingw-w64
 
 	$ sudo apt install mingw-w64
@@ -140,7 +134,6 @@ RedHat/CentOS/Fedora: `$ sudo yum install libXmu-devel libXi-devel libGL-devel c
 | --------------- | ----------- |
 | BUILD_UTILS     | Build the `glewinfo` and `visualinfo` executables. |
 | GLEW_REGAL      | Build in Regal mode. |
-| GLEW_OSMESA     | Build in off-screen Mesa mode. |
 | BUILD_FRAMEWORK | Build as MacOSX Framework.  Setting `CMAKE_INSTALL_PREFIX` to `/Library/Frameworks` is recommended. |
 
 ### Windows

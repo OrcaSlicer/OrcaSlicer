@@ -1,89 +1,89 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 ABS Benchy",
-  "setting_id": "356879727",
-  "inherits": "Snapmaker J1 ABS @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)"
-  ],
-  "compatible_prints": [
-    "0.25 Benchy @Snapmaker J1 (0.4 nozzle)"
-  ],
-  "overhang_fan_speed": [
-    "35"
-  ],
-  "slow_down_for_layer_cooling": [
-    "0"
-  ],
-  "fan_cooling_layer_time": [
-    "2"
-  ],
-  "filament_deretraction_speed": [
-    "55"
-  ],
-  "filament_max_volumetric_speed": [
-    "31"
-  ],
-  "filament_retract_when_changing_layer": [
-    "0"
-  ],
-  "filament_retraction_length": [
-    "0.5"
-  ],
-  "filament_z_hop": [
-    "0"
-  ],
-  "filament_retraction_speed": [
-    "55"
-  ],
-  "filament_wipe": [
-    "0"
-  ],
-  "filament_loading_speed_start": [
-    "35"
-  ],
-  "filament_loading_speed": [
-    "35"
-  ],
-  "filament_unloading_speed_start": [
-    "35"
-  ],
-  "filament_unloading_speed": [
-    "35"
-  ],
-  "filament_load_time": [
-    "2"
-  ],
-  "filament_unload_time": [
-    "2"
-  ],
-  "filament_cooling_moves": [
-    "2"
-  ],
-  "filament_cooling_initial_speed": [
-    "35"
-  ],
-  "filament_cooling_final_speed": [
-    "60"
-  ],
-  "nozzle_temperature": [
-    "250"
-  ],
-  "fan_max_speed": [
-    "80"
-  ],
-  "fan_min_speed": [
-    "65"
-  ],
-  "slow_down_min_speed": [
-    "0"
-  ],
-  "slow_down_layer_time": [
-    "0"
-  ],
-  "default_filament_colour": [
-    "#335BBB"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 ABS Benchy",
+    "inherits": "Snapmaker J1 ABS @base",
+    "from": "system",
+    "setting_id": "356879727",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)"
+    ],
+    "compatible_prints": [
+        "0.25 Benchy @Snapmaker J1 (0.4 nozzle)"
+    ],
+    "overhang_fan_speed": [
+        "35"
+    ],
+    "slow_down_for_layer_cooling": [
+        "0"
+    ],
+    "fan_cooling_layer_time": [
+        "2"
+    ],
+    "filament_deretraction_speed": [
+        "55"
+    ],
+    "filament_max_volumetric_speed": [
+        "31"
+    ],
+    "filament_retract_when_changing_layer": [
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0.5"
+    ],
+    "filament_z_hop": [
+        "0"
+    ],
+    "filament_retraction_speed": [
+        "55"
+    ],
+    "filament_wipe": [
+        "0"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "65"
+    ],
+    "slow_down_min_speed": [
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "0"
+    ],
+    "default_filament_colour": [
+        ""
+    ]
 }

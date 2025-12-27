@@ -1,114 +1,114 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Anycubic Vyper 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_machine_common",
-	"printer_model": "Anycubic Vyper",
-	"default_print_profile": "0.20mm Standard @Anycubic Vyper",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"250x0",
-		"250x255",
-		"0x255"
-	],
-	"printable_height": "265",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	"machine_max_acceleration_extruding": [
-		"1250",
-		"1250"
-	],
-	"machine_max_acceleration_retracting": [
-		"1250",
-		"1250"
-	],
-	"machine_max_acceleration_travel": [
-		"1000",
-		"1000"
-	],
-	"machine_max_acceleration_x": [
-		"1000",
-		"1000"
-	],
-	"machine_max_acceleration_y": [
-		"1000",
-		"1000"
-	],
-	"machine_max_acceleration_z": [
-		"200",
-		"200"
-	],
-	"machine_max_speed_e": [
-		"60",
-		"60"
-	],
-	"machine_max_speed_x": [
-		"200",
-		"200"
-	],
-	"machine_max_speed_y": [
-		"200",
-		"200"
-	],
-	"machine_max_speed_z": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_e": [
-		"5",
-		"5"
-	],
-	"machine_max_jerk_x": [
-		"8",
-		"8"
-	],
-	"machine_max_jerk_y": [
-		"8",
-		"8"
-	],
-	"machine_max_jerk_z": [
-		"0.4",
-		"0.4"
-	],
-	"max_layer_height": [
-		"0.32"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"printer_settings_id": "Anycubic",
-	"retraction_minimum_travel": [
-		"1.5"
-	],
-	"retract_before_wipe": [
-		"0%"
-	],
-	"retraction_length": [
-		"3"
-	],
-	"retract_length_toolchange": [
-		"10"
-	],
-	"retraction_speed": [
-		"40"
-	],
-	"deretraction_speed": [
-		"40"
-	],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "M600",
-	"machine_pause_gcode": "M601",
-	"default_filament_profile": [
-		"Anycubic Generic PLA"
-	],
-	"machine_start_gcode": "G21 ;metric values\nG90 ;absolute positioning\nM82 ;set extruder to absolute mode\nM107 ;start with the fan off\nG28 X0 Y0 ;move X/Y to min endstops\nG28 Z0 ;move Z to min endstops\nG0 Z0.2 F1800 ; move nozzle to print position\nG92 E0 ; specify current extruder position as zero\nG1 Y10 X180 E50 F1200 ; extrude a line in front of the printer\nG92 E0 ; specify current extruder position as zero\nG0 Z20 F6000 ; move head up\nG1 E-7 F2400 ; retract\nG04 S2 ; wait 2s\nG0 X0 F6000 ; wipe from oozed filament\nG1 E-1 F2400 ; undo some of the retraction to avoid oozing\nG1 F6000 ; set travel speed to move to start printing point\nM117",
-	"machine_end_gcode": "G4 ; wait\nG92 E0\nG1{if max_layer_z < printable_height} Z{z_offset+min(max_layer_z+30, printable_height)}{endif} ; move print head up\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y200 F3000 ; home X axis\nM84 ; disable motors",
-	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-	"scan_first_layer": "0"
+    "type": "machine",
+    "name": "Anycubic Vyper 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Anycubic Vyper",
+    "default_print_profile": "0.20mm Standard @Anycubic Vyper",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "250x0",
+        "250x255",
+        "0x255"
+    ],
+    "printable_height": "265",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_extruding": [
+        "1250",
+        "1250"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1250",
+        "1250"
+    ],
+    "machine_max_acceleration_travel": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_x": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "200",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "60",
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "200",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "200",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "Anycubic",
+    "retraction_minimum_travel": [
+        "1.5"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retraction_length": [
+        "3"
+    ],
+    "retract_length_toolchange": [
+        "10"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "M601",
+    "default_filament_profile": [
+        "Anycubic Generic PLA"
+    ],
+    "machine_start_gcode": "G21 ;metric values\nG90 ;absolute positioning\nM82 ;set extruder to absolute mode\nM107 ;start with the fan off\nG28 X0 Y0 ;move X/Y to min endstops\nG28 Z0 ;move Z to min endstops\nG0 Z0.2 F1800 ; move nozzle to print position\nG92 E0 ; specify current extruder position as zero\nG1 Y10 X180 E50 F1200 ; extrude a line in front of the printer\nG92 E0 ; specify current extruder position as zero\nG0 Z20 F6000 ; move head up\nG1 E-7 F2400 ; retract\nG04 S2 ; wait 2s\nG0 X0 F6000 ; wipe from oozed filament\nG1 E-1 F2400 ; undo some of the retraction to avoid oozing\nG1 F6000 ; set travel speed to move to start printing point\nM117",
+    "machine_end_gcode": "G4 ; wait\nG92 E0\nG1{if max_layer_z < printable_height} Z{z_offset+min(max_layer_z+30, printable_height)}{endif} ; move print head up\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y200 F3000 ; home X axis\nM84 ; disable motors",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "scan_first_layer": "0"
 }

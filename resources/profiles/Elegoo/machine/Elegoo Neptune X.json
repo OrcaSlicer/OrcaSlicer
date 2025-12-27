@@ -8,5 +8,5 @@
     "bed_model": "elegoo_neptunex_buildplate_model.stl",
     "bed_texture": "elegoo_neptunex_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Elegoo Generic ABS;Elegoo Generic PETG;Elegoo Generic PLA"
+    "default_materials": "Generic ABS @Elegoo;Generic PETG @Elegoo;Generic PLA @Elegoo"
 }

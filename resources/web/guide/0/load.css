@@ -1,0 +1,36 @@
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+body
+{
+	display:flex;
+	align-content: center;
+	justify-content: center;
+}
+
+#LoadBlock
+{
+	display:flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#LoadingSvg
+{
+	animation: rotate 1.2s infinite linear;
+	margin-right: 8px;
+	height: 120%;
+}
+
+#LoadTip
+{
+	font-size: 15px;
+	font-weight: 700;
+	color: #009688;
+}

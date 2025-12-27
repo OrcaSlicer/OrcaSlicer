@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Bambu PET-CF @System",
+    "inherits": "Bambu PET-CF @base",
+    "from": "system",
+    "setting_id": "OGFST01",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "compatible_printers": []
+}

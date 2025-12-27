@@ -161,9 +161,9 @@ bool MultiPoint::intersections(const Line &line, Points *intersections) const
     return intersections->size() > intersections_size;
 }
 
-std::vector<Point> MultiPoint::_douglas_peucker(const std::vector<Point>& pts, const double tolerance)
+Points MultiPoint::_douglas_peucker(const Points &pts, const double tolerance)
 {
-    std::vector<Point> result_pts;
+    Points result_pts;
 	double tolerance_sq = tolerance * tolerance;
     if (! pts.empty()) {
         const Point  *anchor      = &pts.front();
@@ -505,6 +505,13 @@ BoundingBox get_extents_rotated(const Points &points, double angle)
 BoundingBox get_extents_rotated(const MultiPoint &mp, double angle)
 {
     return get_extents_rotated(mp.points, angle);
+}
+
+void MultiPoint::symmetric_y(const coord_t &x_axis)
+{
+    for (Point &pt : points) {
+        pt(0) = 2 * x_axis - pt(0);
+    }
 }
 
 }

@@ -90,6 +90,7 @@ public:
 
 	//BBS set global header for each http request
 	static void set_extra_headers(std::map<std::string, std::string> headers);
+	static std::map<std::string, std::string> get_extra_headers();
 
 	~Http();
 
@@ -119,6 +120,7 @@ public:
 	// See also ca_file_supported().
 	Http& ca_file(const std::string &filename);
 
+	Http& form_clear();
 	// Add a HTTP multipart form field
 	Http& form_add(const std::string &name, const std::string &contents);
 	// Add a HTTP multipart form file data contents, `name` is the name of the part

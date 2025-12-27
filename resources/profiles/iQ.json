@@ -1,0 +1,111 @@
+{
+    "name": "innovatiQ",
+    "version": "02.03.01.10",
+    "force_update": "1",
+    "description": "innovatiQ configuration",
+    "machine_model_list": [
+        {
+            "name": "TiQ2",
+            "sub_path": "machine/TiQ2.json"
+        },
+        {
+            "name": "TiQ8",
+            "sub_path": "machine/TiQ8.json"
+        }
+    ],
+    "machine_list": [
+        {
+      "name": "fdm_tiq_common",
+      "sub_path": "machine/fdm_tiq_common.json"
+    },
+    
+    {
+      "name": "iQ TiQ2 0.4 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.4 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ2 0.25 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.25 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ2 0.6 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.6 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ2 0.8 Nozzle",
+      "sub_path": "machine/iQ TiQ2 0.8 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.4 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.4 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.25 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.25 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.6 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.6 nozzle.json"
+    },
+
+    {
+      "name": "iQ TiQ8 0.8 Nozzle",
+      "sub_path": "machine/iQ TiQ8 0.8 nozzle.json"
+    }
+    
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_tiq_common",
+            "sub_path": "process/fdm_process_tiq_common.json"
+        },
+        {
+            "name": "0.20mm Standard @iQ TiQ2 P1 - PACF Pro Fiberthree (0.4 Nozzle)",
+            "sub_path": "process/0.20mm Standard @iQ TiQ2 P1 - PACF Pro Fiberthree (0.4 Nozzle).json"
+        },
+        {
+            "name": "0.20mm Standard @iQ TiQ2 P1 - PETG Polymax Polymaker (0.4 Nozzle)",
+            "sub_path": "process/0.20mm Standard @iQ TiQ2 P1 - PETG Polymax Polymaker (0.4 Nozzle).json"
+        },
+        {
+            "name": "0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle)",
+            "sub_path": "process/0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle).json"
+        },
+        {
+            "name": "0.20mm Standard @iQ TiQ2 P2 - PACF Pro Fiberthree + VXL90 Xioneer (0.4 Nozzle)",
+            "sub_path": "process/0.20mm Standard @iQ TiQ2 P2 - PACF Pro Fiberthree + VXL90 Xioneer (0.4 Nozzle).json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle",
+            "sub_path": "filament/Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle.json"
+        },
+        {
+            "name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle",
+            "sub_path": "filament/Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle.json"
+        },
+        {
+            "name": "Polymaker PETG Polymax black P1 @iQ TiQ2 0.4 Nozzle",
+            "sub_path": "filament/Polymaker PETG Polymax black P1 @iQ TiQ2 0.4 Nozzle.json"
+        },
+        {
+            "name": "Fiberthree PACF Pro P2 @iQ TiQ2 0.4 Nozzle",
+            "sub_path": "filament/Fiberthree PACF Pro P2 @iQ TiQ2 0.4 Nozzle.json"
+        },
+        {
+            "name": "VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle",
+            "sub_path": "filament/VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle.json"
+        }
+    ]
+}

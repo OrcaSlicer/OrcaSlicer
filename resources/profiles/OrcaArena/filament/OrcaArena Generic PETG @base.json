@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFG99",
     "name": "OrcaArena Generic PETG @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "GFG99",
+    "instantiation": "false",
     "reduce_fan_stop_start_freq": [
         "1"
     ],
@@ -41,28 +41,28 @@
     "nozzle_temperature_range_high": [
         "270"
     ],
-    "cool_plate_temp" : [
+    "cool_plate_temp": [
         "0"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "70"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "0"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "70"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "70"
     ],
-    "textured_plate_temp" : [
+    "textured_plate_temp": [
         "70"
     ],
-    "textured_plate_temp_initial_layer" : [
+    "textured_plate_temp_initial_layer": [
         "70"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "70"
     ],
     "filament_start_gcode": [

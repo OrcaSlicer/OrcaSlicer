@@ -9,6 +9,7 @@ class FillConcentric : public Fill
 {
 public:
     ~FillConcentric() override = default;
+    bool is_self_crossing() override { return false; }
 
 protected:
     Fill* clone() const override { return new FillConcentric(*this); };

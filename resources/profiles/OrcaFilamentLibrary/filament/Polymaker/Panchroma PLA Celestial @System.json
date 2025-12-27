@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Celestial @System",
+    "inherits": "Panchroma PLA Celestial @base",
+    "from": "system",
+    "setting_id": "OGFSPM008",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

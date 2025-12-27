@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "SUNLU Wood PLA @System",
+    "inherits": "SUNLU Wood PLA @base",
+    "from": "system",
+    "setting_id": "OSNLS07",
+    "instantiation": "true",
+    "compatible_printers": []
+}

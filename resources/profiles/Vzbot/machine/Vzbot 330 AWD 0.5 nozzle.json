@@ -1,20 +1,20 @@
 {
-  "type": "machine",
-  "setting_id": "GM002",
-  "name": "Vzbot 330 AWD 0.5 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "Vzbot 330 AWD 0.4 nozzle",
-  "printer_model": "Vzbot 330 AWD",
-  "nozzle_diameter": [
-    "0.5"
-  ],
-  "printer_variant": "0.5",
-  "printable_area": [
-    "0x0",
-    "330x0",
-    "330x330",
-    "0x330"
-  ],
-  "printable_height": "400"
+    "type": "machine",
+    "name": "Vzbot 330 AWD 0.5 nozzle",
+    "inherits": "Vzbot 330 AWD 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Vzbot 330 AWD",
+    "nozzle_diameter": [
+        "0.5"
+    ],
+    "printer_variant": "0.5",
+    "printable_area": [
+        "0x0",
+        "330x0",
+        "330x330",
+        "0x330"
+    ],
+    "printable_height": "400"
 }

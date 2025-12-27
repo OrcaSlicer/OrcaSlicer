@@ -32,12 +32,20 @@ public:
 private:
     std::string m_host;
     std::string m_console_port;
-    Slic3r::Utils::SerialMessage controlCommand  = {"~M601 S1\r\n",Slic3r::Utils::Command};
-    Slic3r::Utils::SerialMessage connect5MCommand  = {"~M640\r\n",Slic3r::Utils::Command};
-    Slic3r::Utils::SerialMessage connectGuiderCommand  = {"~M650\r\n",Slic3r::Utils::Command};
-    Slic3r::Utils::SerialMessage statusCommand   = {"~M119\r\n",Slic3r::Utils::Command};
-    Slic3r::Utils::SerialMessage saveFileCommand = {"~M29\r\n",Slic3r::Utils::Command};
+    const int m_bufferSize;
+    GCodeFlavor m_gcFlavor;
+    Slic3r::Utils::SerialMessage controlCommand          = {"~M601 S1\r\n",Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage connectKlipperCommand   = {"~M640\r\n",Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage connectLegacyCommand    = {"~M650\r\n",Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage nozzlePosCommand        = {"~M114\r\n", Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage deviceInfoCommand       = {"~M115\r\n", Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage statusCommand           = {"~M119\r\n",Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage tempStatusCommand       = {"~M105\r\n", Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage printStatusCommand      = {"~M27\r\n", Slic3r::Utils::Command};
+    Slic3r::Utils::SerialMessage saveFileCommand         = {"~M29\r\n",Slic3r::Utils::Command};
     int  get_err_code_from_body(const std::string &body) const;
+    bool connect(wxString& msg) const;
+    bool start_print(wxString& msg, const std::string& filename) const;
 };
 
 } // namespace Slic3r

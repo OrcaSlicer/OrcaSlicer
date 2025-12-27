@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "SUNLU Silk PLA+ @System",
+    "inherits": "SUNLU Silk PLA+ @base",
+    "from": "system",
+    "setting_id": "OSNLS05",
+    "instantiation": "true",
+    "compatible_printers": []
+}

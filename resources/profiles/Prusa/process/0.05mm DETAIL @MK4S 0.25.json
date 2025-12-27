@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.05mm DETAIL @MK4S 0.25",
+    "inherits": "0.07mm DETAIL @MK4S 0.25",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_layers": "10",
+    "bridge_speed": "25",
+    "layer_height": "0.05",
+    "top_shell_layers": "13"
+}

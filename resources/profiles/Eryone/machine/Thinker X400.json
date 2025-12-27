@@ -2,11 +2,11 @@
     "type": "machine_model",
     "name": "Thinker X400",
     "model_id": "Thinker-X400",
-    "nozzle_diameter": "0.4",
+    "nozzle_diameter": "0.4;0.2",
     "machine_tech": "FFF",
     "family": "Eryone",
     "bed_model": "X400_bed.stl",
     "bed_texture": "Thinker_texture.png",
     "hotend_model": "",
-    "default_materials": "Eryone Generic PLA;Eryone Generic ABS;Eryone Generic ASA;Eryone Generic PETG;Eryone Generic Silk PLA;Eryone Generic TPU"
+    "default_materials": "Eryone PLA;Eryone ABS;Eryone ASA;Eryone PETG;Eryone Silk PLA;Eryone TPU;Eryone ABS-CF;Eryone ASA-CF;Eryone PA;Eryone PA-CF;Eryone PA-GF;Eryone PETG-CF;Eryone PLA-CF;Eryone PP;Eryone PP-CF"
 }

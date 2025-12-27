@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.20mm Standard @Creality CR-M4",
-    "from": "system",
     "inherits": "fdm_process_creality_common",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "bottom_surface_pattern": "monotonic",
     "bottom_shell_layers": "3",
@@ -97,7 +97,7 @@
     "prime_tower_width": "60",
     "xy_hole_compensation": "0",
     "xy_contour_compensation": "0",
-	"compatible_printers": [
-		"Creality CR-M4 0.4 nozzle"
+    "compatible_printers": [
+        "Creality CR-M4 0.4 nozzle"
     ]
 }

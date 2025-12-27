@@ -1,0 +1,35 @@
+{
+    "type": "filament",
+    "name": "Désactivé",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "DFSL99",
+    "filament_id": "DFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.1"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "0"
+    ],
+    "nozzle_temperature": [
+        "0"
+    ],
+    "hot_plate_temp": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "0"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "compatible_printers": [
+        "EXO42 IDRE (0.4 nozzle)",
+        "EXO65 IDRE (0.4 nozzle)",
+        "SH65 IDRE (0.4 nozzle)"
+    ]
+}

@@ -1,171 +1,151 @@
 {
-  "name": "Chuanying",
-  "url": "",
-  "version": "02.02.00.04",
-  "force_update": "0",
-  "description": "Chuanying configurations",
-  "machine_model_list": [
-    {
-      "name": "Chuanying X1",
-      "sub_path": "machine/Chuanying X1.json"
-    }
-  ],
-  "process_list": [
-    {
-      "name": "fdm_process_common",
-      "sub_path": "process/fdm_process_common.json"
-    },
-    {
-      "name": "fdm_process_chuanying_common",
-      "sub_path": "process/fdm_process_chuanying_common.json"
-    },
-    {
-      "name": "fdm_process_chuanying_0.20",
-      "sub_path": "process/fdm_process_chuanying_0.20.json"
-    },
-    {
-      "name": "fdm_process_chuanying_0.30",
-      "sub_path": "process/fdm_process_chuanying_0.30.json"
-    },
-    {
-      "name": "0.20mm Standard @Chuanying X1 0.4 Nozzle",
-      "sub_path": "process/0.20mm Standard @Chuanying X1 0.4 Nozzle.json"
-    },
-    {
-      "name": "0.30mm Standard @Chuanying X1 0.6 Nozzle",
-      "sub_path": "process/0.30mm Standard @Chuanying X1 0.6 Nozzle.json"
-    },
-	  {
-      "name": "0.12mm Standard @Chuanying X1 0.25 Nozzle",
-      "sub_path": "process/0.12mm Standard @Chuanying X1 0.25 Nozzle.json"
-  	},
-	  {
-      "name": "0.40mm Standard @Chuanying X1 0.8 Nozzle",
-      "sub_path": "process/0.40mm Standard @Chuanying X1 0.8 Nozzle.json"
-	  }
-  ],
-  "filament_list": [
-    {
-      "name": "fdm_filament_common",
-      "sub_path": "filament/fdm_filament_common.json"
-    },
-    {
-      "name": "fdm_filament_abs",
-      "sub_path": "filament/fdm_filament_abs.json"
-    },
-    {
-      "name": "fdm_filament_pet",
-      "sub_path": "filament/fdm_filament_pet.json"
-    },
-    {
-      "name": "fdm_filament_pla",
-      "sub_path": "filament/fdm_filament_pla.json"
-    },
-    {
-      "name": "fdm_filament_asa",
-      "sub_path": "filament/fdm_filament_asa.json"
-    },
-    {
-      "name": "fdm_filament_tpu",
-      "sub_path": "filament/fdm_filament_tpu.json"
-    },
-    {
-      "name": "Chuanying Generic ABS",
-      "sub_path": "filament/Chuanying Generic ABS.json"
-    },
-	  {
-      "name": "Chuanying ABS @Chuanying X1 0.25 Nozzle",
-      "sub_path": "filament/Chuanying ABS @Chuanying X1 0.25 Nozzle.json"
-	  },
-    {
-      "name": "Chuanying Generic PETG",
-      "sub_path": "filament/Chuanying Generic PETG.json"
-    },
-	  {
-      "name": "Chuanying PETG @Chuanying X1 0.25 Nozzle",
-      "sub_path": "filament/Chuanying PETG @Chuanying X1 0.25 Nozzle.json"
-	  },
-    {
-      "name": "Chuanying Generic PLA",
-      "sub_path": "filament/Chuanying Generic PLA.json"
-    },
-	  {
-      "name": "Chuanying PLA @Chuanying X1 0.25 Nozzle",
-      "sub_path": "filament/Chuanying PLA @Chuanying X1 0.25 Nozzle.json"
-	  },
-    {
-      "name": "Chuanying Generic PLA-CF10",
-      "sub_path": "filament/Chuanying Generic PLA-CF10.json"
-    },
-    {
-      "name": "Chuanying Generic PLA-Silk",
-      "sub_path": "filament/Chuanying Generic PLA-Silk.json"
-    },
-	  {
-      "name": "Chuanying PLA-SILK @Chuanying X1 0.25 Nozzle",
-      "sub_path": "filament/Chuanying PLA-SILK @Chuanying X1 0.25 Nozzle.json"
-	  },
-    {
-      "name": "Chuanying Generic HS PLA",
-      "sub_path": "filament/Chuanying Generic HS PLA.json"
-    },
-	  {
-      "name": "Chuanying HS PLA @Chuanying X1 0.25 Nozzle",
-      "sub_path": "filament/Chuanying HS PLA @Chuanying X1 0.25 Nozzle.json"
-	  },
-    {
-      "name": "Chuanying Generic ASA",
-      "sub_path": "filament/Chuanying Generic ASA.json"
-    },
-	  {
-      "name": "Chuanying ASA @Chuanying X1 0.25 Nozzle",
-      "sub_path": "filament/Chuanying ASA @Chuanying X1 0.25 Nozzle.json"
-	  },
-    {
-      "name": "Chuanying Generic PETG-CF10",
-      "sub_path": "filament/Chuanying Generic PETG-CF10.json"
-    },
-    {
-      "name": "Chuanying Generic TPU",
-      "sub_path": "filament/Chuanying Generic TPU.json"
-    },
-    {
-      "name":"Chuanying Generic HIPS",
-      "sub_path":"filament/Chuanying Generic HIPS.json"
-    },
-    {
-      "name":"Chuanying Generic PVA",
-      "sub_path":"filament/Chuanying Generic PVA.json"
-    }
-  ],
-  "machine_list": [
-    {
-      "name": "fdm_machine_common",
-      "sub_path": "machine/fdm_machine_common.json"
-    },
-    {
-      "name": "fdm_chuanying_common",
-      "sub_path": "machine/fdm_chuanying_common.json"
-    },
-	  {
-      "name": "fdm_x1_common",
-      "sub_path": "machine/fdm_x1_common.json"
-    },
-	  {
-      "name": "Chuanying X1 0.25 Nozzle",
-      "sub_path": "machine/Chuanying X1 0.25 Nozzle.json"
-    },
-    {
-      "name": "Chuanying X1 0.4 Nozzle",
-      "sub_path": "machine/Chuanying X1 0.4 Nozzle.json"
-    },
-    {
-      "name": "Chuanying X1 0.6 Nozzle",
-      "sub_path": "machine/Chuanying X1 0.6 Nozzle.json"
-    },
-	  {
-      "name": "Chuanying X1 0.8 Nozzle",
-      "sub_path": "machine/Chuanying X1 0.8 Nozzle.json"
-    }
-  ]
+    "name": "Chuanying",
+    "url": "",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "Chuanying configurations",
+    "machine_model_list": [
+        {
+            "name": "Chuanying X1",
+            "sub_path": "machine/Chuanying X1.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_chuanying_common",
+            "sub_path": "process/fdm_process_chuanying_common.json"
+        },
+        {
+            "name": "fdm_process_chuanying_0.20",
+            "sub_path": "process/fdm_process_chuanying_0.20.json"
+        },
+        {
+            "name": "fdm_process_chuanying_0.30",
+            "sub_path": "process/fdm_process_chuanying_0.30.json"
+        },
+        {
+            "name": "0.20mm Standard @Chuanying X1 0.4 Nozzle",
+            "sub_path": "process/0.20mm Standard @Chuanying X1 0.4 Nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @Chuanying X1 0.6 Nozzle",
+            "sub_path": "process/0.30mm Standard @Chuanying X1 0.6 Nozzle.json"
+        },
+        {
+            "name": "0.12mm Standard @Chuanying X1 0.25 Nozzle",
+            "sub_path": "process/0.12mm Standard @Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @Chuanying X1 0.8 Nozzle",
+            "sub_path": "process/0.40mm Standard @Chuanying X1 0.8 Nozzle.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "Chuanying Generic ABS",
+            "sub_path": "filament/Chuanying Generic ABS.json"
+        },
+        {
+            "name": "Chuanying Generic ASA",
+            "sub_path": "filament/Chuanying Generic ASA.json"
+        },
+        {
+            "name": "Chuanying Generic HS PLA",
+            "sub_path": "filament/Chuanying Generic HS PLA.json"
+        },
+        {
+            "name": "Chuanying Generic PETG",
+            "sub_path": "filament/Chuanying Generic PETG.json"
+        },
+        {
+            "name": "Chuanying Generic PLA",
+            "sub_path": "filament/Chuanying Generic PLA.json"
+        },
+        {
+            "name": "Chuanying Generic PLA-Silk",
+            "sub_path": "filament/Chuanying Generic PLA-Silk.json"
+        },
+        {
+            "name": "Chuanying ABS @Chuanying X1 0.25 Nozzle",
+            "sub_path": "filament/Chuanying ABS @Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "Chuanying Generic HIPS",
+            "sub_path": "filament/Chuanying Generic HIPS.json"
+        },
+        {
+            "name": "Chuanying ASA @Chuanying X1 0.25 Nozzle",
+            "sub_path": "filament/Chuanying ASA @Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "Chuanying HS PLA @Chuanying X1 0.25 Nozzle",
+            "sub_path": "filament/Chuanying HS PLA @Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "Chuanying PETG @Chuanying X1 0.25 Nozzle",
+            "sub_path": "filament/Chuanying PETG @Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "Chuanying Generic PVA",
+            "sub_path": "filament/Chuanying Generic PVA.json"
+        },
+        {
+            "name": "Chuanying PLA @Chuanying X1 0.25 Nozzle",
+            "sub_path": "filament/Chuanying PLA @Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "Chuanying PLA-SILK @Chuanying X1 0.25 Nozzle",
+            "sub_path": "filament/Chuanying PLA-SILK @Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "Chuanying Generic PETG-CF10",
+            "sub_path": "filament/Chuanying Generic PETG-CF10.json"
+        },
+        {
+            "name": "Chuanying Generic PLA-CF10",
+            "sub_path": "filament/Chuanying Generic PLA-CF10.json"
+        },
+        {
+            "name": "Chuanying Generic TPU",
+            "sub_path": "filament/Chuanying Generic TPU.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_chuanying_common",
+            "sub_path": "machine/fdm_chuanying_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "fdm_x1_common",
+            "sub_path": "machine/fdm_x1_common.json"
+        },
+        {
+            "name": "Chuanying X1 0.25 Nozzle",
+            "sub_path": "machine/Chuanying X1 0.25 Nozzle.json"
+        },
+        {
+            "name": "Chuanying X1 0.4 Nozzle",
+            "sub_path": "machine/Chuanying X1 0.4 Nozzle.json"
+        },
+        {
+            "name": "Chuanying X1 0.6 Nozzle",
+            "sub_path": "machine/Chuanying X1 0.6 Nozzle.json"
+        },
+        {
+            "name": "Chuanying X1 0.8 Nozzle",
+            "sub_path": "machine/Chuanying X1 0.8 Nozzle.json"
+        }
+    ]
 }

@@ -258,14 +258,33 @@ std::vector<WaveSeed> wave_seeds(
     int iseed = 0;
     for (const ClipperLib_Z::Path &path : segments) {
         assert(path.size() >= 2);
-        const ClipperLib_Z::IntPoint &front = path.front();
-        const ClipperLib_Z::IntPoint &back  = path.back();
+        ClipperLib_Z::IntPoint front = path.front();
+        ClipperLib_Z::IntPoint back  = path.back();
         // Both ends of a seed segment are supposed to be inside a single boundary expolygon.
         // Thus as long as the seed contour is not closed, it should be open at a boundary point.
         assert((front == back && front.z() >= idx_boundary_end && front.z() < idx_src_end) || 
             //(front.z() < 0 && back.z() < 0));
             // Hope that at least one end of an open polyline is clipped by the boundary, thus an intersection point is created.
             (front.z() < 0 || back.z() < 0));
+
+        if (front != back && front.z() >= 0 && back.z() >= 0) {
+            // Very rare case when both endpoints intersect boundary ExPolygons in existing points.
+            // So the ZFillFunction callback hasn't been called.
+            continue;
+        } else
+        if (front == back && (front.z() < idx_boundary_end)) {
+            // This should be a very rare exception.
+            // See https://github.com/prusa3d/PrusaSlicer/issues/12469.
+            // Segement is open, yet its first point seems to be part of boundary polygon.
+            // Take the first point with src polygon index.
+            for (const ClipperLib_Z::IntPoint &point : path) {
+                if (point.z() >= idx_boundary_end) {
+                    front = point;
+                    back = point;
+                }
+            }
+        }
+
         const Intersection *intersection = nullptr;
         auto intersection_point_valid = [idx_boundary_end, idx_src_end](const Intersection &is) {
             return is.first >= 1 && is.first < idx_boundary_end &&

@@ -1,20 +1,20 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Dremel 3D45 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_dremel_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Dremel 3D45",
     "printer_variant": "0.4",
     "printer_settings_id": "Dremel",
     "gcode_flavor": "marlin",
     "default_filament_profile": [
-      "Dremel Generic PLA @3D45 all"
+        "Dremel Generic PLA @3D45 all"
     ],
     "default_print_profile": ".20mm Standard @Dremel 3D45 0.4",
     "nozzle_diameter": [
-      "0.4"
+        "0.4"
     ],
     "printable_area": [
         "-127.5x-77.5",

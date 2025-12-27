@@ -15,6 +15,7 @@ class Model;
 class ModelObject;
 class ModelVolume;
 class ObjectID;
+class ModelInstance;
 class GLVolume;
 class GLArrow;
 class GLCurvedArrow;
@@ -225,6 +226,9 @@ public:
     void remove_volumes(EMode mode, const std::vector<unsigned int>& volume_idxs);
 
     //BBS
+    ModelVolume *                   get_selected_single_volume(int &out_object_idx, int &out_volume_idx) const;
+    ModelObject *                   get_selected_single_object(int &out_object_idx) const;
+    const ModelInstance *           get_selected_single_intance() const;
     void add_curr_plate();
     void add_object_from_idx(std::vector<int>& object_idxs);
     void remove_curr_plate();
@@ -326,20 +330,17 @@ public:
     const std::pair<Vec3d, double> get_bounding_sphere() const;
 
     void setup_cache();
-
     void translate(const Vec3d& displacement, TransformationType transformation_type);
     void move_to_center(const Vec3d& displacement, bool local = false);
     void rotate(const Vec3d& rotation, TransformationType transformation_type);
     void flattening_rotate(const Vec3d& normal);
-    [[deprecated("Only used by GizmoObjectManipulation")]]
-    void scale_legacy(const Vec3d& scale, TransformationType transformation_type);
     void scale(const Vec3d& scale, TransformationType transformation_type);
 #if ENABLE_ENHANCED_PRINT_VOLUME_FIT
     void scale_to_fit_print_volume(const BuildVolume& volume);
 #else
     void scale_to_fit_print_volume(const DynamicPrintConfig& config);
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
-    void scale_and_translate(const Vec3d& scale, const Vec3d& world_translation, TransformationType transformation_type);
+    void scale_and_translate(const Vec3d &scale, const Vec3d &world_translation, TransformationType transformation_type);
     void mirror(Axis axis, TransformationType transformation_type);
 
     void translate(unsigned int object_idx, const Vec3d& displacement);
@@ -351,6 +352,7 @@ public:
     //BBS: add partplate related logic
     void notify_instance_update(int object_idx, int instance_idx);
     // BBS
+    EMode get_volume_selection_mode(){ return m_volume_selection_mode;}
     void set_volume_selection_mode(EMode mode) { if (!m_volume_selection_locked) m_volume_selection_mode = mode; }
     void lock_volume_selection_mode() { m_volume_selection_locked = true; }
     void unlock_volume_selection_mode() { m_volume_selection_locked = false; }
@@ -358,11 +360,11 @@ public:
     void erase();
 
     void render(float scale_factor = 1.0);
-    //BBS: GUI refactor: add uniform scale from gizmo
-    void render_sidebar_hints(const std::string& sidebar_field, bool uniform_scale);
 #if ENABLE_RENDER_SELECTION_CENTER
     void render_center(bool gizmo_is_dragging);
 #endif // ENABLE_RENDER_SELECTION_CENTER
+    //BBS: GUI refactor: add uniform scale from gizmo
+    void render_sidebar_hints(const std::string& sidebar_field, bool uniform_scale);
 
     bool requires_local_axes() const;
 
@@ -405,7 +407,8 @@ private:
     void set_bounding_boxes_dirty() {
         m_bounding_box.reset();
         m_unscaled_instance_bounding_box.reset(); m_scaled_instance_bounding_box.reset();
-        m_full_unscaled_instance_bounding_box.reset(); m_full_scaled_instance_bounding_box.reset();
+        m_full_unscaled_instance_bounding_box.reset();
+        m_full_scaled_instance_bounding_box.reset();
         m_full_unscaled_instance_local_bounding_box.reset();
         m_bounding_box_in_current_reference_system.reset();
         m_bounding_sphere.reset();

@@ -1,22 +1,22 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Qidi X-Plus 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_qidi_x3_common",
-	"printer_model": "Qidi X-Plus 4",
-	"gcode_flavor": "klipper",
-	"default_print_profile": "0.20mm Standard @Qidi XPlus4",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"305x0",
-		"305x305",
-		"0x305"
-	],
+    "type": "machine",
+    "name": "Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "fdm_qidi_x3_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Qidi X-Plus 4",
+    "gcode_flavor": "klipper",
+    "default_print_profile": "0.20mm Standard @Qidi XPlus4",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "305x0",
+        "305x305",
+        "0x305"
+    ],
     "bed_exclude_area": [
         "0x305",
         "0x302",
@@ -26,46 +26,47 @@
         "305x305",
         "305x305",
         "305x20",
-		"293x20",
-		"293x0",
-		"305x0",
-		"305x20",
-		"305x305"
+        "293x20",
+        "293x0",
+        "305x0",
+        "305x20",
+        "305x305"
     ],
-	"printable_height": "280",
-	"nozzle_type": "hardened_steel",
-	"max_layer_height": [
-		"0.28"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"printer_settings_id": "Qidi",
-	"retraction_minimum_travel": [
-		"1"
-	],
-	"retraction_length": [
-		"0.8"
-	],
-	"retract_length_toolchange": [
-		"2"
-	],
-	"deretraction_speed": [
-		"0"
-	],
-	"retract_before_wipe": [
+    "printable_height": "280",
+    "nozzle_type": "hardened_steel",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "Qidi",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "retract_before_wipe": [
         "0%"
     ],
     "wipe_distance": [
-        "2"],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "M0",
+        "2"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "{if max_layer_z < 12}\nG1 Z15 F1200\n{else}\nG1 Z{max_layer_z + 3.0} F1200\n{endif}\nTOOL_CHANGE_START F=[current_extruder] T=[next_extruder]\nDISABLE_ALL_SENSOR\n{if long_retractions_when_cut[previous_extruder]}\nMOVE_TO_TRASH\nG1 E-{retraction_distances_when_cut[previous_extruder]} F{old_filament_e_feedrate}\nM400\n{else}\nG1 E-5 F{old_filament_e_feedrate}\n{endif}\nCUT_FILAMENT T=[current_extruder]\nMOVE_TO_TRASH\nM400\n{if nozzle_temperature_range_high[current_extruder] >= nozzle_temperature_range_high[next_extruder]}\nM104 S{nozzle_temperature_range_high[current_extruder]}\n{else}\nM104 S{nozzle_temperature_range_high[next_extruder]}\n{endif}\nM106 S0\nM106 P2 S0\nUNLOAD_T[current_extruder]\nG92 E0\nM83\nG1 E2 F50\nT[next_extruder]\n{if nozzle_temperature_range_high[current_extruder] >= nozzle_temperature_range_high[next_extruder]}\nSET_HEATER_TEMPERATURE HEATER=extruder TARGET={nozzle_temperature_range_high[current_extruder]} WAIT=1\n{else}\nSET_HEATER_TEMPERATURE HEATER=extruder TARGET={nozzle_temperature_range_high[next_extruder]} WAIT=1\n{endif}\n{if long_retractions_when_cut[previous_extruder]}\nG1 E{retraction_distances_when_cut[previous_extruder]} F{old_filament_e_feedrate}\n{endif}\nM400\nM106 S60\n; FLUSH_START\nG1 E1 F50\nG1 E{65.5 * 0.58} F{old_filament_e_feedrate}\nG1 E{65.5 * 0.02} F50\nG1 E{65.5 * 0.18} F{old_filament_e_feedrate}\nG1 E{65.5 * 0.02} F50\nG1 E{65.5 * 0.18} F{old_filament_e_feedrate}\nG1 E{65.5 * 0.02} F50\nG1 E-[old_retract_length_toolchange] F1800\n; FLUSH_END\n{if flush_length_1 > 1}\nM400\nM106 S255\nG91\nG1 X-5 F60\nG1 X5 F60\nG90\nCLEAR_FLUSH\nM400\nM106 S60\n; FLUSH_START\nG1 E[old_retract_length_toolchange] F300\nG1 E{flush_length_1 * 0.58} F{new_filament_e_feedrate}\nG1 E{flush_length_1 * 0.02} F50\nG1 E{flush_length_1 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_1 * 0.02} F50\nG1 E{flush_length_1 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_1 * 0.02} F50\nG1 E-[old_retract_length_toolchange] F1800\n; FLUSH_END\n{endif}\n{if flush_length_2 > 1}\nM400\nM106 S255\nG91\nG1 X-5 F60\nG1 X5 F60\nG90\nCLEAR_FLUSH\nM400\nM106 S60\n; FLUSH_START\nG1 E[old_retract_length_toolchange] F300\nG1 E{flush_length_2 * 0.58} F{new_filament_e_feedrate}\nG1 E{flush_length_2 * 0.02} F50\nG1 E{flush_length_2 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_2 * 0.02} F50\nG1 E{flush_length_2 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_2 * 0.02} F50\nG1 E-[new_retract_length_toolchange] F1800\n; FLUSH_END\n{endif}\n{if flush_length_3 > 1}\nM400\nM106 S255\nG91\nG1 X-5 F60\nG1 X5 F60\nG90\nCLEAR_FLUSH\nM400\nM106 S60\n; FLUSH_START\nG1 E[new_retract_length_toolchange] F300\nG1 E{flush_length_3 * 0.58} F{new_filament_e_feedrate}\nG1 E{flush_length_3 * 0.02} F50\nG1 E{flush_length_3 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_3 * 0.02} F50\nG1 E{flush_length_3 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_3 * 0.02} F50\nG1 E-[new_retract_length_toolchange] F1800\n; FLUSH_END\n{endif}\n{if flush_length_4 > 1}\nM400\nM106 S255\nG91\nG1 X-5 F60\nG1 X5 F60\nG90\nCLEAR_FLUSH\nM400\nM106 S60\n; FLUSH_START\nG1 E[new_retract_length_toolchange] F300\nG1 E{flush_length_4 * 0.58} F{new_filament_e_feedrate}\nG1 E{flush_length_4 * 0.02} F50\nG1 E{flush_length_4 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_4 * 0.02} F50\nG1 E{flush_length_4 * 0.18} F{new_filament_e_feedrate}\nG1 E{flush_length_4 * 0.02} F50\nG1 E-[new_retract_length_toolchange] F1800\n; FLUSH_END\n{endif}\nM104 S[new_filament_temp]\nM400\nM106 S255\nG91\nG1 X-5 F60\nG1 X5 F60\nG90\nM109 S[new_filament_temp]\nG92 E0\nM400\nCLEAR_FLUSH\nCLEAR_OOZE\nM400\nM106 S0\nTOOL_CHANGE_END\nG1 Y305 F9000\nENABLE_ALL_SENSOR",
+    "machine_pause_gcode": "M0",
     "thumbnails": [
         "272x272",
         "96x96"
     ],
-	"machine_max_jerk_e": [
+    "machine_max_jerk_e": [
         "4"
     ],
     "machine_max_jerk_x": [
@@ -77,20 +78,24 @@
     "machine_max_jerk_z": [
         "4"
     ],
-	"machine_max_acceleration_retracting": [
+    "machine_max_acceleration_retracting": [
         "20000"
     ],
-	"machine_max_speed_z": [
+    "machine_max_speed_z": [
         "20"
     ],
-	"extruder_clearance_radius": "72",
+    "retract_lift_below": [
+        "279"
+    ],
+    "extruder_clearance_radius": "72",
     "extruder_clearance_height_to_rod": "32",
     "extruder_clearance_height_to_lid": "135",
-	"layer_change_gcode": "G92 E0\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
-	"machine_end_gcode": "M141 S0\nM104 S0\nM140 S0\nG1 E-3 F1800\nG0 Z{min(max_print_height, max_layer_z + 3)} F600\nG0 X0 Y0 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}",
-    "machine_start_gcode": "PRINT_START BED=[hot_plate_temp_initial_layer] HOTEND=[nozzle_temperature_initial_layer] CHAMBER=[chamber_temperature]\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\nM83\nM140 S[hot_plate_temp_initial_layer]\nM104 S[nozzle_temperature_initial_layer]\nM141 S[chamber_temperature]\nG4 P3000\nG0 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0)} Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0)} Z5 F6000\nG0 Z[initial_layer_print_height] F600\nG1 E3 F1800\nG1 X{(min(print_bed_max[0] - 12, first_layer_print_min[0] + 80))} E{85 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0) + 2} E{2 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0)} E{85 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0) + 85} E{83 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0) + 2} E{2 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0) + 3} E{82 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0) + 3} Z0\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0) + 6}\nG1 Z1 F600\nSET_PRINT_STATS_INFO CURRENT_LAYER=1\n",
+    "layer_change_gcode": "{if timelapse_type == 1} ; timelapse with wipe tower\nG92 E0\nG1 E-[retraction_length] F1800\nG2 Z{layer_z + 0.4} I0.86 J0.86 P1 F20000 ; spiral lift a little\nG1 Y304 F20000\nG1 X95 F20000\nG92 E0\nM400\nTIMELAPSE_TAKE_FRAME\nG1 Y324 F5000\nG1 E[retraction_length] F300\nG1 X65 F5000\nG1 Y290 F20000\n{elsif timelapse_type == 0} ; timelapse without wipe tower\nTIMELAPSE_TAKE_FRAME\n{endif}\nG92 E0\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
+    "machine_end_gcode": "DISABLE_BOX_HEATER\nM141 S0\nM140 S0\nDISABLE_ALL_SENSOR\nG1 E-3 F1800\nG0 Z{max_layer_z + 3} F600\nUNLOAD_FILAMENT T=[current_extruder]\nG0 Y290 F12000\nG0 X90 Y290 F12000\n{if max_layer_z < max_print_height / 2}G1 Z{max_print_height / 2 + 10} F600{else}G1 Z{min(max_print_height, max_layer_z + 3)}{endif}\nM104 S0",
+    "time_lapse_gcode": "{if timelapse_type == 1} ; timelapse with wipe tower\nG92 E0\nG1 E-[retraction_length] F1800\nG2 Z{layer_z + 0.4} I0.86 J0.86 P1 F20000 ; spiral lift a little\nG1 Y304 F20000\nG1 X95 F20000\nG92 E0\nM400\nTIMELAPSE_TAKE_FRAME\nG1 Y324 F5000\nG1 E[retraction_length] F300\nG1 X65 F5000\nG1 Y290 F20000\n{elsif timelapse_type == 0} ; timelapse without wipe tower\nTIMELAPSE_TAKE_FRAME\n{endif}",
+    "machine_start_gcode": "INIT_MAPPING_VALUE\nPRINT_START BED=[bed_temperature_initial_layer_single] HOTEND=[nozzle_temperature_initial_layer] CHAMBER=[chamber_temperature] EXTRUDER=[initial_no_support_extruder]\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]\nM83\nM140 S[bed_temperature_initial_layer_single]\nM104 S[nozzle_temperature_initial_layer]\nM141 S[chamber_temperature]\nG4 P3000\nT[initial_tool]\nG0 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0)} Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0)} Z5 F6000\nG0 Z[initial_layer_print_height] F600\nG1 E3 F1800\nG1 X{(min(print_bed_max[0] - 12, first_layer_print_min[0] + 80))} E{85 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0) + 2} E{2 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0)} E{85 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0) + 85} E{83 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0) + 2} E{2 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 Y{max((min(print_bed_max[1] - 3, first_layer_print_min[1] + 80) - 85), 0) + 3} E{82 * 0.5 * initial_layer_print_height * nozzle_diameter[0]} F3000\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0) + 3} Z0\nG1 X{max((min(print_bed_max[0] - 12, first_layer_print_min[0] + 80) - 85), 0) + 6}\nG1 Z1 F600\nSET_PRINT_STATS_INFO CURRENT_LAYER=1",
     "thumbnails_format": "PNG",
-	"default_filament_profile": [
-		"Qidi Generic PLA @Qidi X-Plus 4 0.4 nozzle"
-	]
+    "default_filament_profile": [
+        "Qidi Generic PLA @Qidi X-Plus 4 0.4 nozzle"
+    ]
 }

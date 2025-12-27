@@ -1,151 +1,151 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "BIQU Hurakan (0.4 nozzle)",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "BIQU Hurakan",
-  "default_print_profile": "0.20mm Standard @BIQU Hurakan (0.4 nozzle)",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "220x0",
-    "220x220",
-    "0x220"
-  ],
-  "printable_height": "270",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0",
-  "machine_max_acceleration_e": [
-    "10000",
-    "10000"
-  ],
-  "machine_max_acceleration_extruding": [
-    "3000",
-    "3000"
-  ],
-  "machine_max_acceleration_retracting": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_travel": [
-    "3000",
-    "3000"
-  ],
-  "machine_max_acceleration_x": [
-    "3000",
-    "3000"
-  ],
-  "machine_max_acceleration_y": [
-    "3000",
-    "3000"
-  ],
-  "machine_max_acceleration_z": [
-    "500",
-    "500"
-  ],
-  "machine_max_speed_e": [
-    "60",
-    "60"
-  ],
-  "machine_max_speed_x": [
-    "180",
-    "180"
-  ],
-  "machine_max_speed_y": [
-    "180",
-    "180"
-  ],
-  "machine_max_speed_z": [
-    "15",
-    "15"
-  ],
-  "machine_max_jerk_e": [
-    "5",
-    "5"
-  ],
-  "machine_max_jerk_x": [
-    "8",
-    "8"
-  ],
-  "machine_max_jerk_y": [
-    "8",
-    "8"
-  ],
-  "machine_max_jerk_z": [
-    "0.4",
-    "0.4"
-  ],
-  "machine_min_extruding_rate": [
-    "0",
-    "0"
-  ],
-  "machine_min_travel_rate": [
-    "0",
-    "0"
-  ],
-  "max_layer_height": [
-    "0.32"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "extruder_clearance_radius": "50",
-  "extruder_clearance_height_to_rod": "60",
-  "extruder_clearance_height_to_lid": "350",
-  "printer_settings_id": "",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "retraction_minimum_travel": [
-    "1"
-  ],
-  "retract_before_wipe": [
-    "70%"
-  ],
-  "retract_when_changing_layer": [
-    "1"
-  ],
-  "retraction_length": [
-    "4.5"
-  ],
-  "retract_length_toolchange": [
-    "1"
-  ],
-  "z_hop": [
-    "0"
-  ],
-  "retract_restart_extra": [
-    "0"
-  ],
-  "retract_restart_extra_toolchange": [
-    "0"
-  ],
-  "retraction_speed": [
-    "40"
-  ],
-  "deretraction_speed": [
-    "40"
-  ],
-  "z_hop_types": "Normal Lift",
-  "silent_mode": "0",
-  "single_extruder_multi_material": "1",
-  "change_filament_gcode": "",
-  "machine_pause_gcode": "PAUSE\n",
-  "wipe": [
-    "1"
-  ],
-  "default_filament_profile": [
-    "BIQU Generic PLA"
-  ],
-  "bed_exclude_area": [
-    "0x0"
-  ],
-  "machine_start_gcode": "START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\n",
-  "machine_end_gcode": "END_PRINT",
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
-  "scan_first_layer": "0"
+    "type": "machine",
+    "name": "BIQU Hurakan (0.4 nozzle)",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "BIQU Hurakan",
+    "default_print_profile": "0.20mm Standard @BIQU Hurakan (0.4 nozzle)",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "270",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_e": [
+        "10000",
+        "10000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_x": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_y": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "60",
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "180",
+        "180"
+    ],
+    "machine_max_speed_y": [
+        "180",
+        "180"
+    ],
+    "machine_max_speed_z": [
+        "15",
+        "15"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "extruder_clearance_radius": "50",
+    "extruder_clearance_height_to_rod": "60",
+    "extruder_clearance_height_to_lid": "350",
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "4.5"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "z_hop_types": "Normal Lift",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "PAUSE\n",
+    "wipe": [
+        "1"
+    ],
+    "default_filament_profile": [
+        "Generic PLA @System"
+    ],
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "machine_start_gcode": "START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\n",
+    "machine_end_gcode": "END_PRINT",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "scan_first_layer": "0"
 }

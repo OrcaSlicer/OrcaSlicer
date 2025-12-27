@@ -1,17 +1,17 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 ABS @0.8 nozzle",
-  "setting_id": "2302229921",
-  "inherits": "Snapmaker J1 ABS @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.8 nozzle)"
-  ],
-  "filament_max_volumetric_speed": [
-    "16"
-  ],
-  "slow_down_min_speed": [
-    "10"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 ABS @0.8 nozzle",
+    "inherits": "Snapmaker J1 ABS @base",
+    "from": "system",
+    "setting_id": "2302229921",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.8 nozzle)"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ]
 }

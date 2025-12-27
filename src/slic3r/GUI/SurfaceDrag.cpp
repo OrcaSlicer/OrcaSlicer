@@ -596,7 +596,7 @@ Transform3d get_volume_transformation(
     std::optional<float> current_angle,    
     const std::optional<double> &up_limit) 
 {
-    auto world_linear = world.linear();
+    auto world_linear = world.linear().eval();
     // Calculate offset: transformation to wanted position
     {
         // Reset skew of the text Z axis:
@@ -609,7 +609,7 @@ Transform3d get_volume_transformation(
     Vec3d       text_z_world     = world_linear.col(2); // world_linear * Vec3d::UnitZ()
     auto        z_rotation       = Eigen::Quaternion<double, Eigen::DontAlign>::FromTwoVectors(text_z_world, world_dir);
     Transform3d world_new        = z_rotation * world;
-    auto        world_new_linear = world_new.linear();
+    auto        world_new_linear = world_new.linear().eval();
 
     // Fix direction of up vector to zero initial rotation
     if(up_limit.has_value()){

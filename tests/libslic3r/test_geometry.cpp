@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/BoundingBox.hpp"
@@ -33,7 +33,7 @@ TEST_CASE("Line::parallel_to", "[Geometry]"){
 
     Line l4(l2);
     l4.rotate(1.1 * EPSILON, { 0, 0 });
-    REQUIRE(! l.parallel_to(l4));
+    REQUIRE_FALSE(l.parallel_to(l4));
 
     // The angle epsilon is so low that vectors shorter than 100um rotated by epsilon radians are not rotated at all.
     Line l5{ { 20000, 0 }, { 0, 0 } };
@@ -48,13 +48,13 @@ TEST_CASE("Line::parallel_to", "[Geometry]"){
     l4.rotate(1., { 0, 0 });
     l4.translate(offset);
     REQUIRE(l.parallel_to(l3));
-    REQUIRE(!l.parallel_to(l4));
+    REQUIRE_FALSE(l.parallel_to(l4));
 }
 
 TEST_CASE("Line::perpendicular_to", "[Geometry]") {
     Line l{ { 100000, 0 }, { 0, 0 } };
     Line l2{ { 0, 200000 }, { 0, 0 } };
-    REQUIRE(! l.perpendicular_to(l));
+    REQUIRE_FALSE(l.perpendicular_to(l));
     REQUIRE(l.perpendicular_to(l2));
 
     Line l3(l2);
@@ -63,7 +63,7 @@ TEST_CASE("Line::perpendicular_to", "[Geometry]") {
 
     Line l4(l2);
     l4.rotate(1.1 * EPSILON, { 0, 0 });
-    REQUIRE(! l.perpendicular_to(l4));
+    REQUIRE_FALSE(l.perpendicular_to(l4));
 
     // The angle epsilon is so low that vectors shorter than 100um rotated by epsilon radians are not rotated at all.
     Line l5{ { 0, 20000 }, { 0, 0 } };
@@ -78,12 +78,12 @@ TEST_CASE("Line::perpendicular_to", "[Geometry]") {
     l4.rotate(1., { 0, 0 });
     l4.translate(offset);
     REQUIRE(l.perpendicular_to(l3));
-    REQUIRE(! l.perpendicular_to(l4));
+    REQUIRE_FALSE(l.perpendicular_to(l4));
 }
 
 TEST_CASE("Polygon::contains works properly", "[Geometry]"){
    // this test was failing on Windows (GH #1950)
-    Slic3r::Polygon polygon(std::vector<Point>({
+    Slic3r::Polygon polygon(Points({
         Point(207802834,-57084522),
         Point(196528149,-37556190),
         Point(173626821,-25420928),
@@ -125,7 +125,7 @@ SCENARIO("polygon_is_convex works") {
         WHEN("Polygon is convex clockwise") {
             Polygon cw_square  { { {0, 0}, {0,10}, {10,10}, {10,0} } };
             THEN("it is not convex") {
-                REQUIRE(! polygon_is_convex(cw_square));
+                REQUIRE_FALSE(polygon_is_convex(cw_square));
             }
         }
         WHEN("Polygon is convex counter-clockwise") {
@@ -138,14 +138,14 @@ SCENARIO("polygon_is_convex works") {
     GIVEN("A concave polygon") {
         Polygon concave = { {0,0}, {10,0}, {10,10}, {0,10}, {0,6}, {4,6}, {4,4}, {0,4} };
         THEN("It is not convex") {
-            REQUIRE(! polygon_is_convex(concave));
+            REQUIRE_FALSE(polygon_is_convex(concave));
         }
     }
 }
 
 TEST_CASE("Creating a polyline generates the obvious lines", "[Geometry]"){
     Slic3r::Polyline polyline;
-    polyline.points = std::vector<Point>({Point(0, 0), Point(10, 0), Point(20, 0)});
+    polyline.points = Points({Point(0, 0), Point(10, 0), Point(20, 0)});
     REQUIRE(polyline.lines().at(0).a == Point(0,0));
     REQUIRE(polyline.lines().at(0).b == Point(10,0));
     REQUIRE(polyline.lines().at(1).a == Point(10,0));
@@ -153,7 +153,7 @@ TEST_CASE("Creating a polyline generates the obvious lines", "[Geometry]"){
 }
 
 TEST_CASE("Splitting a Polygon generates a polyline correctly", "[Geometry]"){
-    Slic3r::Polygon polygon(std::vector<Point>({Point(0, 0), Point(10, 0), Point(5, 5)}));
+    Slic3r::Polygon polygon(Points({Point(0, 0), Point(10, 0), Point(5, 5)}));
     Slic3r::Polyline split = polygon.split_at_index(1);
     REQUIRE(split.points[0]==Point(10,0));
     REQUIRE(split.points[1]==Point(5,5));
@@ -163,7 +163,7 @@ TEST_CASE("Splitting a Polygon generates a polyline correctly", "[Geometry]"){
 
 
 TEST_CASE("Bounding boxes are scaled appropriately", "[Geometry]"){
-    BoundingBox bb(std::vector<Point>({Point(0, 1), Point(10, 2), Point(20, 2)}));
+    BoundingBox bb(Points({Point(0, 1), Point(10, 2), Point(20, 2)}));
     bb.scale(2);
     REQUIRE(bb.min == Point(0,2));
     REQUIRE(bb.max == Point(40,4));
@@ -173,7 +173,7 @@ TEST_CASE("Bounding boxes are scaled appropriately", "[Geometry]"){
 TEST_CASE("Offseting a line generates a polygon correctly", "[Geometry]"){
 	Slic3r::Polyline tmp = { Point(10,10), Point(20,10) };
     Slic3r::Polygon area = offset(tmp,5).at(0);
-    REQUIRE(area.area() == Slic3r::Polygon(std::vector<Point>({Point(10,5),Point(20,5),Point(20,15),Point(10,15)})).area());
+    REQUIRE(area.area() == Slic3r::Polygon(Points({Point(10,5),Point(20,5),Point(20,15),Point(10,15)})).area());
 }
 
 SCENARIO("Circle Fit, TaubinFit with Newton's method", "[Geometry]") {
@@ -288,10 +288,10 @@ TEST_CASE("smallest_enclosing_circle_welzl", "[Geometry]") {
 
 SCENARIO("Path chaining", "[Geometry]") {
 	GIVEN("A path") {
-		std::vector<Point> points = { Point(26,26),Point(52,26),Point(0,26),Point(26,52),Point(26,0),Point(0,52),Point(52,52),Point(52,0) };
+		Points points = { Point(26,26),Point(52,26),Point(0,26),Point(26,52),Point(26,0),Point(0,52),Point(52,52),Point(52,0) };
 		THEN("Chained with no diagonals (thus 26 units long)") {
-			std::vector<Points::size_type> indices = chain_points(points);
-			for (Points::size_type i = 0; i + 1 < indices.size(); ++ i) {
+			std::vector<size_t> indices = chain_points(points);
+			for (size_t i = 0; i + 1 < indices.size(); ++ i) {
 				double dist = (points.at(indices.at(i)).cast<double>() - points.at(indices.at(i+1)).cast<double>()).norm();
 				REQUIRE(std::abs(dist-26) <= EPSILON);
 			}
@@ -375,92 +375,136 @@ SCENARIO("Line distances", "[Geometry]"){
 
 SCENARIO("Polygon convex/concave detection", "[Geometry]"){
     GIVEN(("A Square with dimension 100")){
-        auto square = Slic3r::Polygon /*new_scale*/(std::vector<Point>({
+        auto square = Slic3r::Polygon /*new_scale*/(Points({
             Point(100,100),
             Point(200,100),
             Point(200,200),
             Point(100,200)}));
-        THEN("It has 4 convex points counterclockwise"){
-            REQUIRE(square.concave_points(PI*4/3).size() == 0);
-            REQUIRE(square.convex_points(PI*2/3).size() == 4);
-        }
-        THEN("It has 4 concave points clockwise"){
-            square.make_clockwise();
-            REQUIRE(square.concave_points(PI*4/3).size() == 4);
-            REQUIRE(square.convex_points(PI*2/3).size() == 0);
-        }
+
+		WHEN("Angle threshold is not set") {
+			THEN("It has 4 convex points counterclockwise"){
+				auto cave_pts = square.concave_points();
+				auto vex_pts = square.convex_points();
+				CAPTURE(cave_pts);
+				CAPTURE(vex_pts);
+				REQUIRE(cave_pts.size() == 0);
+				REQUIRE(vex_pts.size() == 4);
+			}
+			THEN("It has 4 concave points clockwise"){
+				square.make_clockwise();
+				auto cave_pts = square.concave_points();
+				auto vex_pts = square.convex_points();
+				CAPTURE(cave_pts);
+				CAPTURE(vex_pts);
+				REQUIRE(cave_pts.size() == 4);
+				REQUIRE(vex_pts.size() == 0);
+			}
+		}
+		WHEN("Angle threshold is greater than right angle") {
+			double angle_threshold = M_PI*4/3;
+			THEN("It has no convex points counterclockwise"){
+				auto cave_pts = square.concave_points(angle_threshold);
+				auto vex_pts = square.convex_points(angle_threshold);
+				CAPTURE(cave_pts);
+				CAPTURE(vex_pts);
+				REQUIRE(cave_pts.size() == 0);
+				REQUIRE(vex_pts.size() == 0);
+			}
+			THEN("It has no concave points clockwise"){
+				square.make_clockwise();
+				auto cave_pts = square.concave_points(angle_threshold);
+				auto vex_pts = square.convex_points(angle_threshold);
+				CAPTURE(cave_pts);
+				CAPTURE(vex_pts);
+				REQUIRE(cave_pts.size() == 0);
+				REQUIRE(vex_pts.size() == 0);
+			}
+		}
+		WHEN("Angle threshold is less than right angle") {
+			double angle_threshold = M_PI/3;
+			THEN("It has 4 convex points counterclockwise"){
+				auto cave_pts = square.concave_points(angle_threshold);
+				auto vex_pts = square.convex_points(angle_threshold);
+				CAPTURE(cave_pts);
+				CAPTURE(vex_pts);
+				REQUIRE(cave_pts.size() == 0);
+				REQUIRE(vex_pts.size() == 4);
+			}
+			THEN("It has 4 concave points clockwise"){
+				square.make_clockwise();
+				auto cave_pts = square.concave_points(angle_threshold);
+				auto vex_pts = square.convex_points(angle_threshold);
+				CAPTURE(cave_pts);
+				CAPTURE(vex_pts);
+				REQUIRE(cave_pts.size() == 4);
+				REQUIRE(vex_pts.size() == 0);
+			}
+		}
+		WHEN("Angle threshold is equal to right angle") {
+			double angle_threshold = M_PI/2;
+			THEN("It has no convex points counterclockwise"){
+				auto cave_pts = square.concave_points(angle_threshold);
+				auto vex_pts = square.convex_points(angle_threshold);
+				CAPTURE(cave_pts);
+				CAPTURE(vex_pts);
+				REQUIRE(cave_pts.size() == 0);
+				REQUIRE(vex_pts.size() == 0);
+			}
+		}
     }
     GIVEN("A Square with an extra colinearvertex"){
-        auto square = Slic3r::Polygon /*new_scale*/(std::vector<Point>({
+        auto square = Slic3r::Polygon /*new_scale*/(Points({
             Point(150,100),
             Point(200,100),
             Point(200,200),
             Point(100,200),
             Point(100,100)}));
         THEN("It has 4 convex points counterclockwise"){
-            REQUIRE(square.concave_points(PI*4/3).size() == 0);
-            REQUIRE(square.convex_points(PI*2/3).size() == 4);
+            REQUIRE(square.concave_points().size() == 0);
+            REQUIRE(square.convex_points().size() == 4);
         }
     }
     GIVEN("A Square with an extra collinear vertex in different order"){
-        auto square = Slic3r::Polygon /*new_scale*/(std::vector<Point>({
+        auto square = Slic3r::Polygon /*new_scale*/(Points({
             Point(200,200),
             Point(100,200),
             Point(100,100),
             Point(150,100),
             Point(200,100)}));
         THEN("It has 4 convex points counterclockwise"){
-            REQUIRE(square.concave_points(PI*4/3).size() == 0);
-            REQUIRE(square.convex_points(PI*2/3).size() == 4);
+            REQUIRE(square.concave_points().size() == 0);
+            REQUIRE(square.convex_points().size() == 4);
         }
     }
 
     GIVEN("A triangle"){
-        auto triangle = Slic3r::Polygon(std::vector<Point>({
+        auto triangle = Slic3r::Polygon(Points({
             Point(16000170,26257364),
             Point(714223,461012),
             Point(31286371,461008)
         }));
         THEN("it has three convex vertices"){
-            REQUIRE(triangle.concave_points(PI*4/3).size() == 0);
-            REQUIRE(triangle.convex_points(PI*2/3).size() == 3);
+            REQUIRE(triangle.concave_points().size() == 0);
+            REQUIRE(triangle.convex_points().size() == 3);
         }
     }
 
     GIVEN("A triangle with an extra collinear point"){
-        auto triangle = Slic3r::Polygon(std::vector<Point>({
+        auto triangle = Slic3r::Polygon(Points({
             Point(16000170,26257364),
             Point(714223,461012),
             Point(20000000,461012),
             Point(31286371,461012)
         }));
         THEN("it has three convex vertices"){
-            REQUIRE(triangle.concave_points(PI*4/3).size() == 0);
-            REQUIRE(triangle.convex_points(PI*2/3).size() == 3);
-        }
-    }
-    GIVEN("A polygon with concave vertices with angles of specifically 4/3pi"){
-        // Two concave vertices of this polygon have angle = PI*4/3, so this test fails
-        // if epsilon is not used.
-        auto polygon = Slic3r::Polygon(std::vector<Point>({
-            Point(60246458,14802768),Point(64477191,12360001),
-            Point(63727343,11060995),Point(64086449,10853608),
-            Point(66393722,14850069),Point(66034704,15057334),
-            Point(65284646,13758387),Point(61053864,16200839),
-            Point(69200258,30310849),Point(62172547,42483120),
-            Point(61137680,41850279),Point(67799985,30310848),
-            Point(51399866,1905506),Point(38092663,1905506),
-            Point(38092663,692699),Point(52100125,692699)
-        }));
-        THEN("the correct number of points are detected"){
-            REQUIRE(polygon.concave_points(PI*4/3).size() == 6);
-            REQUIRE(polygon.convex_points(PI*2/3).size() == 10);
+            REQUIRE(triangle.concave_points().size() == 0);
+            REQUIRE(triangle.convex_points().size() == 3);
         }
     }
 }
 
 TEST_CASE("Triangle Simplification does not result in less than 3 points", "[Geometry]"){
-    auto triangle = Slic3r::Polygon(std::vector<Point>({
+    auto triangle = Slic3r::Polygon(Points({
         Point(16000170,26257364), Point(714223,461012), Point(31286371,461008)
     }));
     REQUIRE(triangle.simplify(250000).at(0).points.size() == 3);
@@ -482,8 +526,8 @@ SCENARIO("Ported from xs/t/14_geometry.t", "[Geometry]"){
     	REQUIRE(Slic3r::Geometry::directions_parallel(0, M_PI, 0)); 
     	REQUIRE(Slic3r::Geometry::directions_parallel(0, 0, M_PI / 180));
     	REQUIRE(Slic3r::Geometry::directions_parallel(0, M_PI, M_PI / 180));
-    	REQUIRE(! Slic3r::Geometry::directions_parallel(M_PI /2, M_PI, 0));
-    	REQUIRE(! Slic3r::Geometry::directions_parallel(M_PI /2, PI, M_PI /180));
+    	REQUIRE_FALSE(Slic3r::Geometry::directions_parallel(M_PI /2, M_PI, 0));
+    	REQUIRE_FALSE(Slic3r::Geometry::directions_parallel(M_PI /2, PI, M_PI /180));
     }
 }
 

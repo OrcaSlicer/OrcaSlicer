@@ -5,9 +5,7 @@
     "instantiation": "false",
     "printer_technology": "FFF",
     "gcode_flavor": "klipper",
-
     "auxiliary_fan": "0",
-
     "bed_exclude_area": [
         "0x0"
     ],
@@ -16,7 +14,7 @@
     "cooling_tube_length": "5",
     "cooling_tube_retraction": "91.5",
     "default_filament_profile": [
-        "FlyingBear PLA"
+        "FlyingBear Generic PLA"
     ],
     "default_print_profile": "0.20mm Standard @FlyingBear Reborn3",
     "deretraction_speed": [
@@ -36,11 +34,7 @@
     "fan_kickstart": "0",
     "fan_speedup_overhangs": "1",
     "fan_speedup_time": "0",
-
-
     "high_current_on_filament_swap": "0",
-
- 
     "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
     "machine_end_gcode": "PRINT_END",
     "machine_load_filament_time": "0",
@@ -120,8 +114,6 @@
     "min_layer_height": [
         "0.08"
     ],
-
-
     "nozzle_hrc": "0",
     "nozzle_type": "brass",
     "nozzle_volume": "151.32",
@@ -137,7 +129,6 @@
     "printer_model": "Generic Klipper Printer",
     "printer_notes": "",
     "printer_settings_id": "FlyingBear Reborn3 0.4 nozzle",
-
     "printer_variant": "0.4",
     "printhost_apikey": "",
     "printhost_authorization_type": "key",
@@ -190,7 +181,6 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
-    "version": "1.6.0.0",
     "wipe": [
         "1"
     ],

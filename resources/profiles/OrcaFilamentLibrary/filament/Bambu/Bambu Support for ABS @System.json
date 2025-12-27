@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Bambu Support for ABS @System",
+    "inherits": "Bambu Support for ABS @base",
+    "from": "system",
+    "setting_id": "OGFSS06_00",
+    "instantiation": "true",
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "compatible_printers": []
+}

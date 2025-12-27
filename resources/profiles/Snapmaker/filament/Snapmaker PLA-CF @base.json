@@ -1,32 +1,32 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker PLA-CF @base",
-  "filament_id": "3864371306",
-  "inherits": "fdm_filament_pla",
-  "required_nozzle_HRC": [
-    "40"
-  ],
-  "filament_flow_ratio": [
-    "0.95"
-  ],
-  "filament_max_volumetric_speed": [
-    "12"
-  ],
-  "temperature_vitrification": [
-    "150"
-  ],
-  "slow_down_layer_time": [
-    "7"
-  ],
-  "default_filament_colour": [
-    "#3D3C39"
-  ],
-  "filament_type": [
-    "PLA-CF"
-  ],
-  "additional_cooling_fan_speed": [
-    "0"
-  ]
+    "type": "filament",
+    "name": "Snapmaker PLA-CF @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "3864371306",
+    "instantiation": "false",
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "temperature_vitrification": [
+        "150"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "filament_type": [
+        "PLA-CF"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ]
 }

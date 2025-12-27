@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Overture Silk PLA @System",
+    "inherits": "Overture Silk PLA @base",
+    "from": "system",
+    "setting_id": "OGFOT002",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

@@ -1,23 +1,23 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker PLA Silk @base",
-  "filament_id": "1655727393",
-  "inherits": "fdm_filament_pla",
-  "hot_plate_temp_initial_layer": [
-    "65"
-  ],
-  "filament_cost": [
-    "70"
-  ],
-  "filament_max_volumetric_speed": [
-    "7.5"
-  ],
-  "filament_retraction_length": [
-    "0.5"
-  ],
-  "default_filament_colour": [
-    "#CF942B"
-  ]
+    "type": "filament",
+    "name": "Snapmaker PLA Silk @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "1655727393",
+    "instantiation": "false",
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "filament_cost": [
+        "70"
+    ],
+    "filament_max_volumetric_speed": [
+        "7.5"
+    ],
+    "filament_retraction_length": [
+        "0.5"
+    ],
+    "default_filament_colour": [
+        ""
+    ]
 }

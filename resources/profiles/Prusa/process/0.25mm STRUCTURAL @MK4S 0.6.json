@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.25mm STRUCTURAL @MK4S 0.6",
+    "inherits": "0.25mm SPEED @MK4S 0.6",
+    "from": "system",
+    "instantiation": "true",
+    "bridge_speed": "30",
+    "compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.6",
+    "inner_wall_acceleration": "2500",
+    "inner_wall_speed": "80",
+    "outer_wall_acceleration": "1500",
+    "outer_wall_speed": "45",
+    "small_perimeter_speed": "45"
+}

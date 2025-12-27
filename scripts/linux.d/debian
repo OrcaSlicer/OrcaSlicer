@@ -1,0 +1,64 @@
+#!/bin/bash
+
+REQUIRED_DEV_PACKAGES=(
+    autoconf
+    build-essential
+    cmake
+    eglexternalplatform-dev
+    extra-cmake-modules
+    file
+    g++
+    gettext
+    git
+    libcurl4-openssl-dev
+    libdbus-1-dev
+    libglew-dev
+    libgstreamerd-3-dev
+    libgtk-3-dev
+    libmspack-dev
+    libsecret-1-dev
+    libspnav-dev
+    libssl-dev
+    libtool
+    libudev-dev
+    ninja-build
+    texinfo
+    wget
+)
+
+if [[ -n "$UPDATE_LIB" ]]
+then
+    # shellcheck source=/dev/null
+    source /etc/os-release
+    if [ "${ID}" == "ubuntu" ] && [ -n "${VERSION_ID}" ]; then
+        # It's ubuntu and we have a VERSION_ID like "24.04".
+        if dpkg --compare-versions "${VERSION_ID}" ge 22 && dpkg --compare-versions "${VERSION_ID}" lt 24 ;
+        then
+            # Some extra packages needed on Ubuntu 22.x and 23.x:
+            REQUIRED_DEV_PACKAGES+=(curl libfuse-dev m4)
+        fi
+    fi
+
+    if [[ -n "$BUILD_DEBUG" ]]
+    then
+        REQUIRED_DEV_PACKAGES+=(libssl-dev libcurl4-openssl-dev)
+    fi
+
+    # check which version of libwebkit2gtk is available
+    if [ "$(apt show --quiet libwebkit2gtk-4.0-dev 2>/dev/null)" != "" ]
+    then
+        REQUIRED_DEV_PACKAGES+=(libwebkit2gtk-4.0-dev)
+    else
+        REQUIRED_DEV_PACKAGES+=(libwebkit2gtk-4.1-dev)
+    fi
+
+    # install them all at once
+    sudo apt update
+    sudo apt install -y "${REQUIRED_DEV_PACKAGES[@]}"
+
+    echo -e "done\n"
+    exit 0
+fi
+
+export FOUND_GTK3_DEV
+FOUND_GTK3_DEV=$(dpkg -l libgtk* | grep gtk-3-dev || echo '')

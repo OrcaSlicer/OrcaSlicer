@@ -1,0 +1,21 @@
+{
+    "type": "process",
+    "name": "fdm_process_zbolt_0.28",
+    "inherits": "fdm_process_zbolt_common",
+    "from": "system",
+    "instantiation": "false",
+    "layer_height": "0.28",
+    "elefant_foot_compensation": "0.15",
+    "top_surface_line_width": "0.45",
+    "top_shell_thickness": "1.0",
+    "bridge_flow": "1",
+    "initial_layer_speed": "40",
+    "initial_layer_infill_speed": "60",
+    "outer_wall_speed": "200",
+    "inner_wall_speed": "200",
+    "sparse_infill_speed": "200",
+    "internal_solid_infill_speed": "200",
+    "gap_infill_speed": "200",
+    "support_threshold_angle": "40",
+    "top_shell_layers": "4"
+}

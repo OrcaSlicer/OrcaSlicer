@@ -1,0 +1,47 @@
+{
+    "type": "filament",
+    "name": "DeltaMaker Generic PETG",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "compatible_printers": [
+        "DeltaMaker 2 0.35 nozzle",
+        "DeltaMaker 2T 0.5 nozzle",
+        "DeltaMaker 2XT 0.5 nozzle"
+    ]
+}

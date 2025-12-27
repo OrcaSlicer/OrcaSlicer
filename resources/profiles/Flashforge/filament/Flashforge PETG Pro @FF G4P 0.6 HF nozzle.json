@@ -1,0 +1,73 @@
+{
+    "type": "filament",
+    "name": "Flashforge PETG Pro @FF G4P 0.6 HF nozzle",
+    "inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "75"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "75"
+    ],
+    "filament_density": [
+        "1.28"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "25"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_ramming_parameters": [
+        "105 105 6.68817 6.75269 6.51613 7.54839 11.9355 17.5054 19.957 19.828 19.828 18.9892 13.0538 4.08602 0.0430108 0.387097 0.666667 0.344086| 0.05 6.6 0.45 6.8 0.95 7.97204 1.45 19.4828 1.95 19.5495 2.45 18.7742 2.95 0.331183 3.45 0.632258 3.95 0.116129 4.45 7.6 4.95 7.6"
+    ],
+    "filament_settings_id": [
+        "Flashforge PETG Pro @FF G4P 0.6 HF nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n; right_extruder_material:PETG"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 Pro 0.6 HF nozzle"
+    ],
+    "nozzle_temperature": [
+        "235"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "support_material_interface_fan_speed": [
+        "100"
+    ],
+    "textured_cool_plate_temp": [
+        "75"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "75"
+    ],
+    "textured_plate_temp": [
+        "75"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "75"
+    ]
+}

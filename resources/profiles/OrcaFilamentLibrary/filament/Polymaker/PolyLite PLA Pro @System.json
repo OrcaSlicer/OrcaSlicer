@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "PolyLite PLA Pro @System",
+    "inherits": "PolyLite PLA Pro @base",
+    "from": "system",
+    "setting_id": "OGFSPM019",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

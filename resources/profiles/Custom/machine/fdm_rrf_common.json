@@ -1,9 +1,9 @@
 {
     "type": "machine",
     "name": "fdm_rrf_common",
+    "inherits": "fdm_machine_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_machine_common",
     "gcode_flavor": "reprapfirmware",
     "machine_max_acceleration_e": [
         "5000",
@@ -124,7 +124,7 @@
         "1"
     ],
     "default_filament_profile": [
-        "My Generic ABS"
+        "Generic PLA @System"
     ],
     "default_print_profile": "0.20mm Standard @MyRRF",
     "bed_exclude_area": [

@@ -1,22 +1,22 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "InfiMech TX 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "InfiMech TX",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "z_hop": [
-    "0.4"
-  ],
-  "printable_area": [
-   "0x0",
-   "220x0",
-   "220x220",
-   "0x220"
-  ],
-  "printable_height": "250"
+    "type": "machine",
+    "name": "InfiMech TX 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "InfiMech TX",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "250"
 }

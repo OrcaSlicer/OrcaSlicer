@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_creality_common_0_8",
+    "inherits": "fdm_process_creality_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_creality_common",
     "outer_wall_line_width": "0.84",
     "line_width": "0.88",
     "initial_layer_line_width": "0.84",

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Polymaker HT-PLA @System",
+    "inherits": "Polymaker HT-PLA @base",
+    "from": "system",
+    "setting_id": "OGFSPM017",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

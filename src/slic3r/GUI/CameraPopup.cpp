@@ -10,6 +10,9 @@
 #include "GUI_App.hpp"
 #include <slic3r/GUI/StatusPanel.hpp>
 
+#include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevStorage.h"
+
 namespace Slic3r {
 namespace GUI {
 
@@ -214,7 +217,7 @@ void CameraPopup::set_custom_cam_button_state(bool state)
 void CameraPopup::on_switch_recording(wxCommandEvent& event)
 {
     if (!m_obj) return;
-    if (m_obj->sdcard_state != MachineObject::SdcardState::HAS_SDCARD_NORMAL) {
+    if (m_obj->GetStorage()->get_sdcard_state()  != DevStorage::SdcardState::HAS_SDCARD_NORMAL) {
         sdcard_absent_hint();
         return;
     }
@@ -406,9 +409,9 @@ void CameraPopup::update(bool vcamera_streaming)
 wxString CameraPopup::to_resolution_label_string(CameraResolution resolution) {
     switch (resolution) {
     case RESOLUTION_720P:
-        return _L("720p");
+        return "720p";
     case RESOLUTION_1080P:
-        return _L("1080p");
+        return "1080p";
     default:
         return "";
     }

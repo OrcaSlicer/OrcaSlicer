@@ -1,0 +1,26 @@
+{
+    "type": "machine",
+    "name": "Prusa CORE One 0.25 nozzle",
+    "inherits": "Prusa CORE One HF 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "default_print_profile": "0.12mm STRUCTURAL @CORE One 0.25",
+    "machine_max_jerk_x": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "8"
+    ],
+    "max_layer_height": "0.15",
+    "min_layer_height": "0.05",
+    "nozzle_diameter": [
+        "0.25"
+    ],
+    "printer_model": "Prusa CORE One",
+    "printer_notes": "Don't remove the following keywords! These keywords are used in the \"compatible printer\" condition of the print and filament profiles to link the particular print and filament profiles to this printer profile.\nPRINTER_MODEL_COREONE\nPG\nNO_TEMPLATES",
+    "printer_variant": "0.25",
+    "retraction_length": "0.8",
+    "z_hop": "0.15"
+}

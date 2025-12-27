@@ -1030,6 +1030,9 @@ void reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const s
 
 void chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near)
 {
+    // this function crashes if there are empty elements in entities
+    entities.erase(std::remove_if(entities.begin(), entities.end(), [](ExtrusionEntity *entity) { return static_cast<ExtrusionEntityCollection *>(entity)->empty(); }),
+                   entities.end());
 	reorder_extrusion_entities(entities, chain_extrusion_entities(entities, start_near));
 }
 

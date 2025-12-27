@@ -17,7 +17,7 @@ namespace EdgeGrid {
 
 struct TrimmedLoop
 {
-	std::vector<Point> 			points;
+	Points          			points;
 	// Number of points per segment. Empty if the loop is 
 	std::vector<unsigned int> 	segments;
 

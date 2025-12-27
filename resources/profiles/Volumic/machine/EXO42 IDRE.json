@@ -1,0 +1,10 @@
+{
+    "type": "machine_model",
+    "name": "EXO42 IDRE",
+    "model_id": "V420I",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "VOLUMIC",
+    "bed_model": "EXO42_bed.STL",
+    "default_materials": "Volumic PLA Ultra"
+}

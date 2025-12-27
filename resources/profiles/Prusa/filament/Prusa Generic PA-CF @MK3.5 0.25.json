@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFN98_4",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PA-CF @MK3.5 0.25",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFN98_4",
+    "instantiation": "true",
     "filament_type": [
         "PA-CF"
     ],
@@ -27,8 +27,7 @@
     "pressure_advance": [
         "0.14"
     ],
-
     "compatible_printers": [
-      "Prusa MK3.5 0.25 nozzle"
+        "Prusa MK3.5 0.25 nozzle"
     ]
 }

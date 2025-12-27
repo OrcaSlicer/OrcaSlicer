@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "CoLiDo DIY 4.0",
+    "model_id": "CoLiDo_DIY_4_0",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "CoLiDo",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "CoLiDo Generic PLA @CoLiDo DIY 4.0;CoLiDo Generic ABS @CoLiDo DIY 4.0;CoLiDo Generic PETG @CoLiDo DIY 4.0;CoLiDo Generic TPU @CoLiDo DIY 4.0"
+}

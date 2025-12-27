@@ -1,14 +1,14 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.54mm Extra Draft 0.8 nozzle @Blocks_RD50_V2",
-    "from": "system",
     "inherits": "fdm_process_common 0.8 nozzle",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "layer_height": "0.54",
     "bottom_shell_layers": "3",
     "top_shell_layers": "4",
-    "top_solid_infill_flow_ratio":"0.96",
+    "top_solid_infill_flow_ratio": "0.96",
     "compatible_printers": [
         "BLOCKS RD50 V2",
         "BLOCKS RD50 V2 0.8 nozzle"

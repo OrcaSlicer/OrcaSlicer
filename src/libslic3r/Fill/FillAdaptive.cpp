@@ -349,8 +349,9 @@ std::pair<double, double> adaptive_fill_line_spacing(const PrintObject &print_ob
             } else
                 return 0.;
         };
-        adaptive_line_spacing = to_line_spacing(adaptive_cnt, adaptive_fill_density, adaptive_infill_extrusion_width);
-        support_line_spacing  = to_line_spacing(support_cnt, support_fill_density, support_infill_extrusion_width);
+        const int n_multiline = print_object.printing_region(0).config().fill_multiline.value;
+        adaptive_line_spacing = to_line_spacing(adaptive_cnt, adaptive_fill_density, adaptive_infill_extrusion_width) * n_multiline;
+        support_line_spacing  = to_line_spacing(support_cnt, support_fill_density, support_infill_extrusion_width) * n_multiline;
     }
 
     return std::make_pair(adaptive_line_spacing, support_line_spacing);
@@ -1369,42 +1370,48 @@ void Filler::_fill_surface_single(
         // Convert lines to polylines.
         all_polylines.reserve(lines.size());
         std::transform(lines.begin(), lines.end(), std::back_inserter(all_polylines), [](const Line& l) { return Polyline{ l.a, l.b }; });
+
+        // Apply multiline offset if needed
+        multiline_fill(all_polylines, params, spacing);
+
         // Crop all polylines
         all_polylines = intersection_pl(std::move(all_polylines), expolygon);
 #endif
     }
 
-    // After intersection_pl some polylines with only one line are split into more lines
-    for (Polyline &polyline : all_polylines) {
-        //FIXME assert that all the points are collinear and in between the start and end point.
-        if (polyline.points.size() > 2)
-            polyline.points.erase(polyline.points.begin() + 1, polyline.points.end() - 1);
-    }
-//    assert(has_no_collinear_lines(all_polylines));
+    if (params.multiline == 1) {
+        // After intersection_pl some polylines with only one line are split into more lines
+        for (Polyline& polyline : all_polylines) {
+            // FIXME assert that all the points are collinear and in between the start and end point.
+            if (polyline.points.size() > 2)
+                polyline.points.erase(polyline.points.begin() + 1, polyline.points.end() - 1);
+        }
+        //    assert(has_no_collinear_lines(all_polylines));
 
 #ifdef ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT
-    {
-        static int iRun = 0;
-        export_infill_lines_to_svg(expolygon, all_polylines, debug_out_path("FillAdaptive-initial-%d.svg", iRun++));
-    }
+        {
+            static int iRun = 0;
+            export_infill_lines_to_svg(expolygon, all_polylines, debug_out_path("FillAdaptive-initial-%d.svg", iRun++));
+        }
 #endif /* ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT */
 
-    const auto hook_length     = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length)));
-    const auto hook_length_max = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length_max)));
+        const auto hook_length     = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length)));
+        const auto hook_length_max = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length_max)));
 
     Polylines all_polylines_with_hooks = all_polylines.size() > 1 ? connect_lines_using_hooks(std::move(all_polylines), expolygon, this->spacing, hook_length, hook_length_max) : std::move(all_polylines);
 
 #ifdef ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT
-    {
-        static int iRun = 0;
-        export_infill_lines_to_svg(expolygon, all_polylines_with_hooks, debug_out_path("FillAdaptive-hooks-%d.svg", iRun++));
-    }
+        {
+            static int iRun = 0;
+            export_infill_lines_to_svg(expolygon, all_polylines_with_hooks, debug_out_path("FillAdaptive-hooks-%d.svg", iRun++));
+        }
 #endif /* ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT */
 
-    if (params.dont_connect() || all_polylines_with_hooks.size() <= 1)
-        append(polylines_out, chain_polylines(std::move(all_polylines_with_hooks)));
-    else
-        connect_infill(std::move(all_polylines_with_hooks), expolygon, polylines_out, this->spacing, params);
+        chain_or_connect_infill(std::move(all_polylines_with_hooks), expolygon, polylines_out, this->spacing, params);
+    } else { 
+        // if multiline  is > 1 infill is ready to connect
+        chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
+    }
 
 #ifdef ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT
     {
@@ -1441,13 +1448,24 @@ static std::vector<CubeProperties> make_cubes_properties(double max_cube_edge_le
         if (edge_length > max_cube_edge_length)
             break;
     }
+    // Orca: Ensure at least 2 levels so build_octree() will insert triangles.
+    // Fixes scenario where adaptive fill is disconnected from walls on low densities
+    if (cubes_properties.size() == 1) {
+        CubeProperties p = cubes_properties.back();
+        p.edge_length      *= 2.0;
+        p.height           = p.edge_length * sqrt(3);
+        p.diagonal_length  = p.edge_length * sqrt(2);
+        p.line_z_distance  = p.edge_length / sqrt(3);
+        p.line_xy_distance = p.edge_length / sqrt(6);
+        cubes_properties.push_back(p);
+    }
     return cubes_properties;
 }
 
 static inline bool is_overhang_triangle(const Vec3d &a, const Vec3d &b, const Vec3d &c, const Vec3d &up)
 {
     // Calculate triangle normal.
-    auto n = (b - a).cross(c - b);
+    Vec3d n = (b - a).cross(c - b);
     return n.dot(up) > 0.707 * n.norm();
 }
 
@@ -1493,9 +1511,9 @@ OctreePtr build_octree(
         };
         auto up_vector = support_overhangs_only ? Vec3d(transform_to_octree() * Vec3d(0., 0., 1.)) : Vec3d();
         for (auto &tri : triangle_mesh.indices) {
-            auto a = triangle_mesh.vertices[tri[0]].cast<double>();
-            auto b = triangle_mesh.vertices[tri[1]].cast<double>();
-            auto c = triangle_mesh.vertices[tri[2]].cast<double>();
+            Vec3d a = triangle_mesh.vertices[tri[0]].cast<double>();
+            Vec3d b = triangle_mesh.vertices[tri[1]].cast<double>();
+            Vec3d c = triangle_mesh.vertices[tri[2]].cast<double>();
             if (! support_overhangs_only || is_overhang_triangle(a, b, c, up_vector))
                 process_triangle(a, b, c);
         }

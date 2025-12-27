@@ -1,0 +1,36 @@
+{
+    "type": "machine",
+    "name": "CoLiDo DIY 4.0 V2 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
+    "printer_model": "CoLiDo DIY 4.0 V2",
+    "default_filament_profile": [
+        "CoLiDo PLA+ @CoLiDo DIY 4.0 V2"
+    ],
+    "default_print_profile": "0.20mm Standard @CoLiDo DIY 4.0 V2",
+    "printer_settings_id": "CoLiDo DIY 4.0 V2 0.4 nozzle",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "auxiliary_fan": "1",
+    "deretraction_speed": [
+        "50"
+    ],
+    "print_host": "192.168.0.30",
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "230x0",
+        "230x230",
+        "0x230"
+    ],
+    "printable_height": "255",
+    "retraction_length": [
+        "0.4"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ]
+}

@@ -243,9 +243,7 @@ bool ProgressDialog::Create(const wxString &title, const wxString &message, int 
 
     if (HasPDFlag(wxPD_CAN_ABORT)) {
         m_button_cancel = new Button(this, _L("Cancel"));
-        m_button_cancel->SetTextColor(PROGRESSDIALOG_GREY_700);
-        m_button_cancel->SetMinSize(PROGRESSDIALOG_CANCEL_BUTTON_SIZE);
-        m_button_cancel->SetCornerRadius(PROGRESSDIALOG_CANCEL_BUTTON_SIZE.y / 2);
+        m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_button_cancel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &event) {
             if (m_state == Finished) {
                 event.Skip();
@@ -815,7 +813,7 @@ void ProgressDialog::DoSetSize(int x, int y, int width, int height, int sizeFlag
     //    m_block_right->SetPosition(wxPoint(PROGRESSDIALOG_GAUGE_SIZE.x - 2, 0));
     //}
 #endif
-    wxWindow::DoSetSize(x, y, width, height, sizeFlags);
+    wxDialog::DoSetSize(x, y, width, height, sizeFlags);
 }
 
 void ProgressDialog::DisableOtherWindows()

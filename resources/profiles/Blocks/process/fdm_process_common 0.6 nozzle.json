@@ -9,12 +9,12 @@
     "bridge_flow": "0.95",
     "brim_width": "5",
     "compatible_printers": [
-      "BLOCKS Pro S100",
-      "BLOCKS Pro S100 0.6 nozzle",
-      "BLOCKS RD50 V2",
-      "BLOCKS RD50 V2 0.6 nozzle",
-      "BLOCKS RF50",
-      "BLOCKS RF50 0.6 nozzle"
+        "BLOCKS Pro S100",
+        "BLOCKS Pro S100 0.6 nozzle",
+        "BLOCKS RD50 V2",
+        "BLOCKS RD50 V2 0.6 nozzle",
+        "BLOCKS RF50",
+        "BLOCKS RF50 0.6 nozzle"
     ],
     "print_sequence": "by layer",
     "default_acceleration": "4500",
@@ -40,7 +40,7 @@
     "print_settings_id": "",
     "raft_layers": "0",
     "seam_position": "nearest",
-	"seam_gap": "2%",
+    "seam_gap": "2%",
     "skirt_distance": "2",
     "skirt_height": "2",
     "minimum_sparse_infill_area": "0",
@@ -68,5 +68,4 @@
     "xy_hole_compensation": "0",
     "xy_contour_compensation": "0",
     "exclude_object": "1"
-
 }

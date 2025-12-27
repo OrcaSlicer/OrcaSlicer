@@ -1,44 +1,56 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "EXO65 (0.6 nozzle)",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_volumic_common",
-	"printer_model": "EXO65",
-	"default_print_profile": "Normal speed - 0.15mm",
-	"host_type": "esp3d",
-	"print_host": "192.168.0.60",
-	"nozzle_diameter": ["0.6"],
-	"printable_area": ["0x0","650x0","650x650","0x650"],
-	"printable_height": "650",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	"gcode_flavor": "marlin",
-	"max_layer_height": ["0.5"],
-	"min_layer_height": ["0.05"],
-	"printer_variant": "0.6",
-	"retraction_minimum_travel": ["1"],
-	"retraction_length": ["2.4"],
-	"retraction_speed": ["30"],
-	"deretraction_speed": ["30"],
-
-	"machine_max_acceleration_e": ["0"],
-	"machine_max_acceleration_extruding": ["0"],
-	"machine_max_acceleration_retracting": ["0"],
-	"machine_max_acceleration_x": ["0"],
-	"machine_max_acceleration_y": ["0"],
-	"machine_max_acceleration_z": ["0"],
-	"machine_max_speed_e": ["0"],
-	"machine_max_speed_x": ["0"],
-	"machine_max_speed_y": ["0"],
-	"machine_max_speed_z": ["0"],
-	"machine_max_jerk_e": ["0"],
-	"machine_max_jerk_x": ["0"],
-	"machine_max_jerk_y": ["0"],
-	"machine_max_jerk_z": ["0"],
-
-	"machine_start_gcode": "M117 Demarrage\nM106 S0\nM140 S[first_layer_bed_temperature]\nM104 T0 S[first_layer_temperature]\nG28\nG90\nM82\nG92 E0\nG1 Z5 F600\nG1 X1 Y649 F6000\nM109 T0 S[first_layer_temperature]\nM300 P350\nG92 E0\nM117 Impression",
-	"before_layer_change_gcode": "G92 E0",
-	"machine_end_gcode": "M107\nM104 S0\nM140 S0\nG0 X1 Y649 F5000\nM84\nM300"
+    "type": "machine",
+    "name": "EXO65 (0.6 nozzle)",
+    "inherits": "fdm_volumic_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "EXO65",
+    "default_print_profile": "Normal speed - 0.15mm",
+    "host_type": "esp3d",
+    "print_host": "192.168.0.60",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printable_area": [
+        "0x0",
+        "650x0",
+        "650x650",
+        "0x650"
+    ],
+    "printable_height": "650",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "gcode_flavor": "marlin",
+    "max_layer_height": [
+        "0.5"
+    ],
+    "min_layer_height": [
+        "0.05"
+    ],
+    "printer_variant": "0.6",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "2.4"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "machine_max_acceleration_x": [
+        "2000"
+    ],
+    "machine_max_acceleration_y": [
+        "2000"
+    ],
+    "machine_max_acceleration_z": [
+        "50"
+    ],
+    "machine_start_gcode": "M117 Demarrage\nM106 S0\nM140 S[first_layer_bed_temperature]\nM104 T0 S[first_layer_temperature]\nG28\nG90\nM82\nG92 E0\nG1 Z5 F600\nG1 X1 Y649 F6000\nM109 T0 S[first_layer_temperature]\nM300 P350\nG92 E0\nM117 Impression",
+    "before_layer_change_gcode": "G92 E0",
+    "machine_end_gcode": "G90\nG0 X1 Y419 F5000\nG0 X1 Y419 F5000\nM107\nG91\nT0\nG1 E-1\nM104 T0 S0\nG92 E0\nM140 S0\nM84\nM300"
 }

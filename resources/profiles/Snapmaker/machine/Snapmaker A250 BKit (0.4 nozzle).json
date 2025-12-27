@@ -1,20 +1,20 @@
 {
-  "name": "Snapmaker A250 BKit (0.4 nozzle)",
-  "setting_id": "1355061546",
-  "type": "machine",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_a250_bk",
-  "printer_model": "Snapmaker A250 BKit",
-  "default_print_profile": "0.16 Optimal @Snapmaker (0.4 nozzle)",
-  "printer_variant": "0.4",
-  "max_layer_height": [
-    "0.28"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "nozzle_diameter": [
-    "0.4"
-  ]
+    "type": "machine",
+    "name": "Snapmaker A250 BKit (0.4 nozzle)",
+    "inherits": "fdm_a250_bk",
+    "from": "system",
+    "setting_id": "1355061546",
+    "instantiation": "true",
+    "printer_model": "Snapmaker A250 BKit",
+    "default_print_profile": "0.16 Optimal @Snapmaker (0.4 nozzle)",
+    "printer_variant": "0.4",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ]
 }

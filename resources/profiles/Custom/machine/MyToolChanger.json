@@ -8,5 +8,5 @@
     "bed_model": "Custom_350_bed.stl",
     "bed_texture": "orcaslicer_bed_texture.svg",
     "hotend_model": "",
-    "default_materials": "My Generic PLA @MyToolChanger;My Generic ABS @MyToolChanger;My Generic PLA-CF @MyToolChanger;My Generic PETG @MyToolChanger;My Generic TPU @MyToolChanger;My Generic ASA @MyToolChanger;My Generic PC @MyToolChanger;My Generic PVA @MyToolChanger;My Generic PA @MyToolChanger;My Generic PA-CF @MyToolChanger"
+    "default_materials": "Generic PLA @MyToolChanger;Generic ABS @MyToolChanger;Generic PLA-CF @MyToolChanger;Generic PETG @MyToolChanger;Generic TPU @MyToolChanger;Generic ASA @MyToolChanger;Generic PC @MyToolChanger;Generic PVA @MyToolChanger;Generic PA @MyToolChanger;Generic PA-CF @MyToolChanger"
 }

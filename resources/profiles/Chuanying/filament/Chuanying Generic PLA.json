@@ -1,65 +1,65 @@
 {
-  "type": "filament",
-  "filament_id": "GFL99",
-  "setting_id": "GFSA04",
-  "name": "Chuanying Generic PLA",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_filament_pla",
-  "filament_flow_ratio": [
-    "0.98"
-  ],
-  "filament_max_volumetric_speed": [
-    "25"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "55"
-  ],
-  "hot_plate_temp": [
-    "50"
-  ],
-  "slow_down_layer_time": [
-    "6"
-  ],
-  "slow_down_min_speed": [
-    "20"
-  ],
-  "support_material_interface_fan_speed": [
-    "100"
-  ],
-  "additional_cooling_fan_speed": [
-    "100"
-  ],
-  "filament_start_gcode": [
-    "; filament start gcode\n;right_extruder_material: PLA\n"
-  ],
-  "filament_end_gcode": [
-    "; filament end gcode\n"
-  ],
-  "filament_diameter": [
-    "1.75"
-  ],
-  "enable_pressure_advance": [
-    "1"
-  ],
-  "pressure_advance": [
-    "0.025"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "220"
-  ],
-  "nozzle_temperature": [
-    "220"
-  ],
-  "nozzle_temperature_range_high": [
-    "230"
-  ],
-  "nozzle_temperature_range_low": [
-    "190"
-  ],
-  "compatible_printers": [
-    "Chuanying X1 0.4 Nozzle",
-    "Chuanying X1 0.6 Nozzle",
-    "Chuanying X1 0.8 Nozzle"
-  ]
+    "type": "filament",
+    "name": "Chuanying Generic PLA",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "25"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "55"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "support_material_interface_fan_speed": [
+        "100"
+    ],
+    "additional_cooling_fan_speed": [
+        "100"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material: PLA\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode\n"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.025"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "230"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "compatible_printers": [
+        "Chuanying X1 0.4 Nozzle",
+        "Chuanying X1 0.6 Nozzle",
+        "Chuanying X1 0.8 Nozzle"
+    ]
 }

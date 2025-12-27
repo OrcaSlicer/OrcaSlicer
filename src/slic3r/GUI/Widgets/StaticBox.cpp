@@ -22,8 +22,8 @@ StaticBox::StaticBox()
     , radius(8)
 {
     border_color = StateColor(
-        std::make_pair(0xF0F0F1, (int) StateColor::Disabled), 
-        std::make_pair(0x303A3C, (int) StateColor::Normal));
+        std::make_pair(0xF0F0F1, (int) StateColor::Disabled),
+        std::make_pair(0xCECECE, (int) StateColor::Normal));
 }
 
 StaticBox::StaticBox(wxWindow* parent,
@@ -52,6 +52,12 @@ void StaticBox::SetCornerRadius(double radius)
     Refresh();
 }
 
+void StaticBox::SetBorderStyle(wxPenStyle style)
+{
+    border_style = style;
+    Refresh();
+}
+
 void StaticBox::SetBorderWidth(int width)
 {
     border_width = width;
@@ -60,9 +66,11 @@ void StaticBox::SetBorderWidth(int width)
 
 void StaticBox::SetBorderColor(StateColor const &color)
 {
-    border_color = color;
-    state_handler.update_binds();
-    Refresh();
+    if (border_color != color) {
+        border_color = color;
+        state_handler.update_binds();
+        Refresh();
+    }
 }
 
 void StaticBox::SetBorderColorNormal(wxColor const &color)
@@ -108,6 +116,17 @@ wxColor StaticBox::GetParentBackgroundColor(wxWindow* parent)
     if (parent)
         return parent->GetBackgroundColour();
     return *wxWHITE;
+}
+
+void StaticBox::ShowBadge(bool show)
+{
+    if (show && badge.name() != "badge") {
+        badge = ScalableBitmap(this, "badge", 18);
+        Refresh();
+    } else if (!show && !badge.name().empty()) {
+        badge = ScalableBitmap {};
+        Refresh();
+    }
 }
 
 void StaticBox::eraseEvent(wxEraseEvent& evt)
@@ -188,7 +207,7 @@ void StaticBox::doRender(wxDC& dc)
                     rc.y += d;
                     rc.height -= d;
                 }
-                dc.SetPen(wxPen(border_color.colorForStates(states), border_width));
+                dc.SetPen(wxPen(border_color.colorForStates(states), border_width, border_style));
             } else {
                 dc.SetPen(wxPen(background_color.colorForStates(states)));
             }
@@ -217,5 +236,10 @@ void StaticBox::doRender(wxDC& dc)
             lg += dg; while (lg >= size.y) { ++g, lg -= size.y; } while (lg <= -size.y) { --g, lg += size.y; }
             lb += db; while (lb >= size.y) { ++b, lb -= size.y; } while (lb <= -size.y) { --b, lb += size.y; }
         }
+    }
+
+    if (badge.bmp().IsOk()) {
+        auto s = badge.bmp().GetScaledSize();
+        dc.DrawBitmap(badge.bmp(), size.x - s.x, 0);
     }
 }

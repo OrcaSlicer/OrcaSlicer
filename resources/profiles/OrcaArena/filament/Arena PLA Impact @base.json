@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFA03",
     "name": "Arena PLA Impact @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFA03",
+    "instantiation": "false",
     "filament_vendor": [
         "Orca Arena"
     ],

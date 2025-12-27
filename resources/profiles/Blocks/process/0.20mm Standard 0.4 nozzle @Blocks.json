@@ -1,13 +1,13 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.20mm Standard 0.4 nozzle @Blocks",
-    "from": "system",
     "inherits": "fdm_process_blocks_common",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "layer_height": "0.2",
     "bottom_shell_layers": "4",
-    "top_shell_layers": "5", 
+    "top_shell_layers": "5",
     "compatible_printers": [
         "BLOCKS Pro S100",
         "BLOCKS Pro S100 0.4 nozzle"

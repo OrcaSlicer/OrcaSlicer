@@ -1,22 +1,22 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "FlyingBear Reborn3 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "FlyingBear Reborn3",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "z_hop": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "300x0",
-    "300x300",
-    "0x300"
-  ],
-  "printable_height": "350"
+    "type": "machine",
+    "name": "FlyingBear Reborn3 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "FlyingBear Reborn3",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "350"
 }

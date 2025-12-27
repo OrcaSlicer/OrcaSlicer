@@ -1,15 +1,15 @@
 {
-  "type": "machine",
-  "from": "system",
-  "instantiation": "false",
-  "name": "fdm_a350_qs",
-  "inherits": "fdm_a350",
-  "printable_height": "310",
-  "printer_notes": "PRINTER_MODEL_SNAPMAKER_A350\nPRINTER_MODEL_SNAPMAKER_A350_QUICKSWAPKIT\n",
-  "bed_exclude_area": [
-    "0x335",
-    "320x335",
-    "320x350",
-    "0x350"
-  ]
+    "type": "machine",
+    "name": "fdm_a350_qs",
+    "inherits": "fdm_a350",
+    "from": "system",
+    "instantiation": "false",
+    "printable_height": "310",
+    "printer_notes": "PRINTER_MODEL_SNAPMAKER_A350\nPRINTER_MODEL_SNAPMAKER_A350_QUICKSWAPKIT\n",
+    "bed_exclude_area": [
+        "0x335",
+        "320x335",
+        "320x350",
+        "0x350"
+    ]
 }

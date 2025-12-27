@@ -249,7 +249,7 @@ Polyline JPSPathFinder::find_path(const Point &p0, const Point &p1)
     using QNode = astar::QNode<JPSTracer<Pixel, decltype(cell_query)>>;
 
     std::unordered_map<size_t, QNode>          astar_cache{};
-    std::vector<Pixel> out_path;
+    std::vector<Pixel, PointsAllocator<Pixel>> out_path;
     std::vector<decltype(tracer)::Node>        out_nodes;
 
     if (!astar::search_route(tracer, {start, {0, 0}}, std::back_inserter(out_nodes), astar_cache)) {
@@ -288,7 +288,7 @@ Polyline JPSPathFinder::find_path(const Point &p0, const Point &p1)
     svg.draw(scaled_point(start), "green", scale_(0.4));
 #endif
 
-    std::vector<Pixel> tmp_path;
+    std::vector<Pixel, PointsAllocator<Pixel>> tmp_path;
     tmp_path.reserve(out_path.size());
     // Some path found, reverse and remove points that do not change direction
     std::reverse(out_path.begin(), out_path.end());

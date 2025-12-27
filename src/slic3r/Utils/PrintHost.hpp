@@ -11,7 +11,7 @@
 
 #include <libslic3r/enum_bitmask.hpp>
 #include "Http.hpp"
-
+#include <map>
 class wxArrayString;
 
 namespace Slic3r {
@@ -37,6 +37,9 @@ struct PrintHostUpload
     std::string storage;
 
     PrintHostPostUploadAction post_action { PrintHostPostUploadAction::None };
+
+    // Some extended parameters for different upload methods.
+    std::map<std::string, std::string> extended_info;
 };
 
 class PrintHost

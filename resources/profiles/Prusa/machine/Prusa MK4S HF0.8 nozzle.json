@@ -1,0 +1,22 @@
+{
+    "type": "machine",
+    "name": "Prusa MK4S HF0.8 nozzle",
+    "inherits": "Prusa MK4S HF0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "default_filament_profile": "Prusa Generic PLA @MK4S HF0.8",
+    "default_print_profile": "0.40mm STRUCTURAL @MK4S HF0.8",
+    "deretraction_speed": "15",
+    "max_layer_height": "0.6",
+    "min_layer_height": "0.2",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printer_model": "Prusa MK4S HF",
+    "printer_variant": "0.8",
+    "retract_before_wipe": "50%",
+    "retraction_length": "0.6",
+    "retraction_speed": "25",
+    "wipe": "1",
+    "z_hop": "0.25"
+}

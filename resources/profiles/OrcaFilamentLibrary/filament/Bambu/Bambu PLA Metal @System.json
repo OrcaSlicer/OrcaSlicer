@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Metal @System",
+    "inherits": "Bambu PLA Metal @base",
+    "from": "system",
+    "setting_id": "OGFSA02",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "compatible_printers": []
+}

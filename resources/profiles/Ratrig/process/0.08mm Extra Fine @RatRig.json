@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP001",
     "name": "0.08mm Extra Fine @RatRig",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_ratrig_common",
+    "from": "system",
+    "setting_id": "GP001",
+    "instantiation": "true",
     "layer_height": "0.08",
     "bottom_shell_layers": "7",
     "top_shell_layers": "9",

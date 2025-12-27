@@ -1,0 +1,11 @@
+{
+    "type": "machine_model",
+    "name": "TiQ2",
+    "model_id": "TiQ2",
+    "nozzle_diameter": "0.25;0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "TiQ",
+    "bed_model": "TiQ2.stl",
+    "bed_texture": "TiQ2_texture.png",
+    "default_materials": "Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle"
+}

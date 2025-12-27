@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_klipper_common",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_common",
     "default_acceleration": "5000",
     "top_surface_acceleration": "3000",
     "travel_acceleration": "7000",

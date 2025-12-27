@@ -1,21 +1,21 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker PETG @0.2 nozzle",
-  "setting_id": "1835906521",
-  "inherits": "Snapmaker PETG @base",
-  "compatible_printers": [
-    "Snapmaker A250 (0.2 nozzle)",
-    "Snapmaker A250 BKit (0.2 nozzle)",
-    "Snapmaker A250 QS+B Kit (0.2 nozzle)",
-    "Snapmaker A250 QSKit (0.2 nozzle)",
-    "Snapmaker A350 (0.2 nozzle)",
-    "Snapmaker A350 BKit (0.2 nozzle)",
-    "Snapmaker A350 QS+B Kit (0.2 nozzle)",
-    "Snapmaker A350 QSKit (0.2 nozzle)"
-  ],
-  "filament_max_volumetric_speed": [
-    "1.6"
-  ]
+    "type": "filament",
+    "name": "Snapmaker PETG @0.2 nozzle",
+    "inherits": "Snapmaker PETG @base",
+    "from": "system",
+    "setting_id": "1835906521",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 (0.2 nozzle)",
+        "Snapmaker A250 BKit (0.2 nozzle)",
+        "Snapmaker A250 QS+B Kit (0.2 nozzle)",
+        "Snapmaker A250 QSKit (0.2 nozzle)",
+        "Snapmaker A350 (0.2 nozzle)",
+        "Snapmaker A350 BKit (0.2 nozzle)",
+        "Snapmaker A350 QS+B Kit (0.2 nozzle)",
+        "Snapmaker A350 QSKit (0.2 nozzle)"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.6"
+    ]
 }

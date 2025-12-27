@@ -1,0 +1,61 @@
+{
+    "type": "filament",
+    "name": "Flashforge PLA Metal @FF G4P 0.25 nozzle",
+    "inherits": "Flashforge PLA @FF AD5M 0.25 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "55"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "filament_flow_ratio": [
+        "0.97"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_settings_id": [
+        "Flashforge PLA Metal @FF G4P 0.25 nozzle"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 Pro 0.25 nozzle"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "55"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "pressure_advance": [
+        "0.035"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ]
+}

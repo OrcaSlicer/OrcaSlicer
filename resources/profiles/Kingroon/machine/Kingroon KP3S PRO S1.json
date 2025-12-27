@@ -8,5 +8,5 @@
     "bed_model": "kp3s_bed.stl",
     "bed_texture": "Kingroon_buildplate.png",
     "hotend_model": "",
-    "default_materials": "Kingroon Generic ABS;Kingroon Generic PLA;Kingroon Generic PLA-CF;Kingroon Generic PETG;Kingroon Generic TPU;Kingroon Generic ASA;Kingroon Generic PC;Kingroon Generic PVA;Kingroon Generic PA;Kingroon Generic PA-CF"
+    "default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

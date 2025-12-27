@@ -1,39 +1,39 @@
 {
-  "type": "machine",
-  "from": "system",
-  "instantiation": "false",
-  "name": "fdm_a250_dual_bk",
-  "inherits": "fdm_a250_dual",
-  "machine_max_acceleration_x": [
-    "3500"
-  ],
-  "machine_max_acceleration_y": [
-    "3500"
-  ],
-  "machine_max_acceleration_z": [
-    "3000"
-  ],
-  "machine_max_acceleration_travel": [
-    "3500"
-  ],
-  "machine_max_acceleration_extruding": [
-    "3500"
-  ],
-  "machine_max_acceleration_retracting": [
-    "3500"
-  ],
-  "machine_max_jerk_y": [
-    "5"
-  ],
-  "machine_max_jerk_z": [
-    "3"
-  ],
-  "printable_height": "184",
-  "printer_notes": "PRINTER_MODEL_SNAPMAKER_A250_DUAL\nPRINTER_MODEL_SNAPMAKER_A250_DUAL_BRACINGKIT\n",
-  "bed_exclude_area": [
-    "0x228",
-    "230x228",
-    "230x250",
-    "0x250"
-  ]
+    "type": "machine",
+    "name": "fdm_a250_dual_bk",
+    "inherits": "fdm_a250_dual",
+    "from": "system",
+    "instantiation": "false",
+    "machine_max_acceleration_x": [
+        "3500"
+    ],
+    "machine_max_acceleration_y": [
+        "3500"
+    ],
+    "machine_max_acceleration_z": [
+        "3000"
+    ],
+    "machine_max_acceleration_travel": [
+        "3500"
+    ],
+    "machine_max_acceleration_extruding": [
+        "3500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "3500"
+    ],
+    "machine_max_jerk_y": [
+        "5"
+    ],
+    "machine_max_jerk_z": [
+        "3"
+    ],
+    "printable_height": "184",
+    "printer_notes": "PRINTER_MODEL_SNAPMAKER_A250_DUAL\nPRINTER_MODEL_SNAPMAKER_A250_DUAL_BRACINGKIT\n",
+    "bed_exclude_area": [
+        "0x228",
+        "230x228",
+        "230x250",
+        "0x250"
+    ]
 }

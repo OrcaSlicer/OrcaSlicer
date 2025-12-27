@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_anker_common",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_common",
     "line_width": "0.45",
     "initial_layer_line_width": "0.45",
     "outer_wall_line_width": "0.42",
@@ -14,8 +14,8 @@
     "support_line_width": "0.36",
     "bridge_flow": "0.95",
     "compatible_printers": [
-      "Anker M5 0.4 nozzle",
-      "Anker M5 All-Metal 0.4 nozzle",
-      "Anker M5C 0.4 nozzle"
+        "Anker M5 0.4 nozzle",
+        "Anker M5 All-Metal 0.4 nozzle",
+        "Anker M5C 0.4 nozzle"
     ]
 }

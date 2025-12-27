@@ -1,8 +1,7 @@
-
 var m_ProfileItem;
 
 var FilamentPriority=new Array( "pla","abs","pet","tpu","pc");
-var VendorPriority=new Array("bambu lab","bambulab","bbl","kexcelled","polymaker","esun","generic");
+var VendorPriority=new Array("generic");
 
 function OnInit()
 {
@@ -24,15 +23,6 @@ function RequestProfile()
 	
 	SendWXMessage( JSON.stringify(tSend) );
 }
-
-//function RequestModelSelect()
-//{
-//	var tSend={};
-//	tSend['sequence_id']=Math.round(new Date() / 1000);
-//	tSend['command']="request_userguide_modelselected";
-//	
-//	SendWXMessage( JSON.stringify(tSend) );
-//}
 
 function HandleStudio(pVal)
 {
@@ -71,38 +61,15 @@ function SortUI()
 			ModelList.push(OneMode);
 	}
 	
-	//machine
-//	let HtmlMachine='';
-//	
-//	let nMachine=m_ProfileItem['machine'].length;
-//	for(let n=0;n<nMachine;n++)
-//	{
-//		let OneMachine=m_ProfileItem['machine'][n];
-//		
-//		let sName=OneMachine['name'];
-//		let sModel=OneMachine['model'];
-//	
-//		if( ModelList.in_array(sModel) )
-//		{
-//			HtmlMachine+='<div><input type="checkbox" mode="'+sModel+'" onChange="MachineClick()" />'+sName+'</div>';
-//		}
-//	}
-//	
-//	$('#MachineList .CValues').append(HtmlMachine);	
-//	$('#MachineList .CValues input').prop("checked",true);
-//	if(nMachine<=1)
-//	{
-//		$('#MachineList').hide();
-//	}
-	
+
 	//model
 	let HtmlMode='';
 	nMode=ModelList.length;
 	for(let n=0;n<nMode;n++)
 	{
 		let sModel=ModelList[n];	
-
-		HtmlMode+='<div><input type="checkbox" mode="'+sModel['model']+'"  nozzle="'+sModel['nozzle_selected']+'"   onChange="MachineClick()" />'+sModel['model']+'</div>';
+		/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
+		HtmlMode+='<label><input type="checkbox" mode="'+sModel['model']+'"  nozzle="'+sModel['nozzle_selected']+'"   onChange="MachineClick()" /><span>'+sModel['model']+'</span></label>';
 	}
 	
 	$('#MachineList .CValues').append(HtmlMode);	
@@ -112,15 +79,30 @@ function SortUI()
 		$('#MachineList').hide();
 	}
 	
-	//Filament
+	//Filament - Create sorted array with generic vendor first
+	let FilamentArray=new Array();
+	let GenericFilamentArray=new Array();
+	for( let key in m_ProfileItem['filament'] )
+	{
+		let OneFila=m_ProfileItem['filament'][key];
+		if(OneFila['vendor'].toLowerCase() === 'generic')
+			GenericFilamentArray.push({key: key, data: OneFila});
+		else
+			FilamentArray.push({key: key, data: OneFila});
+	}
+	// Combine arrays with generic filaments first
+	let SortedFilamentArray = GenericFilamentArray.concat(FilamentArray);
+	
 	let HtmlFilament='';
 	let SelectNumber=0;
 
 	var TypeHtmlArray={};
     var VendorHtmlArray={};
-	for( let key in m_ProfileItem['filament'] )
+	for( let n=0; n<SortedFilamentArray.length; n++ )
 	{
-		let OneFila=m_ProfileItem['filament'][key];
+		let filamentItem = SortedFilamentArray[n];
+		let key = filamentItem.key;
+		let OneFila = filamentItem.data;
 		
 		//alert(JSON.stringify(OneFila));
 		
@@ -130,15 +112,6 @@ function SortUI()
 		let fType=OneFila['type'];
 		let fSelect=OneFila['selected'];
 		let fModel=OneFila['models']
-		
-		//alert( fWholeName+' - '+fShortName+' - '+fVendor+' - '+fType+' - '+fSelect+' - '+fModel );
-		
-//		if(OneFila['name'].indexOf("Bambu PA-CF")>=0)
-//		{
-//			alert( fShortName+' - '+fVendor+' - '+fType+' - '+fSelect+' - '+fModel )
-//			
-//			let b=1+2;
-//		}
 		
         let bFind=false;		
 		//let bCheck=$("#MachineList input:first").prop("checked");
@@ -177,7 +150,8 @@ function SortUI()
 			let LowType=fType.toLowerCase();
 		    if(!TypeHtmlArray.hasOwnProperty(LowType))
 		    {
-			    let HtmlType='<div><input type="checkbox" filatype="'+fType+'" onChange="FilaClick()"   />'+fType+'</div>';
+				/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
+			    let HtmlType='<label><input type="checkbox" filatype="'+fType+'" onChange="FilaClick()"   /><span>'+fType+'</span></label>';
 			
 				TypeHtmlArray[LowType]=HtmlType;
 		    }
@@ -186,7 +160,8 @@ function SortUI()
 			let lowVendor=fVendor.toLowerCase();
 			if(!VendorHtmlArray.hasOwnProperty(lowVendor))
 		    {
-			    let HtmlVendor='<div><input type="checkbox" vendor="'+fVendor+'"  onChange="VendorClick()" />'+fVendor+'</div>';
+				/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
+			    let HtmlVendor='<label><input type="checkbox" vendor="'+fVendor+'"  onChange="VendorClick()" /><span>'+fVendor+'</span></label>';
 				
 				VendorHtmlArray[lowVendor]=HtmlVendor;
 		    }
@@ -195,7 +170,8 @@ function SortUI()
 			let pFila=$("#ItemBlockArea input[vendor='"+fVendor+"'][filatype='"+fType+"'][name='"+fShortName+"']");
 	        if(pFila.length==0)
 		    {
-			    let HtmlFila='<div class="MItem"><input type="checkbox" vendor="'+fVendor+'"  filatype="'+fType+'" filalist="'+fWholeName+';'+'"  model="'+fModel+'" name="'+fShortName+'" />'+fShortName+'</div>';
+				/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
+			    let HtmlFila='<label class="MItem"><input type="checkbox" vendor="'+fVendor+'"  filatype="'+fType+'" filalist="'+fWholeName+';'+'"  model="'+fModel+'" name="'+fShortName+'" /><span>'+fShortName+'</span></label>';
 			
 			    $("#ItemBlockArea").append(HtmlFila);
 		    } 
@@ -204,7 +180,10 @@ function SortUI()
 				let strModel=pFila.attr("model");
 				let strFilalist=pFila.attr("filalist");
 				
-				pFila.attr("model", strModel+fModel);
+				if(strModel == '' || fModel == '')
+					pFila.attr("model", '');
+				else
+					pFila.attr("model", strModel+fModel);
 				pFila.attr("filalist", strFilalist+fWholeName+';');
 			}
 			
@@ -290,10 +269,10 @@ function MachineClick()
 
 function ChooseAllFilament()
 {
-	let bCheck=$("#FilatypeList input:first").prop("checked");	
+    let bCheck=$("#FilatypeList input:first").prop("checked");	
 	$("#FilatypeList input").prop("checked",bCheck);	
-	
-	SortFilament();
+    
+    SortFilament();
 }
 
 function FilaClick()
@@ -475,11 +454,11 @@ function SelectAllFilament( nShow )
 {
 	if( nShow==0 )
 	{
-		$('#ItemBlockArea input').prop("checked",false);
+		$('#ItemBlockArea .MItem:visible input').prop("checked",false);
 	}
 	else
 	{
-		$('#ItemBlockArea input').prop("checked",true);
+		$('#ItemBlockArea .MItem:visible input').prop("checked",true);
 	}
 }
 

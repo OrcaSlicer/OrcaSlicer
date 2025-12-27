@@ -377,16 +377,6 @@ class GCodeViewer
         }
     };
 
-    // helper to render shells
-    struct Shells
-    {
-        GLVolumeCollection volumes;
-        bool visible{ false };
-        //BBS: always load shell when preview
-        int print_id{ -1 };
-        int print_modify_count { -1 };
-        bool previewing{ false };
-    };
 
     // helper to render extrusion paths
     struct Extrusions
@@ -660,6 +650,7 @@ public:
             std::vector<Line> m_lines;
 
         public:
+            float m_scale = 1.0f;
             GCodeWindow() = default;
             ~GCodeWindow() { stop_mapping_file(); }
             void load_gcode(const std::string& filename, const std::vector<size_t> &lines_ends);
@@ -708,9 +699,18 @@ public:
         std::vector<bool>  m_tool_visibles;
     };
 
+    struct ExtruderFilament
+    {
+        std::string   type;
+        std::string   hex_color;
+        unsigned char filament_id;
+        bool is_support_filament;
+    };
+
     enum class EViewType : unsigned char
     {
-        FeatureType = 0,
+        Summary = 0,
+        FeatureType,
         Height,
         Width,
         Feedrate,
@@ -724,9 +724,22 @@ public:
         LayerTimeLog,
         Count
     };
-
+    // helper to render shells
+    struct Shells
+    {
+        GLVolumeCollection volumes;
+        bool               visible{false};
+        // BBS: always load shell when preview
+        int  print_id{-1};
+        int  print_modify_count{-1};
+        bool previewing{false};
+    };
     //BBS
     ConflictResultOpt m_conflict_result;
+    GCodeCheckResult  m_gcode_check_result;
+    FilamentPrintableResult filament_printable_reuslt;
+    Shells            m_shells;
+
 private:
     std::vector<int> m_plater_extruder;
     bool m_gl_data_initialized{ false };
@@ -737,6 +750,11 @@ private:
     //BBS: add only gcode mode
     bool m_only_gcode_in_preview {false};
     std::vector<size_t> m_ssid_to_moveid_map;
+
+    //BBS: extruder dispensing filament
+    std::vector<ExtruderFilament> m_left_extruder_filament;
+    std::vector<ExtruderFilament> m_right_extruder_filament;
+    size_t m_nozzle_nums;
 
     std::vector<TBuffer> m_buffers{ static_cast<size_t>(EMoveType::Extrude) };
     // bounding box of toolpaths
@@ -763,7 +781,7 @@ private:
     SequentialView m_sequential_view;
     IMSlider* m_moves_slider;
     IMSlider* m_layers_slider;
-    Shells m_shells;
+
     /*BBS GUI refactor, store displayed items in color scheme combobox */
     std::vector<EViewType> view_type_items;
     std::vector<std::string> view_type_items_str;
@@ -897,6 +915,7 @@ private:
 
     //BBS: GUI refactor: add canvas size
     void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);
+    void render_legend_color_arr_recommen(float window_padding);
     void render_slider(int canvas_width, int canvas_height);
 
 #if ENABLE_GCODE_VIEWER_STATISTICS

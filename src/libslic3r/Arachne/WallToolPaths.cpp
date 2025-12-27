@@ -253,7 +253,7 @@ std::unique_ptr<LocToLineGrid>                                               cre
 void fixSelfIntersections(const coord_t epsilon, Polygons &thiss)
 {
     if (epsilon < 1) {
-        ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss));
+        ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss), ClipperLib::pftEvenOdd);
         return;
     }
 
@@ -294,7 +294,7 @@ void fixSelfIntersections(const coord_t epsilon, Polygons &thiss)
         }
     }
 
-    ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss));
+    ClipperLib::SimplifyPolygons(ClipperUtils::PolygonsProvider(thiss), ClipperLib::pftEvenOdd);
 }
 
 /*!
@@ -780,6 +780,100 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines> &toolpa
                                        return lines.empty();
                                    }), toolpaths.end());
     return toolpaths.empty();
+}
+
+/*!
+     * Get the order constraints of the insets when printing walls per region / hole.
+     * Each returned pair consists of adjacent wall lines where the left has an inset_idx one lower than the right.
+     *
+     * Odd walls should always go after their enclosing wall polygons.
+     *
+     * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+ */
+WallToolPaths::ExtrusionLineSet WallToolPaths::getRegionOrder(const std::vector<ExtrusionLine *> &input, const bool outer_to_inner)
+{
+    ExtrusionLineSet order_requirements;
+    // We build a grid where we map toolpath vertex locations to toolpaths,
+    // so that we can easily find which two toolpaths are next to each other,
+    // which is the requirement for there to be an order constraint.
+    //
+    // We use a PointGrid rather than a LineGrid to save on computation time.
+    // In very rare cases two insets might lie next to each other without having neighboring vertices, e.g.
+    //  \            .
+    //   |  /        .
+    //   | /         .
+    //   ||          .
+    //   | \         .
+    //   |  \        .
+    //  /            .
+    // However, because of how Arachne works this will likely never be the case for two consecutive insets.
+    // On the other hand one could imagine that two consecutive insets of a very large circle
+    // could be simplify()ed such that the remaining vertices of the two insets don't align.
+    // In those cases the order requirement is not captured,
+    // which means that the PathOrderOptimizer *might* result in a violation of the user set path order.
+    // This problem is expected to be not so severe and happen very sparsely.
+
+    coord_t max_line_w = 0u;
+    for (const ExtrusionLine *line : input) // compute max_line_w
+        for (const ExtrusionJunction &junction : *line)
+            max_line_w = std::max(max_line_w, junction.w);
+    if (max_line_w == 0u)
+        return order_requirements;
+
+    struct LineLoc
+    {
+        ExtrusionJunction    j;
+        const ExtrusionLine *line;
+    };
+    struct Locator
+    {
+        Point operator()(const LineLoc &elem) { return elem.j.p; }
+    };
+
+    // How much farther two verts may be apart due to corners.
+    // This distance must be smaller than 2, because otherwise
+    // we could create an order requirement between e.g.
+    // wall 2 of one region and wall 3 of another region,
+    // while another wall 3 of the first region would lie in between those two walls.
+    // However, higher values are better against the limitations of using a PointGrid rather than a LineGrid.
+    constexpr float diagonal_extension = 1.9f;
+    const auto      searching_radius   = coord_t(max_line_w * diagonal_extension);
+    using GridT                        = SparsePointGrid<LineLoc, Locator>;
+    GridT grid(searching_radius);
+
+    for (const ExtrusionLine *line : input)
+        for (const ExtrusionJunction &junction : *line) grid.insert(LineLoc{junction, line});
+    for (const std::pair<const SquareGrid::GridPoint, LineLoc> &pair : grid) {
+        const LineLoc       &lineloc_here = pair.second;
+        const ExtrusionLine *here         = lineloc_here.line;
+        Point                loc_here     = pair.second.j.p;
+        std::vector<LineLoc> nearby_verts = grid.getNearby(loc_here, searching_radius);
+        for (const LineLoc &lineloc_nearby : nearby_verts) {
+            const ExtrusionLine *nearby = lineloc_nearby.line;
+            if (nearby == here)
+                continue;
+            if (nearby->inset_idx == here->inset_idx)
+                continue;
+            if (nearby->inset_idx > here->inset_idx + 1)
+                continue; // not directly adjacent
+            if (here->inset_idx > nearby->inset_idx + 1)
+                continue; // not directly adjacent
+            if (!shorter_then(loc_here - lineloc_nearby.j.p, (lineloc_here.j.w + lineloc_nearby.j.w) / 2 * diagonal_extension))
+                continue; // points are too far away from each other
+            if (here->is_odd || nearby->is_odd) {
+                if (here->is_odd && !nearby->is_odd && nearby->inset_idx < here->inset_idx)
+                    order_requirements.emplace(std::make_pair(nearby, here));
+                if (nearby->is_odd && !here->is_odd && here->inset_idx < nearby->inset_idx)
+                    order_requirements.emplace(std::make_pair(here, nearby));
+            } else if ((nearby->inset_idx < here->inset_idx) == outer_to_inner) {
+                order_requirements.emplace(std::make_pair(nearby, here));
+            } else {
+                assert((nearby->inset_idx > here->inset_idx) == outer_to_inner);
+                order_requirements.emplace(std::make_pair(here, nearby));
+            }
+        }
+    }
+    return order_requirements;
 }
 
 } // namespace Slic3r::Arachne

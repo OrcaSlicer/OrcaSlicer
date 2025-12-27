@@ -1,24 +1,24 @@
 {
     "name": "MagicMaker",
-    "version": "02.02.00.04",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "MagicMaker configurations",
     "machine_model_list": [
         {
-            "name": "MM hqs hj",
-            "sub_path": "machine/MM hqs hj.json"
-        },
-        {
-            "name": "MM hqs SF",
-            "sub_path": "machine/MM hqs SF.json"
+            "name": "MM BoneKing",
+            "sub_path": "machine/MM BoneKing.json"
         },
         {
             "name": "MM hj SK",
             "sub_path": "machine/MM hj SK.json"
         },
         {
-            "name": "MM BoneKing",
-            "sub_path": "machine/MM BoneKing.json"
+            "name": "MM hqs SF",
+            "sub_path": "machine/MM hqs SF.json"
+        },
+        {
+            "name": "MM hqs hj",
+            "sub_path": "machine/MM hqs hj.json"
         },
         {
             "name": "MM slb",
@@ -31,166 +31,114 @@
             "sub_path": "process/fdm_process_common.json"
         },
         {
-            "name": "0.10mm Fine @MM slb",
-            "sub_path": "process/0.10mm Fine @MM slb.json"
-        },
-        {
-            "name": "0.20mm Standard @MM slb",
-            "sub_path": "process/0.20mm Standard @MM slb.json"
-        },
-        {
-            "name": "0.30mm Draft @MM slb",
-            "sub_path": "process/0.30mm Draft @MM slb.json"
-        },
-        {
-            "name": "0.10mm Fine @MM hqs hj",
-            "sub_path": "process/0.10mm Fine @MM hqs hj.json"
-        },
-        {
-            "name": "0.20mm Standard @MM hqs hj",
-            "sub_path": "process/0.20mm Standard @MM hqs hj.json"
-        },
-        {
-            "name": "0.30mm Draft @MM hqs hj",
-            "sub_path": "process/0.30mm Draft @MM hqs hj.json"
-        },
-        {
-            "name": "0.10mm Fine @MM hqs SF",
-            "sub_path": "process/0.10mm Fine @MM hqs SF.json"
-        },
-        {
-            "name": "0.20mm Standard @MM hqs SF",
-            "sub_path": "process/0.20mm Standard @MM hqs SF.json"
-        },
-        {
-            "name": "0.30mm Draft @MM hqs SF",
-            "sub_path": "process/0.30mm Draft @MM hqs SF.json"
-        },
-        {
-            "name": "0.10mm Fine Fast @MM hqs SF",
-            "sub_path": "process/0.10mm Fine Fast @MM hqs SF.json"
-        },
-        {
-            "name": "0.20mm Standard Fast @MM hqs SF",
-            "sub_path": "process/0.20mm Standard Fast @MM hqs SF.json"
-        },
-        {
-            "name": "0.30mm Draft Fast @MM hqs SF",
-            "sub_path": "process/0.30mm Draft Fast @MM hqs SF.json"
+            "name": "0.10mm Fine @MM BoneKing",
+            "sub_path": "process/0.10mm Fine @MM BoneKing.json"
         },
         {
             "name": "0.10mm Fine @MM hj SK",
             "sub_path": "process/0.10mm Fine @MM hj SK.json"
         },
         {
-            "name": "0.20mm Standard @MM hj SK",
-            "sub_path": "process/0.20mm Standard @MM hj SK.json"
+            "name": "0.10mm Fine @MM hqs SF",
+            "sub_path": "process/0.10mm Fine @MM hqs SF.json"
         },
         {
-            "name": "0.30mm Draft @MM hj SK",
-            "sub_path": "process/0.30mm Draft @MM hj SK.json"
+            "name": "0.10mm Fine @MM hqs hj",
+            "sub_path": "process/0.10mm Fine @MM hqs hj.json"
         },
         {
-            "name": "0.10mm Fine Fast @MM hj SK",
-            "sub_path": "process/0.10mm Fine Fast @MM hj SK.json"
-        },
-        {
-            "name": "0.20mm Standard Fast @MM hj SK",
-            "sub_path": "process/0.20mm Standard Fast @MM hj SK.json"
-        },
-        {
-            "name": "0.30mm Draft Fast @MM hj SK",
-            "sub_path": "process/0.30mm Draft Fast @MM hj SK.json"
-        },
-        {
-            "name": "0.10mm Fine @MM BoneKing",
-            "sub_path": "process/0.10mm Fine @MM BoneKing.json"
-        },
-        {
-            "name": "0.20mm Standard @MM BoneKing",
-            "sub_path": "process/0.20mm Standard @MM BoneKing.json"
-        },
-        {
-            "name": "0.30mm Draft @MM BoneKing",
-            "sub_path": "process/0.30mm Draft @MM BoneKing.json"
+            "name": "0.10mm Fine @MM slb",
+            "sub_path": "process/0.10mm Fine @MM slb.json"
         },
         {
             "name": "0.10mm Fine Fast @MM BoneKing",
             "sub_path": "process/0.10mm Fine Fast @MM BoneKing.json"
         },
         {
-            "name": "0.20mm Standard Fast @MM BoneKing",
-            "sub_path": "process/0.20mm Standard Fast @MM BoneKing.json"
+            "name": "0.10mm Fine Fast @MM hj SK",
+            "sub_path": "process/0.10mm Fine Fast @MM hj SK.json"
         },
         {
-            "name": "0.30mm Draft Fast @MM BoneKing",
-            "sub_path": "process/0.30mm Draft Fast @MM BoneKing.json"
+            "name": "0.10mm Fine Fast @MM hqs SF",
+            "sub_path": "process/0.10mm Fine Fast @MM hqs SF.json"
+        },
+        {
+            "name": "0.12mm Fine BestFast @MM BoneKing",
+            "sub_path": "process/0.12mm Fine BestFast @MM BoneKing.json"
         },
         {
             "name": "0.12mm Fine SuperFast @MM BoneKing",
             "sub_path": "process/0.12mm Fine SuperFast @MM BoneKing.json"
         },
         {
-            "name": "0.12mm Fine BestFast @MM BoneKing",
-            "sub_path": "process/0.12mm Fine BestFast @MM BoneKing.json"
+            "name": "0.20mm Standard @MM BoneKing",
+            "sub_path": "process/0.20mm Standard @MM BoneKing.json"
+        },
+        {
+            "name": "0.20mm Standard @MM hj SK",
+            "sub_path": "process/0.20mm Standard @MM hj SK.json"
+        },
+        {
+            "name": "0.20mm Standard @MM hqs SF",
+            "sub_path": "process/0.20mm Standard @MM hqs SF.json"
+        },
+        {
+            "name": "0.20mm Standard @MM hqs hj",
+            "sub_path": "process/0.20mm Standard @MM hqs hj.json"
+        },
+        {
+            "name": "0.20mm Standard @MM slb",
+            "sub_path": "process/0.20mm Standard @MM slb.json"
+        },
+        {
+            "name": "0.20mm Standard Fast @MM BoneKing",
+            "sub_path": "process/0.20mm Standard Fast @MM BoneKing.json"
+        },
+        {
+            "name": "0.20mm Standard Fast @MM hj SK",
+            "sub_path": "process/0.20mm Standard Fast @MM hj SK.json"
+        },
+        {
+            "name": "0.20mm Standard Fast @MM hqs sf",
+            "sub_path": "process/0.20mm Standard Fast @MM hqs SF.json"
+        },
+        {
+            "name": "0.30mm Draft @MM BoneKing",
+            "sub_path": "process/0.30mm Draft @MM BoneKing.json"
+        },
+        {
+            "name": "0.30mm Draft @MM hj SK",
+            "sub_path": "process/0.30mm Draft @MM hj SK.json"
+        },
+        {
+            "name": "0.30mm Draft @MM hqs SF",
+            "sub_path": "process/0.30mm Draft @MM hqs SF.json"
+        },
+        {
+            "name": "0.30mm Draft @MM hqs hj",
+            "sub_path": "process/0.30mm Draft @MM hqs hj.json"
+        },
+        {
+            "name": "0.30mm Draft @MM slb",
+            "sub_path": "process/0.30mm Draft @MM slb.json"
+        },
+        {
+            "name": "0.30mm Draft Fast @MM BoneKing",
+            "sub_path": "process/0.30mm Draft Fast @MM BoneKing.json"
+        },
+        {
+            "name": "0.30mm Draft Fast @MM hj SK",
+            "sub_path": "process/0.30mm Draft Fast @MM hj SK.json"
+        },
+        {
+            "name": "0.30mm Draft Fast @MM hqs SF",
+            "sub_path": "process/0.30mm Draft Fast @MM hqs SF.json"
         }
     ],
     "filament_list": [
         {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },  
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },   
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },  
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
             "name": "fdm_filament_peek",
             "sub_path": "filament/fdm_filament_peek.json"
-        },       
-        {
-            "name": "MM Generic PLA",
-            "sub_path": "filament/MM Generic PLA.json"
-        },
-        {
-            "name": "MM Generic PETG",
-            "sub_path": "filament/MM Generic PETG.json"
-        },
-        {
-            "name": "MM Generic ABS",
-            "sub_path": "filament/MM Generic ABS.json"
-        },
-        {
-            "name": "MM Generic TPU",
-            "sub_path": "filament/MM Generic TPU.json"
-        },
-        {
-            "name": "MM Generic PC",
-            "sub_path": "filament/MM Generic PC.json"
-        },
-        {
-            "name": "MM Generic PA",
-            "sub_path": "filament/MM Generic PA.json"
         },
         {
             "name": "MM Generic PEEK",
@@ -203,20 +151,20 @@
             "sub_path": "machine/fdm_machine_common.json"
         },
         {
-            "name": "MM hqs hj 0.4 nozzle",
-            "sub_path": "machine/MM hqs hj 0.4 nozzle.json"
-        },
-        {
-            "name": "MM hqs SF 0.4 nozzle",
-            "sub_path": "machine/MM hqs SF 0.4 nozzle.json"
+            "name": "MM BoneKing 0.4 nozzle",
+            "sub_path": "machine/MM BoneKing 0.4 nozzle.json"
         },
         {
             "name": "MM hj SK 0.4 nozzle",
             "sub_path": "machine/MM hj SK 0.4 nozzle.json"
         },
         {
-            "name": "MM BoneKing 0.4 nozzle",
-            "sub_path": "machine/MM BoneKing 0.4 nozzle.json"
+            "name": "MM hqs SF 0.4 nozzle",
+            "sub_path": "machine/MM hqs SF 0.4 nozzle.json"
+        },
+        {
+            "name": "MM hqs hj 0.4 nozzle",
+            "sub_path": "machine/MM hqs hj 0.4 nozzle.json"
         },
         {
             "name": "MM slb 0.4 nozzle",
