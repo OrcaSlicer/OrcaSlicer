@@ -1533,6 +1533,7 @@ void TreeSupport::generate_toolpaths()
                         filler_support->angle = Geometry::deg2rad(object_config.support_angle.value);
 
                         Polygons loops = to_polygons(poly);
+                        //ORCA: Group base per area as no_sort to keep outline->fill together.
                         std::unique_ptr<ExtrusionEntityCollection> base_eec = std::make_unique<ExtrusionEntityCollection>();
                         base_eec->no_sort = true;
                         ExtrusionEntitiesPtr &base_dst = base_eec->entities;
@@ -1542,6 +1543,7 @@ void TreeSupport::generate_toolpaths()
                                                                        m_support_params, true, false);
                         }
                         else {
+                            //ORCA: Force base walls before infill to keep outline->fill order.
                             if (need_infill && m_support_params.base_fill_pattern != ipLightning) {
                                 // allow infill-only mode if support is thick enough (so min_wall_count is 0);
                                 // otherwise must draw 1 wall
@@ -1558,6 +1560,7 @@ void TreeSupport::generate_toolpaths()
                             }
                         }
 
+                        //ORCA: Emit lightning infill per base area to avoid interleaving across islands.
                         if (m_support_params.base_fill_pattern == ipLightning) {
                             double print_z = ts_layer->print_z;
                             auto lightning_layer_mapping = printZ_to_lightninglayer.find(print_z);
@@ -1592,6 +1595,7 @@ void TreeSupport::generate_toolpaths()
                             }
                         }
 
+                        //ORCA: Keep per-area base paths grouped for outline->fill preservation.
                         if (!base_eec->empty())
                             ts_layer->support_fills.entities.push_back(base_eec.release());
                     }
