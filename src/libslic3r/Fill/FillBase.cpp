@@ -1709,15 +1709,9 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
             const Points             &contour        = graph.boundary[cp1->contour_idx];
 
             // If multiline infill is requested, skip connections that are too short.
-            if (params.multiline > 1) {
-                const double min_multiline_dist = scale_(spacing) * params.multiline;
-
-                const Point& p1 = contour[cp1->point_idx];
-                const Point& p2 = contour[cp2->point_idx];
-
-                if ((p1 - p2).norm() < min_multiline_dist) {
-                    continue; // skip internal multiline connection
-                }
+            // Skip connections where the arc is shorter than multiline spacing
+            if (params.multiline > 1 && arc.arc_length < scale_(spacing) * params.multiline) {
+                continue;
             }
 
             const std::vector<double> &contour_params = graph.boundary_params[cp1->contour_idx];
