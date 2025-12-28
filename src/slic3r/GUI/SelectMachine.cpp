@@ -575,15 +575,8 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     wxBoxSizer *m_sizer_prepare = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *m_sizer_pcont   = new wxBoxSizer(wxVERTICAL);
 
-    m_btn_bg_enable = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
     m_button_ensure = new Button(m_panel_prepare, _L("Send"));
-    m_button_ensure->SetBackgroundColor(m_btn_bg_enable);
-    m_button_ensure->SetBorderColor(m_btn_bg_enable);
-    m_button_ensure->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE2);
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE2);
-    m_button_ensure->SetCornerRadius(FromDIP(4));
+    m_button_ensure->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_ensure->Bind(wxEVT_BUTTON, &SelectMachineDialog::on_ok_btn, this);
 
     m_sizer_pcont->Add(0, 0, 1, wxEXPAND, 0);
@@ -3661,14 +3654,12 @@ void SelectMachineDialog::Enable_Send_Button(bool en)
     if (!en) {
         if (m_button_ensure->IsEnabled()) {
             m_button_ensure->Disable();
-            m_button_ensure->SetBackgroundColor(wxColour(200, 200, 200));
-            m_button_ensure->SetBorderColor(wxColour(200, 200, 200));
+            // ORCA no need to set colors again
         }
     } else {
         if (!m_button_ensure->IsEnabled()) {
             m_button_ensure->Enable();
-            m_button_ensure->SetBackgroundColor(m_btn_bg_enable);
-            m_button_ensure->SetBorderColor(m_btn_bg_enable);
+            // ORCA no need to set colors again
         }
     }
 }
@@ -3685,8 +3676,7 @@ void SelectMachineDialog::on_dpi_changed(const wxRect &suggested_rect)
         ams_mapping_help_icon->msw_rescale();
         if (img_amsmapping_tip)img_amsmapping_tip->SetBitmap(ams_mapping_help_icon->bmp());
     }
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE2);
-    m_button_ensure->SetCornerRadius(FromDIP(4));
+    m_button_ensure->Rescale(); // ORCA
     m_status_bar->msw_rescale();
 
     for (auto material1 : m_materialList) {
@@ -5121,40 +5111,42 @@ void PrinterInfoBox::UpdatePlate(const std::string& plate_name)
 {
     if (plate_name.empty())
     {
-        m_text_bed_type->Hide();
+        //m_text_bed_type->Hide();
     }
     else
     {
         wxString name;
         if (plate_name == "Cool Plate") {
-            name = _L("Cool");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool", this, 32));
+            name = _L("Smooth Cool Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool", this, 40));
         }
         else if (plate_name == "Engineering Plate") {
-            name = _L("Engineering");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_engineering", this, 32));
+            name = _L("Engineering Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_engineering", this, 40));
         }
         else if (plate_name == "High Temp Plate") {
-            name = _L("High Temp");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_high_templ", this, 32));
+            name = _L("Smooth High Temp Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_high_templ", this, 40));
         }
         else if (plate_name == "Textured PEI Plate") {
-            name = "PEI";
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 32));
+            name = _L("Textured PEI Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 40));
         }
         else if (plate_name == "Supertack Plate") {
-            name = _L("Cool(Supertack)");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 32));
+            name = _L("Cool Plate (Supertack)");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 40));
         }
 
-        if (name.length() > 8) {
-            m_text_bed_type->SetFont(Label::Body_9);
-        }
-        else{
-            m_text_bed_type->SetFont(Label::Body_12);
-        }
-        m_text_bed_type->SetLabelText(name);
-        m_text_bed_type->Show();
+        m_bed_image->SetToolTip(name);
+
+        //if (name.length() > 8) {
+        //    m_text_bed_type->SetFont(Label::Body_9);
+        //}
+        //else{
+        //    m_text_bed_type->SetFont(Label::Body_12);
+        //}
+        //m_text_bed_type->SetLabelText(name);
+        //m_text_bed_type->Show();
     }
 }
 
@@ -5304,24 +5296,26 @@ void PrinterInfoBox::Create()
 
     /*bed area*/
     auto bed_staticbox = new StaticBox(this);
-    bed_staticbox->SetMinSize(wxSize(FromDIP(98), FromDIP(68)));
-    bed_staticbox->SetMaxSize(wxSize(FromDIP(98), FromDIP(68)));
+    bed_staticbox->SetMinSize(wxSize(FromDIP(68), FromDIP(68)));
+    bed_staticbox->SetMaxSize(wxSize(FromDIP(68), FromDIP(68)));
     bed_staticbox->SetBorderColor(wxColour("#EEEEEE"));
 
-    m_bed_image = new wxStaticBitmap(bed_staticbox, wxID_ANY, create_scaled_bitmap("bed_cool", this, 32));
+    m_bed_image = new wxStaticBitmap(bed_staticbox, wxID_ANY, create_scaled_bitmap("bed_cool", this, 40));
     m_bed_image->SetBackgroundColour(*wxWHITE);
-    m_bed_image->SetMinSize(wxSize(FromDIP(32), FromDIP(32)));
-    m_bed_image->SetMaxSize(wxSize(FromDIP(32), FromDIP(32)));
+    m_bed_image->SetMinSize(wxSize(FromDIP(40), FromDIP(40)));
+    m_bed_image->SetMaxSize(wxSize(FromDIP(40), FromDIP(40)));
 
-    m_text_bed_type = new Label(bed_staticbox);
-    m_text_bed_type->SetForegroundColour(wxColour(144, 144, 144));
-    m_text_bed_type->SetMaxSize(wxSize(FromDIP(80), FromDIP(24)));
-    m_text_bed_type->SetFont(Label::Body_13);
+    //m_text_bed_type = new Label(bed_staticbox);
+    //m_text_bed_type->SetForegroundColour(wxColour(144, 144, 144));
+    //m_text_bed_type->SetMaxSize(wxSize(FromDIP(80), FromDIP(24)));
+    //m_text_bed_type->SetFont(Label::Body_13);
 
-    sizer_bed_staticbox->Add(0, 0, 0, wxTOP, FromDIP(10));
+    //sizer_bed_staticbox->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_bed_staticbox->AddStretchSpacer();
     sizer_bed_staticbox->Add(m_bed_image, 0, wxALIGN_CENTER, 0);
-    sizer_bed_staticbox->AddSpacer(FromDIP(6));
-    sizer_bed_staticbox->Add(m_text_bed_type, 0, wxALIGN_CENTER, 0);
+    sizer_bed_staticbox->AddStretchSpacer();
+    //sizer_bed_staticbox->AddSpacer(FromDIP(6));
+    //sizer_bed_staticbox->Add(m_text_bed_type, 0, wxALIGN_CENTER, 0);
 
     bed_staticbox->SetSizer(sizer_bed_staticbox);
     bed_staticbox->Layout();
@@ -5333,7 +5327,7 @@ void PrinterInfoBox::Create()
 
 
     wxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
-    main_sizer->Add(m_text_bed_type, 0, wxTOP, 0);
+    //main_sizer->Add(m_text_bed_type, 0, wxTOP, 0);
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     main_sizer->Add(sizer_split_printer, 1, wxEXPAND, 0);
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(8));

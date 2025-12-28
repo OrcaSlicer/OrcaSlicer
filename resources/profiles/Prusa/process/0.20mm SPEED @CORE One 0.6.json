@@ -4,8 +4,8 @@
     "inherits": "0.20mm SPEED @MK4S 0.6",
     "from": "system",
     "instantiation": "true",
-    "overhang_2_4_speed": "30",
-    "overhang_3_4_speed": "70%",
+    "overhang_3_4_speed": "30",
+    "overhang_4_4_speed": "70%",
     "travel_speed": "350",
     "travel_acceleration": "7000",
     "default_acceleration": "3000",
@@ -17,5 +17,8 @@
     "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.6 and printer_notes!~/.*HF_NOZZLE.*/",
     "inner_wall_acceleration": "6000",
     "outer_wall_acceleration": "3000",
-    "top_surface_acceleration": "2000"
+    "top_surface_acceleration": "2000",
+    "small_perimeter_speed": "130",
+    "inner_wall_speed": "130",
+    "outer_wall_speed": "130"
 }

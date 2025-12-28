@@ -1,15 +1,6 @@
 on:
   workflow_call:
     inputs:
-      cache-key:
-        required: true
-        type: string
-      cache-path:
-        required: true
-        type: string
-      valid-cache:
-        required: true
-        type: boolean
       os:
         required: true
         type: string
@@ -26,55 +17,62 @@ on:
 jobs:
   build_deps:
     name: Build Deps
-    if: ${{ !cancelled() && (inputs.build-deps-only || inputs.force-build || inputs.valid-cache != true) }}
     runs-on: ${{ inputs.os }}
+    outputs:
+      artifact-name: ${{ env.ARTIFACT_NAME }}
+      artifact-path: ${{ env.DEPS_PATH }}
     env:
-      date:
+      DO_BUILD: ${{ inputs.build-deps-only || inputs.force-build }}
+      DEPS_PATH: ${{ github.workspace }}/deps/build${{ inputs.os != 'macos-14' && '/OrcaSlicer_dep' || '' }}
+      ARTIFACT_NAME: OrcaSlicer_dep_${{ inputs.os }}_${{ inputs.arch }}
     steps:
-
-      # Setup the environment
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           lfs: 'true'
 
+      # Cached deps are just the final outputs, no intermediate files.
+      # So building XOR cache loading.
+      # We use `lookup-only` to skip pulling cache.
       - name: load cached deps
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
+        id: cache-load
         with:
-          path: ${{ inputs.cache-path }}
-          key: ${{ inputs.cache-key }}
+          path: ${{ env.DEPS_PATH }}
+          key: ${{ inputs.os }}-${{ inputs.arch }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }}
+          lookup-only: ${{ env.DO_BUILD == 'true' }}  # Doing this instead of `if` preserves the outputs of this step
 
       - uses: lukka/get-cmake@latest
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') }}
         with:
           cmakeVersion: "~3.28.0"  # use most recent 3.28.x version
 
       - name: setup dev on Windows
-        if: inputs.os == 'windows-latest'
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') && inputs.os == 'windows-latest' }}
         uses: microsoft/setup-msbuild@v2
 
       - name: Get the date on Ubuntu and macOS
-        if: inputs.os != 'windows-latest'
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') && inputs.os != 'windows-latest' }}
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         shell: bash
 
       - name: Get the date on Windows
-        if: inputs.os == 'windows-latest'
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') && inputs.os == 'windows-latest' }}
         run: echo "date=$(Get-Date -Format 'yyyyMMdd')" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
         shell: pwsh
 
-
-      # Build Dependencies
       - name: Build on Windows
-        if: inputs.os == 'windows-latest'
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') && inputs.os == 'windows-latest' }}
         working-directory: ${{ github.workspace }}
         run: |
             choco install strawberryperl
             .\build_release_vs.bat deps
-            .\build_release_vs.bat pack
-            cd ${{ github.workspace }}/deps/build
 
+      # Windows and Linux don't need to delete any directories, because they only package up deps/build/OrcaSlicer_dep.
+      # But Mac has multiple and we're preserving their directory structure relationship.
+      # So the garbage siblings of OrcaSlicer_dep can be deleted to save artifact and cache space.
       - name: Build on Mac ${{ inputs.arch }}
-        if: inputs.os == 'macos-14'
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') && inputs.os == 'macos-14' }}
         working-directory: ${{ github.workspace }}
         run: |
             brew install automake texinfo libtool
@@ -87,53 +85,40 @@ jobs:
             done
             brew install zstd
 
-
       - name: Apt-Install Dependencies
-        if: inputs.os == 'ubuntu-24.04'
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') && inputs.os == 'ubuntu-24.04' }}
         uses: ./.github/actions/apt-install-deps
 
       - name: Build on Ubuntu
-        if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04'
+        if: ${{ !cancelled() && (env.DO_BUILD == 'true' || steps.cache-load.outputs.cache-hit != 'true') && (inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04') }}
         working-directory: ${{ github.workspace }}
         run: |
-            mkdir -p ${{ github.workspace }}/deps/build/destdir
             ./build_linux.sh -dr
-            cd deps/build
-            tar -czvf OrcaSlicer_dep_ubuntu_$(date +"%Y%m%d").tar.gz destdir
 
-
-      # Upload Artifacts
-      # - name: Upload Mac ${{ inputs.arch }} artifacts
-      #   if: inputs.os == 'macos-14'
-      #   uses: actions/upload-artifact@v5
-      #   with:
-      #     name: OrcaSlicer_dep_mac_${{ env.date }}
-      #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.tar.gz
-
-      - name: Upload Windows artifacts
-        if: inputs.os == 'windows-latest'
+      - name: Upload OrcaSlicer_dep director(ies) for use later
+        if: ${{ !cancelled() && ! env.ACT}}
         uses: actions/upload-artifact@v5
         with:
-          name: OrcaSlicer_dep_win64_${{ env.date }}
-          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.zip
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.DEPS_PATH }}
+          retention-days: 10 # It's not too big, but we don't need it for a very long time.
+          if-no-files-found: error
 
-      - name: Upload Ubuntu artifacts
-        if: ${{ ! env.ACT && inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04' }}
-        env:
-          ubuntu-ver: ${{ (inputs.os == 'ubuntu-20.04' && '2004') || (inputs.os == 'ubuntu-24.04' && '2404') || '' }}
-        uses: actions/upload-artifact@v5
+      - name: Save cache from main branch
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' && steps.cache-load.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
         with:
-          name: OrcaSlicer_dep_ubuntu_${{ env.ubuntu-ver }}_${{ env.date }}
-          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep_ubuntu_*.tar.gz
+          path: ${{ env.DEPS_PATH }}
+          key: ${{ steps.cache-load.outputs.cache-primary-key }}
 
   build_orca:
     name: Build OrcaSlicer
     needs: [build_deps]
-    if: ${{ !cancelled() && !inputs.build-deps-only && (inputs.force-build || (inputs.valid-cache == true && needs.build_deps.result == 'skipped') || (inputs.valid-cache != true && success())) }}
+    if: ${{ !cancelled() && (!inputs.build-deps-only || inputs.force-build) }}
     uses: ./.github/workflows/build_orca.yml
     with:
-      cache-key: ${{ inputs.cache-key }}
-      cache-path: ${{ inputs.cache-path }}
+      artifact-name: ${{ needs.build_deps.outputs.artifact-name }}
+      artifact-path: ${{ needs.build_deps.outputs.artifact-path }}
       os: ${{ inputs.os }}
       arch: ${{ inputs.arch }}
     secrets: inherit

@@ -1,4 +1,4 @@
-#include <catch_main.hpp>
+#include <catch2/catch_all.hpp>
 
 #include "libslic3r/Utils.hpp"
 #define NANOSVG_IMPLEMENTATION

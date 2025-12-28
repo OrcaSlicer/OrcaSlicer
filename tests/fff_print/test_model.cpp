@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Model.hpp"
@@ -12,7 +12,7 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-SCENARIO("Model construction", "[Model]") {
+SCENARIO("Model construction", "[Model][.]") {
     GIVEN("A Slic3r Model") {
 		Slic3r::Model model;
         Slic3r::TriangleMesh sample_mesh = Slic3r::make_cube(20,20,20);

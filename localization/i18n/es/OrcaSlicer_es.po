@@ -685,7 +685,7 @@ msgstr ""
 "ahora?"
 
 msgid "Repairing model object"
-msgstr "Raparando modelo"
+msgstr "Reparando modelo"
 
 msgid "Cut by line"
 msgstr "Corte por Línea"

@@ -160,8 +160,8 @@ void test_supports(const std::string          &obj_filename,
     if (std::abs(supportcfg.object_elevation_mm) < EPSILON)
         allowed_zmin = zmin - 2 * supportcfg.head_back_radius_mm;
     
-    REQUIRE(obb.min.z() >= Approx(allowed_zmin));
-    REQUIRE(obb.max.z() <= Approx(zmax));
+    REQUIRE(obb.min.z() >= Catch::Approx(allowed_zmin));
+    REQUIRE(obb.max.z() <= Catch::Approx(zmax));
     
     // Move out the support tree into the byproducts, we can examine it further
     // in various tests.
@@ -207,7 +207,7 @@ void check_support_tree_integrity(const sla::SupportTreeBuilder &stree,
     };
     
     for (auto &bridge : stree.bridges()) chck_bridge(bridge, max_bridgelen);
-    REQUIRE(max_bridgelen <= Approx(cfg.max_bridge_length_mm));
+    REQUIRE(max_bridgelen <= Catch::Approx(cfg.max_bridge_length_mm));
     
     max_bridgelen = 0;
     for (auto &bridge : stree.crossbridges()) chck_bridge(bridge, max_bridgelen);
@@ -239,7 +239,7 @@ void test_pad(const std::string &obj_filename, const sla::PadConfig &padcfg, Pad
     check_validity(out.mesh);
     
     auto bb = out.mesh.bounding_box();
-    REQUIRE(bb.max.z() - bb.min.z() == Approx(padcfg.full_height()));
+    REQUIRE(bb.max.z() - bb.min.z() == Catch::Approx(padcfg.full_height()));
 }
 
 static void _test_concave_hull(const Polygons &hull, const ExPolygons &polys)
@@ -252,7 +252,7 @@ static void _test_concave_hull(const Polygons &hull, const ExPolygons &polys)
     double cchull_area = 0;
     for (const Slic3r::Polygon &p : hull) cchull_area += p.area();
     
-    REQUIRE(cchull_area >= Approx(polys_area));
+    REQUIRE(cchull_area >= Catch::Approx(polys_area));
     
     size_t cchull_holes = 0;
     for (const Slic3r::Polygon &p : hull)
@@ -307,8 +307,8 @@ void check_validity(const TriangleMesh &input_mesh, int flags)
 void check_raster_transformations(sla::RasterBase::Orientation o, sla::RasterBase::TMirroring mirroring)
 {
     double disp_w = 120., disp_h = 68.;
-    sla::RasterBase::Resolution res{2560, 1440};
-    sla::RasterBase::PixelDim pixdim{disp_w / res.width_px, disp_h / res.height_px};
+    sla::Resolution res{2560, 1440};
+    sla::PixelDim pixdim{disp_w / res.width_px, disp_h / res.height_px};
     
     auto bb = BoundingBox({0, 0}, {scaled(disp_w), scaled(disp_h)});
     sla::RasterBase::Trafo trafo{o, mirroring};
@@ -400,7 +400,7 @@ double raster_white_area(const sla::RasterGrayscaleAA &raster)
     return a;
 }
 
-double predict_error(const ExPolygon &p, const sla::RasterBase::PixelDim &pd)
+double predict_error(const ExPolygon &p, const sla::PixelDim &pd)
 {
     auto lines = p.lines();
     double pix_err = pixel_area(FullWhite, pd)  / 2.;
