@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 
+#include "libslic3r/AppConfig.hpp"
 extern std::string g_log_folder;
 extern std::string g_log_start_time;
 
@@ -98,7 +99,6 @@ namespace BBL {
 #define BAMBU_NETWORK_LIBRARY               "bambu_networking"
 #define BAMBU_NETWORK_AGENT_NAME            "bambu_network_agent"
 
-#define BAMBU_NETWORK_AGENT_VERSION_LEGACY  "01.10.01.01"
 
 //iot preset type strings
 #define IOT_PRINTER_TYPE_STRING     "printer"
@@ -318,6 +318,7 @@ static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
     {"02.03.00.62", "02.03.00.62", nullptr, true, nullptr},
     {"02.01.01.52", "02.01.01.52", nullptr, false, nullptr},
     {"02.00.02.50", "02.00.02.50", nullptr, false, "This version may crash on startup due to Bambu Lab's signature verification."},
+    {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, "Legacy version - may not support newer firmware features. Only use if you have issues with modern versions."},
 };
 
 static const size_t AVAILABLE_NETWORK_VERSIONS_COUNT = sizeof(AVAILABLE_NETWORK_VERSIONS) / sizeof(AVAILABLE_NETWORK_VERSIONS[0]);

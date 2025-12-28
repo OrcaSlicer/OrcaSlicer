@@ -2903,8 +2903,11 @@ bool GUI_App::on_init_inner()
     std::map<std::string, std::string> extra_headers = get_extra_header();
     Slic3r::Http::set_extra_headers(extra_headers);
 
-    // Orca: select network plugin version
-    NetworkAgent::use_legacy_network = app_config->get_bool("legacy_networking");
+    // Orca: select network plugin version based on configured version string
+    std::string configured_version = app_config->get_network_plugin_version();
+    NetworkAgent::use_legacy_network = (configured_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+    BOOST_LOG_TRIVIAL(info) << "Network plugin mode: "
+        << (NetworkAgent::use_legacy_network ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
     // Force legacy network plugin if debugger attached
     // See https://github.com/bambulab/BambuStudio/issues/6726
     /* if (!NetworkAgent::use_legacy_network) {
@@ -3201,13 +3204,6 @@ bool GUI_App::on_init_network(bool try_backup)
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
 
     std::string config_version = app_config->get_network_plugin_version();
-
-    if (should_load_networking_plugin && Slic3r::NetworkAgent::legacy_library_exists() && config_version.empty()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": migration: legacy library found with no config version, removing and requesting download";
-        Slic3r::NetworkAgent::remove_legacy_library();
-        m_networking_need_update = true;
-        return false;
-    }
 
     if(!should_load_networking_plugin) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Don't load plugin as installed_networking is false";

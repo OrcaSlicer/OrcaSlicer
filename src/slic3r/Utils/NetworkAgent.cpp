@@ -241,7 +241,17 @@ bool NetworkAgent::versioned_library_exists(const std::string& version)
 {
     if (version.empty()) return false;
     std::string path = get_versioned_library_path(version);
-    return boost::filesystem::exists(path);
+
+    // Check if versioned library exists
+    if (boost::filesystem::exists(path)) return true;
+
+    // For legacy version, also check if unversioned legacy library exists
+    // (it will be auto-migrated to versioned format when loaded)
+    if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
+        return legacy_library_exists();
+    }
+
+    return false;
 }
 
 bool NetworkAgent::legacy_library_exists()
@@ -353,9 +363,50 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
         return -1;
     }
 
+    // Auto-migration: If loading legacy version and versioned library doesn't exist,
+    // but unversioned legacy library does exist, rename it to versioned format
+    if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
+        boost::filesystem::path versioned_path;
+        boost::filesystem::path legacy_path;
+#if defined(_MSC_VER) || defined(_WIN32)
+        versioned_path = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll");
+        legacy_path = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + ".dll");
+#elif defined(__WXMAC__)
+        versioned_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dylib");
+        legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".dylib");
+#else
+        versioned_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".so");
+        legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".so");
+#endif
+        if (!boost::filesystem::exists(versioned_path) && boost::filesystem::exists(legacy_path)) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto-migrating unversioned legacy library to versioned format";
+
+            try {
+                // Rename unversioned to versioned in the same folder (main or backup).
+                boost::filesystem::rename(legacy_path, versioned_path);
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": successfully renamed " << legacy_path.string() << " to "
+                                        << versioned_path.string();
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to rename legacy library: " << e.what();
+            }
+        }
+    }
+
+    // Load versioned library
 #if defined(_MSC_VER) || defined(_WIN32)
     library = plugin_folder.string() + "\\" + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll";
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": loading versioned library at " << library;
+#else
+    #if defined(__WXMAC__)
+    std::string lib_ext = ".dylib";
+    #else
+    std::string lib_ext = ".so";
+    #endif
+    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + lib_ext;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": loading versioned library at " << library;
+#endif
+
+#if defined(_MSC_VER) || defined(_WIN32)
     wchar_t lib_wstr[256];
     memset(lib_wstr, 0, sizeof(lib_wstr));
     ::MultiByteToWideChar(CP_UTF8, NULL, library.c_str(), strlen(library.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
@@ -378,15 +429,6 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
         netwoking_module = LoadLibrary(lib_wstr);
     }
 #else
-    #if defined(__WXMAC__)
-    std::string lib_ext = ".dylib";
-    #else
-    std::string lib_ext = ".so";
-    #endif
-
-    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + lib_ext;
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": loading versioned library at " << library;
-
     netwoking_module = dlopen(library.c_str(), RTLD_LAZY);
     if (!netwoking_module) {
         char* dll_error = dlerror();

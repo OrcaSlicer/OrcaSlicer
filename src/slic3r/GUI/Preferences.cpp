@@ -884,7 +884,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (pbool) {
                 GUI::wxGetApp().CallAfter([] { GUI::wxGetApp().ShowDownNetPluginDlg(); });
             }
-            if (m_legacy_networking_ckeckbox != nullptr) { m_legacy_networking_ckeckbox->Enable(pbool); }
         }
 
 #endif // __WXMSW__
@@ -946,25 +945,12 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             }
         }
 
-        if (param == "legacy_networking") {
-            bool legacy_mode = checkbox->GetValue();
-            if (m_network_version_sizer != nullptr) {
-                m_network_version_sizer->Show(!legacy_mode);
-                m_parent->Layout();
-            }
-        }
-
         e.Skip();
     });
 
     //// for debug mode
     if (param == "developer_mode") { m_developer_mode_ckeckbox = checkbox; }
     if (param == "internal_developer_mode") { m_internal_developer_mode_ckeckbox = checkbox; }
-    if (param == "legacy_networking") { 
-        m_legacy_networking_ckeckbox = checkbox;
-        bool pbool = app_config->get_bool("installed_networking");
-        checkbox->Enable(pbool);
-    }
 
     return m_sizer_checkbox;
 }
@@ -1424,9 +1410,6 @@ void PreferencesDialog::create_items()
 
     auto item_enable_plugin    = create_item_checkbox(_L("Enable network plugin"), "", "installed_networking");
     g_sizer->Add(item_enable_plugin);
-    
-    auto item_legacy_network   = create_item_checkbox(_L("Use legacy network plugin"), _L("Disable to use latest network plugin that supports new BambuLab firmwares."), "legacy_networking", _L("(Requires restart)"));
-    g_sizer->Add(item_legacy_network);
 
     m_network_version_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_network_version_sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
@@ -1442,7 +1425,10 @@ void PreferencesDialog::create_items()
     m_network_version_combo->SetFont(::Label::Body_14);
     m_network_version_combo->GetDropDown().SetFont(::Label::Body_14);
 
-    std::string current_version = app_config->get("network_plugin_version");
+    std::string current_version = app_config->get_network_plugin_version();
+    if (current_version.empty()) {
+        current_version = BBL::get_latest_network_version();
+    }
     int current_selection = 0;
 
     m_available_versions = BBL::get_all_available_versions();
@@ -1485,16 +1471,26 @@ void PreferencesDialog::create_items()
             if (new_version != old_version) {
                 BOOST_LOG_TRIVIAL(info) << "Network plugin version changed from " << old_version << " to " << new_version;
 
+                // Update the use_legacy_network flag immediately
+                bool is_legacy = (new_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+                bool was_legacy = (old_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+                if (is_legacy != was_legacy) {
+                    Slic3r::NetworkAgent::use_legacy_network = is_legacy;
+                    BOOST_LOG_TRIVIAL(info) << "Updated use_legacy_network flag to " << is_legacy;
+                }
+
                 if (!selected_ver.warning.empty()) {
                     MessageDialog warn_dlg(this, wxString::FromUTF8(selected_ver.warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
                     if (warn_dlg.ShowModal() != wxID_OK) {
                         app_config->set(SETTING_NETWORK_PLUGIN_VERSION, old_version);
                         app_config->save();
+                        Slic3r::NetworkAgent::use_legacy_network = was_legacy;
                         e.Skip();
                         return;
                     }
                 }
 
+                // Check if the selected version already exists on disk
                 if (Slic3r::NetworkAgent::versioned_library_exists(new_version)) {
                     BOOST_LOG_TRIVIAL(info) << "Version " << new_version << " already exists on disk, triggering hot reload";
                     if (wxGetApp().hot_reload_network_plugin()) {
@@ -1520,8 +1516,6 @@ void PreferencesDialog::create_items()
         e.Skip();
     });
 
-    bool legacy_mode = app_config->get_bool("legacy_networking");
-    m_network_version_sizer->Show(!legacy_mode);
     g_sizer->Add(m_network_version_sizer);
 
     g_sizer->AddSpacer(FromDIP(10));

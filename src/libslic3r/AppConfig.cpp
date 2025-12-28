@@ -135,6 +135,25 @@ void AppConfig::set_defaults()
         if (!get("use_legacy_opengl").empty())
             erase("app", "use_legacy_opengl");
 
+        // Migrate legacy_networking boolean to network_plugin_version string
+        std::string legacy_networking = get("legacy_networking");
+        std::string network_version = get("network_plugin_version");
+
+        if (!legacy_networking.empty()) {
+            // Old legacy_networking setting exists - migrate it
+            bool was_legacy = (legacy_networking == "true" || legacy_networking == "1");
+
+            if (was_legacy && network_version.empty()) {
+                // User had legacy mode enabled - set to legacy version number
+                BOOST_LOG_TRIVIAL(info) << "Migrating legacy_networking=true to network_plugin_version=01.10.01.01";
+                set("network_plugin_version", BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+            }
+            // Note: If was_legacy=false, we leave the version empty and let the GUI layer set it to the latest version
+
+            // Remove the old setting
+            erase("app", "legacy_networking");
+        }
+
 #ifdef __APPLE__
         if (get("use_retina_opengl").empty())
             set_bool("use_retina_opengl", true);
@@ -277,9 +296,6 @@ void AppConfig::set_defaults()
     }
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
-    }
-    if (get("legacy_networking").empty()) {
-        set_bool("legacy_networking", false);
     }
 
     if(get("check_stable_update_only").empty()) {
