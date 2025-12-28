@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "filament_id": "GFSEP017",
+    "setting_id": "GFSEP017_00",
+    "name": "Eolas Prints ABS @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_abs",
+    "filament_color": ["#4d9398"],
+    "filament_vendor": ["Eolas Prints"],
+    "filament_type": ["ABS"],
+    "nozzle_temperature": ["255"],
+    "nozzle_temperature_initial_layer": ["260"],
+    "nozzle_temperature_range_low": ["240"],
+    "nozzle_temperature_range_high": ["270"],
+    "hot_plate_temp": ["100"],
+    "hot_plate_temp_initial_layer": ["105"],
+    "chamber_temperature": ["40"],
+    "filament_density": ["1.04"],
+    "filament_cost": ["19.50"],
+    "filament_spool_weight": ["900"],
+    "filament_max_volumetric_speed": ["18"]
+}

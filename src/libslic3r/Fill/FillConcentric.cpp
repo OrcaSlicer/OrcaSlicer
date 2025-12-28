@@ -19,7 +19,7 @@ void FillConcentric::_fill_surface_single(
     // no rotation is supported for this infill pattern
     BoundingBox bounding_box = expolygon.contour.bounding_box();
     
-    coord_t min_spacing = scale_(this->spacing);
+    coord_t min_spacing = scale_(this->spacing) * params.multiline;
     coord_t distance = coord_t(min_spacing / params.density);
     
     if (params.density > 0.9999f && !params.dont_adjust) {
@@ -27,8 +27,12 @@ void FillConcentric::_fill_surface_single(
         this->spacing = unscale<double>(distance);
     }
 
-    Polygons   loops = to_polygons(expolygon);
-    ExPolygons last { std::move(expolygon) };
+    // Contract surface polygon by half line width to avoid excesive overlap with perimeter
+    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * (params.multiline - 1) * this->spacing )));
+
+    Polygons loops = to_polygons(contracted);
+
+    ExPolygons last { std::move(contracted) };
     while (! last.empty()) {
         last = offset2_ex(last, -(distance + min_spacing/2), +min_spacing/2);
         append(loops, to_polygons(last));
@@ -45,6 +49,9 @@ void FillConcentric::_fill_surface_single(
         polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
         last_pos = polylines_out.back().last_point();
     }
+
+    // Apply multiline offset if needed
+    multiline_fill(polylines_out, params, spacing);
 
     // clip the paths to prevent the extruder from getting exactly on the first point of the loop
     // Keep valid paths only.

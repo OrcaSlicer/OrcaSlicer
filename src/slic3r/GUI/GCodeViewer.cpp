@@ -868,17 +868,14 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
 
     m_gl_data_initialized = true;
 
-    if (preset_bundle)
-        m_nozzle_nums = preset_bundle->get_printer_extruder_count();
+    // Orca:
+    // Default view type at first slice.
+    // May be overridden in load() once we know how many tools are actually used in the G-code.
+    m_nozzle_nums = preset_bundle ? preset_bundle->get_printer_extruder_count() : 1;
+    auto it = std::find(view_type_items.begin(), view_type_items.end(), EViewType::FeatureType);
+    m_view_type_sel = (it != view_type_items.end()) ? std::distance(view_type_items.begin(), it) : 0;
+    set_view_type(EViewType::FeatureType);
 
-    // set to color print by default if use multi extruders
-    if (m_nozzle_nums > 1) {
-        m_view_type_sel = std::distance(view_type_items.begin(),std::find(view_type_items.begin(), view_type_items.end(), EViewType::Summary));
-        set_view_type(EViewType::Summary);
-    } else {
-        m_view_type_sel = std::distance(view_type_items.begin(),std::find(view_type_items.begin(), view_type_items.end(), EViewType::ColorPrint));
-        set_view_type(EViewType::ColorPrint);
-    }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished");
 }
 
@@ -987,6 +984,20 @@ void GCodeViewer::load(const GCodeProcessorResult& gcode_result, const Print& pr
     m_max_print_height = gcode_result.printable_height;
 
     load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
+    
+    // ORCA: Only show filament/color print preview if more than one tool/extruder is actually used in the toolpaths.
+    // Only reset back to Toolpaths (FeatureType) if we are currently in ColorPrint and this load is single-tool.
+    if (m_extruder_ids.size() > 1) {
+        auto it = std::find(view_type_items.begin(), view_type_items.end(), EViewType::ColorPrint);
+        if (it != view_type_items.end())
+            m_view_type_sel = std::distance(view_type_items.begin(), it);
+        set_view_type(EViewType::ColorPrint);
+    } else if (m_view_type == EViewType::ColorPrint) {
+        auto it = std::find(view_type_items.begin(), view_type_items.end(), EViewType::FeatureType);
+        if (it != view_type_items.end())
+            m_view_type_sel = std::distance(view_type_items.begin(), it);
+        set_view_type(EViewType::FeatureType);
+    }
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();

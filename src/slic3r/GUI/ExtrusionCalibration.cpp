@@ -171,37 +171,16 @@ void ExtrusionCalibration::create()
     m_error_text->Hide();
 
     m_button_cali = new Button(m_step_1_panel, _L("Start calibration"));
-    m_btn_bg_green = StateColor(std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_button_cali->SetBackgroundColor(m_btn_bg_green);
-    m_button_cali->SetFont(Label::Body_13);
-    m_button_cali->SetBorderColor({ std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Enabled) });
-    m_button_cali->SetTextColor({ std::pair<wxColour, int>(wxColour(172, 172, 172), StateColor::Disabled), std::pair<wxColour, int>(EXTRUSION_CALIBRATION_GREY200, StateColor::Enabled) });
-    m_button_cali->SetCornerRadius(FromDIP(12));
-    m_button_cali->SetMinSize(wxSize(-1, FromDIP(24)));
+    m_button_cali->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_cali->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_cali, this);
 
     m_cali_cancel = new Button(m_step_1_panel, _L("Cancel"));
-    m_btn_bg_green = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_cali_cancel->SetBackgroundColor(m_btn_bg_green);
-    m_cali_cancel->SetBorderColor(wxColour(0, 150, 136));
-    m_cali_cancel->SetTextColor(EXTRUSION_CALIBRATION_GREY200);
-    m_cali_cancel->SetMinSize(EXTRUSION_CALIBRATION_BUTTON_SIZE);
-    m_cali_cancel->SetCornerRadius(FromDIP(12));
+    m_cali_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_cali_cancel->Hide();
     m_cali_cancel->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_cancel, this);
 
     m_button_next_step = new Button(m_step_1_panel, _L("Next"));
-    m_btn_bg_gray = StateColor(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(*wxWHITE, StateColor::Focused),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-    m_button_next_step->SetBackgroundColor(m_btn_bg_gray);
-    m_button_next_step->SetFont(Label::Body_13);
-    m_button_next_step->SetBorderColor(EXTRUSION_CALIBRATION_GREY900);
-    m_button_next_step->SetTextColor(EXTRUSION_CALIBRATION_GREY900);
-    m_button_next_step->SetMinSize(EXTRUSION_CALIBRATION_BUTTON_SIZE);
-    m_button_next_step->SetCornerRadius(FromDIP(12));
+    m_button_next_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_next_step->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_next, this);
     m_button_next_step->Hide();
 
@@ -257,23 +236,11 @@ void ExtrusionCalibration::create()
 
     // save button
     m_button_save_result = new Button(m_step_2_panel, _L("Save"));
-    m_btn_bg_green = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_button_save_result->SetBackgroundColor(m_btn_bg_green);
-    m_button_save_result->SetFont(Label::Body_13);
-    m_button_save_result->SetBorderColor(wxColour(0, 150, 136));
-    m_button_save_result->SetTextColor(EXTRUSION_CALIBRATION_GREY200);
-    m_button_save_result->SetMinSize(EXTRUSION_CALIBRATION_BUTTON_SIZE);
-    m_button_save_result->SetCornerRadius(FromDIP(12));
+    m_button_save_result->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_save_result->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_save, this);
 
     m_button_last_step = new Button(m_step_2_panel, _L("Last Step")); // Back for english
-    m_button_last_step->SetBackgroundColor(m_btn_bg_gray);
-    m_button_last_step->SetFont(Label::Body_13);
-    m_button_last_step->SetBorderColor(EXTRUSION_CALIBRATION_GREY900);
-    m_button_last_step->SetTextColor(EXTRUSION_CALIBRATION_GREY900);
-    m_button_last_step->SetMinSize(EXTRUSION_CALIBRATION_BUTTON_SIZE);
-    m_button_last_step->SetCornerRadius(FromDIP(12));
+    m_button_last_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_last_step->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_last, this);
 
 

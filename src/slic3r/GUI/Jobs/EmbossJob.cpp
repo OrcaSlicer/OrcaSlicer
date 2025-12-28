@@ -427,16 +427,18 @@ void UpdateJob::update_volume(ModelVolume *volume, TriangleMesh &&mesh, const Da
     volume->set_new_unique_id();
     volume->calculate_convex_hull();
 
-    // write data from base into volume
-    base.write(*volume);
-
     GUI_App &app = wxGetApp(); // may be move to input
+
     if (volume->name != base.volume_name) {
-        volume->name = base.volume_name;
+        // write data from base into volume
+        base.write(*volume);
 
         const ObjectList *obj_list = app.obj_list();
         if (obj_list != nullptr)
             update_name_in_list(*obj_list, *volume);
+    } else {
+        // write data from base into volume
+        base.write(*volume);
     }
 
     ModelObject *object = volume->get_object();

@@ -135,32 +135,14 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     wxBoxSizer* m_sizer_button = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_button->Add(0, 0, 1, wxEXPAND, 5);
     m_button_bind = new Button(request_bind_panel, _L("Confirm"));
-
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Disabled),
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_button_bind->SetBackgroundColor(btn_bg_green);
-    m_button_bind->SetBorderColor(*wxWHITE);
-    m_button_bind->SetTextColor(wxColour("#FFFFFE"));
-    m_button_bind->SetSize(BIND_DIALOG_BUTTON_SIZE);
-    m_button_bind->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-    m_button_bind->SetCornerRadius(FromDIP(12));
+    m_button_bind->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_bind->Enable(false);
 
-    StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
     m_button_cancel = new Button(request_bind_panel, _L("Cancel"));
-    m_button_cancel->SetBackgroundColor(btn_bg_white);
-    m_button_cancel->SetBorderColor(BIND_DIALOG_GREY900);
-    m_button_cancel->SetSize(BIND_DIALOG_BUTTON_SIZE);
-    m_button_cancel->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-    m_button_cancel->SetTextColor(BIND_DIALOG_GREY900);
-    m_button_cancel->SetCornerRadius(FromDIP(12));
+    m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_sizer_button->Add(m_button_bind, 0, wxALIGN_CENTER, 0);
-    m_sizer_button->Add(0, 0, 0, wxLEFT, FromDIP(13));
+    m_sizer_button->Add(0, 0, 0, wxLEFT, ButtonProps::ChoiceButtonGap());
     m_sizer_button->Add(m_button_cancel, 0, wxALIGN_CENTER, 0);
 
 
@@ -179,7 +161,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(5));
     sizer_request->Add(ping_code_input, 0, wxLEFT, FromDIP(10));
     sizer_request->Add(0, 0, 0, wxTOP, FromDIP(10));
-    sizer_request->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, FromDIP(15));
+    sizer_request->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
     request_bind_panel->SetSizer(sizer_request);
     request_bind_panel->Layout();
     request_bind_panel->Fit();
@@ -197,12 +179,8 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     m_sizer_binding_button->Add(0, 0, 1, wxEXPAND, 5);
 
     m_button_close = new Button(binding_panel, _L("Close"));
-    m_button_close->SetBackgroundColor(btn_bg_white);
-    m_button_close->SetBorderColor(BIND_DIALOG_GREY900);
-    m_button_close->SetSize(BIND_DIALOG_BUTTON_SIZE);
-    m_button_close->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-    m_button_close->SetTextColor(BIND_DIALOG_GREY900);
-    m_button_close->SetCornerRadius(FromDIP(12));
+    m_button_close->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+
     m_sizer_binding_button->Add(m_button_close, 0, wxALIGN_CENTER, 0);
 
     auto sizer_binding = new wxBoxSizer(wxVERTICAL);
@@ -211,7 +189,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     sizer_binding->Add(0, 0, 0, wxTOP, FromDIP(10));
     sizer_binding->Add(m_loading_tip_txt, 0, wxALIGN_CENTER, 0);
     sizer_binding->Add(0, 0, 0, wxTOP, FromDIP(30));
-    sizer_binding->Add(m_sizer_binding_button, 0, wxALIGN_RIGHT | wxRIGHT, FromDIP(20));
+    sizer_binding->Add(m_sizer_binding_button, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
     binding_panel->SetSizer(sizer_binding);
     binding_panel->Layout();
     binding_panel->Fit();
@@ -484,7 +462,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
          wxString txt = _L("Thank you for purchasing a Bambu Lab device. Before using your Bambu Lab device, please read the terms and conditions. "
                            "By clicking to agree to use your Bambu Lab device, you agree to abide by the Privacy Policy and Terms of Use (collectively, the \"Terms\"). "
                            "If you do not comply with or agree to the Bambu Lab Privacy Policy, please do not use Bambu Lab equipment and services.");
-         ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Terms and Conditions"), ConfirmBeforeSendDialog::ButtonStyle::ONLY_CONFIRM);
+         ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Terms and Conditions"), ConfirmBeforeSendDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
          confirm_dlg.update_text(txt);
          confirm_dlg.CenterOnParent();
          confirm_dlg.on_show();
@@ -553,7 +531,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
                            "Personal Data by which an individual can be identified directly or indirectly, including "
                            "without limitation names, addresses, payment information, or phone numbers. By enabling "
                            "this service, you agree to these terms and the statement about Privacy Policy.");
-         ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Statement on User Experience Improvement Plan"), ConfirmBeforeSendDialog::ButtonStyle::ONLY_CONFIRM);
+         ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Statement on User Experience Improvement Plan"), ConfirmBeforeSendDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
 
          wxString model_id_text;
 
@@ -683,35 +661,15 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      auto        button_panel   = new wxPanel(m_simplebook, wxID_ANY, wxDefaultPosition, BIND_DIALOG_BUTTON_PANEL_SIZE);
      button_panel->SetBackgroundColour(*wxWHITE);
      wxBoxSizer *m_sizer_button = new wxBoxSizer(wxHORIZONTAL);
-     m_sizer_button->Add(0, 0, 1, wxEXPAND, 5);
      m_button_bind = new Button(button_panel, _L("Confirm"));
-
-     StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Disabled),
-         std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-         std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-         std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-     m_button_bind->SetBackgroundColor(btn_bg_green);
-     m_button_bind->SetBorderColor(*wxWHITE);
-     m_button_bind->SetTextColor(wxColour("#FFFFFE"));
-     m_button_bind->SetSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_bind->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_bind->SetCornerRadius(FromDIP(12));
+     m_button_bind->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
      m_button_bind->Enable(false);
 
-
-     StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Hovered),
-                            std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
      m_button_cancel = new Button(button_panel, _L("Cancel"));
-     m_button_cancel->SetBackgroundColor(btn_bg_white);
-     m_button_cancel->SetBorderColor(BIND_DIALOG_GREY900);
-     m_button_cancel->SetSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_cancel->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_cancel->SetTextColor(BIND_DIALOG_GREY900);
-     m_button_cancel->SetCornerRadius(FromDIP(12));
+     m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
      m_sizer_button->Add(m_button_bind, 0, wxALIGN_CENTER, 0);
-     m_sizer_button->Add(0, 0, 0, wxLEFT, FromDIP(13));
+     m_sizer_button->AddSpacer(ButtonProps::ChoiceButtonGap());
      m_sizer_button->Add(m_button_cancel, 0, wxALIGN_CENTER, 0);
      button_panel->SetSizer(m_sizer_button);
      button_panel->Layout();
@@ -730,8 +688,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_sizer_main->Add(m_panel_agreement, 0, wxALIGN_CENTER, 0);
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
      m_sizer_main->Add(m_sw_bind_failed_info, 0, wxALIGN_CENTER, 0);
-     m_sizer_main->Add(m_simplebook, 0, wxALIGN_CENTER, 0);
-     m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
+     m_sizer_main->Add(m_simplebook, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
 
      SetSizer(m_sizer_main);
      Layout();
@@ -891,8 +848,8 @@ PingCodeBindDialog::~PingCodeBindDialog() {
 
 void BindMachineDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    m_button_bind->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-    m_button_cancel->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
+    m_button_bind->Rescale(); // ORCA
+    m_button_cancel->Rescale(); // ORCA
 }
 
 void BindMachineDialog::update_machine_info(MachineObject* info)
@@ -1040,34 +997,18 @@ UnBindMachineDialog::UnBindMachineDialog(Plater *plater /*= nullptr*/)
 
      m_sizer_button->Add(0, 0, 1, wxEXPAND, 5);
      m_button_unbind = new Button(this, _L("Confirm"));
-     StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                             std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-     m_button_unbind->SetBackgroundColor(btn_bg_green);
-     m_button_unbind->SetBorderColor(wxColour(0, 150, 136));
-     m_button_unbind->SetTextColor(wxColour("#FFFFFE"));
-     m_button_unbind->SetSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_unbind->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_unbind->SetCornerRadius(FromDIP(12));
-
-
-     StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Hovered),
-                            std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
+     m_button_unbind->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
      m_button_cancel = new Button(this, _L("Cancel"));
-     m_button_cancel->SetBackgroundColor(btn_bg_white);
-     m_button_cancel->SetBorderColor(BIND_DIALOG_GREY900);
-     m_button_cancel->SetSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_cancel->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-     m_button_cancel->SetTextColor(BIND_DIALOG_GREY900);
-     m_button_cancel->SetCornerRadius(FromDIP(12));
+     m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
      m_sizer_button->Add(m_button_unbind, 0, wxALIGN_CENTER, 0);
-     m_sizer_button->Add(0, 0, 0, wxLEFT, FromDIP(13));
+     m_sizer_button->Add(0, 0, 0, wxLEFT, ButtonProps::ChoiceButtonGap());
      m_sizer_button->Add(m_button_cancel, 0, wxALIGN_CENTER, 0);
 
      m_sizer_main->Add(m_status_text, 0, wxALIGN_CENTER, 0);
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(10));
-     m_sizer_main->Add(m_sizer_button, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+     m_sizer_main->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT, ButtonProps::ChoiceButtonGap());
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
 
      SetSizer(m_sizer_main);
@@ -1133,8 +1074,8 @@ void UnBindMachineDialog::on_unbind_printer(wxCommandEvent &event)
 
  void UnBindMachineDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-      m_button_unbind->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
-      m_button_cancel->SetMinSize(BIND_DIALOG_BUTTON_SIZE);
+      m_button_unbind->Rescale(); // ORCA
+      m_button_cancel->Rescale(); // ORCA
 }
 
 void UnBindMachineDialog::on_show(wxShowEvent &event)
