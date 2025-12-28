@@ -1132,6 +1132,7 @@ void PlaterPresetComboBox::update()
     std::map<wxString, wxString>   preset_descriptions;
     std::map<wxString, std::string> preset_filament_vendors;
     std::map<wxString, std::string> preset_filament_types;
+    std::map<wxString, std::string> preset_filament_names; // ORCA
     //BBS:  move system to the end
     wxString selected_system_preset;
     wxString selected_user_preset;
@@ -1183,6 +1184,7 @@ void PlaterPresetComboBox::update()
                 if (preset_filament_vendors[name] == "Bambu Lab")
                     preset_filament_vendors[name] = "Bambu";
                 preset_filament_types[name] = preset.config.option<ConfigOptionStrings>("filament_type")->values.at(0);
+                preset_filament_names[name] = name.ToStdString(); // ORCA
             }
         }
         wxBitmap* bmp = get_bmp(preset);
@@ -1251,7 +1253,7 @@ void PlaterPresetComboBox::update()
                                                 "Bambu PLA Galaxy", "Bambu PLA Metal", "Bambu PLA Marble", "Bambu PETG-CF", "Bambu PETG Translucent", "Bambu ABS-GF"};
     std::vector<std::string> first_vendors     = {"", "Bambu", "Generic"}; // Empty vendor for non-system presets
     std::vector<std::string> first_types     = {"PLA", "PETG", "ABS", "TPU"};
-    auto  add_presets       = [this, &preset_descriptions, &filament_orders, &preset_filament_vendors, &first_vendors, &preset_filament_types, &first_types, &selected_in_ams]
+    auto  add_presets       = [this, &preset_descriptions, &filament_orders, &preset_filament_vendors, &first_vendors, &preset_filament_types, &preset_filament_names, &first_types, &selected_in_ams]
             (std::map<wxString, wxBitmap *> const &presets, wxString const &selected, std::string const &group, wxString const &groupName) {
         if (!presets.empty()) {
             set_label_marker(Append(_L(group), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
@@ -1285,9 +1287,11 @@ void PlaterPresetComboBox::update()
                         }
                         return l->first < r->first;
                     });
-                // ORCA add sorting support for vendor / type for user presets
-                if (groupName == "by_vendor" || groupName == "by_type" ){
-                    auto by = groupName == "by_vendor" ? preset_filament_vendors : preset_filament_types;
+                // ORCA add sorting support for vendor / type for user presets. also non grouped items
+                if (groupName == "by_vendor" || groupName == "by_type" || groupName == ""){
+                    auto by = groupName == "by_vendor" ? preset_filament_vendors
+                            : groupName == "by_type"   ? preset_filament_types
+                            : preset_filament_names;
                     std::sort(list.begin(), list.end(), [&by](auto *l, auto *r) {
                         auto get_key = [&](auto* item) -> std::pair<bool, std::string> {
                             std::string str = by.count(item->first) ? by.at(item->first) : "";
