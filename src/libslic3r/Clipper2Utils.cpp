@@ -35,6 +35,11 @@ Clipper2Lib::Paths64 Slic3rPoints_to_Paths64(const Container& in)
     return out;
 }
 
+Clipper2Lib::Paths64 Slic3rPolylines_to_Paths64(const Polylines& in)
+{
+    return Slic3rPoints_to_Paths64(in);
+}
+
 Points Path64ToPoints(const Clipper2Lib::Path64& path64)
 {
     Points points;
