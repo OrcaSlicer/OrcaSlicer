@@ -962,84 +962,8 @@
     ],
     "filament_list": [
         {
-            "name": "COEX PCTG PRIME @BBL X1C",
-            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL X1C.json"
-        },
-        {
-            "name": "COEX PCTG PRIME @BBL X1C 0.2 nozzle",
-            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL X1C 0.2 nozzle.json"
-        },
-        {
-            "name": "COEX PCTG PRIME @BBL X1C 0.8 nozzle",
-            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL X1C 0.8 nozzle.json"
-        },
-        {
-            "name": "COEX PETG @BBL X1C",
-            "sub_path": "filament/COEX/COEX PETG @BBL X1C.json"
-        },
-        {
-            "name": "COEX PETG @BBL X1C 0.2 nozzle",
-            "sub_path": "filament/COEX/COEX PETG @BBL X1C 0.2 nozzle.json"
-        },
-        {
-            "name": "COEX PETG @BBL X1C 0.8 nozzle",
-            "sub_path": "filament/COEX/COEX PETG @BBL X1C 0.8 nozzle.json"
-        },
-        {
-            "name": "COEX PLA @BBL A1M",
-            "sub_path": "filament/COEX/COEX PLA @BBL A1M.json"
-        },
-        {
-            "name": "COEX PLA @BBL P1P",
-            "sub_path": "filament/COEX/COEX PLA @BBL P1P.json"
-        },
-        {
-            "name": "COEX PLA @BBL X1C",
-            "sub_path": "filament/COEX/COEX PLA @BBL X1C.json"
-        },
-        {
             "name": "fdm_filament_common",
             "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "COEX PCTG PRIME @BBL A1M 0.4 nozzle",
-            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL A1M.json"
-        },
-        {
-            "name": "COEX PCTG PRIME @BBL A1M 0.2 nozzle",
-            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL A1M 0.2 nozzle.json"
-        },
-        {
-            "name": "COEX PCTG PRIME @BBL A1M 0.8 nozzle",
-            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL A1M 0.8 nozzle.json"
-        },
-        {
-            "name": "COEX PETG @BBL A1M 0.4 nozzle",
-            "sub_path": "filament/COEX/COEX PETG @BBL A1M.json"
-        },
-        {
-            "name": "COEX PETG @BBL A1M 0.2 nozzle",
-            "sub_path": "filament/COEX/COEX PETG @BBL A1M 0.2 nozzle.json"
-        },
-        {
-            "name": "COEX PETG @BBL A1M 0.8 nozzle",
-            "sub_path": "filament/COEX/COEX PETG @BBL A1M 0.8 nozzle.json"
-        },
-        {
-            "name": "COEX PLA @BBL A1M 0.2 nozzle",
-            "sub_path": "filament/COEX/COEX PLA @BBL A1M 0.2 nozzle.json"
-        },
-        {
-            "name": "COEX PLA @BBL P1P 0.2 nozzle",
-            "sub_path": "filament/COEX/COEX PLA @BBL P1P 0.2 nozzle.json"
-        },
-        {
-            "name": "COEX PLA @BBL X1C 0.2 nozzle",
-            "sub_path": "filament/COEX/COEX PLA @BBL X1C 0.2 nozzle.json"
-        },
-        {
-            "name": "FusRock ABS-GF @base",
-            "sub_path": "filament/FusRock/FusRock ABS-GF @base.json"
         },
         {
             "name": "fdm_filament_abs",
@@ -1090,6 +1014,10 @@
             "sub_path": "filament/fdm_filament_pla.json"
         },
         {
+            "name": "fdm_filament_pla_silk",
+            "sub_path": "filament/fdm_filament_pla_silk.json"
+        },
+        {
             "name": "fdm_filament_pp",
             "sub_path": "filament/fdm_filament_pp.json"
         },
@@ -1112,6 +1040,162 @@
         {
             "name": "fdm_filament_tpu",
             "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "AliZ PA-CF @base",
+            "sub_path": "filament/AliZ/AliZ PA-CF @base.json"
+        },
+        {
+            "name": "AliZ PETG @base",
+            "sub_path": "filament/AliZ/AliZ PETG @base.json"
+        },
+        {
+            "name": "AliZ PETG-CF @base",
+            "sub_path": "filament/AliZ/AliZ PETG-CF @base.json"
+        },
+        {
+            "name": "AliZ PETG-Metal @base",
+            "sub_path": "filament/AliZ/AliZ PETG-Metal @base.json"
+        },
+        {
+            "name": "AliZ PLA @base",
+            "sub_path": "filament/AliZ/AliZ PLA @base.json"
+        }, 
+        {
+            "name": "COEX ABS @base",
+            "sub_path": "filament/COEX/COEX ABS @base.json"
+        },
+        {
+            "name": "COEX ABS PRIME @base",
+            "sub_path": "filament/COEX/COEX ABS PRIME @base.json"
+        },
+        {
+            "name": "COEX ASA PRIME @base",
+            "sub_path": "filament/COEX/COEX ASA PRIME @base.json"
+        },
+        {
+            "name": "COEX NYLEX PA6-CF @base",
+            "sub_path": "filament/COEX/COEX NYLEX PA6-CF @base.json"
+        },
+        {
+            "name": "COEX NYLEX UNFILLED @base",
+            "sub_path": "filament/COEX/COEX NYLEX UNFILLED @base.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @base",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @base.json"
+        },
+        {
+            "name": "COEX PETG @base",
+            "sub_path": "filament/COEX/COEX PETG @base.json"
+        },
+        {
+            "name": "COEX PLA @base",
+            "sub_path": "filament/COEX/COEX PLA @base.json"
+        },
+        {
+            "name": "COEX PLA PRIME @base",
+            "sub_path": "filament/COEX/COEX PLA PRIME @base.json"
+        },
+        {
+            "name": "COEX PLA+Silk @base",
+            "sub_path": "filament/COEX/COEX PLA+Silk @base.json"
+        },
+        {
+            "name": "COEX TPE 30D @base",
+            "sub_path": "filament/COEX/COEX TPE 30D @base.json"
+        },
+        {
+            "name": "COEX TPE 40D @base",
+            "sub_path": "filament/COEX/COEX TPE 40D @base.json"
+        },
+        {
+            "name": "COEX TPE 60D @base",
+            "sub_path": "filament/COEX/COEX TPE 60D @base.json"
+        },
+        {
+            "name": "Overture TPU @base",
+            "sub_path": "filament/Overture/Overture TPU @base.json"
+        },    
+        {
+            "name": "COEX TPU 60A @base",
+            "sub_path": "filament/COEX/COEX TPU 60A @base.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @BBL X1C",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL X1C.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @BBL X1C 0.2 nozzle",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL X1C 0.2 nozzle.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @BBL X1C 0.8 nozzle",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL X1C 0.8 nozzle.json"
+        },
+        {
+            "name": "COEX PETG @BBL X1C",
+            "sub_path": "filament/COEX/COEX PETG @BBL X1C.json"
+        },
+        {
+            "name": "COEX PETG @BBL X1C 0.2 nozzle",
+            "sub_path": "filament/COEX/COEX PETG @BBL X1C 0.2 nozzle.json"
+        },
+        {
+            "name": "COEX PETG @BBL X1C 0.8 nozzle",
+            "sub_path": "filament/COEX/COEX PETG @BBL X1C 0.8 nozzle.json"
+        },
+        {
+            "name": "COEX PLA @BBL A1M",
+            "sub_path": "filament/COEX/COEX PLA @BBL A1M.json"
+        },
+        {
+            "name": "COEX PLA @BBL P1P",
+            "sub_path": "filament/COEX/COEX PLA @BBL P1P.json"
+        },
+        {
+            "name": "COEX PLA @BBL X1C",
+            "sub_path": "filament/COEX/COEX PLA @BBL X1C.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @BBL A1M 0.4 nozzle",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL A1M.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @BBL A1M 0.2 nozzle",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL A1M 0.2 nozzle.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @BBL A1M 0.8 nozzle",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @BBL A1M 0.8 nozzle.json"
+        },
+        {
+            "name": "COEX PETG @BBL A1M 0.4 nozzle",
+            "sub_path": "filament/COEX/COEX PETG @BBL A1M.json"
+        },
+        {
+            "name": "COEX PETG @BBL A1M 0.2 nozzle",
+            "sub_path": "filament/COEX/COEX PETG @BBL A1M 0.2 nozzle.json"
+        },
+        {
+            "name": "COEX PETG @BBL A1M 0.8 nozzle",
+            "sub_path": "filament/COEX/COEX PETG @BBL A1M 0.8 nozzle.json"
+        },
+        {
+            "name": "COEX PLA @BBL A1M 0.2 nozzle",
+            "sub_path": "filament/COEX/COEX PLA @BBL A1M 0.2 nozzle.json"
+        },
+        {
+            "name": "COEX PLA @BBL P1P 0.2 nozzle",
+            "sub_path": "filament/COEX/COEX PLA @BBL P1P 0.2 nozzle.json"
+        },
+        {
+            "name": "COEX PLA @BBL X1C 0.2 nozzle",
+            "sub_path": "filament/COEX/COEX PLA @BBL X1C 0.2 nozzle.json"
+        },
+        {
+            "name": "FusRock ABS-GF @base",
+            "sub_path": "filament/FusRock/FusRock ABS-GF @base.json"
         },
         {
             "name": "FusRock ABS-GF @BBL A1",
@@ -1406,8 +1490,8 @@
             "sub_path": "filament/Generic PLA-CF @base.json"
         },
         {
-            "name": "Overture Matte PLA @base",
-            "sub_path": "filament/Overture/Overture Matte PLA @base.json"
+            "name": "Overture ASA @base",
+            "sub_path": "filament/Overture/Overture ASA @base.json"
         },
         {
             "name": "Overture PLA @base",
@@ -1416,6 +1500,30 @@
         {
             "name": "Overture PLA Pro @base",
             "sub_path": "filament/Overture/Overture PLA Pro @base.json"
+        },
+        {
+            "name": "Overture Matte PLA @base",
+            "sub_path": "filament/Overture/Overture Matte PLA @base.json"
+        },
+        {
+            "name": "Overture Air PLA @base",
+            "sub_path": "filament/Overture/Overture Air PLA @base.json"
+        },
+        {
+            "name": "Overture Easy PLA @base",
+            "sub_path": "filament/Overture/Overture Easy PLA @base.json"
+        },
+        {
+            "name": "Overture Rock PLA @base",
+            "sub_path": "filament/Overture/Overture Rock PLA @base.json"
+        },
+        {
+            "name": "Overture Silk PLA @base",
+            "sub_path": "filament/Overture/Overture Silk PLA @base.json"
+        },
+        {
+            "name": "Overture Super PLA+ @base",
+            "sub_path": "filament/Overture/Overture Super PLA+ @base.json"
         },
         {
             "name": "Panchroma CoPE @base",
