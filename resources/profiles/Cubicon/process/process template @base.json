@@ -131,7 +131,7 @@
     "minimum_sparse_infill_area": "15",
     "mmu_segmented_region_interlocking_depth": "0",
     "mmu_segmented_region_max_width": "0",
-    "name": "process template @Cubicon xCeler-I 0.4 nozzle",
+    "name": "process template @base",
     "notes": "",
     "only_one_wall_first_layer": "0",
     "only_one_wall_top": "1",
