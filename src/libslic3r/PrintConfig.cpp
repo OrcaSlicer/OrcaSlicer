@@ -1562,6 +1562,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("brim_use_efc_outline", coBool);
+    def->label = L("Brim follows compensated outline");
+    def->category = L("Support");
+    def->tooltip = L("When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
+                    "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
+                    "\n"
+                    "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers." );
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("brim_ears", coBool);
     def->label = L("Brim ears");
     def->category = L("Support");
