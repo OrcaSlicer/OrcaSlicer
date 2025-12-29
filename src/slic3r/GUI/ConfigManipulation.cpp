@@ -356,7 +356,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
-    if (config->opt_bool("alternate_extra_wall") &&
+    if (config->opt_int("alternate_extra_wall") &&
         (config->opt_enum<EnsureVerticalShellThickness>("ensure_vertical_shell_thickness") == evstAll)) {
         wxString msg_text = _(L("Alternate extra wall does't work well when ensure vertical shell thickness is set to All."));
 
@@ -371,11 +371,11 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         auto answer = dialog.ShowModal();
         if (!is_global_config || answer == wxID_YES) {
             new_conf.set_key_value("ensure_vertical_shell_thickness", new ConfigOptionEnum<EnsureVerticalShellThickness>(evstModerate));
-            new_conf.set_key_value("alternate_extra_wall", new ConfigOptionBool(true));
+            new_conf.set_key_value("alternate_extra_wall", new ConfigOptionInt(config->opt_int("alternate_extra_wall")));
         }
         else {
             new_conf.set_key_value("ensure_vertical_shell_thickness", new ConfigOptionEnum<EnsureVerticalShellThickness>(evstAll));
-            new_conf.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+            new_conf.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
         }
         apply(config, &new_conf);
     }

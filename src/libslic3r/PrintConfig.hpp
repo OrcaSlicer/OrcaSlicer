@@ -1099,7 +1099,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat, inner_wall_speed))
     // Total number of perimeters.
     ((ConfigOptionInt, wall_loops))
-    ((ConfigOptionBool, alternate_extra_wall))
+    ((ConfigOptionInt, alternate_extra_wall))
     ((ConfigOptionFloat, minimum_sparse_infill_area))
     ((ConfigOptionInt, solid_infill_filament))
     ((ConfigOptionFloatOrPercent, internal_solid_infill_line_width))

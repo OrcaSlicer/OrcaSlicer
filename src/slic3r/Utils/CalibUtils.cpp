@@ -722,7 +722,7 @@ bool CalibUtils::calib_flowrate(int pass, const CalibInfo &calib_info, wxString 
         auto modifier = stof(obj_name);
         _obj->config.set_key_value("print_flow_ratio", new ConfigOptionFloat(1.0f + modifier / 100.f));
     }
-    print_config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    print_config.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     print_config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
     print_config.set_key_value("initial_layer_print_height", new ConfigOptionFloat(first_layer_height));
     print_config.set_key_value("reduce_crossing_wall", new ConfigOptionBool(true));
@@ -1166,7 +1166,7 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
     print_config.set_key_value("enable_overhang_speed", new ConfigOptionBool{false});
     print_config.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config.set_key_value("wall_loops", new ConfigOptionInt(1));
-    print_config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    print_config.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     print_config.set_key_value("top_shell_layers", new ConfigOptionInt(0));
     print_config.set_key_value("bottom_shell_layers", new ConfigOptionInt(1));
     print_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
@@ -1229,7 +1229,7 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
     print_config.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config.set_key_value("wall_loops", new ConfigOptionInt(1));
     print_config.set_key_value("detect_thin_wall", new ConfigOptionBool(false));
-    print_config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    print_config.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     print_config.set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config.set_key_value("top_shell_layers", new ConfigOptionInt(0));
     print_config.set_key_value("bottom_shell_layers", new ConfigOptionInt(1));
@@ -1290,7 +1290,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
     filament_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(calib_info.bed_type));
 
     obj->config.set_key_value("wall_loops", new ConfigOptionInt(2));
-    obj->config.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    obj->config.set_key_value("alternate_extra_wall", new ConfigOptionInt(0));
     obj->config.set_key_value("top_shell_layers", new ConfigOptionInt(0));
     obj->config.set_key_value("bottom_shell_layers", new ConfigOptionInt(3));
     obj->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));

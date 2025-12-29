@@ -4514,15 +4514,17 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 1000;
     def->set_default_value(new ConfigOptionInt(2));
-    
-    def = this->add("alternate_extra_wall", coBool);
-    def->label = L("Alternate extra wall");
+
+    def = this->add("alternate_extra_wall", coInt);
+    def->label = L("Alternate extra wall number");
     def->category = L("Strength");
-    def->tooltip = L("This setting adds an extra wall to every other layer. This way the infill gets wedged vertically between the walls, resulting in stronger prints.\n\n"
-                     "When this option is enabled, the ensure vertical shell thickness option needs to be disabled.\n\n"
+    def->tooltip = L("This setting sets wall number to every other layer (if not zero). This way the infill gets wedged vertically between the walls, resulting in stronger prints.\n\n"
+                     "When this option is not zero, the ensure vertical shell thickness option needs to be disabled.\n\n"
                      "Using lightning infill together with this option is not recommended as there is limited infill to anchor the extra perimeters to.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->min = 0;
+    def->max = 1000;
+    def->set_default_value(new ConfigOptionInt(0));
     
     def = this->add("post_process", coStrings);
     def->label = L("Post-processing Scripts");
@@ -7821,7 +7823,7 @@ void DynamicPrintConfig::normalize_fdm(int used_filaments)
         }
         {
             this->opt<ConfigOptionInt>("wall_loops", true)->value       = 1;
-            this->opt<ConfigOptionBool>("alternate_extra_wall", true)->value = false;
+            this->opt<ConfigOptionInt>("alternate_extra_wall", true)->value = 0;
             this->opt<ConfigOptionInt>("top_shell_layers", true)->value = 0;
             this->opt<ConfigOptionPercent>("sparse_infill_density", true)->value = 0;
         }
@@ -7894,7 +7896,7 @@ void DynamicPrintConfig::normalize_fdm_1()
         }
         {
             this->opt<ConfigOptionInt>("wall_loops", true)->value       = 1;
-            this->opt<ConfigOptionBool>("alternate_extra_wall", true)->value = false;
+            this->opt<ConfigOptionInt>("alternate_extra_wall", true)->value = 0;
             this->opt<ConfigOptionInt>("top_shell_layers", true)->value = 0;
             this->opt<ConfigOptionPercent>("sparse_infill_density", true)->value = 0;
         }
