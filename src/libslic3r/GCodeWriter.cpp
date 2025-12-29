@@ -353,6 +353,7 @@ std::string GCodeWriter::set_pressure_advance(double pa) const
     return gcode.str();
 }
 
+// Orca: input shaping support
 std::string GCodeWriter::set_input_shaping(char axis, float damp, float freq, std::string type) const
 {
     bool disable = type == "Disable";

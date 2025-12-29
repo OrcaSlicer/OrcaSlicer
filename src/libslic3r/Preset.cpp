@@ -1002,6 +1002,7 @@ static std::vector<std::string> s_Preset_machine_limits_options {
     "machine_max_junction_deviation",
     //resonance avoidance ported from qidi slicer
     "resonance_avoidance", "min_resonance_avoidance_speed", "max_resonance_avoidance_speed",
+    // Orca: input shaping
     "input_shaping_enable", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y", "input_shaping_damp_x", "input_shaping_damp_y",
 };
 

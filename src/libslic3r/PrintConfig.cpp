@@ -90,6 +90,8 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
     return 0;
 }
 
+
+// Orca: input shaping values typs by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
 {
     switch (flavor) {
@@ -4256,6 +4258,7 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
 
+    // Orca: Input Shaping support
     def          = this->add("input_shaping_enable", coBool);
     def->label   = L("Enable input shaping");
     def->tooltip = L("Override firmware input shaping settings.\nIf disabled, firmware settings are used.");
