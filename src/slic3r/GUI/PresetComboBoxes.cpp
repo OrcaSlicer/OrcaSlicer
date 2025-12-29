@@ -1175,7 +1175,8 @@ void PlaterPresetComboBox::update()
 
             bitmap_key += single_bar ? filament_rgb : filament_rgb + extruder_rgb;
 #endif
-            if (1) { // preset.is_system ORCA allow caching vendor and type values for all presets instead just system ones
+            // ORCA allow caching vendor and type values for all presets instead just system ones
+            // if (preset.is_system) { 
                 if (!preset.is_compatible && preset_filament_vendors.count(name) > 0)
                     continue;
                 else if (preset.is_compatible && preset_filament_vendors.count(name) > 0)
@@ -1185,7 +1186,7 @@ void PlaterPresetComboBox::update()
                     preset_filament_vendors[name] = "Bambu";
                 preset_filament_types[name] = preset.config.option<ConfigOptionStrings>("filament_type")->values.at(0);
                 preset_filament_names[name] = name.ToStdString(); // ORCA
-            }
+            //}
         }
         wxBitmap* bmp = get_bmp(preset);
         assert(bmp);
