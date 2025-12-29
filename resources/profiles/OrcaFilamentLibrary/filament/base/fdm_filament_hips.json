@@ -35,6 +35,36 @@
     "textured_plate_temp_initial_layer": [
         "90"
     ],
+    "peo_plate_temp": [
+        "90"
+    ],
+    "peo_plate_temp_initial_layer": [
+        "90"
+    ],
+    "pet_plate_temp": [
+        "90"
+    ],
+    "pet_plate_temp_initial_layer": [
+        "90"
+    ],
+    "pey_plate_temp": [
+        "90"
+    ],
+    "pey_plate_temp_initial_layer": [
+        "90"
+    ],
+    "h1h_plate_temp": [
+        "90"
+    ],
+    "h1h_plate_temp_initial_layer": [
+        "90"
+    ],
+    "phantom_plate_temp": [
+        "90"
+    ],
+    "phantom_plate_temp_initial_layer": [
+        "90"
+    ],
     "fan_cooling_layer_time": [
         "10"
     ],
