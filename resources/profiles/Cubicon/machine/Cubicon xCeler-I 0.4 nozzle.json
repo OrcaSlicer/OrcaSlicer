@@ -22,9 +22,9 @@
     "cooling_tube_length": "0",
     "cooling_tube_retraction": "0",
     "default_filament_profile": [
-        "Cubicon PLA @Cubicon xCeler-I 0.4 nozzle"
+        "Cubicon PLA @base"
     ],
-    "default_print_profile": "cubicon default @Cubicon xCeler-I 0.4 nozzle",
+    "default_print_profile": "cubicon default @base",
     "deretraction_speed": [
         "30"
     ],
