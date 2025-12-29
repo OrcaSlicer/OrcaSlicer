@@ -3374,12 +3374,20 @@ bool CreatePrinterPresetDialog::validate_input_valid()
 
     if (auto preset = wxGetApp().preset_bundle->printers.find_preset(custom_printer_name)) {
         if (preset->is_system) {
+            // ORCA offer switcing to existing preset to reduce confusion
+            std::string diameters;
+            auto printer_model = preset->config.opt_string("printer_model");
+            for (auto &preset : wxGetApp().preset_bundle->printers) {
+                if (preset.config.opt_string("printer_model") == printer_model)
+                    diameters += preset.config.opt_string("printer_variant") + "  ";
+            }
             MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
+                                  + _L("\n\nAvailable nozzle profiles for this printer:")
+                                  + "\n" + diameters
                                   + _L("\n\nChoose YES to switch existing preset:")
                                   + "\n" + preset->name
                               , wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info")
                               , wxYES | wxYES_DEFAULT | wxNO | wxCENTRE);
-            // ORCA offer switcing to existing preset to reduce confusion
             if (dlg.ShowModal() == wxID_YES){
                 auto bundle = wxGetApp().preset_bundle;
                 bundle->printers.select_preset_by_name(preset->name, true);
