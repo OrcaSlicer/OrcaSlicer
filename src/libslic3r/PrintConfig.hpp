@@ -294,6 +294,11 @@ enum BedType {
     btPTE,
     btPCT,
     btSuperTack,
+    btPEO,
+    btPET,
+    btPEY,
+    btH1H,
+    btPHANTOM,
     btCount
 };
 
