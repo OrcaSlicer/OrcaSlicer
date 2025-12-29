@@ -6805,7 +6805,7 @@ float GCode::interpolate_value_across_layers(float start_value, float end_value)
     }
 }
 
-// Calculate the correct pressure advance value based on nozzle diameter
+// Orca: Calculate the correct pressure advance value based on nozzle diameter
 double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
 {
     const std::string& pa_string = m_config.pressure_advance.get_at(filament_id);
