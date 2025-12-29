@@ -24,7 +24,7 @@
     "default_filament_profile": [
         "Cubicon PLA @base"
     ],
-    "default_print_profile": "0.08mm Extra Fine @Creality K1 (0.4 nozzle)",
+    "default_print_profile": "cubicon default @base",
     "deretraction_speed": [
         "30"
     ],
