@@ -11,8 +11,6 @@ class RecenterDialog : public DPIDialog
 {
 private:
     wxStaticText* m_staticText_hint;
-    Button* m_button_confirm;
-    Button* m_button_close;
     wxStaticBitmap* m_bitmap_home;
     ScalableBitmap  m_home_bmp;
     wxString hint1;

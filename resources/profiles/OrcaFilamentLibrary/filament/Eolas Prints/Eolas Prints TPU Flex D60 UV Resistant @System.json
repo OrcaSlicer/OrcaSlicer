@@ -1,0 +1,22 @@
+{
+    "type": "filament",
+    "filament_id": "GFSEP015",
+    "setting_id": "GFSEP015_00",
+    "name": "Eolas Prints TPU D60 UV Resistant @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_tpu",
+    "filament_color": ["#4d9398"],
+    "filament_vendor": ["Eolas Prints"],
+    "filament_type": ["TPU"],
+    "nozzle_temperature": ["225"],
+    "nozzle_temperature_initial_layer": ["230"],
+    "nozzle_temperature_range_low": ["215"],
+    "nozzle_temperature_range_high": ["245"],
+    "hot_plate_temp": ["55"],
+    "hot_plate_temp_initial_layer": ["60"],
+    "filament_density": ["1.16"],
+    "filament_cost": ["37.90"],
+    "filament_spool_weight": ["1000"],
+    "filament_max_volumetric_speed": ["8"]
+}

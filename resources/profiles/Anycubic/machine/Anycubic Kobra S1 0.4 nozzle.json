@@ -41,7 +41,7 @@
     "before_layer_change_gcode": "; BEFORE_LAYER_CHANGE [layer_num] @ [layer_z]mm",
     "best_object_pos": "0.5,0.5",
     "change_extrusion_role_gcode": "",
-    "change_filament_gcode": "",
+    "change_filament_gcode": "; FLUSH_START\n;;; M400 P0\nT[next_extruder] ; change extruder\n; 1\n;;; G90\n;;; G1 Z{toolchange_z+2} F480\n;;; G1 X261 Y25 F12000\n;;; G1 Y1 F600\n;;; M400 P2730\n;;; G1 Y25 F3000\n;;; M400 P76250\n;;; M400 P35780\n; 2.1\n;;; G90\n;;; G1 Z{toolchange_z+2} F480\n;;; G1 X47 Y230 F12000\n;;; M400 P0\n; 2.2\n;;; G1 X47 Y276 F600\n;;; G1 X47 Y230 F12000\n;;; G1 X47 Y276 F600\n;;; G1 X47 Y230 F12000\n; 3.1\n;;; G1 F36000\n;;; G1 Y250\n;;; G1 F8000\n;;; G1 X81\n;;; G1 Y273\n; 3.2\n;;; G1 F8000\n;;; G1 X96\n;;; G1 X81\n;;; G1 F8000\n;;; G1 X96\n;;; G1 X81\n;;; G1 F8000\n;;; G1 X96\n;;; G1 X81\n;;; G1 X96\n;;; G1 X81\n;;; G1 X96\n;;; G1 X81\n;;; G1 X96\n;;; G1 X81\n; 3.3\n;;; G1 X72\n;;; G1 X77\n;;; G1 Z{toolchange_z}\n;;; M400 P0\n; FLUSH_END",
     "cooling_tube_length": "0",
     "cooling_tube_retraction": "0",
     "deretraction_speed": [

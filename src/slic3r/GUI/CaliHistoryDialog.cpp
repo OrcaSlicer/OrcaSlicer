@@ -7,6 +7,7 @@
 #include "format.hpp"
 #include "MsgDialog.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
+#include "Widgets/DialogButtons.hpp"
 #include <wx/gbsizer.h>
 
 #include "Plater.hpp"
@@ -114,15 +115,7 @@ HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>&
     scroll_window->SetSizer(scroll_sizer);
 
     Button *   mew_btn = new Button(scroll_window, _L("New"));
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    mew_btn->SetBackgroundColour(*wxWHITE);
-    mew_btn->SetBackgroundColor(btn_bg_green);
-    mew_btn->SetBorderColor(wxColour(0, 150, 136));
-    mew_btn->SetTextColor(wxColour("#FFFFFE"));
-    mew_btn->SetMinSize(wxSize(FromDIP(100), FromDIP(24)));
-    mew_btn->SetMaxSize(wxSize(FromDIP(100), FromDIP(24)));
-    mew_btn->SetCornerRadius(FromDIP(12));
+    mew_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     mew_btn->Bind(wxEVT_BUTTON, &HistoryWindow::on_click_new_button, this);
 
     scroll_sizer->Add(mew_btn, 0, wxLEFT, FromDIP(20));
@@ -379,9 +372,7 @@ void HistoryWindow::sync_history_data() {
         auto n_value = new Label(m_history_data_panel, n_str);
         n_value->Hide();
         auto delete_button = new Button(m_history_data_panel, _L("Delete"));
-        delete_button->SetBackgroundColour(*wxWHITE);
-        delete_button->SetMinSize(wxSize(-1, FromDIP(24)));
-        delete_button->SetCornerRadius(FromDIP(12));
+        delete_button->SetStyle(ButtonStyle::Alert, ButtonType::Window);
         delete_button->Bind(wxEVT_BUTTON, [this, gbSizer, i, &result](auto& e) {
             if (m_ui_op_lock) {
                 return;
@@ -405,15 +396,7 @@ void HistoryWindow::sync_history_data() {
             });
 
         auto edit_button = new Button(m_history_data_panel, _L("Edit"));
-        StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-            std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-        edit_button->SetBackgroundColour(*wxWHITE);
-        edit_button->SetBackgroundColor(btn_bg_green);
-        edit_button->SetBorderColor(wxColour(0, 150, 136));
-        edit_button->SetTextColor(wxColour("#FFFFFE"));
-        edit_button->SetMinSize(wxSize(-1, FromDIP(24)));
-        edit_button->SetCornerRadius(FromDIP(12));
+        edit_button->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
         edit_button->Bind(wxEVT_BUTTON, [this, result, k_value, name_value, edit_button](auto& e) {
             if (m_ui_op_lock) return;
 
@@ -580,29 +563,11 @@ EditCalibrationHistoryDialog::EditCalibrationHistoryDialog(wxWindow             
 
     panel_sizer->AddSpacer(FromDIP(25));
 
-    auto btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    Button* save_btn = new Button(top_panel, _L("Save"));
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    save_btn->SetBackgroundColour(*wxWHITE);
-    save_btn->SetBackgroundColor(btn_bg_green);
-    save_btn->SetBorderColor(wxColour(0, 150, 136));
-    save_btn->SetTextColor(wxColour("#FFFFFE"));
-    save_btn->SetMinSize(wxSize(-1, FromDIP(24)));
-    save_btn->SetCornerRadius(FromDIP(12));
-    Button* cancel_btn = new Button(top_panel, _L("Cancel"));
-    cancel_btn->SetBackgroundColour(*wxWHITE);
-    cancel_btn->SetMinSize(wxSize(-1, FromDIP(24)));
-    cancel_btn->SetCornerRadius(FromDIP(12));
-    save_btn->Bind(wxEVT_BUTTON, &EditCalibrationHistoryDialog::on_save, this);
-    cancel_btn->Bind(wxEVT_BUTTON, &EditCalibrationHistoryDialog::on_cancel, this);
-    btn_sizer->AddStretchSpacer();
-    btn_sizer->Add(save_btn);
-    btn_sizer->AddSpacer(FromDIP(20));
-    btn_sizer->Add(cancel_btn);
-    panel_sizer->Add(btn_sizer, 0, wxEXPAND, 0);
-
+    auto dlg_btns = new DialogButtons(top_panel, {"OK", "Cancel"});
+    dlg_btns->GetOK()->SetLabel(_L("Save"));
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &EditCalibrationHistoryDialog::on_save, this);
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &EditCalibrationHistoryDialog::on_cancel, this);
+    panel_sizer->Add(dlg_btns, 0, wxEXPAND, 0);
 
     main_sizer->Add(top_panel, 1, wxEXPAND | wxALL, FromDIP(20));
 
@@ -844,27 +809,10 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
 
     panel_sizer->AddSpacer(FromDIP(25));
 
-    auto       btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    Button *   ok_btn  = new Button(top_panel, _L("OK"));
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    ok_btn->SetBackgroundColour(*wxWHITE);
-    ok_btn->SetBackgroundColor(btn_bg_green);
-    ok_btn->SetBorderColor(wxColour(0, 150, 136));
-    ok_btn->SetTextColor(wxColour("#FFFFFE"));
-    ok_btn->SetMinSize(wxSize(-1, FromDIP(24)));
-    ok_btn->SetCornerRadius(FromDIP(12));
-    Button *cancel_btn = new Button(top_panel, _L("Cancel"));
-    cancel_btn->SetBackgroundColour(*wxWHITE);
-    cancel_btn->SetMinSize(wxSize(-1, FromDIP(24)));
-    cancel_btn->SetCornerRadius(FromDIP(12));
-    ok_btn->Bind(wxEVT_BUTTON, &NewCalibrationHistoryDialog::on_ok, this);
-    cancel_btn->Bind(wxEVT_BUTTON, &NewCalibrationHistoryDialog::on_cancel, this);
-    btn_sizer->AddStretchSpacer();
-    btn_sizer->Add(ok_btn);
-    btn_sizer->AddSpacer(FromDIP(20));
-    btn_sizer->Add(cancel_btn);
-    panel_sizer->Add(btn_sizer, 0, wxEXPAND, 0);
+    auto dlg_btns = new DialogButtons(top_panel, {"OK", "Cancel"});
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &NewCalibrationHistoryDialog::on_ok, this);
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &NewCalibrationHistoryDialog::on_cancel, this);
+    panel_sizer->Add(dlg_btns, 0, wxEXPAND, 0);
 
     main_sizer->Add(top_panel, 1, wxEXPAND | wxALL, FromDIP(20));
 

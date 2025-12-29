@@ -1,0 +1,198 @@
+{
+    "name": "OpenEYE",
+	"url": "http://www.openeye.tech",
+    "version": "01.00.00.03",
+    "force_update": "0",
+    "description": "OpenEYE Printers Configurations",
+    "machine_model_list": [
+        {
+            "name": "OpenEYE Peacock V2",
+            "sub_path": "machine/OpenEYE Peacock V2.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_openeye_common",
+            "sub_path": "process/fdm_process_openeye_common.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.06_nozzle_0.2",
+            "sub_path": "process/fdm_process_openeye_0.06_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.08_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.08_nozzle_0.4.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.08_nozzle_0.2",
+            "sub_path": "process/fdm_process_openeye_0.08_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.10_nozzle_0.2",
+            "sub_path": "process/fdm_process_openeye_0.10_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.12_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.12_nozzle_0.4.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.12_nozzle_0.2",
+            "sub_path": "process/fdm_process_openeye_0.12_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.14_nozzle_0.2",
+            "sub_path": "process/fdm_process_openeye_0.14_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.16_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.16_nozzle_0.4.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.18_nozzle_0.6",
+            "sub_path": "process/fdm_process_openeye_0.18_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.20_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.20_nozzle_0.4.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.24_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.24_nozzle_0.4.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.24_nozzle_0.6",
+            "sub_path": "process/fdm_process_openeye_0.24_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.24_nozzle_0.8",
+            "sub_path": "process/fdm_process_openeye_0.24_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.28_nozzle_0.4",
+            "sub_path": "process/fdm_process_openeye_0.28_nozzle_0.4.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.30_nozzle_0.6",
+            "sub_path": "process/fdm_process_openeye_0.30_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.32_nozzle_0.8",
+            "sub_path": "process/fdm_process_openeye_0.32_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.36_nozzle_0.6",
+            "sub_path": "process/fdm_process_openeye_0.36_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.40_nozzle_0.8",
+            "sub_path": "process/fdm_process_openeye_0.40_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.42_nozzle_0.6",
+            "sub_path": "process/fdm_process_openeye_0.42_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.48_nozzle_0.8",
+            "sub_path": "process/fdm_process_openeye_0.48_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_openeye_0.56_nozzle_0.8",
+            "sub_path": "process/fdm_process_openeye_0.56_nozzle_0.8.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @OpenEYE Peacock V2 0.2 nozzle",
+            "sub_path": "process/0.08mm Extra Fine @OpenEYE Peacock V2 0.2 nozzle.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @OpenEYE Peacock V2",
+            "sub_path": "process/0.08mm Extra Fine @OpenEYE Peacock V2.json"
+        },
+        {
+            "name": "0.10mm Standard @OpenEYE Peacock V2 0.2 nozzle",
+            "sub_path": "process/0.10mm Standard @OpenEYE Peacock V2 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm Balanced Quality @OpenEYE Peacock V2 0.2 nozzle",
+            "sub_path": "process/0.12mm Balanced Quality @OpenEYE Peacock V2 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm Fine @OpenEYE Peacock V2",
+            "sub_path": "process/0.12mm Fine @OpenEYE Peacock V2.json"
+        },
+        {
+            "name": "0.16mm Balanced Quality @OpenEYE Peacock V2",
+            "sub_path": "process/0.16mm Balanced Quality @OpenEYE Peacock V2.json"
+        },
+        {
+            "name": "0.16mm Standard @OpenEYE Peacock V2",
+            "sub_path": "process/0.16mm Standard @OpenEYE Peacock V2.json"
+        },
+        {
+            "name": "0.18mm Balanced Quality @OpenEYE Peacock V2 0.6 nozzle",
+            "sub_path": "process/0.18mm Balanced Quality @OpenEYE Peacock V2 0.6 nozzle.json"
+        },
+        {
+            "name": "0.20mm Balanced Strength @OpenEYE Peacock V2",
+            "sub_path": "process/0.20mm Balanced Strength @OpenEYE Peacock V2.json"
+        },
+        {
+            "name": "0.20mm Standard @OpenEYE Peacock V2",
+            "sub_path": "process/0.20mm Standard @OpenEYE Peacock V2.json"
+        },
+        {
+            "name": "0.24mm Balanced Quality @OpenEYE Peacock V2 0.8 nozzle",
+            "sub_path": "process/0.24mm Balanced Quality @OpenEYE Peacock V2 0.8 nozzle.json"
+        },
+        {
+            "name": "0.24mm Balanced Strength @OpenEYE Peacock V2 0.6 nozzle",
+            "sub_path": "process/0.24mm Balanced Strength @OpenEYE Peacock V2 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @OpenEYE Peacock V2",
+            "sub_path": "process/0.24mm Standard @OpenEYE Peacock V2.json"
+        },
+        {
+            "name": "0.30mm Standard @OpenEYE Peacock V2 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @OpenEYE Peacock V2 0.6 nozzle.json"
+        },
+        {
+            "name": "0.32mm Balanced Strength @OpenEYE Peacock V2 0.8 nozzle",
+            "sub_path": "process/0.32mm Balanced Strength @OpenEYE Peacock V2 0.8 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @OpenEYE Peacock V2 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @OpenEYE Peacock V2 0.8 nozzle.json"
+        }
+    ],
+    "filament_list": [],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_openeye_common",
+            "sub_path": "machine/fdm_openeye_common.json"
+        },
+        {
+            "name": "OpenEYE Peacock V2 0.4 nozzle",
+            "sub_path": "machine/OpenEYE Peacock V2 0.4 nozzle.json"
+        },
+        {
+            "name": "OpenEYE Peacock V2 0.2 nozzle",
+            "sub_path": "machine/OpenEYE Peacock V2 0.2 nozzle.json"
+        },
+        {
+            "name": "OpenEYE Peacock V2 0.6 nozzle",
+            "sub_path": "machine/OpenEYE Peacock V2 0.6 nozzle.json"
+        },
+        {
+            "name": "OpenEYE Peacock V2 0.8 nozzle",
+            "sub_path": "machine/OpenEYE Peacock V2 0.8 nozzle.json"
+        }
+    ]
+}

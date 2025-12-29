@@ -1,15 +1,1 @@
-<svg width="29" height="33" xmlns="http://www.w3.org/2000/svg" fill="none">
- <defs>
-  <clipPath id="clip0_20951_60572">
-   <rect id="svg_1" x="4.77881" y="3.94775" fill="white" height="25" width="20"/>
-  </clipPath>
- </defs>
- <g>
-  <title _mstTextHash="5637814" _mstHash="1">第 1 层</title>
-  <path id="svg_2" fill="#2d2d31" d="m4.77881,0.44775c-2.20914,0 -4,1.79086 -4,4l0,24.00005c0,2.2091 1.79086,4 4,4l19.99999,0c2.2091,0 4,-1.7909 4,-4l0,-24.00005c0,-2.20914 -1.7909,-4 -4,-4l-19.99999,0zm16.34619,8l-11.70898,0l0,16.00005l11.70898,0l0,-16.00005z" clip-rule="evenodd" fill-rule="evenodd"/>
-  <g id="svg_3" clip-path="url(#clip0_20951_60572)">
-   <path id="svg_4" fill="#CECECE" d="m11.7788,16.7349l-6.99999,0l0,12l19.99999,0l0,-12l-7,0l0,2.2617c0,1.6569 -1.3431,3 -3,3c-1.6568,0 -3,-1.3431 -3,-3l0,-2.2617z" clip-rule="evenodd" fill-rule="evenodd"/>
-   <path id="svg_5" fill="#EEEEEE" d="m11.9626,4.73486c-2.86291,0 -5.18379,2.32088 -5.18379,5.18382l0,6.81622l4.99999,0l0,-3.7383c0,-1.6569 1.3432,-3.00002 3,-3.00002c1.6569,0 3,1.34312 3,3.00002l0,3.7383l5,0l0,-6.81622c0,-2.86294 -2.3209,-5.18382 -5.1838,-5.18382l-5.6324,0z" clip-rule="evenodd" fill-rule="evenodd"/>
-  </g>
- </g>
-</svg>
+<?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" width="28" height="32" viewBox="0 0 28 32"><line x1="17.5" y1="8" x2="17.5" y2="24" style="fill:none; stroke:#949494;"/><line x1="9.5" y1="8" x2="9.5" y2="24" style="fill:none; stroke:#949494;"/><path d="M19.5,17V7.5c0-1.66-1.34-3-3-3h-6c-1.66,0-3,1.34-3,3v9.5" style="fill:none; stroke:#949494;"/><path d="M6,17v11h15v-11H6ZM12,20v-1c0-.55.45-1,1-1h1c.55,0,1,.45,1,1v1c0,.55-.45,1-1,1h-1c-.55,0-1-.45-1-1Z" style="fill:#949494; opacity:.7;"/></svg>

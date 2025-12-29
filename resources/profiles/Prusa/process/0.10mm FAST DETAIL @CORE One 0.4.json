@@ -13,5 +13,8 @@
     "support_interface_top_layers": "3",
     "initial_layer_infill_speed": "100",
     "initial_layer_speed": "45",
-    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.4"
+    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.4",
+    "small_perimeter_speed": "145",
+    "inner_wall_speed": "145",
+    "outer_wall_speed": "145"
 }
