@@ -105,7 +105,7 @@ def check_filament_compatible_printers(vendor_folder):
         if 'inherits' in content:
             inherits = content['inherits']
             if inherits not in profiles:
-                raise ValueError(f"Parent profile not found: {inherits}, referrenced in {profile['file_path']}")
+                raise ValueError(f"Parent profile not found: {inherits}, referenced in {profile['file_path']}")
             
             return get_inherit_property(profiles[inherits], key)
         
