@@ -159,7 +159,7 @@
     "print_flow_ratio": "1",
     "print_order": "default",
     "print_sequence": "by layer",
-    "print_settings_id": "process template @Cubicon xCeler-I 0.4 nozzle",
+    "print_settings_id": "process template @base",
     "raft_contact_distance": "0.1",
     "raft_expansion": "1.5",
     "raft_first_layer_density": "100%",
