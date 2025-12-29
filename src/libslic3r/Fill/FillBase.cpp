@@ -1708,8 +1708,7 @@ void Fill::connect_infill(Polylines &&infill_ordered, const std::vector<const Po
             size_t                    polyline_idx2  = get_and_update_merged_with(((cp2 - graph.map_infill_end_point_to_boundary.data()) / 2));
             const Points             &contour        = graph.boundary[cp1->contour_idx];
 
-            // If multiline infill is requested, skip connections that are too short.
-            // Skip connections where the arc is shorter than multiline spacing
+            // Orca: If multiline infill is requested, skip connections that are too short.
             if (params.multiline > 1 && arc.arc_length < scale_(spacing) * params.multiline) {
                 continue;
             }
