@@ -1,0 +1,26 @@
+{
+    "instantiation": "true",
+    "version": "1.0.0.0",
+  
+    "compatible_printers": [
+      "Cubicon xCeler-I 0.4 nozzle"
+    ],
+  
+    "default_filament_colour": "",
+    "filament_id": "P510cfa2",
+  
+    "filament_settings_id": [
+      "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle"
+    ],
+    "filament_type": [
+      "PLAi21"
+    ],
+    "filament_vendor": [
+      "Cubicon"
+    ],
+  
+    "inherits": "Cubicon PLAi21 @base",
+    "is_custom_defined": "0",
+    "name": "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle"
+  }
+  

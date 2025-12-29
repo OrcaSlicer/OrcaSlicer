@@ -1,0 +1,26 @@
+{
+    "instantiation": "true",
+    "version": "1.0.0.0",
+  
+    "compatible_printers": [
+      "Cubicon xCeler-I 0.4 nozzle"
+    ],
+  
+    "default_filament_colour": "",
+    "filament_id": "P510cfb0",
+  
+    "filament_settings_id": [
+      "Cubicon ABS @Cubicon xCeler-I 0.4 nozzle"
+    ],
+    "filament_type": [
+      "ABS"
+    ],
+    "filament_vendor": [
+      "Cubicon"
+    ],
+  
+    "inherits": "Cubicon ABS @base",
+    "is_custom_defined": "0",
+    "name": "Cubicon ABS @Cubicon xCeler-I 0.4 nozzle"
+  }
+  
