@@ -83,7 +83,7 @@
     "top_solid_infill_flow_ratio": "0.9",
     "travel_speed": "500",
     "support_threshold_angle": "15",
-    "type": "2",
+    "type": "process",
     "wall_loops": "2",
     "thick_bridges": "0",
     "extra_perimeters_on_overhangs": "1",
