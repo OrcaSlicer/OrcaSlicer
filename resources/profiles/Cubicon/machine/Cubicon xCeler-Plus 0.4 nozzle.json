@@ -41,7 +41,7 @@
     "fan_kickstart": "0",
     "fan_speedup_overhangs": "1",
     "fan_speedup_time": "0",
-    "from": "User",
+    "from": "system",
     "gcode_flavor": "klipper",
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",

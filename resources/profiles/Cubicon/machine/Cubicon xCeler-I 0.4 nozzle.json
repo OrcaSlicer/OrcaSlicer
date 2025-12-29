@@ -2,7 +2,7 @@
     "type": "machine",
     "name": "Cubicon xCeler-I 0.4 nozzle",
     "inherits": "fdm_machine_common",
-    "from": "User",
+    "from": "system",
     "instantiation": "true",
     "adaptive_bed_mesh_margin": "0",
     "auxiliary_fan": "1",
