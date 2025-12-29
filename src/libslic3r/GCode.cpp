@@ -3084,10 +3084,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         m_sorted_layer_filaments.emplace_back(lt.extruders);
                 }
 
-                // Orca: disable power loss recovery
+                // Orca: disable power loss recovery if it was enabled earlier
                 {
-                    if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
-                        file.write(m_writer.enable_power_loss_recovery(false));
+                    const auto plr_mode = print.config().enable_power_loss_recovery.value;
+                    if (m_second_layer_things_done && plr_mode == PowerLossRecoveryMode::Enable) {
+                        file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
                     }
                 }
                 ++ finished_objects;
@@ -3166,8 +3167,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             }
 
             // Orca: disable power loss recovery
-            if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
-                file.write(m_writer.enable_power_loss_recovery(false));
+            if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == PowerLossRecoveryMode::Enable) {
+                file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
             }
             if (m_wipe_tower)
                 // Purge the extruder, pull out the active filament.
@@ -4382,7 +4383,8 @@ LayerResult GCode::process_layer(
 
     if (!first_layer && !m_second_layer_things_done) {
         // Orca: set power loss recovery
-        gcode += m_writer.enable_power_loss_recovery(print.config().enable_power_loss_recovery.value);
+        const auto plr_mode = print.config().enable_power_loss_recovery.value;
+        gcode += m_writer.enable_power_loss_recovery(plr_mode);
 
         if (print.is_BBL_printer()) {
             // BBS: open first layer inspection at second layer

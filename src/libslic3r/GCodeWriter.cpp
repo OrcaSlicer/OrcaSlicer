@@ -444,9 +444,14 @@ std::string GCodeWriter::reset_e(bool force)
     }
 }
 
-std::string GCodeWriter::enable_power_loss_recovery(bool enable)
+std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
 {
     std::ostringstream gcode;
+
+    if (mode == PowerLossRecoveryMode::PrinterConfiguration)
+        return std::string();
+
+    const bool enable = mode == PowerLossRecoveryMode::Enable;
 
     if (m_is_bbl_printers) {
         gcode << "M1003 S" << (enable ? "1" : "0");

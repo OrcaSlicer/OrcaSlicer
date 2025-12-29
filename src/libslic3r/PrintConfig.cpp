@@ -161,6 +161,13 @@ static t_config_enum_values s_keys_map_BedTempFormula {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BedTempFormula)
 
+static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
+    { "printer_configuration", int(PowerLossRecoveryMode::PrinterConfiguration) },
+    { "enable",                 int(PowerLossRecoveryMode::Enable) },
+    { "disable",                int(PowerLossRecoveryMode::Disable) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -3376,11 +3383,18 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(false));
 
     // Orca
-    def = this->add("enable_power_loss_recovery", coBool);
+    def = this->add("enable_power_loss_recovery", coEnum);
     def->label = L("Power Loss Recovery");
-    def->tooltip = L("Enable or Disable power loss recovery by inserting commands in generated G-code.\nOnly for Bambu Lab or Marlin 2 firmware based printers");
+    def->tooltip = L("Choose how to control power loss recovery. When set to Printer configuration, the slicer will not emit power loss recovery G-code and will leave the printer's configuration unchanged. Applicable to Bambu Lab or Marlin 2 firmware based printers.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->enum_keys_map = &ConfigOptionEnum<PowerLossRecoveryMode>::get_enum_values();
+    def->enum_values.push_back("printer_configuration");
+    def->enum_values.push_back("enable");
+    def->enum_values.push_back("disable");
+    def->enum_labels.push_back(L("Printer configuration"));
+    def->enum_labels.push_back(L("Enable"));
+    def->enum_labels.push_back(L("Disable"));
+    def->set_default_value(new ConfigOptionEnum<PowerLossRecoveryMode>(PowerLossRecoveryMode::PrinterConfiguration));
 
     //BBS
     // def = this->add("spaghetti_detector", coBool);
@@ -7441,6 +7455,13 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     }
     else if (opt_key == "extruder_type") {
         ReplaceString(value, "DirectDrive", "Direct Drive");
+    }
+    else if (opt_key == "enable_power_loss_recovery") {
+        if (value == "1" || boost::iequals(value, "true")) {
+            value = "enable";
+        } else if (value == "0" || boost::iequals(value, "false")) {
+            value = "disable";
+        }
     }
     else if(opt_key == "ensure_vertical_shell_thickness") {
         if(value == "1") {
