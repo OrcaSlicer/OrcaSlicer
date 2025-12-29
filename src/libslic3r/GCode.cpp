@@ -2232,6 +2232,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // modifies m_silent_time_estimator_enabled
     DoExport::init_gcode_processor(print.config(), m_processor, m_silent_time_estimator_enabled);
+    m_processor.detect_layer_based_on_tag(true);
     const bool is_bbl_printers = print.is_BBL_printer();
     const bool is_qidi_printers = print.is_QIDI_printer();
     m_calib_config.clear();
@@ -5630,7 +5631,7 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
     return gcode;
 }
 
-std::string GCode::extrude_multi_path(ExtrusionMultiPath multipath, std::string description, double speed)
+std::string GCode::extrude_multi_path(const ExtrusionMultiPath& multipath, std::string description, double speed)
 {
     // extrude along the path
     std::string gcode;
@@ -5652,7 +5653,7 @@ std::string GCode::extrude_multi_path(ExtrusionMultiPath multipath, std::string 
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
     
-    for (ExtrusionPath path : multipath.paths){
+    for (const ExtrusionPath& path : multipath.paths){
         gcode += this->_extrude(path, description, speed);
         // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
         // as we have already set the PA value to the average flow over the totality of the path
@@ -5663,7 +5664,7 @@ std::string GCode::extrude_multi_path(ExtrusionMultiPath multipath, std::string 
     // BBS
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
         m_wipe.path = Polyline();
-        for (ExtrusionPath &path : multipath.paths) {
+        for (const ExtrusionPath &path : multipath.paths) {
             //BBS: Don't need to save duplicated point into wipe path
             if (!m_wipe.path.empty() && !path.empty() &&
                 m_wipe.path.last_point() == path.first_point())
@@ -5690,7 +5691,7 @@ std::string GCode::extrude_entity(const ExtrusionEntity &entity, std::string des
     return "";
 }
 
-std::string GCode::extrude_path(ExtrusionPath path, std::string description, double speed)
+std::string GCode::extrude_path(const ExtrusionPath& path, std::string description, double speed)
 {
     // Orca: Reset average multipath flow as this is a single line, single extrude volumetric speed path
     m_multi_flow_segment_path_pa_set = false;
@@ -5946,7 +5947,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     bool slope_need_z_travel = false;
     if (sloped != nullptr && !sloped->is_flat()) {
-        auto target_z = get_sloped_z(sloped->slope_begin.z_ratio);
+        auto target_z = get_sloped_z(sloped->slope_begin().z_ratio);
         slope_need_z_travel = m_writer.will_move_z(target_z);
     }
     // Move to first point of extrusion path
@@ -5958,7 +5959,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             path.first_point(),
             path.role(),
             "move to first " + description + " point",
-            sloped == nullptr ? DBL_MAX : get_sloped_z(sloped->slope_begin.z_ratio)
+            sloped == nullptr ? DBL_MAX : get_sloped_z(sloped->slope_begin().z_ratio)
         );
         m_need_change_layer_lift_z = false;
         // Orca: ensure Z matches planned layer height
@@ -6532,14 +6533,13 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             // BBS: use G1 if not enable arc fitting or has no arc fitting result or in spiral_mode mode or we are doing sloped extrusion
             // Attention: G2 and G3 is not supported in spiral_mode mode
             if (!m_config.enable_arc_fitting || path.polyline.fitting_result.empty() || m_config.spiral_mode || sloped != nullptr) {
-                double path_length = 0.;
-                double total_length = sloped == nullptr ? 0. : path.polyline.length() * SCALING_FACTOR;
+                int segment_idx = 0;
                 for (const Line& line : path.polyline.lines()) {
+                    segment_idx++;
                     std::string tempDescription = description;
                     const double line_length = line.length() * SCALING_FACTOR;
                     if (line_length < EPSILON)
                         continue;
-                    path_length += line_length;
                     auto dE = e_per_mm * line_length;
                     if (_needSAFC(path)) {
                         auto oldE = dE;
@@ -6557,7 +6557,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     } else {
                         // Sloped extrusion
-                        const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
+                        const auto [z_ratio, e_ratio] = sloped->interpolate(segment_idx);
                         Vec2d dest2d = this->point_to_gcode(line.b);
                         Vec3d dest3d(dest2d(0), dest2d(1), get_sloped_z(z_ratio));
                         gcode += m_writer.extrude_to_xyz(

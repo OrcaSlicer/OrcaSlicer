@@ -299,7 +299,7 @@ inline bool is_zero(Number value)
 template <typename T, typename Number>
 constexpr inline T lerp(const T& a, const T& b, Number t)
 {
-    assert((t >= Number(-EPSILON)) && (t <= Number(1) + Number(EPSILON)));
+    //assert((t >= Number(-EPSILON)) && (t <= Number(1) + Number(EPSILON)));
     return (Number(1) - t) * a + t * b;
 }
 

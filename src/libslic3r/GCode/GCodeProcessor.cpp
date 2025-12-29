@@ -2454,6 +2454,9 @@ void GCodeProcessor::process_file(const std::string& filename, std::function<voi
             }
 
             apply_config(config);
+
+            // Orca: for orca generated files, always use tag based layer detection
+            detect_layer_based_on_tag(true);
         }
         else if (m_producer == EProducer::Simplify3D)
             apply_config_simplify3d(filename);

@@ -78,6 +78,12 @@ void ExtrusionEntityCollection::replace(size_t i, const ExtrusionEntity &entity)
     this->entities[i] = entity.clone();
 }
 
+void ExtrusionEntityCollection::replace(size_t i, ExtrusionEntity&& entity)
+{
+    delete this->entities[i];
+    this->entities[i] = entity.clone_move();
+}
+
 void ExtrusionEntityCollection::remove(size_t i)
 {
     delete this->entities[i];

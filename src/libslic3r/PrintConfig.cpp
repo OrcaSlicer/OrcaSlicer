@@ -3249,6 +3249,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(0));
 
+    def = this->add("fuzzy_skin_nonplanar", coBool);
+    def->label = L("Nonplanar fuzzy skin");
+    def->category = L("Others");
+    def->tooltip = L("Apply fuzzy skin height variation to top surfaces. Disable to keep top surfaces flat even when fuzzy skin is enabled.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(0));
+
     def = this->add("fuzzy_skin_mode", coEnum);
     def->label = L("Fuzzy skin generator mode");
     def->category = L("Others");

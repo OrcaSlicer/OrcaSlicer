@@ -179,6 +179,8 @@ void Layer::make_perimeters()
 {
     BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id();
 
+    regions_by_fuzzify.clear();
+
     // keep track of regions whose perimeters we have already generated
     std::vector<unsigned char> done(m_regions.size(), false);
 
@@ -253,6 +255,45 @@ void Layer::make_perimeters()
 	            }
 	        }
 	    }
+
+    // Union fuzzy regions
+    if (regions_by_fuzzify.size() == 1) {
+        // Only one region, means this layer should either be entirely fuzzified or not fuzzified at all,
+        // so no point to keep the region polygon
+        if (!regions_by_fuzzify.begin()->first.fuzzify()) {
+            regions_by_fuzzify.clear();
+        } else {
+            regions_by_fuzzify.begin()->second.clear();
+        }
+    } else {
+        for (auto fuzzify = regions_by_fuzzify.begin(); fuzzify != regions_by_fuzzify.end();) {
+            // Skip non-fuzzify regions
+            if (!fuzzify->first.fuzzify()) {
+                ++fuzzify;
+                continue;
+            }
+
+            // Remove region that should not be fuzzified on first layer
+            if (this->id() <= 0 && !fuzzify->first.fuzzy_first_layer) {
+                fuzzify = regions_by_fuzzify.erase(fuzzify);
+                continue;
+            }
+
+            fuzzify->second = intersection_ex(offset_ex(fuzzify->second, ClipperSafetyOffset), this->lslices);
+            if (!fuzzify->second.empty() && this->upper_layer && !this->upper_layer->lslices.empty()) {
+                // Clip the fuzzy region by upper layer, so the top surface that is covered by upper layer is not fuzzified
+                fuzzify->second = diff_ex(fuzzify->second, this->upper_layer->lslices);
+            }
+
+            // Remove empty one
+            if (fuzzify->second.empty()) {
+                fuzzify = regions_by_fuzzify.erase(fuzzify);
+            } else {
+                ++fuzzify;
+            }
+        }
+    }
+
     BOOST_LOG_TRIVIAL(trace) << "Generating perimeters for layer " << this->id() << " - Done";
 }
 
