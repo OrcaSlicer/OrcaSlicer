@@ -907,6 +907,8 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size + offset_to_center);
     ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::Z()),"Z");
 
+    
+
     index      = 1;
     index_unit = 1;
     ImGui::AlignTextToFramePadding();
@@ -945,6 +947,12 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         update(current_active_id, "position", original_position, m_buffered_position);
     }
     // the init position values are not zero, won't add reset button
+
+    // TODO add checkbox to disable/enable snap to buildplate
+    bool snap_to_buildplate = false;
+    ImGui::Separator();
+    ImGui::AlignTextToFramePadding();
+    ImGui::BBLCheckbox("Snap to buildplate", &snap_to_buildplate);
 
     // send focus to m_glcanvas
     bool focued_on_text = false;
