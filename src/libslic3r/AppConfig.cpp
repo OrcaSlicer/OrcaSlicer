@@ -346,6 +346,10 @@ void AppConfig::set_defaults()
         set_bool("show_printable_box", true);
     }
 
+	if (get("show_overhang").empty()) {
+        set_bool("show_overhang", false);
+    }
+
     if (get("units").empty()) {
          set("units", "0");
     }

@@ -355,6 +355,9 @@ public:
     bool show_3d_navigator() const { return app_config->get_bool("show_3d_navigator"); }
     void toggle_show_3d_navigator() const { app_config->set_bool("show_3d_navigator", !show_3d_navigator()); }
 
+    bool show_overhang() const { return app_config->get_bool("show_overhang"); }
+    void toggle_show_overhang() const { app_config->set_bool("show_overhang", !show_overhang()); }
+
     bool show_outline() const { return app_config->get_bool("show_outline"); }
     void toggle_show_outline() const { app_config->set_bool("show_outline", !show_outline()); }
 
