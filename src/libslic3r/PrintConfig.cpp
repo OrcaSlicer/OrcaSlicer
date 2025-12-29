@@ -435,7 +435,12 @@ static const t_config_enum_values s_keys_map_BedType = {
     { "Engineering Plate",  btEP  },
     { "High Temp Plate",    btPEI  },
     { "Textured PEI Plate", btPTE },
-    { "Textured Cool Plate", btPCT }
+    { "Textured Cool Plate", btPCT },
+    { "Smooth PEO Plate", btPEO },
+    { "Smooth PET Plate", btPET },
+    { "Smooth PEY Plate", btPEY },
+    { "Smooth H1H Plate", btH1H },
+    { "Smooth PHANTOM Plate", btPHANTOM }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BedType)
 
@@ -980,12 +985,22 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.emplace_back("Textured PEI Plate");
     def->enum_values.emplace_back("Textured Cool Plate");
     def->enum_values.emplace_back("Supertack Plate");
+    def->enum_values.emplace_back("Smooth PEO Plate");
+    def->enum_values.emplace_back("Smooth PET Plate");
+    def->enum_values.emplace_back("Smooth PEY Plate");
+    def->enum_values.emplace_back("Smooth H1H Plate");
+    def->enum_values.emplace_back("Smooth Phantom Plate");
     def->enum_labels.emplace_back(L("Smooth Cool Plate"));
     def->enum_labels.emplace_back(L("Engineering Plate"));
     def->enum_labels.emplace_back(L("Smooth High Temp Plate"));
     def->enum_labels.emplace_back(L("Textured PEI Plate"));
     def->enum_labels.emplace_back(L("Textured Cool Plate"));
     def->enum_labels.emplace_back(L("Cool Plate (SuperTack)"));
+    def->enum_labels.emplace_back(L("Smooth PEO Plate"));
+    def->enum_labels.emplace_back(L("Smooth PET Plate"));
+    def->enum_labels.emplace_back(L("Smooth PEY Plate"));
+    def->enum_labels.emplace_back(L("Smooth H1H Plate"));
+    def->enum_labels.emplace_back(L("Smooth Phantom Plate"));
     def->set_default_value(new ConfigOptionEnum<BedType>(btPC));
 
     // Orca: allow profile maker to set default bed type in machine profile
