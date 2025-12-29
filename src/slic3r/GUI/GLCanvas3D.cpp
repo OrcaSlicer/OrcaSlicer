@@ -4385,7 +4385,11 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     }
 
     bool any_gizmo_active = m_gizmos.get_current() != nullptr;
-    bool swap_mouse_buttons = wxGetApp().app_config->get_bool("swap_mouse_buttons");
+
+    std::map<MouseButton, MouseAction> button_mappings;
+    button_mappings[MouseButton::Left] = static_cast<MouseAction>(std::atoi(wxGetApp().app_config->get("left_mouse_drag_action").c_str()));
+    button_mappings[MouseButton::Middle] = static_cast<MouseAction>(std::atoi(wxGetApp().app_config->get("middle_mouse_drag_action").c_str()));
+    button_mappings[MouseButton::Right] = static_cast<MouseAction>(std::atoi(wxGetApp().app_config->get("right_mouse_drag_action").c_str()));
 
     if (m_mouse.drag.move_requires_threshold && m_mouse.is_move_start_threshold_position_2D_defined() && m_mouse.is_move_threshold_met(pos)) {
         m_mouse.drag.move_requires_threshold = false;
@@ -4588,7 +4592,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_dirty = true;
         }
     }
-    else if (evt.Dragging() || is_camera_rotate(evt, swap_mouse_buttons) || is_camera_pan(evt, swap_mouse_buttons)) {
+    else if (evt.Dragging() || is_camera_rotate(evt, button_mappings) || is_camera_pan(evt, button_mappings)) {
         m_mouse.dragging = true;
 
         if (m_layers_editing.state != LayersEditing::Unknown && layer_editing_object_idx != -1) {
@@ -4598,10 +4602,13 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             }
         }
         // do not process the dragging if the left mouse was set down in another canvas
-        else if (is_camera_rotate(evt, swap_mouse_buttons)) {
+        else if (is_camera_rotate(evt, button_mappings)) {
             // Orca: Sphere rotation for painting view
-            // if dragging over blank area with left button or button functions swapped then rotate
-            if ((any_gizmo_active || swap_mouse_buttons || m_hover_volume_idxs.empty()) && m_mouse.is_start_position_3D_defined()) {
+            // if dragging over blank area with left button or other button mapped to rotate, then rotate
+            bool middle_or_right_button_used_as_rotate = (evt.MiddleIsDown() && button_mappings[MouseButton::Middle] == MouseAction::Rotation) ||
+                                                         (evt.RightIsDown() && button_mappings[MouseButton::Right] == MouseAction::Rotation);         
+            if ((any_gizmo_active || middle_or_right_button_used_as_rotate || m_hover_volume_idxs.empty()) &&
+                m_mouse.is_start_position_3D_defined()) {
                 Camera& camera = wxGetApp().plater()->get_camera();
                 auto mult_pref = wxGetApp().app_config->get("camera_orbit_mult");
                 const double mult = mult_pref.empty() ? 1.0 : std::stod(mult_pref);
@@ -4674,7 +4681,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             m_camera_movement = true;
             m_mouse.drag.start_position_3D = Vec3d((double)pos(0), (double)pos(1), 0.0);
         }
-        else if (is_camera_pan(evt, swap_mouse_buttons)) {
+        else if (is_camera_pan(evt, button_mappings)) {
             // if dragging with right button or if button functions swapped and dragging with left button over blank area then pan
             if (m_mouse.is_start_position_2D_defined()) {
                 // get point in model space at Z = 0
@@ -4701,10 +4708,13 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         }
     }
     else if ((evt.LeftUp() || evt.MiddleUp() || evt.RightUp()) ||
-               (m_camera_movement && !is_camera_rotate(evt, swap_mouse_buttons) && !is_camera_pan(evt, swap_mouse_buttons))) {
+               (m_camera_movement && !is_camera_rotate(evt, button_mappings) && !is_camera_pan(evt, button_mappings))) {
         m_mouse.position = pos.cast<double>();
 
-        if (swap_mouse_buttons ? evt.RightUp() : evt.LeftUp()) {
+        // Check if the button that was released is mapped to rotation
+        if ((evt.LeftUp() && button_mappings[MouseButton::Left] == MouseAction::Rotation) ||
+            (evt.MiddleUp() && button_mappings[MouseButton::Middle] == MouseAction::Rotation) ||
+            (evt.RightUp() && button_mappings[MouseButton::Right] == MouseAction::Rotation)) {
             m_rotation_center(0) = m_rotation_center(1) = m_rotation_center(2) = 0.f;
         }
 
@@ -4889,21 +4899,42 @@ void GLCanvas3D::on_set_focus(wxFocusEvent& evt)
     m_is_touchpad_navigation = wxGetApp().app_config->get_bool("camera_navigation_style");
 }
 
-bool GLCanvas3D::is_camera_rotate(const wxMouseEvent& evt, const bool buttonsSwapped) const
+bool GLCanvas3D::clicked_button_matches_action(const wxMouseEvent& evt, const MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const
+{
+    MouseButton clicked = MouseButton::None;
+    if (evt.LeftIsDown()) {
+        clicked = MouseButton::Left;
+    }
+    if (evt.MiddleIsDown()) {
+        clicked = MouseButton::Middle;
+    }
+    if (evt.RightIsDown()) {
+        clicked = MouseButton::Right;
+    }
+
+    auto it = mappings.find(clicked);
+    if (it == mappings.end()) {
+        return false;
+    }
+    return it->second == action;
+}
+
+bool GLCanvas3D::is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const
 {
     if (m_is_touchpad_navigation) {
         return evt.Moving() && evt.AltDown() && !evt.ShiftDown();
     } else {
-        return evt.Dragging() && (buttonsSwapped ? evt.RightIsDown() : evt.LeftIsDown());
+        return evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Rotation, mappings);
     }
 }
 
-bool GLCanvas3D::is_camera_pan(const wxMouseEvent& evt, const bool buttonsSwapped) const
+bool GLCanvas3D::is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const
 {
     if (m_is_touchpad_navigation) {
         return evt.Moving() && evt.ShiftDown() && !evt.AltDown();
     } else {
-        return evt.Dragging() && (evt.MiddleIsDown() || (buttonsSwapped ? evt.LeftIsDown() : evt.RightIsDown()));
+        return evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Pan, mappings);
+        ;
     }
 }
 

@@ -1353,11 +1353,16 @@ void PreferencesDialog::create_items()
     auto item_use_free_camera  = create_item_checkbox(_L("Use free camera"), _L("If enabled, use free camera. If not enabled, use constrained camera."), "use_free_camera");
     g_sizer->Add(item_use_free_camera);
 
-    auto swap_pan_rotate       = create_item_checkbox(_L("Swap pan and rotate mouse buttons"), _L("If enabled, swaps the left and right mouse buttons pan and rotate functions."), "swap_mouse_buttons");
-    g_sizer->Add(swap_pan_rotate);
-
     auto reverse_mouse_zoom    = create_item_checkbox(_L("Reverse mouse zoom"), _L("If enabled, reverses the direction of zoom with mouse wheel."), "reverse_mouse_wheel_zoom");
     g_sizer->Add(reverse_mouse_zoom);
+
+    std::vector<wxString> ButtonDragActions = {_L("None"), _L("Pan"), _L("Rotate")};
+    auto item_left_mouse_drag  = create_item_combobox(_L("Left Mouse Drag"), _L("Set the action that dragging the left mouse button should perform."), "left_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_left_mouse_drag);
+    auto item_middle_mouse_drag  = create_item_combobox(_L("Middle Mouse Drag"), _L("Set the action that dragging the middle mouse button should perform."), "middle_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_middle_mouse_drag);
+    auto item_right_mouse_drag  = create_item_combobox(_L("Right Mouse Drag"), _L("Set the action that dragging the right mouse button should perform."), "right_mouse_drag_action", ButtonDragActions);
+    g_sizer->Add(item_right_mouse_drag);
 
     //// CONTROL > Clear my choice on ...
     g_sizer->Add(create_item_title(_L("Clear my choice on...")), 1, wxEXPAND);
