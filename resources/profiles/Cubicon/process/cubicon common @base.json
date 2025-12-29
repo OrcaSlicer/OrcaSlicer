@@ -1,12 +1,14 @@
 {
-    "type": "process",
-    "name": "cubicon common @Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "fdm_process_common_klipper",
-    "instantiation": "false",
+    "version": "1.0.0.0",
+	"instantiation": "false",
     "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle"
+        "Cubicon xCeler-I 0.4 nozzle",
+        "Cubicon xCeler-Plus 0.4 nozzle"
     ],
-    "print_settings_id": "cubicon common @Cubicon xCeler-I 0.4 nozzle",
+    "inherits": "fdm_process_common_klipper",
+    "name": "cubicon common @base",
+    "print_settings_id": "cubicon common @base",
+    
     "accel_to_decel_enable": "1",
     "accel_to_decel_factor": "100",
     "bridge_angle": "0",
@@ -81,6 +83,7 @@
     "top_solid_infill_flow_ratio": "0.9",
     "travel_speed": "500",
     "support_threshold_angle": "15",
+    "type": "2",
     "wall_loops": "2",
     "thick_bridges": "0",
     "extra_perimeters_on_overhangs": "1",
@@ -107,6 +110,7 @@
     "slowdown_for_curled_perimeters": "0",
     "bridge_speed": "50",
     "internal_bridge_speed": "150%",
+    "is_custom_defined": "0",
     "overhang_1_4_speed": "0",
     "overhang_2_4_speed": "50",
     "overhang_3_4_speed": "30",

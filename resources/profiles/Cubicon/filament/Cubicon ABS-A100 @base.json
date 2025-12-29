@@ -1,15 +1,14 @@
 {
-    "type": "filament",
-    "name": "Cubicon ABS @Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "fdm_filament_abs",
-    "filament_id": "P510cfb0",
-    "instantiation": "true",
+	"instantiation": "true",
+    "version": "1.0.0.0",
     "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle"
+        "Cubicon xCeler-I 0.4 nozzle",
+        "Cubicon xCeler-Plus 0.4 nozzle"
     ],
     "default_filament_colour": "",
+    "filament_id": "P510cfb1",
     "filament_settings_id": [
-        "Cubicon ABS @Cubicon xCeler-I 0.4 nozzle"
+        "Cubicon ABS-A100 @base"
     ],
     "filament_type": [
         "ABS"
@@ -17,11 +16,14 @@
     "filament_vendor": [
         "Cubicon"
     ],
+    "inherits": "Cubicon ABS @base",
+    "is_custom_defined": "0",
+    "name": "Cubicon ABS-A100 @base",
     "hot_plate_temp": [
-        "115"
+        "100"
     ],
     "hot_plate_temp_initial_layer": [
-        "115"
+        "100"
     ],
     "close_fan_the_first_x_layers": [
         "3"
@@ -34,12 +36,12 @@
     ],
     "filament_flow_ratio": [
         "0.99"
-    ],
+    ],  
     "filament_max_volumetric_speed": [
-        "25"
+        "23"
     ],
     "nozzle_temperature_initial_layer": [
-        "240"
+        "225"
     ],
     "fan_max_speed": [
         "80"
@@ -52,20 +54,20 @@
     ],
     "slow_down_layer_time": [
         "3"
-    ],
+    ],                        
     "nozzle_temperature": [
-        "245"
-    ],
+        "230"
+    ],       
     "temperature_vitrification": [
         "78"
-    ],
+    ],                        
     "nozzle_temperature_range_low": [
         "220"
-    ],
+    ],       
     "nozzle_temperature_range_high": [
-        "260"
+        "240"
     ],
     "additional_cooling_fan_speed": [
         "0"
-    ]
+    ]       
 }
