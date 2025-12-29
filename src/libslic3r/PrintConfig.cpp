@@ -161,6 +161,7 @@ static t_config_enum_values s_keys_map_BedTempFormula {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BedTempFormula)
 
+// Orca
 static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
     { "printer_configuration", int(PowerLossRecoveryMode::PrinterConfiguration) },
     { "enable",                 int(PowerLossRecoveryMode::Enable) },
