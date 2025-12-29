@@ -33,7 +33,7 @@ typedef class GLUquadric GLUquadricObject;
 #define PLATE_CURRENT_IDX   -1
 #define PLATE_ALL_IDX       -2
 
-#define MAX_PLATE_COUNT     36
+#define MAX_PLATE_COUNT     100
 
 inline int compute_colum_count(int count)
 {
@@ -301,7 +301,7 @@ public:
 
     void set_timelapse_warning_code(int code) { m_timelapse_warning_code = code; }
     int  timelapse_warning_code() { return m_timelapse_warning_code; }
-    
+
     //get the print's object, result and index
     void get_print(PrintBase **print, GCodeResult **result, int *index);
 
