@@ -1,4 +1,5 @@
 {
+    "type": "filament",
 	"instantiation": "true",
     "version": "1.0.0.0",
     "compatible_printers": [

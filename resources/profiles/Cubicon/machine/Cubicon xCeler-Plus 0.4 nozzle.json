@@ -1,4 +1,5 @@
 {
+    "type": "machine",
 	"instantiation": "true",
     "adaptive_bed_mesh_margin": "0",
     "auxiliary_fan": "1",
