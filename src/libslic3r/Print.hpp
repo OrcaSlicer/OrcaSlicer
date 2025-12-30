@@ -570,10 +570,10 @@ private:
 
     // BBS: per object skirt
     ExtrusionEntityCollection               m_skirt;
+    Points                                  m_skirt_convex_hull;
 
     PrintObject*                            m_shared_object{ nullptr };
 
-    
     // SoftFever
     // 
     // object id
@@ -1106,7 +1106,7 @@ public:
     // Returns scaling for each axis representing shrinkage compensations in each axis.
      Vec3d shrinkage_compensation() const;
 
-    std::tuple<float, float> object_skirt_offset(double margin_height = 0) const;
+    float object_skirt_offset() const;
 
 protected:
     // Invalidates the step, and its depending steps in Print.

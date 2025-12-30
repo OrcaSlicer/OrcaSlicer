@@ -616,7 +616,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         return -1;
     };
 
-    auto [object_skirt_offset, _] = print.object_skirt_offset();
+    float object_skirt_offset = print.object_skirt_offset();
     std::vector<struct print_instance_info> print_instance_with_bounding_box;
     {
         // sequential_print_horizontal_clearance_valid
@@ -2582,17 +2582,14 @@ void Print::_make_skirt()
                 // The skirt lenght is not limited, extrude the skirt with the 1st extruder only.
             }
         }
+        // Brims were generated inside out, reverse to print the outmost contour first.
+        m_skirt.reverse();
+        // Remember the outer edge of the last skirt line extruded as m_skirt_convex_hull.
+        if (m_config.skirt_loops > 0)
+            for (Polygon &poly : offset(convex_hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
+                append(m_skirt_convex_hull, std::move(poly.points));
     } else {
-        m_skirt.clear();
-    }
-    // Brims were generated inside out, reverse to print the outmost contour first.
-    m_skirt.reverse();
-
-    // Remember the outer edge of the last skirt line extruded as m_skirt_convex_hull.
-    for (Polygon &poly : offset(convex_hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
-        append(m_skirt_convex_hull, std::move(poly.points));
-
-    if (m_config.skirt_type == stPerObject) {
+        //stPerObject
         // BBS
         for (auto obj_cvx_hull : object_convex_hulls) {
             double object_skirt_distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
@@ -2642,6 +2639,10 @@ void Print::_make_skirt()
 
             }
             object->m_skirt.reverse();
+            // Remember the outer edge of the last skirt line extruded as object->m_skirt_convex_hull.
+            if (m_config.skirt_loops > 0)
+                for (Polygon& poly : offset(obj_cvx_hull.second, object_skirt_distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
+                    append(object->m_skirt_convex_hull, std::move(poly.points));
         }
     }
 }
@@ -2661,6 +2662,13 @@ Polygons Print::first_layer_islands() const
                 for (ExPolygon &expoly : expolys_first_layer) { object_islands.push_back(expoly.contour); }
             }
         }
+
+        if (!object->m_skirt_convex_hull.empty()) {
+            Polygon poly;
+            poly.points = object->m_skirt_convex_hull;
+            object_islands.push_back(poly);
+        }
+
         islands.reserve(islands.size() + object_islands.size() * object->instances().size());
         for (const PrintInstance &instance : object->instances())
             for (Polygon &poly : object_islands) {
@@ -3436,27 +3444,47 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ <<  boost::format(":  process the G-code file %1% successfully")%file.c_str();
 }
 
-std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
-{
-    if (config().skirt_loops == 0 || config().skirt_type != stPerObject)
-        return std::make_tuple(0, 0);
+float Print::object_skirt_offset() const
+{   // Final objects distance is extruder_clearance_radius + return*2
+    if (config().skirt_loops == 0 || config().skirt_type == stCombined)
+        if (is_all_objects_are_short())
+            return MAX_OUTER_NOZZLE_DIAMETER/2.f;
+        else        
+            return 0;
+
+    float line_width = skirt_flow().width();
+    float object_skirt_witdh  = line_width + (config().skirt_loops - 1) * skirt_flow().spacing();
+    float skirt_border = config().skirt_distance + object_skirt_witdh;
     
-    float max_nozzle_diameter = *std::max_element(m_config.nozzle_diameter.values.begin(), m_config.nozzle_diameter.values.end());
-    float max_layer_height    = *std::max_element(config().max_layer_height.values.begin(), config().max_layer_height.values.end());
-    float line_width = m_config.initial_layer_line_width.get_abs_value(max_nozzle_diameter);
-    float object_skirt_witdh  = skirt_flow().width() + (config().skirt_loops - 1) * skirt_flow().spacing();
-    float object_skirt_offset = 0;
-
     if (is_all_objects_are_short())
-        object_skirt_offset = config().skirt_distance + object_skirt_witdh;
-    else if (config().draft_shield == dsEnabled || config().skirt_height * max_layer_height > config().nozzle_height - margin_height)
-        object_skirt_offset = config().skirt_distance + line_width;
-    else if (config().skirt_distance + object_skirt_witdh > config().extruder_clearance_radius/2)
-        object_skirt_offset = (config().skirt_distance + object_skirt_witdh - config().extruder_clearance_radius/2);
-    else
-        return std::make_tuple(0, 0);
+        return skirt_border + config().nozzle_height/2;
 
-    return std::make_tuple(object_skirt_offset, object_skirt_witdh);
+    float max_layer_height    = *std::max_element(config().max_layer_height.values.begin(), config().max_layer_height.values.end());
+    bool  short_skirt = config().skirt_height * max_layer_height < config().nozzle_height;
+    float extruder_clearance_radius = config().extruder_clearance_radius;
+
+    if (config().draft_shield == dsDisabled) { 
+        if (config().skirt_height == 1)
+        {
+            if (skirt_border <= extruder_clearance_radius)
+                return skirt_border / 2;
+            else
+                return skirt_border  - extruder_clearance_radius/2;
+        } else 
+            if (short_skirt)
+                if (skirt_border <= extruder_clearance_radius)
+                    return skirt_border / 2;
+                else
+                    return skirt_border - (extruder_clearance_radius + config().nozzle_height)/2;
+            else
+                return skirt_border;
+    } else {
+        //draft_shield == dsEnabled
+        if (config().single_loop_draft_shield)
+            return config().skirt_distance + line_width;
+        else
+            return skirt_border;
+    }
 }
 
 DynamicConfig PrintStatistics::config() const

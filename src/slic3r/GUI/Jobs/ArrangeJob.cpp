@@ -765,7 +765,7 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
     auto                              &print        = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
     const PrintConfig                 &print_config = print.config();
 
-    auto [object_skirt_offset, object_skirt_witdh] = print.object_skirt_offset();
+    float object_skirt_offset = print.object_skirt_offset();
 
     params.clearance_height_to_rod             = print_config.extruder_clearance_height_to_rod.value;
     params.clearance_height_to_lid             = print_config.extruder_clearance_height_to_lid.value;
