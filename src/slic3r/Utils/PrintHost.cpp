@@ -27,6 +27,7 @@
 #include "Flashforge.hpp"
 #include "SimplyPrint.hpp"
 #include "ElegooLink.hpp"
+#include "Printerhive.hpp"
 
 namespace fs = boost::filesystem;
 using boost::optional;
@@ -67,6 +68,7 @@ PrintHost* PrintHost::get_print_host(DynamicPrintConfig *config)
             case htFlashforge: return new Flashforge(config);
             case htSimplyPrint: return new SimplyPrint(config);
             case htElegooLink: return new ElegooLink(config);
+            case htPrinterhive: return new Printerhive(config);
             default:          return nullptr;
         }
     } else {
