@@ -971,7 +971,6 @@ void PartPlate::render_grid(bool bottom) {
 		else
             color = m_partplate_list->m_is_dark ? LINE_TOP_DARK_COLOR : LINE_TOP_COLOR;
 	}
-
     m_gridlines.set_color(color);
     m_gridlines.render();
 
