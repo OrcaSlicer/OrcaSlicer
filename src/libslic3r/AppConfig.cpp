@@ -318,6 +318,10 @@ void AppConfig::set_defaults()
         set_bool("remember_printer_config", true);
     }
 
+    if (get("group_filament_presets").empty()) {
+        set("group_filament_presets", "1"); // All "0" / None "1" / By Type "2" / By Vendor "3"
+    }
+
     if (get("enable_high_low_temp_mixed_printing").empty()){
         set_bool("enable_high_low_temp_mixed_printing", false);
     }

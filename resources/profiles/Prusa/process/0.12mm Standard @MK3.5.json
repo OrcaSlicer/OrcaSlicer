@@ -36,7 +36,9 @@
     "internal_solid_infill_acceleration": "2500",
     "sparse_infill_acceleration": "2500",
     "travel_acceleration": "3000",
-    "support_top_z_distance": "0.1",
+    "support_base_pattern_spacing": "1",
+    "support_top_z_distance": "0.09",
+    "support_bottom_z_distance": "0.09",
     "compatible_printers": [
         "Prusa MK3.5 0.25 nozzle"
     ]

@@ -220,9 +220,14 @@ wxDEFINE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 
 static string get_diameter_string(float diameter)
 {
-    std::ostringstream stream;
-    stream << std::fixed << std::setprecision(1) << diameter;
-    return stream.str();
+    std::ostringstream stream; // ORCA ensure 0.25 returned as 0.25. previous code returned as 0.2 because of std::setprecision(1)
+    stream << std::fixed << std::setprecision(2) << diameter;  // Use 2 decimals to capture 0.25 / 0.15 reliably
+    std::string s = stream.str();
+    if (s.find('.') != std::string::npos) {   // Remove trailing zeros, but keep at least one decimal if needed
+        s.erase(s.find_last_not_of('0') + 1);
+        if (s.back() == '.') s += '0';        // Ensure "1." → "1.0"
+    }
+    return s;
 }
 
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
@@ -574,7 +579,9 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     // ORCA show plate type combo box only when its supported
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
     auto cfg = preset_bundle.printers.get_edited_preset().config;
-    panel_printer_bed->Show(isBBL || cfg.opt_bool("support_multi_bed_types"));
+    // Orca: we use preset_bundle.is_bbl_vendor() instead of isBBL to determine if the plate type combo box should be shown
+    // ref: https://github.com/OrcaSlicer/OrcaSlicer/pull/11610#discussion_r2607411847
+    panel_printer_bed->Show(preset_bundle.is_bbl_vendor() || cfg.opt_bool("support_multi_bed_types"));
 
     extruder_dual_sizer->Show(isDual);
 
@@ -1230,7 +1237,8 @@ bool Sidebar::priv::switch_diameter(bool single)
     }
     auto preset          = wxGetApp().preset_bundle->get_similar_printer_preset({}, diameter.ToStdString());
     if (preset == nullptr) {
-        MessageDialog dlg(this->plater, "", "");
+        // ORCA add a text. this appears when user tries to change nozzle value but config doesnt have a inherited or compatible preset
+        MessageDialog dlg(this->plater, _L("Configuration incompatible"), _L("Warning"), wxICON_WARNING | wxOK);
         dlg.ShowModal();
         return false;
     }
@@ -2536,9 +2544,18 @@ void Sidebar::update_presets(Preset::Type preset_type)
         p->layout_printer(preset_bundle.use_bbl_network(), isBBL && is_dual_extruder);
         auto diameters = wxGetApp().preset_bundle->printers.diameters_of_selected_printer();
         auto diameter = printer_preset.config.opt_string("printer_variant");
-        auto update_extruder_diameter = [&diameters, &diameter](ExtruderGroup & extruder) {
+        auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
             extruder.combo_diameter->Clear();
             int select = -1;
+            // ORCA if user defined a custom nozzle in printer config select it instead inherited one. this will show correct nozzle diameter in combobox if its exist in nozzle diameters list
+            auto nozzle_dia = get_diameter_string(nozzle_diameter->values[extruder_index]);
+            if(nozzle_dia != diameter && std::find(diameters.begin(), diameters.end(), nozzle_dia) != diameters.end())
+                diameter = nozzle_dia;
+            // ORCA try to add nozzle diameter from config if list is empty. fixes blank nozzle combo box when preset has no alias
+            if(diameters[0].empty() && !nozzle_dia.empty()){
+                diameters[0] = nozzle_dia;
+                diameter = nozzle_dia;
+            }
             for (size_t i = 0; i < diameters.size(); ++i) {
                 if (diameters[i] == diameter)
                     select = extruder.combo_diameter->GetCount();
@@ -2552,14 +2569,14 @@ void Sidebar::update_presets(Preset::Type preset_type)
             AMSCountPopupWindow::UpdateAMSCount(0, p->left_extruder);
             AMSCountPopupWindow::UpdateAMSCount(1, p->right_extruder);
             //if (!p->is_switching_diameter) {
-                update_extruder_diameter(*p->left_extruder);
-                update_extruder_diameter(*p->right_extruder);
+                update_extruder_diameter(0, *p->left_extruder);
+                update_extruder_diameter(1, *p->right_extruder);
             //}
             p->image_printer_bed->SetBitmap(create_scaled_bitmap(image_path, this, PRINTER_THUMBNAIL_SIZE.GetHeight()));
         } else {
             AMSCountPopupWindow::UpdateAMSCount(0, p->single_extruder);
             //if (!p->is_switching_diameter)
-                update_extruder_diameter(*p->single_extruder);
+                update_extruder_diameter(0, *p->single_extruder);
 
             // ORCA sync unified nozzle combo box
             p->combo_nozzle_dia->Clear();
@@ -4653,7 +4670,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "extruder_clearance_radius",
         "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
 		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
-        "brim_width", "brim_object_gap", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
+        "brim_width", "brim_object_gap", "brim_use_efc_outline", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
         "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "prime_tower_enable_framework",
         "prime_tower_infill_gap", "prime_volume",
         "extruder_colour", "filament_colour", "filament_type", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
@@ -14102,10 +14119,10 @@ void Plater::increase_instances(size_t num)
 
     p->selection_changed();
     this->p->schedule_background_process();
-    if (wxGetApp().app_config->get("auto_arrange") == "true") {
-        this->set_prepare_state(Job::PREPARE_STATE_MENU);
-        this->arrange();
-    }
+    //if (wxGetApp().app_config->get("auto_arrange") == "true") {
+    //    this->set_prepare_state(Job::PREPARE_STATE_MENU);
+    //    this->arrange();
+    //}
 }
 
 void Plater::decrease_instances(size_t num)
@@ -14133,10 +14150,10 @@ void Plater::decrease_instances(size_t num)
 
     p->selection_changed();
     this->p->schedule_background_process();
-    if (wxGetApp().app_config->get("auto_arrange") == "true") {
-        this->set_prepare_state(Job::PREPARE_STATE_MENU);
-        this->arrange();
-    }
+    //if (wxGetApp().app_config->get("auto_arrange") == "true") {
+    //    this->set_prepare_state(Job::PREPARE_STATE_MENU);
+    //    this->arrange();
+    //}
 }
 
 static long GetNumberFromUser(  const wxString& msg,
