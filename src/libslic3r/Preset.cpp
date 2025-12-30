@@ -932,8 +932,8 @@ static std::vector<std::string> s_Preset_print_options {
      "support_bottom_interface_spacing", "enable_overhang_speed", "slowdown_for_curled_perimeters", "overhang_1_4_speed", "overhang_2_4_speed", "overhang_3_4_speed", "overhang_4_4_speed",
      "initial_layer_infill_speed", "only_one_wall_top", 
      "timelapse_type",
-     "wall_generator", "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
-     "wall_distribution_count", "min_feature_size", "min_bead_width", "post_process", "min_length_factor",
+    "wall_generator", "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
+    "wall_distribution_count", "min_feature_size", "min_bead_width", "post_process", "process_change_extrusion_role_gcode", "min_length_factor",
      "small_perimeter_speed", "small_perimeter_threshold","bridge_angle","internal_bridge_angle", "filter_out_gap_fill", "travel_acceleration","inner_wall_acceleration", "min_width_top_surface",
      "default_jerk", "outer_wall_jerk", "inner_wall_jerk", "infill_jerk", "top_surface_jerk", "initial_layer_jerk","travel_jerk","default_junction_deviation",
      "top_solid_infill_flow_ratio","bottom_solid_infill_flow_ratio","only_one_wall_first_layer", "print_flow_ratio", "seam_gap",
@@ -966,7 +966,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     //BBS:temperature_vitrification
     "temperature_vitrification", "reduce_fan_stop_start_freq","dont_slow_down_outer_wall", "slow_down_for_layer_cooling", "fan_min_speed",
     "fan_max_speed", "enable_overhang_bridge_fan", "overhang_fan_speed", "overhang_fan_threshold", "close_fan_the_first_x_layers", "full_fan_speed_layer", "fan_cooling_layer_time", "slow_down_layer_time", "slow_down_min_speed",
-    "filament_start_gcode", "filament_end_gcode",
+    "filament_start_gcode", "filament_end_gcode", "filament_change_extrusion_role_gcode",
     //exhaust fan control
     "activate_air_filtration","during_print_exhaust_fan_speed","complete_print_exhaust_fan_speed",
     // Retract overrides
