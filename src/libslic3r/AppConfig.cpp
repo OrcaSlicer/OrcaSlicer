@@ -314,6 +314,10 @@ void AppConfig::set_defaults()
         set("auto_calculate_flush","all");
     }
 
+    if (get("show_canvas_zoom_button").empty()) {
+        set_bool("show_canvas_zoom_button", true);
+    }
+
     if (get("remember_printer_config").empty()) {
         set_bool("remember_printer_config", true);
     }
