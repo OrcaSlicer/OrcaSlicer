@@ -972,14 +972,12 @@ void PartPlate::render_grid(bool bottom) {
             color = m_partplate_list->m_is_dark ? LINE_TOP_DARK_COLOR : LINE_TOP_COLOR;
 	}
 
-    if(wxGetApp().app_config->get("show_plate_gridlines").compare("true") == 0){
-        m_gridlines.set_color(color);
-        m_gridlines.render();
+    m_gridlines.set_color(color);
+    m_gridlines.render();
 
-	    glsafe(::glLineWidth(2.0f * m_scale_factor));
-        m_gridlines_bolder.set_color(color);
-        m_gridlines_bolder.render();
-    }
+	glsafe(::glLineWidth(2.0f * m_scale_factor));
+    m_gridlines_bolder.set_color(color);
+    m_gridlines_bolder.render();
 }
 
 void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
@@ -3167,7 +3165,7 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
             }
         }
 
-        if (show_grid)
+        if (wxGetApp().show_plate_gridlines() && show_grid)
             render_grid(bottom);
 
         render_height_limit(mode);
