@@ -1,0 +1,30 @@
+{
+    "compatible_printers": [
+        "DMAKERS DMAKERS 0.4 nozzle"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "filament_settings_id": [
+        "DMAKERS PLA "
+    ],
+    "filament_vendor": [
+        "DMAKERS"
+    ],
+    "from": "User",
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "inherits": "Generic PLA @System",
+    "name": "DMAKERS PLA ",
+    "nozzle_temperature_range_high": [
+        "220"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
+    ],
+    "version": "2.3.1.10"
+}

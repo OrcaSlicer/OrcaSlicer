@@ -1,0 +1,11 @@
+{
+    "from": "User",
+    "inherits": "DMAKERS DMAKERS 0.4 nozzle",
+    "is_custom_defined": "0",
+    "machine_start_gcode": "; === DMAKERS 3D Printer Start G-code (Marlin Friendly) ===\n\n\n\nG90                     ; Use absolute coordinates\n\nM83                     ; Extruder in relative mode\n\n\n\n\nM104 S[first_layer_temperature]      ; Set extruder temp\n\nM140 S[first_layer_bed_temperature] ; Set bed temp\n\nM190 S[first_layer_bed_temperature] ; Wait for bed temp\n\nM109 S[first_layer_temperature]     ; Wait for extruder temp\n\n\n\n\nG28                     ; Home all axes\n\nG29                     ; Bilinear mesh bed leveling\n\nM420 S1                 ; Ensure leveling is active\n\n\n;Prime the nozzle with intro line\n\nG1 X20 Y-3 F3000            ; Move just outside print area\n\nG1 Z0.2 E9 F500            ; Lower to starting Z height\n\nG92 E0                  ; Reset extruder\n\nG1 X80 E12.5 F1000\n\n\nM420 S1   ; Enable leveling\n\n\n\n; Optional: Adjust flow for small layer heights\n\nM221 S{if layer_height<0.075}100{else}95{endif}\n\n\n\n; Optional: Set extruder motor current (only if your board supports M907)\n\n; M907 E1000\n\n; \n\n=== End Start G-code ===",
+    "name": "DMAKERS",
+    "print_host": "192.168.1.17",
+    "printer_settings_id": "DMAKERS",
+    "thumbnails": "400x300/PNG",
+    "version": "2.3.1.10"
+}
