@@ -271,6 +271,10 @@ struct SurfaceFillParams
     // Params for Lateral honeycomb
     float infill_overhang_angle = 60.f;
 
+    bool                   anisotropic_surfaces{false};
+    CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
+    bool                   separated_infills{false};
+
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
 #define RETURN_COMPARE_NON_EQUAL_TYPED(TYPE, KEY) if (TYPE(this->KEY) < TYPE(rhs.KEY)) return true; if (TYPE(this->KEY) > TYPE(rhs.KEY)) return false;
@@ -302,7 +306,11 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_2);
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
 		RETURN_COMPARE_NON_EQUAL(infill_lock_depth);
-		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);		RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
+		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);
+        RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
+        RETURN_COMPARE_NON_EQUAL(anisotropic_surfaces);
+        RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
+        RETURN_COMPARE_NON_EQUAL(separated_infills);
 
 		return false;
 	}
@@ -331,6 +339,9 @@ struct SurfaceFillParams
 				this->infill_lock_depth      ==  rhs.infill_lock_depth &&
 				this->skin_infill_depth      ==  rhs.skin_infill_depth &&
                 this->infill_overhang_angle == rhs.infill_overhang_angle;
+                this->anisotropic_surfaces == rhs.anisotropic_surfaces;
+                this->center_of_surface_pattern == rhs.center_of_surface_pattern;
+                this->separated_infills == rhs.separated_infills;
 	}
 };
 
@@ -849,6 +860,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.lateral_lattice_angle_1 = region_config.lateral_lattice_angle_1;
                 params.lateral_lattice_angle_2 = region_config.lateral_lattice_angle_2;
                 params.infill_overhang_angle = region_config.infill_overhang_angle;
+                params.anisotropic_surfaces = region_config.anisotropic_surfaces;
+                params.center_of_surface_pattern = region_config.center_of_surface_pattern;
+                params.separated_infills = region_config.separated_infills;
                 if (params.pattern == ipLockedZag) {
                     params.infill_lock_depth = scale_(region_config.infill_lock_depth);
                     params.skin_infill_depth = scale_(region_config.skin_infill_depth);
@@ -1258,6 +1272,20 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         params.config               = &region_config;
         params.pattern              = surface_fill.params.pattern;
 
+        // Orca: Checking the filling of a centered surface by drawing for each model parts
+        bool is_top_or_bottom = params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface;
+        bool is_centered_infill = surface_fill.params.pattern == ipArchimedeanChords || surface_fill.params.pattern == ipOctagramSpiral;
+        if (is_top_or_bottom) {
+            params.is_anisotropic            = surface_fill.params.anisotropic_surfaces;      // Orca: anisotropic surfaces
+            params.center_of_surface_pattern = surface_fill.params.center_of_surface_pattern; // Orca: center of surface pattern
+        }
+        bool is_assembly = is_top_or_bottom && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model && is_centered_infill;
+        bool is_separate_infill = !is_top_or_bottom && surface_fill.params.separated_infills &&
+                                  (
+                                  is_centered_infill ||
+                                  params.config->solid_infill_rotate_template != "" ||
+                                  params.config->sparse_infill_rotate_template != "" );
+
         if( surface_fill.params.pattern == ipLockedZag ) {
 			params.locked_zag = true;
             params.infill_lock_depth = surface_fill.params.infill_lock_depth;
@@ -1278,7 +1306,25 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 			params.can_reverse = false;
 		for (ExPolygon& expoly : surface_fill.expolygons) {
 
-      f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
+            // Orca: separate infill for each model parts
+            if (is_assembly || is_separate_infill) {
+                for (auto instance : this->object()->instances()) {
+                    for (auto volume : instance.print_object->firstLayerObjSlice()) {
+                        for (auto slice : volume.slices[f->layer_id]) {
+                            if (slice.contains(to_polylines(expoly))) {
+                                for (auto model_volume : instance.model_instance->get_object()->volumes) {
+                                    if (volume.volume_id.id == model_volume->id().id) {
+                                        f->set_bounding_box(model_volume->get_volume_bbox(instance.model_instance->get_matrix(), instance.shift, true));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } // - End: separate infill for each model parts
+
+            f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
             if (params.symmetric_infill_y_axis) {
                 params.symmetric_y_axis = f->extended_object_bounding_box().center().x();
                 expoly.symmetric_y(params.symmetric_y_axis);

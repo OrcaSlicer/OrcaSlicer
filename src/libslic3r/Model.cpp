@@ -2632,6 +2632,17 @@ const TriangleMesh& ModelVolume::get_convex_hull() const
     return *m_convex_hull.get();
 }
 
+// Orca: get volume bbox for separate infill
+static std::mutex mtx_model;
+BoundingBox ModelVolume::get_volume_bbox(const Transform3d &matrix, Point &shift, bool apply_cache = false) {
+    std::unique_lock l(mtx_model); // locks function here
+    if (m_cached_volume_bbox.defined && apply_cache)
+        return m_cached_volume_bbox;
+    auto hull = get_convex_hull_2d(matrix);
+    hull.translate(-shift);
+    return m_cached_volume_bbox = hull.bounding_box().polygon().bounding_box();
+}
+
 //BBS: refine the model part names
 ModelVolumeType ModelVolume::type_from_string(const std::string &s)
 {

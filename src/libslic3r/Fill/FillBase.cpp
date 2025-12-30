@@ -165,7 +165,7 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         // ORCA: special flag for flow rate calibration
         auto is_flow_calib = params.extrusion_role == erTopSolidInfill && this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
                              this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
-        if (is_flow_calib) {
+        if (is_flow_calib || params.is_anisotropic) { // Orca: disable sorting while anisotropic surfaces
             eec->no_sort = true;
         }
         size_t idx   = eec->entities.size();
@@ -186,7 +186,8 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         }
 
         // Orca: run gap fill
-        this->_create_gap_fill(surface, params, eec);
+        if (!(params.is_anisotropic)) // Orca: Disable gap filling while anisotropic
+            this->_create_gap_fill(surface, params, eec);
     }
 }
 
