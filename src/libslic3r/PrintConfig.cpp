@@ -914,6 +914,56 @@ void PrintConfigDef::init_fff_params()
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{45});
 
+    def = this->add("peo_plate_temp", coInts);
+    def->label = L("Other layers");
+    def->tooltip = L("Bed temperature for layers except the initial one. "
+                     "A value of 0 means the filament does not support printing on the Smooth PEO Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->full_label = L("Bed temperature");
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("pet_plate_temp", coInts);
+    def->label = L("Other layers");
+    def->tooltip = L("Bed temperature for layers except the initial one. "
+                     "A value of 0 means the filament does not support printing on the Smooth PET Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->full_label = L("Bed temperature");
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("pey_plate_temp", coInts);
+    def->label = L("Other layers");
+    def->tooltip = L("Bed temperature for layers except the initial one. "
+                     "A value of 0 means the filament does not support printing on the Smooth PEY Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->full_label = L("Bed temperature");
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("h1h_plate_temp", coInts);
+    def->label = L("Other layers");
+    def->tooltip = L("Bed temperature for layers except the initial one. "
+                     "A value of 0 means the filament does not support printing on the Smooth H1H Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->full_label = L("Bed temperature");
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("phantom_plate_temp", coInts);
+    def->label = L("Other layers");
+    def->tooltip = L("Bed temperature for layers except the initial one. "
+                     "A value of 0 means the filament does not support printing on the Smooth Phantom Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->full_label = L("Bed temperature");
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
     def = this->add("supertack_plate_temp_initial_layer", coInts);
     def->label = L("Initial layer");
     def->full_label = L("Initial layer bed temperature");
@@ -968,6 +1018,56 @@ void PrintConfigDef::init_fff_params()
     def->full_label = L("Initial layer bed temperature");
     def->tooltip = L("Bed temperature of the initial layer. "
                      "A value of 0 means the filament does not support printing on the Textured PEI Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("peo_plate_temp_initial_layer", coInts);
+    def->label = L("Initial layer");
+    def->full_label = L("Initial layer bed temperature");
+    def->tooltip = L("Bed temperature of the initial layer. "
+                     "A value of 0 means the filament does not support printing on the Smooth PEO Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("pet_plate_temp_initial_layer", coInts);
+    def->label = L("Initial layer");
+    def->full_label = L("Initial layer bed temperature");
+    def->tooltip = L("Bed temperature of the initial layer. "
+                     "A value of 0 means the filament does not support printing on the Smooth PET Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("pey_plate_temp_initial_layer", coInts);
+    def->label = L("Initial layer");
+    def->full_label = L("Initial layer bed temperature");
+    def->tooltip = L("Bed temperature of the initial layer. "
+                     "A value of 0 means the filament does not support printing on the Smooth PEY Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("h1h_plate_temp_initial_layer", coInts);
+    def->label = L("Initial layer");
+    def->full_label = L("Initial layer bed temperature");
+    def->tooltip = L("Bed temperature of the initial layer. "
+                     "A value of 0 means the filament does not support printing on the Smooth H1H Plate.");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->min = 0;
+    def->max = 300;
+    def->set_default_value(new ConfigOptionInts{45});
+
+    def = this->add("phantom_plate_temp_initial_layer", coInts);
+    def->label = L("Initial layer");
+    def->full_label = L("Initial layer bed temperature");
+    def->tooltip = L("Bed temperature of the initial layer. "
+                     "A value of 0 means the filament does not support printing on the Smooth Phantom Plate.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = 300;
