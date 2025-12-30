@@ -1,7 +1,7 @@
 {
     "type": "process",
-    "name": "0.12mm Standard @Thinker X400",
-    "inherits": "0.20mm Standard @Thinker X400",
+    "name": "0.24mm Standard @Eryone Thinker X400 0.4 nozzle",
+    "inherits": "fdm_process_eryone_Thinker_X400_common",
     "from": "User",
     "instantiation": "true",
     "brim_object_gap": "0",
@@ -11,17 +11,17 @@
     "inner_wall_acceleration": "8000",
     "inner_wall_speed": "250",
     "internal_solid_infill_speed": "250",
-    "layer_height": "0.12",
+    "layer_height": "0.24",
     "only_one_wall_top": "1",
     "outer_wall_speed": "200",
-    "overhang_1_4_speed": "60",
-    "overhang_2_4_speed": "30",
-    "overhang_3_4_speed": "10",
-    "print_settings_id": "0.12mm Standard @Thinker X400",
+    "print_settings_id": "0.24mm Standard @Eryone Thinker X400 0.4 nozzle",
     "raft_first_layer_expansion": "10",
     "sparse_infill_density": "15%",
     "sparse_infill_speed": "250",
     "top_shell_layers": "5",
     "top_shell_thickness": "1",
+     "compatible_printers": [
+        "Eryone Thinker X400 0.4 nozzle"
+    ],
     "wall_generator": "classic"
 }

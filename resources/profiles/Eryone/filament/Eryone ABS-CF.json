@@ -7,7 +7,9 @@
     "filament_id": "EFL81",
     "instantiation": "true",
     "compatible_printers": [
-        "Thinker X400 0.4 nozzle"
+        "Eryone Thinker X400 0.4 nozzle",
+        "Eryone Thinker X400 0.6 nozzle",
+        "Eryone Thinker X400 0.8 nozzle"
     ],
     "filament_end_gcode": [
         "; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0"

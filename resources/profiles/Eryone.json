@@ -13,14 +13,46 @@
             "sub_path": "machine/ER20_Klipper/Eryone ER20 Klipper.json"
         },
         {
-            "name": "Thinker X400",
-            "sub_path": "machine/Thinker X400.json"
+            "name": "Eryone Thinker X400",
+            "sub_path": "machine/Thinker_X400/Eryone Thinker X400.json"
         }
     ],
     "process_list": [
         {
             "name": "fdm_process_common",
             "sub_path": "process/fdm_process_common.json"
+        },
+	    {
+            "name": "fdm_process_eryone_Thinker_X400_common",
+            "sub_path": "process/fdm_process_eryone_Thinker_X400_common.json"
+        },
+        {
+            "name": "0.10mm Standard @Eryone Thinker X400 0.2 nozzle",
+            "sub_path": "process/eryone_Thinker_X400/0.10mm Standard @Eryone Thinker X400 0.2 nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Eryone Thinker X400 0.4 nozzle",
+            "sub_path": "process/eryone_Thinker_X400/0.20mm Standard @Eryone Thinker X400 0.4 nozzle.json"
+        },
+        {
+            "name": "0.12mm Standard @Eryone Thinker X400 0.4 nozzle",
+            "sub_path": "process/eryone_Thinker_X400/0.12mm Standard @Eryone Thinker X400 0.4 nozzle.json"
+        },
+        {
+            "name": "0.16mm Standard @Eryone Thinker X400 0.4 nozzle",
+            "sub_path": "process/eryone_Thinker_X400/0.16mm Standard @Eryone Thinker X400 0.4 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Eryone Thinker X400 0.4 nozzle",
+            "sub_path": "process/eryone_Thinker_X400/0.24mm Standard @Eryone Thinker X400 0.4 nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @Eryone Thinker X400 0.6 nozzle",
+            "sub_path": "process/eryone_Thinker_X400/0.30mm Standard @Eryone Thinker X400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.35mm Standard @Eryone Thinker X400 0.8 nozzle",
+            "sub_path": "process/eryone_Thinker_X400/0.35mm Standard @Eryone Thinker X400 0.8 nozzle.json"
         },
         {
             "name": "fdm_process_eryone_ER20_common",
@@ -397,26 +429,6 @@
         {
             "name": "0.56mm Extra Draft @Eryone ER20 Klipper 0.8 nozzle",
             "sub_path": "process/eryone_ER20_Klipper/0.56mm Extra Draft @Eryone ER20 Klipper 0.8 nozzle.json"
-        },
-        {
-            "name": "0.20mm Standard @Thinker X400",
-            "sub_path": "process/0.20mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.12mm Standard @Thinker X400",
-            "sub_path": "process/0.12mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.16mm Standard @Thinker X400",
-            "sub_path": "process/0.16mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.24mm Standard @Thinker X400",
-            "sub_path": "process/0.24mm Standard @Thinker X400.json"
-        },
-        {
-            "name": "0.10mm Standard @Thinker X400 0.2 nozzle",
-            "sub_path": "process/0.10mm Standard @Thinker X400 0.2 nozzle.json"
         }
     ],
     "filament_list": [
@@ -558,13 +570,25 @@
             "name": "fdm_machine_common",
             "sub_path": "machine/fdm_machine_common.json"
         },
-        {
-            "name": "Thinker X400 0.4 nozzle",
-            "sub_path": "machine/Thinker X400 0.4 nozzle.json"
+	    {
+            "name": "fdm_machine_eryone_Thinker_X400_common",
+            "sub_path": "machine/fdm_machine_eryone_Thinker_X400_common.json"
         },
         {
-            "name": "Thinker X400 0.2 nozzle",
-            "sub_path": "machine/Thinker X400 0.2 nozzle.json"
+            "name": "Eryone Thinker X400 0.4 nozzle",
+            "sub_path": "machine/Thinker_X400/Eryone Thinker X400 0.4 nozzle.json"
+        },
+        {
+            "name": "Eryone Thinker X400 0.2 nozzle",
+            "sub_path": "machine/Thinker_X400/Eryone Thinker X400 0.2 nozzle.json"
+        },
+	    {
+            "name": "Eryone Thinker X400 0.6 nozzle",
+            "sub_path": "machine/Thinker_X400/Eryone Thinker X400 0.6 nozzle.json"
+        },
+	    {
+            "name": "Eryone Thinker X400 0.8 nozzle",
+            "sub_path": "machine/Thinker_X400/Eryone Thinker X400 0.8 nozzle.json"
         },
         {
             "name": "fdm_machine_eryone_ER20_common",

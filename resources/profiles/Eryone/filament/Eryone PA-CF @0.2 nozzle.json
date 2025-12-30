@@ -5,7 +5,7 @@
     "instantiation": "true",
     "inherits": "Eryone PA-CF",
     "compatible_printers": [
-        "Thinker X400 0.2 nozzle"
+        "Eryone Thinker X400 0.2 nozzle"
     ],
     "filament_max_volumetric_speed": [
         "2"

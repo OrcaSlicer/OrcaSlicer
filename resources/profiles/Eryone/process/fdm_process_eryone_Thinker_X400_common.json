@@ -1,13 +1,9 @@
 {
     "type": "process",
-    "name": "0.20mm Standard @Thinker X400",
+    "name": "fdm_process_eryone_Thinker_X400_common",
     "inherits": "fdm_process_common",
-    "from": "",
-    "setting_id": "GP004",
-    "instantiation": "true",
-    "compatible_printers": [
-        "Thinker X400 0.4 nozzle"
-    ],
+    "from": "system",
+    "instantiation": "false",
     "accel_to_decel_enable": "1",
     "accel_to_decel_factor": "50%",
     "bottom_shell_layers": "3",
@@ -121,7 +117,7 @@
     "prime_volume": "45",
     "print_flow_ratio": "1",
     "print_sequence": "by layer",
-    "print_settings_id": "0.20mm Standard @Thinker X400",
+    "print_settings_id": "0.20mm Standard @Eryone Thinker X400",
     "raft_contact_distance": "0.1",
     "raft_expansion": "1.5",
     "raft_first_layer_density": "95%",

@@ -4,7 +4,8 @@
     "from": "system",
     "instantiation": "false",
     "compatible_printers": [
-        "Thinker X400 0.4 nozzle"
+        "Eryone Thinker X400 0.4 nozzle",
+        "Eryone Thinker X400 0.8 nozzle"
     ],
     "activate_air_filtration": [
         "0"

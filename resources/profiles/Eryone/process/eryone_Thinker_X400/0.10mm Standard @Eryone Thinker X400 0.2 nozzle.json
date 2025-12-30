@@ -3,7 +3,7 @@
     "bottom_shell_layers": "5",
     "from": "system",
     "gap_infill_speed": "150",
-    "inherits": "0.20mm Standard @Thinker X400",
+    "inherits": "fdm_process_eryone_Thinker_X400_common",
     "initial_layer_infill_speed": "70",
     "initial_layer_line_width": "0.25",
     "initial_layer_print_height": "0.1",
@@ -16,11 +16,11 @@
     "is_custom_defined": "0",
     "layer_height": "0.1",
     "line_width": "0.22",
-    "name": "0.10mm Standard @Thinker X400 0.2 nozzle",
+    "name": "0.10mm Standard @Eryone Thinker X400 0.2 nozzle",
     "outer_wall_acceleration": "2000",
     "outer_wall_line_width": "0.22",
     "outer_wall_speed": "60",
-    "print_settings_id": "0.10mm Standard @Thinker X400 0.2 nozzle",
+    "print_settings_id": "0.10mm Standard @Eryone Thinker X400 0.2 nozzle",
     "sparse_infill_line_width": "0.22",
     "sparse_infill_speed": "100",
     "support_line_width": "0.22",
@@ -29,7 +29,7 @@
     "top_surface_line_width": "0.22",
     "top_surface_speed": "150",
     "compatible_printers": [
-        "Thinker X400 0.2 nozzle"
+        "Eryone Thinker X400 0.2 nozzle"
     ],
     "wall_loops": "4"
 }
