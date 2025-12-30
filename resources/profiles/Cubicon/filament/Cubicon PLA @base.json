@@ -2,6 +2,8 @@
     "type": "filament",
 	"instantiation": "true",
     "version": "1.0.0.0",
+    "from": "system",
+    "name": "Cubicon PLA @base",
 
     "compatible_printers": [
         "Cubicon xCeler-I 0.4 nozzle",
@@ -11,7 +13,7 @@
     "default_filament_colour": "",
     "filament_id": "P510cfa0",
     "filament_settings_id": [
-        "Cubicon PLA @base"
+        "CBC_MTC_0"
     ],
     "filament_type": [
         "PLA"
@@ -21,7 +23,6 @@
     ],
     "inherits": "fdm_filament_pla",
     "is_custom_defined": "0",
-    "name": "Cubicon PLA @base",
     "filament_flow_ratio": [
         "0.99"
     ],
