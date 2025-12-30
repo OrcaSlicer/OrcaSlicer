@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "InfiMech EX+APS",
+    "model_id": "InfiMech_EX+APS",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "InfiMechDesign",
+    "bed_model": "InfiMech EX+APS-bed.stl",
+    "bed_texture": "InfiMech EX+APS-texture.png",
+    "hotend_model": "",
+    "default_materials": "InfiMech ABS @EX+APS;InfiMech PA-CF @EX+APS;InfiMech PC @EX+APS;InfiMech PETG @EX+APS;InfiMech PLA Basic @EX+APS;InfiMech PLA Hyper @EX+APS;InfiMech TPU Basic @EX+APS"
+}

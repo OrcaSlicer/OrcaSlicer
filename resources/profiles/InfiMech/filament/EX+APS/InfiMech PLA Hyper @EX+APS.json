@@ -1,0 +1,27 @@
+{
+    "type": "filament",
+    "name": "InfiMech PLA Hyper @EX+APS",
+    "inherits": "fdm_filament_pla_Hyper @EX+APS",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "25"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "compatible_printers": [
+        "InfiMech EX+APS 0.4 nozzle"
+    ]
+}
