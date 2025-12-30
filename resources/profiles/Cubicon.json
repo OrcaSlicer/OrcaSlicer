@@ -65,6 +65,14 @@
             "sub_path": "filament/Cubicon PLA @base.json"
         },
         {
+            "name": "Cubicon PLA @Cubicon xCeler-I",
+            "sub_path": "filament/Cubicon PLA @Cubicon xCeler-I.json"
+        },
+        {
+            "name": "Cubicon PLA @Cubicon xCeler-Plus",
+            "sub_path": "filament/Cubicon PLA @Cubicon xCeler-Plus.json"
+        },        
+        {
             "name": "Cubicon PLA+ @base",
             "sub_path": "filament/Cubicon PLA+ @base.json"
         },        
