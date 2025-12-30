@@ -1509,6 +1509,13 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInt,                wipe_tower_filament))
     ((ConfigOptionFloats,             wiping_volumes_extruders))
     ((ConfigOptionInts,       idle_temperature))
+    
+    // ORCA: Pulsatile purging
+    ((ConfigOptionBool,            wipe_tower_pulsatile_purge))
+    ((ConfigOptionFloat,            wipe_tower_pulse_low_speed))
+    ((ConfigOptionFloat,            wipe_tower_pulse_high_speed))
+    ((ConfigOptionFloat,            wipe_tower_retraction_distance))
+    ((ConfigOptionFloat,            wipe_tower_retraction_speed))
 
 
     // BBS: wipe tower is only used for priming

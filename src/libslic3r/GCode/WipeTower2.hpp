@@ -204,6 +204,13 @@ private:
     float  m_travel_speed       = 0.f;
 	float  m_infill_speed       = 0.f;
     float  m_wipe_tower_max_purge_speed   = 90.f;
+    // Orca: pulsatile purging
+    bool   m_wipe_tower_pulsatile_purge = false;
+    float  m_wipe_tower_pulse_low_speed = 30.f;
+    float  m_wipe_tower_pulse_high_speed = 150.f;
+    float  m_wipe_tower_retraction_distance = 2.f;
+    float  m_wipe_tower_retraction_speed = 30.f;
+    // Orca: pulsatile purging end
 	float  m_perimeter_speed    = 0.f;
     float  m_first_layer_speed  = 0.f;
     size_t m_first_layer_idx    = size_t(-1);

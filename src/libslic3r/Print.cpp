@@ -345,6 +345,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_extra_rib_length"
             || opt_key == "wipe_tower_rib_width"
             || opt_key == "wipe_tower_fillet_wall"
+            || opt_key == "wipe_tower_pulsatile_purge" // Orca: Pulsatile purging
+            || opt_key == "wipe_tower_pulse_low_speed"
+            || opt_key == "wipe_tower_pulse_high_speed"
+            || opt_key == "wipe_tower_retraction_distance"
+            || opt_key == "wipe_tower_retraction_speed" // Orca: Pulsatile purging
             || opt_key == "wipe_tower_filament"
             || opt_key == "wiping_volumes_extruders"
             || opt_key == "enable_filament_ramming"

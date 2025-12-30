@@ -2619,6 +2619,16 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_fillet_wall", "multimaterial_settings_prime_tower#fillet-wall");
         optgroup->append_single_option_line("wipe_tower_no_sparse_layers", "multimaterial_settings_prime_tower#no-sparse-layers");
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower");
+        
+        // Orca: pulsatile purging
+        optgroup->append_single_option_line("wipe_tower_pulsatile_purge");
+
+        optgroup = page->new_optgroup(L("Pulsatile purging"), L"param_tower");
+        optgroup->append_single_option_line("wipe_tower_pulse_low_speed");
+        optgroup->append_single_option_line("wipe_tower_pulse_high_speed");
+        optgroup->append_single_option_line("wipe_tower_retraction_distance");
+        optgroup->append_single_option_line("wipe_tower_retraction_speed");
+        // Orca: pulsatile purging end
 
         optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
         optgroup->append_single_option_line("wall_filament", "multimaterial_settings_filament_for_features#walls");

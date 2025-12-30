@@ -4682,6 +4682,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
         "wipe_tower_wall_type", "wipe_tower_extra_rib_length","wipe_tower_rib_width","wipe_tower_fillet_wall",
         "wipe_tower_filament",
+        "wipe_tower_pulsatile_purge","wipe_tower_pulse_low_speed","wipe_tower_pulse_high_speed","wipe_tower_retraction_distance","wipe_tower_retraction_speed",
         "best_object_pos",  "master_extruder_id"
         }))
     , sidebar(new Sidebar(q))

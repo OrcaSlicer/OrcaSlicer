@@ -6403,6 +6403,51 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = max_temp;
     def->set_default_value(new ConfigOptionInts{0});
+    
+    // Orca: Pulsatile purging
+    def = this->add("wipe_tower_pulsatile_purge", coBool);
+    def->label = L("Enable pulsatile purging");
+    def->tooltip = L("Use the pulsatile flushing technique when purging in the purge tower. This technique aims to reduce the purging volume needed to perform a color transition, "
+                     "by forcing turbulent flow inside the nozzle causing the filament residue to unstick from the nozzle tube surfaces. This feature is particularly helpful "
+                     "for CHT type nozzles as, due to their increased internal surface, more material tends to cling on, hence, need more material to be purged for a thorough "
+                     "color change. Set the below parameters to appropriate values for your setup.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("wipe_tower_pulse_low_speed", coFloat);
+    def->label = L("Purge speed - low");
+    def->tooltip = L("The minimum print speed (hence flow) when printing the wipe tower sparse layers during purging.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 10;
+    def->set_default_value(new ConfigOptionFloat(50.));
+
+    def = this->add("wipe_tower_pulse_high_speed", coFloat);
+    def->label = L("Purge speed - high");
+    def->tooltip = L("The maximum print speed (hence flow) when printing the wipe tower sparse layers during purging. This speed is constrained by the maximum volumetric flow rate "
+                     "set for the filament.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 10;
+    def->set_default_value(new ConfigOptionFloat(200.));
+
+    def = this->add("wipe_tower_retraction_distance", coFloat);
+    def->label = L("Retraction distance");
+    def->tooltip = L("The retraction distance used to pulse the filament with during purging.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->min = 0.1;
+    def->set_default_value(new ConfigOptionFloat(4.));
+
+    def = this->add("wipe_tower_retraction_speed", coFloat);
+    def->label = L("Retraction speed");
+    def->tooltip = L("The retraction speed used to pulse the filament with during purging. This is used to create turbulance in the nozzle before slowly de-retracting at a fixed "
+                     "5mm/sec speeed and continuing with the purge cycle.");
+    def->sidetext = L("mm/s");
+    def->mode = comAdvanced;
+    def->min = 10;
+    def->set_default_value(new ConfigOptionFloat(60.));
+    // Orca: Pulsatile purging
 
     def = this->add("xy_hole_compensation", coFloat);
     def->label = L("X-Y hole compensation");
