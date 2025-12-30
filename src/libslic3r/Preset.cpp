@@ -161,11 +161,18 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
     int process_variant_length = default_param_length;
     int machine_variant_length = default_param_length;
 
+    // Orca: use nozzle/extruder count as the default printer variant length
+    // because non-BBL multi-extruder printers currently do not support extruder variant.
+    if (config.has("nozzle_diameter")) {
+        auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(config.option("nozzle_diameter"));
+        machine_variant_length = nozzle_diameter->values.size();
+    }
+
     if(config.has("filament_extruder_variant"))
         filament_variant_length = config.option<ConfigOptionStrings>("filament_extruder_variant")->size();
     if(config.has("print_extruder_variant"))
         process_variant_length = config.option<ConfigOptionStrings>("print_extruder_variant")->size();
-    if(config.has("printer_extruder_variant"))
+    if(config.has("printer_extruder_variant"))  // Use existing variant list if specified, so BBL's multi-variant profiles still works
         machine_variant_length = config.option<ConfigOptionStrings>("printer_extruder_variant")->size();
 
     auto replace_nil_and_resize = [&](const std::string & key, int length){
@@ -897,7 +904,7 @@ static std::vector<std::string> s_Preset_print_options {
     "top_surface_speed", "support_speed", "support_object_xy_distance", "support_object_first_layer_gap", "support_interface_speed",
     "bridge_speed", "internal_bridge_speed", "gap_infill_speed", "travel_speed", "travel_speed_z", "initial_layer_speed",
     "outer_wall_acceleration", "initial_layer_acceleration", "top_surface_acceleration", "default_acceleration", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_height","single_loop_draft_shield", "draft_shield",
-    "brim_width", "brim_object_gap", "brim_type", "brim_ears_max_angle", "brim_ears_detection_length", "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap","enforce_support_layers",
+    "brim_width", "brim_object_gap", "brim_use_efc_outline", "brim_type", "brim_ears_max_angle", "brim_ears_detection_length", "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap","enforce_support_layers",
     "raft_layers", "raft_first_layer_density", "raft_first_layer_expansion", "raft_contact_distance", "raft_expansion",
     "support_base_pattern", "support_base_pattern_spacing", "support_expansion", "support_style",
     // BBS
@@ -1007,7 +1014,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "nozzle_height", "master_extruder_id",
     "default_print_profile", "inherits",
     "silent_mode",
-    "scan_first_layer", "wrapping_detection_layers", "wrapping_exclude_area", "machine_load_filament_time", "machine_unload_filament_time", "machine_tool_change_time", "time_cost", "machine_pause_gcode", "template_custom_gcode",
+    "scan_first_layer", "enable_power_loss_recovery", "wrapping_detection_layers", "wrapping_exclude_area", "machine_load_filament_time", "machine_unload_filament_time", "machine_tool_change_time", "time_cost", "machine_pause_gcode", "template_custom_gcode",
     "nozzle_type", "nozzle_hrc","auxiliary_fan", "nozzle_volume","upward_compatible_machine", "z_hop_types", "travel_slope", "retract_lift_enforce","support_chamber_temp_control","support_air_filtration","printer_structure",
     "best_object_pos", "head_wrap_detect_zone",
     "host_type", "print_host", "printhost_apikey", "bbl_use_printhost",

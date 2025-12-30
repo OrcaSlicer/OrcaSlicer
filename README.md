@@ -52,11 +52,11 @@ If you come across any of these in search results, please <b>report them</b> as 
   Use varied infill [patterns](https://github.com/OrcaSlicer/OrcaSlicer/wiki/strength_settings_patterns) and accurate hole shapes for improved clarity.
 - **[Overhang](https://github.com/OrcaSlicer/OrcaSlicer/wiki/quality_settings_overhangs) and [Support Optimization](https://github.com/OrcaSlicer/OrcaSlicer/wiki#support-settings)**  
   Modify geometry for printable overhangs with precise support placement.
-- **[Granular Controls](https://github.com/OrcaSlicer/OrcaSlicer/wiki#process-settings) and Customization**  
+- **[Granular Controls and Customization](https://github.com/OrcaSlicer/OrcaSlicer/wiki#process-settings)**  
   Fine-tune print speed, layer height, pressure, and temperature with precision.
 - **Network Printer Support**  
   Seamless integration with Klipper, PrusaLink, and OctoPrint for remote control.
-- **[Mouse Ear Brims](https://github.com/OrcaSlicer/OrcaSlicer/wiki/others_settings_brim) & Adaptive Bed Mesh**  
+- **[Mouse Ear Brims](https://github.com/OrcaSlicer/OrcaSlicer/wiki/others_settings_brim) & [Adaptive Bed Mesh](https://github.com/OrcaSlicer/OrcaSlicer/wiki/printer_basic_information_adaptive_bed_mesh)**  
   Automatic brims and adaptive mesh calibration ensure consistent adhesion.
 - **User-Friendly Interface**  
   Intuitive drag-and-drop design with pre-made profiles for popular printers.
@@ -68,9 +68,7 @@ If you come across any of these in search results, please <b>report them</b> as 
 
 # Wiki
 
-The wiki below aims to provide a detailed explanation of the slicer settings, including how to maximize their use and how to calibrate and set up your printer.
-
-Please note that the wiki is a work in progress. We appreciate your patience as we continue to develop and improve it!
+The [wiki](https://github.com/OrcaSlicer/OrcaSlicer/wiki) aims to provide a detailed explanation of the slicer settings, including how to maximize their use and how to calibrate and set up your printer.
 
 - **[Access the wiki here](https://github.com/OrcaSlicer/OrcaSlicer/wiki)**
 - **[Contribute to the wiki](https://github.com/OrcaSlicer/OrcaSlicer/wiki/How-to-wiki)**

@@ -87,14 +87,14 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"precise_z_height", "",10}
 
                     }},
-    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"brim_object_gap", "",3},
-                    {"enable_support", "",4},{"support_type", "",5},{"support_threshold_angle", "",6}, {"support_threshold_overlap", "",6}, {"support_on_build_plate_only", "",7},
-                    {"support_filament", "",8},{"support_interface_filament", "",9},{"support_expansion", "",24},{"support_style", "",25},
-                    {"tree_support_brim_width", "",26}, {"tree_support_branch_angle", "",10},{"tree_support_branch_angle_organic","",10}, {"tree_support_wall_count", "",11},{"tree_support_branch_diameter_angle", "",11},//tree support
-                    {"support_top_z_distance", "",13},{"support_bottom_z_distance", "",12},{"support_base_pattern", "",14},{"support_base_pattern_spacing", "",15},
-                    {"support_interface_top_layers", "",16},{"support_interface_bottom_layers", "",17},{"support_interface_spacing", "",18},{"support_bottom_interface_spacing", "",19},
-                    {"support_object_xy_distance", "",20}, {"bridge_no_support", "",21},{"max_bridge_length", "",22},{"support_critical_regions_only", "",23},{"support_remove_small_overhang","",27},
-                    {"support_object_first_layer_gap","",28}
+    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"brim_object_gap", "",3},{"brim_use_efc_outline", "",4},
+                    {"enable_support", "",5},{"support_type", "",6},{"support_threshold_angle", "",7}, {"support_threshold_overlap", "",8}, {"support_on_build_plate_only", "",9},
+                    {"support_filament", "",10},{"support_interface_filament", "",11},{"support_expansion", "",12},{"support_style", "",13},
+                    {"tree_support_brim_width", "",14}, {"tree_support_branch_angle", "",15},{"tree_support_branch_angle_organic","",16}, {"tree_support_wall_count", "",17},{"tree_support_branch_diameter_angle", "",18},//tree support
+                    {"support_bottom_z_distance", "",19},{"support_top_z_distance", "",20},{"support_base_pattern", "",21},{"support_base_pattern_spacing", "",22},
+                    {"support_interface_top_layers", "",23},{"support_interface_bottom_layers", "",24},{"support_interface_spacing", "",25},{"support_bottom_interface_spacing", "",26},
+                    {"support_object_xy_distance", "",27}, {"bridge_no_support", "",28},{"max_bridge_length", "",29},{"support_critical_regions_only", "",30},{"support_remove_small_overhang","",31},
+                    {"support_object_first_layer_gap","",32}
                             }},
     { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13}
                     }}
@@ -533,7 +533,7 @@ wxMenu* MenuFactory::append_submenu_add_generic(wxMenu* menu, ModelVolumeType ty
 wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeType type) {
     auto sub_menu = new wxMenu;
 
-    for (auto &item : {L("Orca Cube"), L("Orca Tolerance Test"), L("3DBenchy"), L("Autodesk FDM Test"),
+    for (auto &item : {L("Orca Cube"), L("Orca Tolerance Test"), L("3DBenchy"), L("Cali Cat"), L("Autodesk FDM Test"),
                        L("Voron Cube"), L("Stanford Bunny"), L("Orca String Hell") }) {
         append_menu_item(
             sub_menu, wxID_ANY, _(item), "",
@@ -547,6 +547,8 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                     file_name = "OrcaToleranceTest.stl";
                 else if (file_name == L("3DBenchy"))
                     file_name = "3DBenchy.3mf";
+                else if (file_name == L("Cali Cat"))
+                    file_name = "calicat.stl";
                 else if (file_name == L("Autodesk FDM Test"))
                     file_name = "ksr_fdmtest_v4.3mf";
                 else if (file_name == L("Voron Cube"))
@@ -751,8 +753,14 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
     return append_menu_item(menu, wxID_ANY, _L("Change type"), "",
         [](wxCommandEvent&) { obj_list()->change_part_type(); }, "", menu,
         []() {
-            wxDataViewItem item = obj_list()->GetSelection();
-            return item.IsOk() || obj_list()->GetModel()->GetItemType(item) == itVolume;
+          wxDataViewItemArray selections;
+          obj_list()->GetSelections(selections);
+          if (selections.empty()) return false;
+          for (const auto& it : selections) {
+            if (!(obj_list()->GetModel()->GetItemType(it) & itVolume))
+              return false; // non-volume present -> disable
+          }
+          return true;
         }, m_parent);
 }
 
@@ -864,14 +872,14 @@ void MenuFactory::append_menu_item_reload_from_disk(wxMenu* menu)
 
 void MenuFactory::append_menu_item_replace_with_stl(wxMenu *menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Replace with STL") + dots, _L("Replace the selected part with new STL"),
+    append_menu_item(menu, wxID_ANY, _L("Replace 3D file") + dots, _L("Replace the selected part with a new 3D file"),
         [](wxCommandEvent &) { plater()->replace_with_stl(); }, "", menu,
         []() { return plater()->can_replace_with_stl(); }, m_parent);
 }
 
 void MenuFactory::append_menu_item_replace_all_with_stl(wxMenu *menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Replace all with STL") + dots, _L("Replace all selected parts with STL from folder"),
+    append_menu_item(menu, wxID_ANY, _L("Replace all with 3D files") + dots, _L("Replace all selected parts with 3D files from folder"),
         [](wxCommandEvent &) { plater()->replace_all_with_stl(); }, "", menu,
         []() { return plater()->can_replace_all_with_stl(); }, m_parent);
 }
@@ -1798,6 +1806,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         }
         append_menu_item_per_object_process(menu);
         menu->AppendSeparator();
+        append_menu_item_change_type(menu);
         append_menu_item_change_filament(menu);
     }
     return menu;

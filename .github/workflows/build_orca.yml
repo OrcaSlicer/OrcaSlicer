@@ -1,10 +1,10 @@
 on:
     workflow_call:
       inputs:
-        cache-key:
+        artifact-name:
           required: true
           type: string
-        cache-path:
+        artifact-path:
           required: true
           type: string
         os:
@@ -26,16 +26,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           lfs: 'true'
 
-      - name: load cached deps
-        uses: actions/cache@v4
+      - name: Download deps artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: ${{ inputs.cache-path }}
-          key: ${{ inputs.cache-key }}
-          fail-on-cache-miss: true
+          name: ${{ inputs.artifact-name }}
+          path: ${{ inputs.artifact-path }}
 
       - uses: lukka/get-cmake@latest
         with:

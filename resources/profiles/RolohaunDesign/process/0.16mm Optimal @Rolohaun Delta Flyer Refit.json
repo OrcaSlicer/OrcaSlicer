@@ -13,5 +13,8 @@
     "sparse_infill_density": "10%",
     "top_shell_layers": "5",
     "top_solid_infill_flow_ratio": "0.95",
-    "travel_speed": "300"
+    "travel_speed": "300",
+    "compatible_printers": [
+        "Rolohaun Delta Flyer Refit 0.4 nozzle"
+    ]
 }

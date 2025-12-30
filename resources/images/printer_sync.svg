@@ -1,10 +1,1 @@
-<svg width="33" height="33" viewBox="0 0 33 33" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_20864_22082)">
-<path fill-rule="evenodd" clip-rule="evenodd" d="M16.2625 6.52839C13.3644 6.52839 10.7571 7.76588 8.93706 9.74469C8.8807 9.80598 8.82509 9.86797 8.77026 9.93066L7.0642 8.43829C7.13145 8.36142 7.19964 8.2854 7.26876 8.21025C9.49998 5.78438 12.7042 4.26172 16.2625 4.26172C21.9679 4.26172 26.7599 8.17288 28.1035 13.4603L29.7967 11.0823L31.6432 12.397L26.2125 20.0242V16.4784C26.2125 10.9832 21.7577 6.52839 16.2625 6.52839ZM5.89404 12.9327V16.4784C5.89404 21.9737 10.3488 26.4285 15.8441 26.4285C18.7421 26.4285 21.3494 25.191 23.1695 23.2122C23.2259 23.1509 23.2815 23.0889 23.3363 23.0262L25.0424 24.5186C24.9751 24.5955 24.9069 24.6715 24.8378 24.7466C22.6066 27.1725 19.4023 28.6952 15.8441 28.6952C10.1386 28.6952 5.34663 24.784 4.00303 19.4966L2.30982 21.8746L0.463379 20.5599L5.89404 12.9327Z" fill="#009688"/>
-</g>
-<defs>
-<clipPath id="clip0_20864_22082">
-<rect width="32" height="32" fill="white" transform="translate(0.0532227 0.476562)"/>
-</clipPath>
-</defs>
-</svg>
+<?xml version="1.0" encoding="UTF-8"?><svg id="a" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><polyline points="2 12 2 6 4 7" style="fill:#009688; stroke:#009688; stroke-linecap:round; stroke-linejoin:round; stroke-width:2px;"/><polyline points="28 25 30 26 30 26 30 20" style="fill:#009688; stroke:#009688; stroke-linecap:round; stroke-linejoin:round; stroke-width:2px;"/><path d="M29.41,12c-1.72-5.78-7.07-10-13.41-10S4.31,6.22,2.59,12" style="fill:none; stroke:#009688; stroke-linecap:round; stroke-linejoin:round; stroke-width:2px;"/><path d="M2.59,20c1.72,5.78,7.07,10,13.41,10s11.69-4.22,13.41-10" style="fill:none; stroke:#009688; stroke-linecap:round; stroke-linejoin:round; stroke-width:2px;"/></svg>

@@ -108,7 +108,12 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 	try{
 
         if (config.def()->get(opt_key)->type == coBools && config.def()->get(opt_key)->nullable) {
-            auto vec_new = std::make_unique<ConfigOptionBoolsNullable>(1, boost::any_cast<unsigned char>(value) );
+            const auto v = boost::any_cast<unsigned char>(value);
+            auto vec_new = std::make_unique<ConfigOptionBoolsNullable>(1, v);
+            if (v == ConfigOptionBoolsNullable::nil_value()) {
+                vec_new->set_at_to_nil(0);
+            }
+
             config.option<ConfigOptionBoolsNullable>(opt_key)->set_at(vec_new.get(), opt_index, 0);
             return;
         }

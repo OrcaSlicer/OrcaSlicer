@@ -1,4 +1,5 @@
 #include "PrintConfig.hpp"
+#include "PrintConfigConstants.hpp"
 #include "ClipperUtils.hpp"
 #include "Config.hpp"
 #include "MaterialType.hpp"
@@ -159,6 +160,14 @@ static t_config_enum_values s_keys_map_BedTempFormula {
     { "by_highest_temp", int(BedTempFormula::btfHighestTemp)}
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(BedTempFormula)
+
+// Orca
+static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
+    { "printer_configuration", int(PowerLossRecoveryMode::PrinterConfiguration) },
+    { "enable",                 int(PowerLossRecoveryMode::Enable) },
+    { "disable",                int(PowerLossRecoveryMode::Disable) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
@@ -686,7 +695,7 @@ void PrintConfigDef::init_common_params()
     def->tooltip = L("Slicing height for each layer. Smaller layer height means more accurate and more printing time.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
-    def->set_default_value(new ConfigOptionFloat(0.2));
+    def->set_default_value(new ConfigOptionFloat(INITIAL_LAYER_HEIGHT));
 
     def = this->add("printable_height", coFloat);
     def->label = L("Printable height");
@@ -833,7 +842,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L("Detour to avoid traveling across walls, which may cause blobs on the surface.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->set_default_value(new ConfigOptionBool(INITIAL_REDUCE_CROSSING_WALL));
 
     def = this->add("max_travel_detour_distance", coFloatOrPercent);
     def->label = L("Avoid crossing walls - Max detour length");
@@ -1560,6 +1569,16 @@ void PrintConfigDef::init_fff_params()
     def->max = 2;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("brim_use_efc_outline", coBool);
+    def->label = L("Brim follows compensated outline");
+    def->category = L("Support");
+    def->tooltip = L("When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
+                    "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
+                    "\n"
+                    "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers." );
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("brim_ears", coBool);
     def->label = L("Brim ears");
@@ -2732,7 +2751,7 @@ void PrintConfigDef::init_fff_params()
     def->label      = L("Fill Multiline");
     def->tooltip    = L("Using multiple lines for the infill pattern, if supported by infill pattern.");
     def->min = 1;
-    def->max = 5; // Maximum number of lines for infill pattern
+    def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("sparse_infill_pattern", coEnum);
@@ -3364,6 +3383,19 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    // Orca
+    def = this->add("enable_power_loss_recovery", coEnum);
+    def->label = L("Power Loss Recovery");
+    def->tooltip = L("Choose how to control power loss recovery. When set to Printer configuration, the slicer will not emit power loss recovery G-code and will leave the printer's configuration unchanged. Applicable to Bambu Lab or Marlin 2 firmware based printers.");
+    def->mode = comAdvanced;
+    def->enum_keys_map = &ConfigOptionEnum<PowerLossRecoveryMode>::get_enum_values();
+    def->enum_values.push_back("printer_configuration");
+    def->enum_values.push_back("enable");
+    def->enum_values.push_back("disable");
+    def->enum_labels.push_back(L("Printer configuration"));
+    def->enum_labels.push_back(L("Enable"));
+    def->enum_labels.push_back(L("Disable"));
+    def->set_default_value(new ConfigOptionEnum<PowerLossRecoveryMode>(PowerLossRecoveryMode::PrinterConfiguration));
 
     //BBS
     // def = this->add("spaghetti_detector", coBool);
@@ -4598,7 +4630,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 100;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionInt(0));
+    def->set_default_value(new ConfigOptionInt(INITIAL_RAFT_LAYERS));
 
     def = this->add("resolution", coFloat);
     def->label = L("Resolution");
@@ -7425,6 +7457,13 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
     else if (opt_key == "extruder_type") {
         ReplaceString(value, "DirectDrive", "Direct Drive");
     }
+    else if (opt_key == "enable_power_loss_recovery") {
+        if (value == "1" || boost::iequals(value, "true")) {
+            value = "enable";
+        } else if (value == "0" || boost::iequals(value, "false")) {
+            value = "disable";
+        }
+    }
     else if(opt_key == "ensure_vertical_shell_thickness") {
         if(value == "1") {
             value = "ensure_all";
@@ -7639,6 +7678,9 @@ std::set<std::string> filament_options_with_variant = {
     "filament_retraction_length",
     "filament_z_hop",
     "filament_z_hop_types",
+    "filament_retract_lift_above",
+    "filament_retract_lift_below",
+    "filament_retract_lift_enforce",
     "filament_retract_restart_extra",
     "filament_retraction_speed",
     "filament_deretraction_speed",
@@ -7657,7 +7699,11 @@ std::set<std::string> filament_options_with_variant = {
     "filament_flush_volumetric_speed",
     "filament_flush_temp",
     "volumetric_speed_coefficients",
-    "filament_adaptive_volumetric_speed"
+    "filament_adaptive_volumetric_speed",
+    "filament_ironing_flow",
+    "filament_ironing_spacing",
+    "filament_ironing_inset",
+    "filament_ironing_speed"
 };
 
 // Parameters that are the same as the number of extruders
@@ -7989,8 +8035,41 @@ size_t DynamicPrintConfig::get_parameter_size(const std::string& param_name, siz
     return extruder_nums;
 }
 
+// Orca: Special handling for extruder variants
+// BBL printers have extruder variants pre-defined in system profiles, however for customized multi-extruder profile,
+// we need to set up these parameters automatically, otherwise per-extruder options won't work properly.
+static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned int num_extruders)
+{
+    // 1. Make sure the `extruder_variant_list` is the same length as extruder cnt
+    auto extruder_variant_opt = dynamic_cast<ConfigOptionStrings*>(config.option("extruder_variant_list"));
+    assert(extruder_variant_opt != nullptr);
+    extruder_variant_opt->resize(num_extruders, extruder_variant_opt); // Use the first option as the default value, so all extruders have the same variant
+
+    // 2. Update `printer_extruder_variant` and `printer_extruder_id` based on `extruder_variant_list`
+    auto printer_extruder_id_opt = dynamic_cast<ConfigOptionInts*>(config.option("printer_extruder_id"));
+    assert(printer_extruder_id_opt != nullptr);
+    printer_extruder_id_opt->values.clear();
+    auto printer_extruder_variant_opt = dynamic_cast<ConfigOptionStrings*>(config.option("printer_extruder_variant"));
+    assert(printer_extruder_variant_opt != nullptr);
+    printer_extruder_variant_opt->values.clear();
+    for (int i = 0; i < num_extruders; i++) {
+        // `extruder_variant_list` specifies supported variant of each nozzle/extruder,
+        // each item is a comma separated list of variants (extruder type + nozzle flow type) this extruder supported
+        std::string variant = extruder_variant_opt->get_at(i);
+        std::vector<std::string> variants_list;
+        boost::split(variants_list, variant, boost::is_any_of(","), boost::token_compress_on);
+
+        if (!variants_list.empty()) {
+            printer_extruder_id_opt->values.insert(printer_extruder_id_opt->values.end(), variants_list.size(), i + 1);
+            printer_extruder_variant_opt->values.insert(printer_extruder_variant_opt->values.end(), variants_list.begin(), variants_list.end());
+        }
+    }
+}
+
 void DynamicPrintConfig::set_num_extruders(unsigned int num_extruders)
 {
+    extend_extruder_variant(*this, num_extruders);
+
     const auto &defaults = FullPrintConfig::defaults();
     for (const std::string &key : print_config_def.extruder_option_keys()) {
         if (key == "default_filament_profile")
@@ -9519,10 +9598,10 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
 #define PRINT_CONFIG_CACHE_INITIALIZE(CLASSES_SEQ) \
     BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CACHE_ELEMENT_DEFINITION, _, BOOST_PP_TUPLE_TO_SEQ(CLASSES_SEQ)) \
     int print_config_static_initializer() { \
-        /* Putting a trace here to avoid the compiler to optimize out this function. */ \
-        BOOST_LOG_TRIVIAL(trace) << "Initializing StaticPrintConfigs"; \
+        /* For some reason it's important this function doesn't get optimized out, so this should work. */ \
+        static volatile int ret = 1; \
         BOOST_PP_SEQ_FOR_EACH(PRINT_CONFIG_CACHE_ELEMENT_INITIALIZATION, _, BOOST_PP_TUPLE_TO_SEQ(CLASSES_SEQ)) \
-        return 1; \
+        return ret; \
     }
 PRINT_CONFIG_CACHE_INITIALIZE((
     PrintObjectConfig, PrintRegionConfig, MachineEnvelopeConfig, GCodeConfig, PrintConfig, FullPrintConfig,
@@ -10093,6 +10172,10 @@ OtherSlicingStatesConfigDef::OtherSlicingStatesConfigDef()
     def->label = L("Is extruder used?");
     def->tooltip = L("Vector of booleans stating whether a given extruder is used in the print.");
 
+    def = this->add("num_extruders", coInt);
+    def->label   = L("Number of extruders");
+    def->tooltip = L("Total number of extruders, regardless of whether they are used in the current print.");
+
     // Options from PS not used in Orca
     //    def = this->add("initial_filament_type", coString);
     //    def->label = L("Initial filament type");
@@ -10134,22 +10217,21 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def->label = L("Total layer count");
     def->tooltip = L("Number of layers in the entire print.");
 
-    // Options from PS not used in Orca
-    /*    def = this->add("normal_print_time", coString);
+    def = this->add("normal_print_time", coString);
     def->label = L("Print time (normal mode)");
     def->tooltip = L("Estimated print time when printed in normal mode (i.e. not in silent mode). Same as print_time.");
 
-    def = this->add("num_printing_extruders", coInt);
-    def->label = L("Number of printing extruders");
-    def->tooltip = L("Number of extruders used during the print.");
+    //def = this->add("num_printing_extruders", coInt);
+    //def->label = L("Number of printing extruders");
+    //def->tooltip = L("Number of extruders used during the print.");
 
     def = this->add("print_time", coString);
     def->label = L("Print time (normal mode)");
     def->tooltip = L("Estimated print time when printed in normal mode (i.e. not in silent mode). Same as normal_print_time.");
 
-    def = this->add("printing_filament_types", coString);
-    def->label = L("Used filament types");
-    def->tooltip = L("Comma-separated list of all filament types used during the print.");
+    //def = this->add("printing_filament_types", coString);
+    //def->label = L("Used filament types");
+    //def->tooltip = L("Comma-separated list of all filament types used during the print.");
 
     def = this->add("silent_print_time", coString);
     def->label = L("Print time (silent mode)");
@@ -10173,7 +10255,7 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
 
     def = this->add("used_filament", coFloat);
     def->label = L("Used filament");
-    def->tooltip = L("Total length of filament used in the print.");*/
+    def->tooltip = L("Total length of filament used in the print.");
 }
 
 ObjectsInfoConfigDef::ObjectsInfoConfigDef()
@@ -10303,10 +10385,6 @@ OtherPresetsConfigDef::OtherPresetsConfigDef()
     def = this->add("physical_printer_preset", coString);
     def->label = L("Physical printer name");
     def->tooltip = L("Name of the physical printer used for slicing.");
-
-    def          = this->add("num_extruders", coInt);
-    def->label   = L("Number of extruders");
-    def->tooltip = L("Total number of extruders, regardless of whether they are used in the current print.");
 }
 
 

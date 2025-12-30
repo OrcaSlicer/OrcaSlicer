@@ -55,10 +55,13 @@
     "raft_contact_distance": "0.15",
     "raft_expansion": "1.5",
     "raft_first_layer_density": "90%",
-    "raft_first_layer_expansion": "3.5",
     "support_threshold_angle": "40",
     "support_interface_bottom_layers": "0",
     "support_base_pattern": "rectilinear",
     "support_interface_top_layers": "3",
-    "support_top_z_distance": "0.17"
+    "raft_first_layer_expansion": "3",
+    "support_base_pattern_spacing": "2",
+    "support_bottom_interface_spacing": "0.2",
+    "support_interface_spacing": "0.2",
+    "support_top_z_distance": "0.2"
 }

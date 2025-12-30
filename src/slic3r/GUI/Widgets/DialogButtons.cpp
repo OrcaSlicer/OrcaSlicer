@@ -5,13 +5,14 @@
 namespace Slic3r { namespace GUI {
 
 // ORCA standardize dialog buttons
-DialogButtons::DialogButtons(wxWindow* parent, std::vector<wxString> non_translated_labels, const wxString& primary_btn_translated_label)
+DialogButtons::DialogButtons(wxWindow* parent, std::vector<wxString> non_translated_labels, const wxString& primary_btn_translated_label, const int left_aligned_buttons_count)
     : wxPanel(parent, wxID_ANY)
 {
     m_parent  = parent;
     m_sizer   = new wxBoxSizer(wxHORIZONTAL);
     m_primary = primary_btn_translated_label;
     m_alert   = wxEmptyString;
+    m_left_aligned_buttons_count = left_aligned_buttons_count;
     SetBackgroundColour(StateColor::darkModeColorFor(wxColour("#FFFFFF")));
 
     // Add all to array
@@ -55,6 +56,13 @@ Button* DialogButtons::GetButtonFromLabel(wxString translated_label) {
     return nullptr;
 }
 
+Button* DialogButtons::GetButtonFromIndex(int index) {
+    if(index >= 0 && index < m_buttons.size())
+        return m_buttons[index];
+    else
+        return nullptr;
+}
+
 Button* DialogButtons::PickFromList(std::set<wxStandardID> ID_list) {
     // Picks first button from given list
     Button* b;
@@ -75,6 +83,8 @@ Button* DialogButtons::GetNO()     {return GetButtonFromID(wxID_NO)      ;}
 Button* DialogButtons::GetCANCEL() {return GetButtonFromID(wxID_CANCEL)  ;}
 Button* DialogButtons::GetRETURN() {return GetButtonFromID(wxID_BACKWARD);} // gets Return button
 Button* DialogButtons::GetNEXT()   {return GetButtonFromID(wxID_FORWARD) ;}
+Button* DialogButtons::GetFIRST()  {return GetButtonFromIndex(0)         ;}
+Button* DialogButtons::GetLAST()   {return GetButtonFromIndex(m_buttons.size() - 1);}
 
 void DialogButtons::SetPrimaryButton(wxString translated_label) {
     // use _L("Create") translated text for custom buttons
@@ -127,25 +137,18 @@ void DialogButtons::UpdateButtons() {
         btn->Bind(wxEVT_KEY_DOWN, &DialogButtons::on_keydown, this);
     }
 
-    int btn_gap = FromDIP(10);
+    int btn_gap = FromDIP(ButtonProps::ChoiceButtonGap());
 
-    auto list = m_left_align_IDs;
-    auto on_left = [list](int id){
-        return list.find(wxStandardID(id)) != list.end();
-    };
-
-    for (Button* btn : m_buttons)  // Left aligned
-        if(on_left(btn->GetId()))
-            m_sizer->Add(btn, 0,  wxLEFT | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL, btn_gap);
-
-    m_sizer->AddStretchSpacer();
-
-    if(m_sizer->IsEmpty()) // add left margin if no button on left. fixes no gap on small windows
+    if(m_left_aligned_buttons_count == 0)
         m_sizer->AddSpacer(btn_gap);
 
-    for (Button* btn : m_buttons) // Right aligned
-        if(!on_left(btn->GetId()))
-            m_sizer->Add(btn, 0, wxRIGHT | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL, btn_gap);
+    for (int i = 0; i < m_buttons.size(); i++) {
+        if(m_left_aligned_buttons_count == i)
+            m_sizer->AddStretchSpacer();
+
+        auto margin_to = (i >= m_left_aligned_buttons_count ? wxRIGHT : wxLEFT);
+        m_sizer->Add(m_buttons[i], 0, margin_to | wxTOP | wxBOTTOM | wxALIGN_CENTER_VERTICAL, btn_gap);
+    }
 
     SetPrimaryButton(m_primary);
     SetAlertButton(m_alert);
@@ -156,6 +159,11 @@ void DialogButtons::UpdateButtons() {
 
 int DialogButtons::FromDIP(int d) {
     return m_parent->FromDIP(d);
+}
+
+void DialogButtons::SetLeftAlignedButtonsCount(int left_aligned_buttons_count){
+    m_left_aligned_buttons_count = left_aligned_buttons_count;
+    UpdateButtons();
 }
 
 // This might be helpful for future use
