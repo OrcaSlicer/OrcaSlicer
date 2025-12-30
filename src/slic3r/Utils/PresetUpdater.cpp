@@ -242,7 +242,6 @@ PresetUpdater::priv::priv()
 	, cancel(false)
 {
 	//BBS: refine preset updater logic
-	enabled_version_check = true;
 	set_download_prefs(GUI::wxGetApp().app_config);
 	// Install indicies from resources. Only installs those that are either missing or older than in resources.
 	check_installed_vendor_profiles();
@@ -255,6 +254,7 @@ PresetUpdater::priv::priv()
 void PresetUpdater::priv::set_download_prefs(AppConfig *app_config)
 {
 	version_check_url = app_config->version_check_url();
+	enabled_version_check = app_config->get_bool("do_version_check");
 
 	auto profile_update_url = app_config->profile_update_url();
 	if (!profile_update_url.empty())

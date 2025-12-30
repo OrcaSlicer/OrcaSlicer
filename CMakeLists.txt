@@ -165,6 +165,13 @@ endif ()
 option(SLIC3R_BUILD_SANDBOXES   "Build development sandboxes" OFF)
 option(BUILD_TESTS       "Build unit tests" OFF)
 option(ORCA_TOOLS       "Build Orca tools" OFF)
+option(ORCA_VERSION_CHECK_DEFAULT "Whether to check for new versions on startup by default" ON)
+
+if (ORCA_VERSION_CHECK_DEFAULT)
+  add_definitions(-DORCA_VERSION_CHECK_DEFAULT=true)
+else ()
+  add_definitions(-DORCA_VERSION_CHECK_DEFAULT=false)
+endif ()
 
 if (FLATPAK)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++20")

@@ -460,6 +460,12 @@ void AppConfig::set_defaults()
     if (get("print", "timelapse").empty()) {
         set_str("print", "timelapse", "1");
     }
+    if (get("do_version_check").empty()) {
+#ifndef ORCA_VERSION_CHECK_DEFAULT
+#define ORCA_VERSION_CHECK_DEFAULT true
+#endif
+      set_bool("do_version_check", ORCA_VERSION_CHECK_DEFAULT);
+    }
 
     if (get("enable_step_mesh_setting").empty()) {
         set_bool("enable_step_mesh_setting", true);
