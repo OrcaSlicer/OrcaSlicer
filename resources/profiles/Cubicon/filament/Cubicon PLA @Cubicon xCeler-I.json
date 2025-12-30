@@ -3,11 +3,10 @@
 	"instantiation": "true",
     "version": "1.0.0.0",
     "from": "system",
-    "name": "Cubicon PLA @base",
+    "name": "Cubicon PLA @Cubicon xCeler-I",
 
     "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle",
-        "Cubicon xCeler-Plus 0.4 nozzle"
+        "Cubicon xCeler-I 0.4 nozzle"
     ],
     
     "default_filament_colour": "",
