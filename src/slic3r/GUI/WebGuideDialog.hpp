@@ -77,7 +77,7 @@ public:
     int SaveProfileData();
     int LoadProfileFamily(std::string strVendor, std::string strFilePath);
     int SaveProfile();
-    int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, std::string filepath, std::string &sVendor, std::string &sType);
+    int GetFilamentInfo( std::string VendorDirectory,json & pFilaList, const std::string& filepath, const json& content, std::string &sVendor, std::string &sType);
 
 
     bool apply_config(AppConfig *app_config, PresetBundle *preset_bundle, const PresetUpdater *updater, bool& apply_keeped_changes);
