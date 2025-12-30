@@ -3145,6 +3145,17 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts{ -1 });
+
+    // ORCA: Add support for infill fan speed control
+    def = this->add("infill_fan_speed", coInts);
+    def->label = L("Infill fan speed");
+    def->tooltip = L("This part cooling fan speed is applied when printing infill. Set to -1 to fall back to the regular fan speed logic.\n\n"
+                     "Reducing cooling during Infill can improve adhesion between layers while still keeping perimeter cooling intact.");
+    def->sidetext = "%";
+    def->min = -1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts{ -1 });
     
     // ORCA: Add support for separate internal bridge fan speed control
     def = this->add("internal_bridge_fan_speed", coInts);

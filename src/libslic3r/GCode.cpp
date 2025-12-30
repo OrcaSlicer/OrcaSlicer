@@ -6525,6 +6525,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+
+                    const auto infill_fan_speed = FILAMENT_CONFIG(infill_fan_speed);
+                    const bool is_infill_role = path.role() == erInternalInfill || path.role() == erSolidInfill;
+                    append_role_based_fan_marker(erInternalInfill, "_INFILL"sv,
+                                                 infill_fan_speed >= 0 && is_infill_role);
                 }
 
                 apply_role_based_fan_speed();
@@ -6665,6 +6670,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+
+                    const auto infill_fan_speed = FILAMENT_CONFIG(infill_fan_speed);
+                    const bool is_infill_role = path.role() == erInternalInfill || path.role() == erSolidInfill;
+                    append_role_based_fan_marker(erInternalInfill, "_INFILL"sv,
+                                                 infill_fan_speed >= 0 && is_infill_role);
                 }
 
                 apply_role_based_fan_speed();
