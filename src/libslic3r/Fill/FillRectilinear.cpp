@@ -3533,6 +3533,16 @@ Polylines FillSupportBase::fill_surface(const Surface *surface, const FillParams
             for (Point &pt : pl.points)
                 pt.rotate(cos_a, sin_a);
     }
+    if (!surface->expolygon.empty() && polylines_out.empty()) {
+        // Orca: Use gap fill for very tiny support island that normal support pattern doesn't fit
+        // same algorithm as `Fill::_create_gap_fill`
+        const double min = 0.2 * scale_(this->spacing) * (1 - INSET_OVERLAP_TOLERANCE);
+        const double max = 2. * scale_(this->spacing);
+
+        ExPolygon ex = surface->expolygon;
+        ex.douglas_peucker(SCALED_RESOLUTION * 0.1);
+        ex.medial_axis(min, max, &polylines_out);
+    }
     return polylines_out;
 }
 
