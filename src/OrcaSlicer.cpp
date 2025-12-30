@@ -1189,6 +1189,10 @@ int CLI::run(int argc, char **argv)
     // Also on Linux, we need to tell Xlib that we will be using threads,
     // lest we crash when we fire up GStreamer.
     XInitThreads();
+
+    // https://github.com/prusa3d/PrusaSlicer/issues/12969
+    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+    ::setenv("WEBKIT_DISABLE_DMABUF_RENDERER", "1", /* replace */ false);
 #endif
 
 	// Switch boost::filesystem to utf8.
