@@ -49,6 +49,14 @@ enum class FuzzySkinMode {
     Combined,
 };
 
+enum class FuzzyArt {
+    None,
+    Hair,
+    Needle,
+    Pin,
+    Curl
+};
+
 enum class NoiseType {
     Classic,
     Perlin,
@@ -481,6 +489,7 @@ extern std::vector<std::string> save_extruder_ams_count_to_string(const std::vec
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrinterTechnology)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeFlavor)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzyArt)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
@@ -1056,6 +1065,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                fuzzy_skin_point_distance))
     ((ConfigOptionBool,                 fuzzy_skin_first_layer))
     ((ConfigOptionEnum<NoiseType>,      fuzzy_skin_noise_type))
+    ((ConfigOptionEnum<FuzzyArt>,       fuzzy_art))
+    ((ConfigOptionFloat,                fuzzy_art_length))
+    ((ConfigOptionFloatOrPercent,       fuzzy_art_width_aspect_ratio))
+    ((ConfigOptionFloat,                fuzzy_art_point_distance))
+    ((ConfigOptionInt,                  fuzzy_art_period))
+    ((ConfigOptionFloatOrPercent,       fuzzy_art_flow_ratio))
+    ((ConfigOptionFloatOrPercent,       fuzzy_art_speed))
     ((ConfigOptionEnum<FuzzySkinMode>,  fuzzy_skin_mode))
     ((ConfigOptionFloat,                fuzzy_skin_scale))
     ((ConfigOptionInt,                  fuzzy_skin_octaves))

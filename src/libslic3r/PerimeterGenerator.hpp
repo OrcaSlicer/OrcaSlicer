@@ -21,18 +21,31 @@ struct FuzzySkinConfig
     int           noise_octaves;
     double        noise_persistence;
     FuzzySkinMode mode;
+    FuzzyArt      art_mode;
+    double        art_length;
+    double        art_width_aspect_ratio;
+    double        art_point_distance;
+    double        art_flow_ratio;
+    double        art_speed;
+    bool          has_fuzzy_art_layer;
 
     bool operator==(const FuzzySkinConfig& r) const
     {
-        return type == r.type
-            && thickness == r.thickness
-            && point_distance == r.point_distance
-            && fuzzy_first_layer == r.fuzzy_first_layer
-            && noise_type == r.noise_type
-            && noise_scale == r.noise_scale
-            && noise_octaves == r.noise_octaves
-            && noise_persistence == r.noise_persistence
-            && mode == r.mode;
+        return type == r.type 
+            && thickness == r.thickness 
+            && point_distance == r.point_distance 
+            && fuzzy_first_layer == r.fuzzy_first_layer 
+            && noise_type == r.noise_type 
+            && noise_scale == r.noise_scale 
+            && noise_octaves == r.noise_octaves 
+            && noise_persistence == r.noise_persistence 
+            && mode == r.mode && art_mode == r.art_mode 
+            && art_length == r.art_length 
+            && art_width_aspect_ratio == r.art_width_aspect_ratio 
+            && art_point_distance == r.art_point_distance 
+            && art_flow_ratio == r.art_flow_ratio 
+            && art_speed == r.art_speed
+            && has_fuzzy_art_layer== r.has_fuzzy_art_layer;
     }
 
     bool operator!=(const FuzzySkinConfig& r) const { return !(*this == r); }
@@ -52,6 +65,14 @@ template<> struct hash<Slic3r::FuzzySkinConfig>
         boost::hash_combine(seed, std::hash<double>{}(c.noise_scale));
         boost::hash_combine(seed, std::hash<int>{}(c.noise_octaves));
         boost::hash_combine(seed, std::hash<double>{}(c.noise_persistence));
+        boost::hash_combine(seed, std::hash<Slic3r::FuzzySkinMode>{}(c.mode)); // fix bug
+        boost::hash_combine(seed, std::hash<Slic3r::FuzzyArt>{}(c.art_mode));
+        boost::hash_combine(seed, std::hash<double>{}(c.art_length));
+        boost::hash_combine(seed, std::hash<double>{}(c.art_width_aspect_ratio));
+        boost::hash_combine(seed, std::hash<double>{}(c.art_point_distance));
+        boost::hash_combine(seed, std::hash<double>{}(c.art_flow_ratio));
+        boost::hash_combine(seed, std::hash<double>{}(c.art_speed));
+        boost::hash_combine(seed, std::hash<double>{}(c.has_fuzzy_art_layer));
         return seed;
     }
 };
@@ -91,6 +112,7 @@ public:
     std::vector<Polygons>       m_smaller_external_lower_polygons_series;
 
     bool                                            has_fuzzy_skin = false;
+    bool                                            has_fuzzy_art_layer;
     bool                                            has_fuzzy_hole = false;
     std::unordered_map<FuzzySkinConfig, ExPolygons> regions_by_fuzzify;
     
@@ -117,7 +139,8 @@ public:
         : slices(slices), compatible_regions(compatible_regions), upper_slices(nullptr), lower_slices(nullptr), layer_height(layer_height),
             slice_z(slice_z), layer_id(-1), perimeter_flow(flow), ext_perimeter_flow(flow),
             overhang_flow(flow), solid_infill_flow(flow),
-            config(config), object_config(object_config), print_config(print_config),
+            config(config), object_config(object_config), print_config(print_config), 
+            has_fuzzy_art_layer(config->fuzzy_art != FuzzyArt::None && !((compatible_regions->front()->layer()->id() - 1) % config->fuzzy_art_period)),
             m_spiral_vase(spiral_mode),
             m_scaled_resolution(scaled<double>(print_config->resolution.value > EPSILON ? print_config->resolution.value : EPSILON)),
             loops(loops), gap_fill(gap_fill), fill_surfaces(fill_surfaces), fill_no_overlap(fill_no_overlap),

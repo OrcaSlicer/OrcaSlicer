@@ -715,6 +715,7 @@ const std::vector<ColorRGBA> GCodeViewer::Extrusion_Role_Colors{ {
     { 0.00f, 0.50f, 0.00f, 1.0f },   // erSupportMaterialInterface
     { 0.00f, 0.25f, 0.00f, 1.0f },   // erSupportTransition
     { 0.70f, 0.89f, 0.67f, 1.0f },   // erWipeTower
+    { 0.70f, 1.00f, 0.00f, 1.0f },   // erFuzzyArt
     { 0.37f, 0.82f, 0.58f, 1.0f }    // erCustom
 }};
 

@@ -6113,6 +6113,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             const double  support_speed = m_config.support_speed.value;
             const double  support_interface_speed = m_config.get_abs_value("support_interface_speed");
             speed = (path.role() == erSupportMaterial) ? support_speed : support_interface_speed;
+        } else if (path.role() == erFuzzyArt) {
+            const double fuzzy_art_speed = m_config.get_abs_value("fuzzy_art_speed");
+            speed = fuzzy_art_speed ? fuzzy_art_speed : speed = m_config.get_abs_value("outer_wall_speed");
         } else {
             throw Slic3r::InvalidArgument("Invalid speed");
         }
@@ -6779,6 +6782,7 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
         case erSupportMaterialInterface: return "SupportMaterialInterface";
         case erSupportTransition: return "SupportTransition";
         case erWipeTower: return "WipeTower";
+        case erFuzzyArt: return "Fuzzy Art";
         case erCustom:
         case erMixed:
         case erCount:

@@ -360,6 +360,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
     // Detect steep overhangs
     bool overhangs_reverse = perimeter_generator.config->overhang_reverse &&
                              perimeter_generator.layer_id % 2 == 1;  // Only calculate overhang degree on even (from GUI POV) layers
+    bool is_fuzzy_art = false; // Orca: if Fuzzy Art skin applyed
 
     ExtrusionEntityCollection extrusion_coll;
     for (PerimeterGeneratorArachneExtrusion& pg_extrusion : pg_extrusions) {
@@ -374,8 +375,43 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         apply_fuzzy_skin(extrusion, perimeter_generator, is_contour);
 
         ExtrusionPaths paths;
-        // detect overhanging/bridging perimeters
-        if (perimeter_generator.config->detect_overhang_wall && perimeter_generator.layer_id > perimeter_generator.object_config->raft_layers) {
+        if (perimeter_generator.has_fuzzy_art_layer && is_external) { // Orca: Fuzzy Art junctions parse
+            ExtrusionRole current_role = ExtrusionRole::erNone;
+            Arachne::ExtrusionLine el;
+            typedef std::pair<Arachne::ExtrusionLine, ExtrusionRole> ExtrusionLineRole;
+            typedef std::vector<ExtrusionLineRole> ExtrusionLines;
+            ExtrusionLines els;
+            auto push_extrusion = [](ExtrusionLines& lines, Arachne::ExtrusionLine& line, ExtrusionRole& role, Arachne::ExtrusionLine& ext) { 
+                                    if (line.size() > 1) {
+                                        line.inset_idx = ext.inset_idx;
+                                        line.is_odd    = ext.is_odd;
+                                        line.is_closed = line.junctions.front().x() == line.junctions.back().x() &&
+                                                         line.junctions.front().y() == line.junctions.back().y();
+                                        lines.emplace_back(ExtrusionLineRole{std::move(line), role});
+                                        return true;
+                                    }
+                                    return false; };
+
+            // Orca: Fuzzy Art determinate by negative width. Width = 0 is the sign of end of the line
+            for (Arachne::ExtrusionJunction& ej : extrusion->junctions) {
+                ExtrusionRole selected_role = ej.w >= 0 ? (ej.w ? role : ExtrusionRole::erNone) : ExtrusionRole::erFuzzyArt;
+                if (current_role != selected_role || selected_role == ExtrusionRole::erNone) {
+                    push_extrusion(els, el, current_role, *extrusion);
+                    el.clear();
+                } 
+                ej.w = abs(ej.w);
+                el.junctions.emplace_back(ej);
+                current_role = selected_role;
+            }
+            push_extrusion(els, el, current_role, *extrusion);
+            for (auto el : els)
+                extrusion_paths_append(paths, el.first, el.second, perimeter_generator.ext_perimeter_flow);
+            for (auto p : paths) // Orca: dont reverse for Fuzzy Art
+                if (p.role() == ExtrusionRole::erFuzzyArt)
+                    p.set_reverse();
+            is_fuzzy_art = true;
+        }
+        else if (perimeter_generator.config->detect_overhang_wall && perimeter_generator.layer_id > perimeter_generator.object_config->raft_layers) { // detect overhanging/bridging perimeters
             ClipperLib_Z::Path extrusion_path;
             extrusion_path.reserve(extrusion->size());
             BoundingBox extrusion_path_bbox;
@@ -509,7 +545,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
         // Append paths to collection.
         if (!paths.empty()) {
-            if (extrusion->is_closed) {
+            if (!is_fuzzy_art && extrusion->is_closed) { //Orca: need to recognize paths into loop or multipaths for Fuzzy Art
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
                 extrusion_loop.make_counter_clockwise();
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
@@ -534,18 +570,29 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                 multi_path.paths.emplace_back(std::move(paths.front()));
 
                 for (auto it_path = std::next(paths.begin()); it_path != paths.end(); ++it_path) {
-                    if (multi_path.paths.back().last_point() != it_path->first_point()) {
+                    if ((multi_path.paths.back().last_point() != it_path->first_point()) ||
+                        (multi_path.paths.back().role() != it_path->role())) {
+                        if (is_fuzzy_art) {
+                            multi_path.set_reverse();
+                            for (auto p : multi_path.paths)
+                                p.set_reverse();
+                        }
                         extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
                         multi_path = ExtrusionMultiPath();
                     }
                     multi_path.paths.emplace_back(std::move(*it_path));
                 }
-
-                extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
+                if (multi_path.paths.back().last_point() == multi_path.paths.front().first_point()) {
+                    ExtrusionLoop extrusion_loop(std::move(multi_path.paths), pg_extrusion.is_contour ? elrDefault : elrHole);
+                    extrusion_loop.make_counter_clockwise();
+                    extrusion_coll.append(std::move(extrusion_loop));
+                } else
+                    extrusion_coll.append(ExtrusionMultiPath(std::move(multi_path)));
             }
         }
-    }
-
+     }
+    //extrusion_coll.no_sort = is_fuzzy_art;
+    //if (is_fuzzy_art) extrusion_coll.set_reverse();
     return extrusion_coll;
 }
 
@@ -1090,7 +1137,7 @@ static void reorient_perimeters(ExtrusionEntityCollection &entities, bool steep_
 {
     if (steep_overhang_hole || steep_overhang_contour) {
         for (auto entity : entities) {
-            if (entity->is_loop()) {
+            if (entity->is_loop() && entity->role() != ExtrusionRole::erFuzzyArt) {
                 ExtrusionLoop *eloop = static_cast<ExtrusionLoop *>(entity);
                 // Only reverse when needed
                 bool need_reverse = ((eloop->loop_role() & elrHole) == elrHole) ? steep_overhang_hole : steep_overhang_contour;
