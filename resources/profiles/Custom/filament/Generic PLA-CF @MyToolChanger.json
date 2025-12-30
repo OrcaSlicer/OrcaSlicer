@@ -1,12 +1,12 @@
 {
     "type": "filament",
-    "filament_id": "GFL98",
-    "setting_id": "GFL98_MTC_0",
     "name": "Generic PLA-CF @MyToolChanger",
     "renamed_from": "My Generic PLA-CF @MyToolChanger",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Generic PLA-CF @System",
+    "from": "system",
+    "setting_id": "GFL98_MTC_0",
+    "filament_id": "GFL98",
+    "instantiation": "true",
     "filament_cooling_final_speed": [
         "3.5"
     ],

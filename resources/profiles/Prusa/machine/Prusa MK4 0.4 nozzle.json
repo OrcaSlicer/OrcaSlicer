@@ -1,12 +1,12 @@
 {
     "type": "machine",
-    "setting_id": "GM003",
     "name": "Prusa MK4 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
     "gcode_flavor": "marlin2",
-    "printer_model": "MK4IS",
+    "printer_model": "Prusa MK4",
     "default_filament_profile": [
         "Prusa Generic PLA @MK4"
     ],

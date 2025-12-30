@@ -3,9 +3,9 @@
     "name": "Z-Bolt PLA @0.4 nozzle",
     "inherits": "Z-Bolt PLA @base",
     "from": "system",
-    "instantiation": "true",
-    "filament_id": "GFL104",
     "setting_id": "GFSL104",
+    "filament_id": "GFL104",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "15"
     ],

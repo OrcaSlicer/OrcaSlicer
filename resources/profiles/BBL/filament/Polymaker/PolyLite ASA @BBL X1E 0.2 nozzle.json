@@ -6,6 +6,7 @@
     "setting_id": "GFSB61_03",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
+        "2",
         "2"
     ],
     "compatible_printers": [

@@ -1,172 +1,606 @@
 {
     "name": "Volumic",
-    "version":  "02.03.00.36",
+    "version": "02.03.01.10",
     "force_update": "1",
     "description": "VOLUMIC configurations",
     "machine_model_list": [
-		{"name": "EXO42 Performance","sub_path": "machine/EXO42 Performance.json"},
-		{"name": "EXO65 Performance","sub_path": "machine/EXO65 Performance.json"},
-		{"name": "SH65 Performance","sub_path": "machine/SH65 Performance.json"},
-		{"name": "EXO42 IDRE","sub_path": "machine/EXO42 IDRE.json"},
-		{"name": "EXO65 IDRE","sub_path": "machine/EXO65 IDRE.json"},
-		{"name": "SH65 IDRE","sub_path": "machine/SH65 IDRE.json"},
-		{"name": "EXO42","sub_path": "machine/EXO42.json"},
-		{"name": "EXO65","sub_path": "machine/EXO65.json"},
-		{"name": "SH65","sub_path": "machine/SH65.json"},
-		{"name": "VS30SC2","sub_path": "machine/VS30SC2.json"},
-		{"name": "VS30MK3","sub_path": "machine/VS30MK3.json"},
-		{"name": "EXO42 Stage 2","sub_path": "machine/EXO42 Stage 2.json"},
-		{"name": "EXO65 Stage 2","sub_path": "machine/EXO65 Stage 2.json"},
-		{"name": "SH65 Stage 2","sub_path": "machine/SH65 Stage 2.json"},
-		{"name": "VS30SC2 Stage 2","sub_path": "machine/VS30SC2 Stage 2.json"},
-		{"name": "VS30MK3 Stage 2","sub_path": "machine/VS30MK3 Stage 2.json"},
-		{"name": "VS30SC","sub_path": "machine/VS30SC.json"},
-		{"name": "VS30ULTRA","sub_path": "machine/VS30ULTRA.json"},
-		{"name": "VS30MK2","sub_path": "machine/VS30MK2.json"},
-		{"name": "VS20MK2","sub_path": "machine/VS20MK2.json"}
+        {
+            "name": "EXO42",
+            "sub_path": "machine/EXO42.json"
+        },
+        {
+            "name": "EXO42 IDRE",
+            "sub_path": "machine/EXO42 IDRE.json"
+        },
+        {
+            "name": "EXO42 Performance",
+            "sub_path": "machine/EXO42 Performance.json"
+        },
+        {
+            "name": "EXO42 Stage 2",
+            "sub_path": "machine/EXO42 Stage 2.json"
+        },
+        {
+            "name": "EXO65",
+            "sub_path": "machine/EXO65.json"
+        },
+        {
+            "name": "EXO65 IDRE",
+            "sub_path": "machine/EXO65 IDRE.json"
+        },
+        {
+            "name": "EXO65 Performance",
+            "sub_path": "machine/EXO65 Performance.json"
+        },
+        {
+            "name": "EXO65 Stage 2",
+            "sub_path": "machine/EXO65 Stage 2.json"
+        },
+        {
+            "name": "SH65",
+            "sub_path": "machine/SH65.json"
+        },
+        {
+            "name": "SH65 IDRE",
+            "sub_path": "machine/SH65 IDRE.json"
+        },
+        {
+            "name": "SH65 Performance",
+            "sub_path": "machine/SH65 Performance.json"
+        },
+        {
+            "name": "SH65 Stage 2",
+            "sub_path": "machine/SH65 Stage 2.json"
+        },
+        {
+            "name": "VS20MK2",
+            "sub_path": "machine/VS20MK2.json"
+        },
+        {
+            "name": "VS30MK2",
+            "sub_path": "machine/VS30MK2.json"
+        },
+        {
+            "name": "VS30MK3",
+            "sub_path": "machine/VS30MK3.json"
+        },
+        {
+            "name": "VS30MK3 Stage 2",
+            "sub_path": "machine/VS30MK3 Stage 2.json"
+        },
+        {
+            "name": "VS30SC",
+            "sub_path": "machine/VS30SC.json"
+        },
+        {
+            "name": "VS30SC2",
+            "sub_path": "machine/VS30SC2.json"
+        },
+        {
+            "name": "VS30SC2 Stage 2",
+            "sub_path": "machine/VS30SC2 Stage 2.json"
+        },
+        {
+            "name": "VS30ULTRA",
+            "sub_path": "machine/VS30ULTRA.json"
+        }
     ],
     "machine_list": [
-		{"name": "fdm_volumic_common","sub_path": "machine/fdm_volumic_common.json"},
-		{"name": "EXO42 Performance (0.4 nozzle)","sub_path": "machine/EXO42 Performance (0.4 nozzle).json"},
-		{"name": "EXO65 Performance (0.4 nozzle)","sub_path": "machine/EXO65 Performance (0.4 nozzle).json"},
-		{"name": "EXO65 Performance (0.6 nozzle)","sub_path": "machine/EXO65 Performance (0.6 nozzle).json"},
-		{"name": "EXO65 Performance (0.8 nozzle)","sub_path": "machine/EXO65 Performance (0.8 nozzle).json"},
-		{"name": "SH65 Performance (0.4 nozzle)","sub_path": "machine/SH65 Performance (0.4 nozzle).json"},
-		{"name": "EXO42 IDRE (0.4 nozzle)","sub_path": "machine/EXO42 IDRE (0.4 nozzle).json"},
-		{"name": "EXO42 IDRE COPY MODE (0.4 nozzle)","sub_path": "machine/EXO42 IDRE COPY MODE (0.4 nozzle).json"},
-		{"name": "EXO42 IDRE MIRROR MODE (0.4 nozzle)","sub_path": "machine/EXO42 IDRE MIRROR MODE (0.4 nozzle).json"},
-		{"name": "EXO65 IDRE (0.4 nozzle)","sub_path": "machine/EXO65 IDRE (0.4 nozzle).json"},
-		{"name": "EXO65 IDRE COPY MODE (0.4 nozzle)","sub_path": "machine/EXO65 IDRE COPY MODE (0.4 nozzle).json"},
-		{"name": "EXO65 IDRE MIRROR MODE (0.4 nozzle)","sub_path": "machine/EXO65 IDRE MIRROR MODE (0.4 nozzle).json"},
-		{"name": "SH65 IDRE (0.4 nozzle)","sub_path": "machine/SH65 IDRE (0.4 nozzle).json"},
-		{"name": "SH65 IDRE COPY MODE (0.4 nozzle)","sub_path": "machine/SH65 IDRE COPY MODE (0.4 nozzle).json"},
-		{"name": "SH65 IDRE MIRROR MODE (0.4 nozzle)","sub_path": "machine/SH65 IDRE MIRROR MODE (0.4 nozzle).json"},
-		{"name": "EXO42 (0.4 nozzle)","sub_path": "machine/EXO42 (0.4 nozzle).json"},
-		{"name": "EXO65 (0.6 nozzle)","sub_path": "machine/EXO65 (0.6 nozzle).json"},
-		{"name": "SH65 (0.4 nozzle)","sub_path": "machine/SH65 (0.4 nozzle).json"},
-		{"name": "VS30SC2 (0.4 nozzle)","sub_path": "machine/VS30SC2 (0.4 nozzle).json"},
-		{"name": "VS30SC (0.4 nozzle)","sub_path": "machine/VS30SC (0.4 nozzle).json"},
-		{"name": "VS30ULTRA (0.4 nozzle)","sub_path": "machine/VS30ULTRA (0.4 nozzle).json"},
-		{"name": "VS30MK3 (0.4 nozzle)","sub_path": "machine/VS30MK3 (0.4 nozzle).json"},
-		{"name": "VS30MK2 (0.4 nozzle)","sub_path": "machine/VS30MK2 (0.4 nozzle).json"},
-		{"name": "VS20MK2 (0.4 nozzle)","sub_path": "machine/VS20MK2 (0.4 nozzle).json"},
-		{"name": "EXO42 Stage 2 (0.4 nozzle)","sub_path": "machine/EXO42 Stage 2 (0.4 nozzle).json"},
-		{"name": "EXO65 Stage 2 (0.6 nozzle)","sub_path": "machine/EXO65 Stage 2 (0.6 nozzle).json"},
-		{"name": "SH65 Stage 2 (0.4 nozzle)","sub_path": "machine/SH65 Stage 2 (0.4 nozzle).json"},
-		{"name": "VS30SC2 Stage 2 (0.4 nozzle)","sub_path": "machine/VS30SC2 Stage 2 (0.4 nozzle).json"},
-		{"name": "VS30MK3 Stage 2 (0.4 nozzle)","sub_path": "machine/VS30MK3 Stage 2 (0.4 nozzle).json"}
-
+        {
+            "name": "fdm_volumic_common",
+            "sub_path": "machine/fdm_volumic_common.json"
+        },
+        {
+            "name": "EXO42 (0.4 nozzle)",
+            "sub_path": "machine/EXO42 (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO42 IDRE (0.4 nozzle)",
+            "sub_path": "machine/EXO42 IDRE (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO42 IDRE COPY MODE (0.4 nozzle)",
+            "sub_path": "machine/EXO42 IDRE COPY MODE (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+            "sub_path": "machine/EXO42 IDRE MIRROR MODE (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO42 Performance (0.4 nozzle)",
+            "sub_path": "machine/EXO42 Performance (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO42 Stage 2 (0.4 nozzle)",
+            "sub_path": "machine/EXO42 Stage 2 (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO65 (0.6 nozzle)",
+            "sub_path": "machine/EXO65 (0.6 nozzle).json"
+        },
+        {
+            "name": "EXO65 IDRE (0.4 nozzle)",
+            "sub_path": "machine/EXO65 IDRE (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO65 IDRE COPY MODE (0.4 nozzle)",
+            "sub_path": "machine/EXO65 IDRE COPY MODE (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+            "sub_path": "machine/EXO65 IDRE MIRROR MODE (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO65 Performance (0.4 nozzle)",
+            "sub_path": "machine/EXO65 Performance (0.4 nozzle).json"
+        },
+        {
+            "name": "EXO65 Performance (0.6 nozzle)",
+            "sub_path": "machine/EXO65 Performance (0.6 nozzle).json"
+        },
+        {
+            "name": "EXO65 Performance (0.8 nozzle)",
+            "sub_path": "machine/EXO65 Performance (0.8 nozzle).json"
+        },
+        {
+            "name": "EXO65 Stage 2 (0.6 nozzle)",
+            "sub_path": "machine/EXO65 Stage 2 (0.6 nozzle).json"
+        },
+        {
+            "name": "SH65 (0.4 nozzle)",
+            "sub_path": "machine/SH65 (0.4 nozzle).json"
+        },
+        {
+            "name": "SH65 IDRE (0.4 nozzle)",
+            "sub_path": "machine/SH65 IDRE (0.4 nozzle).json"
+        },
+        {
+            "name": "SH65 IDRE COPY MODE (0.4 nozzle)",
+            "sub_path": "machine/SH65 IDRE COPY MODE (0.4 nozzle).json"
+        },
+        {
+            "name": "SH65 IDRE MIRROR MODE (0.4 nozzle)",
+            "sub_path": "machine/SH65 IDRE MIRROR MODE (0.4 nozzle).json"
+        },
+        {
+            "name": "SH65 Performance (0.4 nozzle)",
+            "sub_path": "machine/SH65 Performance (0.4 nozzle).json"
+        },
+        {
+            "name": "SH65 Stage 2 (0.4 nozzle)",
+            "sub_path": "machine/SH65 Stage 2 (0.4 nozzle).json"
+        },
+        {
+            "name": "VS20MK2 (0.4 nozzle)",
+            "sub_path": "machine/VS20MK2 (0.4 nozzle).json"
+        },
+        {
+            "name": "VS30MK2 (0.4 nozzle)",
+            "sub_path": "machine/VS30MK2 (0.4 nozzle).json"
+        },
+        {
+            "name": "VS30MK3 (0.4 nozzle)",
+            "sub_path": "machine/VS30MK3 (0.4 nozzle).json"
+        },
+        {
+            "name": "VS30MK3 Stage 2 (0.4 nozzle)",
+            "sub_path": "machine/VS30MK3 Stage 2 (0.4 nozzle).json"
+        },
+        {
+            "name": "VS30SC (0.4 nozzle)",
+            "sub_path": "machine/VS30SC (0.4 nozzle).json"
+        },
+        {
+            "name": "VS30SC2 (0.4 nozzle)",
+            "sub_path": "machine/VS30SC2 (0.4 nozzle).json"
+        },
+        {
+            "name": "VS30SC2 Stage 2 (0.4 nozzle)",
+            "sub_path": "machine/VS30SC2 Stage 2 (0.4 nozzle).json"
+        },
+        {
+            "name": "VS30ULTRA (0.4 nozzle)",
+            "sub_path": "machine/VS30ULTRA (0.4 nozzle).json"
+        }
     ],
     "process_list": [
-		{"name": "fdm_process_volumic_common","sub_path": "process/fdm_process_volumic_common.json"},
-
-		{"name": "Compatible speed - 0.10mm","sub_path": "process/Compatible speed - 0.10mm.json"},
-		{"name": "Compatible speed - 0.15mm","sub_path": "process/Compatible speed - 0.15mm.json"},
-		{"name": "Compatible speed - 0.20mm","sub_path": "process/Compatible speed - 0.20mm.json"},
-		{"name": "Compatible speed - 0.25mm","sub_path": "process/Compatible speed - 0.25mm.json"},
-		{"name": "Compatible speed - 0.30mm","sub_path": "process/Compatible speed - 0.30mm.json"},
-
-		{"name": "High speed - 0.10mm","sub_path": "process/High speed - 0.10mm.json"},
-		{"name": "High speed - 0.15mm","sub_path": "process/High speed - 0.15mm.json"},
-		{"name": "High speed - 0.20mm","sub_path": "process/High speed - 0.20mm.json"},
-		{"name": "High speed - 0.25mm","sub_path": "process/High speed - 0.25mm.json"},
-		{"name": "High speed - 0.30mm","sub_path": "process/High speed - 0.30mm.json"},
-		{"name": "Normal speed - 0.10mm","sub_path": "process/Normal speed - 0.10mm.json"},
-		{"name": "Normal speed - 0.15mm","sub_path": "process/Normal speed - 0.15mm.json"},
-		{"name": "Normal speed - 0.20mm","sub_path": "process/Normal speed - 0.20mm.json"},
-		{"name": "Normal speed - 0.25mm","sub_path": "process/Normal speed - 0.25mm.json"},
-		{"name": "Normal speed - 0.30mm","sub_path": "process/Normal speed - 0.30mm.json"},
-		{"name": "Very high speed - 0.10mm","sub_path": "process/Very high speed - 0.10mm.json"},
-		{"name": "Very high speed - 0.15mm","sub_path": "process/Very high speed - 0.15mm.json"},
-		{"name": "Very high speed - 0.20mm","sub_path": "process/Very high speed - 0.20mm.json"},
-		{"name": "Very high speed - 0.25mm","sub_path": "process/Very high speed - 0.25mm.json"},
-		{"name": "Very high speed - 0.30mm","sub_path": "process/Very high speed - 0.30mm.json"},
-
-		{"name": "High speed (Stage 2) - 0.10mm","sub_path": "process/High speed (Stage 2) - 0.10mm.json"},
-		{"name": "High speed (Stage 2) - 0.15mm","sub_path": "process/High speed (Stage 2) - 0.15mm.json"},
-		{"name": "High speed (Stage 2) - 0.20mm","sub_path": "process/High speed (Stage 2) - 0.20mm.json"},
-		{"name": "High speed (Stage 2) - 0.25mm","sub_path": "process/High speed (Stage 2) - 0.25mm.json"},
-		{"name": "High speed (Stage 2) - 0.30mm","sub_path": "process/High speed (Stage 2) - 0.30mm.json"},
-		{"name": "Normal speed (Stage 2) - 0.10mm","sub_path": "process/Normal speed (Stage 2) - 0.10mm.json"},
-		{"name": "Normal speed (Stage 2) - 0.15mm","sub_path": "process/Normal speed (Stage 2) - 0.15mm.json"},
-		{"name": "Normal speed (Stage 2) - 0.20mm","sub_path": "process/Normal speed (Stage 2) - 0.20mm.json"},
-		{"name": "Normal speed (Stage 2) - 0.25mm","sub_path": "process/Normal speed (Stage 2) - 0.25mm.json"},
-		{"name": "Normal speed (Stage 2) - 0.30mm","sub_path": "process/Normal speed (Stage 2) - 0.30mm.json"},
-		{"name": "Very high speed (Stage 2) - 0.10mm","sub_path": "process/Very high speed (Stage 2) - 0.10mm.json"},
-		{"name": "Very high speed (Stage 2) - 0.15mm","sub_path": "process/Very high speed (Stage 2) - 0.15mm.json"},
-		{"name": "Very high speed (Stage 2) - 0.20mm","sub_path": "process/Very high speed (Stage 2) - 0.20mm.json"},
-		{"name": "Very high speed (Stage 2) - 0.25mm","sub_path": "process/Very high speed (Stage 2) - 0.25mm.json"},
-		{"name": "Very high speed (Stage 2) - 0.30mm","sub_path": "process/Very high speed (Stage 2) - 0.30mm.json"},
-
-		{"name": "Normal performance - 0.10mm","sub_path": "process/Normal performance - 0.10mm.json"},
-		{"name": "Normal performance - 0.15mm","sub_path": "process/Normal performance - 0.15mm.json"},
-		{"name": "Normal performance - 0.20mm","sub_path": "process/Normal performance - 0.20mm.json"},
-		{"name": "Normal performance - 0.25mm","sub_path": "process/Normal performance - 0.25mm.json"},
-		{"name": "Normal performance - 0.30mm","sub_path": "process/Normal performance - 0.30mm.json"},
-		{"name": "High performance - 0.10mm","sub_path": "process/High performance - 0.10mm.json"},
-		{"name": "High performance - 0.15mm","sub_path": "process/High performance - 0.15mm.json"},
-		{"name": "High performance - 0.20mm","sub_path": "process/High performance - 0.20mm.json"},
-		{"name": "High performance - 0.25mm","sub_path": "process/High performance - 0.25mm.json"},
-		{"name": "High performance - 0.30mm","sub_path": "process/High performance - 0.30mm.json"},
-		{"name": "Full performance - 0.10mm","sub_path": "process/Full performance - 0.10mm.json"},
-		{"name": "Full performance - 0.15mm","sub_path": "process/Full performance - 0.15mm.json"},
-		{"name": "Full performance - 0.20mm","sub_path": "process/Full performance - 0.20mm.json"},
-		{"name": "Full performance - 0.25mm","sub_path": "process/Full performance - 0.25mm.json"},
-		{"name": "Full performance - 0.30mm","sub_path": "process/Full performance - 0.30mm.json"},
-
-		{"name": "Normal performance DUAL - 0.10mm","sub_path": "process/Normal performance DUAL - 0.10mm.json"},
-		{"name": "Normal performance DUAL - 0.15mm","sub_path": "process/Normal performance DUAL - 0.15mm.json"},
-		{"name": "Normal performance DUAL - 0.20mm","sub_path": "process/Normal performance DUAL - 0.20mm.json"},
-		{"name": "Normal performance DUAL - 0.25mm","sub_path": "process/Normal performance DUAL - 0.25mm.json"},
-		{"name": "Normal performance DUAL - 0.30mm","sub_path": "process/Normal performance DUAL - 0.30mm.json"},
-		{"name": "High performance DUAL - 0.10mm","sub_path": "process/High performance DUAL - 0.10mm.json"},
-		{"name": "High performance DUAL - 0.15mm","sub_path": "process/High performance DUAL - 0.15mm.json"},
-		{"name": "High performance DUAL - 0.20mm","sub_path": "process/High performance DUAL - 0.20mm.json"},
-		{"name": "High performance DUAL - 0.25mm","sub_path": "process/High performance DUAL - 0.25mm.json"},
-		{"name": "High performance DUAL - 0.30mm","sub_path": "process/High performance DUAL - 0.30mm.json"},
-		{"name": "Full performance DUAL - 0.10mm","sub_path": "process/Full performance DUAL - 0.10mm.json"},
-		{"name": "Full performance DUAL - 0.15mm","sub_path": "process/Full performance DUAL - 0.15mm.json"},
-		{"name": "Full performance DUAL - 0.20mm","sub_path": "process/Full performance DUAL - 0.20mm.json"},
-		{"name": "Full performance DUAL - 0.25mm","sub_path": "process/Full performance DUAL - 0.25mm.json"},
-		{"name": "Full performance DUAL - 0.30mm","sub_path": "process/Full performance DUAL - 0.30mm.json"}
-
+        {
+            "name": "fdm_process_volumic_common",
+            "sub_path": "process/fdm_process_volumic_common.json"
+        },
+        {
+            "name": "Compatible speed - 0.10mm",
+            "sub_path": "process/Compatible speed - 0.10mm.json"
+        },
+        {
+            "name": "Compatible speed - 0.15mm",
+            "sub_path": "process/Compatible speed - 0.15mm.json"
+        },
+        {
+            "name": "Compatible speed - 0.20mm",
+            "sub_path": "process/Compatible speed - 0.20mm.json"
+        },
+        {
+            "name": "Compatible speed - 0.25mm",
+            "sub_path": "process/Compatible speed - 0.25mm.json"
+        },
+        {
+            "name": "Compatible speed - 0.30mm",
+            "sub_path": "process/Compatible speed - 0.30mm.json"
+        },
+        {
+            "name": "Full performance - 0.10mm",
+            "sub_path": "process/Full performance - 0.10mm.json"
+        },
+        {
+            "name": "Full performance - 0.15mm",
+            "sub_path": "process/Full performance - 0.15mm.json"
+        },
+        {
+            "name": "Full performance - 0.20mm",
+            "sub_path": "process/Full performance - 0.20mm.json"
+        },
+        {
+            "name": "Full performance - 0.25mm",
+            "sub_path": "process/Full performance - 0.25mm.json"
+        },
+        {
+            "name": "Full performance - 0.30mm",
+            "sub_path": "process/Full performance - 0.30mm.json"
+        },
+        {
+            "name": "Full performance DUAL - 0.10mm",
+            "sub_path": "process/Full performance DUAL - 0.10mm.json"
+        },
+        {
+            "name": "Full performance DUAL - 0.15mm",
+            "sub_path": "process/Full performance DUAL - 0.15mm.json"
+        },
+        {
+            "name": "Full performance DUAL - 0.20mm",
+            "sub_path": "process/Full performance DUAL - 0.20mm.json"
+        },
+        {
+            "name": "Full performance DUAL - 0.25mm",
+            "sub_path": "process/Full performance DUAL - 0.25mm.json"
+        },
+        {
+            "name": "Full performance DUAL - 0.30mm",
+            "sub_path": "process/Full performance DUAL - 0.30mm.json"
+        },
+        {
+            "name": "High performance - 0.10mm",
+            "sub_path": "process/High performance - 0.10mm.json"
+        },
+        {
+            "name": "High performance - 0.15mm",
+            "sub_path": "process/High performance - 0.15mm.json"
+        },
+        {
+            "name": "High performance - 0.20mm",
+            "sub_path": "process/High performance - 0.20mm.json"
+        },
+        {
+            "name": "High performance - 0.25mm",
+            "sub_path": "process/High performance - 0.25mm.json"
+        },
+        {
+            "name": "High performance - 0.30mm",
+            "sub_path": "process/High performance - 0.30mm.json"
+        },
+        {
+            "name": "High performance DUAL - 0.10mm",
+            "sub_path": "process/High performance DUAL - 0.10mm.json"
+        },
+        {
+            "name": "High performance DUAL - 0.15mm",
+            "sub_path": "process/High performance DUAL - 0.15mm.json"
+        },
+        {
+            "name": "High performance DUAL - 0.20mm",
+            "sub_path": "process/High performance DUAL - 0.20mm.json"
+        },
+        {
+            "name": "High performance DUAL - 0.25mm",
+            "sub_path": "process/High performance DUAL - 0.25mm.json"
+        },
+        {
+            "name": "High performance DUAL - 0.30mm",
+            "sub_path": "process/High performance DUAL - 0.30mm.json"
+        },
+        {
+            "name": "High speed (Stage 2) - 0.10mm",
+            "sub_path": "process/High speed (Stage 2) - 0.10mm.json"
+        },
+        {
+            "name": "High speed (Stage 2) - 0.15mm",
+            "sub_path": "process/High speed (Stage 2) - 0.15mm.json"
+        },
+        {
+            "name": "High speed (Stage 2) - 0.20mm",
+            "sub_path": "process/High speed (Stage 2) - 0.20mm.json"
+        },
+        {
+            "name": "High speed (Stage 2) - 0.25mm",
+            "sub_path": "process/High speed (Stage 2) - 0.25mm.json"
+        },
+        {
+            "name": "High speed (Stage 2) - 0.30mm",
+            "sub_path": "process/High speed (Stage 2) - 0.30mm.json"
+        },
+        {
+            "name": "High speed - 0.10mm",
+            "sub_path": "process/High speed - 0.10mm.json"
+        },
+        {
+            "name": "High speed - 0.15mm",
+            "sub_path": "process/High speed - 0.15mm.json"
+        },
+        {
+            "name": "High speed - 0.20mm",
+            "sub_path": "process/High speed - 0.20mm.json"
+        },
+        {
+            "name": "High speed - 0.25mm",
+            "sub_path": "process/High speed - 0.25mm.json"
+        },
+        {
+            "name": "High speed - 0.30mm",
+            "sub_path": "process/High speed - 0.30mm.json"
+        },
+        {
+            "name": "Normal performance - 0.10mm",
+            "sub_path": "process/Normal performance - 0.10mm.json"
+        },
+        {
+            "name": "Normal performance - 0.15mm",
+            "sub_path": "process/Normal performance - 0.15mm.json"
+        },
+        {
+            "name": "Normal performance - 0.20mm",
+            "sub_path": "process/Normal performance - 0.20mm.json"
+        },
+        {
+            "name": "Normal performance - 0.25mm",
+            "sub_path": "process/Normal performance - 0.25mm.json"
+        },
+        {
+            "name": "Normal performance - 0.30mm",
+            "sub_path": "process/Normal performance - 0.30mm.json"
+        },
+        {
+            "name": "Normal performance DUAL - 0.10mm",
+            "sub_path": "process/Normal performance DUAL - 0.10mm.json"
+        },
+        {
+            "name": "Normal performance DUAL - 0.15mm",
+            "sub_path": "process/Normal performance DUAL - 0.15mm.json"
+        },
+        {
+            "name": "Normal performance DUAL - 0.20mm",
+            "sub_path": "process/Normal performance DUAL - 0.20mm.json"
+        },
+        {
+            "name": "Normal performance DUAL - 0.25mm",
+            "sub_path": "process/Normal performance DUAL - 0.25mm.json"
+        },
+        {
+            "name": "Normal performance DUAL - 0.30mm",
+            "sub_path": "process/Normal performance DUAL - 0.30mm.json"
+        },
+        {
+            "name": "Normal speed (Stage 2) - 0.10mm",
+            "sub_path": "process/Normal speed (Stage 2) - 0.10mm.json"
+        },
+        {
+            "name": "Normal speed (Stage 2) - 0.15mm",
+            "sub_path": "process/Normal speed (Stage 2) - 0.15mm.json"
+        },
+        {
+            "name": "Normal speed (Stage 2) - 0.20mm",
+            "sub_path": "process/Normal speed (Stage 2) - 0.20mm.json"
+        },
+        {
+            "name": "Normal speed (Stage 2) - 0.25mm",
+            "sub_path": "process/Normal speed (Stage 2) - 0.25mm.json"
+        },
+        {
+            "name": "Normal speed (Stage 2) - 0.30mm",
+            "sub_path": "process/Normal speed (Stage 2) - 0.30mm.json"
+        },
+        {
+            "name": "Normal speed - 0.10mm",
+            "sub_path": "process/Normal speed - 0.10mm.json"
+        },
+        {
+            "name": "Normal speed - 0.15mm",
+            "sub_path": "process/Normal speed - 0.15mm.json"
+        },
+        {
+            "name": "Normal speed - 0.20mm",
+            "sub_path": "process/Normal speed - 0.20mm.json"
+        },
+        {
+            "name": "Normal speed - 0.25mm",
+            "sub_path": "process/Normal speed - 0.25mm.json"
+        },
+        {
+            "name": "Normal speed - 0.30mm",
+            "sub_path": "process/Normal speed - 0.30mm.json"
+        },
+        {
+            "name": "Very high speed (Stage 2) - 0.10mm",
+            "sub_path": "process/Very high speed (Stage 2) - 0.10mm.json"
+        },
+        {
+            "name": "Very high speed (Stage 2) - 0.15mm",
+            "sub_path": "process/Very high speed (Stage 2) - 0.15mm.json"
+        },
+        {
+            "name": "Very high speed (Stage 2) - 0.20mm",
+            "sub_path": "process/Very high speed (Stage 2) - 0.20mm.json"
+        },
+        {
+            "name": "Very high speed (Stage 2) - 0.25mm",
+            "sub_path": "process/Very high speed (Stage 2) - 0.25mm.json"
+        },
+        {
+            "name": "Very high speed (Stage 2) - 0.30mm",
+            "sub_path": "process/Very high speed (Stage 2) - 0.30mm.json"
+        },
+        {
+            "name": "Very high speed - 0.10mm",
+            "sub_path": "process/Very high speed - 0.10mm.json"
+        },
+        {
+            "name": "Very high speed - 0.15mm",
+            "sub_path": "process/Very high speed - 0.15mm.json"
+        },
+        {
+            "name": "Very high speed - 0.20mm",
+            "sub_path": "process/Very high speed - 0.20mm.json"
+        },
+        {
+            "name": "Very high speed - 0.25mm",
+            "sub_path": "process/Very high speed - 0.25mm.json"
+        },
+        {
+            "name": "Very high speed - 0.30mm",
+            "sub_path": "process/Very high speed - 0.30mm.json"
+        }
     ],
     "filament_list": [
-		{"name": "fdm_filament_common","sub_path": "filament/fdm_filament_common.json"},
-		{"name": "fdm_filament_abs","sub_path": "filament/fdm_filament_abs.json"},
-		{"name": "fdm_filament_asa","sub_path": "filament/fdm_filament_asa.json"},
-		{"name": "fdm_filament_pa","sub_path": "filament/fdm_filament_pa.json"},
-		{"name": "fdm_filament_pc","sub_path": "filament/fdm_filament_pc.json"},
-		{"name": "fdm_filament_pet","sub_path": "filament/fdm_filament_pet.json"},
-		{"name": "fdm_filament_pla","sub_path": "filament/fdm_filament_pla.json"},
-		{"name": "fdm_filament_pva","sub_path": "filament/fdm_filament_pva.json"},
-		{"name": "fdm_filament_tpu","sub_path": "filament/fdm_filament_tpu.json"},
-		{"name": "fdm_filament_pp","sub_path": "filament/fdm_filament_pp.json"},
-
-		{"name": "Volumic PLA Ultra","sub_path": "filament/Volumic PLA Ultra.json"},
-		{"name": "Volumic UNIVERSAL Ultra","sub_path": "filament/Volumic UNIVERSAL Ultra.json"},
-		{"name": "Volumic PETG Ultra","sub_path": "filament/Volumic PETG Ultra.json"},
-		{"name": "Volumic PETG Ultra carbone","sub_path": "filament/Volumic PETG Ultra carbone.json"},
-		{"name": "Volumic ABS Ultra","sub_path": "filament/Volumic ABS Ultra.json"},
-		{"name": "Volumic ASA Ultra","sub_path": "filament/Volumic ASA Ultra.json"},
-		{"name": "Volumic PP Ultra","sub_path": "filament/Volumic PP Ultra.json"},
-		{"name": "Volumic FLEX93 Ultra","sub_path": "filament/Volumic FLEX93 Ultra.json"},
-		{"name": "Volumic NYLON Ultra","sub_path": "filament/Volumic NYLON Ultra.json"},
-		{"name": "Volumic PC","sub_path": "filament/Volumic PC.json"},
-		{"name": "Volumic PVA","sub_path": "filament/Volumic PVA.json"},
-
-		{"name": "Volumic PLA Ultra (Performance)","sub_path": "filament/Volumic PLA Ultra Performance.json"},
-		{"name": "Volumic UNIVERSAL Ultra (Performance)","sub_path": "filament/Volumic UNIVERSAL Ultra Performance.json"},
-		{"name": "Volumic PETG Ultra (Performance)","sub_path": "filament/Volumic PETG Ultra Performance.json"},
-		{"name": "Volumic PETG Ultra carbone (Performance)","sub_path": "filament/Volumic PETG Ultra carbone Performance.json"},
-		{"name": "Volumic ABS Ultra (Performance)","sub_path": "filament/Volumic ABS Ultra Performance.json"},
-		{"name": "Volumic ASA Ultra (Performance)","sub_path": "filament/Volumic ASA Ultra Performance.json"},
-		{"name": "Volumic PP Ultra (Performance)","sub_path": "filament/Volumic PP Ultra Performance.json"},
-		{"name": "Volumic FLEX93 Ultra (Performance)","sub_path": "filament/Volumic FLEX93 Ultra Performance.json"},
-		{"name": "Volumic NYLON Ultra (Performance)","sub_path": "filament/Volumic NYLON Ultra Performance.json"},
-		{"name": "Volumic PC (Performance)","sub_path": "filament/Volumic PC Performance.json"},
-		{"name": "Volumic PVA-BVOH (Performance)","sub_path": "filament/Volumic PVA Performance.json"},
-
-		{"name": "Désactivé","sub_path": "filament/desactive.json"}
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_pp",
+            "sub_path": "filament/fdm_filament_pp.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "Volumic ABS Ultra",
+            "sub_path": "filament/Volumic ABS Ultra.json"
+        },
+        {
+            "name": "Volumic ABS Ultra (Performance)",
+            "sub_path": "filament/Volumic ABS Ultra Performance.json"
+        },
+        {
+            "name": "Volumic ASA Ultra",
+            "sub_path": "filament/Volumic ASA Ultra.json"
+        },
+        {
+            "name": "Volumic ASA Ultra (Performance)",
+            "sub_path": "filament/Volumic ASA Ultra Performance.json"
+        },
+        {
+            "name": "Volumic NYLON Ultra",
+            "sub_path": "filament/Volumic NYLON Ultra.json"
+        },
+        {
+            "name": "Volumic NYLON Ultra (Performance)",
+            "sub_path": "filament/Volumic NYLON Ultra Performance.json"
+        },
+        {
+            "name": "Volumic PC",
+            "sub_path": "filament/Volumic PC.json"
+        },
+        {
+            "name": "Volumic PC (Performance)",
+            "sub_path": "filament/Volumic PC Performance.json"
+        },
+        {
+            "name": "Volumic PETG Ultra",
+            "sub_path": "filament/Volumic PETG Ultra.json"
+        },
+        {
+            "name": "Volumic PETG Ultra (Performance)",
+            "sub_path": "filament/Volumic PETG Ultra Performance.json"
+        },
+        {
+            "name": "Volumic PETG Ultra carbone",
+            "sub_path": "filament/Volumic PETG Ultra carbone.json"
+        },
+        {
+            "name": "Volumic PETG Ultra carbone (Performance)",
+            "sub_path": "filament/Volumic PETG Ultra carbone Performance.json"
+        },
+        {
+            "name": "Désactivé",
+            "sub_path": "filament/desactive.json"
+        },
+        {
+            "name": "Volumic PLA Ultra",
+            "sub_path": "filament/Volumic PLA Ultra.json"
+        },
+        {
+            "name": "Volumic PLA Ultra (Performance)",
+            "sub_path": "filament/Volumic PLA Ultra Performance.json"
+        },
+        {
+            "name": "Volumic UNIVERSAL Ultra",
+            "sub_path": "filament/Volumic UNIVERSAL Ultra.json"
+        },
+        {
+            "name": "Volumic UNIVERSAL Ultra (Performance)",
+            "sub_path": "filament/Volumic UNIVERSAL Ultra Performance.json"
+        },
+        {
+            "name": "Volumic PP Ultra",
+            "sub_path": "filament/Volumic PP Ultra.json"
+        },
+        {
+            "name": "Volumic PP Ultra (Performance)",
+            "sub_path": "filament/Volumic PP Ultra Performance.json"
+        },
+        {
+            "name": "Volumic PVA",
+            "sub_path": "filament/Volumic PVA.json"
+        },
+        {
+            "name": "Volumic PVA-BVOH (Performance)",
+            "sub_path": "filament/Volumic PVA Performance.json"
+        },
+        {
+            "name": "Volumic FLEX93 Ultra",
+            "sub_path": "filament/Volumic FLEX93 Ultra.json"
+        },
+        {
+            "name": "Volumic FLEX93 Ultra (Performance)",
+            "sub_path": "filament/Volumic FLEX93 Ultra Performance.json"
+        }
     ]
 }

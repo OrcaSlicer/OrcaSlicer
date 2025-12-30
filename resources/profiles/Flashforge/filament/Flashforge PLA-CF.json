@@ -1,12 +1,22 @@
 {
-    "filament_settings_id": [
-        "Flashforge PLA-CF"
-    ],
+    "type": "filament",
+    "name": "Flashforge PLA-CF",
+    "inherits": "Flashforge Generic PLA-CF10",
     "from": "system",
     "setting_id": "GFSA04",
     "instantiation": "true",
-    "inherits": "Flashforge Generic PLA-CF10",
-    "is_custom_defined": "0",
-    "name": "Flashforge PLA-CF",
-    "version": "2.1.1.0"
+    "filament_settings_id": [
+        "Flashforge PLA-CF"
+    ],
+    "compatible_printers": [
+        "Flashforge Adventurer 5M 0.4 Nozzle",
+        "Flashforge Adventurer 5M 0.6 Nozzle",
+        "Flashforge Adventurer 5M 0.8 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.4 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.6 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.8 Nozzle",
+        "Flashforge AD5X 0.4 nozzle",
+        "Flashforge AD5X 0.6 nozzle",
+        "Flashforge AD5X 0.8 nozzle"
+    ]
 }

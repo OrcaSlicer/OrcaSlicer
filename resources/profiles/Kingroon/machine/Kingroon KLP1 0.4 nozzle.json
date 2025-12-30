@@ -1,61 +1,125 @@
 {
-  "type": "machine",
-  "setting_id": "GM003",
-  "name": "Kingroon KLP1 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "Kingroon KLP1",
-  "default_filament_profile": "Generic PLA @System",
-  "default_print_profile": "0.20mm Standard @Kingroon KLP1",
-
-  "thumbnails": [ "100x100" ],
-  "change_filament_gcode": "",
-  "deretraction_speed": [ "90" ],
-  "enable_filament_ramming": "1",
-  "extra_loading_move": "-2",
-  "extruder_clearance_height_to_rod": "36",
-  "extruder_clearance_radius": "65",
-  "high_current_on_filament_swap": "0",
-  "machine_unload_filament_time": "0",
-  "min_layer_height": "0.08",
-  "parking_pos_retraction": "92",
-  "purge_in_prime_tower": "1",
-  "retract_lift_above": [ "0" ],
-  "retract_lift_below": [ "0" ],
-  "retract_lift_enforce": ["All Surfaces"],
-  "bed_exclude_area": ["0x0"],
-  "extruder_colour": ["#FCE94F"],
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
-  "machine_end_gcode": "G91; relative positioning\n G1 Z1.0 F3000 ; move z up little to prevent scratching of print\n G90; absolute positioning\n G1 X0 Y200 F1000 ; prepare for part removal\n M104 S0; turn off extruder\n M140 S0 ; turn off bed\n G1 X0 Y200 F1000 ; prepare for part removal\n M84 ; disable motors\n M106 S0 ; turn off fan",
-  "machine_max_acceleration_e": ["5000", "5000"],
-  "machine_max_acceleration_extruding": ["5000", "20000"],
-  "machine_max_acceleration_retracting": ["5000", "5000"],
-  "machine_max_acceleration_travel": ["9000", "9000"],
-  "machine_max_acceleration_x": ["10000", "20000"],
-  "machine_max_acceleration_y": ["10000", "20000"],
-  "machine_max_acceleration_z": ["500", "200"],
-  "machine_max_jerk_e": ["2.5", "2.5"],
-  "machine_max_jerk_x": ["20", "9"],
-  "machine_max_jerk_y": ["20", "9"],
-  "machine_max_jerk_z": ["0.2", "0.4"],
-  "machine_max_speed_e": ["100", "25"],
-  "machine_max_speed_z": ["50", "12"],
-  "machine_pause_gcode": "PAUSE",
-  "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nG28 ; h1ome all axes\n M117 ;Purge extruder\n G92 E0 ; reset extruder\n G1 Z1.0 F3000 ; move z up little to prevent scratching of surface\n G1 X2 Y20 Z0.3 F5000.0 ; move to start-line position\n G1 X2 Y175.0 Z0.3 F1500.0 E15 ; draw 1st line\n G1 X2 Y175.0 Z0.4 F5000.0 ; move to side a little\n G1 X2 Y20 Z0.4 F1500.0 E30 ; draw 2nd line\n G92 E0 ; reset extruder\n G1 Z1.0 F3000 ; move z up little to prevent scratching of surface",
-  "max_layer_height": ["0.32"],
-  "retraction_length": ["1"],
-  "retraction_speed": ["90"],
-  "use_firmware_retraction": "0",
-  "wipe": ["1"],
-  "z_hop": ["0"],
-  "printable_area": [
-    "0x0",
-    "230x0",
-    "230x230",
-    "0x230"
-],
-"printable_height": "210",
-"nozzle_diameter": ["0.4"]
+    "type": "machine",
+    "name": "Kingroon KLP1 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
+    "printer_model": "Kingroon KLP1",
+    "default_filament_profile": "Generic PLA @System",
+    "default_print_profile": "0.20mm Standard @Kingroon KLP1",
+    "thumbnails": [
+        "100x100"
+    ],
+    "change_filament_gcode": "",
+    "deretraction_speed": [
+        "90"
+    ],
+    "enable_filament_ramming": "1",
+    "extra_loading_move": "-2",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_radius": "65",
+    "high_current_on_filament_swap": "0",
+    "machine_unload_filament_time": "0",
+    "min_layer_height": "0.08",
+    "parking_pos_retraction": "92",
+    "purge_in_prime_tower": "1",
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "machine_end_gcode": "G91; relative positioning\n G1 Z1.0 F3000 ; move z up little to prevent scratching of print\n G90; absolute positioning\n G1 X0 Y200 F1000 ; prepare for part removal\n M104 S0; turn off extruder\n M140 S0 ; turn off bed\n G1 X0 Y200 F1000 ; prepare for part removal\n M84 ; disable motors\n M106 S0 ; turn off fan",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "5000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "9000",
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "10000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "10000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "20",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "20",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "0.2",
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "100",
+        "25"
+    ],
+    "machine_max_speed_z": [
+        "50",
+        "12"
+    ],
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nG28 ; h1ome all axes\n M117 ;Purge extruder\n G92 E0 ; reset extruder\n G1 Z1.0 F3000 ; move z up little to prevent scratching of surface\n G1 X2 Y20 Z0.3 F5000.0 ; move to start-line position\n G1 X2 Y175.0 Z0.3 F1500.0 E15 ; draw 1st line\n G1 X2 Y175.0 Z0.4 F5000.0 ; move to side a little\n G1 X2 Y20 Z0.4 F1500.0 E30 ; draw 2nd line\n G92 E0 ; reset extruder\n G1 Z1.0 F3000 ; move z up little to prevent scratching of surface",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "retraction_length": [
+        "1"
+    ],
+    "retraction_speed": [
+        "90"
+    ],
+    "use_firmware_retraction": "0",
+    "wipe": [
+        "1"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "printable_area": [
+        "0x0",
+        "230x0",
+        "230x230",
+        "0x230"
+    ],
+    "printable_height": "210",
+    "nozzle_diameter": [
+        "0.4"
+    ]
 }

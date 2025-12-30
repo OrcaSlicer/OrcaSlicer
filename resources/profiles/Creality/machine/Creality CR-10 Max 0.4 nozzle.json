@@ -1,26 +1,26 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Creality CR-10 Max 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_creality_common",
-  "printer_model": "Creality CR-10 Max",
-  "printer_structure": "i3",
-  "default_filament_profile": [
-    "Creality Generic PLA"
-  ],
-  "default_print_profile": "0.20mm Standard @Creality CR10Max",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "450x0",
-    "450x450",
-    "0x450"
-  ],
-  "printable_height": "470",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0"
+    "type": "machine",
+    "name": "Creality CR-10 Max 0.4 nozzle",
+    "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Creality CR-10 Max",
+    "printer_structure": "i3",
+    "default_filament_profile": [
+        "Creality Generic PLA"
+    ],
+    "default_print_profile": "0.20mm Standard @Creality CR10Max",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "450x0",
+        "450x450",
+        "0x450"
+    ],
+    "printable_height": "470",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0"
 }

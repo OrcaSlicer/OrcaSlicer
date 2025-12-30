@@ -74,6 +74,6 @@
     "prime_tower_width": "35",
     "wall_generator": "classic",
     "wipe_tower_cone_angle": "15",
-    "wipe_tower_wall_type":"cone",
+    "wipe_tower_wall_type": "cone",
     "compatible_printers": []
 }

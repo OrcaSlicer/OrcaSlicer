@@ -357,7 +357,7 @@ bool GLGizmoAdvancedCut::on_init()
     // initiate info shortcuts
     const wxString ctrl  = GUI::shortkey_ctrl_prefix();
     const wxString alt   = GUI::shortkey_alt_prefix();
-    const wxString shift = "Shift+";
+    const wxString shift = _L("Shift+");
 
     m_shortcuts.push_back(std::make_pair(_L("Left click"), _L("Add connector")));
     m_shortcuts.push_back(std::make_pair(_L("Right click"), _L("Remove connector")));
@@ -668,7 +668,7 @@ void GLGizmoAdvancedCut::perform_cut(const Selection& selection)
                     if (its_num_open_edges(new_objects[i]->volumes[j]->mesh().its) > 0) {
                         if (!is_showed_dialog) {
                             is_showed_dialog = true;
-                            MessageDialog dlg(nullptr, _L("non-manifold edges be caused by cut tool, do you want to fix it now?"), "", wxYES | wxCANCEL);
+                            MessageDialog dlg(nullptr, _L("non-manifold edges be caused by cut tool, do you want to fix it now?"), "", wxYES | wxNO);
                             int           ret = dlg.ShowModal();
                             if (ret == wxID_YES) {
                                 user_fix_model = true;

@@ -23,7 +23,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "250"
     ],
@@ -48,5 +47,15 @@
     "support_material_interface_fan_speed": [
         "20"
     ],
-    "version": "2.0.2.0"
+    "compatible_printers": [
+        "Flashforge Adventurer 5M 0.4 Nozzle",
+        "Flashforge Adventurer 5M 0.6 Nozzle",
+        "Flashforge Adventurer 5M 0.8 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.4 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.6 Nozzle",
+        "Flashforge Adventurer 5M Pro 0.8 Nozzle",
+        "Flashforge AD5X 0.4 nozzle",
+        "Flashforge AD5X 0.6 nozzle",
+        "Flashforge AD5X 0.8 nozzle"
+    ]
 }

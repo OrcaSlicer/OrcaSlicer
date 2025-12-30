@@ -1,4 +1,11 @@
 {
+    "type": "filament",
+    "name": "Prusa Generic TPU @CORE One",
+    "inherits": "fdm_filament_flex",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusa Generic TPU @CORE One",
+    "instantiation": "true",
     "chamber_temperature": [
         "30"
     ],
@@ -40,7 +47,6 @@
     "filament_flow_ratio": [
         "1.08"
     ],
-    "filament_id": "Prusa Generic TPU @CORE One",
     "filament_max_volumetric_speed": [
         "2.5"
     ],
@@ -77,7 +83,6 @@
     "filament_z_hop": [
         "0"
     ],
-    "from": "system",
     "hot_plate_temp": [
         "50"
     ],
@@ -87,9 +92,6 @@
     "idle_temperature": [
         "150"
     ],
-    "inherits": "fdm_filament_flex",
-    "instantiation": "true",
-    "name": "Prusa Generic TPU @CORE One",
     "nozzle_temperature": [
         "230"
     ],
@@ -102,12 +104,10 @@
     "reduce_fan_stop_start_freq": [
         "1"
     ],
-    "setting_id": "GFSA04",
     "slow_down_layer_time": [
         "10"
     ],
     "slow_down_min_speed": [
         "15"
-    ],
-    "type": "filament"
+    ]
 }

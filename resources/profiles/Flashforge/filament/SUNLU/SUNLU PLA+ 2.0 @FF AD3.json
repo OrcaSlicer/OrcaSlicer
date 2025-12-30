@@ -1,17 +1,27 @@
 {
-  "type": "filament",
-  "name": "SUNLU PLA+ 2.0 @FF AD3",
-  "inherits": "SUNLU PLA+ 2.0 @base",
-  "from": "system",
-  "setting_id": "GFSNLS04_03",
-  "instantiation": "true",
-  "nozzle_temperature": ["210"],
-  "nozzle_temperature_initial_layer": ["215"],
-  "enable_pressure_advance": ["0"],
-  "filament_flow_ratio": ["1.0"],
-  "filament_max_volumetric_speed": ["12"],
-  "compatible_printers": [
-    "Flashforge Adventurer 3 Series 0.4 Nozzle",
-    "Flashforge Adventurer 3 Series 0.6 Nozzle"
-  ]
+    "type": "filament",
+    "name": "SUNLU PLA+ 2.0 @FF AD3",
+    "inherits": "SUNLU PLA+ 2.0 @base",
+    "from": "system",
+    "setting_id": "GFSNLS04_03",
+    "instantiation": "true",
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "filament_flow_ratio": [
+        "1.0"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "compatible_printers": [
+        "Flashforge Adventurer 3 Series 0.4 Nozzle",
+        "Flashforge Adventurer 3 Series 0.6 Nozzle"
+    ]
 }

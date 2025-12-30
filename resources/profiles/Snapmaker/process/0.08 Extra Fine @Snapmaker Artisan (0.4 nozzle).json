@@ -1,22 +1,22 @@
 {
-  "type": "process",
-  "from": "system",
-  "instantiation": "true",
-  "name": "0.08 Extra Fine @Snapmaker Artisan (0.4 nozzle)",
-  "setting_id": "723238605",
-  "inherits": "fdm_process_a400",
-  "compatible_printers": [
-    "Snapmaker Artisan (0.4 nozzle)"
-  ],
-  "bottom_shell_layers": "4",
-  "bridge_flow": "1",
-  "elefant_foot_compensation": "0.15",
-  "ironing_flow": "8%",
-  "layer_height": "0.08",
-  "initial_layer_print_height": "0.1",
-  "support_threshold_angle": "15",
-  "top_shell_layers": "5",
-  "initial_layer_infill_speed": "80",
-  "inner_wall_speed": "145",
-  "internal_solid_infill_speed": "150"
+    "type": "process",
+    "name": "0.08 Extra Fine @Snapmaker Artisan (0.4 nozzle)",
+    "inherits": "fdm_process_a400",
+    "from": "system",
+    "setting_id": "723238605",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker Artisan (0.4 nozzle)"
+    ],
+    "bottom_shell_layers": "4",
+    "bridge_flow": "1",
+    "elefant_foot_compensation": "0.15",
+    "ironing_flow": "8%",
+    "layer_height": "0.08",
+    "initial_layer_print_height": "0.1",
+    "support_threshold_angle": "15",
+    "top_shell_layers": "5",
+    "initial_layer_infill_speed": "80",
+    "inner_wall_speed": "145",
+    "internal_solid_infill_speed": "150"
 }

@@ -1,12 +1,12 @@
 {
     "type": "filament",
-	"filament_id": "GFG99",
-    "setting_id": "GFSG99",
     "name": "C1 Generic High Flow PETG",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
-	"reduce_fan_stop_start_freq": [
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
         "1"
     ],
     "slow_down_for_layer_cooling": [
@@ -36,7 +36,7 @@
     "filament_max_volumetric_speed": [
         "43"
     ],
-	"nozzle_temperature": [
+    "nozzle_temperature": [
         "270"
     ],
     "nozzle_temperature_initial_layer": [
@@ -52,7 +52,7 @@
         "; filament start gcode\n"
     ],
     "compatible_printers": [
-		"Construct 1 0.4 nozzle",
-		"Construct 1 XL 0.6 nozzle"
+        "Construct 1 0.4 nozzle",
+        "Construct 1 XL 0.6 nozzle"
     ]
 }

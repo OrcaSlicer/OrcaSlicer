@@ -1,11 +1,11 @@
 {
     "type": "filament",
     "name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_common",
-    "filament_id": "IQM2",
+    "from": "system",
     "setting_id": "IQS2",
+    "filament_id": "IQM2",
+    "instantiation": "true",
     "activate_air_filtration": [
         "0"
     ],
@@ -234,7 +234,6 @@
     "internal_bridge_fan_speed": [
         "-1"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "240"
     ],
@@ -297,6 +296,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "105"
-    ],
-    "version": "0.0.0.0"
+    ]
 }

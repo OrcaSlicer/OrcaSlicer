@@ -12,7 +12,7 @@
     "deretraction_speed": [
         "40"
     ],
-    "enable_long_retraction_when_cut" : "0",
+    "enable_long_retraction_when_cut": "0",
     "extruder_colour": [
         "#FCE94F"
     ],

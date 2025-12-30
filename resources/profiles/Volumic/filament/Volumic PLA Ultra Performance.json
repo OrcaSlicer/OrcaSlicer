@@ -1,21 +1,21 @@
 {
     "type": "filament",
-	"filament_id": "GFL99",
-    "setting_id": "GFSL99",
     "name": "Volumic PLA Ultra (Performance)",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pla",
-	"filament_flow_ratio": [
+    "from": "system",
+    "setting_id": "GFSL99",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
         "1.00"
     ],
-	"nozzle_temperature_initial_layer": [
-	  "210"
-	],
-    "nozzle_temperature": [
-      "210"
+    "nozzle_temperature_initial_layer": [
+        "210"
     ],
-    "hot_plate_temp" : [
+    "nozzle_temperature": [
+        "210"
+    ],
+    "hot_plate_temp": [
         "50"
     ],
     "fan_max_speed": [
@@ -25,22 +25,22 @@
         "100"
     ],
     "filament_max_volumetric_speed": [
-      "50"
+        "50"
     ],
     "compatible_printers": [
-	  "EXO42 Performance (0.4 nozzle)",
-	  "EXO65 Performance (0.4 nozzle)",
-	  "EXO65 Performance (0.6 nozzle)",
-	  "EXO65 Performance (0.8 nozzle)",
-	  "SH65 Performance (0.4 nozzle)",
-	  "EXO42 IDRE (0.4 nozzle)",
-	  "EXO42 IDRE COPY MODE (0.4 nozzle)",
-	  "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
-	  "EXO65 IDRE (0.4 nozzle)",
-	  "EXO65 IDRE COPY MODE (0.4 nozzle)",
-	  "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
-	  "SH65 IDRE (0.4 nozzle)",
-	  "SH65 IDRE COPY MODE (0.4 nozzle)",
-	  "SH65 IDRE MIRROR MODE (0.4 nozzle)"
+        "EXO42 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.6 nozzle)",
+        "EXO65 Performance (0.8 nozzle)",
+        "SH65 Performance (0.4 nozzle)",
+        "EXO42 IDRE (0.4 nozzle)",
+        "EXO42 IDRE COPY MODE (0.4 nozzle)",
+        "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+        "EXO65 IDRE (0.4 nozzle)",
+        "EXO65 IDRE COPY MODE (0.4 nozzle)",
+        "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+        "SH65 IDRE (0.4 nozzle)",
+        "SH65 IDRE COPY MODE (0.4 nozzle)",
+        "SH65 IDRE MIRROR MODE (0.4 nozzle)"
     ]
 }

@@ -21,5 +21,6 @@
     "sparse_infill_speed": "100",
     "top_surface_speed": "120",
     "bridge_speed": "30",
-    "overhang_3_4_speed": "20"
+    "overhang_3_4_speed": "20",
+    "tree_support_tip_diameter": "2"
 }

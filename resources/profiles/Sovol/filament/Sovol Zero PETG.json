@@ -1,21 +1,23 @@
 {
-	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "GFSA04",
-	"name": "Sovol Zero PETG",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "Generic PETG @System",
-	"filament_flow_ratio": ["1.0348"],
+    "type": "filament",
+    "name": "Sovol Zero PETG",
+    "inherits": "Generic PETG @System",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1.0348"
+    ],
     "enable_pressure_advance": "1",
     "pressure_advance": "0.046",
-	"filament_max_volumetric_speed": [
+    "filament_max_volumetric_speed": [
         "15"
     ],
-	"nozzle_temperature_initial_layer": [
+    "nozzle_temperature_initial_layer": [
         "265"
     ],
-	"nozzle_temperature": [
+    "nozzle_temperature": [
         "245"
     ],
     "nozzle_temperature_range_low": [
@@ -24,19 +26,19 @@
     "nozzle_temperature_range_high": [
         "280"
     ],
-	"hot_plate_temp": [
+    "hot_plate_temp": [
         "85"
     ],
     "hot_plate_temp_initial_layer": [
         "85"
     ],
-	"fan_min_speed": [
+    "fan_min_speed": [
         "10"
     ],
     "fan_max_speed": [
         "40"
     ],
-	"fan_cooling_layer_time": [
+    "fan_cooling_layer_time": [
         "50"
     ],
     "full_fan_speed_layer": [
@@ -66,11 +68,10 @@
     "filament_z_hop": [
         "0.4"
     ],
-    "is_custom_defined": "0",
     "activate_air_filtration": "1",
     "during_print_exhaust_fan_speed": "50",
     "complete_print_exhaust_fan_speed": "50",
-	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
-	]
+    "compatible_printers": [
+        "Sovol Zero 0.4 nozzle"
+    ]
 }

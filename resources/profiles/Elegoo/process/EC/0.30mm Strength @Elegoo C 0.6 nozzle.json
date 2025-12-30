@@ -1,12 +1,13 @@
 {
-    "inherits": "0.30mm Standard @Elegoo C 0.6 nozzle",
-    "inner_wall_speed": "120",
+    "type": "process",
     "name": "0.30mm Strength @Elegoo C 0.6 nozzle",
+    "inherits": "0.30mm Standard @Elegoo C 0.6 nozzle",
+    "instantiation": "true",
+    "inner_wall_speed": "120",
     "wall_sequence": "inner-outer-inner wall",
     "reduce_crossing_wall": "1",
     "outer_wall_speed": "80",
     "sparse_infill_density": "15%",
     "top_surface_speed": "120",
-    "wall_loops": "4",
-	"instantiation": "true"
+    "wall_loops": "4"
 }

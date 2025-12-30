@@ -1,10 +1,9 @@
 {
     "type": "filament",
-    "from": "system",
-    "instantiation": "false",
     "name": "Snapmaker TPU 95A @U1 base",
+    "from": "system",
     "filament_id": "297165629001",
-
+    "instantiation": "false",
     "overhang_fan_threshold": [
         "95%"
     ],
@@ -71,31 +70,28 @@
     "slow_down_layer_time": [
         "8"
     ],
-
-
-
-    "cool_plate_temp" : [
+    "cool_plate_temp": [
         "30"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "30"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "35"
     ],
-    "textured_plate_temp" : [
+    "textured_plate_temp": [
         "35"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "30"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "30"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "35"
     ],
-    "textured_plate_temp_initial_layer" : [
+    "textured_plate_temp_initial_layer": [
         "35"
     ],
     "fan_cooling_layer_time": [
@@ -155,5 +151,4 @@
     "filament_start_gcode": [
         "; filament start gcode\n"
     ]
-    
 }

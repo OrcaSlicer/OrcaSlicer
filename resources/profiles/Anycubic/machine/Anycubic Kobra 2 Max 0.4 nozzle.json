@@ -1,17 +1,21 @@
 {
     "type": "machine",
+    "name": "Anycubic Kobra 2 Max 0.4 nozzle",
+    "inherits": "fdm_machine_common",
     "from": "system",
     "setting_id": "GM003",
-    "inherits": "fdm_machine_common",
     "instantiation": "true",
     "printer_technology": "FFF",
     "printer_settings_id": "Anycubic Kobra 2 Max 0.4 nozzle",
     "printer_model": "Anycubic Kobra 2 Max",
     "printer_variant": "0.4",
-    "name": "Anycubic Kobra 2 Max 0.4 nozzle",
-    "nozzle_diameter": [ "0.4" ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
     "default_print_profile": "0.20mm Standard @Anycubic Kobra 2 Max 0.4 nozzle",
-    "default_filament_profile": [ "Anycubic PLA @Anycubic Kobra 2 Max 0.4 nozzle" ],
+    "default_filament_profile": [
+        "Anycubic PLA @Anycubic Kobra 2 Max 0.4 nozzle"
+    ],
     "disable_m73": "1",
     "gcode_flavor": "klipper",
     "printable_area": [
@@ -66,7 +70,6 @@
     ],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
-    "is_custom_defined": "0",
     "layer_change_gcode": "; layer num/total_layer_count: {layer_num+1}/[total_layer_count]\n; update layer progress\nM73 L{layer_num+1}\nM991 S0 P{layer_num} ;notify layer change",
     "long_retractions_when_cut": [
         "0"

@@ -1,18 +1,20 @@
 {
     "type": "filament",
-    "instantiation": "true",
-    "inherits": "fdm_filament_tpu",
-    "filament_id": "GFU99",
-    "setting_id": "GFSU99",
     "name": "TwoTrees Generic 95A TPU @SK1",
+    "inherits": "fdm_filament_tpu",
     "from": "system",
+    "setting_id": "GFSU99",
+    "filament_id": "GFU99",
+    "instantiation": "true",
     "compatible_printers": [
         "TwoTrees SK1 0.4 nozzle"
     ],
     "fan_cooling_layer_time": "60",
     "fan_max_speed": "100",
     "fan_min_speed": "35",
-    "filament_max_volumetric_speed": "15",
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
     "filament_minimal_purge_on_wipe_tower": "15",
     "full_fan_speed_layer": "0",
     "nozzle_temperature": "235",

@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFL99",
     "name": "OrcaArena Generic PLA @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFL99",
+    "instantiation": "false",
     "filament_flow_ratio": [
         "0.98"
     ],

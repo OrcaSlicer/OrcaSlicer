@@ -1,5 +1,10 @@
 {
     "type": "filament",
+    "name": "Flashforge ASA Basic @FF AD5X 0.25 nozzle",
+    "inherits": "Flashforge ASA @FF AD5M 0.25 Nozzle",
+    "from": "system",
+    "setting_id": "GFSA04_05",
+    "instantiation": "true",
     "cool_plate_temp": [
         "0"
     ],
@@ -27,11 +32,8 @@
     "filament_settings_id": [
         "Flashforge ASA Basic @FF AD5X 0.25 nozzle"
     ],
-    "from": "system",
-    "setting_id": "GFSA04_05",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge AD5X 0.25 nozzle"
+        "Flashforge AD5X 0.25 nozzle"
     ],
     "hot_plate_temp": [
         "100"
@@ -39,9 +41,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Flashforge ASA @FF AD5M 0.25 Nozzle",
-    "is_custom_defined": "0",
-    "name": "Flashforge ASA Basic @FF AD5X 0.25 nozzle",
     "nozzle_temperature_initial_layer": [
         "265"
     ],
@@ -62,6 +61,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "100"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

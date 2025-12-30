@@ -1,15 +1,17 @@
 {
+    "type": "filament",
+    "name": "Prusa Generic ABS @MK4S HF0.8",
+    "inherits": "Prusa Generic ABS @MK4S HF0.4",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Generic ABS @MK4S HF0.8",
+    "instantiation": "true",
     "compatible_printers": [
         "Prusa MK4S HF0.8 nozzle"
     ],
     "fan_min_speed": "15",
-    "filament_id": "Generic ABS @MK4S HF0.8",
-    "filament_max_volumetric_speed": "36",
-    "from": "system",
-    "inherits": "Prusa Generic ABS @MK4S HF0.4",
-    "instantiation": "true",
-    "name": "Prusa Generic ABS @MK4S HF0.8",
-    "setting_id": "GFSA04",
-    "slow_down_layer_time": "25",
-    "type": "filament"
+    "filament_max_volumetric_speed": [
+        "36"
+    ],
+    "slow_down_layer_time": "25"
 }

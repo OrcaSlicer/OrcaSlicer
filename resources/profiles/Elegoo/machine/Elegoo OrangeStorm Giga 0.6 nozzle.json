@@ -15,13 +15,13 @@
     ],
     "default_print_profile": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
     "retraction_minimum_travel": [
-      "1.2"
+        "1.2"
     ],
     "wipe_distance": [
         "1.8"
     ],
     "retraction_length": [
-      "0.8"
+        "0.8"
     ],
     "max_layer_height": [
         "0.42"

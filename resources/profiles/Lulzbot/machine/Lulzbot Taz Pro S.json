@@ -3,7 +3,7 @@
     "name": "Lulzbot Taz Pro S",
     "model_id": "Lulzbot-Taz-Pro-S",
     "nozzle_diameter": "0.5",
-	"machine_tech": "FFF",
+    "machine_tech": "FFF",
     "family": "Lulzbot",
     "bed_model": "taz_pro_dual_build_plate.stl",
     "bed_texture": "lulzbot_logo.png",
@@ -15,5 +15,5 @@
     "machine_load_filament_time": "20",
     "machine_unload_filament_time": "20",
     "machine_tool_change_time": "5",
-	"default_materials": "Generic PLA @System, Generic PETG @System, Generic ABS @System"
+    "default_materials": "Generic PLA @System, Generic PETG @System, Generic ABS @System"
 }

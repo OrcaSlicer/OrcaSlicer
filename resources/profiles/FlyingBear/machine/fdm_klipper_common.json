@@ -1,51 +1,46 @@
 {
-  "type": "machine",
-  "name": "fdm_klipper_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_machine_common",
-  "gcode_flavor": "klipper",
-
-
-  "auxiliary_fan": "0",
-  "bed_exclude_area": [
-      "0x0"
-  ],
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
-  "change_filament_gcode": "",
-  "cooling_tube_length": "5",
-  "cooling_tube_retraction": "91.5",
-  "default_filament_profile": [
-      "FlyingBear Generic PLA"
-  ],
-  "default_print_profile": "0.20mm Standard @FlyingBear Reborn3",
-  "deretraction_speed": [
-      "30"
-  ],
-  "enable_filament_ramming": "1",
-  "extra_loading_move": "-2",
-  "extruder_clearance_height_to_lid": "140",
-  "extruder_clearance_height_to_rod": "36",
-  "extruder_clearance_radius": "65",
-  "extruder_colour": [
-      "#FCE94F"
-  ],
-  "extruder_offset": [
-      "0x0"
-  ],
-  "fan_kickstart": "0",
-  "fan_speedup_overhangs": "1",
-  "fan_speedup_time": "0",
-
-  "high_current_on_filament_swap": "0",
-
-
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "machine_end_gcode": "PRINT_END",
-  "machine_load_filament_time": "0",
-  "machine_max_acceleration_e": [
-    "5000",
-    "5000"
+    "type": "machine",
+    "name": "fdm_klipper_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "auxiliary_fan": "0",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
+    "change_filament_gcode": "",
+    "cooling_tube_length": "5",
+    "cooling_tube_retraction": "91.5",
+    "default_filament_profile": [
+        "FlyingBear Generic PLA"
+    ],
+    "default_print_profile": "0.20mm Standard @FlyingBear Reborn3",
+    "deretraction_speed": [
+        "30"
+    ],
+    "enable_filament_ramming": "1",
+    "extra_loading_move": "-2",
+    "extruder_clearance_height_to_lid": "140",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_radius": "65",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "1",
+    "fan_speedup_time": "0",
+    "high_current_on_filament_swap": "0",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_end_gcode": "PRINT_END",
+    "machine_load_filament_time": "0",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_extruding": [
         "20000",
@@ -111,45 +106,43 @@
         "0",
         "0"
     ],
-  "machine_pause_gcode": "PAUSE",
-  "machine_start_gcode": ";R3_V1.1.0-20241115\n\nM140 S[bed_temperature_initial_layer_single] \nM104 S135\nG28\nG4 P200\nM190 S[bed_temperature_initial_layer_single] \nZ_TILT_ADJUST\nG90\nG1 X150 Y150 F3000\nG28 Z\nG1 X50 Y-4 F2500\nM109 S[nozzle_temperature_initial_layer]\nM190 S[bed_temperature_initial_layer_single] \nPRINT_START",
-  "max_layer_height": [
-      "0.28"
-  ],
-  "min_layer_height": [
-      "0.08"
-  ],
-
-  "nozzle_diameter": [
-      "0.4"
-  ],
-  "nozzle_hrc": "0",
-  "nozzle_type": "brass",
-  "nozzle_volume": "151.32",
-  "parking_pos_retraction": "92",
-
-  "print_host_webui": "",
-  "printable_area": [
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": ";R3_V1.1.0-20241115\n\nM140 S[bed_temperature_initial_layer_single] \nM104 S135\nG28\nG4 P200\nM190 S[bed_temperature_initial_layer_single] \nZ_TILT_ADJUST\nG90\nG1 X150 Y150 F3000\nG28 Z\nG1 X50 Y-4 F2500\nM109 S[nozzle_temperature_initial_layer]\nM190 S[bed_temperature_initial_layer_single] \nPRINT_START",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_hrc": "0",
+    "nozzle_type": "brass",
+    "nozzle_volume": "151.32",
+    "parking_pos_retraction": "92",
+    "print_host_webui": "",
+    "printable_area": [
         "0x0",
         "300x0",
         "300x300",
         "0x300"
-  ],
-  "printable_height": "350",
-  "printer_model": "Generic Klipper Printer",
-  "printer_notes": "",
-  "printer_settings_id": "FlyingBear Reborn3 0.4 nozzle",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "printhost_apikey": "",
-  "printhost_authorization_type": "key",
-  "printhost_cafile": "",
-  "printhost_password": "",
-  "printhost_port": "",
-  "printhost_ssl_ignore_revoke": "0",
-  "printhost_user": "",
-  "purge_in_prime_tower": "1",
-  "retract_before_wipe": [
+    ],
+    "printable_height": "350",
+    "printer_model": "Generic Klipper Printer",
+    "printer_notes": "",
+    "printer_settings_id": "FlyingBear Reborn3 0.4 nozzle",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "printhost_apikey": "",
+    "printhost_authorization_type": "key",
+    "printhost_cafile": "",
+    "printhost_password": "",
+    "printhost_port": "",
+    "printhost_ssl_ignore_revoke": "0",
+    "printhost_user": "",
+    "purge_in_prime_tower": "1",
+    "retract_before_wipe": [
         "0%"
     ],
     "retract_length_toolchange": [
@@ -192,7 +185,6 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
-    "version": "1.6.0.0",
     "wipe": [
         "1"
     ],
@@ -205,6 +197,4 @@
     "z_hop_types": [
         "Auto Lift"
     ]
-
-  
 }

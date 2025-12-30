@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFG99_7",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PETG HF @MK3.5 0.8",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFG99_7",
+    "instantiation": "true",
     "reduce_fan_stop_start_freq": [
         "1"
     ],
@@ -57,8 +57,7 @@
     "pressure_advance": [
         "0.018"
     ],
-
     "compatible_printers": [
         "Prusa MK3.5 0.8 nozzle"
-      ]
+    ]
 }

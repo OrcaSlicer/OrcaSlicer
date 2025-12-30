@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "AliZ003",
     "name": "AliZ PA-CF @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "AliZ003",
+    "instantiation": "false",
     "filament_type": [
         "PA-CF"
     ],

@@ -1,21 +1,21 @@
 {
-  "name": "Snapmaker Artisan (0.4 nozzle)",
-  "setting_id": "1591507869",
-  "type": "machine",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_a400",
-  "printer_model": "Snapmaker Artisan",
-  "default_print_profile": "0.16 Optimal @Snapmaker Artisan (0.4 nozzle)",
-  "printer_variant": "0.4",
-  "max_layer_height": [
-    "0.28"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "nozzle_diameter": [
-    "0.4",
-    "0.4"
-  ]
+    "type": "machine",
+    "name": "Snapmaker Artisan (0.4 nozzle)",
+    "inherits": "fdm_a400",
+    "from": "system",
+    "setting_id": "1591507869",
+    "instantiation": "true",
+    "printer_model": "Snapmaker Artisan",
+    "default_print_profile": "0.16 Optimal @Snapmaker Artisan (0.4 nozzle)",
+    "printer_variant": "0.4",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ]
 }

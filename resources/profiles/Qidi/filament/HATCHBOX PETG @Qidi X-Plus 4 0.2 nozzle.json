@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "HATCHBOX PETG @Qidi X-Plus 4 0.2 nozzle",
+    "inherits": "HATCHBOX PETG @Qidi",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "fan_max_speed": [
         "40"
     ],
@@ -14,13 +18,9 @@
     "filament_settings_id": [
         "HATCHBOX PETG @Qidi X-Plus 4 0.2 nozzle"
     ],
-    "from": "system",
     "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "inherits": "HATCHBOX PETG @Qidi",
-    "is_custom_defined": "0",
-    "name": "HATCHBOX PETG @Qidi X-Plus 4 0.2 nozzle",
     "overhang_fan_speed": [
         "90"
     ],
@@ -28,6 +28,6 @@
         "0.056"
     ],
     "compatible_printers": [
-    "Qidi X-Plus 4 0.2 nozzle"
-        ]
+        "Qidi X-Plus 4 0.2 nozzle"
+    ]
 }

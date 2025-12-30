@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFG99",
-    "setting_id": "GFSG99",
     "name": "CoLiDo Generic PETG @CoLiDo DIY 4.0",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
     "cool_plate_temp": [
         "0"
     ],
@@ -42,7 +42,7 @@
     "filament_vendor": [
         "CoLiDo"
     ],
-	"reduce_fan_stop_start_freq": [
+    "reduce_fan_stop_start_freq": [
         "1"
     ],
     "slow_down_for_layer_cooling": [

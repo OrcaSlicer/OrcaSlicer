@@ -14,5 +14,5 @@ if(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
 endif()
 
 target_link_libraries(miniz INTERFACE miniz_static)
-target_include_directories(miniz INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(miniz SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 

@@ -1,13 +1,13 @@
 {
     "type": "filament",
-    "filament_id": "GFL99",
-    "setting_id": "GFSA04",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "CoPrint Generic PLA",
     "name": "CoPrint Generic PETG",
+    "inherits": "CoPrint Generic PLA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
     "fan_max_speed": [
-    "90"
+        "90"
     ],
     "fan_min_speed": [
         "60"
@@ -36,11 +36,10 @@
     "nozzle_temperature_initial_layer": [
         "240"
     ],
-	"compatible_printers": [
-		"Co Print ChromaSet 0.4 nozzle",
-		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
-		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
-		"Co Print ChromaSet 0.4 nozzle fast"
-	]
-
+    "compatible_printers": [
+        "Co Print ChromaSet 0.4 nozzle",
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
+        "Co Print ChromaSet 0.4 nozzle fast"
+    ]
 }

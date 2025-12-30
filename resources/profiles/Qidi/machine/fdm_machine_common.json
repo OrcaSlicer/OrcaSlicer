@@ -64,7 +64,7 @@
         "0"
     ],
     "max_layer_height": [
-        "0.28"
+        "0.32"
     ],
     "min_layer_height": [
         "0.08"
@@ -110,10 +110,12 @@
     "wipe": [
         "1"
     ],
-    "z_hop_types": ["Auto Lift"],
+    "z_hop_types": [
+        "Auto Lift"
+    ],
     "default_print_profile": "",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
     "machine_start_gcode": "G28\nG0 Z50 F600\nM190 S[first_layer_bed_temperature]\nG28 Z\nG29 ; mesh bed leveling ,comment this code to close it\nG0 X0 Y0 Z50 F6000\nM109 S[first_layer_temperature]\nM83\nG0 Z5 F1200\nG0 X{first_layer_print_min[0]} Y{max(0, first_layer_print_min[1] - 2)} F12000\nG0 Z0.2 F600\nG1 E3 F1800\nG0 Z0.3 F600\nG1 X{min(first_layer_print_min[0] + 30,print_bed_max[0])} E6 F600",
-	"machine_end_gcode": "M104 S0\nM140 S0\nG92 E0\nG1 E-3 F1800\nG90\n{if max_layer_z < max_print_height / 2}\nG1 Z{max_print_height / 2 + 10} F600\n{else}\nG1 Z{min(max_print_height, max_layer_z + 10)}\n{endif}\nG0 X5 Y{print_bed_max[1]-11} F12000\nM141 S0",
-    "time_lapse_gcode":";TIMELAPSE_TAKE_FRAME\n"
+    "machine_end_gcode": "M104 S0\nM140 S0\nG92 E0\nG1 E-3 F1800\nG90\n{if max_layer_z < max_print_height / 2}\nG1 Z{max_print_height / 2 + 10} F600\n{else}\nG1 Z{min(max_print_height, max_layer_z + 10)}\n{endif}\nG0 X5 Y{print_bed_max[1]-11} F12000\nM141 S0",
+    "time_lapse_gcode": ";TIMELAPSE_TAKE_FRAME\n"
 }

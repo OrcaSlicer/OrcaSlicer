@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "RKMK1_p003",
     "name": "0.16mm Optimal @Rook MK1 LDO",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_Rook MK1 LDO_common",
+    "from": "system",
+    "setting_id": "RKMK1_p003",
+    "instantiation": "true",
     "bottom_shell_layers": "4",
     "top_shell_layers": "5",
     "support_top_z_distance": "0.16",

@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_peopoly_common_0_2",
+    "inherits": "fdm_process_peopoly_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_peopoly_common",
     "outer_wall_line_width": "0.22",
     "line_width": "0.22",
     "sparse_infill_line_width": "0.22",

@@ -1,0 +1,19 @@
+{
+  "compatible_printers": [
+    "Eryone ER20 Klipper 0.4 nozzle"
+  ],
+  "from": "system",
+  "inherits": "fdm_process_ER20_Klipper_0.16",
+  "instantiation": "true",
+  "name": "0.16mm Optimal @Eryone ER20 Klipper",
+  "sparse_infill_pattern": "gyroid",
+  "overhang_1_4_speed": "60",
+  "overhang_2_4_speed": "30",
+  "overhang_3_4_speed": "15",
+  "overhang_4_4_speed": "10",
+  "overhang_reverse": "0",
+  "overhang_reverse_internal_only": "0",
+  "overhang_reverse_threshold": "50%",
+  "overhang_speed_classic": "0",
+  "type": "process"
+}

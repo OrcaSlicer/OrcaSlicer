@@ -1,80 +1,174 @@
 {
-  "type": "machine",
-  "name": "fdm_machine_common",
-  "auxiliary_fan": "0",
-  "fan_kickstart": "0",
-  "fan_speedup_overhangs": "1",
-  "fan_speedup_time": "0",
-  "from": "system",
-  "instantiation": "false",
-  "gcode_flavor": "marlin",
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "type": "machine",
+    "name": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "auxiliary_fan": "0",
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "1",
+    "fan_speedup_time": "0",
+    "gcode_flavor": "marlin",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
     "machine_pause_gcode": "M601",
-  "machine_end_gcode": "",
-  "extruder_colour": ["#018001"],
-  "extruder_offset": ["0x0"],
-  "extruder_clearance_radius": "65",
-  "extruder_clearance_height_to_rod": "36",
-  "extruder_clearance_height_to_lid": "140",
-  "template_custom_gcode": "",
-  "thumbnails": ["300x300"],
-  "upward_compatible_machine": [],
-  "use_firmware_retraction": "0",
-  "use_relative_e_distances": "1",
-  "machine_load_filament_time": "0",
-  "machine_max_acceleration_e": ["5000", "5000"],
-  "machine_max_acceleration_extruding": ["1250", "20000"],
-  "machine_max_acceleration_retracting": ["1250", "5000"],
-  "machine_max_acceleration_travel": ["20000", "20000"],
-  "machine_max_acceleration_x": ["3000", "20000"],
-  "machine_max_acceleration_y": ["3000", "20000"],
-  "machine_max_acceleration_z": ["200", "200"],
-  "machine_max_jerk_e": ["4.5", "2.5"],
-  "machine_max_jerk_x": ["12", "9"],
-  "machine_max_jerk_y": ["12", "9"],
-  "machine_max_jerk_z": ["0.4", "0.4"],
-  "machine_max_speed_e": ["120", "25"],
-  "machine_max_speed_x": ["200", "200"],
-  "machine_max_speed_y": ["200", "200"],
-  "machine_max_speed_z": ["12", "12"],
-  "machine_min_extruding_rate": ["0", "0"],
-  "machine_min_travel_rate": ["0", "0"],
-  "max_layer_height": ["0.3"],
-  "min_layer_height": ["0.08"],
-  "printhost_apikey": "",
-  "printhost_authorization_type": "key",
-  "printhost_cafile": "",
-  "printhost_password": "",
-  "printhost_port": "",
-  "printhost_ssl_ignore_revoke": "0",
-  "printhost_user": "",
-  "printable_height": "200",
-  "nozzle_diameter": ["0.4"],
-  "printer_settings_id": "",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "printable_area": ["0x0", "200x0", "200x200", "0x200"],
-  "retraction_minimum_travel": ["1"],
-  "retract_before_wipe": ["70%"],
-  "retract_length_toolchange": ["2"],
-  "nozzle_hrc": "0",
-  "nozzle_type": "undefine",
-  "nozzle_volume": "0",
-  "print_host": "",
-  "print_host_webui": "",
-  "retract_restart_extra": ["0"],
-  "retract_restart_extra_toolchange": ["0"],
-  "retract_when_changing_layer": ["0"],
-  "retraction_length": ["1.4"],
-  "retraction_speed": ["35"],
-  "scan_first_layer": "0",
-  "deretraction_speed": ["30"],
-  "silent_mode": "0",
-  "single_extruder_multi_material": "1",
-  "change_filament_gcode": "M600",
-  "wipe": ["0"],
-  "wipe_distance": ["2"],
-  "z_hop": ["0.3"],
-  "z_hop_types": ["Auto Lift"]  
+    "machine_end_gcode": "",
+    "extruder_colour": [
+        "#018001"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "extruder_clearance_radius": "65",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_height_to_lid": "140",
+    "template_custom_gcode": "",
+    "thumbnails": [
+        "300x300"
+    ],
+    "upward_compatible_machine": [],
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "1",
+    "machine_load_filament_time": "0",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "1250",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1250",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "3000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "3000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "200",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "4.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "12",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "12",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "120",
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "200",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "200",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printhost_apikey": "",
+    "printhost_authorization_type": "key",
+    "printhost_cafile": "",
+    "printhost_password": "",
+    "printhost_port": "",
+    "printhost_ssl_ignore_revoke": "0",
+    "printhost_user": "",
+    "printable_height": "200",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "200x0",
+        "200x200",
+        "0x200"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "nozzle_hrc": "0",
+    "nozzle_type": "undefine",
+    "nozzle_volume": "0",
+    "print_host": "",
+    "print_host_webui": "",
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "0"
+    ],
+    "retraction_length": [
+        "1.4"
+    ],
+    "retraction_speed": [
+        "35"
+    ],
+    "scan_first_layer": "0",
+    "deretraction_speed": [
+        "30"
+    ],
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "M600",
+    "wipe": [
+        "0"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "z_hop": [
+        "0.3"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ]
 }

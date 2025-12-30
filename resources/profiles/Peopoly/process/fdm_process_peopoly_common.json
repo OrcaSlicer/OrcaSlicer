@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_peopoly_common",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_common",
     "adaptive_layer_height": "0",
     "reduce_crossing_wall": "0",
     "max_travel_detour_distance": "0",
@@ -12,7 +12,7 @@
     "bottom_shell_thickness": "0",
     "bridge_flow": "0.95",
     "bridge_speed": "25",
-    "internal_bridge_speed" : "70",
+    "internal_bridge_speed": "70",
     "brim_width": "5",
     "brim_object_gap": "0.1",
     "compatible_printers_condition": "",
@@ -113,8 +113,8 @@
     "inner_wall_jerk": "7",
     "top_surface_jerk": "9",
     "compatible_printers": [
-	  "Peopoly Magneto X 0.4 nozzle",
-      "Peopoly Magneto X 0.6 nozzle",
-      "Peopoly Magneto X 0.8 nozzle"
+        "Peopoly Magneto X 0.4 nozzle",
+        "Peopoly Magneto X 0.6 nozzle",
+        "Peopoly Magneto X 0.8 nozzle"
     ]
 }

@@ -1,10 +1,10 @@
 {
     "type": "filament",
     "name": "AliZ PLA @base",
+    "inherits": "fdm_filament_pla",
     "from": "system",
     "filament_id": "AliZ002",
     "instantiation": "false",
-    "inherits": "fdm_filament_pla",
     "enable_pressure_advance": [
         "0"
     ],

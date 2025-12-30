@@ -8,5 +8,5 @@
     "bed_model": "Z-Bolt_S600_buildplate_model.stl",
     "bed_texture": "Z-Bolt_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Z-Bolt PLA @base;Z-Bolt ABS @base;Z-Bolt PETG @base;Z-Bolt PA @base;Z-Bolt ABS HT @base"
+    "default_materials": "Z-Bolt PLA @base;Z-Bolt ABS @base;Z-Bolt PETG @base;Z-Bolt PA @base;Z-Bolt ABS HT @base"
 }

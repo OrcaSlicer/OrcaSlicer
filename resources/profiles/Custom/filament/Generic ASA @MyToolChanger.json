@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "setting_id": "GFB98_MTC_0",
     "name": "Generic ASA @MyToolChanger",
     "renamed_from": "My Generic ASA @MyToolChanger",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Generic ASA @System",
+    "from": "system",
+    "setting_id": "GFB98_MTC_0",
+    "instantiation": "true",
     "filament_cooling_final_speed": [
         "3.5"
     ],

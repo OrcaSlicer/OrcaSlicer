@@ -297,6 +297,40 @@ bool WxFontUtils::is_bold(const wxFont &font) {
     return wx_weight != wxFONTWEIGHT_NORMAL;
 }
 
+void Slic3r::GUI::WxFontUtils::get_suitable_font_size(int max_height, wxDC &dc)
+{
+    wxFont font = dc.GetFont();
+    if (!font.IsOk()) return;
+
+    int font_size = font.GetPointSize();
+    int height  = dc.GetFontMetrics().height;
+    if (height < max_height) /*go smaller*/
+    {
+        while (height < max_height) {
+            font_size++;
+            font.SetPointSize(font_size);
+            dc.SetFont(font);
+            height  = dc.GetFontMetrics().height;
+        }
+
+        if (height > max_height)
+        {
+            font_size--;
+            font.SetPointSize(font_size);
+            dc.SetFont(font);
+        }
+    }
+    else if (height > max_height) /*go bigger*/
+    {
+        while (height > max_height && font_size > 1) {
+            font_size--;
+            font.SetPointSize(font_size);
+            dc.SetFont(font);
+            height = dc.GetFontMetrics().height;
+        }
+    }
+}
+
 std::unique_ptr<Emboss::FontFile> WxFontUtils::set_italic(wxFont &font, const Emboss::FontFile &font_file)
 {
     static std::vector<wxFontStyle> italic_styles = {

@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFB98",
-    "setting_id": "GFSA04",
     "name": "Elegoo ASA @Elegoo Giga",
     "inherits": "Generic ASA @Elegoo",
     "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB98",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "30"
@@ -22,4 +22,3 @@
         "Elegoo OrangeStorm Giga 1.0 nozzle"
     ]
 }
-  

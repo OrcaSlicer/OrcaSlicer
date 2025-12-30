@@ -1,21 +1,21 @@
 {
-  "name": "Snapmaker A350 Dual QS+B Kit (0.6 nozzle)",
-  "setting_id": "610530782",
-  "type": "machine",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_a350_dual_qs_bk",
-  "printer_model": "Snapmaker A350 Dual QS+B Kit",
-  "default_print_profile": "0.18 Standard @Snapmaker (0.6 nozzle)",
-  "printer_variant": "0.6",
-  "max_layer_height": [
-    "0.42"
-  ],
-  "min_layer_height": [
-    "0.18"
-  ],
-  "nozzle_diameter": [
-    "0.6",
-    "0.6"
-  ]
+    "type": "machine",
+    "name": "Snapmaker A350 Dual QS+B Kit (0.6 nozzle)",
+    "inherits": "fdm_a350_dual_qs_bk",
+    "from": "system",
+    "setting_id": "610530782",
+    "instantiation": "true",
+    "printer_model": "Snapmaker A350 Dual QS+B Kit",
+    "default_print_profile": "0.18 Standard @Snapmaker (0.6 nozzle)",
+    "printer_variant": "0.6",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.18"
+    ],
+    "nozzle_diameter": [
+        "0.6",
+        "0.6"
+    ]
 }

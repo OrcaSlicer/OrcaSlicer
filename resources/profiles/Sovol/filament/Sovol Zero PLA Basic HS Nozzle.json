@@ -1,22 +1,26 @@
 {
-	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "GFSA04",
-	"name": "Sovol Zero PLA Basic HS Nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "Generic PLA @System",
-	"filament_flow_ratio": ["1.0348"],
-	"filament_max_volumetric_speed": ["21"],
+    "type": "filament",
+    "name": "Sovol Zero PLA Basic HS Nozzle",
+    "inherits": "Generic PLA @System",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1.0348"
+    ],
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
     "enable_pressure_advance": "1",
     "pressure_advance": "0.03",
-	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
-	],
-	"nozzle_temperature_initial_layer": [
+    "compatible_printers": [
+        "Sovol Zero 0.4 nozzle"
+    ],
+    "nozzle_temperature_initial_layer": [
         "245"
     ],
-	"nozzle_temperature": [
+    "nozzle_temperature": [
         "230"
     ],
     "nozzle_temperature_range_low": [
@@ -24,20 +28,20 @@
     ],
     "nozzle_temperature_range_high": [
         "250"
-	],
-	"hot_plate_temp" : [
+    ],
+    "hot_plate_temp": [
         "65"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "65"
     ],
-	"fan_min_speed": [
+    "fan_min_speed": [
         "70"
     ],
     "fan_max_speed": [
         "100"
     ],
-	"fan_cooling_layer_time": [
+    "fan_cooling_layer_time": [
         "80"
     ],
     "full_fan_speed_layer": [

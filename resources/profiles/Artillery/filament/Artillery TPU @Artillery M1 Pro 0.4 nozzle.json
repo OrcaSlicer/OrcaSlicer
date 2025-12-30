@@ -1,4 +1,8 @@
 {
+    "type": "filament",
+    "name": "Artillery TPU @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
     "instantiation": "true",
     "close_fan_the_first_x_layers": [
         "1"
@@ -19,24 +23,22 @@
         "60"
     ],
     "additional_cooling_fan_speed": [
-        "100"
+        "50"
     ],
     "is_custom_defined": "0",
-    "name": "Artillery TPU @Artillery M1 Pro 0.4 nozzle",
-    "from": "system",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
         "0.4"
     ],
-	"filament_retract_lift_below": [
+    "filament_retract_lift_below": [
         "259"
     ],
     "filament_retraction_speed": [
         "30"
     ],
-	"filament_deretraction_speed": [
+    "filament_deretraction_speed": [
         "30"
     ],
     "filament_start_gcode": [
@@ -51,7 +53,6 @@
     "filament_z_hop": [
         "0.4"
     ],
-    "inherits": "Artillery Generic PLA",
     "nozzle_temperature": [
         "230"
     ],
@@ -94,7 +95,7 @@
     "pressure_advance": [
         "0.08"
     ],
-	"filament_flow_ratio": [
+    "filament_flow_ratio": [
         "1.067"
     ],
     "textured_plate_temp": [
@@ -109,5 +110,5 @@
     "cool_plate_temp_initial_layer": [
         "60"
     ],
-    "version": "2.1.2.0"
+    "version": "2.1.2.2"
 }

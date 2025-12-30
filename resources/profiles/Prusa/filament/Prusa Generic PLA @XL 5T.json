@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PLA @XL 5T",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "nozzle_temperature_intial_layer": "215",
     "nozzle_temperature": "210",
     "hot_plate_temp_initial_layer": "60",
@@ -54,7 +54,9 @@
     "filament_stamping_loading_speed": [
         "29"
     ],
-    "filament_start_gcode": ["; filament start gcode\nM900 K{if nozzle_diameter[0]==0.4}0.05{elsif nozzle_diameter[0]==0.25}0.14{elsif nozzle_diameter[0]==0.3}0.07{elsif nozzle_diameter[0]==0.35}0.06{elsif nozzle_diameter[0]==0.6}0.03{elsif nozzle_diameter[0]==0.5}0.035{elsif nozzle_diameter[0]==0.8}0.015{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*PRINTER_MODEL_XLIS.*/}\nM572 S{if nozzle_diameter[0]==0.4}0.036{elsif nozzle_diameter[0]==0.5}0.025{elsif nozzle_diameter[0]==0.6}0.02{elsif nozzle_diameter[0]==0.8}0.014{elsif nozzle_diameter[0]==0.25}0.12{elsif nozzle_diameter[0]==0.3}0.08{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S36 ; set heatbreak target temp"],
+    "filament_start_gcode": [
+        "; filament start gcode\nM900 K{if nozzle_diameter[0]==0.4}0.05{elsif nozzle_diameter[0]==0.25}0.14{elsif nozzle_diameter[0]==0.3}0.07{elsif nozzle_diameter[0]==0.35}0.06{elsif nozzle_diameter[0]==0.6}0.03{elsif nozzle_diameter[0]==0.5}0.035{elsif nozzle_diameter[0]==0.8}0.015{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*PRINTER_MODEL_XLIS.*/}\nM572 S{if nozzle_diameter[0]==0.4}0.036{elsif nozzle_diameter[0]==0.5}0.025{elsif nozzle_diameter[0]==0.6}0.02{elsif nozzle_diameter[0]==0.8}0.014{elsif nozzle_diameter[0]==0.25}0.12{elsif nozzle_diameter[0]==0.3}0.08{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S36 ; set heatbreak target temp"
+    ],
     "compatible_printers": [
         "Prusa XL 5T 0.25 nozzle",
         "Prusa XL 5T 0.3 nozzle",

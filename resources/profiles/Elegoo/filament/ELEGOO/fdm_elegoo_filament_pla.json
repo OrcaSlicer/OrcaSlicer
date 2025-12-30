@@ -65,19 +65,19 @@
         "0"
     ],
     "fan_cooling_layer_time": [
-      "80"
+        "80"
     ],
     "fan_min_speed": [
-      "50"
+        "50"
     ],
     "hot_plate_temp": [
-      "60"
+        "60"
     ],
     "hot_plate_temp_initial_layer": [
-      "60"
+        "60"
     ],
     "slow_down_layer_time": [
-      "8"
+        "8"
     ],
     "filament_start_gcode": [
         "; Filament start gcode\n"

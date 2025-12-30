@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PVA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pva",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.95"
     ],
@@ -18,17 +18,17 @@
         "10"
     ],
     "compatible_printers": [
-      "Prusa MK3S 0.25 nozzle",
-      "Prusa MK3S 0.4 nozzle",
-      "Prusa MK3S 0.6 nozzle",
-      "Prusa MK3S 0.8 nozzle",
-      "Prusa MINI 0.25 nozzle",
-      "Prusa MINI 0.4 nozzle",
-      "Prusa MINI 0.6 nozzle",
-      "Prusa MINI 0.8 nozzle",
-      "Prusa MK4 0.25 nozzle",
-      "Prusa MK4 0.4 nozzle",
-      "Prusa MK4 0.6 nozzle",
-      "Prusa MK4 0.8 nozzle"
+        "Prusa MK3S 0.25 nozzle",
+        "Prusa MK3S 0.4 nozzle",
+        "Prusa MK3S 0.6 nozzle",
+        "Prusa MK3S 0.8 nozzle",
+        "Prusa MINI 0.25 nozzle",
+        "Prusa MINI 0.4 nozzle",
+        "Prusa MINI 0.6 nozzle",
+        "Prusa MINI 0.8 nozzle",
+        "Prusa MK4 0.25 nozzle",
+        "Prusa MK4 0.4 nozzle",
+        "Prusa MK4 0.6 nozzle",
+        "Prusa MK4 0.8 nozzle"
     ]
 }

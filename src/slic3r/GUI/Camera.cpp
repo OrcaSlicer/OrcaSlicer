@@ -137,6 +137,45 @@ void Camera::select_view(const std::string& direction)
         auto_type(EType::Perspective);
     }
 }
+void Camera::select_view(ViewAngleType type)
+{
+    switch (type) {
+    case Slic3r::GUI::Camera::ViewAngleType::Iso: {
+        select_view("iso");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Top_Front: {
+        select_view("topfront");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Left: {
+        select_view("left");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Right: {
+        select_view("right");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Top_Plate:
+    case Slic3r::GUI::Camera::ViewAngleType::Top: {
+        select_view("top");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Bottom: {
+        select_view("bottom");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Front: {
+        select_view("front");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Rear: {
+        select_view("rear");
+        break;
+    }
+    default: break;
+    }
+}
 
 double Camera::get_near_left() const
 {

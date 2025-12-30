@@ -1,4 +1,11 @@
 {
+    "type": "filament",
+    "name": "Prusament rPLA @CORE One",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament rPLA @CORE One",
+    "instantiation": "true",
     "chamber_temperature": [
         "20"
     ],
@@ -37,7 +44,6 @@
     "filament_flow_ratio": [
         "1"
     ],
-    "filament_id": "Prusament rPLA @CORE One",
     "filament_max_volumetric_speed": [
         "10"
     ],
@@ -65,7 +71,6 @@
     "filament_z_hop_types": [
         "Slope Lift"
     ],
-    "from": "system",
     "full_fan_speed_layer": [
         "3"
     ],
@@ -78,9 +83,6 @@
     "idle_temperature": [
         "150"
     ],
-    "inherits": "fdm_filament_pla",
-    "instantiation": "true",
-    "name": "Prusament rPLA @CORE One",
     "nozzle_temperature": [
         "205"
     ],
@@ -93,12 +95,10 @@
     "reduce_fan_stop_start_freq": [
         "1"
     ],
-    "setting_id": "GFSA04",
     "slow_down_layer_time": [
         "8"
     ],
     "slow_down_min_speed": [
         "20"
-    ],
-    "type": "filament"
+    ]
 }

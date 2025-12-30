@@ -1,14 +1,14 @@
 {
-  "type": "process",
-  "name": "0.20mm Standard @Elegoo Giga 0.4 nozzle",
-  "inherits": "fdm_process_elegoo_04020",
-  "from": "system",
-  "setting_id": "PEOSG04020",
-  "instantiation": "true",
-  "filename_format": "EOGiga1_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
-  "initial_layer_print_height": "0.25",
-  "print_flow_ratio": "1.0",
-  "compatible_printers": [
-    "Elegoo OrangeStorm Giga 0.4 nozzle"
-  ]
+    "type": "process",
+    "name": "0.20mm Standard @Elegoo Giga 0.4 nozzle",
+    "inherits": "fdm_process_elegoo_04020",
+    "from": "system",
+    "setting_id": "PEOSG04020",
+    "instantiation": "true",
+    "filename_format": "EOGiga1_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
+    "initial_layer_print_height": "0.25",
+    "print_flow_ratio": "1.0",
+    "compatible_printers": [
+        "Elegoo OrangeStorm Giga 0.4 nozzle"
+    ]
 }

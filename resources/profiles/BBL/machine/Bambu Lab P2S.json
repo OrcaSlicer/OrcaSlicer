@@ -1,0 +1,16 @@
+{
+    "type": "machine_model",
+    "name": "Bambu Lab P2S",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "url": "http://www.bambulab.com/Parameters/printer_model/Bambu Lab X1.json",
+    "bed_model": "bbl-3dp-X1.stl",
+    "bed_texture": "bbl-3dp-logo.svg",
+    "default_bed_type": "Textured PEI Plate",
+    "image_bed_type": "n",
+    "bottom_texture_end_name": "n",
+    "not_support_bed_type": "Smooth Cool Plate;Textured Cool Plate",
+    "family": "BBL-3DP",
+    "machine_tech": "FFF",
+    "model_id": "N7",
+    "default_materials": "Bambu PLA Matte @BBL P2S;Bambu PLA Basic @BBL P2S;Bambu PLA Silk @BBL P2S;Bambu PLA Marble @BBL P2S;Bambu PLA Sparkle @BBL P2S;Generic PLA @BBL P2S;Bambu TPU 95A @BBL P2S;Bambu ABS @BBL P2S;Bambu PC @BBL P2S 0.4 nozzle"
+}

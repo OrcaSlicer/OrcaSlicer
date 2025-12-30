@@ -1,4 +1,10 @@
 {
+    "type": "filament",
+    "name": "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle",
+    "inherits": "Flashforge Generic PLA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "cool_plate_temp": [
         "45"
     ],
@@ -14,11 +20,8 @@
     "filament_settings_id": [
         "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle"
     ],
-    "from": "system",
-    "setting_id": "GFSA04",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge AD5X 0.8 nozzle"
+        "Flashforge AD5X 0.8 nozzle"
     ],
     "hot_plate_temp": [
         "60"
@@ -26,9 +29,6 @@
     "hot_plate_temp_initial_layer": [
         "60"
     ],
-    "inherits": "Flashforge Generic PLA",
-    "is_custom_defined": "0",
-    "name": "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle",
     "nozzle_temperature": [
         "210"
     ],
@@ -46,6 +46,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "60"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Creality K2 Plus 0.8 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Creality K2 Plus",
     "gcode_flavor": "klipper",
     "default_print_profile": "0.32mm Optimal @Creality K2 Plus 0.8 nozzle",

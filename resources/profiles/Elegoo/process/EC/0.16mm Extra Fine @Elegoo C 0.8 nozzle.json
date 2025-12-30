@@ -1,7 +1,8 @@
 {
-    "inherits": "0.40mm Standard @Elegoo C 0.8 nozzle",
-    "initial_layer_print_height": "0.3",
-    "layer_height": "0.16",
+    "type": "process",
     "name": "0.16mm Extra Fine @Elegoo C 0.8 nozzle",
-	"instantiation": "true"
+    "inherits": "0.40mm Standard @Elegoo C 0.8 nozzle",
+    "instantiation": "true",
+    "initial_layer_print_height": "0.3",
+    "layer_height": "0.16"
 }

@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "setting_id": "GFN98_MTC_0",
     "name": "Generic PA-CF @MyToolChanger",
     "renamed_from": "My Generic PA-CF @MyToolChanger",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Generic PA-CF @System",
+    "from": "system",
+    "setting_id": "GFN98_MTC_0",
+    "instantiation": "true",
     "filament_cooling_final_speed": [
         "3.5"
     ],

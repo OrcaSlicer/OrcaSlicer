@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "QIDI TPU-Aero @Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "QIDI TPU-Aero",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "QD_0_1_49",
+    "instantiation": "true",
+    "filament_settings_id": [
+        "QIDI TPU-Aero @Qidi X-Plus 4 0.4 nozzle"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.4 nozzle"
+    ]
+}

@@ -112,7 +112,7 @@ var LangText = {
     orca4: "This stops the transmission of data to Bambu's cloud services. Users who don't use BBL machines or use LAN mode only can safely turn on this function.",
     orca5: "Enable Stealth Mode.",
   },
-    ca_ES: {
+  ca_ES: {
     t1: "Benvingut a Orca Slicer",
     t2: "Orca Slicer es configurarà en diversos passos. Comencem!",
     t3: "Acord de l'Usuari",
@@ -219,8 +219,8 @@ var LangText = {
     t112: "Unir-se al Programa",
     t113: "Pots canviar la teva elecció en les preferències en qualsevol moment.",
     orca1: "Editar Informació del Projecte",
-    orca2: "no hi ha informació del model"
-},
+    orca2: "no hi ha informació del model",
+  },
   es_ES: {
     t1: "Bienvenido a Orca Slicer",
     t2: "Va a configurar Orca Slicer mediante varios pasos. ¡Vamos a comenzar!",
@@ -986,8 +986,6 @@ var LangText = {
     t90: "3D 模型",
     t91: "下載3D模型",
     t92: "Bambu聖誕小屋",
-    orca1: "Edit Project Info",
-    orca2: "no model information",
     wk1: "快速入門指南",
     wk2: "本文介紹了 Orca Slicer 的最基本用法。它指導用戶配置軟體，創建項目，並逐步完成第一個列印任務。",
     wk3: "基於項目的工作流",
@@ -1004,6 +1002,8 @@ var LangText = {
     wk14: "與 STL 相比，STEP 帶來了更多有效的資訊。由於 STEP 的高精度，切片時可以生成更多的圓弧路徑。STEP 還包括模型每個零件的組裝關係，可分割模型後恢復裝配視圖。",
     wk15: "３Ｄ文本",
     wk16: "使用３Ｄ文字工具，使用者可以輕鬆地在項目中建立各種３Ｄ文字形狀，使模型更加個性化。Orca Slicer 提供了數十種字體，並支援粗體和斜體樣式，使文字具有更大的靈活性。",
+    orca1: "編輯專案資訊",
+    orca2: "沒有模型相關資訊",
   },
   ru_RU: {
     t1: "Приветствуем в Orca Slicer!",
@@ -1116,7 +1116,7 @@ var LangText = {
     orca2: "Информации о модели отсутствует",
     orca3: "Режим конфиденциальности",
     orca4: "Это остановит передачу данных в облачные сервисы Bambu. Пользователи, которые не используют принтеры Bambu Lab или используют режим «Только LAN», могут безопасно включить эту функцию.",
-    orca5: "Включить режим конфиденциальности"
+    orca5: "Включить режим конфиденциальности",
   },
   ko_KR: {
     t1: "Orca Slicer에 오신 것을 환영합니다",
@@ -1319,6 +1319,9 @@ var LangText = {
     t126: "Yükleme devam ediyor……",
     orca1: "Proje Bilgilerini Düzenle",
     orca2: "model bilgisi yok",
+    orca3: "Gizli Mod",
+    orca4: "Bu, Bambu'nun bulut hizmetlerine veri iletimini durdurur. BBL makinelerini kullanmayan veya yalnızca LAN modunu kullanan kullanıcılar bu işlevi güvenle açabilir.",
+    orca5: "Gizli Modu etkinleştirin.",
   },
   pl_PL: {
     t1: "Witamy w Orca Slicer",
@@ -1429,7 +1432,7 @@ var LangText = {
     t126: "Ładowanie trwa……",
     orca1: "Edytuj informacje o projekcie",
     orca2: "brak informacji o modelu",
-	orca3: "Tryb «Niewidzialny»",
+    orca3: "Tryb «Niewidzialny»",
     orca4: "To wyłączy przesyłanie danych do usług chmurowych Bambu. Użytkownicy, którzy nie korzystają z maszyn BBL lub używają tylko trybu LAN, mogą bez obaw włączyć tę opcję.",
     orca5: "Włącz tryb «Niewidzialny»",
   },
@@ -1546,7 +1549,7 @@ var LangText = {
     orca4: "Isso interrompe a transmissão de dados para os serviços de nuvem da Bambu. Usuários que não usam máquinas BBL ou usam somente o modo LAN podem ativar essa função com segurança.",
     orca5: "Habilita Modo Furtivo.",
   },
-  lt: {
+  lt_LT: {
     t1: "Pasisveikinkite su Orca Slicer",
     t2: "Orca Slicer bus nustatyta per kelis žingsnius. Pradėkime!",
     t3: "Naudotojo sutartis",
@@ -1688,3 +1691,4 @@ function TranslatePage() {
     }
   }
 }
+

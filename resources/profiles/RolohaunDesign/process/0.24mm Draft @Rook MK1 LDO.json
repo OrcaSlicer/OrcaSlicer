@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "RKMK1_p005",
     "name": "0.24mm Draft @Rook MK1 LDO",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_Rook MK1 LDO_common",
+    "from": "system",
+    "setting_id": "RKMK1_p005",
+    "instantiation": "true",
     "support_top_z_distance": "0.2",
     "support_bottom_z_distance": "0.2",
     "layer_height": "0.24",

@@ -1,6 +1,7 @@
 {
-    "inherits": "0.40mm Standard @Elegoo CC 0.8 nozzle",
-    "layer_height": "0.32",
+    "type": "process",
     "name": "0.32mm Optimal @Elegoo CC 0.8 nozzle",
-	"instantiation": "true"
+    "inherits": "0.40mm Standard @Elegoo CC 0.8 nozzle",
+    "instantiation": "true",
+    "layer_height": "0.32"
 }

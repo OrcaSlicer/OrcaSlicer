@@ -3,8 +3,8 @@
     "name": "fdm_filament_pla",
     "inherits": "fdm_filament_common",
     "from": "system",
-    "instantiation": "false",
     "filament_id": "OGFL99",
+    "instantiation": "false",
     "additional_cooling_fan_speed": [
         "70"
     ],

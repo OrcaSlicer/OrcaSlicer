@@ -1,14 +1,14 @@
 {
     "type": "machine",
-    "from": "system",
-    "inherits": "fdm_tiq_common",
-    "is_custom_defined": "0",
     "name": "iQ TiQ2 0.4 Nozzle",
-    "printer_settings_id": "iQ TiQ2 0.4 Nozzle",
+    "inherits": "fdm_tiq_common",
+    "from": "system",
     "instantiation": "true",
+    "printer_settings_id": "iQ TiQ2 0.4 Nozzle",
     "printer_model": "TiQ2",
     "printer_variant": "0.4",
-    "change_filament_gcode": "G1 X32 Y0 F3000\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing\n",
+    "printer_notes": "Machine file version 1.1 20250812",
+    "change_filament_gcode": "G1 Z{layer_z+2} F900 ; safe distance while tool change\nG1 X32 Y3 F3000\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing\n",
     "deretraction_speed": [
         "30",
         "30"
@@ -56,14 +56,14 @@
         "330x330",
         "0x330"
     ],
-    "printable_height":"300",
+    "printable_height": "300",
     "retract_before_wipe": [
         "70%",
         "70%"
     ],
     "retract_length_toolchange": [
-        "15",
-        "15"
+        "10",
+        "12"
     ],
     "retract_lift_above": [
         "0",
@@ -114,7 +114,6 @@
         "3",
         "3"
     ],
-    "version": "2.1.3.0",
     "wipe": [
         "1",
         "1"

@@ -2,8 +2,8 @@
     "type": "filament",
     "name": "fdm_filament_pe",
     "inherits": "fdm_filament_common",
-    "filament_id": "OGFP99",
     "from": "system",
+    "filament_id": "OGFP99",
     "instantiation": "false",
     "additional_cooling_fan_speed": [
         "70"

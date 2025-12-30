@@ -9,6 +9,7 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include "ReleaseNote.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/StaticBox.hpp"
 #include "ConnectPrinter.hpp"
@@ -22,18 +23,50 @@
 #include <algorithm>
 #include "BitmapCache.hpp"
 
+#include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevStorage.h"
+#include "slic3r/Utils/FileTransferUtils.hpp"
+
+
 namespace Slic3r {
 namespace GUI {
 
 #define INITIAL_NUMBER_OF_MACHINES 0
 #define LIST_REFRESH_INTERVAL 200
 #define MACHINE_LIST_REFRESH_INTERVAL 2000
+#define EMMC_STORAGE "emmc"
+
+constexpr int timeout_period = 200000; // ms
 
 wxDEFINE_EVENT(EVT_UPDATE_USER_MACHINE_LIST, wxCommandEvent);
 wxDEFINE_EVENT(EVT_PRINT_JOB_CANCEL, wxCommandEvent);
 wxDEFINE_EVENT(EVT_SEND_JOB_SUCCESS, wxCommandEvent);
 wxDEFINE_EVENT(EVT_CLEAR_IPADDRESS, wxCommandEvent);
 
+static const std::map<int, std::string> error_messages = {
+    {SendToPrinterDialog::ERROR_PIPE, L("Reconnecting the printer, the operation cannot be completed immediately, please try again later.")},
+    {SendToPrinterDialog::ERROR_RES_BUSY, L("The device cannot handle more conversations. Please retry later.")},
+    {SendToPrinterDialog::ERROR_TIME_OUT, L("Timeout, please try again.")},
+    {SendToPrinterDialog::FILE_NO_EXIST, L("File does not exist.")},
+    {SendToPrinterDialog::FILE_CHECK_ERR, L("File checksum error. Please retry.")},
+    {SendToPrinterDialog::FILE_TYPE_ERR, L("Not supported on the current printer version.")},
+    {SendToPrinterDialog::STORAGE_UNAVAILABLE, L("Current firmware does not support file transfer to internal storage.")},
+    {SendToPrinterDialog::API_VERSION_UNSUPPORT, L("The firmware version of the printer is too low. Please update the firmware and try again.")},
+    {SendToPrinterDialog::FILE_EXIST, L("The file already exists, do you want to replace it?")},
+    {SendToPrinterDialog::STORAGE_SPACE_NOT_ENOUGH, L("Insufficient storage space, please clear the space and try again.")},
+    {SendToPrinterDialog::FILE_CREATE_ERR, L("File creation failed, please try again.")},
+    {SendToPrinterDialog::FILE_WRITE_ERR, L("File write failed, please try again.")},
+    {SendToPrinterDialog::MD5_COMPARE_ERR, L("MD5 verification failed, please try again.")},
+    {SendToPrinterDialog::FILE_RENAME_ERR, L("File renaming failed, please try again.")},
+    {SendToPrinterDialog::SEND_ERR, L("File upload failed, please try again.")}
+};
+
+static std::string ParseErrorCode(int errorcde)
+{
+    auto it = error_messages.find(errorcde);
+    if (it != error_messages.end()) { return it->second; }
+    return "";
+}
 
 void SendToPrinterDialog::stripWhiteSpace(std::string& str)
 {
@@ -157,6 +190,11 @@ void SendToPrinterDialog::on_rename_enter()
         m_valid_type = NoValid;
     }
 
+    if (m_valid_type == Valid && new_file_name.size() >= 100) {
+        info_line    = _L("The name length exceeds the limit.");
+        m_valid_type = NoValid;
+    }
+
     if (m_valid_type != Valid) {
         MessageDialog msg_wingow(nullptr, info_line, "", wxICON_WARNING | wxOK);
         if (msg_wingow.ShowModal() == wxID_OK) {
@@ -174,7 +212,7 @@ void SendToPrinterDialog::on_rename_enter()
 }
 
 SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
-    : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe), wxID_ANY, _L("Send to Printer SD card"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
+    : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe), wxID_ANY, _L("Send to Printer storage"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
     , m_plater(plater), m_export_3mf_cancel(false)
 {
 #ifdef __WINDOWS__
@@ -247,23 +285,45 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_comboBox_printer->Bind(wxEVT_COMBOBOX, &SendToPrinterDialog::on_selection_changed, this);
 
     m_sizer_printer->Add(m_comboBox_printer, 1, wxEXPAND | wxRIGHT, FromDIP(5));
-    btn_bg_enable = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                               std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
 
     m_button_refresh = new Button(this, _L("Refresh"));
-    m_button_refresh->SetBackgroundColor(btn_bg_enable);
-    m_button_refresh->SetBorderColor(btn_bg_enable);
-    m_button_refresh->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
-    m_button_refresh->SetSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_refresh->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_refresh->SetCornerRadius(FromDIP(10));
+    m_button_refresh->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_refresh->Bind(wxEVT_BUTTON, &SendToPrinterDialog::on_refresh, this);
+
     m_sizer_printer->Add(m_button_refresh, 0, wxALL | wxLEFT, FromDIP(5));
 
+    /*select storage*/
+    m_storage_panel = new wxPanel(this);
+    m_storage_panel->SetBackgroundColour(*wxWHITE);
+    m_storage_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_storage_panel->SetSizer(m_storage_sizer);
+    m_storage_panel->Layout();
+
+    // try to connect
     m_statictext_printer_msg = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL);
     m_statictext_printer_msg->SetFont(::Label::Body_13);
     m_statictext_printer_msg->SetForegroundColour(*wxBLACK);
     m_statictext_printer_msg->Hide();
+
+    wxBoxSizer *m_sizer_connecting      = new wxBoxSizer(wxHORIZONTAL);
+    m_connecting_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+
+    m_connecting_printer_msg = new wxStaticText(m_connecting_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL);
+    m_connecting_printer_msg->SetFont(::Label::Body_13);
+    m_connecting_printer_msg->SetForegroundColour(*wxBLACK);
+    m_connecting_printer_msg->SetLabel(_L("Try to connect"));
+    /*m_connecting_printer_msg->Hide();*/
+    m_connecting_printer_msg->Show();
+
+    std::vector<std::string> list{"ams_rfid_1", "ams_rfid_2", "ams_rfid_3", "ams_rfid_4"};
+    m_animaicon = new AnimaIcon(m_connecting_panel, wxID_ANY, list, "refresh_printer", 100);
+    m_sizer_connecting->Add(m_connecting_printer_msg, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(5));
+    m_sizer_connecting->Add(m_animaicon, 0, wxALIGN_CENTER_VERTICAL);
+
+    m_connecting_panel->SetSizer(m_sizer_connecting);
+    m_connecting_panel->Layout();
+    m_connecting_panel->Fit();
+    m_connecting_panel->Hide();
 
     // line schedule
     m_line_schedule = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
@@ -280,12 +340,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_sizer_prepare->Add(0, 0, 1, wxTOP, FromDIP(22));
     m_sizer_pcont->Add(0, 0, 1, wxEXPAND, 0);
     m_button_ensure = new Button(m_panel_prepare, _L("Send"));
-    m_button_ensure->SetBackgroundColor(btn_bg_enable);
-    m_button_ensure->SetBorderColor(btn_bg_enable);
-    m_button_ensure->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
-    m_button_ensure->SetSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_ensure->SetCornerRadius(FromDIP(12));
+    m_button_ensure->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
     m_button_ensure->Bind(wxEVT_BUTTON, &SendToPrinterDialog::on_ok, this);
     m_sizer_pcont->Add(m_button_ensure, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
@@ -336,7 +391,6 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     wxBoxSizer* sizer_print_failed_info = new wxBoxSizer(wxVERTICAL);
     m_sw_print_failed_info->SetSizer(sizer_print_failed_info);
 
-
     wxBoxSizer* sizer_error_code = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* sizer_error_desc = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* sizer_extra_info = new wxBoxSizer(wxHORIZONTAL);
@@ -357,7 +411,6 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     sizer_error_code->Add(st_title_error_code, 0, wxALL, 0);
     sizer_error_code->Add(st_title_error_code_doc, 0, wxALL, 0);
     sizer_error_code->Add(m_st_txt_error_code, 0, wxALL, 0);
-
 
     auto st_title_error_desc = new wxStaticText(m_sw_print_failed_info, wxID_ANY, wxT("Error desc"));
     auto st_title_error_desc_doc = new wxStaticText(m_sw_print_failed_info, wxID_ANY, ": ");
@@ -393,7 +446,6 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     sizer_extra_info->Add(st_title_extra_info_doc, 0, wxALL, 0);
     sizer_extra_info->Add(m_st_txt_extra_info, 0, wxALL, 0);
 
-
     m_link_network_state = new wxHyperlinkCtrl(m_sw_print_failed_info, wxID_ANY,_L("Check the status of current system services"),"");
     m_link_network_state->SetFont(::Label::Body_12);
     m_link_network_state->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_network_check(); });
@@ -408,7 +460,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     sizer_print_failed_info->Add(sizer_extra_info, 0, wxLEFT, 5);
 
     // bind
-    Bind(EVT_SHOW_ERROR_INFO, [this](auto& e) {
+    Bind(EVT_SHOW_ERROR_INFO_SEND, [this](auto& e) {
         show_print_failed_info(true);
     });
 
@@ -517,14 +569,17 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_sizer_main->Add(m_line_materia, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
     m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(12));
     m_sizer_main->Add(m_sizer_printer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
+    m_sizer_main->Add(m_storage_panel, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP , FromDIP(8));
     m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(11));
     m_sizer_main->Add(m_statictext_printer_msg, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+    m_sizer_main->Add(m_connecting_panel, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     m_sizer_main->Add(0, 1, 0, wxTOP, FromDIP(22));
     m_sizer_main->Add(m_line_schedule, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(30));
     m_sizer_main->Add(m_simplebook, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     m_sizer_main->Add(m_sw_print_failed_info, 0, wxALIGN_CENTER, 0);
     m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, FromDIP(13));
 
+     m_last_refresh_time = wxDateTime::Now();
     show_print_failed_info(false);
     SetSizer(m_sizer_main);
     Layout();
@@ -538,6 +593,80 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
+std::string SendToPrinterDialog::get_storage_selected()
+{
+    if (!m_selected_storage.empty())
+        return m_selected_storage;
+
+    for (const auto& radio : m_storage_radioBox) {
+        if (radio->GetValue()) {
+            return radio->GetLabel().ToStdString();
+        }
+    }
+    return "";
+}
+
+void SendToPrinterDialog::update_storage_list(const std::vector<std::string> &storages)
+{
+    m_storage_sizer->Clear();
+    m_storage_radioBox.clear();
+    m_storage_panel->DestroyChildren();
+
+    for (int i=0; i < storages.size(); i++) {
+        RadioBox* radiobox = new RadioBox(m_storage_panel);
+        Label    *storage_text = new Label(m_storage_panel);
+
+        if (storages[i] == "emmc")
+        {
+            storage_text->SetLabel(_L("Internal Storage"));
+            storage_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#000000")));
+        }
+        else
+        {
+            storage_text->SetLabel(_L("External Storage"));
+            storage_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#000000")));
+        }
+
+
+        //radiobox->SetLabel(storages[i]);
+        if (storages[i] != "emmc" && m_if_has_sdcard == false)
+        {
+            storage_text->SetLabel(_L("External Storage"));
+            radiobox->Disable();
+            storage_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#CECECE")));
+        }
+        else
+        {
+            radiobox->Enable();
+        }
+        radiobox->Bind(wxEVT_LEFT_DOWN, [this, radiobox, selectd_storage = storages[i]](auto& e) {
+            for (const auto& radio : m_storage_radioBox) {
+                radio->SetValue(false);
+            }
+            radiobox->SetValue(true);
+            m_selected_storage = selectd_storage;
+        });
+
+        m_storage_sizer->Add(radiobox, 0, wxALIGN_CENTER, 0);
+        m_storage_sizer->Add(0, 0, 0, wxEXPAND|wxLEFT, FromDIP(6));
+        m_storage_sizer->Add(storage_text, 0, wxALIGN_CENTER,0);
+        m_storage_sizer->AddSpacer(20);
+        m_storage_radioBox.push_back(radiobox);
+    }
+
+    if (m_storage_radioBox.size() > 0) {
+        m_storage_sizer->Add(0, 0, 0, wxEXPAND, FromDIP(6));
+        auto radio = m_storage_radioBox.front();
+        radio->SetValue(true);
+        if (storages.size() > 0)
+           m_selected_storage = storages[0];
+    }
+
+    m_storage_panel->Layout();
+    m_storage_panel->Fit();
+    Layout();
+    Fit();
+}
 void SendToPrinterDialog::update_print_error_info(int code, std::string msg, std::string extra)
 {
     m_print_error_code = code;
@@ -669,12 +798,19 @@ void SendToPrinterDialog::init_timer()
 void SendToPrinterDialog::on_cancel(wxCloseEvent &event)
 {
     m_worker->cancel_all();
+
+    if (m_task_timer && m_task_timer->IsRunning()) {
+        m_task_timer->Stop();
+        m_task_timer.reset();
+    }
+
+    Reset();
     this->EndModal(wxID_CANCEL);
 }
 
 void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 {
-    BOOST_LOG_TRIVIAL(info) << "print_job: on_ok to send";
+    BOOST_LOG_TRIVIAL(info) << "print_job: on_ok to send !";
     m_is_canceled = false;
     Enable_Send_Button(false);
     if (m_is_in_sending_mode)
@@ -695,8 +831,7 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
         m_comboBox_printer->SetTextLabel("");
         return;
     }
-    assert(obj_->dev_id == m_printer_last_select);
-
+    assert(obj_->get_dev_id() == m_printer_last_select);
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", print_job: for send task, current printer id =  " << m_printer_last_select << std::endl;
     show_status(PrintDialogStatus::PrintStatusSending);
@@ -706,6 +841,18 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     m_status_bar->set_cancel_callback_fina([this]() {
         BOOST_LOG_TRIVIAL(info) << "print_job: enter canceled";
         m_worker->cancel_all();
+
+        if (m_task_timer && m_task_timer->IsRunning()) {
+            m_task_timer->Stop();
+            m_task_timer.reset();
+        }
+
+        if (m_filetransfer_uploadfile_job) {
+            m_filetransfer_uploadfile_job->cancel();
+            m_filetransfer_uploadfile_job.reset();
+            m_filetransfer_uploadfile_job = nullptr;
+        }
+
         m_is_canceled = true;
         wxCommandEvent* event = new wxCommandEvent(EVT_PRINT_JOB_CANCEL);
         wxQueueEvent(this, event);
@@ -720,34 +867,44 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     // enter sending mode
     sending_mode();
 
-    result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool &cancel) {
-        if (this->m_is_canceled) return;
-        bool     cancelled = false;
-        wxString msg       = _L("Preparing print job");
-        m_status_bar->update_status(msg, cancelled, 10, true);
-        m_export_3mf_cancel = cancel = cancelled;
-    });
+    if (wxGetApp().plater()->using_exported_file()) {
+        m_plater->set_print_job_plate_idx(m_print_plate_idx);
+        result = 0;
+    }
+     else {
+         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool &cancel) {
+             if (this->m_is_canceled) return;
+             bool     cancelled = false;
+             wxString msg       = _L("Preparing print job");
+             m_status_bar->update_status(msg, cancelled, 10, true);
+             m_export_3mf_cancel = cancel = cancelled;
+         });
+     }
 
     if (m_is_canceled || m_export_3mf_cancel) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": send progress 10";
         BOOST_LOG_TRIVIAL(info) << "send_job: m_export_3mf_cancel or m_is_canceled";
         //m_status_bar->set_status_text(task_canceled_text);
         return;
     }
 
     if (result < 0) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Abnormal print file data. Please slice again";
         wxString msg = _L("Abnormal print file data. Please slice again");
         m_status_bar->set_status_text(msg);
         return;
     }
 
     // export config 3mf if needed
-    if (!obj_->is_lan_mode_printer()) {
-        result = m_plater->export_config_3mf(m_print_plate_idx);
-        if (result < 0) {
-            BOOST_LOG_TRIVIAL(trace) << "export_config_3mf failed, result = " << result;
-            return;
+    if(!wxGetApp().plater()->using_exported_file() && !obj_->is_lan_mode_printer()) {
+            result = m_plater->export_config_3mf(m_print_plate_idx);
+            if (result < 0) {
+                BOOST_LOG_TRIVIAL(info) << "export_config_3mf failed, result = " << result;
+                return;
+            }
         }
-    }
+
+
     if (m_is_canceled || m_export_3mf_cancel) {
         BOOST_LOG_TRIVIAL(info) << "send_job: m_export_3mf_cancel or m_is_canceled";
         //m_status_bar->set_status_text(task_canceled_text);
@@ -761,40 +918,90 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 		file_name = default_output_file_path.filename().string();
     }*/
 
+    if (obj_->is_support_brtc && (m_tcp_try_connect || m_tutk_try_connect))
+    {
+        update_print_status_msg(wxEmptyString, false, false);
+
+        PrintPrepareData print_data;
+
+        m_plater->get_print_job_data(&print_data);
+        std::string project_name = m_current_project_name.utf8_string() + ".gcode.3mf";
+
+        std::string _3mf_path;
+        if (wxGetApp().plater()->using_exported_file())
+            _3mf_path = wxGetApp().plater()->get_3mf_filename();
+        else
+             _3mf_path = print_data._3mf_path.string();
+
+        CreateUploadFileJob(_3mf_path, project_name);
+
+        // time out
+        if (m_task_timer && m_task_timer->IsRunning()) m_task_timer->Stop();
+
+        m_task_timer.reset(new wxTimer());
+        m_task_timer->SetOwner(this);
+
+        this->Bind(wxEVT_TIMER, [this](auto e){
+                show_status(PrintDialogStatus::PrintStatusPublicUploadFiled);
+                m_filetransfer_uploadfile_job->cancel();
+                update_print_status_msg(_L("Upload file timeout, please check if the firmware version supports it."), false, true);
+        },m_task_timer->GetId());
+        m_task_timer->StartOnce(timeout_period);
+    }
+    else
+    {
+        auto m_send_job           = std::make_unique<SendJob>(m_printer_last_select);
+        m_send_job->m_dev_ip      = obj_->get_dev_ip();
+        m_send_job->m_access_code = obj_->get_access_code();
 
 
-    auto m_send_job                 = std::make_unique<SendJob>(m_printer_last_select);
-    m_send_job->m_dev_ip            = obj_->dev_ip;
-    m_send_job->m_access_code       = obj_->get_access_code();
+        BOOST_LOG_TRIVIAL(info) << "send_job: use ftp send job";
 
 
 #if !BBL_RELEASE_TO_PUBLIC
-    m_send_job->m_local_use_ssl_for_ftp = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
-    m_send_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+        m_send_job->m_local_use_ssl_for_ftp  = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
+        m_send_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
 #else
-    m_send_job->m_local_use_ssl_for_ftp = obj_->local_use_ssl_for_ftp;
-    m_send_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+        m_send_job->m_local_use_ssl_for_ftp  = obj_->local_use_ssl_for_ftp;
+        m_send_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+
 #endif
+        m_send_job->connection_type     = obj_->connection_type();
+        m_send_job->cloud_print_only    = true;
+        m_send_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();
+        m_send_job->has_sdcard = wxGetApp().app_config->get("allow_abnormal_storage") == "true"
+            ? (m_send_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
+               || m_send_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
+            : m_send_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
+        m_send_job->set_project_name(m_current_project_name.utf8_string());
 
-    m_send_job->connection_type     = obj_->connection_type();
-    m_send_job->cloud_print_only    = true;
-    m_send_job->has_sdcard          = obj_->get_sdcard_state() == MachineObject::SdcardState::HAS_SDCARD_NORMAL;
-    m_send_job->set_project_name(m_current_project_name.utf8_string());
+        enable_prepare_mode = false;
 
-    enable_prepare_mode = false;
+        m_send_job->on_check_ip_address_fail([this, token = std::weak_ptr(m_token)](int result) {
+             CallAfter([token, this] {
+                if (token.expired()) { return; }
+                if (this) {
+                    SendFailedConfirm sfcDlg;
+                    auto res = sfcDlg.ShowModal();
+                    m_status_bar->cancel();
 
-    m_send_job->on_check_ip_address_fail([this](int result) {
-        wxCommandEvent* evt = new wxCommandEvent(EVT_CLEAR_IPADDRESS);
-        wxQueueEvent(this, evt);
-        wxGetApp().show_ip_address_enter_dialog();
-    });
+                    if (res == wxYES) {
+                        wxQueueEvent(m_button_ensure, new wxCommandEvent(wxEVT_BUTTON));
+                    } else if (res == wxAPPLY) {
+                        wxCommandEvent *evt = new wxCommandEvent(EVT_CLEAR_IPADDRESS);
+                        wxQueueEvent(this, evt);
+                        wxGetApp().show_ip_address_enter_dialog();
+                    }
+                }
+            });
+        });
 
-    if (obj_->is_lan_mode_printer()) {
-        m_send_job->set_check_mode();
-        m_send_job->check_and_continue();
+        if (obj_->is_lan_mode_printer()) {
+            m_send_job->set_check_mode();
+            m_send_job->check_and_continue();
+        }
+        replace_job(*m_worker, std::move(m_send_job));
     }
-
-    replace_job(*m_worker, std::move(m_send_job));
 
     BOOST_LOG_TRIVIAL(info) << "send_job: send print job";
 }
@@ -836,9 +1043,15 @@ void SendToPrinterDialog::update_user_machine_list()
 
 void SendToPrinterDialog::on_refresh(wxCommandEvent &event)
 {
+    wxDateTime now     = wxDateTime::Now();
+    wxTimeSpan elapsed = now - m_last_refresh_time;
+
+    if (elapsed.GetMilliseconds() < 500) return;
+
+    m_last_refresh_time = now;
+
     BOOST_LOG_TRIVIAL(info) << "m_printer_last_select: on_refresh";
     show_status(PrintDialogStatus::PrintStatusRefreshingMachineList);
-
     update_user_machine_list();
 }
 
@@ -859,6 +1072,7 @@ std::vector<std::string> SendToPrinterDialog::sort_string(std::vector<std::strin
 
     return outputArray;
 }
+
 
 bool  SendToPrinterDialog::is_timeout()
 {
@@ -896,15 +1110,15 @@ void SendToPrinterDialog::update_user_printer()
     // same machine only appear once
     for (auto it = option_list.begin(); it != option_list.end(); it++) {
         if (it->second && (it->second->is_online() || it->second->is_connected())) {
-            machine_list.push_back(it->second->dev_name);
+            machine_list.push_back(it->second->get_dev_name());
         }
     }
     machine_list = sort_string(machine_list);
     for (auto tt = machine_list.begin(); tt != machine_list.end(); tt++) {
         for (auto it = option_list.begin(); it != option_list.end(); it++) {
-            if (it->second->dev_name == *tt) {
+            if (it->second->get_dev_name() == *tt) {
                 m_list.push_back(it->second);
-                wxString dev_name_text = from_u8(it->second->dev_name);
+                wxString dev_name_text = from_u8(it->second->get_dev_name());
                 if (it->second->is_lan_mode_printer()) {
                     dev_name_text += "(LAN)";
                 }
@@ -923,7 +1137,7 @@ void SendToPrinterDialog::update_user_printer()
     }
 
     if (obj) {
-        m_printer_last_select = obj->dev_id;
+        m_printer_last_select = obj->get_dev_id();
     } else {
         m_printer_last_select = "";
     }
@@ -931,14 +1145,14 @@ void SendToPrinterDialog::update_user_printer()
     if (m_list.size() > 0) {
         // select a default machine
         if (m_printer_last_select.empty()) {
-            m_printer_last_select = m_list[0]->dev_id;
+            m_printer_last_select = m_list[0]->get_dev_id();
             m_comboBox_printer->SetSelection(0);
             wxCommandEvent event(wxEVT_COMBOBOX);
             event.SetEventObject(m_comboBox_printer);
             wxPostEvent(m_comboBox_printer, event);
         }
         for (auto i = 0; i < m_list.size(); i++) {
-            if (m_list[i]->dev_id == m_printer_last_select) {
+            if (m_list[i]->get_dev_id() == m_printer_last_select) {
                 m_comboBox_printer->SetSelection(i);
                 wxCommandEvent event(wxEVT_COMBOBOX);
                 event.SetEventObject(m_comboBox_printer);
@@ -962,7 +1176,6 @@ void SendToPrinterDialog::update_printer_combobox(wxCommandEvent &event)
 
 void SendToPrinterDialog::on_timer(wxTimerEvent &event)
 {
-    wxGetApp().reset_to_active();
     update_show_status();
 }
 
@@ -976,10 +1189,12 @@ void SendToPrinterDialog::on_selection_changed(wxCommandEvent &event)
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return;
 
+    Reset();
+
     MachineObject* obj = nullptr;
     for (int i = 0; i < m_list.size(); i++) {
         if (i == selection) {
-            m_printer_last_select = m_list[i]->dev_id;
+            m_printer_last_select = m_list[i]->get_dev_id();
             obj = m_list[i];
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "for send task, current printer id =  " << m_printer_last_select << std::endl;
             break;
@@ -990,9 +1205,11 @@ void SendToPrinterDialog::on_selection_changed(wxCommandEvent &event)
         obj->command_get_version();
         obj->command_request_push_all();
         if (!dev->get_selected_machine()) {
-            dev->set_selected_machine(m_printer_last_select, true);
-        }else if (dev->get_selected_machine()->dev_id != m_printer_last_select) {
-            dev->set_selected_machine(m_printer_last_select, true);
+            dev->set_selected_machine(m_printer_last_select);
+
+        }else if (dev->get_selected_machine()->get_dev_id() != m_printer_last_select) {
+            update_storage_list(std::vector<std::string>());
+            dev->set_selected_machine(m_printer_last_select);
         }
     }
     else {
@@ -1010,13 +1227,11 @@ void SendToPrinterDialog::update_show_status()
     if (!agent) return;
     if (!dev) return;
     MachineObject* obj_ = dev->get_my_machine(m_printer_last_select);
+
     if (!obj_) {
         if (agent) {
             if (agent->is_user_login()) {
                 show_status(PrintDialogStatus::PrintStatusInvalidPrinter);
-            }
-            else {
-                show_status(PrintDialogStatus::PrintStatusNoUserLogin);
             }
         }
         return;
@@ -1025,7 +1240,6 @@ void SendToPrinterDialog::update_show_status()
     /* check cloud machine connections */
     if (!obj_->is_lan_mode_printer()) {
         if (!agent->is_server_connected()) {
-            agent->refresh_connection();
             show_status(PrintDialogStatus::PrintStatusConnectingServer);
             reset_timeout();
             return;
@@ -1064,20 +1278,52 @@ void SendToPrinterDialog::update_show_status()
     // check sdcard when if lan mode printer
    /* if (obj_->is_lan_mode_printer()) {
     }*/
-	if (obj_->get_sdcard_state() == MachineObject::SdcardState::NO_SDCARD) {
-		show_status(PrintDialogStatus::PrintStatusNoSdcard);
-		return;
-	}
-
-
     if (!obj_->is_support_send_to_sdcard) {
         show_status(PrintDialogStatus::PrintStatusNotSupportedSendToSDCard);
         return;
     }
 
-    if (!m_is_in_sending_mode) {
-        show_status(PrintDialogStatus::PrintStatusReadingFinished);
-        return;
+    if (!m_is_in_sending_mode)
+    {
+        if (obj_->is_support_brtc && !m_ftp_try_connect)
+        {
+            std::string dev_id = obj_->get_dev_ip();
+            if (m_device_select != dev_id)
+            {
+                show_status(PrintDialogStatus::PrintStatusConnecting);
+                m_device_select.swap(dev_id);
+                if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD)
+                    m_if_has_sdcard = false;
+                else
+                    m_if_has_sdcard = true;
+
+                if (m_filetransfer_tunnel) {
+                    m_filetransfer_tunnel.reset();
+                    m_filetransfer_tunnel = nullptr;
+                }
+
+                GetConnection();
+            }
+        }
+        else
+        {
+            if (obj_->is_support_brtc && !obj_->is_lan_mode_printer())
+            {
+                show_status(PrintDialogStatus::PrintStatusPublicInitFailed);
+                update_print_status_msg(_L("Connection timed out, please check your network."), true, true);
+            }
+            else
+            {
+                //use ftp
+                if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD) {
+                    show_status(PrintDialogStatus::PrintStatusNoSdcard);
+                    return;
+                }
+
+                show_status(PrintDialogStatus::PrintStatusReadingFinished);
+                return;
+            }
+        }
     }
 }
 
@@ -1091,7 +1337,7 @@ bool SendToPrinterDialog::is_blocking_printing(MachineObject* obj_)
     auto target_model = obj_->printer_type;
 
     if (source_model != target_model) {
-        std::vector<std::string> compatible_machine = dev->get_compatible_machine(target_model);
+        std::vector<std::string> compatible_machine = obj_->get_compatible_machine();
         vector<std::string>::iterator it = find(compatible_machine.begin(), compatible_machine.end(), source_model);
         if (it == compatible_machine.end()) {
             return true;
@@ -1105,23 +1351,21 @@ void SendToPrinterDialog::Enable_Refresh_Button(bool en)
 {
     if (!en) {
         if (m_button_refresh->IsEnabled()) {
-            m_button_refresh->Disable();
-            m_button_refresh->SetBackgroundColor(wxColour(0x90, 0x90, 0x90));
-            m_button_refresh->SetBorderColor(wxColour(0x90, 0x90, 0x90));
+            m_button_refresh->Disable(); // ORCA no need to set colors again
         }
     } else {
         if (!m_button_refresh->IsEnabled()) {
-            m_button_refresh->Enable();
-            m_button_refresh->SetBackgroundColor(btn_bg_enable);
-            m_button_refresh->SetBorderColor(btn_bg_enable);
+            m_button_refresh->Enable(); // ORCA no need to set colors again
         }
     }
 }
 
 void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxString> params)
 {
-	if (m_print_status != status)
-		BOOST_LOG_TRIVIAL(info) << "select_machine_dialog: show_status = " << status;
+    if (m_print_status != status)
+        BOOST_LOG_TRIVIAL(info) << "select_machine_dialog: show_status = " << status;
+    else
+        return;
 	m_print_status = status;
 
 	// m_comboBox_printer
@@ -1129,6 +1373,37 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		m_comboBox_printer->Disable();
 	else
 		m_comboBox_printer->Enable();
+
+
+    //connecting
+    if(status == PrintDialogStatus::PrintStatusConnecting)
+    {
+        m_connecting_printer_msg->SetLabel(_L("Try to connect"));
+        update_print_status_msg(wxEmptyString, true, true);
+        m_connecting_panel->Show();
+        m_animaicon->Play();
+
+        Layout();
+        Enable_Send_Button(false);
+        Enable_Refresh_Button(false);
+        return;
+
+    } else if (status == PrintDialogStatus::PrintStatusReconnecting) {
+        m_connecting_printer_msg->SetLabel(_L("Connection failed. Click the icon to retry"));
+            update_print_status_msg(wxEmptyString, true, true);
+            m_connecting_panel->Show();
+            m_animaicon->Stop();
+            m_animaicon->Enable();
+
+            Layout();
+            Enable_Send_Button(false);
+            Enable_Refresh_Button(true);
+            return;
+    }
+    else {
+        m_connecting_panel->Hide();
+    }
+
 
 	// m_panel_warn m_simplebook
 	if (status == PrintDialogStatus::PrintStatusSending) {
@@ -1141,36 +1416,31 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
 	}
-	else if (status == PrintDialogStatus::PrintStatusNoUserLogin) {
-		wxString msg_text = _L("No login account, only printers in LAN mode are displayed");
-		update_print_status_msg(msg_text, false, true);
-		Enable_Send_Button(false);
-		Enable_Refresh_Button(true);
-	}
 	else if (status == PrintDialogStatus::PrintStatusInvalidPrinter) {
 		update_print_status_msg(wxEmptyString, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
 	}
 	else if (status == PrintDialogStatus::PrintStatusConnectingServer) {
-		wxString msg_text = _L("Connecting to server");
+		wxString msg_text = _L("Connecting to server...");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
-	}
-	else if (status == PrintDialogStatus::PrintStatusReading) {
-		wxString msg_text = _L("Synchronizing device information");
-		update_print_status_msg(msg_text, false, true);
-		Enable_Send_Button(false);
-		Enable_Refresh_Button(true);
-	}
+    }
+    else if (status == PrintDialogStatus::PrintStatusReading) {
+        wxString msg_text = _L("Synchronizing device information...");
+        update_print_status_msg(msg_text, false, true);
+        Enable_Send_Button(false);
+        Enable_Refresh_Button(false);
+    }
+
 	else if (status == PrintDialogStatus::PrintStatusReadingFinished) {
 		update_print_status_msg(wxEmptyString, false, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
 	}
 	else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
-		wxString msg_text = _L("Synchronizing device information time out");
+		wxString msg_text = _L("Synchronizing device information timed out.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(true);
 		Enable_Refresh_Button(true);
@@ -1201,7 +1471,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Refresh_Button(true);
 	}
 	else if (status == PrintDialogStatus::PrintStatusNoSdcard) {
-		wxString msg_text = _L("An SD card needs to be inserted before send to printer SD card.");
+		wxString msg_text = _L("Storage needs to be inserted before send to printer.");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
@@ -1213,9 +1483,16 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         Enable_Refresh_Button(true);
     }
     else if (status == PrintDialogStatus::PrintStatusNotSupportedSendToSDCard) {
-        wxString msg_text = _L("The printer does not support sending to printer SD card.");
+        wxString msg_text = _L("The printer does not support sending to printer storage.");
         update_print_status_msg(msg_text, true, true);
         Enable_Send_Button(false);
+        Enable_Refresh_Button(true);
+    } else if (status == PrintDialogStatus::PrintStatusPublicInitFailed) {
+        Enable_Send_Button(false);
+        Enable_Refresh_Button(true);
+    } else if (status == PrintDialogStatus::PrintStatusPublicUploadFiled) {
+        prepare_mode();
+        Enable_Send_Button(true);
         Enable_Refresh_Button(true);
     }
     else {
@@ -1230,24 +1507,20 @@ void SendToPrinterDialog::Enable_Send_Button(bool en)
     if (!en) {
         if (m_button_ensure->IsEnabled()) {
             m_button_ensure->Disable();
-            m_button_ensure->SetBackgroundColor(wxColour(0x90, 0x90, 0x90));
-            m_button_ensure->SetBorderColor(wxColour(0x90, 0x90, 0x90));
+            m_storage_panel->Hide();
         }
     } else {
         if (!m_button_ensure->IsEnabled()) {
             m_button_ensure->Enable();
-            m_button_ensure->SetBackgroundColor(btn_bg_enable);
-            m_button_ensure->SetBorderColor(btn_bg_enable);
+            m_storage_panel->Show();
         }
     }
 }
 
 void SendToPrinterDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    m_button_refresh->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_refresh->SetCornerRadius(FromDIP(12));
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_ensure->SetCornerRadius(FromDIP(12));
+    m_button_refresh->Rescale(); // ORCA
+    m_button_ensure->Rescale(); // ORCA
     m_status_bar->msw_rescale();
     Fit();
     Refresh();
@@ -1295,8 +1568,6 @@ void SendToPrinterDialog::set_default()
     if (agent) {
         if (agent->is_user_login()) {
             show_status(PrintDialogStatus::PrintStatusInit);
-        } else {
-            show_status(PrintDialogStatus::PrintStatusNoUserLogin);
         }
     }
 
@@ -1316,6 +1587,8 @@ void SendToPrinterDialog::set_default()
         }
         image  = image.Rescale(FromDIP(256), FromDIP(256));
         m_thumbnailPanel->set_thumbnail(image);
+    } else {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " : thumbnail_data invalid." << "current plater: " << m_plater->get_partplate_list().get_curr_plate_index();
     }
 
     std::vector<std::string> materials;
@@ -1369,13 +1642,12 @@ bool SendToPrinterDialog::Show(bool show)
 
     // set default value when show this dialog
     if (show) {
-        wxGetApp().reset_to_active();
+        update_storage_list(std::vector<std::string>());
         set_default();
         update_user_machine_list();
-    }
-
-    if (show) {
+        Reset();
         m_refresh_timer->Start(LIST_REFRESH_INTERVAL);
+
     } else {
         m_refresh_timer->Stop();
     }
@@ -1383,12 +1655,356 @@ bool SendToPrinterDialog::Show(bool show)
     Layout();
     Fit();
     if (show) { CenterOnParent(); }
+
     return DPIDialog::Show(show);
+}
+
+extern wxString hide_passwd(wxString url, std::vector<wxString> const &passwords);
+extern void     refresh_agora_url(char const *device, char const *dev_ver, char const *channel, void *context, void (*callback)(void *context, char const *url));
+
+void SendToPrinterDialog::GetConnection()
+{
+    DeviceManager *dm  = GUI::wxGetApp().getDeviceManager();
+
+    MachineObject *obj = dm->get_selected_machine();
+    if (obj == nullptr) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : obj is empty";
+        m_connection_status = ConnectionStatus::NOT_START;
+    }
+
+    int remote_proto = obj->get_file_remote();
+    if (!remote_proto) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : remote_proto is not support";
+        m_connection_status = ConnectionStatus::NOT_START;
+    }
+
+    if (obj->is_camera_busy_off()) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : camera is busy";
+        m_connection_status = ConnectionStatus::NOT_START;
+    }
+
+    NetworkAgent *agent         = wxGetApp().getAgent();
+    std::string   agent_version = agent ? agent->get_version() : "";
+    std::string   dev_ver       = obj->get_ota_version();
+    std::string   dev_id        = obj->get_dev_id();
+
+     if (m_url_timer && m_url_timer->IsRunning())
+     {
+         m_url_timer->Stop();
+     }
+
+     m_url_timer.reset(new wxTimer());
+     m_url_timer->SetOwner(this);
+     this->Bind(
+         wxEVT_TIMER,
+         [this](wxTimerEvent &e) {
+             BOOST_LOG_TRIVIAL(info) << "Timer callback triggered!";
+             m_connection_status = ConnectionStatus::CONNECTION_FAILED;
+             m_ftp_try_connect   = true;
+             if (m_filetransfer_tunnel)
+             {
+                 m_filetransfer_tunnel.reset();
+                 m_filetransfer_tunnel = nullptr;
+             }
+
+         },
+         m_url_timer->GetId());
+     m_url_timer->StartOnce(8000);
+
+    if (agent) {
+        if (m_tcp_try_connect) {
+            std::string devIP      = obj->get_dev_ip();
+            std::string accessCode = obj->get_access_code();
+            std::string url        = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Connect method tcp";
+            m_filetransfer_tunnel  = std::make_unique<FileTransferTunnel>(module(), url);
+            m_filetransfer_tunnel->on_connection([this](bool is_success, int err_code, std::string error_msg) {
+                CallAfter([this, is_success, err_code, error_msg]() {
+                       OnConnection(is_success, err_code, error_msg);
+                });
+            });
+            m_filetransfer_tunnel->start_connect();
+        }
+        else if (m_tutk_try_connect)
+        {
+            std::string protocols[] = {"", "\"tutk\"", "\"agora\"", "\"tutk\",\"agora\""};
+            agent->get_camera_url(obj->get_dev_id() + "|" + dev_ver + "|" + protocols[1], [this, m = dev_id, v = agent->get_version(), dv = dev_ver](std::string url) {
+                if (boost::algorithm::starts_with(url, "bambu:///")) {
+                    url += "&device=" + m;
+                    url += "&net_ver=" + v;
+                    url += "&dev_ver=" + dv;
+                    url += "&refresh_url=" + boost::lexical_cast<std::string>(&refresh_agora_url);
+                    url += "&cli_id=" + wxGetApp().app_config->get("slicer_uuid");
+                    url += "&cli_ver=" + std::string(SLIC3R_VERSION);
+                }
+
+                if (m_url_timer && m_url_timer->IsRunning())
+                {
+                    m_url_timer->Stop();
+                }
+
+                #if !BBL_RELEASE_TO_PUBLIC
+                                BOOST_LOG_TRIVIAL(info) << "SendToPrinter::camera_url: " << hide_passwd(url, {"?uid=", "authkey=", "passwd="});
+                #endif
+
+
+                if (boost::algorithm::starts_with(url, "bambu:///"))
+                {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Connect method tutk";
+                    m_filetransfer_tunnel = std::make_unique<FileTransferTunnel>(module(), url);
+                    m_filetransfer_tunnel->on_connection([this](bool is_success, int err_code, std::string error_msg) {
+                        CallAfter([this, is_success, err_code, error_msg]() { OnConnection(is_success, err_code, error_msg); });
+                    });
+                    m_filetransfer_tunnel->start_connect();
+                }
+                else
+                {
+                    std::string res = "";
+                    if (!url.empty() && boost::ends_with(url, "]"))
+                    {
+                        size_t n = url.find_last_of('[');
+                        if (n != std::string::npos)
+                            res = url.substr(n + 1, url.length() - n - 2);
+                    }
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " : Tutk url error: ress = " << res;
+                }
+            });
+        }
+    }
+}
+
+void SendToPrinterDialog::OnConnection(bool is_success, int error_code, std::string error_msg) {
+    if (is_success)
+    {
+        if (m_url_timer && m_url_timer->IsRunning()) { m_url_timer->Stop(); }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Connect success";
+        m_connection_status = ConnectionStatus::CONNECTED;
+        CreateMediaAbilityJob();
+    }
+    else
+    {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Connect failed, error_code is:" << error_code << "error_msg is :" << error_msg;
+        m_connection_status = ConnectionStatus::CONNECTION_FAILED;
+        ChangeConnectMethod();
+        if (!m_tcp_try_connect && !m_tutk_try_connect) {
+             show_status(PrintDialogStatus::PrintStatusPublicInitFailed);
+             return;
+        }
+        m_filetransfer_tunnel.reset();
+        m_filetransfer_tunnel = nullptr;
+        GetConnection();
+    }
+}
+
+void SendToPrinterDialog::ChangeConnectMethod()
+{
+    DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+    if (!dev) return;
+    MachineObject *obj = dev->get_my_machine(m_printer_last_select);
+    if (!obj) return;
+
+    bool is_lan = (obj->connection_type() == "lan");
+
+    m_tcp_try_connect = false;
+
+    if (is_lan) {
+        m_ftp_try_connect  = true;
+        m_tutk_try_connect = false;
+    } else {
+        if (m_connect_try_times == 0) {
+            m_ftp_try_connect  = false;
+            m_tutk_try_connect = true;
+        } else {
+            m_ftp_try_connect  = true;
+            m_tutk_try_connect = false;
+        }
+    }
+    m_connect_try_times++;
+}
+
+void SendToPrinterDialog::ResetConnectMethod()
+{
+    m_tcp_try_connect   = true;
+    m_ftp_try_connect   = false;
+    m_tutk_try_connect  = false;
+    m_connect_try_times = 0;
+}
+
+
+void SendToPrinterDialog::ResetTunnelAndJob()
+{
+    if (m_filetransfer_uploadfile_job)
+    {
+        m_filetransfer_uploadfile_job->cancel();
+        m_filetransfer_uploadfile_job.reset();
+        m_filetransfer_uploadfile_job = nullptr;
+    }
+    if (m_filetransfer_mediability_job)
+    {
+        m_filetransfer_mediability_job->cancel();
+        m_filetransfer_mediability_job.reset();
+        m_filetransfer_mediability_job = nullptr;
+    }
+    if (m_filetransfer_tunnel)
+    {
+        m_filetransfer_tunnel.reset();
+        m_filetransfer_tunnel = nullptr;
+    }
+}
+
+void SendToPrinterDialog::CreateMediaAbilityJob()
+{
+     nlohmann::json media_ability = {{"cmd_type", 7}};
+     m_filetransfer_mediability_job = std::make_unique<FileTransferJob>(module(), std::string(media_ability.dump()));
+     m_filetransfer_mediability_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res) {
+         //this pl
+         CallAfter([this, res, resp_ec, json_res] {
+             if (res == 0) // 0 is success
+             {
+                 show_status(PrintDialogStatus::PrintStatusReadingFinished);
+                 try
+                 {
+                     auto media_set = nlohmann::json::parse(json_res);
+                     for (const auto &it : media_set)
+                         m_ability_list.push_back(it.get<std::string>());
+
+                     BOOST_LOG_TRIVIAL(info) << "CreateMediaAbilityJob::" << "request mediaability success." << json_res;
+                     if (m_if_has_sdcard == false && m_ability_list.size() == 1)
+                     {
+                         show_status(PrintDialogStatus::PrintStatusNoSdcard);
+                         return;
+                     }
+                     else
+                     {
+                         update_storage_list(m_ability_list);
+                     }
+                 }
+                 catch (const nlohmann::json::exception &e)
+                 {
+                    BOOST_LOG_TRIVIAL(error) << "CreateMediaAbilityJob::" << ": " << e.what();
+                 }
+                 catch (...)
+                 {
+                     BOOST_LOG_TRIVIAL(error) << "CreateMediaAbilityJob::" << ": " << "parse error!";
+                 }
+             }
+             else
+             {
+                 BOOST_LOG_TRIVIAL(error) << "CreateMediaAbilityJob::" << ":request mediaability failed. res =" << res << "resp_ec is:" << resp_ec;
+                 show_status(PrintDialogStatus::PrintStatusPublicInitFailed);
+                 update_print_status_msg(ParseErrorCode(resp_ec), false, true);
+             }
+         });
+     });
+     m_filetransfer_mediability_job->start_on(*m_filetransfer_tunnel);
+}
+
+void SendToPrinterDialog::CreateUploadFileJob(const std::string &path, const std::string &name)
+{
+    nlohmann::json upload_params = {
+        {"cmd_type", 5},
+    };
+    upload_params["dest_storage"] = m_selected_storage;
+    upload_params["dest_name"]    = name; // filenme no path
+    upload_params["file_path"]    = path;
+
+      BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Begin CreateUploadFileJob";
+    m_filetransfer_uploadfile_job = std::make_unique<FileTransferJob>(module(), std::string(upload_params.dump()));
+    m_filetransfer_uploadfile_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res) { //
+        CallAfter([this, res, resp_ec, json_res, bin_res] {
+            UploadFileRessultCallback(res, resp_ec,json_res, bin_res);
+        });
+    });
+
+    m_filetransfer_uploadfile_job->on_msg([this](int kind, std::string json_res) {
+        CallAfter([this, kind, json_res] {
+            if (kind == 0) {
+                try
+                {
+                    auto js       = nlohmann::json::parse(json_res);
+                    int  progress = js["progress"].get<int>();
+                    UploadFileProgressCallback(progress);
+                }
+                catch (const nlohmann::json::exception& e)
+                {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << e.what();
+                }
+                catch (...)
+                {
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << "parse_json failed! ";
+                }
+            }
+        });
+    });
+    m_filetransfer_uploadfile_job->start_on(*m_filetransfer_tunnel);
+}
+
+void SendToPrinterDialog::UploadFileProgressCallback(int progress)
+{
+    bool     cancelled = false;
+    wxString msg       = _L("Sending...");
+    m_status_bar->update_status(msg, cancelled, 10 + std::floor(progress * 0.9), true);
+
+    if (m_task_timer && m_task_timer->IsRunning()) m_task_timer->Stop();
+
+    if (progress == 99) {
+        m_task_timer.reset(new wxTimer());
+        m_task_timer->SetOwner(this);
+
+        this->Bind(
+            wxEVT_TIMER,
+            [this](auto e) {
+                show_status(PrintDialogStatus::PrintStatusPublicUploadFiled);
+                update_print_status_msg(
+                    _L("File upload timed out. Please check if the firmware version supports this operation or verify if the printer is functioning properly."), false, true);
+            },
+            m_task_timer->GetId());
+        m_task_timer->StartOnce(timeout_period);
+    }
+}
+
+void SendToPrinterDialog::UploadFileRessultCallback(int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res)
+{
+        if (m_task_timer && m_task_timer->IsRunning()) m_task_timer->Stop();
+
+        if (res == 0)
+        {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":upload success to:" << m_selected_storage ;
+            show_status(PrintDialogStatus::PrintStatusReadingFinished);
+            wxCommandEvent *evt = new wxCommandEvent(m_plater->get_send_finished_event());
+            evt->SetString(from_u8(m_current_project_name.utf8_string()));
+            wxQueueEvent(m_plater, evt);
+        }
+        else {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":upload failed to:"<< m_selected_storage << "res:" << res << "resp_ec is:" << resp_ec;
+            show_status(PrintDialogStatus::PrintStatusPublicUploadFiled)    ;
+           // if (err_msg.IsEmpty()) err_msg = _L("Sending failed, please try again!"); // TODO error code
+            if (ParseErrorCode(resp_ec) != "")
+                update_print_status_msg(ParseErrorCode(resp_ec), false, true);
+            else
+                update_print_status_msg("Sending failed, please try again!", false, true);
+            m_filetransfer_uploadfile_job.reset();
+            m_filetransfer_uploadfile_job = nullptr;
+        }
+}
+
+void SendToPrinterDialog::Reset() {
+    if (m_url_timer && m_url_timer->IsRunning()) { m_url_timer->Stop(); }
+    m_ability_list.clear();
+    update_storage_list(std::vector<std::string>());
+    m_device_select.clear();
+    ResetConnectMethod();
+    ResetTunnelAndJob();
+
 }
 
 SendToPrinterDialog::~SendToPrinterDialog()
 {
     delete m_refresh_timer;
+    if (m_task_timer && m_task_timer->IsRunning())
+        m_task_timer->Stop();
+    if (m_url_timer && m_url_timer->IsRunning())
+         m_url_timer->Stop();
 }
 
 }

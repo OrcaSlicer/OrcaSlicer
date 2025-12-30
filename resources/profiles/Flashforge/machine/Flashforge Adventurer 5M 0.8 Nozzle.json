@@ -1,18 +1,28 @@
 {
-  "type": "machine",
-  "setting_id": "GM005",
-  "name": "Flashforge Adventurer 5M 0.8 Nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_adventurer5m_common",
-  "printer_model": "Flashforge Adventurer 5M",
-  "default_print_profile": "0.40mm Standard @Flashforge AD5M 0.8 Nozzle",
-  "nozzle_diameter": ["0.8"],
-  "printer_variant": "0.8",
-  "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM104 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F6000\nG1 E-1.5 F600\nG1 E12 F800\nG1 X85 Y110 Z0.3 F1200\nG1 X-110 E30 F2400\nG1 Y0 E8 F2400\nG1 X-109.6 F2400\nG1 Y110 E10 F2400\nG92 E0",
-  "max_layer_height": ["0.56"],
-  "min_layer_height": ["0.24"],
-  "retraction_length": ["1.5"],
-  "nozzle_type": "hardened_steel",
-  "z_hop": ["0"]
+    "type": "machine",
+    "name": "Flashforge Adventurer 5M 0.8 Nozzle",
+    "inherits": "fdm_adventurer5m_common",
+    "from": "system",
+    "setting_id": "GM005",
+    "instantiation": "true",
+    "printer_model": "Flashforge Adventurer 5M",
+    "default_print_profile": "0.40mm Standard @Flashforge AD5M 0.8 Nozzle",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printer_variant": "0.8",
+    "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM104 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F6000\nG1 E-1.5 F600\nG1 E12 F800\nG1 X85 Y110 Z0.3 F1200\nG1 X-110 E30 F2400\nG1 Y0 E8 F2400\nG1 X-109.6 F2400\nG1 Y110 E10 F2400\nG92 E0",
+    "max_layer_height": [
+        "0.56"
+    ],
+    "min_layer_height": [
+        "0.24"
+    ],
+    "retraction_length": [
+        "1.5"
+    ],
+    "nozzle_type": "hardened_steel",
+    "z_hop": [
+        "0"
+    ]
 }

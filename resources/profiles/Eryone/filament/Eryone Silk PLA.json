@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "EFL941",
-    "setting_id": "EFSA041",
     "name": "Eryone Silk PLA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA041",
+    "filament_id": "EFL941",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],

@@ -1,16 +1,14 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker TPU 95A @U1",
-  "setting_id": "316428530",
-  "inherits": "Snapmaker TPU 95A @U1 base",
-  "compatible_printers": [
-    "Snapmaker U1 (0.4 nozzle)"
-  ],
-
-
-  "activate_air_filtration": [
+    "type": "filament",
+    "name": "Snapmaker TPU 95A @U1",
+    "inherits": "Snapmaker TPU 95A @U1 base",
+    "from": "system",
+    "setting_id": "316428530",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "activate_air_filtration": [
         "0"
     ],
     "activate_chamber_temp_control": [
@@ -281,7 +279,6 @@
         "35"
     ],
     "default_filament_colour": [
-    ""
-  ]
-  
+        ""
+    ]
 }

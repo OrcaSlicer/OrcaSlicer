@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.28mm SuperDraft @Creality K2 Plus 0.4 nozzle",
-    "from": "system",
     "inherits": "fdm_process_common_klipper",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "max_travel_detour_distance": "0",
     "bottom_surface_pattern": "monotonic",

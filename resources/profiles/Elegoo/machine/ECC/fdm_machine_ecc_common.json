@@ -116,7 +116,7 @@
         "1"
     ],
     "z_hop_types": [
-      "Auto Lift"
+        "Auto Lift"
     ],
     "default_filament_profile": [],
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",

@@ -1,20 +1,20 @@
 {
-  "type": "machine",
-  "from": "system",
-  "instantiation": "false",
-  "name": "fdm_a250",
-  "inherits": "fdm_linear2",
-  "bed_model": "Snapmaker A250_bed.stl",
-  "bed_texture": "Snapmaker A250_texture.svg",
-  "printable_height": "230",
-  "printer_notes": "PRINTER_MODEL_SNAPMAKER_A250\n",
-  "printable_area": [
-    "0x0",
-    "230x0",
-    "230x250",
-    "0x250"
-  ],
-  "machine_start_gcode": "; Model: Snapmaker A250\n; Update: 20240922\n; Maintained by https://github.com/macdylan/3dp-configs\n; Printer : [printer_preset]\n; Profile : [print_preset]\n; Plate   : [plate_name]\n\nT[initial_extruder]\n\nM140 S{first_layer_bed_temperature[initial_extruder]}\n\n; you can clean the nozzle\nM104 S165\nM204 S100\nG28\nG0 Z153 F960.0\nG0 Y125.0 F3420.0\nG0 X115.0\n\nM190 R{first_layer_bed_temperature[initial_extruder]}\n\nG28\n{if 0==1} ; boundary check(for dual/quick swap kit), not recommanded if there are any clamps \n  G0 X0\n  G0 Z0.2 F960.0\n  G0 Y0 F3420.0\n  G0 X230\n  G0 Y250\n  G0 X0\n  G0 Y0\n{endif}\n\nM83\n{if 1==1 && max(hot_plate_temp_initial_layer[initial_extruder], hot_plate_temp[initial_extruder]) >= 90}\nG0 Z0.06\nG92 Z0 ;reset z\n{endif}\n\n; flush initial nozzle\nT[initial_extruder]\nM104 S{max(250, min(290, nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 15))}; common flush temp\nG0 Z1.6 F960.0\nG0 X{( initial_extruder % 2 == 0 ? 100.0 : 130.0 )} F3420.0\nG0 Y0 F3420.0\n\nM109 S{max(250, min(290, nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 15))} C2 W1\nG1 E15 F80.0\nG92 E0\n\nM106 S{min(255, (fan_max_speed[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 10) * 2.55)}\n\nM104 S{nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 5}\n\nG1 E9.0 F200\nG92 E0\nG1 E6.0 Z4.6 F200\nG92 E0\n\nG0 Z5.6 F200\nM107\n\nG0 X{( initial_extruder % 2 == 0 ? 55.0 : 175.0 )} F3420.0\nG0 Z0.3 F960.0\nM109 S{nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))]} C3 W1\nG1 E3 F200\nG92 E0\nG1 X{( initial_extruder % 2 == 0 ? 0 : 230 )} E3.42995 F3420.0\nG92 E0\n\nG1 E-{retraction_length[initial_extruder]} F200\nG92 E0\nG0 Y20 F3420.0\n\n; ready [plate_name]",
-  "machine_end_gcode": "G92 E0\n\nG0 Z{max_layer_z + 2.0} F600\n; retract the filament to make it easier to replace\nG0 E-5 F200\nG28\n\n  M104 S0\nM140 S0\nM107\nM220 S100\nM84\n\n;\n; DON'T REMOVE these lines if you're using the smfix (https://github.com/macdylan/SMFix)\n; min_x = [first_layer_print_min_0]\n; min_y = [first_layer_print_min_1]\n; max_x = [first_layer_print_max_0]\n; max_y = [first_layer_print_max_1]\n; max_z = [max_layer_z]\n; total_layer_number = [layer_num]\n;",
-  "before_layer_change_gcode": "; layer_num: [layer_num]\nG92 E0"
+    "type": "machine",
+    "name": "fdm_a250",
+    "inherits": "fdm_linear2",
+    "from": "system",
+    "instantiation": "false",
+    "bed_model": "Snapmaker A250_bed.stl",
+    "bed_texture": "Snapmaker A250_texture.svg",
+    "printable_height": "230",
+    "printer_notes": "PRINTER_MODEL_SNAPMAKER_A250\n",
+    "printable_area": [
+        "0x0",
+        "230x0",
+        "230x250",
+        "0x250"
+    ],
+    "machine_start_gcode": "; Model: Snapmaker A250\n; Update: 20240922\n; Maintained by https://github.com/macdylan/3dp-configs\n; Printer : [printer_preset]\n; Profile : [print_preset]\n; Plate   : [plate_name]\n\nT[initial_extruder]\n\nM140 S{first_layer_bed_temperature[initial_extruder]}\n\n; you can clean the nozzle\nM104 S165\nM204 S100\nG28\nG0 Z153 F960.0\nG0 Y125.0 F3420.0\nG0 X115.0\n\nM190 R{first_layer_bed_temperature[initial_extruder]}\n\nG28\n{if 0==1} ; boundary check(for dual/quick swap kit), not recommanded if there are any clamps \n  G0 X0\n  G0 Z0.2 F960.0\n  G0 Y0 F3420.0\n  G0 X230\n  G0 Y250\n  G0 X0\n  G0 Y0\n{endif}\n\nM83\n{if 1==1 && max(hot_plate_temp_initial_layer[initial_extruder], hot_plate_temp[initial_extruder]) >= 90}\nG0 Z0.06\nG92 Z0 ;reset z\n{endif}\n\n; flush initial nozzle\nT[initial_extruder]\nM104 S{max(250, min(290, nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 15))}; common flush temp\nG0 Z1.6 F960.0\nG0 X{( initial_extruder % 2 == 0 ? 100.0 : 130.0 )} F3420.0\nG0 Y0 F3420.0\n\nM109 S{max(250, min(290, nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 15))} C2 W1\nG1 E15 F80.0\nG92 E0\n\nM106 S{min(255, (fan_max_speed[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 10) * 2.55)}\n\nM104 S{nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))] + 5}\n\nG1 E9.0 F200\nG92 E0\nG1 E6.0 Z4.6 F200\nG92 E0\n\nG0 Z5.6 F200\nM107\n\nG0 X{( initial_extruder % 2 == 0 ? 55.0 : 175.0 )} F3420.0\nG0 Z0.3 F960.0\nM109 S{nozzle_temperature_initial_layer[(initial_extruder % 2 == 0 ? min(initial_extruder + initial_extruder, 63) : max(initial_extruder - (1-initial_extruder), 0))]} C3 W1\nG1 E3 F200\nG92 E0\nG1 X{( initial_extruder % 2 == 0 ? 0 : 230 )} E3.42995 F3420.0\nG92 E0\n\nG1 E-{retraction_length[initial_extruder]} F200\nG92 E0\nG0 Y20 F3420.0\n\n; ready [plate_name]",
+    "machine_end_gcode": "G92 E0\n\nG0 Z{max_layer_z + 2.0} F600\n; retract the filament to make it easier to replace\nG0 E-5 F200\nG28\n\n  M104 S0\nM140 S0\nM107\nM220 S100\nM84\n\n;\n; DON'T REMOVE these lines if you're using the smfix (https://github.com/macdylan/SMFix)\n; min_x = [first_layer_print_min_0]\n; min_y = [first_layer_print_min_1]\n; max_x = [first_layer_print_max_0]\n; max_y = [first_layer_print_max_1]\n; max_z = [max_layer_z]\n; total_layer_number = [layer_num]\n;",
+    "before_layer_change_gcode": "; layer_num: [layer_num]\nG92 E0"
 }

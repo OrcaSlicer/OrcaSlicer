@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP003",
     "name": "0.16mm Optimal @FT 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_folgertech_common",
+    "from": "system",
+    "setting_id": "GP003",
+    "instantiation": "true",
     "layer_height": "0.16",
     "elefant_foot_compensation": "0.15",
     "bottom_shell_layers": "4",
@@ -25,8 +25,8 @@
     "overhang_4_4_speed": "10",
     "support_threshold_angle": "30",
     "compatible_printers": [
-      "Folgertech i3 0.4 nozzle",
-      "Folgertech FT-5 0.4 nozzle",
-      "Folgertech FT-6 0.4 nozzle"	
-	  ]
+        "Folgertech i3 0.4 nozzle",
+        "Folgertech FT-5 0.4 nozzle",
+        "Folgertech FT-6 0.4 nozzle"
+    ]
 }

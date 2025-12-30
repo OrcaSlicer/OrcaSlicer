@@ -1,12 +1,13 @@
 {
     "type": "machine_model",
-    "name": "Wanhao D12/300",
+    "name": "Wanhao D12-300",
+    "renamed_from": "Wanhao D12/300",
     "model_id": "D12",
     "nozzle_diameter": "0.4",
     "machine_tech": "FFF",
     "family": "Wanhao",
     "bed_model": "",
-    "bed_texture": "Wanhao D12-300_buildplate_texture.png",
-    "hotend_model": "Wanaho D12-300_hotend.stl",
+    "bed_texture": "Wanhao_D12-300_buildplate_texture.png",
+    "hotend_model": "Wanhao D12-300_hotend.stl",
     "default_materials": "Generic PLA @System;Generic PETG @System;Generic TPU @System;"
 }

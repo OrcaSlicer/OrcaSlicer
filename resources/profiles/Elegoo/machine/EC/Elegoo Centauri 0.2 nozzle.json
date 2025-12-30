@@ -1,32 +1,32 @@
 {
-  "type": "machine",
-  "name": "Elegoo Centauri 0.2 nozzle",
-  "inherits": "Elegoo Centauri 0.4 nozzle",
-  "from": "system",
-  "setting_id": "EC02",
-  "instantiation": "true",
-  "nozzle_diameter": [
-    "0.2"
-  ],
-  "printer_model": "Elegoo Centauri",
-  "printer_variant": "0.2",
-  "default_filament_profile": [
-    "Elegoo PLA @0.2 nozzle"
-  ],
-  "default_print_profile": "0.10mm Standard @Elegoo C 0.2 nozzle",
-  "retraction_minimum_travel": [
-    "0.4"
-  ],
-  "wipe_distance": [
-      "0.8"
-  ],
-  "retraction_length": [
-    "0.5"
-  ],
-  "max_layer_height": [
-      "0.14"
-  ],
-  "min_layer_height": [
-      "0.06"
-  ]
+    "type": "machine",
+    "name": "Elegoo Centauri 0.2 nozzle",
+    "inherits": "Elegoo Centauri 0.4 nozzle",
+    "from": "system",
+    "setting_id": "EC02",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.2"
+    ],
+    "printer_model": "Elegoo Centauri",
+    "printer_variant": "0.2",
+    "default_filament_profile": [
+        "Elegoo PLA @0.2 nozzle"
+    ],
+    "default_print_profile": "0.10mm Standard @Elegoo C 0.2 nozzle",
+    "retraction_minimum_travel": [
+        "0.4"
+    ],
+    "wipe_distance": [
+        "0.8"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "max_layer_height": [
+        "0.14"
+    ],
+    "min_layer_height": [
+        "0.06"
+    ]
 }

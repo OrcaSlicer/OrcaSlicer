@@ -8,7 +8,11 @@
     "filament_max_volumetric_speed": [
         "16"
     ],
-    "filament_long_retractions_when_cut": ["nil"],
-    "filament_retraction_distances_when_cut": ["nil"],
+    "filament_long_retractions_when_cut": [
+        "nil"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "nil"
+    ],
     "compatible_printers": []
 }

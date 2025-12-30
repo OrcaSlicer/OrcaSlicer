@@ -354,7 +354,8 @@ void set_log_path_and_level(const std::string& file, unsigned int level)
 			<< expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S.%f")
 			<<"[Thread " << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "]"
 			<< ":" << expr::smessage
-		)
+		),
+		keywords::auto_flush = true
 	);
 
 	logging::add_common_attributes();
@@ -910,6 +911,34 @@ __finished:
 #endif
 }
 
+bool copy_framework(const std::string &from, const std::string &to)
+{
+    boost::filesystem::path src(from), dst(to);
+    try {
+        if (!boost::filesystem::is_directory(src)) {
+            std::cerr << "Error: Source is not a directory: " << src << std::endl;
+            return false;
+        }
+        boost::filesystem::create_directories(dst);
+        for (boost::filesystem::directory_iterator it(src); it != boost::filesystem::directory_iterator(); ++it) {
+            const auto &entry     = it->path();
+            const auto  dest_path = dst / entry.filename();
+
+            if (boost::filesystem::is_symlink(entry)) {
+                boost::filesystem::copy_symlink(entry, dest_path);
+            } else if (boost::filesystem::is_directory(entry)) {
+                copy_framework(it->path().string(), dest_path.string());
+            } else {
+                boost::filesystem::copy(entry, dest_path, boost::filesystem::copy_options::overwrite_existing);
+            }
+        }
+        return true;
+    } catch (const boost::filesystem::filesystem_error &e) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Filesystem error: " << e.what();
+    }
+    return false;
+}
+
 CopyFileResult check_copy(const std::string &origin, const std::string &copy)
 {
 	boost::nowide::ifstream f1(origin, std::ifstream::in | std::ifstream::binary | std::ifstream::ate);
@@ -1124,6 +1153,18 @@ std::string normalize_utf8_nfc(const char *src)
 {
     static std::locale locale_utf8(boost::locale::generator().generate(""));
     return boost::locale::normalize(src, boost::locale::norm_nfc, locale_utf8);
+}
+
+std::vector<std::string> split_string(const std::string &str, char delimiter)
+{
+    std::vector<std::string> result;
+    std::stringstream ss(str);
+    std::string substr;
+
+    while (std::getline(ss, substr, delimiter)) {
+        result.push_back(substr);
+    }
+    return result;
 }
 
 namespace PerlUtils {
@@ -1565,5 +1606,92 @@ void load_string_file(const boost::filesystem::path& p, std::string& str)
     str.resize(sz, '\0');
     file.read(&str[0], sz);
 }
+
+// pattern string supprt these pattern: "
+// 1. 5#1, insert 1 solid layer every 5 layers. this can be simplified to 5
+// 2."1,7,9", explicitly insert solid layer at layer 1, 7, 9
+bool check_layer_id_pattern(const std::string& pattern, int layer_id){
+    if (pattern.empty() || layer_id < 0)
+        return false;
+
+	// layer_id is 0-based, so we need to add 1 to make it 1-based
+	layer_id++;
+
+    // Remove whitespace and surrounding quotes.
+    std::string p; p.reserve(pattern.size());
+    for (char c : pattern) {
+        if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+            continue;
+        p.push_back(c);
+    }
+    if (!p.empty() && (p.front() == '"' || p.front() == '\''))
+        p.erase(p.begin());
+    if (!p.empty() && (p.back() == '"' || p.back() == '\''))
+        p.pop_back();
+    if (p.empty())
+        return false;
+
+    // Explicit list form: "1,7,9" or with counts per entry: "5,9#2,18"
+    if (p.find(',') != std::string::npos) {
+        size_t start = 0;
+        while (start < p.size()) {
+            size_t end = p.find(',', start);
+            std::string token = p.substr(start, (end == std::string::npos) ? std::string::npos : end - start);
+            if (!token.empty()) {
+                try {
+                    size_t hash_pos_token = token.find('#');
+                    if (hash_pos_token == std::string::npos) {
+                        int value = std::stoi(token);
+                        if (value == layer_id)
+                            return true;
+                    } else {
+                        int base_layer = std::stoi(token.substr(0, hash_pos_token));
+                        std::string count_str = token.substr(hash_pos_token + 1);
+                        int local_count = 1;
+                        if (!count_str.empty())
+                            local_count = std::stoi(count_str);
+                        if (base_layer > 0 && local_count > 0) {
+                            if (layer_id >= base_layer && layer_id < base_layer + local_count)
+                                return true;
+                        }
+                    }
+                } catch (...) {
+                    // Ignore invalid tokens
+                }
+            }
+            if (end == std::string::npos)
+                break;
+            start = end + 1;
+        }
+        return false;
+    }
+
+    // Interval form: "N#K" or simplified "N" (equals to N#1)
+    int interval = 0;
+    int count    = 1;
+    size_t hash_pos = p.find('#');
+    try {
+        if (hash_pos == std::string::npos) {
+            interval = std::stoi(p);
+        } else {
+            interval = std::stoi(p.substr(0, hash_pos));
+            std::string count_str = p.substr(hash_pos + 1);
+            if (!count_str.empty())
+                count = std::stoi(count_str);
+        }
+    } catch (...) {
+        return false;
+    }
+
+    if (interval <= 0 || count <= 0)
+        return false;
+
+    // Layers are 1-based. Match layers interval, interval+1, ..., interval+count-1, then repeat every interval.
+    if (layer_id < interval)
+        return false;
+    int mod = layer_id % interval; // For multiples, mod == 0
+    return mod >= 0 && mod < count;
+}
+
 
 }; // namespace Slic3r

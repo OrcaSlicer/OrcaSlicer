@@ -1,11 +1,11 @@
 {
-	"type": "filament",
-	"setting_id": "GFSL99_00",
-	"name": "Dremel Generic PLA @3D45 all",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "Dremel Generic PLA",
-	"slow_down_min_speed": "10",
+    "type": "filament",
+    "name": "Dremel Generic PLA @3D45 all",
+    "inherits": "Dremel Generic PLA",
+    "from": "system",
+    "setting_id": "GFSL99_00",
+    "instantiation": "true",
+    "slow_down_min_speed": "10",
     "close_fan_the_first_x_layers": "3",
     "filament_loading_speed_start": "3",
     "filament_loading_speed": "28",
@@ -26,7 +26,7 @@
     "nozzle_temperature_initial_layer": [
         "200"
     ],
-	"compatible_printers": [
-		"Dremel 3D45 0.4 nozzle"
-	]
+    "compatible_printers": [
+        "Dremel 3D45 0.4 nozzle"
+    ]
 }

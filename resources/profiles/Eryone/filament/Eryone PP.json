@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "EFL43",
-    "setting_id": "EFSA43",
     "name": "Eryone PP",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA43",
+    "filament_id": "EFL43",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],
@@ -33,7 +33,6 @@
     "filament_notes": [
         "Printing platform glue spraying"
     ],
-
     "filament_vendor": [
         "Eryone"
     ],

@@ -1,83 +1,83 @@
 {
     "type": "machine",
     "name": "fdm_klipper_common",
+    "inherits": "fdm_machine_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_machine_common",
     "gcode_flavor": "klipper",
     "machine_max_acceleration_e": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_extruding": [
-      "20000",
-      "20000"
+        "20000",
+        "20000"
     ],
     "machine_max_acceleration_retracting": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_travel": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_x": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_y": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_z": [
-      "500",
-      "200"
+        "500",
+        "200"
     ],
     "machine_max_speed_e": [
-      "25",
-      "25"
+        "25",
+        "25"
     ],
     "machine_max_speed_x": [
-      "500",
-      "200"
+        "500",
+        "200"
     ],
     "machine_max_speed_y": [
-      "500",
-      "200"
+        "500",
+        "200"
     ],
     "machine_max_speed_z": [
-      "12",
-      "12"
+        "12",
+        "12"
     ],
     "machine_max_jerk_e": [
-      "0",
-      "0"
+        "0",
+        "0"
     ],
     "machine_max_jerk_x": [
-      "0",
-      "0"
+        "0",
+        "0"
     ],
     "machine_max_jerk_y": [
-      "0",
-      "0"
+        "0",
+        "0"
     ],
     "machine_max_jerk_z": [
-      "0",
-      "0"
+        "0",
+        "0"
     ],
     "machine_min_extruding_rate": [
-      "0",
-      "0"
+        "0",
+        "0"
     ],
     "machine_min_travel_rate": [
-      "0",
-      "0"
+        "0",
+        "0"
     ],
     "max_layer_height": [
-      "1.2"
+        "1.2"
     ],
     "min_layer_height": [
-      "0.08"
+        "0.08"
     ],
     "printable_height": "900",
     "extruder_clearance_radius": "74",
@@ -87,34 +87,34 @@
     "printer_technology": "FFF",
     "printer_variant": "0.4",
     "retraction_minimum_travel": [
-      "1"
+        "1"
     ],
     "retract_before_wipe": [
-      "70%"
+        "70%"
     ],
     "retract_when_changing_layer": [
-      "1"
+        "1"
     ],
     "retraction_length": [
-      "0.8"
+        "0.8"
     ],
     "retract_length_toolchange": [
-      "2"
+        "2"
     ],
     "z_hop": [
-      "0.4"
+        "0.4"
     ],
     "retract_restart_extra": [
-      "0"
+        "0"
     ],
     "retract_restart_extra_toolchange": [
-      "0"
+        "0"
     ],
     "retraction_speed": [
-      "35"
+        "35"
     ],
     "deretraction_speed": [
-      "35"
+        "35"
     ],
     "z_hop_types": "Normal Lift",
     "silent_mode": "0",
@@ -122,13 +122,13 @@
     "change_filament_gcode": "CHANGE_FILAMENT",
     "machine_pause_gcode": "PAUSE",
     "wipe": [
-      "1"
+        "1"
     ],
     "default_filament_profile": [
-      "Blocks Generic PLA"
+        "Blocks Generic PLA"
     ],
     "bed_exclude_area": [
-      "0x0"
+        "0x0"
     ],
     "machine_start_gcode": "PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer]",
     "machine_end_gcode": "M400\nPRINT_END",
@@ -137,4 +137,4 @@
     "scan_first_layer": "0",
     "nozzle_type": "undefine",
     "auxiliary_fan": "0"
-  }
+}

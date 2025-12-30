@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "RKMK1_p002",
     "name": "0.12mm Fine @Rook MK1 LDO",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_Rook MK1 LDO_common",
+    "from": "system",
+    "setting_id": "RKMK1_p002",
+    "instantiation": "true",
     "layer_height": "0.12",
     "bottom_shell_layers": "5",
     "top_shell_layers": "6",

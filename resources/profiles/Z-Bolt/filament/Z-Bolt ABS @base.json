@@ -3,9 +3,9 @@
     "name": "Z-Bolt ABS @base",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "instantiation": "false",
-    "filament_id": "GFL200",
     "setting_id": "GFSL200",
+    "filament_id": "GFL200",
+    "instantiation": "false",
     "filament_max_volumetric_speed": [
         "20"
     ],

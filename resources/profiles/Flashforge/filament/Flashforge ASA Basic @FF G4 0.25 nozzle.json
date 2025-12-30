@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge ASA Basic @FF G4 0.25 nozzle",
+    "inherits": "Flashforge ABS @FF AD5M 0.25 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "complete_print_exhaust_fan_speed": [
         "50"
     ],
@@ -26,10 +31,8 @@
     "filament_type": [
         "ASA"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge Guider4 0.25 nozzle"
+        "Flashforge Guider4 0.25 nozzle"
     ],
     "hot_plate_temp": [
         "100"
@@ -37,14 +40,10 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Flashforge ABS @FF AD5M 0.25 Nozzle",
-    "is_custom_defined": "0",
-    "name": "Flashforge ASA Basic @FF G4 0.25 nozzle",
     "pressure_advance": [
         "0.04"
     ],
     "slow_down_layer_time": [
         "4"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

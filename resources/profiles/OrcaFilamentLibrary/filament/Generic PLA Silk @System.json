@@ -1,8 +1,8 @@
 {
     "type": "filament",
     "name": "Generic PLA Silk @System",
-    "inherits": "fdm_filament_pla_silk",
     "renamed_from": "Generic Silk PLA @System",
+    "inherits": "fdm_filament_pla_silk",
     "from": "system",
     "setting_id": "OGFSL99_01",
     "instantiation": "true",

@@ -1,29 +1,29 @@
 {
-  "type": "machine",
-  "setting_id": "GM005",
-  "name": "Orca Arena X1 Carbon 0.6 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "Orca Arena X1 Carbon 0.4 nozzle",
-  "nozzle_diameter": [
-      "0.6"
-  ],
-  "printer_variant": "0.6",
-  "printer_model": "Orca Arena X1 Carbon",
-  "default_filament_profile": [
-      "Arena PLA Basic @Arena X1C"
-  ],
-  "default_print_profile": "0.30mm Standard @Arena X1C 0.6 nozzle",
-  "max_layer_height": [
-      "0.42"
-  ],
-  "min_layer_height": [
-      "0.12"
-  ],
-  "retraction_length": [
-      "1.4"
-  ],
-  "retraction_minimum_travel": [
-      "3"
-  ]
+    "type": "machine",
+    "name": "Orca Arena X1 Carbon 0.6 nozzle",
+    "inherits": "Orca Arena X1 Carbon 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM005",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printer_variant": "0.6",
+    "printer_model": "Orca Arena X1 Carbon",
+    "default_filament_profile": [
+        "Arena PLA Basic @Arena X1C"
+    ],
+    "default_print_profile": "0.30mm Standard @Arena X1C 0.6 nozzle",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.12"
+    ],
+    "retraction_length": [
+        "1.4"
+    ],
+    "retraction_minimum_travel": [
+        "3"
+    ]
 }

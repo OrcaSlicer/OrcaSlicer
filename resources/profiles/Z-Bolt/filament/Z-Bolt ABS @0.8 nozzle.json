@@ -3,9 +3,9 @@
     "name": "Z-Bolt ABS @0.8 nozzle",
     "inherits": "Z-Bolt ABS @base",
     "from": "system",
-    "instantiation": "true",
-    "filament_id": "GFL208",
     "setting_id": "GFSL208",
+    "filament_id": "GFL208",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "21"
     ],

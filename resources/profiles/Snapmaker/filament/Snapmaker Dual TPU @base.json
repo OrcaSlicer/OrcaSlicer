@@ -1,41 +1,41 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker Dual TPU @base",
-  "filament_id": "2971656290",
-  "inherits": "fdm_filament_tpu",
-  "filament_loading_speed_start": [
-    "35"
-  ],
-  "filament_loading_speed": [
-    "35"
-  ],
-  "filament_unloading_speed_start": [
-    "35"
-  ],
-  "filament_unloading_speed": [
-    "35"
-  ],
-  "filament_load_time": [
-    "2"
-  ],
-  "filament_unload_time": [
-    "2"
-  ],
-  "filament_cooling_moves": [
-    "2"
-  ],
-  "filament_cooling_initial_speed": [
-    "35"
-  ],
-  "filament_cooling_final_speed": [
-    "60"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "240"
-  ],
-  "nozzle_temperature": [
-    "240"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual TPU @base",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "2971656290",
+    "instantiation": "false",
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ]
 }

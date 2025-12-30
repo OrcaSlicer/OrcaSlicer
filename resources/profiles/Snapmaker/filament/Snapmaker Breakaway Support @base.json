@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Snapmaker Breakaway Support @base",
+    "inherits": "Snapmaker J1 PVA",
+    "from": "User",
+    "instantiation": "false",
     "filament_cost": [
         "100"
     ],
@@ -20,17 +25,12 @@
     "filament_type": [
         "Breakaway Support"
     ],
-    "from": "User",
-    "instantiation": "false",
     "hot_plate_temp": [
         "65"
     ],
     "hot_plate_temp_initial_layer": [
         "70"
     ],
-    "inherits": "Snapmaker J1 PVA",
-    "is_custom_defined": "0",
-    "name": "Snapmaker Breakaway Support @base",
     "nozzle_temperature": [
         "220"
     ],
@@ -45,6 +45,5 @@
     ],
     "temperature_vitrification": [
         "45"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

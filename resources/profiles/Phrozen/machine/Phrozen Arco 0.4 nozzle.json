@@ -1,13 +1,13 @@
 {
-    "from": "User",
+    "type": "machine",
+    "name": "Phrozen Arco 0.4 nozzle",
     "inherits": "fdm_machine_common",
+    "from": "User",
     "instantiation": "true",
     "printer_technology": "FFF",
-    "version": "0.0.0.1",
     "printer_settings_id": "Phrozen Arco 0.4 nozzle",
     "printer_model": "Phrozen Arco",
     "printer_variant": "0.4",
-    "name": "Phrozen Arco 0.4 nozzle",
     "nozzle_diameter": [
         "0.4"
     ],
@@ -63,7 +63,6 @@
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
-    "is_custom_defined": "0",
     "layer_change_gcode": "; AFTER_LAYER_CHANGE [layer_num] @ [layer_z]mm",
     "long_retractions_when_cut": [
         "0"
@@ -139,7 +138,7 @@
         "0"
     ],
     "machine_pause_gcode": "M601",
-    "machine_start_gcode": "M107\nG90\nM140 S65 ; set bed temperature\nM104 S140 ; set temperature\nM190 S65 ; set bed temperature\nM109 S140 ; set temperature\nPG28\nM106 S255 \nG30\n;AUTO_LEVELING_2\nM106 S0\nG21\nM83\nM109 S220\nP0 M1\nP28\nP2 A1",
+    "machine_start_gcode": "M107\nG90\nM140 S65 ; set bed temperature\nM104 S140 ; set temperature\nM190 S65 ; set bed temperature\nM109 S140 ; set temperature\nPG28\nM106 S255 \nG30\n;AUTO_LEVELING_2\nM106 S0\nG21\nM83\nM140 S[bed_temperature_initial_layer_single]\nM104 S[nozzle_temperature_initial_layer]\nM109 S[nozzle_temperature_initial_layer]\nM190 S[bed_temperature_initial_layer_single]\nP0 M1\nP28\nP2 A1",
     "machine_tool_change_time": "0",
     "machine_unload_filament_time": "0",
     "manual_filament_change": "0",

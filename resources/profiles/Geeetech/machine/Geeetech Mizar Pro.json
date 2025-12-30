@@ -6,7 +6,7 @@
     "machine_tech": "FFF",
     "family": "Geeetech",
     "bed_model": "220x220.stl",
-    "bed_texture": "Geeetech_buildplate_texture.png",
+    "bed_texture": "Geeetech_buildplate_texture.svg",
     "hotend_model": "",
     "default_materials": "Generic PLA @System;Generic PLA @System;Generic PETG @System;Generic ABS @System;Generic TPU @System"
 }

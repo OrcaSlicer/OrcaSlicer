@@ -1,11 +1,11 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker PVA @0.2 nozzle",
-  "setting_id": "1131479069",
-  "inherits": "Snapmaker PVA @base",
-  "compatible_printers": [
-    "Snapmaker A250 (0.2 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker PVA @0.2 nozzle",
+    "inherits": "Snapmaker PVA @base",
+    "from": "system",
+    "setting_id": "1131479069",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 (0.2 nozzle)"
+    ]
 }

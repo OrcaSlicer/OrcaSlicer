@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "FusRock PAHT @FF G4 0.6 HF nozzle",
+    "inherits": "FusRock Generic S-PAHT @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "close_fan_the_first_x_layers": [
         "2"
     ],
@@ -29,14 +34,9 @@
     "filament_start_gcode": [
         "; filament start gcode\n;right_extruder_material:PA"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 0.6 HF nozzle"
     ],
-    "inherits": "FusRock Generic S-PAHT @G3U 0.6 Nozzle",
-    "is_custom_defined": "0",
-    "name": "FusRock PAHT @FF G4 0.6 HF nozzle",
     "overhang_fan_speed": [
         "50"
     ],
@@ -57,6 +57,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "75"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

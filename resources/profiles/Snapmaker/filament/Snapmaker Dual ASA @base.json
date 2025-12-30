@@ -1,53 +1,53 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker Dual ASA @base",
-  "filament_id": "1247172706",
-  "inherits": "fdm_filament_asa",
-  "hot_plate_temp": [
-    "110"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "100"
-  ],
-  "overhang_fan_speed": [
-    "15"
-  ],
-  "filament_max_volumetric_speed": [
-    "8"
-  ],
-  "filament_loading_speed_start": [
-    "35"
-  ],
-  "filament_loading_speed": [
-    "35"
-  ],
-  "filament_unloading_speed_start": [
-    "35"
-  ],
-  "filament_unloading_speed": [
-    "35"
-  ],
-  "filament_load_time": [
-    "2"
-  ],
-  "filament_unload_time": [
-    "2"
-  ],
-  "filament_cooling_moves": [
-    "2"
-  ],
-  "filament_cooling_initial_speed": [
-    "35"
-  ],
-  "filament_cooling_final_speed": [
-    "60"
-  ],
-  "fan_max_speed": [
-    "15"
-  ],
-  "fan_min_speed": [
-    "0"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual ASA @base",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "1247172706",
+    "instantiation": "false",
+    "hot_plate_temp": [
+        "110"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "overhang_fan_speed": [
+        "15"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "15"
+    ],
+    "fan_min_speed": [
+        "0"
+    ]
 }

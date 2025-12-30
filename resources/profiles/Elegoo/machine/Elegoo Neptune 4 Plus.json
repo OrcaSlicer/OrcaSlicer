@@ -7,8 +7,9 @@
     "family": "Elegoo",
     "bed_model": "elegoo_neptune4plus_buildplate_model.stl",
     "bed_texture": "elegoo_neptune4plus_buildplate_texture.png",
-    "bed_exclude_area": ["0x0"],
+    "bed_exclude_area": [
+        "0x0"
+    ],
     "hotend_model": "",
-	"default_materials": "Generic PLA @Elegoo;Generic PETG @Elegoo;Generic ABS @Elegoo"
-
+    "default_materials": "Generic PLA @Elegoo;Generic PETG @Elegoo;Generic ABS @Elegoo"
 }

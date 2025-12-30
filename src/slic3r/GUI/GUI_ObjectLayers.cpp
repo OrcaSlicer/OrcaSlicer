@@ -139,7 +139,7 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     m_grid_sizer->Add(editor, 1, wxEXPAND);
 
     auto sizer2 = new wxBoxSizer(wxHORIZONTAL);
-    auto unit_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, "mm", wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
+    auto unit_text = new wxStaticText(m_og->ctrl_parent(), wxID_ANY, _L("mm"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     unit_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
     unit_text->SetFont(wxGetApp().normal_font());
     sizer2->Add(unit_text, 0, wxALIGN_CENTER_VERTICAL);
@@ -160,7 +160,7 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     //auto sizer = new wxBoxSizer(wxHORIZONTAL);
     //sizer->Add(editor);
 
-    //auto temp = new wxStaticText(m_parent, wxID_ANY, "mm");
+    //auto temp = new wxStaticText(m_parent, wxID_ANY, _L("mm"));
     //temp->SetBackgroundStyle(wxBG_STYLE_PAINT);
     //temp->SetFont(wxGetApp().normal_font());
     //sizer->Add(temp, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, wxGetApp().em_unit());
@@ -451,7 +451,7 @@ coordf_t LayerRangeEditor::get_value()
     else {
         if (!str.ToDouble(&layer_height) || layer_height < 0.0f) {
             show_error(m_parent, _L("Invalid numeric."));
-            SetValue(double_to_string(layer_height));
+            SetValue(m_valid_value); // reset to a valid value
         }
     }
 

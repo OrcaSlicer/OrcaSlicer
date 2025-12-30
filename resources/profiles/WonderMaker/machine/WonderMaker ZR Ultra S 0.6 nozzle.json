@@ -1,23 +1,23 @@
 {
-	"type": "machine",
+    "type": "machine",
+    "name": "WonderMaker ZR Ultra S 0.6 nozzle",
+    "inherits": "WonderMaker ZR Ultra S 0.4 nozzle",
+    "from": "system",
     "setting_id": "GM016",
-	"name": "WonderMaker ZR Ultra S 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "WonderMaker ZR Ultra S 0.4 nozzle",
-	"printer_model": "WonderMaker ZR Ultra S",
-	"default_print_profile": "0.30mm Standard @WonderMaker ZR Ultra 0.6 nozzle",
+    "instantiation": "true",
+    "printer_model": "WonderMaker ZR Ultra S",
+    "default_print_profile": "0.30mm Standard @WonderMaker ZR Ultra 0.6 nozzle",
     "printer_variant": "0.6",
-	"nozzle_diameter": [
-		"0.6"
-	],
-	"max_layer_height": [
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "max_layer_height": [
         "0.42"
     ],
     "min_layer_height": [
         "0.12"
     ],
-	"retraction_length": [
+    "retraction_length": [
         "1.4",
         "1.4",
         "1.4",

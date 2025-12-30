@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "Normal speed (Stage 2) - 0.15mm",
-    "from": "system",
     "inherits": "fdm_process_volumic_common",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "layer_height": "0.15",
     "initial_layer_print_height": "0.15",
@@ -20,12 +20,12 @@
     "travel_speed": "200",
     "support_speed": "130",
     "support_interface_speed": "130",
-	"skirt_speed": "130",
+    "skirt_speed": "130",
     "compatible_printers": [
-	  "EXO42 Stage 2 (0.4 nozzle)",
-	  "EXO65 Stage 2 (0.6 nozzle)",
-	  "SH65 Stage 2 (0.4 nozzle)",
-	  "VS30SC2 Stage 2 (0.4 nozzle)",
-	  "VS30MK3 Stage 2 (0.4 nozzle)"
+        "EXO42 Stage 2 (0.4 nozzle)",
+        "EXO65 Stage 2 (0.6 nozzle)",
+        "SH65 Stage 2 (0.4 nozzle)",
+        "VS30SC2 Stage 2 (0.4 nozzle)",
+        "VS30MK3 Stage 2 (0.4 nozzle)"
     ]
 }

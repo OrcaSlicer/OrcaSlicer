@@ -20,6 +20,7 @@
 #include "Fill/FillLightning.hpp"
 #include "Format/STL.hpp"
 #include "format.hpp"
+#include "AABBTreeLines.hpp"
 
 #include <float.h>
 #include <oneapi/tbb/blocked_range.h>
@@ -32,6 +33,7 @@
 
 #include <tbb/parallel_for.h>
 #include <tbb/spin_mutex.h>
+#include <tbb/concurrent_unordered_set.h>
 
 #include <Shiny/Shiny.h>
 
@@ -285,6 +287,128 @@ void PrintObject::_transform_hole_to_polyholes()
             poly_to_replace.first->points = polyhole.points;
         }
     }
+}
+
+std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables() const
+{
+    int extruder_size = m_print->config().nozzle_diameter.size();
+    if(extruder_size == 1)
+        return std::vector<std::set<int>>(1, std::set<int>());
+
+    std::vector<std::set<int>> geometric_unprintables(extruder_size); // the container to return
+
+    std::vector<double> printable_height_per_extruder = m_print->config().extruder_printable_height.values;
+    assert(printable_height_per_extruder.size() == extruder_size);
+
+    // check unprintable filaments caused by printable height limit
+    for (size_t extruder_id = 0; extruder_id < printable_height_per_extruder.size(); ++extruder_id) {
+        double printable_height = printable_height_per_extruder[extruder_id];
+        for (size_t layer_idx = 0; layer_idx < m_layers.size(); ++layer_idx) {
+            auto layer = m_layers[layer_idx];
+            if (layer->print_z <= printable_height)
+                continue;
+            for (auto layerm : layer->regions()) {
+                auto region = layerm->region();
+                int wall_filament = region.config().wall_filament;
+                int solid_infill_filament = region.config().solid_infill_filament;
+                int sparse_infill_filament = region.config().sparse_infill_filament;
+
+                if (!layerm->fills.entities.empty()) {
+                    if (solid_infill_filament > 0)
+                        geometric_unprintables[extruder_id].insert(solid_infill_filament - 1);
+                    if (sparse_infill_filament > 0)
+                        geometric_unprintables[extruder_id].insert(sparse_infill_filament - 1);
+                }
+                if (!layerm->perimeters.entities.empty() && wall_filament > 0)
+                    geometric_unprintables[extruder_id].insert(wall_filament - 1);
+            }
+        }
+    }
+
+    std::vector<tbb::concurrent_unordered_set<int>> tbb_geometric_unprintables(extruder_size); // the container used in tbb
+
+    std::vector<Polygons> unprintable_area_in_obj_coord =  m_print->get_extruder_unprintable_polygons();
+    std::vector<BoundingBox> unprintable_area_bbox;
+
+    // transform the unprintable areas to obj coord is cheaper than thransform obj into world coord
+    for (auto& polys : unprintable_area_in_obj_coord) {
+        for (auto& poly : polys) {
+            poly.translate(-m_instances.front().shift_without_plate_offset());
+        }
+        unprintable_area_bbox.emplace_back(get_extents(polys));
+    }
+
+    // check unprintbale filaments caused by printable area limit
+    tbb::parallel_for(tbb::blocked_range<int>(0, m_layers.size()),
+        [this, &tbb_geometric_unprintables, &unprintable_area_in_obj_coord, &unprintable_area_bbox](const tbb::blocked_range<int>& range) {
+            for (int j = range.begin(); j < range.end(); ++j) {
+                auto layer = m_layers[j];
+                for (auto layerm : layer->regions()) {
+                    const auto& region = layerm->region();
+                    int wall_filament = region.config().wall_filament;
+                    int solid_infill_filament = region.config().solid_infill_filament;
+                    int sparse_infill_filament = region.config().sparse_infill_filament;
+                    std::optional<ExPolygons> fill_expolys;
+                    BoundingBox fill_bbox;
+                    std::optional<ExPolygons> wall_expolys;
+                    BoundingBox wall_bbox;
+
+                    for (size_t idx = 0; idx < unprintable_area_in_obj_coord.size(); ++idx) {
+                        bool do_infill_filament_detect = (solid_infill_filament > 0 && tbb_geometric_unprintables[idx].count(solid_infill_filament - 1) == 0) ||
+                            (sparse_infill_filament > 0 && tbb_geometric_unprintables[idx].count(sparse_infill_filament-1) == 0);
+
+                        bool infill_unprintable = !layerm->fills.entities.empty() &&
+                            ((solid_infill_filament > 0 && tbb_geometric_unprintables[idx].count(solid_infill_filament - 1) > 0) ||
+                                (sparse_infill_filament > 0 && tbb_geometric_unprintables[idx].count(sparse_infill_filament - 1) > 0));
+
+                        if (!layerm->fills.entities.empty() && do_infill_filament_detect) {
+                            if (!fill_expolys) {
+                                fill_expolys = layerm->fill_expolygons;
+                                fill_bbox = get_extents(*fill_expolys);
+                            }
+                            if (fill_bbox.overlap(unprintable_area_bbox[idx]) &&
+                                !intersection(*fill_expolys, unprintable_area_in_obj_coord[idx]).empty()) {
+                                if (solid_infill_filament > 0)
+                                    tbb_geometric_unprintables[idx].insert(solid_infill_filament - 1);
+                                if (sparse_infill_filament > 0)
+                                    tbb_geometric_unprintables[idx].insert(sparse_infill_filament - 1);
+                                infill_unprintable = true;
+                            }
+                        }
+
+                        bool do_wall_filament_detect = wall_filament > 0 && tbb_geometric_unprintables[idx].count(wall_filament - 1) == 0;
+                        if (!layerm->perimeters.entities.empty() && do_wall_filament_detect) {
+                            // if infill is unprintable, no need to check wall since wall contour surrounds infill contour
+                            if (infill_unprintable) {
+                                tbb_geometric_unprintables[idx].insert(wall_filament - 1);
+                                continue;
+                            }
+
+                            if (!wall_expolys) {
+                                if (!fill_expolys) {
+                                    fill_expolys = layerm->fill_expolygons;
+                                    fill_bbox = get_extents(*fill_expolys);
+                                }
+                                wall_expolys = diff_ex(layerm->raw_slices, *fill_expolys);
+                                wall_bbox = get_extents(*wall_expolys);
+                            }
+
+                            if (wall_bbox.overlap(unprintable_area_bbox[idx]) &&
+                                !intersection(*wall_expolys, unprintable_area_in_obj_coord[idx]).empty()) {
+                                tbb_geometric_unprintables[idx].insert(wall_filament - 1);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    // add the elems in tbb container to final contianer
+    for (size_t idx = 0; idx < extruder_size; ++idx) {
+        geometric_unprintables[idx].insert(tbb_geometric_unprintables[idx].begin(), tbb_geometric_unprintables[idx].end());
+    }
+
+    return geometric_unprintables;
 }
 
 // 1) Merges typed region slices into stInternal type.
@@ -882,6 +1006,7 @@ bool PrintObject::invalidate_state_by_config_options(
     for (const t_config_option_key &opt_key : opt_keys) {
         if (   opt_key == "brim_width"
             || opt_key == "brim_object_gap"
+            || opt_key == "brim_use_efc_outline"
             || opt_key == "brim_type"
             || opt_key == "brim_ears_max_angle"
             || opt_key == "brim_ears_detection_length"
@@ -927,6 +1052,7 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (opt_key == "gap_infill_speed"
             || opt_key == "filter_out_gap_fill" ) {
             // Return true if gap-fill speed has changed from zero value to non-zero or from non-zero value to zero.
+            // todo multi_extruders: Parameter migration between single and double extruder printers
             auto is_gap_fill_changed_state_due_to_speed = [&opt_key, &old_config, &new_config]() -> bool {
                 if (opt_key == "gap_infill_speed") {
                     const auto *old_gap_fill_speed = old_config.option<ConfigOptionFloat>(opt_key);
@@ -1013,7 +1139,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "support_object_first_layer_gap"
             || opt_key == "support_base_pattern_spacing"
             || opt_key == "support_expansion"
-            //|| opt_key == "independent_support_layer_height" // BBS
+            || opt_key == "independent_support_layer_height" // Orca
             || opt_key == "support_threshold_angle"
             || opt_key == "support_threshold_overlap"
             || opt_key == "support_ironing"
@@ -1026,7 +1152,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "bridge_no_support"
             || opt_key == "max_bridge_length"
             || opt_key == "initial_layer_line_width"
-            || opt_key == "tree_support_adaptive_layer_height"
             || opt_key == "tree_support_auto_brim"
             || opt_key == "tree_support_brim_width"
             || opt_key == "tree_support_top_rate"
@@ -1079,6 +1204,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_direction"
             || opt_key == "solid_infill_direction"
             || opt_key == "align_infill_direction_to_model" 
+            || opt_key == "extra_solid_infills"
             || opt_key == "ensure_vertical_shell_thickness"
             || opt_key == "bridge_angle"
             || opt_key == "internal_bridge_angle" // ORCA: Internal bridge angle override
@@ -1144,7 +1270,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "overhang_reverse_internal_only"
             || opt_key == "overhang_reverse_threshold"
             || opt_key == "wall_direction"
-            //BBS
             || opt_key == "enable_overhang_speed"
             || opt_key == "detect_thin_wall"
             || opt_key == "precise_outer_wall") {
@@ -3375,7 +3500,7 @@ void PrintObject::get_certain_layers(float start, float end, std::vector<LayerPt
     out.emplace_back(std::move(out_temp));
 };
 
-Points PrintObject::get_instances_shift_without_plate_offset()
+Points PrintObject::get_instances_shift_without_plate_offset() const
 {
     Points out;
     out.reserve(m_instances.size());
@@ -3489,16 +3614,14 @@ void PrintObject::discover_horizontal_shells()
             Layer 					*layer  = m_layers[i];
             LayerRegion             *layerm = layer->regions()[region_id];
             const PrintRegionConfig &region_config = layerm->region().config();
-#if 0
-            if (region_config.solid_infill_every_layers.value > 0 && region_config.sparse_infill_density.value > 0 &&
-                (i % region_config.solid_infill_every_layers) == 0) {
-                // Insert a solid internal layer. Mark stInternal surfaces as stInternalSolid or stInternalBridge.
-                SurfaceType type = (region_config.sparse_infill_density == 100 || region_config.solid_infill_every_layers == 1) ? stInternalSolid : stInternalBridge;
-                for (Surface &surface : layerm->fill_surfaces.surfaces)
+
+            if (!region_config.extra_solid_infills.value.empty() &&
+                check_layer_id_pattern(region_config.extra_solid_infills.value, i)) {
+                // Insert a solid internal layer. Mark stInternal surfaces as stInternalSolid.
+                for (Surface& surface : layerm->fill_surfaces.surfaces)
                     if (surface.surface_type == stInternal)
-                        surface.surface_type = type;
+                        surface.surface_type = stInternalSolid;
             }
-#endif
 
             // If ensure_vertical_shell_thickness, then the rest has already been performed by discover_vertical_shells().
             if (region_config.ensure_vertical_shell_thickness.value == evstAll)

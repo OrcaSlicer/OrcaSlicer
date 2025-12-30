@@ -1,21 +1,21 @@
 {
     "type": "filament",
-    "filament_id": "GFU99",
-    "setting_id": "GFSA04",
     "name": "SecKit Generic TPU",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFU99",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "5"
     ],
-	"filament_z_hop": [
+    "filament_z_hop": [
         "0"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.1"
     ],
     "nozzle_temperature": [
@@ -26,6 +26,6 @@
     ],
     "compatible_printers": [
         "SecKit SK-Tank 0.4 nozzle",
-		"SecKit Go3 0.4 nozzle"
+        "SecKit Go3 0.4 nozzle"
     ]
 }

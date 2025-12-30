@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "EFL73",
-    "setting_id": "EFSA73",
     "name": "Eryone PA-GF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA73",
+    "filament_id": "EFL73",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],

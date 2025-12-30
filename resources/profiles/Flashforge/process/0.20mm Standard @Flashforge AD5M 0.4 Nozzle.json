@@ -1,17 +1,17 @@
 {
-  "type": "process",
-  "name": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
-  "inherits": "fdm_process_flashforge_0.20",
-  "from": "system",
-  "setting_id": "GP001",
-  "instantiation": "true",
-  "compatible_printers": ["Flashforge Adventurer 5M 0.4 Nozzle"],
-  "filename_format": "{input_filename_base}.gcode",
-  "post_process": "",
-  "only_one_wall_top": "0",
-  "infill_wall_overlap": "50%",
-  "is_custom_defined": "0",
-  "print_settings_id": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
-  "skirt_loops": "0",
-  "version": "2.1.1.0"
+    "type": "process",
+    "name": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
+    "inherits": "fdm_process_flashforge_0.20",
+    "from": "system",
+    "setting_id": "GP001",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Flashforge Adventurer 5M 0.4 Nozzle"
+    ],
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
+    "post_process": "",
+    "only_one_wall_top": "0",
+    "infill_wall_overlap": "50%",
+    "print_settings_id": "0.20mm Standard @Flashforge AD5M 0.4 Nozzle",
+    "skirt_loops": "0"
 }

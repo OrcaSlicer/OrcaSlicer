@@ -3,9 +3,9 @@
     "name": "Z-Bolt PLA",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "instantiation": "true",
-    "filament_id": "GFL100",
     "setting_id": "GFSL100",
+    "filament_id": "GFL100",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "21"
     ],

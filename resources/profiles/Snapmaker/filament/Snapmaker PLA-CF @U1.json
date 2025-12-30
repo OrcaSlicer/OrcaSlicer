@@ -1,11 +1,11 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker PLA-CF @U1",
-  "setting_id": "35893594380",
-  "inherits": "Snapmaker PLA-CF @U1 base",
-  "compatible_printers": [
-    "Snapmaker U1 (0.4 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker PLA-CF @U1",
+    "inherits": "Snapmaker PLA-CF @U1 base",
+    "from": "system",
+    "setting_id": "35893594380",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ]
 }

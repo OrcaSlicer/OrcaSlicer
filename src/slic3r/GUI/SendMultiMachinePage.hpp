@@ -32,9 +32,8 @@ namespace GUI {
 #define  DESIGN_LARGE_COMBOBOX_SIZE wxSize(FromDIP(160), -1)
 #define  DESIGN_INPUT_SIZE wxSize(FromDIP(50), -1)
 
-#define MATERIAL_ITEM_SIZE wxSize(FromDIP(64), FromDIP(34))
-#define MATERIAL_ITEM_REAL_SIZE wxSize(FromDIP(62), FromDIP(32))
-#define MAPPING_ITEM_REAL_SIZE wxSize(FromDIP(48), FromDIP(45))
+
+
 
 #define THUMBNAIL_SIZE FromDIP(128)
 
@@ -107,7 +106,7 @@ private:
     wxBoxSizer*                         m_sizer_body{ nullptr };
     wxGridSizer*                        m_ams_list_sizer{ nullptr };
     AmsMapingPopup*                     m_mapping_popup{ nullptr };
-    
+
     AmsRadioSelectorList                m_radio_group;
     MaterialHash                        m_material_list;
     std::map<std::string, CheckBox*>    m_checkbox_map;
@@ -173,7 +172,7 @@ public:
 
     BBL::PrintParams request_params(MachineObject* obj);
 
-    bool get_ams_mapping_result(std::string& mapping_array_str, std::string& ams_mapping_info);
+    bool get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info);
     wxBoxSizer* create_item_title(wxString title, wxWindow* parent, wxString tooltip);
     wxBoxSizer* create_item_checkbox(wxString title, wxWindow* parent, wxString tooltip, int padding_left, std::string param);
     wxBoxSizer* create_item_input(wxString str_before, wxString str_after, wxWindow* parent, wxString tooltip, std::string param);

@@ -1,0 +1,12 @@
+{
+  "compatible_printers": [
+    "Eryone ER20 Klipper 0.6 nozzle"
+  ],
+  "elefant_foot_compensation": "0",
+  "from": "system",
+  "inherits": "fdm_process_ER20_Klipper_0.36_nozzle_0.6",
+  "instantiation": "true",
+  "name": "0.36mm Draft @Eryone ER20 Klipper 0.6 nozzle",
+  "travel_speed": "250",
+  "type": "process"
+}

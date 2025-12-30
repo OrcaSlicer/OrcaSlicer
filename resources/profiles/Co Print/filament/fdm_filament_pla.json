@@ -1,207 +1,200 @@
 {
     "type": "filament",
     "name": "fdm_filament_pla",
+    "inherits": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_filament_common",
     "activate_air_filtration": [
         "0"
-      ],
-      "additional_cooling_fan_speed": [
+    ],
+    "additional_cooling_fan_speed": [
         "70"
-      ],
-      "chamber_temperatures": [
+    ],
+    "chamber_temperatures": [
         "0"
-      ],
-      "close_fan_the_first_x_layers": [
+    ],
+    "close_fan_the_first_x_layers": [
         "1"
-      ],
-      "complete_print_exhaust_fan_speed": [
+    ],
+    "complete_print_exhaust_fan_speed": [
         "100"
-      ],
-      "cool_plate_temp": [
+    ],
+    "cool_plate_temp": [
         "35"
-      ],
-      "cool_plate_temp_initial_layer": [
+    ],
+    "cool_plate_temp_initial_layer": [
         "35"
-      ],
-      "during_print_exhaust_fan_speed": [
+    ],
+    "during_print_exhaust_fan_speed": [
         "100"
-      ],
-      "eng_plate_temp": [
+    ],
+    "eng_plate_temp": [
         "0"
-      ],
-      "eng_plate_temp_initial_layer": [
+    ],
+    "eng_plate_temp_initial_layer": [
         "0"
-      ],
-      "fan_cooling_layer_time": [
+    ],
+    "fan_cooling_layer_time": [
         "50"
-      ],
-      "fan_max_speed": [
+    ],
+    "fan_max_speed": [
         "100"
-      ],
-      "fan_min_speed": [
+    ],
+    "fan_min_speed": [
         "100"
-      ],
-      "filament_cost": [
+    ],
+    "filament_cost": [
         "20"
-      ],
-      "filament_density": [
+    ],
+    "filament_density": [
         "1.24"
-      ],
-      "filament_deretraction_speed": [
+    ],
+    "filament_deretraction_speed": [
         "nil"
-      ],
-      "filament_diameter": [
+    ],
+    "filament_diameter": [
         "1.75"
-      ],
-      "filament_flow_ratio": [
+    ],
+    "filament_flow_ratio": [
         "0.95"
-      ],
-      "filament_is_support": [
+    ],
+    "filament_is_support": [
         "0"
-      ],
-
-      "filament_max_volumetric_speed": [
+    ],
+    "filament_max_volumetric_speed": [
         "14"
-      ],
-      "filament_minimal_purge_on_wipe_tower": [
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
         "15"
-      ],
-      "filament_retract_before_wipe": [
+    ],
+    "filament_retract_before_wipe": [
         "nil"
-      ],
-      "filament_retract_restart_extra": [
+    ],
+    "filament_retract_restart_extra": [
         "nil"
-      ],
-      "filament_retract_when_changing_layer": [
+    ],
+    "filament_retract_when_changing_layer": [
         "nil"
-      ],
-      "filament_retraction_length": [
+    ],
+    "filament_retraction_length": [
         "nil"
-      ],
-      "filament_retraction_minimum_travel": [
+    ],
+    "filament_retraction_minimum_travel": [
         "nil"
-      ],
-      "filament_retraction_speed": [
+    ],
+    "filament_retraction_speed": [
         "nil"
-      ],
-      "filament_settings_id": [
+    ],
+    "filament_settings_id": [
         ""
-      ],
-      "filament_soluble": [
+    ],
+    "filament_soluble": [
         "0"
-      ],
-      "filament_type": [
+    ],
+    "filament_type": [
         "PLA"
-      ],
-      "filament_vendor": [
+    ],
+    "filament_vendor": [
         "Co Print"
-      ],
-      "filament_wipe": [
+    ],
+    "filament_wipe": [
         "nil"
-      ],
-      "filament_wipe_distance": [
+    ],
+    "filament_wipe_distance": [
         "nil"
-      ],
-      "filament_z_hop": [
+    ],
+    "filament_z_hop": [
         "nil"
-      ],
-      "full_fan_speed_layer": [
+    ],
+    "full_fan_speed_layer": [
         "3"
-      ],
-      "hot_plate_temp": [
+    ],
+    "hot_plate_temp": [
         "60"
-      ],
-      "hot_plate_temp_initial_layer": [
+    ],
+    "hot_plate_temp_initial_layer": [
         "60"
-      ],
-      "nozzle_temperature": [
+    ],
+    "nozzle_temperature": [
         "210"
-      ],
-      "nozzle_temperature_initial_layer": [
+    ],
+    "nozzle_temperature_initial_layer": [
         "210"
-      ],
-      "nozzle_temperature_range_low": [
+    ],
+    "nozzle_temperature_range_low": [
         "190"
-      ],
-      "nozzle_temperature_range_high": [
+    ],
+    "nozzle_temperature_range_high": [
         "250"
-      ],
-      "overhang_fan_speed": [
+    ],
+    "overhang_fan_speed": [
         "100"
-      ],
-      "overhang_fan_threshold": [
+    ],
+    "overhang_fan_threshold": [
         "50%"
-      ],
-      "reduce_fan_stop_start_freq": [
+    ],
+    "reduce_fan_stop_start_freq": [
         "1"
-      ],
-      "required_nozzle_HRC": [
+    ],
+    "required_nozzle_HRC": [
         "3"
-      ],
-      "slow_down_for_layer_cooling": [
+    ],
+    "slow_down_for_layer_cooling": [
         "1"
-      ],
-      "slow_down_layer_time": [
+    ],
+    "slow_down_layer_time": [
         "5"
-      ],
-      "slow_down_min_speed": [
+    ],
+    "slow_down_min_speed": [
         "10"
-      ],
-      "temperature_vitrification": [
+    ],
+    "temperature_vitrification": [
         "45"
-      ],
-      "textured_plate_temp": [
+    ],
+    "textured_plate_temp": [
         "55"
-      ],
-      "textured_plate_temp_initial_layer": [
+    ],
+    "textured_plate_temp_initial_layer": [
         "55"
-      ],
-      "compatible_printers": [],
-      "filament_shrink": [
+    ],
+    "compatible_printers": [],
+    "filament_shrink": [
         "100"
-      ],
-      "filament_loading_speed_start": [
+    ],
+    "filament_loading_speed_start": [
         "3"
-      ],
-      "filament_loading_speed": [
+    ],
+    "filament_loading_speed": [
         "28"
-      ],
-      "filament_unloading_speed_start": [
+    ],
+    "filament_unloading_speed_start": [
         "100"
-      ],
-      "filament_unloading_speed": [
+    ],
+    "filament_unloading_speed": [
         "90"
-      ],
-      "filament_load_time": [
+    ],
+    "filament_load_time": [
         "9.75"
-      ],
-      "filament_unload_time": [
+    ],
+    "filament_unload_time": [
         "9.75"
-      ],
-      "filament_toolchange_delay": [
+    ],
+    "filament_toolchange_delay": [
         "0"
-      ],
-      "filament_cooling_moves": [
+    ],
+    "filament_cooling_moves": [
         "0"
-      ],
-      "filament_cooling_initial_speed": [
+    ],
+    "filament_cooling_initial_speed": [
         "2.2"
-      ],
-      "filament_cooling_final_speed": [
+    ],
+    "filament_cooling_final_speed": [
         "3.4"
-      ],
-      
-  "enable_pressure_advance": [
-    "1"
-  ],
-  "pressure_advance": [
-    "0.05"
-  ]
-    
-    
-    
-    
-    }
-
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.05"
+    ]
+}

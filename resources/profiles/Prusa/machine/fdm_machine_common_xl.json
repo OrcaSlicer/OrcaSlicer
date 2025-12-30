@@ -1,8 +1,8 @@
 {
     "type": "machine",
     "name": "fdm_machine_common_xl",
-    "from": "system",
     "inherits": "fdm_machine_common",
+    "from": "system",
     "instantiation": "false",
     "gcode_flavor": "marlin2",
     "extruder_clearance_radius": "67",

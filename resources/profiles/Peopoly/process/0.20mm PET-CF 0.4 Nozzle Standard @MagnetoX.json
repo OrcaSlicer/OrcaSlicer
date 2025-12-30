@@ -13,19 +13,16 @@
     "inner_wall_speed": "200",
     "sparse_infill_speed": "200",
     "internal_solid_infill_speed": "200",
-    "top_surface_speed":"140",
+    "top_surface_speed": "140",
     "gap_infill_speed": "200",
-    "wall_loops":"3",
+    "wall_loops": "3",
     "brim_type": "no_brim",
     "skirt_distance": "2",
-	"skirt_loops": "2",
-    "top_shell_layers":"5",
-    "bottom_shell_layers":"5",
-    "sparse_infill_density":"20",
+    "skirt_loops": "2",
+    "top_shell_layers": "5",
+    "bottom_shell_layers": "5",
+    "sparse_infill_density": "20",
     "compatible_printers": [
         "Peopoly Magneto X 0.4 nozzle"
     ]
 }
-
-
-  

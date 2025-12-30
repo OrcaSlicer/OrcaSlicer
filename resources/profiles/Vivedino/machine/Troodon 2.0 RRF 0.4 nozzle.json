@@ -1,19 +1,19 @@
 {
-  "type": "machine",
-  "setting_id": "GM002",
-  "name": "Troodon 2.0 RRF 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_rrf_common",
-  "printer_model": "Troodon 2.0 - RRF",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "350x0",
-    "350x350",
-    "0x350"
-  ],
-  "printable_height": "330"
+    "type": "machine",
+    "name": "Troodon 2.0 RRF 0.4 nozzle",
+    "inherits": "fdm_rrf_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Troodon 2.0 - RRF",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "350x0",
+        "350x350",
+        "0x350"
+    ],
+    "printable_height": "330"
 }

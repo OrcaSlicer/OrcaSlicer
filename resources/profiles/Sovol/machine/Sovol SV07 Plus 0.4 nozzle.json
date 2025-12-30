@@ -1,25 +1,25 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Sovol SV07 Plus 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_machine_common",
-	"printer_model": "Sovol SV07 Plus",
-	"default_print_profile": "0.20mm Standard @Sovol SV07 Plus",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"300x0",
-		"300x300",
-		"0x300"
-	],
-	"printable_height": "350",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	  "machine_max_acceleration_e": [
+    "type": "machine",
+    "name": "Sovol SV07 Plus 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Sovol SV07 Plus",
+    "default_print_profile": "0.20mm Standard @Sovol SV07 Plus",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "350",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_e": [
         "20000"
     ],
     "machine_max_acceleration_extruding": [
@@ -84,45 +84,45 @@
     "machine_min_travel_rate": [
         "0"
     ],
-	"max_layer_height": [
-		"0.25"
-	],
-	"min_layer_height": [
-		"0.07"
-	],
-	"printer_settings_id": "Sovol",
-	"use_relative_e_distances": "0",
-	"gcode_flavor": "klipper",
-	"fan_kickstart": "0.2",
+    "max_layer_height": [
+        "0.25"
+    ],
+    "min_layer_height": [
+        "0.07"
+    ],
+    "printer_settings_id": "Sovol",
+    "use_relative_e_distances": "0",
+    "gcode_flavor": "klipper",
+    "fan_kickstart": "0.2",
     "fan_speedup_overhangs": "0",
     "fan_speedup_time": "0.5",
-	"retraction_minimum_travel": [
-		"0.5"
-	],
-	"retract_before_wipe": [
-		"0%"
-	],
-	"retraction_length": [
-		"0.5"
-	],
-	"retract_length_toolchange": [
-		"1"
-	],
-	"retraction_speed": [
-		"140"
-	],
-	"deretraction_speed": [
-		"140"
-	],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "M600\nG1 E0.4 F1500 ; prime after color change",
-	"machine_pause_gcode": "M601",
-	"default_filament_profile": [
-		"Generic PLA @System"
-	],
-	"machine_start_gcode": "M190 S[bed_temperature_initial_layer_single] ; Setting bed temprature\nM109 S[nozzle_temperature_initial_layer] ; Setting hot-end temprature\nSTART_PRINT ; Running macro from klipper\n",
-	"machine_end_gcode": "END_PRINT",
-	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;G92 E0.0\n;[layer_z]\n\n",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-	"scan_first_layer": "0"
+    "retraction_minimum_travel": [
+        "0.5"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "retraction_speed": [
+        "140"
+    ],
+    "deretraction_speed": [
+        "140"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "M600\nG1 E0.4 F1500 ; prime after color change",
+    "machine_pause_gcode": "M601",
+    "default_filament_profile": [
+        "Generic PLA @System"
+    ],
+    "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single] ; Setting bed temprature\nM109 S[nozzle_temperature_initial_layer] ; Setting hot-end temprature\nSTART_PRINT ; Running macro from klipper\n",
+    "machine_end_gcode": "END_PRINT",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;G92 E0.0\n;[layer_z]\n\n",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "scan_first_layer": "0"
 }

@@ -1,0 +1,41 @@
+{
+    "type": "filament",
+    "name": "Overture Super PLA+ @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFOT005",
+    "instantiation": "false",
+    "filament_cost": [
+        "28.99"
+    ],
+    "filament_density": [
+        "1.21"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_vendor": [
+        "Overture"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "230"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "temperature_vitrification": [
+        "63"
+    ]
+}

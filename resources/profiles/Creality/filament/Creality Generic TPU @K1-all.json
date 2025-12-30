@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFU99_CREALITY_00",
     "name": "Creality Generic TPU @K1-all",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Creality Generic TPU",
+    "from": "system",
+    "setting_id": "GFU99_CREALITY_00",
+    "instantiation": "true",
     "hot_plate_temp": [
         "30"
     ],

@@ -1,11 +1,10 @@
 {
     "type": "machine",
-    "from": "system",
-    "inherits": "fdm_tiq_common",
-    "is_custom_defined": "0",
     "name": "iQ TiQ8 0.4 Nozzle",
-    "printer_settings_id": "iQ TiQ8 0.4 Nozzle",
+    "inherits": "fdm_tiq_common",
+    "from": "system",
     "instantiation": "true",
+    "printer_settings_id": "iQ TiQ8 0.4 Nozzle",
     "printer_model": "TiQ8",
     "printer_variant": "0.4",
     "change_filament_gcode": "G1 Z{layer_z+2} F900 ; safe distance while tool change\n{if next_extruder==0}G1 X30 Y-12 F9000{endif}\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing",
@@ -56,7 +55,7 @@
         "500x400",
         "0x400"
     ],
-    "printable_height":"450",
+    "printable_height": "450",
     "retract_before_wipe": [
         "70%",
         "70%"
@@ -114,7 +113,6 @@
         "3",
         "3"
     ],
-    "version": "0.0.0.0",
     "wipe": [
         "1",
         "1"
@@ -131,7 +129,13 @@
         "Normal Lift",
         "Normal Lift"
     ],
-"machine_max_acceleration_x": ["1500", "1500"],
-"machine_max_acceleration_y": ["1500", "1500"],
-"printer_notes": "Machine file version 1.1 20250516"
+    "machine_max_acceleration_x": [
+        "1500",
+        "1500"
+    ],
+    "machine_max_acceleration_y": [
+        "1500",
+        "1500"
+    ],
+    "printer_notes": "Machine file version 1.1 20250516"
 }

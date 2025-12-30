@@ -1,9 +1,10 @@
 {
     "type": "filament",
-	"filament_id": "GFG99",
-    "setting_id": "GFSG99_06",
     "name": "CoLiDo PETG @CoLiDo SR1",
+    "inherits": "fdm_filament_pet",
     "from": "system",
+    "setting_id": "GFSG99_06",
+    "filament_id": "GFG99",
     "instantiation": "true",
     "filament_vendor": [
         "CoLiDo"
@@ -23,8 +24,6 @@
     "filament_settings_id": [
         "CoLiDo PETG @CoLiDo SR1"
     ],
-    "inherits": "fdm_filament_pet",
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "210"
     ],
@@ -37,7 +36,6 @@
     "pressure_advance": [
         "0.028"
     ],
-    "version": "2.2.0.4",
     "reduce_fan_stop_start_freq": [
         "1"
     ],

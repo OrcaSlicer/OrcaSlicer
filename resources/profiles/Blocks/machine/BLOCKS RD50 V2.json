@@ -1,12 +1,12 @@
 {
-"type": "machine_model",
-"name": "BLOCKS RD50 V2",
-"model_id": "BLOCKS RD50 V2",
-"nozzle_diameter": "0.4;0.6;0.8",
-"machine_tech": "FFF",
-"family":"Blocks",
-"bed_model": "RD50 V2 HotBed model.stl",
-"bed_texture":"RD50 V2 HotBed texture.png",
-"hotend_model":"BLOCKS PrintCore.stl",
-"default_materials":"Blocks Generic PLA;Blocks Generic PETG;Blocks Generic TPU"
+    "type": "machine_model",
+    "name": "BLOCKS RD50 V2",
+    "model_id": "BLOCKS RD50 V2",
+    "nozzle_diameter": "0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Blocks",
+    "bed_model": "RD50 V2 HotBed model.stl",
+    "bed_texture": "RD50 V2 HotBed texture.png",
+    "hotend_model": "BLOCKS PrintCore.stl",
+    "default_materials": "Blocks Generic PLA;Blocks Generic PETG;Blocks Generic TPU"
 }

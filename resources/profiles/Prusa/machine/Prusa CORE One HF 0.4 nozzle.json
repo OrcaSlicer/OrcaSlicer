@@ -1,4 +1,9 @@
 {
+    "type": "machine",
+    "name": "Prusa CORE One HF 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "true",
     "before_layer_change_gcode": [
         ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n{if layer_z > 150}\nM201 X{interpolate_table(layer_z, (0,7000), (150,7000), (200,4000), (270,2000))} Y{interpolate_table(layer_z, (0,7000), (150,7000), (200,4000), (270,2000))}\n{endif}\n"
     ],
@@ -12,12 +17,9 @@
     "extruder_clearance_height_to_lid": "50",
     "extruder_clearance_height_to_rod": "33",
     "extruder_clearance_radius": "75",
-    "from": "system",
     "printer_structure": "corexy",
     "gcode_flavor": "marlin2",
     "host_type": "prusalink",
-    "inherits": "fdm_machine_common",
-    "instantiation": "true",
     "layer_change_gcode": [
         ";AFTER_LAYER_CHANGE\n;[layer_z]"
     ],
@@ -90,7 +92,6 @@
     ],
     "max_layer_height": "0.30",
     "min_layer_height": "0.07",
-    "name": "Prusa CORE One HF 0.4 nozzle",
     "nozzle_diameter": [
         "0.4"
     ],
@@ -123,7 +124,6 @@
         "640x480/PNG"
     ],
     "travel_slope": "1",
-    "type": "machine",
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
     "wipe": "0",

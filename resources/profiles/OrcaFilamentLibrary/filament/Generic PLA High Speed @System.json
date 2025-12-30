@@ -2,9 +2,9 @@
     "type": "filament",
     "name": "Generic PLA High Speed @System",
     "inherits": "fdm_filament_pla",
-    "filament_id": "OGFL95",
     "from": "system",
     "setting_id": "OGFSL95_00",
+    "filament_id": "OGFL95",
     "instantiation": "true",
     "filament_flow_ratio": [
         "0.98"

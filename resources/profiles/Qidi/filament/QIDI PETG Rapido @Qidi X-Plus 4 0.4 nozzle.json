@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "QIDI PETG Rapido @Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "QIDI PETG Rapido",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "QD_0_1_41",
+    "instantiation": "true",
+    "filament_settings_id": [
+        "QIDI PETG Rapido @Qidi X-Plus 4 0.4 nozzle"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "pressure_advance": [
+        "0.054"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.4 nozzle"
+    ]
+}

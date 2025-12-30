@@ -3,9 +3,9 @@
     "name": "Z-Bolt ABS HT @0.6 nozzle",
     "inherits": "Z-Bolt ABS HT @base",
     "from": "system",
-    "instantiation": "true",
-    "filament_id": "GFL506",
     "setting_id": "GFSL506",
+    "filament_id": "GFL506",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "18"
     ],

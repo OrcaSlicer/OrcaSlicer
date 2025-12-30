@@ -16,6 +16,8 @@ namespace GUI {
 
     class GLTexture
     {
+    public:
+
         class Compressor
         {
             struct Level
@@ -39,6 +41,8 @@ namespace GUI {
             // This atomic also works as a memory barrier for synchronizing results of the worker thread with the calling thread.
             std::atomic<unsigned int> m_num_levels_compressed;
 
+            static std::atomic<bool> m_dirty; 
+
         public:
             explicit Compressor(GLTexture& texture) : m_texture(texture), m_abort_compressing(false), m_num_levels_compressed(0) {}
             ~Compressor() { reset(); }
@@ -53,11 +57,12 @@ namespace GUI {
             void send_compressed_data_to_gpu();
             bool all_compressed_data_sent_to_gpu() const { return m_levels.empty(); }
 
+            static bool has_compressed_texture_to_refresh() { return m_dirty.exchange(false); }
+
         private:
             void compress();
         };
 
-    public:
         enum ECompressionType : unsigned char
         {
             None,

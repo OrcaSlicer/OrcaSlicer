@@ -1,47 +1,47 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Qidi X-Plus 3 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_qidi_x3_common",
-	"printer_model": "Qidi X-Plus 3",
-	"gcode_flavor": "klipper",
-	"default_print_profile": "0.20mm Standard @Qidi XPlus3",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"280x0",
-		"280x280",
-		"0x280"
-	],
-	"printable_height": "270",
-	"nozzle_type": "hardened_steel",
-	"max_layer_height": [
-		"0.28"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"printer_settings_id": "Qidi",
-	"retraction_minimum_travel": [
-		"1"
-	],
-	"retraction_length": [
-		"1"
-	],
-	"retract_length_toolchange": [
-		"2"
-	],
-	"deretraction_speed": [
-		"0"
-	],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "M0",
-	"default_filament_profile": [
-		"Qidi Generic PLA"
-	]
+    "type": "machine",
+    "name": "Qidi X-Plus 3 0.4 nozzle",
+    "inherits": "fdm_qidi_x3_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Qidi X-Plus 3",
+    "gcode_flavor": "klipper",
+    "default_print_profile": "0.20mm Standard @Qidi XPlus3",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "280x0",
+        "280x280",
+        "0x280"
+    ],
+    "printable_height": "270",
+    "nozzle_type": "hardened_steel",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "Qidi",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "1"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M0",
+    "default_filament_profile": [
+        "Qidi Generic PLA"
+    ]
 }

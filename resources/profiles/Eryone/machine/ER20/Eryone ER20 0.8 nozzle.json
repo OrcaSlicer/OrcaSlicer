@@ -1,0 +1,20 @@
+{
+  "default_filament_profile": [],
+  "default_print_profile": "0.40mm Standard @Eryone ER20 0.8 nozzle",
+  "from": "system",
+  "inherits": "fdm_machine_eryone_ER20_common",
+  "instantiation": "true",
+  "max_layer_height": [
+    "0.56"
+  ],
+  "min_layer_height": [
+    "0.16"
+  ],
+  "name": "Eryone ER20 0.8 nozzle",
+  "nozzle_diameter": [
+    "0.8"
+  ],
+  "printer_model": "Eryone ER20",
+  "printer_variant": "0.8",
+  "type": "machine"
+}

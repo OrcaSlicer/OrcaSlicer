@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic ABS @MK4",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.926"
     ],
@@ -22,5 +22,5 @@
         "Prusa MK4 0.4 nozzle",
         "Prusa MK4 0.6 nozzle",
         "Prusa MK4 0.8 nozzle"
-      ]
+    ]
 }

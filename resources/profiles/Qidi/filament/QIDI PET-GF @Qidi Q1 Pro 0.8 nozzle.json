@@ -1,17 +1,17 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "QIDI PET-GF @Qidi Q1 Pro 0.8 nozzle",
+    "inherits": "QIDI PET-GF",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "fan_cooling_layer_time": [
         "10"
     ],
     "filament_settings_id": [
         "QIDI PET-GF @Qidi Q1 Pro 0.8 nozzle"
     ],
-    "from": "system",
-    "inherits": "QIDI PET-GF",
-    "is_custom_defined": "0",
-    "name": "QIDI PET-GF @Qidi Q1 Pro 0.8 nozzle",
     "nozzle_temperature": [
         "300"
     ],
@@ -34,6 +34,6 @@
         "15"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.8 nozzle"
-        ]
+        "Qidi Q1 Pro 0.8 nozzle"
+    ]
 }

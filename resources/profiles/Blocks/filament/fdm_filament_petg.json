@@ -1,9 +1,9 @@
 {
     "type": "filament",
     "name": "fdm_filament_petg",
+    "inherits": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_filament_common",
     "fan_cooling_layer_time": [
         "30"
     ],
@@ -89,10 +89,10 @@
         "0"
     ],
     "filament_retraction_length": [
-      "1.0"
+        "1.0"
     ],
     "filament_z_hop": [
-      "0.0"
+        "0.0"
     ],
     "filament_start_gcode": [
         "; filament start gcode\n"

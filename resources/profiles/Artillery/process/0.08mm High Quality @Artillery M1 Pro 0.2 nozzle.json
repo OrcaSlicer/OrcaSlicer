@@ -1,4 +1,7 @@
 {
+    "type": "process",
+    "name": "0.08mm High Quality @Artillery M1 Pro 0.2 nozzle",
+    "from": "system",
     "instantiation": "true",
     "accel_to_decel_enable": "1",
     "accel_to_decel_factor": "50%",
@@ -45,7 +48,6 @@
     "flush_into_infill": "0",
     "flush_into_objects": "0",
     "flush_into_support": "1",
-    "from": "system",
     "fuzzy_skin": "none",
     "fuzzy_skin_first_layer": "0",
     "fuzzy_skin_point_distance": "0.8",
@@ -116,7 +118,6 @@
     "minimum_sparse_infill_area": "15",
     "mmu_segmented_region_interlocking_depth": "0",
     "mmu_segmented_region_max_width": "0",
-    "name": "0.08mm High Quality @Artillery M1 Pro 0.2 nozzle",
     "notes": "",
     "only_one_wall_first_layer": "0",
     "only_one_wall_top": "0",

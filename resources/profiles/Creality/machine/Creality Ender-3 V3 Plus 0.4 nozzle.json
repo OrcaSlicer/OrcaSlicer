@@ -1,13 +1,13 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Creality Ender-3 V3 Plus 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Creality Ender-3 V3 Plus",
     "gcode_flavor": "klipper",
-	"printer_structure": "i3",
+    "printer_structure": "i3",
     "default_print_profile": "0.20mm Standard @Creality Ender3 V3 Plus",
     "nozzle_diameter": [
         "0.4"

@@ -1,28 +1,60 @@
 {
-  "type": "filament",
-  "name": "SUNLU Silk PLA+ @base",
-  "inherits": "fdm_filament_pla",
-  "from": "system",
-  "filament_id": "GFSNL05",
-  "instantiation": "false",
-  "description": "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing.",
-  "filament_cost": ["29.99"],
-  "filament_density": ["1.25"],
-  "filament_flow_ratio": ["1.0"],
-  "filament_max_volumetric_speed": ["16"],
-  "filament_vendor": ["SUNLU"],
-  "filament_scarf_height": ["5%"],
-  "filament_scarf_gap": ["0%"],
-  "supertack_plate_temp": ["0"],
-  "supertack_plate_temp_initial_layer": ["0"],
-  "temperature_vitrification": ["54"],
-  "nozzle_temperature": ["230"],
-  "nozzle_temperature_initial_layer": ["230"],
-  "nozzle_temperature_range_high": ["240"],
-  "nozzle_temperature_range_low": ["190"],
-  "enable_pressure_advance": ["1"],
-  "pressure_advance": ["0.03"],
-  "filament_start_gcode": [
-    ";filament start gcode\n;right_extruder_material: PLA\n"
-  ]
+    "type": "filament",
+    "name": "SUNLU Silk PLA+ @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFSNL05",
+    "instantiation": "false",
+    "description": "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing.",
+    "filament_cost": [
+        "29.99"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_flow_ratio": [
+        "1.0"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_vendor": [
+        "SUNLU"
+    ],
+    "filament_scarf_height": [
+        "5%"
+    ],
+    "filament_scarf_gap": [
+        "0%"
+    ],
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
+    "temperature_vitrification": [
+        "54"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.03"
+    ],
+    "filament_start_gcode": [
+        ";filament start gcode\n;right_extruder_material: PLA\n"
+    ]
 }

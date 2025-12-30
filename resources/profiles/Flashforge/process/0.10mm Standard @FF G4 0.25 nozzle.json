@@ -1,21 +1,21 @@
 {
+    "type": "process",
+    "name": "0.10mm Standard @FF G4 0.25 nozzle",
+    "inherits": "0.12mm Standard @Flashforge AD5M Pro 0.25 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "bridge_acceleration": "10%",
     "bridge_speed": "15",
     "elefant_foot_compensation": "0.1",
     "enable_prime_tower": "1",
     "filter_out_gap_fill": "0.1",
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-    "Flashforge Guider4 0.25 nozzle"
-  ],
+        "Flashforge Guider4 0.25 nozzle"
+    ],
     "gap_fill_target": "topbottom",
-    "inherits": "0.12mm Standard @Flashforge AD5M Pro 0.25 Nozzle",
     "initial_layer_infill_speed": "80",
     "initial_layer_speed": "50",
-    "is_custom_defined": "0",
     "layer_height": "0.1",
-    "name": "0.10mm Standard @FF G4 0.25 nozzle",
     "only_one_wall_top": "1",
     "print_settings_id": "0.10mm Standard @FF G4 0.25 nozzle",
     "resolution": "0.005",
@@ -24,6 +24,5 @@
     "support_interface_spacing": "0.2",
     "support_type": "tree(auto)",
     "travel_acceleration": "30000",
-    "version": "2.2.0.0",
     "wall_loops": "3"
 }

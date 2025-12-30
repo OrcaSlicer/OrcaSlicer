@@ -1,8 +1,8 @@
 {
     "type": "process",
-    "from": "system",
-    "inherits": "fdm_process_dremel_common",
     "name": ".10mm Detail @Dremel 3D40 0.4",
+    "inherits": "fdm_process_dremel_common",
+    "from": "system",
     "instantiation": "true",
     "adaptive_layer_height": "0",
     "bridge_flow": "1",

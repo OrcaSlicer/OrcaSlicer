@@ -3,6 +3,8 @@
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
 
+#include "DeviceCore/DevFilaSystem.h"
+
 namespace Slic3r { namespace GUI {
 
 wxDEFINE_EVENT(EVT_CALI_ACTION, wxCommandEvent);
@@ -34,17 +36,22 @@ wxString get_cali_mode_caption_string(CalibMode mode)
 
 wxString get_calibration_wiki_page(CalibMode cali_mode)
 {
+    std::string language = wxGetApp().app_config->get("language");
+    wxString    region   = "en";
+    if (language.find("zh") == 0)
+        region = "zh";
+
     switch (cali_mode) {
     case CalibMode::Calib_PA_Line:
-        return wxString("https://wiki.bambulab.com/en/software/bambu-studio/calibration_pa");
+        return wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_pa", region);
     case CalibMode::Calib_Flow_Rate:
-        return wxString("https://wiki.bambulab.com/en/software/bambu-studio/calibration_flow_rate");
+        return wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_flow_rate", region);
     case CalibMode::Calib_Vol_speed_Tower:
-        return wxString("https://wiki.bambulab.com/en/software/bambu-studio/calibration_volumetric");
+        return wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_volumetric", region);
     case CalibMode::Calib_Temp_Tower:
-        return wxString("https://wiki.bambulab.com/en/software/bambu-studio/calibration_temperature");
+        return wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_temperature", region);
     case CalibMode::Calib_Retraction_tower:
-        return wxString("https://wiki.bambulab.com/en/software/bambu-studio/calibration_retraction");
+        return wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_retraction", region);
     default:
         return "";
     }
@@ -130,7 +137,10 @@ CalibMode get_obj_calibration_mode(const MachineObject* obj, CalibrationMethod& 
     }
 
     CalibMode cali_mode = CalibUtils::get_calib_mode_by_name(obj->subtask_name, cali_stage);
-    if (cali_mode != CalibMode::Calib_None) {
+    if (cali_mode == CalibMode::Calib_PA_Line && cali_stage == 2) {
+        method = CalibrationMethod::CALI_METHOD_NEW_AUTO;
+    }
+    else if (cali_mode != CalibMode::Calib_None) {
         method = CalibrationMethod::CALI_METHOD_MANUAL;
     }
     return cali_mode;
@@ -257,8 +267,9 @@ void CaliPageButton::msw_rescale()
 }
 
 
-FilamentComboBox::FilamentComboBox(wxWindow* parent, const wxPoint& pos, const wxSize& size)
+FilamentComboBox::FilamentComboBox(wxWindow* parent, int index, const wxPoint& pos, const wxSize& size)
     : wxPanel(parent, wxID_ANY, pos, size, wxTAB_TRAVERSAL)
+    , m_index(index)
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -273,6 +284,19 @@ FilamentComboBox::FilamentComboBox(wxWindow* parent, const wxPoint& pos, const w
     this->SetSizer(main_sizer);
     this->Layout();
     main_sizer->Fit(this);
+}
+
+void FilamentComboBox::ShowPanel()
+{
+    this->Show();
+    set_select_mode(m_mode);
+}
+
+void FilamentComboBox::HidePanel()
+{
+    this->Hide();
+    m_radioBox->Hide();
+    m_checkBox->Hide();
 }
 
 void FilamentComboBox::set_select_mode(CalibrationFilamentMode mode)
@@ -292,7 +316,7 @@ void FilamentComboBox::load_tray_from_ams(int id, DynamicPrintConfig& tray)
 
     m_tray_id = id;
     m_tray_name = m_comboBox->get_tray_name();
-    m_is_bbl_filamnet = MachineObject::is_bbl_filament(m_comboBox->get_tag_uid());
+    m_is_bbl_filamnet = DevFilaSystem::IsBBL_Filament(m_comboBox->get_tag_uid());
     Enable(m_comboBox->is_tray_exist());
 
     if (m_comboBox->is_tray_exist()) {
@@ -551,7 +575,7 @@ void CaliPageStepGuide::set_steps_string(wxArrayString steps)
 CaliPagePicture::CaliPagePicture(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style) 
     : wxPanel(parent, id, pos, size, style)
 {
-    SetBackgroundColour(wxColour(0xCECECE));
+    SetBackgroundColour(wxColour("#CECECE"));
     auto top_sizer = new wxBoxSizer(wxHORIZONTAL);
     top_sizer->AddStretchSpacer();
     m_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
@@ -804,7 +828,7 @@ CaliPageSendingPanel::CaliPageSendingPanel(wxWindow* parent, wxWindowID id, cons
     Layout();
     Fit();
 
-    Bind(EVT_SHOW_ERROR_INFO, [this](auto& e) {
+    Bind(EVT_SHOW_ERROR_INFO_SEND, [this](auto& e) {
         show_send_failed_info(true);
         });
 }

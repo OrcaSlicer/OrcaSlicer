@@ -1,5 +1,9 @@
 {
+    "from": "system",
+    "name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
     "instantiation": "true",
+    "is_custom_defined": "0",
     "complete_print_exhaust_fan_speed": [
         "0"
     ],
@@ -30,30 +34,27 @@
     "filament_type": [
         "PA-CF"
     ],
-    "from": "system",
-    "is_custom_defined": "0",
-    "name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "250"
     ],
     "nozzle_temperature_initial_layer": [
         "250"
     ],
-	"nozzle_temperature_range_high": [
+    "nozzle_temperature_range_high": [
         "280"
     ],
-	"nozzle_temperature_range_low": [
+    "nozzle_temperature_range_low": [
         "230"
     ],
     "slow_down_layer_time": [
         "2"
     ],
-    "version": "2.1.2.0",
+    "version": "2.1.2.2",
     "compatible_printers": [
-		"Artillery M1 Pro 0.4 nozzle"
+        "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
-        "1.3"
+        "0.8"
     ],
     "filament_retraction_speed": [
         "30"
@@ -67,26 +68,25 @@
     "filament_z_hop": [
         "0.6"
     ],
-    "inherits": "Artillery Generic PLA",
     "temperature_vitrification": [
         "108"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"hot_plate_temp": [
+    "hot_plate_temp": [
         "50"
     ],
     "hot_plate_temp_initial_layer": [
         "50"
     ],
-	"slow_down_min_speed": [
+    "slow_down_min_speed": [
         "10"
     ],
-	"filament_retract_lift_below": [
+    "filament_retract_lift_below": [
         "259"
     ],
-	"filament_deretraction_speed": [
+    "filament_deretraction_speed": [
         "30"
     ],
     "textured_plate_temp": [
@@ -101,22 +101,25 @@
     "cool_plate_temp_initial_layer": [
         "110"
     ],
-	"overhang_fan_speed": [
+    "overhang_fan_speed": [
         "80"
     ],
-	"overhang_fan_threshold": [
+    "overhang_fan_threshold": [
         "0%"
     ],
-	"filament_z_hop_types": [
+    "filament_z_hop_types": [
         "Normal Lift"
     ],
-	"chamber_temperature": [
+    "chamber_temperature": [
         "55"
     ],
-	"close_fan_the_first_x_layers":[
-	    "3"
-	],
-	"pressure_advance": [
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "pressure_advance": [
         "0.092"
     ]
 }

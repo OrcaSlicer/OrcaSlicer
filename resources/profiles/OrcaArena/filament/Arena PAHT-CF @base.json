@@ -1,24 +1,24 @@
 {
     "type": "filament",
-    "filament_id": "GFN04",
     "name": "Arena PAHT-CF @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "GFN04",
+    "instantiation": "false",
     "filament_max_volumetric_speed": [
         "8"
     ],
     "fan_max_speed": [
-      "30"
+        "30"
     ],
     "fan_min_speed": [
-      "10"
+        "10"
     ],
     "fan_cooling_layer_time": [
-      "5"
+        "5"
     ],
     "full_fan_speed_layer": [
-      "2"
+        "2"
     ],
     "required_nozzle_HRC": [
         "40"

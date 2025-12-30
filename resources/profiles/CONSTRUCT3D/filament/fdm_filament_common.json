@@ -3,28 +3,28 @@
     "name": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-    "cool_plate_temp" : [
+    "cool_plate_temp": [
         "62"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "62"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "62"
     ],
-    "textured_plate_temp" : [
+    "textured_plate_temp": [
         "62"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "66"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "66"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "66"
     ],
-    "textured_plate_temp_initial_layer" : [
+    "textured_plate_temp_initial_layer": [
         "66"
     ],
     "overhang_fan_threshold": [

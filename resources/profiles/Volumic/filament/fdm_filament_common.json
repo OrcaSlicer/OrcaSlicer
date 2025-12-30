@@ -3,31 +3,85 @@
     "name": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-	"cool_plate_temp" : ["50"],
-	"eng_plate_temp" : ["50"],
-	"hot_plate_temp" : ["50"],
-	"textured_plate_temp" : ["50"],
-	"cool_plate_temp_initial_layer" : ["50"],
-	"eng_plate_temp_initial_layer" : ["50"],
-	"hot_plate_temp_initial_layer" : ["50"],
-	"textured_plate_temp_initial_layer" : ["50"],
-	"filament_max_volumetric_speed": ["42"],
-	"overhang_fan_speed": ["100"],
-	"slow_down_for_layer_cooling": ["1"],
-	"close_fan_the_first_x_layers": ["1"],
-	"fan_cooling_layer_time": ["60"],
-	"filament_cost": ["37.50"],
-	"filament_density": ["1"],
-	"filament_diameter": ["1.75"],
-	"filament_minimal_purge_on_wipe_tower": ["15"],
-	"filament_type": ["PLA"],
-	"filament_vendor": ["Volumic"],
-	"bed_type": ["Hot Plate"],
-	"nozzle_temperature_initial_layer": ["210"],
-	"full_fan_speed_layer": ["0"],
-	"fan_max_speed": ["100"],
-	"fan_min_speed": ["60"],
-	"slow_down_min_speed": ["10"],
-	"slow_down_layer_time": ["8"],
-	"nozzle_temperature": ["210"]
+    "cool_plate_temp": [
+        "50"
+    ],
+    "eng_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "textured_plate_temp": [
+        "50"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "50"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "50"
+    ],
+    "filament_max_volumetric_speed": [
+        "42"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "60"
+    ],
+    "filament_cost": [
+        "37.50"
+    ],
+    "filament_density": [
+        "1"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
+    "filament_vendor": [
+        "Volumic"
+    ],
+    "bed_type": [
+        "Hot Plate"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "full_fan_speed_layer": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ]
 }

@@ -1,19 +1,19 @@
 {
-  "type": "machine",
-  "setting_id": "GM003",
-  "name": "TwoTrees SP-5 Klipper 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "TwoTrees SP-5 Klipper",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "310x0",
-    "310x310",
-    "0x310"
-  ],
-  "printable_height": "350"
+    "type": "machine",
+    "name": "TwoTrees SP-5 Klipper 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
+    "printer_model": "TwoTrees SP-5 Klipper",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "310x0",
+        "310x310",
+        "0x310"
+    ],
+    "printable_height": "350"
 }

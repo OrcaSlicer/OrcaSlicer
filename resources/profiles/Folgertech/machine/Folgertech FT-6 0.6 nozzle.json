@@ -1,23 +1,23 @@
 {
-  "type": "machine",
-  "setting_id": "GM002",
-  "name": "Folgertech FT-6 0.6 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_folgertech_common",
-  "printer_model": "Folgertech FT-6",
-  "nozzle_diameter": [
-    "0.6"
-  ],
-  "printer_variant": "0.6",
-  "printable_area": [
-    "0x0",
-    "700x0",
-    "700x350",
-    "0x350"
-  ],
-  "printable_height": "400",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0",
-  "default_print_profile": "0.30mm Standard @FT 0.6 Nozzle"
+    "type": "machine",
+    "name": "Folgertech FT-6 0.6 nozzle",
+    "inherits": "fdm_folgertech_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Folgertech FT-6",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printer_variant": "0.6",
+    "printable_area": [
+        "0x0",
+        "700x0",
+        "700x350",
+        "0x350"
+    ],
+    "printable_height": "400",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "default_print_profile": "0.30mm Standard @FT 0.6 Nozzle"
 }

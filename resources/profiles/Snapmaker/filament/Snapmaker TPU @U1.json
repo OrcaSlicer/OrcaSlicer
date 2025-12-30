@@ -1,13 +1,13 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker TPU @U1",
-  "setting_id": "31642856830",
-  "inherits": "Snapmaker TPU @U1 base",
-  "compatible_printers": [
-    "Snapmaker U1 (0.4 nozzle)",
-    "Snapmaker U1 (0.6 nozzle)",
-    "Snapmaker U1 (0.8 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker TPU @U1",
+    "inherits": "Snapmaker TPU @U1 base",
+    "from": "system",
+    "setting_id": "31642856830",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)",
+        "Snapmaker U1 (0.6 nozzle)",
+        "Snapmaker U1 (0.8 nozzle)"
+    ]
 }

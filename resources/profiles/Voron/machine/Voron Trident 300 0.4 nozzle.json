@@ -1,26 +1,26 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Voron Trident 300 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "Voron Trident 300",
-  "default_print_profile": "0.20mm Standard @Voron",
-  "max_layer_height": [
-    "0.32"
-  ],
-  "min_layer_height": [
-    "0.10"
-  ],
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "300x0",
-    "300x300",
-    "0x300"
-  ],
-  "printable_height": "250"
+    "type": "machine",
+    "name": "Voron Trident 300 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Voron Trident 300",
+    "default_print_profile": "0.20mm Standard @Voron",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.10"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "250"
 }

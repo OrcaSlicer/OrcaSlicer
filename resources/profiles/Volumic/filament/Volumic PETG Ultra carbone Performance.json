@@ -1,21 +1,21 @@
 {
-  "type": "filament",
-  "filament_id": "GFG98",
-  "setting_id": "GFSG50",
-  "name": "Volumic PETG Ultra carbone (Performance)",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_filament_pet",
-	"filament_flow_ratio": [
+    "type": "filament",
+    "name": "Volumic PETG Ultra carbone (Performance)",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSG50",
+    "filament_id": "GFG98",
+    "instantiation": "true",
+    "filament_flow_ratio": [
         "1.00"
     ],
-	"nozzle_temperature_initial_layer": [
-	  "245"
-	],
-    "nozzle_temperature": [
-      "245"
+    "nozzle_temperature_initial_layer": [
+        "245"
     ],
-    "hot_plate_temp" : [
+    "nozzle_temperature": [
+        "245"
+    ],
+    "hot_plate_temp": [
         "65"
     ],
     "fan_max_speed": [
@@ -25,22 +25,22 @@
         "60"
     ],
     "filament_max_volumetric_speed": [
-      "50"
+        "50"
     ],
     "compatible_printers": [
-	  "EXO42 Performance (0.4 nozzle)",
-	  "EXO65 Performance (0.4 nozzle)",
-	  "EXO65 Performance (0.6 nozzle)",
-	  "EXO65 Performance (0.8 nozzle)",
-	  "SH65 Performance (0.4 nozzle)",
-	  "EXO42 IDRE (0.4 nozzle)",
-	  "EXO42 IDRE COPY MODE (0.4 nozzle)",
-	  "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
-	  "EXO65 IDRE (0.4 nozzle)",
-	  "EXO65 IDRE COPY MODE (0.4 nozzle)",
-	  "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
-	  "SH65 IDRE (0.4 nozzle)",
-	  "SH65 IDRE COPY MODE (0.4 nozzle)",
-	  "SH65 IDRE MIRROR MODE (0.4 nozzle)"
+        "EXO42 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.6 nozzle)",
+        "EXO65 Performance (0.8 nozzle)",
+        "SH65 Performance (0.4 nozzle)",
+        "EXO42 IDRE (0.4 nozzle)",
+        "EXO42 IDRE COPY MODE (0.4 nozzle)",
+        "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+        "EXO65 IDRE (0.4 nozzle)",
+        "EXO65 IDRE COPY MODE (0.4 nozzle)",
+        "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+        "SH65 IDRE (0.4 nozzle)",
+        "SH65 IDRE COPY MODE (0.4 nozzle)",
+        "SH65 IDRE MIRROR MODE (0.4 nozzle)"
     ]
 }

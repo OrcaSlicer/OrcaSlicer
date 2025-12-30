@@ -38,13 +38,13 @@
     "filament_scarf_seam_type": [
         "none"
     ],
-    "filament_scarf_height":[
+    "filament_scarf_height": [
         "5%"
     ],
-    "filament_scarf_gap":[
+    "filament_scarf_gap": [
         "0%"
     ],
-    "filament_scarf_length":[
+    "filament_scarf_length": [
         "10"
     ],
     "temperature_vitrification": [

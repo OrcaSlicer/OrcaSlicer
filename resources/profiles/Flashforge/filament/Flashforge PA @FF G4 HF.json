@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge PA @FF G4 HF",
+    "inherits": "Flashforge Generic ABS @G3U",
+    "from": "system",
+    "instantiation": "true",
     "activate_chamber_temp_control": [
         "1"
     ],
@@ -44,10 +49,8 @@
     "filament_unloading_speed_start": [
         "100"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge Guider4 0.4 HF nozzle"
+        "Flashforge Guider4 0.4 HF nozzle"
     ],
     "hot_plate_temp": [
         "100"
@@ -55,9 +58,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Flashforge Generic ABS @G3U",
-    "is_custom_defined": "0",
-    "name": "Flashforge PA @FF G4 HF",
     "nozzle_temperature": [
         "280"
     ],
@@ -84,6 +84,5 @@
     ],
     "temperature_vitrification": [
         "110"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

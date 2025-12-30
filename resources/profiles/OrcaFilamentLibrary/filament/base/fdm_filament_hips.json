@@ -2,8 +2,8 @@
     "type": "filament",
     "name": "fdm_filament_hips",
     "inherits": "fdm_filament_common",
-    "filament_id": "OGFS98",
     "from": "system",
+    "filament_id": "OGFS98",
     "instantiation": "false",
     "cool_plate_temp": [
         "0"

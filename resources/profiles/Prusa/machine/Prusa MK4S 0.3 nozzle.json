@@ -1,15 +1,15 @@
 {
-    "default_print_profile": "0.16mm STRUCTURAL @MK4S 0.3",
-    "from": "system",
+    "type": "machine",
+    "name": "Prusa MK4S 0.3 nozzle",
     "inherits": "Prusa MK4S 0.4 nozzle",
+    "from": "system",
     "instantiation": "true",
+    "default_print_profile": "0.16mm STRUCTURAL @MK4S 0.3",
     "max_layer_height": "0.22",
     "min_layer_height": "0.05",
-    "name": "Prusa MK4S 0.3 nozzle",
     "nozzle_diameter": [
         "0.3"
     ],
-    "printer_model": "MK4S",
-    "printer_variant": "0.3",
-    "type": "machine"
+    "printer_model": "Prusa MK4S",
+    "printer_variant": "0.3"
 }

@@ -1,49 +1,120 @@
 {
-	"type": "machine",
-	"name": "fdm_volumic_common",
-	"from": "system",
-	"instantiation": "false",
-	"gcode_flavor": "marlin",
-	"emit_machine_limits_to_gcode": ["0"],
-	"printer_settings_id": "",
-	"printer_technology": "FFF",
-	"printer_variant": "0.4",
-	"retract_before_wipe": ["70%"],
-	"retract_when_changing_layer": ["1"],
-	"retract_length_toolchange": ["6"],
-	"z_hop": ["0"],
-	"retraction_minimum_travel": ["1"],
-	"retraction_length": ["2.4"],
-	"retraction_speed": ["30"],
-	"silent_mode": "0",
-
-	"machine_max_acceleration_e": ["0","0"],
-	"machine_max_acceleration_extruding": ["0","0"],
-	"machine_max_acceleration_retracting": ["0","0"],
-	"machine_max_acceleration_travel": ["0","0"],
-	"machine_max_acceleration_x": ["0","0"],
-	"machine_max_acceleration_y": ["0","0"],
-	"machine_max_acceleration_z": ["0","0"],
-	"machine_max_jerk_e": ["0","0"],
-	"machine_max_jerk_x": ["0","0"],
-	"machine_max_jerk_y": ["0","0"],
-	"machine_max_jerk_z": ["0","0"],
-	"machine_max_speed_e": ["0","0"],
-	"machine_max_speed_x": ["0","0"],
-	"machine_max_speed_y": ["0","0"],
-	"machine_max_speed_z": ["0","0"],
-	"machine_min_extruding_rate": ["0","0"],
-	"machine_min_travel_rate": ["0","0"],
-
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "M600",
-	"machine_pause_gcode": "M601",
-	"wipe": ["1"],
-	"default_filament_profile": ["Volumic UNIVERSAL Ultra"],
-	"bed_exclude_area": ["0x0"],
-	"scan_first_layer": "0",
-	"nozzle_type": "undefine",
-	"machine_start_gcode": "M117 Demarrage\nM106 S0\nM140 S[first_layer_bed_temperature]\nM104 T0 S[first_layer_temperature]\nG28\nG90\nM82\nG92 E0\nG1 Z5 F600\nG1 X1 Y299 F6000\nM109 T0 S[first_layer_temperature]\nM300 P350\nG92 E0\nM117 Impression",
-	"machine_end_gcode": "M107\nM104 S0\nM140 S0\nG0 X1 Y299 F5000\nM84\nM300",
-	"before_layer_change_gcode": "G92 E0"
+    "type": "machine",
+    "name": "fdm_volumic_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "marlin",
+    "emit_machine_limits_to_gcode": [
+        "0"
+    ],
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retract_length_toolchange": [
+        "6"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "2.4"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "silent_mode": "0",
+    "machine_max_acceleration_e": [
+        "0",
+        "0"
+    ],
+    "machine_max_acceleration_extruding": [
+        "0",
+        "0"
+    ],
+    "machine_max_acceleration_retracting": [
+        "0",
+        "0"
+    ],
+    "machine_max_acceleration_travel": [
+        "0",
+        "0"
+    ],
+    "machine_max_acceleration_x": [
+        "0",
+        "0"
+    ],
+    "machine_max_acceleration_y": [
+        "0",
+        "0"
+    ],
+    "machine_max_acceleration_z": [
+        "0",
+        "0"
+    ],
+    "machine_max_jerk_e": [
+        "0",
+        "0"
+    ],
+    "machine_max_jerk_x": [
+        "0",
+        "0"
+    ],
+    "machine_max_jerk_y": [
+        "0",
+        "0"
+    ],
+    "machine_max_jerk_z": [
+        "0",
+        "0"
+    ],
+    "machine_max_speed_e": [
+        "0",
+        "0"
+    ],
+    "machine_max_speed_x": [
+        "0",
+        "0"
+    ],
+    "machine_max_speed_y": [
+        "0",
+        "0"
+    ],
+    "machine_max_speed_z": [
+        "0",
+        "0"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "M601",
+    "wipe": [
+        "1"
+    ],
+    "default_filament_profile": [
+        "Volumic UNIVERSAL Ultra"
+    ],
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "scan_first_layer": "0",
+    "nozzle_type": "undefine",
+    "machine_start_gcode": "M117 Demarrage\nM106 S0\nM140 S[first_layer_bed_temperature]\nM104 T0 S[first_layer_temperature]\nG28\nG90\nM82\nG92 E0\nG1 Z5 F600\nG1 X1 Y299 F6000\nM109 T0 S[first_layer_temperature]\nM300 P350\nG92 E0\nM117 Impression",
+    "machine_end_gcode": "M107\nM104 S0\nM140 S0\nG0 X1 Y299 F5000\nM84\nM300",
+    "before_layer_change_gcode": "G92 E0"
 }

@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "from": "system",
-    "instantiation": "true",
     "name": "PolyLite Dual PLA @System",
     "renamed_from": "PolyLite Dual PLA",
-    "setting_id": "O64868365",
     "inherits": "PolyLite PLA @base",
+    "from": "system",
+    "setting_id": "O64868365",
+    "instantiation": "true",
     "compatible_printers": []
 }

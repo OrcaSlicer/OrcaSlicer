@@ -1,11 +1,14 @@
 {
     "type": "filament",
-    "filament_id": "GFU99",
-    "setting_id": "GFSR99",
     "name": "Qidi TPU 95A-HF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSR99",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_type": [
+        "TPU"
+    ],
     "filament_max_volumetric_speed": [
         "4"
     ],
@@ -15,31 +18,37 @@
     "pressure_advance": [
         "0.1"
     ],
+    "hot_plate_temp": [
+        "35"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "35"
+    ],
     "nozzle_temperature_initial_layer": [
         "230"
-      ],
-      "nozzle_temperature": [
+    ],
+    "nozzle_temperature": [
         "230"
-      ],
-	"compatible_printers": [
+    ],
+    "compatible_printers": [
         "Qidi X-Plus 0.4 nozzle",
         "Qidi X-Max 0.4 nozzle",
         "Qidi X-CF Pro 0.4 nozzle",
-		"Qidi X-Smart 3 0.4 nozzle",
-		"Qidi X-Plus 3 0.4 nozzle",
-		"Qidi X-Max 3 0.4 nozzle",
+        "Qidi X-Smart 3 0.4 nozzle",
+        "Qidi X-Plus 3 0.4 nozzle",
+        "Qidi X-Max 3 0.4 nozzle",
         "Qidi X-Max 0.6 nozzle",
         "Qidi X-CF Pro 0.6 nozzle",
-    "Qidi X-Smart 3 0.6 nozzle",
-    "Qidi X-Plus 3 0.6 nozzle",
-    "Qidi X-Max 3 0.6 nozzle",
-    "Qidi X-Plus 0.8 nozzle",
-    "Qidi X-Max 0.8 nozzle",
-    "Qidi X-CF Pro 0.8 nozzle",
-  "Qidi X-Smart 3 0.8 nozzle",
-  "Qidi X-Plus 3 0.8 nozzle",
-  "Qidi X-Max 3 0.8 nozzle",
-  "Qidi Q1 Pro 0.6 nozzle",
-  "Qidi X-Plus 4 0.6 nozzle"
-	]
+        "Qidi X-Smart 3 0.6 nozzle",
+        "Qidi X-Plus 3 0.6 nozzle",
+        "Qidi X-Max 3 0.6 nozzle",
+        "Qidi X-Plus 0.8 nozzle",
+        "Qidi X-Max 0.8 nozzle",
+        "Qidi X-CF Pro 0.8 nozzle",
+        "Qidi X-Smart 3 0.8 nozzle",
+        "Qidi X-Plus 3 0.8 nozzle",
+        "Qidi X-Max 3 0.8 nozzle",
+        "Qidi Q1 Pro 0.6 nozzle",
+        "Qidi X-Plus 4 0.6 nozzle"
+    ]
 }

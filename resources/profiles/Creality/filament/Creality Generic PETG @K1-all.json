@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSG99_00",
     "name": "Creality Generic PETG @K1-all",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Creality Generic PETG",
+    "from": "system",
+    "setting_id": "GFSG99_00",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "9"
     ],

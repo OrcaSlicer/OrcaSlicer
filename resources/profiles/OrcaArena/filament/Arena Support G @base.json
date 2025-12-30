@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFS01",
     "name": "Arena Support G @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "GFS01",
+    "instantiation": "false",
     "required_nozzle_HRC": [
         "3"
     ],
@@ -29,7 +29,7 @@
     "filament_cost": [
         "34.99"
     ],
-    "slow_down_layer_time":[
+    "slow_down_layer_time": [
         "6"
     ]
 }

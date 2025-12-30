@@ -1,29 +1,29 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 ASA @0.2 nozzle",
-  "setting_id": "924839906",
-  "inherits": "Snapmaker J1 ASA @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.2 nozzle)"
-  ],
-  "hot_plate_temp": [
-    "90"
-  ],
-  "hot_plate_temp_initial_layer": [
-    "90"
-  ],
-  "overhang_fan_speed": [
-    "80"
-  ],
-  "filament_max_volumetric_speed": [
-    "2.4"
-  ],
-  "fan_max_speed": [
-    "35"
-  ],
-  "fan_min_speed": [
-    "10"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 ASA @0.2 nozzle",
+    "inherits": "Snapmaker J1 ASA @base",
+    "from": "system",
+    "setting_id": "924839906",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.2 nozzle)"
+    ],
+    "hot_plate_temp": [
+        "90"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "90"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "filament_max_volumetric_speed": [
+        "2.4"
+    ],
+    "fan_max_speed": [
+        "35"
+    ],
+    "fan_min_speed": [
+        "10"
+    ]
 }

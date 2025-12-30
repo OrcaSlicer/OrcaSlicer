@@ -1,14 +1,14 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.2mm Standard @Co Print ChromaSet 0.4",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_coprint_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "default_acceleration": "5000",
     "compatible_printers": [
         "Co Print ChromaSet 0.4 nozzle",
-		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
-		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus"
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus"
     ]
 }

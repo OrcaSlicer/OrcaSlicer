@@ -1,11 +1,11 @@
 {
-  "type": "process",
-  "setting_id": "GP034",
-  "name": "0.48mm Standard @Qidi Q1 Pro 0.8 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_process_QIDI_0.48_nozzle_0.8",
-  "compatible_printers": [
-    "Qidi Q1 Pro 0.8 nozzle"
-  ]
+    "type": "process",
+    "name": "0.48mm Standard @Qidi Q1 Pro 0.8 nozzle",
+    "inherits": "fdm_process_QIDI_0.48_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP034",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.8 nozzle"
+    ]
 }

@@ -1,0 +1,134 @@
+{
+    "type": "machine",
+    "name": "fdm_machine_eryone_ER20_Klipper_common",
+    "inherits": "fdm_machine_eryone_ER20_common",
+    "from": "system",
+    "instantiation": "false",
+    "auxiliary_fan": "0",
+    "change_filament_gcode": "M600",
+    "cooling_tube_length": "5",
+    "cooling_tube_retraction": "91.5",
+    "default_filament_profile": [],
+    "deretraction_speed": [
+        "25"
+    ],
+    "extruder_clearance_dist_to_rod": "56.5",
+    "extruder_clearance_height_to_lid": "200",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_max_radius": "68",
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "1",
+    "fan_speedup_time": "0",
+    "gcode_flavor": "klipper",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_end_gcode": "END_PRINT",
+    "machine_load_filament_time": "25",
+    "machine_max_acceleration_e": [
+        "4000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "4000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "3500"
+    ],
+    "machine_max_acceleration_x": [
+        "3500"
+    ],
+    "machine_max_acceleration_y": [
+        "3000"
+    ],
+    "machine_max_acceleration_z": [
+        "100"
+    ],
+    "machine_max_jerk_e": [
+        "3"
+    ],
+    "machine_max_jerk_x": [
+        "15"
+    ],
+    "machine_max_jerk_y": [
+        "15"
+    ],
+    "machine_max_jerk_z": [
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "250"
+    ],
+    "machine_max_speed_y": [
+        "250"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": "START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]\n",
+    "machine_tool_change_time": "0",
+    "machine_unload_filament_time": "0",
+    "manual_filament_change": "1",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_notes": "optimized Eryone ER20 Klipper configuration with E3D Hotend, BMG directdrive, printable height limited to 190 because of the top of the directdrive and Z-Sync mod",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_height": "4",
+    "nozzle_type": "stainless_steel",
+    "nozzle_volume": "0",
+    "printable_height": "190",
+    "printer_variant": "0.5",
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_length_toolchange": [
+        "5"
+    ],
+    "retract_lift_below": [
+        "190"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_when_changing_layer": [
+        "0"
+    ],
+    "retraction_length": [
+        "0.82"
+    ],
+    "retraction_speed": [
+        "25"
+    ],
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "support_air_filtration": "0",
+    "support_chamber_temp_control": "0",
+    "support_multi_bed_types": "1",
+    "template_custom_gcode": "",
+    "thumbnails": "48x48/PNG, 300x300/PNG",
+    "thumbnails_format": "PNG",
+    "time_cost": "0",
+    "time_lapse_gcode": "",
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "0",
+    "wipe_distance": [
+        "0.3"
+    ],
+    "z_offset": "0"
+}

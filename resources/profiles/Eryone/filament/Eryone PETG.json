@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "EFL93",
-    "setting_id": "EFSA03",
     "name": "Eryone PETG",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA03",
+    "filament_id": "EFL93",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],
@@ -33,7 +33,6 @@
     "filament_type": [
         "PETG"
     ],
-
     "hot_plate_temp": [
         "75"
     ],

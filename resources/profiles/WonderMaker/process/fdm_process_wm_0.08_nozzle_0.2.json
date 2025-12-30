@@ -22,7 +22,7 @@
     "initial_layer_speed": "40",
     "initial_layer_infill_speed": "70",
     "sparse_infill_speed": "100",
-    "top_surface_speed": "150",    
+    "top_surface_speed": "150",
     "support_top_z_distance": "0.08",
     "support_bottom_z_distance": "0.08"
 }

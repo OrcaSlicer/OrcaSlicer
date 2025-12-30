@@ -3,8 +3,9 @@ project(ankerl)
 
 add_library(ankerl INTERFACE)
 
-target_include_directories(ankerl INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(ankerl SYSTEM
+    INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_sources(ankerl INTERFACE

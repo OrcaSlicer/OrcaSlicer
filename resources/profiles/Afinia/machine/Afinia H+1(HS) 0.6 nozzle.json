@@ -1,0 +1,26 @@
+{
+    "type": "machine",
+    "setting_id": "GM001",
+    "name": "Afinia H+1(HS) 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Afinia H+1(HS) 0.4 nozzle",
+    "printer_model": "Afinia H+1(HS)",
+    "default_print_profile": "0.30mm Strength @Afinia H+1(HS) 0.6 nozzle",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printer_variant": "0.6",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.18"
+    ],
+    "retraction_length": [
+        "1.4"
+    ],
+    "retraction_minimum_travel": [
+        "3"
+    ]
+}

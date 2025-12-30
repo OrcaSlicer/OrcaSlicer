@@ -1,6 +1,6 @@
 {
     "name": "Mellow",
-    "version":  "02.03.00.03",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Mellow Printer Profiles",
     "machine_model_list": [
@@ -43,15 +43,15 @@
             "sub_path": "process/0.28mm Extra Draft @M1.json"
         },
         {
-            "name": "0.32mm Extra Draft @M1",
+            "name": "0.32mm Standard @M1",
             "sub_path": "process/0.32mm Extra Draft @M1.json"
         },
         {
-            "name": "0.40mm Extra Draft @M1",
+            "name": "0.40mm Standard @M1",
             "sub_path": "process/0.40mm Extra Draft @M1.json"
         },
         {
-            "name": "0.56mm Extra Draft @M1",
+            "name": "0.56mm Standard @M1",
             "sub_path": "process/0.56mm Extra Draft @M1.json"
         }
     ],
@@ -66,12 +66,12 @@
             "sub_path": "machine/fdm_common_M1.json"
         },
         {
-            "name": "M1 0.4 nozzle",
-            "sub_path": "machine/M1 0.4 nozzle.json"
-        },
-        {
             "name": "M1 0.2 nozzle",
             "sub_path": "machine/M1 0.2 nozzle.json"
+        },
+        {
+            "name": "M1 0.4 nozzle",
+            "sub_path": "machine/M1 0.4 nozzle.json"
         },
         {
             "name": "M1 0.6 nozzle",

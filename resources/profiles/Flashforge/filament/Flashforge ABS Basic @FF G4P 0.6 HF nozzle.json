@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge ABS Basic @FF G4P 0.6 HF nozzle",
+    "inherits": "Flashforge Generic ABS @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -50,8 +55,6 @@
     "filament_start_gcode": [
         "; filament start gcode\n; right_extruder_material:ABS"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.6 HF nozzle"
     ],
@@ -61,9 +64,6 @@
     "hot_plate_temp_initial_layer": [
         "110"
     ],
-    "inherits": "Flashforge Generic ABS @G3U 0.6 Nozzle",
-    "is_custom_defined": "0",
-    "name": "Flashforge ABS Basic @FF G4P 0.6 HF nozzle",
     "nozzle_temperature": [
         "260"
     ],
@@ -99,6 +99,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "110"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

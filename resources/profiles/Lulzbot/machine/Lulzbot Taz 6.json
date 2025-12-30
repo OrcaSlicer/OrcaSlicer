@@ -3,10 +3,10 @@
     "name": "Lulzbot Taz 6",
     "model_id": "Lulzbot-Taz-6",
     "nozzle_diameter": "0.5",
-	"machine_tech": "FFF",
+    "machine_tech": "FFF",
     "family": "Lulzbot",
     "bed_model": "taz_6_build_plate.stl",
     "bed_texture": "lulzbot_logo.png",
     "hotend_model": "",
-	"default_materials": "Lulzbot 2.85mm ABS;Lulzbot 2.85mm PETG;Lulzbot 2.85mm PLA"
+    "default_materials": "Lulzbot 2.85mm ABS;Lulzbot 2.85mm PETG;Lulzbot 2.85mm PLA"
 }

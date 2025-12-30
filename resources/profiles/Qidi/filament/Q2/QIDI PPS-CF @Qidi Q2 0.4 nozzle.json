@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "QIDI PPS-CF @Qidi Q2 0.4 nozzle",
+    "inherits": "QIDI PPS-CF@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSN99",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.03"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.4 nozzle"
+    ]
+}

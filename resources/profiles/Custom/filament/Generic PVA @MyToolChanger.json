@@ -1,12 +1,12 @@
 {
     "type": "filament",
-    "filament_id": "GFS99",
-    "setting_id": "GFS99_MTC_0",
     "name": "Generic PVA @MyToolChanger",
     "renamed_from": "My Generic PVA @MyToolChanger",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Generic PVA @System",
+    "from": "system",
+    "setting_id": "GFS99_MTC_0",
+    "filament_id": "GFS99",
+    "instantiation": "true",
     "filament_cooling_final_speed": [
         "3.5"
     ],

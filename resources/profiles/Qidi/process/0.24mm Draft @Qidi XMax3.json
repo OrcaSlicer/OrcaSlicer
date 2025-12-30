@@ -1,11 +1,11 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
-	"name": "0.24mm Draft @Qidi XMax3",
-	"from": "system",
-	"inherits": "0.24mm Draft @Qidi X3",
-	"instantiation": "true",
-	"compatible_printers": [
-		"Qidi X-Max 3 0.4 nozzle"
-	]
+    "type": "process",
+    "name": "0.24mm Draft @Qidi XMax3",
+    "inherits": "0.24mm Draft @Qidi X3",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi X-Max 3 0.4 nozzle"
+    ]
 }

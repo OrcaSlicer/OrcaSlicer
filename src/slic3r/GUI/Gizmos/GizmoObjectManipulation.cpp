@@ -55,9 +55,10 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
     m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
     m_new_unit_string = m_imperial_units ? L("in") : L("mm");
 
-    const wxString shift                   = "Shift+";
+    const wxString shift                   = _L("Shift+");
     const wxString alt                     = GUI::shortkey_alt_prefix();
     const wxString ctrl                    = GUI::shortkey_ctrl_prefix();
+
     m_desc_move["part_selection_caption"] = alt + _L("Left mouse button");
     m_desc_move["part_selection"]         = _L("Part selection");
     m_desc_move["snap_step_caption"] = shift + _L("Left mouse button");
@@ -123,6 +124,9 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         else {//if (is_local_coordinates()) {//for scale
             auto tran      = selection.get_first_volume()->get_instance_transformation();
             m_new_position = tran.get_matrix().inverse() * cs_center;
+            if (is_instance_coordinates()) {
+                m_new_position = Vec3d::Zero();
+            }
             m_new_size  = selection.get_bounding_box_in_current_reference_system().first.size();
             m_unscale_size = selection.get_full_unscaled_instance_local_bounding_box().size();
             m_new_scale    = m_new_size.cwiseQuotient(m_unscale_size) * 100.0;
@@ -640,8 +644,12 @@ bool GizmoObjectManipulation::reset_button(ImGuiWrapper *imgui_wrapper, float ca
     ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET);
     ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_HOVER);
 
-    float font_size = ImGui::GetFontSize();
-    ImVec2 button_size = ImVec2(font_size, font_size);
+    float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+    ImVec2 button_size = ImVec2(16 * scale, 16 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
@@ -657,8 +665,12 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper, flo
     ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_ZERO);
     ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_ZERO_HOVER);
 
-    float  font_size   = ImGui::GetFontSize() * 1.1;
-    ImVec2 button_size = ImVec2(font_size, font_size);
+    float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+    ImVec2 button_size = ImVec2(16 * scale, 16 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
@@ -715,6 +727,10 @@ void GizmoObjectManipulation::show_move_tooltip_information(ImGuiWrapper *imgui_
     caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
 
     float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
@@ -743,6 +759,10 @@ void GizmoObjectManipulation::show_rotate_tooltip_information(ImGuiWrapper *imgu
     caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
 
     float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
@@ -771,6 +791,10 @@ void GizmoObjectManipulation::show_scale_tooltip_information(ImGuiWrapper *imgui
     caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
 
     float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
@@ -886,7 +910,13 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     index      = 1;
     index_unit = 1;
     ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(_L("Position"));
+    if (selection.is_single_full_instance() && is_instance_coordinates()) {
+        imgui_wrapper->text(_L("Translate(Relative)"));
+    }
+    else {
+        imgui_wrapper->text(_L("Position"));
+    }
+
     ImGui::SameLine(caption_max + index * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_values[0][0], &display_position[0], 0.0f, 0.0f, "%.2f");

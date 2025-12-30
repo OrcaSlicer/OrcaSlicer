@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PC @MINIIS 0.6",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pc",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "7"
     ],
@@ -17,8 +17,7 @@
     "pressure_advance": [
         "0.1"
     ],
-
     "compatible_printers": [
-      "Prusa MINIIS 0.6 nozzle"
+        "Prusa MINIIS 0.6 nozzle"
     ]
 }

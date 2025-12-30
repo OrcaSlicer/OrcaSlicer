@@ -1,9 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFA99",
-    "setting_id": "GFSA99_06",
     "name": "CoLiDo PLA @CoLiDo SR1",
+    "inherits": "fdm_filament_pla",
     "from": "system",
+    "setting_id": "GFSA99_06",
+    "filament_id": "GFA99",
     "instantiation": "true",
     "filament_vendor": [
         "CoLiDo"
@@ -26,13 +27,10 @@
     "filament_settings_id": [
         "CoLiDo PLA @CoLiDo SR1"
     ],
-    "inherits": "fdm_filament_pla",
-    "is_custom_defined": "0",
     "nozzle_temperature_range_high": [
         "250"
     ],
     "slow_down_layer_time": [
         "8"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.12mm Fine @CoLiDo DIY 4.0",
-    "from": "system",
     "inherits": "fdm_process_colidodiy40_common",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "bottom_shell_layers": "5",
     "layer_height": "0.12",

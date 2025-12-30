@@ -8,7 +8,7 @@ body:
         **Thank you for using Orca Slicer and wanting to report a bug.**
         
         Please note that this is not the place to make feature requests or ask for help.
-        For this, please use the [Feature request](https://github.com/SoftFever/OrcaSlicer/issues/new?assignees=&labels=&projects=&template=feature_request.yml) issue type or you can discuss your idea on our [Discord server](https://discord.gg/P4VE9UY9gJ) with others.
+        For this, please use the [Feature request](https://github.com/OrcaSlicer/OrcaSlicer/issues/new?assignees=&labels=&projects=&template=feature_request.yml) issue type or you can discuss your idea on our [Discord server](https://discord.gg/P4VE9UY9gJ) with others.
         
         Before filing, please check if the issue already exists (either open or closed) by using the search bar on the issues page. If it does, comment there. Even if it's closed, we can reopen it based on your comment.
   - type: checkboxes

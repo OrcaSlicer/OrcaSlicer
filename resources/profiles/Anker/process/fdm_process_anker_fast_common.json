@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_anker_fast_common",
+    "inherits": "fdm_process_anker_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_anker_common",
     "reduce_crossing_wall": "0",
     "top_surface_pattern": "monotonicline",
     "bottom_shell_thickness": "0",

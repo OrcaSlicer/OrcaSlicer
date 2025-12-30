@@ -1,28 +1,28 @@
 {
     "name": "CoLiDo",
-    "version": "02.01.01.00",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "CoLiDo configurations",
     "machine_model_list": [
+        {
+            "name": "CoLiDo 160 V2",
+            "sub_path": "machine/CoLiDo 160 V2.json"
+        },
         {
             "name": "CoLiDo DIY 4.0",
             "sub_path": "machine/CoLiDo DIY 4.0.json"
         },
         {
-            "name": "CoLiDo X16",
-            "sub_path": "machine/CoLiDo X16.json"
-        },
-        {
-            "name": "CoLiDo 160 V2",
-            "sub_path": "machine/CoLiDo 160 V2.json"
+            "name": "CoLiDo DIY 4.0 V2",
+            "sub_path": "machine/CoLiDo DIY 4.0 V2.json"
         },
         {
             "name": "CoLiDo SR1",
             "sub_path": "machine/CoLiDo SR1.json"
         },
         {
-            "name": "CoLiDo DIY 4.0 V2",
-            "sub_path": "machine/CoLiDo DIY 4.0 V2.json"
+            "name": "CoLiDo X16",
+            "sub_path": "machine/CoLiDo X16.json"
         }
     ],
     "process_list": [
@@ -37,6 +37,18 @@
         {
             "name": "fdm_process_colidodiy40_common",
             "sub_path": "process/fdm_process_colidodiy40_common.json"
+        },
+        {
+            "name": "fdm_process_colidodiy40v2_common",
+            "sub_path": "process/fdm_process_colidodiy40v2_common.json"
+        },
+        {
+            "name": "fdm_process_colidosr1_common",
+            "sub_path": "process/fdm_process_colidosr1_common.json"
+        },
+        {
+            "name": "fdm_process_colidox16_common",
+            "sub_path": "process/fdm_process_colidox16_common.json"
         },
         {
             "name": "0.08mm Extra Fine @CoLiDo DIY 4.0",
@@ -61,72 +73,10 @@
         {
             "name": "0.28mm Extra Draft @CoLiDo DIY 4.0",
             "sub_path": "process/0.28mm Extra Draft @CoLiDo DIY 4.0.json"
-        }
-
-        ,
-        {
-            "name": "fdm_process_colidox16_common",
-            "sub_path": "process/fdm_process_colidox16_common.json"
         },
         {
-            "name": "0.08mm Extra Fine @CoLiDo X16",
-            "sub_path": "process/0.08mm Extra Fine @CoLiDo X16.json"
-        },
-        {
-            "name": "0.12mm Fine @CoLiDo X16",
-            "sub_path": "process/0.12mm Fine @CoLiDo X16.json"
-        },
-        {
-            "name": "0.15mm Optimal @CoLiDo X16",
-            "sub_path": "process/0.15mm Optimal @CoLiDo X16.json"
-        },
-        {
-            "name": "0.20mm Standard @CoLiDo X16",
-            "sub_path": "process/0.20mm Standard @CoLiDo X16.json"
-        },
-        {
-            "name": "0.24mm Draft @CoLiDo X16",
-            "sub_path": "process/0.24mm Draft @CoLiDo X16.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @CoLiDo X16",
-            "sub_path": "process/0.28mm Extra Draft @CoLiDo X16.json"
-        }
-
-        ,
-        {
-            "name": "fdm_process_colido160v2_common",
-            "sub_path": "process/fdm_process_colido160v2_common.json"
-        },
-        {
-            "name": "0.08mm Extra Fine @CoLiDo 160 V2",
-            "sub_path": "process/0.08mm Extra Fine @CoLiDo 160 V2.json"
-        },
-        {
-            "name": "0.12mm Fine @CoLiDo 160 V2",
-            "sub_path": "process/0.12mm Fine @CoLiDo 160 V2.json"
-        },
-        {
-            "name": "0.15mm Optimal @CoLiDo 160 V2",
-            "sub_path": "process/0.15mm Optimal @CoLiDo 160 V2.json"
-        },
-        {
-            "name": "0.20mm Standard @CoLiDo 160 V2",
-            "sub_path": "process/0.20mm Standard @CoLiDo 160 V2.json"
-        },
-        {
-            "name": "0.24mm Draft @CoLiDo 160 V2",
-            "sub_path": "process/0.24mm Draft @CoLiDo 160 V2.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @CoLiDo 160 V2",
-            "sub_path": "process/0.28mm Extra Draft @CoLiDo 160 V2.json"
-        }
-
-        ,
-        {
-            "name": "fdm_process_colidosr1_common",
-            "sub_path": "process/fdm_process_colidosr1_common.json"
+            "name": "0.20mm Standard @CoLiDo DIY 4.0 V2",
+            "sub_path": "process/0.20mm Standard @CoLiDo DIY 4.0 V2.json"
         },
         {
             "name": "0.08mm Extra Fine @CoLiDo SR1",
@@ -159,22 +109,68 @@
         {
             "name": "0.32mm Standard @CoLiDo SR1",
             "sub_path": "process/0.32mm Standard @CoLiDo SR1.json"
-        }
-
-        ,
-        {
-            "name": "fdm_process_colidodiy40v2_common",
-            "sub_path": "process/fdm_process_colidodiy40v2_common.json"
         },
         {
-            "name": "0.20mm Standard @CoLiDo DIY 4.0 V2",
-            "sub_path": "process/0.20mm Standard @CoLiDo DIY 4.0 V2.json"
+            "name": "0.08mm Extra Fine @CoLiDo X16",
+            "sub_path": "process/0.08mm Extra Fine @CoLiDo X16.json"
+        },
+        {
+            "name": "0.12mm Fine @CoLiDo X16",
+            "sub_path": "process/0.12mm Fine @CoLiDo X16.json"
+        },
+        {
+            "name": "0.15mm Optimal @CoLiDo X16",
+            "sub_path": "process/0.15mm Optimal @CoLiDo X16.json"
+        },
+        {
+            "name": "0.20mm Standard @CoLiDo X16",
+            "sub_path": "process/0.20mm Standard @CoLiDo X16.json"
+        },
+        {
+            "name": "0.24mm Draft @CoLiDo X16",
+            "sub_path": "process/0.24mm Draft @CoLiDo X16.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @CoLiDo X16",
+            "sub_path": "process/0.28mm Extra Draft @CoLiDo X16.json"
+        },
+        {
+            "name": "fdm_process_colido160v2_common",
+            "sub_path": "process/fdm_process_colido160v2_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @CoLiDo 160 V2",
+            "sub_path": "process/0.08mm Extra Fine @CoLiDo 160 V2.json"
+        },
+        {
+            "name": "0.12mm Fine @CoLiDo 160 V2",
+            "sub_path": "process/0.12mm Fine @CoLiDo 160 V2.json"
+        },
+        {
+            "name": "0.15mm Optimal @CoLiDo 160 V2",
+            "sub_path": "process/0.15mm Optimal @CoLiDo 160 V2.json"
+        },
+        {
+            "name": "0.20mm Standard @CoLiDo 160 V2",
+            "sub_path": "process/0.20mm Standard @CoLiDo 160 V2.json"
+        },
+        {
+            "name": "0.24mm Draft @CoLiDo 160 V2",
+            "sub_path": "process/0.24mm Draft @CoLiDo 160 V2.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @CoLiDo 160 V2",
+            "sub_path": "process/0.28mm Extra Draft @CoLiDo 160 V2.json"
         }
     ],
     "filament_list": [
         {
             "name": "fdm_filament_common",
             "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
         },
         {
             "name": "fdm_filament_pet",
@@ -189,48 +185,36 @@
             "sub_path": "filament/fdm_filament_tpu.json"
         },
         {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
+            "name": "CoLiDo ABS @CoLiDo SR1",
+            "sub_path": "filament/CoLiDo ABS @CoLiDo SR1.json"
+        },
+        {
+            "name": "CoLiDo Generic ABS @CoLiDo DIY 4.0",
+            "sub_path": "filament/CoLiDo Generic ABS @CoLiDo DIY 4.0.json"
+        },
+        {
+            "name": "CoLiDo Generic ABS @CoLiDo X16",
+            "sub_path": "filament/CoLiDo Generic ABS @CoLiDo X16.json"
         },
         {
             "name": "CoLiDo Generic PETG @CoLiDo DIY 4.0",
             "sub_path": "filament/CoLiDo Generic PETG @CoLiDo DIY 4.0.json"
         },
         {
-            "name": "CoLiDo Generic PLA @CoLiDo DIY 4.0",
-            "sub_path": "filament/CoLiDo Generic PLA @CoLiDo DIY 4.0.json"
-        },
-        {
-            "name": "CoLiDo Generic TPU @CoLiDo DIY 4.0",
-            "sub_path": "filament/CoLiDo Generic TPU @CoLiDo DIY 4.0.json"
-        },
-        {
-            "name": "CoLiDo Generic ABS @CoLiDo DIY 4.0",
-            "sub_path": "filament/CoLiDo Generic ABS @CoLiDo DIY 4.0.json"
-        }
-
-        ,
-        {
             "name": "CoLiDo Generic PETG @CoLiDo X16",
             "sub_path": "filament/CoLiDo Generic PETG @CoLiDo X16.json"
         },
         {
-            "name": "CoLiDo Generic PLA @CoLiDo X16",
-            "sub_path": "filament/CoLiDo Generic PLA @CoLiDo X16.json"
-        },
-        {
-            "name": "CoLiDo Generic TPU @CoLiDo X16",
-            "sub_path": "filament/CoLiDo Generic TPU @CoLiDo X16.json"
-        },
-        {
-            "name": "CoLiDo Generic ABS @CoLiDo X16",
-            "sub_path": "filament/CoLiDo Generic ABS @CoLiDo X16.json"
-        }
-
-        ,
-        {
             "name": "CoLiDo PETG @CoLiDo SR1",
             "sub_path": "filament/CoLiDo PETG @CoLiDo SR1.json"
+        },
+        {
+            "name": "CoLiDo Generic PLA @CoLiDo DIY 4.0",
+            "sub_path": "filament/CoLiDo Generic PLA @CoLiDo DIY 4.0.json"
+        },
+        {
+            "name": "CoLiDo Generic PLA @CoLiDo X16",
+            "sub_path": "filament/CoLiDo Generic PLA @CoLiDo X16.json"
         },
         {
             "name": "CoLiDo PLA @CoLiDo SR1",
@@ -241,14 +225,16 @@
             "sub_path": "filament/CoLiDo PLA Silk @CoLiDo SR1.json"
         },
         {
-            "name": "CoLiDo ABS @CoLiDo SR1",
-            "sub_path": "filament/CoLiDo ABS @CoLiDo SR1.json"
-        }
-
-        ,
-        {
             "name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2",
             "sub_path": "filament/CoLiDo PLA+ @CoLiDo DIY 4.0 V2.json"
+        },
+        {
+            "name": "CoLiDo Generic TPU @CoLiDo DIY 4.0",
+            "sub_path": "filament/CoLiDo Generic TPU @CoLiDo DIY 4.0.json"
+        },
+        {
+            "name": "CoLiDo Generic TPU @CoLiDo X16",
+            "sub_path": "filament/CoLiDo Generic TPU @CoLiDo X16.json"
         }
     ],
     "machine_list": [
@@ -261,24 +247,24 @@
             "sub_path": "machine/fdm_klipper_common.json"
         },
         {
-            "name": "CoLiDo DIY 4.0 0.4 nozzle",
-            "sub_path": "machine/CoLiDo DIY 4.0 0.4 nozzle.json"
-        },
-        {
-            "name": "CoLiDo X16 0.4 nozzle",
-            "sub_path": "machine/CoLiDo X16 0.4 nozzle.json"
-        },
-        {
-            "name": "CoLiDo 160 V2 0.4 nozzle",
-            "sub_path": "machine/CoLiDo 160 V2 0.4 nozzle.json"
+            "name": "CoLiDo DIY 4.0 V2 0.4 nozzle",
+            "sub_path": "machine/CoLiDo DIY 4.0 V2 0.4 nozzle.json"
         },
         {
             "name": "CoLiDo SR1 0.4 nozzle",
             "sub_path": "machine/CoLiDo SR1 0.4 nozzle.json"
         },
         {
-            "name": "CoLiDo DIY 4.0 V2 0.4 nozzle",
-            "sub_path": "machine/CoLiDo DIY 4.0 V2 0.4 nozzle.json"
+            "name": "CoLiDo 160 V2 0.4 nozzle",
+            "sub_path": "machine/CoLiDo 160 V2 0.4 nozzle.json"
+        },
+        {
+            "name": "CoLiDo DIY 4.0 0.4 nozzle",
+            "sub_path": "machine/CoLiDo DIY 4.0 0.4 nozzle.json"
+        },
+        {
+            "name": "CoLiDo X16 0.4 nozzle",
+            "sub_path": "machine/CoLiDo X16 0.4 nozzle.json"
         }
     ]
 }

@@ -1,12 +1,12 @@
 {
     "type": "process",
-    "setting_id": "GP005",
     "name": "0.24mm Draft @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_arena_0.24",
+    "from": "system",
+    "setting_id": "GP005",
+    "instantiation": "true",
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 0.4 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 0.4 nozzle"
     ]
 }

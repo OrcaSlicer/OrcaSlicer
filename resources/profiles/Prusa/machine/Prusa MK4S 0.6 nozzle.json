@@ -1,17 +1,17 @@
 {
+    "type": "machine",
+    "name": "Prusa MK4S 0.6 nozzle",
+    "inherits": "Prusa MK4S 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
     "default_filament_profile": "Prusa Generic PLA @MK4S 0.6",
     "default_print_profile": "0.25mm SPEED @MK4S 0.6",
-    "from": "system",
-    "inherits": "Prusa MK4S 0.4 nozzle",
-    "instantiation": "true",
     "max_layer_height": "0.40",
     "min_layer_height": "0.15",
-    "name": "Prusa MK4S 0.6 nozzle",
     "nozzle_diameter": [
         "0.6"
     ],
-    "printer_model": "MK4S",
+    "printer_model": "Prusa MK4S",
     "printer_variant": "0.6",
-    "type": "machine",
     "wipe": "1"
 }

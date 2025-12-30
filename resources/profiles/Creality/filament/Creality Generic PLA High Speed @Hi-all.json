@@ -1,18 +1,18 @@
 {
     "type": "filament",
-    "setting_id": "GFSL95_00",
     "name": "Creality Generic PLA High Speed @Hi-all",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Creality Generic PLA @Hi-all",
+    "from": "system",
+    "setting_id": "GFSL95_00",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.95"
     ],
     "filament_max_volumetric_speed": [
         "23"
     ],
-	"compatible_printers": [
-		"Creality Hi 0.4 nozzle",
-		"Creality Hi 0.6 nozzle"
-	]
+    "compatible_printers": [
+        "Creality Hi 0.4 nozzle",
+        "Creality Hi 0.6 nozzle"
+    ]
 }

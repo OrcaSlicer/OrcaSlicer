@@ -3,30 +3,57 @@
     "name": "fdm_process_volumic_common",
     "from": "system",
     "instantiation": "false",
-	"precise_outer_wall": "1",
-	"enable_overhang_speed": "1",
+    "precise_outer_wall": "1",
+    "enable_overhang_speed": "1",
     "adaptive_layer_height": "0",
     "reduce_crossing_wall": "1",
     "max_travel_detour_distance": "0",
-	"extra_perimeters_on_overhangs": "1",
-	"overhang_reverse": "1",
+    "extra_perimeters_on_overhangs": "1",
+    "overhang_reverse": "1",
     "bottom_surface_pattern": "monotonic",
     "bottom_shell_layers": "5",
     "bottom_shell_thickness": "0",
-	"accel_to_decel_enable": "0",
-	"default_acceleration": ["0","0"],
-	"outer_wall_acceleration": ["0","0"],
-	"inner_wall_acceleration": ["0","0"],
-	"bridge_acceleration": ["0","0"],
-	"sparse_infill_acceleration": ["0","0"],
-	"internal_solid_infill_acceleration": ["0","0"],
-	"initial_layer_acceleration": ["0","0"],
-	"top_surface_acceleration": ["0","0"],
-	"travel_acceleration": ["0","0"],
+    "accel_to_decel_enable": "0",
+    "default_acceleration": [
+        "0",
+        "0"
+    ],
+    "outer_wall_acceleration": [
+        "0",
+        "0"
+    ],
+    "inner_wall_acceleration": [
+        "0",
+        "0"
+    ],
+    "bridge_acceleration": [
+        "0",
+        "0"
+    ],
+    "sparse_infill_acceleration": [
+        "0",
+        "0"
+    ],
+    "internal_solid_infill_acceleration": [
+        "0",
+        "0"
+    ],
+    "initial_layer_acceleration": [
+        "0",
+        "0"
+    ],
+    "top_surface_acceleration": [
+        "0",
+        "0"
+    ],
+    "travel_acceleration": [
+        "0",
+        "0"
+    ],
     "bridge_flow": "1",
     "bridge_speed": "100",
-	"internal_bridge_speed": "100",
-	"thick_bridges": "1",
+    "internal_bridge_speed": "100",
+    "thick_bridges": "1",
     "brim_type": "no_brim",
     "brim_width": "6",
     "brim_object_gap": "0",
@@ -48,8 +75,8 @@
     "sparse_infill_density": "25%",
     "sparse_infill_pattern": "grid",
     "infill_combination": "1",
-	"infill_combination_max_layer_height": "75%",
-	"infill_anchor":"20%",
+    "infill_combination_max_layer_height": "75%",
+    "infill_anchor": "20%",
     "infill_wall_overlap": "20%",
     "interface_shells": "0",
     "ironing_flow": "30%",
@@ -70,7 +97,7 @@
     "seam_position": "aligned",
     "skirt_distance": "2",
     "skirt_height": "1",
-	"raft_first_layer_expansion": "0",
+    "raft_first_layer_expansion": "0",
     "skirt_loops": "1",
     "minimum_sparse_infill_area": "15",
     "spiral_mode": "0",

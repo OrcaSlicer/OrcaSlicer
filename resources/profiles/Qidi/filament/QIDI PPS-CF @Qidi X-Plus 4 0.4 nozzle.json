@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "QIDI PPS-CF @Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "QIDI PPS-CF",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "QD_0_1_44",
+    "instantiation": "true",
     "fan_cooling_layer_time": [
         "5"
     ],
@@ -17,10 +21,6 @@
     "filament_settings_id": [
         "QIDI PPS-CF @Qidi X-Plus 4 0.4 nozzle"
     ],
-    "from": "system",
-    "inherits": "QIDI PPS-CF",
-    "is_custom_defined": "0",
-    "name": "QIDI PPS-CF @Qidi X-Plus 4 0.4 nozzle",
     "nozzle_temperature": [
         "320"
     ],
@@ -40,6 +40,6 @@
         "20"
     ],
     "compatible_printers": [
-    "Qidi X-Plus 4 0.4 nozzle"
-        ]
+        "Qidi X-Plus 4 0.4 nozzle"
+    ]
 }

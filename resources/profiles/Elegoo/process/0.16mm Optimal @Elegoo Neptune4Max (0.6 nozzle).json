@@ -1,11 +1,11 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
-	"name": "0.16mm Optimal @Elegoo Neptune4Max (0.6 nozzle)",
-	"from": "system",
-	"inherits": "fdm_process_neptune4max_common",
-	"instantiation": "true",
-	"layer_height": "0.16",
+    "type": "process",
+    "name": "0.16mm Optimal @Elegoo Neptune4Max (0.6 nozzle)",
+    "inherits": "fdm_process_neptune4max_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.16",
     "adaptive_layer_height": "1",
     "reduce_crossing_wall": "0",
     "max_travel_detour_distance": "0",
@@ -84,7 +84,7 @@
     "prime_tower_width": "60",
     "xy_hole_compensation": "0",
     "xy_contour_compensation": "0",
-	"compatible_printers": [
-		"Elegoo Neptune 4 Max (0.6 nozzle)"
-	]
+    "compatible_printers": [
+        "Elegoo Neptune 4 Max (0.6 nozzle)"
+    ]
 }

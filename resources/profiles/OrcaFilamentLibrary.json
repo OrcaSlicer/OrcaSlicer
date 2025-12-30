@@ -1,12 +1,16 @@
 {
     "name": "OrcaFilamentLibrary",
-    "version": "02.03.00.04",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Orca Filament Library",
     "filament_list": [
         {
             "name": "fdm_filament_common",
             "sub_path": "filament/base/fdm_filament_common.json"
+        },
+        {
+            "name": "FusRock ABS-GF @base",
+            "sub_path": "filament/FusRock/FusRock ABS-GF @base.json"
         },
         {
             "name": "fdm_filament_abs",
@@ -81,6 +85,10 @@
             "sub_path": "filament/base/fdm_filament_tpu.json"
         },
         {
+            "name": "FusRock ABS-GF @System",
+            "sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
+        },
+        {
             "name": "Bambu ABS @base",
             "sub_path": "filament/Bambu/Bambu ABS @base.json"
         },
@@ -93,8 +101,28 @@
             "sub_path": "filament/Bambu/Bambu Support for ABS @base.json"
         },
         {
+            "name": "COEX ABS @base",
+            "sub_path": "filament/COEX/COEX ABS @base.json"
+        },
+        {
+            "name": "COEX ABS PRIME @base",
+            "sub_path": "filament/COEX/COEX ABS PRIME @base.json"
+        },
+        {
+            "name": "FDplast ABS @base",
+            "sub_path": "filament/FDplast/FDplast ABS @base.json"
+        },
+        {
             "name": "Generic ABS @System",
             "sub_path": "filament/Generic ABS @System.json"
+        },
+        {
+            "name": "NIT ABS @base",
+            "sub_path": "filament/NIT/NIT ABS @base.json"
+        },
+        {
+            "name": "Overture ABS Basic @base",
+            "sub_path": "filament/Overture/Overture ABS Basic @base.json"
         },
         {
             "name": "PolyLite ABS @base",
@@ -113,8 +141,16 @@
             "sub_path": "filament/Bambu/Bambu ASA-CF @base.json"
         },
         {
+            "name": "COEX ASA PRIME @base",
+            "sub_path": "filament/COEX/COEX ASA PRIME @base.json"
+        },
+        {
             "name": "Generic ASA @System",
             "sub_path": "filament/Generic ASA @System.json"
+        },
+        {
+            "name": "Overture ASA @base",
+            "sub_path": "filament/Overture/Overture ASA @base.json"
         },
         {
             "name": "PolyLite ASA @base",
@@ -127,6 +163,10 @@
         {
             "name": "Generic EVA @System",
             "sub_path": "filament/Generic EVA @System.json"
+        },
+        {
+            "name": "FDplast HIPS @base",
+            "sub_path": "filament/FDplast/FDplast HIPS @base.json"
         },
         {
             "name": "Generic HIPS @System",
@@ -159,6 +199,14 @@
         {
             "name": "Bambu Support G @base",
             "sub_path": "filament/Bambu/Bambu Support G @base.json"
+        },
+        {
+            "name": "COEX NYLEX PA6-CF @base",
+            "sub_path": "filament/COEX/COEX NYLEX PA6-CF @base.json"
+        },
+        {
+            "name": "COEX NYLEX UNFILLED @base",
+            "sub_path": "filament/COEX/COEX NYLEX UNFILLED @base.json"
         },
         {
             "name": "Fiberon PA12-CF @base",
@@ -197,6 +245,10 @@
             "sub_path": "filament/Generic PC @System.json"
         },
         {
+            "name": "COEX PCTG PRIME @base",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @base.json"
+        },
+        {
             "name": "Generic PCTG @System",
             "sub_path": "filament/Generic PCTG @System.json"
         },
@@ -233,6 +285,14 @@
             "sub_path": "filament/Bambu/Bambu PETG-CF @base.json"
         },
         {
+            "name": "COEX PETG @base",
+            "sub_path": "filament/COEX/COEX PETG @base.json"
+        },
+        {
+            "name": "FDplast PETG @base",
+            "sub_path": "filament/FDplast/FDplast PETG @base.json"
+        },
+        {
             "name": "Fiberon PET-CF @base",
             "sub_path": "filament/Polymaker/Fiberon PET-CF @base.json"
         },
@@ -257,12 +317,20 @@
             "sub_path": "filament/Generic PETG-CF @System.json"
         },
         {
+            "name": "NIT PETG @base",
+            "sub_path": "filament/NIT/NIT PETG @base.json"
+        },
+        {
             "name": "PolyLite PETG @base",
             "sub_path": "filament/Polymaker/PolyLite PETG @base.json"
         },
         {
             "name": "SUNLU PETG @base",
             "sub_path": "filament/SUNLU/SUNLU PETG @base.json"
+        },
+        {
+            "name": "eSUN PETG @base",
+            "sub_path": "filament/eSUN/eSUN PETG @base.json"
         },
         {
             "name": "Generic PHA @System",
@@ -345,6 +413,18 @@
             "sub_path": "filament/Bambu/Bambu Support W @base.json"
         },
         {
+            "name": "COEX PLA @base",
+            "sub_path": "filament/COEX/COEX PLA @base.json"
+        },
+        {
+            "name": "COEX PLA PRIME @base",
+            "sub_path": "filament/COEX/COEX PLA PRIME @base.json"
+        },
+        {
+            "name": "FDplast PLA @base",
+            "sub_path": "filament/FDplast/FDplast PLA @base.json"
+        },
+        {
             "name": "Generic PLA @System",
             "sub_path": "filament/Generic PLA @System.json"
         },
@@ -361,6 +441,18 @@
             "sub_path": "filament/Generic PLA-CF @System.json"
         },
         {
+            "name": "NIT PLA @base",
+            "sub_path": "filament/NIT/NIT PLA @base.json"
+        },
+        {
+            "name": "Overture Air PLA @base",
+            "sub_path": "filament/Overture/Overture Air PLA @base.json"
+        },
+        {
+            "name": "Overture Easy PLA @base",
+            "sub_path": "filament/Overture/Overture Easy PLA @base.json"
+        },
+        {
             "name": "Overture Matte PLA @base",
             "sub_path": "filament/Overture/Overture Matte PLA @base.json"
         },
@@ -369,36 +461,104 @@
             "sub_path": "filament/Overture/Overture PLA @base.json"
         },
         {
-            "name": "Overture TPU @base",
-            "sub_path": "filament/Overture/Overture TPU @base.json"
+            "name": "Overture PLA Pro @base",
+            "sub_path": "filament/Overture/Overture PLA Pro @base.json"
         },
         {
-            "name": "Overture ABS Basic @base",
-            "sub_path": "filament/Overture/Overture ABS Basic @base.json"
+            "name": "Overture Rock PLA @base",
+            "sub_path": "filament/Overture/Overture Rock PLA @base.json"
         },
         {
-            "name": "Valment PLA @base",
-            "sub_path": "filament/Valment/Valment PLA @base.json"
+            "name": "Overture Silk PLA @base",
+            "sub_path": "filament/Overture/Overture Silk PLA @base.json"
         },
         {
-            "name": "Valment PLA Silk @base",
-            "sub_path": "filament/Valment/Valment PLA Silk @base.json"
+            "name": "Overture Super PLA+ @base",
+            "sub_path": "filament/Overture/Overture Super PLA+ @base.json"
         },
         {
-            "name": "Valment PLA-CF @base",
-            "sub_path": "filament/Valment/Valment PLA-CF @base.json"
+            "name": "Panchroma CoPE @base",
+            "sub_path": "filament/Polymaker/Panchroma CoPE @base.json"
         },
         {
-            "name": "Valment PLA Galaxy @base",
-            "sub_path": "filament/Valment/Valment PLA Galaxy @base.json"
+            "name": "Panchroma PLA @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA @base.json"
+        },
+        {
+            "name": "Panchroma PLA Celestial @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Celestial @base.json"
+        },
+        {
+            "name": "Panchroma PLA Galaxy @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Galaxy @base.json"
+        },
+        {
+            "name": "Panchroma PLA Glow @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Glow @base.json"
+        },
+        {
+            "name": "Panchroma PLA Luminous @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Luminous @base.json"
+        },
+        {
+            "name": "Panchroma PLA Marble @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Marble @base.json"
+        },
+        {
+            "name": "Panchroma PLA Matte @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Matte @base.json"
+        },
+        {
+            "name": "Panchroma PLA Metallic @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Metallic @base.json"
+        },
+        {
+            "name": "Panchroma PLA Neon @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Neon @base.json"
+        },
+        {
+            "name": "Panchroma PLA Silk @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Silk @base.json"
+        },
+        {
+            "name": "Panchroma PLA Stain @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Stain @base.json"
+        },
+        {
+            "name": "Panchroma PLA Starlight @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Starlight @base.json"
+        },
+        {
+            "name": "Panchroma PLA Temp Shift @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Temp Shift @base.json"
+        },
+        {
+            "name": "Panchroma PLA Translucent @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Translucent @base.json"
+        },
+        {
+            "name": "Panchroma PLA UV Shift @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA UV Shift @base.json"
         },
         {
             "name": "PolyLite PLA @base",
             "sub_path": "filament/Polymaker/PolyLite PLA @base.json"
         },
         {
+            "name": "PolyLite PLA Pro @base",
+            "sub_path": "filament/Polymaker/PolyLite PLA Pro @base.json"
+        },
+        {
             "name": "PolyTerra PLA @base",
             "sub_path": "filament/Polymaker/PolyTerra PLA @base.json"
+        },
+        {
+            "name": "Polymaker HT-PLA @base",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA @base.json"
+        },
+        {
+            "name": "Polymaker HT-PLA-GF @base",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @base.json"
         },
         {
             "name": "SUNLU PLA Marble @base",
@@ -425,12 +585,28 @@
             "sub_path": "filament/SUNLU/SUNLU Wood PLA @base.json"
         },
         {
+            "name": "Valment PLA @base",
+            "sub_path": "filament/Valment/Valment PLA @base.json"
+        },
+        {
+            "name": "Valment PLA Galaxy @base",
+            "sub_path": "filament/Valment/Valment PLA Galaxy @base.json"
+        },
+        {
+            "name": "Valment PLA Silk @base",
+            "sub_path": "filament/Valment/Valment PLA Silk @base.json"
+        },
+        {
+            "name": "Valment PLA-CF @base",
+            "sub_path": "filament/Valment/Valment PLA-CF @base.json"
+        },
+        {
             "name": "eSUN PLA+ @base",
             "sub_path": "filament/eSUN/eSUN PLA+ @base.json"
         },
         {
-            "name": "eSUN PETG @base",
-            "sub_path": "filament/eSUN/eSUN PETG @base.json"
+            "name": "eSUN ePLA-LW @System",
+            "sub_path": "filament/eSUN/eSUN ePLA-LW @System.json"
         },
         {
             "name": "fdm_filament_pla_silk",
@@ -473,6 +649,10 @@
             "sub_path": "filament/Generic PVA @System.json"
         },
         {
+            "name": "FDplast SBS @base",
+            "sub_path": "filament/FDplast/FDplast SBS @base.json"
+        },
+        {
             "name": "Generic SBS @System",
             "sub_path": "filament/Generic SBS @System.json"
         },
@@ -485,8 +665,36 @@
             "sub_path": "filament/Bambu/Bambu TPU 95A HF @base.json"
         },
         {
+            "name": "COEX TPE 30D @base",
+            "sub_path": "filament/COEX/COEX TPE 30D @base.json"
+        },
+        {
+            "name": "COEX TPE 40D @base",
+            "sub_path": "filament/COEX/COEX TPE 40D @base.json"
+        },
+        {
+            "name": "COEX TPE 60D @base",
+            "sub_path": "filament/COEX/COEX TPE 60D @base.json"
+        },
+        {
+            "name": "COEX TPU 60A @base",
+            "sub_path": "filament/COEX/COEX TPU 60A @base.json"
+        },
+        {
+            "name": "FDplast TPU @base",
+            "sub_path": "filament/FDplast/FDplast TPU @base.json"
+        },
+        {
             "name": "Generic TPU @System",
             "sub_path": "filament/Generic TPU @System.json"
+        },
+        {
+            "name": "Overture TPU @base",
+            "sub_path": "filament/Overture/Overture TPU @base.json"
+        },
+        {
+            "name": "Numakers PLA+ @base",
+            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
         },
         {
             "name": "Bambu ABS @System",
@@ -499,6 +707,26 @@
         {
             "name": "Bambu Support for ABS @System",
             "sub_path": "filament/Bambu/Bambu Support for ABS @System.json"
+        },
+        {
+            "name": "COEX ABS @System",
+            "sub_path": "filament/COEX/COEX ABS @System.json"
+        },
+        {
+            "name": "COEX ABS PRIME @System",
+            "sub_path": "filament/COEX/COEX ABS PRIME @System.json"
+        },
+        {
+            "name": "FDplast ABS @System",
+            "sub_path": "filament/FDplast/FDplast ABS @System.json"
+        },
+        {
+            "name": "NIT ABS @System",
+            "sub_path": "filament/NIT/NIT ABS @System.json"
+        },
+        {
+            "name": "Overture ABS Basic @System",
+            "sub_path": "filament/Overture/Overture ABS Basic @System.json"
         },
         {
             "name": "PolyLite ABS @System",
@@ -517,8 +745,20 @@
             "sub_path": "filament/Bambu/Bambu ASA-CF @System.json"
         },
         {
+            "name": "COEX ASA PRIME @System",
+            "sub_path": "filament/COEX/COEX ASA PRIME @System.json"
+        },
+        {
+            "name": "Overture ASA @System",
+            "sub_path": "filament/Overture/Overture ASA @System.json"
+        },
+        {
             "name": "PolyLite ASA @System",
             "sub_path": "filament/Polymaker/PolyLite ASA @System.json"
+        },
+        {
+            "name": "FDplast HIPS @System",
+            "sub_path": "filament/FDplast/FDplast HIPS @System.json"
         },
         {
             "name": "AliZ PA-CF @System",
@@ -549,6 +789,10 @@
             "sub_path": "filament/Bambu/Bambu Support G @System.json"
         },
         {
+            "name": "COEX NYLEX PA6-CF @System",
+            "sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
+        },
+        {
             "name": "Fiberon PA12-CF @System",
             "sub_path": "filament/Polymaker/Fiberon PA12-CF @System.json"
         },
@@ -571,6 +815,10 @@
         {
             "name": "Bambu PC FR @System",
             "sub_path": "filament/Bambu/Bambu PC FR @System.json"
+        },
+        {
+            "name": "COEX PCTG PRIME @System",
+            "sub_path": "filament/COEX/COEX PCTG PRIME @System.json"
         },
         {
             "name": "AliZ PETG @System",
@@ -605,6 +853,14 @@
             "sub_path": "filament/Bambu/Bambu PETG-CF @System.json"
         },
         {
+            "name": "COEX PETG @System",
+            "sub_path": "filament/COEX/COEX PETG @System.json"
+        },
+        {
+            "name": "FDplast PETG @System",
+            "sub_path": "filament/FDplast/FDplast PETG @System.json"
+        },
+        {
             "name": "Fiberon PET-CF @System",
             "sub_path": "filament/Polymaker/Fiberon PET-CF @System.json"
         },
@@ -617,12 +873,20 @@
             "sub_path": "filament/Polymaker/Fiberon PETG-rCF @System.json"
         },
         {
+            "name": "NIT PETG @System",
+            "sub_path": "filament/NIT/NIT PETG @System.json"
+        },
+        {
             "name": "PolyLite PETG @System",
             "sub_path": "filament/Polymaker/PolyLite PETG @System.json"
         },
         {
             "name": "SUNLU PETG @System",
             "sub_path": "filament/SUNLU/SUNLU PETG @System.json"
+        },
+        {
+            "name": "eSUN PETG @System",
+            "sub_path": "filament/eSUN/eSUN PETG @System.json"
         },
         {
             "name": "AliZ PLA @System",
@@ -701,6 +965,30 @@
             "sub_path": "filament/Bambu/Bambu Support W @System.json"
         },
         {
+            "name": "COEX PLA @System",
+            "sub_path": "filament/COEX/COEX PLA @System.json"
+        },
+        {
+            "name": "COEX PLA PRIME @System",
+            "sub_path": "filament/COEX/COEX PLA PRIME @System.json"
+        },
+        {
+            "name": "FDplast PLA @System",
+            "sub_path": "filament/FDplast/FDplast PLA @System.json"
+        },
+        {
+            "name": "NIT PLA @System",
+            "sub_path": "filament/NIT/NIT PLA @System.json"
+        },
+        {
+            "name": "Overture Air PLA @System",
+            "sub_path": "filament/Overture/Overture Air PLA @System.json"
+        },
+        {
+            "name": "Overture Easy PLA @System",
+            "sub_path": "filament/Overture/Overture Easy PLA @System.json"
+        },
+        {
             "name": "Overture Matte PLA @System",
             "sub_path": "filament/Overture/Overture Matte PLA @System.json"
         },
@@ -709,28 +997,84 @@
             "sub_path": "filament/Overture/Overture PLA @System.json"
         },
         {
-            "name": "Overture TPU @System",
-            "sub_path": "filament/Overture/Overture TPU @System.json"
+            "name": "Overture PLA Pro @System",
+            "sub_path": "filament/Overture/Overture PLA Pro @System.json"
         },
         {
-            "name": "Overture ABS Basic @System",
-            "sub_path": "filament/Overture/Overture ABS Basic @System.json"
+            "name": "Overture Rock PLA @System",
+            "sub_path": "filament/Overture/Overture Rock PLA @System.json"
         },
         {
-            "name": "Valment PLA @System",
-            "sub_path": "filament/Valment/Valment PLA @System.json"
+            "name": "Overture Silk PLA @System",
+            "sub_path": "filament/Overture/Overture Silk PLA @System.json"
         },
         {
-            "name": "Valment PLA Silk @System",
-            "sub_path": "filament/Valment/Valment PLA Silk @System.json"
+            "name": "Overture Super PLA+ @System",
+            "sub_path": "filament/Overture/Overture Super PLA+ @System.json"
         },
         {
-            "name": "Valment PLA-CF @System",
-            "sub_path": "filament/Valment/Valment PLA-CF @System.json"
+            "name": "Panchroma CoPE @System",
+            "sub_path": "filament/Polymaker/Panchroma CoPE @System.json"
         },
         {
-            "name": "Valment PLA Galaxy @System",
-            "sub_path": "filament/Valment/Valment PLA Galaxy @System.json"
+            "name": "Panchroma PLA @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA @System.json"
+        },
+        {
+            "name": "Panchroma PLA Celestial @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Celestial @System.json"
+        },
+        {
+            "name": "Panchroma PLA Galaxy @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Galaxy @System.json"
+        },
+        {
+            "name": "Panchroma PLA Glow @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Glow @System.json"
+        },
+        {
+            "name": "Panchroma PLA Luminous @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Luminous @System.json"
+        },
+        {
+            "name": "Panchroma PLA Marble @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Marble @System.json"
+        },
+        {
+            "name": "Panchroma PLA Matte @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Matte @System.json"
+        },
+        {
+            "name": "Panchroma PLA Metallic @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Metallic @System.json"
+        },
+        {
+            "name": "Panchroma PLA Neon @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Neon @System.json"
+        },
+        {
+            "name": "Panchroma PLA Silk @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Silk @System.json"
+        },
+        {
+            "name": "Panchroma PLA Stain @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Stain @System.json"
+        },
+        {
+            "name": "Panchroma PLA Starlight @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Starlight @System.json"
+        },
+        {
+            "name": "Panchroma PLA Temp Shift @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Temp Shift @System.json"
+        },
+        {
+            "name": "Panchroma PLA Translucent @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Translucent @System.json"
+        },
+        {
+            "name": "Panchroma PLA UV Shift @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA UV Shift @System.json"
         },
         {
             "name": "PolyLite Dual PLA @System",
@@ -741,12 +1085,24 @@
             "sub_path": "filament/Polymaker/PolyLite PLA @System.json"
         },
         {
+            "name": "PolyLite PLA Pro @System",
+            "sub_path": "filament/Polymaker/PolyLite PLA Pro @System.json"
+        },
+        {
             "name": "PolyTerra Dual PLA @System",
             "sub_path": "filament/Polymaker/PolyTerra Dual PLA @System.json"
         },
         {
             "name": "PolyTerra PLA @System",
             "sub_path": "filament/Polymaker/PolyTerra PLA @System.json"
+        },
+        {
+            "name": "Polymaker HT-PLA @System",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA @System.json"
+        },
+        {
+            "name": "Polymaker HT-PLA-GF @System",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @System.json"
         },
         {
             "name": "SUNLU PLA Marble @System",
@@ -773,16 +1129,28 @@
             "sub_path": "filament/SUNLU/SUNLU Wood PLA @System.json"
         },
         {
+            "name": "Valment PLA @System",
+            "sub_path": "filament/Valment/Valment PLA @System.json"
+        },
+        {
+            "name": "Valment PLA Galaxy @System",
+            "sub_path": "filament/Valment/Valment PLA Galaxy @System.json"
+        },
+        {
+            "name": "Valment PLA Silk @System",
+            "sub_path": "filament/Valment/Valment PLA Silk @System.json"
+        },
+        {
+            "name": "Valment PLA-CF @System",
+            "sub_path": "filament/Valment/Valment PLA-CF @System.json"
+        },
+        {
             "name": "eSUN PLA+ @System",
             "sub_path": "filament/eSUN/eSUN PLA+ @System.json"
         },
         {
-            "name": "eSUN ePLA-LW @System",
-            "sub_path": "filament/eSUN/eSUN ePLA-LW @System.json"
-        },
-        {
-            "name": "eSUN PETG @System",
-            "sub_path": "filament/eSUN/eSUN PETG @System.json"
+            "name": "COEX PLA+Silk @base",
+            "sub_path": "filament/COEX/COEX PLA+Silk @base.json"
         },
         {
             "name": "Generic PLA Silk @System",
@@ -797,6 +1165,10 @@
             "sub_path": "filament/Bambu/Bambu PVA @System.json"
         },
         {
+            "name": "FDplast SBS @System",
+            "sub_path": "filament/FDplast/FDplast SBS @System.json"
+        },
+        {
             "name": "Bambu TPU 95A @System",
             "sub_path": "filament/Bambu/Bambu TPU 95A @System.json"
         },
@@ -805,12 +1177,28 @@
             "sub_path": "filament/Bambu/Bambu TPU 95A HF @System.json"
         },
         {
-            "name": "FusRock ABS-GF @base",
-            "sub_path": "filament/FusRock/FusRock ABS-GF @base.json"
+            "name": "COEX TPE 30D @System",
+            "sub_path": "filament/COEX/COEX TPE 30D @System.json"
         },
         {
-            "name": "FusRock ABS-GF @System",
-            "sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
+            "name": "COEX TPE 40D @System",
+            "sub_path": "filament/COEX/COEX TPE 40D @System.json"
+        },
+        {
+            "name": "COEX TPE 60D @System",
+            "sub_path": "filament/COEX/COEX TPE 60D @System.json"
+        },
+        {
+            "name": "COEX TPU 60A @System",
+            "sub_path": "filament/COEX/COEX TPU 60A @System.json"
+        },
+        {
+            "name": "FDplast TPU @System",
+            "sub_path": "filament/FDplast/FDplast TPU @System.json"
+        },
+        {
+            "name": "Overture TPU @System",
+            "sub_path": "filament/Overture/Overture TPU @System.json"
         },
         {
             "name": "AliZ PETG-CF @System",
@@ -821,228 +1209,86 @@
             "sub_path": "filament/AliZ/AliZ PETG-Metal @System.json"
         },
         {
-            "name": "Panchroma CoPE @base",
-            "sub_path": "filament/Polymaker/Panchroma CoPE @base.json"
+            "name": "COEX PLA+Silk @System",
+            "sub_path": "filament/COEX/COEX PLA+Silk @System.json"
+        },
+        {   "name": "Numakers PLA+ @System",
+            "sub_path": "filament/Numakers/Numakers PLA+ @System.json"
         },
         {
-            "name": "Panchroma CoPE @System",
-            "sub_path": "filament/Polymaker/Panchroma CoPE @System.json"
+            "name": "Eolas Prints PLA Premium @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA Premium @System.json"
         },
         {
-            "name": "Panchroma PLA @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA @base.json"
+            "name": "Eolas Prints PLA Matte @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA Matte @System.json"
         },
         {
-            "name": "Panchroma PLA @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA @System.json"
+            "name": "Eolas Prints PLA Silk @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA Silk @System.json"
         },
         {
-            "name": "Panchroma PLA Celestial @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Celestial @base.json"
+            "name": "Eolas Prints PLA Neon @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA Neon @System.json"
         },
         {
-            "name": "Panchroma PLA Celestial @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Celestial @System.json"
+            "name": "Eolas Prints PLA High Speed @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA High Speed @System.json"
         },
         {
-            "name": "Panchroma PLA Galaxy @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Galaxy @base.json"
+            "name": "Eolas Prints PLA INGEO 850 @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA INGEO 850 @System.json"
         },
         {
-            "name": "Panchroma PLA Galaxy @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Galaxy @System.json"
+            "name": "Eolas Prints PLA INGEO 870 @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA INGEO 870 @System.json"
         },
         {
-            "name": "Panchroma PLA Glow @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Glow @base.json"
+            "name": "Eolas Prints PLA Antibacterial @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA Antibacterial @System.json"
         },
         {
-            "name": "Panchroma PLA Glow @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Glow @System.json"
+            "name": "Eolas Prints PLA Transition @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PLA Transition @System.json"
         },
         {
-            "name": "Panchroma PLA Luminous @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Luminous @base.json"
+            "name": "Eolas Prints PETG @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PETG @System.json"
         },
         {
-            "name": "Panchroma PLA Luminous @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Luminous @System.json"
+            "name": "Eolas Prints PETG UV Resistant @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PETG UV Resistant @System.json"
         },
         {
-            "name": "Panchroma PLA Marble @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Marble @base.json"
+            "name": "Eolas Prints PETG Transition @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints PETG Transition @System.json"
         },
         {
-            "name": "Panchroma PLA Marble @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Marble @System.json"
+            "name": "Eolas Prints TPU Flex 93A @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints TPU Flex 93A @System.json"
         },
         {
-            "name": "Panchroma PLA Matte @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Matte @base.json"
+            "name": "Eolas Prints TPU Flex D53 @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints TPU Flex D53 @System.json"
         },
         {
-            "name": "Panchroma PLA Matte @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Matte @System.json"
+            "name": "Eolas Prints TPU Flex D60 UV Resistant @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints TPU Flex D60 UV Resistant @System.json"
         },
         {
-            "name": "Panchroma PLA Metallic @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Metallic @base.json"
+            "name": "Eolas Prints TPU Transition @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints TPU Transition @System.json"
         },
         {
-            "name": "Panchroma PLA Metallic @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Metallic @System.json"
+            "name": "Eolas Prints ABS @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints ABS @System.json"
         },
         {
-            "name": "Panchroma PLA Neon @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Neon @base.json"
-        },
-        {
-            "name": "Panchroma PLA Neon @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Neon @System.json"
-        },
-        {
-            "name": "Panchroma PLA Silk @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Silk @base.json"
-        },
-        {
-            "name": "Panchroma PLA Silk @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Silk @System.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @base.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @System.json"
-        },
-        {
-            "name": "Panchroma PLA Starlight @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Starlight @base.json"
-        },
-        {
-            "name": "Panchroma PLA Starlight @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Starlight @System.json"
-        },
-        {
-            "name": "Panchroma PLA Temp Shift @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Temp Shift @base.json"
-        },
-        {
-            "name": "Panchroma PLA Temp Shift @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Temp Shift @System.json"
-        },
-        {
-            "name": "Panchroma PLA Translucent @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Translucent @base.json"
-        },
-        {
-            "name": "Panchroma PLA Translucent @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Translucent @System.json"
-        },
-        {
-            "name": "Panchroma PLA UV Shift @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA UV Shift @base.json"
-        },
-        {
-            "name": "Panchroma PLA UV Shift @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA UV Shift @System.json"
-        },
-        {
-            "name": "PolyLite PLA Pro @base",
-            "sub_path": "filament/Polymaker/PolyLite PLA Pro @base.json"
-        },
-        {
-            "name": "PolyLite PLA Pro @System",
-            "sub_path": "filament/Polymaker/PolyLite PLA Pro @System.json"
-        },
-        {
-            "name": "Polymaker HT-PLA @base",
-            "sub_path": "filament/Polymaker/Polymaker HT-PLA @base.json"
-        },
-        {
-            "name": "Polymaker HT-PLA @System",
-            "sub_path": "filament/Polymaker/Polymaker HT-PLA @System.json"
-        },
-        {
-            "name": "Polymaker HT-PLA-GF @base",
-            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @base.json"
-        },
-        {
-            "name": "Polymaker HT-PLA-GF @System",
-            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @System.json"
-        },
-        {
-            "name": "NIT ABS @base",
-            "sub_path": "filament/NIT/NIT ABS @base.json"
-        },
-        {
-            "name": "NIT ABS @System",
-            "sub_path": "filament/NIT/NIT ABS @System.json"
-        },
-        {
-            "name": "NIT PETG @base",
-            "sub_path": "filament/NIT/NIT PETG @base.json"
-        },
-        {
-            "name": "NIT PETG @System",
-            "sub_path": "filament/NIT/NIT PETG @System.json"
-        },
-        {
-            "name": "NIT PLA @base",
-            "sub_path": "filament/NIT/NIT PLA @base.json"
-        },
-        {
-            "name": "NIT PLA @System",
-            "sub_path": "filament/NIT/NIT PLA @System.json"
-        },
-        {
-            "name": "FDplast ABS @base",
-            "sub_path": "filament/FDplast/FDplast ABS @base.json"
-        },
-        {
-            "name": "FDplast ABS @System",
-            "sub_path": "filament/FDplast/FDplast ABS @System.json"
-        },
-        {
-            "name": "FDplast HIPS @base",
-            "sub_path": "filament/FDplast/FDplast HIPS @base.json"
-        },
-        {
-            "name": "FDplast HIPS @System",
-            "sub_path": "filament/FDplast/FDplast HIPS @System.json"
-        },
-        {
-            "name": "FDplast PETG @base",
-            "sub_path": "filament/FDplast/FDplast PETG @base.json"
-        },
-        {
-            "name": "FDplast PETG @System",
-            "sub_path": "filament/FDplast/FDplast PETG @System.json"
-        },
-        {
-            "name": "FDplast PLA @base",
-            "sub_path": "filament/FDplast/FDplast PLA @base.json"
-        },
-        {
-            "name": "FDplast PLA @System",
-            "sub_path": "filament/FDplast/FDplast PLA @System.json"
-        },
-        {
-            "name": "FDplast SBS @base",
-            "sub_path": "filament/FDplast/FDplast SBS @base.json"
-        },
-        {
-            "name": "FDplast SBS @System",
-            "sub_path": "filament/FDplast/FDplast SBS @System.json"
-        },
-        {
-            "name": "FDplast TPU @base",
-            "sub_path": "filament/FDplast/FDplast TPU @base.json"
-        },
-        {
-            "name": "FDplast TPU @System",
-            "sub_path": "filament/FDplast/FDplast TPU @System.json"
+            "name": "Eolas Prints ASA @System",
+            "sub_path": "filament/Eolas Prints/Eolas Prints ASA @System.json"
         }
-    ]
+    ],
+    "process_list": [],
+    "machine_model_list": [],
+    "machine_list": []
 }

@@ -1,4 +1,5 @@
 #include "../ClipperUtils.hpp"
+#include "../MarchingSquares.hpp"
 #include "FillTpmsFK.hpp"
 #include <cmath>
 #include <algorithm>
@@ -6,429 +7,112 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <tbb/parallel_for.h>
-#include <mutex> 
+
+namespace marchsq {
+using namespace Slic3r;
+
+using coordr_t = long; // length type for (r, c) raster coordinates.
+// Note that coordf_t, Pointfs, Point3f, etc all use double not float.
+using Pointf = Vec2d; // (x, y) field point in coordf_t.
+
+struct ScalarField
+{
+    static constexpr float gsizef = 0.40;                        // grid cell size in mm (roughly line segment length).
+    static constexpr float rsizef = 0.004;                       // raster pixel size in mm (roughly point accuracy).
+    const coord_t          rsize  = scaled(rsizef);              // raster pixel size in coord_t.
+    const coordr_t         gsize  = std::round(gsizef / rsizef); // grid cell size in coordr_t.
+    Point                  size;                                 // field size in coord_t.
+    Point                  offs;                                 // field offset in coord_t.
+    coordf_t               z;                                    // z offset as a float.
+    float                  freq;                                 // field frequency in cycles per mm.
+    float                  isoval = 0.0;                         // iso value threshold to use.
+
+    explicit ScalarField(const BoundingBox bb, const coordf_t z = 0.0, const float period = 10.0)
+        : size{bb.size()}, offs{bb.min}, z{z}, freq{float(2 * PI) / period}
+    {}
+
+    // Get the scalar field value at x,y,z in coordf_t coordinates.
+    float get_scalar(coordf_t x, coordf_t y, coordf_t z) const
+    {
+        const float fx = freq * x;
+        const float fy = freq * y;
+        const float fz = freq * z;
+
+        // Fischer - Koch S equation:
+        // cos(2x)sin(y)cos(z) + cos(2y)sin(z)cos(x) + cos(2z)sin(x)cos(y) = 0
+        return cosf(2 * fx) * sinf(fy) * cosf(fz) + cosf(2 * fy) * sinf(fz) * cosf(fx) + cosf(2 * fz) * sinf(fx) * cosf(fy);
+    }
+
+    // Get the scalar field value at a Coord for the current z value.
+    float get_scalar(Coord p) const
+    {
+        Pointf pf = to_Pointf(p);
+        return get_scalar(pf.x(), pf.y(), z);
+    }
+
+    // Convert between dimension scales.
+    inline coord_t  to_coord(const coordr_t& x) const { return x * rsize; }
+    inline coordr_t to_coordr(const coord_t& x) const { return x / rsize; }
+
+    // Convert between point/coordinate systems, including translation.
+    inline Point  to_Point(const Coord& p) const { return Point(to_coord(p.c) + offs.x(), to_coord(p.r) + offs.y()); }
+    inline Coord  to_Coord(const Point& p) const { return Coord(to_coordr(p.y() - offs.y()), to_coordr(p.x() - offs.x())); }
+    inline Pointf to_Pointf(const Point& p) const { return Pointf(unscaled(p.x()), unscaled(p.y())); }
+    inline Pointf to_Pointf(const Coord& p) const { return to_Pointf(to_Point(p)); }
+};
+
+// Register ScalarField as a RasterType for MarchingSquares.
+template<> struct _RasterTraits<ScalarField>
+{
+    // The type of pixel cell in the raster
+    using ValueType = float;
+
+    // Value at a given position
+    static float get(const ScalarField& sf, size_t row, size_t col) { return sf.get_scalar(Coord(row, col)); }
+
+    // Number of rows and cols of the raster
+    static size_t rows(const ScalarField& sf) { return sf.to_coordr(sf.size.y()); }
+    static size_t cols(const ScalarField& sf) { return sf.to_coordr(sf.size.x()); }
+};
+
+// Get the polylines for the scalar field. The tolerance is used for
+// simplifying the polylines to remove redundant points. The default will
+// only remove points on (almost) perfectly straight lines. Set to -1 to turn
+// off simplifying entirely. Note tolerance is the max line deviation from
+// simplifying and should be scaled.
+Polylines get_polylines(const ScalarField& sf, const double tolerance = SCALED_EPSILON)
+{
+    std::vector<Ring> rings = execute_with_policy(ex_tbb, sf, sf.isoval, {sf.gsize, sf.gsize});
+
+    Polylines polys;
+    polys.reserve(rings.size());
+    // size_t old_pts = 0, new_pts = 0;
+
+    for (const Ring& ring : rings) {
+        Polyline poly;
+        Points&  pts = poly.points;
+        pts.reserve(ring.size() + 1);
+        for (const Coord& crd : ring)
+            pts.emplace_back(sf.to_Point(crd));
+        // MarchingSquare's rings are polygons, so add the first point to the end to make it a PolyLine.
+        pts.push_back(pts.front());
+        // old_pts += poly.points.size();
+        //  Simplify within specified tolerance to reduce points.
+        if (tolerance >= 0.0)
+            poly.simplify(tolerance);
+        // new_pts += poly.points.size();
+        polys.emplace_back(poly);
+    }
+    // std::cerr << "MarchingSquares: poly.simplify(" << tolerance << ") reduced points from" <<
+    //     old_pts << " to " << new_pts << " (" << 100*new_pts/old_pts << "%)\n";
+    return polys;
+}
+
+} // namespace marchsq
 
 namespace Slic3r {
 
 using namespace std;
-struct myPoint
-{
-    coord_t x, y;
-};
-class LineSegmentMerger
-{
-public:
-    void mergeSegments(const vector<pair<myPoint, myPoint>>& segments, vector<vector<myPoint>>& polylines2)
-    {
-        std::unordered_map<int, myPoint> point_id_xy;
-        std::set<std::pair<int, int>>    segment_ids;
-        std::unordered_map<int64_t, int> map_keyxy_pointid;
-
-        auto get_itr = [&](coord_t x, coord_t y) {
-            for (auto i : {0}) //,-2,2
-            {
-                for (auto j : {0}) //,-2,2
-                {
-                    int64_t combined_key1 = static_cast<int64_t>(x + i) << 32 | static_cast<uint32_t>(y + j);
-                    auto    itr1          = map_keyxy_pointid.find(combined_key1);
-                    if (itr1 != map_keyxy_pointid.end()) {
-                        return itr1;
-                    }
-                }
-            }
-            return map_keyxy_pointid.end();
-        };
-
-        int pointid = 0;
-        for (const auto& segment : segments) {
-            coord_t x          = segment.first.x;
-            coord_t y          = segment.first.y;
-            auto    itr        = get_itr(x, y);
-            int     segmentid0 = -1;
-            if (itr == map_keyxy_pointid.end()) {
-                int64_t combined_key            = static_cast<int64_t>(x) << 32 | static_cast<uint32_t>(y);
-                segmentid0                      = pointid;
-                point_id_xy[pointid]            = segment.first;
-                map_keyxy_pointid[combined_key] = pointid++;
-            } else {
-                segmentid0 = itr->second;
-            }
-            int segmentid1 = -1;
-            x              = segment.second.x;
-            y              = segment.second.y;
-            itr            = get_itr(x, y);
-            if (itr == map_keyxy_pointid.end()) {
-                int64_t combined_key            = static_cast<int64_t>(x) << 32 | static_cast<uint32_t>(y);
-                segmentid1                      = pointid;
-                point_id_xy[pointid]            = segment.second;
-                map_keyxy_pointid[combined_key] = pointid++;
-            } else {
-                segmentid1 = itr->second;
-            }
-
-            if (segmentid0 != segmentid1) {
-                segment_ids.insert(segmentid0 < segmentid1 ? std::make_pair(segmentid0, segmentid1) :
-                                                             std::make_pair(segmentid1, segmentid0));
-            }
-        }
-
-        unordered_map<int, vector<int>> graph;
-        unordered_set<int>              visited;
-        vector<vector<int>>             polylines;
-
-        // Build the graph
-        for (const auto& segment : segment_ids) {
-            graph[segment.first].push_back(segment.second);
-            graph[segment.second].push_back(segment.first);
-        }
-
-        vector<int> startnodes;
-        for (const auto& node : graph) {
-            if (node.second.size() == 1) {
-                startnodes.push_back(node.first);
-            }
-        }
-
-        // Find all connected components
-        for (const auto& point_first : startnodes) {
-            if (visited.find(point_first) == visited.end()) {
-                vector<int> polyline;
-                dfs(point_first, graph, visited, polyline);
-                polylines.push_back(std::move(polyline));
-            }
-        }
-
-        for (const auto& point : graph) {
-            if (visited.find(point.first) == visited.end()) {
-                vector<int> polyline;
-                dfs(point.first, graph, visited, polyline);
-                polylines.push_back(std::move(polyline));
-            }
-        }
-
-        for (auto& pl : polylines) {
-            vector<myPoint> tmpps;
-            for (auto& pid : pl) {
-                tmpps.push_back(point_id_xy[pid]);
-            }
-            polylines2.push_back(tmpps);
-        }
-    }
-
-private:
-    void dfs(const int&                                 start_node,
-             std::unordered_map<int, std::vector<int>>& graph,
-             std::unordered_set<int>&                   visited,
-             std::vector<int>&                          polyline)
-    {
-        std::vector<int> stack;
-        stack.reserve(graph.size());
-        stack.push_back(start_node);
-        while (!stack.empty()) {
-            int node = stack.back();
-            stack.pop_back();
-            if (!visited.insert(node).second) {
-                continue;
-            }
-            polyline.push_back(node);
-            auto& neighbors = graph[node];
-            for (const auto& neighbor : neighbors) {
-                if (visited.find(neighbor) == visited.end()) {
-                    stack.push_back(neighbor);
-                }
-            }
-        }
-    }
-};
-
-namespace MarchingSquares {
-struct Point
-{
-    double x, y;
-};
-
-vector<double> getGridValues(int i, int j, vector<vector<double>>& data)
-{
-    vector<double> values;
-    values.push_back(data[i][j + 1]);
-    values.push_back(data[i + 1][j + 1]);
-    values.push_back(data[i + 1][j]);
-    values.push_back(data[i][j]);
-    return values;
-}
-bool  needContour(double value, double contourValue) { return value >= contourValue; }
-Point interpolate(std::vector<std::vector<MarchingSquares::Point>>& posxy,
-                  std::vector<int>                                  p1ij,
-                  std::vector<int>                                  p2ij,
-                  double                                            v1,
-                  double                                            v2,
-                  double                                            contourValue)
-{
-    Point p1;
-    p1.x = posxy[p1ij[0]][p1ij[1]].x;
-    p1.y = posxy[p1ij[0]][p1ij[1]].y;
-    Point p2;
-    p2.x = posxy[p2ij[0]][p2ij[1]].x;
-    p2.y = posxy[p2ij[0]][p2ij[1]].y;
-
-    double denom = v2 - v1;
-    double mu;
-    if (std::abs(denom) < 1e-12) {
-        // avoid division by zero
-        mu = 0.5;
-    } else {
-        mu = (contourValue - v1) / denom;
-    }
-    Point  p;
-    p.x = p1.x + mu * (p2.x - p1.x);
-    p.y = p1.y + mu * (p2.y - p1.y);
-    return p;
-}
-
-void process_block(int                                               i,
-                   int                                               j,
-                   vector<vector<double>>&                           data,
-                   double                                            contourValue,
-                   std::vector<std::vector<MarchingSquares::Point>>& posxy,
-                   vector<Point>&                                    contourPoints)
-{
-    vector<double> values = getGridValues(i, j, data);
-    vector<bool>   isNeedContour;
-    for (double value : values) {
-        isNeedContour.push_back(needContour(value, contourValue));
-    }
-    int index = 0;
-    if (isNeedContour[0])
-        index |= 1;
-    if (isNeedContour[1])
-        index |= 2;
-    if (isNeedContour[2])
-        index |= 4;
-    if (isNeedContour[3])
-        index |= 8;
-    vector<Point> points;
-    switch (index) {
-    case 0:
-    case 15: break;
-
-    case 1:
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-
-        break;
-    case 14:
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-        break;
-
-    case 2:
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-
-        break;
-    case 13:
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-        break;
-    case 3:
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-
-        break;
-    case 12:
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-
-        break;
-    case 4:
-        points.push_back(interpolate(posxy, {i + 1, j}, {i, j}, values[2], values[3], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-
-        break;
-    case 11:
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j}, {i, j}, values[2], values[3], contourValue));
-        break;
-    case 5:
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-        points.push_back(interpolate(posxy, {i, j}, {i + 1, j}, values[3], values[2], contourValue));
-
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-        break;
-    case 6:
-        points.push_back(interpolate(posxy, {i + 1, j}, {i, j}, values[2], values[3], contourValue));
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-
-        break;
-    case 9:
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j}, {i, j}, values[2], values[3], contourValue));
-        break;
-    case 7:
-        points.push_back(interpolate(posxy, {i + 1, j}, {i, j}, values[2], values[3], contourValue));
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-
-        break;
-    case 8:
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j}, {i, j}, values[2], values[3], contourValue));
-        break;
-    case 10:
-        points.push_back(interpolate(posxy, {i, j}, {i, j + 1}, values[3], values[0], contourValue));
-        points.push_back(interpolate(posxy, {i, j}, {i + 1, j}, values[3], values[2], contourValue));
-
-        points.push_back(interpolate(posxy, {i, j + 1}, {i + 1, j + 1}, values[0], values[1], contourValue));
-        points.push_back(interpolate(posxy, {i + 1, j + 1}, {i + 1, j}, values[1], values[2], contourValue));
-        break;
-    }
-    for (Point& p : points) {
-        contourPoints.push_back(p);
-    }
-}
-
-// --- Chaikin Smooth ---
-
-static Polyline chaikin_smooth(Polyline poly, int iterations , double weight )
-{
-    if (poly.points.size() < 3) return poly;
-
-    const double w1 = 1.0 - weight;
-    decltype(poly.points) buffer;
-    buffer.reserve(poly.points.size() * 2);
-
-    for (int it = 0; it < iterations; ++it) {
-        buffer.clear();
-        buffer.push_back(poly.points.front());
-
-        for (size_t i = 0; i < poly.points.size() - 1; ++i) {
-            const auto &p0 = poly.points[i];
-            const auto &p1 = poly.points[i + 1];
-
-            buffer.emplace_back(
-                p0.x() * w1 + p1.x() * weight,
-                p0.y() * w1 + p1.y() * weight
-            );
-            buffer.emplace_back(
-                p0.x() * weight + p1.x() * w1,
-                p0.y() * weight + p1.y() * w1
-            );
-        }
-
-        buffer.push_back(poly.points.back());
-        poly.points.swap(buffer); 
-    }
-
-    return poly; 
-}
-
-
-void drawContour(double                                            contourValue,
-                 int                                               gridSize_w,
-                 int                                               gridSize_h,
-                 vector<vector<double>>&                           data,
-                 std::vector<std::vector<MarchingSquares::Point>>& posxy,
-                 Polylines&                                        repls,
-                 const FillParams&                                 params)
-{
-   
-    if (data.empty() || data[0].empty()) {
-        
-        return;
-    }
-    gridSize_h = static_cast<int>(data.size());
-    gridSize_w = static_cast<int>(data[0].size());
-
-    
-    if (static_cast<int>(posxy.size()) != gridSize_h || static_cast<int>(posxy[0].size()) != gridSize_w) {
-       
-        return;
-    }
-
-    int total_size = (gridSize_h - 1) * (gridSize_w - 1);
-    vector<vector<MarchingSquares::Point>> contourPointss(total_size);
-
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, total_size),
-                      [&contourValue, &posxy, &contourPointss, &data, gridSize_w](const tbb::blocked_range<size_t>& range) {
-                          for (size_t k = range.begin(); k < range.end(); ++k) {
-                              int i = static_cast<int>(k) / (gridSize_w - 1);
-                              int j = static_cast<int>(k) % (gridSize_w - 1);
-                              
-                              if (i + 1 < static_cast<int>(data.size()) && j + 1 < static_cast<int>(data[0].size())) {
-                                  process_block(i, j, data, contourValue, posxy, contourPointss[k]);
-                              }
-                          }
-                      });
-
-    vector<pair<myPoint, myPoint>> segments2;
-    myPoint                        p1, p2;
-    for (int k = 0; k < total_size; k++) {
-        for (int i = 0; i < static_cast<int>(contourPointss[k].size()) / 2; i++) {
-            p1.x = scale_(contourPointss[k][i * 2].x);
-            p1.y = scale_(contourPointss[k][i * 2].y);
-            p2.x = scale_(contourPointss[k][i * 2 + 1].x);
-            p2.y = scale_(contourPointss[k][i * 2 + 1].y);
-            segments2.push_back({p1, p2});
-        }
-    }
-
-    LineSegmentMerger       merger;
-    vector<vector<myPoint>> result;
-    merger.mergeSegments(segments2, result);
-
-    for (vector<myPoint>& p : result) {
-        Polyline repltmp;
-        for (myPoint& pt : p) {
-            repltmp.points.push_back(Slic3r::Point(pt.x, pt.y));
-        }
-        // symplify tolerance based on density
-        const float min_tolerance      = 0.005f;
-        const float max_tolerance      = 0.2f;
-        float       simplify_tolerance = (0.005f / params.density);
-        simplify_tolerance             = std::clamp(simplify_tolerance, min_tolerance, max_tolerance);
-        repltmp.simplify(scale_(simplify_tolerance));
-        repltmp = chaikin_smooth(repltmp, 2, 0.25);
-        repls.push_back(repltmp);
-    }
-}
-
-} // namespace MarchingSquares
-
-static float sin_table[360];
-static float cos_table[360];
-static std::once_flag trig_tables_once_flag; 
-
-#define PIratio 57.29577951308232 // 180/PI
-
-static void initialize_lookup_tables()
-{
-    for (int i = 0; i < 360; ++i) {
-        float angle  = i * (M_PI / 180.0);
-        sin_table[i] = std::sin(angle);
-        cos_table[i] = std::cos(angle);
-    }
-}
-
-
-inline static void ensure_trig_tables_initialized()
-{
-    std::call_once(trig_tables_once_flag, initialize_lookup_tables);
-}
-
-inline static float get_sin(float angle)
-{
-    angle     = angle * PIratio;
-    int index = static_cast<int>(std::fmod(angle, 360) + 360) % 360;
-    return sin_table[index];
-}
-
-inline static float get_cos(float angle)
-{
-    angle     = angle * PIratio;
-    int index = static_cast<int>(std::fmod(angle, 360) + 360) % 360;
-    return cos_table[index];
-}
 
 void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       unsigned int                   thickness_layers,
@@ -436,107 +120,49 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
                                       ExPolygon                      expolygon,
                                       Polylines&                     polylines_out)
 {
-    ensure_trig_tables_initialized(); 
-
     auto infill_angle = float(this->angle + (CorrectionAngle * 2 * M_PI) / 360.);
-    if(std::abs(infill_angle) >= EPSILON)
+    if (std::abs(infill_angle) >= EPSILON)
         expolygon.rotate(-infill_angle);
 
     float density_factor = std::min(0.9f, params.density);
-    // Density adjusted to have a good %of weight.
+    // Density (field period) adjusted to have a good %of weight.
     const float vari_T = 4.18f * spacing * params.multiline / density_factor;
 
-    BoundingBox bb      = expolygon.contour.bounding_box();
-    auto        cenpos  = unscale(bb.center());
-    auto        boxsize = unscale(bb.size());
-    float       xlen    = boxsize.x();
-    float       ylen    = boxsize.y();
+    BoundingBox bbox = expolygon.contour.bounding_box();
+    // Enlarge the bounding box by the multi-line width to avoid artifacts at the edges.
+    bbox.offset(scale_((params.multiline + 1) * spacing));
+    marchsq::ScalarField sf = marchsq::ScalarField(bbox, this->z, vari_T);
+    // Get simplified lines using coarse tolerance of 0.1mm (this is infill).
+    Polylines polylines = marchsq::get_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
 
-    const float delta = 0.5f; // mesh step (adjust for quality/performance)
+    // Apply multiline offset if needed
+    multiline_fill(polylines, params, spacing);
 
-    float myperiod = 2 * PI / vari_T;
-    float c_z      = myperiod * this->z; // z height
-
-    // scalar field Fischer-Koch
-    auto scalar_field = [&](float x, float y) {
-        float a_x = myperiod * x;
-        float b_y = myperiod * y;
-       
-        // Fischer - Koch S equation:
-        // cos(2x)sin(y)cos(z) + cos(2y)sin(z)cos(x) + cos(2z)sin(x)cos(y) = 0
-        const float cos2ax = get_cos(2*a_x);
-        const float cos2by = get_cos(2*b_y);
-        const float cos2cz = get_cos(2*c_z);
-        const float sinby = get_sin(b_y);
-        const float cosax = get_cos(a_x);
-        const float sinax = get_sin(a_x);
-        const float cosby = get_cos(b_y);
-        const float sincz = get_sin(c_z);
-        const float coscz = get_cos(c_z);
-
-        return cos2ax * sinby * coscz
-             + cos2by * sincz * cosax
-             + cos2cz * sinax * cosby;
-    };
-
-    // Mesh generation
-    std::vector<std::vector<MarchingSquares::Point>> posxy;
-    int                                              i = 0, j = 0;
-    for (float y = -(ylen) / 2.0f - 2; y < (ylen) / 2.0f + 2; y = y + delta, i++) {
-        j = 0;
-        std::vector<MarchingSquares::Point> colposxy;
-        for (float x = -(xlen) / 2.0f - 2; x < (xlen) / 2.0f + 2; x = x + delta, j++) {
-            MarchingSquares::Point pt;
-            pt.x = cenpos.x() + x;
-            pt.y = cenpos.y() + y;
-            colposxy.push_back(pt);
-        }
-        posxy.push_back(colposxy);
-    }
-
-    std::vector<std::vector<double>> data(posxy.size(), std::vector<double>(posxy[0].size()));
-
-    int width      = posxy[0].size();
-    int height     = posxy.size();
-    int total_size = (height) * (width);
-    tbb::parallel_for(tbb::blocked_range<size_t>(0, total_size),
-                      [&width, &scalar_field, &data, &posxy](const tbb::blocked_range<size_t>& range) {
-                          for (size_t k = range.begin(); k < range.end(); ++k) {
-                              int i      = k / (width);
-                              int j      = k % (width);
-                              data[i][j] = scalar_field(posxy[i][j].x, posxy[i][j].y);
-                          }
-                      });
-
-
-    Polylines polylines;
-    const double contour_value = 0.075; // offset from zero to avoid numerical issues
-    MarchingSquares::drawContour(contour_value, width , height , data, posxy, polylines, params);
+    // Prune the lines within the expolygon.
+    polylines = intersection_pl(std::move(polylines), expolygon);
 
     if (!polylines.empty()) {
-        // Apply multiline offset if needed
-        multiline_fill(polylines, params, spacing);
-
-
-        polylines = intersection_pl(polylines, expolygon);
-
         // Remove very small bits, but be careful to not remove infill lines connecting thin walls!
         // The infill perimeter lines should be separated by around a single infill line width.
         const double minlength = scale_(0.8 * this->spacing);
-		polylines.erase(
-			std::remove_if(polylines.begin(), polylines.end(), [minlength](const Polyline &pl) { return pl.length() < minlength; }),
-			polylines.end());
+        polylines.erase(std::remove_if(polylines.begin(), polylines.end(),
+                                       [minlength](const Polyline& pl) { return pl.length() < minlength; }),
+                        polylines.end());
+    }
 
-		// connect lines
-		size_t polylines_out_first_idx = polylines_out.size();
-        chain_or_connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
+    if (!polylines.empty()) {
+        // connect lines
+        size_t polylines_out_first_idx = polylines_out.size();
 
-	    // new paths must be rotated back
+        // chain_or_connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
+        // chain_infill not situable for this pattern due to internal "islands", this also affect performance a lot.
+        connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
+
+        // new paths must be rotated back
         if (std::abs(infill_angle) >= EPSILON) {
-	        for (auto it = polylines_out.begin() + polylines_out_first_idx; it != polylines_out.end(); ++ it)
-	        	it->rotate(infill_angle);
-	    }
-        
+            for (auto it = polylines_out.begin() + polylines_out_first_idx; it != polylines_out.end(); ++it)
+                it->rotate(infill_angle);
+        }
     }
 }
 

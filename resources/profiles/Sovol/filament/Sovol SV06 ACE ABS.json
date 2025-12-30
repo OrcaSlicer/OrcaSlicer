@@ -1,38 +1,42 @@
 {
-	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "GFSA04",
-	"name": "Sovol SV06 ACE ABS",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "Generic ABS @System",
-	"filament_flow_ratio": ["0.98"],
-	"filament_max_volumetric_speed": ["15"],
-	"full_fan_speed_layer": [
+    "type": "filament",
+    "name": "Sovol SV06 ACE ABS",
+    "inherits": "Generic ABS @System",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "full_fan_speed_layer": [
         "3"
     ],
-	"compatible_printers": [
-		"Sovol SV06 ACE 0.2 nozzle",
-		"Sovol SV06 ACE 0.4 nozzle",
-		"Sovol SV06 ACE 0.6 nozzle",
-		"Sovol SV06 ACE 0.8 nozzle"
-	],
-	"fan_min_speed": [
+    "compatible_printers": [
+        "Sovol SV06 ACE 0.2 nozzle",
+        "Sovol SV06 ACE 0.4 nozzle",
+        "Sovol SV06 ACE 0.6 nozzle",
+        "Sovol SV06 ACE 0.8 nozzle"
+    ],
+    "fan_min_speed": [
         "30"
     ],
-	"fan_cooling_layer_time": [
+    "fan_cooling_layer_time": [
         "80"
     ],
-	"fan_max_speed": [
+    "fan_max_speed": [
         "30"
     ],
-	"slow_down_layer_time": [
+    "slow_down_layer_time": [
         "5"
     ],
-	"nozzle_temperature_initial_layer": [
+    "nozzle_temperature_initial_layer": [
         "280"
     ],
-	"nozzle_temperature": [
+    "nozzle_temperature": [
         "270"
     ],
     "nozzle_temperature_range_low": [
@@ -40,11 +44,11 @@
     ],
     "nozzle_temperature_range_high": [
         "300"
-	],
-	"hot_plate_temp_initial_layer": [
+    ],
+    "hot_plate_temp_initial_layer": [
         "95"
     ],
-	"hot_plate_temp": [
+    "hot_plate_temp": [
         "95"
     ]
 }

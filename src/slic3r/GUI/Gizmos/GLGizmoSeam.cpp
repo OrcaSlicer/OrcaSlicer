@@ -29,17 +29,23 @@ bool GLGizmoSeam::on_init()
 {
     m_shortcut_key = WXK_CONTROL_P;
 
-    m_desc["clipping_of_view_caption"] = _L("Alt + Mouse wheel");
+    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
+    const wxString ctrl  = _L("Ctrl+");
+    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
+    const wxString alt   = _L("Alt+");
+    const wxString shift = _L("Shift+");
+
+    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
     m_desc["clipping_of_view"] = _L("Section view");
     m_desc["reset_direction"]  = _L("Reset direction");
-    m_desc["cursor_size_caption"] = _L("Ctrl + Mouse wheel");
+    m_desc["cursor_size_caption"] = ctrl + _L("Mouse wheel");
     m_desc["cursor_size"]      = _L("Brush size");
     m_desc["cursor_type"]      = _L("Brush shape");
     m_desc["enforce_caption"]  = _L("Left mouse button");
     m_desc["enforce"]          = _L("Enforce seam");
     m_desc["block_caption"]    = _L("Right mouse button");
     m_desc["block"]            = _L("Block seam");
-    m_desc["remove_caption"]   = _L("Shift + Left mouse button");
+    m_desc["remove_caption"]   = shift + _L("Left mouse button");
     m_desc["remove"]           = _L("Erase");
     m_desc["remove_all"]       = _L("Erase all painting");
     m_desc["circle"]           = _L("Circle");
@@ -103,6 +109,10 @@ void GLGizmoSeam::show_tooltip_information(float caption_max, float x, float y)
     caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 35.f;
 
     float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding

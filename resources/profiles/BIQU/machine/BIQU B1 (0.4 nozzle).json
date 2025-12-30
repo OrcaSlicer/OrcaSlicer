@@ -1,86 +1,86 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "BIQU B1 (0.4 nozzle)",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_biqu_common",
-  "printer_model": "BIQU B1",
-  "default_print_profile": "0.20mm Standard @BIQU B1 (0.4 nozzle)",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "235x0",
-    "235x235",
-    "0x235"
-  ],
-  "printable_height": "270",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0",
-  "deretraction_speed": [
-    "70"
-],
-"gcode_flavor": "marlin",
-"machine_max_acceleration_e": [
-    "10000"
-],
-"machine_max_acceleration_extruding": [
-    "1000"
-],
-"machine_max_acceleration_retracting": [
-    "1000"
-],
-"machine_max_acceleration_x": [
-    "1000"
-],
-"machine_max_acceleration_y": [
-    "1000"
-],
-"machine_max_acceleration_z": [
-    "100"
-],
-"machine_max_speed_e": [
-    "60"
-],
-"machine_max_speed_x": [
-    "500"
-],
-"machine_max_speed_y": [
-    "500"
-],
-"machine_max_speed_z": [
-    "10"
-],
-"machine_max_jerk_e": [
-    "5"
-],
-"machine_max_jerk_x": [
-    "10"
-],
-"machine_max_jerk_y": [
-    "10"
-],
-"machine_max_jerk_z": [
-    "0.3"
-],
-"max_layer_height": [
-    "0.32"
-],
-"min_layer_height": [
-    "0.10"
-],
-"printer_variant": "0.4",
-"retraction_minimum_travel": [
-    "1.5"
-],
-"retraction_length": [
-    "7"
-],
-"retraction_speed": [
-    "70"
-],
-"machine_start_gcode": "; BIQU B1 Start G-code\nM117 Getting the bed up to temp!\nM140 S[first_layer_bed_temperature]; Set Heat Bed temperature\nM190 S[first_layer_bed_temperature]; Wait for Heat Bed temperature\nM117 Getting the extruder up to temp!\nM104 S[first_layer_temperature]; Set Extruder temperature\nG92 E0; Reset Extruder\nM117 Homing axes\nG28; Home all axes\nM109 S[first_layer_temperature]; Wait for Extruder temperature\nG1 Z2.0 F3000; Move Z Axis up little to prevent scratching of Heat Bed\nG1 X4.1 Y20 Z0.3 F5000.0; Move to start position\nM117 Purging\nG1 X4.1 Y200.0 Z0.3 F1500.0 E15; Draw the first line\nG1 X4.4 Y200.0 Z0.3 F5000.0; Move to side a little\nG1 X4.4 Y20 Z0.3 F1500.0 E30; Draw the second line\nG92 E0; Reset Extruder\nM117 Lets make\nG1 Z2.0 F3000; Move Z Axis up little to prevent scratching of Heat Bed\nG1 X5 Y20 Z0.3 F5000.0; Move over to prevent blob squish",
-"machine_end_gcode": ";BIQU B1 Default End Gcode\nG91;Relative positioning\nG1 E-2 F2700;Retract a bit\nG1 E-2 Z0.2 F2400;Retract a bit more and raise Z\nG1 X5 Y5 F3000;Wipe out\nG1 Z10;Raise Z by 10mm\nG90;Return to absolute positioning\nG1 X0 Y{print_bed_max[1]};\nM106 S0;Turn-off fan\nM104 S0;Turn-off hotend\nM140 S0;Turn-off bed\nM84 X Y E;Disable all steppers but Z"
+    "type": "machine",
+    "name": "BIQU B1 (0.4 nozzle)",
+    "inherits": "fdm_biqu_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "BIQU B1",
+    "default_print_profile": "0.20mm Standard @BIQU B1 (0.4 nozzle)",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "235x0",
+        "235x235",
+        "0x235"
+    ],
+    "printable_height": "270",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "deretraction_speed": [
+        "70"
+    ],
+    "gcode_flavor": "marlin",
+    "machine_max_acceleration_e": [
+        "10000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "1000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_acceleration_x": [
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "0.3"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.10"
+    ],
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1.5"
+    ],
+    "retraction_length": [
+        "7"
+    ],
+    "retraction_speed": [
+        "70"
+    ],
+    "machine_start_gcode": "; BIQU B1 Start G-code\nM117 Getting the bed up to temp!\nM140 S[first_layer_bed_temperature]; Set Heat Bed temperature\nM190 S[first_layer_bed_temperature]; Wait for Heat Bed temperature\nM117 Getting the extruder up to temp!\nM104 S[first_layer_temperature]; Set Extruder temperature\nG92 E0; Reset Extruder\nM117 Homing axes\nG28; Home all axes\nM109 S[first_layer_temperature]; Wait for Extruder temperature\nG1 Z2.0 F3000; Move Z Axis up little to prevent scratching of Heat Bed\nG1 X4.1 Y20 Z0.3 F5000.0; Move to start position\nM117 Purging\nG1 X4.1 Y200.0 Z0.3 F1500.0 E15; Draw the first line\nG1 X4.4 Y200.0 Z0.3 F5000.0; Move to side a little\nG1 X4.4 Y20 Z0.3 F1500.0 E30; Draw the second line\nG92 E0; Reset Extruder\nM117 Lets make\nG1 Z2.0 F3000; Move Z Axis up little to prevent scratching of Heat Bed\nG1 X5 Y20 Z0.3 F5000.0; Move over to prevent blob squish",
+    "machine_end_gcode": ";BIQU B1 Default End Gcode\nG91;Relative positioning\nG1 E-2 F2700;Retract a bit\nG1 E-2 Z0.2 F2400;Retract a bit more and raise Z\nG1 X5 Y5 F3000;Wipe out\nG1 Z10;Raise Z by 10mm\nG90;Return to absolute positioning\nG1 X0 Y{print_bed_max[1]};\nM106 S0;Turn-off fan\nM104 S0;Turn-off hotend\nM140 S0;Turn-off bed\nM84 X Y E;Disable all steppers but Z"
 }

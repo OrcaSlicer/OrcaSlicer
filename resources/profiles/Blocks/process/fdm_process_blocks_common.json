@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_blocks_common",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_common",
     "adaptive_layer_height": "0",
     "reduce_crossing_wall": "0",
     "max_travel_detour_distance": "0",
@@ -31,7 +31,7 @@
     "line_width": "0.42",
     "infill_direction": "45",
     "sparse_infill_density": "15%",
-    "sparse_infill_pattern": "crosshatch",
+    "sparse_infill_pattern": "grid",
     "initial_layer_acceleration": "3000",
     "initial_layer_line_width": "0.42",
     "initial_layer_print_height": "0.2",
@@ -116,6 +116,5 @@
         "BLOCKS RF50 0.4 nozzle",
         "BLOCKS RF50 0.6 nozzle",
         "BLOCKS RF50 0.8 nozzle"
-
     ]
 }

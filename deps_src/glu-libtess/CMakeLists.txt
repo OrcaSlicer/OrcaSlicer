@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 project(glu-libtess)
 
-add_library(glu-libtess STATIC 
+add_library(glu-libtess STATIC
 	src/dict-list.h
 	src/dict.c
 	src/dict.h
@@ -34,4 +34,8 @@ if(UNIX)
     target_link_libraries(glu-libtess m)
 endif(UNIX)
 
-target_include_directories(glu-libtess PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(glu-libtess SYSTEM
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -1,4 +1,8 @@
 {
+    "type": "filament",
+    "name": "Artillery PC @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
     "instantiation": "true",
     "complete_print_exhaust_fan_speed": [
         "0"
@@ -7,22 +11,22 @@
         "0"
     ],
     "fan_cooling_layer_time": [
-        "100"
+        "30"
     ],
     "fan_max_speed": [
-        "100"
+        "0"
     ],
     "fan_min_speed": [
-        "100"
+        "0"
     ],
     "filament_flow_ratio": [
-        "1.04"
+        "0.94"
     ],
     "filament_max_volumetric_speed": [
-        "14"
+        "6"
     ],
     "additional_cooling_fan_speed": [
-        "100"
+        "0"
     ],
     "filament_settings_id": [
         "Artillery PC @Artillery M1 Pro 0.4 nozzle"
@@ -30,27 +34,28 @@
     "filament_type": [
         "PC"
     ],
-    "from": "system",
     "is_custom_defined": "0",
-    "name": "Artillery PC @Artillery M1 Pro 0.4 nozzle",
     "nozzle_temperature": [
-        "210"
+        "295"
     ],
     "nozzle_temperature_initial_layer": [
-        "210"
+        "295"
     ],
-	"nozzle_temperature_range_high": [
-        "240"
+    "nozzle_temperature_range_high": [
+        "300"
+    ],
+    "nozzle_temperature_range_low": [
+        "250"
     ],
     "slow_down_layer_time": [
-        "10"
+        "2"
     ],
-    "version": "2.1.2.0",
+    "version": "2.1.2.2",
     "compatible_printers": [
-		"Artillery M1 Pro 0.4 nozzle"
+        "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
-        "1.3"
+        "0.8"
     ],
     "filament_retraction_speed": [
         "30"
@@ -64,41 +69,55 @@
     "filament_z_hop": [
         "0.4"
     ],
-    "inherits": "Artillery Generic PLA",
     "temperature_vitrification": [
-        "60"
+        "120"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"hot_plate_temp": [
+    "hot_plate_temp": [
         "50"
     ],
     "hot_plate_temp_initial_layer": [
         "50"
     ],
-	"slow_down_min_speed": [
-        "20"
+    "slow_down_min_speed": [
+        "0"
     ],
-	"filament_retract_lift_below": [
+    "filament_retract_lift_below": [
         "259"
     ],
-	"filament_deretraction_speed": [
+    "filament_deretraction_speed": [
         "30"
     ],
     "textured_plate_temp": [
-        "100"
+        "110"
     ],
     "textured_plate_temp_initial_layer": [
-        "100"
+        "110"
     ],
     "cool_plate_temp": [
-        "100"
+        "110"
     ],
     "cool_plate_temp_initial_layer": [
-        "100"
+        "110"
     ],
-	"pressure_advance": [
-        "0.032"
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "overhang_fan_speed": [
+        "60"
+    ],
+    "chamber_temperature": [
+        "50"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "pressure_advance": [
+        "0.03"
     ]
 }

@@ -1,0 +1,39 @@
+{
+    "type": "filament",
+    "name": "FlyingBear PA-CF @Ghost7",
+    "inherits": "fdm_filament_pa @Ghost7",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFN98",
+    "instantiation": "true",
+    "filament_type": [
+        "PA-CF"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "4"
+    ],
+    "filament_retract_before_wipe": [
+        "0%"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.034"
+    ],
+    "compatible_printers": [
+        "FlyingBear Ghost7 0.4 nozzle"
+    ]
+}

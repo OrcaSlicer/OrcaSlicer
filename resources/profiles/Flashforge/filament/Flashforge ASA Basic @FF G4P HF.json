@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge ASA Basic @FF G4P HF",
+    "inherits": "Flashforge Generic ABS @G3U",
+    "from": "system",
+    "instantiation": "true",
     "activate_chamber_temp_control": [
         "1"
     ],
@@ -50,8 +55,6 @@
     "filament_unloading_speed_start": [
         "100"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.4 HF nozzle"
     ],
@@ -61,9 +64,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Flashforge Generic ABS @G3U",
-    "is_custom_defined": "0",
-    "name": "Flashforge ASA Basic @FF G4P HF",
     "nozzle_temperature": [
         "265"
     ],
@@ -99,6 +99,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "100"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

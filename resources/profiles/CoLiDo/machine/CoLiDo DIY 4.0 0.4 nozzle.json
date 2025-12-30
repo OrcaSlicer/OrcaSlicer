@@ -1,8 +1,8 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "CoLiDo DIY 4.0 0.4 nozzle",
     "from": "system",
+    "setting_id": "GM001",
     "instantiation": "true",
     "printer_model": "CoLiDo DIY 4.0",
     "adaptive_bed_mesh_margin": "0",
@@ -50,7 +50,6 @@
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
-    "is_custom_defined": "0",
     "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\n",
     "long_retractions_when_cut": [
         "0"
@@ -217,7 +216,6 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
-    "version": "2.1.1.0",
     "wipe": [
         "1"
     ],

@@ -1,22 +1,22 @@
 {
-  "type": "machine",
-  "setting_id": "GM_GEEETECH_041",
-  "name": "Geeetech M1 0.6 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_geeetech_common",
-  "printer_model": "Geeetech M1",
-  "default_filament_profile": [
-    "Generic PLA @System"
-  ],
-  "printer_variant": "0.6",
-  "default_print_profile": "0.30mm Standard @Geeetech M1 0.6 nozzle",
-  "nozzle_diameter": [
-    "0.6"
-  ],
-  "extruder_type": [
-  "Direct Drive"
-  ],
+    "type": "machine",
+    "name": "Geeetech M1 0.6 nozzle",
+    "inherits": "fdm_geeetech_common",
+    "from": "system",
+    "setting_id": "GM_GEEETECH_041",
+    "instantiation": "true",
+    "printer_model": "Geeetech M1",
+    "default_filament_profile": [
+        "Generic PLA @System"
+    ],
+    "printer_variant": "0.6",
+    "default_print_profile": "0.30mm Standard @Geeetech M1 0.6 nozzle",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "extruder_type": [
+        "Direct Drive"
+    ],
     "machine_max_acceleration_e": [
         "3000",
         "3000"
@@ -77,11 +77,11 @@
         "3",
         "3"
     ],
-  "max_layer_height": [
-        "0.14"
+    "max_layer_height": [
+        "0.42"
     ],
-  "min_layer_height": [
-        "0.04"
+    "min_layer_height": [
+        "0.12"
     ],
     "retraction_length": [
         "1"
@@ -92,24 +92,18 @@
     "deretraction_speed": [
         "40"
     ],
-  "max_layer_height": [
-        "0.42"
+    "printable_area": [
+        "0x0",
+        "105x0",
+        "105x105",
+        "0x105"
     ],
-  "min_layer_height": [
-        "0.12"
+    "printable_height": "95",
+    "retract_lift_below": [
+        "95"
     ],
-  "printable_area": [
-    "0x0",
-    "105x0",
-    "105x105",
-    "0x105"
-  ],
-  "printable_height": "95",
-  "retract_lift_below":[
-    "95"
-  ],
-  "machine_start_gcode": ";Geeetech M1 official wiki URL：https://www.geeetech.com/wiki/index.php/Geeetech_M1_3D_printer \nM104 S[first_layer_temperature] ; Set Hotend Temperature\nM140 S[first_layer_bed_temperature] ; set Bed Temperature\nM190 S[first_layer_bed_temperature] ; Wait for Bed Temperature\nM109 S[first_layer_temperature] ; wait for Hotend Temperature\nM220 S100 ;Reset Feedrate\nM221 S100 ;Reset Flowrate\nG92 E0 ; Reset Extruder\nG28 ; Home all axes\nM107 ;Off Main Fan\nM300 S2500 P1000 ;Play a short tune\nG1 Z0.28 ;Move Z Axis up little to prevent scratching of Heat Bed\nG92 E0 ;Reset Extruder\nG1 Y3 F2400 ;Move to start position\nG1 X75 E40 F500 ;Draw a filament line\nG92 E0 ;Reset Extruder\n;G1 E-0.2 F3000 ;Retract a little\nG1 Z2.0 F3000 ;Move Z Axis up little to prevent scratching of Heat Bed\nG1 X70 Y3 Z0.27 F3000 ;Quickly wipe away from the filament line\nG92 E0 ;Reset Extruder",
-  "machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.8} F{travel_speed*60} ; present print\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < max_print_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors\nM221 S100;Slicer Flow recovery 100%\nM220 S100 ;Set Feedrate recovery 100%\nM204 P3000.00 R3000.00 T3000.00",
-  "nozzle_type": "brass",
-  "auxiliary_fan": "0"
+    "machine_start_gcode": ";Geeetech M1 official wiki URL：https://www.geeetech.com/wiki/index.php/Geeetech_M1_3D_printer \nM104 S[first_layer_temperature] ; Set Hotend Temperature\nM140 S[first_layer_bed_temperature] ; set Bed Temperature\nM190 S[first_layer_bed_temperature] ; Wait for Bed Temperature\nM109 S[first_layer_temperature] ; wait for Hotend Temperature\nM220 S100 ;Reset Feedrate\nM221 S100 ;Reset Flowrate\nG92 E0 ; Reset Extruder\nG28 ; Home all axes\nM107 ;Off Main Fan\nM300 S2500 P1000 ;Play a short tune\nG1 Z0.28 ;Move Z Axis up little to prevent scratching of Heat Bed\nG92 E0 ;Reset Extruder\nG1 Y3 F2400 ;Move to start position\nG1 X75 E40 F500 ;Draw a filament line\nG92 E0 ;Reset Extruder\n;G1 E-0.2 F3000 ;Retract a little\nG1 Z2.0 F3000 ;Move Z Axis up little to prevent scratching of Heat Bed\nG1 X70 Y3 Z0.27 F3000 ;Quickly wipe away from the filament line\nG92 E0 ;Reset Extruder",
+    "machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.8} F{travel_speed*60} ; present print\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < max_print_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors\nM221 S100;Slicer Flow recovery 100%\nM220 S100 ;Set Feedrate recovery 100%\nM204 P3000.00 R3000.00 T3000.00",
+    "nozzle_type": "brass",
+    "auxiliary_fan": "0"
 }

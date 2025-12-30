@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "settings_id": "GM008",
     "name": "BLOCKS RD50 V2 0.8 nozzle",
+    "inherits": "fdm_klipper_common",
     "from": "system",
     "instantiation": "true",
-    "inherits": "fdm_klipper_common",
+    "settings_id": "GM008",
     "printer_model": "BLOCKS RD50 V2",
     "default_print_profile": "0.38mm Standard 0.8 nozzle @Blocks_RD50_V2",
     "max_layer_height": [
@@ -27,13 +27,13 @@
         "BLOCKS RD50 V2"
     ],
     "retraction_length": [
-      "1.2"
+        "1.2"
     ],
     "retraction_speed": [
-      "30"
+        "30"
     ],
     "deretraction_speed": [
-      "80"
+        "80"
     ],
     "printer_variant": "0.8"
 }

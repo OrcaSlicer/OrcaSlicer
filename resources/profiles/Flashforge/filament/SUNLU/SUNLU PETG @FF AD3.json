@@ -1,27 +1,57 @@
 {
-  "type": "filament",
-  "name": "SUNLU PETG @FF AD3",
-  "inherits": "SUNLU PETG @base",
-  "from": "system",
-  "setting_id": "GFSNLS08_03",
-  "instantiation": "true",
-  "slow_down_layer_time": ["8"],
-  "close_fan_the_first_x_layers": ["1"],
-  "slow_down_min_speed": ["30"],
-  "overhang_fan_speed": ["80"],
-  "support_material_interface_fan_speed": ["90"],
-  "additional_cooling_fan_speed": ["50"],
-  "fan_cooling_layer_time": ["30"],
-  "fan_max_speed": ["90"],
-  "fan_min_speed": ["40"],
-  "overhang_fan_threshold": ["25%"],
-  "nozzle_temperature": ["240"],
-  "nozzle_temperature_initial_layer": ["245"],
-  "enable_pressure_advance": ["0"],
-  "filament_flow_ratio": ["0.96"],
-  "filament_max_volumetric_speed": ["12"],
-  "compatible_printers": [
-    "Flashforge Adventurer 3 Series 0.4 Nozzle",
-    "Flashforge Adventurer 3 Series 0.6 Nozzle"
-  ]
+    "type": "filament",
+    "name": "SUNLU PETG @FF AD3",
+    "inherits": "SUNLU PETG @base",
+    "from": "system",
+    "setting_id": "GFSNLS08_03",
+    "instantiation": "true",
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "slow_down_min_speed": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "support_material_interface_fan_speed": [
+        "90"
+    ],
+    "additional_cooling_fan_speed": [
+        "50"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "compatible_printers": [
+        "Flashforge Adventurer 3 Series 0.4 Nozzle",
+        "Flashforge Adventurer 3 Series 0.6 Nozzle"
+    ]
 }

@@ -1,15 +1,18 @@
 {
     "type": "process",
-    "exclude_object": "0",
+    "name": "0.20mm Standard @iQ TiQ2 P1 - PETG Polymax Polymaker (0.4 Nozzle)",
+    "inherits": "fdm_process_tiq_common",
     "from": "system",
-    "gcode_label_objects": "0",
     "instantiation": "true",
+    "exclude_object": "0",
+    "gcode_label_objects": "0",
     "enable_support": "1",
     "support_type": "tree(auto)",
-    "support_filament": "1",
-    "support_interface_filament": "1",
-    "compatible_printers": ["iQ TiQ2 0.4 Nozzle"],
-    "inherits": "fdm_process_tiq_common",
+    "support_filament": "0",
+    "support_interface_filament": "0",
+    "compatible_printers": [
+        "iQ TiQ2 0.4 Nozzle"
+    ],
     "bottom_shell_layers": "4",
     "bridge_flow": "1",
     "bridge_speed": "50",
@@ -24,8 +27,6 @@
     "inner_wall_speed": "50",
     "internal_bridge_speed": "150%",
     "internal_solid_infill_speed": "50",
-    "is_custom_defined": "0",
-    "name": "0.20mm Standard @iQ TiQ2 P1 - PETG Polymax Polymaker (0.4 Nozzle)",
     "notes": "Deutsch P1 Polymaker Polymax PETG Readme\n1.\tÜberprüfen Sie, dass sich das Polymaker Polymax PETG im linken Extruder befindet. Halten Sie das Filament trocken! Detailierte Trocknungsanleitung, siehe unten.\n2.\tÜberprüfen Sie, dass sich eine 0,4 mm Wolfram-Kupfer Düse im linken Extruder befindet.\n3.\tVerwenden Sie Magigoo Kleber auf der PET-Folie, um eine bessere Haftung zu gewährleisten. ( im Singledruck in der Regel auf PET-Folie nicht erforderlich)\n4.\tReinigen Sie ggf. die Düse mit einer Messing-Drahtbürste.\nNun sind sie bereit, um Ihren Druck zu starten.\n\nAnleitung zum Trocknen von PETG:\nPETG-ESD ist hydrophil. Wenn Sie Stringing und Oozing an Ihrem Bauteil beobachten, ist dies ein Indiz dafür, dass das Filament zu feucht ist. Um das Filament zu trocknen, belassen Sie die Spule in einem industriellen Ofen bei 70°C für 8 Stunden.\n\nEnglish P1 Polymaker Polymax PETG\n1.\tCheck Left extruder filament: Polymaker Polymax PETG - Keep the filament dry!! Detailed drying instruction below.\n2.\tCheck left extruder nozzle: 0.4mm Wolfram\n3.\tCheck bed: PET with Magigoo glue (not realy needed in a singelprint)\n4.\tCheck nozzle: Clean it with brush\nWELLDONE! YOU ARE READY NOW TO START YOUR PRINT JOB!\n\nFILAMENT DRYING INSTRUCTION\nPETG-ESD material is hydroscopic. If you feel you have stringing and oozing in your printed part, the filament have moisture in it.\nTo dry the filament, keep the spool in a industrial oven for 8 hours at 70°C.\n",
     "ooze_prevention": "0",
     "outer_wall_acceleration": "1500",
@@ -60,7 +61,6 @@
     "tree_support_branch_diameter_organic": "8",
     "tree_support_tip_diameter": "0.8",
     "tree_support_wall_count": "2",
-    "version": "2.3.0.2",
     "wall_direction": "ccw",
     "wall_loops": "3",
     "wall_sequence": "inner-outer-inner wall",
@@ -69,5 +69,4 @@
     "support_interface_spacing": "0",
     "small_perimeter_speed": "30%",
     "brim_type": "no_brim"
-        
 }

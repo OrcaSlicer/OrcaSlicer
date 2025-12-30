@@ -1,23 +1,23 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Creality CR-10 SE 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Creality CR-10 SE",
     "printer_variant": "0.4",
     "printer_structure": "i3",
     "gcode_flavor": "klipper",
     "default_print_profile": "0.20mm Standard @Creality CR10SE 0.4",
     "nozzle_diameter": [
-      "0.4"
+        "0.4"
     ],
     "printable_area": [
-      "0x0",
-      "220x0",
-      "220x220",
-      "0x220"
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
     ],
     "printable_height": "265",
     "extruder_clearance_height_to_rod": "36",
@@ -28,101 +28,101 @@
     "support_chamber_temp_control": "1",
     "auxiliary_fan": "0",
     "machine_max_acceleration_extruding": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_retracting": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_acceleration_travel": [
-      "20000",
-      "20000"
+        "20000",
+        "20000"
     ],
     "machine_max_acceleration_x": [
-      "8000",
-      "8000"
+        "8000",
+        "8000"
     ],
     "machine_max_acceleration_y": [
-      "8000",
-      "8000"
+        "8000",
+        "8000"
     ],
     "machine_max_acceleration_z": [
-      "500",
-      "200"
+        "500",
+        "200"
     ],
     "machine_max_acceleration_e": [
-      "5000",
-      "5000"
+        "5000",
+        "5000"
     ],
     "machine_max_speed_e": [
-      "100",
-      "100"
+        "100",
+        "100"
     ],
     "machine_max_speed_x": [
-      "600",
-      "600"
+        "600",
+        "600"
     ],
     "machine_max_speed_y": [
-      "600",
-      "600"
+        "600",
+        "600"
     ],
     "machine_max_speed_z": [
-      "30",
-      "30"
+        "30",
+        "30"
     ],
     "machine_max_jerk_e": [
-      "2.5",
-      "2.5"
+        "2.5",
+        "2.5"
     ],
     "machine_max_jerk_x": [
-      "10",
-      "10"
+        "10",
+        "10"
     ],
     "machine_max_jerk_y": [
-      "10",
-      "10"
+        "10",
+        "10"
     ],
     "machine_max_jerk_z": [
-      "2",
-      "2"
+        "2",
+        "2"
     ],
     "max_layer_height": [
-      "0.32"
+        "0.32"
     ],
     "min_layer_height": [
-      "0.08"
+        "0.08"
     ],
     "printer_settings_id": "Creality",
     "retraction_minimum_travel": [
-      "2"
+        "2"
     ],
     "retract_before_wipe": [
-      "70%"
+        "70%"
     ],
     "retraction_length": [
-      "0.8"
+        "0.8"
     ],
     "retract_length_toolchange": [
-      "2"
+        "2"
     ],
     "retraction_speed": [
-      "30"
+        "30"
     ],
     "deretraction_speed": [
-      "40"
+        "40"
     ],
     "single_extruder_multi_material": "1",
     "change_filament_gcode": "M600",
     "machine_pause_gcode": "M25",
     "default_filament_profile": [
-      "Creality Generic PLA"
+        "Creality Generic PLA"
     ],
     "machine_start_gcode": "M220 S100 ;Reset feed rate \nM221 S100 ;Reset flow rate \n\nM140 S[bed_temperature_initial_layer_single] ;Set final bed temp\nG28 ;Home \nG92 E0 ;Reset extruder \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 X10.1 Y20 Z0.28 F5000.0 ;Move to start position \nM190 S[bed_temperature_initial_layer_single] ;Wait for bed temp to stabilize\nM109 S[nozzle_temperature_initial_layer] ;Wait for nozzle temp to stabilize\nG1 X10.1 Y145.0 Z0.28 F1500.0 E15 ;Draw the first line \nG1 X10.4 Y145.0 Z0.28 F5000.0 ;Move to side a little \nG1 X10.4 Y20 Z0.28 F1500.0 E30 ;Draw the second line \nG92 E0 ;Reset extruder \nG1 E-1.0000 F1800 ;Retract a bit \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 E0.0000 F1800",
     "machine_end_gcode": "G91 ;Relative positioning \nG1 E-2 F2700 ;Retract a bit \nG1 E-2 Z0.2 F2400 ;Retract and raise Z \nG1 X5 Y5 F3000 ;Wipe out \nG1 Z3 ;Raise Z more \nG90 ;Absolute positioning \nG1 X2 Y218 F3000 ;Present print \nM106 S0 ;Turn-off fan \nM104 S0 ;Turn-off hotend \nM140 S0 ;Turn-off bed \nM84 X Y E ;Disable all steppers but Z",
     "scan_first_layer": "0",
     "thumbnails": [
-      "96x96",
-      "300x300"
+        "96x96",
+        "300x300"
     ]
 }

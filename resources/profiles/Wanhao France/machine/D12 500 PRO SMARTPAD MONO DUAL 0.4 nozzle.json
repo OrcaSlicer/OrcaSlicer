@@ -1,31 +1,31 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "D12 500 PRO SMARTPAD MONO DUAL 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
-    "printer_model": "Wanhao D12 500 PRO SMARTPAD MONO DUAL",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "D12 500 PRO SMARTPAD MONO DUAL",
     "gcode_flavor": "klipper",
     "default_print_profile": "0.20mm Standard @Wanhao-D12-500",
     "nozzle_diameter": [
         "0.4"
-      ],
-      "printable_area": [
-          "0x0",
-          "500x0",
-          "500x500",
-          "0x500"
-        ],
+    ],
+    "printable_area": [
+        "0x0",
+        "500x0",
+        "500x500",
+        "0x500"
+    ],
     "printable_height": "500",
     "nozzle_type": "brass",
     "auxiliary_fan": "0",
     "printer_variant": "0.4",
     "default_filament_profile": [
-		"YUMI PLA Bowden"
-	],
+        "YUMI PLA Bowden"
+    ],
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nLOG_Z\nTIMELAPSE_TAKE_FRAME\nG92 E0",
-      "change_filament_gcode": ";M600",
+    "change_filament_gcode": ";M600",
     "z_hop": [
         "0.4"
     ],
@@ -42,7 +42,7 @@
         "Auto Lift"
     ],
     "deretraction_speed": [
-      "25"
+        "25"
     ],
     "enable_filament_ramming": "0",
     "machine_max_acceleration_e": [
@@ -62,10 +62,10 @@
         "1000"
     ],
     "machine_max_acceleration_y": [
-      "800"
+        "800"
     ],
     "machine_max_acceleration_z": [
-    "500"
+        "500"
     ],
     "machine_max_speed_e": [
         "50"
@@ -89,18 +89,18 @@
         "14"
     ],
     "machine_max_jerk_z": [
-      "0.2"
+        "0.2"
     ],
     "max_layer_height": [
-      "0.32"
+        "0.32"
     ],
     "min_layer_height": [
-      "0.08"
+        "0.08"
     ],
     "retract_before_wipe": [
         "0%"
     ],
-     "retraction_length": [
+    "retraction_length": [
         "5"
     ],
     "retraction_minimum_travel": [
@@ -116,7 +116,6 @@
         "0"
     ],
     "machine_end_gcode": "; Wanhao D12-230 Default End Gcode\nG91                     ; Mode déplacement relatif\nG1 E-2 F300             ; Retrait léger du filament pour éviter le suintement\nG1 Z10 F1200             ; Monte la tête de 10 mm\nG90                     ; Retour en position absolue\nG1 X0 Y200 F3000         ; Déplace la tête vers l'arrière pour dégager la pièce\nM104 S0                  ; Éteint la chauffe de la buse\nM140 S0                  ; Éteint la chauffe du plateau\nM107                     ; Arrête tous les ventilateurs\nM106 S0 P3               ; Arrête le ventilateur de la carte mère\nM106 S0 P2               ; Arrête le ventilateur auxiliaire\nM84 X Y E                ; Désactive les moteurs des axes X, Y et de l'extrudeur\nSET_VELOCITY_LIMIT ACCEL=2000 ACCEL_TO_DECEL=1000",
-
     "machine_pause_gcode": "PAUSE",
     "machine_start_gcode": "G31\nsave_last_file\nSAVE_VARIABLE VARIABLE=was_interrupted VALUE=True\nG21                                ; set metrics values\nM104 S[nozzle_temperature_initial_layer]               ; set extruder temperature\nM140 S[bed_temperature_initial_layer_single]           ; set bed temperature\nG91                                ; set relative positioning mode\nG28                                ; home\nG90                                ; set absolute positioning mode\nG1 X0 Y0 F3000                      ; park head\nM117                                ; Purge extrudeur\nG92 E0                             ; Reset extrudeur\nM109 S[nozzle_temperature_initial_layer]                         ; set and wait extruder temperature\nM190 S[bed_temperature_initial_layer_single]            ; set and wait bed temperature\nBED_MESH_CALIBRATE ADAPTIVE=1 ADAPTIVE_MARGIN=5 ; adaptive bed leveling\n\nG1 Z1.0 F3000                      ; Prépare la buse à une petite hauteur\nM83                                ; Positionnement relatif pour l'extrudeur\n\n; Purge longue à l'avant du plateau (Y=0), centrée\nG1 X{print_bed_max[0] / 2 - 20} Y0 Z0.3 F5000     ; Début ligne 1\nG1 X{print_bed_max[0] / 2 + 20} Y0 Z0.3 F750 E24  ; Ligne 1 (2x plus longue)\nG1 X{print_bed_max[0] / 2 - 20} Y1 Z0.3 F5000     ; Légère montée et retour\nG1 X{print_bed_max[0] / 2 + 20} Y1 Z0.3 F750 E24  ; Ligne 2\n\nG1 E-5 F1800                                     ; Rétraction\nM82                                              ; Positionnement absolu pour l'extrudeur\nG92 E0                                           ; Reset extrusion\nG1 Z1.0 F3000                                    ; Légère montée"
 }

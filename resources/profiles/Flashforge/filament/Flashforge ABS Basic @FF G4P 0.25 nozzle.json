@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge ABS Basic @FF G4P 0.25 nozzle",
+    "inherits": "Flashforge ABS @FF AD5M 0.25 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "complete_print_exhaust_fan_speed": [
         "50"
     ],
@@ -32,8 +37,6 @@
     "filament_settings_id": [
         "Flashforge ABS Basic @FF G4P 0.25 nozzle"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.25 nozzle"
     ],
@@ -43,9 +46,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Flashforge ABS @FF AD5M 0.25 Nozzle",
-    "is_custom_defined": "0",
-    "name": "Flashforge ABS Basic @FF G4P 0.25 nozzle",
     "pressure_advance": [
         "0.04"
     ],
@@ -63,6 +63,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "100"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

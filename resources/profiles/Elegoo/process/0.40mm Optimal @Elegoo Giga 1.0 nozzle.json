@@ -1,6 +1,7 @@
 {
-    "inherits": "0.50mm Standard @Elegoo Giga 1.0 nozzle",
-    "layer_height": "0.4",
+    "type": "process",
     "name": "0.40mm Optimal @Elegoo Giga 1.0 nozzle",
-    "instantiation": "true"
+    "inherits": "0.50mm Standard @Elegoo Giga 1.0 nozzle",
+    "instantiation": "true",
+    "layer_height": "0.4"
 }

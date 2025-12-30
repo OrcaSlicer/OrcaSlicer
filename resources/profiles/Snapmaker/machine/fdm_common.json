@@ -1,55 +1,55 @@
 {
-  "type": "machine",
-  "from": "system",
-  "instantiation": "false",
-  "name": "fdm_common",
-  "gcode_flavor": "marlin2",
-  "pause_gcode": "M600 ;pause print",
-  "nozzle_type": "hardened_steel",
-  "use_relative_e_distances": "1",
-  "silent_mode": "0",
-  "auxiliary_fan": "0",
-  "remaining_times": "1",
-  "single_extruder_multi_material": "0",
-  "purge_in_prime_tower": "0",
-  "enable_filament_ramming": "0",
-  "nozzle_volume": "0",
-  "cooling_tube_retraction": "0",
-  "cooling_tube_length": "0",
-  "parking_pos_retraction": "0",
-  "extra_loading_move": "-2",
-  "high_current_on_filament_swap": "0",
-  "wipe": [
-    "0"
-  ],
-  "wipe_distance": [
-    "1"
-  ],
-  "retraction_speed": [
-    "45"
-  ],
-  "deretraction_speed": [
-    "45"
-  ],
-  "z_hop": [
-    "0.4"
-  ],
-  "retraction_length": [
-    "0.8"
-  ],
-  "retract_when_changing_layer": [
-    "1"
-  ],
-  "retract_before_wipe": [
-    "0%"
-  ],
-  "retraction_minimum_travel": [
-    "1"
-  ],
-  "fan_speedup_overhangs": [
-    "1"
-  ],
-  "z_hop_types": [
-    "Auto Lift"
-  ]
+    "type": "machine",
+    "name": "fdm_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "marlin2",
+    "pause_gcode": "M600 ;pause print",
+    "nozzle_type": "hardened_steel",
+    "use_relative_e_distances": "1",
+    "silent_mode": "0",
+    "auxiliary_fan": "0",
+    "remaining_times": "1",
+    "single_extruder_multi_material": "0",
+    "purge_in_prime_tower": "0",
+    "enable_filament_ramming": "0",
+    "nozzle_volume": "0",
+    "cooling_tube_retraction": "0",
+    "cooling_tube_length": "0",
+    "parking_pos_retraction": "0",
+    "extra_loading_move": "-2",
+    "high_current_on_filament_swap": "0",
+    "wipe": [
+        "0"
+    ],
+    "wipe_distance": [
+        "1"
+    ],
+    "retraction_speed": [
+        "45"
+    ],
+    "deretraction_speed": [
+        "45"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "fan_speedup_overhangs": [
+        "1"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ]
 }

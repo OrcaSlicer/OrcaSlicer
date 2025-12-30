@@ -8,5 +8,5 @@
     "bed_model": "ultimaker_2_buildplate_model.stl",
     "bed_texture": "ultimaker_2_buildplate_texture.png",
     "hotend_model": "ultimaker_hotend.stl",
-	"default_materials": "Generic ABS @System;Generic PETG @System;Generic PLA @System"
+    "default_materials": "Generic ABS @System;Generic PETG @System;Generic PLA @System"
 }

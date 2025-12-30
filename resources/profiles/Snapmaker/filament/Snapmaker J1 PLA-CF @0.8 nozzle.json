@@ -1,14 +1,14 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 PLA-CF @0.8 nozzle",
-  "setting_id": "2684050537",
-  "inherits": "Snapmaker J1 PLA-CF @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.8 nozzle)"
-  ],
-  "filament_max_volumetric_speed": [
-    "12.8"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA-CF @0.8 nozzle",
+    "inherits": "Snapmaker J1 PLA-CF @base",
+    "from": "system",
+    "setting_id": "2684050537",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.8 nozzle)"
+    ],
+    "filament_max_volumetric_speed": [
+        "12.8"
+    ]
 }

@@ -1,10 +1,10 @@
 {
     "name": "Phrozen",
-    "version":  "00.00.00.01",
+    "version": "02.03.01.11",
     "force_update": "0",
     "description": "Phrozen configurations",
     "machine_model_list": [
-	    {
+        {
             "name": "Phrozen Arco",
             "sub_path": "machine/Phrozen Arco.json"
         }
@@ -15,7 +15,7 @@
             "sub_path": "process/fdm_process_common.json"
         },
         {
-            "name": "0.20mm Standard @Phrozen Arco",
+            "name": "0.20mm Standard @Phrozen Arco 0.4 nozzle",
             "sub_path": "process/0.20mm Standard @Phrozen Arco 0.4 nozzle.json"
         }
     ],
@@ -25,36 +25,40 @@
             "sub_path": "filament/fdm_filament_common.json"
         },
         {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
             "name": "fdm_filament_abs",
             "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
         },
         {
             "name": "fdm_filament_asa",
             "sub_path": "filament/fdm_filament_asa.json"
         },
         {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
             "name": "fdm_filament_pva",
             "sub_path": "filament/fdm_filament_pva.json"
         },
         {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "Phrozen PLA @Phrozen Arco 0.4 nozzle",
+            "sub_path": "filament/Phrozen PLA @Phrozen Arco 0.4 nozzle.json"
         }
     ],
     "machine_list": [
@@ -62,7 +66,7 @@
             "name": "fdm_machine_common",
             "sub_path": "machine/fdm_machine_common.json"
         },
-		{
+        {
             "name": "Phrozen Arco 0.4 nozzle",
             "sub_path": "machine/Phrozen Arco 0.4 nozzle.json"
         }

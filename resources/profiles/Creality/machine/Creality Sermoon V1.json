@@ -8,7 +8,7 @@
     "bed_model": "",
     "bed_texture": "",
     "z_hop_types": [
-      "Spiral Lift"
+        "Spiral Lift"
     ],
     "hotend_model": "",
     "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS;Creality Generic TPU"

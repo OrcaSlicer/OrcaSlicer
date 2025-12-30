@@ -1,9 +1,9 @@
 {
     "type": "machine",
     "name": "fdm_adventurer4_common",
+    "inherits": "fdm_flashforge_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_flashforge_common",
     "gcode_flavor": "marlin",
     "printable_area": [
         "-110x-100",

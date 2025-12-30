@@ -1,5 +1,9 @@
 {
-    "instantiation" : "true",
+    "type": "filament",
+    "name": "Artillery ASA @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
+    "instantiation": "true",
     "chamber_temperature": [
         "55"
     ],
@@ -18,13 +22,13 @@
     "fan_min_speed": [
         "10"
     ],
-	"filament_flow_ratio": [
+    "filament_flow_ratio": [
         "0.94"
     ],
     "filament_max_volumetric_speed": [
         "8"
     ],
-	"filament_retract_lift_below": [
+    "filament_retract_lift_below": [
         "259"
     ],
     "additional_cooling_fan_speed": [
@@ -36,9 +40,7 @@
     "filament_type": [
         "ASA"
     ],
-    "from": "system",
     "is_custom_defined": "0",
-    "name": "Artillery ASA @Artillery M1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "260"
     ],
@@ -49,7 +51,7 @@
         "5"
     ],
     "compatible_printers": [
-		"Artillery M1 Pro 0.4 nozzle"
+        "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
         "0.8"
@@ -72,7 +74,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Artillery Generic PLA",
     "nozzle_temperature_range_high": [
         "280"
     ],
@@ -82,22 +83,22 @@
     "temperature_vitrification": [
         "110"
     ],
-	"overhang_fan_threshold": [
+    "overhang_fan_threshold": [
         "10%"
     ],
-	"overhang_fan_speed": [
+    "overhang_fan_speed": [
         "80"
     ],
-	"close_fan_the_first_x_layers": [
+    "close_fan_the_first_x_layers": [
         "3"
     ],
-	"slow_down_min_speed": [
+    "slow_down_min_speed": [
         "20"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.064"
     ],
     "textured_plate_temp": [
@@ -112,6 +113,6 @@
     "cool_plate_temp_initial_layer": [
         "100"
     ],
-    "version": "2.1.2.0"
+    "version": "2.1.2.2"
 
 }

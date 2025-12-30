@@ -17,7 +17,6 @@
     "inner_wall_speed": "100",
     "internal_solid_infill_acceleration": "8000",
     "internal_solid_infill_speed": "100",
-    "is_custom_defined": "0",
     "outer_wall_acceleration": "3000",
     "outer_wall_speed": "25",
     "overhang_1_4_speed": "100",

@@ -13,7 +13,7 @@
     "default_filament_profile": [
         "Elegoo PLA @Elegoo Giga"
     ],
-    "default_print_profile": "0.50mm Standard @Elegoo Giga 1.0 nozzle",    
+    "default_print_profile": "0.50mm Standard @Elegoo Giga 1.0 nozzle",
     "retraction_minimum_travel": [
         "2.0"
     ],

@@ -1,11 +1,11 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PVA @base",
-  "filament_id": "4227461134",
-  "inherits": "fdm_filament_pva",
-  "slow_down_layer_time": [
-    "8"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PVA @base",
+    "inherits": "fdm_filament_pva",
+    "from": "system",
+    "filament_id": "4227461134",
+    "instantiation": "false",
+    "slow_down_layer_time": [
+        "8"
+    ]
 }

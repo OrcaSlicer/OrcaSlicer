@@ -1,15 +1,20 @@
 {
     "type": "filament",
-    "filament_id": "GFL97",
-    "setting_id": "GFSA04",
-    "from": "system",
-    "is_custom_defined": "0",
-    "instantiation": "true",
     "name": "Anycubic PLA SE @Anycubic Kobra 3 0.4 nozzle",
     "inherits": "Anycubic Generic PLA",
-    "filament_vendor": [ "Anycubic" ],
-    "filament_settings_id": [ "Anycubic PLA SE @Anycubic Kobra 3 0.4 nozzle" ],
-    "filament_type": [ "PLA" ],
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL97",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Anycubic"
+    ],
+    "filament_settings_id": [
+        "Anycubic PLA SE @Anycubic Kobra 3 0.4 nozzle"
+    ],
+    "filament_type": [
+        "PLA"
+    ],
     "filament_flow_ratio": [
         "0.97"
     ],

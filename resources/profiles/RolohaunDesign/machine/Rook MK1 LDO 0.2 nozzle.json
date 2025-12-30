@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "RKMK1_m002",
     "name": "Rook MK1 LDO 0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_common_Rook MK1 LDO",
+    "from": "system",
+    "setting_id": "RKMK1_m002",
+    "instantiation": "true",
     "printer_model": "Rook MK1 LDO",
     "nozzle_diameter": [
         "0.2"

@@ -1,12 +1,12 @@
 {
     "type": "filament",
-    "filament_id": "GFC99",
-    "setting_id": "GFC99_MTC_0",
     "name": "Generic PC @MyToolChanger",
     "renamed_from": "My Generic PC @MyToolChanger",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Generic PC @System",
+    "from": "system",
+    "setting_id": "GFC99_MTC_0",
+    "filament_id": "GFC99",
+    "instantiation": "true",
     "filament_cooling_final_speed": [
         "3.5"
     ],

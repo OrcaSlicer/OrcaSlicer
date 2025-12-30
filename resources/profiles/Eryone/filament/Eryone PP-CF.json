@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "EFL33",
-    "setting_id": "EFSA33",
     "name": "Eryone PP-CF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA33",
+    "filament_id": "EFL33",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],

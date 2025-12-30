@@ -8,5 +8,5 @@
     "bed_model": "sovol_sv05_buildplate_model.stl",
     "bed_texture": "sovol_sv05_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Generic ABS @System;Generic PETG @System;Generic PLA @System"
+    "default_materials": "Generic ABS @System;Generic PETG @System;Generic PLA @System"
 }

@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:  
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run extra JSON check
         run: |
@@ -42,7 +42,7 @@ jobs:
       - name: validate custom presets
         working-directory: ${{ github.workspace }}
         run: |
-          curl -LJO https://github.com/SoftFever/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
+          curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
           unzip ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2
 

@@ -305,8 +305,8 @@ ConfigSubstitutions import_sla_archive(
     std::function<bool(int)> progr)
 {
     // Ensure minimum window size for marching squares
-    windowsize.x() = std::max(2, windowsize.x());
-    windowsize.y() = std::max(2, windowsize.y());
+    windowsize.x() = std::max(1, windowsize.x());
+    windowsize.y() = std::max(1, windowsize.y());
 
     std::string exclude_entries{"thumbnail"};
     ArchiveData arch = extract_sla_archive(zipfname, exclude_entries);

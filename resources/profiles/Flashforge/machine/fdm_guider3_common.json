@@ -1,23 +1,68 @@
 {
-  "type": "machine",
-  "name": "fdm_guider3_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_flashforge_common",
-  "gcode_flavor": "klipper",
-  "machine_max_acceleration_e": ["5000", "5000"],
-  "machine_max_acceleration_extruding": ["20000", "20000"],
-  "machine_max_acceleration_retracting": ["5000", "5000"],
-  "machine_max_acceleration_travel": ["20000", "20000"],
-  "machine_max_acceleration_x": ["20000", "20000"],
-  "machine_max_acceleration_y": ["20000", "20000"],
-  "machine_max_acceleration_z": ["500", "500"],
-  "machine_max_jerk_e": ["2.5", "2.5"],
-  "machine_max_jerk_x": ["9", "9"],
-  "machine_max_jerk_y": ["9", "9"],
-  "machine_max_jerk_z": ["3", "3"],
-  "machine_max_speed_e": ["30", "30"],
-  "machine_max_speed_x": ["600", "600"],
-  "machine_max_speed_y": ["600", "600"],
-  "machine_max_speed_z": ["20", "20"]
+    "type": "machine",
+    "name": "fdm_guider3_common",
+    "inherits": "fdm_flashforge_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "3"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_y": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ]
 }

@@ -1,10 +1,18 @@
 {
     "name": "Z-Bolt",
     "url": "",
-    "version": "02.03.00.00",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Z-Bolt configurations",
     "machine_model_list": [
+        {
+            "name": "Z-Bolt S1000",
+            "sub_path": "machine/Z-Bolt S1000.json"
+        },
+        {
+            "name": "Z-Bolt S1000 Dual",
+            "sub_path": "machine/Z-Bolt S1000 Dual.json"
+        },
         {
             "name": "Z-Bolt S300",
             "sub_path": "machine/Z-Bolt S300.json"
@@ -32,14 +40,6 @@
         {
             "name": "Z-Bolt S800 Dual",
             "sub_path": "machine/Z-Bolt S800 Dual.json"
-        },
-        {
-            "name": "Z-Bolt S1000",
-            "sub_path": "machine/Z-Bolt S1000.json"
-        },
-        {
-            "name": "Z-Bolt S1000 Dual",
-            "sub_path": "machine/Z-Bolt S1000 Dual.json"
         }
     ],
     "process_list": [
@@ -84,12 +84,12 @@
             "sub_path": "process/fdm_process_zbolt_0.24_nozzle_0.6.json"
         },
         {
-            "name": "fdm_process_zbolt_0.28",
-            "sub_path": "process/fdm_process_zbolt_0.28.json"
-        },
-        {
             "name": "fdm_process_zbolt_0.24_nozzle_0.8",
             "sub_path": "process/fdm_process_zbolt_0.24_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_zbolt_0.28",
+            "sub_path": "process/fdm_process_zbolt_0.28.json"
         },
         {
             "name": "fdm_process_zbolt_0.30_nozzle_0.6",
@@ -120,316 +120,316 @@
             "sub_path": "process/0.08mm Extra Fine @Z-Bolt S300.json"
         },
         {
-            "name": "0.08mm High Quality @Z-Bolt S300",
-            "sub_path": "process/0.08mm High Quality @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.12mm Fine @Z-Bolt S300",
-            "sub_path": "process/0.12mm Fine @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.12mm High Quality @Z-Bolt S300",
-            "sub_path": "process/0.12mm High Quality @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.16mm Optimal @Z-Bolt S300",
-            "sub_path": "process/0.16mm Optimal @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.16mm High Quality @Z-Bolt S300",
-            "sub_path": "process/0.16mm High Quality @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.16mm Standard @Z-Bolt S300 0.6 nozzle",
-            "sub_path": "process/0.16mm Standard @Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "0.20mm Standard @Z-Bolt S300",
-            "sub_path": "process/0.20mm Standard @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.20mm Strength @Z-Bolt S300",
-            "sub_path": "process/0.20mm Strength @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.20mm Standard @Z-Bolt S300 0.6 nozzle",
-            "sub_path": "process/0.20mm Standard @Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Draft @Z-Bolt S300",
-            "sub_path": "process/0.24mm Draft @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.24mm Standard @Z-Bolt S300 0.6 nozzle",
-            "sub_path": "process/0.24mm Standard @Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Standard @Z-Bolt S300 0.8 nozzle",
-            "sub_path": "process/0.24mm Standard @Z-Bolt S300 0.8 nozzle.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @Z-Bolt S300",
-            "sub_path": "process/0.28mm Extra Draft @Z-Bolt S300.json"
-        },
-        {
-            "name": "0.30mm Standard @Z-Bolt S300 0.6 nozzle",
-            "sub_path": "process/0.30mm Standard @Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "0.30mm Strength @Z-Bolt S300 0.6 nozzle",
-            "sub_path": "process/0.30mm Strength @Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "0.32mm Standard @Z-Bolt S300 0.8 nozzle",
-            "sub_path": "process/0.32mm Standard @Z-Bolt S300 0.8 nozzle.json"
-        },
-        {
-            "name": "0.36mm Standard @Z-Bolt S300 0.6 nozzle",
-            "sub_path": "process/0.36mm Standard @Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "0.40mm Standard @Z-Bolt S300 0.8 nozzle",
-            "sub_path": "process/0.40mm Standard @Z-Bolt S300 0.8 nozzle.json"
-        },
-        {
-            "name": "0.42mm Standard @Z-Bolt S300 0.6 nozzle",
-            "sub_path": "process/0.42mm Standard @Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "0.48mm Standard @Z-Bolt S300 0.8 nozzle",
-            "sub_path": "process/0.48mm Standard @Z-Bolt S300 0.8 nozzle.json"
-        },
-        {
             "name": "0.08mm Extra Fine @Z-Bolt S400",
             "sub_path": "process/0.08mm Extra Fine @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.08mm High Quality @Z-Bolt S300",
+            "sub_path": "process/0.08mm High Quality @Z-Bolt S300.json"
         },
         {
             "name": "0.08mm High Quality @Z-Bolt S400",
             "sub_path": "process/0.08mm High Quality @Z-Bolt S400.json"
         },
         {
+            "name": "0.12mm Fine @Z-Bolt S300",
+            "sub_path": "process/0.12mm Fine @Z-Bolt S300.json"
+        },
+        {
             "name": "0.12mm Fine @Z-Bolt S400",
             "sub_path": "process/0.12mm Fine @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.12mm High Quality @Z-Bolt S400",
-            "sub_path": "process/0.12mm High Quality @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.16mm Optimal @Z-Bolt S400",
-            "sub_path": "process/0.16mm Optimal @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.16mm High Quality @Z-Bolt S400",
-            "sub_path": "process/0.16mm High Quality @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.16mm Standard @Z-Bolt S400 0.6 nozzle",
-            "sub_path": "process/0.16mm Standard @Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "0.20mm Standard @Z-Bolt S400",
-            "sub_path": "process/0.20mm Standard @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.20mm Strength @Z-Bolt S400",
-            "sub_path": "process/0.20mm Strength @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.20mm Standard @Z-Bolt S400 0.6 nozzle",
-            "sub_path": "process/0.20mm Standard @Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Draft @Z-Bolt S400",
-            "sub_path": "process/0.24mm Draft @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.24mm Standard @Z-Bolt S400 0.6 nozzle",
-            "sub_path": "process/0.24mm Standard @Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Standard @Z-Bolt S400 0.8 nozzle",
-            "sub_path": "process/0.24mm Standard @Z-Bolt S400 0.8 nozzle.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @Z-Bolt S400",
-            "sub_path": "process/0.28mm Extra Draft @Z-Bolt S400.json"
-        },
-        {
-            "name": "0.30mm Standard @Z-Bolt S400 0.6 nozzle",
-            "sub_path": "process/0.30mm Standard @Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "0.30mm Strength @Z-Bolt S400 0.6 nozzle",
-            "sub_path": "process/0.30mm Strength @Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "0.32mm Standard @Z-Bolt S400 0.8 nozzle",
-            "sub_path": "process/0.32mm Standard @Z-Bolt S400 0.8 nozzle.json"
-        },
-        {
-            "name": "0.36mm Standard @Z-Bolt S400 0.6 nozzle",
-            "sub_path": "process/0.36mm Standard @Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "0.40mm Standard @Z-Bolt S400 0.8 nozzle",
-            "sub_path": "process/0.40mm Standard @Z-Bolt S400 0.8 nozzle.json"
-        },
-        {
-            "name": "0.42mm Standard @Z-Bolt S400 0.6 nozzle",
-            "sub_path": "process/0.42mm Standard @Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "0.48mm Standard @Z-Bolt S400 0.8 nozzle",
-            "sub_path": "process/0.48mm Standard @Z-Bolt S400 0.8 nozzle.json"
         },
         {
             "name": "0.12mm Fine @Z-Bolt S600",
             "sub_path": "process/0.12mm Fine @Z-Bolt S600.json"
         },
         {
-            "name": "0.12mm High Quality @Z-Bolt S600",
-            "sub_path": "process/0.12mm High Quality @Z-Bolt S600.json"
-        },
-        {
-            "name": "0.16mm Optimal @Z-Bolt S600",
-            "sub_path": "process/0.16mm Optimal @Z-Bolt S600.json"
-        },
-        {
-            "name": "0.16mm High Quality @Z-Bolt S600",
-            "sub_path": "process/0.16mm High Quality @Z-Bolt S600.json"
-        },
-        {
-            "name": "0.16mm Standard @Z-Bolt S600 0.6 nozzle",
-            "sub_path": "process/0.16mm Standard @Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "0.20mm Standard @Z-Bolt S600",
-            "sub_path": "process/0.20mm Standard @Z-Bolt S600.json"
-        },
-        {
-            "name": "0.20mm Strength @Z-Bolt S600",
-            "sub_path": "process/0.20mm Strength @Z-Bolt S600.json"
-        },
-        {
-            "name": "0.20mm Standard @Z-Bolt S600 0.6 nozzle",
-            "sub_path": "process/0.20mm Standard @Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Draft @Z-Bolt S600",
-            "sub_path": "process/0.24mm Draft @Z-Bolt S600.json"
-        },
-        {
-            "name": "0.24mm Standard @Z-Bolt S600 0.6 nozzle",
-            "sub_path": "process/0.24mm Standard @Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "0.24mm Standard @Z-Bolt S600 0.8 nozzle",
-            "sub_path": "process/0.24mm Standard @Z-Bolt S600 0.8 nozzle.json"
-        },
-        {
-            "name": "0.28mm Extra Draft @Z-Bolt S600",
-            "sub_path": "process/0.28mm Extra Draft @Z-Bolt S600.json"
-        },
-        {
-            "name": "0.30mm Standard @Z-Bolt S600 0.6 nozzle",
-            "sub_path": "process/0.30mm Standard @Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "0.30mm Strength @Z-Bolt S600 0.6 nozzle",
-            "sub_path": "process/0.30mm Strength @Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "0.32mm Standard @Z-Bolt S600 0.8 nozzle",
-            "sub_path": "process/0.32mm Standard @Z-Bolt S600 0.8 nozzle.json"
-        },
-        {
-            "name": "0.36mm Standard @Z-Bolt S600 0.6 nozzle",
-            "sub_path": "process/0.36mm Standard @Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "0.40mm Standard @Z-Bolt S600 0.8 nozzle",
-            "sub_path": "process/0.40mm Standard @Z-Bolt S600 0.8 nozzle.json"
-        },
-        {
-            "name": "0.42mm Standard @Z-Bolt S600 0.6 nozzle",
-            "sub_path": "process/0.42mm Standard @Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "0.48mm Standard @Z-Bolt S600 0.8 nozzle",
-            "sub_path": "process/0.48mm Standard @Z-Bolt S600 0.8 nozzle.json"
-        },
-        {
             "name": "0.12mm Fine @Z-Bolt S800",
             "sub_path": "process/0.12mm Fine @Z-Bolt S800.json"
+        },
+        {
+            "name": "0.12mm High Quality @Z-Bolt S300",
+            "sub_path": "process/0.12mm High Quality @Z-Bolt S300.json"
+        },
+        {
+            "name": "0.12mm High Quality @Z-Bolt S400",
+            "sub_path": "process/0.12mm High Quality @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.12mm High Quality @Z-Bolt S600",
+            "sub_path": "process/0.12mm High Quality @Z-Bolt S600.json"
         },
         {
             "name": "0.12mm High Quality @Z-Bolt S800",
             "sub_path": "process/0.12mm High Quality @Z-Bolt S800.json"
         },
         {
-            "name": "0.16mm Optimal @Z-Bolt S800",
-            "sub_path": "process/0.16mm Optimal @Z-Bolt S800.json"
+            "name": "0.16mm High Quality @Z-Bolt S300",
+            "sub_path": "process/0.16mm High Quality @Z-Bolt S300.json"
+        },
+        {
+            "name": "0.16mm High Quality @Z-Bolt S400",
+            "sub_path": "process/0.16mm High Quality @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.16mm High Quality @Z-Bolt S600",
+            "sub_path": "process/0.16mm High Quality @Z-Bolt S600.json"
         },
         {
             "name": "0.16mm High Quality @Z-Bolt S800",
             "sub_path": "process/0.16mm High Quality @Z-Bolt S800.json"
         },
         {
+            "name": "0.16mm Optimal @Z-Bolt S300",
+            "sub_path": "process/0.16mm Optimal @Z-Bolt S300.json"
+        },
+        {
+            "name": "0.16mm Optimal @Z-Bolt S400",
+            "sub_path": "process/0.16mm Optimal @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.16mm Optimal @Z-Bolt S600",
+            "sub_path": "process/0.16mm Optimal @Z-Bolt S600.json"
+        },
+        {
+            "name": "0.16mm Optimal @Z-Bolt S800",
+            "sub_path": "process/0.16mm Optimal @Z-Bolt S800.json"
+        },
+        {
+            "name": "0.16mm Standard @Z-Bolt S300 0.6 nozzle",
+            "sub_path": "process/0.16mm Standard @Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "0.16mm Standard @Z-Bolt S400 0.6 nozzle",
+            "sub_path": "process/0.16mm Standard @Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.16mm Standard @Z-Bolt S600 0.6 nozzle",
+            "sub_path": "process/0.16mm Standard @Z-Bolt S600 0.6 nozzle.json"
+        },
+        {
             "name": "0.16mm Standard @Z-Bolt S800 0.6 nozzle",
             "sub_path": "process/0.16mm Standard @Z-Bolt S800 0.6 nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Z-Bolt S300",
+            "sub_path": "process/0.20mm Standard @Z-Bolt S300.json"
+        },
+        {
+            "name": "0.20mm Standard @Z-Bolt S400",
+            "sub_path": "process/0.20mm Standard @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.20mm Standard @Z-Bolt S600",
+            "sub_path": "process/0.20mm Standard @Z-Bolt S600.json"
         },
         {
             "name": "0.20mm Standard @Z-Bolt S800",
             "sub_path": "process/0.20mm Standard @Z-Bolt S800.json"
         },
         {
+            "name": "0.20mm Strength @Z-Bolt S300",
+            "sub_path": "process/0.20mm Strength @Z-Bolt S300.json"
+        },
+        {
+            "name": "0.20mm Strength @Z-Bolt S400",
+            "sub_path": "process/0.20mm Strength @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.20mm Strength @Z-Bolt S600",
+            "sub_path": "process/0.20mm Strength @Z-Bolt S600.json"
+        },
+        {
             "name": "0.20mm Strength @Z-Bolt S800",
             "sub_path": "process/0.20mm Strength @Z-Bolt S800.json"
+        },
+        {
+            "name": "0.20mm Standard @Z-Bolt S300 0.6 nozzle",
+            "sub_path": "process/0.20mm Standard @Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Z-Bolt S400 0.6 nozzle",
+            "sub_path": "process/0.20mm Standard @Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Z-Bolt S600 0.6 nozzle",
+            "sub_path": "process/0.20mm Standard @Z-Bolt S600 0.6 nozzle.json"
         },
         {
             "name": "0.20mm Standard @Z-Bolt S800 0.6 nozzle",
             "sub_path": "process/0.20mm Standard @Z-Bolt S800 0.6 nozzle.json"
         },
         {
+            "name": "0.24mm Draft @Z-Bolt S300",
+            "sub_path": "process/0.24mm Draft @Z-Bolt S300.json"
+        },
+        {
+            "name": "0.24mm Draft @Z-Bolt S400",
+            "sub_path": "process/0.24mm Draft @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.24mm Draft @Z-Bolt S600",
+            "sub_path": "process/0.24mm Draft @Z-Bolt S600.json"
+        },
+        {
             "name": "0.24mm Draft @Z-Bolt S800",
             "sub_path": "process/0.24mm Draft @Z-Bolt S800.json"
+        },
+        {
+            "name": "0.24mm Standard @Z-Bolt S300 0.6 nozzle",
+            "sub_path": "process/0.24mm Standard @Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Z-Bolt S400 0.6 nozzle",
+            "sub_path": "process/0.24mm Standard @Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Z-Bolt S600 0.6 nozzle",
+            "sub_path": "process/0.24mm Standard @Z-Bolt S600 0.6 nozzle.json"
         },
         {
             "name": "0.24mm Standard @Z-Bolt S800 0.6 nozzle",
             "sub_path": "process/0.24mm Standard @Z-Bolt S800 0.6 nozzle.json"
         },
         {
+            "name": "0.24mm Standard @Z-Bolt S300 0.8 nozzle",
+            "sub_path": "process/0.24mm Standard @Z-Bolt S300 0.8 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Z-Bolt S400 0.8 nozzle",
+            "sub_path": "process/0.24mm Standard @Z-Bolt S400 0.8 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Z-Bolt S600 0.8 nozzle",
+            "sub_path": "process/0.24mm Standard @Z-Bolt S600 0.8 nozzle.json"
+        },
+        {
             "name": "0.24mm Standard @Z-Bolt S800 0.8 nozzle",
             "sub_path": "process/0.24mm Standard @Z-Bolt S800 0.8 nozzle.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Z-Bolt S300",
+            "sub_path": "process/0.28mm Extra Draft @Z-Bolt S300.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Z-Bolt S400",
+            "sub_path": "process/0.28mm Extra Draft @Z-Bolt S400.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Z-Bolt S600",
+            "sub_path": "process/0.28mm Extra Draft @Z-Bolt S600.json"
         },
         {
             "name": "0.28mm Extra Draft @Z-Bolt S800",
             "sub_path": "process/0.28mm Extra Draft @Z-Bolt S800.json"
         },
         {
+            "name": "0.30mm Standard @Z-Bolt S300 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @Z-Bolt S400 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @Z-Bolt S600 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @Z-Bolt S600 0.6 nozzle.json"
+        },
+        {
             "name": "0.30mm Standard @Z-Bolt S800 0.6 nozzle",
             "sub_path": "process/0.30mm Standard @Z-Bolt S800 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Strength @Z-Bolt S300 0.6 nozzle",
+            "sub_path": "process/0.30mm Strength @Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Strength @Z-Bolt S400 0.6 nozzle",
+            "sub_path": "process/0.30mm Strength @Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Strength @Z-Bolt S600 0.6 nozzle",
+            "sub_path": "process/0.30mm Strength @Z-Bolt S600 0.6 nozzle.json"
         },
         {
             "name": "0.30mm Strength @Z-Bolt S800 0.6 nozzle",
             "sub_path": "process/0.30mm Strength @Z-Bolt S800 0.6 nozzle.json"
         },
         {
+            "name": "0.32mm Standard @Z-Bolt S300 0.8 nozzle",
+            "sub_path": "process/0.32mm Standard @Z-Bolt S300 0.8 nozzle.json"
+        },
+        {
+            "name": "0.32mm Standard @Z-Bolt S400 0.8 nozzle",
+            "sub_path": "process/0.32mm Standard @Z-Bolt S400 0.8 nozzle.json"
+        },
+        {
+            "name": "0.32mm Standard @Z-Bolt S600 0.8 nozzle",
+            "sub_path": "process/0.32mm Standard @Z-Bolt S600 0.8 nozzle.json"
+        },
+        {
             "name": "0.32mm Standard @Z-Bolt S800 0.8 nozzle",
             "sub_path": "process/0.32mm Standard @Z-Bolt S800 0.8 nozzle.json"
+        },
+        {
+            "name": "0.36mm Standard @Z-Bolt S300 0.6 nozzle",
+            "sub_path": "process/0.36mm Standard @Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "0.36mm Standard @Z-Bolt S400 0.6 nozzle",
+            "sub_path": "process/0.36mm Standard @Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.36mm Standard @Z-Bolt S600 0.6 nozzle",
+            "sub_path": "process/0.36mm Standard @Z-Bolt S600 0.6 nozzle.json"
         },
         {
             "name": "0.36mm Standard @Z-Bolt S800 0.6 nozzle",
             "sub_path": "process/0.36mm Standard @Z-Bolt S800 0.6 nozzle.json"
         },
         {
+            "name": "0.40mm Standard @Z-Bolt S300 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @Z-Bolt S300 0.8 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @Z-Bolt S400 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @Z-Bolt S400 0.8 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @Z-Bolt S600 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @Z-Bolt S600 0.8 nozzle.json"
+        },
+        {
             "name": "0.40mm Standard @Z-Bolt S800 0.8 nozzle",
             "sub_path": "process/0.40mm Standard @Z-Bolt S800 0.8 nozzle.json"
         },
         {
+            "name": "0.42mm Standard @Z-Bolt S300 0.6 nozzle",
+            "sub_path": "process/0.42mm Standard @Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "0.42mm Standard @Z-Bolt S400 0.6 nozzle",
+            "sub_path": "process/0.42mm Standard @Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "0.42mm Standard @Z-Bolt S600 0.6 nozzle",
+            "sub_path": "process/0.42mm Standard @Z-Bolt S600 0.6 nozzle.json"
+        },
+        {
             "name": "0.42mm Standard @Z-Bolt S800 0.6 nozzle",
             "sub_path": "process/0.42mm Standard @Z-Bolt S800 0.6 nozzle.json"
+        },
+        {
+            "name": "0.48mm Standard @Z-Bolt S300 0.8 nozzle",
+            "sub_path": "process/0.48mm Standard @Z-Bolt S300 0.8 nozzle.json"
+        },
+        {
+            "name": "0.48mm Standard @Z-Bolt S400 0.8 nozzle",
+            "sub_path": "process/0.48mm Standard @Z-Bolt S400 0.8 nozzle.json"
+        },
+        {
+            "name": "0.48mm Standard @Z-Bolt S600 0.8 nozzle",
+            "sub_path": "process/0.48mm Standard @Z-Bolt S600 0.8 nozzle.json"
         },
         {
             "name": "0.48mm Standard @Z-Bolt S800 0.8 nozzle",
@@ -440,6 +440,18 @@
         {
             "name": "Z-Bolt ABS @base",
             "sub_path": "filament/Z-Bolt ABS @base.json"
+        },
+        {
+            "name": "Z-Bolt PA @base",
+            "sub_path": "filament/Z-Bolt PA @base.json"
+        },
+        {
+            "name": "Z-Bolt PETG @base",
+            "sub_path": "filament/Z-Bolt PETG @base.json"
+        },
+        {
+            "name": "Z-Bolt PLA @base",
+            "sub_path": "filament/Z-Bolt PLA @base.json"
         },
         {
             "name": "Z-Bolt ABS @0.4 nozzle",
@@ -458,22 +470,6 @@
             "sub_path": "filament/Z-Bolt ABS HT @base.json"
         },
         {
-            "name": "Z-Bolt ABS HT @0.4 nozzle",
-            "sub_path": "filament/Z-Bolt ABS HT @0.4 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt ABS HT @0.6 nozzle",
-            "sub_path": "filament/Z-Bolt ABS HT @0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt ABS HT @0.8 nozzle",
-            "sub_path": "filament/Z-Bolt ABS HT @0.8 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt PA @base",
-            "sub_path": "filament/Z-Bolt PA @base.json"
-        },
-        {
             "name": "Z-Bolt PA @0.4 nozzle",
             "sub_path": "filament/Z-Bolt PA @0.4 nozzle.json"
         },
@@ -484,10 +480,6 @@
         {
             "name": "Z-Bolt PA @0.8 nozzle",
             "sub_path": "filament/Z-Bolt PA @0.8 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt PETG @base",
-            "sub_path": "filament/Z-Bolt PETG @base.json"
         },
         {
             "name": "Z-Bolt PETG @0.4 nozzle",
@@ -502,10 +494,6 @@
             "sub_path": "filament/Z-Bolt PETG @0.8 nozzle.json"
         },
         {
-            "name": "Z-Bolt PLA @base",
-            "sub_path": "filament/Z-Bolt PLA @base.json"
-        },
-        {
             "name": "Z-Bolt PLA @0.4 nozzle",
             "sub_path": "filament/Z-Bolt PLA @0.4 nozzle.json"
         },
@@ -516,6 +504,38 @@
         {
             "name": "Z-Bolt PLA @0.8 nozzle",
             "sub_path": "filament/Z-Bolt PLA @0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt ABS HT @0.4 nozzle",
+            "sub_path": "filament/Z-Bolt ABS HT @0.4 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt ABS HT @0.6 nozzle",
+            "sub_path": "filament/Z-Bolt ABS HT @0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt ABS HT @0.8 nozzle",
+            "sub_path": "filament/Z-Bolt ABS HT @0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt ABS",
+            "sub_path": "filament/Z-Bolt ABS.json"
+        },
+        {
+            "name": "Z-Bolt ABS HT",
+            "sub_path": "filament/Z-Bolt ABS HT.json"
+        },
+        {
+            "name": "Z-Bolt PA",
+            "sub_path": "filament/Z-Bolt PA.json"
+        },
+        {
+            "name": "Z-Bolt PETG",
+            "sub_path": "filament/Z-Bolt PETG.json"
+        },
+        {
+            "name": "Z-Bolt PLA",
+            "sub_path": "filament/Z-Bolt PLA.json"
         }
     ],
     "machine_list": [
@@ -528,92 +548,24 @@
             "sub_path": "machine/fdm_zbolt_common.json"
         },
         {
+            "name": "Z-Bolt S1000 0.4 nozzle",
+            "sub_path": "machine/Z-Bolt S1000 0.4 nozzle.json"
+        },
+        {
             "name": "Z-Bolt S300 0.4 nozzle",
             "sub_path": "machine/Z-Bolt S300 0.4 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S300 0.6 nozzle",
-            "sub_path": "machine/Z-Bolt S300 0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S300 0.8 nozzle",
-            "sub_path": "machine/Z-Bolt S300 0.8 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S300 Dual 0.4 nozzle",
-            "sub_path": "machine/Z-Bolt S300 Dual 0.4 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S300 Dual 0.6 nozzle",
-            "sub_path": "machine/Z-Bolt S300 Dual 0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S300 Dual 0.8 nozzle",
-            "sub_path": "machine/Z-Bolt S300 Dual 0.8 nozzle.json"
         },
         {
             "name": "Z-Bolt S400 0.4 nozzle",
             "sub_path": "machine/Z-Bolt S400 0.4 nozzle.json"
         },
         {
-            "name": "Z-Bolt S400 0.6 nozzle",
-            "sub_path": "machine/Z-Bolt S400 0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S400 0.8 nozzle",
-            "sub_path": "machine/Z-Bolt S400 0.8 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S400 Dual 0.4 nozzle",
-            "sub_path": "machine/Z-Bolt S400 Dual 0.4 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S400 Dual 0.6 nozzle",
-            "sub_path": "machine/Z-Bolt S400 Dual 0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S400 Dual 0.8 nozzle",
-            "sub_path": "machine/Z-Bolt S400 Dual 0.8 nozzle.json"
-        },
-        {
             "name": "Z-Bolt S600 0.4 nozzle",
             "sub_path": "machine/Z-Bolt S600 0.4 nozzle.json"
         },
         {
-            "name": "Z-Bolt S600 0.6 nozzle",
-            "sub_path": "machine/Z-Bolt S600 0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S600 0.8 nozzle",
-            "sub_path": "machine/Z-Bolt S600 0.8 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S600 Dual 0.4 nozzle",
-            "sub_path": "machine/Z-Bolt S600 Dual 0.4 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S600 Dual 0.6 nozzle",
-            "sub_path": "machine/Z-Bolt S600 Dual 0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S600 Dual 0.8 nozzle",
-            "sub_path": "machine/Z-Bolt S600 Dual 0.8 nozzle.json"
-        },
-        {
             "name": "Z-Bolt S800 Dual 0.4 nozzle",
             "sub_path": "machine/Z-Bolt S800 Dual 0.4 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S800 Dual 0.6 nozzle",
-            "sub_path": "machine/Z-Bolt S800 Dual 0.6 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S800 Dual 0.8 nozzle",
-            "sub_path": "machine/Z-Bolt S800 Dual 0.8 nozzle.json"
-        },
-        {
-            "name": "Z-Bolt S1000 0.4 nozzle",
-            "sub_path": "machine/Z-Bolt S1000 0.4 nozzle.json"
         },
         {
             "name": "Z-Bolt S1000 0.6 nozzle",
@@ -628,12 +580,80 @@
             "sub_path": "machine/Z-Bolt S1000 Dual 0.4 nozzle.json"
         },
         {
+            "name": "Z-Bolt S300 0.6 nozzle",
+            "sub_path": "machine/Z-Bolt S300 0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S300 0.8 nozzle",
+            "sub_path": "machine/Z-Bolt S300 0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S300 Dual 0.4 nozzle",
+            "sub_path": "machine/Z-Bolt S300 Dual 0.4 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S400 0.6 nozzle",
+            "sub_path": "machine/Z-Bolt S400 0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S400 0.8 nozzle",
+            "sub_path": "machine/Z-Bolt S400 0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S400 Dual 0.4 nozzle",
+            "sub_path": "machine/Z-Bolt S400 Dual 0.4 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S600 0.6 nozzle",
+            "sub_path": "machine/Z-Bolt S600 0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S600 0.8 nozzle",
+            "sub_path": "machine/Z-Bolt S600 0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S600 Dual 0.4 nozzle",
+            "sub_path": "machine/Z-Bolt S600 Dual 0.4 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S800 Dual 0.6 nozzle",
+            "sub_path": "machine/Z-Bolt S800 Dual 0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S800 Dual 0.8 nozzle",
+            "sub_path": "machine/Z-Bolt S800 Dual 0.8 nozzle.json"
+        },
+        {
             "name": "Z-Bolt S1000 Dual 0.6 nozzle",
             "sub_path": "machine/Z-Bolt S1000 Dual 0.6 nozzle.json"
         },
         {
             "name": "Z-Bolt S1000 Dual 0.8 nozzle",
             "sub_path": "machine/Z-Bolt S1000 Dual 0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S300 Dual 0.6 nozzle",
+            "sub_path": "machine/Z-Bolt S300 Dual 0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S300 Dual 0.8 nozzle",
+            "sub_path": "machine/Z-Bolt S300 Dual 0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S400 Dual 0.6 nozzle",
+            "sub_path": "machine/Z-Bolt S400 Dual 0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S400 Dual 0.8 nozzle",
+            "sub_path": "machine/Z-Bolt S400 Dual 0.8 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S600 Dual 0.6 nozzle",
+            "sub_path": "machine/Z-Bolt S600 Dual 0.6 nozzle.json"
+        },
+        {
+            "name": "Z-Bolt S600 Dual 0.8 nozzle",
+            "sub_path": "machine/Z-Bolt S600 Dual 0.8 nozzle.json"
         }
     ]
 }

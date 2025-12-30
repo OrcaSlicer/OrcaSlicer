@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "setting_id": "GFB99_MTC_0",
     "name": "Generic ABS @MyToolChanger",
     "renamed_from": "My Generic ABS @MyToolChanger",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Generic ABS @System",
+    "from": "system",
+    "setting_id": "GFB99_MTC_0",
+    "instantiation": "true",
     "filament_cooling_final_speed": [
         "3.5"
     ],

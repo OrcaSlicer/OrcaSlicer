@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_arena_0.08",
+    "inherits": "fdm_process_arena_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_arena_common",
     "layer_height": "0.08",
     "elefant_foot_compensation": "0.15",
     "bottom_shell_layers": "7",

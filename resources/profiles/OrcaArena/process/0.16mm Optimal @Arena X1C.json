@@ -1,12 +1,12 @@
 {
     "type": "process",
-    "setting_id": "GP003",
     "name": "0.16mm Optimal @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_arena_0.16",
+    "from": "system",
+    "setting_id": "GP003",
+    "instantiation": "true",
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 0.4 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 0.4 nozzle"
     ]
 }

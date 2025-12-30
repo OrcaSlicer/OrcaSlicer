@@ -21,10 +21,10 @@
         "18x28",
         "0x28"
     ],
-	"default_filament_profile": [
-		"Generic PLA @System"
-	],
-	"default_print_profile": "0.18mm Standard @WonderMaker ZR",
+    "default_filament_profile": [
+        "Generic PLA @System"
+    ],
+    "default_print_profile": "0.18mm Standard @WonderMaker ZR",
     "extruder_colour": [
         "#018001"
     ],
@@ -96,7 +96,7 @@
         "0",
         "0"
     ],
-    "retract_lift_below":[
+    "retract_lift_below": [
         "290"
     ],
     "extruder_clearance_radius": "65",
@@ -104,7 +104,7 @@
     "extruder_clearance_height_to_lid": "140",
     "nozzle_volume": "107",
     "printer_structure": "corexy",
-    "best_object_pos":"0.5x0.5",
+    "best_object_pos": "0.5x0.5",
     "retraction_minimum_travel": [
         "1"
     ],

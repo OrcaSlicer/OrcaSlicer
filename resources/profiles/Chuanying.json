@@ -1,7 +1,7 @@
 {
     "name": "Chuanying",
     "url": "",
-    "version":  "02.03.00.03",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Chuanying configurations",
     "machine_model_list": [
@@ -122,6 +122,10 @@
         {
             "name": "fdm_chuanying_common",
             "sub_path": "machine/fdm_chuanying_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
         },
         {
             "name": "fdm_x1_common",

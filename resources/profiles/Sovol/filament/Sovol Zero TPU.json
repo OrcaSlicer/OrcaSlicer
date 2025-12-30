@@ -1,16 +1,18 @@
 {
-	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "GFSA04",
-	"name": "Sovol Zero TPU",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "Generic TPU @System",
-	"filament_flow_ratio": ["0.98"],
-	"filament_max_volumetric_speed": [
+    "type": "filament",
+    "name": "Sovol Zero TPU",
+    "inherits": "Generic TPU @System",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
         "3.2"
     ],
-	"nozzle_temperature": [
+    "nozzle_temperature": [
         "235"
     ],
     "nozzle_temperature_initial_layer": [
@@ -21,20 +23,20 @@
     ],
     "nozzle_temperature_range_high": [
         "250"
-	],
-	"hot_plate_temp" : [
+    ],
+    "hot_plate_temp": [
         "85"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "85"
     ],
-	"fan_max_speed": [
+    "fan_max_speed": [
         "100"
     ],
     "fan_min_speed": [
         "80"
     ],
-	"fan_cooling_layer_time": [
+    "fan_cooling_layer_time": [
         "50"
     ],
     "full_fan_speed_layer": [
@@ -58,12 +60,11 @@
     "filament_z_hop": [
         "0.4"
     ],
-    "is_custom_defined": "0",
     "additional_cooling_fan_speed": "50",
     "activate_air_filtration": "1",
     "during_print_exhaust_fan_speed": "100",
     "complete_print_exhaust_fan_speed": "50",
-	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
-	]
+    "compatible_printers": [
+        "Sovol Zero 0.4 nozzle"
+    ]
 }

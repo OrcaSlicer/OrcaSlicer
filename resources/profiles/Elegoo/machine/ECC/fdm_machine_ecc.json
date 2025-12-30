@@ -1,143 +1,142 @@
 {
-  "type": "machine",
-  "name": "fdm_machine_ecc",
-  "inherits": "fdm_machine_ecc_common",
-  "from": "system",
-  "instantiation": "false",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printer_variant": "0.4",
-  "printable_area": [
-    "0x0",
-    "256x0",
-    "256x256",
-    "0x256"
-  ],
-  "auxiliary_fan": "1",
-  "bed_exclude_area": [
-    "0x0"
-  ],
-  "default_filament_profile": [
-    "Elegoo PLA"
-  ],
-  "default_print_profile": "0.20mm Standard @Elegoo CC 0.4 nozzle",
-  "extruder_colour": [
-    "#018001"
-  ],
-  "machine_max_acceleration_e": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_extruding": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_retracting": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_travel": [
-    "9000",
-    "9000"
-  ],
-  "machine_max_acceleration_x": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_y": [
-    "20000",
-    "20000"
-  ],
-  "machine_max_acceleration_z": [
-    "500",
-    "200"
-  ],
-  "machine_max_speed_e": [
-    "30",
-    "30"
-  ],
-  "machine_max_speed_x": [
-    "500",
-    "200"
-  ],
-  "machine_max_speed_y": [
-    "500",
-    "200"
-  ],
-  "machine_max_speed_z": [
-    "20",
-    "20"
-  ],
-  "machine_max_jerk_e": [
-    "2.5",
-    "2.5"
-  ],
-  "machine_max_jerk_x": [
-    "9",
-    "9"
-  ],
-  "machine_max_jerk_y": [
-    "9",
-    "9"
-  ],
-  "machine_max_jerk_z": [
-    "3",
-    "3"
-  ],
-  "machine_min_extruding_rate": [
-    "0",
-    "0"
-  ],
-  "machine_min_travel_rate": [
-    "0",
-    "0"
-  ],
-  "retract_lift_below":[
-    "249"
-  ],
-  "extruder_clearance_radius": "57",
-  "extruder_clearance_max_radius": "68",
-  "extruder_clearance_height_to_lid": "90",
-  "nozzle_volume": "107",
-  "printer_structure": "corexy",
-  "best_object_pos":"0.5x0.5",
-  "retraction_minimum_travel": [
-    "0.8"
-  ],
-  "retract_before_wipe": [
-    "0%"
-  ],
-  "wipe_distance": [
-      "1.2"
-  ],
-  "retraction_length": [
-    "0.8"
-  ],
-  "retract_length_toolchange": [
-    "2"
-  ],
-  "z_hop": [
-    "0.4"
-  ],
-  "retraction_speed": [
-    "30"
-  ],
-  "deretraction_speed": [
-    "30"
-  ],
-  "z_hop_types": [
-    "Auto Lift"
-  ],
-  "thumbnails": [
-  "320x320",
-  "160x160"
-  ],
-  "thumbnails_format": "PNG",
-  "nozzle_type": "brass",
-  "single_extruder_multi_material": "1",
-  "machine_end_gcode": ";===== date: 20240510 =====================\nM400 ; wait for buffer to clear\nG92 E0 ; zero the extruder\nG1 E-0.8 F1800 ; retract\nG1 Z{max_layer_z + 0.5} F900 ; lower z a little\nG1 X65 Y245 F12000 ; move to safe pos \nG1 Y245 F3000\n\nG1 X65 Y245 F12000\nG1 Y245 F3000\nM140 S0 ; turn off bed\nM106 S0 ; turn off fan\nM106 P2 S0 ; turn off remote part cooling fan\nM106 P3 S0 ; turn off chamber cooling fan\n",
-  "layer_change_gcode": ";LAYER:{layer_num+1}\n",
-  "change_filament_gcode": "",
-  "machine_pause_gcode": "M600"
+    "type": "machine",
+    "name": "fdm_machine_ecc",
+    "inherits": "fdm_machine_ecc_common",
+    "from": "system",
+    "instantiation": "false",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "256x0",
+        "256x256",
+        "0x256"
+    ],
+    "auxiliary_fan": "1",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "default_filament_profile": [
+        "Elegoo PLA"
+    ],
+    "default_print_profile": "0.20mm Standard @Elegoo CC 0.4 nozzle",
+    "extruder_colour": [
+        "#018001"
+    ],
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "9000",
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "3"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "retract_lift_below": [
+        "249"
+    ],
+    "extruder_clearance_max_radius": "68",
+    "extruder_clearance_height_to_lid": "90",
+    "nozzle_volume": "107",
+    "printer_structure": "corexy",
+    "best_object_pos": "0.5x0.5",
+    "retraction_minimum_travel": [
+        "0.8"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "wipe_distance": [
+        "1.2"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ],
+    "thumbnails": [
+        "320x320",
+        "160x160"
+    ],
+    "thumbnails_format": "PNG",
+    "nozzle_type": "brass",
+    "single_extruder_multi_material": "1",
+    "machine_end_gcode": ";===== date: 20240510 =====================\nM400 ; wait for buffer to clear\nG92 E0 ; zero the extruder\nG1 E-0.8 F1800 ; retract\nG1 Z{max_layer_z + 0.5} F900 ; lower z a little\nG1 X65 Y245 F12000 ; move to safe pos \nG1 Y245 F3000\n\nG1 X65 Y245 F12000\nG1 Y245 F3000\nM140 S0 ; turn off bed\nM106 S0 ; turn off fan\nM106 P2 S0 ; turn off remote part cooling fan\nM106 P3 S0 ; turn off chamber cooling fan\n",
+    "layer_change_gcode": ";LAYER:{layer_num+1}\n",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M600"
 }

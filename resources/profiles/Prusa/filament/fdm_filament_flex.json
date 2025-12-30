@@ -1,14 +1,14 @@
 {
     "type": "filament",
     "name": "fdm_filament_flex",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_common",
+    "from": "system",
     "filament_id": "GFU99",
-    "hot_plate_temp_initial_layer" : [
+    "instantiation": "false",
+    "hot_plate_temp_initial_layer": [
         "50"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "50"
     ],
     "fan_cooling_layer_time": [

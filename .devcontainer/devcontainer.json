@@ -17,13 +17,6 @@
 	"customizations": {
 		"vscode": {
 			"settings": {
-				"cmake.configureArgs": [
-					"-DSLIC3R_GTK=3",
-					"-DBBL_RELEASE_TO_PUBLIC=1",
-					"-DBBL_INTERNAL_TESTING=0",
-					"-DSLIC3R_STATIC=1",
-					"-DCMAKE_PREFIX_PATH=${workspaceFolder}/deps/build/destdir/usr/local"
-				]
 			},
 			
 			// Add the IDs of extensions you want installed when the container is created.

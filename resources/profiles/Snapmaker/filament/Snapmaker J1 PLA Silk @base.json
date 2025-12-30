@@ -1,32 +1,32 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PLA Silk @base",
-  "filament_id": "1528786603",
-  "inherits": "fdm_filament_pla",
-  "hot_plate_temp_initial_layer": [
-    "65"
-  ],
-  "filament_cost": [
-    "70"
-  ],
-  "filament_density": [
-    "1.32"
-  ],
-  "filament_max_volumetric_speed": [
-    "12"
-  ],
-  "filament_retraction_length": [
-    "0.5"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "230"
-  ],
-  "nozzle_temperature": [
-    "230"
-  ],
-  "default_filament_colour": [
-    ""
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PLA Silk @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "1528786603",
+    "instantiation": "false",
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "filament_cost": [
+        "70"
+    ],
+    "filament_density": [
+        "1.32"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_retraction_length": [
+        "0.5"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "default_filament_colour": [
+        ""
+    ]
 }

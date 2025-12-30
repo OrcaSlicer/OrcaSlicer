@@ -1,0 +1,11 @@
+{
+  "compatible_printers": [
+    "Eryone ER20 0.8 nozzle"
+  ],
+  "elefant_foot_compensation": "0",
+  "from": "system",
+  "inherits": "fdm_process_ER20_0.32_nozzle_0.8",
+  "instantiation": "true",
+  "name": "0.32mm Optimal @Eryone ER20 0.8 nozzle",
+  "type": "process"
+}

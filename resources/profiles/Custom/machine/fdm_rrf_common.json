@@ -1,9 +1,9 @@
 {
     "type": "machine",
     "name": "fdm_rrf_common",
+    "inherits": "fdm_machine_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_machine_common",
     "gcode_flavor": "reprapfirmware",
     "machine_max_acceleration_e": [
         "5000",

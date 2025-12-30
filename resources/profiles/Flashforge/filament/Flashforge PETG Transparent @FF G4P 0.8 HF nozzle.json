@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge PETG Transparent @FF G4P 0.8 HF nozzle",
+    "inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "additional_cooling_fan_speed": [
         "40"
     ],
@@ -53,8 +58,6 @@
     "filament_start_gcode": [
         "; filament start gcode\n;right_extruder_material:PETG"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.8 HF nozzle"
     ],
@@ -64,9 +67,6 @@
     "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
-    "is_custom_defined": "0",
-    "name": "Flashforge PETG Transparent @FF G4P 0.8 HF nozzle",
     "nozzle_temperature": [
         "240"
     ],
@@ -102,6 +102,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "80"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

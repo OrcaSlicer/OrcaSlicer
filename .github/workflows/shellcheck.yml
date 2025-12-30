@@ -1,10 +1,14 @@
 on:
   push:
     paths:
-      - build_linux.sh
+      - '**.sh'
+      - 'scripts/linux.d/*'
   pull_request:
     paths:
-      - build_linux.sh
+      - '**.sh'
+      - 'scripts/linux.d/*'
+  schedule:
+      - cron: '55 7 * * *' # run once a day near midnight US Pacific time
   workflow_dispatch: # allows for manual dispatch
 
 name: "Shellcheck"
@@ -32,7 +36,9 @@ jobs:
           tar -xvf ~/sc.tar.xz -C ~
           mv ~/shellcheck-"${INPUT_VERSION}"/shellcheck ~/shellcheck
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
-      - name: Shellcheck build_linux.sh
-        run: ~/shellcheck -e SC1090 build_linux.sh
+      - name: Shellcheck scripts
+        run: 'find . -not -name \*.md \( -path ./scripts/linux.d/\* -o -name \*.sh \) -print0 | xargs -0 ~/shellcheck'

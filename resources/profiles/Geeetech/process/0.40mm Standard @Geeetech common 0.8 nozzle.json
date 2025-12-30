@@ -7,12 +7,12 @@
     "instantiation": "true",
     "elefant_foot_compensation": "0.15",
     "compatible_printers": [
-             "Geeetech A10 Pro 0.8 nozzle",
-             "Geeetech A20 0.8 nozzle",
-             "Geeetech A30 Pro 0.8 nozzle",
-             "Geeetech Mizar 0.8 nozzle",
-             "Geeetech Mizar S 0.8 nozzle",
-             "Geeetech Mizar Pro 0.8 nozzle",
-             "Geeetech Mizar Max 0.8 nozzle"
+        "Geeetech A10 Pro 0.8 nozzle",
+        "Geeetech A20 0.8 nozzle",
+        "Geeetech A30 Pro 0.8 nozzle",
+        "Geeetech Mizar 0.8 nozzle",
+        "Geeetech Mizar S 0.8 nozzle",
+        "Geeetech Mizar Pro 0.8 nozzle",
+        "Geeetech Mizar Max 0.8 nozzle"
     ]
 }

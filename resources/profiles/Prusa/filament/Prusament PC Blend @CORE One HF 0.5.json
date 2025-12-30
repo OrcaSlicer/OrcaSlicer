@@ -1,15 +1,15 @@
 {
+    "type": "filament",
+    "name": "Prusament PC Blend @CORE One HF 0.5",
+    "inherits": "Prusament PC Blend @CORE One",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament PC Blend @CORE One HF 0.5",
+    "instantiation": "true",
     "compatible_printers": [
         "Prusa CORE One HF 0.5 nozzle"
     ],
-    "filament_id": "Prusament PC Blend @CORE One HF 0.5",
     "filament_max_volumetric_speed": [
         "25"
-    ],
-    "from": "system",
-    "inherits": "Prusament PC Blend @CORE One",
-    "instantiation": "true",
-    "name": "Prusament PC Blend @CORE One HF 0.5",
-    "setting_id": "GFSA04",
-    "type": "filament"
+    ]
 }

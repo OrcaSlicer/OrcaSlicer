@@ -1,88 +1,124 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Elegoo Neptune 4 Max (0.2 nozzle)",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_neptune_4_common",
-	"printer_model": "Elegoo Neptune 4 Max",
-	"printer_notes": "",
-	"default_print_profile": "0.20mm Standard @Elegoo Neptune4Max (0.6 nozzle)",
-	"nozzle_diameter": [
-		"0.2"
-	],
-	"printer_variant": "0.2",
-	"printable_area": [
-		"0x0",
-		"420x0",
-		"420x420",
-		"0x420"
-	],
-	"machine_max_speed_x": [
-		"300",
-		"300"
-	],
-	"machine_max_speed_y": [
-		"300",
-		"300"
-	],
-	"printable_height": "480",
-	"nozzle_hrc": "0",
-	"nozzle_type": "brass",
-	"nozzle_volume": "0",
-	"cooling_tube_length": "5",
+    "type": "machine",
+    "name": "Elegoo Neptune 4 Max (0.2 nozzle)",
+    "inherits": "fdm_neptune_4_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Elegoo Neptune 4 Max",
+    "printer_notes": "",
+    "default_print_profile": "0.20mm Standard @Elegoo Neptune4Max (0.6 nozzle)",
+    "nozzle_diameter": [
+        "0.2"
+    ],
+    "printer_variant": "0.2",
+    "printable_area": [
+        "0x0",
+        "420x0",
+        "420x420",
+        "0x420"
+    ],
+    "machine_max_speed_x": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_y": [
+        "300",
+        "300"
+    ],
+    "printable_height": "480",
+    "nozzle_hrc": "0",
+    "nozzle_type": "brass",
+    "nozzle_volume": "0",
+    "cooling_tube_length": "5",
     "cooling_tube_retraction": "91.5",
-	"enable_filament_ramming": "1",
-	"parking_pos_retraction": "92",
-	"auxiliary_fan": "1",
-	"extra_loading_move": "-2",
+    "enable_filament_ramming": "1",
+    "parking_pos_retraction": "92",
+    "auxiliary_fan": "1",
+    "extra_loading_move": "-2",
     "extruder_clearance_height_to_lid": "34",
     "extruder_clearance_height_to_rod": "34",
     "extruder_clearance_radius": "47",
-    "extruder_colour": ["#FCE94F"],
-    "extruder_offset": ["0x0"],
-	"fan_kickstart": "0",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "fan_kickstart": "0",
     "fan_speedup_overhangs": "1",
     "fan_speedup_time": "0",
-	"gcode_flavor": "klipper",
-	"high_current_on_filament_swap": "0",
-	"host_type": "octoprint",
-	"machine_load_filament_time": "0",
-	"machine_unload_filament_time": "0",
-	"max_layer_height": [
-		"0.15"
-	],
-	"min_layer_height": [
-		"0.05"
-	],
-	"printer_settings_id": "Elegoo",
-	"retract_before_wipe": ["85%"],
-	"retract_length_toolchange": ["2"],
-	"deretraction_speed": ["45"],
-	"retract_lift_above": ["0"],
-    "retract_lift_below": ["0"],
-	"retract_lift_enforce": ["All Surfaces"],
-    "retract_restart_extra": ["0"],
-	"retract_restart_extra_toolchange": ["0"],
-    "retract_when_changing_layer": ["1"],
-    "retraction_length": ["0.7"],
-    "retraction_minimum_travel": ["1"],
-    "retraction_speed": ["60"],
-	"use_firmwware_retraction": "0",
-	"single_extruder_multi_material": "1",
-	"use_relative_e_distances": "1",
-	"wipe": ["1"],
-    "wipe_distance": ["1"],
-    "z_hop": ["0.4"],
-    "z_hop_types": ["Normal Lift"],
-	"change_filament_gcode": "M600",
-	"machine_pause_gcode": "PAUSE",
-	"default_filament_profile": [
-		"Generic PLA @Elegoo"
-	],
-	"machine_start_gcode": ";ELEGOO NEPTUNE 4 MAX\nM220 S100 ;Set the feed speed to 100%\nM221 S100 ;Set the flow rate to 100%\nM104 S140\nM190 S[bed_temperature_initial_layer_single]\nG90\nG28 ;home\nG1 Z10 F300\nG1 X165 Y0.5 F6000\nG1 Z0 F300\nM109 S[nozzle_temperature_initial_layer]\nG92 E0 ;Reset Extruder\nG1 X165 Y0.5 Z0.4 F300 ;Move to start position\nG1 X265 E30 F400 ;Draw the first line\nG1 Z0.6 F120.0 ;Move to side a little\nG1 X260 F3000\nG92 E0 ;Reset Extruder",
-	"machine_end_gcode": ";PRINT_END\nG91 ;Relative positionning\nG1 E-2 F2700 ;Retract a bit\nG1 E-8 X5 Y5 Z3 F3000 ;Retract\nG90 ;Absolute positionning\nG1 X10 Y400 F6000;Finish print\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM84 X Y E ;Disable all steppers but Z",
-	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0\n;[layer_z]\n\n",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-	"scan_first_layer": "0"
+    "gcode_flavor": "klipper",
+    "high_current_on_filament_swap": "0",
+    "host_type": "octoprint",
+    "machine_load_filament_time": "0",
+    "machine_unload_filament_time": "0",
+    "max_layer_height": [
+        "0.15"
+    ],
+    "min_layer_height": [
+        "0.05"
+    ],
+    "printer_settings_id": "Elegoo",
+    "retract_before_wipe": [
+        "85%"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "deretraction_speed": [
+        "45"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.7"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_speed": [
+        "60"
+    ],
+    "use_firmwware_retraction": "0",
+    "single_extruder_multi_material": "1",
+    "use_relative_e_distances": "1",
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "1"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ],
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "PAUSE",
+    "default_filament_profile": [
+        "Generic PLA @Elegoo"
+    ],
+    "machine_start_gcode": ";ELEGOO NEPTUNE 4 MAX\nM220 S100 ;Set the feed speed to 100%\nM221 S100 ;Set the flow rate to 100%\nM104 S140\nM190 S[bed_temperature_initial_layer_single]\nG90\nG28 ;home\nG1 Z10 F300\nG1 X165 Y0.5 F6000\nG1 Z0 F300\nM109 S[nozzle_temperature_initial_layer]\nG92 E0 ;Reset Extruder\nG1 X165 Y0.5 Z0.4 F300 ;Move to start position\nG1 X265 E30 F400 ;Draw the first line\nG1 Z0.6 F120.0 ;Move to side a little\nG1 X260 F3000\nG92 E0 ;Reset Extruder",
+    "machine_end_gcode": ";PRINT_END\nG91 ;Relative positionning\nG1 E-2 F2700 ;Retract a bit\nG1 E-8 X5 Y5 Z3 F3000 ;Retract\nG90 ;Absolute positionning\nG1 X10 Y400 F6000;Finish print\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM84 X Y E ;Disable all steppers but Z",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0\n;[layer_z]\n\n",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "scan_first_layer": "0"
 }

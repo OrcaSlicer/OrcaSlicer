@@ -1,23 +1,23 @@
 {
     "type": "machine",
-    "setting_id": "GM003",
     "name": "Anycubic 4Max Pro 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
     "printer_model": "Anycubic 4Max Pro",
     "default_print_profile": "0.20mm Standard @Anycubic 4MaxPro",
     "nozzle_diameter": [
         "0.4"
     ],
     "bed_exclude_area": [
-      "0x0"
+        "0x0"
     ],
     "printable_area": [
-      "0x0",
-      "270x0",
-      "270x205",
-      "0x205"
+        "0x0",
+        "270x0",
+        "270x205",
+        "0x205"
     ],
     "printable_height": "200",
     "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM109 S[nozzle_temperature_initial_layer]\nPRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single]\n; You can use following code instead if your PRINT_START macro support Chamber and print area bedmesh\n; PRINT_START EXTRUDER=[nozzle_temperature_initial_layer] BED=[bed_temperature_initial_layer_single] Chamber=[chamber_temperature] PRINT_MIN={first_layer_print_min[0]},{first_layer_print_min[1]} PRINT_MAX={first_layer_print_max[0]},{first_layer_print_max[1]}",
@@ -26,5 +26,4 @@
     "scan_first_layer": "0",
     "nozzle_type": "hardened_steel",
     "auxiliary_fan": "0"
-  }
-  
+}

@@ -1,11 +1,11 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
-	"name": "0.08mm Extra Fine @Elegoo Neptune4 Plus (0.8 nozzle)",
-	"from": "system",
-	"inherits": "fdm_process_neptune4_common",
-	"instantiation": "true",
-	"layer_height": "0.08",
+    "type": "process",
+    "name": "0.08mm Extra Fine @Elegoo Neptune4 Plus (0.8 nozzle)",
+    "inherits": "fdm_process_neptune4_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.08",
     "bottom_shell_layers": "9",
     "outer_wall_line_width": "0.8",
     "line_width": "0.8",
@@ -20,7 +20,7 @@
     "top_surface_line_width": "0.78",
     "top_shell_layers": "11",
     "top_shell_thickness": "0.8",
- 	"compatible_printers": [
-		"Elegoo Neptune 4 Plus (0.8 nozzle)"
-	]
+    "compatible_printers": [
+        "Elegoo Neptune 4 Plus (0.8 nozzle)"
+    ]
 }

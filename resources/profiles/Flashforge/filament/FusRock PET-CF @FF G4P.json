@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "FusRock PET-CF @FF G4P",
+    "inherits": "Flashforge Generic TPU",
+    "from": "system",
+    "instantiation": "true",
     "additional_cooling_fan_speed": [
         "0"
     ],
@@ -44,8 +49,6 @@
     "filament_type": [
         "PET-CF"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.4 nozzle"
     ],
@@ -55,9 +58,6 @@
     "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "inherits": "Flashforge Generic TPU",
-    "is_custom_defined": "0",
-    "name": "FusRock PET-CF @FF G4P",
     "nozzle_temperature": [
         "280"
     ],
@@ -90,6 +90,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "80"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

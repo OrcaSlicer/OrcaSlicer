@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.28mm SuperDraft @Creality Ender5Pro (2019) 0.5",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_creality_common_0_5",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "bottom_shell_layers": "3",
     "top_shell_layers": "4",
     "layer_height": "0.28"

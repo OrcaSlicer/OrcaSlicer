@@ -1,11 +1,12 @@
 {
     "type": "process",
+    "name": "0.30mm Standard @Kingroon KP3S 3.0",
+    "inherits": "fdm_process_common",
+    "from": "User",
+    "instantiation": "true",
     "compatible_printers": [
         "Kingroon KP3S 3.0 0.4 nozzle"
     ],
-    "name": "0.30mm Standard @Kingroon KP3S 3.0",
-    "instantiation": "true",
-    "inherits": "fdm_process_common",
     "print_settings_id": "0.30mm Standard @Kingroon KP3S 3.0",
     "bottom_surface_pattern": "monotonicline",
     "bridge_acceleration": "500",
@@ -19,7 +20,6 @@
     "enable_support": "0",
     "filter_out_gap_fill": "0.9",
     "flush_into_support": "0",
-    "from": "User",
     "gap_fill_target": "topbottom",
     "gap_infill_speed": "40",
     "infill_combination": "1",
@@ -36,7 +36,6 @@
     "internal_solid_infill_line_width": "0.5",
     "internal_solid_infill_pattern": "monotonicline",
     "internal_solid_infill_speed": "70",
-    "is_custom_defined": "0",
     "layer_height": "0.3",
     "line_width": "0.44",
     "max_travel_detour_distance": "70",
@@ -81,7 +80,6 @@
     "tree_support_branch_diameter_double_wall": "5",
     "tree_support_tip_diameter": "1",
     "tree_support_top_rate": "50%",
-    "version": "2.0.0.0",
     "wall_transition_angle": "59",
     "wipe_before_external_loop": "1",
     "wipe_tower_bridging": "2"

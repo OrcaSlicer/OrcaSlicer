@@ -1,9 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFB99",
-    "setting_id": "GFSB99_06",
     "name": "CoLiDo ABS @CoLiDo SR1",
+    "inherits": "fdm_filament_abs",
     "from": "system",
+    "setting_id": "GFSB99_06",
+    "filament_id": "GFB99",
     "instantiation": "true",
     "filament_vendor": [
         "CoLiDo"
@@ -23,8 +24,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "fdm_filament_abs",
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "245"
     ],
@@ -37,7 +36,6 @@
     "nozzle_temperature_range_low": [
         "230"
     ],
-    "version": "2.2.0.4",
     "filament_flow_ratio": [
         "0.926"
     ],

@@ -58,21 +58,6 @@ bool GLGizmoMmuSegmentation::on_is_activable() const
     return !selection.is_empty() && (selection.is_single_full_instance() || selection.is_any_volume()) && wxGetApp().filaments_cnt() > 1;
 }
 
-//BBS: use the global one in 3DScene.cpp
-/*static std::vector<ColorRGBA> get_extruders_colors()
-{
-    unsigned char                     rgb_color[3] = {};
-    std::vector<std::string>          colors       = Slic3r::GUI::wxGetApp().plater()->get_extruder_colors_from_plater_config();
-    std::vector<ColorRGBA> colors_out(colors.size());
-    for (const std::string &color : colors) {
-        Slic3r::GUI::BitmapCache::parse_color(color, rgb_color);
-        size_t color_idx      = &color - &colors.front();
-        colors_out[color_idx] = {float(rgb_color[0]) / 255.f, float(rgb_color[1]) / 255.f, float(rgb_color[2]) / 255.f, 1.f};
-    }
-
-    return colors_out;
-}*/
-
 static std::vector<int> get_extruder_id_for_volumes(const ModelObject &model_object)
 {
     std::vector<int> extruders_idx;
@@ -89,7 +74,7 @@ static std::vector<int> get_extruder_id_for_volumes(const ModelObject &model_obj
 
 void GLGizmoMmuSegmentation::init_extruders_data()
 {
-    m_extruders_colors      = get_extruders_colors();
+    m_extruders_colors      = wxGetApp().plater()->get_extruders_colors();
     m_selected_extruder_idx = 0;
 
     // keep remap table consistent with current extruder count
@@ -103,21 +88,27 @@ bool GLGizmoMmuSegmentation::on_init()
     // BBS
     m_shortcut_key = WXK_CONTROL_N;
 
-    m_desc["clipping_of_view_caption"] = _L("Alt + Mouse wheel");
+    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
+    const wxString ctrl  = _L("Ctrl+");
+    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
+    const wxString alt   = _L("Alt+");
+    const wxString shift = _L("Shift+");
+
+    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
     m_desc["clipping_of_view"]     = _L("Section view");
     m_desc["reset_direction"]     = _L("Reset direction");
-    m_desc["cursor_size_caption"]  = _L("Ctrl + Mouse wheel");
+    m_desc["cursor_size_caption"]  = ctrl + _L("Mouse wheel");
     m_desc["cursor_size"]          = _L("Pen size");
     m_desc["cursor_type"]          = _L("Pen shape");
 
     m_desc["paint_caption"]        = _L("Left mouse button");
     m_desc["paint"]                = _L("Paint");
-    m_desc["erase_caption"]        = _L("Shift + Left mouse button");
+    m_desc["erase_caption"]        = shift + _L("Left mouse button");
     m_desc["erase"]                = _L("Erase");
     m_desc["shortcut_key_caption"] = _L("Key 1~9");
     m_desc["shortcut_key"]         = _L("Choose filament");
     m_desc["edge_detection"]       = _L("Edge detection");
-    m_desc["gap_area_caption"]     = _L("Ctrl + Mouse wheel");
+    m_desc["gap_area_caption"]     = ctrl + _L("Mouse wheel");
     m_desc["gap_area"]             = _L("Gap area");
     m_desc["perform"]              = _L("Perform");
 
@@ -132,14 +123,14 @@ bool GLGizmoMmuSegmentation::on_init()
     m_desc["tool_smart_fill"]      = _L("Smart fill");
     m_desc["tool_bucket_fill"]     = _L("Bucket fill");
 
-    m_desc["smart_fill_angle_caption"] = _L("Ctrl + Mouse wheel");
+    m_desc["smart_fill_angle_caption"] = ctrl + _L("Mouse wheel");
     m_desc["smart_fill_angle"]     = _L("Smart fill angle");
 
-    m_desc["height_range_caption"] = _L("Ctrl + Mouse wheel");
+    m_desc["height_range_caption"] = ctrl + _L("Mouse wheel");
     m_desc["height_range"]         = _L("Height range");
 
     //add toggle wire frame hint
-    m_desc["toggle_wireframe_caption"]        = _L("Alt + Shift + Enter");
+    m_desc["toggle_wireframe_caption"]        = alt + shift + _L("Enter");
     m_desc["toggle_wireframe"]                = _L("Toggle Wireframe");
 
     // Filament remapping descriptions
@@ -189,8 +180,7 @@ void GLGizmoMmuSegmentation::data_changed(bool is_serializing)
         // Reinitialize triangle selectors because of change of extruder count need also change the size of GLIndexedVertexArray
         if (prev_extruders_count != wxGetApp().filaments_cnt())
             this->init_model_triangle_selectors();
-    }
-    else if (get_extruders_colors() != m_extruders_colors) {
+    } else if (wxGetApp().plater()->get_extruders_colors() != m_extruders_colors) {
         this->init_extruders_data();
         this->update_triangle_selectors_colors();
     }
@@ -297,6 +287,10 @@ void GLGizmoMmuSegmentation::show_tooltip_information(float caption_max, float x
     caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 15.f;
 
     float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
@@ -629,7 +623,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         m_imgui->text(m_desc["height_range"] + ":");
         ImGui::SameLine(height_max_width);
         ImGui::PushItemWidth(sliders_width);
-        std::string format_str = std::string("%.2f") + I18N::translate_utf8("mm", "Heigh range," "Facet in [cursor z, cursor z + height] will be selected.");
+        std::string format_str = std::string("%.2f") + I18N::translate_utf8("mm", "Height range," "Facet in [cursor z, cursor z + height] will be selected.");
         m_imgui->bbl_slider_float_style("##cursor_height", &m_cursor_height, CursorHeightMin, CursorHeightMax, format_str.data(), 1.0f, true);
         ImGui::SameLine(drag_left_width + height_max_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
@@ -827,7 +821,7 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
     // Extruder colors need to be reloaded before calling init_model_triangle_selectors to render painted triangles
     // using colors from loaded 3MF and not from printer profile in Slicer.
     if (int prev_extruders_count = int(m_extruders_colors.size());
-        prev_extruders_count != wxGetApp().filaments_cnt() || get_extruders_colors() != m_extruders_colors)
+        prev_extruders_count != wxGetApp().filaments_cnt() || wxGetApp().plater()->get_extruders_colors() != m_extruders_colors)
         this->init_extruders_data();
 
     this->init_model_triangle_selectors();
@@ -867,6 +861,9 @@ void GLGizmoMmuSegmentation::on_set_state()
         ModelObject* mo = m_c->selection_info()->model_object();
         if (mo) Slic3r::save_object_mesh(*mo);
         m_parent.post_event(SimpleEvent(EVT_GLCANVAS_FORCE_UPDATE));
+        if (m_current_tool == ImGui::GapFillIcon) {//exit gap fill
+            m_current_tool = ImGui::CircleButtonIcon;
+        }
     }
 }
 

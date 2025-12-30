@@ -10,9 +10,10 @@
 #include <wx/bmpcbox.h>
 #include <wx/statbmp.h>
 #include <wx/popupwin.h>
+#include <wx/scrolwin.h>
 #include <wx/spinctrl.h>
 #include <wx/artprov.h>
-#include <wx/scrolwin.h>
+#include <wx/colordlg.h>
 
 #include <vector>
 #include <functional>
@@ -34,14 +35,14 @@ wxMenuItem* append_menu_item(wxMenu* menu, int id, const wxString& string, const
 
 wxMenuItem* append_submenu(wxMenu* menu, wxMenu* sub_menu, int id, const wxString& string, const wxString& description,
     const std::string& icon = "",
-    std::function<bool()> const cb_condition = []() { return true; }, wxWindow* parent = nullptr);
+    std::function<bool()> const cb_condition = []() { return true; }, wxWindow* parent = nullptr, int insert_pos = wxNOT_FOUND);
 
 wxMenuItem* append_menu_radio_item(wxMenu* menu, int id, const wxString& string, const wxString& description,
     std::function<void(wxCommandEvent& event)> cb, wxEvtHandler* event_handler);
 
 wxMenuItem* append_menu_check_item(wxMenu* menu, int id, const wxString& string, const wxString& description,
     std::function<void(wxCommandEvent & event)> cb, wxEvtHandler* event_handler,
-    std::function<bool()> const enable_condition = []() { return true; }, 
+    std::function<bool()> const enable_condition = []() { return true; },
     std::function<bool()> const check_condition = []() { return true; }, wxWindow* parent = nullptr);
 
 void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxMenuItem* item, wxWindow* win);
@@ -68,13 +69,17 @@ wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::Bitm
     const int px_cnt = 16, const bool grayscale = false, const bool resize = false,
     const std::vector<std::string>& array_new_color = std::vector<std::string>()); // color witch will used instead of orange
 #else
-wxBitmap create_scaled_bitmap(const std::string& bmp_name, wxWindow *win = nullptr, 
+wxBitmap create_scaled_bitmap(const std::string& bmp_name, wxWindow *win = nullptr,
     const int px_cnt = 16, const bool grayscale = false, const bool resize = false);
 #endif
 
 wxBitmap* get_default_extruder_color_icon(bool thin_icon = false);
 std::vector<wxBitmap *> get_extruder_color_icons(bool thin_icon = false);
 wxBitmap * get_extruder_color_icon(std::string color, std::string label, int icon_width, int icon_height);
+wxBitmap * get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height);
+std::vector<std::vector<std::string>> read_color_pack(std::vector<std::string> color_pack);
+wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_data);
+
 namespace Slic3r {
 namespace GUI {
 class BitmapComboBox;
@@ -157,7 +162,7 @@ public:
     ScalableBitmap() {};
     ScalableBitmap( wxWindow *parent,
                     const std::string& icon_name = "",
-                    const int px_cnt = 16, 
+                    const int px_cnt = 16,
                     const bool grayscale = false,
                     const bool resize = false,
                     const bool bitmap2 = false,
@@ -166,6 +171,8 @@ public:
     ~ScalableBitmap() {}
 
     wxSize  GetBmpSize() const;
+    static wxSize GetBmpSize(const wxBitmap &bmp);
+
     int     GetBmpWidth() const;
     int     GetBmpHeight() const;
 
@@ -261,6 +268,7 @@ public:
     void UseDefaultBitmapDisabled();
 
     void    msw_rescale();
+    void    UpdateDarkUI() { msw_rescale(); };
 
 private:
     wxWindow*       m_parent { nullptr };
@@ -271,7 +279,7 @@ private:
 
     bool            m_use_default_disabled_bitmap {false};
 
-    // bitmap dimensions 
+    // bitmap dimensions
     int             m_px_cnt{ 16 };
     bool            m_has_border {false};
 };

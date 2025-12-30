@@ -2,8 +2,8 @@
     "type": "filament",
     "name": "AliZ PETG-CF @base",
     "inherits": "AliZ PETG @base",
-    "filament_id": "AZ01-1",
     "from": "system",
+    "filament_id": "AZ01-1",
     "instantiation": "false",
     "fan_cooling_layer_time": [
         "30"

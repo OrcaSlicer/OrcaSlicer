@@ -1,25 +1,25 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "WonderMaker ZR 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_klipper_common",
-	"printer_model": "WonderMaker ZR",
-	"default_print_profile": "0.20mm Standard @WonderMaker ZR",
+    "type": "machine",
+    "name": "WonderMaker ZR 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "WonderMaker ZR",
+    "default_print_profile": "0.20mm Standard @WonderMaker ZR",
     "default_bed_type": "4",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"default_filament_profile": [
-		"WonderMaker PLA Basic"
-	],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "default_filament_profile": [
+        "WonderMaker PLA Basic"
+    ],
     "purge_in_prime_tower": "0",
     "enable_filament_ramming": "0",
     "machine_load_filament_time": "80",
     "machine_unload_filament_time": "40",
-	"adaptive_bed_mesh_margin": "5",
-	"bed_mesh_max": [
+    "adaptive_bed_mesh_margin": "5",
+    "bed_mesh_max": [
         "290",
         "290"
     ],
@@ -31,7 +31,7 @@
         "40",
         "40"
     ],
-	"retract_before_wipe": [
+    "retract_before_wipe": [
         "80%"
     ],
     "retract_restart_extra": [

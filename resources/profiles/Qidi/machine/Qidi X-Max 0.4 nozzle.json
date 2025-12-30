@@ -1,106 +1,106 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Qidi X-Max 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_qidi_common",
-	"printer_model": "Qidi X-Max",
-	"default_print_profile": "0.20mm Standard @Qidi XMax",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"300x0",
-		"300x250",
-		"0x250"
-	],
-	"printable_height": "300",
-	"nozzle_type": "hardened_steel",
-	"auxiliary_fan": "0",
-	"machine_max_acceleration_extruding": [
-		"1500",
-		"1250"
-	],
-	"machine_max_acceleration_retracting": [
-		"1500",
-		"1250"
-	],
-	"machine_max_acceleration_travel": [
-		"1500",
-		"1250"
-	],
-	"machine_max_acceleration_x": [
-		"9000",
-		"1000"
-	],
-	"machine_max_acceleration_y": [
-		"9000",
-		"1000"
-	],
-	"machine_max_acceleration_z": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_e": [
-		"120",
-		"120"
-	],
-	"machine_max_speed_x": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_y": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_z": [
-		"12",
-		"12"
-	],
-	"machine_max_jerk_e": [
-		"2.5",
-		"2.5"
-	],
-	"machine_max_jerk_x": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_y": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_z": [
-		"0.2",
-		"0.4"
-	],
-	"max_layer_height": [
-		"0"
-	],
-	"min_layer_height": [
-		"0.07"
-	],
-	"printer_settings_id": "Qidi",
-	"retraction_minimum_travel": [
-		"2"
-	],
-	"retraction_length": [
-		"2"
-	],
-	"retract_length_toolchange": [
-		"2"
-	],
-	"deretraction_speed": [
-		"0"
-	],
-	"single_extruder_multi_material": "0",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "M0",
-	"default_filament_profile": [
-		"Qidi Generic PLA"
-	],
-	"machine_start_gcode": "G28\nG92 E0\nG0 X300 Y5 Z50 F3600\nM190 S[bed_temperature_initial_layer_single]\nM109 S[first_layer_temperature]\nG92 E-19\n",
-	"machine_end_gcode": "M104 S0\nM140 S0\n;Retract the filament\nG92 E0\nG1 E-3 F300\nG28\nM84\n",
-	"scan_first_layer": "0"
+    "type": "machine",
+    "name": "Qidi X-Max 0.4 nozzle",
+    "inherits": "fdm_qidi_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Qidi X-Max",
+    "default_print_profile": "0.20mm Standard @Qidi XMax",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x250",
+        "0x250"
+    ],
+    "printable_height": "300",
+    "nozzle_type": "hardened_steel",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_extruding": [
+        "1500",
+        "1250"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1500",
+        "1250"
+    ],
+    "machine_max_acceleration_travel": [
+        "1500",
+        "1250"
+    ],
+    "machine_max_acceleration_x": [
+        "9000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "9000",
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "120",
+        "120"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "0.2",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.07"
+    ],
+    "printer_settings_id": "Qidi",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retraction_length": [
+        "2"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "single_extruder_multi_material": "0",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M0",
+    "default_filament_profile": [
+        "Qidi Generic PLA"
+    ],
+    "machine_start_gcode": "G28\nG92 E0\nG0 X300 Y5 Z50 F3600\nM190 S[bed_temperature_initial_layer_single]\nM109 S[first_layer_temperature]\nG92 E-19\n",
+    "machine_end_gcode": "M104 S0\nM140 S0\n;Retract the filament\nG92 E0\nG1 E-3 F300\nG28\nM84\n",
+    "scan_first_layer": "0"
 }

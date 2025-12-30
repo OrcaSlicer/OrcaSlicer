@@ -1,13 +1,13 @@
 {
-  "type": "process",
-  "instantiation": "false",
-  "from": "system",
-  "name": "fdm_process_tiq_common",
-  "print_settings_id": "fdm_process_tiq_common",
-  "compatible_printers": [],
-  "compatible_printers_condition": "",
-  "default_acceleration": "5000",
-  "top_surface_acceleration": "3000",
+    "type": "process",
+    "name": "fdm_process_tiq_common",
+    "from": "system",
+    "instantiation": "false",
+    "print_settings_id": "fdm_process_tiq_common",
+    "compatible_printers": [],
+    "compatible_printers_condition": "",
+    "default_acceleration": "5000",
+    "top_surface_acceleration": "3000",
     "travel_acceleration": "7000",
     "inner_wall_acceleration": "5000",
     "outer_wall_acceleration": "3000",
@@ -27,10 +27,10 @@
     "wipe_tower_extra_spacing": "150%",
     "wipe_tower_rotation_angle": "90",
     "ooze_prevention": "1",
-	"standby_temperature_delta": "-40",
+    "standby_temperature_delta": "-40",
     "preheat_time": "30",
     "preheat_steps": "1",
-     "adaptive_layer_height": "0",
+    "adaptive_layer_height": "0",
     "reduce_crossing_wall": "0",
     "max_travel_detour_distance": "0",
     "bottom_surface_pattern": "monotonic",
@@ -112,6 +112,4 @@
     "bottom_shell_layers": "3",
     "top_shell_layers": "4",
     "bridge_flow": "1"
-
-
-  }
+}

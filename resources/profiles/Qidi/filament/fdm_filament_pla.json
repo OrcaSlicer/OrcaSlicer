@@ -1,9 +1,9 @@
 {
     "type": "filament",
     "name": "fdm_filament_pla",
+    "inherits": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_filament_common",
     "fan_cooling_layer_time": [
         "60"
     ],
@@ -19,28 +19,28 @@
     "filament_cost": [
         "20"
     ],
-    "cool_plate_temp" : [
+    "cool_plate_temp": [
         "60"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "60"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "60"
     ],
-    "textured_plate_temp" : [
+    "textured_plate_temp": [
         "60"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "60"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "60"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "60"
     ],
-    "textured_plate_temp_initial_layer" : [
+    "textured_plate_temp_initial_layer": [
         "60"
     ],
     "nozzle_temperature_initial_layer": [
@@ -62,7 +62,7 @@
         "100"
     ],
     "overhang_fan_threshold": [
-        "95%"
+        "50%"
     ],
     "close_fan_the_first_x_layers": [
         "1"
@@ -95,7 +95,6 @@
         "0"
     ],
     "enable_overhang_bridge_fan": [
-        "0"
+        "1"
     ]
-
 }

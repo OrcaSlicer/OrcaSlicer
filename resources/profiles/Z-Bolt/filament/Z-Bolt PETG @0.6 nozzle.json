@@ -3,9 +3,9 @@
     "name": "Z-Bolt PETG @0.6 nozzle",
     "inherits": "Z-Bolt PETG @base",
     "from": "system",
-    "instantiation": "true",
-    "filament_id": "GFL306",
     "setting_id": "GFSL306",
+    "filament_id": "GFL306",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "10"
     ],

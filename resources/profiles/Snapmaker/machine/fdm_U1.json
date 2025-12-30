@@ -1,13 +1,13 @@
 {
     "type": "machine",
     "name": "fdm_U1",
+    "inherits": "fdm_toolchanger",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_toolchanger",
     "gcode_flavor": "klipper",
     "single_extruder_multi_material": "0",
     "bed_model": "Snapmaker U1_bed.stl",
-    "bed_texture": "Snapmaker U1_bed.svg",
+    "bed_texture": "Snapmaker U1_texture.svg",
     "max_layer_height": [
         "0.32",
         "0.32",
@@ -148,7 +148,6 @@
         "3",
         "3"
     ],
-    "version": "2.1.1.1",
     "wipe": [
         "1",
         "1",
@@ -181,7 +180,7 @@
     "bed_mesh_min": "3,3",
     "purge_in_prime_tower": "0",
     "machine_pause_gcode": "M601",
-    "change_filament_gcode": "",    
+    "change_filament_gcode": "",
     "machine_start_gcode": ";===== machine: PR2 ========================\n;===== date: 20250717 =====================\nPRINT_START\n;===== 预热热床和第一个挤出头 =================\nM140 S{bed_temperature_initial_layer_single}\nM104 T{initial_extruder} S140\n\n;===== 粗回零 =================\nG28 X Y\nT{initial_extruder}\nM109 T{initial_extruder} S140\nG28 Z\nG90\nG0 Z10 F10000\nMOVE_TO_DISCARD_FILAMENT_POSITION\nM109 S{nozzle_temperature[initial_extruder] - 50}\nROUGHLY_CLEAN_NOZZLE_WITH_DISCARD\nM104 S{nozzle_temperature[initial_extruder] - 90}\nG4 P2000\nROUGHLY_CLEAN_NOZZLE\nMOVE_TO_XY_IDLE_POSITION_EXTRUDER\n\n;===== 检测钢板 =================\nDETECT_BED_PLATE\nMOVE_TO_XY_IDLE_POSITION_EXTRUDER\n\n;===== 自动进料  ======================\nSM_PRINT_AUTO_FEED EXTRUDER=0\nSM_PRINT_AUTO_FEED EXTRUDER=1\nSM_PRINT_AUTO_FEED EXTRUDER=2\nSM_PRINT_AUTO_FEED EXTRUDER=3\n\n;===== 挤出流量  ======================\n{if (is_extruder_used[0])}\nSM_PRINT_FLOW_CALIBRATE INDEX=0 TARGET_TEMP={nozzle_temperature[0]}\n{endif}\n{if (is_extruder_used[1])}\nSM_PRINT_FLOW_CALIBRATE INDEX=1 TARGET_TEMP={nozzle_temperature[1]}\n{endif}\n{if (is_extruder_used[2])}\nSM_PRINT_FLOW_CALIBRATE INDEX=2 TARGET_TEMP={nozzle_temperature[2]}\n{endif}\n{if (is_extruder_used[3])}\nSM_PRINT_FLOW_CALIBRATE INDEX=3 TARGET_TEMP={nozzle_temperature[3]}\n{endif}\n\n;===== 取出第一个挤出头 =================\nT{initial_extruder}\nSET_VELOCITY_LIMIT ACCEL=10000\nM204 S10000\n\n;===== 深度清洁喷嘴 =================\nG90\nG0 Z10 F10000\nROUGHLY_CLEAN_NOZZLE_WITH_DISCARD\nG0 Z5 F10000\nFINELY_CLEAN_NOZZLE_STAGE_1\nG0 Z5 F10000\nROUGHLY_CLEAN_NOZZLE\nG0 Z5 F10000\nFINELY_CLEAN_NOZZLE_STAGE_2\nM83\n\n;===== 第一个挤出头降温 =================\nM109 S{nozzle_temperature[initial_extruder] - 90}\nM190 S{bed_temperature_initial_layer_single}\nM106 S0\nG90\nG0 Z5 F10000\nMOVE_TO_DISCARD_FILAMENT_POSITION\nINNER_CUTOFF_BASE_DISCARD\nINNER_ROUGHLY_CLEAN_NOZZLE_BASE_DISCARD\nINNER_ROUGHLY_CLEAN_NOZZLE_BASE_DISCARD\nMOVE_TO_XY_IDLE_POSITION_EXTRUDER\n\n;===== 精回零 =================\nG28 Z\n;===== 热床调平 =================\n; Always pass `ADAPTIVE_MARGIN=0` because Orca has already handled `adaptive_bed_mesh_margin` internally\n; Make sure to set ADAPTIVE to 0 otherwise Klipper will use it's own adaptive bed mesh logic\nBED_MESH_CALIBRATE mesh_min={adaptive_bed_mesh_min[0]},{adaptive_bed_mesh_min[1]} mesh_max={adaptive_bed_mesh_max[0]},{adaptive_bed_mesh_max[1]} ALGORITHM=[bed_mesh_algo] PROBE_COUNT={bed_mesh_probe_count[0]},{bed_mesh_probe_count[1]} ADAPTIVE=0 ADAPTIVE_MARGIN=0\n\n;BED_MESH_CALIBRATE PROBE_COUNT=7,7\n\n\n;======== 预挤出/划线 ================\n{if (is_extruder_used[0]) and 0 != initial_extruder}\nSM_PRINT_START_LINE INDEX=0 TARGET_TEMP={nozzle_temperature_initial_layer[0]}\nM83\nM104 S{nozzle_temperature[0] - 90}\n{endif}\n\n{if (is_extruder_used[1]) and 1 != initial_extruder}\nSM_PRINT_START_LINE INDEX=1 TARGET_TEMP={nozzle_temperature_initial_layer[1]}\nM83\nM104 S{nozzle_temperature[1] - 90}\n{endif}\n\n{if (is_extruder_used[2]) and 2 != initial_extruder}\nSM_PRINT_START_LINE INDEX=2 TARGET_TEMP={nozzle_temperature_initial_layer[2]}\nM83\nM104 S{nozzle_temperature[2] - 90}\n{endif}\n\n{if (is_extruder_used[3]) and 3 != initial_extruder}\nSM_PRINT_START_LINE INDEX=3 TARGET_TEMP={nozzle_temperature_initial_layer[3]}\nM83\nM104 S{nozzle_temperature[3] - 90}\n{endif}\n\n{if (is_extruder_used[initial_extruder])}\nSM_PRINT_START_LINE INDEX={initial_extruder} TARGET_TEMP={nozzle_temperature_initial_layer[initial_extruder]}\n{endif}\nM109 S{nozzle_temperature_initial_layer[initial_extruder]} T{initial_extruder}\nM106 S0\n\nTIMELAPSE_START",
     "scan_first_layer": "0",
     "nozzle_type": "hardened_steel",

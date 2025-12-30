@@ -1,14 +1,23 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Flashforge Adventurer 3 Series 0.6 Nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_adventurer3_common",
-  "printer_model": "Flashforge Adventurer 3 Series",
-  "default_print_profile": "0.20mm Standard @Flashforge AD3 0.6 Nozzle",
-  "nozzle_diameter": ["0.6", "0.6"],
-  "printer_variant": "0.6",
-  "max_layer_height": ["0.6", "0.6"],
-  "min_layer_height": ["0.01", "0.01"]
+    "type": "machine",
+    "name": "Flashforge Adventurer 3 Series 0.6 Nozzle",
+    "inherits": "fdm_adventurer3_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Flashforge Adventurer 3 Series",
+    "default_print_profile": "0.20mm Standard @Flashforge AD3 0.6 Nozzle",
+    "nozzle_diameter": [
+        "0.6",
+        "0.6"
+    ],
+    "printer_variant": "0.6",
+    "max_layer_height": [
+        "0.6",
+        "0.6"
+    ],
+    "min_layer_height": [
+        "0.01",
+        "0.01"
+    ]
 }

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "QIDI PLA Rapido Metal @Qidi Q2 0.4 nozzle",
+    "inherits": "QIDI PLA Rapido Metal@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.038"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.4 nozzle"
+    ]
+}

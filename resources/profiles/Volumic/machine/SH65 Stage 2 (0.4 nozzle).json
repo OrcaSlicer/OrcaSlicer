@@ -1,32 +1,57 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "SH65 Stage 2 (0.4 nozzle)",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_volumic_common",
-	"printer_model": "SH65 Stage 2",
-	"default_print_profile": "Normal speed (Stage 2) - 0.20mm",
-	"host_type": "octoprint",
-	"print_host": "192.168.0.60",
-	"nozzle_diameter": ["0.4"],
-	"printable_area": ["0x0","650x0","650x300","0x300"],
-	"printable_height": "300",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	"gcode_flavor": "klipper",
-	"max_layer_height": ["0.3"],
-	"min_layer_height": ["0.025"],
-	"printer_variant": "0.4",
-	"retraction_minimum_travel": ["1"],
-	"retraction_length": ["2.4"],
-	"retraction_speed": ["30"],
-	"deretraction_speed": ["30"],
-	"machine_max_acceleration_x": ["4500"],
-	"machine_max_acceleration_y": ["4500"],
-	"machine_max_acceleration_z": ["50"],
-	"machine_start_gcode": "START_PRINT BED=[first_layer_bed_temperature] EXTRUDER=[first_layer_temperature]",
-	"before_layer_change_gcode": "G92 E0",
-	"layer_change_gcode": "TIMELAPSE_TAKE_FRAME",
-	"machine_end_gcode": "END_PRINT"
+    "type": "machine",
+    "name": "SH65 Stage 2 (0.4 nozzle)",
+    "inherits": "fdm_volumic_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "SH65 Stage 2",
+    "default_print_profile": "Normal speed (Stage 2) - 0.20mm",
+    "host_type": "octoprint",
+    "print_host": "192.168.0.60",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "650x0",
+        "650x300",
+        "0x300"
+    ],
+    "printable_height": "300",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "gcode_flavor": "klipper",
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.025"
+    ],
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "2.4"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "machine_max_acceleration_x": [
+        "4500"
+    ],
+    "machine_max_acceleration_y": [
+        "4500"
+    ],
+    "machine_max_acceleration_z": [
+        "50"
+    ],
+    "machine_start_gcode": "START_PRINT BED=[first_layer_bed_temperature] EXTRUDER=[first_layer_temperature]",
+    "before_layer_change_gcode": "G92 E0",
+    "layer_change_gcode": "TIMELAPSE_TAKE_FRAME",
+    "machine_end_gcode": "END_PRINT"
 }

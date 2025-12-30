@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PVA HF @MINIIS",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pva",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "1"
     ],
@@ -24,6 +24,6 @@
         "0.19"
     ],
     "compatible_printers": [
-      "Prusa MINIIS 0.4 nozzle"
+        "Prusa MINIIS 0.4 nozzle"
     ]
 }

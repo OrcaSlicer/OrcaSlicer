@@ -1,16 +1,16 @@
 {
     "type": "process",
-    "setting_id": "GP013",
     "name": "0.20mm Strength @FT 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_folgertech_common",
+    "from": "system",
+    "setting_id": "GP013",
+    "instantiation": "true",
     "outer_wall_speed": "30",
     "wall_loops": "6",
     "sparse_infill_density": "25%",
     "compatible_printers": [
-		"Folgertech i3 0.4 nozzle",
-		"Folgertech FT-5 0.4 nozzle",
-		"Folgertech FT-6 0.4 nozzle"	
-	]
+        "Folgertech i3 0.4 nozzle",
+        "Folgertech FT-5 0.4 nozzle",
+        "Folgertech FT-6 0.4 nozzle"
+    ]
 }

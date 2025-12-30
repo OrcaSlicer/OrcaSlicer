@@ -7,12 +7,6 @@
     "activate_air_filtration": [
         "1"
     ],
-    "supertack_plate_temp": [
-        "0"
-    ],
-    "supertack_plate_temp_initial_layer": [
-        "0"
-    ],
     "cool_plate_temp": [
         "0"
     ],
@@ -46,11 +40,17 @@
     "filament_type": [
         "ASA"
     ],
+    "filament_adhesiveness_category": [
+        "200"
+    ],
     "hot_plate_temp": [
         "90"
     ],
     "hot_plate_temp_initial_layer": [
         "90"
+    ],
+    "impact_strength_z": [
+        "4.9"
     ],
     "nozzle_temperature": [
         "260"
@@ -79,10 +79,19 @@
     "slow_down_min_speed": [
         "20"
     ],
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
     "textured_plate_temp": [
         "90"
     ],
     "textured_plate_temp_initial_layer": [
         "90"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n\n"
     ]
 }

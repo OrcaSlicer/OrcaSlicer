@@ -1,11 +1,14 @@
 {
     "type": "filament",
-    "filament_id": "GFC99",
-    "setting_id": "GFSC99",
     "name": "Qidi Generic PC",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pc",
+    "from": "system",
+    "setting_id": "GFSC99",
+    "filament_id": "GFC99",
+    "instantiation": "true",
+    "filament_type": [
+        "PC"
+    ],
     "filament_max_volumetric_speed": [
         "8"
     ],
@@ -18,11 +21,11 @@
     "pressure_advance": [
         "0.03"
     ],
-    "activate_air_filtration":[
-         "1"
+    "activate_air_filtration": [
+        "1"
     ],
-    "during_print_exhaust_fan_speed":[
-         "0"
+    "during_print_exhaust_fan_speed": [
+        "0"
     ],
     "nozzle_temperature_initial_layer": [
         "270"
@@ -30,10 +33,10 @@
     "nozzle_temperature": [
         "280"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "110"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "110"
     ],
     "slow_down_min_speed": [

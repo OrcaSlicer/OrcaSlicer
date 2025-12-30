@@ -1,4 +1,9 @@
 {
+    "type": "machine",
+    "name": "Flashforge Guider4 0.4 HF nozzle",
+    "inherits": "Flashforge Guider 3 Ultra 0.4 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "adaptive_bed_mesh_margin": "0",
     "auxiliary_fan": "1",
     "bbl_use_printhost": "0",
@@ -40,14 +45,10 @@
     "fan_kickstart": "0",
     "fan_speedup_overhangs": "1",
     "fan_speedup_time": "0",
-    "from": "system",
-    "instantiation": "true",
     "gcode_flavor": "klipper",
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
-    "inherits": "Flashforge Guider 3 Ultra 0.4 Nozzle",
-    "is_custom_defined": "0",
     "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
     "long_retractions_when_cut": [
         "0"
@@ -133,7 +134,6 @@
     "min_layer_height": [
         "0.08"
     ],
-    "name": "Flashforge Guider4 0.4 HF nozzle",
     "nozzle_diameter": [
         "0.4"
     ],
@@ -214,7 +214,6 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
-    "version": "2.1.1.0",
     "wipe": [
         "1"
     ],

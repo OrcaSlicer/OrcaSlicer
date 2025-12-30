@@ -1,18 +1,20 @@
 {
+    "type": "filament",
+    "name": "Prusa Generic ASA @MK4S HF0.8",
+    "inherits": "Prusa Generic ASA @MK4S HF0.4",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament ASA @MK4S HF0.8",
+    "instantiation": "true",
     "compatible_printers": [
         "Prusa MK4S HF0.8 nozzle"
     ],
     "fan_max_speed": "15",
     "fan_min_speed": "15",
-    "filament_id": "Prusament ASA @MK4S HF0.8",
-    "filament_max_volumetric_speed": "36",
-    "from": "system",
-    "inherits": "Prusa Generic ASA @MK4S HF0.4",
-    "instantiation": "true",
-    "name": "Prusa Generic ASA @MK4S HF0.8",
+    "filament_max_volumetric_speed": [
+        "36"
+    ],
     "nozzle_temperature": "270",
     "nozzle_temperature_initial_layer": "270",
-    "setting_id": "GFSA04",
-    "slow_down_layer_time": "20",
-    "type": "filament"
+    "slow_down_layer_time": "20"
 }

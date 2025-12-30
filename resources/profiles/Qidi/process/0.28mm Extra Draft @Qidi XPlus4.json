@@ -1,11 +1,12 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
-	"name": "0.28mm Extra Draft @Qidi XPlus4",
-	"from": "system",
-	"inherits": "0.28mm Extra Draft @Qidi X3",
-	"instantiation": "true",
-	"compatible_printers": [
-		"Qidi X-Plus 4 0.4 nozzle"
-	]
+    "type": "process",
+    "name": "0.28mm Extra Draft @Qidi XPlus4",
+    "inherits": "0.28mm Extra Draft @Qidi X3",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "enable_arc_fitting": "1",
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.4 nozzle"
+    ]
 }

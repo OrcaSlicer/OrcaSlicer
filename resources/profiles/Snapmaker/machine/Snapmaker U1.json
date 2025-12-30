@@ -1,15 +1,11 @@
 {
-  "type": "machine_model",
-  "machine_tech": "FFF",
-  "family": "Snapmaker",
-  "name": "Snapmaker U1",
-  "url": "",
-  "model_id": "797581801",
-  "bed_model": "Snapmaker U1_bed.stl",
-  "bed_texture": "Snapmaker U1_texture.svg",
-  "nozzle_diameter": "0.4"
+    "type": "machine_model",
+    "name": "Snapmaker U1",
+    "machine_tech": "FFF",
+    "family": "Snapmaker",
+    "url": "",
+    "model_id": "797581801",
+    "bed_model": "Snapmaker U1_bed.stl",
+    "bed_texture": "Snapmaker U1_texture.svg",
+    "nozzle_diameter": "0.4"
 }
-
-
-    
-    

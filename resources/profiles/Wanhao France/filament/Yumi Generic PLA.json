@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFL99",
-    "setting_id": "GFSA04",
     "name": "Yumi Generic PLA",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "false",
     "filament_flow_ratio": [
         "0.98"
     ],
@@ -16,6 +16,6 @@
         "8"
     ],
     "compatible_printers": [
-		""
+        ""
     ]
 }

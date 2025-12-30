@@ -3,8 +3,8 @@
     "name": "fdm_filament_sbs",
     "inherits": "fdm_filament_common",
     "from": "system",
-    "instantiation": "false",
     "filament_id": "OFLSBS99",
+    "instantiation": "false",
     "fan_cooling_layer_time": [
         "100"
     ],
@@ -12,7 +12,7 @@
         "12"
     ],
     "filament_type": [
-      "SBS"
+        "SBS"
     ],
     "filament_density": [
         "1.02"

@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFG99",
-    "setting_id": "GFSA04",
     "name": "Yumi Generic PETG",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFG99",
+    "instantiation": "false",
     "reduce_fan_stop_start_freq": [
         "1"
     ],
@@ -43,6 +43,6 @@
         "; filament start gcode\n"
     ],
     "compatible_printers": [
-		""
+        ""
     ]
 }

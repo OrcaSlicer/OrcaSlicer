@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFS00",
     "name": "Arena Support W @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFS00",
+    "instantiation": "false",
     "filament_vendor": [
         "Orca Arena"
     ],

@@ -15,9 +15,10 @@ class GCodeWriter {
 public:
     GCodeConfig config;
     bool multiple_extruders;
-    
-    GCodeWriter() : 
-        multiple_extruders(false), m_extruder(nullptr),
+
+    GCodeWriter() :
+        multiple_extruders(false), m_curr_filament_extruder(MAXIMUM_EXTRUDER_NUMBER, nullptr),
+        m_curr_extruder_id (-1),
         m_single_extruder_multi_material(false),
         m_last_acceleration(0), m_max_acceleration(0),m_last_travel_acceleration(0), m_max_travel_acceleration(0),
         m_last_jerk(0), m_max_jerk_x(0), m_max_jerk_y(0),
@@ -27,18 +28,20 @@ public:
         m_to_lift_type(LiftType::NormalLift),
         m_current_speed(3600), m_is_first_layer(true)
         {}
-    Extruder*            extruder()             { return m_extruder; }
-    const Extruder*      extruder()     const   { return m_extruder; }
+    Extruder* filament(size_t extruder_id) { assert(extruder_id < m_curr_filament_extruder.size()); return m_curr_filament_extruder[extruder_id]; }
+    const Extruder* filament(size_t extruder_id) const { assert(extruder_id < m_curr_filament_extruder.size()); return m_curr_filament_extruder[extruder_id]; }
+    Extruder* filament() { if (m_curr_extruder_id == -1) return nullptr; return m_curr_filament_extruder[m_curr_extruder_id]; }
+    const Extruder* filament() const { if(m_curr_extruder_id==-1) return nullptr; return m_curr_filament_extruder[m_curr_extruder_id]; }
 
     void                 apply_print_config(const PrintConfig &print_config);
     // Extruders are expected to be sorted in an increasing order.
     void                 set_extruders(std::vector<unsigned int> extruder_ids);
-    const std::vector<Extruder>& extruders() const { return m_extruders; }
-    std::vector<unsigned int> extruder_ids() const { 
-        std::vector<unsigned int> out; 
-        out.reserve(m_extruders.size()); 
-        for (const Extruder &e : m_extruders) 
-            out.push_back(e.id()); 
+    const std::vector<Extruder>& extruders() const { return m_filament_extruders; }
+    std::vector<unsigned int> extruder_ids() const {
+        std::vector<unsigned int> out;
+        out.reserve(m_filament_extruders.size());
+        for (const Extruder &e : m_filament_extruders)
+            out.push_back(e.id());
         return out;
     }
     std::string preamble();
@@ -55,24 +58,24 @@ public:
     std::string set_accel_and_jerk(unsigned int acceleration, double jerk);
     std::string set_junction_deviation(double junction_deviation); 
     std::string set_pressure_advance(double pa) const;
-    std::string set_input_shaping(char axis, float damp, float freq) const;
+    std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
+    std::string enable_power_loss_recovery(bool enable);
     // return false if this extruder was already selected
-    bool        need_toolchange(unsigned int extruder_id) const 
-        { return m_extruder == nullptr || m_extruder->id() != extruder_id; }
-    std::string set_extruder(unsigned int extruder_id)
-        { return this->need_toolchange(extruder_id) ? this->toolchange(extruder_id) : ""; }
+    bool        need_toolchange(unsigned int filament_id) const;
+    std::string set_extruder(unsigned int filament_id);
+    void init_extruder(unsigned int filament_id);
     // Prefix of the toolchange G-code line, to be used by the CoolingBuffer to separate sections of the G-code
     // printed with the same extruder.
     std::string toolchange_prefix() const;
-    std::string toolchange(unsigned int extruder_id);
+    std::string toolchange(unsigned int filament_id);
     std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
     // SoftFever NOTE: the returned speed is mm/minute
     double      get_current_speed() const { return m_current_speed;}
     std::string travel_to_xy(const Vec2d &point, const std::string &comment = std::string());
     std::string travel_to_xyz(const Vec3d &point, const std::string &comment = std::string(), bool force_z = false);
-    std::string travel_to_z(double z, const std::string &comment = std::string());
+    std::string travel_to_z(double z, const std::string &comment = std::string(), bool force = false);
     bool        will_move_z(double z) const;
     std::string extrude_to_xy(const Vec2d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     //BBS: generate G2 or G3 extrude which moves by arc
@@ -81,7 +84,10 @@ public:
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
     std::string unretract();
-    std::string lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
+    // do lift instantly
+    std::string eager_lift(const LiftType type);
+    // record a lift request, do realy lift in next travel
+    std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
     std::string unlift();
     const Vec3d& get_position() const { return m_pos; }
     Vec3d&       get_position() { return m_pos; }
@@ -123,9 +129,10 @@ public:
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);
   private:
 	// Extruders are sorted by their ID, so that binary search is possible.
-    std::vector<Extruder> m_extruders;
+    std::vector<Extruder> m_filament_extruders;
     bool            m_single_extruder_multi_material;
-    Extruder*       m_extruder;
+    std::vector<Extruder*> m_curr_filament_extruder;
+    int        m_curr_extruder_id;
     unsigned int    m_last_acceleration;
     unsigned int    m_last_travel_acceleration;
     unsigned int    m_max_travel_acceleration;
@@ -161,6 +168,9 @@ public:
     //BBS: x, y offset for gcode generated
     double          m_x_offset{ 0 };
     double          m_y_offset{ 0 };
+
+    // Orca: slicing resolution in mm
+    double          m_resolution = 0.01;
     
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;

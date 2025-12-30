@@ -1,26 +1,30 @@
 {
     "type": "filament",
-    "filament_id": "GFPETG-1",
-    "setting_id": "GSPETG-1",
     "name": "Peopoly Generic PETG",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_petg",
+    "from": "system",
+    "setting_id": "GSPETG-1",
+    "filament_id": "GFPETG-1",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.92"
     ],
-    "nozzle_temperature_initial_layer":[
+    "nozzle_temperature_initial_layer": [
         "245"
     ],
-    "nozzle_temperature":[
+    "nozzle_temperature": [
         "235"
     ],
-    "hot_plate_temp_initial_layer":["70"],
-    "hot_plate_temp":["70"],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
     "filament_max_volumetric_speed": [
         "20"
     ],
-    "fan_max_speed":[
+    "fan_max_speed": [
         "40"
     ],
     "slow_down_layer_time": [
@@ -29,7 +33,6 @@
     "filament_type": [
         "PETG"
     ],
-
     "compatible_printers": [
         "Peopoly Magneto X 0.4 nozzle",
         "Peopoly Magneto X 0.6 nozzle",

@@ -1,11 +1,11 @@
 {
-  "type": "process",
-  "setting_id": "GP029",
-  "name": "0.24mm Standard @Qidi XMax3 0.6 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_process_QIDI_0.24_nozzle_0.6",
-  "compatible_printers": [
-    "Qidi X-Max 3 0.6 nozzle"
-  ]
+    "type": "process",
+    "name": "0.24mm Standard @Qidi XMax3 0.6 nozzle",
+    "inherits": "fdm_process_QIDI_0.24_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP029",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi X-Max 3 0.6 nozzle"
+    ]
 }

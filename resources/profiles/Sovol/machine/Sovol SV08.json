@@ -8,5 +8,5 @@
     "bed_model": "sovol_sv08_buildplate_model.stl",
     "bed_texture": "sovol_sv08_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Sovol SV08 PLA;Sovol SV08 PLA @SV08 0.2 nozzle;Sovol SV08 ABS;Sovol SV08 PETG;Sovol SV08 TPU"    
+    "default_materials": "Sovol SV08 PLA;Sovol SV08 PLA @SV08 0.2 nozzle;Sovol SV08 ABS;Sovol SV08 PETG;Sovol SV08 TPU"
 }

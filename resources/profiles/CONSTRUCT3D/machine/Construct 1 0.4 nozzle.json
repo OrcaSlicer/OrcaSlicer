@@ -1,27 +1,27 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"printer_settings_id": "CONSTRUCT3D",
-	"name": "Construct 1 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_machine_common",
-	"printer_model": "Construct 1",
-	"default_print_profile": "0.22mm Quality @Construct 1",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printer_variant": "0.4",
+    "type": "machine",
+    "name": "Construct 1 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_settings_id": "CONSTRUCT3D",
+    "printer_model": "Construct 1",
+    "default_print_profile": "0.22mm Quality @Construct 1",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
     "printable_area": [
         "0x0",
         "225x0",
         "225x260",
         "0x260"
     ],
-	"printable_height": "180",
-	"nozzle_type": "hardened_steel",
-	"thumbnails_format": "QOI",
-	    "machine_max_acceleration_e": [
+    "printable_height": "180",
+    "nozzle_type": "hardened_steel",
+    "thumbnails_format": "QOI",
+    "machine_max_acceleration_e": [
         "9000"
     ],
     "machine_max_acceleration_extruding": [
@@ -66,16 +66,16 @@
     "max_layer_height": [
         "0.38"
     ],
-	"min_layer_height": [
+    "min_layer_height": [
         "0.08"
     ],
-	    "retraction_length": [
+    "retraction_length": [
         "0.7"
     ],
     "retraction_speed": [
         "50"
     ],
-	    "z_hop": [
+    "z_hop": [
         "0.2"
     ],
     "bed_mesh_max": "200,235",

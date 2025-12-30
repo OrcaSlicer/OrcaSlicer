@@ -33,8 +33,9 @@ struct ExtrusionLayer
 
 enum class ExtrusionLayersType { INFILL, PERIMETERS, SUPPORT, WIPE_TOWER };
 
-struct ExtrusionLayers : public std::vector<ExtrusionLayer>
+class ExtrusionLayers : public std::vector<ExtrusionLayer>
 {
+public:
     ExtrusionLayersType type;
 };
 

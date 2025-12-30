@@ -68,7 +68,7 @@
     "enable_prime_tower": "1",
     "wipe_tower_no_sparse_layers": "0",
     "wipe_tower_cone_angle": "15",
-    "wipe_tower_wall_type":"cone",
+    "wipe_tower_wall_type": "cone",
     "prime_tower_width": "35",
     "prime_volume": "15",
     "wall_generator": "classic",

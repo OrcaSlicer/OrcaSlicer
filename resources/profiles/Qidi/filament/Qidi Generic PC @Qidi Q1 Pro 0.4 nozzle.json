@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFC99",
-    "setting_id": "GFSC99",
     "name": "Qidi Generic PC @Qidi Q1 Pro 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Qidi Generic PC",
+    "from": "system",
+    "setting_id": "GFSC99",
+    "filament_id": "GFC99",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.95"
     ],
@@ -16,6 +16,6 @@
         "10"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.4 nozzle"
-        ]
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
 }

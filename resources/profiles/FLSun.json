@@ -1,32 +1,32 @@
 {
     "name": "FLSun",
-    "version":  "02.03.00.03",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "FLSun configurations",
     "machine_model_list": [
-		{
+        {
             "name": "FLSun Q5",
             "sub_path": "machine/FLSun Q5.json"
         },
-	    {
+        {
             "name": "FLSun QQ-S Pro",
             "sub_path": "machine/FLSun QQ-S Pro.json"
+        },
+        {
+            "name": "FLSun S1",
+            "sub_path": "machine/FLSun S1.json"
         },
         {
             "name": "FLSun Super Racer (SR)",
             "sub_path": "machine/FLSun SR.json"
         },
         {
-            "name": "FLSun V400",
-            "sub_path": "machine/FLSun V400.json"
-        },
-        {
             "name": "FLSun T1",
             "sub_path": "machine/FLSun T1.json"
         },
         {
-            "name": "FLSun S1",
-            "sub_path": "machine/FLSun S1.json"
+            "name": "FLSun V400",
+            "sub_path": "machine/FLSun V400.json"
         }
     ],
     "process_list": [
@@ -34,11 +34,11 @@
             "name": "fdm_process_common",
             "sub_path": "process/fdm_process_common.json"
         },
-		{
+        {
             "name": "0.08mm Fine @FLSun Q5",
             "sub_path": "process/0.08mm Fine @FLSun Q5.json"
         },
-		{
+        {
             "name": "0.08mm Fine @FLSun QQSPro",
             "sub_path": "process/0.08mm Fine @FLSun QQSPro.json"
         },
@@ -47,20 +47,24 @@
             "sub_path": "process/0.08mm Fine @FLSun SR.json"
         },
         {
+            "name": "0.12mm Fine @FLSun S1",
+            "sub_path": "process/0.12mm Fine @FLSun S1.json"
+        },
+        {
             "name": "0.12mm Fine @FLSun T1",
             "sub_path": "process/0.12mm Fine @FLSun T1.json"
         },
         {
-            "name": "0.12mm Fine @FLSun S1",
-            "sub_path": "process/0.12mm Fine @FLSun S1.json"
-        },
-		{
             "name": "0.16mm Optimal @FLSun Q5",
             "sub_path": "process/0.16mm Optimal @FLSun Q5.json"
         },
-		{
+        {
             "name": "0.16mm Optimal @FLSun QQSPro",
             "sub_path": "process/0.16mm Optimal @FLSun QQSPro.json"
+        },
+        {
+            "name": "0.16mm Optimal @FLSun S1",
+            "sub_path": "process/0.16mm Optimal @FLSun S1.json"
         },
         {
             "name": "0.16mm Optimal @FLSun SR",
@@ -71,40 +75,40 @@
             "sub_path": "process/0.16mm Optimal @FLSun T1.json"
         },
         {
-            "name": "0.16mm Optimal @FLSun S1",
-            "sub_path": "process/0.16mm Optimal @FLSun S1.json"
-        },
-		{
             "name": "0.20mm Standard @FLSun Q5",
             "sub_path": "process/0.20mm Standard @FLSun Q5.json"
         },
-		{
+        {
             "name": "0.20mm Standard @FLSun QQSPro",
             "sub_path": "process/0.20mm Standard @FLSun QQSPro.json"
+        },
+        {
+            "name": "0.20mm Standard @FLSun S1",
+            "sub_path": "process/0.20mm Standard @FLSun S1.json"
         },
         {
             "name": "0.20mm Standard @FLSun SR",
             "sub_path": "process/0.20mm Standard @FLSun SR.json"
         },
         {
-            "name": "0.20mm Standard @FLSun V400",
-            "sub_path": "process/0.20mm Standard @FLSun V400.json"
-        },
-        {
             "name": "0.20mm Standard @FLSun T1",
             "sub_path": "process/0.20mm Standard @FLSun T1.json"
         },
         {
-            "name": "0.20mm Standard @FLSun S1",
-            "sub_path": "process/0.20mm Standard @FLSun S1.json"
+            "name": "0.20mm Standard @FLSun V400",
+            "sub_path": "process/0.20mm Standard @FLSun V400.json"
         },
-		{
+        {
             "name": "0.24mm Draft @FLSun Q5",
             "sub_path": "process/0.24mm Draft @FLSun Q5.json"
         },
-		{
+        {
             "name": "0.24mm Draft @FLSun QQSPro",
             "sub_path": "process/0.24mm Draft @FLSun QQSPro.json"
+        },
+        {
+            "name": "0.24mm Draft @FLSun S1",
+            "sub_path": "process/0.24mm Draft @FLSun S1.json"
         },
         {
             "name": "0.24mm Draft @FLSun SR",
@@ -115,16 +119,16 @@
             "sub_path": "process/0.24mm Draft @FLSun T1.json"
         },
         {
-            "name": "0.24mm Draft @FLSun S1",
-            "sub_path": "process/0.24mm Draft @FLSun S1.json"
-        },
-		{
             "name": "0.30mm Extra Draft @FLSun Q5",
             "sub_path": "process/0.30mm Extra Draft @FLSun Q5.json"
         },
-		{
+        {
             "name": "0.30mm Extra Draft @FLSun QQSPro",
             "sub_path": "process/0.30mm Extra Draft @FLSun QQSPro.json"
+        },
+        {
+            "name": "0.30mm Extra Draft @FLSun S1",
+            "sub_path": "process/0.30mm Extra Draft @FLSun S1.json"
         },
         {
             "name": "0.30mm Extra Draft @FLSun SR",
@@ -133,10 +137,6 @@
         {
             "name": "0.30mm Extra Draft @FLSun T1",
             "sub_path": "process/0.30mm Extra Draft @FLSun T1.json"
-        },
-        {
-            "name": "0.30mm Extra Draft @FLSun S1",
-            "sub_path": "process/0.30mm Extra Draft @FLSun S1.json"
         }
     ],
     "filament_list": [
@@ -145,68 +145,44 @@
             "sub_path": "filament/fdm_filament_common.json"
         },
         {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
             "name": "fdm_filament_abs",
             "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
         },
         {
             "name": "fdm_filament_asa",
             "sub_path": "filament/fdm_filament_asa.json"
         },
         {
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
             "name": "fdm_filament_pa",
             "sub_path": "filament/fdm_filament_pa.json"
         },
         {
-            "name": "FLSun Generic PLA",
-            "sub_path": "filament/FLSun Generic PLA.json"
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
         },
         {
-            "name": "FLSun Generic PLA-CF",
-            "sub_path": "filament/FLSun Generic PLA-CF.json"
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
         },
         {
-            "name": "FLSun Generic PETG",
-            "sub_path": "filament/FLSun Generic PETG.json"
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
         },
         {
             "name": "FLSun Generic ABS",
             "sub_path": "filament/FLSun Generic ABS.json"
         },
         {
-            "name": "FLSun Generic TPU",
-            "sub_path": "filament/FLSun Generic TPU.json"
-        },
-        {
             "name": "FLSun Generic ASA",
             "sub_path": "filament/FLSun Generic ASA.json"
-        },
-        {
-            "name": "FLSun Generic PC",
-            "sub_path": "filament/FLSun Generic PC.json"
-        },
-        {
-            "name": "FLSun Generic PVA",
-            "sub_path": "filament/FLSun Generic PVA.json"
         },
         {
             "name": "FLSun Generic PA",
@@ -217,16 +193,60 @@
             "sub_path": "filament/FLSun Generic PA-CF.json"
         },
         {
-            "name": "FLSun T1 PLA High Speed",
-            "sub_path": "filament/FLSun T1 PLA High Speed.json"
+            "name": "FLSun Generic PC",
+            "sub_path": "filament/FLSun Generic PC.json"
+        },
+        {
+            "name": "FLSun Generic PETG",
+            "sub_path": "filament/FLSun Generic PETG.json"
+        },
+        {
+            "name": "FLSun Generic PLA",
+            "sub_path": "filament/FLSun Generic PLA.json"
+        },
+        {
+            "name": "FLSun Generic PLA-CF",
+            "sub_path": "filament/FLSun Generic PLA-CF.json"
+        },
+        {
+            "name": "FLSun Generic PVA",
+            "sub_path": "filament/FLSun Generic PVA.json"
+        },
+        {
+            "name": "FLSun Generic TPU",
+            "sub_path": "filament/FLSun Generic TPU.json"
+        },
+        {
+            "name": "FLSun S1 ABS",
+            "sub_path": "filament/FLSun S1 ABS.json"
+        },
+        {
+            "name": "FLSun T1 ABS",
+            "sub_path": "filament/FLSun T1 ABS.json"
+        },
+        {
+            "name": "FLSun S1 ASA",
+            "sub_path": "filament/FLSun S1 ASA.json"
+        },
+        {
+            "name": "FLSun T1 ASA",
+            "sub_path": "filament/FLSun T1 ASA.json"
+        },
+        {
+            "name": "FLSun S1 PETG",
+            "sub_path": "filament/FLSun S1 PETG.json"
+        },
+        {
+            "name": "FLSun T1 PETG",
+            "sub_path": "filament/FLSun T1 PETG.json"
+        },
+        {
+            "name": "FLSun S1 PLA Generic",
+            "sub_path": "filament/FLSun S1 PLA Generic.json"
         },
         {
             "name": "FLSun S1 PLA High Speed",
             "sub_path": "filament/FLSun S1 PLA High Speed.json"
-        },
-        {
-            "name": "FLSun T1 PLA Silk",
-            "sub_path": "filament/FLSun T1 PLA Silk.json"
         },
         {
             "name": "FLSun S1 PLA Silk",
@@ -237,40 +257,20 @@
             "sub_path": "filament/FLSun T1 PLA Generic.json"
         },
         {
-            "name": "FLSun S1 PLA Generic",
-            "sub_path": "filament/FLSun S1 PLA Generic.json"
+            "name": "FLSun T1 PLA High Speed",
+            "sub_path": "filament/FLSun T1 PLA High Speed.json"
         },
         {
-            "name": "FLSun T1 PETG",
-            "sub_path": "filament/FLSun T1 PETG.json"
-        },
-        {
-            "name": "FLSun S1 PETG",
-            "sub_path": "filament/FLSun S1 PETG.json"
-        },
-        {
-            "name": "FLSun T1 ASA",
-            "sub_path": "filament/FLSun T1 ASA.json"
-        },
-        {
-            "name": "FLSun S1 ASA",
-            "sub_path": "filament/FLSun S1 ASA.json"
-        },
-        {
-            "name": "FLSun T1 TPU",
-            "sub_path": "filament/FLSun T1 TPU.json"
+            "name": "FLSun T1 PLA Silk",
+            "sub_path": "filament/FLSun T1 PLA Silk.json"
         },
         {
             "name": "FLSun S1 TPU",
             "sub_path": "filament/FLSun S1 TPU.json"
         },
         {
-            "name": "FLSun T1 ABS",
-            "sub_path": "filament/FLSun T1 ABS.json"
-        },
-        {
-            "name": "FLSun S1 ABS",
-            "sub_path": "filament/FLSun S1 ABS.json"
+            "name": "FLSun T1 TPU",
+            "sub_path": "filament/FLSun T1 TPU.json"
         }
     ],
     "machine_list": [
@@ -278,29 +278,29 @@
             "name": "fdm_machine_common",
             "sub_path": "machine/fdm_machine_common.json"
         },
-		{
+        {
             "name": "FLSun Q5 0.4 nozzle",
             "sub_path": "machine/FLSun Q5 0.4 nozzle.json"
         },
-		{
+        {
             "name": "FLSun QQ-S Pro 0.4 nozzle",
             "sub_path": "machine/FLSun QQ-S Pro 0.4 nozzle.json"
+        },
+        {
+            "name": "FLSun S1 0.4 nozzle",
+            "sub_path": "machine/FLSun S1 0.4 nozzle.json"
         },
         {
             "name": "FLSun Super Racer 0.4 nozzle",
             "sub_path": "machine/FLSun SR 0.4 nozzle.json"
         },
         {
-            "name": "FLSun V400 0.4 nozzle",
-            "sub_path": "machine/FLSun V400 0.4 nozzle.json"
-        },
-        {
             "name": "FLSun T1 0.4 nozzle",
             "sub_path": "machine/FLSun T1 0.4 nozzle.json"
         },
         {
-            "name": "FLSun S1 0.4 nozzle",
-            "sub_path": "machine/FLSun S1 0.4 nozzle.json"
+            "name": "FLSun V400 0.4 nozzle",
+            "sub_path": "machine/FLSun V400 0.4 nozzle.json"
         }
     ]
 }

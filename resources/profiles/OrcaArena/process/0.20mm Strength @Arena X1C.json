@@ -1,15 +1,15 @@
 {
     "type": "process",
-    "setting_id": "GP013",
     "name": "0.20mm Strength @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_arena_0.20",
+    "from": "system",
+    "setting_id": "GP013",
+    "instantiation": "true",
     "outer_wall_speed": "60",
     "wall_loops": "6",
     "sparse_infill_density": "25%",
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 0.4 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 0.4 nozzle"
     ]
 }

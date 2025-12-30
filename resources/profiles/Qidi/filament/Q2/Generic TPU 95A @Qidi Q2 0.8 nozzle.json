@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Generic TPU 95A @Qidi Q2 0.8 nozzle",
+    "inherits": "Generic TPU 95A@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSR99",
+    "instantiation": "true",
+    "nozzle_temperature": [
+        "220"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.8 nozzle"
+    ]
+}

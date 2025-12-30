@@ -1,23 +1,23 @@
 {
-	"type": "machine",
-	"setting_id": "GM002",
-	"name": "WonderMaker ZR 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "WonderMaker ZR 0.4 nozzle",
-	"printer_model": "WonderMaker ZR",
-	"default_print_profile": "0.10mm Standard @WonderMaker ZR 0.2 nozzle",
+    "type": "machine",
+    "name": "WonderMaker ZR 0.2 nozzle",
+    "inherits": "WonderMaker ZR 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "WonderMaker ZR",
+    "default_print_profile": "0.10mm Standard @WonderMaker ZR 0.2 nozzle",
     "printer_variant": "0.2",
-	"nozzle_diameter": [
-		"0.2"
-	],
-	"max_layer_height": [
+    "nozzle_diameter": [
+        "0.2"
+    ],
+    "max_layer_height": [
         "0.14"
     ],
     "min_layer_height": [
         "0.04"
     ],
-	"retraction_length": [
+    "retraction_length": [
         "0.4"
     ]
 }

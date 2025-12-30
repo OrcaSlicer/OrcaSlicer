@@ -444,8 +444,10 @@ bool GLGizmoMeasure::on_init()
 {
     m_shortcut_key = WXK_CONTROL_U;
 
+    const wxString shift = _L("Shift+");
+
     m_desc["feature_selection"]         = _L("Select feature");
-    m_desc["point_selection_caption"]   = _L("Shift + Left mouse button");
+    m_desc["point_selection_caption"]   = shift + _L("Left mouse button");
     m_desc["point_selection"]           = _L("Select point");
     m_desc["reset_caption"]             = _L("Delete");
     m_desc["reset"]                     = _L("Restart selection");
@@ -2229,6 +2231,10 @@ void GLGizmoMeasure::show_tooltip_information(float caption_max, float x, float 
     caption_max += m_imgui->calc_text_size(": "sv).x + 35.f;
 
     float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, { 0, 0 }); // ORCA: Dont add padding

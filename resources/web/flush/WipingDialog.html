@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+        html, body {
+          margin: 0px;
+          padding: 0px;
+          height: 100%;
+          background: #f5f5f5;
+          font-family: sans-serif;
+        }
+
+      .container {
+        background: #fff;
+        padding: 20px;
+        padding-bottom: 10px;
+        border: 1px solid #ccc;
+        max-width:fit-content(1000px);
+        margin: 0 auto;
+      }
+
+      .tip-panel {
+        background: #eeeeee;
+        padding: 10px;
+        margin-bottom: 10px;
+        font-size: 12px;
+      }
+
+      .scroll-container {
+        max-width: 100%;
+        max-height: 500px;
+        overflow: auto;
+        border: 1px solid #ccc;
+        position: relative;
+        margin: 0px;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      th, td {
+        border: 1px solid #ccc;
+        text-align: center;
+        padding: 2px;
+        position: relative;
+        width: 40px;
+        height: 25px;
+      }
+
+      thead th {
+        position: sticky;
+        top: 0;
+        background: #eee;
+        z-index: 10;
+      }
+
+      tbody th {
+        position: sticky;
+        left: 0;
+        background: #eee;
+        z-index: 9;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #ffffff;
+      }
+
+      tbody tr:nth-child(odd) {
+        background: #eeeeee;
+      }
+
+      tbody td:first-child,
+      thead th:first-child {
+        position: sticky;
+        top: 0;
+        left: 0;
+        background: #eee;
+        z-index: 11;
+      }
+
+      .icon-button {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 1px solid #999;
+        text-align: center;
+        line-height: 15px;
+        color: #fff;
+        font-weight: bold;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: default;
+        user-select: none;
+        padding: 1px;
+      }
+
+      input[type="number"].table-input {
+        width: 30px;
+        height: 20px;
+        text-align: center;
+        -moz-appearance: textfield;
+        appearance: textfield;
+        border: none;
+        background-color: inherit;
+      }
+
+      input[type="number"].table-input::-webkit-inner-spin-button,
+      input[type="number"].table-input::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+      }
+
+      input[type="number"].multiplier-input {
+        width: 60px;
+      }
+      body.dark-mode input[type="number"].multiplier-input {
+        width: 60px;
+        background-color: #4c4c55;
+        color: white;
+      }
+
+      .warning-text {
+        color: red;
+        font-size: 12px;
+      }
+
+      .normal-text {
+        color: black;
+        font-size: 12px;
+      }
+
+      .icon-gap {
+        width: 10px;
+        display: inline-block;
+      }
+
+      select {
+        padding: 6px 9px;
+        border: 1px solid #dbdbdb;
+        border-radius: 3px;
+        font-size: 12px;
+        cursor: pointer;
+        appearance: auto;
+        background-color: white;
+        color: black;
+      }
+
+      select option {
+        background-color: white;
+        color: black;
+      }
+
+      select:hover,
+      select:focus {
+        outline: none;
+        border-color: #26A69A;
+        background-color: #edfaf2;
+      }
+
+      .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 0px;
+        margin: 10px;
+      }
+
+      /* 暗色模式样式 */
+      body.dark-mode {
+        background-color: #2d2d31;
+        color: #e0e0e0;
+      }
+
+      body.dark-mode .container {
+        background: inherit;
+        border-color: #2d2d31;
+      }
+
+      body.dark-mode .tip-panel {
+        background: #4c4c55;
+        color: #ccc;
+      }
+
+      body.dark-mode .scroll-container {
+        border-color: #4c4c55;
+      }
+
+      body.dark-mode table {
+        background: inherit;
+        border-color: #4c4c55;
+      }
+
+      body.dark-mode input[type="number"].table-input {
+        width: 30px;
+        height: 20px;
+        text-align: center;
+        -moz-appearance: textfield;
+        appearance: textfield;
+        border: none;
+        color: #e0e0e0;
+        background-color: inherit;
+      }
+
+      body.dark-mode th, body.dark-mode td {
+        background: inherit;
+        border-color: #555;
+        color: #e0e0e0;
+      }
+
+      body.dark-mode thead th{
+        position: sticky;
+        z-index: 10
+      }
+
+      body.dark-mode tbody th{
+        position: sticky;
+        z-index: 9
+      }
+
+      body.dark-mode tbody tr:nth-child(even) {
+        background: #2d2d31;
+      }
+
+      body.dark-mode tbody tr:nth-child(odd) {
+        background: #4c4c55;
+      }
+
+      body.dark-mode tbody td:first-child,
+      body.dark-mode thead th:first-child {
+        position: sticky;
+        z-index: 11;
+      }
+      body.dark-mode select {
+        background-color: #2d2d31;
+        color: white;
+        border-color: #4c4c55;
+      }
+
+      body.dark-mode .warning-text {
+        color: #f44336;
+      }
+
+      body.dark-mode .normal-text {
+        color: #e0e0e0;
+      }
+
+      body.dark-mode .icon-button {
+        background-color: #4c4c55;
+      }
+    </style>
+  </head>
+
+  <link rel="stylesheet" type="text/css" href="../include/global.css" /> <!-- ORCA One for all-->
+
+  <body>
+    <div class="container">
+      <div class="tip-panel" id="auto_flush_tip">
+        Orca would re-calculate your flushing volumes every time the filament
+        color changed or filaments changed. You could disable the auto-calculate
+        in Orca Slicer &gt; Preferences.
+      </div>
+
+      <div style="margin-bottom: 10px; display: flex; align-items: center;">
+        <div
+          class="ButtonStyleConfirm ButtonTypeWindow"
+          onclick="calcFlushingVolumes()"
+          id="calc_btn"
+        >
+          Re-Calculate
+      </div>
+        <select
+          id="extruders"
+          onchange="handleExtruderSelect(document.getElementById('extruders').value)"
+        >
+          <option value="left" id="extruder_label_0">Left Nozzle</option>
+          <option value="right" id="extruder_label_1">Right Nozzle</option>
+        </select>
+      </div>
+
+      <div class="scroll-container">
+        <table id="flushTable">
+          <thead>
+            <tr>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 10px;">
+        <div id="volume_desp_panel" class="normal-text">
+          Flushing volume (mm³) for each filament pair.
+        </div>
+        <div
+          id="volume_range_panel"
+          class="normal-text"
+          style="margin-top: 5px;"
+        >
+          Suggestion: Flushing Volume in range [50, 999]
+        </div>
+        <div style="margin-top: 8px;">
+          <label
+            for="multiplierInput"
+            id="multiplier_label"
+            style="font-size: 12px;"
+            >Multiplier</label
+          >
+          <input
+            type="number"
+            step="0.1"
+            id="multiplierInput"
+            class="multiplier-input"
+            value="1.00"
+            oninput="onMultiplierChange()"
+          />
+        </div>
+        <div
+          style="margin-top: 5px; margin-bottom: 5px; color: #666; font-size: 12px;"
+          id="multiplier_range_panel"
+        >
+          The multiplier should be in range [0.50, 3.00].
+        </div>
+      </div>
+      <div class="button-container" style="padding: 0px; margin: 0px;">
+        <div class="ButtonStyleConfirm ButtonTypeChoice" id="ok_btn" onclick="storeData()">
+          Save
+        </div>
+        <div class="ButtonStyleRegular ButtonTypeChoice" id="cancel_btn" onclick="quit()">
+          Cancel
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let m_number_of_filaments  // 材料数量
+      let m_number_of_extruders // 喷嘴数量
+      let m_colours // 颜色
+      let m_display_matrix // 显示的矩阵
+      let m_raw_matrix // 原始数据
+      let m_flush_multipiers // 冲刷系数
+      let m_cell_inputs = []; //显示的内容
+      let m_curr_extruder_id = 0
+      let m_min_flush_volumes = []
+      let m_max_flush_volumes = []
+      let m_min_flush_multiplier = 0.50
+      let m_max_flush_multiplier = 3
+      let m_default_matrix //系统默认矩阵
+
+      function storeData() {
+        var data = JSON.stringify({
+          msg: 'storeData',
+          number_of_extruders: m_number_of_extruders,
+          raw_matrix: m_raw_matrix,
+          flush_multiplier: m_flush_multipiers
+        })
+        window.wipingDialog.postMessage(data);
+      }
+
+      function quit() {
+        var data = JSON.stringify({
+          msg: 'quit'
+        })
+        window.wipingDialog.postMessage(data);
+      }
+
+      function calcFlushingVolumes() {
+        var data = JSON.stringify({
+          msg: 'updateMatrix',
+          extruder_id: m_curr_extruder_id
+        })
+        window.wipingDialog.postMessage(data);
+      }
+
+      function updateTable(dataMatrix, extruder_id) {
+        for (let i = 0; i < m_number_of_filaments; i++) {
+          for (let j = 0; j < m_number_of_filaments; j++) {
+            var newValue
+            var index = m_number_of_filaments * i + j
+            newValue = (i == j ? 0 : rawToDislay(dataMatrix[index] ,m_flush_multipiers[extruder_id]))
+            newValue = limitDisplayVal(newValue,extruder_id)
+              m_cell_inputs[i][j].value = newValue;
+              m_display_matrix[index] = newValue;
+              m_raw_matrix[extruder_id][index] = dataMatrix[index]
+          }
+        }
+        updateWarningTexts();
+      }
+
+      // const virtual_data = {
+      //   filament_colors: [
+      //     '#123456', '#7890AB', '#CDEF01', '#F1A2B3', '#4D8B72', '#D9E1F2', '#B76C8C', '#A9C3D3',
+      //     '#FF5733', '#33FF57', '#5733FF', '#FF33FF', '#FFFF33', '#33FFFF', '#FF5733', '#3333FF'
+      //   ],
+      //   extruder_num: 2,
+      //   flush_volume_matrixs: [
+      //     Array.from({ length: 256 }, () => Math.floor(Math.random() * 1000)),
+      //     Array.from({ length: 256 }, () => Math.floor(Math.random() * 1000))
+      //   ],
+      //   flush_multiplier:[1,1]
+      // }
+      window.addEventListener("DOMContentLoaded",function(){
+        var data = JSON.stringify({
+          msg: 'init',
+        })
+        window.wipingDialog.postMessage(data);
+      });
+
+      function buildText(data) {
+        document.getElementById('volume_desp_panel').innerText = data.volume_desp_panel
+        document.getElementById('volume_range_panel').innerText = data.volume_range_panel
+        document.getElementById('multiplier_range_panel').innerText = data.multiplier_range_panel
+        document.getElementById('auto_flush_tip').innerText = data.auto_flush_tip
+        document.getElementById('calc_btn').innerText = data.calc_btn_panel
+        document.getElementById('extruder_label_0').innerText = data.extruder_label_0
+        document.getElementById('extruder_label_1').innerText = data.extruder_label_1
+        document.getElementById('multiplier_label').innerText = data.multiplier_label
+        document.getElementById('ok_btn').innerText = data.ok_btn_label
+        document.getElementById('cancel_btn').innerText = data.cancel_btn_label
+        updateVolumeRange(m_min_flush_volumes[m_curr_extruder_id],m_max_flush_volumes[m_curr_extruder_id]) 
+        updateMultiplierRange(m_min_flush_multiplier,m_max_flush_multiplier)
+      }
+
+      // 计算亮度
+      function getLuminance(color) {
+        const hex = color.replace(/^#/, '');
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      }
+
+
+      function updateVolumeRange(min_volume,max_volume){
+        const panel = document.getElementById('volume_range_panel');
+        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_volume}, ${max_volume}]`);
+      }
+
+      function updateMultiplierRange(min_multiplier,max_multiplier){
+        const panel = document.getElementById('multiplier_range_panel');
+        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_multiplier}, ${max_multiplier}]`);
+      }
+
+      function updateFlushMultiplier(extruder_id){
+        document.getElementById("multiplierInput").value = m_flush_multipiers[extruder_id]
+      }
+
+      function rawToDislay(val, ratio){
+        return Math.round(val * ratio)
+      }
+
+      function displayToRaw(val, ratio){
+        if(ratio==0)
+          return 0
+        else
+          return Math.round(val / ratio)
+      }
+
+      function limitDisplayVal(val,extruder_id){
+        if (isNaN(val))
+          return 0
+        if (val < 0)
+          return 0
+        if (val > m_max_flush_volumes[extruder_id])
+          return m_max_flush_volumes[extruder_id];
+        return val
+      }
+
+      function buildTable(data) {
+        m_colours = data.filament_colors
+        m_number_of_extruders = data.extruder_num
+        m_number_of_filaments = data.filament_colors.length
+        m_display_matrix = data.flush_volume_matrixs[0].slice();
+        m_raw_matrix = data.flush_volume_matrixs.map(function(arr) {
+          return arr.slice();
+        });
+        m_default_matrix = data.default_matrixs.map(function (arr) {
+            return arr.slice();
+        });
+        m_flush_multipiers = data.flush_multiplier.slice()
+        m_max_flush_volumes = data.max_flush_volumes
+        m_min_flush_volumes = data.min_flush_volumes
+        m_min_flush_multiplier = data.min_flush_multiplier
+        m_max_flush_multiplier = data.max_flush_multiplier
+
+        if(data.is_dark_mode == true)
+          document.body.classList.add('dark-mode');
+
+        updateFlushMultiplier(m_curr_extruder_id)
+
+        const selectElement = document.getElementById('extruders');
+        if (m_number_of_extruders > 1) {
+          selectElement.style.display = 'inline-block';
+        } else {
+          selectElement.style.display = 'none';
+        }
+
+        var thead = document.querySelector("#flushTable thead tr");
+        var tbody = document.querySelector("#flushTable tbody");
+        thead.innerHTML = "";
+        tbody.innerHTML = "";
+
+        for (let j = 0; j < m_number_of_filaments; j++) {
+          if (j == 0) {
+            var tag = document.createElement("th")
+            tag.innerHTML = "<div style='font-size:12px'>from/to</div>"
+            thead.appendChild(tag)
+          }
+          let th = document.createElement("th");
+          const luminance = getLuminance(m_colours[j]);
+          const textColor = luminance > 0.5 ? "black" : "white";
+          th.innerHTML = `<div class="icon-button" style="font-size:10px;background:${m_colours[j]}; color:${textColor};">${j + 1}</div>`;
+          thead.appendChild(th);
+        }
+
+        for (let i = 0; i < m_number_of_filaments; i++) {
+          let tr = document.createElement("tr");
+
+          let rowHeader = document.createElement("th");
+          const luminance = getLuminance(m_colours[i]);
+          const textColor = luminance > 0.5 ? "black" : "white";
+          rowHeader.innerHTML = `<div class="icon-button" style="font-size:10px; background:${m_colours[i]};color:${textColor};">${i + 1}</div>`;
+          tr.appendChild(rowHeader);
+
+          m_cell_inputs[i] = [];
+
+          for (let j = 0; j < m_number_of_filaments; j++) {
+            let td = document.createElement("td");
+            td.style.overflow = "hidden";
+            td.style.textOverflow = "ellipsis";
+            let displayVal  = rawToDislay(m_raw_matrix[m_curr_extruder_id][m_number_of_filaments * i + j], m_flush_multipiers[m_curr_extruder_id])
+            displayVal = limitDisplayVal(displayVal, m_curr_extruder_id)
+            m_display_matrix[m_number_of_filaments*i + j] = displayVal
+            let readonly = (i === j);
+            let input = document.createElement("input");
+            input.className = "table-input"
+            input.type = "number";
+            input.value = readonly ? 0 : displayVal;
+            if (readonly) {
+              input.readOnly = true;
+            }
+            input.addEventListener("input", (e) => onCellInput(i, j, e));
+
+            m_cell_inputs[i][j] = input;
+
+            td.appendChild(input);
+            tr.appendChild(td);
+          }
+
+          tbody.appendChild(tr);
+        }
+        updateWarningTexts();
+      }
+
+      function onCellInput(i, j, event) {
+        const input = event.target;
+        let val = parseInt(input.value, 10);
+        val = limitDisplayVal(val, m_curr_extruder_id);
+        input.value = val;
+
+        if (i !== j) {
+          var index = m_number_of_filaments*i+j
+          m_raw_matrix[m_curr_extruder_id][index] = displayToRaw(val, m_flush_multipiers[m_curr_extruder_id])
+          m_display_matrix[index] = val;
+        }
+        updateWarningTexts();
+      }
+
+      function handleExtruderSelect(extruder) {
+        m_curr_extruder_id = extruder == 'left' ? 0 : 1
+        updateVolumeRange(m_min_flush_volumes[m_curr_extruder_id],m_max_flush_volumes[m_curr_extruder_id])
+        updateFlushMultiplier(m_min_flush_multiplier[m_curr_extruder_id],m_max_flush_multiplier[m_curr_extruder_id])
+        updateFlushMultiplier(m_curr_extruder_id)
+        updateTable(m_raw_matrix[m_curr_extruder_id], m_curr_extruder_id)
+      }
+
+      function onMultiplierChange() {
+        let val = parseFloat(document.getElementById("multiplierInput").value);
+        if (isNaN(val)) val = 1.0;
+        if(val<m_min_flush_multiplier){
+          val = m_min_flush_multiplier
+          document.getElementById("multiplierInput").value = m_min_flush_multiplier;
+        }
+        else if(val>m_max_flush_multiplier){
+          val = m_max_flush_multiplier
+          document.getElementById("multiplierInput").value = m_max_flush_multiplier;
+        }
+        m_flush_multipiers[m_curr_extruder_id] = val;
+        for (let i = 0; i < m_number_of_filaments; i++) {
+          for (let j = 0; j < m_number_of_filaments; j++) {
+            if (i === j) continue;
+            var index = i * m_number_of_filaments + j;
+            let displayVal = rawToDislay(m_raw_matrix[m_curr_extruder_id][index] ,m_flush_multipiers[m_curr_extruder_id])
+            displayVal = limitDisplayVal(displayVal, m_curr_extruder_id)
+            m_cell_inputs[i][j].value = displayVal;
+            m_display_matrix[index] = displayVal;
+          }
+        }
+        updateWarningTexts();
+      }
+
+
+
+      function updateWarningTexts() {
+        let val = parseFloat(document.getElementById("multiplierInput").value);
+        const input = document.getElementById('multiplierInput');
+        if (val !== 1.0) {
+            input.style.color = 'orange';
+        } else {
+            input.style.color = 'black';
+        }
+
+        let hasException = false;
+        for (let i = 0; i < m_number_of_filaments; i++) {
+          for (let j = 0; j < m_number_of_filaments; j++) {
+            if (i === j) continue;
+            const input = m_cell_inputs[i][j];
+            let val = parseInt(input.value, 10);
+            if (isNaN(val)) val = 0;
+
+            var index = i * m_number_of_filaments + j;
+            let defaultVal = rawToDislay(m_default_matrix[m_curr_extruder_id][index], m_flush_multipiers[m_curr_extruder_id])
+
+            if (val < m_min_flush_volumes[m_curr_extruder_id] || val > m_max_flush_volumes[m_curr_extruder_id]) {
+              input.style.color = "red";
+              hasException = true;
+            }
+            else if (val != defaultVal) {
+              input.style.color = "orange";
+            }
+            else {
+              input.style.removeProperty("color");
+            }
+          }
+        }
+
+        const rangeLabel = document.getElementById("volume_range_panel");
+        if (hasException) {
+          rangeLabel.classList.remove("normal-text");
+          rangeLabel.classList.add("warning-text");
+        } else {
+          rangeLabel.classList.remove("warning-text");
+          rangeLabel.classList.add("normal-text");
+        }
+      }
+    </script>
+  </body>
+</html>

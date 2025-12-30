@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "Creality Hi 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Creality Hi",
     "gcode_flavor": "klipper",
     "printer_structure": "i3",

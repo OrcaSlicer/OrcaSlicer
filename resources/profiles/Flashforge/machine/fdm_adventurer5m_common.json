@@ -1,51 +1,122 @@
 {
-  "type": "machine",
-  "name": "fdm_adventurer5m_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_flashforge_common",
-  "gcode_flavor": "klipper",
-  "printable_area": ["-110x-110", "110x-110", "110x110", "-110x110"],
-  "printable_height": "220",
-  "auxiliary_fan": "1",
-  "machine_max_acceleration_e": ["5000", "5000"],
-  "machine_max_acceleration_extruding": ["20000", "20000"],
-  "machine_max_acceleration_retracting": ["5000", "5000"],
-  "machine_max_acceleration_travel": ["20000", "20000"],
-  "machine_max_acceleration_x": ["20000", "20000"],
-  "machine_max_acceleration_y": ["20000", "20000"],
-  "machine_max_acceleration_z": ["500", "500"],
-  "machine_max_speed_e": ["30", "30"],
-  "machine_max_speed_x": ["600", "600"],
-  "machine_max_speed_y": ["600", "600"],
-  "machine_max_speed_z": ["20", "20"],
-  "machine_max_jerk_e": ["2.5", "2.5"],
-  "machine_max_jerk_x": ["9", "9"],
-  "machine_max_jerk_y": ["9", "9"],
-  "machine_max_jerk_z": ["3", "3"],
-  "printer_settings_id": "Flashforge",
-  "retraction_minimum_travel": ["1"],
-  "retract_before_wipe": ["100%"],
-  "retract_length_toolchange": ["2"],
-  "deretraction_speed": ["35"],
-  "z_hop": ["0.4"],
-  "single_extruder_multi_material": "0",
-  "change_filament_gcode": "",
-  "machine_pause_gcode": "M25",
-  "support_multi_bed_types": "1",
-  "default_filament_profile": ["Flashforge Generic PLA"],
-  "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM104 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F6000\nG1 E-0.2 F800\nG1 X110 Y-110 F6000\nG1 E2 F800\nG1 Y-110 X55 Z0.25 F4800\nG1 X-55 E8 F2400\nG1 Y-109.6 F2400\nG1 X55 E5 F2400\nG1 Y-110 X55 Z0.45 F4800\nG1 X-55 E8 F2400\nG1 Y-109.6 F2400\nG1 X55 E5 F2400\nG92 E0",
-  "machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F30000\nM104 S0 ; turn off temperature",
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]",
-  "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-  "scan_first_layer": "0",
-  "thumbnails": ["140x110"],
-  "use_relative_e_distances": "1",
-  "z_hop_types": "Auto Lift",
-  "retraction_speed": ["35"],
-  "wipe_distance": "2",
-  "extruder_clearance_radius": ["76"],
-  "extruder_clearance_height_to_rod": ["27"],
-  "extruder_clearance_height_to_lid": ["150"],
-  "version": "1.8.0.0"
+    "type": "machine",
+    "name": "fdm_adventurer5m_common",
+    "inherits": "fdm_flashforge_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "printable_area": [
+        "-110x-110",
+        "110x-110",
+        "110x110",
+        "-110x110"
+    ],
+    "printable_height": "220",
+    "auxiliary_fan": "1",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_y": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "3"
+    ],
+    "printer_settings_id": "Flashforge",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "100%"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "deretraction_speed": [
+        "35"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "single_extruder_multi_material": "0",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M25",
+    "support_multi_bed_types": "1",
+    "default_filament_profile": [
+        "Flashforge Generic PLA"
+    ],
+    "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\nM104 S[nozzle_temperature_initial_layer]\nG90\nM83\nG1 Z5 F6000\nG1 E-0.2 F800\nG1 X110 Y-110 F6000\nG1 E2 F800\nG1 Y-110 X55 Z0.25 F4800\nG1 X-55 E8 F2400\nG1 Y-109.6 F2400\nG1 X55 E5 F2400\nG1 Y-110 X55 Z0.45 F4800\nG1 X-55 E8 F2400\nG1 Y-109.6 F2400\nG1 X55 E5 F2400\nG92 E0",
+    "machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F30000\nM104 S0 ; turn off temperature",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "scan_first_layer": "0",
+    "thumbnails": [
+        "140x110"
+    ],
+    "use_relative_e_distances": "1",
+    "z_hop_types": "Auto Lift",
+    "retraction_speed": [
+        "35"
+    ],
+    "wipe_distance": "2",
+    "extruder_clearance_radius": [
+        "76"
+    ],
+    "extruder_clearance_height_to_rod": [
+        "27"
+    ],
+    "extruder_clearance_height_to_lid": [
+        "150"
+    ]
 }

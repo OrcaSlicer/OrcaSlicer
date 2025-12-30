@@ -3,9 +3,9 @@
     "name": "Z-Bolt PA @0.8 nozzle",
     "inherits": "Z-Bolt PA @base",
     "from": "system",
-    "instantiation": "true",
-    "filament_id": "GFL408",
     "setting_id": "GFSL408",
+    "filament_id": "GFL408",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "12"
     ],

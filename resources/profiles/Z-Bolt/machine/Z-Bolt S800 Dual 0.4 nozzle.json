@@ -1,94 +1,95 @@
 {
-	"type": "machine",
-	"name": "Z-Bolt S800 Dual 0.4 nozzle",
-	"inherits": "fdm_zbolt_common",
-	"from": "system",
-	"setting_id": "GM027",
-	"printer_settings_id": "Z-Bolt",
-	"instantiation": "true",
-	"printer_structure": "corexy",
-	"manual_filament_change": "0",
-	"single_extruder_multi_material": "0",
-	"printer_model": "Z-Bolt S800 Dual",
-	"nozzle_diameter": [
-		"0.4", "0.4"
-	],
-	"printer_variant": "0.4",
-	"printable_height": "802",
-	"printable_area": [
-		"0x0",
-		"802x0",
-		"802x802",
-		"0x802"
-	],
-	"default_filament_profile": [
-		"Z-Bolt Generic PLA"
-	],
-	"default_print_profile": "0.20mm Standard @Z-Bolt S800",
+    "type": "machine",
+    "name": "Z-Bolt S800 Dual 0.4 nozzle",
+    "inherits": "fdm_zbolt_common",
+    "from": "system",
+    "setting_id": "GM027",
+    "instantiation": "true",
+    "printer_settings_id": "Z-Bolt",
+    "printer_structure": "corexy",
+    "manual_filament_change": "0",
+    "single_extruder_multi_material": "0",
+    "printer_model": "Z-Bolt S800 Dual",
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_height": "802",
+    "printable_area": [
+        "0x0",
+        "802x0",
+        "802x802",
+        "0x802"
+    ],
+    "default_filament_profile": [
+        "Z-Bolt Generic PLA"
+    ],
+    "default_print_profile": "0.20mm Standard @Z-Bolt S800",
     "extruder_colour": [
         "#018001"
     ],
-	"machine_max_acceleration_e": [
+    "machine_max_acceleration_e": [
         "5000",
         "5000"
     ],
-	"machine_max_acceleration_extruding": [
-		"20000",
-		"20000"
-	],
-	"machine_max_acceleration_retracting": [
-		"5000",
-		"5000"
-	],
-	"machine_max_acceleration_travel": [
-		"9000",
-		"9000"
-	],
-	"machine_max_acceleration_x": [
-		"20000",
-		"20000"
-	],
-	"machine_max_acceleration_y": [
-		"20000",
-		"20000"
-	],
-	"machine_max_acceleration_z": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_e": [
-		"30",
-		"30"
-	],
-	"machine_max_speed_x": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_y": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_z": [
-		"20",
-		"20"
-	],
-	"machine_max_jerk_e": [
-		"2.5",
-		"2.5"
-	],
-	"machine_max_jerk_x": [
-		"9",
-		"9"
-	],
-	"machine_max_jerk_y": [
-		"9",
-		"9"
-	],
-	"machine_max_jerk_z": [
-		"3",
-		"3"
-	],
-	"machine_min_extruding_rate": [
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "9000",
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "3"
+    ],
+    "machine_min_extruding_rate": [
         "0",
         "0"
     ],
@@ -96,25 +97,25 @@
         "0",
         "0"
     ],
-	"max_layer_height": [
-		"0.28"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"extruder_clearance_radius": "65",
-	"extruder_clearance_height_to_rod": "70",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "extruder_clearance_radius": "65",
+    "extruder_clearance_height_to_rod": "70",
     "extruder_clearance_height_to_lid": "200",
-	"retraction_minimum_travel": [
-		"1"
-	],
-	"retract_before_wipe": [
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
         "0%"
     ],
-	"retraction_length": [
+    "retraction_length": [
         "1.4"
     ],
-	"retract_length_toolchange": [
+    "retract_length_toolchange": [
         "2"
     ],
     "z_hop": [
@@ -127,9 +128,9 @@
         "35"
     ],
     "nozzle_type": "hardened_steel",
-	"support_chamber_temp_control": "1",
-	"change_filament_gcode": "G91\nG1 Z{z_hop[0]} F1000\nG90",
-	"machine_start_gcode": "START_PRINT TOOL_NR=[initial_tool] T_BED=[bed_temperature_initial_layer] T_EXTRUDER=[first_layer_temperature[initial_tool]] T_CHAMBER=[chamber_temperature] {if is_extruder_used[0]}T0_TEMP={first_layer_temperature[0]}{endif} {if is_extruder_used[1]}T1_TEMP={first_layer_temperature[1]}{endif}",
-	"machine_end_gcode": "END_PRINT T_BED=[bed_temperature] T_CHAMBER=[chamber_temperature] COOLDOWN_TIME=120",
-	"machine_pause_gcode": "PAUSE"
+    "support_chamber_temp_control": "1",
+    "change_filament_gcode": "G91\nG1 Z{z_hop[0]} F1000\nG90",
+    "machine_start_gcode": "START_PRINT TOOL_NR=[initial_tool] T_BED=[bed_temperature_initial_layer] T_EXTRUDER=[first_layer_temperature[initial_tool]] T_CHAMBER=[chamber_temperature] {if is_extruder_used[0]}T0_TEMP={first_layer_temperature[0]}{endif} {if is_extruder_used[1]}T1_TEMP={first_layer_temperature[1]}{endif}",
+    "machine_end_gcode": "END_PRINT T_BED=[bed_temperature] T_CHAMBER=[chamber_temperature] COOLDOWN_TIME=120",
+    "machine_pause_gcode": "PAUSE"
 }

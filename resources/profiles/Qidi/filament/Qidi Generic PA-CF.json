@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFN98",
-    "setting_id": "GFSN99",
     "name": "Qidi Generic PA-CF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "GFSN99",
+    "filament_id": "GFN98",
+    "instantiation": "true",
     "filament_type": [
         "PA-CF"
     ],
@@ -68,6 +68,9 @@
         "Qidi Q1 Pro 0.8 nozzle",
         "Qidi X-Plus 4 0.4 nozzle",
         "Qidi X-Plus 4 0.6 nozzle",
-        "Qidi X-Plus 4 0.8 nozzle"
+        "Qidi X-Plus 4 0.8 nozzle",
+        "Qidi Q2 0.4 nozzle",
+        "Qidi Q2 0.6 nozzle",
+        "Qidi Q2 0.8 nozzle"
     ]
 }

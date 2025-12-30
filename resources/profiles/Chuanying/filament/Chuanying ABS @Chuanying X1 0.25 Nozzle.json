@@ -4,11 +4,11 @@
     "inherits": "Chuanying Generic ABS",
     "from": "system",
     "setting_id": "GFSA04_02",
-    "instantiation": "true",
-  "compatible_printers": [
-    "Chuanying X1 0.25 Nozzle"
-  ],
     "filament_id": "GFB99",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Chuanying X1 0.25 Nozzle"
+    ],
     "filament_settings_id": [
         "Chuanying ABS @Chuanying X1 0.25 Nozzle"
     ],
@@ -26,6 +26,5 @@
     ],
     "pressure_advance": [
         "0.1"
-    ],
-    "version": "1.8.0.0"
+    ]
 }

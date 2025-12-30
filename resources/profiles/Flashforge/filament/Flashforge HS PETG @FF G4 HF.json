@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge HS PETG @FF G4 HF",
+    "inherits": "Flashforge Generic ABS @G3U",
+    "from": "system",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -50,10 +55,8 @@
     "filament_unloading_speed_start": [
         "100"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge Guider4 0.4 HF nozzle"
+        "Flashforge Guider4 0.4 HF nozzle"
     ],
     "hot_plate_temp": [
         "80"
@@ -61,9 +64,6 @@
     "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "inherits": "Flashforge Generic ABS @G3U",
-    "is_custom_defined": "0",
-    "name": "Flashforge HS PETG @FF G4 HF",
     "nozzle_temperature_initial_layer": [
         "230"
     ],
@@ -84,6 +84,5 @@
     ],
     "temperature_vitrification": [
         "70"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

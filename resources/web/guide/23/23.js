@@ -1,7 +1,7 @@
 var m_ProfileItem;
 
 var FilamentPriority=new Array( "pla","abs","pet","tpu","pc");
-var VendorPriority=new Array("bambu lab","bambulab","bbl","kexcelled","polymaker","esun","generic");
+var VendorPriority=new Array("generic");
 
 function OnInit()
 {
@@ -79,15 +79,30 @@ function SortUI()
 		$('#MachineList').hide();
 	}
 	
-	//Filament
+	//Filament - Create sorted array with generic vendor first
+	let FilamentArray=new Array();
+	let GenericFilamentArray=new Array();
+	for( let key in m_ProfileItem['filament'] )
+	{
+		let OneFila=m_ProfileItem['filament'][key];
+		if(OneFila['vendor'].toLowerCase() === 'generic')
+			GenericFilamentArray.push({key: key, data: OneFila});
+		else
+			FilamentArray.push({key: key, data: OneFila});
+	}
+	// Combine arrays with generic filaments first
+	let SortedFilamentArray = GenericFilamentArray.concat(FilamentArray);
+	
 	let HtmlFilament='';
 	let SelectNumber=0;
 
 	var TypeHtmlArray={};
     var VendorHtmlArray={};
-	for( let key in m_ProfileItem['filament'] )
+	for( let n=0; n<SortedFilamentArray.length; n++ )
 	{
-		let OneFila=m_ProfileItem['filament'][key];
+		let filamentItem = SortedFilamentArray[n];
+		let key = filamentItem.key;
+		let OneFila = filamentItem.data;
 		
 		//alert(JSON.stringify(OneFila));
 		

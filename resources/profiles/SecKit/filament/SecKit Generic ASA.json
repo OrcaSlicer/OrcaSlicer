@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFB98",
-    "setting_id": "GFSA04",
     "name": "SecKit Generic ASA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_asa",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB98",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.93"
     ],
@@ -15,13 +15,13 @@
     "filament_density": [
         "1.1"
     ],
-	"filament_z_hop": [
+    "filament_z_hop": [
         "0"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.033"
     ],
     "close_fan_the_first_x_layers": [
@@ -41,6 +41,6 @@
     ],
     "compatible_printers": [
         "SecKit SK-Tank 0.4 nozzle",
-	  "SecKit Go3 0.4 nozzle"
+        "SecKit Go3 0.4 nozzle"
     ]
 }

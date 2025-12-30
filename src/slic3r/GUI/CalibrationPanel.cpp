@@ -7,6 +7,8 @@
 #include "SelectMachine.hpp"
 #include "SelectMachinePop.hpp"
 
+#include "DeviceCore/DevManager.h"
+
 namespace Slic3r { namespace GUI {
 
 #define REFRESH_INTERVAL       1000
@@ -112,7 +114,7 @@ void MObjectPanel::doRender(wxDC& dc)
     dc.SetTextForeground(StateColor::darkModeColorFor(SELECT_MACHINE_GREY900));
     wxString dev_name = "";
     if (m_info) {
-        dev_name = from_u8(m_info->dev_name);
+        dev_name = from_u8(m_info->get_dev_name());
 
         if (m_state == PrinterState::IN_LAN) {
             dev_name += _L("(LAN)");
@@ -170,13 +172,13 @@ void MObjectPanel::on_mouse_left_up(wxMouseEvent& evt)
             if (m_info->has_access_right() && m_info->is_avaliable()) {
                 Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
                 if (!dev) return;
-                dev->set_selected_machine(m_info->dev_id);
+                dev->set_selected_machine(m_info->get_dev_id());
             }
         }
         else {
             Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev) return;
-            dev->set_selected_machine(m_info->dev_id);
+            dev->set_selected_machine(m_info->get_dev_id());
         }
         wxCommandEvent event(EVT_DISSMISS_MACHINE_LIST);
         event.SetEventObject(this->GetParent()->GetParent());
@@ -309,7 +311,6 @@ bool SelectMObjectPopup::Show(bool show) {
 void SelectMObjectPopup::on_timer(wxTimerEvent& event)
 {
     BOOST_LOG_TRIVIAL(trace) << "SelectMObjectPopup on_timer";
-    wxGetApp().reset_to_active();
     wxCommandEvent user_event(EVT_UPDATE_USER_MLIST);
     user_event.SetEventObject(this);
     wxPostEvent(this, user_event);
@@ -336,7 +337,7 @@ void SelectMObjectPopup::update_user_devices()
 
     std::sort(user_machine_list.begin(), user_machine_list.end(), [&](auto& a, auto& b) {
         if (a.second && b.second) {
-            return a.second->dev_name.compare(b.second->dev_name) < 0;
+            return a.second->get_dev_name().compare(b.second->get_dev_name()) < 0;
         }
         return false;
         });
@@ -539,7 +540,7 @@ void CalibrationPanel::update_all() {
     obj = dev->get_selected_machine();
 
     // check valid machine
-    if (obj && dev->get_my_machine(obj->dev_id) == nullptr) {
+    if (obj && dev->get_my_machine(obj->get_dev_id()) == nullptr) {
         dev->set_selected_machine("");
         if (m_agent) m_agent->set_user_selected_machine("");
         show_status((int) MONITOR_NO_PRINTER);
@@ -563,21 +564,8 @@ void CalibrationPanel::update_all() {
         }
     }
 
-    if (wxGetApp().is_user_login()) {
-        dev->check_pushing();
-        try {
-            m_agent->refresh_connection();
-        }
-        catch (...) {
-            ;
-        }
-    }
-
-    if (obj) {
-        wxGetApp().reset_to_active();
-        if (obj->connection_type() != last_conn_type) {
-            last_conn_type = obj->connection_type();
-        }
+    if (obj && obj->connection_type() != last_conn_type) {
+        last_conn_type = obj->connection_type();
     }
 
     m_side_tools->update_status(obj);
@@ -654,9 +642,6 @@ bool CalibrationPanel::Show(bool show) {
             obj = dev->get_selected_machine();
             if (obj == nullptr) {
                 dev->load_last_machine();
-                obj = dev->get_selected_machine();
-                if (obj)
-                    GUI::wxGetApp().sidebar().load_ams_list(obj->dev_id, obj);
             }
             else {
                 obj->reset_update_time();
@@ -694,7 +679,6 @@ void CalibrationPanel::set_default()
 {
     obj = nullptr;
     last_conn_type = "undefined";
-    wxGetApp().sidebar().load_ams_list({}, {});
 }
 
 void CalibrationPanel::msw_rescale()

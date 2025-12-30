@@ -8,5 +8,5 @@
     "bed_model": "qidi_xplus_buildplate_model.stl",
     "bed_texture": "qidi_xplus_buildplate_texture.png",
     "hotend_model": "qidi_xseries_gen2_hotend.stl",
-	"default_materials": "Qidi Generic ASA;Qidi Generic ABS;Qidi Generic PA-CF;Qidi Generic PA;Qidi Generic PC;Qidi Generic PETG-CF;Qidi Generic PETG;Qidi Generic PLA Silk;Qidi Generic PLA;Qidi Generic PLA-CF;Qidi Generic PVA;Qidi Generic TPU"
+    "default_materials": "Qidi Generic ASA;Qidi Generic ABS;Qidi Generic PA-CF;Qidi Generic PA;Qidi Generic PC;Qidi Generic PETG-CF;Qidi Generic PETG;Qidi Generic PLA Silk;Qidi Generic PLA;Qidi Generic PLA-CF;Qidi Generic PVA;Qidi Generic TPU"
 }

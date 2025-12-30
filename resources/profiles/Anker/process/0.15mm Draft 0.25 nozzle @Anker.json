@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP015",
     "name": "0.15mm Draft 0.25 nozzle @Anker",
-    "from": "system",
     "inherits": "fdm_process_anker_common_0_25",
+    "from": "system",
+    "setting_id": "GP015",
     "instantiation": "true",
     "layer_height": "0.15",
     "initial_layer_print_height": "0.15",

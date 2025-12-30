@@ -73,7 +73,7 @@
     "wall_generator": "classic",
     "exclude_object": "1",
     "ooze_prevention": "0",
-	"standby_temperature_delta": "-40",
+    "standby_temperature_delta": "-40",
     "preheat_time": "30",
     "preheat_steps": "1",
     "compatible_printers": []

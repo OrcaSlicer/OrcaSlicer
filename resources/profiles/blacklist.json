@@ -4,5 +4,9 @@
     ],
     "process": [
         "GP008"
-    ]
+    ],
+    "machine_model_list": [],
+    "process_list": [],
+    "filament_list": [],
+    "machine_list": []
 }

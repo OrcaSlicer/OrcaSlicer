@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "from": "system",
-    "instantiation": "true",
     "name": "Snapmaker PLA SnapSpeed @U1",
-    "setting_id": "119531393501",
     "inherits": "Snapmaker PLA SnapSpeed @U1 base",
+    "from": "system",
+    "setting_id": "119531393501",
+    "instantiation": "true",
     "compatible_printers": [
         "Snapmaker U1 (0.4 nozzle)"
     ],
@@ -48,8 +48,8 @@
         "60"
     ],
     "default_filament_colour": [
-    ""
-  ],
+        ""
+    ],
     "dont_slow_down_outer_wall": [
         "0"
     ],

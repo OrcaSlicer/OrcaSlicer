@@ -1,21 +1,21 @@
 {
-  "name": "Snapmaker A350 Dual BKit (0.4 nozzle)",
-  "setting_id": "4086336437",
-  "type": "machine",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_a350_dual_bk",
-  "printer_model": "Snapmaker A350 Dual BKit",
-  "default_print_profile": "0.16 Optimal @Snapmaker (0.4 nozzle)",
-  "printer_variant": "0.4",
-  "max_layer_height": [
-    "0.28"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "nozzle_diameter": [
-    "0.4",
-    "0.4"
-  ]
+    "type": "machine",
+    "name": "Snapmaker A350 Dual BKit (0.4 nozzle)",
+    "inherits": "fdm_a350_dual_bk",
+    "from": "system",
+    "setting_id": "4086336437",
+    "instantiation": "true",
+    "printer_model": "Snapmaker A350 Dual BKit",
+    "default_print_profile": "0.16 Optimal @Snapmaker (0.4 nozzle)",
+    "printer_variant": "0.4",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ]
 }

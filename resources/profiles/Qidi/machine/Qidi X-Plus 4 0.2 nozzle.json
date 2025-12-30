@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM008",
     "name": "Qidi X-Plus 4 0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Qidi X-Plus 4 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM008",
+    "instantiation": "true",
     "nozzle_diameter": [
         "0.2"
     ],

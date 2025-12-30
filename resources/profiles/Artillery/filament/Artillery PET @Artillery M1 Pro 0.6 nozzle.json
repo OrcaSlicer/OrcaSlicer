@@ -1,5 +1,9 @@
 {
-    "instantiation" : "true",
+    "type": "filament",
+    "name": "Artillery PET @Artillery M1 Pro 0.6 nozzle",
+    "from": "system",
+    "filament_id": "P11851ba",
+    "instantiation": "true",
     "activate_air_filtration": [
         "0"
     ],
@@ -93,7 +97,6 @@
     "filament_flow_ratio": [
         "0.98"
     ],
-    "filament_id": "P11851ba",
     "filament_is_support": [
         "0"
     ],
@@ -205,7 +208,6 @@
     "filament_z_hop_types": [
         "nil"
     ],
-    "from": "system",
     "full_fan_speed_layer": [
         "0"
     ],
@@ -219,7 +221,6 @@
         "0"
     ],
     "is_custom_defined": "0",
-    "name": "Artillery PET @Artillery M1 Pro 0.6 nozzle",
     "nozzle_temperature": [
         "250"
     ],

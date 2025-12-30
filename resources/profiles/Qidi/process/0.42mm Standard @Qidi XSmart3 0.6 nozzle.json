@@ -1,11 +1,11 @@
 {
-  "type": "process",
-  "setting_id": "GP031",
-  "name": "0.42mm Standard @Qidi XSmart3 0.6 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_process_QIDI_0.42_nozzle_0.6",
-  "compatible_printers": [
-    "Qidi X-Smart 3 0.6 nozzle"
-  ]
+    "type": "process",
+    "name": "0.42mm Standard @Qidi XSmart3 0.6 nozzle",
+    "inherits": "fdm_process_QIDI_0.42_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP031",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi X-Smart 3 0.6 nozzle"
+    ]
 }

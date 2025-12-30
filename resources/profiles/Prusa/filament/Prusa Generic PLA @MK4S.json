@@ -1,4 +1,11 @@
 {
+    "type": "filament",
+    "name": "Prusa Generic PLA @MK4S",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Generic PLA @MK4S",
+    "instantiation": "true",
     "compatible_printers": [
         "Prusa MK4S 0.25 nozzle",
         "Prusa MK4S 0.3 nozzle",
@@ -8,12 +15,15 @@
     "default_filament_colour": "#FF8000",
     "fan_cooling_layer_time": "17",
     "fan_min_speed": "70",
-    "filament_cost": "25.4",
+    "filament_cost": [
+        "25.4"
+    ],
     "filament_end_gcode": [
         "; Filament-specific end gcode"
     ],
-    "filament_id": "Generic PLA @MK4S",
-    "filament_max_volumetric_speed": "15",
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
     "filament_notes": [
         ""
     ],
@@ -23,14 +33,8 @@
     "filament_ramming_parameters": [
         "250 100 40 40 40 40 40 | 0.05 40 0.45 40 0.95 40 1.45 40 1.95 40 2.45 40 2.95 40 3.45 40 3.95 40 4.45 40 4.95 40"
     ],
-    "from": "system",
     "full_fan_speed_layer": "3",
-    "inherits": "fdm_filament_pla",
-    "instantiation": "true",
-    "name": "Prusa Generic PLA @MK4S",
     "nozzle_temperature_initial_layer": "230",
-    "setting_id": "GFSA04",
     "slow_down_layer_time": "6",
-    "slow_down_min_speed": "20",
-    "type": "filament"
+    "slow_down_min_speed": "20"
 }

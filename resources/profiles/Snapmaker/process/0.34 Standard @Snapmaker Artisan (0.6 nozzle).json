@@ -1,25 +1,25 @@
 {
-  "type": "process",
-  "from": "system",
-  "instantiation": "true",
-  "name": "0.34 Standard @Snapmaker Artisan (0.6 nozzle)",
-  "setting_id": "3004749888",
-  "inherits": "fdm_process_a400",
-  "compatible_printers": [
-    "Snapmaker Artisan (0.6 nozzle)"
-  ],
-  "layer_height": "0.34",
-  "wall_loops": "2",
-  "top_shell_layers": "3",
-  "bridge_speed": "30",
-  "line_width": "0.82",
-  "outer_wall_line_width": "0.82",
-  "initial_layer_line_width": "0.82",
-  "sparse_infill_line_width": "0.82",
-  "inner_wall_line_width": "0.82",
-  "internal_solid_infill_line_width": "0.82",
-  "support_line_width": "0.82",
-  "top_surface_line_width": "0.82",
-  "initial_layer_infill_speed": "55",
-  "initial_layer_speed": "40"
+    "type": "process",
+    "name": "0.34 Standard @Snapmaker Artisan (0.6 nozzle)",
+    "inherits": "fdm_process_a400",
+    "from": "system",
+    "setting_id": "3004749888",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker Artisan (0.6 nozzle)"
+    ],
+    "layer_height": "0.34",
+    "wall_loops": "2",
+    "top_shell_layers": "3",
+    "bridge_speed": "30",
+    "line_width": "0.82",
+    "outer_wall_line_width": "0.82",
+    "initial_layer_line_width": "0.82",
+    "sparse_infill_line_width": "0.82",
+    "inner_wall_line_width": "0.82",
+    "internal_solid_infill_line_width": "0.82",
+    "support_line_width": "0.82",
+    "top_surface_line_width": "0.82",
+    "initial_layer_infill_speed": "55",
+    "initial_layer_speed": "40"
 }

@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge PLA Color Change @FF G4",
+    "inherits": "Flashforge Generic HS PLA",
+    "from": "system",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -29,17 +34,12 @@
     "filament_start_gcode": [
         "; filament start gcode\n;right_extruder_material:PLA\n"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge Guider4 0.4 nozzle"
+        "Flashforge Guider4 0.4 nozzle"
     ],
     "hot_plate_temp": [
         "55"
     ],
-    "inherits": "Flashforge Generic HS PLA",
-    "is_custom_defined": "0",
-    "name": "Flashforge PLA Color Change @FF G4",
     "nozzle_temperature": [
         "210"
     ],
@@ -60,6 +60,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "55"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

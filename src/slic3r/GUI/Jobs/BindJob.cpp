@@ -4,6 +4,8 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
+#include "slic3r/GUI/DeviceCore/DevManager.h"
+
 namespace Slic3r {
 namespace GUI {
 
@@ -56,7 +58,7 @@ void BindJob::process(Ctl &ctl)
     wxDateTime::TimeZone tz(wxDateTime::Local);
     long offset = tz.GetOffset();
     std::string timezone = get_timezone_utc_hm(offset);
-    
+
     m_agent->track_update_property("ssdp_version", m_ssdp_version, "string");
     int result = m_agent->bind(m_dev_ip, m_dev_id, m_sec_link, timezone, m_improved,
         [this, &ctl, &curr_percent, &msg, &result_code, &result_info](int stage, int code, std::string info) {
@@ -97,7 +99,7 @@ void BindJob::process(Ctl &ctl)
     );
 
     if (result < 0) {
-        BOOST_LOG_TRIVIAL(trace) << "login: result = " << result;
+        BOOST_LOG_TRIVIAL(info) << "login: result = " << result;
 
         if (result_code == BAMBU_NETWORK_ERR_BIND_ECODE_LOGIN_REPORT_FAILED || result_code == BAMBU_NETWORK_ERR_BIND_GET_PRINTER_TICKET_TIMEOUT) {
             int         error_code;
@@ -105,22 +107,21 @@ void BindJob::process(Ctl &ctl)
             try
             {
                 error_code = stoi(result_info);
-                wxString error_msg;
-                wxGetApp().get_hms_query()->query_print_error_msg(error_code, error_msg);
+                wxString error_msg = wxGetApp().get_hms_query()->query_print_error_msg(m_dev_id, error_code);
                 result_info = error_msg.ToStdString();
             }
             catch (...) {
                 ;
             }
         }
-        
+
         post_fail_event(result_code, result_info);
         return;
     }
 
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) {
-        BOOST_LOG_TRIVIAL(trace) << "login: dev is null";
+        BOOST_LOG_TRIVIAL(error) << "login: dev is null";
         post_fail_event(result_code, result_info);
         return;
     }

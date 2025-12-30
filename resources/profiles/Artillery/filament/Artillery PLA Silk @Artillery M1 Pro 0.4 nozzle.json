@@ -1,5 +1,9 @@
 {
-    "instantiation" : "true",
+    "type": "filament",
+    "name": "Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
+    "instantiation": "true",
     "complete_print_exhaust_fan_speed": [
         "0"
     ],
@@ -21,9 +25,7 @@
     "filament_settings_id": [
         "Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle"
     ],
-    "from": "system",
     "is_custom_defined": "0",
-    "name": "Artillery PLA Silk @Artillery M1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "220"
     ],
@@ -33,21 +35,21 @@
     "slow_down_layer_time": [
         "6"
     ],
-    "version": "2.1.2.0",
+    "version": "2.1.2.2",
     "compatible_printers": [
-		"Artillery M1 Pro 0.4 nozzle"
+        "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
-        "1.1"
+        "0.8"
     ],
     "filament_retraction_speed": [
         "20"
     ],
-	"filament_deretraction_speed": [
+    "filament_deretraction_speed": [
         "20"
     ],
     "additional_cooling_fan_speed": [
-        "100"
+        "50"
     ],
     "filament_start_gcode": [
         ""
@@ -61,7 +63,6 @@
     "filament_z_hop": [
         "0.4"
     ],
-    "inherits": "Artillery Generic PLA",
     "filament_max_volumetric_speed": [
         "8"
     ],
@@ -77,25 +78,25 @@
     "cool_plate_temp_initial_layer": [
         "50"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.05"
     ],
-	    "hot_plate_temp": [
+    "hot_plate_temp": [
         "50"
     ],
     "hot_plate_temp_initial_layer": [
         "50"
     ],
-	    "slow_down_min_speed": [
+    "slow_down_min_speed": [
         "20"
     ],
-	    "filament_retract_lift_below": [
+    "filament_retract_lift_below": [
         "259"
     ],
-	"temperature_vitrification": [
+    "temperature_vitrification": [
         "60"
     ]
 }

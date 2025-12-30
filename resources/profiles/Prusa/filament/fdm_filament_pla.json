@@ -1,10 +1,10 @@
 {
     "type": "filament",
     "name": "fdm_filament_pla",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_common",
+    "from": "system",
     "filament_id": "GFL99",
+    "instantiation": "false",
     "fan_cooling_layer_time": [
         "100"
     ],
@@ -20,22 +20,22 @@
     "filament_cost": [
         "20"
     ],
-    "cool_plate_temp" : [
+    "cool_plate_temp": [
         "35"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "0"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "60"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "35"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "0"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "60"
     ],
     "idle_temperature": "0",

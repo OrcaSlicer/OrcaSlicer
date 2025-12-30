@@ -1,23 +1,23 @@
 {
     "type": "filament",
-    "setting_id": "GFSL96_00",
     "name": "Creality Generic PLA Silk @K1-all",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Creality Generic PLA @K1-all",
+    "from": "system",
+    "setting_id": "GFSL96_00",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "7.5"
     ],
     "compatible_printers": [
-		"Creality K1 (0.4 nozzle)",
-		"Creality K1 (0.6 nozzle)",
-		"Creality K1 (0.8 nozzle)",
+        "Creality K1 (0.4 nozzle)",
+        "Creality K1 (0.6 nozzle)",
+        "Creality K1 (0.8 nozzle)",
         "Creality K1C 0.4 nozzle",
         "Creality K1C 0.6 nozzle",
         "Creality K1C 0.8 nozzle",
         "Creality K1 SE 0.4 nozzle",
-		"Creality K1 Max (0.4 nozzle)",
-		"Creality K1 Max (0.6 nozzle)",
-		"Creality K1 Max (0.8 nozzle)"
+        "Creality K1 Max (0.4 nozzle)",
+        "Creality K1 Max (0.6 nozzle)",
+        "Creality K1 Max (0.8 nozzle)"
     ]
 }

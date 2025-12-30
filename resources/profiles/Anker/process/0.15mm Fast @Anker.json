@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP007",
     "name": "0.15mm Fast @Anker",
-    "from": "system",
     "inherits": "fdm_process_anker_fast_common",
+    "from": "system",
+    "setting_id": "GP007",
     "instantiation": "true",
     "layer_height": "0.15",
     "initial_layer_print_height": "0.15",

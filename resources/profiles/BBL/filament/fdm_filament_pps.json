@@ -7,12 +7,6 @@
     "chamber_temperatures": [
         "60"
     ],
-    "supertack_plate_temp": [
-        "0"
-    ],
-    "supertack_plate_temp_initial_layer": [
-        "0"
-    ],
     "cool_plate_temp": [
         "0"
     ],
@@ -46,6 +40,9 @@
     "filament_type": [
         "PPS"
     ],
+    "filament_adhesiveness_category": [
+        "801"
+    ],
     "hot_plate_temp": [
         "110"
     ],
@@ -73,6 +70,12 @@
     "slow_down_layer_time": [
         "2"
     ],
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
     "temperature_vitrification": [
         "125"
     ],
@@ -81,5 +84,8 @@
     ],
     "textured_plate_temp_initial_layer": [
         "110"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n\n"
     ]
 }

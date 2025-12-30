@@ -8,6 +8,9 @@
 #include <utility>
 
 #include <boost/container/small_vector.hpp>
+#include "../FilamentGroup.hpp"
+#include "../ExtrusionEntity.hpp"
+#include "../PrintConfig.hpp"
 
 namespace Slic3r {
 
@@ -91,6 +94,37 @@ private:
     const LayerTools* m_layer_tools = nullptr;    // so we know which LayerTools object this belongs to
 };
 
+
+struct FilamentChangeStats
+{
+    int filament_flush_weight{0};
+    int filament_change_count{0};
+    int extruder_change_count{0};
+
+    void clear(){
+        filament_flush_weight = 0;
+        filament_change_count = 0;
+        extruder_change_count = 0;
+    }
+
+    FilamentChangeStats& operator+=(const FilamentChangeStats& other) {
+        this->filament_flush_weight += other.filament_flush_weight;
+        this->filament_change_count += other.filament_change_count;
+        this->extruder_change_count += other.extruder_change_count;
+        return *this;
+    }
+
+    FilamentChangeStats operator+(const FilamentChangeStats& other){
+        FilamentChangeStats ret;
+        ret.filament_flush_weight = this->filament_flush_weight + other.filament_flush_weight;
+        ret.filament_change_count = this->filament_change_count + other.filament_change_count;
+        ret.extruder_change_count = this->extruder_change_count + other.extruder_change_count;
+        return ret;
+    }
+
+};
+
+
 class LayerTools
 {
 public:
@@ -146,6 +180,11 @@ private:
 class ToolOrdering
 {
 public:
+    enum FilamentChangeMode {
+        SingleExt,
+        MultiExtBest,
+        MultiExtCurr
+    };
     ToolOrdering() = default;
 
     // For the use case when each object is printed separately
@@ -156,8 +195,17 @@ public:
     // (print->config().print_sequence == PrintSequence::ByObject is false).
     ToolOrdering(const Print& print, unsigned int first_extruder, bool prime_multi_material = false);
 
-    void 				clear() {
-        m_layer_tools.clear(); m_tool_order_cache.clear(); 
+    void handle_dontcare_extruder(const std::vector<unsigned int>& first_layer_tool_order);
+    void handle_dontcare_extruder(unsigned int first_extruder);
+
+    void sort_and_build_data(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material = false);
+    void sort_and_build_data(const Print& print, unsigned int first_extruder, bool prime_multi_material = false);
+
+    void    clear() {
+        m_layer_tools.clear();
+        m_stats_by_single_extruder.clear();
+        m_stats_by_multi_extruder_best.clear();
+        m_stats_by_multi_extruder_curr.clear();
     }
 
     // Only valid for non-sequential print:
@@ -187,16 +235,32 @@ public:
     std::vector<LayerTools>& layer_tools() { return m_layer_tools; }
     bool 				has_wipe_tower() const { return ! m_layer_tools.empty() && m_first_printing_extruder != (unsigned int)-1 && m_layer_tools.front().has_wipe_tower; }
 
+    int                 get_most_used_extruder() const { return most_used_extruder; }
+    /*
+    * called in single extruder mode, the value in map are all 0
+    * called in dual extruder mode, the value in map will be 0 or 1
+    * 0 based group id
+    */
+    static std::vector<int> get_recommended_filament_maps(const std::vector<std::vector<unsigned int>>& layer_filaments, const Print* print,const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables);
+
+    // should be called after doing reorder
+    FilamentChangeStats get_filament_change_stats(FilamentChangeMode mode);
+    void                cal_most_used_extruder(const PrintConfig &config);
+    float               cal_max_additional_fan(const PrintConfig &config);
+    bool                cal_non_support_filaments(const PrintConfig &config,
+                                                  unsigned int &     first_non_support_filament,
+                                                  std::vector<int> & initial_non_support_filaments,
+                                                  std::vector<int> & initial_filaments);
+
+    bool                has_non_support_filament(const PrintConfig &config);
+
 private:
     void				initialize_layers(std::vector<coordf_t> &zs);
     void 				collect_extruders(const PrintObject &object, const std::vector<std::pair<double, unsigned int>> &per_layer_extruder_switches);
-    void				reorder_extruders(unsigned int last_extruder_id);
-    // BBS
-    void                reorder_extruders(std::vector<unsigned int> tool_order_layer0);
     void 				fill_wipe_tower_partitions(const PrintConfig &config, coordf_t object_bottom_z, coordf_t max_layer_height);
     void                mark_skirt_layers(const PrintConfig &config, coordf_t max_layer_height);
     void 				collect_extruder_statistics(bool prime_multi_material);
-    void                reorder_extruders_for_minimum_flush_volume();
+    void                reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer);
 
     // BBS
     std::vector<unsigned int> generate_first_layer_tool_order(const Print& print);
@@ -209,11 +273,18 @@ private:
     unsigned int               m_last_printing_extruder  = (unsigned int)-1;
     // All extruders, which extrude some material over m_layer_tools.
     std::vector<unsigned int>  m_all_printing_extruders;
-    std::unordered_map<uint32_t, std::vector<uint8_t>> m_tool_order_cache;
     const DynamicPrintConfig*  m_print_full_config = nullptr;
     const PrintConfig*         m_print_config_ptr = nullptr;
     const PrintObject*         m_print_object_ptr = nullptr;
+    Print*                     m_print;
+    bool                       m_sorted = false;
     bool                       m_is_BBL_printer = false;
+
+    FilamentChangeStats        m_stats_by_single_extruder;
+    FilamentChangeStats        m_stats_by_multi_extruder_curr;
+    FilamentChangeStats        m_stats_by_multi_extruder_best;
+
+    int                        most_used_extruder;
 };
 
 } // namespace SLic3r

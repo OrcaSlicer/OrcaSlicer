@@ -1,8 +1,9 @@
 {
     "type": "machine",
-    "setting_id": "GM003",
     "name": "CoLiDo DIY 4.0 V2 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
     "from": "system",
+    "setting_id": "GM003",
     "instantiation": "true",
     "printer_model": "CoLiDo DIY 4.0 V2",
     "default_filament_profile": [
@@ -17,8 +18,6 @@
     "deretraction_speed": [
         "50"
     ],
-    "inherits": "fdm_klipper_common",
-    "is_custom_defined": "0",
     "print_host": "192.168.0.30",
     "printer_variant": "0.4",
     "printable_area": [
@@ -31,7 +30,6 @@
     "retraction_length": [
         "0.4"
     ],
-    "version": "2.1.1.0",
     "z_hop_types": [
         "Auto Lift"
     ]

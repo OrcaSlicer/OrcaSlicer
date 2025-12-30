@@ -1,9 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFA99",
-    "setting_id": "GFSA99_07",
     "name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2",
+    "inherits": "fdm_filament_pla",
     "from": "system",
+    "setting_id": "GFSA99_07",
+    "filament_id": "GFA99",
     "instantiation": "true",
     "filament_vendor": [
         "CoLiDo"
@@ -32,8 +33,6 @@
     "filament_settings_id": [
         "CoLiDo PLA+ @CoLiDo DIY 4.0 V2"
     ],
-    "inherits": "fdm_filament_pla",
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "200"
     ],
@@ -45,6 +44,5 @@
     ],
     "pressure_advance": [
         "0.024"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

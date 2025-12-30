@@ -29,6 +29,9 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "impact_strength_z": [
+        "7.8"
+    ],
     "nozzle_temperature_range_low": [
         "210"
     ],

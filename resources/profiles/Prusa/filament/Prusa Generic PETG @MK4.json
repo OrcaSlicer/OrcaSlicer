@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PETG @MK4",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "reduce_fan_stop_start_freq": [
         "1"
     ],
@@ -49,5 +49,5 @@
         "Prusa MK4 0.4 nozzle",
         "Prusa MK4 0.6 nozzle",
         "Prusa MK4 0.8 nozzle"
-      ]
+    ]
 }

@@ -1,18 +1,17 @@
 {
     "type": "filament",
-    "filament_id": "EFL40",
-    "setting_id": "EFSA40",
     "name": "Eryone PLA-CF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA40",
+    "filament_id": "EFL40",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],
     "fan_min_speed": [
         "100"
     ],
-
     "filament_flow_ratio": [
         "0.95"
     ],

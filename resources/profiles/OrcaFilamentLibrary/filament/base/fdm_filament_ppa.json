@@ -2,8 +2,8 @@
     "type": "filament",
     "name": "fdm_filament_ppa",
     "inherits": "fdm_filament_common",
-    "filament_id": "OGFN97",
     "from": "system",
+    "filament_id": "OGFN97",
     "instantiation": "false",
     "activate_air_filtration": [
         "0"

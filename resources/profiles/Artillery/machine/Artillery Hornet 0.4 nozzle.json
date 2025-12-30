@@ -1,115 +1,114 @@
 {
     "type": "machine",
-    "setting_id": "GM003",
     "name": "Artillery Hornet 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
     "printer_model": "Artillery Hornet",
     "default_print_profile": "0.20mm Standard @Artillery Hornet",
     "nozzle_diameter": [
         "0.4"
     ],
     "bed_exclude_area": [
-      "0x0"
+        "0x0"
     ],
     "printable_area": [
-      "0x0",
-      "230x0",
-      "230x230",
-      "0x230"
+        "0x0",
+        "230x0",
+        "230x230",
+        "0x230"
     ],
     "printable_height": "250",
-	"nozzle_type": "hardened_steel",
-	"auxiliary_fan": "0",
-	"machine_max_acceleration_extruding": [
-		"1000",
-		"1250"
-	],
-	"machine_max_acceleration_retracting": [
-		"1000",
-		"1250"
-	],
-	"machine_max_acceleration_travel": [
-		"1000",
-		"1250"
-	],
-	"machine_max_acceleration_x": [
-		"2000",
-		"1000"
-	],
-	"machine_max_acceleration_y": [
-		"2000",
-		"1000"
-	],
-	"machine_max_acceleration_z": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_e": [
-		"120",
-		"120"
-	],
-	"machine_max_speed_x": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_y": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_z": [
-		"12",
-		"12"
-	],
-	"machine_max_jerk_e": [
-		"3",
-		"2.5"
-	],
-	"machine_max_jerk_x": [
-		"7",
-		"10"
-	],
-	"machine_max_jerk_y": [
-		"7",
-		"10"
-	],
-	"machine_max_jerk_z": [
-		"0.2",
-		"0.4"
-	],
-	"max_layer_height": [
-		"0.32"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"printer_settings_id": "Artillery",
-	"retraction_minimum_travel": [
-		"2"
-	],
-	"retract_before_wipe": [
-		"0%"
-	],
-	"retraction_length": [
-		"2.2"
-	],
-	"retract_length_toolchange": [
-		"10"
-	],
-	"deretraction_speed": [
-		"0"
-	],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "M0",
-	"default_filament_profile": [
-		"Artillery Generic PLA"
-	],
+    "nozzle_type": "hardened_steel",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_extruding": [
+        "1000",
+        "1250"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000",
+        "1250"
+    ],
+    "machine_max_acceleration_travel": [
+        "1000",
+        "1250"
+    ],
+    "machine_max_acceleration_x": [
+        "2000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "2000",
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "120",
+        "120"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_e": [
+        "3",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "7",
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "7",
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "0.2",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "Artillery",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retraction_length": [
+        "2.2"
+    ],
+    "retract_length_toolchange": [
+        "10"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M0",
+    "default_filament_profile": [
+        "Artillery Generic PLA"
+    ],
     "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM104 S150 ; set temporary nozzle temp to prevent oozing during homing and auto bed leveling\nM140 S{hot_plate_temp_initial_layer[0]} ; set final bed temp\nG4 S30 ; allow partial nozzle warmup\nG28 ; home all axis\nG29 ; auto bed levelling\nG1 Z50 F240\nG1 X2.0 Y10 F3000\nM104 S{nozzle_temperature_initial_layer[0]} ; set final nozzle temp\nM190 S{hot_plate_temp_initial_layer[0]} ; wait for bed temp to stabilize\nM109 S{nozzle_temperature_initial_layer[0]} ; wait for nozzle temp to stabilize\nG1 Z0.28 F240\nG92 E0\nG1 X2.0 Y140 E10 F1500 ; prime the nozzle\nG1 X2.3 Y140 F5000\nG92 E0\nG1 X2.3 Y10 E10 F1200 ; prime the nozzle\nG92 E0",
     "machine_end_gcode": "{if max_layer_z < printable_height}G1 Z{z_offset+min(max_layer_z+2, printable_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.85} F{travel_speed*60} ; present print\n{if max_layer_z < printable_height-10}G1 Z{z_offset+min(max_layer_z+70, printable_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < printable_height*0.6}G1 Z{printable_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nM84 X Y E ; disable motors",
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0\n;[layer_z]\n\n",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
     "scan_first_layer": "0"
-  }
-  
+}

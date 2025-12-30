@@ -163,8 +163,9 @@ void KBShortcutsDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 void KBShortcutsDialog::fill_shortcuts()
 {
-    const std::string& ctrl = GUI::shortkey_ctrl_prefix();
-    const std::string& alt = GUI::shortkey_alt_prefix();
+    const std::string ctrl  = GUI::shortkey_ctrl_prefix();
+    const std::string alt   = GUI::shortkey_alt_prefix();
+    const std::string shift = L("Shift+");
 
     if (wxGetApp().is_editor()) {
         Shortcuts global_shortcuts = {
@@ -172,7 +173,7 @@ void KBShortcutsDialog::fill_shortcuts()
             { ctrl + "N", L("New Project") },
             { ctrl + "O", L("Open Project") },
             { ctrl + "S", L("Save Project") },
-            { ctrl + "Shift+S", L("Save Project as")},
+            { ctrl + shift + "S", L("Save Project as")},
             // File>Import
             { ctrl + "I", L("Import geometry data from STL/STEP/3MF/OBJ/AMF files") },
             // File>Export
@@ -180,12 +181,7 @@ void KBShortcutsDialog::fill_shortcuts()
             // Slice plate
             { ctrl + "R", L("Slice plate")},
             // Send to Print
-#ifdef __APPLE__
-            { L("⌘+Shift+G"), L("Print plate")},
-#else
-            { L("Ctrl+Shift+G"), L("Print plate")},
-#endif // __APPLE
-
+            { ctrl + shift + "G", L("Print plate")},
             // Edit
             { ctrl + "X", L("Cut") },
             { ctrl + "C", L("Copy to clipboard") },
@@ -194,13 +190,13 @@ void KBShortcutsDialog::fill_shortcuts()
             { ctrl + "P", L("Preferences") },
             //3D control
 #ifdef __APPLE__
-            { ctrl + "Shift+M", L("Show/Hide 3Dconnexion devices settings dialog") },
+            { ctrl + shift + "M", L("Show/Hide 3Dconnexion devices settings dialog") },
 #else
             { ctrl + "M", L("Show/Hide 3Dconnexion devices settings dialog") },
 #endif // __APPLE
 
             // Switch table page
-            { ctrl + "Tab", L("Switch table page")},
+            { ctrl + L("Tab"), L("Switch table page")},
             //DEL
             #ifdef __APPLE__
                 {"fn+⌫", L("Delete selected")},
@@ -211,34 +207,29 @@ void KBShortcutsDialog::fill_shortcuts()
             { "?", L("Show keyboard shortcuts list") }
         };
         m_full_shortcuts.push_back({{_L("Global shortcuts"), ""}, global_shortcuts});
+        
+        bool swap_mouse_buttons = wxGetApp().app_config->get_bool("swap_mouse_buttons");
 
         Shortcuts plater_shortcuts = {
-            { L("Left mouse button"), L("Rotate View") },
-            { L("Right mouse button"), L("Pan View") },
+            { L("Left mouse button"), swap_mouse_buttons ? L("Pan View") : L("Rotate View") },
+            { L("Right mouse button"), swap_mouse_buttons ? L("Rotate View") : L("Pan View") },
             { L("Mouse wheel"), L("Zoom View") },
             { "A", L("Arrange all objects") },
-            { L("Shift+A"), L("Arrange objects on selected plates") },
+            { shift + "A", L("Arrange objects on selected plates") },
 
             { "Q", L("Auto orients selected objects or all objects. If there are selected objects, it just orients the selected ones. Otherwise, it will orient all objects in the current project.") },
-            {L("Shift+Q"), L("Auto orients all objects on the active plate.")},
+            { shift + "Q", L("Auto orients all objects on the active plate.") },
 
-            {L("Shift+Tab"), L("Collapse/Expand the sidebar")},
-            #ifdef __APPLE__
-                {L("⌘+Any arrow"), L("Movement in camera space")},
-                {L("⌥+Left mouse button"), L("Select a part")},
-                {L("⌘+Left mouse button"), L("Select multiple objects")},
-            #else
-                {L("Ctrl+Any arrow"), L("Movement in camera space")},
-                {L("Alt+Left mouse button"), L("Select a part")},
-                {L("Ctrl+Left mouse button"), L("Select multiple objects")},
-
-            #endif
-            {L("Shift+Left mouse button"), L("Select objects by rectangle")},
+            {shift + L("Tab"), L("Collapse/Expand the sidebar")},
+            {ctrl + L("Any arrow"), L("Movement in camera space")},
+            {alt + L("Left mouse button"), L("Select a part")},
+            {ctrl + L("Left mouse button"), L("Select multiple objects")},
+            {shift + L("Left mouse button"), L("Select objects by rectangle")},
             {L("Arrow Up"), L("Move selection 10 mm in positive Y direction")},
             {L("Arrow Down"), L("Move selection 10 mm in negative Y direction")},
             {L("Arrow Left"), L("Move selection 10 mm in negative X direction")},
             {L("Arrow Right"), L("Move selection 10 mm in positive X direction")},
-            {L("Shift+Any arrow"), L("Movement step set to 1 mm")},
+            {shift + L("Any arrow"), L("Movement step set to 1 mm")},
             {L("Esc"), L("Deselect all")},
             {"1-9", L("keyboard 1-9: set filament for object/part")},
             {ctrl + "0", L("Camera view - Default")},
@@ -268,22 +259,16 @@ void KBShortcutsDialog::fill_shortcuts()
             { "E", L("Gizmo brim ears") },
             { "I", L("Zoom in") },
             { "O", L("Zoom out") },
-            { "G", L("Show/Hide Plate gridlines")},
-            { "Tab", L("Switch between Prepare/Preview") },
+            { L("Tab"), L("Switch between Prepare/Preview") },
 
         };
         m_full_shortcuts.push_back({ { _L("Plater"), "" }, plater_shortcuts });
 
         Shortcuts gizmos_shortcuts = {
             {L("Esc"), L("Deselect all")},
-            {L("Shift+"), L("Move: press to snap by 1mm")},
-            #ifdef __APPLE__
-                {L("⌘+Mouse wheel"), L("Support/Color Painting: adjust pen radius")},
-                {L("⌥+Mouse wheel"), L("Support/Color Painting: adjust section position")},
-            #else
-		        {L("Ctrl+Mouse wheel"), L("Support/Color Painting: adjust pen radius")},
-                {L("Alt+Mouse wheel"), L("Support/Color Painting: adjust section position")},
-            #endif
+            {shift, L("Move: press to snap by 1mm")},
+            {ctrl + L("Mouse wheel"), L("Support/Color Painting: adjust pen radius")},
+            {alt + L("Mouse wheel"), L("Support/Color Painting: adjust section position")},
         };
         m_full_shortcuts.push_back({{_L("Gizmo"), ""}, gizmos_shortcuts});
 
@@ -311,16 +296,11 @@ void KBShortcutsDialog::fill_shortcuts()
         { L("Arrow Right"), L("Horizontal slider - Move active thumb Right")},
         { "L", L("On/Off one layer mode of the vertical slider")},
         { "C", L("On/Off G-code window")},
-        { "Tab", L("Switch between Prepare/Preview") },
-        {L("Shift+Any arrow"), L("Move slider 5x faster")},
-        {L("Shift+Mouse wheel"), L("Move slider 5x faster")},
-        #ifdef __APPLE__
-            {L("⌘+Any arrow"), L("Move slider 5x faster")},
-            {L("⌘+Mouse wheel"), L("Move slider 5x faster")},
-        #else
-		    {L("Ctrl+Any arrow"), L("Move slider 5x faster")},
-		    {L("Ctrl+Mouse wheel"), L("Move slider 5x faster")},
-       #endif
+        { L("Tab"), L("Switch between Prepare/Preview")},
+        {shift + L("Any arrow"), L("Move slider 5x faster")},
+        {shift + L("Mouse wheel"), L("Move slider 5x faster")},
+        {ctrl + L("Any arrow"), L("Move slider 5x faster")},
+        {ctrl + L("Mouse wheel"), L("Move slider 5x faster")},
         { L("Home"),        L("Horizontal slider - Move to start position")},
         { L("End"),         L("Horizontal slider - Move to last position")},
     };

@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "m1_p003",
     "name": "0.16mm Optimal @M1",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_M1_common",
+    "from": "system",
+    "setting_id": "m1_p003",
+    "instantiation": "true",
     "bottom_shell_layers": "4",
     "top_shell_layers": "5",
     "support_top_z_distance": "0.16",

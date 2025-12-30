@@ -1,11 +1,11 @@
 {
-  "type": "machine_model",
-  "machine_tech": "FFF",
-  "family": "Snapmaker",
-  "name": "Snapmaker A250 QSKit",
-  "url": "https://github.com/macdylan",
-  "model_id": "3817522582",
-  "bed_model": "Snapmaker A250_bed.stl",
-  "bed_texture": "Snapmaker A250_texture.svg",
-  "nozzle_diameter": "0.2;0.4;0.6;0.8"
+    "type": "machine_model",
+    "name": "Snapmaker A250 QSKit",
+    "machine_tech": "FFF",
+    "family": "Snapmaker",
+    "url": "https://github.com/macdylan",
+    "model_id": "3817522582",
+    "bed_model": "Snapmaker A250_bed.stl",
+    "bed_texture": "Snapmaker A250_texture.svg",
+    "nozzle_diameter": "0.2;0.4;0.6;0.8"
 }

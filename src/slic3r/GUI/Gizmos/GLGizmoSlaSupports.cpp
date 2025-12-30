@@ -1175,9 +1175,10 @@ SlaGizmoHelpDialog::SlaGizmoHelpDialog()
 : wxDialog(nullptr, wxID_ANY, _L("SLA gizmo keyboard shortcuts"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER)
 {
     SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+
     const wxString ctrl = GUI::shortkey_ctrl_prefix();
     const wxString alt  = GUI::shortkey_alt_prefix();
-
+    const wxString shift = _L("Shift+");
 
     // fonts
     const wxFont& font = wxGetApp().small_font();
@@ -1206,14 +1207,14 @@ SlaGizmoHelpDialog::SlaGizmoHelpDialog()
     shortcuts.push_back(std::make_pair(_L("Drag"),                    _L("Move point")));
     shortcuts.push_back(std::make_pair(ctrl+_L("Left click"),         _L("Add point to selection")));
     shortcuts.push_back(std::make_pair(alt+_L("Left click"),          _L("Remove point from selection")));
-    shortcuts.push_back(std::make_pair(wxString("Shift+")+_L("Drag"), _L("Select by rectangle")));
+    shortcuts.push_back(std::make_pair(shift+_L("Drag"),              _L("Select by rectangle")));
     shortcuts.push_back(std::make_pair(alt+_(L("Drag")),              _L("Deselect by rectangle")));
     shortcuts.push_back(std::make_pair(ctrl+"A",                      _L("Select all points")));
-    shortcuts.push_back(std::make_pair("Delete",                      _L("Remove selected points")));
+    shortcuts.push_back(std::make_pair(_L"Del",                       _L("Remove selected points")));
     shortcuts.push_back(std::make_pair(ctrl+_L("Mouse wheel"),        _L("Move clipping plane")));
     shortcuts.push_back(std::make_pair("R",                           _L("Reset clipping plane")));
-    shortcuts.push_back(std::make_pair("Enter",                       _L("Apply changes")));
-    shortcuts.push_back(std::make_pair("Esc",                         _L("Discard changes")));
+    shortcuts.push_back(std::make_pair(_L("Enter"),                   _L("Apply changes")));
+    shortcuts.push_back(std::make_pair(_L("Esc"),                     _L("Discard changes")));
     shortcuts.push_back(std::make_pair("M",                           _L("Switch to editing mode")));
     shortcuts.push_back(std::make_pair("A",                           _L("Auto-generate points")));
 

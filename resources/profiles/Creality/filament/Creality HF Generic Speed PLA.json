@@ -1,27 +1,33 @@
 {
-	"type": "filament",
-	"filament_id": "GFL99",
-	"setting_id": "GFSA04",
-	"name": "Creality HF Generic Speed PLA",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_filament_pla",
-	"filament_flow_ratio": ["0.98"],
-	"filament_max_volumetric_speed": ["23"],
-	"slow_down_layer_time": ["5"],
+    "type": "filament",
+    "name": "Creality HF Generic Speed PLA",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "23"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
     "slow_down_min_speed": [
         "20"
     ],
-	"compatible_printers": [
-		"Creality K1 (0.4 nozzle)",
-		"Creality K1 (0.6 nozzle)",
-		"Creality K1 (0.8 nozzle)",
-		"Creality K1 Max (0.4 nozzle)",
-		"Creality K1 Max (0.6 nozzle)",
-		"Creality K1 Max (0.8 nozzle)",
-		"Creality CR-10 SE 0.2 nozzle",
-		"Creality CR-10 SE 0.4 nozzle",
-		"Creality CR-10 SE 0.6 nozzle",
-		"Creality CR-10 SE 0.8 nozzle"
-	]
+    "compatible_printers": [
+        "Creality K1 (0.4 nozzle)",
+        "Creality K1 (0.6 nozzle)",
+        "Creality K1 (0.8 nozzle)",
+        "Creality K1 Max (0.4 nozzle)",
+        "Creality K1 Max (0.6 nozzle)",
+        "Creality K1 Max (0.8 nozzle)",
+        "Creality CR-10 SE 0.2 nozzle",
+        "Creality CR-10 SE 0.4 nozzle",
+        "Creality CR-10 SE 0.6 nozzle",
+        "Creality CR-10 SE 0.8 nozzle"
+    ]
 }

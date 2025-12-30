@@ -3,9 +3,9 @@
     "name": "Z-Bolt PA",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "instantiation": "true",
-    "filament_id": "GFL103",
     "setting_id": "GFSL103",
+    "filament_id": "GFL103",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "10"
     ],

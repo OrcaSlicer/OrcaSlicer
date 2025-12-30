@@ -1,6 +1,6 @@
 {
     "name": "BIQU",
-    "version":  "02.03.00.03",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "BIQU configurations",
     "machine_model_list": [
@@ -27,44 +27,44 @@
             "sub_path": "process/fdm_process_biqu_common.json"
         },
         {
-            "name": "fdm_process_hurakan_common",
-            "sub_path": "process/fdm_process_hurakan_common.json"
+            "name": "0.12mm Fine @BIQU B1 (0.4 nozzle)",
+            "sub_path": "process/0.12mm Fine @BIQU B1 (0.4 nozzle).json"
         },
         {
             "name": "0.12mm Fine @BIQU BX (0.4 nozzle)",
             "sub_path": "process/0.12mm Fine @BIQU BX (0.4 nozzle).json"
         },
         {
-            "name": "0.15mm Optimal @BIQU BX (0.4 nozzle)",
-            "sub_path": "process/0.15mm Optimal @BIQU BX (0.4 nozzle).json"
-        },
-        {
-            "name": "0.20mm Standard @BIQU BX (0.4 nozzle)",
-            "sub_path": "process/0.20mm Standard @BIQU BX (0.4 nozzle).json"
-        },
-        {
-            "name": "0.24mm Draft @BIQU BX (0.4 nozzle)",
-            "sub_path": "process/0.24mm Draft @BIQU BX (0.4 nozzle).json"
-        },
-        {
-            "name": "0.12mm Fine @BIQU B1 (0.4 nozzle)",
-            "sub_path": "process/0.12mm Fine @BIQU B1 (0.4 nozzle).json"
+            "name": "0.12mm Fine @BIQU Hurakan (0.4 nozzle)",
+            "sub_path": "process/0.12mm Fine @BIQU Hurakan (0.4 nozzle).json"
         },
         {
             "name": "0.15mm Optimal @BIQU B1 (0.4 nozzle)",
             "sub_path": "process/0.15mm Optimal @BIQU B1 (0.4 nozzle).json"
         },
         {
+            "name": "0.15mm Optimal @BIQU BX (0.4 nozzle)",
+            "sub_path": "process/0.15mm Optimal @BIQU BX (0.4 nozzle).json"
+        },
+        {
             "name": "0.20mm Standard @BIQU B1 (0.4 nozzle)",
             "sub_path": "process/0.20mm Standard @BIQU B1 (0.4 nozzle).json"
+        },
+        {
+            "name": "0.20mm Standard @BIQU BX (0.4 nozzle)",
+            "sub_path": "process/0.20mm Standard @BIQU BX (0.4 nozzle).json"
         },
         {
             "name": "0.24mm Draft @BIQU B1 (0.4 nozzle)",
             "sub_path": "process/0.24mm Draft @BIQU B1 (0.4 nozzle).json"
         },
         {
-            "name": "0.12mm Fine @BIQU Hurakan (0.4 nozzle)",
-            "sub_path": "process/0.12mm Fine @BIQU Hurakan (0.4 nozzle).json"
+            "name": "0.24mm Draft @BIQU BX (0.4 nozzle)",
+            "sub_path": "process/0.24mm Draft @BIQU BX (0.4 nozzle).json"
+        },
+        {
+            "name": "fdm_process_hurakan_common",
+            "sub_path": "process/fdm_process_hurakan_common.json"
         },
         {
             "name": "0.15mm Optimal @BIQU Hurakan (0.4 nozzle)",
@@ -94,12 +94,12 @@
             "sub_path": "machine/fdm_klipper_common.json"
         },
         {
-            "name": "BIQU BX (0.4 nozzle)",
-            "sub_path": "machine/BIQU BX (0.4 nozzle).json"
-        },
-        {
             "name": "BIQU B1 (0.4 nozzle)",
             "sub_path": "machine/BIQU B1 (0.4 nozzle).json"
+        },
+        {
+            "name": "BIQU BX (0.4 nozzle)",
+            "sub_path": "machine/BIQU BX (0.4 nozzle).json"
         },
         {
             "name": "BIQU Hurakan (0.4 nozzle)",

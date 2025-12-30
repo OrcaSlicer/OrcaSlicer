@@ -1189,28 +1189,36 @@ void Selection::translate(const Vec3d &displacement, TransformationType transfor
         } else {
             if (v.is_wipe_tower) {//in world cs
                 int           plate_idx           = v.object_idx() - 1000;
-                BoundingBoxf3 plate_bbox          = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->get_bounding_box();
+                BoundingBoxf3 plate_bbox = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->get_build_volume(true);
+                BoundingBox   plate_bbox2d        = BoundingBox(scaled(Vec2f(plate_bbox.min[0], plate_bbox.min[1])), scaled(Vec2f(plate_bbox.max[0], plate_bbox.max[1])));
                 Vec3d         tower_size          = v.bounding_box().size();
                 Vec3d         tower_origin        = m_cache.volumes_data[i].get_volume_position();
                 Vec3d         actual_displacement = displacement;
-                const double  margin              = WIPE_TOWER_MARGIN;
+                bool show_read_wipe_tower = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->fff_print()->is_step_done(psWipeTower);
+                float brim_width = wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_float("prime_tower_brim_width");
+
+                const double margin = show_read_wipe_tower ? WIPE_TOWER_MARGIN : brim_width + 0.5; // 0.5 is the line width of wipe tower
 
                 actual_displacement = (m_cache.volumes_data[i].get_instance_rotation_matrix() * m_cache.volumes_data[i].get_instance_scale_matrix() *
                                         m_cache.volumes_data[i].get_instance_mirror_matrix())
                                             .inverse() *
                                         displacement;
-                if (tower_origin(0) + actual_displacement(0) - margin < plate_bbox.min(0)) {
-                    actual_displacement(0) = plate_bbox.min(0) - tower_origin(0) + margin;
-                } else if (tower_origin(0) + actual_displacement(0) + tower_size(0) + margin > plate_bbox.max(0)) {
-                    actual_displacement(0) = plate_bbox.max(0) - tower_origin(0) - tower_size(0) - margin;
-                }
+                BoundingBoxf3 tower_bbox = v.bounding_box();
+                tower_bbox.translate(actual_displacement + tower_origin);
+                BoundingBox   tower_bbox2d = BoundingBox(scaled(Vec2f(tower_bbox.min[0], tower_bbox.min[1])), scaled(Vec2f(tower_bbox.max[0], tower_bbox.max[1])));
+                Vec2f offset = WipeTower::move_box_inside_box(tower_bbox2d, plate_bbox2d,scaled(margin));
+                //if (tower_origin(0) + actual_displacement(0) - margin < plate_bbox.min(0)) {
+                //    actual_displacement(0) = plate_bbox.min(0) - tower_origin(0) + margin;
+                //} else if (tower_origin(0) + actual_displacement(0) + tower_size(0) + margin > plate_bbox.max(0)) {
+                //    actual_displacement(0) = plate_bbox.max(0) - tower_origin(0) - tower_size(0) - margin;
+                //}
 
-                if (tower_origin(1) + actual_displacement(1) - margin < plate_bbox.min(1)) {
-                    actual_displacement(1) = plate_bbox.min(1) - tower_origin(1) + margin;
-                } else if (tower_origin(1) + actual_displacement(1) + tower_size(1) + margin > plate_bbox.max(1)) {
-                    actual_displacement(1) = plate_bbox.max(1) - tower_origin(1) - tower_size(1) - margin;
-                }
-
+                //if (tower_origin(1) + actual_displacement(1) - margin < plate_bbox.min(1)) {
+                //    actual_displacement(1) = plate_bbox.min(1) - tower_origin(1) + margin;
+                //} else if (tower_origin(1) + actual_displacement(1) + tower_size(1) + margin > plate_bbox.max(1)) {
+                //    actual_displacement(1) = plate_bbox.max(1) - tower_origin(1) - tower_size(1) - margin;
+                //}
+                actual_displacement += Vec3d(offset[0], offset[1],0);
                 v.set_volume_offset(m_cache.volumes_data[i].get_volume_position() + actual_displacement);
             }
             else if (transformation_type.local() && transformation_type.absolute()) {

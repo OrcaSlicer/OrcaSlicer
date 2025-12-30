@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "OGFN99",
-    "setting_id": "OGFSA04",
     "name": "Generic PA @System",
-    "from": "system",
-    "instantiation": "true",
     "renamed_from": "My Generic PA",
     "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "OGFSA04",
+    "filament_id": "OGFN99",
+    "instantiation": "true",
     "compatible_printers": []
 }

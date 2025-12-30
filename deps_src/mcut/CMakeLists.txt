@@ -176,7 +176,7 @@ function(create_library_target LIBRARY_TYPE)
 	
 	add_library(${target_name} ${LIBRARY_TYPE} ${project_source_files})
 
-	target_include_directories(${target_name} PRIVATE ${include_dirs})
+        target_include_directories(${target_name} SYSTEM PRIVATE ${include_dirs})
 	target_link_libraries(${target_name} PRIVATE ${extra_libs})
 	target_compile_options(${target_name} PRIVATE ${compilation_flags})
 	target_compile_definitions(${target_name} PRIVATE ${preprocessor_defs} )

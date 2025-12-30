@@ -1,12 +1,10 @@
 {
-	
-	"type": "process",
-    "setting_id": "GP004",
+    "type": "process",
     "name": "0.08mm Extra Fine @FlyingBear S1",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_process_common_S1",
-	
+    "inherits": "fdm_process_common_S1",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "inner_wall_acceleration": "3000",
     "bottom_shell_layers": "7",
     "overhang_1_4_speed": "30",
@@ -26,10 +24,7 @@
     "sparse_infill_speed": "150",
     "exclude_object": "1",
     "internal_bridge_speed": "50",
-	"compatible_printers": [
+    "compatible_printers": [
         "FlyingBear S1 0.4 nozzle"
     ]
-
-
-
 }

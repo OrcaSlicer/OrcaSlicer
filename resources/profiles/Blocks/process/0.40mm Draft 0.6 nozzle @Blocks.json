@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.40mm Draft 0.6 nozzle @Blocks",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_common 0.6 nozzle",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "bottom_shell_layers": "2",
     "top_shell_layers": "2",
     "layer_height": "0.40",

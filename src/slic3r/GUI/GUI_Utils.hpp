@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <boost/optional.hpp>
+#include <boost/log/trivial.hpp>
 
 #include <wx/frame.h>
 #include <wx/dialog.h>
@@ -31,7 +32,8 @@ class wxTopLevelWindow;
 class wxRect;
 
 #define wxVERSION_EQUAL_OR_GREATER_THAN(major, minor, release) ((wxMAJOR_VERSION > major) || ((wxMAJOR_VERSION == major) && (wxMINOR_VERSION > minor)) || ((wxMAJOR_VERSION == major) && (wxMINOR_VERSION == minor) && (wxRELEASE_NUMBER >= release)))
-
+#define ICON_SINGLE_SIZE FromDIP(16)//don't change,if need new value,self create in cpp
+#define ICON_SIZE wxSize(FromDIP(16), FromDIP(16))//don't change,if need new value,self create in cpp
 namespace Slic3r {
 namespace GUI {
 
@@ -186,7 +188,7 @@ public:
                 on_sys_color_changed();
                 event.Skip();
 #endif // __WINDOWS__
-                
+
         });
 
         if (std::is_same<wxDialog, P>::value) {
@@ -220,7 +222,7 @@ public:
         on_sys_color_changed();
     }
 #endif
-    
+
     int ShowModal()
     {
         dialogStack.push_front(this);
@@ -319,7 +321,26 @@ private:
 };
 
 typedef DPIAware<wxFrame> DPIFrame;
-typedef DPIAware<wxDialog> DPIDialog;
+class DPIDialog : public DPIAware<wxDialog>
+{
+public:
+    using DPIAware<wxDialog>::DPIAware;
+
+public:
+    void EndModal(int retCode) override
+    {
+        if (!dialogStack.empty() && dialogStack.front() != this) {
+            // This is a bug in wxWidgets
+            // when the dialog is not top modal dialog, EndModal() just hide dialog without quit 
+            // the modal event loop. And the modal event loop blocks us from bottom widgets.
+            // Solution: let user click it manually or close outside. FIXME
+            BOOST_LOG_TRIVIAL(warning) << "DPIAware::EndModal Error: dialogStack is not empty, but top dialog is not this one. retCode=" << retCode;
+            return;
+        }
+
+        return wxDialog::EndModal(retCode);
+    }
+};
 
 
 class EventGuard

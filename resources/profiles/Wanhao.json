@@ -1,6 +1,6 @@
 {
     "name": "Wanhao",
-    "version":  "02.03.00.03",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Wanhao configurations",
     "machine_model_list": [
@@ -19,7 +19,7 @@
             "sub_path": "process/fdm_process_wanhao_common.json"
         },
         {
-            "name": "0.12mm Fine @Wanhao D12-300",
+            "name": "0.12mm Fine @Wanhao D12-400",
             "sub_path": "process/0.12mm Fine @Wanhao D12-300.json"
         },
         {

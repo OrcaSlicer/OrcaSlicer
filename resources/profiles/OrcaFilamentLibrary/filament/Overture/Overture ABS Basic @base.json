@@ -1,11 +1,11 @@
 {
-	"type": "filament",
+    "type": "filament",
     "name": "Overture ABS Basic @base",
     "inherits": "fdm_filament_abs",
     "from": "system",
     "filament_id": "OVTABS08",
     "instantiation": "false",
-	"description": "Overture ABS settings from https://overture3d.com/.",
+    "description": "Overture ABS settings from https://overture3d.com/.",
     "activate_air_filtration": [
         "1"
     ],
@@ -122,7 +122,7 @@
         "ABS"
     ],
     "filament_vendor": [
-        "OVERTURE"
+        "Overture"
     ],
     "filament_wipe": [
         "nil"
@@ -145,7 +145,6 @@
     "hot_plate_temp_initial_layer": [
         "90"
     ],
-    "is_custom_defined": "0",
     "nozzle_temperature": [
         "260"
     ],
@@ -190,6 +189,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "90"
-    ],
-    "version": "1.9.0.14"
+    ]
 }

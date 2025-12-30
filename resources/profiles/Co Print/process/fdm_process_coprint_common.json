@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "fdm_process_coprint_common",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_process_common",
     "adaptive_layer_height": "0",
     "reduce_crossing_wall": "1",
     "bridge_flow": "0.9031",
@@ -65,7 +65,7 @@
     "support_top_z_distance": "0.2",
     "support_interface_loop_pattern": "0",
     "support_interface_top_layers": "2",
-	"support_interface_bottom_layers": "-1",
+    "support_interface_bottom_layers": "-1",
     "support_interface_spacing": "0.5",
     "support_interface_speed": "200",
     "support_base_pattern": "rectilinear",
@@ -84,7 +84,7 @@
     "resolution": "0.012",
     "wall_generator": "arachne",
     "wall_sequence": "inner wall/outer wall",
-	"wipe_tower_max_purge_speed": "150",
+    "wipe_tower_max_purge_speed": "150",
     "print_flow_ratio": "1",
     "internal_bridge_flow": "0.9031",
     "gap_fill_target": "nowhere",
@@ -109,8 +109,7 @@
     "accel_to_decel_enable": "1",
     "accel_to_decel": "50%",
     "infill_anchor": "400%",
-	"infill_anchor_max": "20",
+    "infill_anchor_max": "20",
     "top_shell_thickness": "1",
     "initial_layer_acceleration": "1500"
 }
-

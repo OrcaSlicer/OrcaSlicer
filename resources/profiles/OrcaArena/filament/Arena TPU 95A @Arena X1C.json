@@ -1,16 +1,16 @@
 {
     "type": "filament",
-    "setting_id": "GFSU00",
     "name": "Arena TPU 95A @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Arena TPU 95A @base",
+    "from": "system",
+    "setting_id": "GFSU00",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "3.6"
     ],
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 Carbon 0.6 nozzle",
-      "Orca Arena X1 Carbon 0.8 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 Carbon 0.6 nozzle",
+        "Orca Arena X1 Carbon 0.8 nozzle"
     ]
 }

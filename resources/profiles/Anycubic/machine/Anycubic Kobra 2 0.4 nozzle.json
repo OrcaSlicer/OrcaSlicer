@@ -1,114 +1,114 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Anycubic Kobra 2 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_machine_common",
-	"printer_model": "Anycubic Kobra 2",
-	"default_print_profile": "0.20mm Standard @Anycubic Kobra2",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"220x0",
-		"220x220",
-		"0x220"
-	],
-	"printable_height": "250",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	"machine_max_acceleration_extruding": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_retracting": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_travel": [
-		"3000",
-		"1250"
-	],
-	"machine_max_acceleration_x": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_y": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_z": [
-		"800",
-		"800"
-	],
-	"machine_max_speed_e": [
-		"80",
-		"80"
-	],
-	"machine_max_speed_x": [
-		"300",
-		"300"
-	],
-	"machine_max_speed_y": [
-		"250",
-		"250"
-	],
-	"machine_max_speed_z": [
-		"8",
-		"8"
-	],
-	"machine_max_jerk_e": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_x": [
-		"15",
-		"15"
-	],
-	"machine_max_jerk_y": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_z": [
-		"2",
-		"2"
-	],
-	"max_layer_height": [
-		"0.32"
-	],
-	"min_layer_height": [
-		"0.04"
-	],
-	"printer_settings_id": "Anycubic",
-	"retraction_minimum_travel": [
-		"1"
-	],
-	"retract_before_wipe": [
-		"70%"
-	],
-	"retraction_length": [
-		"2"
-	],
-	"retract_length_toolchange": [
-		"1"
-	],
-	"retraction_speed": [
-		"80"
-	],
-	"deretraction_speed": [
-		"80"
-	],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "M600",
-	"machine_pause_gcode": "M601",
-	"default_filament_profile": [
-		"Anycubic Generic PLA"
-	],
-	"machine_start_gcode": "G90 ;Use absolute coordinates\nM83 ;Extruder relative mode\nM104 S[first_layer_temperature] ;Set extruder temp\nM140 S[first_layer_bed_temperature] ;Set bed temp\nM190 S[first_layer_bed_temperature] ;Wait for bed temp\nM109 S[first_layer_temperature] ;Wait for extruder temp\nG28 ;Move X/Y/Z to min endstops\nG1 Z0.28 ;Lift nozzle a bit\nG92 E0 ;Specify current extruder position as zero\nG1 Y3 F1800 ;Move Y to purge point\nG1 X60 E25 F500 ;Extrude 25mm of filament in a 5cm line\nG92 E0 ;Zero the extruded length again\nG1 E-2 F500 ;Retract a little\nG1 X70 F4000 ;Quickly wipe away from the filament line\nM117",
-	"machine_end_gcode": "M104 S0 ;Extruder off\nM140 S0 ;Heatbed off\nM107 ;Fan off\nG91 ;Relative positioning\nG1 E-5 F3000 ;Retract filament\nG1 Z+0.3 F3000 ;Lift print head\nG28 X0 F3000 ;Home X axis\nM84 ;Disable stepper motors",
-	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n[layer_num] @ [layer_z]mm/nG92 E0",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n[layer_num] @ [layer_z]mm",
-	"scan_first_layer": "0"
+    "type": "machine",
+    "name": "Anycubic Kobra 2 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Anycubic Kobra 2",
+    "default_print_profile": "0.20mm Standard @Anycubic Kobra2",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "250",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_extruding": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_travel": [
+        "3000",
+        "1250"
+    ],
+    "machine_max_acceleration_x": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_y": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_z": [
+        "800",
+        "800"
+    ],
+    "machine_max_speed_e": [
+        "80",
+        "80"
+    ],
+    "machine_max_speed_x": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_y": [
+        "250",
+        "250"
+    ],
+    "machine_max_speed_z": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_e": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_x": [
+        "15",
+        "15"
+    ],
+    "machine_max_jerk_y": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "2",
+        "2"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.04"
+    ],
+    "printer_settings_id": "Anycubic",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retraction_length": [
+        "2"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "retraction_speed": [
+        "80"
+    ],
+    "deretraction_speed": [
+        "80"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "M601",
+    "default_filament_profile": [
+        "Anycubic Generic PLA"
+    ],
+    "machine_start_gcode": "G90 ;Use absolute coordinates\nM83 ;Extruder relative mode\nM104 S[first_layer_temperature] ;Set extruder temp\nM140 S[first_layer_bed_temperature] ;Set bed temp\nM190 S[first_layer_bed_temperature] ;Wait for bed temp\nM109 S[first_layer_temperature] ;Wait for extruder temp\nG28 ;Move X/Y/Z to min endstops\nG1 Z0.28 ;Lift nozzle a bit\nG92 E0 ;Specify current extruder position as zero\nG1 Y3 F1800 ;Move Y to purge point\nG1 X60 E25 F500 ;Extrude 25mm of filament in a 5cm line\nG92 E0 ;Zero the extruded length again\nG1 E-2 F500 ;Retract a little\nG1 X70 F4000 ;Quickly wipe away from the filament line\nM117",
+    "machine_end_gcode": "M104 S0 ;Extruder off\nM140 S0 ;Heatbed off\nM107 ;Fan off\nG91 ;Relative positioning\nG1 E-5 F3000 ;Retract filament\nG1 Z+0.3 F3000 ;Lift print head\nG28 X0 F3000 ;Home X axis\nM84 ;Disable stepper motors",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n[layer_num] @ [layer_z]mm\nG92 E0",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n[layer_num] @ [layer_z]mm",
+    "scan_first_layer": "0"
 }

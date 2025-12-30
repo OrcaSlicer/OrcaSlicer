@@ -1,12 +1,15 @@
 {
     "type": "filament",
-    "filament_id": "GFB99",
-    "setting_id": "GFSA04",
     "name": "QIDI ASA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_asa",
-	"filament_max_volumetric_speed": [
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_type": [
+        "ASA"
+    ],
+    "filament_max_volumetric_speed": [
         "16"
     ],
     "filament_flow_ratio": [
@@ -14,50 +17,50 @@
     ],
     "nozzle_temperature_initial_layer": [
         "250"
-      ],
-      "nozzle_temperature": [
+    ],
+    "nozzle_temperature": [
         "270"
-      ],
-      "cool_plate_temp" : [
+    ],
+    "cool_plate_temp": [
         "90"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "90"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "90"
     ],
-    "textured_plate_temp" : [
+    "textured_plate_temp": [
         "90"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "90"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "90"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "90"
     ],
-    "textured_plate_temp_initial_layer" : [
+    "textured_plate_temp_initial_layer": [
         "90"
-    ],  
-      "enable_pressure_advance": [
+    ],
+    "enable_pressure_advance": [
         "1"
     ],
     "pressure_advance": [
         "0.021"
     ],
-    "fan_max_speed":[
+    "fan_max_speed": [
         "50"
     ],
-    "fan_min_speed":[
+    "fan_min_speed": [
         "10"
     ],
     "overhang_fan_speed": [
         "80"
     ],
-    "filament_density":[
+    "filament_density": [
         "1.07"
     ],
     "chamber_temperature": [
@@ -69,28 +72,27 @@
     "fan_cooling_layer_time": [
         "40"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.2 nozzle",
         "Qidi X-Max 0.2 nozzle",
         "Qidi X-CF Pro 0.2 nozzle",
         "Qidi X-Plus 0.4 nozzle",
         "Qidi X-Max 0.4 nozzle",
         "Qidi X-CF Pro 0.4 nozzle",
-		"Qidi X-Smart 3 0.4 nozzle",
-		"Qidi X-Plus 3 0.4 nozzle",
-		"Qidi X-Max 3 0.4 nozzle",
+        "Qidi X-Smart 3 0.4 nozzle",
+        "Qidi X-Plus 3 0.4 nozzle",
+        "Qidi X-Max 3 0.4 nozzle",
         "Qidi X-Plus 0.6 nozzle",
         "Qidi X-Max 0.6 nozzle",
         "Qidi X-CF Pro 0.6 nozzle",
-		"Qidi X-Smart 3 0.6 nozzle",
-		"Qidi X-Plus 3 0.6 nozzle",
-		"Qidi X-Max 3 0.6 nozzle",
+        "Qidi X-Smart 3 0.6 nozzle",
+        "Qidi X-Plus 3 0.6 nozzle",
+        "Qidi X-Max 3 0.6 nozzle",
         "Qidi X-Plus 0.8 nozzle",
         "Qidi X-Max 0.8 nozzle",
         "Qidi X-CF Pro 0.8 nozzle",
-		"Qidi X-Smart 3 0.8 nozzle",
-		"Qidi X-Plus 3 0.8 nozzle",
-		"Qidi X-Max 3 0.8 nozzle"
-        
-	]
+        "Qidi X-Smart 3 0.8 nozzle",
+        "Qidi X-Plus 3 0.8 nozzle",
+        "Qidi X-Max 3 0.8 nozzle"
+    ]
 }

@@ -1,21 +1,21 @@
 {
-  "name": "Snapmaker A250 Dual QS+B Kit (0.2 nozzle)",
-  "setting_id": "1173309402",
-  "type": "machine",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_a250_dual_qs_bk",
-  "printer_model": "Snapmaker A250 Dual QS+B Kit",
-  "default_print_profile": "0.14 Standard @Snapmaker (0.2 nozzle)",
-  "printer_variant": "0.2",
-  "max_layer_height": [
-    "0.14"
-  ],
-  "min_layer_height": [
-    "0.06"
-  ],
-  "nozzle_diameter": [
-    "0.2",
-    "0.2"
-  ]
+    "type": "machine",
+    "name": "Snapmaker A250 Dual QS+B Kit (0.2 nozzle)",
+    "inherits": "fdm_a250_dual_qs_bk",
+    "from": "system",
+    "setting_id": "1173309402",
+    "instantiation": "true",
+    "printer_model": "Snapmaker A250 Dual QS+B Kit",
+    "default_print_profile": "0.14 Standard @Snapmaker (0.2 nozzle)",
+    "printer_variant": "0.2",
+    "max_layer_height": [
+        "0.14"
+    ],
+    "min_layer_height": [
+        "0.06"
+    ],
+    "nozzle_diameter": [
+        "0.2",
+        "0.2"
+    ]
 }

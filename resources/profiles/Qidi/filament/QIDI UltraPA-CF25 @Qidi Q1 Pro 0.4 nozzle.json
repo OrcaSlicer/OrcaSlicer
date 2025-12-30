@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "QIDI UltraPA-CF25 @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "QIDI UltraPA-CF25",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "fan_max_speed": [
         "40"
     ],
@@ -11,10 +15,6 @@
     "filament_settings_id": [
         "QIDI UltraPA-CF25 @Qidi Q1 Pro 0.4 nozzle"
     ],
-    "from": "system",
-    "inherits": "QIDI UltraPA-CF25",
-    "is_custom_defined": "0",
-    "name": "QIDI UltraPA-CF25 @Qidi Q1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "300"
     ],
@@ -31,6 +31,6 @@
         "20"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.4 nozzle"
-        ]
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
 }

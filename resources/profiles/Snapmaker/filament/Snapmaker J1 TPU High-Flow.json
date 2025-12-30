@@ -1,31 +1,31 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 TPU High-Flow",
-  "setting_id": "4255325782",
-  "inherits": "Snapmaker J1 TPU @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)",
-    "Snapmaker J1 (0.6 nozzle)",
-    "Snapmaker J1 (0.8 nozzle)"
-  ],
-  "filament_flow_ratio": [
-    "0.983"
-  ],
-  "filament_deretraction_speed": [
-    "nil"
-  ],
-  "filament_max_volumetric_speed": [
-    "7.6"
-  ],
-  "filament_retraction_length": [
-    "0.8"
-  ],
-  "filament_retraction_speed": [
-    "nil"
-  ],
-  "filament_notes": [
-    "!! It needs to be dried before use.\nSnapmaker TPU 95A High-Flow\n"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 TPU High-Flow",
+    "inherits": "Snapmaker J1 TPU @base",
+    "from": "system",
+    "setting_id": "4255325782",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)",
+        "Snapmaker J1 (0.6 nozzle)",
+        "Snapmaker J1 (0.8 nozzle)"
+    ],
+    "filament_flow_ratio": [
+        "0.983"
+    ],
+    "filament_deretraction_speed": [
+        "nil"
+    ],
+    "filament_max_volumetric_speed": [
+        "7.6"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "filament_retraction_speed": [
+        "nil"
+    ],
+    "filament_notes": [
+        "!! It needs to be dried before use.\nSnapmaker TPU 95A High-Flow\n"
+    ]
 }

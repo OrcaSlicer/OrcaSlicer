@@ -3,10 +3,10 @@
     "name": "Z-Bolt ABS HT",
     "inherits": "fdm_filament_abs",
     "from": "system",
+    "setting_id": "GFSL105",
+    "filament_id": "GFL105",
     "instantiation": "true",
     "description": "Use this filament profile to print big ABS models with chamber heating",
-    "filament_id": "GFL105",
-    "setting_id": "GFSL105",
     "filament_max_volumetric_speed": [
         "15"
     ],

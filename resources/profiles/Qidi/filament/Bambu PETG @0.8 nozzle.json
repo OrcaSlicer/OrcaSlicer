@@ -1,12 +1,12 @@
 {
     "type": "filament",
-	"filament_id": "GFG99",
-    "setting_id": "GFSG99",
     "name": "Bambu PETG @0.8 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Bambu PETG",
-	"reduce_fan_stop_start_freq": [
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
         "1"
     ],
     "slow_down_for_layer_cooling": [
@@ -45,12 +45,12 @@
     "fan_min_speed": [
         "10"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.8 nozzle",
         "Qidi X-Max 0.8 nozzle",
         "Qidi X-CF Pro 0.8 nozzle",
-		"Qidi X-Smart 3 0.8 nozzle",
-		"Qidi X-Plus 3 0.8 nozzle",
-		"Qidi X-Max 3 0.8 nozzle"
-	]
+        "Qidi X-Smart 3 0.8 nozzle",
+        "Qidi X-Plus 3 0.8 nozzle",
+        "Qidi X-Max 3 0.8 nozzle"
+    ]
 }

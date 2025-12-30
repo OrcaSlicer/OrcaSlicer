@@ -3,9 +3,9 @@
     "name": "Z-Bolt PETG",
     "inherits": "fdm_filament_pet",
     "from": "system",
+    "setting_id": "GFSL102",
     "filament_id": "GFL102",
     "instantiation": "true",
-    "setting_id": "GFSL102",
     "fan_cooling_layer_time": [
         "30"
     ],

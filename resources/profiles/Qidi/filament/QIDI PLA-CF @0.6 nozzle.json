@@ -1,20 +1,20 @@
 {
     "type": "filament",
-    "filament_id": "GFL98",
-    "setting_id": "GFSL98",
     "name": "QIDI PLA-CF @0.6 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Qidi PLA-CF",
+    "from": "system",
+    "setting_id": "GFSL98",
+    "filament_id": "GFL98",
+    "instantiation": "true",
     "pressure_advance": [
         "0.01"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.6 nozzle",
         "Qidi X-Max 0.6 nozzle",
         "Qidi X-CF Pro 0.6 nozzle",
-		"Qidi X-Smart 3 0.6 nozzle",
-		"Qidi X-Plus 3 0.6 nozzle",
-		"Qidi X-Max 3 0.6 nozzle"
-	]
+        "Qidi X-Smart 3 0.6 nozzle",
+        "Qidi X-Plus 3 0.6 nozzle",
+        "Qidi X-Max 3 0.6 nozzle"
+    ]
 }

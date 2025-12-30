@@ -1576,7 +1576,7 @@ void TriangleSelector::get_facets_split_by_tjoints(const Vec3i32 &vertices, cons
         this->get_facets_split_by_tjoints(
             { vertices(0), midpoints(0), midpoints(2) },
             { this->neighbor_child(neighbors(0), vertices(1), vertices(0), Partition::Second),
-              -1, 
+              -1,
               this->neighbor_child(neighbors(2), vertices(0), vertices(2), Partition::First) },
               out_triangles);
         this->get_facets_split_by_tjoints(
@@ -1720,7 +1720,11 @@ TriangleSelector::TriangleSplittingData TriangleSelector::serialize() const {
     return out.data;
 }
 
-void TriangleSelector::deserialize(const TriangleSplittingData& data, bool needs_reset, EnforcerBlockerType max_ebt)
+void TriangleSelector::deserialize(const TriangleSplittingData &data,
+                                   bool                         needs_reset,
+                                   EnforcerBlockerType          max_ebt,
+                                   EnforcerBlockerType          to_delete_filament,
+                                   EnforcerBlockerType          replace_filament)
 {
     if (needs_reset)
         reset(); // dump any current state
@@ -1769,8 +1773,16 @@ void TriangleSelector::deserialize(const TriangleSplittingData& data, bool needs
             auto state = is_split ? EnforcerBlockerType::NONE : EnforcerBlockerType((code & 0b1100) == 0b1100 ? next_nibble() + 3 : code >> 2);
 
             // BBS
-            if (state > max_ebt)
+            if (state == to_delete_filament)
+                state = replace_filament;
+            else if (to_delete_filament != EnforcerBlockerType::NONE && state != EnforcerBlockerType::NONE) {
+                state = state > to_delete_filament ? EnforcerBlockerType((int)state - 1) : state;
+            }
+
+            if (state > max_ebt) {
+                assert(false);
                 state = EnforcerBlockerType::NONE;
+            }
 
             // Only valid if is_split.
             int special_side = code >> 2;

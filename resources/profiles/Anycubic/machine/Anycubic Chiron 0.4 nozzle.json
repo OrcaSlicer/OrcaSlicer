@@ -1,118 +1,118 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Anycubic Chiron 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_machine_common",
-	"printer_model": "Anycubic Chiron",
-	"default_print_profile": "0.20mm Standard @Anycubic Chiron",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"400x0",
-		"400x400",
-		"0x400"
-	],
-	"printable_height": "450",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
+    "type": "machine",
+    "name": "Anycubic Chiron 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Anycubic Chiron",
+    "default_print_profile": "0.20mm Standard @Anycubic Chiron",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "400x0",
+        "400x400",
+        "0x400"
+    ],
+    "printable_height": "450",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
     "machine_max_acceleration_e": [
         "5000",
         "5000"
     ],
-	"machine_max_acceleration_extruding": [
-		"1250",
-		"1250"
-	],
-	"machine_max_acceleration_retracting": [
-		"1250",
-		"1250"
-	],
-	"machine_max_acceleration_travel": [
-		"1500",
-		"1250"
-	],
-	"machine_max_acceleration_x": [
-		"1000",
-		"960"
-	],
-	"machine_max_acceleration_y": [
-		"1000",
-		"960"
-	],
-	"machine_max_acceleration_z": [
-		"200",
-		"200"
-	],
-	"machine_max_speed_e": [
-		"120",
-		"120"
-	],
-	"machine_max_speed_x": [
-		"300",
-		"100"
-	],
-	"machine_max_speed_y": [
-		"300",
-		"100"
-	],
-	"machine_max_speed_z": [
-		"12",
-		"12"
-	],
-	"machine_max_jerk_e": [
-		"4.5",
-		"4.5"
-	],
-	"machine_max_jerk_x": [
-		"8",
-		"8"
-	],
-	"machine_max_jerk_y": [
-		"8",
-		"8"
-	],
-	"machine_max_jerk_z": [
-		"0.4",
-		"0.4"
-	],
-	"max_layer_height": [
-		"0.3"
-	],
-	"min_layer_height": [
-		"0.1"
-	],
-	"printer_settings_id": "Anycubic",
-	"retraction_minimum_travel": [
-		"1"
-	],
-	"retract_before_wipe": [
-		"0%"
-	],
-	"retraction_length": [
-		"2"
-	],
-	"retract_length_toolchange": [
-		"4"
-	],
-	"retraction_speed": [
-		"40"
-	],
-	"deretraction_speed": [
-		"0"
-	],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "M600",
-	"machine_pause_gcode": "M601",
-	"default_filament_profile": [
-		"Anycubic Generic PLA"
-	],
-	"machine_start_gcode": "M104 S140;start the nozzle preheat and don't wait\nG21;metric values\nG90;absolute positioning\nM82;set extruder to absolute mode\nM107       ;start with the fan off\nG28;home all\nM190 S[bed_temperature_initial_layer_single]; set wait for bed temp\nM109 S[nozzle_temperature_initial_layer] ; wait for extruder temp\nG1 Z15.0 F3600 ;move the platform down 15mm\nG92 E0;zero the extruded length\nG1 F200 E40;extrude 40mm of feed stock\nG92 E0;zero the extruded length again\nG1 F3600",
-	"machine_end_gcode": "M104 S0;extruder heater off\nM140 S0  ;heated bed heater off (if you have it)\nG91;relative positioning\nG1 E-4 F300;retract the filament a bit before lifting the nozzle, to release some of the pressure\nG1 Z+10 F3600 ;move Z up a bit\nG90;absolute positioning\nG1 X-10 F3000; get the head off the bed\nG1 F3000 Y400;kick the bed out\nM84;steppers off",
-	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n\n",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-	"scan_first_layer": "0"
+    "machine_max_acceleration_extruding": [
+        "1250",
+        "1250"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1250",
+        "1250"
+    ],
+    "machine_max_acceleration_travel": [
+        "1500",
+        "1250"
+    ],
+    "machine_max_acceleration_x": [
+        "1000",
+        "960"
+    ],
+    "machine_max_acceleration_y": [
+        "1000",
+        "960"
+    ],
+    "machine_max_acceleration_z": [
+        "200",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "120",
+        "120"
+    ],
+    "machine_max_speed_x": [
+        "300",
+        "100"
+    ],
+    "machine_max_speed_y": [
+        "300",
+        "100"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_e": [
+        "4.5",
+        "4.5"
+    ],
+    "machine_max_jerk_x": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.1"
+    ],
+    "printer_settings_id": "Anycubic",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retraction_length": [
+        "2"
+    ],
+    "retract_length_toolchange": [
+        "4"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "M601",
+    "default_filament_profile": [
+        "Anycubic Generic PLA"
+    ],
+    "machine_start_gcode": "M104 S140;start the nozzle preheat and don't wait\nG21;metric values\nG90;absolute positioning\nM82;set extruder to absolute mode\nM107       ;start with the fan off\nG28;home all\nM190 S[bed_temperature_initial_layer_single]; set wait for bed temp\nM109 S[nozzle_temperature_initial_layer] ; wait for extruder temp\nG1 Z15.0 F3600 ;move the platform down 15mm\nG92 E0;zero the extruded length\nG1 F200 E40;extrude 40mm of feed stock\nG92 E0;zero the extruded length again\nG1 F3600",
+    "machine_end_gcode": "M104 S0;extruder heater off\nM140 S0  ;heated bed heater off (if you have it)\nG91;relative positioning\nG1 E-4 F300;retract the filament a bit before lifting the nozzle, to release some of the pressure\nG1 Z+10 F3600 ;move Z up a bit\nG90;absolute positioning\nG1 X-10 F3000; get the head off the bed\nG1 F3000 Y400;kick the bed out\nM84;steppers off",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\nG92 E0.0\n;[layer_z]\n\n",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "scan_first_layer": "0"
 }

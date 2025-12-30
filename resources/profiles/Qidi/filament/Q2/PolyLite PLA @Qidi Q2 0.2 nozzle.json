@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "PolyLite PLA @Qidi Q2 0.2 nozzle",
+    "inherits": "PolyLite PLA@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "pressure_advance": [
+        "0.062"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.2 nozzle"
+    ]
+}

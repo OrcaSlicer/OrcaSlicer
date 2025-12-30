@@ -1,31 +1,31 @@
 {
     "type": "filament",
     "name": "fdm_filament_pet",
+    "inherits": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_filament_common",
-    "cool_plate_temp" : [
+    "cool_plate_temp": [
         "60"
     ],
-    "eng_plate_temp" : [
+    "eng_plate_temp": [
         "0"
     ],
-    "hot_plate_temp" : [
+    "hot_plate_temp": [
         "80"
     ],
-    "textured_plate_temp" : [
+    "textured_plate_temp": [
         "80"
     ],
-    "cool_plate_temp_initial_layer" : [
+    "cool_plate_temp_initial_layer": [
         "60"
     ],
-    "eng_plate_temp_initial_layer" : [
+    "eng_plate_temp_initial_layer": [
         "0"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "textured_plate_temp_initial_layer" : [
+    "textured_plate_temp_initial_layer": [
         "80"
     ],
     "slow_down_for_layer_cooling": [

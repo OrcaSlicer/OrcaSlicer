@@ -7,8 +7,9 @@ add_library(expat STATIC
     xmltok.c
 )
 
-target_include_directories(expat PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(expat SYSTEM
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_sources(expat PRIVATE

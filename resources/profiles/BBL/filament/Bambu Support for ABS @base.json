@@ -12,6 +12,9 @@
     "filament_cost": [
         "29.98"
     ],
+    "filament_density": [
+        "1.16"
+    ],
     "filament_flow_ratio": [
         "0.95"
     ],
@@ -24,14 +27,17 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "filament_adhesiveness_category": [
+        "706"
+    ],
     "nozzle_temperature_range_high": [
         "270"
     ],
     "slow_down_layer_time": [
         "12"
-    ],
-    "filament_scarf_seam_type": [
-        "none"
     ],
     "temperature_vitrification": [
         "90"

@@ -4,11 +4,11 @@
     "inherits": "Chuanying Generic PETG",
     "from": "system",
     "setting_id": "GFSA04_12",
-    "instantiation": "true",
-  "compatible_printers": [
-    "Chuanying X1 0.25 Nozzle"
-  ],
     "filament_id": "GFG99",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Chuanying X1 0.25 Nozzle"
+    ],
     "filament_settings_id": [
         "Chuanying PETG @Chuanying X1 0.25 Nozzle"
     ],
@@ -23,6 +23,5 @@
     ],
     "slow_down_min_speed": [
         "15"
-    ],
-    "version": "1.8.0.0"
+    ]
 }

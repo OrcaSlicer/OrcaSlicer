@@ -4,11 +4,11 @@
     "inherits": "Chuanying Generic HS PLA",
     "from": "system",
     "setting_id": "GFSA04_09",
-    "instantiation": "true",
-  "compatible_printers": [
-    "Chuanying X1 0.25 Nozzle"
-  ],
     "filament_id": "GFL99",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Chuanying X1 0.25 Nozzle"
+    ],
     "filament_settings_id": [
         "Chuanying HS PLA @Chuanying X1 0.25 Nozzle"
     ],
@@ -44,6 +44,5 @@
     ],
     "slow_down_min_speed": [
         "15"
-    ],
-    "version": "1.8.0.0"
+    ]
 }

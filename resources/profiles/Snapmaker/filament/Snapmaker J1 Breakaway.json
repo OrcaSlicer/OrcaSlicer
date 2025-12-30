@@ -1,13 +1,13 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 Breakaway",
-  "setting_id": "738160822",
-  "inherits": "Snapmaker J1 Breakaway @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)",
-    "Snapmaker J1 (0.6 nozzle)",
-    "Snapmaker J1 (0.8 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 Breakaway",
+    "inherits": "Snapmaker J1 Breakaway @base",
+    "from": "system",
+    "setting_id": "738160822",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)",
+        "Snapmaker J1 (0.6 nozzle)",
+        "Snapmaker J1 (0.8 nozzle)"
+    ]
 }

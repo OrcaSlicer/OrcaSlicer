@@ -107,8 +107,8 @@
     "gap_infill_speed": "30",
     "travel_speed": "150",
     "compatible_printers": [
-      "DeltaMaker 2 0.35 nozzle",
-      "DeltaMaker 2T 0.5 nozzle",
-      "DeltaMaker 2XT 0.5 nozzle"
+        "DeltaMaker 2 0.35 nozzle",
+        "DeltaMaker 2T 0.5 nozzle",
+        "DeltaMaker 2XT 0.5 nozzle"
     ]
 }

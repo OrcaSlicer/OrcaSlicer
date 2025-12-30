@@ -10,7 +10,7 @@
 #include "libslic3r/Utils.hpp"
 #include "NetworkAgent.hpp"
 
-
+#include "slic3r/Utils/FileTransferUtils.hpp"
 
 using namespace BBL;
 
@@ -65,8 +65,6 @@ func_stop_subscribe                 NetworkAgent::stop_subscribe_ptr = nullptr;
 func_add_subscribe                  NetworkAgent::add_subscribe_ptr = nullptr;
 func_del_subscribe                  NetworkAgent::del_subscribe_ptr = nullptr;
 func_enable_multi_machine           NetworkAgent::enable_multi_machine_ptr = nullptr;
-func_start_device_subscribe         NetworkAgent::start_device_subscribe_ptr = nullptr;
-func_stop_device_subscribe          NetworkAgent::stop_device_subscribe_ptr = nullptr;
 func_send_message                   NetworkAgent::send_message_ptr = nullptr;
 func_connect_printer                NetworkAgent::connect_printer_ptr = nullptr;
 func_disconnect_printer             NetworkAgent::disconnect_printer_ptr = nullptr;
@@ -288,6 +286,9 @@ int NetworkAgent::initialize_network_module(bool using_backup)
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", successfully loaded library %1%, module %2%")%library %netwoking_module;
 
+    // load file transfer interface
+    InitFTModule(netwoking_module);
+
     //load the functions
     check_debug_consistent_ptr        =  reinterpret_cast<func_check_debug_consistent>(get_network_function("bambu_network_check_debug_consistent"));
     get_version_ptr                   =  reinterpret_cast<func_get_version>(get_network_function("bambu_network_get_version"));
@@ -318,8 +319,6 @@ int NetworkAgent::initialize_network_module(bool using_backup)
     add_subscribe_ptr                 =  reinterpret_cast<func_add_subscribe>(get_network_function("bambu_network_add_subscribe"));
     del_subscribe_ptr                 =  reinterpret_cast<func_del_subscribe>(get_network_function("bambu_network_del_subscribe"));
     enable_multi_machine_ptr          =  reinterpret_cast<func_enable_multi_machine>(get_network_function("bambu_network_enable_multi_machine"));
-    start_device_subscribe_ptr        =  reinterpret_cast<func_start_device_subscribe>(get_network_function("bambu_network_start_device_subscribe"));
-    stop_device_subscribe_ptr         =  reinterpret_cast<func_stop_device_subscribe>(get_network_function("bambu_network_stop_device_subscribe"));
     send_message_ptr                  =  reinterpret_cast<func_send_message>(get_network_function("bambu_network_send_message"));
     connect_printer_ptr               =  reinterpret_cast<func_connect_printer>(get_network_function("bambu_network_connect_printer"));
     disconnect_printer_ptr            =  reinterpret_cast<func_disconnect_printer>(get_network_function("bambu_network_disconnect_printer"));
@@ -398,6 +397,7 @@ int NetworkAgent::initialize_network_module(bool using_backup)
 int NetworkAgent::unload_network_module()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", network module %1%")%netwoking_module;
+    UnloadFTModule();
 #if defined(_MSC_VER) || defined(_WIN32)
     if (netwoking_module) {
         FreeLibrary(netwoking_module);
@@ -878,28 +878,6 @@ void NetworkAgent::enable_multi_machine(bool enable)
     if (network_agent && enable_multi_machine_ptr) {
         enable_multi_machine_ptr(network_agent, enable);
     }
-}
-
-int NetworkAgent::start_device_subscribe()
-{
-    int ret = 0;
-    if (network_agent && start_device_subscribe_ptr) {
-        ret = start_device_subscribe_ptr(network_agent);
-        if (ret)
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(" error: network_agent=%1%, ret=%2%") % network_agent % ret;
-    }
-    return ret;
-}
-
-int NetworkAgent::stop_device_subscribe()
-{
-    int ret = 0;
-    if (network_agent && stop_device_subscribe_ptr) {
-        ret = stop_device_subscribe_ptr(network_agent);
-        if (ret)
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(" error: network_agent=%1%, ret=%2%") % network_agent % ret;
-    }
-    return ret;
 }
 
 int NetworkAgent::send_message(std::string dev_id, std::string json_str, int qos, int flag)

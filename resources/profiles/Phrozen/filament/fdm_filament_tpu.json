@@ -1,9 +1,9 @@
 {
     "type": "filament",
     "name": "fdm_filament_tpu",
+    "inherits": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_filament_common",
     "filament_type": [
         "TPU"
     ],

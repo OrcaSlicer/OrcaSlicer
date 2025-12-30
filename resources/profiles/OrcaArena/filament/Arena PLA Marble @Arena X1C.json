@@ -1,13 +1,13 @@
 {
     "type": "filament",
-    "setting_id": "GFSA07_00",
     "name": "Arena PLA Marble @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Arena PLA Marble @base",
+    "from": "system",
+    "setting_id": "GFSA07_00",
+    "instantiation": "true",
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 Carbon 0.6 nozzle",
-      "Orca Arena X1 Carbon 0.8 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 Carbon 0.6 nozzle",
+        "Orca Arena X1 Carbon 0.8 nozzle"
     ]
 }

@@ -1,35 +1,65 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "EXO42 IDRE (0.4 nozzle)",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_volumic_common",
-	"printer_model": "EXO42 IDRE",
-	"default_print_profile": "Performance 150 - 0.15mm",
-	"host_type": "octoprint",
-	"print_host": "192.168.0.60",
-	"nozzle_diameter": ["0.4","0.4"],
-	"printable_area": ["11x0","383x0","383x420","11x420"],
-	"printable_height": "400",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	"gcode_flavor": "klipper",
-	"max_layer_height": ["0.3"],
-	"min_layer_height": ["0.025"],
-	"printer_variant": "0.4",
-	"retraction_minimum_travel": ["1"],
-	"retraction_length": ["2.4"],
-	"retraction_speed": ["30"],
-	"deretraction_speed": ["30"],
-	"machine_max_acceleration_x": ["4500"],
-	"machine_max_acceleration_y": ["4500"],
-	"machine_max_acceleration_z": ["50"],
-	"single_extruder_multi_material": ["0"],
-	"extruders_count": ["2"],
-	"change_filament_gcode": "",
-	"machine_start_gcode": "START_PRINT BED=[first_layer_bed_temperature] EXTRUDER={first_layer_temperature[0]} EXTRUDER1={first_layer_temperature[1]}",
-	"before_layer_change_gcode": "G92 E0",
-	"layer_change_gcode": "TIMELAPSE_TAKE_FRAME",
-	"machine_end_gcode": "END_PRINT"
+    "type": "machine",
+    "name": "EXO42 IDRE (0.4 nozzle)",
+    "inherits": "fdm_volumic_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "EXO42 IDRE",
+    "default_print_profile": "Performance 150 - 0.15mm",
+    "host_type": "octoprint",
+    "print_host": "192.168.0.60",
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ],
+    "printable_area": [
+        "11x0",
+        "383x0",
+        "383x420",
+        "11x420"
+    ],
+    "printable_height": "400",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "gcode_flavor": "klipper",
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.025"
+    ],
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "2.4"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "machine_max_acceleration_x": [
+        "4500"
+    ],
+    "machine_max_acceleration_y": [
+        "4500"
+    ],
+    "machine_max_acceleration_z": [
+        "50"
+    ],
+    "single_extruder_multi_material": [
+        "0"
+    ],
+    "extruders_count": [
+        "2"
+    ],
+    "change_filament_gcode": "",
+    "machine_start_gcode": "START_PRINT BED=[first_layer_bed_temperature] EXTRUDER={first_layer_temperature[0]} EXTRUDER1={first_layer_temperature[1]}",
+    "before_layer_change_gcode": "G92 E0",
+    "layer_change_gcode": "TIMELAPSE_TAKE_FRAME",
+    "machine_end_gcode": "END_PRINT"
 }

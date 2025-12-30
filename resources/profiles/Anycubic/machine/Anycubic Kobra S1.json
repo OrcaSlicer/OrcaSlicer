@@ -1,8 +1,8 @@
 {
     "type": "machine_model",
+    "name": "Anycubic Kobra S1",
     "machine_tech": "FFF",
     "family": "Anycubic",
-    "name": "Anycubic Kobra S1",
     "model_id": "Anycubic Kobra S1",
     "nozzle_diameter": "0.4",
     "bed_model": "Anycubic Kobra S1_buildplate_model.stl",

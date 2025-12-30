@@ -1,0 +1,70 @@
+{
+    "type": "filament",
+    "name": "QIDI UltraPA@Q2-Series",
+    "inherits": "fdm_filament_q_common",
+    "from": "system",
+    "setting_id": "GFSN98",
+    "filament_id": "QD_1_1_24",
+    "instantiation": "false",
+    "box_temperature_range_high": [
+        "55"
+    ],
+    "box_temperature_range_low": [
+        "0"
+    ],
+    "box_temperature": [
+        "55"
+    ],
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_adhesiveness_category": [
+        "400"
+    ],
+    "filament_density": [
+        "1.21"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "4"
+    ],
+    "filament_type": [
+        "UltraPA"
+    ],
+    "impact_strength_z": [
+        "15.5"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
+    "nozzle_temperature_range_low": [
+        "250"
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "pressure_advance": [
+        "0.03"
+    ],
+    "slow_down_layer_time": [
+        "15"
+    ],
+    "temperature_vitrification": [
+        "170"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "compatible_printers": []
+}

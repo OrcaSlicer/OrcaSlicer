@@ -188,7 +188,6 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
         }
     return ret;
 }
-#endif
 
 [[nodiscard]] static const std::vector<Polygons> generate_overhangs(const TreeSupportSettings &settings, PrintObject &print_object, std::function<void()> throw_on_cancel)
 {
@@ -262,11 +261,11 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
                 }
                 if (! (enforced_layer || blockers_layers.empty() || blockers_layers[layer_id].empty()))
                     overhangs = diff(overhangs, offset_ex(union_(blockers_layers[layer_id]), scale_(radius_sample_resolution)), ApplySafetyOffset::Yes);
-                if (config.bridge_no_support) {
-                    for (const LayerRegion *layerm : current_layer.regions())
-                        remove_bridges_from_contacts(print_config, lower_layer, *layerm,
-                            float(layerm->flow(frExternalPerimeter).scaled_width()), overhangs);
-                }
+                //if (config.bridge_no_support) {
+                //    for (const LayerRegion *layerm : current_layer.regions())
+                //        remove_bridges_from_contacts(print_config, lower_layer, *layerm,
+                //            float(layerm->flow(frExternalPerimeter).scaled_width()), overhangs);
+                //}
             }
             //check_self_intersections(overhangs, "generate_overhangs1");
             if (! enforcers_layers.empty() && ! enforcers_layers[layer_id].empty()) {
@@ -331,6 +330,7 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
 
     return out;
 }
+#endif
 
 /*!
  * \brief Precalculates all avoidances, that could be required.
@@ -3553,7 +3553,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
         print.set_status(69, _L("Generating support"));
         generate_support_toolpaths(print_object.support_layers(), print_object.config(), support_params, print_object.slicing_parameters(),
             raft_layers, bottom_contacts, top_contacts, intermediate_layers, interface_layers, base_interface_layers);
-        
+
         auto t_end = std::chrono::high_resolution_clock::now();
         BOOST_LOG_TRIVIAL(info) << "Total time of organic tree support: " << 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_start).count() << " ms";
  #if 0
@@ -4020,7 +4020,7 @@ void generate_tree_support_3D(PrintObject &print_object, TreeSupport* tree_suppo
     Points bedpts = tree_support->m_machine_border.contour.points;
     Pointfs bedptsf;
     std::transform(bedpts.begin(), bedpts.end(), std::back_inserter(bedptsf), [](const Point &p) { return unscale(p); });
-    BuildVolume build_volume{ bedptsf, tree_support->m_print_config->printable_height };
+    BuildVolume build_volume{ bedptsf, tree_support->m_print_config->printable_height, {}, {} };
 
     TreeSupport3D::generate_support_areas(*print_object.print(), tree_support, build_volume, { idx }, throw_on_cancel);
 }

@@ -1,4 +1,11 @@
 {
+    "type": "filament",
+    "name": "Prusament ASA @CORE One",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament ASA @CORE One",
+    "instantiation": "true",
     "chamber_temperature": [
         "40"
     ],
@@ -35,7 +42,6 @@
     "filament_flow_ratio": [
         "1"
     ],
-    "filament_id": "Prusament ASA @CORE One",
     "filament_max_volumetric_speed": [
         "15"
     ],
@@ -57,7 +63,6 @@
     "filament_vendor": [
         "Prusa Polymers"
     ],
-    "from": "system",
     "hot_plate_temp": [
         "110"
     ],
@@ -67,9 +72,6 @@
     "idle_temperature": [
         "130"
     ],
-    "inherits": "fdm_filament_asa",
-    "instantiation": "true",
-    "name": "Prusament ASA @CORE One",
     "nozzle_temperature": [
         "260"
     ],
@@ -82,12 +84,10 @@
     "reduce_fan_stop_start_freq": [
         "1"
     ],
-    "setting_id": "GFSA04",
     "slow_down_layer_time": [
         "10"
     ],
     "slow_down_min_speed": [
         "15"
-    ],
-    "type": "filament"
+    ]
 }

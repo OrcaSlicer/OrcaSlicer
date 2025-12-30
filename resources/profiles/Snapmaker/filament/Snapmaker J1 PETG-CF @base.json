@@ -1,68 +1,68 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker J1 PETG-CF @base",
-  "filament_id": "4235401834",
-  "inherits": "fdm_filament_petg",
-  "required_nozzle_HRC": [
-    "40"
-  ],
-  "overhang_fan_threshold": [
-    "10%"
-  ],
-  "overhang_fan_speed": [
-    "55"
-  ],
-  "fan_cooling_layer_time": [
-    "10"
-  ],
-  "filament_cost": [
-    "40"
-  ],
-  "filament_density": [
-    "1.25"
-  ],
-  "filament_max_volumetric_speed": [
-    "6.4"
-  ],
-  "filament_retraction_minimum_travel": [
-    "nil"
-  ],
-  "filament_retraction_length": [
-    "nil"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "250"
-  ],
-  "temperature_vitrification": [
-    "178"
-  ],
-  "fan_max_speed": [
-    "30"
-  ],
-  "fan_min_speed": [
-    "0"
-  ],
-  "slow_down_min_speed": [
-    "10"
-  ],
-  "slow_down_layer_time": [
-    "6"
-  ],
-  "enable_pressure_advance": [
-    "0"
-  ],
-  "pressure_advance": [
-    "0.04"
-  ],
-  "filament_type": [
-    "PETG-CF"
-  ],
-  "default_filament_colour": [
-    ""
-  ],
-  "nozzle_temperature_range_high": [
-    "255"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PETG-CF @base",
+    "inherits": "fdm_filament_petg",
+    "from": "system",
+    "filament_id": "4235401834",
+    "instantiation": "false",
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "overhang_fan_threshold": [
+        "10%"
+    ],
+    "overhang_fan_speed": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "10"
+    ],
+    "filament_cost": [
+        "40"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_max_volumetric_speed": [
+        "6.4"
+    ],
+    "filament_retraction_minimum_travel": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "nil"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "temperature_vitrification": [
+        "178"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "filament_type": [
+        "PETG-CF"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "nozzle_temperature_range_high": [
+        "255"
+    ]
 }

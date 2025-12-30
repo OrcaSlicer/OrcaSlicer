@@ -1,11 +1,14 @@
 {
     "type": "filament",
-    "filament_id": "GFB99",
-    "setting_id": "GFSA04",
     "name": "QIDI ABS Rapido Metal",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_type": [
+        "ABS"
+    ],
     "filament_flow_ratio": [
         "0.95"
     ],
@@ -18,16 +21,16 @@
     "pressure_advance": [
         "0.035"
     ],
-    "fan_max_speed":[
+    "fan_max_speed": [
         "80"
     ],
-    "fan_min_speed":[
+    "fan_min_speed": [
         "20"
     ],
     "overhang_fan_speed": [
         "80"
     ],
-    "filament_density":[
+    "filament_density": [
         "1.02"
     ],
     "chamber_temperature": [
@@ -36,12 +39,12 @@
     "fan_cooling_layer_time": [
         "60"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.4 nozzle",
         "Qidi X-Max 0.4 nozzle",
         "Qidi X-CF Pro 0.4 nozzle",
-		"Qidi X-Smart 3 0.4 nozzle",
-		"Qidi X-Plus 3 0.4 nozzle",
-		"Qidi X-Max 3 0.4 nozzle"
-	]
+        "Qidi X-Smart 3 0.4 nozzle",
+        "Qidi X-Plus 3 0.4 nozzle",
+        "Qidi X-Max 3 0.4 nozzle"
+    ]
 }

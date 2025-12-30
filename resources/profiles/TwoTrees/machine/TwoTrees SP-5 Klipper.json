@@ -6,7 +6,7 @@
     "machine_tech": "FFF",
     "family": "TwoTreesDesign",
     "bed_model": "SP-5_bed.stl",
-    "bed_texture": "SP5_texture.png",
+    "bed_texture": "SP-5_texture.svg",
     "hotend_model": "",
     "default_materials": "TwoTrees Generic ABS;TwoTrees Generic PLA;TwoTrees Generic PLA-CF;TwoTrees Generic PETG;TwoTrees Generic TPU;TwoTrees Generic ASA;TwoTrees Generic PC;TwoTrees Generic PVA;TwoTrees Generic PA;TwoTrees Generic PA-CF"
 }

@@ -1,11 +1,11 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker PET @Dual",
-  "setting_id": "145337790",
-  "inherits": "Snapmaker Dual PET @base",
-  "compatible_printers": [
-    "Snapmaker A250 Dual (0.8 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker PET @Dual",
+    "inherits": "Snapmaker Dual PET @base",
+    "from": "system",
+    "setting_id": "145337790",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker A250 Dual (0.8 nozzle)"
+    ]
 }

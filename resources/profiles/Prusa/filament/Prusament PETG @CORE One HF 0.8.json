@@ -1,4 +1,11 @@
 {
+    "type": "filament",
+    "name": "Prusament PETG @CORE One HF 0.8",
+    "inherits": "Prusament PETG @CORE One",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament PETG @CORE One HF 0.8",
+    "instantiation": "true",
     "compatible_printers": [
         "Prusa CORE One HF 0.8 nozzle"
     ],
@@ -8,7 +15,6 @@
     "fan_max_speed": [
         "65"
     ],
-    "filament_id": "Prusament PETG @CORE One HF 0.8",
     "filament_max_volumetric_speed": [
         "37"
     ],
@@ -21,10 +27,6 @@
     "filament_z_hop": [
         "0.6"
     ],
-    "from": "system",
-    "inherits": "Prusament PETG @CORE One",
-    "instantiation": "true",
-    "name": "Prusament PETG @CORE One HF 0.8",
     "nozzle_temperature": [
         "260"
     ],
@@ -34,9 +36,7 @@
     "overhang_fan_speed": [
         "65"
     ],
-    "setting_id": "GFSA04",
     "slow_down_layer_time": [
         "20"
-    ],
-    "type": "filament"
+    ]
 }

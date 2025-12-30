@@ -1,22 +1,22 @@
 {
-  "type": "machine",
-  "setting_id": "GM001",
-  "name": "Vzbot 330 AWD 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "Vzbot 330 AWD",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "330x0",
-    "330x330",
-    "0x330"
-  ],
-  "printable_height": "400",
-  "upward_compatible_machine":[
+    "type": "machine",
+    "name": "Vzbot 330 AWD 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Vzbot 330 AWD",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "330x0",
+        "330x330",
+        "0x330"
+    ],
+    "printable_height": "400",
+    "upward_compatible_machine": [
         "Vzbot 330 AWD 0.4 nozzle"
-  ]
+    ]
 }

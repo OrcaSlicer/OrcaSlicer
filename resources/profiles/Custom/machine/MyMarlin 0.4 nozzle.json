@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "MyMarlin 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Generic Marlin Printer",
     "gcode_flavor": "marlin",
     "machine_end_gcode": "G1 E-1.0 F2100 ; retract\nG92 E0.0\nG1{if max_layer_z < max_print_height} Z{z_offset+min(max_layer_z+30, max_print_height)}{endif} E-34.0 F720 ; move print head up & retract filament\nG4 ; wait\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nG1 X0 Y105 F3000 ; park print head\nM84 ; disable motors",
@@ -24,7 +24,6 @@
     "deretraction_speed": [
         "35"
     ],
-    "version": "1.5.1.2",
     "wipe": [
         "0"
     ],

@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "Qidi Generic ASA @Qidi X-Plus 4 0.8 nozzle",
+    "inherits": "Qidi Generic ASA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "activate_chamber_temp_control": [
         "0"
     ],
@@ -17,10 +21,6 @@
     "filament_settings_id": [
         "Qidi Generic ASA @Qidi X-Plus 4 0.8 nozzle"
     ],
-    "from": "system",
-    "inherits": "Qidi Generic ASA",
-    "is_custom_defined": "0",
-    "name": "Qidi Generic ASA @Qidi X-Plus 4 0.8 nozzle",
     "nozzle_temperature": [
         "255"
     ],
@@ -36,13 +36,13 @@
     "slow_down_layer_time": [
         "4"
     ],
-    "activate_air_filtration":[
-         "0"
+    "activate_air_filtration": [
+        "0"
     ],
-    "during_print_exhaust_fan_speed":[
-         "0"
+    "during_print_exhaust_fan_speed": [
+        "0"
     ],
     "compatible_printers": [
         "Qidi X-Plus 4 0.8 nozzle"
-            ]
+    ]
 }

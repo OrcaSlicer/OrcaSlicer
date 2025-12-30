@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSL96_00",
     "name": "Creality Generic PLA Silk @Hi-all",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Creality Generic PLA @Hi-all",
+    "from": "system",
+    "setting_id": "GFSL96_00",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "0.97"
     ],

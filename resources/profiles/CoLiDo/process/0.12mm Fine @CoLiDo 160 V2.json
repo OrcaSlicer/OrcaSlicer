@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP005",
     "name": "0.12mm Fine @CoLiDo 160 V2",
-    "from": "system",
     "inherits": "fdm_process_colido160v2_common",
+    "from": "system",
+    "setting_id": "GP005",
     "instantiation": "true",
     "bottom_shell_layers": "5",
     "layer_height": "0.12",

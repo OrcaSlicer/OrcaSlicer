@@ -1,61 +1,75 @@
 {
-    "00.00.00.00": {
-        "display_name": "Bambu Lab A1",
-        "print": {
-            "ipcam": {
-                "resolution_supported":  [ "720p" ],
-                "liveview": {
-                    "local": "local",
-                    "remote": "tutk"
-                }
-            },
-            "support_motor_noise_cali":true,
-            "support_tunnel_mqtt":true,
-            "support_mqtt_alive":true,
-            "support_command_ams_switch":true,
-            "support_cloud_print_only":true,
-            "support_1080dpi":true,
-            "support_prompt_sound":true,
-            "support_ams_humidity":false,
-            "support_auto_recovery_step_loss":true,
-            "support_auto_leveling":true,
-            "support_update_remain":false,
-            "support_timelapse":true,
-            "support_filament_backup":true,
-            "support_chamber_fan":false,
-            "support_aux_fan":false,
-            "support_send_to_sd":true,
-            "support_print_all":false,
-            "support_print_without_sd":false,
-            "support_flow_calibration":true,
-            "support_lidar_calibration":false,
-            "support_ai_monitoring":false,
-            "support_first_layer_inspect":false,
-            "support_chamber_temp_edit":false,
-            "support_extrusion_cali":true,
-            "support_user_preset":true,
-            "bed_temperature_limit": 100
-        },
-        "model_id": "N2S",
-        "compatible_machine":[],
-        "printer_type": "N2S",
-        "ftp_folder" : "sdcard/",
-        "printer_thumbnail_image": "printer_thumbnail_n2s",
-        "printer_connect_help_image": "input_access_code_n1",
-        "printer_use_ams_image":"extra_icon",
-        "use_ams_type":"f1",
-        "printer_arch" : "i3",
-        "printer_series":"series_p1p",
-        "has_cali_line":false,
-        "printer_is_enclosed":false
-    }, 
-    "01.01.50.01": {
-        "print": {
-            "ipcam": {
-                "file": {
-                    "remote": "tutk"
-                }
-            }
-        }
-    }
+	"00.00.00.00": {
+		"display_name": "Bambu Lab A1",
+		"print": {
+			"ipcam": {
+				"resolution_supported": [ "720p" ],
+				"liveview": {
+					"local": "local",
+					"remote": "tutk"
+				}
+			},
+			"nozzle_temp_range": [ 0, 300 ],
+			"nozzle_replace_wiki": {
+				"zh": "https://wiki.bambulab.com/zh/a1-mini/maintenance/hotend-heating-assembly-replacement",
+				"en": "https://wiki.bambulab.com/en/a1-mini/maintenance/hotend-heating-assembly-replacement"
+			},
+			"support_motor_noise_cali": true,
+			"support_tunnel_mqtt": true,
+			"support_mqtt_alive": true,
+			"support_command_ams_switch": true,
+			"support_cloud_print_only": true,
+			"support_1080dpi": true,
+			"support_prompt_sound": true,
+			"support_ams_humidity": false,
+			"support_auto_recovery_step_loss": true,
+			"support_bed_leveling": 1,
+			"support_update_remain": false,
+			"support_timelapse": true,
+			"support_filament_backup": true,
+			"support_chamber_fan": false,
+			"support_aux_fan": false,
+			"support_send_to_sd": true,
+			"support_print_all": false,
+			"support_print_without_sd": false,
+			"support_flow_calibration": true,
+			"support_auto_flow_calibration": false,
+			"support_lidar_calibration": false,
+			"support_ai_monitoring": false,
+			"support_first_layer_inspect": false,
+			"support_chamber": false,
+			"support_chamber_temp_edit": false,
+			"support_extrusion_cali": true,
+			"support_user_preset": false,
+			"bed_temperature_limit": 100,
+			"support_ams_ext_mix_print": false
+		},
+		"model_id": "N2S",
+		"compatible_machine": [],
+		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
+		"support_wrapping_detection": false,
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_i3",
+		"printer_type": "N2S",
+		"ftp_folder": "sdcard/",
+		"printer_thumbnail_image": "printer_thumbnail_n2s",
+		"printer_connect_help_image": "input_access_code_n1",
+		"printer_use_ams_image": "extra_icon",
+		"printer_ext_image": ["ext_image_n2s"],
+		"use_ams_type": "f1",
+		"printer_arch": "i3",
+		"printer_series": "series_n",
+		"has_cali_line": false,
+		"printer_is_enclosed": false,
+		"enable_set_nozzle_info": false,
+		"support_safety_options": false
+	},
+	"01.01.50.01": {
+		"print": {
+			"ipcam": {
+				"file": {
+					"remote": "tutk"
+				}
+			}
+		}
+	}
 }

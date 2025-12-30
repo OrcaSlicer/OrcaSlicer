@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge PA @FF G4",
+    "inherits": "Flashforge Generic TPU",
+    "from": "system",
+    "instantiation": "true",
     "activate_chamber_temp_control": [
         "1"
     ],
@@ -47,10 +52,8 @@
     "filament_type": [
         "PA"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge Guider4 0.4 nozzle"
+        "Flashforge Guider4 0.4 nozzle"
     ],
     "hot_plate_temp": [
         "100"
@@ -58,9 +61,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Flashforge Generic TPU",
-    "is_custom_defined": "0",
-    "name": "Flashforge PA @FF G4",
     "nozzle_temperature": [
         "280"
     ],
@@ -84,6 +84,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "100"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "filament_id": "GFB98",
     "name": "OrcaArena Generic ASA @base",
-    "from": "system",
-    "instantiation": "false",
     "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "GFB98",
+    "instantiation": "false",
     "filament_flow_ratio": [
         "0.95"
     ],

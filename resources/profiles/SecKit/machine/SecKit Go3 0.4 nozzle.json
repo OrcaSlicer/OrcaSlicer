@@ -1,24 +1,24 @@
 {
-  "type": "machine",
-  "setting_id": "GM002",
-  "name": "SecKit Go3 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "Seckit Go3",
-  "nozzle_diameter": [
-      "0.4"
-  ],
-  "printable_area": [
-	"0x0",
-	"300x0",
-	"300x300",
-	"0x300"
-  ],
-  "printable_height": "275",
-  "scan_first_layer": "0",
-  "machine_load_filament_time": "0",
-  "machine_unload_filament_time": "0",
-  "nozzle_type": "hardened_steel",
-  "auxiliary_fan": "0"
+    "type": "machine",
+    "name": "SecKit Go3 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Seckit Go3",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x300",
+        "0x300"
+    ],
+    "printable_height": "275",
+    "scan_first_layer": "0",
+    "machine_load_filament_time": "0",
+    "machine_unload_filament_time": "0",
+    "nozzle_type": "hardened_steel",
+    "auxiliary_fan": "0"
 }

@@ -1,4 +1,9 @@
 {
+    "type": "process",
+    "name": "0.20mm Standard @FF G4P",
+    "inherits": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "bottom_solid_infill_flow_ratio": "0.98",
     "bridge_flow": "0.98",
     "bridge_speed": "15",
@@ -8,20 +13,15 @@
     "enable_prime_tower": "1",
     "exclude_object": "1",
     "filter_out_gap_fill": "0.1",
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.4 nozzle"
     ],
     "gap_fill_target": "topbottom",
     "infill_wall_overlap": "15%",
-    "inherits": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
     "initial_layer_print_height": "0.25",
     "initial_layer_speed": "60",
     "internal_bridge_flow": "0.98",
-    "is_custom_defined": "0",
     "max_travel_detour_distance": "300",
-    "name": "0.20mm Standard @FF G4P",
     "only_one_wall_top": "1",
     "prime_tower_brim_width": "5",
     "prime_tower_width": "30",
@@ -37,7 +37,6 @@
     "top_solid_infill_flow_ratio": "0.98",
     "travel_acceleration": "30000",
     "travel_speed": "600",
-    "version": "2.1.1.0",
     "wipe_tower_cone_angle": "10",
     "wipe_tower_extra_spacing": "110%"
 }

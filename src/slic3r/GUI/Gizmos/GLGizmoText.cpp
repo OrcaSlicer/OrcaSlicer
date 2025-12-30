@@ -278,7 +278,7 @@ bool GLGizmoText::on_init()
     m_desc["surface"]         = _L("Surface");
     m_desc["horizontal_text"] = _L("Horizontal text");
 
-    m_desc["rotate_text_caption"] = _L("Shift + Mouse move up or down");
+    m_desc["rotate_text_caption"] = _L("Shift+") + _L("Mouse move up or down");
     m_desc["rotate_text"]         = _L("Rotate text");
 
     return true;

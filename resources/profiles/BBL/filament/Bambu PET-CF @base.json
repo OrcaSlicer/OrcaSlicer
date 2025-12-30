@@ -42,23 +42,29 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "filament_adhesiveness_category": [
+        "800"
+    ],
     "hot_plate_temp": [
         "100"
     ],
     "hot_plate_temp_initial_layer": [
         "100"
     ],
+    "impact_strength_z": [
+        "4.5"
+    ],
+    "nozzle_temperature_range_low": [
+        "260"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
     "nozzle_temperature": [
         "270"
     ],
     "nozzle_temperature_initial_layer": [
         "270"
-    ],
-    "nozzle_temperature_range_high": [
-        "290"
-    ],
-    "nozzle_temperature_range_low": [
-        "260"
     ],
     "overhang_fan_speed": [
         "40"

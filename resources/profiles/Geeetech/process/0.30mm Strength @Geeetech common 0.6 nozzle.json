@@ -8,12 +8,12 @@
     "wall_loops": "4",
     "sparse_infill_density": "25%",
     "compatible_printers": [
-             "Geeetech A10 Pro 0.6 nozzle",
-             "Geeetech A20 0.6 nozzle",
-             "Geeetech A30 Pro 0.6 nozzle",
-             "Geeetech Mizar 0.6 nozzle",
-             "Geeetech Mizar S 0.6 nozzle",
-             "Geeetech Mizar Pro 0.6 nozzle",
-             "Geeetech Mizar Max 0.6 nozzle"
+        "Geeetech A10 Pro 0.6 nozzle",
+        "Geeetech A20 0.6 nozzle",
+        "Geeetech A30 Pro 0.6 nozzle",
+        "Geeetech Mizar 0.6 nozzle",
+        "Geeetech Mizar S 0.6 nozzle",
+        "Geeetech Mizar Pro 0.6 nozzle",
+        "Geeetech Mizar Max 0.6 nozzle"
     ]
 }

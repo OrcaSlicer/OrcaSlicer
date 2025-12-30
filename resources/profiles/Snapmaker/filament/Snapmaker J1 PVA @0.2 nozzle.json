@@ -1,20 +1,20 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker J1 PVA @0.2 nozzle",
-  "setting_id": "1311098152",
-  "inherits": "Snapmaker J1 PVA @base",
-  "compatible_printers": [
-    "Snapmaker J1 (0.2 nozzle)"
-  ],
-  "filament_max_volumetric_speed": [
-    "1.2"
-  ],
-  "nozzle_temperature_initial_layer": [
-    "220"
-  ],
-  "nozzle_temperature": [
-    "220"
-  ]
+    "type": "filament",
+    "name": "Snapmaker J1 PVA @0.2 nozzle",
+    "inherits": "Snapmaker J1 PVA @base",
+    "from": "system",
+    "setting_id": "1311098152",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.2 nozzle)"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.2"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ]
 }

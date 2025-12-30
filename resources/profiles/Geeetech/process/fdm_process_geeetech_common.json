@@ -1,7 +1,7 @@
 {
     "type": "process",
     "name": "fdm_process_geeetech_common",
-	"inherits": "fdm_process_common",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "false",
     "reduce_crossing_wall": "0",
@@ -78,7 +78,7 @@
     "sparse_infill_speed": "60",
     "travel_speed": "150",
     "enable_prime_tower": "0",
-	"small_perimeter_threshold": "5",
+    "small_perimeter_threshold": "5",
     "wipe_tower_no_sparse_layers": "0",
     "prime_tower_width": "35",
     "xy_hole_compensation": "0",

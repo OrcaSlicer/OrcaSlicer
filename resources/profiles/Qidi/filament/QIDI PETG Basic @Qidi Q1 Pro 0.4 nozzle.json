@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "QIDI PETG Basic @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "QIDI PETG Basic",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_settings_id": [
+        "QIDI PETG Basic @Qidi Q1 Pro 0.4 nozzle"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "pressure_advance": [
+        "0.042"
+    ],
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
+}

@@ -1,18 +1,18 @@
 {
-  "type": "filament",
-  "filament_id": "GFL99",
-	"setting_id": "GFSL99",
-  "name": "Elegoo PLA @Elegoo Giga",
-  "inherits": "Generic PLA @Elegoo",
-  "from": "system",
-  "instantiation": "true",
-  "filament_max_volumetric_speed": [
-    "30"
-  ],
-  "compatible_printers": [
-    "Elegoo OrangeStorm Giga 0.4 nozzle",
-    "Elegoo OrangeStorm Giga 0.6 nozzle",
-    "Elegoo OrangeStorm Giga 0.8 nozzle",
-    "Elegoo OrangeStorm Giga 1.0 nozzle"
-  ]
+    "type": "filament",
+    "name": "Elegoo PLA @Elegoo Giga",
+    "inherits": "Generic PLA @Elegoo",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "30"
+    ],
+    "compatible_printers": [
+        "Elegoo OrangeStorm Giga 0.4 nozzle",
+        "Elegoo OrangeStorm Giga 0.6 nozzle",
+        "Elegoo OrangeStorm Giga 0.8 nozzle",
+        "Elegoo OrangeStorm Giga 1.0 nozzle"
+    ]
 }

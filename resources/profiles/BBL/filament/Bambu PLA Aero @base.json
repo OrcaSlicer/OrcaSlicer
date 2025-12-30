@@ -30,6 +30,9 @@
     "filament_scarf_seam_type": [
         "none"
     ],
+    "impact_strength_z": [
+        "3.1"
+    ],
     "nozzle_temperature_range_low": [
         "210"
     ],

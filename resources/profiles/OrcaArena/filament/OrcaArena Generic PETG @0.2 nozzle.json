@@ -1,12 +1,12 @@
 {
     "type": "filament",
-    "setting_id": "GFSG99_01",
     "name": "OrcaArena Generic PETG @0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "OrcaArena Generic PETG @base",
+    "from": "system",
+    "setting_id": "GFSG99_01",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
-      "1"
+        "1"
     ],
     "compatible_printers": [
         "Orca Arena X1 Carbon 0.2 nozzle"

@@ -1,7 +1,8 @@
 {
-    "inherits": "0.20mm Standard @Elegoo CC 0.4 nozzle",
-    "layer_height": "0.12",
+    "type": "process",
     "name": "0.12mm Fine @Elegoo CC 0.4 nozzle",
-    "wall_loops": "3",
-	"instantiation": "true"
+    "inherits": "0.20mm Standard @Elegoo CC 0.4 nozzle",
+    "instantiation": "true",
+    "layer_height": "0.12",
+    "wall_loops": "3"
 }

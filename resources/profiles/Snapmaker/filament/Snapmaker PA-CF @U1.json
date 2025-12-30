@@ -1,13 +1,13 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "true",
-  "name": "Snapmaker PA-CF @U1",
-  "setting_id": "27996657890",
-  "inherits": "Snapmaker PA-CF @U1 base",
-  "compatible_printers": [
-    "Snapmaker U1 (0.4 nozzle)",
-    "Snapmaker U1 (0.4 nozzle)",
-    "Snapmaker U1 (0.4 nozzle)"
-  ]
+    "type": "filament",
+    "name": "Snapmaker PA-CF @U1",
+    "inherits": "Snapmaker PA-CF @U1 base",
+    "from": "system",
+    "setting_id": "27996657890",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)",
+        "Snapmaker U1 (0.4 nozzle)",
+        "Snapmaker U1 (0.4 nozzle)"
+    ]
 }

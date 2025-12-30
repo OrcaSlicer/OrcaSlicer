@@ -1,9 +1,9 @@
 {
     "type": "filament",
-    "setting_id": "AliZGFSA04",
     "name": "AliZ PETG @System",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "AliZ PETG @base",
+    "from": "system",
+    "setting_id": "AliZGFSA04",
+    "instantiation": "true",
     "compatible_printers": []
 }

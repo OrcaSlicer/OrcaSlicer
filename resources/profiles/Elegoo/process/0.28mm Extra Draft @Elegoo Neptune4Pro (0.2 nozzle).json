@@ -1,11 +1,11 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
-	"name": "0.28mm Extra Draft @Elegoo Neptune4Pro (0.2 nozzle)",
-	"from": "system",
-	"inherits": "fdm_process_neptune4_common",
-	"instantiation": "true",
-	"layer_height": "0.28",
+    "type": "process",
+    "name": "0.28mm Extra Draft @Elegoo Neptune4Pro (0.2 nozzle)",
+    "inherits": "fdm_process_neptune4_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.28",
     "adaptive_layer_height": "1",
     "reduce_crossing_wall": "0",
     "max_travel_detour_distance": "0",
@@ -83,7 +83,7 @@
     "prime_tower_width": "60",
     "xy_hole_compensation": "0",
     "xy_contour_compensation": "0",
-	"compatible_printers": [
-		"Elegoo Neptune 4 Pro (0.2 nozzle)"
-	]
+    "compatible_printers": [
+        "Elegoo Neptune 4 Pro (0.2 nozzle)"
+    ]
 }

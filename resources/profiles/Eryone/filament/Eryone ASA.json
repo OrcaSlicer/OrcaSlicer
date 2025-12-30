@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "EFL92",
-    "setting_id": "EFSA02",
     "name": "Eryone ASA",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA02",
+    "filament_id": "EFL92",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],

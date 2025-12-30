@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP006",
     "name": "0.28mm Extra Draft @TwoTrees",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_common",
+    "from": "system",
+    "setting_id": "GP006",
+    "instantiation": "true",
     "layer_height": "0.28",
     "top_surface_line_width": "0.45",
     "bottom_shell_layers": "3",

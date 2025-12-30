@@ -1,20 +1,22 @@
 {
+    "type": "filament",
+    "name": "Prusa Generic ABS @MK4S HF0.4",
+    "inherits": "Prusa Generic ABS @MK4S",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Generic ABS @MK4S HF0.4",
+    "instantiation": "true",
     "compatible_printers": [
         "Prusa MK4S HF0.4 nozzle"
     ],
     "fan_max_speed": "15",
-    "filament_id": "Generic ABS @MK4S HF0.4",
-    "filament_max_volumetric_speed": "26",
+    "filament_max_volumetric_speed": [
+        "26"
+    ],
     "filament_start_gcode": [
         "M572 S{if nozzle_diameter[0]==0.4}0.02{elsif nozzle_diameter[0]==0.5}0.018{elsif nozzle_diameter[0]==0.6}0.015{elsif nozzle_diameter[0]==0.8}0.01{elsif nozzle_diameter[0]==0.25}0.09{elsif nozzle_diameter[0]==0.3}0.065{else}0{endif} ; Filament gcode\nM142 S40 ; set heatbreak target temp"
     ],
     "filament_ramming_parameters": [
         "250 100 42.4 42.4 | 0.05 42.4 0.45 42.4 0.95 42.4 1.45 42.4 1.95 42.4 2.45 42.4 2.95 42.4 3.45 42.4 3.95 42.4 4.45 42.4 4.95 42.4"
-    ],
-    "from": "system",
-    "inherits": "Prusa Generic ABS @MK4S",
-    "instantiation": "true",
-    "name": "Prusa Generic ABS @MK4S HF0.4",
-    "setting_id": "GFSA04",
-    "type": "filament"
+    ]
 }

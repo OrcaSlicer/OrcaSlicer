@@ -1,4 +1,8 @@
 {
+    "type": "filament",
+    "name": "Artillery PETG @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
     "instantiation": "true",
     "close_fan_the_first_x_layers": [
         "3"
@@ -15,7 +19,7 @@
     "additional_cooling_fan_speed": [
         "50"
     ],
-	"filament_density": [
+    "filament_density": [
         "1.27"
     ],
     "filament_settings_id": [
@@ -25,10 +29,8 @@
         "; filament start gcode "
     ],
     "is_custom_defined": "0",
-    "name": "Artillery PETG @Artillery M1 Pro 0.4 nozzle",
-	"from": "system",
     "compatible_printers": [
-		"Artillery M1 Pro 0.4 nozzle"
+        "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
         "0.8"
@@ -36,7 +38,7 @@
     "filament_retraction_speed": [
         "30"
     ],
-	"filament_deretraction_speed": [
+    "filament_deretraction_speed": [
         "30"
     ],
     "filament_type": [
@@ -66,12 +68,11 @@
     "cool_plate_temp_initial_layer": [
         "70"
     ],
-    "inherits": "Artillery Generic PLA",
     "nozzle_temperature": [
-        "240"
+        "250"
     ],
     "nozzle_temperature_initial_layer": [
-        "240"
+        "250"
     ],
     "fan_max_speed": [
         "90"
@@ -88,32 +89,31 @@
     "temperature_vitrification": [
         "70"
     ],
-	"overhang_fan_threshold": [
+    "overhang_fan_threshold": [
         "10%"
     ],
-	"overhang_fan_speed": [
+    "overhang_fan_speed": [
         "100"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"nozzle_temperature_range_high": [
+    "nozzle_temperature_range_high": [
         "270"
     ],
     "nozzle_temperature_range_low": [
         "220"
     ],
-	"filament_flow_ratio": [
-        "1.029"
+    "filament_flow_ratio": [
+        "0.95"
     ],
-	"slow_down_min_speed": [
+    "slow_down_min_speed": [
         "20"
     ],
-	"filament_retract_before_wipe": [
+    "filament_retract_before_wipe": [
         "0%"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.063"
-    ],
-    "version": "2.1.2.0"
+    ]
 }

@@ -113,6 +113,4 @@
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
     "machine_start_gcode": "PRINT_START EXTRUDER=[nozzle_temperature_inital_layer] BED=[bed_temperature_initial_layer]",
     "machine_end_gcode": "M400; wait for buffer to clear\nPRINT_END"
-
-
 }

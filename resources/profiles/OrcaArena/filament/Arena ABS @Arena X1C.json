@@ -1,15 +1,15 @@
 {
     "type": "filament",
-    "setting_id": "GFSB00",
     "name": "Arena ABS @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Arena ABS @base",
+    "from": "system",
+    "setting_id": "GFSB00",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "22"
     ],
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 Carbon 0.6 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 Carbon 0.6 nozzle"
     ]
 }

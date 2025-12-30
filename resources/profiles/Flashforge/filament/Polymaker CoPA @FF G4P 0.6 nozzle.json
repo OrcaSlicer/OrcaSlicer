@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Polymaker CoPA @FF G4P 0.6 nozzle",
+    "inherits": "FusRock Generic S-PAHT @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "close_fan_the_first_x_layers": [
         "2"
     ],
@@ -38,8 +43,6 @@
     "filament_type": [
         "PA"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.6 nozzle"
     ],
@@ -49,9 +52,6 @@
     "hot_plate_temp_initial_layer": [
         "55"
     ],
-    "inherits": "FusRock Generic S-PAHT @G3U 0.6 Nozzle",
-    "is_custom_defined": "0",
-    "name": "Polymaker CoPA @FF G4P 0.6 nozzle",
     "nozzle_temperature": [
         "260"
     ],
@@ -84,6 +84,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "55"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

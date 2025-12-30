@@ -1,0 +1,11 @@
+name: 'Apt Install Deps'
+description: 'Install the packages needed for building and deploying'
+runs:
+  using: 'composite'
+  steps:
+    - name: Install dependencies from build_linux.sh
+      shell: bash
+      run: |
+        mkdir -p ${{ github.workspace }}/deps/build/destdir
+        sudo env "ORCA_UPDATER_SIG_KEY=$ORCA_UPDATER_SIG_KEY" ./build_linux.sh -ur
+        sudo chown $USER -R ./

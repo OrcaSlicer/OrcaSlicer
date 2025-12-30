@@ -3,10 +3,10 @@
     "name": "Z-Bolt ABS HT @base",
     "inherits": "Z-Bolt ABS @base",
     "from": "system",
+    "setting_id": "GFSL500",
+    "filament_id": "GFL500",
     "instantiation": "false",
     "description": "Use this filament profile to print big ABS models with chamber heating",
-    "filament_id": "GFL500",
-    "setting_id": "GFSL500",
     "chamber_temperatures": [
         "60"
     ]

@@ -1,11 +1,10 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "0.12mm Fine @InfiMech TX",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_process_common",
-
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "inner_wall_acceleration": "3000",
     "bottom_shell_layers": "5",
     "overhang_1_4_speed": "30",
@@ -28,8 +27,4 @@
     "compatible_printers": [
         "InfiMech TX 0.4 nozzle"
     ]
-
-
-
-
 }

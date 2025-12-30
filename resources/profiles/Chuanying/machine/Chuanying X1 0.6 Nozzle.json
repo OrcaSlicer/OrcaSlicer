@@ -1,18 +1,24 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Chuanying X1 0.6 Nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_x1_common",
-	"printer_model": "Chuanying X1",
-	"default_print_profile": "0.30mm Standard @Chuanying X1 0.6 Nozzle",
-	"nozzle_diameter": [ "0.6" ],
-	"printer_variant": "0.6",
-	"max_layer_height": [ "0.4" ],
-	"min_layer_height": [ "0.15" ],
-	"retraction_length": [ "1.2" ],
-	"nozzle_type": "hardened_steel"
-
-
+    "type": "machine",
+    "name": "Chuanying X1 0.6 Nozzle",
+    "inherits": "fdm_x1_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Chuanying X1",
+    "default_print_profile": "0.30mm Standard @Chuanying X1 0.6 Nozzle",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printer_variant": "0.6",
+    "max_layer_height": [
+        "0.4"
+    ],
+    "min_layer_height": [
+        "0.15"
+    ],
+    "retraction_length": [
+        "1.2"
+    ],
+    "nozzle_type": "hardened_steel"
 }

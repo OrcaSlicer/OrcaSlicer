@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFU99",
-    "setting_id": "GFSA04",
-    "from": "system",
-    "instantiation": "true",
     "name": "Anycubic TPU @Anycubic Kobra S1 0.4 nozzle",
     "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFU99",
+    "instantiation": "true",
     "filament_settings_id": [
         "Anycubic TPU @Anycubic Kobra S1 0.4 nozzle"
     ],

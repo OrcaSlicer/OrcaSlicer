@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge PA-CF @FF G4P",
+    "inherits": "Flashforge Generic PLA-CF10",
+    "from": "system",
+    "instantiation": "true",
     "additional_cooling_fan_speed": [
         "0"
     ],
@@ -50,8 +55,6 @@
     "filament_type": [
         "PA-CF"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
         "Flashforge Guider4 Pro 0.4 nozzle"
     ],
@@ -61,9 +64,6 @@
     "hot_plate_temp_initial_layer": [
         "100"
     ],
-    "inherits": "Flashforge Generic PLA-CF10",
-    "is_custom_defined": "0",
-    "name": "Flashforge PA-CF @FF G4P",
     "nozzle_temperature": [
         "290"
     ],
@@ -96,6 +96,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "100"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

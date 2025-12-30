@@ -1,13 +1,15 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "DeltaMaker 2 0.35 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "DeltaMaker 2",
     "default_print_profile": "0.18mm Standard @DeltaMaker",
-    "nozzle_diameter": ["0.35"],
+    "nozzle_diameter": [
+        "0.35"
+    ],
     "printer_variant": "0.35",
     "printable_height": "260",
     "printable_area": [

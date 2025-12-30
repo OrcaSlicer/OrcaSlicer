@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP004",
     "name": "Normal speed - 0.25mm",
-    "from": "system",
     "inherits": "fdm_process_volumic_common",
+    "from": "system",
+    "setting_id": "GP004",
     "instantiation": "true",
     "layer_height": "0.25",
     "initial_layer_print_height": "0.25",
@@ -20,14 +20,14 @@
     "travel_speed": "135",
     "support_speed": "100",
     "support_interface_speed": "100",
-	"skirt_speed": "100",
+    "skirt_speed": "100",
     "compatible_printers": [
-	  "EXO42 (0.4 nozzle)",
-	  "EXO65 (0.6 nozzle)",
-	  "SH65 (0.4 nozzle)",
-	  "VS30MK3 (0.4 nozzle)",
-	  "VS30SC2 (0.4 nozzle)",
-	  "VS30SC (0.4 nozzle)",
-	  "VS30ULTRA (0.4 nozzle)"
+        "EXO42 (0.4 nozzle)",
+        "EXO65 (0.6 nozzle)",
+        "SH65 (0.4 nozzle)",
+        "VS30MK3 (0.4 nozzle)",
+        "VS30SC2 (0.4 nozzle)",
+        "VS30SC (0.4 nozzle)",
+        "VS30ULTRA (0.4 nozzle)"
     ]
 }

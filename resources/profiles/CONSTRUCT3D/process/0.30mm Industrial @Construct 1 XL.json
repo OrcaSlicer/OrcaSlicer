@@ -1,10 +1,10 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
+    "type": "process",
+    "name": "0.30mm Industrial @Construct 1 XL",
     "inherits": "fdm_process_common",
-	"name": "0.30mm Industrial @Construct 1 XL",
-	"from": "system",	
-	"instantiation": "true",	
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
     "bottom_shell_layers": "4",
     "default_acceleration": "4000",
     "default_jerk": "12",
@@ -24,7 +24,6 @@
     "inner_wall_speed": "240",
     "internal_solid_infill_line_width": "0.62",
     "internal_solid_infill_speed": "240",
-    "is_custom_defined": "0",
     "layer_height": "0.3",
     "line_width": "0.62",
     "only_one_wall_top": "1",
@@ -48,8 +47,10 @@
     "top_surface_speed": "140",
     "travel_acceleration": "6000",
     "travel_speed": "320",
-	"wall_loops": "3",
+    "wall_loops": "3",
     "wall_sequence": "inner-outer-inner wall",
-	"filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
-	"compatible_printers": ["Construct 1 XL 0.6 nozzle"]
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
+    "compatible_printers": [
+        "Construct 1 XL 0.6 nozzle"
+    ]
 }

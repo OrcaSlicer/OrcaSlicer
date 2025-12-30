@@ -3,11 +3,11 @@
     "name": "0.40mm Standard @Chuanying X1 0.8 Nozzle",
     "inherits": "0.30mm Standard @Chuanying X1 0.6 Nozzle",
     "from": "system",
+    "setting_id": "GP002",
     "instantiation": "true",
     "compatible_printers": [
         "Chuanying X1 0.8 Nozzle"
     ],
-    "setting_id": "GP002",
     "print_settings_id": "0.40mm Standard @Chuanying X1 0.8 Nozzle",
     "elefant_foot_compensation": "0",
     "initial_layer_infill_speed": "55",
@@ -31,6 +31,5 @@
     "top_shell_thickness": "0.8",
     "top_surface_line_width": "0.82",
     "tree_support_tip_diameter": "1.2",
-    "version": "1.8.0.0",
     "wipe_speed": "60%"
 }

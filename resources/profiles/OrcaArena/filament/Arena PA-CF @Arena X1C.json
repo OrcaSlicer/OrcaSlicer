@@ -1,34 +1,34 @@
 {
     "type": "filament",
-    "setting_id": "GFSN00",
     "name": "Arena PA-CF @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Arena PA-CF @base",
+    "from": "system",
+    "setting_id": "GFSN00",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "8"
     ],
     "nozzle_temperature_initial_layer": [
-      "290"
+        "290"
     ],
     "nozzle_temperature": [
-      "290"
+        "290"
     ],
     "fan_max_speed": [
-      "30"
+        "30"
     ],
     "fan_min_speed": [
-      "10"
+        "10"
     ],
     "fan_cooling_layer_time": [
-      "5"
+        "5"
     ],
     "full_fan_speed_layer": [
-      "2"
+        "2"
     ],
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle",
-      "Orca Arena X1 Carbon 0.6 nozzle",
-      "Orca Arena X1 Carbon 0.8 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 Carbon 0.6 nozzle",
+        "Orca Arena X1 Carbon 0.8 nozzle"
     ]
 }

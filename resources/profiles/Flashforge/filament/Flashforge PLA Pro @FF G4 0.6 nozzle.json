@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge PLA Pro @FF G4 0.6 nozzle",
+    "inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -38,14 +43,9 @@
     "filament_start_gcode": [
         "; filament start gcode\n;right_extruder_material:PLA\n\n"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-    "Flashforge Guider4 0.6 nozzle"
+        "Flashforge Guider4 0.6 nozzle"
     ],
-    "inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
-    "is_custom_defined": "0",
-    "name": "Flashforge PLA Pro @FF G4 0.6 nozzle",
     "nozzle_temperature": [
         "205"
     ],
@@ -81,6 +81,5 @@
     ],
     "textured_plate_temp": [
         "55"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

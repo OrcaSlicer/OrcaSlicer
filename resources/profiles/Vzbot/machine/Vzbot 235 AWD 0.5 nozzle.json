@@ -1,20 +1,20 @@
 {
-  "type": "machine",
-  "setting_id": "GM002",
-  "name": "Vzbot 235 AWD 0.5 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "Vzbot 235 AWD 0.4 nozzle",
-  "printer_model": "Vzbot 235 AWD",
-  "nozzle_diameter": [
-    "0.5"
-  ],
-  "printer_variant": "0.5",
-  "printable_area": [
-    "0x0",
-    "235x0",
-    "235x235",
-    "0x235"
-  ],
-  "printable_height": "200"     
+    "type": "machine",
+    "name": "Vzbot 235 AWD 0.5 nozzle",
+    "inherits": "Vzbot 235 AWD 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Vzbot 235 AWD",
+    "nozzle_diameter": [
+        "0.5"
+    ],
+    "printer_variant": "0.5",
+    "printable_area": [
+        "0x0",
+        "235x0",
+        "235x235",
+        "0x235"
+    ],
+    "printable_height": "200"
 }

@@ -1,13 +1,9 @@
 {
     "name": "Folgertech",
-    "version":  "02.03.00.03",
+    "version": "02.03.01.10",
     "force_update": "0",
     "description": "Folgertech configurations",
     "machine_model_list": [
-        {
-            "name": "Folgertech i3",
-            "sub_path": "machine/Folgertech i3.json"
-        },
         {
             "name": "Folgertech FT-5",
             "sub_path": "machine/Folgertech FT-5.json"
@@ -15,6 +11,10 @@
         {
             "name": "Folgertech FT-6",
             "sub_path": "machine/Folgertech FT-6.json"
+        },
+        {
+            "name": "Folgertech i3",
+            "sub_path": "machine/Folgertech i3.json"
         }
     ],
     "process_list": [
@@ -39,6 +39,10 @@
             "sub_path": "process/0.16mm Optimal @FT.json"
         },
         {
+            "name": "0.18mm Fine @FT 0.6 nozzle",
+            "sub_path": "process/0.18mm Fine @FT 0.6 nozzle.json"
+        },
+        {
             "name": "0.20mm Standard @FT 0.4 nozzle",
             "sub_path": "process/0.20mm Standard @FT.json"
         },
@@ -51,16 +55,12 @@
             "sub_path": "process/0.24mm Draft @FT.json"
         },
         {
-            "name": "0.28mm Extra Draft @FT 0.4 nozzle",
-            "sub_path": "process/0.28mm Extra Draft @FT.json"
-        },
-        {
-            "name": "0.18mm Fine @FT 0.6 nozzle",
-            "sub_path": "process/0.18mm Fine @FT 0.6 nozzle.json"
-        },
-        {
             "name": "0.24mm Optimal @FT 0.6 nozzle",
             "sub_path": "process/0.24mm Optimal @FT 0.6 nozzle.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @FT 0.4 nozzle",
+            "sub_path": "process/0.28mm Extra Draft @FT.json"
         },
         {
             "name": "0.30mm Standard @FT 0.6 nozzle",
@@ -90,14 +90,6 @@
             "sub_path": "machine/fdm_folgertech_common.json"
         },
         {
-            "name": "Folgertech i3 0.4 nozzle",
-            "sub_path": "machine/Folgertech i3 0.4 nozzle.json"
-        },
-        {
-            "name": "Folgertech i3 0.6 nozzle",
-            "sub_path": "machine/Folgertech i3 0.6 nozzle.json"
-        },
-        {
             "name": "Folgertech FT-5 0.4 nozzle",
             "sub_path": "machine/Folgertech FT-5 0.4 nozzle.json"
         },
@@ -112,6 +104,14 @@
         {
             "name": "Folgertech FT-6 0.6 nozzle",
             "sub_path": "machine/Folgertech FT-6 0.6 nozzle.json"
+        },
+        {
+            "name": "Folgertech i3 0.4 nozzle",
+            "sub_path": "machine/Folgertech i3 0.4 nozzle.json"
+        },
+        {
+            "name": "Folgertech i3 0.6 nozzle",
+            "sub_path": "machine/Folgertech i3 0.6 nozzle.json"
         }
     ]
 }

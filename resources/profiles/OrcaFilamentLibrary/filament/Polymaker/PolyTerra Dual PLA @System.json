@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "from": "system",
-    "instantiation": "true",
     "name": "PolyTerra Dual PLA @System",
     "renamed_from": "PolyTerra Dual PLA",
-    "filament_id": "OGFL00-1",
-    "setting_id": "O1258005940",
     "inherits": "PolyTerra PLA @base",
+    "from": "system",
+    "setting_id": "O1258005940",
+    "filament_id": "OGFL00-1",
+    "instantiation": "true",
     "compatible_printers": []
 }

@@ -1,7 +1,10 @@
 {
+    "type": "machine",
+    "name": "Artillery M1 Pro 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
     "adaptive_bed_mesh_margin": "0",
     "auxiliary_fan": "1",
-    "instantiation" : "true",
     "bbl_use_printhost": "0",
     "bed_custom_model": "",
     "bed_custom_texture": "",
@@ -41,7 +44,6 @@
     "fan_kickstart": "0",
     "fan_speedup_overhangs": "1",
     "fan_speedup_time": "0",
-    "from": "system",
     "gcode_flavor": "klipper",
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
@@ -132,7 +134,6 @@
     "min_layer_height": [
         "0.16"
     ],
-    "name": "Artillery M1 Pro 0.8 nozzle",
     "nozzle_diameter": [
         "0.8"
     ],

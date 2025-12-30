@@ -1,11 +1,11 @@
 {
-  "type": "process",
-  "setting_id": "GP026",
-  "name": "0.12mm Standard @Qidi Q1 Pro 0.2 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits":  "fdm_process_QIDI_0.12_nozzle_0.2",
-  "compatible_printers": [
-    "Qidi Q1 Pro 0.2 nozzle"
-  ]
+    "type": "process",
+    "name": "0.12mm Standard @Qidi Q1 Pro 0.2 nozzle",
+    "inherits": "fdm_process_QIDI_0.12_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP026",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.2 nozzle"
+    ]
 }

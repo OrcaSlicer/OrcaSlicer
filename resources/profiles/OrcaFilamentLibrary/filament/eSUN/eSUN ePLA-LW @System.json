@@ -3,10 +3,12 @@
     "name": "eSUN ePLA-LW @System",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "filament_id": "ESN02",
     "setting_id": "LWSL02_00",
+    "filament_id": "ESN02",
     "instantiation": "true",
-    "filament_type": ["PLA-AERO"],
+    "filament_type": [
+        "PLA-AERO"
+    ],
     "filament_cost": [
         "33.99"
     ],

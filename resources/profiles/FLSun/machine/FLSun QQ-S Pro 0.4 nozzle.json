@@ -1,189 +1,188 @@
 {
     "type": "machine",
-    "setting_id": "GM003",
     "name": "FLSun QQ-S Pro 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
     "printer_model": "FLSun QQ-S Pro",
     "default_print_profile": "0.20mm Standard @FLSun QQSPro",
-	"gcode_flavor": "marlin",
-	"thumbnails": [
+    "gcode_flavor": "marlin",
+    "thumbnails": [
         "260x260"
     ],
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"129.505x11.3302",
-		"128.025x22.5743",
-		"125.57x33.6465",
-		"122.16x44.4626",
-		"117.82x54.9404",
-		"112.583x65",
-		"106.49x74.5649",
-		"99.5858x83.5624",
-		"91.9239x91.9239",
-		"83.5624x99.5858",
-		"74.5649x106.49",
-		"65x112.583",
-		"54.9404x117.82",
-		"44.4626x122.16",
-		"33.6465x125.57",
-		"22.5743x128.025",
-		"11.3302x129.505",
-		"7.9602e-15x130",
-		"-11.3302x129.505",
-		"-22.5743x128.025",
-		"-33.6465x125.57",
-		"-44.4626x122.16",
-		"-54.9404x117.82",
-		"-65x112.583",
-		"-74.5649x106.49",
-		"-83.5624x99.5858",
-		"-91.9239x91.9239",
-		"-99.5858x83.5624",
-		"-106.49x74.5649",
-		"-112.583x65",
-		"-117.82x54.9404",
-		"-122.16x44.4626",
-		"-125.57x33.6465",
-		"-128.025x22.5743",
-		"-129.505x11.3302",
-		"-130x1.59204e-14",
-		"-129.505x-11.3302",
-		"-128.025x-22.5743",
-		"-125.57x-33.6465",
-		"-122.16x-44.4626",
-		"-117.82x-54.9404",
-		"-112.583x-65",
-		"-106.49x-74.5649",
-		"-99.5858x-83.5624",
-		"-91.9239x-91.9239",
-		"-83.5624x-99.5858",
-		"-74.5649x-106.49",
-		"-65x-112.583",
-		"-54.9404x-117.82",
-		"-44.4626x-122.16",
-		"-33.6465x-125.57",
-		"-22.5743x-128.025",
-		"-11.3302x-129.505",
-		"-2.38806e-14x-130",
-		"11.3302x-129.505",
-		"22.5743x-128.025",
-		"33.6465x-125.57",
-		"44.4626x-122.16",
-		"54.9404x-117.82",
-		"65x-112.583",
-		"74.5649x-106.49",
-		"83.5624x-99.5858",
-		"91.9239x-91.9239",
-		"99.5858x-83.5624",
-		"106.49x-74.5649",
-		"112.583x-65",
-		"117.82x-54.9404",
-		"122.16x-44.4626",
-		"125.57x-33.6465",
-		"128.025x-22.5743",
-		"129.505x-11.3302",
-		"130x-3.18408e-14"
-	],
-	"printable_height": "360",
-	"nozzle_type": "hardened_steel",
-	"auxiliary_fan": "0",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "129.505x11.3302",
+        "128.025x22.5743",
+        "125.57x33.6465",
+        "122.16x44.4626",
+        "117.82x54.9404",
+        "112.583x65",
+        "106.49x74.5649",
+        "99.5858x83.5624",
+        "91.9239x91.9239",
+        "83.5624x99.5858",
+        "74.5649x106.49",
+        "65x112.583",
+        "54.9404x117.82",
+        "44.4626x122.16",
+        "33.6465x125.57",
+        "22.5743x128.025",
+        "11.3302x129.505",
+        "7.9602e-15x130",
+        "-11.3302x129.505",
+        "-22.5743x128.025",
+        "-33.6465x125.57",
+        "-44.4626x122.16",
+        "-54.9404x117.82",
+        "-65x112.583",
+        "-74.5649x106.49",
+        "-83.5624x99.5858",
+        "-91.9239x91.9239",
+        "-99.5858x83.5624",
+        "-106.49x74.5649",
+        "-112.583x65",
+        "-117.82x54.9404",
+        "-122.16x44.4626",
+        "-125.57x33.6465",
+        "-128.025x22.5743",
+        "-129.505x11.3302",
+        "-130x1.59204e-14",
+        "-129.505x-11.3302",
+        "-128.025x-22.5743",
+        "-125.57x-33.6465",
+        "-122.16x-44.4626",
+        "-117.82x-54.9404",
+        "-112.583x-65",
+        "-106.49x-74.5649",
+        "-99.5858x-83.5624",
+        "-91.9239x-91.9239",
+        "-83.5624x-99.5858",
+        "-74.5649x-106.49",
+        "-65x-112.583",
+        "-54.9404x-117.82",
+        "-44.4626x-122.16",
+        "-33.6465x-125.57",
+        "-22.5743x-128.025",
+        "-11.3302x-129.505",
+        "-2.38806e-14x-130",
+        "11.3302x-129.505",
+        "22.5743x-128.025",
+        "33.6465x-125.57",
+        "44.4626x-122.16",
+        "54.9404x-117.82",
+        "65x-112.583",
+        "74.5649x-106.49",
+        "83.5624x-99.5858",
+        "91.9239x-91.9239",
+        "99.5858x-83.5624",
+        "106.49x-74.5649",
+        "112.583x-65",
+        "117.82x-54.9404",
+        "122.16x-44.4626",
+        "125.57x-33.6465",
+        "128.025x-22.5743",
+        "129.505x-11.3302",
+        "130x-3.18408e-14"
+    ],
+    "printable_height": "360",
+    "nozzle_type": "hardened_steel",
+    "auxiliary_fan": "0",
     "machine_max_acceleration_e": [
         "3000",
         "800"
     ],
-	"machine_max_acceleration_extruding": [
-		"1500",
-		"800"
-	],
-	"machine_max_acceleration_retracting": [
-		"2000",
-		"800"
-	],
-	"machine_max_acceleration_travel": [
-		"1500",
-		"800"
-	],
-	"machine_max_acceleration_x": [
-		"1500",
-		"800"
-	],
-	"machine_max_acceleration_y": [
-		"1500",
-		"800"
-	],
-	"machine_max_acceleration_z": [
-		"1500",
-		"800"
-	],
-	"machine_max_speed_e": [
-		"60",
-		"30"
-	],
-	"machine_max_speed_x": [
-		"200",
-		"150"
-	],
-	"machine_max_speed_y": [
-		"200",
-		"150"
-	],
-	"machine_max_speed_z": [
-		"200",
-		"150"
-	],
-	"machine_max_jerk_e": [
-		"5",
-		"5"
-	],
-	"machine_max_jerk_x": [
-		"5",
-		"10"
-	],
-	"machine_max_jerk_y": [
-		"5",
-		"10"
-	],
-	"machine_max_jerk_z": [
-		"5",
-		"10"
-	],
-	"max_layer_height": [
-		"0.32"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"printer_settings_id": "FLSun",
-	"retraction_minimum_travel": [
-		"2"
-	],
-	"retract_before_wipe": [
-		"70%"
-	],
-	"retraction_length": [
-		"5"
-	],
-	"retract_length_toolchange": [
-		"1"
-	],
-	"retraction_speed": [
-		"30"
-	],
-	"deretraction_speed": [
-		"40"
-	],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "M400 U1\n",
-	"default_filament_profile": [
-		"FLSun Generic PLA"
-	],
-	"machine_start_gcode": ";STARTGCODE\nM117 Initializing\n; Set coordinate modes\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\n; Reset speed and extrusion rates\nM200 D0 ; disable volumetric E\nM220 S100 ; reset speed\n; Set initial warmup temps\nM117 Nozzle preheat\nM104 S100 ; preheat extruder to no ooze temp\nM140 S[bed_temperature_initial_layer_single] ; set bed temp\nM190 S[bed_temperature_initial_layer_single] ; wait for bed final temp\nM300 S40 P10 ; Bip\n; Home\nM117 Homing\nG28 ; home all with default mesh bed level\n; For ABL users put G29 for a leveling request\n; Final warmup routine\nM117 Final warmup\nM104 S[nozzle_temperature_initial_layer] ; set extruder final temp\nM109 S[nozzle_temperature_initial_layer] ; wait for extruder final temp\nM190 S[bed_temperature_initial_layer_single] ; wait for bed final temp\nM300 S440 P200; 1st beep for printer ready and allow some time to clean nozzle\nM300 S0 P250; wait between dual beep\nM300 S440 P200; 2nd beep for printer ready\nG4 S10; wait to clean the nozzle\nM300 S440 P200; 3rd beep for ready to start printing\n; Prime line routine\nM117 Printing prime line\n;M900 K0; Disable Linear Advance (Marlin) for prime line\nG92 E0.0; reset extrusion distance\nG1 X-54.672 Y-95.203 Z0.3 F4000; go outside print area\nG92 E0.0; reset extrusion distance\nG1 E2 F1000 ; de-retract and push ooze\nG3 X38.904 Y-102.668 I54.672 J95.105 E20.999\nG3 X54.671 Y-95.203 I-38.815 J102.373 E5.45800\nG92 E0.0\nG1 E-5 F3000 ; retract 5mm\nG1 X52.931 Y-96.185 F1000 ; wipe\nG1 X50.985 Y-97.231 F1000 ; wipe\nG1 X49.018 Y-98.238 F1000 ; wipe\nG1 X0 Y-109.798 F1000\nG1 E4.8 F1500; de-retract\nG92 E0.0 ; reset extrusion distance\n; Final print adjustments\nM117 Preparing to print\n;M82 ; extruder absolute mode\nM221 S{if layer_height<0.075}100{else}95{endif}\nM300 S40 P10 ; chirp\nM117 Print [output_filename_format]; Display: Printing started...",
-	"machine_end_gcode": "; printing object ENDGCODE\nG92 E0.0 ; prepare to retract\nG1 E-6 F3000; retract to avoid stringing\n; Anti-stringing end wiggle\n{if layer_z < max_print_height}G1 Z{min(layer_z+100, max_print_height)}{endif} F4000 ; Move print head up\nG1 X0 Y120 F3000 ; present print\n; Reset print setting overrides\nG92 E0\nM200 D0 ; disable volumetric e\nM220 S100 ; reset speed factor to 100%\nM221 S100 ; reset extruder factor to 100%\n;M900 K0 ; reset linear acceleration(Marlin)\n; Shut down printer\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nM18 S180 ;disable motors after 180s\nM300 S40 P10 ; Bip\nM117 Print finish.",
-	"scan_first_layer": "0"
-  }
-  
+    "machine_max_acceleration_extruding": [
+        "1500",
+        "800"
+    ],
+    "machine_max_acceleration_retracting": [
+        "2000",
+        "800"
+    ],
+    "machine_max_acceleration_travel": [
+        "1500",
+        "800"
+    ],
+    "machine_max_acceleration_x": [
+        "1500",
+        "800"
+    ],
+    "machine_max_acceleration_y": [
+        "1500",
+        "800"
+    ],
+    "machine_max_acceleration_z": [
+        "1500",
+        "800"
+    ],
+    "machine_max_speed_e": [
+        "60",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "200",
+        "150"
+    ],
+    "machine_max_speed_y": [
+        "200",
+        "150"
+    ],
+    "machine_max_speed_z": [
+        "200",
+        "150"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "5",
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "5",
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "5",
+        "10"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "FLSun",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retraction_length": [
+        "5"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M400 U1\n",
+    "default_filament_profile": [
+        "FLSun Generic PLA"
+    ],
+    "machine_start_gcode": ";STARTGCODE\nM117 Initializing\n; Set coordinate modes\nG90 ; use absolute coordinates\nM83 ; extruder relative mode\n; Reset speed and extrusion rates\nM200 D0 ; disable volumetric E\nM220 S100 ; reset speed\n; Set initial warmup temps\nM117 Nozzle preheat\nM104 S100 ; preheat extruder to no ooze temp\nM140 S[bed_temperature_initial_layer_single] ; set bed temp\nM190 S[bed_temperature_initial_layer_single] ; wait for bed final temp\nM300 S40 P10 ; Bip\n; Home\nM117 Homing\nG28 ; home all with default mesh bed level\n; For ABL users put G29 for a leveling request\n; Final warmup routine\nM117 Final warmup\nM104 S[nozzle_temperature_initial_layer] ; set extruder final temp\nM109 S[nozzle_temperature_initial_layer] ; wait for extruder final temp\nM190 S[bed_temperature_initial_layer_single] ; wait for bed final temp\nM300 S440 P200; 1st beep for printer ready and allow some time to clean nozzle\nM300 S0 P250; wait between dual beep\nM300 S440 P200; 2nd beep for printer ready\nG4 S10; wait to clean the nozzle\nM300 S440 P200; 3rd beep for ready to start printing\n; Prime line routine\nM117 Printing prime line\n;M900 K0; Disable Linear Advance (Marlin) for prime line\nG92 E0.0; reset extrusion distance\nG1 X-54.672 Y-95.203 Z0.3 F4000; go outside print area\nG92 E0.0; reset extrusion distance\nG1 E2 F1000 ; de-retract and push ooze\nG3 X38.904 Y-102.668 I54.672 J95.105 E20.999\nG3 X54.671 Y-95.203 I-38.815 J102.373 E5.45800\nG92 E0.0\nG1 E-5 F3000 ; retract 5mm\nG1 X52.931 Y-96.185 F1000 ; wipe\nG1 X50.985 Y-97.231 F1000 ; wipe\nG1 X49.018 Y-98.238 F1000 ; wipe\nG1 X0 Y-109.798 F1000\nG1 E4.8 F1500; de-retract\nG92 E0.0 ; reset extrusion distance\n; Final print adjustments\nM117 Preparing to print\n;M82 ; extruder absolute mode\nM221 S{if layer_height<0.075}100{else}95{endif}\nM300 S40 P10 ; chirp\nM117 Print [output_filename_format]; Display: Printing started...",
+    "machine_end_gcode": "; printing object ENDGCODE\nG92 E0.0 ; prepare to retract\nG1 E-6 F3000; retract to avoid stringing\n; Anti-stringing end wiggle\n{if layer_z < max_print_height}G1 Z{min(layer_z+100, max_print_height)}{endif} F4000 ; Move print head up\nG1 X0 Y120 F3000 ; present print\n; Reset print setting overrides\nG92 E0\nM200 D0 ; disable volumetric e\nM220 S100 ; reset speed factor to 100%\nM221 S100 ; reset extruder factor to 100%\n;M900 K0 ; reset linear acceleration(Marlin)\n; Shut down printer\nM104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\nM107 ; turn off fan\nM18 S180 ;disable motors after 180s\nM300 S40 P10 ; Bip\nM117 Print finish.",
+    "scan_first_layer": "0"
+}

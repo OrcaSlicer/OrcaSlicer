@@ -98,7 +98,7 @@
     "accel_to_decel_enable": "1",
     "top_shell_thickness": "1",
     "infill_anchor": "400%",
-	"infill_anchor_max": "20",
+    "infill_anchor_max": "20",
     "accel_to_decel": "50%",
     "overhang_1_4_speed": "80",
     "overhang_2_4_speed": "50",

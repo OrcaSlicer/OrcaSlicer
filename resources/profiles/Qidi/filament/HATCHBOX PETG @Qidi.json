@@ -1,12 +1,15 @@
 {
     "type": "filament",
-	"filament_id": "GFG99",
-    "setting_id": "GFSG99",
     "name": "HATCHBOX PETG @Qidi",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
-	"reduce_fan_stop_start_freq": [
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "filament_type": [
+        "PETG"
+    ],
+    "reduce_fan_stop_start_freq": [
         "1"
     ],
     "slow_down_for_layer_cooling": [
@@ -45,24 +48,24 @@
     "pressure_advance": [
         "0.04"
     ],
-    "hot_plate_temp_initial_layer" : [
+    "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "hot_plate_temp" : [
-      "80"
+    "hot_plate_temp": [
+        "80"
     ],
-    "filament_density":[
-      "1.24"
+    "filament_density": [
+        "1.24"
     ],
     "filament_vendor": [
         "HATCHBOX"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.4 nozzle",
         "Qidi X-Max 0.4 nozzle",
         "Qidi X-CF Pro 0.4 nozzle",
-		"Qidi X-Smart 3 0.4 nozzle",
-		"Qidi X-Plus 3 0.4 nozzle",
-		"Qidi X-Max 3 0.4 nozzle"
-	]
+        "Qidi X-Smart 3 0.4 nozzle",
+        "Qidi X-Plus 3 0.4 nozzle",
+        "Qidi X-Max 3 0.4 nozzle"
+    ]
 }

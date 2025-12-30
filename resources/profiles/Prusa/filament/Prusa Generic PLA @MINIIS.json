@@ -1,10 +1,10 @@
 {
     "type": "filament",
-    "setting_id": "GFSA04",
     "name": "Prusa Generic PLA @MINIIS",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
     "filament_flow_ratio": [
         "1"
     ],
@@ -20,8 +20,7 @@
     "pressure_advance": [
         "0.27"
     ],
-
     "compatible_printers": [
-      "Prusa MINIIS 0.4 nozzle"
+        "Prusa MINIIS 0.4 nozzle"
     ]
 }

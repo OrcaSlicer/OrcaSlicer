@@ -1,122 +1,122 @@
 {
-	"type": "machine",
-	"setting_id": "LZPC001",
-	"name": "Lulzbot Taz Pro Common",
-	"from": "system",
-	"instantiation": "false",
-	"inherits": "fdm_machine_common",
-	"printer_model": "Lulzbot Taz Pro Common",
-	"printable_area": [
-		"0x0",
-		"280x0",
-		"280x280",
-		"0x280"
-	],
-	"printable_height": "280",
-	"support_multi_bed_types": "1",
-	"printer_structure": "i3",
-	"cooling_tube_retraction": "0",
-	"cooling_tube_length": "0",
-	"parking_pos_retraction": "0",
-	"extra_loading_move": "0",
-	"machine_load_filament_time": "1",
-	"machine_unload_filament_time": "1",
-	"machine_tool_change_time": "3",
-	"nozzle_type": "undefine",
-	"auxiliary_fan": "0",
-	"emit_machine_limits_to_gcode": "1",
-	"machine_max_acceleration_extruding": [
-		"1000",
-		"1000"
-	],
-	"machine_max_acceleration_retracting": [
-		"3000",
-		"3000"
-	],
-	"machine_max_acceleration_travel": [
-		"500",
-		"500"
-	],
-	"machine_max_acceleration_x": [
-		"500",
-		"500"
-	],
-	"machine_max_acceleration_y": [
-		"500",
-		"500"
-	],
-	"machine_max_acceleration_z": [
-		"100",
-		"100"
-	],
-	"machine_max_speed_e": [
-		"60",
-		"60"
-	],
-	"machine_max_speed_x": [
-		"300",
-		"300"
-	],
-	"machine_max_speed_y": [
-		"300",
-		"300"
-	],
-	"machine_max_speed_z": [
-		"25",
-		"25"
-	],
-	"machine_max_jerk_e": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_x": [
-		"8",
-		"8"
-	],
-	"machine_max_jerk_y": [
-		"8",
-		"8"
-	],
-	"machine_max_jerk_z": [
-		"0.4",
-		"0.4"
-	],
-	"max_layer_height": [
-		"0.38",
-		"0.38"
-	],
-	"min_layer_height": [
-		"0.08",
-		"0.08"
-	],
-	"printer_settings_id": "LulzbotPro-Common",
-	"retraction_minimum_travel": [
-		"1",
-		"1"
-	],
-	"retract_before_wipe": [
-		"70%",
-		"70%"
-	],
-	"retraction_length": [
-		"1",
-		"1"
-	],
-	"retract_length_toolchange": [
-		"1",
-		"1"
-	],
-	"retraction_speed": [
-		"10"
-	],
-	"deretraction_speed": [
-		"10"
-	],
+    "type": "machine",
+    "name": "Lulzbot Taz Pro Common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "LZPC001",
+    "instantiation": "false",
+    "printer_model": "Lulzbot Taz Pro Common",
+    "printable_area": [
+        "0x0",
+        "280x0",
+        "280x280",
+        "0x280"
+    ],
+    "printable_height": "280",
+    "support_multi_bed_types": "1",
+    "printer_structure": "i3",
+    "cooling_tube_retraction": "0",
+    "cooling_tube_length": "0",
+    "parking_pos_retraction": "0",
+    "extra_loading_move": "0",
+    "machine_load_filament_time": "1",
+    "machine_unload_filament_time": "1",
+    "machine_tool_change_time": "3",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "emit_machine_limits_to_gcode": "1",
+    "machine_max_acceleration_extruding": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_travel": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_z": [
+        "100",
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "60",
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_y": [
+        "300",
+        "300"
+    ],
+    "machine_max_speed_z": [
+        "25",
+        "25"
+    ],
+    "machine_max_jerk_e": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_x": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.38",
+        "0.38"
+    ],
+    "min_layer_height": [
+        "0.08",
+        "0.08"
+    ],
+    "printer_settings_id": "LulzbotPro-Common",
+    "retraction_minimum_travel": [
+        "1",
+        "1"
+    ],
+    "retract_before_wipe": [
+        "70%",
+        "70%"
+    ],
+    "retraction_length": [
+        "1",
+        "1"
+    ],
+    "retract_length_toolchange": [
+        "1",
+        "1"
+    ],
+    "retraction_speed": [
+        "10"
+    ],
+    "deretraction_speed": [
+        "10"
+    ],
     "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0; reset relative extrusion",
     "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;LAYER:{layer_num}\n;[layer_z]\nM117 Layer: {layer_num +1} / [total_layer_count]",
     "change_filament_gcode": "",
     "machine_pause_gcode": "M600 B10",
-	"scan_first_layer": "0",
-	"support_chamber_temp_control": "0",
-	"support_air_filtration": "0"
+    "scan_first_layer": "0",
+    "support_chamber_temp_control": "0",
+    "support_air_filtration": "0"
 }

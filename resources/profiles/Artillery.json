@@ -1,6 +1,6 @@
 {
     "name": "Artillery",
-    "version":  "1.1.6",
+    "version":  "02.03.02.10",
     "force_update": "0",
     "description": "Artillery configurations",
     "machine_model_list": [
@@ -485,6 +485,10 @@
             "sub_path": "filament/Artillery PLA Basic @Artillery M1 Pro 0.8 nozzle.json"
         },
         {
+            "name": "Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle",
+            "sub_path": "filament/Artillery PLA Basic+ @Artillery M1 Pro 0.4 nozzle.json"
+        },
+        {
             "name": "Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle",
             "sub_path": "filament/Artillery PLA Matte @Artillery M1 Pro 0.2 nozzle.json"
         },
@@ -508,7 +512,7 @@
             "name": "Artillery PA-CF @Artillery M1 Pro 0.4 nozzle",
             "sub_path": "filament/Artillery PA-CF @Artillery M1 Pro 0.4 nozzle.json"
         },
-		{
+        {
             "name": "Artillery PA @Artillery M1 Pro 0.4 nozzle",
             "sub_path": "filament/Artillery PA @Artillery M1 Pro 0.4 nozzle.json"
         },

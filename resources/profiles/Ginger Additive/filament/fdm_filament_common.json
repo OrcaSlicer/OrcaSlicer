@@ -1,5 +1,9 @@
 {
     "type": "filament",
+    "name": "fdm_filament_common",
+    "from": "system",
+    "filament_id": "P510eff9",
+    "instantiation": "false",
     "activate_air_filtration": [
         "0"
     ],
@@ -87,7 +91,6 @@
     "filament_flow_ratio": [
         "1"
     ],
-    "filament_id": "P510eff9",
     "filament_is_support": [
         "0"
     ],
@@ -187,7 +190,6 @@
     "filament_z_hop_types": [
         "nil"
     ],
-    "from": "system",
     "full_fan_speed_layer": [
         "0"
     ],
@@ -197,8 +199,6 @@
     "hot_plate_temp_initial_layer": [
         "60"
     ],
-    "is_custom_defined": "0",
-    "name": "fdm_filament_common",
     "nozzle_temperature": [
         "220"
     ],
@@ -247,9 +247,7 @@
     "textured_plate_temp_initial_layer": [
         "55"
     ],
-    "version": "1.7.0.2",
     "pellet_flow_coefficient": [
         "1"
-    ],
-    "instantiation": "false"
+    ]
 }

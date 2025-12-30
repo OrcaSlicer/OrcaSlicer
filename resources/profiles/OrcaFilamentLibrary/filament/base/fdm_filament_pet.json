@@ -2,8 +2,8 @@
     "type": "filament",
     "name": "fdm_filament_pet",
     "inherits": "fdm_filament_common",
-    "filament_id": "OGFG99",
     "from": "system",
+    "filament_id": "OGFG99",
     "instantiation": "false",
     "eng_plate_temp": [
         "0"

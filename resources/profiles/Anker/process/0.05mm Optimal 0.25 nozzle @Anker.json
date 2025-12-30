@@ -1,9 +1,9 @@
 {
     "type": "process",
-    "setting_id": "GP013",
     "name": "0.05mm Optimal 0.25 nozzle @Anker",
-    "from": "system",
     "inherits": "fdm_process_anker_common_0_25",
+    "from": "system",
+    "setting_id": "GP013",
     "instantiation": "true",
     "layer_height": "0.05",
     "initial_layer_print_height": "0.15",

@@ -1,5 +1,6 @@
 {
-    "inherits": "0.40mm Standard @Elegoo Giga 0.8 nozzle",
+    "type": "process",
     "name": "0.56mm Extra Draft @Elegoo Giga 0.8 nozzle",
+    "inherits": "0.40mm Standard @Elegoo Giga 0.8 nozzle",
     "instantiation": "true"
 }

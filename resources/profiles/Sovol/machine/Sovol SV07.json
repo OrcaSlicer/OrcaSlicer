@@ -8,5 +8,5 @@
     "bed_model": "sovol_sv07_buildplate_model.stl",
     "bed_texture": "sovol_sv07_buildplate_texture.png",
     "hotend_model": "",
-	"default_materials": "Sovol SV07 PLA"
+    "default_materials": "Sovol SV07 PLA"
 }

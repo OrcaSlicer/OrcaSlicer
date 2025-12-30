@@ -1,8 +1,8 @@
 {
     "type": "process",
     "name": "fdm_process_common_klipper",
+    "inherits": "fdm_process_common",
     "from": "system",
-	"inherits": "fdm_process_common",
     "instantiation": "false",
     "default_jerk": "9",
     "initial_layer_jerk": "9",
@@ -12,5 +12,4 @@
     "inner_wall_jerk": "7",
     "top_surface_jerk": "7",
     "exclude_object": "1"
-
 }

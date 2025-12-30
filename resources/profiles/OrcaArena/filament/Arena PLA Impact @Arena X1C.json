@@ -1,14 +1,14 @@
 {
     "type": "filament",
-    "setting_id": "GFSA03",
     "name": "Arena PLA Impact @Arena X1C",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Arena PLA Impact @base",
+    "from": "system",
+    "setting_id": "GFSA03",
+    "instantiation": "true",
     "filament_max_volumetric_speed": [
         "23.2"
     ],
     "compatible_printers": [
-      "Orca Arena X1 Carbon 0.4 nozzle"
+        "Orca Arena X1 Carbon 0.4 nozzle"
     ]
 }

@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "GFG99",
-    "setting_id": "GFSA04",
     "name": "SecKit Generic PETG",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFG99",
+    "instantiation": "true",
     "reduce_fan_stop_start_freq": [
         "1"
     ],
@@ -39,13 +39,13 @@
     "filament_max_volumetric_speed": [
         "11"
     ],
-	"filament_z_hop": [
+    "filament_z_hop": [
         "0"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.045"
     ],
     "nozzle_temperature_initial_layer": [
@@ -59,6 +59,6 @@
     ],
     "compatible_printers": [
         "SecKit SK-Tank 0.4 nozzle",
-		"SecKit Go3 0.4 nozzle"
+        "SecKit Go3 0.4 nozzle"
     ]
 }

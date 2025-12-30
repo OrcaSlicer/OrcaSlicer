@@ -16,7 +16,7 @@
         "100"
     ],
     "filament_flow_ratio": [
-        "0.95"
+        "0.98"
     ],
     "filament_max_volumetric_speed": [
         "27"
@@ -34,20 +34,20 @@
     "is_custom_defined": "0",
     "name": "Artillery PLA Basic @Artillery M1 Pro 0.4 nozzle",
     "nozzle_temperature": [
-        "210"
+        "220"
     ],
     "nozzle_temperature_initial_layer": [
         "220"
     ],
-	"nozzle_temperature_range_high": [
+    "nozzle_temperature_range_high": [
         "240"
     ],
     "slow_down_layer_time": [
         "6"
     ],
-    "version": "2.1.2.0",
+    "version": "2.1.2.2",
     "compatible_printers": [
-		"Artillery M1 Pro 0.4 nozzle"
+        "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
         "1.3"
@@ -68,10 +68,10 @@
     "temperature_vitrification": [
         "60"
     ],
-	"enable_pressure_advance": [
+    "enable_pressure_advance": [
         "1"
     ],
-	"hot_plate_temp": [
+    "hot_plate_temp": [
         "50"
     ],
     "hot_plate_temp_initial_layer": [
@@ -89,10 +89,10 @@
     "cool_plate_temp_initial_layer": [
         "50"
     ],
-	"slow_down_min_speed": [
+    "slow_down_min_speed": [
         "15"
     ],
-	"pressure_advance": [
+    "pressure_advance": [
         "0.032"
     ]
 }

@@ -19,10 +19,13 @@
         "5%"
     ],
     "filament_scarf_seam_type": [
-        "all"
+        "none"
     ],
     "filament_vendor": [
         "Bambu Lab"
+    ],
+    "impact_strength_z": [
+        "8.5"
     ],
     "nozzle_temperature": [
         "230"

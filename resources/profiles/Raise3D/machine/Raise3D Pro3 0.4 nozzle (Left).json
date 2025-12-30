@@ -1,152 +1,152 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"name": "Raise3D Pro3 0.4 nozzle (Left)",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_machine_common",
-	"printer_model": "Raise3D Pro3",
-	"default_print_profile": "0.20mm Standard @Raise3D Pro3",
-	"nozzle_diameter": [
-		"0.4",
-		"0.4"
-	],
+    "type": "machine",
+    "name": "Raise3D Pro3 0.4 nozzle (Left)",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Raise3D Pro3",
+    "default_print_profile": "0.20mm Standard @Raise3D Pro3",
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ],
     "extruder_colour": [
         "#FCE94F",
-		"#FCE94F"
+        "#FCE94F"
     ],
     "extruder_offset": [
         "0x0",
-		"0x0"
+        "0x0"
     ],
-	"printable_area": [
-		"0x0",
-		"340x0",
-		"340x300",
-		"0x300"
-	],
-	"printable_height": "300",
-	"nozzle_type": "hardened_steel",
-	"auxiliary_fan": "0",
+    "printable_area": [
+        "0x0",
+        "340x0",
+        "340x300",
+        "0x300"
+    ],
+    "printable_height": "300",
+    "nozzle_type": "hardened_steel",
+    "auxiliary_fan": "0",
     "machine_max_acceleration_e": [
         "3000",
-		"3000"
+        "3000"
     ],
-	"machine_max_acceleration_extruding": [
-		"1000",
-		"300"
-	],
-	"machine_max_acceleration_retracting": [
-		"3000",
-		"1500"
-	],
-	"machine_max_acceleration_travel": [
-		"1500",
-		"500"
-	],
-	"machine_max_acceleration_x": [
-		"1000",
-		"1000"
-	],
-	"machine_max_acceleration_y": [
-		"1000",
-		"1000"
-	],
-	"machine_max_acceleration_z": [
-		"100",
-		"100"
-	],
-	"machine_max_speed_e": [
-		"120",
-		"120"
-	],
-	"machine_max_speed_x": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_y": [
-		"500",
-		"200"
-	],
-	"machine_max_speed_z": [
-		"12",
-		"12"
-	],
-	"machine_max_jerk_e": [
-		"5",
-		"5"
-	],
-	"machine_max_jerk_x": [
-		"5",
-		"5"
-	],
-	"machine_max_jerk_y": [
-		"5",
-		"5"
-	],
-	"machine_max_jerk_z": [
-		"0.4",
-		"0.4"
-	],
-	"max_layer_height": [
-		"0.4",
-		"0.4"
-	],
-	"min_layer_height": [
-		"0.1",
-		"0.1"
-	],
-	"printer_settings_id": "Raise3D",
-	"retraction_minimum_travel": [
-		"0.6",
-		"0.6"
-	],
-	"retract_before_wipe": [
-		"0%",
-		"0%"
-	],
-	"retraction_length": [
-		"0.5",
-		"0.5"
-	],
-	"retract_length_toolchange": [
-		"2",
-		"2"
-	],
+    "machine_max_acceleration_extruding": [
+        "1000",
+        "300"
+    ],
+    "machine_max_acceleration_retracting": [
+        "3000",
+        "1500"
+    ],
+    "machine_max_acceleration_travel": [
+        "1500",
+        "500"
+    ],
+    "machine_max_acceleration_x": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "100",
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "120",
+        "120"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_y": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.4",
+        "0.4"
+    ],
+    "min_layer_height": [
+        "0.1",
+        "0.1"
+    ],
+    "printer_settings_id": "Raise3D",
+    "retraction_minimum_travel": [
+        "0.6",
+        "0.6"
+    ],
+    "retract_before_wipe": [
+        "0%",
+        "0%"
+    ],
+    "retraction_length": [
+        "0.5",
+        "0.5"
+    ],
+    "retract_length_toolchange": [
+        "2",
+        "2"
+    ],
     "retract_when_changing_layer": [
         "1",
-		"1"
+        "1"
     ],
     "retract_restart_extra": [
         "0",
-		"0"
+        "0"
     ],
     "retract_restart_extra_toolchange": [
         "0",
-		"0"
+        "0"
     ],
-	"retraction_speed": [
-		"40",
-		"40"
-	],
-	"deretraction_speed": [
-		"0",
-		"0"
-	],
+    "retraction_speed": [
+        "40",
+        "40"
+    ],
+    "deretraction_speed": [
+        "0",
+        "0"
+    ],
     "wipe": [
         "1",
-		"1"
+        "1"
     ],
-	"single_extruder_multi_material": "1",
-	"change_filament_gcode": "",
-	"machine_pause_gcode": "; pause print\nM2000",
-	"default_filament_profile": [
-		"Generic PLA @System"
-	],
-	"machine_start_gcode": ";Bounding Box: {digits(first_layer_print_min[0],0,2)} {if(first_layer_print_max[0]>300)}{300}{else}{digits(first_layer_print_max[0],0,2)}{endif} {digits(first_layer_print_min[1],0,2)} {if(first_layer_print_max[1]>300)}{300}{else}{digits(first_layer_print_max[1],0,2)}{endif}\n\nM104 T0 S{nozzle_temperature_initial_layer[0] - 20} ; raise left extruder temp\nM140 S[bed_temperature_initial_layer_single] ; raise bed temp\nM190 S[bed_temperature_initial_layer_single] ; wait for bed temp\nM109 T0 S{nozzle_temperature_initial_layer[0] - 20} ; wait for left extruder temp\nM104 T0 S[nozzle_temperature_initial_layer] ; set left extruder temp\nM109 T0 S[nozzle_temperature_initial_layer] ; wait for left extruder temp\nT0\nG21\nG90\nM82\nM107\nM106 P2 S0\nG1 Z0.3 F500\nG92 E0\nG1 Z0.3 F400\nG1 X100 Y{random(2,8)} F1000\nG1 X170 Y{random(2,8)} E15 F200\nG1 Z5 E15 F200\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 Y30 F2000 ; move away from purge line\nG1 X{(first_layer_print_max[0] + first_layer_print_min[0])/2} Y{(first_layer_print_max[1] + first_layer_print_min[1])/2} Z{initial_layer_print_height} ; move to center of print\nM117 Printing...\nM1001",
-	"machine_end_gcode": "M1002\nM221 T0 S100\nM104 S0\nM140 S0\nM107\nM106 P2 S0\nG91\nG1 E-1 F300\nG1 Z+0.5 E-5 X-20 Y-20 F9000.00\nG28 X0 Y0\nM84\nG90\n",
-	"toolchange_gcode": "; layer [layer_num] tool change",
-	"before_layer_change_gcode": "; before layer [layer_num] change\nG92 E0\n{if layer_z <= initial_layer_print_height + layer_height * 2}\nM109 T0 S{nozzle_temperature_initial_layer[0]}\nM140 S[bed_temperature_initial_layer_single]\n{else}\nM109 T0 S{nozzle_temperature[0]}\nM140 S{bed_temperature[0]}\n{endif}\n{if (filament_type[0] ==\"PLA\" or filament_type[0] ==\"PETG\")}\n{if layer_z >= initial_layer_print_height + layer_height * 2}\nM106 P2 S150\n{elsif layer_z >= initial_layer_print_height + layer_height * 1}\nM106 P2 S100\n{else}\nM106 P2 S0\n{endif}\n{endif}",
-	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
-	"scan_first_layer": "0"
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "; pause print\nM2000",
+    "default_filament_profile": [
+        "Generic PLA @System"
+    ],
+    "machine_start_gcode": ";Bounding Box: {digits(first_layer_print_min[0],0,2)} {if(first_layer_print_max[0]>300)}{300}{else}{digits(first_layer_print_max[0],0,2)}{endif} {digits(first_layer_print_min[1],0,2)} {if(first_layer_print_max[1]>300)}{300}{else}{digits(first_layer_print_max[1],0,2)}{endif}\n\nM104 T0 S{nozzle_temperature_initial_layer[0] - 20} ; raise left extruder temp\nM140 S[bed_temperature_initial_layer_single] ; raise bed temp\nM190 S[bed_temperature_initial_layer_single] ; wait for bed temp\nM109 T0 S{nozzle_temperature_initial_layer[0] - 20} ; wait for left extruder temp\nM104 T0 S[nozzle_temperature_initial_layer] ; set left extruder temp\nM109 T0 S[nozzle_temperature_initial_layer] ; wait for left extruder temp\nT0\nG21\nG90\nM82\nM107\nM106 P2 S0\nG1 Z0.3 F500\nG92 E0\nG1 Z0.3 F400\nG1 X100 Y{random(2,8)} F1000\nG1 X170 Y{random(2,8)} E15 F200\nG1 Z5 E15 F200\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 Y30 F2000 ; move away from purge line\nG1 X{(first_layer_print_max[0] + first_layer_print_min[0])/2} Y{(first_layer_print_max[1] + first_layer_print_min[1])/2} Z{initial_layer_print_height} ; move to center of print\nM117 Printing...\nM1001",
+    "machine_end_gcode": "M1002\nM221 T0 S100\nM104 S0\nM140 S0\nM107\nM106 P2 S0\nG91\nG1 E-1 F300\nG1 Z+0.5 E-5 X-20 Y-20 F9000.00\nG28 X0 Y0\nM84\nG90\n",
+    "toolchange_gcode": "; layer [layer_num] tool change",
+    "before_layer_change_gcode": "; before layer [layer_num] change\nG92 E0\n{if layer_z <= initial_layer_print_height + layer_height * 2}\nM109 T0 S{nozzle_temperature_initial_layer[0]}\nM140 S[bed_temperature_initial_layer_single]\n{else}\nM109 T0 S{nozzle_temperature[0]}\nM140 S{bed_temperature[0]}\n{endif}\n{if (filament_type[0] ==\"PLA\" or filament_type[0] ==\"PETG\")}\n{if layer_z >= initial_layer_print_height + layer_height * 2}\nM106 P2 S150\n{elsif layer_z >= initial_layer_print_height + layer_height * 1}\nM106 P2 S100\n{else}\nM106 P2 S0\n{endif}\n{endif}",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "scan_first_layer": "0"
 }

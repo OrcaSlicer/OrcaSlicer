@@ -1,20 +1,21 @@
 {
     "type": "process",
+    "name": "0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle)",
+    "inherits": "fdm_process_tiq_common",
+    "from": "system",
+    "instantiation": "true",
     "bridge_flow": "1.4",
     "bridge_speed": "100",
     "brim_type": "outer_only",
     "enable_support": "1",
     "exclude_object": "0",
-    "from": "system",
     "gcode_label_objects": "0",
-    "instantiation": "true",
-    "compatible_printers": ["iQ TiQ8 0.4 Nozzle"],
-    "inherits": "fdm_process_tiq_common",
+    "compatible_printers": [
+        "iQ TiQ8 0.4 Nozzle"
+    ],
     "internal_bridge_speed": "50%",
     "internal_solid_infill_speed": "50",
     "ironing_pattern": "concentric",
-    "is_custom_defined": "0",
-    "name": "0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle)",
     "bottom_shell_layers": "4",
     "initial_layer_speed": "80",
     "initial_layer_infill_speed": "80",
@@ -54,7 +55,7 @@
     "support_filament": "1",
     "support_interface_filament": "1",
     "support_interface_pattern": "auto",
-    "independent_support_layer_height":"1",
+    "independent_support_layer_height": "1",
     "enable_prime_tower": "0",
     "brim_object_gap": "0.05",
     "support_interface_spacing": "0.2",
@@ -67,7 +68,6 @@
     "tree_support_branch_diameter_angle": "10",
     "tree_support_branch_diameter_organic": "3",
     "tree_support_tip_diameter": "2",
-    "version": "0.0.0.0",
     "wall_loops": "2",
-    "notes":"Process file version 1.0 20250620"
+    "notes": "Process file version 1.0 20250620"
 }

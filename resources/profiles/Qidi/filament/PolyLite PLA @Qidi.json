@@ -1,12 +1,15 @@
 {
     "type": "filament",
-	"filament_id": "GFL99",
-    "setting_id": "GFSL99",
     "name": "PolyLite PLA @Qidi",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_filament_pla",
-	"filament_flow_ratio": [
+    "from": "system",
+    "setting_id": "GFSL99",
+    "filament_id": "GFL99",
+    "instantiation": "true",
+    "filament_type": [
+        "PLA"
+    ],
+    "filament_flow_ratio": [
         "0.99"
     ],
     "filament_max_volumetric_speed": [
@@ -27,12 +30,12 @@
     "filament_vendor": [
         "Polymaker"
     ],
-	"compatible_printers": [
+    "compatible_printers": [
         "Qidi X-Plus 0.4 nozzle",
         "Qidi X-Max 0.4 nozzle",
         "Qidi X-CF Pro 0.4 nozzle",
-		"Qidi X-Smart 3 0.4 nozzle",
-		"Qidi X-Plus 3 0.4 nozzle",
-		"Qidi X-Max 3 0.4 nozzle"
-	]
+        "Qidi X-Smart 3 0.4 nozzle",
+        "Qidi X-Plus 3 0.4 nozzle",
+        "Qidi X-Max 3 0.4 nozzle"
+    ]
 }

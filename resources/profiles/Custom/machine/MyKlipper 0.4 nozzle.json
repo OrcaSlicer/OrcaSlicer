@@ -1,10 +1,10 @@
 {
     "type": "machine",
-    "setting_id": "GM001",
     "name": "MyKlipper 0.4 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
     "printer_model": "Generic Klipper Printer",
     "nozzle_diameter": [
         "0.4"

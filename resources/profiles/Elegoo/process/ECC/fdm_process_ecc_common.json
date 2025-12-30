@@ -77,10 +77,10 @@
     "role_based_wipe_speed": "1",
     "detect_narrow_internal_solid_infill": "1",
     "top_shell_thickness": "0.8",
-    "bottom_shell_thickness":"0.8",
+    "bottom_shell_thickness": "0.8",
     "gap_fill_target": "everywhere",
     "filter_out_gap_fill": "1",
     "ensure_vertical_shell_thickness": "ensure_all",
     "compatible_printers": [],
-	"slowdown_for_curled_perimeters": "0"
+    "slowdown_for_curled_perimeters": "0"
 }

@@ -1,19 +1,19 @@
 {
-  "type": "machine",
-  "setting_id": "GM004",
-  "name": "RatRig V-Core 3 500 0.4 nozzle",
-  "from": "system",
-  "instantiation": "true",
-  "inherits": "fdm_klipper_common",
-  "printer_model": "RatRig V-Core 3 500",
-  "nozzle_diameter": [
-    "0.4"
-  ],
-  "printable_area": [
-    "0x0",
-    "500x0",
-    "500x500",
-    "0x500"
-  ],
-  "printable_height": "500"
+    "type": "machine",
+    "name": "RatRig V-Core 3 500 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM004",
+    "instantiation": "true",
+    "printer_model": "RatRig V-Core 3 500",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "500x0",
+        "500x500",
+        "0x500"
+    ],
+    "printable_height": "500"
 }

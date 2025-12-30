@@ -5,9 +5,9 @@
     "from": "system",
     "setting_id": "GFSA04_19",
     "instantiation": "true",
-  "compatible_printers": [
-    "Chuanying X1 0.25 Nozzle"
-  ],
+    "compatible_printers": [
+        "Chuanying X1 0.25 Nozzle"
+    ],
     "filament_settings_id": [
         "Chuanying PLA @Chuanying X1 0.25 Nozzle"
     ],
@@ -43,6 +43,5 @@
     ],
     "slow_down_min_speed": [
         "15"
-    ],
-    "version": "1.8.0.0"
+    ]
 }

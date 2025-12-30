@@ -1,13 +1,13 @@
 {
-  "type": "process",
-  "name": "0.20mm Standard @Chuanying X1 0.4 Nozzle",
-  "inherits": "fdm_process_chuanying_0.20",
-  "from": "system",
-  "setting_id": "GP001",
-  "instantiation": "true",
-  "compatible_printers": [
-    "Chuanying X1 0.4 Nozzle"
-  ],
-  "only_one_wall_top": "0",
-  "infill_wall_overlap": "50%"
+    "type": "process",
+    "name": "0.20mm Standard @Chuanying X1 0.4 Nozzle",
+    "inherits": "fdm_process_chuanying_0.20",
+    "from": "system",
+    "setting_id": "GP001",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Chuanying X1 0.4 Nozzle"
+    ],
+    "only_one_wall_top": "0",
+    "infill_wall_overlap": "50%"
 }

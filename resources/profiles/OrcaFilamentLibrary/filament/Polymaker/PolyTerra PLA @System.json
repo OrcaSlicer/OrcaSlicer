@@ -1,8 +1,8 @@
 {
     "type": "filament",
     "name": "PolyTerra PLA @System",
-    "inherits": "PolyTerra PLA @base",
     "renamed_from": "PolyTerra PLA",
+    "inherits": "PolyTerra PLA @base",
     "from": "system",
     "setting_id": "OGFSL18",
     "instantiation": "true",

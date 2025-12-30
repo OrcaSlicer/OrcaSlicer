@@ -1,15 +1,13 @@
 {
-	
-	
     "type": "filament",
-    "filament_id": "GFL99",
-    "setting_id": "GFSA04",
-    "from": "system",
-    "instantiation": "true",
-    "inherits": "CoPrint Generic PLA",
     "name": "CoPrint Generic ABS",
+    "inherits": "CoPrint Generic PLA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99",
+    "instantiation": "true",
     "close_fan_the_first_x_layers": [
-    "3"
+        "3"
     ],
     "fan_cooling_layer_time": [
         "30"
@@ -68,11 +66,10 @@
     "temperature_vitrification": [
         "100"
     ],
-	"compatible_printers": [
-		"Co Print ChromaSet 0.4 nozzle",
-		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
-		"Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
-		"Co Print ChromaSet 0.4 nozzle fast"
-	]
-	
+    "compatible_printers": [
+        "Co Print ChromaSet 0.4 nozzle",
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3",
+        "Co Print ChromaSet 0.4 nozzle - Ender-3 V3 Plus",
+        "Co Print ChromaSet 0.4 nozzle fast"
+    ]
 }

@@ -1,21 +1,21 @@
 {
-  "type": "process",
-  "from": "system",
-  "instantiation": "true",
-  "name": "0.12 Fine @Snapmaker J1 (0.4 nozzle)",
-  "setting_id": "2089753458",
-  "inherits": "fdm_process_idex",
-  "compatible_printers": [
-    "Snapmaker J1 (0.4 nozzle)"
-  ],
-  "layer_height": "0.12",
-  "bottom_shell_layers": "5",
-  "elefant_foot_compensation": "0.15",
-  "top_shell_layers": "5",
-  "top_shell_thickness": "0.6",
-  "bridge_flow": "1",
-  "support_threshold_angle": "20",
-  "initial_layer_infill_speed": "80",
-  "inner_wall_speed": "145",
-  "internal_solid_infill_speed": "150"
+    "type": "process",
+    "name": "0.12 Fine @Snapmaker J1 (0.4 nozzle)",
+    "inherits": "fdm_process_idex",
+    "from": "system",
+    "setting_id": "2089753458",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.4 nozzle)"
+    ],
+    "layer_height": "0.12",
+    "bottom_shell_layers": "5",
+    "elefant_foot_compensation": "0.15",
+    "top_shell_layers": "5",
+    "top_shell_thickness": "0.6",
+    "bridge_flow": "1",
+    "support_threshold_angle": "20",
+    "initial_layer_infill_speed": "80",
+    "inner_wall_speed": "145",
+    "internal_solid_infill_speed": "150"
 }

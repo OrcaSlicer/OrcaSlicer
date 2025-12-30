@@ -154,7 +154,13 @@ public:
     void text_wrapped(const std::string &label, float wrap_width);
     void text_wrapped(const wxString &label, float wrap_width);
     void tooltip(const char *label, float wrap_width);
+    void tooltip(const std::string &label, float wrap_width);
     void tooltip(const wxString &label, float wrap_width);
+    void filament_group(const std::string &filament_type, const char *hex_color, unsigned char filament_id, float align_width);
+
+    // text size and is_multi_line
+    std::tuple<ImVec2,bool> calculate_filament_group_text_size(const std::string& filament_type);
+    void sub_title(const std::string &label);
 
 
     // Float sliders: Manually inserted values aren't clamped by ImGui.Using this wrapper function does (when clamp==true).
@@ -341,6 +347,7 @@ public:
     static const ImVec4 COL_SEPARATOR;
     static const ImVec4 COL_SEPARATOR_DARK;
     static const ImVec4 COL_ORCA;
+    static const ImVec4 COL_MODIFIED;
 
     //BBS
     static void on_change_color_mode(bool is_dark);
@@ -358,7 +365,7 @@ public:
     static void pop_button_disable_style();
     static void push_combo_style(const float scale);
     static void pop_combo_style();
-    static void push_radio_style();
+    static void push_radio_style(const float scale);
     static void pop_radio_style();
 
     //BBS
@@ -388,7 +395,6 @@ class IMTexture
 public:
     // load svg file to thumbnail data, specific width, height is thumbnailData width, height
     static bool load_from_svg_file(const std::string& filename, unsigned width, unsigned height, ImTextureID &texture_id);
-
 };
 
 

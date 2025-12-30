@@ -1,15 +1,15 @@
 {
-  "type": "process",
-  "from": "system",
-  "instantiation": "true",
-  "name": "0.20 Strength @Snapmaker Artisan (0.4 nozzle)",
-  "setting_id": "1825586885",
-  "inherits": "fdm_process_a400",
-  "compatible_printers": [
-    "Snapmaker Artisan (0.4 nozzle)"
-  ],
-  "elefant_foot_compensation": "0.15",
-  "wall_loops": "6",
-  "bottom_shell_layers": "4",
-  "sparse_infill_density": "25%"
+    "type": "process",
+    "name": "0.20 Strength @Snapmaker Artisan (0.4 nozzle)",
+    "inherits": "fdm_process_a400",
+    "from": "system",
+    "setting_id": "1825586885",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker Artisan (0.4 nozzle)"
+    ],
+    "elefant_foot_compensation": "0.15",
+    "wall_loops": "6",
+    "bottom_shell_layers": "4",
+    "sparse_infill_density": "25%"
 }

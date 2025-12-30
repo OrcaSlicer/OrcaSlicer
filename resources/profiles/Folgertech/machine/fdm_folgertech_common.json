@@ -1,138 +1,138 @@
 {
-  "type": "machine",
-  "name": "fdm_folgertech_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_machine_common",
-  "gcode_flavor": "marlin",
-  "machine_max_acceleration_e": [
-    "5000",
-    "5000"
-  ],
-  "machine_max_acceleration_extruding": [
-    "500",
-    "500"
-  ],
-  "machine_max_acceleration_retracting": [
-    "1000",
-    "1000"
-  ],
-  "machine_max_acceleration_travel": [
-    "500",
-    "500"
-  ],
-  "machine_max_acceleration_x": [
-    "3000",
-    "3000"
-  ],
-  "machine_max_acceleration_y": [
-    "3000",
-    "3000"
-  ],
-  "machine_max_acceleration_z": [
-    "100",
-    "100"
-  ],
-  "machine_max_speed_e": [
-    "60",
-    "60"
-  ],
-  "machine_max_speed_x": [
-    "500",
-    "500"
-  ],
-  "machine_max_speed_y": [
-    "500",
-    "500"
-  ],
-  "machine_max_speed_z": [
-    "10",
-    "10"
-  ],
-  "machine_max_jerk_e": [
-    "5",
-    "5"
-  ],
-  "machine_max_jerk_x": [
-    "8",
-    "8"
-  ],
-  "machine_max_jerk_y": [
-    "8",
-    "8"
-  ],
-  "machine_max_jerk_z": [
-    "0.4",
-    "0.4"
-  ],
-  "machine_min_extruding_rate": [
-    "0",
-    "0"
-  ],
-  "machine_min_travel_rate": [
-    "0",
-    "0"
-  ],
-  "max_layer_height": [
-    "0.32"
-  ],
-  "min_layer_height": [
-    "0.08"
-  ],
-  "extruder_clearance_radius": "47",
-  "extruder_clearance_height_to_rod": "34",
-  "extruder_clearance_height_to_lid": "34",
-  "printer_settings_id": "",
-  "printer_technology": "FFF",
-  "printer_variant": "0.4",
-  "retraction_minimum_travel": [
-    "2"
-  ],
-  "retract_before_wipe": [
-    "70%"
-  ],
-  "retract_when_changing_layer": [
-    "1"
-  ],
-  "retraction_length": [
-    "5"
-  ],
-  "retract_length_toolchange": [
-    "2"
-  ],
-  "z_hop": [
-    "0.4"
-  ],
-  "retract_restart_extra": [
-    "0"
-  ],
-  "retract_restart_extra_toolchange": [
-    "0"
-  ],
-  "retraction_speed": [
-    "60"
-  ],
-  "deretraction_speed": [
-    "40"
-  ],
-  "silent_mode": "0",
-  "single_extruder_multi_material": "1",
-  "change_filament_gcode": "",
-  "machine_pause_gcode": "M25 ;pause print",
-  "wipe": [
-    "1"
-  ],
-  "default_filament_profile": [
-    "Generic PLA @System"
-  ],
-  "default_print_profile": "0.20mm Standard @FT 0.4 Nozzle",
-  "bed_exclude_area": [
-    "0x0"
-  ],
-  "machine_start_gcode": "G28 ; Home all axis\nG1 X0 Y5 Z0.2 F3000 ; Get ready to prime\nG92 E0 ; Reset extrusion distance\nG1 X250 E20 F600 ; Prime nozzle",
-  "machine_end_gcode": "M140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nG28 X Y ; Home X and Y axis\nM84 X Y E ; disable motors",
-  "layer_change_gcode": "",
-  "scan_first_layer": "0",
-  "nozzle_type": "undefine",
-  "auxiliary_fan": "0"
+    "type": "machine",
+    "name": "fdm_folgertech_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "marlin",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_travel": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_x": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_y": [
+        "3000",
+        "3000"
+    ],
+    "machine_max_acceleration_z": [
+        "100",
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "60",
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "extruder_clearance_radius": "47",
+    "extruder_clearance_height_to_rod": "34",
+    "extruder_clearance_height_to_lid": "34",
+    "printer_settings_id": "",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "5"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "60"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M25 ;pause print",
+    "wipe": [
+        "1"
+    ],
+    "default_filament_profile": [
+        "Generic PLA @System"
+    ],
+    "default_print_profile": "0.20mm Standard @FT 0.4 Nozzle",
+    "bed_exclude_area": [
+        "0x0"
+    ],
+    "machine_start_gcode": "G28 ; Home all axis\nG1 X0 Y5 Z0.2 F3000 ; Get ready to prime\nG92 E0 ; Reset extrusion distance\nG1 X250 E20 F600 ; Prime nozzle",
+    "machine_end_gcode": "M140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM107 ; turn off fan\nG28 X Y ; Home X and Y axis\nM84 X Y E ; disable motors",
+    "layer_change_gcode": "",
+    "scan_first_layer": "0",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0"
 }

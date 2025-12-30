@@ -1,4 +1,8 @@
 {
+    "type": "filament",
+    "name": "Artillery PLA Matte @Artillery M1 Pro 0.8 nozzle",
+    "inherits": "Artillery PLA @Artillery M1 Pro 0.8 nozzle",
+    "from": "system",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
         "12"
@@ -24,9 +28,9 @@
     "cool_plate_temp_initial_layer": [
         "50"
     ],
-    "from": "system",
-    "inherits": "Artillery PLA @Artillery M1 Pro 0.8 nozzle",
+    "compatible_printers": [
+        "Artillery M1 Pro 0.8 nozzle"
+    ],
     "is_custom_defined": "0",
-    "name": "Artillery PLA Matte @Artillery M1 Pro 0.8 nozzle",
     "version": "2.1.1.0"
 }

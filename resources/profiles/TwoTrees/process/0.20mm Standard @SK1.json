@@ -1,9 +1,9 @@
 {
     "type": "process",
     "name": "0.20mm Standard @SK1",
+    "inherits": "fdm_process_common",
     "from": "system",
     "instantiation": "true",
-    "inherits": "fdm_process_common",
     "compatible_printers": [
         "TwoTrees SK1 0.4 nozzle"
     ],

@@ -1,0 +1,141 @@
+{
+    "type": "machine",
+    "name": "iQ TiQ8 0.25 Nozzle",
+    "inherits": "fdm_tiq_common",
+    "from": "system",
+    "instantiation": "true",
+    "printer_settings_id": "iQ TiQ8 0.25 Nozzle",
+    "printer_model": "TiQ8",
+    "printer_variant": "0.25",
+    "change_filament_gcode": "G1 Z{layer_z+2} F900 ; safe distance while tool change\n{if next_extruder==0}G1 X30 Y-12 F9000{endif}\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing",
+    "deretraction_speed": [
+        "30",
+        "30"
+    ],
+    "disable_m73": "1",
+    "emit_machine_limits_to_gcode": "0",
+    "enable_filament_ramming": "0",
+    "extruder_colour": [
+        "#FCE94F",
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0",
+        "0x0"
+    ],
+    "gcode_flavor": "marlin",
+    "host_type": "simplyprint",
+    "long_retractions_when_cut": [
+        "0",
+        "0"
+    ],
+    "machine_end_gcode": "G1 X10 F3000 ; home X axis\nG1 Y10 F3000 ; home Y axis\nM104 S0 T0 ; turn off extruder\nM104 S0 T1 ; turn off extruder\nM104 S0 T2 ; turn off extruder\nM140 S0 ; turn off bed\n{if nozzle_temperature_initial_layer[current_extruder]>350}M140 S80{endif} ; Keep bed hot for easy part removal from PEI sheet\nM106 S0 ; turn off fan\nM806 S0 ; turn of housing fan\nM84 ; disable motor\n",
+    "machine_max_speed_z": [
+        "15",
+        "12"
+    ],
+    "machine_pause_gcode": "M10710 S0",
+    "machine_start_gcode": "T[initial_extruder]\nM109 S{nozzle_temperature_initial_layer[current_extruder]}\n",
+    "max_layer_height": [
+        "0.25",
+        "0.25"
+    ],
+    "min_layer_height": [
+        "0.08",
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.25",
+        "0.25"
+    ],
+    "print_host": "https://simplyprint.io/panel",
+    "printable_area": [
+        "0x0",
+        "500x0",
+        "500x400",
+        "0x400"
+    ],
+    "printable_height": "450",
+    "retract_before_wipe": [
+        "70%",
+        "70%"
+    ],
+    "retract_length_toolchange": [
+        "15",
+        "15"
+    ],
+    "retract_lift_above": [
+        "0",
+        "0"
+    ],
+    "retract_lift_below": [
+        "0",
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces",
+        "All Surfaces"
+    ],
+    "retract_on_top_layer": [
+        "1",
+        "1"
+    ],
+    "retract_restart_extra": [
+        "0",
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "-0.2",
+        "-0.2"
+    ],
+    "retract_when_changing_layer": [
+        "1",
+        "1"
+    ],
+    "retraction_distances_when_cut": [
+        "18",
+        "18"
+    ],
+    "retraction_length": [
+        "0.8",
+        "0.9"
+    ],
+    "retraction_minimum_travel": [
+        "1",
+        "1"
+    ],
+    "retraction_speed": [
+        "30",
+        "30"
+    ],
+    "thumbnails": "",
+    "travel_slope": [
+        "3",
+        "3"
+    ],
+    "wipe": [
+        "1",
+        "1"
+    ],
+    "wipe_distance": [
+        "1",
+        "1"
+    ],
+    "z_hop": [
+        "0.25",
+        "0.25"
+    ],
+    "z_hop_types": [
+        "Normal Lift",
+        "Normal Lift"
+    ],
+    "machine_max_acceleration_x": [
+        "1500",
+        "1500"
+    ],
+    "machine_max_acceleration_y": [
+        "1500",
+        "1500"
+    ],
+    "printer_notes": "Machine file version 1.0 20251106"
+}

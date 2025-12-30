@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "QIDI PAHT-GF @Qidi Q1 Pro 0.6 nozzle",
+    "inherits": "QIDI PAHT-GF",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "fan_cooling_layer_time": [
         "10"
     ],
@@ -11,10 +15,6 @@
     "filament_settings_id": [
         "QIDI PAHT-GF @Qidi Q1 Pro 0.6 nozzle"
     ],
-    "from": "system",
-    "inherits": "QIDI PAHT-GF",
-    "is_custom_defined": "0",
-    "name": "QIDI PAHT-GF @Qidi Q1 Pro 0.6 nozzle",
     "nozzle_temperature": [
         "300"
     ],
@@ -34,6 +34,6 @@
         "20"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.6 nozzle"
-        ]
+        "Qidi Q1 Pro 0.6 nozzle"
+    ]
 }

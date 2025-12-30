@@ -23,7 +23,7 @@ namespace Slic3r {
 namespace GUI {
 
 
-TipsDialog::TipsDialog(wxWindow *parent, const wxString &title, const wxString &description, std::string app_key)
+TipsDialog::TipsDialog(wxWindow *parent, const wxString &title, const wxString &description, std::string app_key, long style,std::map<wxStandardID,wxString> option_map)
     : DPIDialog(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX),
     m_app_key(app_key)
 {
@@ -58,18 +58,34 @@ TipsDialog::TipsDialog(wxWindow *parent, const wxString &title, const wxString &
 
     wxBoxSizer *m_sizer_right = new wxBoxSizer(wxHORIZONTAL);
 
-    m_confirm = new Button(this, _L("OK"));
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
-    m_confirm->SetBackgroundColor(btn_bg_green);
-    m_confirm->SetBorderColor(wxColour(0, 150, 136));
-    m_confirm->SetTextColor(wxColour(255, 255, 255));
-    m_confirm->SetSize(TIPS_DIALOG_BUTTON_SIZE);
-    m_confirm->SetMinSize(TIPS_DIALOG_BUTTON_SIZE);
-    m_confirm->SetCornerRadius(FromDIP(12));
-    m_confirm->Bind(wxEVT_LEFT_DOWN, &TipsDialog::on_ok, this);
-    m_sizer_right->Add(m_confirm, 0, wxALL, FromDIP(5));
+    if (style & wxOK) {
+        wxString str = _L("OK");
+        if (auto iter = option_map.find(wxID_OK); iter != option_map.end())
+            str = iter->second;
+        Button* btn = add_button(wxID_OK, str, true);
+        m_sizer_right->Add(btn, 0, wxALL, FromDIP(5));
+    }
+    if (style & wxYES) {
+        wxString str = _L("Yes");
+        if (auto iter = option_map.find(wxID_YES); iter != option_map.end())
+            str = iter->second;
+        Button *btn = add_button(wxID_YES, str, true);
+        m_sizer_right->Add(btn, 0, wxALL, FromDIP(5));
+    }
+    if (style & wxNO) {
+        wxString str = _L("No");
+        if (auto iter = option_map.find(wxID_NO); iter != option_map.end())
+            str = iter->second;
+        Button *btn = add_button(wxID_NO, str, false);
+        m_sizer_right->Add(btn, 0, wxALL, FromDIP(5));
+    }
+    if (style & wxCANCEL) {
+        wxString str = _L("Cancel");
+        if (auto iter = option_map.find(wxID_CANCEL); iter != option_map.end())
+            str = iter->second;
+        Button *btn = add_button(wxID_CANCEL, str, false);
+        m_sizer_right->Add(btn, 0, wxALL, FromDIP(5));
+    }
 
     m_sizer_bottom->Add(m_sizer_right, 0, wxEXPAND, FromDIP(5));
     m_sizer_main->Add(m_sizer_bottom, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(40));
@@ -99,7 +115,7 @@ wxBoxSizer *TipsDialog::create_item_checkbox(wxString title, wxWindow *parent, w
     checkbox_title->Wrap(-1);
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxALL, 3);
 
-    m_show_again = wxGetApp().app_config->get(param) == "true" ? true : false;
+    m_show_again = wxGetApp().app_config->has(param);
     checkbox->SetValue(m_show_again);
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent &e) {
@@ -110,21 +126,41 @@ wxBoxSizer *TipsDialog::create_item_checkbox(wxString title, wxWindow *parent, w
     return m_sizer_checkbox;
 }
 
-void TipsDialog::on_dpi_changed(const wxRect &suggested_rect)
+Button *TipsDialog::add_button(wxWindowID btn_id, const wxString &label, bool set_focus /*= false*/)
 {
-    if (m_confirm) m_confirm->SetMinSize(TIPS_DIALOG_BUTTON_SIZE);
-    if (m_cancel) m_cancel->SetMinSize(TIPS_DIALOG_BUTTON_SIZE);
-    Fit();
-    Refresh();
+    Button* btn = new Button(this, label, "", 0, 0, btn_id);
+
+    if (btn_id == wxID_OK || btn_id == wxID_YES)
+        btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+
+    if (btn_id == wxID_CANCEL || btn_id == wxID_NO)
+        btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+
+    if (set_focus)
+        btn->SetFocus();
+
+    btn->Bind(wxEVT_BUTTON, [this, btn_id](wxCommandEvent &) {
+        if (m_show_again) {
+            if (!m_app_key.empty()) {
+                if (btn_id == wxID_OK || btn_id == wxID_YES) {
+                    wxGetApp().app_config->set_bool(m_app_key, true);
+                }
+
+                if (btn_id == wxID_NO) {
+                    wxGetApp().app_config->set_bool(m_app_key, false);
+                }
+            }
+        }
+        EndModal(btn_id);
+    });
+    return btn;
 }
 
-void TipsDialog::on_ok(wxMouseEvent &event)
+void TipsDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    if (m_show_again) {
-        if (!m_app_key.empty())
-        wxGetApp().app_config->set_bool(m_app_key, m_show_again);
-    }
-    EndModal(wxID_OK);
+    if (m_confirm) m_confirm->Rescale(); // ORCA
+    Fit();
+    Refresh();
 }
 
 void ParamsPanel::Highlighter::set_timer_owner(wxEvtHandler *owner, int timerid /* = wxID_ANY*/)
@@ -223,12 +259,20 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         m_tips_arrow = new ScalableButton(m_top_panel, wxID_ANY, "tips_arrow");
         m_tips_arrow->Hide();
 
-        m_title_view = new Label(m_top_panel, Label::Body_12, _L("Advance")); // ORCA match size with advanced toggle on tab.cpp m_static_title
+        m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
+        m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
+            m_mode_view->SetValue(!m_mode_view->GetValue());
+            wxCommandEvent evt(wxEVT_TOGGLEBUTTON, m_mode_view->GetId()); // ParamsPanel::OnToggled(evt)
+            evt.SetEventObject(m_mode_view);
+            m_mode_view->wxEvtHandler::ProcessEvent(evt);
+        });
+        m_mode_icon->SetToolTip(_L("Show/Hide advanced parameters"));
         m_mode_view = new SwitchButton(m_top_panel, wxID_ABOUT);
+        m_mode_view->SetToolTip(_L("Show/Hide advanced parameters"));
 
         // BBS: new layout
         //m_search_btn = new ScalableButton(m_top_panel, wxID_ANY, "search", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
-        //m_search_btn->SetToolTip(format_wxstr(_L("Search in settings [%1%]"), "Ctrl+F"));
+        //m_search_btn->SetToolTip(format_wxstr(_L("Search in settings [%1%]"), _L("Ctrl+") + "F");
         //m_search_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().plater()->search(false); });
 
         m_compare_btn = new ScalableButton(m_top_panel, wxID_ANY, "compare", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
@@ -358,24 +402,16 @@ void ParamsPanel::create_layout()
 
     if (m_top_panel) {
         m_mode_sizer = new wxBoxSizer( wxHORIZONTAL );
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
-        m_mode_sizer->Add(m_process_icon, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
-        m_mode_sizer->Add( m_title_label, 0, wxALIGN_CENTER );
-        m_mode_sizer->AddStretchSpacer(2);
-        m_mode_sizer->Add(m_mode_region, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
-        m_mode_sizer->Add(m_tips_arrow, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddStretchSpacer(8);
-        m_mode_sizer->Add( m_title_view, 0, wxALIGN_CENTER );
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
-        m_mode_sizer->Add(m_mode_view, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing() * 6)); // ORCA using spacer prevents shaky mode_view when tips_arrow highlighting mode_region instead using AddStretchSpacer
-        m_mode_sizer->Add(m_setting_btn, 0, wxALIGN_CENTER);
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::IconSpacing()));
-        m_mode_sizer->Add(m_compare_btn, 0, wxALIGN_CENTER);
-
-        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
+        m_mode_sizer->Add(m_process_icon, 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::TitlebarMargin()));
+        m_mode_sizer->Add(m_title_label , 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::ElementSpacing()));
+        m_mode_sizer->Add(m_mode_region , 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::WideSpacing()));
+        m_mode_sizer->Add(m_tips_arrow  , 0, wxALIGN_CENTER | wxLEFT , FromDIP(SidebarProps::ElementSpacing()));
+        m_mode_sizer->AddSpacer(FromDIP(SidebarProps::IconSpacing())); // ensure there is spacing after control when sidebar has less width
+        m_mode_sizer->AddStretchSpacer();
+        m_mode_sizer->Add(m_mode_icon   , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
+        m_mode_sizer->Add(m_mode_view   , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        m_mode_sizer->Add(m_setting_btn , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
+        m_mode_sizer->Add(m_compare_btn , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::TitlebarMargin()));
         //m_mode_sizer->Add( m_search_btn, 0, wxALIGN_CENTER );
         //m_mode_sizer->AddSpacer(16);
         m_mode_sizer->SetMinSize(-1, FromDIP(30));
@@ -545,6 +581,7 @@ void ParamsPanel::OnToggled(wxCommandEvent& event)
     }
 
     Slic3r::GUI::wxGetApp().save_mode(mode_id);
+    event.Skip();
 }
 
 // This is special, DO NOT call it from outer except from Tab
@@ -654,6 +691,7 @@ void ParamsPanel::msw_rescale()
         m_mode_sizer->SetMinSize(-1, 3 * em_unit(this));
     if (m_mode_region)
         ((SwitchButton* )m_mode_region)->Rescale();
+    if (m_mode_icon) m_mode_icon->msw_rescale();
     if (m_mode_view)
         ((SwitchButton* )m_mode_view)->Rescale();
     for (auto tab : {m_tab_print, m_tab_print_plate, m_tab_print_object, m_tab_print_part, m_tab_print_layer, m_tab_filament, m_tab_printer}) {
@@ -755,10 +793,10 @@ void ParamsPanel::delete_subwindows()
         m_mode_view = nullptr;
     }
 
-    if (m_title_view)
+    if (m_mode_icon) // ORCA m_title_view replacement
     {
-        delete m_title_view;
-        m_title_view = nullptr;
+        delete m_mode_icon;
+        m_mode_icon = nullptr;
     }
 
     if (m_search_btn)

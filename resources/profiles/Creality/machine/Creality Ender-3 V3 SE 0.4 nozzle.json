@@ -1,126 +1,124 @@
 {
-	"type": "machine",
-	"setting_id": "GM001",
-	"printer_settings_id": "Creality",
-	"name": "Creality Ender-3 V3 SE 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "fdm_creality_common",
-	"printer_model": "Creality Ender-3 V3 SE",
-	"printer_variant": "0.4",
-	"gcode_flavor": "marlin2",
-	"printer_structure": "i3",
-	"default_print_profile": "0.20mm Standard @Creality Ender3V3SE 0.4",
-	"extruder_clearance_height_to_rod": "47",
-    "extruder_clearance_max_radius": "90",
+    "type": "machine",
+    "name": "Creality Ender-3 V3 SE 0.4 nozzle",
+    "inherits": "fdm_creality_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_settings_id": "Creality",
+    "printer_model": "Creality Ender-3 V3 SE",
+    "printer_variant": "0.4",
+    "gcode_flavor": "marlin2",
+    "printer_structure": "i3",
+    "default_print_profile": "0.20mm Standard @Creality Ender3V3SE 0.4",
+    "extruder_clearance_height_to_rod": "47",
     "extruder_clearance_radius": "90",
     "machine_load_filament_time": "11",
-	"nozzle_diameter": [
-		"0.4"
-	],
-	"printable_area": [
-		"0x0",
-		"220x0",
-		"220x220",
-		"0x220"
-	],
-	"printable_height": "250",
-	"nozzle_type": "brass",
-	"auxiliary_fan": "0",
-	"machine_max_acceleration_extruding": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_retracting": [
-		"500",
-		"500"
-	],
-	"machine_max_acceleration_travel": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_x": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_y": [
-		"2500",
-		"2500"
-	],
-	"machine_max_acceleration_z": [
-		"500",
-		"500"
-	],
-	"machine_max_speed_e": [
-		"40",
-		"40"
-	],
-	"machine_max_speed_x": [
-		"250",
-		"250"
-	],
-	"machine_max_speed_y": [
-		"250",
-		"250"
-	],
-	"machine_max_speed_z": [
-		"5",
-		"5"
-	],
-	"machine_max_jerk_e": [
-		"5",
-		"5"
-	],
-	"machine_max_jerk_x": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_y": [
-		"10",
-		"10"
-	],
-	"machine_max_jerk_z": [
-		"0.4",
-		"0.4"
-	],
-	"max_layer_height": [
-		"0.32"
-	],
-	"min_layer_height": [
-		"0.08"
-	],
-	"retraction_minimum_travel": [
-		"2"
-	],
-	"retract_before_wipe": [
-		"70%"
-	],
-	"retraction_length": [
-		"1.2"
-	],
-	"retract_length_toolchange": [
-		"1"
-	],
-	"retraction_speed": [
-		"40"
-	],
-	"deretraction_speed": [
-		"30"
-	],
-	"z_hop_types": [
-		"Spiral Lift"
-	],
-	"single_extruder_multi_material": "1",
-	"manual_filament_change": "1",
-	"change_filament_gcode": "M600",
-	"machine_pause_gcode": "M25",
-	"default_filament_profile": [
-		"Creality Generic PLA @Ender-3V3-all"
-	],
-	"machine_start_gcode": "M220 S100 ;Reset Feedrate \nM221 S100 ;Reset Flowrate \n \nM104 S[nozzle_temperature_initial_layer] ;Set final nozzle temp \nM190 S[bed_temperature_initial_layer_single] ;Set and wait for bed temp to stabilize \nG28 ;Home \nG92 E0 ;Reset Extruder \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 X-2.1 Y20 Z0.28 F5000.0 ;Move to start position \nM109 S[nozzle_temperature_initial_layer] ;Wait for nozzle temp to stabilize \nG1 X-2.1 Y145.0 Z0.28 F1500.0 E15 ;Draw the first line \nG1 X-2.4 Y145.0 Z0.28 F5000.0 ;Move to side a little \nG1 X-2.4 Y20 Z0.28 F1500.0 E30 ;Draw the second line \nG92 E0  ;Reset Extruder \nG1 E-1.0000 F1800 ;Retract a bit \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 E0.0000 F1800",
-	"machine_end_gcode": "G91 ;Relative positionning \nG1 E-2 F2700 ;Retract a bit \nG1 E-2 Z0.2 F2400 ;Retract and raise Z \nG1 X5 Y5 F3000 ;Wipe out \nG1 Z10 ;Raise Z more \nG90 ;Absolute positionning \n \nG1 X0 Y220 ;Present print \nM106 S0 ;Turn-off fan \nM104 S0 ;Turn-off hotend \nM140 S0 ;Turn-off bed \n \nM84 X Y E ;Disable all steppers but Z",
-	"scan_first_layer": "0",
-	"disable_m73": "1",
-	"thumbnails": [
-	]
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "250",
+    "nozzle_type": "brass",
+    "auxiliary_fan": "0",
+    "machine_max_acceleration_extruding": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_travel": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_x": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_y": [
+        "2500",
+        "2500"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "40",
+        "40"
+    ],
+    "machine_max_speed_x": [
+        "250",
+        "250"
+    ],
+    "machine_max_speed_y": [
+        "250",
+        "250"
+    ],
+    "machine_max_speed_z": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retraction_length": [
+        "1.2"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "z_hop_types": [
+        "Spiral Lift"
+    ],
+    "single_extruder_multi_material": "1",
+    "manual_filament_change": "1",
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "M25",
+    "default_filament_profile": [
+        "Creality Generic PLA @Ender-3V3-all"
+    ],
+    "machine_start_gcode": "M220 S100 ;Reset Feedrate \nM221 S100 ;Reset Flowrate \n \nM104 S[nozzle_temperature_initial_layer] ;Set final nozzle temp \nM190 S[bed_temperature_initial_layer_single] ;Set and wait for bed temp to stabilize \nG28 ;Home \nG92 E0 ;Reset Extruder \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 X-2.1 Y20 Z0.28 F5000.0 ;Move to start position \nM109 S[nozzle_temperature_initial_layer] ;Wait for nozzle temp to stabilize \nG1 X-2.1 Y145.0 Z0.28 F1500.0 E15 ;Draw the first line \nG1 X-2.4 Y145.0 Z0.28 F5000.0 ;Move to side a little \nG1 X-2.4 Y20 Z0.28 F1500.0 E30 ;Draw the second line \nG92 E0  ;Reset Extruder \nG1 E-1.0000 F1800 ;Retract a bit \nG1 Z2.0 F3000 ;Move Z Axis up \nG1 E0.0000 F1800",
+    "machine_end_gcode": "G91 ;Relative positionning \nG1 E-2 F2700 ;Retract a bit \nG1 E-2 Z0.2 F2400 ;Retract and raise Z \nG1 X5 Y5 F3000 ;Wipe out \nG1 Z10 ;Raise Z more \nG90 ;Absolute positionning \n \nG1 X0 Y220 ;Present print \nM106 S0 ;Turn-off fan \nM104 S0 ;Turn-off hotend \nM140 S0 ;Turn-off bed \n \nM84 X Y E ;Disable all steppers but Z",
+    "scan_first_layer": "0",
+    "disable_m73": "1",
+    "thumbnails": []
 }

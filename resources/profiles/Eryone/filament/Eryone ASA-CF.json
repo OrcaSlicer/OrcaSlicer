@@ -1,11 +1,11 @@
 {
     "type": "filament",
-    "filament_id": "EFL82",
-    "setting_id": "EFSA82",
     "name": "Eryone ASA-CF",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA82",
+    "filament_id": "EFL82",
+    "instantiation": "true",
     "compatible_printers": [
         "Thinker X400 0.4 nozzle"
     ],

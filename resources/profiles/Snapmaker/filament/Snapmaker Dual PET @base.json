@@ -1,50 +1,50 @@
 {
-  "type": "filament",
-  "from": "system",
-  "instantiation": "false",
-  "name": "Snapmaker Dual PET @base",
-  "filament_id": "2128577941",
-  "inherits": "fdm_filament_pet",
-  "overhang_fan_speed": [
-    "40"
-  ],
-  "filament_max_volumetric_speed": [
-    "6.8"
-  ],
-  "filament_loading_speed_start": [
-    "35"
-  ],
-  "filament_loading_speed": [
-    "35"
-  ],
-  "filament_unloading_speed_start": [
-    "35"
-  ],
-  "filament_unloading_speed": [
-    "35"
-  ],
-  "filament_load_time": [
-    "2"
-  ],
-  "filament_unload_time": [
-    "2"
-  ],
-  "filament_cooling_moves": [
-    "2"
-  ],
-  "filament_cooling_initial_speed": [
-    "35"
-  ],
-  "filament_cooling_final_speed": [
-    "60"
-  ],
-  "fan_max_speed": [
-    "50"
-  ],
-  "fan_min_speed": [
-    "26"
-  ],
-  "slow_down_min_speed": [
-    "35"
-  ]
+    "type": "filament",
+    "name": "Snapmaker Dual PET @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "2128577941",
+    "instantiation": "false",
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "filament_max_volumetric_speed": [
+        "6.8"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "26"
+    ],
+    "slow_down_min_speed": [
+        "35"
+    ]
 }

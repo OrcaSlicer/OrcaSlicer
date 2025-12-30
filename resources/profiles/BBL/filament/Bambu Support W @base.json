@@ -27,6 +27,9 @@
     "filament_scarf_seam_type": [
         "none"
     ],
+    "filament_adhesiveness_category": [
+        "700"
+    ],
     "slow_down_layer_time": [
         "8"
     ],

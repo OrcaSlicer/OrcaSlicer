@@ -1,4 +1,8 @@
 {
+    "type": "filament",
+    "name": "Artillery PETG @Artillery M1 Pro 0.8 nozzle",
+    "from": "User",
+    "filament_id": "P284941e",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -93,7 +97,6 @@
     "filament_flow_ratio": [
         "0.98"
     ],
-    "filament_id": "P284941e",
     "filament_is_support": [
         "0"
     ],
@@ -205,7 +208,6 @@
     "filament_z_hop_types": [
         "nil"
     ],
-    "from": "User",
     "full_fan_speed_layer": [
         "0"
     ],
@@ -219,7 +221,6 @@
         "0"
     ],
     "is_custom_defined": "0",
-    "name": "Artillery PETG @Artillery M1 Pro 0.8 nozzle",
     "nozzle_temperature": [
         "250"
     ],
@@ -282,6 +283,5 @@
     ],
     "cool_plate_temp_initial_layer": [
         "70"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

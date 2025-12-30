@@ -1,15 +1,15 @@
 {
-  "type": "machine",
-  "name": "fdm_Geeetech_HS_common",
-  "from": "system",
-  "instantiation": "false",
-  "inherits": "fdm_geeetech_common",
-  "gcode_flavor": "klipper",
-  "auxiliary_fan": "1",
-  "machine_max_acceleration_e": [
-    "5000",
-    "5000"
-  ],
+    "type": "machine",
+    "name": "fdm_Geeetech_HS_common",
+    "inherits": "fdm_geeetech_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "auxiliary_fan": "1",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
     "machine_max_acceleration_extruding": [
         "20000",
         "20000"
@@ -68,7 +68,7 @@
     ],
     "default_filament_profile": [
         "Generic PLA @System"
-    ],    
+    ],
     "change_filament_gcode": "",
     "machine_pause_gcode": "M0",
     "machine_start_gcode": "G28\nM141 S0\nG0 Z50 F600\nM190 S[first_layer_bed_temperature]\nG28 Z\nG29 ; mesh bed leveling ,comment this code to close it\nG0 X0 Y0 Z50 F6000\nM109 S[first_layer_temperature]\nM83\nG0 Z5 F1200\nG0 X{first_layer_print_min[0]} Y{max(0, first_layer_print_min[1] - 2)} F12000\nG0 Z0.2 F600\nG1 E3 F1800\nG0 Z0.3 F600\nG1 X{min(first_layer_print_min[0] + 30,print_bed_max[0])} E6 F600",

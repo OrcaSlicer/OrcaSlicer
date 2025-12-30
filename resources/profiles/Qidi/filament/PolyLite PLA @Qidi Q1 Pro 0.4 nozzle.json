@@ -1,7 +1,11 @@
-{"type": "filament",
-"filament_id": "GFB99",
-"setting_id": "GFSA04",
-"instantiation": "true",
+{
+    "type": "filament",
+    "name": "PolyLite PLA @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "PolyLite PLA @Qidi",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -20,7 +24,6 @@
     "filament_settings_id": [
         "PolyLite PLA @Qidi Q1 Pro 0.4 nozzle"
     ],
-    "from": "system",
     "full_fan_speed_layer": [
         "3"
     ],
@@ -30,9 +33,6 @@
     "hot_plate_temp_initial_layer": [
         "60"
     ],
-    "inherits": "PolyLite PLA @Qidi",
-    "is_custom_defined": "0",
-    "name": "PolyLite PLA @Qidi Q1 Pro 0.4 nozzle",
     "nozzle_temperature": [
         "210"
     ],
@@ -43,6 +43,6 @@
         "20"
     ],
     "compatible_printers": [
-    "Qidi Q1 Pro 0.4 nozzle"
-        ]
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
 }

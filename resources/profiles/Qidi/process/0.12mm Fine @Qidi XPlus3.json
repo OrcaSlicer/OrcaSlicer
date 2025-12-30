@@ -1,11 +1,11 @@
 {
-	"type": "process",
-	"setting_id": "GP004",
-	"name": "0.12mm Fine @Qidi XPlus3",
-	"from": "system",
-	"instantiation": "true",
-	"inherits": "0.12mm Fine @Qidi X3",
-"compatible_printers": [
-	"Qidi X-Plus 3 0.4 nozzle"
-]
+    "type": "process",
+    "name": "0.12mm Fine @Qidi XPlus3",
+    "inherits": "0.12mm Fine @Qidi X3",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi X-Plus 3 0.4 nozzle"
+    ]
 }

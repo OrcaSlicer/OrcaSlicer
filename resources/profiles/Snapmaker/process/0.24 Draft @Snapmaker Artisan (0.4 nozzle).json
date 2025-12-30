@@ -1,18 +1,18 @@
 {
-  "type": "process",
-  "from": "system",
-  "instantiation": "true",
-  "name": "0.24 Draft @Snapmaker Artisan (0.4 nozzle)",
-  "setting_id": "2003861482",
-  "inherits": "fdm_process_a400",
-  "compatible_printers": [
-    "Snapmaker Artisan (0.4 nozzle)"
-  ],
-  "layer_height": "0.24",
-  "elefant_foot_compensation": "0.15",
-  "top_surface_line_width": "0.45",
-  "top_shell_layers": "3",
-  "top_shell_thickness": "0.6",
-  "support_threshold_angle": "35",
-  "initial_layer_infill_speed": "65"
+    "type": "process",
+    "name": "0.24 Draft @Snapmaker Artisan (0.4 nozzle)",
+    "inherits": "fdm_process_a400",
+    "from": "system",
+    "setting_id": "2003861482",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker Artisan (0.4 nozzle)"
+    ],
+    "layer_height": "0.24",
+    "elefant_foot_compensation": "0.15",
+    "top_surface_line_width": "0.45",
+    "top_shell_layers": "3",
+    "top_shell_thickness": "0.6",
+    "support_threshold_angle": "35",
+    "initial_layer_infill_speed": "65"
 }

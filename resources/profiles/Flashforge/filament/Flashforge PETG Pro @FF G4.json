@@ -1,4 +1,9 @@
 {
+    "type": "filament",
+    "name": "Flashforge PETG Pro @FF G4",
+    "inherits": "Flashforge Generic PETG",
+    "from": "system",
+    "instantiation": "true",
     "activate_air_filtration": [
         "1"
     ],
@@ -26,10 +31,8 @@
     "filament_settings_id": [
         "Flashforge PETG Pro @FF G4"
     ],
-    "from": "system",
-    "instantiation": "true",
     "compatible_printers": [
-      "Flashforge Guider4 0.4 nozzle"
+        "Flashforge Guider4 0.4 nozzle"
     ],
     "hot_plate_temp": [
         "80"
@@ -37,9 +40,6 @@
     "hot_plate_temp_initial_layer": [
         "80"
     ],
-    "inherits": "Flashforge Generic PETG",
-    "is_custom_defined": "0",
-    "name": "Flashforge PETG Pro @FF G4",
     "pressure_advance": [
         "0.08"
     ],
@@ -51,6 +51,5 @@
     ],
     "textured_plate_temp_initial_layer": [
         "80"
-    ],
-    "version": "2.1.1.0"
+    ]
 }

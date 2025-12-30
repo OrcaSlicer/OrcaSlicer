@@ -827,7 +827,7 @@ inline int UnsavedChangesDialog::ShowModal()
         m_exit_action = Action(result);
         return 0;
     }
-    int r = wxDialog::ShowModal();
+    int r = DPIDialog::ShowModal();
     if (r != wxID_CANCEL && dynamic_cast<::CheckBox*>(FindWindowById(wxID_APPLY))->GetValue()) {
         wxGetApp().app_config->set(choise_key, std::to_string(int(m_exit_action)));
     }
@@ -1191,8 +1191,9 @@ static size_t get_id_from_opt_key(std::string opt_key)
 static wxString get_full_label(std::string opt_key, const DynamicPrintConfig& config)
 {
     opt_key = get_pure_opt_key(opt_key);
+    auto option = config.option(opt_key);
 
-    if (config.option(opt_key)->is_nil())
+    if (!option || option->is_nil())
         return _L("N/A");
 
     const ConfigOptionDef* opt = config.def()->get(opt_key);
@@ -1211,8 +1212,13 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
     }
     opt_idx = orig_opt_idx >= 0 ? orig_opt_idx : 0;
     opt_key = get_pure_opt_key(opt_key);
+    auto option = config.option(opt_key);
+    if (!option) {
+        return _L("N/A");
+    }
 
-    if (config.option(opt_key)->is_nil())
+    if (option->is_scalar() && config.option(opt_key)->is_nil() ||
+        option->is_vector() && dynamic_cast<const ConfigOptionVectorBase *>(config.option(opt_key))->is_nil(opt_idx))
         return _L("N/A");
 
     wxString out;
@@ -1287,7 +1293,7 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
         }
         else {
             auto values = config.opt<ConfigOptionFloats>(opt_key);
-            if (opt_idx < values->size())
+            if (values && opt_idx < values->size())
                 return double_to_string(values->get_at(opt_idx));
         }
         return _L("Undef");
@@ -1355,6 +1361,9 @@ static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& 
             return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         }
         else if (opt_key == "head_wrap_detect_zone") {
+            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
+        }
+        else if (opt_key == "wrapping_exclude_area") {
             return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
         }
         Vec2d val = config.opt<ConfigOptionPoints>(opt_key)->get_at(opt_idx);
@@ -1799,13 +1808,12 @@ FullCompareDialog::FullCompareDialog(const wxString& option_name, const wxString
 
     sizer->Add(grid_sizer, 1, wxEXPAND);
 
-    wxStdDialogButtonSizer* buttons = this->CreateStdDialogButtonSizer(wxOK);
-    wxGetApp().UpdateDarkUI(static_cast<wxButton*>(this->FindWindowById(wxID_OK, this)), true);
+    auto dlg_btns = new DialogButtons(this, {"OK"});
 
     wxBoxSizer* topSizer = new wxBoxSizer(wxVERTICAL);
 
     topSizer->Add(sizer,   1, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, border);
-    topSizer->Add(buttons, 0, wxEXPAND | wxALL, border);
+    topSizer->Add(dlg_btns , 0, wxEXPAND);
 
     SetSizer(topSizer);
     topSizer->SetSizeHints(this);
@@ -2214,7 +2222,7 @@ void DiffPresetDialog::update_tree()
             wxString left_val = from_u8((boost::format("%1%") % left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
             wxString right_val = from_u8((boost::format("%1%") % right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
 
-            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val, category_icon_map.at("General"));
+            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val, category_icon_map.at("Basic information"));
         }
 
         for (const std::string& opt_key : dirty_options) {

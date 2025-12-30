@@ -1,37 +1,62 @@
 {
-  "type": "machine",
-  "name": "Flashforge Guider 3 Ultra 0.6 Nozzle",
-  "inherits": "fdm_guider3_common",
-  "setting_id": "GM001",
-  "from": "system",
-  "instantiation": "true",
-  "printer_variant": "0.6",
-  "printer_model": "Flashforge Guider 3 Ultra",
-  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
-  "change_filament_gcode": "; change filament start\n{if total_toolchanges == 0 and current_extruder == 1}\nM104 S0 T0\n{elsif total_toolchanges > 0 and current_extruder == 0}\nM104 S{nozzle_temperature[0]}\n{if layer_z == initial_layer_print_height}\nT1\nM109 S{nozzle_temperature_initial_layer[1]} T1\n{else}\nT1\nM109 S{nozzle_temperature[1]} T1\n{endif}\n{elsif total_toolchanges > 0 and current_extruder == 1}\nM104 S{nozzle_temperature[1]}\n{if layer_z == initial_layer_print_height}\nT0\nM109 S{nozzle_temperature_initial_layer[0]} T0\n{else}\nT0\nM109 S{nozzle_temperature[0]} T0\n{endif}\n{endif}\n",
-  "cooling_tube_length": "0",
-  "cooling_tube_retraction": "0",
-  "default_filament_profile": ["Flashforge Generic PLA @G3U 0.6 Nozzle"],
-  "default_print_profile": "0.30mm Standard @Flashforge G3U 0.6 Nozzle",
-  "deretraction_speed": ["30"],
-  "extra_loading_move": "0",
-  "extruder_clearance_height_to_rod": "50",
-  "extruder_clearance_radius": "57",
-  "is_custom_defined": "0",
-  "machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F30000\nM104 S0 T0\nM104 S0 T1",
-  "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\n{if total_toolchanges < 1}\nM109 S[nozzle_temperature_initial_layer] T[initial_extruder]\nT[initial_extruder]\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\n{else}\nM109 S{nozzle_temperature_initial_layer[0] - 30} T0\nM109 S{nozzle_temperature_initial_layer[1] - 30} T1\n{if initial_extruder==0}\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[1]-30} T1\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{elsif current_extruder == 1}\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[0]-30} T0\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{endif}\n{endif}\n\n",
-  "max_layer_height": ["0.42"],
-  "min_layer_height": ["0.18"],
-  "nozzle_diameter": ["0.6"],
-  "parking_pos_retraction": "0",
-  "printable_area": ["-150x-165", "150x-165", "150x165", "-150x165"],
-  "printable_height": "600",
-  "printer_settings_id": "Flashforge Guider 3 Ultra 0.6 Nozzle",
-  "retract_length_toolchange": ["15"],
-  "retract_restart_extra_toolchange": ["-0.8"],
-  "retraction_length": ["1.2"],
-  "retraction_speed": ["40"],
-  "version": "1.8.0.0",
-  "z_hop": ["0.6"],
-  "z_hop_types": ["Spiral Lift"]
+    "type": "machine",
+    "name": "Flashforge Guider 3 Ultra 0.6 Nozzle",
+    "inherits": "fdm_guider3_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_variant": "0.6",
+    "printer_model": "Flashforge Guider 3 Ultra",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
+    "change_filament_gcode": "; change filament start\n{if total_toolchanges == 0 and current_extruder == 1}\nM104 S0 T0\n{elsif total_toolchanges > 0 and current_extruder == 0}\nM104 S{nozzle_temperature[0]}\n{if layer_z == initial_layer_print_height}\nT1\nM109 S{nozzle_temperature_initial_layer[1]} T1\n{else}\nT1\nM109 S{nozzle_temperature[1]} T1\n{endif}\n{elsif total_toolchanges > 0 and current_extruder == 1}\nM104 S{nozzle_temperature[1]}\n{if layer_z == initial_layer_print_height}\nT0\nM109 S{nozzle_temperature_initial_layer[0]} T0\n{else}\nT0\nM109 S{nozzle_temperature[0]} T0\n{endif}\n{endif}\n",
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "default_filament_profile": [
+        "Flashforge Generic PLA @G3U 0.6 Nozzle"
+    ],
+    "default_print_profile": "0.30mm Standard @Flashforge G3U 0.6 Nozzle",
+    "deretraction_speed": [
+        "30"
+    ],
+    "extra_loading_move": "0",
+    "extruder_clearance_height_to_rod": "50",
+    "extruder_clearance_radius": "57",
+    "machine_end_gcode": "G1 E-3 F3600\nG0 X50 Y50 F30000\nM104 S0 T0\nM104 S0 T1",
+    "machine_start_gcode": "M190 S[bed_temperature_initial_layer_single]\n{if total_toolchanges < 1}\nM109 S[nozzle_temperature_initial_layer] T[initial_extruder]\nT[initial_extruder]\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\n{else}\nM109 S{nozzle_temperature_initial_layer[0] - 30} T0\nM109 S{nozzle_temperature_initial_layer[1] - 30} T1\n{if initial_extruder==0}\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[1]-30} T1\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{elsif current_extruder == 1}\nM109 S{nozzle_temperature_initial_layer[0]} T0\nT0\nG21\nG90\nM83\nG1 Z0.3 F400\nG1 X-145 Y{random(-160,-152)} F4800\nG1 X-95 Y{random(-160,-152)} E30 F400\nG1 E-15 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X-80 F4800 ; move away from purge line\nM104 S{nozzle_temperature_initial_layer[0]-30} T0\nM109 S{nozzle_temperature_initial_layer[1]} T1\nT1\nG1 Z0.3 F400\nG1 X145 Y{random(-160,-152)} F4800\nG1 X95 Y{random(-160,-152)} E30 F400\nG1 E-0.8 F1800\nG92 E0\nG1 Z10 F2000 ; move up from purge line\nG1 X80 F4800 ; move away from purge line\nG92 E0\n{endif}\n{endif}\n\n",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.18"
+    ],
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "parking_pos_retraction": "0",
+    "printable_area": [
+        "-150x-165",
+        "150x-165",
+        "150x165",
+        "-150x165"
+    ],
+    "printable_height": "600",
+    "printer_settings_id": "Flashforge Guider 3 Ultra 0.6 Nozzle",
+    "retract_length_toolchange": [
+        "15"
+    ],
+    "retract_restart_extra_toolchange": [
+        "-0.8"
+    ],
+    "retraction_length": [
+        "1.2"
+    ],
+    "retraction_speed": [
+        "40"
+    ],
+    "z_hop": [
+        "0.6"
+    ],
+    "z_hop_types": [
+        "Spiral Lift"
+    ]
 }

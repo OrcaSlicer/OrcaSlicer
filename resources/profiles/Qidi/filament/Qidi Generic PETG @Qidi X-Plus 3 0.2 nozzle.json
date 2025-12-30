@@ -1,12 +1,12 @@
 {
     "type": "filament",
-	"filament_id": "GFG99",
-    "setting_id": "GFSG99",
     "name": "Qidi Generic PETG @Qidi X-Plus 3 0.2 nozzle",
-    "from": "system",
-    "instantiation": "true",
     "inherits": "Qidi Generic PETG",
-	"reduce_fan_stop_start_freq": [
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
         "1"
     ],
     "slow_down_for_layer_cooling": [
@@ -45,7 +45,7 @@
     "filament_max_volumetric_speed": [
         "1"
     ],
-	"compatible_printers": [
-		"Qidi X-Plus 3 0.2 nozzle"
-	]
+    "compatible_printers": [
+        "Qidi X-Plus 3 0.2 nozzle"
+    ]
 }
