@@ -575,7 +575,6 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
             return;
         }
         else if (evt.CmdDown() && evt.GetKeyCode() == 'G') { if (can_export_gcode()) { wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE)); } evt.Skip(); return; }
-        else if (!evt.CmdDown() && !evt.ShiftDown() && evt.GetKeyCode() == 'G') { wxGetApp().toggle_show_plate_gridlines(); m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));; return; }
         if (evt.CmdDown() && evt.GetKeyCode() == 'J') { m_printhost_queue_dlg->Show(); return; }
         if (evt.CmdDown() && evt.GetKeyCode() == 'N') { m_plater->new_project(); return;}
         if (evt.CmdDown() && evt.GetKeyCode() == 'O') { m_plater->load_project(); return;}
@@ -2818,7 +2817,7 @@ void MainFrame::init_menubar_as_editor()
             this, [this]() { return m_tabpanel->GetSelection() == TabPosition::tp3DEditor || m_tabpanel->GetSelection() == TabPosition::tpPreview; },
             [this]() { return wxGetApp().show_3d_navigator(); }, this);
 
-        append_menu_check_item(viewMenu, wxID_ANY, _L("Show Gridlines") + "\t" + "G", _L("Show Glidlines on plate"),
+        append_menu_check_item(viewMenu, wxID_ANY, _L("Show Gridlines"), _L("Show Glidlines on plate"),
             [this](wxCommandEvent&) {
                 wxGetApp().toggle_show_plate_gridlines();
                 m_plater->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));

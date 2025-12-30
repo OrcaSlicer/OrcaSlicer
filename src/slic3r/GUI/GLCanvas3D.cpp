@@ -8778,7 +8778,13 @@ void GLCanvas3D::_render_canvas_toolbar()
             [this]{toggle_world_axes_visibility(false);}
         );
 
-        // will add an option for gridlines in here
+        create_menu_item( "Gridlines",
+            m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
+            wxGetApp().show_plate_gridlines(),
+            [this]{wxGetApp().toggle_show_plate_gridlines();}
+        );
+
+        ImGui::Separator();
 
         create_menu_item( "Labels",
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
