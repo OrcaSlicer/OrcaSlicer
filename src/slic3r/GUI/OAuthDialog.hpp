@@ -14,7 +14,6 @@ private:
     OAuthParams _params;
     std::shared_ptr<OAuthResult> _result;
 
-    wxButton*               btnCancel{nullptr};
     std::unique_ptr<Worker> m_worker;
 
     void on_cancel(wxEvent& event);

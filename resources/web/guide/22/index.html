@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="max-age=0" />
 <title>引导_P21</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
 <link rel="stylesheet" type="text/css" href="22.css" />
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />		
@@ -44,17 +45,17 @@
 
 	
 <div id="ItemSelectArea">
-	<div class="SmallBtn_Green trans" tid="t11" onClick="SelectAllFilament(1)">All</div>
-	<div class="SmallBtn trans" tid="t12" onClick="SelectAllFilament(0)">Clear all</div>
+	<div class="ButtonStyleConfirm ButtonTypeWindow trans" tid="t11" onClick="SelectAllFilament(1)">All</div>
+	<div class="ButtonStyleRegular ButtonTypeWindow trans" tid="t12" onClick="SelectAllFilament(0)">Clear all</div>
 </div>
 <div id="ItemBlockArea" class="ZScrol">	
 </div>
 	
 </div>
 <div id="AcceptArea">
-	<div class="GrayBtn trans" tid="t8" id="PreBtn"  onclick="ReturnPreviewPage()">Back</div>
-	<div class="NormalBtn trans" tid="t25" id="AcceptBtn"  onclick="FinishGuide()">finish</div>
-	<div class="NormalBtn trans" tid="t9" id="GotoNetPluginBtn"  onclick="GotoNetPluginPage()">Next</div>	
+	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t8" id="PreBtn"  onclick="ReturnPreviewPage()">Back</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t25" id="AcceptBtn"  onclick="FinishGuide()">finish</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t9" id="GotoNetPluginBtn"  onclick="GotoNetPluginPage()">Next</div>	
 </div>
 <div id="NoticeMask">
 </div>
@@ -64,8 +65,8 @@
 	<div id="NoticeText" class="trans" tid="t19">At least one filament must be selected. </div>
 	<div id="NoticeText" class="trans" tid="t20">Do you want to use default filament ?</div>
 	<div id="NoticeBtns">
-		<div class="SmallBtn trans" tid="t21" onClick="ChooseDefaultFilament()">Yes</div>
-		<div class="SmallBtn trans" tid="t22" onClick="ShowNotice(0)">No</div>
+		<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t21" onClick="ChooseDefaultFilament()">Yes</div>
+		<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t22" onClick="ShowNotice(0)">No</div>
 	</div>
 	</div>
 	</div>

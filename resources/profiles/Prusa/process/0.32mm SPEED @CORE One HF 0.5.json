@@ -4,7 +4,7 @@
     "inherits": "0.32mm SPEED @MK4S HF0.5",
     "from": "system",
     "instantiation": "true",
-    "overhang_2_4_speed": "50",
+    "overhang_3_4_speed": "50",
     "support_interface_speed": "50%",
     "travel_speed": "350",
     "travel_acceleration": "7000",

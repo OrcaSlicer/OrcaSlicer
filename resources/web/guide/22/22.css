@@ -39,12 +39,6 @@ input
 	align-items: center;
 }
 
-#ItemSelectArea .SmallBtn
-{
-	margin-left:5px;
-}
-
-
 #ItemBlockArea
 {
 	flex: 1 0 236px;
@@ -110,7 +104,7 @@ input
 {
 	margin-top: 4mm;
 	display: flex;
-	justify-content:space-around;
+	justify-content:flex-end;
 }
 
 #GotoNetPluginBtn

@@ -353,9 +353,9 @@ void Tab::create_preset_tab()
 
         });
 
-    m_undo_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent) { on_roll_back_value(); }));
-    //m_undo_to_sys_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent) { on_roll_back_value(true); }));
-    /* m_search_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent) { wxGetApp().plater()->search(false); });*/
+    m_undo_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent&) { on_roll_back_value(); }));
+    //m_undo_to_sys_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent&) { on_roll_back_value(true); }));
+    /* m_search_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent&) { wxGetApp().plater()->search(false); });*/
 
     // Colors for ui "decoration"
     m_sys_label_clr			= wxGetApp().get_label_clr_sys();
@@ -380,20 +380,23 @@ void Tab::create_preset_tab()
     m_top_sizer->Add(m_undo_to_sys_btn, 0, wxALIGN_CENTER_VERTICAL);
     m_top_sizer->AddSpacer(FromDIP(SidebarProps::IconSpacing()));
 #endif
-    m_top_sizer->Add(m_btn_save_preset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+    m_top_sizer->Add(m_btn_save_preset  , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
     m_top_sizer->Add(m_btn_delete_preset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
-    m_top_sizer->Add(m_btn_search, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
-    m_top_sizer->Add(m_search_item, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ContentMargin()));
+    m_top_sizer->Add(m_btn_search       , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
+    m_top_sizer->Add(m_search_item      , 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::ContentMargin()));
 
     if (dynamic_cast<TabPrint*>(this) == nullptr) {
-        m_static_title = new Label(m_top_panel, Label::Body_12, _L("Advance"));
-        m_static_title->Wrap( -1 );
-        // BBS: open this tab by select first
-        m_static_title->Bind(wxEVT_LEFT_UP, [this](auto& e) {
-            restore_last_select_item();
+        m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
+        m_mode_icon->SetToolTip(_L("Show/Hide advanced parameters"));
+        m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
+            m_mode_view->SetValue(!m_mode_view->GetValue());
+            wxCommandEvent evt(wxEVT_TOGGLEBUTTON, m_mode_view->GetId()); // ParamsPanel::OnToggled(evt)
+            evt.SetEventObject(m_mode_view);
+            m_mode_view->wxEvtHandler::ProcessEvent(evt);
         });
-        m_top_sizer->Add(m_static_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
+        m_top_sizer->Add(m_mode_icon, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::WideSpacing()));
         m_mode_view = new SwitchButton(m_top_panel, wxID_ABOUT);
+        m_mode_view->SetToolTip(_L("Show/Hide advanced parameters"));
         m_top_sizer->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
         m_top_sizer->Add( m_mode_view, 0, wxALIGN_CENTER_VERTICAL);
     }
@@ -537,14 +540,14 @@ void Tab::create_preset_tab()
     m_hsizer->Add(m_page_view, 1, wxEXPAND | wxLEFT, 5);*/
 
     //m_btn_compare_preset->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) { compare_preset(); }));
-    m_btn_save_preset->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) { save_preset(); }));
-    m_btn_delete_preset->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) { delete_preset(); }));
+    m_btn_save_preset->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) { save_preset(); }));
+    m_btn_delete_preset->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) { delete_preset(); }));
     /*m_btn_hide_incompatible_presets->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) {
         toggle_show_hide_incompatible();
     }));
 
     if (m_btn_edit_ph_printer)
-        m_btn_edit_ph_printer->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
+        m_btn_edit_ph_printer->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
             if (m_preset_bundle->physical_printers.has_selection())
                 m_presets_choice->edit_physical_printer();
             else
@@ -889,7 +892,8 @@ void Tab::decorate()
 void Tab::filter_diff_option(std::vector<std::string> &options)
 {
     for (auto &opt : options) {
-        if (opt.find_last_of('#') == std::string::npos) continue;
+        const auto hash_pos = opt.find_last_of('#');
+        if (hash_pos == std::string::npos) continue;
         bool found = false;
         for (auto page : m_pages) {
             if (auto iter = page->m_opt_id_map.find(opt); iter != page->m_opt_id_map.end()) {
@@ -898,7 +902,7 @@ void Tab::filter_diff_option(std::vector<std::string> &options)
                 break;
             }
         }
-        if (!found) opt.clear();
+        if (!found) opt = opt.substr(0, hash_pos);
     }
     options.erase(std::remove(options.begin(), options.end(), ""), options.end());
 }
@@ -909,7 +913,7 @@ void Tab::update_changed_ui()
     if (m_postpone_update_ui)
         return;
 
-    const bool deep_compare = (m_type == Preset::TYPE_PRINTER || m_type == Preset::TYPE_PRINT
+    const bool deep_compare = (m_type == Preset::TYPE_PRINTER || m_type == Preset::TYPE_PRINT || m_type == Preset::TYPE_FILAMENT
             || m_type == Preset::TYPE_SLA_MATERIAL || m_type == Preset::TYPE_MODEL);
     auto dirty_options = m_presets->current_dirty_options(deep_compare);
     auto nonsys_options = m_presets->current_different_from_parent_options(deep_compare);
@@ -1911,7 +1915,9 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
     }
 
-    if (m_preset_bundle->get_printer_extruder_count() > 1){
+    // Orca: allow different layer height for non-bbl printers
+    // TODO: allow this for BBL printers too?
+    if (m_preset_bundle->get_printer_extruder_count() > 1 && m_preset_bundle->is_bbl_vendor()) {
         int extruder_idx = std::atoi(opt_key.substr(opt_key.find_last_of('#') + 1).c_str());
         if (opt_key.find("min_layer_height") != std::string::npos) {
             auto min_layer_height_from_nozzle = m_preset_bundle->full_config().option<ConfigOptionFloats>("min_layer_height")->values;
@@ -2657,6 +2663,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("brim_type", "others_settings_brim#type");
         optgroup->append_single_option_line("brim_width", "others_settings_brim#width");
         optgroup->append_single_option_line("brim_object_gap", "others_settings_brim#brim-object-gap");
+        optgroup->append_single_option_line("brim_use_efc_outline", "others_settings_brim#brim-use-efc-outline");
         optgroup->append_single_option_line("brim_ears_max_angle", "others_settings_brim#ear-max-angle");
         optgroup->append_single_option_line("brim_ears_detection_length", "others_settings_brim#ear-detection-radius");
 
@@ -3554,7 +3561,7 @@ void TabFilament::add_filament_overrides_page()
     auto append_retraction_option = [this, retraction_optgroup](const std::string& opt_key, int opt_index)
     {
         Line line {"",""};
-        line = retraction_optgroup->create_single_option_line(retraction_optgroup->get_option(opt_key));
+        line = retraction_optgroup->create_single_option_line(retraction_optgroup->get_option(opt_key, opt_index));
 
         line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(retraction_optgroup), opt_key, opt_index](wxWindow* parent) {
             auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
@@ -3576,6 +3583,7 @@ void TabFilament::add_filament_overrides_page()
                         }
                     }
                 }
+                evt.Skip();
             }, check_box->GetId());
 
             m_overrides_options[opt_key] = check_box;
@@ -3611,7 +3619,7 @@ void TabFilament::add_filament_overrides_page()
     auto append_ironing_option = [this, ironing_optgroup](const std::string& opt_key, int opt_index)
     {
         Line line {"",""};
-        line = ironing_optgroup->create_single_option_line(ironing_optgroup->get_option(opt_key));
+        line = ironing_optgroup->create_single_option_line(ironing_optgroup->get_option(opt_key, opt_index));
 
         line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(ironing_optgroup), opt_key, opt_index](wxWindow* parent) {
             auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
@@ -3677,6 +3685,7 @@ void TabFilament::add_filament_overrides_page()
                         }
                     }
                 }
+                evt.Skip();
             }, check_box->GetId());
 
             m_overrides_options[opt_key] = check_box;
@@ -3883,8 +3892,8 @@ void TabFilament::build()
         optgroup = page->new_optgroup(L("Print temperature"), L"param_extruder_temp");
         line = { L("Nozzle"), L("Nozzle temperature when printing") };
         line.label_path = "material_temperatures#nozzle";
-        line.append_option(optgroup->get_option("nozzle_temperature_initial_layer"));
-        line.append_option(optgroup->get_option("nozzle_temperature"));
+        line.append_option(optgroup->get_option("nozzle_temperature_initial_layer", 0));
+        line.append_option(optgroup->get_option("nozzle_temperature", 0));
         optgroup->append_line(line);
 
         optgroup = page->new_optgroup(L("Bed temperature"), L"param_bed_temp");
@@ -3963,7 +3972,7 @@ void TabFilament::build()
         //BBS
         optgroup = page->new_optgroup(L("Volumetric speed limitation"), L"param_volumetric_speed");
         optgroup->append_single_option_line("filament_adaptive_volumetric_speed", "material_volumetric_speed_limitation#adaptive-volumetric-speed", 0);
-        optgroup->append_single_option_line("filament_max_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed");
+        optgroup->append_single_option_line("filament_max_volumetric_speed", "material_volumetric_speed_limitation#max-volumetric-speed", 0);
 
         //line = { "", "" };
         //line.full_width = 1;
@@ -4135,6 +4144,9 @@ void TabFilament::reload_config()
     this->compatible_widget_reload(m_compatible_printers);
     this->compatible_widget_reload(m_compatible_prints);
     Tab::reload_config();
+
+    // Recompute derived override UI from the newly loaded config
+    update_filament_overrides_page(&m_preset_bundle->printers.get_edited_preset().config);
 }
 
 //void TabFilament::update_volumetric_flow_preset_hints()
@@ -6693,18 +6705,18 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         this->update_changed_ui();
     };
 
-    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([this, &deps, on_toggle](wxMouseEvent e) {
+    deps.checkbox_title->Bind(wxEVT_LEFT_DOWN,([this, &deps, on_toggle](wxMouseEvent& e) {
         if (e.GetEventType() == wxEVT_LEFT_DCLICK) return;
         on_toggle(!deps.checkbox->GetValue());
         e.Skip();
     }));
 
-    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([this, &deps, on_toggle](wxMouseEvent e) {
+    deps.checkbox_title->Bind(wxEVT_LEFT_DCLICK,([this, &deps, on_toggle](wxMouseEvent& e) {
         on_toggle(!deps.checkbox->GetValue());
         e.Skip();
     }));
 
-    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([this, on_toggle](wxCommandEvent e) {
+    deps.checkbox->Bind(wxEVT_TOGGLEBUTTON, ([this, on_toggle](wxCommandEvent& e) {
         on_toggle(e.IsChecked());
         e.Skip();
     }), deps.checkbox->GetId());
@@ -6729,7 +6741,7 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
     }
     */
 
-    deps.btn->Bind(wxEVT_BUTTON, ([this, parent, &deps](wxCommandEvent e)
+    deps.btn->Bind(wxEVT_BUTTON, ([this, parent, &deps](wxCommandEvent& e)
     {
         // Collect names of non-default non-external profiles.
         PrinterTechnology printer_technology = m_preset_bundle->printers.get_edited_preset().printer_technology();
@@ -6811,7 +6823,7 @@ wxSizer* TabPrinter::create_bed_shape_widget(wxWindow* parent)
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL);
 
-    btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) {
+    btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent& e) {
             bool  is_configed_by_BBL = PresetUtils::system_printer_bed_model(m_preset_bundle->printers.get_edited_preset()).size() > 0;
             BedShapeDialog dlg(this);
             dlg.build_dialog(m_config->option<ConfigOptionPoints>("printable_area")->values,

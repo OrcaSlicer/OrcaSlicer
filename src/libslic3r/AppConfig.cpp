@@ -111,6 +111,11 @@ void AppConfig::set_defaults()
         if (get("background_processing").empty())
             set_bool("background_processing", false);
 #endif
+        if (get("auto_slice_after_change").empty())
+            set_bool("auto_slice_after_change", false);
+
+        if (get("auto_slice_change_delay_seconds").empty())
+            set("auto_slice_change_delay_seconds", "1");
 
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);
@@ -315,6 +320,10 @@ void AppConfig::set_defaults()
 
     if (get("remember_printer_config").empty()) {
         set_bool("remember_printer_config", true);
+    }
+
+    if (get("group_filament_presets").empty()) {
+        set("group_filament_presets", "1"); // All "0" / None "1" / By Type "2" / By Vendor "3"
     }
 
     if (get("enable_high_low_temp_mixed_printing").empty()){
