@@ -29,7 +29,11 @@ class ConfigManipulation
     std::function<void()>                                       load_config = nullptr;
     std::function<void (const std::string&, bool toggle, int opt_index)>   cb_toggle_field = nullptr;
     std::function<void(const std::string &, bool toggle, int opt_index)> cb_toggle_line  = nullptr;
-    // callback to propagation of changed value, if needed
+
+    std::function<void (const std::string&, bool enable, int opt_index)>   cb_enable_field = nullptr;
+    std::function<void (const std::string&, bool enable)>   cb_enable_line = nullptr;
+    
+    // callback to propagation of changed value, if needed 
     std::function<void(const std::string&, const boost::any&)>  cb_value_change = nullptr;
     //BBS: change local config to const DynamicPrintConfig
     const DynamicPrintConfig* local_config = nullptr;
@@ -58,6 +62,8 @@ public:
         load_config = nullptr;
         cb_toggle_field = nullptr;
         cb_toggle_line = nullptr;
+        cb_enable_field = nullptr;
+        cb_enable_line = nullptr;
         cb_value_change = nullptr;
     }
 
@@ -92,6 +98,14 @@ public:
         m_support_material_overhangs_queried = queried;
     }
     int    show_spiral_mode_settings_dialog(bool is_object_config = false);
+
+    void set_cb_enable_field(std::function<void(const std::string&, bool, int)> cb) {
+        cb_enable_field = cb;
+    }
+    
+    void set_cb_enable_line(std::function<void(const std::string&, bool)> cb) {
+        cb_enable_line = cb;
+    }
 
 private:
     bool get_temperature_range(DynamicPrintConfig *config, int &range_low, int &range_high);

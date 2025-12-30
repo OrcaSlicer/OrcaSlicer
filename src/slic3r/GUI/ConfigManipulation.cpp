@@ -41,17 +41,56 @@ void ConfigManipulation::toggle_field(const std::string &opt_key, const bool tog
     if (local_config) {
         if (local_config->option(opt_key) == nullptr) return;
     }
-    cb_toggle_field(opt_key, toggle, opt_index);
+    
+    if (wxGetApp().get_mode() == comDevelop) {
+        // DEVELOPER MODE: Always show, but disable if toggle is false
+        cb_toggle_field(opt_key, true, opt_index);  // Always show
+        
+        // Enable or disable based on the original toggle value
+        if (cb_enable_field) {
+            cb_enable_field(opt_key, toggle, opt_index);
+        }
+    } else {
+        // NORMAL MODE: Hide/show as usual
+        cb_toggle_field(opt_key, toggle, opt_index);
+    }
 }
 
 void ConfigManipulation::toggle_line(const std::string& opt_key, const bool toggle, int opt_index)
 {
-    if (local_config) {
-        if (local_config->option(opt_key) == nullptr)
-            return;
+    try {
+        if (local_config) {
+            if (local_config->option(opt_key) == nullptr)
+                return;
+        }
+        
+        if (wxGetApp().get_mode() == comDevelop) {
+            // DEVELOPER MODE: Always show, but disable if toggle is false
+            if (cb_toggle_line) {
+                cb_toggle_line(opt_key, true, opt_index);  // Always show
+            }
+            
+            // Enable or disable based on the original toggle value
+            if (cb_enable_line) {
+                cb_enable_line(opt_key, toggle);
+            }
+        } else {
+            // NORMAL MODE: Hide/show as usual
+            if (cb_toggle_line) {
+                try {
+                    cb_toggle_line(opt_key, toggle, opt_index);
+                } catch (const std::exception& e) {
+                    std::cerr << "Exception in cb_toggle_line: " << e.what() << std::endl;
+                } catch (...) {
+                    std::cerr << "Unknown exception in cb_toggle_line." << std::endl;
+                }
+            }
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Exception in toggle_line: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "Unknown exception in toggle_line." << std::endl;
     }
-    if (cb_toggle_line)
-        cb_toggle_line(opt_key, toggle, opt_index);
 }
 
 void ConfigManipulation::check_nozzle_recommended_temperature_range(DynamicPrintConfig *config) {
