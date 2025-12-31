@@ -309,7 +309,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 show_error(m_parent, _(L("Invalid numeric.")));
                 set_value(double_to_string(val), true);
             }
-            if (!m_opt.is_value_valid(val))
+            if (m_opt.min > val || val > m_opt.max)
             {
                 if (!check_value) {
                     m_value.clear();
@@ -1107,8 +1107,8 @@ void SpinCtrl::BUILD() {
 		break;
 	}
 
-    const int min_val = m_opt.min == -FLT_MAX ? 0 : (int)m_opt.min;
-	const int max_val = m_opt.max < FLT_MAX ? (int)m_opt.max : INT_MAX;
+    const int min_val = m_opt.min == INT_MIN ? 0 : m_opt.min;
+	const int max_val = m_opt.max < 2147483647 ? m_opt.max : 2147483647;
 
     static Builder<SpinInput> builder;
 	auto temp = builder.build(m_parent, "", "", wxDefaultPosition, size,
@@ -1164,7 +1164,7 @@ void SpinCtrl::BUILD() {
         if (!parsed || value < INT_MIN || value > INT_MAX)
             tmp_value = UNDEF_VALUE;
         else {
-            tmp_value = std::min(std::max((int)value, temp->GetMin()), temp->GetMax());
+            tmp_value = std::min(std::max((int)value, m_opt.min), m_opt.max);
 #ifdef __WXOSX__
 #ifdef UNDEFINED__WXOSX__ // BBS
             // Forcibly set the input value for SpinControl, since the value
@@ -1217,7 +1217,7 @@ void SpinCtrl::set_value(const boost::any& value, bool change_event) {
     m_disable_change_event = !change_event;
     m_value = value;
     if (value.empty()) { // BBS: null value
-        dynamic_cast<SpinInput*>(window)->SetValue(dynamic_cast<SpinInput*>(window)->GetMin());
+        dynamic_cast<SpinInput*>(window)->SetValue(m_opt.min);
         dynamic_cast<SpinInput*>(window)->GetTextCtrl()->SetValue("");
     }
     else {
@@ -2158,8 +2158,8 @@ boost::any& PointCtrl::get_value()
         show_error(m_parent, _L("Invalid numeric."));
 	}
 	else
-	if (!m_opt.is_value_valid(x) ||
-		!m_opt.is_value_valid(y))
+	if (m_opt.min > x || x > m_opt.max ||
+		m_opt.min > y || y > m_opt.max)
 	{
 		if (m_opt.min > x) x = m_opt.min;
 		if (x > m_opt.max) x = m_opt.max;
@@ -2218,8 +2218,8 @@ void SliderCtrl::BUILD()
 	auto temp = new wxBoxSizer(wxHORIZONTAL);
 
 	auto def_val = m_opt.get_default_value<ConfigOptionInt>()->value;
-	auto min = m_opt.min == -FLT_MAX ? 0   : (int)m_opt.min;
-	auto max = m_opt.max ==  FLT_MAX ? 100 : INT_MAX;
+	auto min = m_opt.min == INT_MIN ? 0 : m_opt.min;
+	auto max = m_opt.max == INT_MAX ? 100 : m_opt.max;
 
 	m_slider = new wxSlider(m_parent, wxID_ANY, def_val * m_scale,
 							min * m_scale, max * m_scale,

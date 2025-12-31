@@ -78,9 +78,6 @@ public:
 
     void SetRange(int min, int max);
 
-    int GetMin() const { return this->min; }
-    int GetMax() const { return this->max; }
-
 protected:
     void DoSetToolTipText(wxString const &tip) override;
 

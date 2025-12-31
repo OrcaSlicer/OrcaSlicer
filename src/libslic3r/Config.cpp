@@ -318,19 +318,6 @@ ConfigOption* ConfigOptionDef::create_default_option() const
     return this->create_empty_option();
 }
 
-bool ConfigOptionDef::is_value_valid(const double value, const int max_precision /*= 4*/) const
-{
-    if (this->min == 0.f && value < 0) { // Special handling of 0
-        return false;
-    }
-
-    const double ep = std::pow(0.1, max_precision);
-    if (is_approx(value, (double) this->min, ep) || is_approx(value, (double) this->max, ep))
-        return true;
-
-    return this->min <= value && value <= this->max;
-}
-
 // Assignment of the serialization IDs is not thread safe. The Defs shall be initialized from the main thread!
 ConfigOptionDef* ConfigDef::add(const t_config_option_key &opt_key, ConfigOptionType type)
 {
