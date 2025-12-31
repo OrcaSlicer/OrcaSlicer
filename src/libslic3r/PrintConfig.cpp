@@ -2150,7 +2150,7 @@ void PrintConfigDef::init_fff_params()
                      "\n\nThe final object flow ratio is this value multiplied by the filament flow ratio.");
     def->mode = comAdvanced;
     def->max = 2;
-    def->min = 0.01f;
+    def->min = 0.01;
     def->set_default_value(new ConfigOptionFloat(1));
 
     def = this->add("enable_pressure_advance", coBools);
@@ -3245,7 +3245,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Others");
     def->tooltip = L("The average distance between the random points introduced on each line segment.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0.01f; // point distance cannot be 0! Otherwise we get infinite loop + OOM due to infinite line division.
+    def->min = 0;
     def->max = 5;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(0.3));
@@ -3308,7 +3308,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Others");
     def->tooltip = L("The base size of the coherent noise features, in mm. Higher values will result in larger features.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0.1f;
+    def->min = 0.1;
     def->max = 500;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1.0));
@@ -3326,7 +3326,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Fuzzy skin noise persistence");
     def->category = L("Others");
     def->tooltip = L("The decay rate for higher octaves of the coherent noise. Lower values will result in smoother noise.");
-    def->min = 0.01f;
+    def->min = 0.01;
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
@@ -9555,13 +9555,13 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         case coFloatOrPercent:
         {
             auto *fopt = static_cast<const ConfigOptionFloat*>(opt);
-            out_of_range = !optdef->is_value_valid(fopt->value);
+            out_of_range = fopt->value < optdef->min || fopt->value > optdef->max;
             break;
         }
         case coFloats:
         case coPercents:
             for (double v : static_cast<const ConfigOptionVector<double>*>(opt)->values)
-                if (!optdef->is_value_valid(v)) {
+                if (v < optdef->min || v > optdef->max) {
                     out_of_range = true;
                     break;
                 }
@@ -9569,12 +9569,12 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         case coInt:
         {
             auto *iopt = static_cast<const ConfigOptionInt*>(opt);
-            out_of_range = !optdef->is_value_valid(iopt->value);
+            out_of_range = iopt->value < optdef->min || iopt->value > optdef->max;
             break;
         }
         case coInts:
             for (int v : static_cast<const ConfigOptionVector<int>*>(opt)->values)
-                if (!optdef->is_value_valid(v)) {
+                if (v < optdef->min || v > optdef->max) {
                     out_of_range = true;
                     break;
                 }
