@@ -97,7 +97,7 @@ jobs:
 
       - name: Upload OrcaSlicer_dep director(ies) for use later
         if: ${{ !cancelled() && ! env.ACT}}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.DEPS_PATH }}
