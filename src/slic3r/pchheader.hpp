@@ -7,6 +7,12 @@
 	#endif
 	#include <Windows.h>
 	#include <CommCtrl.h>
+	#ifdef max
+		#undef max
+	#endif
+	#ifdef min
+		#undef min
+	#endif
 #endif
 
 #include <float.h>
@@ -182,6 +188,10 @@
 #include <wx/wx.h>
 #include <wx/wxprec.h>
 #include <wx/zipstrm.h>
+
+// Ensure graphics contexts (wxGCDC, etc.) are available everywhere.
+#include <wx/dcgraph.h>
+#include <wx/graphics.h>
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"

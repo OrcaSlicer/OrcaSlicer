@@ -1,17 +1,28 @@
+#ifdef _WIN32
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
+#endif
+#ifndef WINVER
+#define WINVER _WIN32_WINNT
+#endif
+#endif
+
 #include "SimplyPrint.hpp"
 
 #include <openssl/sha.h>
+#include <boost/asio.hpp>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
+#include <boost/log/trivial.hpp>
 
 #include "nlohmann/json.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/MainFrame.hpp"
-
+#include "slic3r/GUI/Jobs/OAuthJob.hpp"
+#include <wx/utils.h>
 
 namespace Slic3r {
 
@@ -87,17 +98,31 @@ static std::string url_encode(const std::vector<std::pair<std::string, std::stri
 
 static void set_auth(Http& http, const std::string& access_token) { http.header("Authorization", "Bearer " + access_token); }
 
+static void parse_token_response_for_simplyprint(const std::string& body, bool error, GUI::OAuthResult& result)
+{
+    const auto j = nlohmann::json::parse(body, nullptr, false, true);
+    if (j.is_discarded()) {
+        BOOST_LOG_TRIVIAL(warning) << "Invalid or no JSON data on token response: " << body;
+        result.error_message = _u8L("Unknown error");
+    } else if (error) {
+        if (j.contains("error_description")) {
+            j.at("error_description").get_to(result.error_message);
+        } else {
+            result.error_message = _u8L("Unknown error");
+        }
+    } else {
+        j.at("access_token").get_to(result.access_token);
+        j.at("refresh_token").get_to(result.refresh_token);
+        result.success = true;
+    }
+}
+
 static bool should_open_in_external_browser()
 {
-    const auto& app = wxGetApp();
-
-    if (app.preset_bundle->use_bbl_device_tab()) {
-        // When using bbl device tab, we always need to open external browser
-        return true;
-    }
-
-    // Otherwise, if user choose to switch to device tab, then don't bother opening external browser
-    return !app.app_config->get_bool("open_device_tab_post_upload");
+    // In this build, always open the SimplyPrint import URL
+    // in the external browser rather than trying to load it
+    // inside the device tab.
+    return true;
 }
 
 SimplyPrint::SimplyPrint(DynamicPrintConfig* config)
@@ -219,7 +244,7 @@ bool SimplyPrint::do_api_call(std::function<Http(bool)>                         
                     .form_add("refresh_token", cred.at("refresh_token"))
                     .on_complete([this, &res, &on_error, &create_request](std::string body, unsigned http_status) {
                         GUI::OAuthResult r;
-                        GUI::OAuthJob::parse_token_response(body, false, r);
+                        parse_token_response_for_simplyprint(body, false, r);
                         if (r.success) {
                             BOOST_LOG_TRIVIAL(info) << "SimplyPrint: Successfully refreshed access token";
                             this->save_oauth_credential(r);
@@ -321,13 +346,7 @@ bool SimplyPrint::do_temp_upload(const boost::filesystem::path& file_path,
             // Launch external browser for file importing after uploading
             const auto url = URL_BASE_HOME"/panel?" + url_encode({{"import", "tmp:" + uuid}, {"filename", filename}});
 
-            if (should_open_in_external_browser()) {
-                wxLaunchDefaultBrowser(url);
-            } else {
-                const auto mainframe = GUI::wxGetApp().mainframe;
-                mainframe->request_select_tab(MainFrame::TabPosition::tpMonitor);
-                mainframe->load_printer_url(url);
-            }
+            wxLaunchDefaultBrowser(url);
 
             return true;
         },

@@ -1,5 +1,13 @@
 #include "SideTools.hpp"
 #include "bambu_networking.hpp"
+
+#ifdef __WXMSW__
+#include <wx/wxprec.h>
+#endif
+#ifndef WX_PRECOMP
+#include <wx/wx.h>
+#endif
+
 #include <wx/dcmemory.h>
 #include <wx/dcgraph.h>
 #include "Label.hpp"
@@ -117,23 +125,7 @@ void SideToolsPanel::OnPaint(wxPaintEvent &event)
 
 void SideToolsPanel::render(wxDC &dc)
 {
-#ifdef __WXMSW__
-    wxSize     size = GetSize();
-    wxMemoryDC memdc;
-    wxBitmap   bmp(size.x, size.y);
-    memdc.SelectObject(bmp);
-    memdc.Blit({0, 0}, size, &dc, {0, 0});
-
-    {
-        wxGCDC dc2(memdc);
-        doRender(dc2);
-    }
-
-    memdc.SelectObject(wxNullBitmap);
-    dc.DrawBitmap(bmp, 0, 0);
-#else
     doRender(dc);
-#endif
 }
 
 void SideToolsPanel::doRender(wxDC &dc)

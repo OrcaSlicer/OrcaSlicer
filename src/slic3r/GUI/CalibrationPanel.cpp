@@ -1,4 +1,10 @@
+#include <wx/wxprec.h>
+#ifndef WX_PRECOMP
+#  include <wx/wx.h>
+#endif
+
 #include <wx/dcgraph.h>
+
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"

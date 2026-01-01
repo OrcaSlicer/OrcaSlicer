@@ -1,5 +1,6 @@
 #include <functional>
 #include <optional>
+#include <numeric>
 
 #include <libslic3r/OpenVDBUtils.hpp>
 #include <libslic3r/TriangleMesh.hpp>

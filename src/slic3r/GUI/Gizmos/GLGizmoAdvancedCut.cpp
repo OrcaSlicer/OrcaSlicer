@@ -341,7 +341,7 @@ void GLGizmoAdvancedCut::reset_all()
     m_keep_upper = true;
     m_keep_lower = true;
     m_cut_to_parts = false;
-    m_place_on_cut_upper = true;
+    m_place_on_cut_upper = false;
     m_place_on_cut_lower = false;
     m_rotate_upper = false;
     m_rotate_lower = false;

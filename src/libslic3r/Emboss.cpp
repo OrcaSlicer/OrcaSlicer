@@ -1,3 +1,9 @@
+// Prevent Windows headers from defining min/max macros that clash with
+// std::max, std::min and std::numeric_limits<>::max().
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include <numeric>
 #include "Emboss.hpp"
 #include <stdio.h>
@@ -20,6 +26,14 @@
 #include "libslic3r/AABBTreeLines.hpp" // search structure for found close points
 #include "libslic3r/Line.hpp"
 #include "libslic3r/BoundingBox.hpp"
+
+// Avoid Windows macros interfering with std::max / std::numeric_limits::max.
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
 
 // Experimentaly suggested ration of font ascent by multiple fonts
 // to get approx center of normal text line

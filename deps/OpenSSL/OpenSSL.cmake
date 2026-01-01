@@ -13,10 +13,20 @@ else()
 endif()
 
 if(WIN32)
-    set(_conf_cmd perl Configure )
-    set(_cross_comp_prefix_line "")
-    set(_make_cmd nmake)
-    set(_install_cmd nmake install_sw )
+    # Prefer a Windows-native Perl (e.g. Strawberry Perl) over msys/git Perl
+    # to avoid "doesn't produce Windows like paths" errors. The
+    # build_release_vs2022_fix.bat wrapper sets ORCA_PERL_EXE when it
+    # locates Strawberry Perl, so honor that here but fall back to
+    # plain "perl" if not set.
+    set(_perl_exe perl)
+    if(DEFINED ENV{ORCA_PERL_EXE})
+        set(_perl_exe "$ENV{ORCA_PERL_EXE}")
+    endif()
+
+	set(_conf_cmd "${_perl_exe}" Configure )
+	set(_cross_comp_prefix_line "")
+	set(_make_cmd nmake)
+	set(_install_cmd nmake install_sw )
 else()
     if(APPLE)
         set(_conf_cmd export MACOSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET} && ./Configure -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET})

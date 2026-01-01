@@ -1,3 +1,8 @@
+#include <wx/wxprec.h>
+#ifndef WX_PRECOMP
+#  include <wx/wx.h>
+#endif
+
 #include "GLGizmoEmboss.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -33,9 +38,9 @@
 #include <imgui/imgui_internal.h>
 
 #include <wx/font.h>
-#include <wx/fontutil.h>
 #include <wx/fontdlg.h>
 #include <wx/fontenum.h>
+#include <wx/fontutil.h>
 #include <wx/display.h> // detection of change DPI
 #include <wx/hashmap.h>
 

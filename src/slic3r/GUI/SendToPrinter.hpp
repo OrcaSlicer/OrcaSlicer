@@ -228,7 +228,7 @@ private:
     void CreateUploadFileJob(const std::string &path, const std::string &name);
     void ChangeConnectMethod();
     void UploadFileProgressCallback(int progress);
-    void UploadFileRessultCallback(int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res);
+    void UploadFileRessultCallback(int res, int resp_ec, std::string json_res, std::vector<std::uint8_t> bin_res);
     void Reset();
 };
 

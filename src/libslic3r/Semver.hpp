@@ -5,6 +5,7 @@
 #include <cstring>
 #include <ostream>
 #include <stdexcept>
+#include <limits>
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
 
@@ -14,6 +15,19 @@
 
 namespace Slic3r {
 
+// Helper to create a zero-initialized semver_t without relying on
+// aggregate initialization syntax that some MSVC versions struggle with.
+inline semver_t slic3r_semver_zero()
+{
+	semver_t v;
+	v.major = 0;
+	v.minor = 0;
+	v.patch = 0;
+	v.metadata = nullptr;
+	v.prerelease = nullptr;
+	return v;
+}
+
 
 class Semver
 {
@@ -22,11 +36,11 @@ public:
 	struct Minor { const int i;  Minor(int i) : i(i) {} };
 	struct Patch { const int i;  Patch(int i) : i(i) {} };
 
-	Semver() : ver(semver_zero()) {}
+	Semver() : ver(slic3r_semver_zero()) {}
 
 	Semver(int major, int minor, int patch,
 		boost::optional<const std::string&> metadata, boost::optional<const std::string&> prerelease)
-		: ver(semver_zero())
+		: ver(slic3r_semver_zero())
 	{
 		ver.major = major;
 		ver.minor = minor;
@@ -36,7 +50,7 @@ public:
 	}
 
 	Semver(int major, int minor, int patch, const char *metadata = nullptr, const char *prerelease = nullptr)
-		: ver(semver_zero())
+		: ver(slic3r_semver_zero())
 	{
 		ver.major = major;
 		ver.minor = minor;
@@ -45,19 +59,19 @@ public:
 		set_prerelease(prerelease);
 	}
 
-	Semver(const std::string &str) : ver(semver_zero())
+	Semver(const std::string &str) : ver(slic3r_semver_zero())
 	{
 		auto parsed = parse(str);
 		if (! parsed) {
 			throw Slic3r::RuntimeError(std::string("Could not parse version string: ") + str);
 		}
 		ver = parsed->ver;
-		parsed->ver = semver_zero();
+		parsed->ver = slic3r_semver_zero();
 	}
 
 	static boost::optional<Semver> parse(const std::string &str)
 	{
-		semver_t ver = semver_zero();
+		semver_t ver = slic3r_semver_zero();
 		if (::semver_parse(str.c_str(), &ver) == 0) {
 			return Semver(ver);
 		} else {
@@ -65,7 +79,7 @@ public:
 		}
 	}
 
-	static const Semver zero() { return Semver(semver_zero()); }
+	static const Semver zero() { return Semver(slic3r_semver_zero()); }
 
 	static const Semver inf()
 	{
@@ -79,14 +93,14 @@ public:
 		return Semver(ver);
 	}
 
-	Semver(Semver &&other) : ver(other.ver) { other.ver = semver_zero(); }
+	Semver(Semver &&other) : ver(other.ver) { other.ver = slic3r_semver_zero(); }
 	Semver(const Semver &other) : ver(::semver_copy(&other.ver)) {}
 
 	Semver &operator=(Semver &&other)
 	{
 		::semver_free(&ver);
 		ver = other.ver;
-		other.ver = semver_zero();
+		other.ver = slic3r_semver_zero();
 		return *this;
 	}
 
@@ -194,11 +208,7 @@ private:
 	semver_t ver;
 
 	Semver(semver_t ver) : ver(ver) {}
-
-	static semver_t semver_zero() { return { 0, 0, 0, nullptr, nullptr }; }
 	static char * strdup(const std::string &str) { return ::semver_strdup(str.data()); }
 };
-
-
 }
 #endif

@@ -1,5 +1,27 @@
 #include "SendSystemInfoDialog.hpp"
 
+#ifdef _WIN32
+// Use Winsock2 API and ensure Windows headers are pulled in after it.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+#include <netlistmgr.h>
+#include <Iphlpapi.h>
+#pragma comment(lib, "iphlpapi.lib")
+#endif
+
 #if __APPLE__
 #import <IOKit/IOKitLib.h>
 #endif
@@ -39,14 +61,7 @@
 #include <atomic>
 #include <thread>
 
-#ifdef _WIN32
-    #include <windows.h>
-    #include <netlistmgr.h>
-    //BBS: remove atl related logic
-    //#include <atlbase.h>
-    #include <Iphlpapi.h>
-    #pragma comment(lib, "iphlpapi.lib")
-#elif __APPLE__
+#ifdef __APPLE__
     #include <CoreFoundation/CoreFoundation.h>
 #else // Linux/BSD
     #include <charconv>

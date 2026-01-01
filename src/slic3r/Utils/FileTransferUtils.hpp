@@ -178,7 +178,7 @@ private:
 class FileTransferJob
 {
 public:
-    using ResultCb = std::function<void(int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res)>;
+    using ResultCb = std::function<void(int res, int resp_ec, std::string json_res, std::vector<std::uint8_t> bin_res)>;
     using MsgCb = std::function<void(int kind, std::string json)>;
 
     explicit FileTransferJob(FileTransferModule &m, const std::string &params_json);
@@ -191,7 +191,7 @@ public:
 
     void on_result(ResultCb cb);
 
-    bool get_result(int &ec, int &resp_ec, std::string &json, std::vector<std::byte> &bin, uint32_t timeout_ms);
+    bool get_result(int &ec, int &resp_ec, std::string &json, std::vector<std::uint8_t> &bin, uint32_t timeout_ms);
 
     void start_on(FileTransferTunnel &t);
 
@@ -221,15 +221,15 @@ private:
 
     void solve_result(ft_job_result result);
 
-    FileTransferModule    *m_{};
-    FT_JobHandle          *h_{};
-    ResultCb               result_cb_{};
-    MsgCb                  msg_cb_{};
-    bool                   finished_ = false;
-    int                    res_      = 0;
-    int                    resp_ec_  = 0;
-    std::string            res_json_;
-    std::vector<std::byte> res_bin_;
+    FileTransferModule       *m_{};
+    FT_JobHandle             *h_{};
+    ResultCb                  result_cb_{};
+    MsgCb                     msg_cb_{};
+    bool                      finished_ = false;
+    int                       res_      = 0;
+    int                       resp_ec_  = 0;
+    std::string               res_json_;
+    std::vector<std::uint8_t> res_bin_;
 };
 
 namespace detail {

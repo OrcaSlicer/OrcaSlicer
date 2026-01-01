@@ -5,6 +5,10 @@
 	#ifndef NOMINMAX
 		#define NOMINMAX
 	#endif
+	#include <Windows.h>
+	#ifndef BOOST_REGEX_NO_WIN32_LOCALE
+		#define BOOST_REGEX_NO_WIN32_LOCALE
+	#endif
 #endif
 
 #include <float.h>

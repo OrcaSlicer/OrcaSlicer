@@ -15,6 +15,20 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <Windows.h>
+// Ensure PIXELFORMATDESCRIPTOR is visible to wx/msw/glcanvas.h even if
+// Windows headers are not included there directly.
+struct tagPIXELFORMATDESCRIPTOR;
+typedef struct tagPIXELFORMATDESCRIPTOR PIXELFORMATDESCRIPTOR;
+#endif
+
 #include <wx/listbook.h>
 #include <wx/notebook.h>
 #include <wx/glcanvas.h>

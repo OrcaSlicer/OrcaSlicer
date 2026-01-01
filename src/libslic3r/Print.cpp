@@ -27,6 +27,17 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
+
+#ifdef _WIN32
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  ifndef BOOST_REGEX_NO_WIN32_LOCALE
+#    define BOOST_REGEX_NO_WIN32_LOCALE
+#  endif
+#  include <Windows.h>
+#endif
+
 #include <boost/regex.hpp>
 #include <boost/nowide/fstream.hpp>
 

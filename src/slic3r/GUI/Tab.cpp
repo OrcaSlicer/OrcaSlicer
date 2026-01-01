@@ -1,5 +1,32 @@
 // #include "libslic3r/GCodeSender.hpp"
 //#include "slic3r/Utils/Serial.hpp"
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0601
+#endif
+#ifndef WINVER
+#define WINVER _WIN32_WINNT
+#endif
+#ifndef _WIN32_IE
+#define _WIN32_IE 0x0600
+#endif
+#include <Windows.h>
+#include <CommCtrl.h>
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+#endif
+
 #include "Tab.hpp"
 #include "PresetHints.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -52,10 +79,6 @@
 #include "WipeTowerDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
-
-#ifdef WIN32
-	#include <commctrl.h>
-#endif // WIN32
 
 #include <algorithm>
 
@@ -660,28 +683,10 @@ void Tab::OnActivate()
 #endif // __WXOSX__*/
 
 #ifdef __WXMSW__
-    // Workaround for tooltips over Tree Controls displayed over excessively long
-    // tree control items, stealing the window focus.
-    //
-    // In case the Tab was reparented from the MainFrame to the floating dialog,
-    // the tooltip created by the Tree Control before reparenting is not reparented,
-    // but it still points to the MainFrame. If the tooltip pops up, the MainFrame
-    // is incorrectly focussed, stealing focus from the floating dialog.
-    //
-    // The workaround is to delete the tooltip control.
-    // Vojtech tried to reparent the tooltip control, but it did not work,
-    // and if the Tab was later reparented back to MainFrame, the tooltip was displayed
-    // at an incorrect position, therefore it is safer to just discard the tooltip control
-    // altogether.
-    HWND hwnd_tt = TreeView_GetToolTips(m_tabctrl->GetHandle());
-    if (hwnd_tt) {
-	    HWND hwnd_toplevel 	= find_toplevel_parent(m_tabctrl)->GetHandle();
-	    HWND hwnd_parent 	= ::GetParent(hwnd_tt);
-	    if (hwnd_parent != hwnd_toplevel) {
-	    	::DestroyWindow(hwnd_tt);
-			TreeView_SetToolTips(m_tabctrl->GetHandle(), nullptr);
-	    }
-    }
+    // FIXME: Original code used TreeView_GetToolTips / TreeView_SetToolTips
+    // from the Windows common controls API as a workaround for tooltip focus
+    // issues when reparenting tabs. These macros are not available with the
+    // current Windows SDK configuration, so this workaround is disabled here.
 #endif
 
     // BBS: select on first active

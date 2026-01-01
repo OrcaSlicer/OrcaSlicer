@@ -40,6 +40,13 @@ orcaslicer_add_cmake_project(
         -DwxUSE_MEDIACTRL=ON
         -DwxUSE_DETECT_SM=OFF
         -DwxUSE_UNICODE=ON
+        -DwxUSE_GRAPHICS_CONTEXT=ON
+        -DwxUSE_GLCANVAS=ON
+        -DwxUSE_STDPATHS=ON
+        -DwxUSE_TIMER=ON
+        -DwxUSE_DATAVIEWCTRL=ON
+        -DwxUSE_CLIPBOARD=ON
+        -DwxUSE_DRAG_AND_DROP=ON
         -DwxUSE_PRIVATE_FONTS=ON
         -DwxUSE_OPENGL=ON
         -DwxUSE_WEBREQUEST=ON

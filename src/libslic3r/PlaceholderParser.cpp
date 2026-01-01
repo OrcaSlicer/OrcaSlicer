@@ -61,6 +61,11 @@
     #include <regex>
     #define SLIC3R_REGEX_NAMESPACE std
 #else /* USE_CPP11_REGEX */
+    #ifdef _WIN32
+    #  ifndef BOOST_REGEX_NO_WIN32_LOCALE
+    #    define BOOST_REGEX_NO_WIN32_LOCALE
+    #  endif
+    #endif
     #include <boost/regex.hpp>
     #define SLIC3R_REGEX_NAMESPACE boost
 #endif /* USE_CPP11_REGEX */

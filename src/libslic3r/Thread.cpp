@@ -1,5 +1,15 @@
 #ifdef _WIN32
+	#ifndef NOMINMAX
+		#define NOMINMAX
+	#endif
 	#include <windows.h>
+	// Ensure Windows headers don't leave max/min macros around.
+	#ifdef max
+		#undef max
+	#endif
+	#ifdef min
+		#undef min
+	#endif
 	#include <boost/nowide/convert.hpp>
 #else
 	// any posix system

@@ -2,7 +2,11 @@
 #define slic3r_SimplyPrint_hpp_
 
 #include "PrintHost.hpp"
-#include "slic3r/GUI/Jobs/OAuthJob.hpp"
+
+namespace Slic3r { namespace GUI {
+struct OAuthParams;
+struct OAuthResult;
+}} // namespace Slic3r::GUI
 
 namespace Slic3r {
 

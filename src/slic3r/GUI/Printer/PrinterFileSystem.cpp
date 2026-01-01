@@ -11,6 +11,11 @@
 #include <boost/endian/conversion.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/uuid/detail/md5.hpp>
+#ifdef _WIN32
+#  ifndef BOOST_REGEX_NO_WIN32_LOCALE
+#    define BOOST_REGEX_NO_WIN32_LOCALE
+#  endif
+#endif
 #include <boost/regex.hpp>
 
 #include <wx/mstream.h>

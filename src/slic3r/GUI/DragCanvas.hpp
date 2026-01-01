@@ -1,8 +1,9 @@
 #ifndef slic3r_GUI_DragCanvas_hpp_
 #define slic3r_GUI_DragCanvas_hpp_
 
-#include "wx/bitmap.h"
-#include "wx/dragimag.h"
+#include <wx/panel.h>
+#include <wx/bitmap.h>
+#include <wx/dragimag.h>
 
 namespace Slic3r { namespace GUI {
 

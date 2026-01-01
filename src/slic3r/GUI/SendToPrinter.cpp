@@ -1877,8 +1877,8 @@ void SendToPrinterDialog::ResetTunnelAndJob()
 void SendToPrinterDialog::CreateMediaAbilityJob()
 {
      nlohmann::json media_ability = {{"cmd_type", 7}};
-     m_filetransfer_mediability_job = std::make_unique<FileTransferJob>(module(), std::string(media_ability.dump()));
-     m_filetransfer_mediability_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res) {
+    m_filetransfer_mediability_job = std::make_unique<FileTransferJob>(module(), std::string(media_ability.dump()));
+    m_filetransfer_mediability_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::uint8_t> bin_res) {
          //this pl
          CallAfter([this, res, resp_ec, json_res] {
              if (res == 0) // 0 is success
@@ -1932,7 +1932,7 @@ void SendToPrinterDialog::CreateUploadFileJob(const std::string &path, const std
 
       BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Begin CreateUploadFileJob";
     m_filetransfer_uploadfile_job = std::make_unique<FileTransferJob>(module(), std::string(upload_params.dump()));
-    m_filetransfer_uploadfile_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res) { //
+    m_filetransfer_uploadfile_job->on_result([this](int res, int resp_ec, std::string json_res, std::vector<std::uint8_t> bin_res) { //
         CallAfter([this, res, resp_ec, json_res, bin_res] {
             UploadFileRessultCallback(res, resp_ec,json_res, bin_res);
         });
@@ -1985,7 +1985,7 @@ void SendToPrinterDialog::UploadFileProgressCallback(int progress)
     }
 }
 
-void SendToPrinterDialog::UploadFileRessultCallback(int res, int resp_ec, std::string json_res, std::vector<std::byte> bin_res)
+void SendToPrinterDialog::UploadFileRessultCallback(int res, int resp_ec, std::string json_res, std::vector<std::uint8_t> bin_res)
 {
         if (m_task_timer && m_task_timer->IsRunning()) m_task_timer->Stop();
 

@@ -123,7 +123,7 @@ FileTransferJob::FileTransferJob(FileTransferModule &m, const std::string &param
 
 void FileTransferJob::on_result(ResultCb cb) { result_cb_ = std::move(cb); }
 
-bool FileTransferJob::get_result(int &ec, int &resp_ec, std::string &json, std::vector<std::byte> &bin, uint32_t timeout_ms)
+bool FileTransferJob::get_result(int &ec, int &resp_ec, std::string &json, std::vector<std::uint8_t> &bin, uint32_t timeout_ms)
 {
     if (!h_) throw std::runtime_error("job handle invalid");
     ft_job_result result;
@@ -211,8 +211,8 @@ void FileTransferJob::solve_result(ft_job_result result)
     resp_ec_ = result.resp_ec;
 
     res_bin_.clear();
-    if (result.bin && result.bin_size) res_bin_.assign(reinterpret_cast<const std::byte *>(result.bin),
-        reinterpret_cast<const std::byte *>(result.bin) + result.bin_size);
+    if (result.bin && result.bin_size) res_bin_.assign(reinterpret_cast<const std::uint8_t *>(result.bin),
+        reinterpret_cast<const std::uint8_t *>(result.bin) + result.bin_size);
     res_json_.assign(result.json ? result.json : "");
 }
 

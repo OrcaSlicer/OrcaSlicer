@@ -1,3 +1,17 @@
+// Ensure Windows min/max macros cannot interfere with std::numeric_limits
+// or other standard facilities used by Boost.Nowide.
+#ifdef _WIN32
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#  ifdef max
+#    undef max
+#  endif
+#  ifdef min
+#    undef min
+#  endif
+#endif
+
 #include "DownloaderFileGet.hpp"
 
 #include <thread>

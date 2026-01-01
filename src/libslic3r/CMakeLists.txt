@@ -3,6 +3,11 @@ project(libslic3r)
 
 include(PrecompiledHeader)
 
+if (WIN32)
+    # Avoid Windows min/max macros breaking std::numeric_limits::max() and similar
+    add_definitions(-DNOMINMAX)
+endif ()
+
 if(NOT DEFINED ORCA_CHECK_GCODE_PLACEHOLDERS)
     set(ORCA_CHECK_GCODE_PLACEHOLDERS "0")
 endif()

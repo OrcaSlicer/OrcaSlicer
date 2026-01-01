@@ -43,10 +43,14 @@ int GUI_Run(GUI_InitParams &params)
         //if (gui->get_app_mode() != GUI::GUI_App::EAppMode::GCodeViewer) {
             // G-code viewer is currently not performing instance check, a new G-code viewer is started every time.
             bool gui_single_instance_setting = gui->app_config->get("app", "single_instance") == "true";
+#ifndef DEBUG_ALLOW_MULTI_INSTANCE
             if (Slic3r::instance_check(params.argc, params.argv, gui_single_instance_setting)) {
                 //TODO: do we have delete gui and other stuff?
                 return -1;
             }
+#else
+            (void)gui_single_instance_setting;
+#endif
         //}
 
 //      gui->autosave = m_config.opt_string("autosave");

@@ -1,3 +1,10 @@
+// Ensure core wxWidgets types (wxPanel, wxWindow, LOGFONT, etc.)
+// and feature macros are defined before including our headers.
+#include <wx/wxprec.h>
+#ifndef WX_PRECOMP
+#  include <wx/wx.h>
+#endif
+
 #include "DragCanvas.hpp"
 #include "wxExtensions.hpp"
 #include "GUI_App.hpp"

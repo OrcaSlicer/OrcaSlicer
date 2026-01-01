@@ -1,6 +1,11 @@
 #include "GUI_App.hpp"
 #include "InstanceCheck.hpp"
 #include "Plater.hpp"
+#ifdef _WIN32
+#  ifndef BOOST_REGEX_NO_WIN32_LOCALE
+#    define BOOST_REGEX_NO_WIN32_LOCALE
+#  endif
+#endif
 #include <boost/regex.hpp>
 
 #ifdef _WIN32

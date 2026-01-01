@@ -48,8 +48,26 @@ echo "building deps.."
 echo on
 REM Set minimum CMake policy to avoid <3.5 errors
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake ../ -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=%build_type%
-cmake --build . --config %build_type% --target deps -- -m
+REM Choose generator: prefer Ninja (ORCA_FORCE_NINJA), then NMake (ORCA_FORCE_NMAKE),
+REM otherwise default to the Visual Studio generator.
+if defined ORCA_FORCE_NINJA (
+    REM Clean existing CMake cache when switching generators
+    if exist CMakeCache.txt del /f /q CMakeCache.txt
+    if exist CMakeFiles rmdir /s /q CMakeFiles
+    set CMAKE_GEN_ARGS=-G "Ninja"
+    set CMAKE_BUILD_EXTRA_ARGS=
+) else if defined ORCA_FORCE_NMAKE (
+    REM Clean existing CMake cache when switching generators
+    if exist CMakeCache.txt del /f /q CMakeCache.txt
+    if exist CMakeFiles rmdir /s /q CMakeFiles
+    set CMAKE_GEN_ARGS=-G "NMake Makefiles"
+    set CMAKE_BUILD_EXTRA_ARGS=
+) else (
+    set CMAKE_GEN_ARGS=-G "Visual Studio 17 2022" -A x64
+    set CMAKE_BUILD_EXTRA_ARGS=-- -m
+)
+cmake ../ %CMAKE_GEN_ARGS% -DCMAKE_BUILD_TYPE=%build_type%
+cmake --build . --config %build_type% --target deps %CMAKE_BUILD_EXTRA_ARGS%
 @echo off
 
 if "%1"=="deps" exit /b 0
@@ -62,8 +80,31 @@ cd %build_dir%
 
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake .. -G "Visual Studio 17 2022" -A x64 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
+REM Force precompiled headers off to avoid cache-related issues.
+set CMAKE_PCH_ARGS=-DBUILD_USE_PCH=OFF -DSLIC3R_PCH=OFF
+
+if defined ORCA_FORCE_NINJA (
+    if exist CMakeCache.txt del /f /q CMakeCache.txt
+    if exist CMakeFiles rmdir /s /q CMakeFiles
+    set CMAKE_GEN_ARGS=-G "Ninja"
+    set CMAKE_BUILD_EXTRA_ARGS=
+) else if defined ORCA_FORCE_NMAKE (
+    if exist CMakeCache.txt del /f /q CMakeCache.txt
+    if exist CMakeFiles rmdir /s /q CMakeFiles
+    set CMAKE_GEN_ARGS=-G "NMake Makefiles"
+    set CMAKE_BUILD_EXTRA_ARGS=
+) else (
+    set CMAKE_GEN_ARGS=-G "Visual Studio 17 2022" -A x64
+    set CMAKE_BUILD_EXTRA_ARGS=-- -m
+)
+cmake .. %CMAKE_GEN_ARGS% -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type% %CMAKE_PCH_ARGS%
+if defined ORCA_FORCE_NINJA (
+    cmake --build . --config %build_type% %CMAKE_BUILD_EXTRA_ARGS%
+) else if defined ORCA_FORCE_NMAKE (
+    cmake --build . --config %build_type% %CMAKE_BUILD_EXTRA_ARGS%
+) else (
+    cmake --build . --config %build_type% --target ALL_BUILD %CMAKE_BUILD_EXTRA_ARGS%
+)
 @echo off
 cd ..
 call scripts/run_gettext.bat

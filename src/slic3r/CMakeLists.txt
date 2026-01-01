@@ -3,6 +3,14 @@ project(libslic3r_gui)
 
 include(PrecompiledHeader)
 
+if (WIN32)
+    # Avoid Windows / C++17 conflicts and missing WinAPI constants
+    #  - _HAS_STD_BYTE=0 prevents clashes between std::byte and Windows' byte typedef
+    #  - CP_ACP is the default Windows ANSI code page id (0)
+    #  - NOMINMAX prevents Windows from defining min/max macros that break std::numeric_limits
+    add_definitions(-D_HAS_STD_BYTE=0 -DCP_ACP=0 -DNOMINMAX)
+endif ()
+
 set(SLIC3R_GUI_SOURCES
     GUI/Widgets/AnimaController.hpp
     GUI/Widgets/AnimaController.cpp
