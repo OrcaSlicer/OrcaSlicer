@@ -13001,7 +13001,7 @@ void Plater::extract_config_from_project()
     wxGetApp().load_project(this, input_file);
 
     if (! input_file.empty())
-        load_files({ into_path(input_file) }, LoadStrategy::LoadConfig);
+        load_files(std::vector<fs::path>({ into_path(input_file) }), LoadStrategy::LoadConfig);
 }
 
 void Plater::load_gcode()
@@ -13795,11 +13795,11 @@ bool Plater::open_3mf_file(const fs::path &file_path)
         }
         case LoadType::LoadGeometry: {
             Plater::TakeSnapshot snapshot(this, "Import Object");
-            load_files({file_path}, LoadStrategy::LoadModel);
+            load_files(std::vector<fs::path>({file_path}), LoadStrategy::LoadModel);
             break;
         }
         case LoadType::LoadConfig: {
-            load_files({file_path}, LoadStrategy::LoadConfig);
+            load_files(std::vector<fs::path>({file_path}), LoadStrategy::LoadConfig);
             break;
         }
         case LoadType::Unknown: {
