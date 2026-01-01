@@ -1286,7 +1286,7 @@ static void generate_initial_areas(
         ;
     const size_t  num_support_roof_layers = mesh_group_settings.support_roof_layers;
     const bool    roof_enabled        = num_support_roof_layers > 0;
-    const bool    force_tip_to_roof   = roof_enabled && (interface_placer.support_parameters.soluble_interface || sqr<double>(config.min_radius) * M_PI > mesh_group_settings.minimum_roof_area);
+    const bool    force_tip_to_roof   = roof_enabled && (interface_placer.support_parameters.zero_gap_interface_top || sqr<double>(config.min_radius) * M_PI > mesh_group_settings.minimum_roof_area);
     // cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point
     // may cause extra material and time cost.  Could also be an user setting or differently calculated. Idea is that if an overhang
     // does not turn valid in double the amount of layers a slope of support angle would take to travel xy_distance, nothing reasonable will come from it.

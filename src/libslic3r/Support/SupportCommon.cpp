@@ -13,6 +13,7 @@
 #include <boost/container/static_vector.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <algorithm>
 #include <tbb/parallel_for.h>
 
 #include "SupportCommon.hpp"
@@ -1364,7 +1365,8 @@ SupportGeneratorLayersPtr generate_support_layers(
             SupportGeneratorLayer &layer = *layers_sorted[u];
             if (! layer.polygons.empty()) {
                 empty             = false;
-                num_interfaces   += one_of(layer.layer_type, support_types_interface);
+                const bool is_base_interface = std::find(base_interface_layers.begin(), base_interface_layers.end(), &layer) != base_interface_layers.end();
+                num_interfaces += one_of(layer.layer_type, support_types_interface) || is_base_interface;
                 if (layer.layer_type == SupporLayerType::TopContact) {
                     ++ num_top_contacts;
                     assert(num_top_contacts <= 1);

@@ -14,14 +14,15 @@ struct SupportParameters {
         const PrintObjectConfig& object_config = object.config();
         const SlicingParameters& slicing_params = object.slicing_parameters();
 
-	    this->soluble_interface = slicing_params.soluble_interface;
-	    this->soluble_interface_non_soluble_base =
-	        // Zero z-gap between the overhangs and the support interface.
-	        slicing_params.soluble_interface &&
-	        // Interface extruder soluble.
-	        object_config.support_interface_filament.value > 0 && print_config.filament_soluble.get_at(object_config.support_interface_filament.value - 1) &&
-	        // Base extruder: Either "print with active extruder" not soluble.
-	        (object_config.support_filament.value == 0 || ! print_config.filament_soluble.get_at(object_config.support_filament.value - 1));
+        this->zero_gap_interface_top = slicing_params.zero_gap_interface_top;
+        this->zero_gap_interface_bottom = slicing_params.zero_gap_interface_bottom;
+        const bool soluble_interface_non_soluble_base =
+            // Interface extruder soluble.
+            object_config.support_interface_filament.value > 0 && print_config.filament_soluble.get_at(object_config.support_interface_filament.value - 1) &&
+            // Base extruder: Either "print with active extruder" not soluble.
+            (object_config.support_filament.value == 0 || ! print_config.filament_soluble.get_at(object_config.support_filament.value - 1));
+        const bool non_soluble_base_top = this->zero_gap_interface_top && soluble_interface_non_soluble_base;
+        const bool non_soluble_base_bottom = this->zero_gap_interface_bottom && soluble_interface_non_soluble_base;
 
 	    {
 	        this->num_top_interface_layers    = std::max(0, object_config.support_interface_top_layers.value);
@@ -29,19 +30,25 @@ struct SupportParameters {
 	            num_top_interface_layers : object_config.support_interface_bottom_layers;
 	        this->has_top_contacts              = num_top_interface_layers    > 0;
 	        this->has_bottom_contacts           = num_bottom_interface_layers > 0;
-	        if (this->soluble_interface_non_soluble_base) {
-	            // Try to support soluble dense interfaces with non-soluble dense interfaces.
-	            this->num_top_base_interface_layers    = size_t(std::min(int(num_top_interface_layers) / 2, 2));
-	            this->num_bottom_base_interface_layers = size_t(std::min(int(num_bottom_interface_layers) / 2, 2));
-	        } else {
-                // BBS: if support interface and support base do not use the same filament, add a base layer to improve their adhesion
-                // Note: support materials (such as Supp.W) can't be used as support base now, so support interface and base are still using different filaments even if
-                // support_filament==0
-                bool differnt_support_interface_filament = object_config.support_interface_filament != 0 &&
-                                                           object_config.support_interface_filament != object_config.support_filament;
-                this->num_top_base_interface_layers    = differnt_support_interface_filament ? 1 : 0;
-                this->num_bottom_base_interface_layers       = differnt_support_interface_filament ? 1 : 0;
-	        }
+            // BBS: if support interface and support base do not use the same filament, add a base layer to improve their adhesion
+            // Note: support materials (such as Supp.W) can't be used as support base now, so support interface and base are still using different filaments even if
+            // support_filament==0
+            bool differnt_support_interface_filament = object_config.support_interface_filament != 0 &&
+                                                       object_config.support_interface_filament != object_config.support_filament;
+ 
+            if (non_soluble_base_top) { // ORCA: Try to support soluble dense interfaces with non-soluble dense interfaces.
+                this->num_top_base_interface_layers = size_t(std::min(int(num_top_interface_layers) / 2, 2));
+            } else {
+                this->num_top_base_interface_layers =
+                    (differnt_support_interface_filament && this->zero_gap_interface_top) ? 1 : 0;
+            }
+
+            if (non_soluble_base_bottom) { // ORCA: Try to support soluble dense interfaces with non-soluble dense interfaces.
+                this->num_bottom_base_interface_layers = size_t(std::min(int(num_bottom_interface_layers) / 2, 2));
+            } else {
+                this->num_bottom_base_interface_layers =
+                    (differnt_support_interface_filament && this->zero_gap_interface_bottom) ? 1 : 0;
+            }
 	    }
         this->first_layer_flow = Slic3r::support_material_1st_layer_flow(&object, float(slicing_params.first_print_layer_height));
         this->support_material_flow = Slic3r::support_material_flow(&object, float(slicing_params.layer_height));
@@ -78,7 +85,7 @@ struct SupportParameters {
         this->gap_xy_first_layer = object_config.support_object_first_layer_gap.value;
         bridge_flow_ratio /= object.num_printing_regions();
 
-        this->support_material_bottom_interface_flow = slicing_params.soluble_interface || !object_config.thick_bridges ?
+        this->support_material_bottom_interface_flow = this->zero_gap_interface_bottom || !object_config.thick_bridges ?
             this->support_material_interface_flow.with_flow_ratio(bridge_flow_ratio) :
             Flow::bridging_flow(bridge_flow_ratio * this->support_material_interface_flow.nozzle_diameter(), this->support_material_interface_flow.nozzle_diameter());
         
@@ -122,7 +129,7 @@ struct SupportParameters {
             this->contact_fill_pattern = ipRectilinear;
         else
             this->contact_fill_pattern =
-            (object_config.support_interface_pattern == smipAuto && slicing_params.soluble_interface) ||
+            (object_config.support_interface_pattern == smipAuto && this->zero_gap_interface_top) ||
             object_config.support_interface_pattern == smipConcentric ?
             ipConcentric :
             (this->interface_density > 0.95 ? ipRectilinear : ipSupportBase);
@@ -186,10 +193,9 @@ struct SupportParameters {
             }
         }
     }
-	// Both top / bottom contacts and interfaces are soluble.
-    bool                    soluble_interface;
-    // Support contact & interface are soluble, but support base is non-soluble.
-    bool                    soluble_interface_non_soluble_base;
+    // Zero-gap interface flags for top / bottom contact.
+    bool                    zero_gap_interface_top;
+    bool                    zero_gap_interface_bottom;
 
     // Is there at least a top contact layer extruded above support base?
     bool                    has_top_contacts;
@@ -199,9 +205,9 @@ struct SupportParameters {
     size_t                  num_top_interface_layers;
     // Number of bottom interface layers without counting the contact layer.
     size_t                  num_bottom_interface_layers;
-    // Number of top base interface layers. Zero if not soluble_interface_non_soluble_base.
+    // Number of top base interface layers.
     size_t                  num_top_base_interface_layers;
-    // Number of bottom base interface layers. Zero if not soluble_interface_non_soluble_base.
+    // Number of bottom base interface layers.
     size_t                  num_bottom_base_interface_layers;
 
     bool                    has_contacts() const { return this->has_top_contacts || this->has_bottom_contacts; }
