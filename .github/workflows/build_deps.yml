@@ -35,7 +35,7 @@ jobs:
       # So building XOR cache loading.
       # We use `lookup-only` to skip pulling cache.
       - name: load cached deps
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         id: cache-load
         with:
           path: ${{ env.DEPS_PATH }}
@@ -106,7 +106,7 @@ jobs:
 
       - name: Save cache from main branch
         if: ${{ !cancelled() && github.ref == 'refs/heads/main' && steps.cache-load.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: ${{ env.DEPS_PATH }}
           key: ${{ steps.cache-load.outputs.cache-primary-key }}
