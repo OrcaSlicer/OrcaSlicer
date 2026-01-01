@@ -94,7 +94,7 @@ jobs:
       - name: Apt-Install Dependencies
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ github.sha }}-tests
       - uses: lukka/get-cmake@latest
