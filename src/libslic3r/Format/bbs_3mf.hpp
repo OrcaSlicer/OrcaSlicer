@@ -118,6 +118,8 @@ struct PlateData
     bool locked;
 };
 
+static constexpr const char* ENSURE_ON_BED_TAG = "ensure_on_bed";
+
 // BBS: encrypt
 enum class SaveStrategy
 {

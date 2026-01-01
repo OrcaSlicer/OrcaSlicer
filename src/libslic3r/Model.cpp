@@ -14,6 +14,7 @@
 
 #include "Format/AMF.hpp"
 #include "Format/svg.hpp"
+#include "Format/bbs_3mf.hpp"
 // BBS
 #include "FaceDetector.hpp"
 
@@ -1083,6 +1084,25 @@ bool Model::is_mm_painted() const
 bool Model::is_fuzzy_skin_painted() const
 {
     return std::any_of(this->objects.cbegin(), this->objects.cend(), [](const ModelObject *mo) { return mo->is_fuzzy_skin_painted(); });
+}
+
+bool Model::get_ensure_on_bed() const
+{
+    if (model_info && !model_info->metadata_items.empty()) {
+        auto found_item = model_info->metadata_items.find(ENSURE_ON_BED_TAG);
+        if (found_item != model_info->metadata_items.end()) {
+            return found_item->second == "true";
+        }
+    }
+    return true;
+}
+
+void Model::set_ensure_on_bed(bool enabled)
+{
+    if (!model_info) {
+        model_info = std::make_shared<ModelInfo>();
+    }
+    model_info->metadata_items[ENSURE_ON_BED_TAG] = enabled ? "true" : "false";
 }
 
 

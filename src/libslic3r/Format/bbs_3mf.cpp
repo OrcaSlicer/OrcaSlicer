@@ -6600,6 +6600,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 metadata_item_map[BBL_MODIFICATION_TAG]  = "";
                 //SoftFever: write BambuStudio tag to keep it compatible 
                 metadata_item_map[BBL_APPLICATION_TAG] = (boost::format("%1%-%2%") % "BambuStudio" % SoftFever_VERSION).str();
+
+                if (metadata_item_map.find(ENSURE_ON_BED_TAG) == metadata_item_map.end()) {
+                    // Default: enable ensure on bed
+                    metadata_item_map[ENSURE_ON_BED_TAG] = std::string("true");
+                }
             }
             metadata_item_map[BBS_3MF_VERSION] = std::to_string(VERSION_BBS_3MF);
 
