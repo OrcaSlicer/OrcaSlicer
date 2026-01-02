@@ -123,7 +123,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     tips->SetForegroundColour(StateColor::darkModeColorFor(wxColour(0, 151, 137)));
     tips->SetFont(font);
     tips->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
-        wxLaunchDefaultBrowser("https://github.com/OrcaSlicer/OrcaSlicer/wiki/stl-transformation");
+        wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/stl-transformation");
     });
     info->Wrap(FromDIP(400));
     tips_sizer->Add(info, 0, wxALIGN_LEFT);

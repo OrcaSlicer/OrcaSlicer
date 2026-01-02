@@ -44,19 +44,19 @@ If you come across any of these in search results, please <b>report them</b> as 
 
 # Main features
 
-- **[Advanced Calibration Tools](https://github.com/OrcaSlicer/OrcaSlicer/wiki/Calibration)**  
+- **[Advanced Calibration Tools](https://www.orcaslicer.com/wiki/Calibration)**  
   Comprehensive suite: temperature towers, flow rate, retraction & more for optimal performance.
-- **[Precise Wall](https://github.com/OrcaSlicer/OrcaSlicer/wiki/quality_settings_precision#precise-wall) and [Seam Control](https://github.com/OrcaSlicer/OrcaSlicer/wiki/quality_settings_seam)**  
+- **[Precise Wall](https://www.orcaslicer.com/wiki/quality_settings_precision#precise-wall) and [Seam Control](https://www.orcaslicer.com/wiki/quality_settings_seam)**  
   Adjust outer wall spacing and apply scarf seams to enhance print accuracy.
-- **[Sandwich Mode](https://github.com/OrcaSlicer/OrcaSlicer/wiki/quality_settings_wall_and_surfaces#innerouterinner) and [Polyholes](https://github.com/OrcaSlicer/OrcaSlicer/wiki/quality_settings_precision#polyholes) Support**  
-  Use varied infill [patterns](https://github.com/OrcaSlicer/OrcaSlicer/wiki/strength_settings_patterns) and accurate hole shapes for improved clarity.
-- **[Overhang](https://github.com/OrcaSlicer/OrcaSlicer/wiki/quality_settings_overhangs) and [Support Optimization](https://github.com/OrcaSlicer/OrcaSlicer/wiki#support-settings)**  
+- **[Sandwich Mode](https://www.orcaslicer.com/wiki/quality_settings_wall_and_surfaces#innerouterinner) and [Polyholes](https://www.orcaslicer.com/wiki/quality_settings_precision#polyholes) Support**  
+  Use varied infill [patterns](https://www.orcaslicer.com/wiki/strength_settings_patterns) and accurate hole shapes for improved clarity.
+- **[Overhang](https://www.orcaslicer.com/wiki/quality_settings_overhangs) and [Support Optimization](https://www.orcaslicer.com/wiki#support-settings)**  
   Modify geometry for printable overhangs with precise support placement.
-- **[Granular Controls and Customization](https://github.com/OrcaSlicer/OrcaSlicer/wiki#process-settings)**  
+- **[Granular Controls and Customization](https://www.orcaslicer.com/wiki#process-settings)**  
   Fine-tune print speed, layer height, pressure, and temperature with precision.
 - **Network Printer Support**  
   Seamless integration with Klipper, PrusaLink, and OctoPrint for remote control.
-- **[Mouse Ear Brims](https://github.com/OrcaSlicer/OrcaSlicer/wiki/others_settings_brim) & [Adaptive Bed Mesh](https://github.com/OrcaSlicer/OrcaSlicer/wiki/printer_basic_information_adaptive_bed_mesh)**  
+- **[Mouse Ear Brims](https://www.orcaslicer.com/wiki/others_settings_brim) & [Adaptive Bed Mesh](https://www.orcaslicer.com/wiki/printer_basic_information_adaptive_bed_mesh)**  
   Automatic brims and adaptive mesh calibration ensure consistent adhesion.
 - **User-Friendly Interface**  
   Intuitive drag-and-drop design with pre-made profiles for popular printers.
@@ -68,10 +68,10 @@ If you come across any of these in search results, please <b>report them</b> as 
 
 # Wiki
 
-The [wiki](https://github.com/OrcaSlicer/OrcaSlicer/wiki) aims to provide a detailed explanation of the slicer settings, including how to maximize their use and how to calibrate and set up your printer.
+The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanation of the slicer settings, including how to maximize their use and how to calibrate and set up your printer.
 
-- **[Access the wiki here](https://github.com/OrcaSlicer/OrcaSlicer/wiki)**
-- **[Contribute to the wiki](https://github.com/OrcaSlicer/OrcaSlicer/wiki/How-to-wiki)**
+- **[Access the wiki here](https://www.orcaslicer.com/wiki)**
+- **[Contribute to the wiki](https://www.orcaslicer.com/wiki/How-to-wiki)**
 
 # Download
 
@@ -144,7 +144,7 @@ winget install --id=SoftFever.OrcaSlicer -e
 
 # How to Compile
 
-All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://github.com/OrcaSlicer/OrcaSlicer/wiki/How-to-build) page.
+All updated build instructions for Windows, macOS, and Linux are now available on the official [OrcaSlicer Wiki - How to build](https://www.orcaslicer.com/wiki/How-to-build) page.
 
 Please refer to the wiki to ensure you're following the latest and most accurate steps for your platform.
 
