@@ -2726,6 +2726,10 @@ void ImGuiWrapper::init_font(bool compress)
     builder.BuildRanges(&ranges); // Build the final result (ordered ranges with all the unique characters submitted)
 
     io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
+    // Limit texture height to avoid exceeding GL_MAX_TEXTURE_SIZE
+    // Make the atlas wider to keep it shorter (height limit might be 16384 on XWayland)
+    io.Fonts->TexDesiredWidth = 8192;
+
     ImFontConfig cfg = ImFontConfig();
     cfg.OversampleH = cfg.OversampleV = 1;
     //FIXME replace with io.Fonts->AddFontFromMemoryTTF(buf_decompressed_data, (int)buf_decompressed_size, m_font_size, nullptr, ranges.Data);
