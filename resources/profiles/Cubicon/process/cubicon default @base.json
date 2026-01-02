@@ -1,0 +1,12 @@
+{
+    "version": "1.0.0.0",
+    "type": "process",
+    "instantiation": "true",
+    "inherits": "cubicon common @base",
+    "name": "cubicon default @base",
+    "print_settings_id": "cubicon default @base",
+    "compatible_printers": [
+        "Cubicon xCeler-I 0.4 nozzle",
+        "Cubicon xCeler-Plus 0.4 nozzle"
+    ]
+}

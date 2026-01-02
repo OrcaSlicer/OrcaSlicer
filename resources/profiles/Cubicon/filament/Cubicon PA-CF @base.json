@@ -1,71 +1,82 @@
 {
     "type": "filament",
-    "name": "Cubicon PETG @Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "fdm_filament_pet",
-    "filament_id": "P510cfc0",
-    "instantiation": "true",
+	"instantiation": "true",
+    "version": "1.0.0.0",
+
     "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle"
+        "Cubicon xCeler-I 0.4 nozzle",
+        "Cubicon xCeler-Plus 0.4 nozzle"
     ],
+    
     "default_filament_colour": "",
+    
+    "filament_id": "P510cfd0",
+    
     "filament_settings_id": [
-        "Cubicon PETG @Cubicon xCeler-I 0.4 nozzle"
+        "Cubicon PA-CF @base"
     ],
+    
     "filament_type": [
-        "PETG"
+        "PA"
     ],
+    
     "filament_vendor": [
         "Cubicon"
     ],
+    
+    "inherits": "fdm_filament_pa",
+    
+    "is_custom_defined": "0",
+    "name": "Cubicon PA-CF @base",
     "hot_plate_temp": [
-        "80"
+        "100"
     ],
     "hot_plate_temp_initial_layer": [
-        "80"
-    ],
+        "100"
+    ],    
     "close_fan_the_first_x_layers": [
         "3"
-    ],
+    ],    
     "fan_cooling_layer_time": [
-        "30"
+        "5"
     ],
     "filament_density": [
         "1.24"
     ],
     "filament_flow_ratio": [
         "0.99"
-    ],
+    ],     
     "filament_max_volumetric_speed": [
-        "8"
-    ],
+        "10"
+    ],    
     "nozzle_temperature_initial_layer": [
-        "235"
+        "265"
     ],
     "fan_max_speed": [
-        "90"
+        "50"
     ],
     "fan_min_speed": [
-        "80"
+        "50"
     ],
     "slow_down_min_speed": [
-        "30"
+        "20"
     ],
     "slow_down_layer_time": [
-        "8"
-    ],
+        "2"
+    ],                        
     "nozzle_temperature": [
-        "240"
-    ],
+        "270"
+    ],       
     "temperature_vitrification": [
-        "70"
-    ],
+        "108"
+    ],                        
     "nozzle_temperature_range_low": [
-        "230"
-    ],
+        "260"
+    ],       
     "nozzle_temperature_range_high": [
-        "250"
+        "280"
     ],
     "additional_cooling_fan_speed": [
         "0"
-    ]
+    ]       
 }

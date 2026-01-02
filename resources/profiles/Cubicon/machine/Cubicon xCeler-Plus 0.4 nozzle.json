@@ -1,9 +1,6 @@
 {
     "type": "machine",
-    "name": "Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "fdm_machine_common",
-    "from": "system",
-    "instantiation": "true",
+	"instantiation": "true",
     "adaptive_bed_mesh_margin": "0",
     "auxiliary_fan": "1",
     "bbl_use_printhost": "0",
@@ -22,7 +19,7 @@
     "cooling_tube_length": "0",
     "cooling_tube_retraction": "0",
     "default_filament_profile": [
-        "Cubicon PLA @Cubicon xCeler-I"
+        "Cubicon PLA @Cubicon xCeler-Plus"
     ],
     "default_print_profile": "cubicon default @base",
     "deretraction_speed": [
@@ -45,10 +42,13 @@
     "fan_kickstart": "0",
     "fan_speedup_overhangs": "1",
     "fan_speedup_time": "0",
+    "from": "system",
     "gcode_flavor": "klipper",
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
+    "inherits": "fdm_machine_common",
+    "is_custom_defined": "0",
     "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
     "long_retractions_when_cut": [
         "0"
@@ -79,6 +79,7 @@
         "25",
         "12"
     ],
+
     "machine_max_acceleration_retracting": [
         "5000",
         "5000"
@@ -87,6 +88,7 @@
         "13000",
         "13000"
     ],
+
     "machine_max_jerk_e": [
         "20",
         "20"
@@ -138,6 +140,7 @@
     "min_layer_height": [
         "0.1"
     ],
+    "name": "Cubicon xCeler-Plus 0.4 nozzle",
     "nozzle_diameter": [
         "0.4"
     ],
@@ -152,14 +155,14 @@
     "print_host_webui": "",
     "printable_area": [
         "0x0",
-        "250x0",
-        "250x250",
-        "0x250"
+        "310x0",
+        "310x310",
+        "0x310"
     ],
-    "printable_height": "290",
-    "printer_model": "Cubicon xCeler-I",
+    "printable_height": "310",
+    "printer_model": "Cubicon xCeler-Plus",
     "printer_notes": "",
-    "printer_settings_id": "Cubicon xCeler-I 0.4 nozzle",
+    "printer_settings_id": "Cubicon xCeler-Plus 0.4 nozzle",
     "printer_structure": "undefine",
     "printer_technology": "FFF",
     "printer_variant": "0.4",
@@ -228,6 +231,7 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
+    "version": "2.1.1.0",
     "wipe": [
         "0"
     ],
