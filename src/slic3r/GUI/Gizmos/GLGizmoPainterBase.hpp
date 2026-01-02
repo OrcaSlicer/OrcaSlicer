@@ -227,8 +227,19 @@ protected:
     virtual void update_model_object() = 0;
     virtual void update_from_model_object(bool first_update) = 0;
 
-    virtual ColorRGBA get_cursor_sphere_left_button_color() const  { return { 0.0f, 0.0f, 1.0f, 0.25f }; }
-    virtual ColorRGBA get_cursor_sphere_right_button_color() const { return { 1.0f, 0.0f, 0.0f, 0.25f }; }
+    // ENSURE COLOR MATCHES
+    virtual ColorRGBA get_cursor_sphere_left_button_color() const  { return { 
+        GLVolume::SUPPORT_ENFORCER_COL.r(),
+        GLVolume::SUPPORT_ENFORCER_COL.g(),
+        GLVolume::SUPPORT_ENFORCER_COL.b(),
+        0.25f 
+    };}
+    virtual ColorRGBA get_cursor_sphere_right_button_color() const { return { 
+        GLVolume::SUPPORT_BLOCKER_COL.r(),
+        GLVolume::SUPPORT_BLOCKER_COL.g(),
+        GLVolume::SUPPORT_BLOCKER_COL.b(),
+        0.25f
+    };} // RIGHT CLICK COLOR FOR CIRCLE / SPHERE TOOL
     // BBS
     virtual ColorRGBA get_cursor_hover_color() const { return { 0.f, 0.f, 0.f, 0.25f }; }
 

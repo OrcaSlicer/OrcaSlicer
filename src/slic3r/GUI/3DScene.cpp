@@ -143,26 +143,31 @@ void GLVolume::SinkingContours::update()
         m_model.reset();
 }
 
+// MISSING COLORS
+// SINKING BOTTOM COLOR
+
 ColorRGBA GLVolume::DISABLED_COLOR    = ColorRGBA::DARK_GRAY();
 ColorRGBA GLVolume::SLA_SUPPORT_COLOR = ColorRGBA::LIGHT_GRAY();
 ColorRGBA GLVolume::SLA_PAD_COLOR     = { 0.0f, 0.2f, 0.0f, 1.0f };
 // BBS
-ColorRGBA GLVolume::NEUTRAL_COLOR     = { 0.8f, 0.8f, 0.8f, 1.0f };
-ColorRGBA GLVolume::UNPRINTABLE_COLOR = { 0.0f, 0.0f, 0.0f, 0.5f };
+ColorRGBA GLVolume::NEUTRAL_COLOR     = { 0.8f, 0.8f, 0.8f, 1.0f };                        //#cdcdcd MODEL COLOR > VISIBLE ON PAINTING
+ColorRGBA GLVolume::UNPRINTABLE_COLOR = { 0.0f, 0.0f, 0.0f, 0.5f };                        //#000000 MODEL COLOR WHEN PRINTABLE UNCHECKED
 
-ColorRGBA GLVolume::MODEL_MIDIFIER_COL   = {1.0f, 1.0f, 0.0f, 0.6f};
-ColorRGBA GLVolume::MODEL_NEGTIVE_COL    = {0.3f, 0.3f, 0.3f, 0.4f};
-ColorRGBA GLVolume::SUPPORT_ENFORCER_COL = {0.3f, 0.3f, 1.0f, 0.4f};
-ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = {1.0f, 0.3f, 0.3f, 0.4f};
+//ColorRGBA GLVolume::MODEL_MIDIFIER_COL   = {1.0f, 1.0f, 0.0f, 0.6f};                          //#ffff00 MODIFIER COLOR
+ColorRGBA GLVolume::MODEL_MIDIFIER_COL   = GUI::decode_color_to_float_array("#0070d264"); //#0070d2 MODIFIER COLOR
+ColorRGBA GLVolume::MODEL_NEGTIVE_COL    = GUI::decode_color_to_float_array("#4d4d4d64"); //#4d4d4d MODIFIER > NEGATIVE VOLUME
+ColorRGBA GLVolume::SUPPORT_ENFORCER_COL = GUI::decode_color_to_float_array("#7CFC0064"); //#7eca11 MODIFIER > SUPPORT ENFORCER
+ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = GUI::decode_color_to_float_array("#DE382264"); //#c81e00 MODIFIER > SUPPORT BLOCKER
+//ColorRGBA GLVolume::SUPPORT_BLOCKER_COL  = {0   / 255.f, 112 / 255.f, 210 / 255.f, .4f};      //#0070d2 MODIFIER > SUPPORT BLOCKER
 
-ColorRGBA GLVolume::MODEL_HIDDEN_COL  = {0.f, 0.f, 0.f, 0.3f};
+ColorRGBA GLVolume::MODEL_HIDDEN_COL  = {0.f, 0.f, 0.f, 0.3f};                           //???
 
-std::array<ColorRGBA, 5> GLVolume::MODEL_COLOR = { {
+std::array<ColorRGBA, 5> GLVolume::MODEL_COLOR = { { // THIS COLORS NOT IN USE ???
     { 1.0f, 1.0f, 0.0f, 1.f },
     { 1.0f, 0.5f, 0.5f, 1.f },
-    { 0.5f, 1.0f, 0.5f, 1.f },
-    { 0.5f, 0.5f, 1.0f, 1.f },
-    { 1.0f, 1.0f, 0.0f, 1.f }
+    { 0.5f, 1.0f, 0.5f, 1.f },  //#80ff80
+    { 0.5f, 0.5f, 1.0f, 1.f },  //#8080ff
+    { 1.0f, 1.0f, 0.0f, 1.f }   //#ffff00
 } };
 
 void GLVolume::update_render_colors()
@@ -1013,6 +1018,8 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));
         shader->set_uniform("slope.normal_z", normal_z);
+        //shader->set_uniform("bottom_color"  ,ColorRGBA::RED());//, m_slope.bottom_color);
+        //shader->set_uniform("overhang_color",ColorRGBA::BLUE());// m_slope.overhang_color);
 
 #if ENABLE_ENVIRONMENT_MAP
         unsigned int environment_texture_id = GUI::wxGetApp().plater()->get_environment_texture_id();

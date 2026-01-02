@@ -312,7 +312,7 @@ void ObjectClipper::render_cut(const std::vector<size_t>* ignore_idxs) const
         clipper.first->set_transformation(trafo);
         clipper.first->set_limiting_plane(ClippingPlane(Vec3d::UnitZ(), -SINKING_Z_THRESHOLD));
 		// BBS      
-        clipper.first->render_cut({ 0.25f, 0.25f, 0.25f, 1.0f }, &ignore_idxs_local);
+        clipper.first->render_cut({ 0.25f, 0.25f, 0.25f, 1.0f }, &ignore_idxs_local); // SECTION FILL COLOR
         clipper.first->render_contour({ 1.f, 1.f, 1.f, 1.f },  &ignore_idxs_local);
   
         // Now update the ignore idxs. Find the first element belonging to the next clipper,
@@ -571,7 +571,7 @@ void ModelObjectsClipper::render_cut() const
             clipper->set_plane(*m_clp);
             clipper->set_transformation(trafo);
             // BBS
-            clipper->render_cut({0.25f, 0.25f, 0.25f, 1.0f});
+            clipper->render_cut({0.25f, 0.25f, 0.25f, 1.0f}); // SECTION FILL COLOR
 
             ++clipper_id;
         }

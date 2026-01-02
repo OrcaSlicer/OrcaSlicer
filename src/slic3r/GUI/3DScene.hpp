@@ -436,6 +436,8 @@ private:
         bool active{ false };//local active
         bool isGlobalActive{false};
         float normal_z;
+        //ColorRGBA overhang_color{ColorRGBA::RED()};
+        //ColorRGBA bottom_color  {ColorRGBA::BLUE()};
     };
 
     Slope m_slope;

@@ -124,6 +124,9 @@ void GLGizmoPainterBase::render_triangles(const Selection& selection) const
         shader->set_uniform("slope.actived", m_parent.is_using_slope());
         shader->set_uniform("slope.volume_world_normal_matrix", normal_matrix);
         shader->set_uniform("slope.normal_z", normal_z);
+        //shader->set_uniform("bottom_color"  ,ColorRGBA::RED());//, m_parent.get_slope_bottom_color()); // ???
+        //shader->set_uniform("overhang_color",ColorRGBA::BLUE());//, m_parent.get_slope_overhang_color()); // ???
+
         m_triangle_selectors[mesh_id]->render(m_imgui, trafo_matrix);
 
         if (is_left_handed)
@@ -1126,8 +1129,18 @@ TriangleSelector::ClippingPlane GLGizmoPainterBase::get_clipping_plane_in_volume
     return TriangleSelector::ClippingPlane({float(normal_transformed.x()), float(normal_transformed.y()), float(normal_transformed.z()), offset_transformed});
 }
 
-ColorRGBA TriangleSelectorGUI::enforcers_color = {0.5f, 1.f, 0.5f, 1.f};
-ColorRGBA TriangleSelectorGUI::blockers_color  = {1.f, 0.5f, 0.5f, 1.f};
+ColorRGBA TriangleSelectorGUI::enforcers_color = ColorRGBA( // BRUSH COLOR FOR LEFT MOUSE BUTTON ON SUPPORT / SEAM / FUZZY PAINTING
+    GLVolume::SUPPORT_ENFORCER_COL.r(),
+    GLVolume::SUPPORT_ENFORCER_COL.g(),
+    GLVolume::SUPPORT_ENFORCER_COL.b(),
+    1.f
+);//{0.5f, 1.f, 0.5f, 1.f}; // SEAM/SUPPORT PAINTING COLOR
+ColorRGBA TriangleSelectorGUI::blockers_color  = ColorRGBA( // BRUSH COLOR FOR RIGHT MOUSE BUTTON ON SUPPORT / SEAM / FUZZY PAINTING
+    GLVolume::SUPPORT_BLOCKER_COL.r(),
+    GLVolume::SUPPORT_BLOCKER_COL.g(),
+    GLVolume::SUPPORT_BLOCKER_COL.b(),
+    1.f
+);//{1.f, 0.5f, 0.5f, 1.f}; // SEAM/SUPPORT PAINTING COLOR
 
 ColorRGBA TriangleSelectorGUI::get_seed_fill_color(const ColorRGBA& base_color)
 {

@@ -696,7 +696,7 @@ void GCodeViewer::SequentialView::render(const bool has_render_path, float legen
         gcode_window.render(legend_height + 2, std::max(10.f, (float)canvas_height - 40), (float)canvas_width - (float)right_margin, static_cast<uint64_t>(gcode_ids[current.last]));
 }
 
-const std::vector<ColorRGBA> GCodeViewer::Extrusion_Role_Colors{ {
+const std::vector<ColorRGBA> GCodeViewer::Extrusion_Role_Colors{ { // GCODE VIEWER - TYPE COLORS
     { 0.90f, 0.70f, 0.70f, 1.0f },   // erNone
     { 1.00f, 0.90f, 0.30f, 1.0f },   // erPerimeter
     { 1.00f, 0.49f, 0.22f, 1.0f },   // erExternalPerimeter
@@ -736,18 +736,17 @@ const std::vector<ColorRGBA> GCodeViewer::Travel_Colors{ {
 
 // Normal ranges
 // blue to red
-const std::vector<ColorRGBA> GCodeViewer::Range_Colors{ {
-    decode_color_to_float_array("#0b2c7a"),  // bluish
-    decode_color_to_float_array("#135985"),
-    decode_color_to_float_array("#1c8891"),
-    decode_color_to_float_array("#04d60f"),
-    decode_color_to_float_array("#aaf200"),
-    decode_color_to_float_array("#fcf903"),
-    decode_color_to_float_array("#f5ce0a"),
-    //decode_color_to_float_array("#e38820"),
-    decode_color_to_float_array("#d16830"),
-    decode_color_to_float_array("#c2523c"),
-    decode_color_to_float_array("#942616")    // reddish
+const std::vector<ColorRGBA> GCodeViewer::Range_Colors{ { // GCODE VIEWER - HEATMAP COLORS
+    decode_color_to_float_array("#33004f"), //"#0b2c7a"),  // bluish
+    decode_color_to_float_array("#300093"), //"#135985"),
+    decode_color_to_float_array("#0060ff"), //"#1c8891"),
+    decode_color_to_float_array("#00a1c4"), //"#04d60f"),
+    decode_color_to_float_array("#2fffe4"), //"#aaf200"),
+    decode_color_to_float_array("#c3fb9a"), //"#fcf903"),
+    decode_color_to_float_array("#ffd200"), //"#f5ce0a"),
+    decode_color_to_float_array("#c87b2f"), //"#d16830"),
+    decode_color_to_float_array("#c34a3a"), //"#c2523c"),
+    decode_color_to_float_array("#a9001e")  //"#942616")  // reddish
 }};
 
 const ColorRGBA GCodeViewer::Wipe_Color    = ColorRGBA::YELLOW();
