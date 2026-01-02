@@ -3,15 +3,13 @@ set(_srcdir ${CMAKE_CURRENT_LIST_DIR}/mpfr)
 if (MSVC)
     set(_output  ${DESTDIR}/include/mpfr.h
                  ${DESTDIR}/include/mpf2mpfr.h
-                 ${DESTDIR}/lib/libmpfr-4.lib 
-                 ${DESTDIR}/bin/libmpfr-4.dll)
+                 ${DESTDIR}/bin/libmpfr-6.dll)
 
     add_custom_command(
         OUTPUT  ${_output}
         COMMAND ${CMAKE_COMMAND} -E copy ${_srcdir}/include/mpfr.h ${DESTDIR}/include/
         COMMAND ${CMAKE_COMMAND} -E copy ${_srcdir}/include/mpf2mpfr.h ${DESTDIR}/include/
-        COMMAND ${CMAKE_COMMAND} -E copy ${_srcdir}/lib/win-${DEPS_ARCH}/libmpfr-4.lib ${DESTDIR}/lib/
-        COMMAND ${CMAKE_COMMAND} -E copy ${_srcdir}/lib/win-${DEPS_ARCH}/libmpfr-4.dll ${DESTDIR}/bin/
+        COMMAND ${CMAKE_COMMAND} -E copy ${_srcdir}/lib/win-${DEPS_ARCH}/libmpfr-6.dll ${DESTDIR}/bin/
     )
 
     add_custom_target(dep_MPFR SOURCES ${_output})
