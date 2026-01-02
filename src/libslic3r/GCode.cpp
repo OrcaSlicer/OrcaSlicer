@@ -6438,6 +6438,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
         if (fan_on) {
             if (!m_is_role_based_fan_on[role]) {
+                if (marker_prefix == "_OVERHANG"sv && is_perimeter(path.role())) {
+                    gcode += ";_FAN_MOVER_HINT_OVERHANG\n";
+                }
                 gcode += ";";
                 gcode += marker_prefix;
                 gcode += "_FAN_START\n";
