@@ -29,7 +29,9 @@
     "internal_solid_infill_acceleration": "2500",
     "inner_wall_acceleration": "2000",
     "outer_wall_acceleration": "1500",
-    "support_top_z_distance": "0.1",
+    "support_base_pattern_spacing": "1",
+    "support_top_z_distance": "0.09",
+    "support_bottom_z_distance": "0.09",
     "compatible_printers": [
         "Prusa MINIIS 0.25 nozzle"
     ]

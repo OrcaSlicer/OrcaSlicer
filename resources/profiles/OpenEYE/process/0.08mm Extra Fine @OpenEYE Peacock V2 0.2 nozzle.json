@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.08mm Extra Fine @OpenEYE Peacock V2 0.2 nozzle",
+    "inherits": "fdm_process_openeye_0.08_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP139",
+    "instantiation": "true",
+    "description": "High quality profile for 0.2mm nozzle, prioritizing print quality.",
+    "default_acceleration": "8000",
+    "initial_layer_speed": "40",
+    "overhang_1_4_speed": "60",
+    "prime_tower_brim_width": "3",
+    "prime_tower_width": "60",
+    "travel_speed": "500",
+    "compatible_printers": [
+        "OpenEYE Peacock V2 0.2 nozzle"
+    ]
+}
