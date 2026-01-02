@@ -315,8 +315,10 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
                 if (!m_is_custom_gcode) {
                     // if slow down => put in the queue. if not =>
                     if (m_back_buffer_fan_speed < fan_speed) {
-                        bool trigger_speedup = (!only_overhangs || current_role == ExtrusionRole::erOverhangPerimeter || m_is_overhang_hint);
-                        if (trigger_speedup) m_is_overhang_hint = false;
+                        bool is_overhang = (current_role == ExtrusionRole::erOverhangPerimeter || m_is_overhang_hint);
+                        bool trigger_speedup = (!only_overhangs || (is_perimeter(current_role) && is_overhang));
+                        
+                        if (is_overhang) m_is_overhang_hint = false;
 
                         if (nb_seconds_delay > 0 && trigger_speedup) {
                             //don't put this command in the queue
