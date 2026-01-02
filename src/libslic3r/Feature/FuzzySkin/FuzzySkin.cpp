@@ -356,23 +356,16 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
             // Split the loops into lines with different config, and fuzzy them separately
             for (const auto& r : fuzzified_regions) {
                 const auto splitted = Algorithm::split_line(*extrusion, r.second, false);
-                bool entire_loop_fuzzified = true;
-                for (const auto& j : splitted) {
-                    if (!j.clipped) {
-                        entire_loop_fuzzified = false;
-                        break;
-                    }
-                }
-
                 if (splitted.empty()) {
                     // No intersection, skip
                     continue;
                 }
 
                 // Fuzzy splitted extrusion
-                //if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
-                    // The entire polygon is fuzzified
-                //    
+                bool entire_loop_fuzzified = std::all_of(splitted.begin(), splitted.end(),
+                                                         [](const Algorithm::SplitLineJunction& j) { return j.clipped; });
+                // The entire polygon is fuzzified
+
                 //    fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
                 //} 
                 if (is_closed_loop && entire_loop_fuzzified) {
