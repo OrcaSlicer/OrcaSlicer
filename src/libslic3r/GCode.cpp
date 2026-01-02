@@ -5368,7 +5368,10 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
 
     if (m_config.spiral_mode && !is_hole) {
         // if spiral vase, we have to ensure that all contour are in the same orientation.
-        loop.make_counter_clockwise();
+        if (m_config.wall_direction == WallDirection::CounterClockwise)
+            loop.make_counter_clockwise();
+        else
+            loop.make_clockwise();
     }
     //if (loop.loop_role() == elrSkirt && (this->m_layer->id() % 2 == 1))
     //    loop.reverse();
@@ -5380,7 +5383,16 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
     float seam_overhang = std::numeric_limits<float>::lowest();
     if (!m_config.spiral_mode && description == "perimeter") {
         assert(m_layer != nullptr);
-        m_seam_placer.place_seam(m_layer, loop, last_pos, seam_overhang);
+        bool reverse = false;
+
+        if (region_perimeters.size() > 1) {
+            ExtrusionLoop* p0 = dynamic_cast<ExtrusionLoop*>(region_perimeters[0]);
+            ExtrusionLoop* p1 = dynamic_cast<ExtrusionLoop*>(region_perimeters[1]);
+            if (p0 && p1)
+                reverse = p0->is_clockwise() != p1->is_clockwise();
+        }
+
+        m_seam_placer.place_seam(m_layer, loop, last_pos, seam_overhang, reverse);
     } else
         loop.split_at(last_pos, false);
 
@@ -5430,7 +5442,7 @@ std::string GCode::extrude_loop(ExtrusionLoop loop, std::string description, dou
     // 1 - the currently printed external perimeter and 2 - the neighbouring internal perimeter.
     if (m_config.wipe_before_external_loop.value && !paths.empty() && paths.front().size() > 1 && paths.back().size() > 1 && paths.front().role() == erExternalPerimeter && region_perimeters.size() > 1) {
         const bool is_full_loop_ccw = loop.polygon().is_counter_clockwise();
-        bool is_hole_loop = (loop.loop_role() & ExtrusionLoopRole::elrHole) != 0; // loop.make_counter_clockwise();
+        bool is_hole_loop = (loop.loop_role() & ExtrusionLoopRole::elrHole) != 0;
         const double nozzle_diam = nozzle_diameter;
 
         // note: previous & next are inverted to extrude "in the opposite direction, and we are "rewinding"

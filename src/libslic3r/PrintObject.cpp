@@ -1267,9 +1267,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "fuzzy_skin_persistence"
             || opt_key == "detect_overhang_wall"
             || opt_key == "overhang_reverse"
-            || opt_key == "overhang_reverse_internal_only"
             || opt_key == "overhang_reverse_threshold"
             || opt_key == "wall_direction"
+            || opt_key == "alternate_internal_walls"
             || opt_key == "enable_overhang_speed"
             || opt_key == "detect_thin_wall"
             || opt_key == "precise_outer_wall") {

@@ -255,7 +255,6 @@ CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WallSequence)
 
 //Orca
 static t_config_enum_values s_keys_map_WallDirection{
-    { "auto", int(WallDirection::Auto) },
     { "ccw",  int(WallDirection::CounterClockwise) },
     { "cw",   int(WallDirection::Clockwise)},
 };
@@ -1387,19 +1386,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("overhang_reverse_internal_only", coBool);
-    def->label = L("Reverse only internal perimeters");
-    def->full_label = L("Reverse only internal perimeters");
-    def->category = L("Quality");
-    def->tooltip = L("Apply the reverse perimeters logic only on internal perimeters.\n\n"
-                     "This setting greatly reduces part stresses as they are now distributed in alternating directions. "
-                     "This should reduce part warping while also maintaining external wall quality. "
-                     "This feature can be very useful for warp prone material, like ABS/ASA, and also for elastic filaments, like TPU and Silk PLA. "
-                     "It can also help reduce warping on floating regions over supports.\n\nFor this setting to be the most effective, "
-                     "it is recommended to set the Reverse Threshold to 0 so that all internal walls print in alternating directions on even layers irrespective of their overhang degree.");
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
-
     def = this->add("counterbore_hole_bridging", coEnum);
     def->label = L("Bridge counterbore holes");
     def->category = L("Quality");
@@ -2006,14 +1992,20 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L("The direction which the wall loops are extruded when looking down from the top.\n\nBy default all walls are extruded in counter-clockwise, unless Reverse on even is enabled. Set this to any option other than Auto will force the wall direction regardless of the Reverse on even.\n\nThis option will be disabled if spiral vase mode is enabled.");
     def->enum_keys_map = &ConfigOptionEnum<WallDirection>::get_enum_values();
-    def->enum_values.push_back("auto");
     def->enum_values.push_back("ccw");
     def->enum_values.push_back("cw");
-    def->enum_labels.push_back(L("Auto"));
     def->enum_labels.push_back(L("Counter clockwise"));
     def->enum_labels.push_back(L("Clockwise"));
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<WallDirection>(WallDirection::Auto));
+    def->set_default_value(new ConfigOptionEnum<WallDirection>(WallDirection::CounterClockwise));
+
+    def = this->add("alternate_internal_walls", coBool);
+    def->label = L("Reverse internal perimeters");
+    def->full_label = L("Reverse internal perimeters");
+    def->category = L("Quality");
+    def->tooltip = L("Alternate each internal perimeter direction.\n\nThis setting greatly reduces part stresses as they are now distributed in alternating directions. This should reduce part warping while also maintaining external wall quality. This feature can be very useful for warp prone material, like ABS/ASA, and also for elastic filaments, like TPU and Silk PLA. It can also help reduce warping on floating regions over supports.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("extruder", coInt);
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
@@ -7550,6 +7542,13 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         opt_key = "extruder_clearance_radius";
     } else if (opt_key == "machine_switch_extruder_time") {
         opt_key = "machine_tool_change_time";
+    }
+    else if (opt_key == "wall_direction" && value == "auto") {
+        value = "ccw";
+    }
+    else if (opt_key == "overhang_reverse_internal_only" && value == "1") {
+        opt_key = "alternate_internal_walls";
+        value   = "1";
     }
 
     // Ignore the following obsolete configuration keys:

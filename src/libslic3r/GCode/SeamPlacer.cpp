@@ -1494,7 +1494,7 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
 }
 
 void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
-                            const Point &last_pos, float& overhang) const {
+                            const Point &last_pos, float& overhang, bool reverse) const {
   using namespace SeamPlacerImpl;
   const PrintObject *po = layer->object();
   // Must not be called with supprot layer.
@@ -1596,8 +1596,11 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
 
     //lastly, for internal perimeters, do the staggering if requested
     if (po->config().staggered_inner_seams && loop.length() > 0.0) {
-      //fix depth, it is sometimes strongly underestimated
-      depth = std::max(loop.paths[projected_point.path_idx].width, depth);
+      if (!reverse)
+        //fix depth, it is sometimes strongly underestimated
+        depth = std::max(loop.paths[projected_point.path_idx].width, depth);
+      else
+        depth = std::min(4. + ((double)rand())/RAND_MAX*2., loop.length() * SCALING_FACTOR / 2);
 
       while (depth > 0.0f) {
         auto next_point = get_next_loop_point(projected_point);
