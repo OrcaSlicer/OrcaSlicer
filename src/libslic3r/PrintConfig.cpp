@@ -772,6 +772,15 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
 
+    def = this->add("elegoo_printhost_websocket_port", coInt);
+    def->label = L("Websocket Port");
+    def->min = 1;
+    def->max = 65535;
+    def->tooltip = L("Port for the printer's websocket");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionInt(3030));
+
     def = this->add("printhost_cafile", coString);
     def->label = L("HTTPS CA File");
     def->tooltip = L("Custom CA certificate file can be specified for HTTPS OctoPrint connections, in crt/pem format. "

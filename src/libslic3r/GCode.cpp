@@ -5240,7 +5240,8 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "printhost_cafile"sv,
         "printhost_user"sv,
         "printhost_password"sv,
-        "printhost_port"sv
+        "printhost_port"sv,
+        "elegoo_printhost_websocket_port"sv,
     });
     auto is_banned = [](const std::string &key) {
         return banned_keys.find(key) != banned_keys.end();

@@ -224,6 +224,7 @@ namespace Slic3r {
 
 
     ElegooLink::ElegooLink(DynamicPrintConfig *config):
+    m_websocket_port(config->opt_int("elegoo_printhost_websocket_port")),
     OctoPrint(config) {
 
     }
@@ -548,9 +549,13 @@ namespace Slic3r {
             if (upload_data.post_action == PrintHostPostUploadAction::StartPrint) {
                 // connect to websocket, since the upload is successful, the file will be printed
                 std::string     wsUrl = get_host_from_url_no_port(m_host);
+                std::string     wsPort = std::to_string(m_websocket_port);
+                if (wsPort == "0") {
+                    wsPort = "3030";
+                }
                 WebSocketClient client;
                 try {
-                    client.connect(wsUrl, "3030", "/websocket");
+                    client.connect(wsUrl, wsPort, "/websocket");
                 } catch (std::exception& e) {
                     const auto errorString = std::string(e.what());
                     if (errorString.find("The WebSocket handshake was declined by the remote peer") != std::string::npos) {
