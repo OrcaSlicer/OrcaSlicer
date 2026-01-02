@@ -269,7 +269,7 @@ void SelectMObjectPopup::Popup(wxWindow* WXUNUSED(focus))
         }
     }
 
-    wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
+    wxPostEvent(this, wxTimerEvent(*m_refresh_timer));
     PopupWindow::Popup();
 }
 

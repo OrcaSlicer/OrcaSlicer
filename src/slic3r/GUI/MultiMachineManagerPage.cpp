@@ -653,7 +653,7 @@ void MultiMachineManagerPage::start_timer()
 
     m_flipping_timer->SetOwner(this);
     m_flipping_timer->Start(1000);
-    wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
+    wxPostEvent(this, wxTimerEvent(*m_flipping_timer));
 }
 
 void MultiMachineManagerPage::update_page_number()
