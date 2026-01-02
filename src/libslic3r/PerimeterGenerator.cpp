@@ -253,7 +253,10 @@ static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perime
             ExtrusionLoop *eloop = static_cast<ExtrusionLoop*>(coll.entities[idx.first]);
             coll.entities[idx.first] = nullptr;
 
-            eloop->make_counter_clockwise();
+            if (perimeter_generator.config->wall_direction == WallDirection::CounterClockwise)
+                eloop->make_counter_clockwise();
+            else
+                eloop->make_clockwise();
             eloop->inset_idx = loop.depth;
             if (loop.is_contour) {
                 out.append(std::move(children.entities));
@@ -511,7 +514,10 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (!paths.empty()) {
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
-                extrusion_loop.make_counter_clockwise();
+                if (perimeter_generator.config->wall_direction == WallDirection::CounterClockwise)
+                    extrusion_loop.make_counter_clockwise();
+                else
+                    extrusion_loop.make_clockwise();
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
                 for (auto it = std::next(extrusion_loop.paths.begin()); it != extrusion_loop.paths.end(); ++it) {
@@ -1106,7 +1112,7 @@ static void reorient_perimeters(ExtrusionEntityCollection &entities, bool steep_
                 }
                 
                 if (need_reverse && !isExternal) {
-                    eloop->make_clockwise();
+                    eloop->reverse();
                 }
             }
         }
@@ -1414,18 +1420,17 @@ void PerimeterGenerator::process_classic()
             // at this point, all loops should be in contours[0]
             bool steep_overhang_contour = false;
             bool steep_overhang_hole    = false;
-            const WallDirection wall_direction = config->wall_direction;
-            if (wall_direction != WallDirection::Auto) {
-                // Skip steep overhang detection if wall direction is specified
+            if (!config->overhang_reverse) {
+                // Skip steep overhang detection no reverse is specified
                 steep_overhang_contour = true;
                 steep_overhang_hole    = true;
             }
             ExtrusionEntityCollection entities = traverse_loops(*this, contours.front(), thin_walls, steep_overhang_contour, steep_overhang_hole);
             // All walls are counter-clockwise initially, so we don't need to reorient it if that's what we want
-            if (wall_direction != WallDirection::CounterClockwise) {
+            if (config->overhang_reverse) {
                 reorient_perimeters(entities, steep_overhang_contour, steep_overhang_hole,
                                     // Reverse internal only if the wall direction is auto
-                                    this->config->overhang_reverse_internal_only && wall_direction == WallDirection::Auto);
+                                    this->config->overhang_reverse_internal_only);
             }
 
             // if brim will be printed, reverse the order of perimeters so that
@@ -2444,18 +2449,15 @@ void PerimeterGenerator::process_arachne()
         
         bool steep_overhang_contour = false;
         bool steep_overhang_hole    = false;
-        const WallDirection wall_direction = config->wall_direction;
-        if (wall_direction != WallDirection::Auto) {
-            // Skip steep overhang detection if wall direction is specified
+        if (!config->overhang_reverse) {
+            // Skip steep overhang detection no reverse is specified
             steep_overhang_contour = true;
             steep_overhang_hole    = true;
         }
         if (ExtrusionEntityCollection extrusion_coll = traverse_extrusions(*this, ordered_extrusions, steep_overhang_contour, steep_overhang_hole); !extrusion_coll.empty()) {
-            // All walls are counter-clockwise initially, so we don't need to reorient it if that's what we want
-            if (wall_direction != WallDirection::CounterClockwise) {
+            if (config->overhang_reverse) {
                 reorient_perimeters(extrusion_coll, steep_overhang_contour, steep_overhang_hole,
-                                    // Reverse internal only if the wall direction is auto
-                                    this->config->overhang_reverse_internal_only && wall_direction == WallDirection::Auto);
+                                    this->config->overhang_reverse_internal_only);
             }
             this->loops->append(extrusion_coll);
         }
