@@ -1,0 +1,25 @@
+{
+    "name": "Kingroon",
+    "id": "Kingroon",
+    "config_version": "1.0.0",
+    "config_update_url": "https://kingroon.com/profiles/",
+    "description": "Kingroon 3D Printing Materials",
+    "website": "https://kingroon.com",
+    "models": {},
+    "default_filaments": [
+        "KINGROON ABS Basic",
+        "KINGROON PETG Basic",
+        "KINGROON PETG-CF Basic"
+    ],
+    "filaments": [
+        "KINGROON ABS Basic",
+        "KINGROON PETG Basic",
+        "KINGROON PETG-CF Basic",
+        "KINGROON PLA + Basic",
+        "KINGROON PLA Basic",
+        "KINGROON PLA Matte",
+        "KINGROON PLA Pro",
+        "KINGROON PLA Silk",
+        "KINGROON TPU 95A"
+    ]
+}
