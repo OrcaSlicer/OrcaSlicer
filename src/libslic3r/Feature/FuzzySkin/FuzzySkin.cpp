@@ -357,8 +357,20 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 }
 
                 // Fuzzy splitted extrusion
-                if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
+                //if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
                     // The entire polygon is fuzzified
+                    
+                //Orca: Count how many junctions are clipped (marked for fuzzy skin)
+                size_t clipped_count = 0;
+                for (const auto& j : splitted) {
+                    if (j.clipped) clipped_count++;
+                }
+                
+                float clipped_ratio = float(clipped_count) / splitted.size();
+                bool virtually_entire_line_fuzzified = (clipped_ratio >= 0.99); // 99% threshold solve the double seam for extrusion mode
+                
+                if (virtually_entire_line_fuzzified) {   
+                 //Apply fuzzy skin to the entire line
                     fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
                 } else {
                     const auto                              current_ext = extrusion->junctions;
