@@ -418,6 +418,10 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
             if (line.raw().size() > 10 && line.raw().rfind(";TYPE:", 0) == 0) {
                 // get the type of the next extrusions
                 std::string extrusion_string = line.raw().substr(6, line.raw().size() - 6);
+                // trim trailing newline/carriage return
+                while (!extrusion_string.empty() && (extrusion_string.back() == '\r' || extrusion_string.back() == '\n')) {
+                    extrusion_string.pop_back();
+                }
                 current_role = ExtrusionEntity::string_to_role(extrusion_string);
             }
             if (line.raw().size() > 16) {
