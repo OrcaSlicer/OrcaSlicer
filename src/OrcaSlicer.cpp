@@ -7002,20 +7002,12 @@ bool CLI::setup(int argc, char **argv)
     detect_platform();
 
 #ifdef WIN32
-    // Notify user that a blacklisted DLL was injected into OrcaSlicer process (for example Nahimic, see GH #5573).
-    // We hope that if a DLL is being injected into a OrcaSlicer process, it happens at the very start of the application,
-    // thus we shall detect them now.
-    if (BlacklistedLibraryCheck::get_instance().perform_check()) {
-        std::wstring text = L"Following DLLs have been injected into the OrcaSlicer process:\n\n";
-        text += BlacklistedLibraryCheck::get_instance().get_blacklisted_string();
-        text += L"\n\n"
-                L"OrcaSlicer is known to not run correctly with these DLLs injected. "
-                L"We suggest stopping or uninstalling these services if you experience "
-                L"crashes or unexpected behaviour while using OrcaSlicer.\n"
-                L"For example, ASUS Sonic Studio injects a Nahimic driver, which makes OrcaSlicer "
-                L"to crash on a secondary monitor";
-        MessageBoxW(NULL, text.c_str(), L"Warning"/*L"Incopatible library found"*/, MB_OK);
-    }
+    // Detect blacklisted DLLs early (e.g., Nahimic) that are known to cause crashes.
+    // We perform this check at the very start of the application to ensure DLLs injected
+    // at process startup are detected. The result is cached in the singleton's m_found member
+    // and a user-friendly dialog with "Don't show again" checkbox is shown later in
+    // GUI_App::on_init_inner() if running in GUI mode.
+    BlacklistedLibraryCheck::get_instance().perform_check();
 #endif
 
     // See Invoking prusa-slicer from $PATH environment variable crashes #5542
