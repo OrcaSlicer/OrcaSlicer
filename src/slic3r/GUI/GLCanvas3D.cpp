@@ -2431,6 +2431,10 @@ void GLCanvas3D::delete_selected()
 
 void GLCanvas3D::ensure_on_bed(unsigned int object_idx, bool allow_negative_z)
 {
+    if (!m_model->get_ensure_on_bed()) {
+        return;
+    }
+
     //BBS if asseble view canvas
     if (m_canvas_type == ECanvasType::CanvasAssembleView) {
         return;
@@ -5011,20 +5015,23 @@ void GLCanvas3D::do_move(const std::string& snapshot_type)
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, 0);
 
-    // Fixes flying instances
-    for (const std::pair<int, int>& i : done) {
-        ModelObject* m = m_model->objects[i.first];
-        const double shift_z = m->get_instance_min_z(i.second);
-        //BBS: don't call translate if the z is zero
-        if ((current_printer_technology() == ptSLA || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
-            const Vec3d shift(0.0, 0.0, -shift_z);
-            m_selection.translate(i.first, i.second, shift);
-            m->translate_instance(i.second, shift);
-            //BBS: notify instance updates to part plater list
-            m_selection.notify_instance_update(i.first, i.second);
+    if (m_model->get_ensure_on_bed()) {
+        // Fixes sinking/flying instances (snaps object to buildplate)
+        for (const std::pair<int, int>& i : done) {
+            ModelObject* m = m_model->objects[i.first];
+            const double shift_z = m->get_instance_min_z(i.second);
+            //BBS: don't call translate if the z is zero
+            if ((current_printer_technology() == ptSLA || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
+                const Vec3d shift(0.0, 0.0, -shift_z);
+                m_selection.translate(i.first, i.second, shift);
+                m->translate_instance(i.second, shift);
+                //BBS: notify instance updates to part plater list
+                m_selection.notify_instance_update(i.first, i.second);
+            }
+            wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
         }
-        wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
     }
+    
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 
@@ -5120,8 +5127,9 @@ void GLCanvas3D::do_rotate(const std::string& snapshot_type)
 
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, -1);
-    if (m_canvas_type != CanvasAssembleView) {
-        // Fixes sinking/flying instances
+
+    if (m_model->get_ensure_on_bed() && m_canvas_type != CanvasAssembleView) {
+        // Fixes sinking/flying instances (snaps object to buildplate)
         for (const std::pair<int, int> &i : done) {
             ModelObject *m = m_model->objects[i.first];
 
@@ -5206,22 +5214,25 @@ void GLCanvas3D::do_scale(const std::string& snapshot_type)
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, -1);
 
-    // Fixes sinking/flying instances
-    for (const std::pair<int, int>& i : done) {
-        ModelObject* m = m_model->objects[i.first];
+    if (m_model->get_ensure_on_bed()) {
+        // Fixes sinking/flying instances (snaps object to buildplate)
+        for (const std::pair<int, int>& i : done) {
+            ModelObject* m = m_model->objects[i.first];
 
-        //BBS: don't call translate if the z is zero
-        double shift_z = m->get_instance_min_z(i.second);
-        // leave sinking instances as sinking
-        if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
-            Vec3d shift(0.0, 0.0, -shift_z);
-            m_selection.translate(i.first, i.second, shift);
-            m->translate_instance(i.second, shift);
-            //BBS: notify instance updates to part plater list
-            m_selection.notify_instance_update(i.first, i.second);
+            //BBS: don't call translate if the z is zero
+            double shift_z = m->get_instance_min_z(i.second);
+            // leave sinking instances as sinking
+            if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD) && (shift_z != 0.0f)) {
+                Vec3d shift(0.0, 0.0, -shift_z);
+                m_selection.translate(i.first, i.second, shift);
+                m->translate_instance(i.second, shift);
+                //BBS: notify instance updates to part plater list
+                m_selection.notify_instance_update(i.first, i.second);
+            }
+            wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
         }
-        wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
     }
+    
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
     //BBS: notify object info update
@@ -5309,29 +5320,32 @@ void GLCanvas3D::do_mirror(const std::string& snapshot_type)
     //BBS: notify instance updates to part plater list
     m_selection.notify_instance_update(-1, -1);
 
-    // Fixes sinking/flying instances
-    for (const std::pair<int, int>& i : done) {
-        ModelObject* m = m_model->objects[i.first];
+    if (m_model->get_ensure_on_bed()) {
+        // Fixes sinking/flying instances (snaps object to buildplate)
+        for (const std::pair<int, int>& i : done) {
+            ModelObject* m = m_model->objects[i.first];
 
-        //BBS: don't call translate if the z is zero
-        double shift_z = m->get_instance_min_z(i.second);
-        // leave sinking instances as sinking
-        if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD)&&(shift_z != 0.0f)) {
-            Vec3d shift(0.0, 0.0, -shift_z);
-            m_selection.translate(i.first, i.second, shift);
-            m->translate_instance(i.second, shift);
+            //BBS: don't call translate if the z is zero
+            double shift_z = m->get_instance_min_z(i.second);
+            // leave sinking instances as sinking
+            if ((min_zs.empty() || min_zs.find({ i.first, i.second })->second >= SINKING_Z_THRESHOLD || shift_z > SINKING_Z_THRESHOLD)&&(shift_z != 0.0f)) {
+                Vec3d shift(0.0, 0.0, -shift_z);
+                m_selection.translate(i.first, i.second, shift);
+                m->translate_instance(i.second, shift);
+                //BBS: notify instance updates to part plater list
+                m_selection.notify_instance_update(i.first, i.second);
+            }
+            wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
+
             //BBS: notify instance updates to part plater list
-            m_selection.notify_instance_update(i.first, i.second);
+            PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
+            plate_list.notify_instance_update(i.first, i.second);
+
+            //BBS: nofity object list to update
+            wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
         }
-        wxGetApp().obj_list()->update_info_items(static_cast<size_t>(i.first));
-
-        //BBS: notify instance updates to part plater list
-        PartPlateList &plate_list = wxGetApp().plater()->get_partplate_list();
-        plate_list.notify_instance_update(i.first, i.second);
-
-        //BBS: nofity object list to update
-        wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
     }
+    
     //BBS: nofity object list to update
     wxGetApp().plater()->sidebar().obj_list()->update_plate_values_for_items();
 

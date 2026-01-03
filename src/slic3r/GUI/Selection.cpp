@@ -1601,7 +1601,6 @@ void Selection::scale_and_translate(const Vec3d &scale, const Vec3d &world_trans
         synchronize_unselected_volumes();
 #endif // !DISABLE_INSTANCES_SYNCH
 
-    ensure_on_bed();
     set_bounding_boxes_dirty();
     if (wxGetApp().plater()->canvas3D()->get_canvas_type() != GLCanvas3D::ECanvasType::CanvasAssembleView) {
         wxGetApp().plater()->canvas3D()->requires_check_outside_state();
@@ -1612,7 +1611,6 @@ void Selection::mirror(Axis axis, TransformationType transformation_type)
 {
     const Vec3d mirror((axis == X) ? -1.0 : 1.0, (axis == Y) ? -1.0 : 1.0, (axis == Z) ? -1.0 : 1.0);
     scale_and_translate(mirror, Vec3d::Zero(), transformation_type);
-
 }
 
 void Selection::translate(unsigned int object_idx, const Vec3d& displacement)
@@ -2966,6 +2964,10 @@ void Selection::synchronize_unselected_volumes()
 
 void Selection::ensure_on_bed()
 {
+    if (!m_model->get_ensure_on_bed()) {
+        return;
+    }
+
     typedef std::map<std::pair<int, int>, double> InstancesToZMap;
     InstancesToZMap instances_min_z;
 

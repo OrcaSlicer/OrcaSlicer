@@ -1691,6 +1691,9 @@ public:
 
     std::unique_ptr<CalibPressureAdvancePattern> calib_pa_pattern;
 
+    bool get_ensure_on_bed() const;
+    void set_ensure_on_bed(bool enabled);
+
 private:
     explicit Model(int) : ObjectBase(-1)
         {
