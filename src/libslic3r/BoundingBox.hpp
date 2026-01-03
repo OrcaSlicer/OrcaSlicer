@@ -25,7 +25,7 @@ public:
         min(p1), max(p1), defined(false) { merge(p2); merge(p3); }
 
     template<class It, class = IteratorOnly<It>>
-    BoundingBoxBase(It from, It to)
+    BoundingBoxBase(It from, It to) : BoundingBoxBase()
         { construct(*this, from, to); }
 
     BoundingBoxBase(const PointsType &points)
