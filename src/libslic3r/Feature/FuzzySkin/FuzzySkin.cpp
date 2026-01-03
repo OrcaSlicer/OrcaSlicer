@@ -336,8 +336,6 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
 {
     const auto  slice_z = perimeter_generator.slice_z;
     const auto& regions = perimeter_generator.regions_by_fuzzify;
-    const bool is_closed_loop = extrusion->junctions.size() >= 3 && extrusion->junctions.front().p == extrusion->junctions.back().p;
-
     if (regions.size() == 1) { // optimization
         const auto& config  = regions.begin()->first;
         const bool  fuzzify = should_fuzzify(config, perimeter_generator.layer_id, extrusion->inset_idx, is_contour);
