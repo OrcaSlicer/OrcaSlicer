@@ -40,100 +40,50 @@ struct OrientMesh {
 
 };
 
-// params for minimizing support area
-struct OrientParamsArea {
-    float TAR_A = 0.015f;
-    float TAR_B = 0.177f;
-    float RELATIVE_F = 20;
-    float CONTOUR_F = 0.5f;
-    float BOTTOM_F = 2.5f;
-    float BOTTOM_HULL_F = 0.1f;
-    float TAR_C = 0.1f;
-    float TAR_D = 1;
-    float TAR_E = 0.0115f;
-    float FIRST_LAY_H = 0.2f;//0.0475;
-    float VECTOR_TOL = -0.00083f;
-    float NEGL_FACE_SIZE = 0.01f;
-    float ASCENT = -0.5f;
-    float PLAFOND_ADV = 0.0599f;
-    float CONTOUR_AMOUNT = 0.0182427f;
-    float OV_H = 2.574f;
-    float height_offset = 2.3728f;
-    float height_log = 0.041375f;
-    float height_log_k = 1.9325457f;
-    float LAF_MAX = 0.999f; // cos(1.4\degree) for low angle face 0.9997f
-    float LAF_MIN = 0.97f;  // cos(14\degree) 0.9703f
-    float TAR_LAF = 0.001f; //0.01f
-    float TAR_PROJ_AREA = 0.1f;
-    float BOTTOM_MIN = 0.1f;  // min bottom area. If lower than it the object may be unstable
-    float BOTTOM_MAX = 2000;  // max bottom area. If get to it the object is stable enough (further increase bottom area won't do more help)
-    float height_to_bottom_hull_ratio_MIN = 1;
-    float BOTTOM_HULL_MAX = 2000;// max bottom hull area
-    float APPERANCE_FACE_SUPP=3; // penalty of generating supports on appearance face
-
-    float overhang_angle = 60.f;
-    bool use_low_angle_face = true;
-    bool min_volume = false;
-    Eigen::Vector3f fun_dir;
-
-    /// Allow parallel execution.
-    bool parallel = true;
-
-    /// Progress indicator callback called when an object gets packed.
-    /// The unsigned argument is the number of items remaining to pack.
-    std::function<void(unsigned, std::string)> progressind = {};
-
-    /// A predicate returning true if abort is needed.
-    std::function<bool(void)>     stopcondition = {};
-
-    OrientParamsArea() = default;
-};
-
 struct OrientParams {
-    float TAR_A = 0.01f;//0.128f;
-    float TAR_B = 0.177f;
-    float RELATIVE_F= 6.610621027964314f;
-    float CONTOUR_F = 0.23228623269775997f;
-    float BOTTOM_F = 1.167152017941474f;
-    float BOTTOM_HULL_F = 0.1f;
-    float TAR_C = 0.24308070476924726f;
-    float TAR_D = 0.6284515508160871f;
-    float TAR_E = 0;//0.032157292647062234;
-    float FIRST_LAY_H = 0.2f;//0.029;
-    float VECTOR_TOL = -0.0011163303070972383f;
-    float NEGL_FACE_SIZE = 0.1f;
-    float ASCENT= -0.5f;
-    float PLAFOND_ADV = 0.04079208948120519f;
-    float CONTOUR_AMOUNT = 0.0101472219892684f;
-    float OV_H = 1.0370178217794535f;
-    float height_offset = 2.7417608343142073f;
-    float height_log = 0.06442030687034085f;
-    float height_log_k = 0.3933594673063997f;
-    float LAF_MAX = 0.999f; // cos(1.4\degree) for low angle face //0.9997f;
-    float LAF_MIN= 0.9703f;  // cos(14\degree) 0.9703f;
-    float TAR_LAF = 0.01f; //0.1f
-    float TAR_PROJ_AREA = 0.1f;
-    float BOTTOM_MIN = 0.1f;  // min bottom area. If lower than it the objects may be unstable
-    float BOTTOM_MAX = 2000; //400
-    float height_to_bottom_hull_ratio_MIN = 1;
-    float BOTTOM_HULL_MAX = 2000;// max bottom hull area to clip //600
-    float APPERANCE_FACE_SUPP=3; // penalty of generating supports on appearance face
+    float TAR_A               { 0.01f };     // 0.128f;
+    float TAR_B               { 0.177f };
+    float RELATIVE_F          { 6.610621027964314f };
+    float CONTOUR_F           { 0.23228623269775997f };
+    float BOTTOM_F            { 1.167152017941474f };
+    float BOTTOM_HULL_F       { 0.1f };
+    float TAR_C               { 0.24308070476924726f };
+    float TAR_D               { 0.6284515508160871f };
+    float TAR_E               { 0};         // 0.032157292647062234;
+    float FIRST_LAY_H         { 0.2f};      // 0.029;
+    float VECTOR_TOL          { -0.0011163303070972383f };
+    float NEGL_FACE_SIZE      { 0.1f };
+    float ASCENT              { -0.5f };
+    float PLAFOND_ADV         { 0.04079208948120519f };
+    float CONTOUR_AMOUNT      { 0.0101472219892684f };
+    float OV_H                { 1.0370178217794535f };
+    float height_offset       { 2.7417608343142073f };
+    float height_log          { 0.06442030687034085f };
+    float height_log_k        { 0.3933594673063997f };
+    float LAF_MAX             { 0.999f };    // cos(1.4\degree) for low angle face //0.9997f;
+    float LAF_MIN             { 0.9703f };   // cos(14\degree) 0.9703f;
+    float TAR_LAF             { 0.01f };     // 0.1f
+    float TAR_PROJ_AREA       { 0.1f };
+    float BOTTOM_MIN          { 0.1f };      // min bottom area. If lower than it the objects may be unstable
+    float BOTTOM_MAX          { 2000 };      // 400
+    float height_to_bottom_hull_ratio_MIN { 1 };
+    float BOTTOM_HULL_MAX     { 2000 };      // max bottom hull area to clip //600
+    float APPERANCE_FACE_SUPP { 3 };         // penalty of generating supports on appearance face
 
-    float overhang_angle = 60.f;
-    bool use_low_angle_face = true;
-    bool min_volume = false;
-    Eigen::Vector3f fun_dir;
-
+    float overhang_angle     { 60.f };
+    bool  use_low_angle_face { true };
+    bool  min_volume         { false };
+    Eigen::Vector3f fun_dir  {};
 
     /// Allow parallel execution.
-    bool parallel = false;
+    bool parallel { false };
 
     /// Progress indicator callback called when an object gets packed.
     /// The unsigned argument is the number of items remaining to pack.
-    std::function<void(unsigned, std::string)> progressind = {};
+    std::function<void(unsigned, std::string)> progressind {};
 
     /// A predicate returning true if abort is needed.
-    std::function<bool(void)>     stopcondition = {};
+    std::function<bool(void)> stopcondition {};
 
     OrientParams() = default;
 };
