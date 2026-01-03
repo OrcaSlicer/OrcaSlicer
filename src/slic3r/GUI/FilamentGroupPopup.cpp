@@ -147,15 +147,10 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
     {
         wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-        const std::string wiki_path = Slic3r::resources_dir() + "/wiki/filament_group_wiki_zh.html";
+        const std::string wiki_path = Slic3r::resources_dir() + "/wiki/filament_group_wiki_zh.html"; // NEEDFIX this link is broken
 
         auto* wiki_sizer = new wxBoxSizer(wxHORIZONTAL);
-        wiki_link = new wxStaticText(this, wxID_ANY, _L("Learn more"));
-        wiki_link->SetBackgroundColour(BackGroundColor);
-        wiki_link->SetForegroundColour(GreenColor);
-        wiki_link->SetFont(Label::Body_12.Underlined());
-        wiki_link->SetCursor(wxCursor(wxCURSOR_HAND));
-        wiki_link->Bind(wxEVT_LEFT_DOWN, [wiki_path](wxMouseEvent &) { wxLaunchDefaultBrowser(wxString(wiki_path.c_str())); });
+        wiki_link = new HyperLink(this, _L("Wiki Guide"), wxString(wiki_path.c_str())); // ORCA
         wiki_sizer->Add(wiki_link, 0, wxALIGN_CENTER | wxALL, FromDIP(3));
 
         button_sizer->Add(wiki_sizer, 0, wxLEFT, horizontal_margin);
