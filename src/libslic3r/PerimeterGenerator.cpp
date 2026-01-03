@@ -860,9 +860,10 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
                                                                                            const Flow              &overhang_flow,
                                                                                            double                   scaled_resolution,
                                                                                            const PrintObjectConfig &object_config,
-                                                                                           const PrintConfig       &print_config)
+                                                                                           const PrintConfig       &print_config,
+                                                                                           ExPolygon                surface)
 {
-    coord_t anchors_size = std::min(coord_t(scale_(EXTERNAL_INFILL_MARGIN)), overhang_flow.scaled_spacing() * (perimeter_count + 1));
+    coord_t anchors_size = std::min(coord_t(scale_(BRIDGE_INFILL_MARGIN)), overhang_flow.scaled_spacing());
 
     BoundingBox infill_area_bb = get_extents(infill_area).inflated(SCALED_EPSILON);
     Polygons optimized_lower_slices = ClipperUtils::clip_clipper_polygons_with_subject_bbox(lower_slices_polygons, infill_area_bb);
@@ -901,6 +902,17 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
                                                      overhang_to_cover.end());
             continue;
         }
+
+        ExPolygons real_overhang_ex = simplify_polygons_ex(real_overhang);
+
+        for (ExPolygon& expol : real_overhang_ex) {
+            expol.holes.clear();
+        }
+
+        Polygons real_overhang_no_holes = to_polygons(real_overhang_ex);
+
+        Polygons real_overhang_upper_layer_holes = intersection(surface.holes, real_overhang_no_holes);
+
         ExtrusionPaths &overhang_region = extra_perims.emplace_back();
 
         Polygons anchoring         = intersection(expanded_overhang_to_cover, inset_anchors);
@@ -909,6 +921,8 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
 
         Polygon anchoring_convex_hull = Geometry::convex_hull(anchoring);
         double  unbridgeable_area     = area(diff(real_overhang, {anchoring_convex_hull}));
+        Polygons bridgeable = intersection(real_overhang, anchoring_convex_hull);
+        double  bridgeable_area = area(bridgeable);
 
         auto [dir, unsupp_dist] = detect_bridging_direction(real_overhang, anchors);
 
@@ -928,7 +942,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
         }
 #endif
 
-        if (unbridgeable_area < 0.2 * area(real_overhang) && unsupp_dist < total_length(real_overhang) * 0.2) {
+        if (bridgeable_area > 0.0 && real_overhang_upper_layer_holes.empty()) {
             inset_overhang_area_left_unfilled.insert(inset_overhang_area_left_unfilled.end(),overhang_to_cover.begin(),overhang_to_cover.end());
             perimeter_polygon.clear();
         } else {
@@ -1011,9 +1025,17 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
                 // When this happens, the first overhang perimeter is also a closed loop, and needs special check
                 // instead of the following simple is_anchored lambda, which checks only the first and last point (not very useful on closed
                 // polyline)
+
+                // Unfortunately if the first polyline is exactly aligned with a perimeter of optimized_lower_slices it is considered intersecting, 
+                // This fix adds a half extrusion width offset because we want to make sure we are actually intersecting with optimized_lower_slices
+                // Basically this ensures we are truly anchored.
+                Polygons first_overhang_polygons = to_polygons({overhang_region.front().polyline});
+                Polygons first_overhang_polygons_shrunk = offset(first_overhang_polygons, -0.25 * overhang_flow.scaled_spacing());
+                Polylines first_overhang_polyline_shrunk = to_polylines(first_overhang_polygons_shrunk);
+
                 bool first_overhang_is_closed_and_anchored =
                     (overhang_region.front().first_point() == overhang_region.front().last_point() &&
-                     !intersection_pl(overhang_region.front().polyline, optimized_lower_slices).empty());
+                     !intersection_pl(first_overhang_polyline_shrunk, optimized_lower_slices).empty());
                      
                 auto is_anchored = [&lower_layer_aabb_tree](const ExtrusionPath &path) {
                     return lower_layer_aabb_tree.distance_from_lines<true>(path.first_point()) <= 0 ||
@@ -1056,7 +1078,7 @@ std::tuple<std::vector<ExtrusionPaths>, Polygons> generate_extra_perimeters_over
     return {extra_perims, diff(inset_overhang_area, inset_overhang_area_left_unfilled)};
 }
 
-void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
+void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const ExPolygon &surface)
 {
     if (!m_spiral_vase && this->lower_slices != nullptr && this->config->detect_overhang_wall && this->config->extra_perimeters_on_overhangs &&
         this->config->wall_loops > 0 && this->layer_id > this->object_config->raft_layers) {
@@ -1064,7 +1086,8 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area)
         auto [extra_perimeters, filled_area] = generate_extra_perimeters_over_overhangs(infill_area, this->lower_slices_polygons(),
                                                                                         this->config->wall_loops, this->overhang_flow,
                                                                                         this->m_scaled_resolution, *this->object_config,
-                                                                                        *this->print_config);
+                                                                                        *this->print_config,
+                                                                                        surface);
         if (!extra_perimeters.empty()) {
             ExtrusionEntityCollection *this_islands_perimeters = static_cast<ExtrusionEntityCollection *>(this->loops->entities.back());
             ExtrusionEntityCollection  new_perimeters{};
@@ -1642,7 +1665,7 @@ void PerimeterGenerator::process_classic()
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp);
+        apply_extra_perimeters(infill_exp, surface.expolygon);
 
         // BBS: get the no-overlap infill expolygons
         {
@@ -2502,7 +2525,7 @@ void PerimeterGenerator::process_arachne()
         }
         this->fill_surfaces->append(infill_exp, stInternal);
 
-        apply_extra_perimeters(infill_exp);
+        apply_extra_perimeters(infill_exp, surface.expolygon);
 
         // BBS: get the no-overlap infill expolygons
         {
