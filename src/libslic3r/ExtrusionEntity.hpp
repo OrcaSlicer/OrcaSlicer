@@ -36,6 +36,7 @@ enum ExtrusionRole : uint8_t {
     erSupportMaterialInterface,
     erSupportTransition,
     erWipeTower,
+    erFuzzyArt,
     erCustom,
     // Extrusion role for a collection with multiple extrusion roles.
     erMixed,
@@ -223,7 +224,7 @@ public:
 	ExtrusionEntity* clone() const override { return new ExtrusionPath(*this); }
     // Create a new object, initialize it with this object using the move semantics.
 	ExtrusionEntity* clone_move() override { return new ExtrusionPath(std::move(*this)); }
-    void reverse() override { this->polyline.reverse(); }
+    void reverse() override { if (m_can_reverse) this->polyline.reverse(); }
     const Point& first_point() const override { return this->polyline.points.front(); }
     const Point& last_point() const override { return this->polyline.points.back(); }
     size_t size() const { return this->polyline.size(); }

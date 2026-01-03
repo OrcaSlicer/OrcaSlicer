@@ -862,10 +862,15 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&!config->opt_int("support_filament"));
 
+    bool is_fuzzy_art = config->opt_enum<FuzzyArt>("fuzzy_art") != FuzzyArt::None; {}
+    for (auto el : {"fuzzy_art_length", "fuzzy_art_width_aspect_ratio", "fuzzy_art_point_distance","fuzzy_art_period", "fuzzy_art_flow_ratio", "fuzzy_art_speed"})
+        toggle_line(el, is_fuzzy_art);
+    for (auto el : {"fuzzy_skin_mode", "fuzzy_skin_noise_type", "fuzzy_skin_point_distance", "fuzzy_skin_thickness"})
+        toggle_line(el, !is_fuzzy_art);
     NoiseType fuzzy_skin_noise_type = config->opt_enum<NoiseType>("fuzzy_skin_noise_type");
-    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic);
-    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi);
-    toggle_line("fuzzy_skin_persistence", fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow);
+    toggle_line("fuzzy_skin_scale", !is_fuzzy_art && fuzzy_skin_noise_type != NoiseType::Classic);
+    toggle_line("fuzzy_skin_octaves", !is_fuzzy_art && fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi);
+    toggle_line("fuzzy_skin_persistence", !is_fuzzy_art && fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow);
 
     bool have_arachne = config->opt_enum<PerimeterGeneratorType>("wall_generator") == PerimeterGeneratorType::Arachne;
     for (auto el : { "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
