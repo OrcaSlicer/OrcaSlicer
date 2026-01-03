@@ -166,7 +166,7 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
     //    out.front().w = out.back().w;
     //}
 
-    if (ext_lines.front().p == ext_lines.back().p && out.size() >= 3) {
+    if (ext_lines.front().p == ext_lines.back().p) {
         out.back() = out.front();
     }
     if (out.size() >= 3)
@@ -362,16 +362,9 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 }
 
                 // Fuzzy splitted extrusion
-                //if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
-                // The entire polygon is fuzzified
-                bool entire_loop_fuzzified = std::all_of(splitted.begin(), splitted.end(),
-                                                         [](const Algorithm::SplitLineJunction& j) { return j.clipped; });
-
-                //    fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
-                //} 
-                if (is_closed_loop && entire_loop_fuzzified) {
+                if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
+                    // The entire polygon is fuzzified
                     fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
-                    return;
                 } else {
                     const auto                              current_ext = extrusion->junctions;
                     std::vector<Arachne::ExtrusionJunction> segment;
