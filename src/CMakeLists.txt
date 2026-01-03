@@ -18,6 +18,15 @@ if (SLIC3R_GUI)
 
     if(WIN32)
         message(STATUS "WXWIN environment set to: $ENV{WXWIN}")
+        if (IS_CLANG_CL)
+            # FindwxWidgets does not properly handle finding the lib dir when using clang-cl
+            set(wxWidgets_LIB_DIR ${CMAKE_PREFIX_PATH}/lib/clang_x64_lib)
+
+            # If the path above does not exist, fallback to FindwxWidgets logic
+            if (NOT EXISTS ${wxWidgets_LIB_DIR})
+                unset(wxWidgets_LIB_DIR)
+            endif ()
+        endif ()
     elseif(UNIX)
         set(wxWidgets_USE_UNICODE ON)
         if(SLIC3R_STATIC)

@@ -1,3 +1,4 @@
+diff --git GMP/acinclude.m4 GMP/acinclude.m4.2
 --- GMP/acinclude.m4	2025-05-14 18:50:11.396354745 -0400
 +++ GMP/acinclude.m4.2	2025-05-14 18:57:20.757853503 -0400
 @@ -609,7 +609,7 @@
@@ -10,6 +11,7 @@
  static __inline__ t1 e(t2 rp,t2 up,int n,t1 v0)
  {t1 c,x,r;int i;if(v0){c=1;for(i=1;i<n;i++){x=up[i];r=x+1;rp[i]=r;}}return c;}
 
+diff --git GMP/configure GMP/configure
 --- GMP/configure	2025-05-14 19:33:35.730593315 -0400
 +++ GMP/configure	2025-05-14 19:35:37.805619186 -0400
 @@ -6526,7 +6526,7 @@

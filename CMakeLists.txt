@@ -211,12 +211,13 @@ if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall \
         -Wno-old-style-cast -Wno-reserved-id-macro -Wno-c++98-compat-pedantic")
+    add_compile_options(-Wno-c++11-narrowing)
 else ()
     set(IS_CLANG_CL FALSE)
 endif ()
 
 if (MSVC)
-    if (SLIC3R_MSVC_COMPILE_PARALLEL AND NOT IS_CLANG_CL)
+    if (SLIC3R_MSVC_COMPILE_PARALLEL)
            add_compile_options(/MP)
     endif ()
     # /bigobj (Increase Number of Sections in .Obj file)

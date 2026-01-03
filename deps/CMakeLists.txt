@@ -41,6 +41,12 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_VERSION VERSION_LESS "3.25")
     set(LINUX ON CACHE BOOL "" FORCE)
 endif ()
 
+if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(IS_CLANG_CL TRUE)
+else ()
+    set(IS_CLANG_CL FALSE)
+endif ()
+
 include(ExternalProject)
 include(ProcessorCount)
 
@@ -164,9 +170,16 @@ function(orcaslicer_add_cmake_project projectname)
 
     set(_gen "")
     set(_build_j "-j${NPROC}")
+    set(_clang_cl_args)
     if (MSVC)
         set(_gen CMAKE_GENERATOR "${DEP_MSVC_GEN}" CMAKE_GENERATOR_PLATFORM "${DEP_PLATFORM}")
         set(_build_j "/m")
+        if (IS_CLANG_CL)
+            set(_clang_cl_args -T=${CMAKE_GENERATOR_TOOLSET}
+                # TODO: Find a more elegant way to add this flag
+                "-DCMAKE_C_FLAGS_RELEASE:STRING=${CMAKE_C_FLAGS_RELEASE} /MP"
+                "-DCMAKE_CXX_FLAGS_RELEASE:STRING=${CMAKE_CXX_FLAGS_RELEASE} /MP")
+        endif ()
     endif ()
 
 if (NOT IS_CROSS_COMPILE OR NOT APPLE)
@@ -185,6 +198,7 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
             -DCMAKE_CXX_COMPILER:STRING=${CMAKE_CXX_COMPILER}
             -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
             -DBUILD_SHARED_LIBS:BOOL=OFF
+            ${_clang_cl_args}
             ${_cmake_osx_arch}
             "${_configs_line}"
             ${DEP_CMAKE_OPTS}
@@ -289,6 +303,27 @@ if(FLATPAK)
     find_package(CURL)
 endif()
 
+# Find relative path from root to source used for adjusting patch command
+file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
+
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --is-inside-work-tree
+    RESULT_VARIABLE REV_PARSE_RESULT
+    OUTPUT_VARIABLE REV_PARSE_OUTPUT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Will output "true" and have a 0 return code if within a git repo
+if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+    set(IN_GIT_REPO TRUE)
+endif ()
+
+function(get_patch_dir_flag dep_name)
+    if (IN_GIT_REPO)
+        set(${dep_name}_dir_flag --directory ${BINARY_DIR_REL}/dep_${dep_name}-prefix/src/dep_${dep_name} PARENT_SCOPE)
+    endif ()
+endfunction()
+
 set(ZLIB_PKG "")
 if (NOT ZLIB_FOUND) 
     include(ZLIB/ZLIB.cmake)
@@ -369,19 +404,6 @@ if(NOT FREETYPE_FOUND)
     set(FREETYPE_PKG "dep_FREETYPE") 
 endif()
 
-execute_process(
-    COMMAND ${GIT_EXECUTABLE} rev-parse --is-inside-work-tree
-    RESULT_VARIABLE REV_PARSE_RESULT
-    OUTPUT_VARIABLE REV_PARSE_OUTPUT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-# Will output "true" and have a 0 return code if within a git repo
-if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
-    set(IN_GIT_REPO TRUE)
-    # Find relative path from root to source used for adjusting patch command
-    file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
-endif ()
 
 include(OCCT/OCCT.cmake)
 include(OpenCV/OpenCV.cmake)

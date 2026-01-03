@@ -88,6 +88,7 @@ private:
     // to access construct()
     friend BoundingBox get_extents<false>(const Points &pts);
     friend BoundingBox get_extents<true>(const Points &pts);
+    friend BoundingBox get_extents(const Points &pts);
 
     // if IncludeBoundary, then a bounding box is defined even for a single point.
     // otherwise a bounding box is only defined if it has a positive area.

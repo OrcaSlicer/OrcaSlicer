@@ -69,7 +69,7 @@ void CBaseException::OutputString(LPCTSTR lpszFormat, ...)
 	//WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), szBuf, _tcslen(szBuf), NULL, NULL);
 
 	//output it to the current directory of binary
-	std::string output_str = textconv_helper::T2A_(szBuf);
+	std::string output_str{textconv_helper::T2A_(szBuf)};
 	*output_file << output_str;
 	output_file->flush();
 }
