@@ -62,6 +62,22 @@
     ],
     "filament_list": [
         {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
             "name": "Lulzbot 2.85mm ABS",
             "sub_path": "filament/Lulzbot 2.85mm ABS.json"
         },

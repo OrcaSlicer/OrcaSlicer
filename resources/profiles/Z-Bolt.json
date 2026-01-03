@@ -1,7 +1,7 @@
 {
     "name": "Z-Bolt",
     "url": "",
-    "version": "02.03.01.10",
+    "version": "02.03.02.10",
     "force_update": "0",
     "description": "Z-Bolt configurations",
     "machine_model_list": [
@@ -437,6 +437,26 @@
         }
     ],
     "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
         {
             "name": "Z-Bolt ABS @base",
             "sub_path": "filament/Z-Bolt ABS @base.json"

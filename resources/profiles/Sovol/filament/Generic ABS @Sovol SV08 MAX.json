@@ -5,7 +5,7 @@
     "name": "Generic ABS @Sovol SV08 MAX",
     "from": "system",
     "instantiation": "true",
-    "inherits": "Generic ABS @System",
+    "inherits": "fdm_filament_abs",
     "filament_flow_ratio": ["0.98"],
     "filament_max_volumetric_speed": ["20"],
     "nozzle_temperature_initial_layer": [

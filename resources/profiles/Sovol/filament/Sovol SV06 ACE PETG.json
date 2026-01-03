@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "Sovol SV06 ACE PETG",
-    "inherits": "Generic PETG @System",
+    "inherits": "fdm_filament_pet",
     "from": "system",
     "setting_id": "GFSA04",
     "filament_id": "GFL99",

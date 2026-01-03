@@ -5,7 +5,7 @@
     "name": "Generic PC @Sovol SV08 MAX",
     "from": "system",
     "instantiation": "true",
-    "inherits": "Generic PC @System",
+    "inherits": "fdm_filament_pc",
     "filament_flow_ratio": ["0.98"],
     "filament_max_volumetric_speed": ["18"],
     "compatible_printers": [

@@ -1,6 +1,6 @@
 {
     "name": "Snapmaker",
-    "version": "02.03.01.10",
+    "version": "02.03.02.10",
     "force_update": "0",
     "description": "Snapmaker configurations",
     "machine_model_list": [
@@ -461,44 +461,8 @@
     ],
     "filament_list": [
         {
-            "name": "PolyTerra PLA @0.2 nozzle",
-            "sub_path": "filament/PolyTerra PLA @0.2 nozzle.json"
-        },
-        {
-            "name": "Snapmaker PLA Lite @U1 base",
-            "sub_path": "filament/Snapmaker PLA Lite @U1 base.json"
-        },
-        {
-            "name": "Snapmaker PLA SnapSpeed @U1 base",
-            "sub_path": "filament/Snapmaker PLA SnapSpeed @U1 base.json"
-        },
-        {
-            "name": "Snapmaker TPU 95A @U1 base",
-            "sub_path": "filament/Snapmaker TPU 95A @U1 base.json"
-        },
-        {
             "name": "fdm_filament_common",
             "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "PolyTerra Dual PLA @0.2 nozzle",
-            "sub_path": "filament/PolyTerra Dual PLA @0.2 nozzle.json"
-        },
-        {
-            "name": "PolyTerra J1 PLA @0.2 nozzle",
-            "sub_path": "filament/PolyTerra J1 PLA @0.2 nozzle.json"
-        },
-        {
-            "name": "Snapmaker PLA Lite @U1",
-            "sub_path": "filament/Snapmaker PLA Lite @U1.json"
-        },
-        {
-            "name": "Snapmaker PLA SnapSpeed @U1",
-            "sub_path": "filament/Snapmaker PLA SnapSpeed @U1.json"
-        },
-        {
-            "name": "Snapmaker TPU 95A @U1",
-            "sub_path": "filament/Snapmaker TPU 95A @U1.json"
         },
         {
             "name": "fdm_filament_abs",
@@ -535,6 +499,46 @@
         {
             "name": "fdm_filament_tpu",
             "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "PolyTerra PLA @base",
+            "sub_path": "filament/PolyTerra PLA @base.json"
+        },
+        {
+            "name": "PolyTerra PLA @0.2 nozzle",
+            "sub_path": "filament/PolyTerra PLA @0.2 nozzle.json"
+        },
+        {
+            "name": "Snapmaker PLA Lite @U1 base",
+            "sub_path": "filament/Snapmaker PLA Lite @U1 base.json"
+        },
+        {
+            "name": "Snapmaker PLA SnapSpeed @U1 base",
+            "sub_path": "filament/Snapmaker PLA SnapSpeed @U1 base.json"
+        },
+        {
+            "name": "Snapmaker TPU 95A @U1 base",
+            "sub_path": "filament/Snapmaker TPU 95A @U1 base.json"
+        },
+        {
+            "name": "PolyTerra Dual PLA @0.2 nozzle",
+            "sub_path": "filament/PolyTerra Dual PLA @0.2 nozzle.json"
+        },
+        {
+            "name": "PolyTerra J1 PLA @0.2 nozzle",
+            "sub_path": "filament/PolyTerra J1 PLA @0.2 nozzle.json"
+        },
+        {
+            "name": "Snapmaker PLA Lite @U1",
+            "sub_path": "filament/Snapmaker PLA Lite @U1.json"
+        },
+        {
+            "name": "Snapmaker PLA SnapSpeed @U1",
+            "sub_path": "filament/Snapmaker PLA SnapSpeed @U1.json"
+        },
+        {
+            "name": "Snapmaker TPU 95A @U1",
+            "sub_path": "filament/Snapmaker TPU 95A @U1.json"
         },
         {
             "name": "Snapmaker ABS @U1 base",

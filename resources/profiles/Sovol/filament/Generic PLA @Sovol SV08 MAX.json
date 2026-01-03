@@ -5,7 +5,7 @@
     "name": "Generic PLA @Sovol SV08 MAX",
     "from": "system",
     "instantiation": "true",
-    "inherits": "Generic PLA @System",
+    "inherits": "fdm_filament_pla",
     "filament_flow_ratio": ["0.98"],
     "filament_max_volumetric_speed": ["21"],
     "compatible_printers": [

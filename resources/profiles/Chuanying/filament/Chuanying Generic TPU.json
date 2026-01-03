@@ -19,13 +19,7 @@
     "compatible_printers": [
         "Chuanying X1 0.4 Nozzle",
         "Chuanying X1 0.6 Nozzle",
-        "Chuanying X1 0.8 Nozzle",
-        "Chuanying Adventurer 5M 0.4 Nozzle",
-        "Chuanying Adventurer 5M 0.6 Nozzle",
-        "Chuanying Adventurer 5M 0.8 Nozzle",
-        "Chuanying Adventurer 5M Pro 0.4 Nozzle",
-        "Chuanying Adventurer 5M Pro 0.6 Nozzle",
-        "Chuanying Adventurer 5M Pro 0.8 Nozzle"
+        "Chuanying X1 0.8 Nozzle"
     ],
     "compatible_printers_condition": "",
     "compatible_prints": [],

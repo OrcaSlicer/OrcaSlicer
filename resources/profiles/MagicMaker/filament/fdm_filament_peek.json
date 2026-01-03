@@ -1,7 +1,6 @@
 {
     "type": "filament",
     "name": "fdm_filament_peek",
-    "inherits": "fdm_filament_common",
     "from": "system",
     "instantiation": "false",
     "cool_plate_temp": [
