@@ -208,8 +208,8 @@ bool GLGizmoBrimEars::unproject_on_mesh2(const Vec2d &mouse_pos, std::pair<Vec3f
     double               clp_dist        = m_c->object_clipper()->get_position();
     const ClippingPlane *clp             = m_c->object_clipper()->get_clipping_plane();
     bool                 mouse_on_object = false;
-    Vec3f                position_on_model {};
-    Vec3f                normal_on_model {};
+    Vec3f                position_on_model { Vec3f::Zero() };
+    Vec3f                normal_on_model   { Vec3f::Zero() };
     double               closest_hit_distance = std::numeric_limits<double>::max();
 
     for (auto item : m_mesh_raycaster_map) {
