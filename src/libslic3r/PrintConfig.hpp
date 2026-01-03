@@ -1352,6 +1352,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                accel_to_decel_enable))
     ((ConfigOptionPercent,             accel_to_decel_factor))
     ((ConfigOptionFloatOrPercent,      initial_layer_travel_speed))
+    ((ConfigOptionFloatOrPercent,      initial_layer_travel_acceleration))
+    ((ConfigOptionFloatOrPercent,      initial_layer_travel_jerk))
     ((ConfigOptionBool,                bbl_calib_mark_logo))
     ((ConfigOptionBool,                disable_m73))
 

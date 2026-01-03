@@ -12680,6 +12680,18 @@ msgstr ""
 msgid "Travel speed of initial layer."
 msgstr ""
 
+msgid "First layer travel acceleration"
+msgstr ""
+
+msgid "Travel acceleration of first layer."
+msgstr ""
+
+msgid "First layer travel jerk"
+msgstr ""
+
+msgid "Travel jerk of first layer."
+msgstr ""
+
 #, fuzzy
 msgid "Number of slow layers"
 msgstr "This is the number of top interface layers."

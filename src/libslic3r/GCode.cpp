@@ -6857,12 +6857,14 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     unsigned int acceleration_to_set = 0;
     
     if (this->on_first_layer()) {
-        if (m_config.default_acceleration.value > 0 && m_config.initial_layer_acceleration.value > 0) {
-            acceleration_to_set = (unsigned int) floor(m_config.initial_layer_acceleration.value + 0.5);
+        unsigned int initial_layer_travel_acceleration = m_config.get_abs_value("initial_layer_travel_acceleration");
+        double initial_layer_travel_jerk = m_config.get_abs_value("initial_layer_travel_jerk");
+    
+        if (m_config.default_acceleration.value > 0 && initial_layer_travel_acceleration > 0) {
+            acceleration_to_set = (unsigned int) floor(initial_layer_travel_acceleration + 0.5);
         }
-        
-        if (m_config.default_jerk.value > 0 && m_config.initial_layer_jerk.value > 0) {
-            jerk_to_set = m_config.initial_layer_jerk.value;
+        if (m_config.default_jerk.value > 0 && initial_layer_travel_jerk > 0) {
+            jerk_to_set = initial_layer_travel_jerk;
         }
     } else {
         if (m_config.default_acceleration.value > 0) {

@@ -2969,6 +2969,15 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(300));
 
+    def = this->add("initial_layer_travel_acceleration", coFloatOrPercent);
+    def->label = L("First layer travel");
+    def->tooltip = L("Travel acceleration of first layer.");
+    def->sidetext = L("mm/s² or %");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->ratio_over = "travel_acceleration";
+    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
+
     def = this->add("accel_to_decel_enable", coBool);
     def->label = L("Enable accel_to_decel");
     def->tooltip = L("Klipper's max_accel_to_decel will be adjusted automatically.");
@@ -3047,6 +3056,15 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(12));
+
+    def = this->add("initial_layer_travel_jerk", coFloatOrPercent);
+    def->label = L("First layer travel");
+    def->tooltip = L("Travel jerk of first layer.");
+    def->sidetext = L("mm/s or %");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->ratio_over = "travel_jerk";
+    def->set_default_value(new ConfigOptionFloatOrPercent(100, true));
 
     def = this->add("initial_layer_line_width", coFloatOrPercent);
     def->label = L("Initial layer");
