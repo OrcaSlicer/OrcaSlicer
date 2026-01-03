@@ -14,21 +14,19 @@ namespace igl
 {
   namespace embree
   {
-    // BONE_HEAT  Compute skinning weights W given a surface mesh (V,F) and an
-    // internal skeleton (C,BE) according to "Automatic Rigging" [Baran and
-    // Popovic 2007].
-    //
-    // Inputs:
-    //   V  #V by 3 list of mesh vertex positions
-    //   F  #F by 3 list of mesh corner indices into V
-    //   C  #C by 3 list of joint locations
-    //   P  #P list of point handle indices into C
-    //   BE  #BE by 2 list of bone edge indices into C
-    //   CE  #CE by 2 list of cage edge indices into **P**
-    // Outputs:
-    //   W  #V by #P+#BE matrix of weights.
-    // Returns true only on success.
-    //
+    /// Compute skinning weights W given a surface mesh (V,F) and an
+    /// internal skeleton (C,BE) according to "Automatic Rigging" [Baran and
+    /// Popovic 2007].
+    ///
+    /// @param[in] V  #V by 3 list of mesh vertex positions
+    /// @param[in] F  #F by 3 list of mesh corner indices into V
+    /// @param[in] C  #C by 3 list of joint locations
+    /// @param[in] P  #P list of point handle indices into C
+    /// @param[in] BE  #BE by 2 list of bone edge indices into C
+    /// @param[in] CE  #CE by 2 list of cage edge indices into **P**
+    /// @param[out] W  #V by #P+#BE matrix of weights.
+    /// @return true only on success.
+    ///
     IGL_INLINE bool bone_heat(
       const Eigen::MatrixXd & V,
       const Eigen::MatrixXi & F,

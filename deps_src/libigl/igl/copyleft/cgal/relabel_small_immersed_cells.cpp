@@ -9,6 +9,7 @@
 
 #include "relabel_small_immersed_cells.h"
 #include "../../centroid.h"
+#include "../../PlainMatrix.h"
 #include "assign.h"
 #include "cell_adjacency.h"
 
@@ -22,16 +23,15 @@ template<
   typename FT,
   typename DerivedW>
 IGL_INLINE void igl::copyleft::cgal::relabel_small_immersed_cells(
-    const Eigen::PlainObjectBase<DerivedV>& V,
-    const Eigen::PlainObjectBase<DerivedF>& F,
+    const Eigen::MatrixBase<DerivedV>& V,
+    const Eigen::MatrixBase<DerivedF>& F,
     const size_t num_patches,
-    const Eigen::PlainObjectBase<DerivedP>& P,
+    const Eigen::MatrixBase<DerivedP>& P,
     const size_t num_cells,
-    const Eigen::PlainObjectBase<DerivedC>& C,
+    const Eigen::MatrixBase<DerivedC>& C,
     const FT vol_threashold,
     Eigen::PlainObjectBase<DerivedW>& W)
 {
-  const size_t num_vertices = V.rows();
   const size_t num_faces = F.rows();
   typedef std::tuple<typename DerivedC::Scalar, bool, size_t> CellConnection;
   std::vector<std::set<CellConnection> > cell_adj;
@@ -68,7 +68,7 @@ IGL_INLINE void igl::copyleft::cgal::relabel_small_immersed_cells(
 
     const size_t num_positive_faces = involved_positive_faces.size();
     const size_t num_negative_faces = involved_negative_faces.size();
-    DerivedF selected_faces(num_positive_faces + num_negative_faces, 3);
+    PlainMatrix<DerivedF,Eigen::Dynamic,3> selected_faces(num_positive_faces + num_negative_faces, 3);
     for (size_t i=0; i<num_positive_faces; i++) {
       selected_faces.row(i) = F.row(involved_positive_faces[i]);
     }

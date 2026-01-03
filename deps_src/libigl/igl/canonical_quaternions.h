@@ -8,14 +8,19 @@
 #ifndef IGL_CANONICAL_QUATERNIONS_H
 #define IGL_CANONICAL_QUATERNIONS_H
 #include "igl_inline.h"
-// Define some canonical quaternions for floats and doubles
-// A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
-// such that q = x*i + y*j + z*k + w
+/// @file canonical_quaternions
+///
+/// Define some canonical quaternions for floats and doubles
+/// A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
+/// such that q = x*i + y*j + z*k + w.
+///
+/// \see snap_to_canonical_view_quat
 namespace igl
 {
   // Float versions
+  // This will get undef'd below
 #define SQRT_2_OVER_2 0.707106781f
-  // Identity
+  // Identity quaternion
   const float IDENTITY_QUAT_F[4] = {0,0,0,1};
   // The following match the Matlab canonical views
   // X point right, Y pointing up and Z point out

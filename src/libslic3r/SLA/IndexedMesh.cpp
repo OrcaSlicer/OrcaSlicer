@@ -36,7 +36,7 @@ public:
     void intersect_ray(const indexed_triangle_set &its,
                        const Vec3d &               s,
                        const Vec3d &               dir,
-                       igl::Hit &                  hit)
+                       igl::Hit<float> &                  hit)
     {
         AABBTreeIndirect::intersect_ray_first_hit(its.vertices, its.indices,
                                                   m_tree, s, dir, hit, m_triangle_ray_epsilon);
@@ -45,7 +45,7 @@ public:
     void intersect_ray(const indexed_triangle_set &its,
                        const Vec3d &               s,
                        const Vec3d &               dir,
-                       std::vector<igl::Hit> &     hits)
+                       std::vector<igl::Hit<float>> &     hits)
     {
         AABBTreeIndirect::intersect_ray_all_hits(its.vertices, its.indices,
                                                  m_tree, s, dir, hits, m_triangle_ray_epsilon);
@@ -146,7 +146,7 @@ IndexedMesh::hit_result
 IndexedMesh::query_ray_hit(const Vec3d &s, const Vec3d &dir) const
 {
     assert(is_approx(dir.norm(), 1.));
-    igl::Hit hit{-1, -1, 0.f, 0.f, 0.f};
+    igl::Hit<float> hit{-1, -1, 0.f, 0.f, 0.f};
     hit.t = std::numeric_limits<float>::infinity();
 
 #ifdef SLIC3R_HOLE_RAYCASTER
@@ -175,24 +175,24 @@ std::vector<IndexedMesh::hit_result>
 IndexedMesh::query_ray_hits(const Vec3d &s, const Vec3d &dir) const
 {
     std::vector<IndexedMesh::hit_result> outs;
-    std::vector<igl::Hit> hits;
+    std::vector<igl::Hit<float>> hits;
     m_aabb->intersect_ray(*m_tm, s, dir, hits);
 
     // The sort is necessary, the hits are not always sorted.
     std::sort(hits.begin(), hits.end(),
-              [](const igl::Hit& a, const igl::Hit& b) { return a.t < b.t; });
+              [](const igl::Hit<float>& a, const igl::Hit<float>& b) { return a.t < b.t; });
 
     // Remove duplicates. They sometimes appear, for example when the ray is cast
     // along an axis of a cube due to floating-point approximations in igl (?)
     // BBS: STUDIO-2591 A mesh with overlapping faces cannot be painted
     //hits.erase(std::unique(hits.begin(), hits.end(),
-    //                       [](const igl::Hit& a, const igl::Hit& b)
+    //                       [](const igl::Hit<float>& a, const igl::Hit<float>& b)
     //                       { return a.t == b.t; }),
     //           hits.end());
 
-    //  Convert the igl::Hit into hit_result
+    //  Convert the igl::Hit<float> into hit_result
     outs.reserve(hits.size());
-    for (const igl::Hit& hit : hits) {
+    for (const igl::Hit<float>& hit : hits) {
         outs.emplace_back(IndexedMesh::hit_result(*this));
         outs.back().m_t = double(hit.t);
         outs.back().m_dir = dir;

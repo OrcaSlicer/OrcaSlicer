@@ -11,17 +11,12 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // VOLUME Compute volume for all tets of a given tet mesh
-  // (V,T)
-  //
-  // vol = volume(V,T)
-  //
-  // Inputs:
-  //   V  #V by dim list of vertex positions
-  //   T  #V by 4 list of tet indices
-  // Outputs:
-  //   vol  #T list of dihedral angles (in radians)
-  //
+  /// Compute volume for all tets of a given tet mesh (V,T)
+  ///
+  /// @param[in] V  #V by dim list of vertex positions
+  /// @param[in] T  #T by 4 list of tet indices
+  /// @param[out] vol  #T list of tetrahedron volumes
+  ///
   template <
     typename DerivedV, 
     typename DerivedT, 
@@ -30,6 +25,11 @@ namespace igl
     const Eigen::MatrixBase<DerivedV>& V,
     const Eigen::MatrixBase<DerivedT>& T,
     Eigen::PlainObjectBase<Derivedvol>& vol);
+  /// \overload
+  /// @param[in] A  #V by dim list of first corner position
+  /// @param[in] B  #V by dim list of second corner position
+  /// @param[in] C  #V by dim list of third corner position
+  /// @param[in] D  #V by dim list of fourth corner position
   template <
     typename DerivedA,
     typename DerivedB,
@@ -42,7 +42,8 @@ namespace igl
     const Eigen::MatrixBase<DerivedC> & C,
     const Eigen::MatrixBase<DerivedD> & D,
     Eigen::PlainObjectBase<Derivedvol> & vol);
-  // Single tet
+  /// \overload
+  /// \brief Single tet
   template <
     typename VecA,
     typename VecB,
@@ -53,10 +54,10 @@ namespace igl
     const VecB & b,
     const VecC & c,
     const VecD & d);
-  // Intrinsic version:
-  //
-  // Inputs:
-  //   L  #V by 6 list of edge lengths (see edge_lengths)
+  /// \overload
+  /// \brief Intrinsic version:
+  ///
+  /// @param[in] L  #V by 6 list of edge lengths (see edge_lengths)
   template <
     typename DerivedL, 
     typename Derivedvol>

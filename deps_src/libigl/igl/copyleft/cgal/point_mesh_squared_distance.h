@@ -17,22 +17,19 @@ namespace igl
   {
     namespace cgal
     {
-      // Compute distances from a set of points P to a triangle mesh (V,F)
-      //
-      // Templates:
-      //   Kernal  CGAL computation and construction kernel (e.g.
-      //     CGAL::Simple_cartesian<double>)
-      // Inputs:
-      //   P  #P by 3 list of query point positions
-      //   V  #V by 3 list of vertex positions
-      //   F  #F by 3 list of triangle indices
-      // Outputs:
-      //   sqrD  #P list of smallest squared distances
-      //   I  #P list of facet indices corresponding to smallest distances
-      //   C  #P by 3 list of closest points
-      //
-      // Known bugs: This only computes distances to triangles. So unreferenced
-      // vertices and degenerate triangles (segments) are ignored.
+      /// Compute distances from a set of points P to a triangle mesh (V,F)
+      ///
+      /// @tparam Kernal  CGAL computation and construction kernel (e.g.
+      ///     CGAL::Simple_cartesian<double>)
+      /// @param[in] P  #P by 3 list of query point positions
+      /// @param[in] V  #V by 3 list of vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices
+      /// @param[out] sqrD  #P list of smallest squared distances
+      /// @param[out] I  #P list of facet indices corresponding to smallest distances
+      /// @param[out] C  #P by 3 list of closest points
+      ///
+      /// \bug This only computes distances to triangles. So unreferenced
+      /// vertices and degenerate triangles (segments) are ignored.
       template <
         typename Kernel,
         typename DerivedP,
@@ -42,26 +39,29 @@ namespace igl
         typename DerivedI,
         typename DerivedC>
       IGL_INLINE void point_mesh_squared_distance(
-        const Eigen::PlainObjectBase<DerivedP> & P,
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedF> & F,
+        const Eigen::MatrixBase<DerivedP> & P,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF> & F,
               Eigen::PlainObjectBase<DerivedsqrD> & sqrD,
               Eigen::PlainObjectBase<DerivedI> & I,
               Eigen::PlainObjectBase<DerivedC> & C);
-      // Probably can do this in a way that we don't pass around `tree` and `T`
-      //
-      // Outputs:
-      //   tree  CGAL's AABB tree
-      //   T  list of CGAL triangles in order of F (for determining which was found
-      //     in computation)
+      /// precomputation for point_mesh_squared_distance
+      ///
+      /// @param[in] V  #V by 3 list of vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices
+      /// @param[out] tree  CGAL's AABB tree
+      /// @param[out] T  list of CGAL triangles in order of F (for determining which was found
+      ///     in computation)
+      ///
+      /// \fileinfo
       template <
         typename Kernel,
         typename DerivedV,
         typename DerivedF
         >
       IGL_INLINE void point_mesh_squared_distance_precompute(
-        const Eigen::PlainObjectBase<DerivedV> & V,
-        const Eigen::PlainObjectBase<DerivedF> & F,
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF> & F,
         CGAL::AABB_tree<
           CGAL::AABB_traits<Kernel, 
             CGAL::AABB_triangle_primitive<Kernel, 
@@ -70,10 +70,16 @@ namespace igl
           >
         > & tree,
         std::vector<CGAL::Triangle_3<Kernel> > & T);
-      // Inputs:
-      //  see above
-      // Outputs:
-      //  see above
+      /// Compute distances from a set of points P to a triangle mesh (V,F)
+      /// using precomputed trees.
+      ///
+      /// @param[in] P  #P by 3 list of query point positions
+      /// @param[in] tree  CGAL's AABB tree
+      /// @param[in] T  list of CGAL triangles in order of F (for determining which was found
+      ///     in computation)
+      /// @param[out] sqrD  #P list of smallest squared distances
+      /// @param[out] I  #P list of facet indices corresponding to smallest distances
+      /// @param[out] C  #P by 3 list of closest points
       template <
         typename Kernel,
         typename DerivedP,
@@ -81,7 +87,7 @@ namespace igl
         typename DerivedI,
         typename DerivedC>
       IGL_INLINE void point_mesh_squared_distance(
-        const Eigen::PlainObjectBase<DerivedP> & P,
+        const Eigen::MatrixBase<DerivedP> & P,
         const CGAL::AABB_tree<
           CGAL::AABB_traits<Kernel, 
             CGAL::AABB_triangle_primitive<Kernel, 

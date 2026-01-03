@@ -14,16 +14,14 @@
 
 namespace igl
 {
-  // Snap an arbitrary rotation to a rotation resulting from a rotation about
-  // the y-axis then the x-axis (maintaining fixed up like
-  // two_axis_valuator_fixed_up.)
-  //
-  // Inputs:
-  //   q  General rotation as quaternion
-  // Outputs:
-  //   s the resulting rotation (as quaternion)
-  //
-  // See also: two_axis_valuator_fixed_up
+  /// Snap an arbitrary rotation to a rotation resulting from a rotation about
+  /// the y-axis then the x-axis (maintaining fixed up like
+  /// two_axis_valuator_fixed_up.)
+  ///
+  /// @param[in] q  General rotation as quaternion
+  /// @param[out] s the resulting rotation (as quaternion)
+  ///
+  /// \see two_axis_valuator_fixed_up
   template <typename Qtype>
   IGL_INLINE void snap_to_fixed_up(
     const Eigen::Quaternion<Qtype> & q,

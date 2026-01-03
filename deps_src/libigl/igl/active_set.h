@@ -16,39 +16,45 @@
 namespace igl
 {
   struct active_set_params;
-  // Known Bugs: rows of [Aeq;Aieq] **must** be linearly independent. Should be
-  // using QR decomposition otherwise:
-  //   http://www.okstate.edu/sas/v8/sashtml/ormp/chap5/sect32.htm
-  //
-  // ACTIVE_SET Minimize quadratic energy 
-  //
-  // 0.5*Z'*A*Z + Z'*B + C with constraints
-  //
-  // that Z(known) = Y, optionally also subject to the constraints Aeq*Z = Beq,
-  // and further optionally subject to the linear inequality constraints that
-  // Aieq*Z <= Bieq and constant inequality constraints lx <= x <= ux
-  //
-  // Inputs:
-  //   A  n by n matrix of quadratic coefficients
-  //   B  n by 1 column of linear coefficients
-  //   known  list of indices to known rows in Z
-  //   Y  list of fixed values corresponding to known rows in Z
-  //   Aeq  meq by n list of linear equality constraint coefficients
-  //   Beq  meq by 1 list of linear equality constraint constant values
-  //   Aieq  mieq by n list of linear inequality constraint coefficients
-  //   Bieq  mieq by 1 list of linear inequality constraint constant values
-  //   lx  n by 1 list of lower bounds [] implies -Inf
-  //   ux  n by 1 list of upper bounds [] implies Inf
-  //   params  struct of additional parameters (see below)
-  //   Z  if not empty, is taken to be an n by 1 list of initial guess values
-  //     (see output)
-  // Outputs:
-  //   Z  n by 1 list of solution values
-  // Returns true on success, false on error
-  //
-  // Benchmark: For a harmonic solve on a mesh with 325K facets, matlab 2.2
-  // secs, igl/min_quad_with_fixed.h 7.1 secs
-  //
+  ///
+  /// Minimize convex quadratic energy subject to linear inequality constraints
+  ///
+  ///     min ½ Zᵀ A Z + Zᵀ B + constant
+  ///      Z
+  ///     subject to
+  ///            Aeq Z = Beq
+  ///            Aieq Z <= Bieq
+  ///            lx <= Z <= ux
+  ///            Z(known) = Y
+  ///
+  /// that Z(known) = Y, optionally also subject to the constraints Aeq*Z = Beq,
+  /// and further optionally subject to the linear inequality constraints that
+  /// Aieq*Z <= Bieq and constant inequality constraints lx <= x <= ux
+  ///
+  /// @param[in] A  n by n matrix of quadratic coefficients
+  /// @param[in] B  n by 1 column of linear coefficients
+  /// @param[in] known  list of indices to known rows in Z
+  /// @param[in] Y  list of fixed values corresponding to known rows in Z
+  /// @param[in] Aeq  meq by n list of linear equality constraint coefficients
+  /// @param[in] Beq  meq by 1 list of linear equality constraint constant values
+  /// @param[in] Aieq  mieq by n list of linear inequality constraint coefficients
+  /// @param[in] Bieq  mieq by 1 list of linear inequality constraint constant values
+  /// @param[in] lx  n by 1 list of lower bounds [] implies -Inf
+  /// @param[in] ux  n by 1 list of upper bounds [] implies Inf
+  /// @param[in] params  struct of additional parameters (see below)
+  /// @param[in,out] Z  if not empty, is taken to be an n by 1 list of initial guess values. Set to solution on output.
+  /// @return true on success, false on error
+  ///
+  /// \note Benchmark: For a harmonic solve on a mesh with 325K facets, matlab 2.2
+  /// secs, igl/min_quad_with_fixed.h 7.1 secs
+  ///
+  /// \pre rows of [Aeq;Aieq] **must** be linearly independent. Should be
+  /// using QR decomposition otherwise:
+  /// https://v8doc.sas.com/sashtml/ormp/chap5/sect32.htm
+  ///
+  /// \warning This solver is fairly experimental. It works reasonably well for
+  /// bbw problems but doesn't generalize well to other problems.  NASOQ and
+  /// OSQP are better general purpose solvers.
   template <
     typename AT, 
     typename DerivedB,
@@ -64,37 +70,40 @@ namespace igl
     >
   IGL_INLINE igl::SolverStatus active_set(
     const Eigen::SparseMatrix<AT>& A,
-    const Eigen::PlainObjectBase<DerivedB> & B,
-    const Eigen::PlainObjectBase<Derivedknown> & known,
-    const Eigen::PlainObjectBase<DerivedY> & Y,
+    const Eigen::MatrixBase<DerivedB> & B,
+    const Eigen::MatrixBase<Derivedknown> & known,
+    const Eigen::MatrixBase<DerivedY> & Y,
     const Eigen::SparseMatrix<AeqT>& Aeq,
-    const Eigen::PlainObjectBase<DerivedBeq> & Beq,
+    const Eigen::MatrixBase<DerivedBeq> & Beq,
     const Eigen::SparseMatrix<AieqT>& Aieq,
-    const Eigen::PlainObjectBase<DerivedBieq> & Bieq,
-    const Eigen::PlainObjectBase<Derivedlx> & lx,
-    const Eigen::PlainObjectBase<Derivedux> & ux,
+    const Eigen::MatrixBase<DerivedBieq> & Bieq,
+    const Eigen::MatrixBase<Derivedlx> & lx,
+    const Eigen::MatrixBase<Derivedux> & ux,
     const igl::active_set_params & params,
     Eigen::PlainObjectBase<DerivedZ> & Z
     );
 };
 
 #include "EPS.h"
+/// Input parameters controling active_set
+///
+/// \fileinfo
 struct igl::active_set_params
 {
-  // Input parameters for active_set:
-  //   Auu_pd  whether Auu is positive definite {false}
-  //   max_iter  Maximum number of iterations (0 = Infinity, {100})
-  //   inactive_threshold  Threshold on Lagrange multiplier values to determine
-  //     whether to keep constraints active {EPS}
-  //   constraint_threshold  Threshold on whether constraints are violated (0
-  //     is perfect) {EPS}
-  //   solution_diff_threshold  Threshold on the squared norm of the difference
-  //     between two consecutive solutions {EPS}
+///  Auu_pd  whether Auu is positive definite {false}
   bool Auu_pd;
+///  max_iter  Maximum number of iterations (0 = Infinity, {100})
   int max_iter;
+///  inactive_threshold  Threshold on Lagrange multiplier values to determine
+///   whether to keep constraints active {EPS}
   double inactive_threshold;
+///  constraint_threshold  Threshold on whether constraints are violated (0
+///   is perfect) {EPS}
   double constraint_threshold;
+///  solution_diff_threshold  Threshold on the squared norm of the difference
+///    between two consecutive solutions {EPS}
   double solution_diff_threshold;
+  /// @private
   active_set_params():
     Auu_pd(false),
     max_iter(100),

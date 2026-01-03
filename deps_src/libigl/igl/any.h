@@ -12,16 +12,15 @@
 #include <Eigen/Sparse>
 namespace igl
 {
-  // For Dense matrices use: A.rowwise().any() or A.colwise().any()
-  //
-  // Inputs:
-  //   A  m by n sparse matrix
-  //   dim  dimension along which to check for any (1 or 2)
-  // Output:
-  //   B  n-long vector (if dim == 1) 
-  //   or
-  //   B  m-long vector (if dim == 2)
-  //
+  /// Check whether any values are logically true along a dimension.
+  ///
+  /// \note Dense matrices use: A.rowwise().any() or A.colwise().any()
+  ///
+  /// @param[in]  A  m by n sparse matrix
+  /// @param[in] dim  dimension along which to check for any (1 or 2)
+  /// @param[out] B  n-long vector (if dim == 1) 
+  ///   or m-long vector (if dim == 2)
+  ///
   template <typename AType, typename DerivedB>
   IGL_INLINE void any(
     const Eigen::SparseMatrix<AType> & A, 

@@ -35,9 +35,17 @@
 
 #else
 
+/// Bold red colored text
+/// @param[in] X  text to color
+/// @returns colored text as "stream"
+/// #### Example:
+///
+/// \code{cpp}
+/// std::cout<<REDRUM("File "<<filename<<" not found.")<<std::endl;
+/// \endcode
+#define REDRUM(X)      "\e[1m\e[31m"<<X<<"\e[m"
 // Bold Red, etc.
 #define NORUM(X)       ""<<X<<""
-#define REDRUM(X)      "\e[1m\e[31m"<<X<<"\e[m"
 #define GREENRUM(X)    "\e[1m\e[32m"<<X<<"\e[m"
 #define YELLOWRUM(X)   "\e[1m\e[33m"<<X<<"\e[m"
 #define BLUERUM(X)     "\e[1m\e[34m"<<X<<"\e[m"

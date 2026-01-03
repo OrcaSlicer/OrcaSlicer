@@ -1,9 +1,10 @@
 #include "wire_mesh.h"
 
 #include "../../list_to_matrix.h"
-#include "../../slice.h"
 #include "../../PI.h"
+#include "../../placeholders.h"
 #include "convex_hull.h"
+#include "coplanar.h"
 #include "mesh_boolean.h"
 #include <Eigen/Geometry>
 #include <vector>
@@ -11,19 +12,22 @@
 template <
   typename DerivedWV,
   typename DerivedWE,
+  typename Derivedth,
   typename DerivedV,
   typename DerivedF,
   typename DerivedJ>
 IGL_INLINE void igl::copyleft::cgal::wire_mesh(
   const Eigen::MatrixBase<DerivedWV> & WV,
   const Eigen::MatrixBase<DerivedWE> & WE,
-  const double th,
+  const Eigen::MatrixBase<Derivedth> & th,
   const int poly_size,
   const bool solid,
   Eigen::PlainObjectBase<DerivedV> & V,
   Eigen::PlainObjectBase<DerivedF> & F,
   Eigen::PlainObjectBase<DerivedJ> & J)
 {
+  assert((th.size()==1 || th.size()==WE.rows()) && 
+    "th should be scalar or size of WE");
 
   typedef typename DerivedWV::Scalar Scalar;
   // Canonical polygon to place at each endpoint
@@ -51,17 +55,26 @@ IGL_INLINE void igl::copyleft::cgal::wire_mesh(
   {
     return WV.rows() + e*2*PV.rows() + PV.rows()*c + p;
   };
-  const auto unindex = 
-    [&PV,&WV](int v, int & e, int & c, int & p)
+  //const auto unindex = 
+  //  [&PV,&WV](int v, int & e, int & c, int & p)
+  //{
+  //  assert(v>=WV.rows());
+  //  v = v-WV.rows();
+  //  e = v/(2*PV.rows());
+  //  v = v-e*(2*PV.rows());
+  //  c = v/(PV.rows());
+  //  v = v-c*(PV.rows());
+  //  p = v;
+  //};
+
+  // Count each vertex's indicident edges.
+  std::vector<int> nedges(WV.rows(), 0);
+  for(int e = 0;e<WE.rows();e++)
   {
-    assert(v>=WV.rows());
-    v = v-WV.rows();
-    e = v/(2*PV.rows());
-    v = v-e*(2*PV.rows());
-    c = v/(PV.rows());
-    v = v-c*(PV.rows());
-    p = v;
-  };
+    ++nedges[WE(e, 0)];
+    ++nedges[WE(e, 1)];
+  }
+
   // loop over all edges
   for(int e = 0;e<WE.rows();e++)
   {
@@ -78,7 +91,7 @@ IGL_INLINE void igl::copyleft::cgal::wire_mesh(
     // loop over polygon vertices
     for(int p = 0;p<PV.rows();p++)
     {
-      RowVector3S qp = q*(PV.row(p)*th);
+      RowVector3S qp = q*(PV.row(p)*th(e%th.size()));
       // loop over endpoints
       for(int c = 0;c<2;c++)
       {
@@ -88,7 +101,9 @@ IGL_INLINE void igl::copyleft::cgal::wire_mesh(
         // Start with factor of thickness;
         // Max out amount at 1/3 of edge length so that there's always some
         // amount of edge
-        Scalar dist = std::min(1.*th,len/3.0);
+        // Zero out if vertex is incident on only one edge
+        Scalar dist = 
+          std::min(1.*th(e%th.size()),len/3.0)*(nedges[WE(e,c)] > 1);
         // Move to endpoint, offset by amount
         V.row(index(e,c,p)) = 
           qp+WV.row(WE(e,c)) + dist*dir*uv;
@@ -99,10 +114,14 @@ IGL_INLINE void igl::copyleft::cgal::wire_mesh(
   std::vector<std::vector<typename DerivedF::Index> > vF;
   std::vector<int> vJ;
   const auto append_hull = 
-    [&V,&vF,&vJ,&unindex,&WV](const Eigen::VectorXi & I, const int j)
+    [&V,&vF,&vJ](const Eigen::VectorXi & I, const int j)
   {
-    MatrixX3S Vv;
-    igl::slice(V,I,1,Vv);
+    MatrixX3S Vv = V(I,igl::placeholders::all);
+
+    if(coplanar(Vv))
+    {
+      return;
+    }
     Eigen::MatrixXi Fv;
     convex_hull(Vv,Fv);
     for(int f = 0;f<Fv.rows();f++)
@@ -189,6 +208,26 @@ IGL_INLINE void igl::copyleft::cgal::wire_mesh(
   {
     list_to_matrix(vJ,J);
   }
+}
+
+template <
+  typename DerivedWV,
+  typename DerivedWE,
+  typename DerivedV,
+  typename DerivedF,
+  typename DerivedJ>
+IGL_INLINE void igl::copyleft::cgal::wire_mesh(
+  const Eigen::MatrixBase<DerivedWV> & WV,
+  const Eigen::MatrixBase<DerivedWE> & WE,
+  const double th,
+  const int poly_size,
+  const bool solid,
+  Eigen::PlainObjectBase<DerivedV> & V,
+  Eigen::PlainObjectBase<DerivedF> & F,
+  Eigen::PlainObjectBase<DerivedJ> & J)
+{
+  return wire_mesh(
+    WV,WE,(Eigen::VectorXd(1,1)<<th).finished(),poly_size,solid,V,F,J);
 }
 
 template <

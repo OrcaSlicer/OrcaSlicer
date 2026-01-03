@@ -11,24 +11,22 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Given a mesh (V,F), a query point q, and a point on (V,F) c, determine
-  // whether q is inside (V,F) --> s=-1 or outside (V,F) s=1, based on the
-  // sign of the dot product between (q-c) and n, where n is the normal _at c_,
-  // carefully chosen according to [Bærentzen & Aanæs 2005]
-  //
-  // Inputs:
-  //   V  #V by 3 list of vertex positions
-  //   F  #F by 3 list of triangle indices
-  //   FN  #F by 3 list of triangle normals 
-  //   VN  #V by 3 list of vertex normals (ANGLE WEIGHTING)
-  //   EN  #E by 3 list of edge normals (UNIFORM WEIGHTING)
-  //   EMAP  #F*3 mapping edges in F to E
-  //   q  Query point
-  //   f  index into F to face to which c belongs
-  //   c  Point on (V,F)
-  // Outputs:
-  //   s  sign
-  //   n  normal
+  /// Given a mesh (V,F), a query point q, and a point on (V,F) c, determine
+  /// whether q is inside (V,F) --> s=-1 or outside (V,F) s=1, based on the
+  /// sign of the dot product between (q-c) and n, where n is the normal _at c_,
+  /// carefully chosen according to [Bærentzen & Aanæs 2005]
+  ///
+  /// @param[in] V  #V by 3 list of vertex positions
+  /// @param[in] F  #F by 3 list of triangle indices
+  /// @param[in] FN  #F by 3 list of triangle normals 
+  /// @param[in] VN  #V by 3 list of vertex normals (ANGLE WEIGHTING)
+  /// @param[in] EN  #E by 3 list of edge normals (UNIFORM WEIGHTING)
+  /// @param[in] EMAP  #F*3 mapping edges in F to E
+  /// @param[in] q  Query point
+  /// @param[in] f  index into F to face to which c belongs
+  /// @param[in] c  Point on (V,F)
+  /// @param[out] s  sign
+  /// @param[out] n  normal
   template <
     typename DerivedV,
     typename DerivedF,
@@ -52,6 +50,8 @@ namespace igl
     Eigen::PlainObjectBase<Derivedc> & c,
     Scalar & s,
     Eigen::PlainObjectBase<Derivedn> & n);
+  /// \overload
+  /// \brief 2D version.
   template <
     typename DerivedV,
     typename DerivedF,

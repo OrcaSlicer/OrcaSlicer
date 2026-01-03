@@ -15,35 +15,30 @@
 
 namespace igl
 {
-  // At least for Dense matrices this is replaced by `replicate` e.g., dst = src.replicate(n,m);
-  // http://forum.kde.org/viewtopic.php?f=74&t=90876#p173517
-
-  // Ideally this is a super overloaded function that behaves just like
-  // matlab's repmat
-
-  // Replicate and tile a matrix
-  //
-  // Templates:
-  //   T  should be a eigen matrix primitive type like int or double
-  // Inputs:
-  //   A  m by n input matrix
-  //   r  number of row-direction copies
-  //   c  number of col-direction copies
-  // Outputs:
-  //   B  r*m by c*n output matrix
-  //
+  /// Replicate and tile a matrix
+  ///
+  /// @tparam T  should be a eigen matrix primitive type like int or double
+  /// @param[in] A  m by n input matrix
+  /// @param[in] r  number of row-direction copies
+  /// @param[in] c  number of col-direction copies
+  /// @param[out] B  r*m by c*n output matrix
+  ///
+  /// \note At least for Dense matrices this is replaced by `replicate` e.g., dst = src.replicate(n,m);
+  /// http://forum.kde.org/viewtopic.php?f=74&t=90876#p173517
+  ///
   template <typename DerivedA,typename DerivedB>
   IGL_INLINE void repmat(
     const Eigen::MatrixBase<DerivedA> & A,
     const int r,
     const int c,
     Eigen::PlainObjectBase<DerivedB> & B);
-  template <typename T>
+  /// \overload
+  template <typename T, int majorType>
   IGL_INLINE void repmat(
-    const Eigen::SparseMatrix<T> & A,
+    const Eigen::SparseMatrix<T, majorType> & A,
     const int r,
     const int c,
-    Eigen::SparseMatrix<T> & B);
+    Eigen::SparseMatrix<T, majorType> & B);
 }
 
 #ifndef IGL_STATIC_LIBRARY

@@ -14,7 +14,6 @@
 #include "speye.h"
 #include "mode.h"
 #include "project_isometrically_to_plane.h"
-#include "slice.h"
 #include "arap_rhs.h"
 #include "repdiag.h"
 #include "columnize.h"
@@ -22,20 +21,24 @@
 #include <cassert>
 #include <iostream>
 
+template <typename Scalar>
+using MatrixXX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+
 template <
   typename DerivedV,
   typename DerivedF,
   typename Derivedb>
 IGL_INLINE bool igl::arap_precomputation(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedF> & F,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedF> & F,
   const int dim,
-  const Eigen::PlainObjectBase<Derivedb> & b,
+  const Eigen::MatrixBase<Derivedb> & b,
   ARAPData & data)
 {
   using namespace std;
   using namespace Eigen;
   typedef typename DerivedV::Scalar Scalar;
+  typedef typename DerivedF::Scalar Integer;
   // number of vertices
   const int n = V.rows();
   data.n = n;
@@ -55,8 +58,8 @@ IGL_INLINE bool igl::arap_precomputation(
   assert(data.dim <= V.cols() && "solve dim should be <= embedding");
   bool flat = (V.cols() - data.dim)==1;
 
-  DerivedV plane_V;
-  DerivedF plane_F;
+  MatrixXX<Scalar> plane_V;
+  MatrixXX<Integer> plane_F;
   typedef SparseMatrix<Scalar> SparseMatrixS;
   SparseMatrixS ref_map,ref_map_dim;
   if(flat)
@@ -64,8 +67,8 @@ IGL_INLINE bool igl::arap_precomputation(
     project_isometrically_to_plane(V,F,plane_V,plane_F,ref_map);
     repdiag(ref_map,dim,ref_map_dim);
   }
-  const PlainObjectBase<DerivedV>& ref_V = (flat?plane_V:V);
-  const PlainObjectBase<DerivedF>& ref_F = (flat?plane_F:F);
+  const MatrixXX<Scalar>& ref_V = (flat?plane_V:V);
+  const MatrixXX<Integer>& ref_F = (flat?plane_F:F);
   SparseMatrixS L;
   cotmatrix(V,F,L);
 
@@ -122,9 +125,7 @@ IGL_INLINE bool igl::arap_precomputation(
       MatrixXi GF(F.rows(),F.cols());
       for(int j = 0;j<F.cols();j++)
       {
-        Matrix<int,Eigen::Dynamic,1> GFj;
-        slice(data.G,F.col(j),GFj);
-        GF.col(j) = GFj;
+        GF.col(j) = data.G(F.col(j));
       }
       mode<int>(GF,2,GG);
       data.G=GG;
@@ -169,30 +170,20 @@ template <
   typename Derivedbc,
   typename DerivedU>
 IGL_INLINE bool igl::arap_solve(
-  const Eigen::PlainObjectBase<Derivedbc> & bc,
+  const Eigen::MatrixBase<Derivedbc> & bc,
   ARAPData & data,
-  Eigen::PlainObjectBase<DerivedU> & U)
+  Eigen::MatrixBase<DerivedU> & U)
 {
   using namespace Eigen;
   using namespace std;
   assert(data.b.size() == bc.rows());
-  if(bc.size() > 0)
-  {
+  assert(U.size() != 0 && "U cannot be empty");
+  assert(U.cols() == data.dim && "U.cols() match data.dim");
+  if (bc.size() > 0) {
     assert(bc.cols() == data.dim && "bc.cols() match data.dim");
   }
   const int n = data.n;
   int iter = 0;
-  if(U.size() == 0)
-  {
-    // terrible initial guess.. should at least copy input mesh
-#ifndef NDEBUG
-    cerr<<"arap_solve: Using terrible initial guess for U. Try U = V."<<endl;
-#endif
-    U = MatrixXd::Zero(data.n,data.dim);
-  }else
-  {
-    assert(U.cols() == data.dim && "U.cols() match data.dim");
-  }
   // changes each arap iteration
   MatrixXd U_prev = U;
   // doesn't change for fixed with_dynamics timestep
@@ -307,6 +298,6 @@ IGL_INLINE bool igl::arap_solve(
 }
 
 #ifdef IGL_STATIC_LIBRARY
-template bool igl::arap_solve<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, igl::ARAPData&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
-template bool igl::arap_precomputation<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, int, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, igl::ARAPData&);
+template bool igl::arap_solve<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, igl::ARAPData&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
+template bool igl::arap_precomputation<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, int, Eigen::MatrixBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> > const&, igl::ARAPData&);
 #endif

@@ -15,22 +15,18 @@
 
 namespace igl
 {
-  // Flip an edge in a triangle mesh.  The edge specified by uei must have
-  // exactly **two** adjacent faces.  Violation will result in exception.
-  // Another warning: edge flipping could convert manifold mesh into
-  // non-manifold.
-  //
-  // Inputs:
-  //   F    #F by 3 list of triangles.
-  //   E    #F*3 by 2 list of all of directed edges
-  //   uE   #uE by 2 list of unique undirected edges
-  //   EMAP #F*3 list of indices into uE, mapping each directed edge to unique
-  //        undirected edge
-  //   uE2E #uE list of lists of indices into E of coexisting edges
-  //   ue   index into uE the edge to be flipped.
-  //
-  // Output:
-  //   Updated F, E, uE, EMAP and uE2E.
+  /// Flip an edge in a triangle mesh.  The edge specified by uei must have
+  /// exactly **two** adjacent faces.  Violation will result in exception.
+  /// Another warning: edge flipping could convert manifold mesh into
+  /// non-manifold.
+  ///
+  /// @param[in,out] F    #F by 3 list of triangles.
+  /// @param[in,out] E    #F*3 by 2 list of all of directed edges
+  /// @param[in,out] uE   #uE by 2 list of unique undirected edges
+  /// @param[in,out] EMAP #F*3 list of indices into uE, mapping each directed edge to unique
+  ///        undirected edge
+  /// @param[in,out] uE2E #uE list of lists of indices into E of coexisting edges
+  /// @param[in] ue   index into uE the edge to be flipped.
   template <
     typename DerivedF,
     typename DerivedE,

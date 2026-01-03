@@ -12,23 +12,24 @@
 #include <string>
 namespace igl
 {
-  // Write a bones forest to a file
-  //
-  // Input:
-  //   file_name  path to .bf bones tree file
-  //   WI  #B list of unique weight indices
-  //   P  #B list of parent indices into B, -1 for roots
-  //   O  #B list of tip offsets
-  // Returns true on success, false on errors
+  /// Write a bones forest to a file
+  ///
+  /// @param[in] file_name  path to .bf bones tree file
+  /// @param[in] WI  #B list of unique weight indices
+  /// @param[in] P  #B list of parent indices into B, -1 for roots
+  /// @param[in] O  #B list of tip offsets
+  /// @return true on success, false on errors
+  ///
+  /// \see readBF
   template < 
     typename DerivedWI,
     typename DerivedP,
     typename DerivedO>
   IGL_INLINE bool writeBF(
     const std::string & filename,
-    const Eigen::PlainObjectBase<DerivedWI> & WI,
-    const Eigen::PlainObjectBase<DerivedP> & P,
-    const Eigen::PlainObjectBase<DerivedO> & O);
+    const Eigen::MatrixBase<DerivedWI> & WI,
+    const Eigen::MatrixBase<DerivedP> & P,
+    const Eigen::MatrixBase<DerivedO> & O);
 }
 
 #ifndef IGL_STATIC_LIBRARY

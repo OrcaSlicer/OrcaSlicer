@@ -13,15 +13,15 @@
 #include <Eigen/Sparse>
 namespace igl
 {
-  // Prints a 3 column matrix representing [I,J,V] = find(X). That is, each
-  // row is the row index, column index and value for each non zero entry. Each
-  // row is printed on a new line
-  //
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Input:
-  //   X  m by n matrix whose entries are to be sorted
-  //   offset  optional offset for I and J indices {0}
+  /// Prints a 3 column matrix representing [I,J,V] = find(X). That is, each
+  /// row is the row index, column index and value for each non zero entry. Each
+  /// row is printed on a new line
+  ///
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] X  m by n matrix whose entries are to be sorted
+  /// @param[in] offset  optional offset for I and J indices {0}
+  ///
+  /// \see matlab_format
   template <typename T>
   IGL_INLINE void print_ijv(
     const Eigen::SparseMatrix<T>& X, 

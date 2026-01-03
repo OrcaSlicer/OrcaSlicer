@@ -23,12 +23,12 @@
 
 template <typename DerivedV, typename DerivedF, typename DerivedI>
 IGL_INLINE bool igl::copyleft::cgal::component_inside_component(
-        const Eigen::PlainObjectBase<DerivedV>& V1,
-        const Eigen::PlainObjectBase<DerivedF>& F1,
-        const Eigen::PlainObjectBase<DerivedI>& I1,
-        const Eigen::PlainObjectBase<DerivedV>& V2,
-        const Eigen::PlainObjectBase<DerivedF>& F2,
-        const Eigen::PlainObjectBase<DerivedI>& I2) {
+        const Eigen::MatrixBase<DerivedV>& V1,
+        const Eigen::MatrixBase<DerivedF>& F1,
+        const Eigen::MatrixBase<DerivedI>& I1,
+        const Eigen::MatrixBase<DerivedV>& V2,
+        const Eigen::MatrixBase<DerivedF>& F2,
+        const Eigen::MatrixBase<DerivedI>& I2) {
     if (F1.rows() <= 0 || I1.rows() <= 0 || F2.rows() <= 0 || I2.rows() <= 0) {
         throw "Component inside test cannot be done on empty component!";
     }
@@ -46,10 +46,10 @@ IGL_INLINE bool igl::copyleft::cgal::component_inside_component(
 
 template<typename DerivedV, typename DerivedF>
 IGL_INLINE bool igl::copyleft::cgal::component_inside_component(
-        const Eigen::PlainObjectBase<DerivedV>& V1,
-        const Eigen::PlainObjectBase<DerivedF>& F1,
-        const Eigen::PlainObjectBase<DerivedV>& V2,
-        const Eigen::PlainObjectBase<DerivedF>& F2) {
+        const Eigen::MatrixBase<DerivedV>& V1,
+        const Eigen::MatrixBase<DerivedF>& F1,
+        const Eigen::MatrixBase<DerivedV>& V2,
+        const Eigen::MatrixBase<DerivedF>& F2) {
     if (F1.rows() <= 0 || F2.rows() <= 0) {
         throw "Component inside test cannot be done on empty component!";
     }
@@ -62,22 +62,6 @@ IGL_INLINE bool igl::copyleft::cgal::component_inside_component(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template bool igl::copyleft::cgal::component_inside_component<
-Eigen::Matrix<double, -1, -1, 0, -1, -1>,
-Eigen::Matrix<   int, -1, -1, 0, -1, -1>,
-Eigen::Matrix<   int, -1, -1, 0, -1, -1> > (
-Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&);
-
-template bool igl::copyleft::cgal::component_inside_component<
-Eigen::Matrix<double, -1, -1, 0, -1, -1>,
-Eigen::Matrix<   int, -1, -1, 0, -1, -1> > (
-Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,
-Eigen::PlainObjectBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&);
+template bool igl::copyleft::cgal::component_inside_component<Eigen::Matrix<double, -1, -1, 0, -1, -1>,Eigen::Matrix<   int, -1, -1, 0, -1, -1>,Eigen::Matrix<   int, -1, -1, 0, -1, -1> > (Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&);
+template bool igl::copyleft::cgal::component_inside_component<Eigen::Matrix<double, -1, -1, 0, -1, -1>,Eigen::Matrix<   int, -1, -1, 0, -1, -1> > (Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&,Eigen::MatrixBase<Eigen::Matrix<   int, -1, -1, 0, -1, -1> > const&);
 #endif

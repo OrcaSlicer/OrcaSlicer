@@ -8,31 +8,8 @@
 #include "infinite_cost_stopping_condition.h"
 
 IGL_INLINE void igl::infinite_cost_stopping_condition(
-  const std::function<void(
-    const int,
-    const Eigen::MatrixXd &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::VectorXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    double &,
-    Eigen::RowVectorXd &)> & cost_and_placement,
-  std::function<bool(
-    const Eigen::MatrixXd &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::VectorXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    const std::set<std::pair<double,int> > &,
-    const std::vector<std::set<std::pair<double,int> >::iterator > &,
-    const Eigen::MatrixXd &,
-    const int,
-    const int,
-    const int,
-    const int,
-    const int)> & stopping_condition)
+  const decimate_cost_and_placement_callback & cost_and_placement,
+  decimate_stopping_condition_callback & stopping_condition)
 {
   stopping_condition = 
     [&cost_and_placement]
@@ -43,15 +20,17 @@ IGL_INLINE void igl::infinite_cost_stopping_condition(
     const Eigen::VectorXi & EMAP,
     const Eigen::MatrixXi & EF,
     const Eigen::MatrixXi & EI,
-    const std::set<std::pair<double,int> > & Q,
-    const std::vector<std::set<std::pair<double,int> >::iterator > & Qit,
-    const Eigen::MatrixXd & C,
+    const igl::min_heap< std::tuple<double,int,int> > & ,/*Q*/
+    const Eigen::VectorXi &                             EQ,
+    const Eigen::MatrixXd & /*C*/,
     const int e,
     const int /*e1*/,
     const int /*e2*/,
     const int /*f1*/,
     const int /*f2*/)->bool
     {
+      // e was (just) collapsed.
+      if(EQ(e) == -1) { return false; }
       Eigen::RowVectorXd p;
       double cost;
       cost_and_placement(e,V,F,E,EMAP,EF,EI,cost,p);
@@ -59,49 +38,11 @@ IGL_INLINE void igl::infinite_cost_stopping_condition(
     };
 }
 
-IGL_INLINE 
-  std::function<bool(
-    const Eigen::MatrixXd &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::VectorXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    const std::set<std::pair<double,int> > &,
-    const std::vector<std::set<std::pair<double,int> >::iterator > &,
-    const Eigen::MatrixXd &,
-    const int,
-    const int,
-    const int,
-    const int,
-    const int)> 
+IGL_INLINE igl::decimate_stopping_condition_callback
   igl::infinite_cost_stopping_condition(
-    const std::function<void(
-      const int,
-      const Eigen::MatrixXd &,
-      const Eigen::MatrixXi &,
-      const Eigen::MatrixXi &,
-      const Eigen::VectorXi &,
-      const Eigen::MatrixXi &,
-      const Eigen::MatrixXi &,
-      double &,
-      Eigen::RowVectorXd &)> & cost_and_placement)
+  const decimate_cost_and_placement_callback & cost_and_placement)
 {
-  std::function<bool(
-    const Eigen::MatrixXd &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::VectorXi &,
-    const Eigen::MatrixXi &,
-    const Eigen::MatrixXi &,
-    const std::set<std::pair<double,int> > &,
-    const std::vector<std::set<std::pair<double,int> >::iterator > &,
-    const Eigen::MatrixXd &,
-    const int,
-    const int,
-    const int,
-    const int,
-    const int)> stopping_condition;
+  decimate_stopping_condition_callback stopping_condition;
   infinite_cost_stopping_condition(cost_and_placement,stopping_condition);
   return stopping_condition;
 }

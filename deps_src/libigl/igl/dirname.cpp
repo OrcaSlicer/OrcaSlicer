@@ -1,5 +1,6 @@
 // This file is part of libigl, a simple c++ geometry processing library.
 // 
+// Copyright (C) 2018 Alec Jacobson <alecjacobson@gmail.com>
 // Copyright (C) 2013 Alec Jacobson <alecjacobson@gmail.com>
 // 
 // This Source Code Form is subject to the terms of the Mozilla Public License 
@@ -16,31 +17,24 @@ IGL_INLINE std::string igl::dirname(const std::string & path)
   {
     return std::string("");
   }
-#if defined (WIN32)
-  char del('\\');
-#else
-  char del('/');
-#endif
-  // http://stackoverflow.com/questions/5077693/dirnamephp-similar-function-in-c
-  std::string::const_reverse_iterator last_slash =
-    std::find(
-      path.rbegin(), 
-      path.rend(),del);
-  if( last_slash == path.rend() )
+  // https://stackoverflow.com/a/3071694/148668
+  size_t found = path.find_last_of("/\\");
+  if(found == std::string::npos)
   {
     // No slashes found
     return std::string(".");
-  }else if(1 == (last_slash.base() - path.begin()))
+  }else if(found == 0)
   {
     // Slash is first char
-    return std::string(&del);
-  }else if(path.end() == last_slash.base() )
+    return std::string(path.begin(),path.begin()+1);
+  }else if(found == path.length()-1)
   {
     // Slash is last char
     std::string redo = std::string(path.begin(),path.end()-1);
     return igl::dirname(redo);
   }
-  return std::string(path.begin(),last_slash.base()-1);
+  // Return everything up to but not including last slash
+  return std::string(path.begin(),path.begin()+found);
 }
 
 

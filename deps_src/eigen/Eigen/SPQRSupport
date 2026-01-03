@@ -15,20 +15,27 @@
 #include "SuiteSparseQR.hpp"
 
 /** \ingroup Support_modules
-  * \defgroup SPQRSupport_Module SuiteSparseQR module
-  * 
-  * This module provides an interface to the SPQR library, which is part of the <a href="http://www.suitesparse.com">suitesparse</a> package.
-  *
-  * \code
-  * #include <Eigen/SPQRSupport>
-  * \endcode
-  *
-  * In order to use this module, the SPQR headers must be accessible from the include paths, and your binary must be linked to the SPQR library and its dependencies (Cholmod, AMD, COLAMD,...).
-  * For a cmake based project, you can use our FindSPQR.cmake and FindCholmod.Cmake modules
-  *
-  */
+ * \defgroup SPQRSupport_Module SuiteSparseQR module
+ *
+ * This module provides an interface to the SPQR library, which is part of the <a
+ * href="http://www.suitesparse.com">suitesparse</a> package.
+ *
+ * \code
+ * #include <Eigen/SPQRSupport>
+ * \endcode
+ *
+ * In order to use this module, the SPQR headers must be accessible from the include paths, and your binary must be
+ * linked to the SPQR library and its dependencies (Cholmod, AMD, COLAMD,...). For a cmake based project, you can use
+ * our FindSPQR.cmake and FindCholmod.Cmake modules
+ *
+ */
 
-#include "src/CholmodSupport/CholmodSupport.h"
+#include "CholmodSupport"
+
+// IWYU pragma: begin_exports
 #include "src/SPQRSupport/SuiteSparseQRSupport.h"
+// IWYU pragma: end_exports
+
+#include "src/Core/util/ReenableStupidWarnings.h"
 
 #endif

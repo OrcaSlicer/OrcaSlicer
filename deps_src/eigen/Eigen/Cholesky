@@ -14,33 +14,30 @@
 #include "src/Core/util/DisableStupidWarnings.h"
 
 /** \defgroup Cholesky_Module Cholesky module
-  *
-  *
-  *
-  * This module provides two variants of the Cholesky decomposition for selfadjoint (hermitian) matrices.
-  * Those decompositions are also accessible via the following methods:
-  *  - MatrixBase::llt()
-  *  - MatrixBase::ldlt()
-  *  - SelfAdjointView::llt()
-  *  - SelfAdjointView::ldlt()
-  *
-  * \code
-  * #include <Eigen/Cholesky>
-  * \endcode
-  */
+ *
+ *
+ *
+ * This module provides two variants of the Cholesky decomposition for selfadjoint (hermitian) matrices.
+ * Those decompositions are also accessible via the following methods:
+ *  - MatrixBase::llt()
+ *  - MatrixBase::ldlt()
+ *  - SelfAdjointView::llt()
+ *  - SelfAdjointView::ldlt()
+ *
+ * \code
+ * #include <Eigen/Cholesky>
+ * \endcode
+ */
 
+// IWYU pragma: begin_exports
 #include "src/Cholesky/LLT.h"
 #include "src/Cholesky/LDLT.h"
 #ifdef EIGEN_USE_LAPACKE
-#ifdef EIGEN_USE_MKL
-#include "mkl_lapacke.h"
-#else
-#include "src/misc/lapacke.h"
-#endif
+#include "src/misc/lapacke_helpers.h"
 #include "src/Cholesky/LLT_LAPACKE.h"
 #endif
+// IWYU pragma: end_exports
 
 #include "src/Core/util/ReenableStupidWarnings.h"
 
-#endif // EIGEN_CHOLESKY_MODULE_H
-/* vim: set filetype=cpp et sw=2 ts=2 ai: */
+#endif  // EIGEN_CHOLESKY_MODULE_H

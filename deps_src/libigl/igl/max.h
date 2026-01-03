@@ -5,20 +5,28 @@
 #include <Eigen/Sparse>
 namespace igl
 {
-  // Inputs:
-  //   X  m by n matrix
-  //   dim  dimension along which to take max
-  // Outputs:
-  //   Y  n-long vector (if dim == 1) 
-  //   or
-  //   Y  m-long vector (if dim == 2)
-  //   I  vector the same size as Y containing the indices along dim of maximum
-  //     entries
+  /// Compute the maximum along dimension dim of a matrix X
+  ///
+  /// \param[in] X  m by n matrix
+  /// \param[in] dim  dimension along which to take max
+  /// @param[out] Y
+  ///   n-long vector (if dim == 1) 
+  ///   Y  m-long vector (if dim == 2)
+  /// @param[out] I  vector the same size as Y containing the indices along dim of minimum
+  ///     entries
+  ///
   template <typename AType, typename DerivedB, typename DerivedI>
   IGL_INLINE void max(
     const Eigen::SparseMatrix<AType> & A,
     const int dim,
     Eigen::PlainObjectBase<DerivedB> & B,
+    Eigen::PlainObjectBase<DerivedI> & I);
+  /// \overload
+  template <typename DerivedX, typename DerivedY, typename DerivedI>
+  IGL_INLINE void max(
+    const Eigen::DenseBase<DerivedX> & X,
+    const int dim,
+    Eigen::PlainObjectBase<DerivedY> & Y,
     Eigen::PlainObjectBase<DerivedI> & I);
 }
 #ifndef IGL_STATIC_LIBRARY

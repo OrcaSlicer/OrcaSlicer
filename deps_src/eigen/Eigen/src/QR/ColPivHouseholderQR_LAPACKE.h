@@ -34,64 +34,128 @@
 #ifndef EIGEN_COLPIVOTINGHOUSEHOLDERQR_LAPACKE_H
 #define EIGEN_COLPIVOTINGHOUSEHOLDERQR_LAPACKE_H
 
-namespace Eigen { 
+// IWYU pragma: private
+#include "./InternalHeaderCheck.h"
 
-/** \internal Specialization for the data types supported by LAPACKe */
+namespace Eigen {
 
-#define EIGEN_LAPACKE_QR_COLPIV(EIGTYPE, LAPACKE_TYPE, LAPACKE_PREFIX, EIGCOLROW, LAPACKE_COLROW) \
-template<> template<typename InputType> inline \
-ColPivHouseholderQR<Matrix<EIGTYPE, Dynamic, Dynamic, EIGCOLROW, Dynamic, Dynamic> >& \
-ColPivHouseholderQR<Matrix<EIGTYPE, Dynamic, Dynamic, EIGCOLROW, Dynamic, Dynamic> >::compute( \
-              const EigenBase<InputType>& matrix) \
-\
-{ \
-  using std::abs; \
-  typedef Matrix<EIGTYPE, Dynamic, Dynamic, EIGCOLROW, Dynamic, Dynamic> MatrixType; \
-  typedef MatrixType::RealScalar RealScalar; \
-  Index rows = matrix.rows();\
-  Index cols = matrix.cols();\
-\
-  m_qr = matrix;\
-  Index size = m_qr.diagonalSize();\
-  m_hCoeffs.resize(size);\
-\
-  m_colsTranspositions.resize(cols);\
-  /*Index number_of_transpositions = 0;*/ \
-\
-  m_nonzero_pivots = 0; \
-  m_maxpivot = RealScalar(0);\
-  m_colsPermutation.resize(cols); \
-  m_colsPermutation.indices().setZero(); \
-\
-  lapack_int lda = internal::convert_index<lapack_int,Index>(m_qr.outerStride()); \
-  lapack_int matrix_order = LAPACKE_COLROW; \
-  LAPACKE_##LAPACKE_PREFIX##geqp3( matrix_order, internal::convert_index<lapack_int,Index>(rows), internal::convert_index<lapack_int,Index>(cols), \
-                              (LAPACKE_TYPE*)m_qr.data(), lda, (lapack_int*)m_colsPermutation.indices().data(), (LAPACKE_TYPE*)m_hCoeffs.data()); \
-  m_isInitialized = true; \
-  m_maxpivot=m_qr.diagonal().cwiseAbs().maxCoeff(); \
-  m_hCoeffs.adjointInPlace(); \
-  RealScalar premultiplied_threshold = abs(m_maxpivot) * threshold(); \
-  lapack_int *perm = m_colsPermutation.indices().data(); \
-  for(Index i=0;i<size;i++) { \
-    m_nonzero_pivots += (abs(m_qr.coeff(i,i)) > premultiplied_threshold);\
-  } \
-  for(Index i=0;i<cols;i++) perm[i]--;\
-\
-  /*m_det_pq = (number_of_transpositions%2) ? -1 : 1;  // TODO: It's not needed now; fix upon availability in Eigen */ \
-\
-  return *this; \
+#if defined(EIGEN_USE_LAPACKE)
+
+template <typename Scalar>
+inline lapack_int call_geqp3(int matrix_layout, lapack_int m, lapack_int n, Scalar* a, lapack_int lda, lapack_int* jpvt,
+                             Scalar* tau);
+template <>
+inline lapack_int call_geqp3(int matrix_layout, lapack_int m, lapack_int n, float* a, lapack_int lda, lapack_int* jpvt,
+                             float* tau) {
+  return LAPACKE_sgeqp3(matrix_layout, m, n, a, lda, jpvt, tau);
+}
+template <>
+inline lapack_int call_geqp3(int matrix_layout, lapack_int m, lapack_int n, double* a, lapack_int lda, lapack_int* jpvt,
+                             double* tau) {
+  return LAPACKE_dgeqp3(matrix_layout, m, n, a, lda, jpvt, tau);
+}
+template <>
+inline lapack_int call_geqp3(int matrix_layout, lapack_int m, lapack_int n, lapack_complex_float* a, lapack_int lda,
+                             lapack_int* jpvt, lapack_complex_float* tau) {
+  return LAPACKE_cgeqp3(matrix_layout, m, n, a, lda, jpvt, tau);
+}
+template <>
+inline lapack_int call_geqp3(int matrix_layout, lapack_int m, lapack_int n, lapack_complex_double* a, lapack_int lda,
+                             lapack_int* jpvt, lapack_complex_double* tau) {
+  return LAPACKE_zgeqp3(matrix_layout, m, n, a, lda, jpvt, tau);
 }
 
-EIGEN_LAPACKE_QR_COLPIV(double,   double,        d, ColMajor, LAPACK_COL_MAJOR)
-EIGEN_LAPACKE_QR_COLPIV(float,    float,         s, ColMajor, LAPACK_COL_MAJOR)
-EIGEN_LAPACKE_QR_COLPIV(dcomplex, lapack_complex_double, z, ColMajor, LAPACK_COL_MAJOR)
-EIGEN_LAPACKE_QR_COLPIV(scomplex, lapack_complex_float,  c, ColMajor, LAPACK_COL_MAJOR)
+template <typename MatrixType>
+struct ColPivHouseholderQR_LAPACKE_impl {
+  typedef typename MatrixType::Scalar Scalar;
+  typedef typename MatrixType::RealScalar RealScalar;
+  typedef typename internal::lapacke_helpers::translate_type_imp<Scalar>::type LapackeType;
+  static constexpr int LapackeStorage = MatrixType::IsRowMajor ? (LAPACK_ROW_MAJOR) : (LAPACK_COL_MAJOR);
 
-EIGEN_LAPACKE_QR_COLPIV(double,   double,        d, RowMajor, LAPACK_ROW_MAJOR)
-EIGEN_LAPACKE_QR_COLPIV(float,    float,         s, RowMajor, LAPACK_ROW_MAJOR)
-EIGEN_LAPACKE_QR_COLPIV(dcomplex, lapack_complex_double, z, RowMajor, LAPACK_ROW_MAJOR)
-EIGEN_LAPACKE_QR_COLPIV(scomplex, lapack_complex_float,  c, RowMajor, LAPACK_ROW_MAJOR)
+  typedef typename internal::plain_diag_type<MatrixType>::type HCoeffsType;
+  typedef PermutationMatrix<Dynamic, Dynamic, lapack_int> PermutationType;
 
-} // end namespace Eigen
+  static void run(MatrixType& qr, HCoeffsType& hCoeffs, PermutationType& colsPermutation, Index& nonzero_pivots,
+                  RealScalar& maxpivot, bool usePrescribedThreshold, RealScalar prescribedThreshold, Index& det_p,
+                  bool& isInitialized) {
+    isInitialized = false;
+    hCoeffs.resize(qr.diagonalSize());
+    nonzero_pivots = 0;
+    maxpivot = RealScalar(0);
+    colsPermutation.resize(qr.cols());
+    colsPermutation.indices().setZero();
 
-#endif // EIGEN_COLPIVOTINGHOUSEHOLDERQR_LAPACKE_H
+    lapack_int rows = internal::lapacke_helpers::to_lapack(qr.rows());
+    lapack_int cols = internal::lapacke_helpers::to_lapack(qr.cols());
+    LapackeType* qr_data = (LapackeType*)(qr.data());
+    lapack_int lda = internal::lapacke_helpers::to_lapack(qr.outerStride());
+    lapack_int* perm_data = colsPermutation.indices().data();
+    LapackeType* hCoeffs_data = (LapackeType*)(hCoeffs.data());
+
+    lapack_int info = call_geqp3(LapackeStorage, rows, cols, qr_data, lda, perm_data, hCoeffs_data);
+    if (info != 0) return;
+
+    maxpivot = qr.diagonal().cwiseAbs().maxCoeff();
+    hCoeffs.adjointInPlace();
+    RealScalar defaultThreshold = NumTraits<RealScalar>::epsilon() * RealScalar(qr.diagonalSize());
+    RealScalar threshold = usePrescribedThreshold ? prescribedThreshold : defaultThreshold;
+    RealScalar premultiplied_threshold = maxpivot * threshold;
+    nonzero_pivots = (qr.diagonal().cwiseAbs().array() > premultiplied_threshold).count();
+    colsPermutation.indices().array() -= 1;
+    det_p = colsPermutation.determinant();
+    isInitialized = true;
+  };
+
+  static void init(Index rows, Index cols, HCoeffsType& hCoeffs, PermutationType& colsPermutation,
+                   bool& usePrescribedThreshold, bool& isInitialized) {
+    Index diag = numext::mini(rows, cols);
+    hCoeffs.resize(diag);
+    colsPermutation.resize(cols);
+    usePrescribedThreshold = false;
+    isInitialized = false;
+  }
+};
+
+#define COLPIVQR_LAPACKE_COMPUTEINPLACE(EIGTYPE)                                                                   \
+  template <>                                                                                                      \
+  inline void ColPivHouseholderQR<EIGTYPE, lapack_int>::computeInPlace() {                                         \
+    ColPivHouseholderQR_LAPACKE_impl<MatrixType>::run(m_qr, m_hCoeffs, m_colsPermutation, m_nonzero_pivots,        \
+                                                      m_maxpivot, m_usePrescribedThreshold, m_prescribedThreshold, \
+                                                      m_det_p, m_isInitialized);                                   \
+  }
+
+#define COLPIVQR_LAPACKE_INIT(EIGTYPE)                                                                            \
+  template <>                                                                                                     \
+  inline void ColPivHouseholderQR<EIGTYPE, lapack_int>::init(Index rows, Index cols) {                            \
+    ColPivHouseholderQR_LAPACKE_impl<MatrixType>::init(rows, cols, m_hCoeffs, m_colsPermutation, m_isInitialized, \
+                                                       m_usePrescribedThreshold);                                 \
+  }
+
+#define COLPIVQR_LAPACKE(EIGTYPE)               \
+  COLPIVQR_LAPACKE_COMPUTEINPLACE(EIGTYPE)      \
+  COLPIVQR_LAPACKE_INIT(EIGTYPE)                \
+  COLPIVQR_LAPACKE_COMPUTEINPLACE(Ref<EIGTYPE>) \
+  COLPIVQR_LAPACKE_INIT(Ref<EIGTYPE>)
+
+typedef Matrix<float, Dynamic, Dynamic, ColMajor> MatrixXfC;
+typedef Matrix<double, Dynamic, Dynamic, ColMajor> MatrixXdC;
+typedef Matrix<std::complex<float>, Dynamic, Dynamic, ColMajor> MatrixXcfC;
+typedef Matrix<std::complex<double>, Dynamic, Dynamic, ColMajor> MatrixXcdC;
+typedef Matrix<float, Dynamic, Dynamic, RowMajor> MatrixXfR;
+typedef Matrix<double, Dynamic, Dynamic, RowMajor> MatrixXdR;
+typedef Matrix<std::complex<float>, Dynamic, Dynamic, RowMajor> MatrixXcfR;
+typedef Matrix<std::complex<double>, Dynamic, Dynamic, RowMajor> MatrixXcdR;
+
+COLPIVQR_LAPACKE(MatrixXfC)
+COLPIVQR_LAPACKE(MatrixXdC)
+COLPIVQR_LAPACKE(MatrixXcfC)
+COLPIVQR_LAPACKE(MatrixXcdC)
+COLPIVQR_LAPACKE(MatrixXfR)
+COLPIVQR_LAPACKE(MatrixXdR)
+COLPIVQR_LAPACKE(MatrixXcfR)
+COLPIVQR_LAPACKE(MatrixXcdR)
+
+#endif
+}  // end namespace Eigen
+
+#endif  // EIGEN_COLPIVOTINGHOUSEHOLDERQR_LAPACKE_H

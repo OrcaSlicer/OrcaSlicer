@@ -14,9 +14,10 @@ namespace igl
 {
   namespace opengl
   {
-    // Return the number of bytes for a given OpenGL type // Inputs:
-    //   type  enum value of opengl type
-    // Returns size in bytes of type
+    /// Return the number of bytes for a given OpenGL type 
+    ///
+    /// @param[in] type  enum value of opengl type
+    /// @return size in bytes of type
     IGL_INLINE int gl_type_size(const GLenum type);
   }
 }

@@ -15,34 +15,29 @@
 
 namespace igl
 {
-  // REPDIAG repeat a matrix along the diagonal a certain number of times, so
-  // that if A is a m by n matrix and we want to repeat along the diagonal d
-  // times, we get a m*d by n*d matrix B such that:
-  // B( (k*m+1):(k*m+1+m-1), (k*n+1):(k*n+1+n-1)) = A 
-  // for k from 0 to d-1
-  //
-  // Inputs:
-  //   A  m by n matrix we are repeating along the diagonal. May be dense or
-  //     sparse
-  //   d  number of times to repeat A along the diagonal
-  // Outputs:
-  //   B  m*d by n*d matrix with A repeated d times along the diagonal,
-  //     will be dense or sparse to match A
-  //
-
-  // Sparse version
+  /// Repeat a matrix along the diagonal a certain number of times, so
+  /// that if A is a m by n matrix and we want to repeat along the diagonal d
+  /// times, we get a m*d by n*d matrix B such that:
+  /// B( (k*m+1):(k*m+1+m-1), (k*n+1):(k*n+1+n-1)) = A 
+  /// for k from 0 to d-1
+  ///
+  /// @param[in] A  m by n matrix we are repeating along the diagonal.
+  /// @param[in] d  number of times to repeat A along the diagonal
+  /// @param[out] B  m*d by n*d matrix with A repeated d times along the diagonal,
+  ///     will be dense or sparse to match A
+  ///
   template <typename T>
   IGL_INLINE void repdiag(
     const Eigen::SparseMatrix<T>& A,
     const int d,
     Eigen::SparseMatrix<T>& B);
-  // Dense version
+  /// \overload
   template <typename T>
   IGL_INLINE void repdiag(
     const Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> & A,
     const int d,
     Eigen::Matrix<T,Eigen::Dynamic,Eigen::Dynamic> & B);
-  // Wrapper with B as output
+  /// \overload
   template <class Mat>
   IGL_INLINE Mat repdiag(const Mat & A, const int d);
 }

@@ -15,17 +15,15 @@ namespace igl
   {
     namespace cgal
     {
-      // Compute 2D delaunay triangulation of a given 3d triangle and a list of
-      // intersection objects (points,segments,triangles). CGAL uses an affine
-      // projection rather than an isometric projection, so we're not guaranteed
-      // that the 2D delaunay triangulation here will be a delaunay triangulation
-      // in 3D.
-      //
-      // Inputs:
-      //   A  triangle in 3D
-      //   A_objects_3  updated list of intersection objects for A
-      // Outputs:
-      //   cdt  Contrained delaunay triangulation in projected 2D plane
+      /// Compute 2D delaunay triangulation of a given 3d triangle and a list of
+      /// intersection objects (points,segments,triangles). CGAL uses an affine
+      /// projection rather than an isometric projection, so we're not guaranteed
+      /// that the 2D delaunay triangulation here will be a delaunay triangulation
+      /// in 3D.
+      ///
+      /// @param[in] A  triangle in 3D
+      /// @param[in] A_objects_3  updated list of intersection objects for A
+      /// @param[out] cdt  Contrained delaunay triangulation in projected 2D plane
       template <typename Kernel>
       IGL_INLINE void projected_delaunay(
         const CGAL::Triangle_3<Kernel> & A,

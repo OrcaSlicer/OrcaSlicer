@@ -13,16 +13,14 @@
 #include <functional>
 namespace igl
 {
-  // Construct an axis-aligned bounding box containing a shape undergoing a
-  // motion sampled at `steps` discrete momements.
-  //
-  // Inputs:
-  //   n  number of mesh vertices
-  //   V  function handle so that V(i,t) returns the 3d position of vertex
-  //     i at time t, for t∈[0,1]
-  //   steps  number of time steps: steps=3 --> t∈{0,0.5,1}
-  // Outputs:
-  //   box  box containing mesh under motion
+  /// Construct an axis-aligned bounding box containing a shape undergoing a
+  /// motion sampled at `steps` discrete momements.
+  ///
+  /// @param[in] n  number of mesh vertices
+  /// @param[in] V  function handle so that V(i,t) returns the 3d position of vertex
+  ///     i at time t, for t∈[0,1]
+  /// @param[in] steps  number of time steps: steps=3 --> t∈{0,0.5,1}
+  /// @param[out] box  box containing mesh under motion
   IGL_INLINE void swept_volume_bounding_box(
     const size_t & n,
     const std::function<

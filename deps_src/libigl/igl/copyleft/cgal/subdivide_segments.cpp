@@ -25,8 +25,8 @@ template <
   typename DerivedJ,
   typename DerivedIM>
 IGL_INLINE void igl::copyleft::cgal::subdivide_segments(
-  const Eigen::PlainObjectBase<DerivedV> & V,
-  const Eigen::PlainObjectBase<DerivedE> & E,
+  const Eigen::MatrixBase<DerivedV> & V,
+  const Eigen::MatrixBase<DerivedE> & E,
   const std::vector<std::vector<CGAL::Point_2<Kernel> > > & _steiner,
   Eigen::PlainObjectBase<DerivedVI> & VI,
   Eigen::PlainObjectBase<DerivedEI> & EI,
@@ -40,7 +40,6 @@ IGL_INLINE void igl::copyleft::cgal::subdivide_segments(
   // Exact scalar type
   typedef Kernel K;
   typedef typename Kernel::FT EScalar;
-  typedef CGAL::Segment_2<Kernel> Segment_2;
   typedef CGAL::Point_2<Kernel> Point_2;
   typedef Matrix<EScalar,Dynamic,Dynamic>  MatrixXE;
 
@@ -63,8 +62,6 @@ IGL_INLINE void igl::copyleft::cgal::subdivide_segments(
   const int m = E.rows();
   // now steiner contains lists of points (unsorted) for each edge. Sort them
   // and count total number of vertices and edges
-  int ni = 0;
-  int mi = 0;
   // new steiner points
   std::vector<Point_2> S;
   std::vector<std::vector<typename DerivedE::Scalar> > vEI;
@@ -132,3 +129,9 @@ IGL_INLINE void igl::copyleft::cgal::subdivide_segments(
     list_to_matrix(vIM,IM);
   }
 }
+
+#ifdef IGL_STATIC_LIBRARY
+// Explicit template instantiation
+template void igl::copyleft::cgal::subdivide_segments<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, CGAL::Epeck, Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<CGAL::Point_2<CGAL::Epeck>, std::allocator<CGAL::Point_2<CGAL::Epeck> > >, std::allocator<std::vector<CGAL::Point_2<CGAL::Epeck>, std::allocator<CGAL::Point_2<CGAL::Epeck> > > > > const&, Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+template void igl::copyleft::cgal::subdivide_segments<Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, CGAL::Epeck, Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, std::vector<std::vector<CGAL::Point_2<CGAL::Epeck>, std::allocator<CGAL::Point_2<CGAL::Epeck> > >, std::allocator<std::vector<CGAL::Point_2<CGAL::Epeck>, std::allocator<CGAL::Point_2<CGAL::Epeck> > > > > const&, Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Epeck::FT, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+#endif

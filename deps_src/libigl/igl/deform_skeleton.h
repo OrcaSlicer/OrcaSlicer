@@ -14,16 +14,14 @@
 #include <vector>
 namespace igl
 {
-  // Deform a skeleton.
-  //
-  // Inputs:
-  //   C  #C by 3 list of joint positions
-  //   BE  #BE by 2 list of bone edge indices
-  //   vA  #BE list of bone transformations
-  // Outputs
-  //   CT  #BE*2 by 3 list of deformed joint positions
-  //   BET  #BE by 2 list of bone edge indices (maintains order)
-  //
+  /// Deform a skeleton.
+  ///
+  /// @param[in] C  #C by 3 list of joint positions
+  /// @param[in] BE  #BE by 2 list of bone edge indices
+  /// @param[in] vA  #BE list of bone transformations
+  /// @param[out] CT  #BE*2 by 3 list of deformed joint positions
+  /// @param[out] BET  #BE by 2 list of bone edge indices (maintains order)
+  ///
   IGL_INLINE void deform_skeleton(
     const Eigen::MatrixXd & C,
     const Eigen::MatrixXi & BE,
@@ -31,8 +29,9 @@ namespace igl
       Eigen::Affine3d,Eigen::aligned_allocator<Eigen::Affine3d> > & vA,
     Eigen::MatrixXd & CT,
     Eigen::MatrixXi & BET);
-  // Inputs:
-  //   T  #BE*4 by 3 list of stacked transformation matrix
+  /// \overload
+  ///
+  /// @param[in] T  #BE*4 by 3 list of stacked transformation matrix
   IGL_INLINE void deform_skeleton(
     const Eigen::MatrixXd & C,
     const Eigen::MatrixXi & BE,

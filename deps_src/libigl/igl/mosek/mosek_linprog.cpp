@@ -140,7 +140,9 @@ IGL_INLINE bool igl::mosek::mosek_linprog(
   switch(solsta)
   {
     case MSK_SOL_STA_OPTIMAL:   
+#if MSK_VERSION_MAJOR <= 8
     case MSK_SOL_STA_NEAR_OPTIMAL:
+#endif
       x.resize(n);
       /* Request the basic solution. */ 
       MSK_getxx(task,MSK_SOL_BAS,x.data()); 
@@ -148,8 +150,10 @@ IGL_INLINE bool igl::mosek::mosek_linprog(
       break;
     case MSK_SOL_STA_DUAL_INFEAS_CER:
     case MSK_SOL_STA_PRIM_INFEAS_CER:
+#if MSK_VERSION_MAJOR <= 8
     case MSK_SOL_STA_NEAR_DUAL_INFEAS_CER:
     case MSK_SOL_STA_NEAR_PRIM_INFEAS_CER:  
+#endif
       //printf("Primal or dual infeasibility certificate found.\n");
       break;
     case MSK_SOL_STA_UNKNOWN:

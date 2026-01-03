@@ -6,7 +6,7 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can 
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "partition.h"
-#include "mat_min.h"
+#include "min.h"
 
 IGL_INLINE void igl::partition(
   const Eigen::MatrixXd & W,
@@ -51,7 +51,7 @@ IGL_INLINE void igl::partition(
     // get minimum of old D and distance to this seed, C == 1 if new distance
     // was smaller
     Eigen::Matrix<int,Eigen::Dynamic,1> C;
-    igl::mat_min(DDs,2,D,C);
+    igl::min(DDs,2,D,C);
     G = (C.array() ==0).select(G,i);
   }
 

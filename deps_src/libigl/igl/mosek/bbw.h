@@ -16,26 +16,23 @@ namespace igl
 {
   namespace mosek
   {
-    // Compute Bounded Biharmonic Weights on a given domain (V,Ele) with a given
-    // set of boundary conditions
-    //
-    // Templates
-    //   DerivedV  derived type of eigen matrix for V (e.g. MatrixXd)
-    //   DerivedF  derived type of eigen matrix for F (e.g. MatrixXi)
-    //   Derivedb  derived type of eigen matrix for b (e.g. VectorXi)
-    //   Derivedbc  derived type of eigen matrix for bc (e.g. MatrixXd)
-    //   DerivedW  derived type of eigen matrix for W (e.g. MatrixXd)
-    // Inputs:
-    //   V  #V by dim vertex positions
-    //   Ele  #Elements by simplex-size list of element indices
-    //   b  #b boundary indices into V
-    //   bc #b by #W list of boundary values
-    //   data  object containing options, initial guess --> solution and results
-    //   mosek_data  object containing mosek options
-    // Outputs:
-    //   W  #V by #W list of *unnormalized* weights to normalize use
-    //    igl::normalize_row_sums(W,W);
-    // Returns true on success, false on failure
+    /// Compute Bounded Biharmonic Weights on a given domain (V,Ele) with a given
+    /// set of boundary conditions
+    ///
+    /// @tparam DerivedV  derived type of eigen matrix for V (e.g. MatrixXd)
+    /// @tparam DerivedF  derived type of eigen matrix for F (e.g. MatrixXi)
+    /// @tparam Derivedb  derived type of eigen matrix for b (e.g. VectorXi)
+    /// @tparam Derivedbc  derived type of eigen matrix for bc (e.g. MatrixXd)
+    /// @tparam DerivedW  derived type of eigen matrix for W (e.g. MatrixXd)
+    /// @param[in] V  #V by dim vertex positions
+    /// @param[in] Ele  #Elements by simplex-size list of element indices
+    /// @param[in] b  #b boundary indices into V
+    /// @param[in] bc #b by #W list of boundary values
+    /// @param[in] data  object containing options, initial guess --> solution and results
+    /// @param[in] mosek_data  object containing mosek options
+    /// @param[out] W  #V by #W list of *unnormalized* weights to normalize use
+    ///    igl::normalize_row_sums(W,W);
+    /// @return true on success, false on failure
     template <
       typename DerivedV,
       typename DerivedEle,
@@ -43,10 +40,10 @@ namespace igl
       typename Derivedbc,
       typename DerivedW>
     IGL_INLINE bool bbw(
-      const Eigen::PlainObjectBase<DerivedV> & V,
-      const Eigen::PlainObjectBase<DerivedEle> & Ele,
-      const Eigen::PlainObjectBase<Derivedb> & b,
-      const Eigen::PlainObjectBase<Derivedbc> & bc,
+      const Eigen::MatrixBase<DerivedV> & V,
+      const Eigen::MatrixBase<DerivedEle> & Ele,
+      const Eigen::MatrixBase<Derivedb> & b,
+      const Eigen::MatrixBase<Derivedbc> & bc,
       igl::BBWData & data,
       igl::mosek::MosekData & mosek_data,
       Eigen::PlainObjectBase<DerivedW> & W);

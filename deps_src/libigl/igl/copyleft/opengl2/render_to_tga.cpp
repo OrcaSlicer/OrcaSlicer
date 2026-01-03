@@ -72,6 +72,7 @@ IGL_INLINE bool igl::opengl::render_to_tga(
     if(NULL==imgFile)
     {
       printf("IOError: %s could not be opened...\n",tga_file.c_str());
+      free(genericImage);
       return false;
     }
   }

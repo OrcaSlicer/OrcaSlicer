@@ -14,21 +14,20 @@ namespace igl
 {
   namespace xml
   {
-    // Write a mesh to a Collada .dae scene file. The resulting scene contains
-    // a single "geometry" suitable for solid operaions (boolean union,
-    // intersection, etc.) in SketchUp.
-    //
-    // Inputs:
-    //   filename  path to .dae file
-    //   V  #V by 3 list of vertex positions
-    //   F  #F by 3 list of face indices
-    // Returns true iff success
-    //
+    /// Write a mesh to a Collada .dae scene file. The resulting scene contains
+    /// a single "geometry" suitable for solid operaions (boolean union,
+    /// intersection, etc.) in SketchUp.
+    ///
+    /// @param[in] filename  path to .dae file
+    /// @param[in] V  #V by 3 list of vertex positions
+    /// @param[in] F  #F by 3 list of face indices
+    /// @return true iff success
+    ///
     template <typename DerivedV, typename DerivedF>
     IGL_INLINE bool writeDAE(
       const std::string & filename,
-      const Eigen::PlainObjectBase<DerivedV> & V,
-      const Eigen::PlainObjectBase<DerivedF> & F);
+      const Eigen::MatrixBase<DerivedV> & V,
+      const Eigen::MatrixBase<DerivedF> & F);
   }
 }
 

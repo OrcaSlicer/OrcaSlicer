@@ -13,21 +13,19 @@
 
 namespace igl
 {
-  // Deform a mesh to transform the given per-face frame field to be as close
-  // as possible to a cross field, in the least square sense.
-  //
-  // Inputs:
-  //   V       #V by 3 coordinates of the vertices
-  //   F       #F by 3 list of mesh faces (must be triangles)
-  //   FF1     #F by 3 first representative vector of the frame field
-  //   FF2     #F by 3 second representative vector of the frame field
-  //   lambda  laplacian regularization parameter 0=no regularization 1=full regularization
-  //
-  // Outputs:
-  //   V_d     #F by 3 deformed, first representative vector
-  //   V_d     #F by 3 deformed, first representative vector
-  //   V_d     #F by 3 deformed, first representative vector
-  //
+  /// Deform a mesh to transform the given per-face frame field to be as close
+  /// as possible to a cross field, in the least square sense.
+  ///
+  /// @param[in] V       #V by 3 coordinates of the vertices
+  /// @param[in] F       #F by 3 list of mesh faces (must be triangles)
+  /// @param[in] FF1     #F by 3 first representative vector of the frame field
+  /// @param[in] FF2     #F by 3 second representative vector of the frame field
+  /// @param[out] V_d     #V? by 3 deformed, first representative vector??
+  /// @param[out] FF1_d     #F by 3 deformed, first representative vector??
+  /// @param[out] FF2_d     #F by 3 deformed, first representative vector??
+  /// @param[in] iterations  number of iterations
+  /// @param[in] lambda  laplacian regularization parameter 0=no regularization 1=full regularization
+  /// @param[in] perturb_initial_guess  whether to perturb the initial guess
   IGL_INLINE void frame_field_deformer(
     const Eigen::MatrixXd& V,
     const Eigen::MatrixXi& F,

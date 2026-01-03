@@ -11,100 +11,81 @@
 #ifndef EIGEN_NESTBYVALUE_H
 #define EIGEN_NESTBYVALUE_H
 
+// IWYU pragma: private
+#include "./InternalHeaderCheck.h"
+
 namespace Eigen {
 
 namespace internal {
-template<typename ExpressionType>
-struct traits<NestByValue<ExpressionType> > : public traits<ExpressionType>
-{};
-}
+template <typename ExpressionType>
+struct traits<NestByValue<ExpressionType> > : public traits<ExpressionType> {
+  enum { Flags = traits<ExpressionType>::Flags & ~NestByRefBit };
+};
+}  // namespace internal
 
 /** \class NestByValue
-  * \ingroup Core_Module
-  *
-  * \brief Expression which must be nested by value
-  *
-  * \tparam ExpressionType the type of the object of which we are requiring nesting-by-value
-  *
-  * This class is the return type of MatrixBase::nestByValue()
-  * and most of the time this is the only way it is used.
-  *
-  * \sa MatrixBase::nestByValue()
-  */
-template<typename ExpressionType> class NestByValue
-  : public internal::dense_xpr_base< NestByValue<ExpressionType> >::type
-{
-  public:
+ * \ingroup Core_Module
+ *
+ * \brief Expression which must be nested by value
+ *
+ * \tparam ExpressionType the type of the object of which we are requiring nesting-by-value
+ *
+ * This class is the return type of MatrixBase::nestByValue()
+ * and most of the time this is the only way it is used.
+ *
+ * \sa MatrixBase::nestByValue()
+ */
+template <typename ExpressionType>
+class NestByValue : public internal::dense_xpr_base<NestByValue<ExpressionType> >::type {
+ public:
+  typedef typename internal::dense_xpr_base<NestByValue>::type Base;
+  static constexpr bool HasDirectAccess = internal::has_direct_access<ExpressionType>::ret;
 
-    typedef typename internal::dense_xpr_base<NestByValue>::type Base;
-    EIGEN_DENSE_PUBLIC_INTERFACE(NestByValue)
+  EIGEN_DENSE_PUBLIC_INTERFACE(NestByValue)
 
-    EIGEN_DEVICE_FUNC explicit inline NestByValue(const ExpressionType& matrix) : m_expression(matrix) {}
+  EIGEN_DEVICE_FUNC explicit inline NestByValue(const ExpressionType& matrix) : m_expression(matrix) {}
 
-    EIGEN_DEVICE_FUNC inline Index rows() const { return m_expression.rows(); }
-    EIGEN_DEVICE_FUNC inline Index cols() const { return m_expression.cols(); }
-    EIGEN_DEVICE_FUNC inline Index outerStride() const { return m_expression.outerStride(); }
-    EIGEN_DEVICE_FUNC inline Index innerStride() const { return m_expression.innerStride(); }
+  EIGEN_DEVICE_FUNC constexpr Index rows() const noexcept { return m_expression.rows(); }
+  EIGEN_DEVICE_FUNC constexpr Index cols() const noexcept { return m_expression.cols(); }
 
-    EIGEN_DEVICE_FUNC inline const CoeffReturnType coeff(Index row, Index col) const
-    {
-      return m_expression.coeff(row, col);
-    }
+  EIGEN_DEVICE_FUNC operator const ExpressionType&() const { return m_expression; }
 
-    EIGEN_DEVICE_FUNC inline Scalar& coeffRef(Index row, Index col)
-    {
-      return m_expression.const_cast_derived().coeffRef(row, col);
-    }
+  EIGEN_DEVICE_FUNC const ExpressionType& nestedExpression() const { return m_expression; }
 
-    EIGEN_DEVICE_FUNC inline const CoeffReturnType coeff(Index index) const
-    {
-      return m_expression.coeff(index);
-    }
+  EIGEN_DEVICE_FUNC typename std::enable_if<HasDirectAccess, const Scalar*>::type data() const {
+    return m_expression.data();
+  }
 
-    EIGEN_DEVICE_FUNC inline Scalar& coeffRef(Index index)
-    {
-      return m_expression.const_cast_derived().coeffRef(index);
-    }
+  EIGEN_DEVICE_FUNC typename std::enable_if<HasDirectAccess, Index>::type innerStride() const {
+    return m_expression.innerStride();
+  }
 
-    template<int LoadMode>
-    inline const PacketScalar packet(Index row, Index col) const
-    {
-      return m_expression.template packet<LoadMode>(row, col);
-    }
+  EIGEN_DEVICE_FUNC typename std::enable_if<HasDirectAccess, Index>::type outerStride() const {
+    return m_expression.outerStride();
+  }
 
-    template<int LoadMode>
-    inline void writePacket(Index row, Index col, const PacketScalar& x)
-    {
-      m_expression.const_cast_derived().template writePacket<LoadMode>(row, col, x);
-    }
-
-    template<int LoadMode>
-    inline const PacketScalar packet(Index index) const
-    {
-      return m_expression.template packet<LoadMode>(index);
-    }
-
-    template<int LoadMode>
-    inline void writePacket(Index index, const PacketScalar& x)
-    {
-      m_expression.const_cast_derived().template writePacket<LoadMode>(index, x);
-    }
-
-    EIGEN_DEVICE_FUNC operator const ExpressionType&() const { return m_expression; }
-
-  protected:
-    const ExpressionType m_expression;
+ protected:
+  const ExpressionType m_expression;
 };
 
 /** \returns an expression of the temporary version of *this.
-  */
-template<typename Derived>
-inline const NestByValue<Derived>
-DenseBase<Derived>::nestByValue() const
-{
+ */
+template <typename Derived>
+EIGEN_DEVICE_FUNC inline const NestByValue<Derived> DenseBase<Derived>::nestByValue() const {
   return NestByValue<Derived>(derived());
 }
 
-} // end namespace Eigen
+namespace internal {
 
-#endif // EIGEN_NESTBYVALUE_H
+// Evaluator of Solve -> eval into a temporary
+template <typename ArgType>
+struct evaluator<NestByValue<ArgType> > : public evaluator<ArgType> {
+  typedef evaluator<ArgType> Base;
+
+  EIGEN_DEVICE_FUNC explicit evaluator(const NestByValue<ArgType>& xpr) : Base(xpr.nestedExpression()) {}
+};
+}  // namespace internal
+
+}  // end namespace Eigen
+
+#endif  // EIGEN_NESTBYVALUE_H

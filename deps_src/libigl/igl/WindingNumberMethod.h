@@ -9,14 +9,15 @@
 #define IGL_WINDINGNUMBERMETHOD_H
 namespace igl
 {
-  // EXACT_WINDING_NUMBER_METHOD  exact hierarchical evaluation
-  // APPROX_SIMPLE_WINDING_NUMBER_METHOD  poor approximation
-  // APPROX_CACHE_WINDING_NUMBER_METHOD  another poor approximation
   enum WindingNumberMethod
   {
+    // exact hierarchical evaluation
     EXACT_WINDING_NUMBER_METHOD = 0,
+    // poor approximation
     APPROX_SIMPLE_WINDING_NUMBER_METHOD = 1,
+    // another poor approximation
     APPROX_CACHE_WINDING_NUMBER_METHOD = 2,
+    /// Number of winding number methods
     NUM_WINDING_NUMBER_METHODS = 3
   };
 }

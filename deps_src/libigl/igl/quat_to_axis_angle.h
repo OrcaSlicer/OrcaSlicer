@@ -11,20 +11,21 @@
 
 namespace igl
 {
-  // Convert quat representation of a rotation to axis angle
-  // A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
-  // such that q = x*i + y*j + z*k + w
-  // Inputs:
-  //   q quaternion
-  // Outputs:
-  //   axis  3d vector
-  //   angle  scalar in radians
+  /// Convert quat representation of a rotation to axis angle
+  /// A Quaternion, q, is defined here as an arrays of four scalars (x,y,z,w),
+  /// such that q = x*i + y*j + z*k + w
+  ///
+  /// @param[in] q quaternion
+  /// @param[out] axis  3d vector
+  /// @param[out] angle  scalar in radians
   template <typename Q_type>
   IGL_INLINE void quat_to_axis_angle(
     const Q_type *q,
     Q_type *axis, 
     Q_type & angle);
-  // Wrapper with angle in degrees
+  /// \overload
+  ///
+  /// \fileinfo
   template <typename Q_type>
   IGL_INLINE void quat_to_axis_angle_deg(
     const Q_type *q,

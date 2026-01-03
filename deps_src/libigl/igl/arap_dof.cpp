@@ -6,6 +6,7 @@
 // v. 2.0. If a copy of the MPL was not distributed with this file, You can 
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "arap_dof.h"
+#include "IGL_ASSERT.h"
 
 #include "cotmatrix.h"
 #include "massmatrix.h"
@@ -25,14 +26,35 @@
 #include "verbose.h"
 #include "print_ijv.h"
 
-#include "get_seconds_hires.h"
 //#include "MKLEigenInterface.h"
-#include "min_quad_dense.h"
+#include "kkt_inverse.h"
 #include "get_seconds.h"
 #include "columnize.h"
+#include <type_traits>
 
 // defined if no early exit is supported, i.e., always take a fixed number of iterations
 #define IGL_ARAP_DOF_FIXED_ITERATIONS_COUNT
+
+// To avoid putting _any_ dense slices in the static library use a work around
+// so that we can slice LbsMatrixType as sparse or dense below.
+#if __cplusplus < 201703L
+template <typename Mat, bool IsSparse> struct arap_dof_slice_helper;
+template <typename Mat> struct arap_dof_slice_helper<Mat,true>
+{
+  static void slice(const Mat & A, const Eigen::VectorXi & I, const Eigen::VectorXi & J, Mat & B)
+  {
+    static_assert(std::is_base_of<Eigen::SparseMatrixBase<Mat>, Mat>::value, "Mat must be sparse");
+    igl::slice(A,I,J,B);
+  }
+};
+template <typename Mat> struct arap_dof_slice_helper<Mat,false>
+{
+  static void slice(const Mat & A, const Eigen::VectorXi & I, const Eigen::VectorXi & J, Mat & B)
+  {
+    B = A(I,J);
+  }
+};
+#endif
 
 // A careful derivation of this implementation is given in the corresponding
 // matlab function arap_dof.m
@@ -99,9 +121,7 @@ IGL_INLINE bool igl::arap_dof_precomputation(
       MatrixXi GF(F.rows(),F.cols());
       for(int j = 0;j<F.cols();j++)
       {
-        Matrix<int,Eigen::Dynamic,1> GFj;
-        slice(G,F.col(j),GFj);
-        GF.col(j) = GFj;
+        GF.col(j) = G(F.col(j));
       }
       mode<int>(GF,2,GG);
     }else
@@ -183,7 +203,20 @@ IGL_INLINE bool igl::arap_dof_precomputation(
     //printf("CSM_M(): Mi\n");
     LbsMatrixType M_i;
     //printf("CSM_M(): slice\n");
-    slice(M,(span_n.array()+i*n).matrix().eval(),span_mlbs_cols,M_i);
+#if __cplusplus >= 201703L
+    // Check if LbsMatrixType is a sparse matrix
+    if constexpr (std::is_base_of<SparseMatrixBase<LbsMatrixType>, LbsMatrixType>::value)
+    {
+      slice(M,(span_n.array()+i*n).matrix().eval(),span_mlbs_cols,M_i);
+    }
+    else
+    {
+      M_i = M((span_n.array()+i*n).eval(),span_mlbs_cols);
+    }
+#else
+    constexpr bool LbsMatrixTypeIsSparse = std::is_base_of<SparseMatrixBase<LbsMatrixType>, LbsMatrixType>::value;
+    arap_dof_slice_helper<LbsMatrixType,LbsMatrixTypeIsSparse>::slice(M,(span_n.array()+i*n).matrix().eval(),span_mlbs_cols,M_i);
+#endif
     LbsMatrixType M_i_dim;
     data.CSM_M[i].resize(k*data.dim,data.m*data.dim*(data.dim+1));
     assert(data.CSM_M[i].cols() == M.cols());
@@ -543,17 +576,17 @@ IGL_INLINE bool igl::arap_dof_recomputation(
 #endif
 
   // Compute dense solve matrix (alternative of matrix factorization)
-  //printf("min_quad_dense_precompute()\n");
+  //printf("kkt_inverse()\n");
   MatrixXd Qfull(*Q);
   MatrixXd A_eqfull(A_eq);
   MatrixXd M_Solve;
 
-  double timer0_start = get_seconds_hires();
+  double timer0_start = get_seconds();
   bool use_lu = data.effective_dim != 2;
   //use_lu = false;
   //printf("use_lu: %s\n",(use_lu?"TRUE":"FALSE"));
-  min_quad_dense_precompute(Qfull, A_eqfull, use_lu,M_Solve);
-  double timer0_end = get_seconds_hires();
+  kkt_inverse(Qfull, A_eqfull, use_lu,M_Solve);
+  double timer0_end = get_seconds();
   verbose("Bob timing: %.20f\n", (timer0_end - timer0_start)*1000.0);
 
   // Precompute full solve matrix:
@@ -616,14 +649,14 @@ IGL_INLINE bool igl::arap_dof_update(
   using namespace Eigen;
   typedef Matrix<SSCALAR, Dynamic, Dynamic> MatrixXS;
 #ifdef ARAP_GLOBAL_TIMING
-  double timer_start = get_seconds_hires();
+  double timer_start = get_seconds();
 #endif
 
   // number of dimensions
-  assert((int)data.CSM_M.size() == data.dim);
-  assert((int)L0.size() == (data.m)*data.dim*(data.dim+1));
-  assert(max_iters >= 0);
-  assert(tol >= 0);
+  IGL_ASSERT((int)data.CSM_M.size() == data.dim);
+  IGL_ASSERT((int)L0.size() == (data.m)*data.dim*(data.dim+1));
+  IGL_ASSERT(max_iters >= 0);
+  IGL_ASSERT(tol >= 0);
 
   // timing variables
   double 
@@ -668,9 +701,8 @@ IGL_INLINE bool igl::arap_dof_update(
   MatrixXS R(data.dim,data.dim*k);
   Eigen::Matrix<SSCALAR,Eigen::Dynamic,1> Rcol(data.dim * data.dim * k);
   Matrix<SSCALAR,Dynamic,1> B_eq_SSCALAR = B_eq.cast<SSCALAR>();
-  Matrix<SSCALAR,Dynamic,1> B_eq_fix_SSCALAR;
   Matrix<SSCALAR,Dynamic,1> L0SSCALAR = L0.cast<SSCALAR>();
-  slice(L0SSCALAR, data.fixed_dim, B_eq_fix_SSCALAR);    
+  Matrix<SSCALAR,Dynamic,1> B_eq_fix_SSCALAR = L0SSCALAR(data.fixed_dim);
   //MatrixXS rhsFull(Rcol.rows() + B_eq.rows() + B_eq_fix_SSCALAR.rows(), 1); 
 
   MatrixXS Lsep(data.m*(data.dim + 1), 3);  
@@ -686,7 +718,7 @@ IGL_INLINE bool igl::arap_dof_update(
   MatrixXS L_part1(data.dim * (data.dim + 1) * data.m, 1);
 
 #ifdef ARAP_GLOBAL_TIMING
-    double timer_prepFinished = get_seconds_hires();
+    double timer_prepFinished = get_seconds();
 #endif
 
 #ifdef IGL_ARAP_DOF_FIXED_ITERATIONS_COUNT
@@ -697,7 +729,7 @@ IGL_INLINE bool igl::arap_dof_update(
   {  
     if(data.print_timings)
     {
-      sec_start = get_seconds_hires();
+      sec_start = get_seconds();
     }
 
 #ifndef IGL_ARAP_DOF_FIXED_ITERATIONS_COUNT
@@ -722,7 +754,7 @@ IGL_INLINE bool igl::arap_dof_update(
     
     if(data.print_timings)
     {
-      sec_covGather = get_seconds_hires();
+      sec_covGather = get_seconds();
     }
 
 #ifdef EXTREME_VERBOSE
@@ -747,7 +779,7 @@ IGL_INLINE bool igl::arap_dof_update(
 
     if(data.print_timings)
     {
-      sec_fitRotations = get_seconds_hires();
+      sec_fitRotations = get_seconds();
     }
   
     ///////////////////////////////////////////////////////////////////////////
@@ -766,7 +798,7 @@ IGL_INLINE bool igl::arap_dof_update(
     
     if(data.print_timings)
     {
-      sec_prepMult = get_seconds_hires();
+      sec_prepMult = get_seconds();
     }  
     
     L_part1xyz = data.CSolveBlock1 * Rxyz;
@@ -824,7 +856,7 @@ IGL_INLINE bool igl::arap_dof_update(
 
     if(data.print_timings)
     {
-      sec_solve = get_seconds_hires();
+      sec_solve = get_seconds();
     }
 
 #ifndef IGL_ARAP_DOF_FIXED_ITERATIONS_COUNT
@@ -835,7 +867,7 @@ IGL_INLINE bool igl::arap_dof_update(
 
     if(data.print_timings)
     {
-      sec_end = get_seconds_hires();
+      sec_end = get_seconds();
 #ifndef WIN32
       // trick to get sec_* variables to compile without warning on mac
       if(false)
@@ -861,7 +893,7 @@ IGL_INLINE bool igl::arap_dof_update(
   assert(L.cols() == 1);
 
 #ifdef ARAP_GLOBAL_TIMING
-  double timer_finito = get_seconds_hires();
+  double timer_finito = get_seconds();
   printf(
     "ARAP preparation = %f, "
     "all %i iterations = %f [ms]\n", 

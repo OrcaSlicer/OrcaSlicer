@@ -17,9 +17,7 @@ IGL_INLINE bool igl::copyleft::cgal::segment_segment_squared_distance(
     CGAL::Point_3<Kernel> & P2,
     typename Kernel::FT & dst)
 {
-  typedef CGAL::Point_3<Kernel> Point_3;
   typedef CGAL::Vector_3<Kernel> Vector_3;
-  typedef typename Kernel::FT EScalar;
   if(S1.is_degenerate())
   {
     // All points on S1 are the same

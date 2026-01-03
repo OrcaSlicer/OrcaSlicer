@@ -16,18 +16,17 @@ namespace igl
   {
     namespace cgal
     {
-      // Extract a row from V and treat as a 2D cgal point (only first two
-      // columns of V are used).
-      // 
-      // Inputs:
-      //   V  #V by 2 list of vertex positions
-      //   i  row index
-      // Returns 2D cgal point
+      /// Extract a row from V and treat as a 2D cgal point (only first two
+      /// columns of V are used).
+      /// 
+      /// @param[in] V  #V by 2 list of vertex positions
+      /// @param[in] i  row index
+      /// @return 2D cgal point
       template <
         typename Kernel,
         typename DerivedV>
       IGL_INLINE CGAL::Point_2<Kernel> row_to_point(
-        const Eigen::PlainObjectBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedV> & V,
         const typename DerivedV::Index & i);
     }
   }

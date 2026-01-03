@@ -71,8 +71,7 @@ IGL_INLINE void igl::repdiag(
 {
   int m = A.rows();
   int n = A.cols();
-  B.resize(m*d,n*d);
-  B.array() *= 0;
+  B.setZero(m*d,n*d);
   for(int i = 0;i<d;i++)
   {
     B.block(i*m,i*n,m,n) = A;

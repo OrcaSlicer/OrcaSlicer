@@ -14,29 +14,35 @@
 #include <vector>
 namespace igl 
 {
-  // Constructs the graph adjacency list of a given mesh (V,F)
-  // Templates:
-  //   T  should be a eigen sparse matrix primitive type like int or double
-  // Inputs:
-  //   F       #F by dim list of mesh faces (must be triangles)
-  //   sorted  flag that indicates if the list should be sorted counter-clockwise
-  // Outputs: 
-  //   A  vector<vector<T> > containing at row i the adjacent vertices of vertex i
-  //
-  // Example:
-  //   // Mesh in (V,F)
-  //   vector<vector<double> > A;
-  //   adjacency_list(F,A);
-  //
-  // See also: edges, cotmatrix, diag
+  /// Constructs the graph adjacency list of a given mesh (V,F)
+  ///
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] F       #F by dim list of mesh faces (must be triangles)
+  /// @param[out] A  vector<vector<T> > containing at row i the adjacent vertices of vertex i
+  /// @param[in] sorted  flag that indicates if the list should be sorted counter-clockwise. Input assumed to be manifold.
+  ///
+  /// Example:
+  /// \code{.cpp}
+  ///   // Mesh in (V,F)
+  ///   vector<vector<double> > A;
+  ///   adjacency_list(F,A);
+  /// \endcode
+  ///
+  /// \see 
+  ///   adjacency_matrix
+  ///   edges, 
+  ///   cotmatrix, 
+  ///   diag
   template <typename Index, typename IndexVector>
   IGL_INLINE void adjacency_list(
-    const Eigen::PlainObjectBase<Index> & F, 
+    const Eigen::MatrixBase<Index>  & F,
     std::vector<std::vector<IndexVector> >& A,
     bool sorted = false);
-
-  // Variant that accepts polygonal faces. 
-  // Each element of F is a set of indices of a polygonal face.
+  /// Constructs the graph adjacency list of a given _polygon_ mesh (V,F)
+  ///
+  /// @tparam T  should be a eigen sparse matrix primitive type like int or double
+  /// @param[in] F       #F list of polygon face index lists
+  /// @param[out] A  vector<vector<T> > containing at row i the adjacent vertices of vertex i
   template <typename Index>
   IGL_INLINE void adjacency_list(
     const std::vector<std::vector<Index> > & F,

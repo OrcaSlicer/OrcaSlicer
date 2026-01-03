@@ -33,51 +33,65 @@
 #ifndef EIGEN_PARTIALLU_LAPACK_H
 #define EIGEN_PARTIALLU_LAPACK_H
 
-namespace Eigen { 
+// IWYU pragma: private
+#include "./InternalHeaderCheck.h"
+
+namespace Eigen {
 
 namespace internal {
 
-/** \internal Specialization for the data types supported by LAPACKe */
+namespace lapacke_helpers {
+// -------------------------------------------------------------------------------------------------------------------
+//        Generic lapacke partial lu implementation that converts arguments and dispatches to the function above
+// -------------------------------------------------------------------------------------------------------------------
 
-#define EIGEN_LAPACKE_LU_PARTPIV(EIGTYPE, LAPACKE_TYPE, LAPACKE_PREFIX) \
-template<int StorageOrder> \
-struct partial_lu_impl<EIGTYPE, StorageOrder, lapack_int> \
-{ \
-  /* \internal performs the LU decomposition in-place of the matrix represented */ \
-  static lapack_int blocked_lu(Index rows, Index cols, EIGTYPE* lu_data, Index luStride, lapack_int* row_transpositions, lapack_int& nb_transpositions, lapack_int maxBlockSize=256) \
-  { \
-    EIGEN_UNUSED_VARIABLE(maxBlockSize);\
-    lapack_int matrix_order, first_zero_pivot; \
-    lapack_int m, n, lda, *ipiv, info; \
-    EIGTYPE* a; \
-/* Set up parameters for ?getrf */ \
-    matrix_order = StorageOrder==RowMajor ? LAPACK_ROW_MAJOR : LAPACK_COL_MAJOR; \
-    lda = convert_index<lapack_int>(luStride); \
-    a = lu_data; \
-    ipiv = row_transpositions; \
-    m = convert_index<lapack_int>(rows); \
-    n = convert_index<lapack_int>(cols); \
-    nb_transpositions = 0; \
-\
-    info = LAPACKE_##LAPACKE_PREFIX##getrf( matrix_order, m, n, (LAPACKE_TYPE*)a, lda, ipiv ); \
-\
-    for(int i=0;i<m;i++) { ipiv[i]--; if (ipiv[i]!=i) nb_transpositions++; } \
-\
-    eigen_assert(info >= 0); \
-/* something should be done with nb_transpositions */ \
-\
-    first_zero_pivot = info; \
-    return first_zero_pivot; \
-  } \
+template <typename Scalar, int StorageOrder>
+struct lapacke_partial_lu {
+  /** \internal performs the LU decomposition in-place of the matrix represented */
+  static lapack_int blocked_lu(Index rows, Index cols, Scalar* lu_data, Index luStride, lapack_int* row_transpositions,
+                               lapack_int& nb_transpositions, lapack_int maxBlockSize = 256) {
+    EIGEN_UNUSED_VARIABLE(maxBlockSize);
+    // Set up parameters for getrf
+    lapack_int matrix_order = StorageOrder == RowMajor ? LAPACK_ROW_MAJOR : LAPACK_COL_MAJOR;
+    lapack_int lda = to_lapack(luStride);
+    Scalar* a = lu_data;
+    lapack_int* ipiv = row_transpositions;
+    lapack_int m = to_lapack(rows);
+    lapack_int n = to_lapack(cols);
+    nb_transpositions = 0;
+
+    lapack_int info = getrf(matrix_order, m, n, to_lapack(a), lda, ipiv);
+    eigen_assert(info >= 0);
+
+    for (int i = 0; i < m; i++) {
+      ipiv[i]--;
+      if (ipiv[i] != i) nb_transpositions++;
+    }
+    lapack_int first_zero_pivot = info;
+    return first_zero_pivot;
+  }
 };
+}  // end namespace lapacke_helpers
 
-EIGEN_LAPACKE_LU_PARTPIV(double, double, d)
-EIGEN_LAPACKE_LU_PARTPIV(float, float, s)
-EIGEN_LAPACKE_LU_PARTPIV(dcomplex, lapack_complex_double, z)
-EIGEN_LAPACKE_LU_PARTPIV(scomplex, lapack_complex_float,  c)
+/*
+ * Here, we just put the generic implementation from lapacke_partial_lu into a partial specialization of the
+ * partial_lu_impl type. This specialization is more specialized than the generic implementations that Eigen implements,
+ * so if the Scalar type matches they will be chosen.
+ */
+#define EIGEN_LAPACKE_PARTIAL_LU(EIGTYPE)                            \
+  template <int StorageOrder>                                        \
+  struct partial_lu_impl<EIGTYPE, StorageOrder, lapack_int, Dynamic> \
+      : public lapacke_helpers::lapacke_partial_lu<EIGTYPE, StorageOrder> {};
 
-} // end namespace internal
+EIGEN_LAPACKE_PARTIAL_LU(double)
+EIGEN_LAPACKE_PARTIAL_LU(float)
+EIGEN_LAPACKE_PARTIAL_LU(std::complex<double>)
+EIGEN_LAPACKE_PARTIAL_LU(std::complex<float>)
 
-} // end namespace Eigen
+#undef EIGEN_LAPACKE_PARTIAL_LU
 
-#endif // EIGEN_PARTIALLU_LAPACK_H
+}  // end namespace internal
+
+}  // end namespace Eigen
+
+#endif  // EIGEN_PARTIALLU_LAPACK_H

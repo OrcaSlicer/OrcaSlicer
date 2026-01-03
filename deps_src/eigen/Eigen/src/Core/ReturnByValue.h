@@ -11,20 +11,20 @@
 #ifndef EIGEN_RETURNBYVALUE_H
 #define EIGEN_RETURNBYVALUE_H
 
+// IWYU pragma: private
+#include "./InternalHeaderCheck.h"
+
 namespace Eigen {
 
 namespace internal {
 
-template<typename Derived>
-struct traits<ReturnByValue<Derived> >
-  : public traits<typename traits<Derived>::ReturnType>
-{
+template <typename Derived>
+struct traits<ReturnByValue<Derived> > : public traits<typename traits<Derived>::ReturnType> {
   enum {
     // We're disabling the DirectAccess because e.g. the constructor of
     // the Block-with-DirectAccess expression requires to have a coeffRef method.
     // Also, we don't want to have to implement the stride stuff.
-    Flags = (traits<typename traits<Derived>::ReturnType>::Flags
-             | EvalBeforeNestingBit) & ~DirectAccessBit
+    Flags = (traits<typename traits<Derived>::ReturnType>::Flags | EvalBeforeNestingBit) & ~DirectAccessBit
   };
 };
 
@@ -35,52 +35,50 @@ struct traits<ReturnByValue<Derived> >
  * FIXME: I don't understand why we need this specialization: isn't this taken care of by the EvalBeforeNestingBit ??
  * Answer: EvalBeforeNestingBit should be deprecated since we have the evaluators
  */
-template<typename Derived,int n,typename PlainObject>
-struct nested_eval<ReturnByValue<Derived>, n, PlainObject>
-{
+template <typename Derived, int n, typename PlainObject>
+struct nested_eval<ReturnByValue<Derived>, n, PlainObject> {
   typedef typename traits<Derived>::ReturnType type;
 };
 
-} // end namespace internal
+}  // end namespace internal
 
 /** \class ReturnByValue
-  * \ingroup Core_Module
-  *
-  */
-template<typename Derived> class ReturnByValue
-  : public internal::dense_xpr_base< ReturnByValue<Derived> >::type, internal::no_assignment_operator
-{
-  public:
-    typedef typename internal::traits<Derived>::ReturnType ReturnType;
+ * \ingroup Core_Module
+ *
+ */
+template <typename Derived>
+class ReturnByValue : public internal::dense_xpr_base<ReturnByValue<Derived> >::type, internal::no_assignment_operator {
+ public:
+  typedef typename internal::traits<Derived>::ReturnType ReturnType;
 
-    typedef typename internal::dense_xpr_base<ReturnByValue>::type Base;
-    EIGEN_DENSE_PUBLIC_INTERFACE(ReturnByValue)
+  typedef typename internal::dense_xpr_base<ReturnByValue>::type Base;
+  EIGEN_DENSE_PUBLIC_INTERFACE(ReturnByValue)
 
-    template<typename Dest>
-    EIGEN_DEVICE_FUNC
-    inline void evalTo(Dest& dst) const
-    { static_cast<const Derived*>(this)->evalTo(dst); }
-    EIGEN_DEVICE_FUNC inline Index rows() const { return static_cast<const Derived*>(this)->rows(); }
-    EIGEN_DEVICE_FUNC inline Index cols() const { return static_cast<const Derived*>(this)->cols(); }
+  template <typename Dest>
+  EIGEN_DEVICE_FUNC inline void evalTo(Dest& dst) const {
+    static_cast<const Derived*>(this)->evalTo(dst);
+  }
+  EIGEN_DEVICE_FUNC constexpr Index rows() const noexcept { return static_cast<const Derived*>(this)->rows(); }
+  EIGEN_DEVICE_FUNC constexpr Index cols() const noexcept { return static_cast<const Derived*>(this)->cols(); }
 
 #ifndef EIGEN_PARSED_BY_DOXYGEN
-#define Unusable YOU_ARE_TRYING_TO_ACCESS_A_SINGLE_COEFFICIENT_IN_A_SPECIAL_EXPRESSION_WHERE_THAT_IS_NOT_ALLOWED_BECAUSE_THAT_WOULD_BE_INEFFICIENT
-    class Unusable{
-      Unusable(const Unusable&) {}
-      Unusable& operator=(const Unusable&) {return *this;}
-    };
-    const Unusable& coeff(Index) const { return *reinterpret_cast<const Unusable*>(this); }
-    const Unusable& coeff(Index,Index) const { return *reinterpret_cast<const Unusable*>(this); }
-    Unusable& coeffRef(Index) { return *reinterpret_cast<Unusable*>(this); }
-    Unusable& coeffRef(Index,Index) { return *reinterpret_cast<Unusable*>(this); }
+#define Unusable \
+  YOU_ARE_TRYING_TO_ACCESS_A_SINGLE_COEFFICIENT_IN_A_SPECIAL_EXPRESSION_WHERE_THAT_IS_NOT_ALLOWED_BECAUSE_THAT_WOULD_BE_INEFFICIENT
+  class Unusable {
+    Unusable(const Unusable&) {}
+    Unusable& operator=(const Unusable&) { return *this; }
+  };
+  const Unusable& coeff(Index) const { return *reinterpret_cast<const Unusable*>(this); }
+  const Unusable& coeff(Index, Index) const { return *reinterpret_cast<const Unusable*>(this); }
+  Unusable& coeffRef(Index) { return *reinterpret_cast<Unusable*>(this); }
+  Unusable& coeffRef(Index, Index) { return *reinterpret_cast<Unusable*>(this); }
 #undef Unusable
 #endif
 };
 
-template<typename Derived>
-template<typename OtherDerived>
-Derived& DenseBase<Derived>::operator=(const ReturnByValue<OtherDerived>& other)
-{
+template <typename Derived>
+template <typename OtherDerived>
+EIGEN_DEVICE_FUNC Derived& DenseBase<Derived>::operator=(const ReturnByValue<OtherDerived>& other) {
   other.evalTo(derived());
   return derived();
 }
@@ -90,28 +88,24 @@ namespace internal {
 // Expression is evaluated in a temporary; default implementation of Assignment is bypassed so that
 // when a ReturnByValue expression is assigned, the evaluator is not constructed.
 // TODO: Finalize port to new regime; ReturnByValue should not exist in the expression world
-  
-template<typename Derived>
-struct evaluator<ReturnByValue<Derived> >
-  : public evaluator<typename internal::traits<Derived>::ReturnType>
-{
+
+template <typename Derived>
+struct evaluator<ReturnByValue<Derived> > : public evaluator<typename internal::traits<Derived>::ReturnType> {
   typedef ReturnByValue<Derived> XprType;
   typedef typename internal::traits<Derived>::ReturnType PlainObject;
   typedef evaluator<PlainObject> Base;
-  
-  EIGEN_DEVICE_FUNC explicit evaluator(const XprType& xpr)
-    : m_result(xpr.rows(), xpr.cols())
-  {
-    ::new (static_cast<Base*>(this)) Base(m_result);
+
+  EIGEN_DEVICE_FUNC explicit evaluator(const XprType& xpr) : m_result(xpr.rows(), xpr.cols()) {
+    internal::construct_at<Base>(this, m_result);
     xpr.evalTo(m_result);
   }
 
-protected:
+ protected:
   PlainObject m_result;
 };
 
-} // end namespace internal
+}  // end namespace internal
 
-} // end namespace Eigen
+}  // end namespace Eigen
 
-#endif // EIGEN_RETURNBYVALUE_H
+#endif  // EIGEN_RETURNBYVALUE_H

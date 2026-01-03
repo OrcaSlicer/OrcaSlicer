@@ -7,7 +7,7 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #ifndef IGL_MATLAB_PREPARE_LHS_H
 #define IGL_MATLAB_PREPARE_LHS_H
-#include <igl/igl_inline.h>
+#include "../igl_inline.h"
 #include <mex.h>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -15,30 +15,39 @@ namespace igl
 {
   namespace matlab
   {
-    // Writes out a matrix as a double
-    //
-    // Inputs:
-    //   prhs  points to rhs argument
-    // Outputs:
-    //   V  M by N matrix 
+    /// Writes out a matrix as a double
+    ///
+    /// @param[in] V  M by N matrix 
+    /// @param[out] plhs  points to lhs argument
     template <typename DerivedV>
     IGL_INLINE void prepare_lhs_double(
-      const Eigen::PlainObjectBase<DerivedV> & V,
+      const Eigen::DenseBase<DerivedV> & V,
       mxArray *plhs[]);
-    // Casts to logical
-    template <typename DerivedV>
-    IGL_INLINE void prepare_lhs_logical(
-      const Eigen::PlainObjectBase<DerivedV> & V,
-      mxArray *plhs[]);
-    // Writes out a matrix and adds 1
-    template <typename DerivedV>
-    IGL_INLINE void prepare_lhs_index(
-      const Eigen::PlainObjectBase<DerivedV> & V,
-      mxArray *plhs[]);
-    // SparseMatrix
+    /// \overload
     template <typename Vtype>
     IGL_INLINE void prepare_lhs_double(
       const Eigen::SparseMatrix<Vtype> & V,
+      mxArray *plhs[]);
+    /// \overload
+    /// \brief Casts to logical
+    template <typename DerivedV>
+    IGL_INLINE void prepare_lhs_logical(
+      const Eigen::DenseBase<DerivedV> & V,
+      mxArray *plhs[]);
+    /// Writes out a matrix and adds 1
+    ///
+    /// @param[in] V  M by N matrix 
+    /// @param[out] plhs  points to lhs argument
+    template <typename DerivedV>
+    IGL_INLINE void prepare_lhs_index(
+      const Eigen::DenseBase<DerivedV> & V,
+      mxArray *plhs[]);
+    /// \overload
+    /// \brief Vector of matrices -> cell array of matrices
+    /// @param[in] V  vector of M by N matrices
+    template <typename Vtype>
+    IGL_INLINE void prepare_lhs_double(
+      const std::vector<Vtype> & V,
       mxArray *plhs[]);
   };
 }

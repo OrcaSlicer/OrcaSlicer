@@ -10,70 +10,68 @@
 #ifndef EIGEN_MISC_KERNEL_H
 #define EIGEN_MISC_KERNEL_H
 
-namespace Eigen { 
+// IWYU pragma: private
+#include "./InternalHeaderCheck.h"
+
+namespace Eigen {
 
 namespace internal {
 
 /** \class kernel_retval_base
-  *
-  */
-template<typename DecompositionType>
-struct traits<kernel_retval_base<DecompositionType> >
-{
+ *
+ */
+template <typename DecompositionType>
+struct traits<kernel_retval_base<DecompositionType> > {
   typedef typename DecompositionType::MatrixType MatrixType;
-  typedef Matrix<
-    typename MatrixType::Scalar,
-    MatrixType::ColsAtCompileTime, // the number of rows in the "kernel matrix"
-                                   // is the number of cols of the original matrix
-                                   // so that the product "matrix * kernel = zero" makes sense
-    Dynamic,                       // we don't know at compile-time the dimension of the kernel
-    MatrixType::Options,
-    MatrixType::MaxColsAtCompileTime, // see explanation for 2nd template parameter
-    MatrixType::MaxColsAtCompileTime // the kernel is a subspace of the domain space,
-                                     // whose dimension is the number of columns of the original matrix
-  > ReturnType;
+  typedef Matrix<typename MatrixType::Scalar,
+                 MatrixType::ColsAtCompileTime,  // the number of rows in the "kernel matrix"
+                                                 // is the number of cols of the original matrix
+                                                 // so that the product "matrix * kernel = zero" makes sense
+                 Dynamic,                        // we don't know at compile-time the dimension of the kernel
+                 traits<MatrixType>::Options,
+                 MatrixType::MaxColsAtCompileTime,  // see explanation for 2nd template parameter
+                 MatrixType::MaxColsAtCompileTime   // the kernel is a subspace of the domain space,
+                                                    // whose dimension is the number of columns of the original matrix
+                 >
+      ReturnType;
 };
 
-template<typename _DecompositionType> struct kernel_retval_base
- : public ReturnByValue<kernel_retval_base<_DecompositionType> >
-{
-  typedef _DecompositionType DecompositionType;
+template <typename DecompositionType_>
+struct kernel_retval_base : public ReturnByValue<kernel_retval_base<DecompositionType_> > {
+  typedef DecompositionType_ DecompositionType;
   typedef ReturnByValue<kernel_retval_base> Base;
 
   explicit kernel_retval_base(const DecompositionType& dec)
-    : m_dec(dec),
-      m_rank(dec.rank()),
-      m_cols(m_rank==dec.cols() ? 1 : dec.cols() - m_rank)
-  {}
+      : m_dec(dec), m_rank(dec.rank()), m_cols(m_rank == dec.cols() ? 1 : dec.cols() - m_rank) {}
 
   inline Index rows() const { return m_dec.cols(); }
   inline Index cols() const { return m_cols; }
   inline Index rank() const { return m_rank; }
   inline const DecompositionType& dec() const { return m_dec; }
 
-  template<typename Dest> inline void evalTo(Dest& dst) const
-  {
+  template <typename Dest>
+  inline void evalTo(Dest& dst) const {
     static_cast<const kernel_retval<DecompositionType>*>(this)->evalTo(dst);
   }
 
-  protected:
-    const DecompositionType& m_dec;
-    Index m_rank, m_cols;
+ protected:
+  const DecompositionType& m_dec;
+  Index m_rank, m_cols;
 };
 
-} // end namespace internal
+}  // end namespace internal
 
-#define EIGEN_MAKE_KERNEL_HELPERS(DecompositionType) \
-  typedef typename DecompositionType::MatrixType MatrixType; \
-  typedef typename MatrixType::Scalar Scalar; \
-  typedef typename MatrixType::RealScalar RealScalar; \
+#define EIGEN_MAKE_KERNEL_HELPERS(DecompositionType)                   \
+  typedef typename DecompositionType::MatrixType MatrixType;           \
+  typedef typename MatrixType::Scalar Scalar;                          \
+  typedef typename MatrixType::RealScalar RealScalar;                  \
   typedef Eigen::internal::kernel_retval_base<DecompositionType> Base; \
-  using Base::dec; \
-  using Base::rank; \
-  using Base::rows; \
-  using Base::cols; \
+  using Base::dec;                                                     \
+  using Base::rank;                                                    \
+  using Base::rows;                                                    \
+  using Base::cols;                                                    \
   kernel_retval(const DecompositionType& dec) : Base(dec) {}
 
-} // end namespace Eigen
+}  // end namespace Eigen
 
-#endif // EIGEN_MISC_KERNEL_H
+#endif  // EIGEN_MISC_KERNEL_H

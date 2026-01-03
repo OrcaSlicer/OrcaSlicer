@@ -11,8 +11,9 @@
 #include <string>
 namespace igl
 {
-  // Return the path of the current executable.
-  // Note: Tested for Mac OS X
+  /// Path to current executable.
+  /// @return path as string
+  /// \note Tested for Mac OS X
   IGL_INLINE std::string path_to_executable();
 }
 #ifndef IGL_STATIC_LIBRARY

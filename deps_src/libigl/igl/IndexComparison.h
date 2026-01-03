@@ -7,12 +7,9 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #ifndef IGL_INDEXCOMPARISON_H
 #define IGL_INDEXCOMPARISON_H
-#include <iostream>
 namespace igl{
-  // Comparison struct used by sort
-  // http://bytes.com/topic/c/answers/132045-sort-get-index
-
-  // For use with functions like std::sort
+  /// Comparison struct used by sort
+  /// http://bytes.com/topic/c/answers/132045-sort-get-index
   template<class T> struct IndexLessThan
   {
     IndexLessThan(const T arr) : arr(arr) {}
@@ -23,7 +20,7 @@ namespace igl{
     const T arr;
   };
 
-  // For use with functions like std::unique
+  /// Comparison struct used by unique
   template<class T> struct IndexEquals
   {
     IndexEquals(const T arr) : arr(arr) {}
@@ -34,7 +31,7 @@ namespace igl{
     const T arr;
   };
 
-  // For use with functions like std::sort
+  /// Comparison struct for vectors for use with functions like std::sort
   template<class T> struct IndexVectorLessThan
   {
     IndexVectorLessThan(const T & vec) : vec ( vec) {}
@@ -45,7 +42,7 @@ namespace igl{
     const T & vec;
   };
 
-  // For use with functions like std::sort
+  /// Comparison struct for use with functions like std::sort
   template<class T> struct IndexDimLessThan
   {
     IndexDimLessThan(const T & mat,const int & dim, const int & j) : 
@@ -68,7 +65,7 @@ namespace igl{
     const int & j;
   };
 
-  // For use with functions like std::sort
+  /// Comparison struct For use with functions like std::sort
   template<class T> struct IndexRowLessThan
   {
     IndexRowLessThan(const T & mat) : mat ( mat) {}
@@ -92,7 +89,7 @@ namespace igl{
     const T & mat;
   };
 
-  // For use with functions like std::sort
+  /// Comparison struct for use with functions like std::sort
   template<class T> struct IndexRowEquals
   {
     IndexRowEquals(const T & mat) : mat ( mat) {}

@@ -18,6 +18,9 @@
 #pragma warning( disable : 592 )
 #endif
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wuninitialized"
+
 // #define USE_ACCURATE_RSQRT_IN_JACOBI_CONJUGATION
 // #define PERFORM_STRICT_QUATERNION_RENORMALIZATION
 
@@ -1271,6 +1274,8 @@
 #endif
 #endif
 #endif
+
+#pragma clang diagnostic pop
 
 #ifdef __INTEL_COMPILER
 #pragma warning( default : 592 )

@@ -15,26 +15,24 @@ namespace igl
   {
     namespace cgal
     {
-      // Computes necessary generic information for boolean operations by
-      // successively "peeling" off the "outer hull" of a mesh (V,F) resulting from
-      // "resolving" all (self-)intersections.
-      //
-      // Inputs:
-      //   V  #V by 3 list of vertex positions
-      //   F  #F by 3 list of triangle indices into V
-      // Outputs:
-      //   I  #F list of which peel Iation a facet belongs 
-      //   flip  #F list of whether a facet's orientation was flipped when facet
-      //     "peeled" into its associated outer hull layer.
-      // Returns number of peels
+      /// Computes necessary generic information for boolean operations by
+      /// successively "peeling" off the "outer hull" of a mesh (V,F) resulting from
+      /// "resolving" all (self-)intersections.
+      ///
+      /// @param[in] V  #V by 3 list of vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices into V
+      /// @param[out] I  #F list of which peel Iation a facet belongs 
+      /// @param[out] flip  #F list of whether a facet's orientation was flipped when facet
+      ///     "peeled" into its associated outer hull layer.
+      /// @return number of peels
       template <
         typename DerivedV,
         typename DerivedF,
         typename DerivedI,
         typename Derivedflip>
-      IGL_INLINE size_t peel_outer_hull_layers(
-        const Eigen::PlainObjectBase<DerivedV > & V,
-        const Eigen::PlainObjectBase<DerivedF > & F,
+      IGL_INLINE int peel_outer_hull_layers(
+        const Eigen::MatrixBase<DerivedV > & V,
+        const Eigen::MatrixBase<DerivedF > & F,
         Eigen::PlainObjectBase<DerivedI > & I,
         Eigen::PlainObjectBase<Derivedflip > & flip);
     }

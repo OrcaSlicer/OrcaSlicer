@@ -1,15 +1,15 @@
 // This file is part of libigl, a simple c++ geometry processing library.
-// 
+//
 // Copyright (C) 2017 Alec Jacobson <alecjacobson@gmail.com>
-// 
-// This Source Code Form is subject to the terms of the Mozilla Public License 
-// v. 2.0. If a copy of the MPL was not distributed with this file, You can 
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License
+// v. 2.0. If a copy of the MPL was not distributed with this file, You can
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "bijective_composite_harmonic_mapping.h"
 
-#include "slice.h"
 #include "doublearea.h"
 #include "harmonic.h"
+#include "placeholders.h"
 //#include "matlab/MatlabWorkspace.h"
 #include <iostream>
 
@@ -49,13 +49,12 @@ IGL_INLINE bool igl::bijective_composite_harmonic_mapping(
   typedef typename Derivedbc::Scalar Scalar;
   assert(V.cols() == 2 && bc.cols() == 2 && "Input should be 2D");
   assert(F.cols() == 3 && "F should contain triangles");
-  int tries = 0;
   int nsteps = min_steps;
-  Derivedbc bc0;
-  slice(V,b,1,bc0);
+  Eigen::Matrix<typename Derivedbc::Scalar, Eigen::Dynamic, Eigen::Dynamic> bc0 =
+    V(b.col(0),igl::placeholders::all);
 
   // It's difficult to check for flips "robustly" in the sense that the input
-  // mesh might not have positive/consistent sign to begin with. 
+  // mesh might not have positive/consistent sign to begin with.
 
   while(nsteps<=max_steps)
   {
@@ -71,7 +70,7 @@ IGL_INLINE bool igl::bijective_composite_harmonic_mapping(
       // of the boundary conditions. Something like "Homotopic Morphing of
       // Planar Curves" [Dym et al. 2015] but also handling multiple connected
       // components.
-      Derivedbc bct = bc0 + t*(bc - bc0);
+      Eigen::Matrix<typename Derivedbc::Scalar, Eigen::Dynamic, Eigen::Dynamic> bct = bc0 + t * (bc - bc0);
       // Compute dsicrete harmonic map using metric of previous step
       for(int iter = 0;iter<num_inner_iters;iter++)
       {
@@ -82,8 +81,8 @@ IGL_INLINE bool igl::bijective_composite_harmonic_mapping(
         //mw.save_index(b,"b");
         //mw.save(bct,"bct");
         //mw.write("numerical.mat");
-        harmonic(DerivedU(U),F,b,bct,1,U);
-        igl::slice(U,b,1,bct);
+        harmonic(Eigen::Matrix<typename DerivedU::Scalar, Eigen::Dynamic, Eigen::Dynamic>(U), F, b, bct, 1, U);
+        bct = U(b.col(0),igl::placeholders::all);
         nans = (U.array() != U.array()).count();
         if(test_for_flips)
         {

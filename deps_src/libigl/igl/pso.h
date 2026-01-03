@@ -1,27 +1,27 @@
 #ifndef IGL_PSO_H
 #define IGL_PSO_H
-#include <igl/igl_inline.h>
+#include "igl_inline.h"
 #include <Eigen/Core>
 #include <functional>
 
 namespace igl
 {
-  // Solve the problem:
-  //
-  //   minimize f(x)
-  //   subject to lb ≤ x ≤ ub 
-  // 
-  // by particle swarm optimization (PSO).
-  //
-  // Inputs:
-  //   f  function that evaluates the objective for a given "particle" location
-  //   LB  #X vector of lower bounds 
-  //   UB  #X vector of upper bounds 
-  //   max_iters  maximum number of iterations
-  //   population  number of particles in swarm
-  // Outputs:
-  //   X  best particle seen so far
-  // Returns objective corresponding to best particle seen so far
+  /// Global optimization with the particle swarm algorithm.
+  ///
+  /// Solve the problem:
+  ///
+  ///   minimize f(x)
+  ///   subject to lb ≤ x ≤ ub 
+  /// 
+  /// by particle swarm optimization (PSO).
+  ///
+  /// @param[in] f  function that evaluates the objective for a given "particle" location
+  /// @param[in] LB  #X vector of lower bounds 
+  /// @param[in] UB  #X vector of upper bounds 
+  /// @param[in] max_iters  maximum number of iterations
+  /// @param[in] population  number of particles in swarm
+  /// @param[out] X  best particle seen so far
+  /// @return objective corresponding to best particle seen so far
   template <
     typename Scalar, 
     typename DerivedX,
@@ -34,8 +34,10 @@ namespace igl
     const int max_iters,
     const int population,
     DerivedX & X);
-  // Inputs:
-  //   P  whether each DOF is periodic
+  /// \overload
+  /// @param[out] P  whether each DOF is periodic
+  ///
+  /// \bug `P` appears to be unused
   template <
     typename Scalar, 
     typename DerivedX,
