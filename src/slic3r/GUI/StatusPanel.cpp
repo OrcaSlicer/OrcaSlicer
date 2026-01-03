@@ -13,6 +13,7 @@
 #include "MsgDialog.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "libslic3r/Thread.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "DeviceErrorDialog.hpp"
 
 #include "RecenterDialog.hpp"
@@ -22,6 +23,7 @@
 #include <wx/mstream.h>
 #include <wx/sstream.h>
 #include <wx/zstream.h>
+#include <algorithm>
 
 #include "DeviceCore/DevBed.h"
 #include "DeviceCore/DevCtrl.h"
@@ -1383,6 +1385,12 @@ StatusBasePanel::~StatusBasePanel()
         delete m_custom_camera_view;
         m_custom_camera_view = nullptr;
     }
+
+    if (m_native_camera_ctrl) {
+        m_native_camera_ctrl->Stop();
+        delete m_native_camera_ctrl;
+        m_native_camera_ctrl = nullptr;
+    }
 }
 
 void StatusBasePanel::init_bitmaps()
@@ -1495,10 +1503,12 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_camera_switch_button->SetBitmap(m_bitmap_switch_camera.bmp());
     m_camera_switch_button->Bind(wxEVT_LEFT_DOWN, &StatusBasePanel::on_camera_switch_toggled, this);
     m_camera_switch_button->Bind(wxEVT_RIGHT_DOWN, [this](auto& e) {
-        const std::string js_request_pip = R"(
-            document.querySelector('video').requestPictureInPicture();
-        )";
-        m_custom_camera_view->RunScript(js_request_pip);
+        if (m_custom_camera_view && m_custom_camera_view->IsShown()) {
+            const std::string js_request_pip = R"(
+                document.querySelector('video').requestPictureInPicture();
+            )";
+            m_custom_camera_view->RunScript(js_request_pip);
+        }
     });
     m_camera_switch_button->Hide();
 
@@ -1532,13 +1542,9 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_custom_camera_view = WebView::CreateWebView(this, wxEmptyString);
     m_custom_camera_view->EnableContextMenu(false);
     Bind(wxEVT_WEBVIEW_NAVIGATING, &StatusBasePanel::on_webview_navigating, this, m_custom_camera_view->GetId());
-
-    m_media_play_ctrl = new MediaPlayCtrl(this, m_media_ctrl, wxDefaultPosition, wxSize(-1, FromDIP(40)));
     m_custom_camera_view->Hide();
     m_custom_camera_view->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, [this](wxWebViewEvent& evt) {
         if (evt.GetString() == "leavepictureinpicture") {
-            // When leaving PiP, video gets paused in some cases and toggling play
-            // programmatically does not work.
             m_custom_camera_view->Reload();
         }
         else if (evt.GetString() == "enterpictureinpicture") {
@@ -1546,25 +1552,88 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
         }
     });
 
+    m_native_camera_ctrl = new NativeMediaCtrl(this);
+    m_native_camera_ctrl->SetMinSize(wxSize(PAGE_MIN_WIDTH, FromDIP(288)));
+    m_native_camera_ctrl->Hide();
+    m_native_camera_ctrl->Bind(EVT_NATIVE_MEDIA_STATE_CHANGED, &StatusBasePanel::on_native_camera_state_changed, this);
+    m_native_camera_ctrl->Bind(EVT_NATIVE_MEDIA_ERROR, &StatusBasePanel::on_native_camera_error, this);
+    m_native_camera_ctrl->Bind(EVT_NATIVE_MEDIA_SIZE_CHANGED, &StatusBasePanel::on_native_camera_size_changed, this);
+
+    m_media_play_ctrl = new MediaPlayCtrl(this, m_media_ctrl, wxDefaultPosition, wxSize(-1, FromDIP(40)));
+
     sizer->Add(m_media_ctrl, 1, wxEXPAND | wxALL, 0);
     sizer->Add(m_custom_camera_view, 1, wxEXPAND | wxALL, 0);
+    sizer->Add(m_native_camera_ctrl, 0, wxEXPAND | wxALL, 0);
     sizer->Add(m_media_play_ctrl, 0, wxEXPAND | wxALL, 0);
-//    media_ctrl_panel->SetSizer(bSizer_monitoring);
-//    media_ctrl_panel->Layout();
-//
-//    sizer->Add(media_ctrl_panel, 1, wxEXPAND | wxALL, 1);
-
-    if (wxGetApp().app_config->get("camera", "enable_custom_source") == "true") {
-        handle_camera_source_change();
-    }
 
     return sizer;
 }
 
 void StatusBasePanel::on_webview_navigating(wxWebViewEvent& evt) {
     wxGetApp().CallAfter([this] {
-        remove_controls();
+        remove_webview_controls();
     });
+}
+
+void StatusBasePanel::remove_webview_controls()
+{
+    const std::string js_cleanup_video_element = R"(
+        document.body.style.overflow='hidden';
+        const video = document.querySelector('video');
+        if (video) {
+            video.setAttribute('style', 'width: 100% !important;');
+            video.removeAttribute('controls');
+            video.addEventListener('leavepictureinpicture', () => {
+                window.wx.postMessage('leavepictureinpicture');
+            });
+            video.addEventListener('enterpictureinpicture', () => {
+                window.wx.postMessage('enterpictureinpicture');
+            });
+        }
+    )";
+    m_custom_camera_view->RunScript(js_cleanup_video_element);
+}
+
+void StatusBasePanel::on_native_camera_state_changed(wxCommandEvent& event)
+{
+    NativeMediaState state = static_cast<NativeMediaState>(event.GetInt());
+    BOOST_LOG_TRIVIAL(info) << "NativeMediaCtrl state changed: " << static_cast<int>(state);
+}
+
+void StatusBasePanel::on_native_camera_error(wxCommandEvent& event)
+{
+    NativeMediaError error = static_cast<NativeMediaError>(event.GetInt());
+    BOOST_LOG_TRIVIAL(warning) << "NativeMediaCtrl error: " << static_cast<int>(error);
+}
+
+void StatusBasePanel::on_native_camera_size_changed(wxCommandEvent& event)
+{
+    if (!m_native_camera_ctrl) return;
+
+    wxSize video_size = m_native_camera_ctrl->GetVideoSize();
+    if (video_size.GetWidth() <= 0 || video_size.GetHeight() <= 0) return;
+
+    int container_width = m_native_camera_ctrl->GetSize().GetWidth();
+    if (container_width <= 0) {
+        container_width = m_media_ctrl ? m_media_ctrl->GetSize().GetWidth() : 0;
+    }
+    if (container_width <= 0) container_width = PAGE_MIN_WIDTH;
+
+    double aspect = (double)video_size.GetHeight() / (double)video_size.GetWidth();
+    int new_height = (int)(container_width * aspect);
+
+    m_native_camera_ctrl->SetMinSize(wxSize(-1, new_height));
+    m_native_camera_ctrl->SetMaxSize(wxSize(-1, new_height));
+    m_native_camera_ctrl->SetSize(-1, new_height);
+
+    wxWindow* parent = m_native_camera_ctrl->GetParent();
+    if (parent) {
+        parent->Layout();
+        parent->Refresh();
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "NativeMediaCtrl resized to fit " << video_size.GetWidth() << "x" << video_size.GetHeight()
+                            << " -> container width: " << container_width << ", height: " << new_height;
 }
 
 wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
@@ -2240,6 +2309,12 @@ void StatusBasePanel::show_filament_load_group(bool show)
 void StatusPanel::update_camera_state(MachineObject* obj)
 {
     if (!obj) return;
+
+    std::string current_dev_id = obj->get_dev_id();
+    if (m_last_dev_id != current_dev_id) {
+        m_last_dev_id = current_dev_id;
+        handle_camera_source_change();
+    }
 
     //sdcard
     auto sdcard_state = obj->GetStorage()->get_sdcard_state();
@@ -4842,7 +4917,7 @@ void StatusPanel::on_camera_enter(wxMouseEvent& event)
         pos.y += sz.y;
         m_camera_popup->SetPosition(pos);
         m_camera_popup->update(m_media_play_ctrl->IsStreaming());
-        m_camera_popup->Popup();
+        m_camera_popup->Show();
     }
 }
 
@@ -4853,14 +4928,55 @@ void StatusBasePanel::on_camera_source_change(wxCommandEvent& event)
 
 void StatusBasePanel::handle_camera_source_change()
 {
-    const auto new_cam_url = wxGetApp().app_config->get("camera", "custom_source");
-    const auto enabled = wxGetApp().app_config->get("camera", "enable_custom_source") == "true";
+    std::string new_cam_url;
+    CameraSourceType source_type = CameraSourceType::Builtin;
+    bool enabled = false;
 
-    if (enabled && !new_cam_url.empty()) {
-        m_custom_camera_view->LoadURL(new_cam_url);
-        toggle_custom_camera();
+    auto* dev_manager = wxGetApp().getDeviceManager();
+    MachineObject* machine = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+    if (machine) {
+        std::string dev_id = machine->get_dev_id();
+        if (wxGetApp().app_config->has_printer_camera(dev_id)) {
+            auto config = wxGetApp().app_config->get_printer_camera(dev_id);
+            new_cam_url = config.custom_source;
+            source_type = config.source_type;
+            enabled = config.enabled;
+        }
+    }
+
+    wxSizer* sizer = m_media_ctrl->GetContainingSizer();
+
+    if (enabled && source_type != CameraSourceType::Builtin) {
+        if (source_type == CameraSourceType::RTSP || source_type == CameraSourceType::MJPEG) {
+            if (sizer) {
+                sizer->Show(m_custom_camera_view, false);
+                sizer->Show(m_media_ctrl, false);
+                sizer->Show(m_native_camera_ctrl, true);
+            }
+            m_custom_camera_view->Hide();
+            m_media_ctrl->Hide();
+            m_native_camera_ctrl->Load(new_cam_url);
+            m_native_camera_ctrl->Play();
+            m_native_camera_ctrl->Show();
+        } else {
+            if (sizer) {
+                sizer->Show(m_native_camera_ctrl, false);
+                sizer->Show(m_media_ctrl, false);
+                sizer->Show(m_custom_camera_view, true);
+            }
+            m_native_camera_ctrl->Stop();
+            m_native_camera_ctrl->Hide();
+            m_media_ctrl->Hide();
+            m_custom_camera_view->LoadURL(new_cam_url);
+            m_custom_camera_view->Show();
+        }
+        m_media_play_ctrl->Hide();
         m_camera_switch_button->Show();
+        if (sizer) sizer->Layout();
     } else {
+        m_native_camera_ctrl->Stop();
+        m_native_camera_ctrl->Hide();
+        m_custom_camera_view->Hide();
         toggle_builtin_camera();
         m_camera_switch_button->Hide();
     }
@@ -4868,25 +4984,80 @@ void StatusBasePanel::handle_camera_source_change()
 
 void StatusBasePanel::toggle_builtin_camera()
 {
+    wxSizer* sizer = m_media_ctrl->GetContainingSizer();
+
+    m_native_camera_ctrl->Stop();
+    m_native_camera_ctrl->Hide();
     m_custom_camera_view->Hide();
     m_media_ctrl->Show();
     m_media_play_ctrl->Show();
+
+    if (sizer) {
+        sizer->Show(m_native_camera_ctrl, false);
+        sizer->Show(m_custom_camera_view, false);
+        sizer->Show(m_media_ctrl, true);
+        sizer->Layout();
+    }
 }
 
 void StatusBasePanel::toggle_custom_camera()
 {
-    const auto enabled = wxGetApp().app_config->get("camera", "enable_custom_source") == "true";
+    std::string cam_url;
+    CameraSourceType source_type = CameraSourceType::Builtin;
+    bool enabled = false;
+    auto* dev_manager = wxGetApp().getDeviceManager();
+    MachineObject* machine = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+    if (machine) {
+        std::string dev_id = machine->get_dev_id();
+        if (wxGetApp().app_config->has_printer_camera(dev_id)) {
+            auto config = wxGetApp().app_config->get_printer_camera(dev_id);
+            cam_url = config.custom_source;
+            source_type = config.source_type;
+            enabled = config.enabled;
+        }
+    }
 
-    if (enabled) {
-        m_custom_camera_view->Show();
+    wxSizer* sizer = m_media_ctrl->GetContainingSizer();
+
+    if (enabled && source_type != CameraSourceType::Builtin) {
         m_media_ctrl->Hide();
         m_media_play_ctrl->Hide();
+
+        if (source_type == CameraSourceType::RTSP || source_type == CameraSourceType::MJPEG) {
+            m_custom_camera_view->Hide();
+            m_native_camera_ctrl->Show();
+            if (sizer) {
+                sizer->Show(m_media_ctrl, false);
+                sizer->Show(m_custom_camera_view, false);
+                sizer->Show(m_native_camera_ctrl, true);
+                sizer->Layout();
+            }
+        } else {
+            m_native_camera_ctrl->Hide();
+            m_custom_camera_view->Show();
+            if (sizer) {
+                sizer->Show(m_media_ctrl, false);
+                sizer->Show(m_native_camera_ctrl, false);
+                sizer->Show(m_custom_camera_view, true);
+                sizer->Layout();
+            }
+        }
     }
 }
 
 void StatusBasePanel::on_camera_switch_toggled(wxMouseEvent& event)
 {
-    const auto enabled = wxGetApp().app_config->get("camera", "enable_custom_source") == "true";
+    bool enabled = false;
+    auto* dev_manager = wxGetApp().getDeviceManager();
+    MachineObject* machine = dev_manager ? dev_manager->get_selected_machine() : nullptr;
+    if (machine) {
+        std::string dev_id = machine->get_dev_id();
+        if (wxGetApp().app_config->has_printer_camera(dev_id)) {
+            auto config = wxGetApp().app_config->get_printer_camera(dev_id);
+            enabled = config.enabled;
+        }
+    }
+
     if (enabled && m_media_ctrl->IsShown()) {
         toggle_custom_camera();
     } else {
@@ -4894,27 +5065,10 @@ void StatusBasePanel::on_camera_switch_toggled(wxMouseEvent& event)
     }
 }
 
-void StatusBasePanel::remove_controls()
-{
-    const std::string js_cleanup_video_element = R"(
-        document.body.style.overflow='hidden';
-        const video = document.querySelector('video');
-        video.setAttribute('style', 'width: 100% !important;');
-        video.removeAttribute('controls');
-        video.addEventListener('leavepictureinpicture', () => {
-            window.wx.postMessage('leavepictureinpicture');
-        });
-        video.addEventListener('enterpictureinpicture', () => {
-            window.wx.postMessage('enterpictureinpicture');
-        });
-    )";
-    m_custom_camera_view->RunScript(js_cleanup_video_element);
-}
-
 void StatusPanel::on_camera_leave(wxMouseEvent& event)
 {
     if (obj && m_camera_popup) {
-        m_camera_popup->Dismiss();
+        m_camera_popup->Hide();
     }
 }
 

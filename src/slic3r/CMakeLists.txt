@@ -80,6 +80,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Camera.hpp
     GUI/CameraPopup.cpp
     GUI/CameraPopup.hpp
+    GUI/CameraManagementDialog.cpp
+    GUI/CameraManagementDialog.hpp
     GUI/CameraUtils.cpp
     GUI/CameraUtils.hpp
     GUI/CloneDialog.cpp
@@ -652,18 +654,25 @@ if (APPLE)
             GUI/GUI_UtilsMac.mm
             GUI/wxMediaCtrl2.mm
             GUI/wxMediaCtrl2.h
+            GUI/NativeMediaCtrl.h
+            GUI/NativeMediaCtrl.cpp
+            GUI/NativeMediaCtrl_Mac.mm
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 else ()
     list(APPEND SLIC3R_GUI_SOURCES
             GUI/wxMediaCtrl2.cpp
             GUI/wxMediaCtrl2.h
+            GUI/NativeMediaCtrl.h
+            GUI/NativeMediaCtrl.cpp
+            GUI/NativeMediaCtrl_Win.cpp
         )
 endif ()
 
 if (UNIX AND NOT APPLE)
     list(APPEND SLIC3R_GUI_SOURCES
         GUI/Printer/gstbambusrc.c
+        GUI/NativeMediaCtrl_Linux.cpp
     )
 endif ()
 
@@ -766,8 +775,19 @@ if (UNIX AND NOT APPLE)
     # We add GStreamer for bambu:/// support.
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
     pkg_check_modules(GST_BASE REQUIRED gstreamer-base-1.0)
-    target_link_libraries(libslic3r_gui ${GSTREAMER_LIBRARIES} ${GST_BASE_LIBRARIES})
-    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GSTREAMER_INCLUDE_DIRS} ${GST_BASE_INCLUDE_DIRS})
+    pkg_check_modules(GST_VIDEO REQUIRED gstreamer-video-1.0)
+    target_link_libraries(libslic3r_gui ${GSTREAMER_LIBRARIES} ${GST_BASE_LIBRARIES} ${GST_VIDEO_LIBRARIES})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GSTREAMER_INCLUDE_DIRS} ${GST_BASE_INCLUDE_DIRS} ${GST_VIDEO_INCLUDE_DIRS})
+endif ()
+
+if (APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0)
+    pkg_check_modules(GST_BASE REQUIRED gstreamer-base-1.0)
+    pkg_check_modules(GST_VIDEO REQUIRED gstreamer-video-1.0)
+    pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
+    target_link_libraries(libslic3r_gui ${GSTREAMER_LDFLAGS} ${GST_BASE_LDFLAGS} ${GST_VIDEO_LDFLAGS} ${GST_APP_LDFLAGS})
+    target_include_directories(libslic3r_gui SYSTEM PRIVATE ${GSTREAMER_INCLUDE_DIRS} ${GST_BASE_INCLUDE_DIRS} ${GST_VIDEO_INCLUDE_DIRS} ${GST_APP_INCLUDE_DIRS})
 endif ()
 
 # Add a definition so that we can tell we are compiling slic3r.
