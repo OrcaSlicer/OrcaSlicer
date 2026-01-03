@@ -1424,4 +1424,246 @@ void Cornering_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     Fit();
 }
 
+// Practical_Flow_Ratio_Test_Dlg
+
+Practical_Flow_Ratio_Test_Dlg::Practical_Flow_Ratio_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
+    : DPIDialog(parent, id, _L("Prectical flow ratio calibration test"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 280)), wxDEFAULT_DIALOG_STYLE)
+    , m_plater(plater)
+{
+    SetBackgroundColour(*wxWHITE); // make sure background color set for dialog
+    SetForegroundColour(wxColour("#363636"));
+    SetFont(Label::Body_14);
+
+    Bind(wxEVT_SHOW, &Practical_Flow_Ratio_Test_Dlg::on_show, this);
+
+    wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
+    SetSizer(v_sizer);
+
+    // Settings
+    auto print_config    = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
+
+    wxString         current_fr_str    = _L("Current filament flowrate:");
+    wxString         start_fr_str      = _L("Start flowrate value at:");
+    wxString         end_fr_str        = _L("End flowrate value at:");
+    wxString         quant_fr_str      = _L("Number of calibration layers (4~40):");
+    wxString         speed_fr_str      = _L("Print speed:");
+    wxString         interlaced_fr_str = _L("Interlaced:");
+    wxString         zhop_fr_str       = _L("Use Z-Hop at top surface:");
+    wxString         scale_fr_str      = _L("Print Scale:");
+    wxString         ruler_fr_str      = _L("Print Ruler:");
+    int              text_max = GetTextMax(this, std::vector<wxString>{current_fr_str, start_fr_str, end_fr_str, quant_fr_str, speed_fr_str,
+                                                                       interlaced_fr_str, zhop_fr_str, scale_fr_str, ruler_fr_str});
+
+    // Model selection
+    auto labeled_box_model = new LabeledStaticBox(this, _L("Model width"));
+    auto model_box         = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
+    m_rbModel = new RadioGroup(this, {"100 mm", "150 mm", "200 mm"}, wxHORIZONTAL);
+    for (auto &_el : m_rbModel->GetChildren()) // sets the note of range unit converting into flow ratio
+        _el->Bind(wxEVT_MOTION, &Practical_Flow_Ratio_Test_Dlg::on_changed2, this);
+    model_box->Add(m_rbModel, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    labeled_box_model = new LabeledStaticBox(this, _L("Model depth"));
+    model_box         = new wxStaticBoxSizer(labeled_box_model, wxHORIZONTAL);
+    m_rbModelDepth = new RadioGroup(this, {"10 mm", "15 mm", "20 mm"}, wxHORIZONTAL);
+    model_box->Add(m_rbModelDepth, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(model_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    auto st_size = FromDIP(wxSize(text_max, -1));
+    auto ti_size = FromDIP(wxSize(120, -1));
+    
+    wxBoxSizer*       fr_sizer         = new wxBoxSizer(wxHORIZONTAL);
+    LabeledStaticBox* ctb              = new LabeledStaticBox(this, _L("Print conditions"));
+    wxStaticBoxSizer* conditions_sizer = new wxStaticBoxSizer(ctb, wxVERTICAL);
+
+    // Start flow rate value
+    auto start_fr_text = new wxStaticText(this, wxID_ANY, start_fr_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+    m_tiJDStart        = new TextInput(this, wxString::Format("%.2f", 0.9), "", "", wxDefaultPosition, ti_size);
+    m_tiJDStart->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiJDStart->Bind(wxEVT_TEXT, &Practical_Flow_Ratio_Test_Dlg::on_changed, this);
+    fr_sizer->Add(start_fr_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    fr_sizer->Add(m_tiJDStart, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(fr_sizer, 0, wxLEFT, FromDIP(3));
+
+    // End flow rate value
+    fr_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto end_fr_text  = new wxStaticText(this, wxID_ANY, end_fr_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+    m_tiJDEnd         = new TextInput(this, wxString::Format("%.2f", 1.1), "", "", wxDefaultPosition, ti_size);
+    m_tiJDEnd->Bind(wxEVT_TEXT, &Practical_Flow_Ratio_Test_Dlg::on_changed, this);
+    m_tiJDEnd->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    fr_sizer->Add(end_fr_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    fr_sizer->Add(m_tiJDEnd, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(fr_sizer, 0, wxLEFT, FromDIP(3));
+    conditions_sizer->AddSpacer(FromDIP(5));
+
+    // Add note about junction deviation
+    m_stNote = new wxStaticText(this, wxID_ANY, "\n\n", wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    m_stNote->SetForegroundColour(wxColour(128, 128, 128));
+    m_stNote->SetLabel(get_status());
+    conditions_sizer->Add(m_stNote, 0, wxEXPAND, FromDIP(5));
+    conditions_sizer->AddSpacer(FromDIP(5));
+
+    // Print speed value m_tiQuantity
+    fr_sizer            = new wxBoxSizer(wxHORIZONTAL);
+    auto  quant_fr_text = new wxStaticText(this, wxID_ANY, quant_fr_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+    m_tiQuantity        = new TextInput(this, wxString::Format("%.0f", 10.0f), "", "", wxDefaultPosition, ti_size);
+    m_tiQuantity->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    fr_sizer->Add(quant_fr_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    fr_sizer->Add(m_tiQuantity, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(fr_sizer, 0, wxLEFT, FromDIP(3));
+    conditions_sizer->AddSpacer(FromDIP(5));
+
+    fr_sizer            = new wxBoxSizer(wxHORIZONTAL);
+    float _speed        = 60;
+    auto  speed_fr_text = new wxStaticText(this, wxID_ANY, speed_fr_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
+    m_tiSpeed           = new TextInput(this, wxString::Format("%.0f", _speed), "", "", wxDefaultPosition, ti_size);
+    m_tiSpeed->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    m_tiSpeed->SetLabel("mm/s");
+    fr_sizer->Add(speed_fr_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    fr_sizer->Add(m_tiSpeed, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(fr_sizer, 0, wxLEFT, FromDIP(3));
+    conditions_sizer->AddSpacer(FromDIP(5));
+
+    // Print settings
+    wxBoxSizer* cb_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto        cb_title = new wxStaticText(this, wxID_ANY, interlaced_fr_str, wxDefaultPosition, st_size, 0);
+    m_cbInterlaced       = new CheckBox(this);
+    m_cbInterlaced->SetValue(false);
+    cb_sizer->Add(cb_title, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    cb_sizer->Add(m_cbInterlaced, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(cb_sizer, 0, wxLEFT | wxTOP | wxBOTTOM, FromDIP(3));
+    conditions_sizer->AddSpacer(FromDIP(5));
+    
+    cb_title    = new wxStaticText(this, wxID_ANY, zhop_fr_str, wxDefaultPosition, st_size, 0);
+    m_cbUseZHop = new CheckBox(this);
+    m_cbUseZHop->SetValue(false);
+    cb_sizer = new wxBoxSizer(wxHORIZONTAL);
+    cb_sizer->Add(cb_title, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    cb_sizer->Add(m_cbUseZHop, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(cb_sizer, 0, wxLEFT | wxTOP | wxBOTTOM, FromDIP(3));
+    conditions_sizer->AddSpacer(FromDIP(5));
+
+    cb_title       = new wxStaticText(this, wxID_ANY, scale_fr_str, wxDefaultPosition, st_size, 0);
+    m_cbPrintScale = new CheckBox(this);
+    m_cbPrintScale->SetValue(false);
+    cb_sizer = new wxBoxSizer(wxHORIZONTAL);
+    cb_sizer->Add(cb_title, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    cb_sizer->Add(m_cbPrintScale, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(cb_sizer, 0, wxLEFT | wxTOP | wxBOTTOM, FromDIP(3));
+    conditions_sizer->AddSpacer(FromDIP(5));
+
+    cb_title       = new wxStaticText(this, wxID_ANY, ruler_fr_str, wxDefaultPosition, st_size, 0);
+    m_cbPrintRuler = new CheckBox(this);
+    m_cbPrintRuler->SetValue(false);
+    cb_sizer = new wxBoxSizer(wxHORIZONTAL);
+    cb_sizer->Add(cb_title, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    cb_sizer->Add(m_cbPrintRuler, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+    conditions_sizer->Add(cb_sizer, 0, wxLEFT | wxTOP | wxBOTTOM, FromDIP(3));
+    conditions_sizer->AddSpacer(FromDIP(5));
+
+    v_sizer->Add(conditions_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+    v_sizer->AddSpacer(FromDIP(5));
+
+    auto dlg_btns = new DialogButtons(this, {"OK"});
+    v_sizer->Add(dlg_btns, 0, wxEXPAND);
+
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Practical_Flow_Ratio_Test_Dlg::on_start, this);
+
+    wxGetApp().UpdateDlgDarkUI(this);
+    Layout();
+    Fit();
+}
+
+Practical_Flow_Ratio_Test_Dlg::~Practical_Flow_Ratio_Test_Dlg() {
+    // Disconnect Events
+}
+
+wxString Practical_Flow_Ratio_Test_Dlg::get_status() {
+    auto     filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
+    wxString addtext = "\n" + wxString::Format("%s %s filament: fr=%.3f",
+                                               filament_config->get_filament_vendor(),                                                      
+                                               filament_config->get_filament_type(), 
+                                               filament_config->option<ConfigOptionFloatsNullable>("filament_flow_ratio")->get_at(0)
+                                              ).Trim();
+    bool read_double = false;
+    read_double      = m_tiJDStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
+    read_double      = read_double && m_tiJDEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
+    if (m_params.end < m_params.start)
+        std::swap(m_params.end, m_params.start);
+    if (!read_double || m_params.start >= 0.5 && m_params.end <= 1.5) {
+        float const calib_scale[3] = {1.0f, 1.5f, 2.0f};
+        float _phi = (m_params.end - m_params.start) * 10 / calib_scale[m_rbModel->GetSelection()];
+        float _ksi;
+        for (_ksi = 1; _ksi < 6; _ksi++) { // Get a nice fractional value
+            float _teta = _phi * _ksi;
+            if (abs(_teta - round(_teta)) < 0.001)
+                break;
+        }
+        if (_ksi > 5)
+            _ksi = 1;
+        else
+            _phi *= _ksi;
+        return wxString::Format(_L("Current meas: %.0fcm = %.2f%% or %.4f"), _ksi, _phi, _phi * 0.01) + addtext;
+    } else {
+        return _L("The value is out of range 0.5~1.5!");
+    }
+}
+
+void Practical_Flow_Ratio_Test_Dlg::on_start(wxCommandEvent& event) {
+    bool read_double = false;
+    read_double      = m_tiJDStart->GetTextCtrl()->GetValue().ToDouble(&m_params.start);
+    read_double      = read_double && m_tiJDEnd->GetTextCtrl()->GetValue().ToDouble(&m_params.end);
+    
+    if (!read_double || m_params.start < 0.5 || m_params.start > 1.5 || m_params.end < 0.5 || m_params.end > 1.5) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\n(0.5 <= Flow Ratio <= 1.5)"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    } else if (!m_tiQuantity->GetTextCtrl()->GetValue().ToDouble(&m_params.step) || m_params.step < 4 || m_params.step > 40) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid layer value:\n(4 <= Number of Calibration Layers <= 40)"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    } else if (m_params.end < m_params.start) {
+        std::swap(m_params.end, m_params.start);
+        MessageDialog msg_dlg(nullptr, _L("NOTE: Parameters has swapped!"), wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+    }
+
+    m_params.mode = CalibMode::Calib_Practical_Flow_Ratio;
+
+    // Set model type based on selection
+    m_params.test_model    = m_rbModel->GetSelection();
+    m_params.model_variant = m_rbModelDepth->GetSelection();
+    m_params.interlaced    = m_cbInterlaced->GetValue();
+    m_params.use_zhop      = m_cbUseZHop->GetValue();
+    m_params.print_numbers = m_cbPrintScale->GetValue();
+    m_params.print_ruler   = m_cbPrintRuler->GetValue();
+    double _speed;
+    m_tiSpeed->GetTextCtrl()->GetValue().ToDouble(&_speed);
+    m_params.speeds.clear();
+    m_params.speeds.push_back(_speed);
+    m_plater->Calib_Practical_Flow_Ratio(m_params);
+    EndModal(wxID_OK);
+}
+
+void Practical_Flow_Ratio_Test_Dlg::on_changed(wxCommandEvent& event) {
+    m_stNote->SetLabel(get_status());
+    event.Skip();
+}
+
+void Practical_Flow_Ratio_Test_Dlg::on_changed2(wxMouseEvent& event) {
+    m_stNote->SetLabel(get_status());
+    event.Skip();
+}
+
+void Practical_Flow_Ratio_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
+    this->Refresh();
+    Fit();
+}
+
+void Practical_Flow_Ratio_Test_Dlg::on_show(wxShowEvent& event) {
+    m_stNote->SetLabel(get_status());
+}
+
 }} // namespace Slic3r::GUI

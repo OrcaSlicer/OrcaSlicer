@@ -1203,6 +1203,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         f->adapt_fill_octree   = (surface_fill.params.pattern == ipSupportCubic) ? support_fill_octree : adaptive_fill_octree;
         f->print_config        = &this->object()->print()->config();
         f->print_object_config = &this->object()->config();
+        f->calib_params        = &this->object()->model_object()->get_model()->calib_params;
 		if (surface_fill.params.pattern == ipConcentricInternal) {
             FillConcentricInternal *fill_concentric = dynamic_cast<FillConcentricInternal *>(f.get());
             assert(fill_concentric != nullptr);

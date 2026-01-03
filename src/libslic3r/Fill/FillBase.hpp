@@ -20,6 +20,7 @@
 #include "../ExtrusionEntity.hpp"
 #include "../ExtrusionEntityCollection.hpp"
 #include "../ShortestPath.hpp"
+#include "../calib.hpp"
 
 namespace Slic3r {
 
@@ -138,6 +139,7 @@ public:
     // Orca: also used by gap fill function.
     const PrintConfig       *print_config        = nullptr;
     const PrintObjectConfig *print_object_config = nullptr;
+    const Calib_Params      *calib_params        = nullptr;
 
     // BBS: all no overlap expolygons in same layer
     ExPolygons  no_overlap_expolygons;

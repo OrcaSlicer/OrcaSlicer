@@ -3885,11 +3885,6 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionInt(2));
 
-    // ORCA: special flag for flow rate calibration
-    def           = this->add("calib_flowrate_topinfill_special_order", coBool);
-    def->mode     = comDevelop;
-    def->set_default_value(new ConfigOptionBool(false));
-
     def = this->add("ironing_type", coEnum);
     def->label = L("Ironing Type");
     def->category = L("Quality");

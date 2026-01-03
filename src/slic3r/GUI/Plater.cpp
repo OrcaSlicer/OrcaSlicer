@@ -38,6 +38,7 @@
 #include <wx/busyinfo.h>
 #include <wx/event.h>
 #include <wx/wrapsizer.h>
+#include <wx/font.h>
 #ifdef _WIN32
 #include <wx/richtooltip.h>
 #include <wx/custombgwin.h>
@@ -165,6 +166,9 @@
 #include "DeviceCore/DevFilaSystem.h"
 #include "DeviceCore/DevManager.h"
 
+#include "../Utils/WxFontUtils.hpp"
+#include "libslic3r/TextConfiguration.hpp"
+
 using boost::optional;
 namespace fs = boost::filesystem;
 using Slic3r::_3DScene;
@@ -217,6 +221,79 @@ wxDEFINE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 #define PRINTER_PANEL_SIZE (    wxSize(70, 60)) // ORCA
 #define PRINTER_PANEL_RADIUS (6) // ORCA
 #define BTN_SYNC_SIZE (wxSize(FromDIP(96), FromDIP(98)))
+
+wxFont                    calib_font(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD, false, "NotoSans");
+Emboss::FontFileWithCache calib_font_with_cache(std::move(WxFontUtils::create_font_file(calib_font)));
+
+/// <summary>
+/// Get the orthogonal box mesh (Experemental, can rethink and add)
+/// </summary>
+/// <param name="size">The size of the printed text {dx, y, z}.
+///     "dx" is the width of the character relative to its size (default is 1.0).
+///     "y" is the font height in millimeters.
+///     "z" is the height of the extruded text in millimeters.</param>
+/// <param name="position">Position of model against text pivot.</param>
+static TriangleMesh get_ortho_box_mesh(Vec3d size, Vec3f position = Vec3f())
+{
+    TriangleMesh mesh(make_cube(size.x(), size.y(), size.z())); // get box
+    mesh.translate(position);                                   // move mesh to indeed place
+    return mesh;
+}
+
+/// <summary>
+/// Get the triangle mesh (Experemental, can rethink and add)
+/// </summary>
+/// <param name="size">The size of the printed text {x, y, z}.
+///     "x" is the size of the triangle in millimeters.
+///     "y" define the line width in millimeters.
+///     "z" is the height of the extruded shape in millimeters.</param>
+/// <param name="position">Position of model against its pivot.</param>
+/// <param name="rotation">Rotation angle of model against its pivot.</param>
+static TriangleMesh get_ortho_triangle_mesh(Vec3d size, Vec3f position = Vec3f(), double rotation = 0.)
+{
+    TriangleMesh mesh(make_cube(size.y(), size.x(), size.z())); // get triangle side
+    double       _ypos = size.x() * sin(PI / 3);
+    mesh.translate(-size.y() / 2, 0., 0.);
+    TriangleMesh mesh2(mesh);
+    mesh2.rotate_z(PI / 3);
+    TriangleMesh mesh3(mesh2);
+    mesh3.rotate_z(PI / 3);
+    mesh.translate(-_ypos, -size.x() / 2, 0.);
+    mesh.merge(std::move(mesh2));
+    mesh.merge(std::move(mesh3));
+    mesh.rotate_z(rotation * PI / 180);
+    mesh.translate(position);                                   // move mesh to indeed place
+    return mesh;
+}
+
+
+/// <summary>
+/// Get the text mesh (Experemental, can rethink and add)
+/// </summary>
+/// <param name="text">The text</param>
+/// <param name="font_props">Font properties. Containe Horizontal and vertical alignment.</param>
+/// <param name="size">The size of the printed text {dx, y, z}. 
+///     "dx" is the width of the character relative to its size (default is 1.0). 
+///     "y" is the font height in millimeters. 
+///     "z" is the height of the extruded text in millimeters.</param>
+/// <param name="position">Position of model against text pivot</param>
+/// <param name="background">Place background box under text {depth, offset}
+///     "depth" is the depth of the background box. Its height is added to the height of the entire model.
+///     "offset" external expansion relative to the borders of the text.</param>
+static TriangleMesh get_text_mesh(const char *text, FontProp &font_props, Vec3d size, Vec3f position = Vec3f(), Vec2f background = Vec2f())
+{
+    TriangleMesh mesh(
+        Emboss::text2model(calib_font_with_cache, text, font_props, Vec3d(size.x(), size.y(), size.z() + background.x()))); // get text mesh
+    if (background.x()) {
+        BoundingBoxf3 bb3     = mesh.bounding_box();
+        float         offset  = background.y();
+        TriangleMesh  mesh_bg = get_ortho_box_mesh(Vec3d(bb3.size().x() + offset * 2, bb3.size().y() + offset * 2, background.x()),
+                                                   Vec3f(bb3.min.x() - offset, bb3.min.y() - offset, 0.));
+        mesh.merge(mesh_bg);
+    }
+    mesh.translate(position); // move text mesh to indeed place
+    return mesh;
+}
 
 static string get_diameter_string(float diameter)
 {
@@ -12407,6 +12484,260 @@ void Plater::_calib_pa_select_added_objects() {
     }
 }
 
+// Adjust settings for Practical Flow ratio calibration
+void Plater::Calib_Practical_Flow_Ratio(const Calib_Params& params) {
+    wxString calib_name = L"Practical Flow Ratio Test";
+    if (new_project(false, false, calib_name) == wxID_CANCEL)
+        return;
+    wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    
+    auto print_config    = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
+
+    /// --- scale ---
+    // model is created for a 0.4 nozzle, scale z with nozzle size.
+    const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
+    assert(nozzle_diameter_config->values.size() > 0);
+    const double nozzle_diameter = nozzle_diameter_config->values[0];
+    // scale z to have 6 layers
+    double       first_layer_height = print_config->option<ConfigOptionFloat>("initial_layer_print_height")->value;
+    const double layer_height       = nozzle_diameter / 2.0; // prefer 0.2 layer height for 0.4 nozzle
+    first_layer_height              = std::max(first_layer_height, layer_height);
+
+    const double       calib_scale[3] = {1.0, 1.5, 2.0};
+    const double       xscale         = calib_scale[params.test_model];
+    const double       yscale         = calib_scale[params.model_variant];
+    const double       zscale         = (first_layer_height + (3 + params.step) * layer_height) / 1.2;
+
+    model().calib_params = params;
+
+    string _name = format("Practical_FR_Test_%.2f~%.2f_@%.0f%s", params.start, params.end, params.speeds[0], params.interlaced ? "i" : "p");
+
+    const auto         bed_shape     = printer_config->option<ConfigOptionPoints>("printable_area")->values;
+    const BoundingBoxf bed_ext       = get_extents(bed_shape);
+    const Vec2d        _center       = bed_ext.center();
+    const double       _model_height = zscale * 1.2;
+    
+    auto         test_model = model().add_object();
+    TriangleMesh its_model  = TriangleMesh(make_cube(xscale * 100, yscale * 10, _model_height));
+    test_model->name        = _name;
+    test_model->add_volume(its_model);
+    test_model->add_instance();
+ 
+    test_model->translate_instances(Vec3d(_center.x() - xscale * 50, _center.y() - yscale * 5, 0.0));
+    test_model->ensure_on_bed();
+
+    const BoundingBoxf3 _bbox          = test_model->bounding_box_exact();
+    const double        _width         = _bbox.size().x();                  // model width
+    const double        _depth         = _bbox.size().y();                  // model depth
+    const double        _div_width     = nozzle_diameter * 1.25;            // divider width for rulers
+    const double        _div_semiwidth = _div_width / 2.;                   // divider half of width for rulers
+    const double        _body_height   = first_layer_height + layer_height; // rulers height
+    const double        _offset        = nozzle_diameter * 2.;              // text labels offset
+    const double        _font_size     = nozzle_diameter * 16.25;           // font size
+    Vec3d               _size(1., _font_size, layer_height * 2.);           // text dimensions
+    FontProp            fp;                                                 // text properties
+    Vec2f               _bg(_body_height, _offset);                         // set text background plate
+    const auto _filament_fr = filament_config->option<ConfigOptionFloatsNullable>("filament_flow_ratio")->get_at(0); // filament flow ratio
+    const auto _real_fr     = 1. / _filament_fr;                                                                     // filament flow ratio mark position
+
+    if (params.print_ruler) { // Print ruler
+        const double        _baseline = nozzle_diameter * 5;                // baseline offset
+        test_model->add_volume(get_ortho_box_mesh(Vec3d(_width + _div_width, -_baseline + nozzle_diameter, _body_height),
+                                                  Vec3f(-_div_semiwidth, -nozzle_diameter, 0.))); // ruler's body
+
+        fp.align = FontProp::Align(FontProp::HorizontalAlign::right, FontProp::VerticalAlign::bottom); // correct the text position
+        TriangleMesh mesh = get_text_mesh(format("%s@%.0f%s fr=%.3f", filament_config->get_filament_type(), params.speeds[0], params.interlaced ? "i" : "p", _filament_fr).c_str(), fp, _size,
+                                          Vec3f(_width - _offset + _div_semiwidth, 0., 0.), _bg);
+        const double _basedepth = mesh.bounding_box().size().y() + 7.; // ruler's base depth
+        const double _delta_y   = _baseline + _basedepth;              // y displacement     
+        mesh.translate(Vec3f(0., -_delta_y + _offset + _div_semiwidth, 0.));
+        test_model->add_volume(mesh);
+
+        double _phi = (params.end - params.start) * 10 / calib_scale[params.test_model];
+        double _ksi;
+        for (_ksi = 1; _ksi < 6; _ksi++) { // Get a nice fractional value
+            float _teta = _phi * _ksi;
+            if (abs(_teta - round(_teta)) < 0.001)
+                break;
+        }
+        if (_ksi > 5)
+            _ksi = 1;
+        else
+            _phi *= _ksi;
+
+        fp.align = FontProp::Align(FontProp::HorizontalAlign::left, FontProp::VerticalAlign::bottom); // correct the text position
+        mesh     = get_text_mesh(format("%.0fcm=%.2f%%=%.4f", _ksi, _phi, _phi * 0.01).c_str(), fp, _size,
+                                 Vec3f(0., -_delta_y + _offset + _div_semiwidth, 0.), _bg); // ruler's notification
+        const double _rule_xmin = mesh.bounding_box().min.x();
+
+        mesh.translate(Vec3f(-_rule_xmin - _div_semiwidth, 0., 0.));
+        test_model->add_volume(mesh);
+        test_model->add_volume(get_ortho_box_mesh(Vec3d(_width + _div_width, _div_width, _body_height),
+                                                  Vec3f(-_div_semiwidth, -_delta_y, 0.))); // ruler's bottom line
+
+        for (double _i = 0; _i <= _width; _i += 2.5) {
+            double _l = -1.;
+            if (_i == 0. || _i == _width)
+                _l = -_basedepth;
+            else if (!fmod(_i, 50))
+                _l = -5.;
+            else if (!fmod(_i, 10))
+                _l = -3.;
+            else if (!fmod(_i, 5))
+                _l = -2.;
+            test_model->add_volume(get_ortho_box_mesh(Vec3d(_div_width, _l, _body_height),
+                                                      Vec3f(_i - _div_semiwidth, -_baseline, 0.))); // ruler's dividers
+        }
+
+        test_model->add_volume(get_ortho_box_mesh(Vec3d(_ksi * 10, -_div_width * 2, _body_height),
+                                                  Vec3f(0., -_baseline - 5., 0.))); // ruler's scale
+        if (params.end > _real_fr && params.start < _real_fr)
+            test_model->add_volume(get_ortho_triangle_mesh(Vec3d(4., _div_width, _body_height),
+                                                           Vec3f(_width / (params.end - params.start) * (_real_fr - params.start), -_baseline, 0.), 90)); // ruler's real flow pointer 
+    } // end of print ruler
+
+    if (params.print_numbers) { // Print scale
+        const double _baseline = nozzle_diameter * 5 + _depth;                                          // baseline offset
+        test_model->add_volume(get_ortho_box_mesh(Vec3d(_width + _div_width, -nozzle_diameter * 4, _body_height),
+                                                  Vec3f(-_div_semiwidth, _baseline, 0.)));              // scale body
+        fp.align = FontProp::Align(FontProp::HorizontalAlign::left, FontProp::VerticalAlign::top);      // correct the text position
+        TriangleMesh mesh = get_text_mesh(format("%.3f", params.start).c_str(), fp, _size,
+                                          Vec3f(_offset - _div_semiwidth, 0., 0.), _bg);   // start scale value
+        const double _basedepth = mesh.bounding_box().size().y() * 2. + 5.;                             // ruler's base depth
+        const double _delta_y   = _baseline + _basedepth;                                               // y displacement
+        mesh.translate(Vec3f(0., _delta_y + _offset - _div_semiwidth, 0.));
+        test_model->add_volume(mesh);
+
+        fp.align = FontProp::Align(FontProp::HorizontalAlign::right, FontProp::VerticalAlign::top);     // correct the text position
+        test_model->add_volume(get_text_mesh(format("%.3f", params.end).c_str(), fp, _size,
+                               Vec3f(_width - _offset + _div_semiwidth, _delta_y + _offset - _div_semiwidth, 0.), _bg)); // start scale value
+        test_model->add_volume(get_ortho_box_mesh(Vec3d(_width + _div_width, _div_width, _body_height),
+                                                  Vec3f(-_div_semiwidth, _delta_y, 0.)));               // scale upper line
+        test_model->add_volume(get_ortho_box_mesh(Vec3d(_div_width, _basedepth, _body_height),
+                                                  Vec3f(-_div_semiwidth, _baseline, 0.)));              // start scale divider
+        test_model->add_volume(get_ortho_box_mesh(Vec3d(_div_width, _basedepth, _body_height),
+                                                  Vec3f(_width - _div_semiwidth, _baseline, 0.)));      // end scale divider
+        
+        fp.align = FontProp::Align(FontProp::HorizontalAlign::center, FontProp::VerticalAlign::bottom); // correct the text position
+        int _istart = params.start * 1000;
+        int _iend   = params.end * 1000;
+        for (int _i = floor(params.start) * 1000; _i < _iend; _i++) {
+            if (_i > _istart) {
+                double _l = 0;
+                if (!(_i % 50))
+                    _l = 5;
+                else if (!(_i % 25))
+                    _l = 3;
+                else if (!(_i % 10))
+                    _l = 2;
+                else if (!(_i % 5))
+                    _l = 1;
+                if (_l)  {
+                    double _idbl    = 0.001 * _i;
+                    double _delta_x = _width / (params.end - params.start) * (_idbl - params.start) - _div_semiwidth;
+                    test_model->add_volume(
+                        get_ortho_box_mesh(Vec3d(_div_width, _l, _body_height),
+                                           Vec3f(_delta_x, _baseline, 0.))); // scale dividers
+                    if (_l > 3)
+                        test_model->add_volume(get_text_mesh(format("%.2f", _idbl).c_str(), fp, _size, 
+                                                             Vec3f(_delta_x + _div_semiwidth, _baseline + 5., 0.),
+                                                             _bg)); // divider scale value
+                }
+            }
+        }
+        if (params.end > _real_fr && params.start < _real_fr)
+            test_model->add_volume(get_ortho_triangle_mesh(Vec3d(4., _div_width, _body_height),
+                                                           Vec3f(_width / (params.end - params.start) * (_real_fr - params.start), _baseline, 0.), -90)); // scale real flow pointer 
+
+    } // end of print scale
+
+    wxGetApp().plater()->canvas3D()->reload_scene(true);
+
+    // adjust parameters
+    print_config->set_key_value("wall_loops", new ConfigOptionInt(1));
+    print_config->set_key_value("internal_bridge_density", new ConfigOptionPercent(100));
+    print_config->set_key_value("thick_internal_bridges", new ConfigOptionBool(false));
+    print_config->set_key_value("enable_extra_bridge_layer", new ConfigOptionEnum<EnableExtraBridgeLayer>(eblDisabled));
+    print_config->set_key_value("min_width_top_surface", new ConfigOptionFloatOrPercent(100, true));
+    print_config->set_key_value("only_one_wall_top", new ConfigOptionBool(true));
+    print_config->set_key_value("print_flow_ratio", new ConfigOptionFloat(1.0f));
+    print_config->set_key_value("top_shell_layers", new ConfigOptionInt(1));
+    print_config->set_key_value("top_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
+    print_config->set_key_value("top_solid_infill_flow_ratio", new ConfigOptionFloat(1.0f));
+    print_config->set_key_value("top_shell_thickness", new ConfigOptionFloat(0));
+    print_config->set_key_value("top_surface_density", new ConfigOptionPercent(100));
+    print_config->set_key_value("bottom_shell_layers", new ConfigOptionInt(2));
+    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonic));
+    print_config->set_key_value("bottom_shell_thickness", new ConfigOptionFloat(0));
+    print_config->set_key_value("bottom_surface_density", new ConfigOptionPercent(100));
+    print_config->set_key_value("sparse_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
+    print_config->set_key_value("sparse_infill_density", new ConfigOptionPercent(100));
+    print_config->set_key_value("solid_infill_direction", new ConfigOptionFloat(0));
+    print_config->set_key_value("solid_infill_rotate_template", new ConfigOptionString("45, 0, 90, 0, 90#100"));
+    print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(true));
+    print_config->set_key_value("filter_out_gap_fill", new ConfigOptionFloat(0));
+    print_config->set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(nozzle_diameter, false));
+    print_config->set_key_value("infill_direction", new ConfigOptionFloat(0));
+    print_config->set_key_value("internal_solid_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
+    print_config->set_key_value("infill_combination", new ConfigOptionBool(false));
+    print_config->set_key_value("align_infill_direction_to_model", new ConfigOptionBool(true));
+    print_config->set_key_value("precise_outer_wall", new ConfigOptionBool(false));
+    print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
+    print_config->set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
+    print_config->set_key_value("ironing_type", new ConfigOptionEnum<IroningType>(IroningType::NoIroning));
+    print_config->set_key_value("top_surface_speed", new ConfigOptionFloat(params.speeds[0])); // internal_solid_speed
+    print_config->set_key_value("internal_solid_infill_speed", new ConfigOptionFloat(params.speeds[0])); // internal_solid_speed
+    //print_config->set_key_value("initial_layer_infill_speed", new ConfigOptionFloat(20));
+    print_config->set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
+    print_config->set_key_value("gap_fill_target", new ConfigOptionEnum<GapFillTarget>(GapFillTarget::gftNowhere));
+    print_config->set_key_value("fuzzy_skin", new ConfigOptionEnum<FuzzySkinType>(FuzzySkinType::None));
+    print_config->set_key_value("wall_generator", new ConfigOptionEnum<PerimeterGeneratorType>(PerimeterGeneratorType::Arachne));
+    print_config->set_key_value("wall_sequence", new ConfigOptionEnum<WallSequence>(WallSequence::InnerOuter));
+    
+    print_config->set_key_value("line_width", new ConfigOptionFloatOrPercent(nozzle_diameter, false));
+    print_config->set_key_value("initial_layer_line_width", new ConfigOptionFloatOrPercent(0.0f, false));
+    print_config->set_key_value("outer_wall_line_width", new ConfigOptionFloatOrPercent(0.0f, false));
+    print_config->set_key_value("inner_wall_line_width", new ConfigOptionFloatOrPercent(0.0f, false));
+    print_config->set_key_value("top_surface_line_width", new ConfigOptionFloatOrPercent(0.0f, false));
+    print_config->set_key_value("sparse_infill_line_width", new ConfigOptionFloatOrPercent(0.0f, false));
+    print_config->set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(0.0f, false));
+    print_config->set_key_value("support_line_width", new ConfigOptionFloatOrPercent(0.0f, false));
+
+    print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
+    print_config->set_key_value("layer_height", new ConfigOptionFloat(layer_height));
+    print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(first_layer_height));
+    print_config->set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
+    print_config->set_key_value("reduce_crossing_wall", new ConfigOptionBool(true));
+
+    printer_config->set_key_value("retract_lift_enforce", new ConfigOptionEnumsGeneric{params.use_zhop ? RetractLiftEnforceType::rletTopAndBottom : RetractLiftEnforceType::rletBottomOnly});
+    printer_config->set_key_value("z_hop", new ConfigOptionFloats{params.use_zhop ? 0.4f : 0.0f});
+    printer_config->set_key_value("z_hop_types", new ConfigOptionEnumsGeneric{ZHopType::zhtNormal});
+    printer_config->set_key_value("retraction_minimum_travel", new ConfigOptionFloats{5.0f});
+    printer_config->set_key_value("retract_lift_above", new ConfigOptionFloats{0.f}); //_model_height - first_layer_height
+    printer_config->set_key_value("retract_lift_below", new ConfigOptionFloats{100.f}); //layer_height
+    printer_config->set_key_value("travel_slope", new ConfigOptionFloats{45.0f});
+    printer_config->set_key_value("wipe_distance", new ConfigOptionFloats{0.0f});
+
+    filament_config->set_key_value("filament_z_hop", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()}); 
+    filament_config->set_key_value("filament_wipe_distance", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
+    filament_config->set_key_value("filament_retract_lift_enforce", new ConfigOptionEnumsGenericNullable{ConfigOptionEnumsGenericNullable::nil_value()});
+    filament_config->set_key_value("filament_z_hop_types", new ConfigOptionEnumsGenericNullable{ConfigOptionEnumsGenericNullable::nil_value()});
+    filament_config->set_key_value("filament_retraction_minimum_travel", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
+    filament_config->set_key_value("filament_retract_lift_above", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
+    filament_config->set_key_value("filament_retract_lift_below", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
+    //filament_config->set_key_value("filament_travel_slope", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()}); 
+
+    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_PRINTER)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->reload_config();
+    wxGetApp().get_tab(Preset::TYPE_PRINTER)->reload_config();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
+} 
+
 // Adjust settings for flowrate calibration
 // For linear mode, pass 1 means normal version while pass 2 mean "for perfectionists" version
 void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, int pass)
@@ -12483,7 +12814,6 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
         _obj->config.set_key_value("gap_fill_target", new ConfigOptionEnum<GapFillTarget>(GapFillTarget::gftNowhere));
         print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
-        _obj->config.set_key_value("calib_flowrate_topinfill_special_order", new ConfigOptionBool(true));
 
         // extract flowrate from name, filename format: flowrate_xxx
         std::string obj_name = _obj->name;
@@ -12554,7 +12884,9 @@ void Plater::calib_flowrate(bool is_linear, int pass) {
             add_model(false,
                       (boost::filesystem::path(Slic3r::resources_dir()) / "calib" / "filament_flow" / "flowrate-test-pass2.3mf").string());
     }
-
+    Calib_Params params;
+    params.mode          = CalibMode::Calib_Flow_Rate;
+    model().calib_params = params;
     adjust_settings_for_flowrate_calib(model().objects, is_linear, pass);
     wxGetApp().get_tab(Preset::TYPE_PRINTER)->reload_config();
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;

@@ -12,6 +12,7 @@
 #include "../Surface.hpp"
 #include "../libslic3r.h"
 #include "../VariableWidth.hpp"
+#include "../calib.hpp"
 
 #include "FillBase.hpp"
 #include "FillConcentric.hpp"
@@ -162,12 +163,22 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         out.push_back(eec = new ExtrusionEntityCollection());
         // Only concentric fills are not sorted.
         eec->no_sort = this->no_sort();
-        // ORCA: special flag for flow rate calibration
-        auto is_flow_calib = params.extrusion_role == erTopSolidInfill && this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
-                             this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
-        if (is_flow_calib) {
-            eec->no_sort = true;
+
+        // Calibration section (pre-extrusion)
+        if (calib_params != nullptr) {
+            switch (calib_params->mode) {
+            case CalibMode::Calib_Flow_Rate:
+                if (params.extrusion_role == erTopSolidInfill) {
+                    eec->no_sort = true;
+                    break;
+                }
+            case CalibMode::Calib_Practical_Flow_Ratio: 
+                if (layer_id > 3)
+                    eec->no_sort = true;
+            }
         }
+
+        // Extrusion section
         size_t idx   = eec->entities.size();
         if (params.use_arachne) {
             Flow new_flow = params.flow.with_spacing(float(this->spacing));
@@ -180,13 +191,82 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
                 params.extrusion_role,
                 flow_mm3_per_mm, float(flow_width), params.flow.height());
         }
-        if (!params.can_reverse || is_flow_calib) {
-            for (size_t i = idx; i < eec->entities.size(); i++)
-                eec->entities[i]->set_reverse();
-        }
 
+        // Calibration section (post-extrusion) with sended parameters
+        if (calib_params != nullptr) {
+            switch (calib_params->mode) {
+            case CalibMode::Calib_Flow_Rate:
+                for (size_t i = idx; i < eec->entities.size(); i++) {
+                    eec->entities[i]->set_reverse();
+                }
+                break;
+            case CalibMode::Calib_Practical_Flow_Ratio:
+                const BoundingBox _bbox      = this->bounding_box;
+                const coord_t     _width     = _bbox.size().x();
+                const coord_t     _semiwidth = _width / 2;
+                const coord_t     _xmin      = _bbox.center().x() - _semiwidth;
+                const coord_t     _xmax      = _bbox.center().x() + _semiwidth;
+                const double      _wmin      = this->calib_params->start;
+                const double      _wmax      = this->calib_params->end;
+                const double      _wlen      = _wmax - _wmin;
+                if (layer_id > 3) { // Prepare calibration layers
+                    eec->reverse();
+                    for (ExtrusionEntity* e : eec->entities) {
+                        ExtrusionPath* _p = static_cast<ExtrusionPath*>(e);
+                        coord_t        _x = _p->polyline.points.front().x();
+                        double         _q = _wlen * (_x - _xmin) / _width + _wmin;
+                        _p->width *= _q;
+                        _p->mm3_per_mm *= _q;
+                        if (_p->polyline.points.front().y() > _p->polyline.points.back().y())
+                            _p->reverse();
+                    }
+                    if (calib_params->interlaced) { // Inrtleaced sort
+                        std::vector<ExtrusionPath*> a, b;
+                        int                         _i = 0;
+                        for (ExtrusionEntity* e : eec->entities) {
+                            ExtrusionPath* _p = static_cast<ExtrusionPath*>(e);
+                            if (++_i % 2)
+                                a.emplace_back(_p);
+                            else
+                                b.emplace_back(_p);
+                        }
+                        eec->entities.clear();
+                        for (ExtrusionPath* _p : a)
+                            eec->entities.emplace_back(_p);
+                        for (ExtrusionPath* _p : b)
+                            eec->entities.emplace_back(_p);
+                    }
+                } else if (layer_id == 3) {
+                    for (ExtrusionEntity* e : eec->entities) {
+                        ExtrusionPath* _p = static_cast<ExtrusionPath*>(e);
+                        _p->width *= 0.825;
+                        _p->mm3_per_mm *= 0.825;
+                    }
+                } else if (layer_id > 0) { // Prepare a smooth base
+                    std::vector<ExtrusionPath*> a;
+                    int _i = 1;
+                    for (ExtrusionEntity* e : eec->entities) {
+                        ExtrusionPath* _p = static_cast<ExtrusionPath*>(e);
+                        if (++_i % 2) {
+                            if ((_i / 2) % 2)
+                                _p->reverse();
+                            //if (layer_id == 1) {
+                            //    _p->width *= 0.75;
+                            //    _p->mm3_per_mm *= 0.75;
+                            //}
+                            a.emplace_back(_p);
+                        }
+                    }
+                    eec->entities.clear();
+                    for (ExtrusionPath* _p : a)
+                        eec->entities.emplace_back(_p);
+                } else { // Additional job at first layer
+                }
+            }
+        } else {
         // Orca: run gap fill
         this->_create_gap_fill(surface, params, eec);
+        }
     }
 }
 
