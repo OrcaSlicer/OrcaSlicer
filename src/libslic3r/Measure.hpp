@@ -94,7 +94,7 @@ public:
 
     void* volume{nullptr};
     std::vector<int>*    plane_indices{nullptr};
-    Transform3d                  world_tran;
+    Transform3d                  world_tran { Transform3d::Identity() };
     std::shared_ptr<std::vector<SurfaceFeature>> world_plane_features{nullptr};
     std::shared_ptr<SurfaceFeature> origin_surface_feature{nullptr};
 
