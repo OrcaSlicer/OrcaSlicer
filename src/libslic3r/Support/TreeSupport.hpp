@@ -427,12 +427,12 @@ private:
     SlicingParameters        m_slicing_params;
     // Various precomputed support parameters to be shared with external functions.
     SupportParameters   m_support_params;
-    size_t          m_raft_layers = 0;  // number of raft layers, including raft base, raft interface, raft gap
-    size_t          m_highest_overhang_layer = 0;
+    size_t m_raft_layers = 0;  // number of raft layers, including raft base, raft interface, raft gap
+    size_t m_highest_overhang_layer = 0;
     std::vector<std::vector<MinimumSpanningTree>> m_spanning_trees;
     std::vector< std::unordered_map<Line, bool, LineHash>> m_mst_line_x_layer_contour_caches;
-    float    DO_NOT_MOVER_UNDER_MM = 0.0;
-    coordf_t base_radius                        = 0.0;
+    float DO_NOT_MOVER_UNDER_MM = 0.0;
+    coordf_t base_radius = 0.0;
     const coordf_t MAX_BRANCH_RADIUS = 10.0;
     const coordf_t MIN_BRANCH_RADIUS = 0.4;
     const coordf_t MAX_BRANCH_RADIUS_FIRST_LAYER = 12.0;
@@ -440,7 +440,7 @@ private:
     double diameter_angle_scale_factor = tan(5.0*M_PI/180.0);
     // minimum roof area (1 mm^2), area smaller than this value will not have interface
     const double minimum_roof_area{SQ(scaled<double>(1.))};
-    float        top_z_distance = 0.0;
+    float top_z_distance = 0.0;
 
     bool  is_strong = false;
     bool  is_slim                            = false;
@@ -459,6 +459,21 @@ private:
      * \param contact_nodes The nodes to draw as support.
      */
     void draw_circles();
+    
+    /*!
+     * \brief Normalize interface IDs for interlaced supports.
+     *
+     * Reassigns sequential IDs to support layers when using
+     * RectilinearInterlaced, alternating (0,1,0,1,…) so consecutive
+     * interface layers never share orientation. Applies to all support
+     * area groups, including transition layers (e.g. TreeStrong
+     * body-to-interface), as well as top and bottom interfaces, so
+     * FillRectilinearInterlaced computes correct extrusion angles.
+     *
+     * \note Call after support layers are built and before toolpaths,
+     * so fillers use the normalized IDs.
+     */
+    void normalize_interface_ids();
 
     /*!
      * \brief Drops down the nodes of the tree support towards the build plate.
@@ -480,8 +495,8 @@ private:
      * \brief Optimize the generation of tree support by pre-planning the layer_heights
      *
     */
-
     std::vector<LayerHeightData> plan_layer_heights();
+
     /*!
      * \brief Creates points where support contacts the model.
      *
