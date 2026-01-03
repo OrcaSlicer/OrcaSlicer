@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Anycubic Kobra 3 Max",
+    "machine_tech": "FFF",
+    "family": "Anycubic",
+    "model_id": "Anycubic Kobra 3 Max",
+    "nozzle_diameter": "0.4;0.6;0.8",
+    "bed_model": "Anycubic Kobra 3 Max_buildplate_model.stl",
+    "bed_texture": "Anycubic Kobra 3 Max_buildplate_texture.svg",
+    "default_bed_type": "Textured PEI Plate",
+    "hotend_model": "",
+    "default_materials": "Anycubic PLA @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic PLA @Anycubic Kobra 3 Max 0.6 nozzle;Anycubic PLA @Anycubic Kobra 3 Max 0.8 nozzle;Anycubic PLA High Speed @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic PLA Glow @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic PLA Matte @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic PLA Silk @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic PLA+ @Anycubic Kobra 3 Max 0.4 nozzle;Generic PLA @Anycubic Kobra 3 Max 0.4 nozzle;Generic PLA Silk @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic ABS @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic ABS @Anycubic Kobra 3 Max 0.6 nozzle;Anycubic ABS @Anycubic Kobra 3 Max 0.8 nozzle;Anycubic ASA @Anycubic Kobra 3 Max 0.6 nozzle;Anycubic ASA @Anycubic Kobra 3 Max 0.8 nozzle;Anycubic PEBA 95A @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic PETG @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic PETG @Anycubic Kobra 3 Max 0.6 nozzle;Anycubic PETG @Anycubic Kobra 3 Max 0.8 nozzle;Anycubic TPU @Anycubic Kobra 3 Max 0.4 nozzle;Anycubic TPU @Anycubic Kobra 3 Max 0.6 nozzle;Anycubic TPU @Anycubic Kobra 3 Max 0.8 nozzle;Generic ABS @Anycubic Kobra 3 Max 0.4 nozzle;Generic PETG @Anycubic Kobra 3 Max 0.4 nozzle;Generic PETG Basic @Anycubic Kobra 3 Max 0.4 nozzle;Generic TPU @Anycubic Kobra 3 Max 0.4 nozzle"
+}
