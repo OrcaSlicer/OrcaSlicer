@@ -1322,7 +1322,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                                          m_tool_changes[m_layer_idx].front().initial_tool == m_tool_changes[m_layer_idx].front().new_tool &&
                                          m_layer_idx != 0);
                         if (m_tool_change_idx == 0 && !ignore_sparse)
-                        wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height;
+                        wipe_tower_z = m_last_wipe_tower_print_z + m_tool_changes[m_layer_idx].front().layer_height + gcodegen.config().z_offset.value;
                     }
 
                     if (!ignore_sparse) {
