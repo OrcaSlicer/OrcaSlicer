@@ -26,6 +26,8 @@ jobs:
 
       - name: Generate documentation
         run: |
+          # Override DOT_NUM_THREADS to avoid parallel dot race condition bug
+          sed -i 's/^DOT_NUM_THREADS.*/DOT_NUM_THREADS = 1/' .doxygen
           doxygen .doxygen
           # Verify documentation was generated
           if [ ! -f "internal_docs/index.html" ]; then
