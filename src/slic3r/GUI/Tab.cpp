@@ -4742,7 +4742,7 @@ PageShp TabPrinter::build_kinematics_page()
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
         optgroup->append_line(resonance_line);
     }
-    optgroup->append_single_option_line("input_shaping_enable", "input-shaping-calib");
+    optgroup->append_single_option_line("input_shaping_emit", "input-shaping-calib");
     optgroup->append_single_option_line("input_shaping_type", "input-shaping-calib");
     {
         Line freq_line = {L("Frequency"), L("The frequency of the anti-vibration signal will correspond to the natural frequency of the frame.")};
@@ -5493,15 +5493,15 @@ void TabPrinter::toggle_options()
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
 
         if (m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfMarlinLegacy && m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfKlipper) {
-            bool input_shaping_enabled = m_config->opt_bool("input_shaping_enable");
+            bool input_shaping_emitd = m_config->opt_bool("input_shaping_emit");
             bool reprap = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
-            toggle_option("input_shaping_type", input_shaping_enabled);
-            toggle_option("input_shaping_freq_x", input_shaping_enabled);
-            toggle_option("input_shaping_freq_y", input_shaping_enabled && !reprap);
-            toggle_option("input_shaping_damp_x", input_shaping_enabled);
-            toggle_option("input_shaping_damp_y", input_shaping_enabled && !reprap);
+            toggle_option("input_shaping_type", input_shaping_emitd);
+            toggle_option("input_shaping_freq_x", input_shaping_emitd);
+            toggle_option("input_shaping_freq_y", input_shaping_emitd && !reprap);
+            toggle_option("input_shaping_damp_x", input_shaping_emitd);
+            toggle_option("input_shaping_damp_y", input_shaping_emitd && !reprap);
         } else {
-            for (auto is : {"input_shaping_enable", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y",
+            for (auto is : {"input_shaping_emit", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y",
                             "input_shaping_damp_x", "input_shaping_damp_y"})
                 toggle_line(is, false);
         }

@@ -1244,7 +1244,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                max_resonance_avoidance_speed))
 
     //Orca: Input shaping
-    ((ConfigOptionBool,                 input_shaping_enable))
+    ((ConfigOptionBool,                 input_shaping_emit))
     ((ConfigOptionEnum<InputShaperType>, input_shaping_type))
     ((ConfigOptionFloat,                input_shaping_freq_x))
     ((ConfigOptionFloat,                input_shaping_freq_y))

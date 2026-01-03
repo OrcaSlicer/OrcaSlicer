@@ -3683,7 +3683,7 @@ void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print, int ex
             file.write_format(writer().set_junction_deviation(config().machine_max_junction_deviation.values.front()).c_str());
 
             // Override input shaping values
-            if (print.config().input_shaping_enable.value && flavor != gcfMarlinLegacy) {
+            if (print.config().input_shaping_emit.value && flavor != gcfMarlinLegacy) {
                 file.write_format(writer().set_input_shaping('X', print.config().input_shaping_damp_x.value,
                     print.config().input_shaping_freq_x.value, print.config().opt_serialize("input_shaping_type")).c_str());
                 if (flavor != gcfRepRapFirmware){
