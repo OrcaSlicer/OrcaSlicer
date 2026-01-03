@@ -91,8 +91,9 @@ BitmapComboBox::~BitmapComboBox()
 }
 
 #ifdef __APPLE__
-bool BitmapComboBox::OnAddBitmap(const wxBitmap& bitmap)
+bool BitmapComboBox::OnAddBitmap(const wxBitmapBundle& bundle)
 {
+    wxBitmap bitmap = bundle.GetBitmap(wxDefaultSize);
     if (bitmap.IsOk())
     {
         // we should use scaled! size values of bitmap
@@ -131,7 +132,8 @@ void BitmapComboBox::OnDrawItem(wxDC& dc,
     int item,
     int flags) const
 {
-    const wxBitmap& bmp = *(static_cast<wxBitmap*>(m_bitmaps[item]));
+    const wxBitmapBundle& bundle = m_bitmapbundles[item];
+    const wxBitmap bmp = bundle.GetBitmap(wxDefaultSize);
     if (bmp.IsOk())
     {
         // we should use scaled! size values of bitmap
