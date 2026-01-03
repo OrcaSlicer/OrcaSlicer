@@ -381,7 +381,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    int filament_cnt = wxGetApp().preset_bundle->filament_presets.size();
+    int filament_cnt = wxGetApp().filaments_cnt();
 #if 0
     bool has_wipe_tower = filament_cnt > 1 && config->opt_bool("enable_prime_tower");
     if (has_wipe_tower && (config->opt_bool("adaptive_layer_height") || config->opt_bool("independent_support_layer_height"))) {
@@ -482,7 +482,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     }
 
     // BBS
-    static const char* keys[] = { "support_filament", "support_interface_filament"};
+    static const char* keys[] = { "support_filament", "support_interface_filament", "wipe_tower_filament"};
     for (int i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
         std::string key = std::string(keys[i]);
         auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
@@ -491,6 +491,23 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
                 DynamicPrintConfig new_conf = *config;
                 const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
                 int new_value = 0;
+                if (conf_temp != nullptr && conf_temp->has(key)) {
+                    new_value = conf_temp->opt_int(key);
+                }
+                new_conf.set_key_value(key, new ConfigOptionInt(new_value));
+                apply(config, &new_conf);
+            }
+        }
+    }
+    static const char* keys_1based[] = {"wall_filament", "sparse_infill_filament", "solid_infill_filament"};
+    for (int i = 0; i < sizeof(keys_1based) / sizeof(keys_1based[0]); i++) {
+        std::string key = std::string(keys_1based[i]);
+        auto* opt = dynamic_cast<ConfigOptionInt*>(config->option(key, false));
+        if (opt != nullptr) {
+            if (opt->getInt() < 1 || opt->getInt() > filament_cnt) {
+                DynamicPrintConfig new_conf = *config;
+                const DynamicPrintConfig *conf_temp = wxGetApp().plater()->config();
+                int new_value = 1;
                 if (conf_temp != nullptr && conf_temp->has(key)) {
                     new_value = conf_temp->opt_int(key);
                 }
@@ -819,8 +836,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework"})
         toggle_line(el, have_prime_tower);
 
+    const auto filaments_cnt = wxGetApp().filaments_cnt();
     for (auto el : {"wall_filament", "sparse_infill_filament", "solid_infill_filament", "wipe_tower_filament"})
-        toggle_line(el, !bSEMM);
+        toggle_line(el, filaments_cnt > 1);
 
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
 

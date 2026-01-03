@@ -3061,7 +3061,7 @@ void Sidebar::on_filaments_delete(size_t filament_id)
     Layout();
     p->m_panel_filament_title->Refresh();
     update_ui_from_settings();
-    dynamic_filament_list.update();
+    update_dynamic_filament_list();
 }
 
 void Sidebar::add_filament() {
@@ -3097,6 +3097,7 @@ void Sidebar::delete_filament(size_t filament_id, int replace_filament_id) {
     wxGetApp().plater()->get_partplate_list().on_filament_deleted(filament_count, filament_id);
     wxGetApp().plater()->on_filaments_delete(filament_count, filament_id, replace_filament_id > (int)filament_id ? (replace_filament_id - 1) : replace_filament_id);
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_visibility(true);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
 
     wxGetApp().plater()->update();
@@ -3125,6 +3126,7 @@ void Sidebar::add_custom_filament(wxColour new_col) {
     wxGetApp().plater()->get_partplate_list().on_filament_added(filament_count);
     wxGetApp().plater()->on_filament_count_change(filament_count);
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_visibility(true);
     wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
     auto_calc_flushing_volumes(filament_count - 1);
 }
@@ -3354,7 +3356,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         if (m_sync_dlg->is_dirty_filament()) {
             wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0], false, "", false, true);
             wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-            dynamic_filament_list.update();
+            update_dynamic_filament_list();
         }
         m_sync_dlg->set_check_dirty_fialment(false);
         dlg_res = m_sync_dlg->ShowModal();
@@ -15874,7 +15876,7 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     sidebar().on_filaments_delete(filament_id);
 
     // update global support filament
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    static const char *keys[] = {"support_filament", "support_interface_filament", "wipe_tower_filament"};
     for (auto key : keys)
         if (p->config->has(key)) {
             if(p->config->opt_int(key) == filament_id + 1)
@@ -15882,6 +15884,16 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
             else {
                 int new_value = p->config->opt_int(key) > filament_id ? p->config->opt_int(key) - 1 : p->config->opt_int(key);
                 (*(p->config)).set_key_value(key, new ConfigOptionInt(new_value));
+            }
+        }
+    static const char* keys_1based[] = {"wall_filament", "sparse_infill_filament", "solid_infill_filament"};
+    for (auto key : keys_1based)
+        if (p->config->has(key)) {
+            if(p->config->opt_int(key) == filament_id + 1)
+                (*(p->config)).erase(key);
+            else {
+                int new_value = p->config->opt_int(key) > filament_id ? p->config->opt_int(key) - 1 : p->config->opt_int(key);
+                (*(p->config)).set_key_value(key, new ConfigOptionInt(std::max(1, new_value)));
             }
         }
 
@@ -16047,7 +16059,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         }
         // Orca: update when *_filament changed
         else if (opt_key == "support_interface_filament" || opt_key == "support_filament" || opt_key == "wall_filament" ||
-                 opt_key == "sparse_infill_filament" || opt_key == "solid_infill_filament") {
+                 opt_key == "sparse_infill_filament" || opt_key == "solid_infill_filament" || opt_key == "wipe_tower_filament") {
             update_scheduled = true;
         }
     }

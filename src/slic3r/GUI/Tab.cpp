@@ -1179,8 +1179,7 @@ void Tab::on_roll_back_value(const bool to_sys /*= true*/)
 
     // When all values are rolled, then we have to update whole tab in respect to the reverted values
     update();
-    if (m_active_page)
-        m_active_page->update_visibility(m_mode, true);
+    update_visibility(true);
 
     // BBS: restore all pages in preset, update_dirty also update combobox
     update_dirty();
@@ -1262,8 +1261,16 @@ void Tab::update_mode()
     update_changed_tree_ui();
 }
 
-void Tab::update_visibility()
+void Tab::update_visibility(bool active_page_only/* = false*/)
 {
+    if (active_page_only) {
+        if (m_active_page) {
+            m_active_page->update_visibility(m_mode, true);
+            m_parent->Layout();
+        }
+        return;
+    }
+
     Freeze(); // There is needed Freeze/Thaw to avoid a flashing after Show/Layout
 
     for (auto page : m_pages)
@@ -1948,8 +1955,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     }
 
     update();
-    if(m_active_page)
-        m_active_page->update_visibility(m_mode, true);
+    update_visibility(true);
     m_page_view->GetParent()->Layout();
 }
 
@@ -3031,8 +3037,7 @@ void TabPrintModel::update_model_config()
     }
 
     toggle_options();
-    if (m_active_page)
-        m_active_page->update_visibility(m_mode, true); // for taggle line
+    update_visibility(true); // for taggle line
     update_dirty();
     TabPrint::reload_config();
     //update();
