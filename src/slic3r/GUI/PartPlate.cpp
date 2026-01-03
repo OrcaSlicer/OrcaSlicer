@@ -3164,7 +3164,7 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
             }
         }
 
-        if (show_grid)
+        if (wxGetApp().show_plate_gridlines() && show_grid)
             render_grid(bottom);
 
         render_height_limit(mode);

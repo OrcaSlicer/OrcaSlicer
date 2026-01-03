@@ -217,6 +217,9 @@ void AppConfig::set_defaults()
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
 
+    if (get("show_plate_gridlines").empty())
+        set_bool("show_plate_gridlines", true);
+
     if (get("show_outline").empty())
         set_bool("show_outline", false);
     
