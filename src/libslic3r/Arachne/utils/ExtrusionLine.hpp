@@ -62,6 +62,13 @@ struct ExtrusionLine
      */
     bool is_closed;
 
+     /*!
+     * The sign of an even line. 
+     * This part is necessary to determine the filling line in the wall generation sequence (Odd-Even). 
+     * It is used to change the extrusion density and speed.
+     */
+    bool is_even = 0;
+
     /*!
      * Gets the number of vertices in this polygon.
      * \return The number of vertices in this polygon.

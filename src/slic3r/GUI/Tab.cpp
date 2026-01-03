@@ -2361,6 +2361,10 @@ void TabPrint::build()
 
         optgroup = page->new_optgroup(L("Walls and surfaces"), L"param_wall_surface");
         optgroup->append_single_option_line("wall_sequence", "quality_settings_wall_and_surfaces#walls-printing-order");
+        optgroup->append_single_option_line("loop_sequence", "quality_settings_wall_and_surfaces");
+        optgroup->append_single_option_line("even_loops_flow_ratio", "quality_settings_wall_and_surfaces");
+        optgroup->append_single_option_line("even_loops_speed", "quality_settings_wall_and_surfaces");
+        optgroup->append_single_option_line("outermost_wall_control", "quality_settings_wall_and_surfaces");
         optgroup->append_single_option_line("is_infill_first", "quality_settings_wall_and_surfaces#print-infill-first");
         optgroup->append_single_option_line("wall_direction", "quality_settings_wall_and_surfaces#wall-loop-direction");
         optgroup->append_single_option_line("print_flow_ratio", "quality_settings_wall_and_surfaces#surface-flow-ratio");

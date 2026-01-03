@@ -266,6 +266,7 @@ void ExtrusionLoop::split_at(const Point &point, bool prefer_non_overhang, const
     const ExtrusionPath &path = this->paths[path_idx];
     ExtrusionPath p1(path.role(), path.mm3_per_mm, path.width, path.height);
     ExtrusionPath p2(path.role(), path.mm3_per_mm, path.width, path.height);
+    p1.is_even = p2.is_even = path.is_even;
     path.polyline.split_at(p, &p1.polyline, &p2.polyline);
     
     if (this->paths.size() == 1) {

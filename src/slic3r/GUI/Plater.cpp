@@ -12484,6 +12484,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("gap_fill_target", new ConfigOptionEnum<GapFillTarget>(GapFillTarget::gftNowhere));
         print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
         _obj->config.set_key_value("calib_flowrate_topinfill_special_order", new ConfigOptionBool(true));
+        _obj->config.set_key_value("even_loops_flow_ratio", new ConfigOptionFloat(1));
 
         // extract flowrate from name, filename format: flowrate_xxx
         std::string obj_name = _obj->name;

@@ -919,7 +919,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
                         }
                     } else if (opt_key == "wall_infill_order") {
                         //BBS: check wall_infill order to decide if it be different and append to diff_setting_append
-                        if (it.value() == "outer wall/inner wall/infill" || it.value() == "infill/outer wall/inner wall" || it.value() == "inner-outer-inner wall/infill") {
+                        if (it.value() == "outer wall/inner wall/infill" || it.value() == "infill/outer wall/inner wall" || it.value() == "inner-outer-inner wall/infill" || it.value() == "odd-even wall/infill") {
                             get_wall_sequence = "wall_seq_diff_to_system";
                         }
 

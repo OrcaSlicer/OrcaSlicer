@@ -893,7 +893,7 @@ static std::vector<std::string> s_Preset_print_options {
     "extra_perimeters_on_overhangs", "ensure_vertical_shell_thickness", "reduce_crossing_wall", "detect_thin_wall", "detect_overhang_wall", "overhang_reverse", "overhang_reverse_threshold","overhang_reverse_internal_only", "wall_direction",
     "seam_position", "staggered_inner_seams", "wall_sequence", "is_infill_first", "sparse_infill_density","fill_multiline", "sparse_infill_pattern", "lateral_lattice_angle_1", "lateral_lattice_angle_2", "infill_overhang_angle", "top_surface_pattern", "bottom_surface_pattern",
     "infill_direction", "solid_infill_direction", "counterbore_hole_bridging","infill_shift_step", "sparse_infill_rotate_template", "solid_infill_rotate_template", "symmetric_infill_y_axis","skeleton_infill_density", "infill_lock_depth", "skin_infill_depth", "skin_infill_density",
-    "align_infill_direction_to_model", "extra_solid_infills",
+    "align_infill_direction_to_model", "extra_solid_infills", "even_loops_flow_ratio", "loop_sequence", "even_loops_speed", "outermost_wall_control",
     "minimum_sparse_infill_area", "reduce_infill_retraction","internal_solid_infill_pattern","gap_fill_target",
     "ironing_type", "ironing_pattern", "ironing_flow", "ironing_speed", "ironing_spacing", "ironing_angle", "ironing_angle_fixed", "ironing_inset",
     "support_ironing", "support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing",

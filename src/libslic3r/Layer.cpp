@@ -144,6 +144,9 @@ bool Layer::is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b)
     return config.wall_filament             == other_config.wall_filament
 		&& config.wall_loops                  == other_config.wall_loops
 		&& config.wall_sequence               == other_config.wall_sequence
+        && config.loop_sequence               == other_config.loop_sequence
+		&& config.even_loops_flow_ratio       == other_config.even_loops_flow_ratio
+        && config.even_loops_speed            == other_config.even_loops_speed
 		&& config.is_infill_first             == other_config.is_infill_first
 		&& config.inner_wall_speed             == other_config.inner_wall_speed
 		&& config.outer_wall_speed    == other_config.outer_wall_speed

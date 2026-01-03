@@ -37,6 +37,8 @@ public:
     Polygon                             polygon;
     // Is it a contour or a hole?
     bool                                is_contour;
+    // Orca: property of even wall in odd-even order for control flow and speed rate
+    bool                                is_even = 0;
     // BBS: is perimeter using smaller width
     bool is_smaller_width_perimeter;
     // Depth in the hierarchy. External perimeter has depth = 0. An external perimeter could be both a contour and a hole.
@@ -96,6 +98,28 @@ static bool detect_steep_overhang(const PrintRegionConfig *config,
 
     return false;
 }
+
+static void reorder_oddeven_loops(std::vector<int>& even_odd, LoopSequence sequense, int loops_count, int outer_walls) {
+    int _loops_semicount = loops_count / 2;
+    switch (sequense) {
+    case LoopSequence::InwardOutward:
+        for (int _il = 0; _il <= loops_count; _il++) {
+            even_odd[_il] = (_loops_semicount >= _il) ? _il * 2 + outer_walls : -outer_walls - 1 - (loops_count - _il) * 2;
+        }
+        break;
+    case LoopSequence::InwardInward:
+        for (int _il = 0; _il <= loops_count; _il++) {
+            even_odd[_il] = (_loops_semicount >= _il) ? _il * 2 + outer_walls : -outer_walls - 1 - (_il - _loops_semicount - 1) * 2;
+        }
+        break;
+    case LoopSequence::OutwardOutward:
+        for (int _il = 0; _il <= loops_count; _il++) {
+            even_odd[_il] = (_loops_semicount >= _il) ? (_loops_semicount - _il) * 2 + outer_walls : -outer_walls - 1 - (loops_count - _il) * 2;
+        }
+        break;
+    }
+}
+
 
 static ExtrusionEntityCollection traverse_loops(const PerimeterGenerator &perimeter_generator, const PerimeterGeneratorLoops &loops, ThickPolylines &thin_walls,
     bool &steep_overhang_contour, bool &steep_overhang_hole)
@@ -367,6 +391,12 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
         if (extrusion->empty())
             continue;
 
+        // Orca: Odd-Even wall order
+        float _flow_ratio = 1;
+        bool  _is_even    = extrusion->is_even;
+        if (_is_even)
+            _flow_ratio = perimeter_generator.config->even_loops_flow_ratio; //Orca: Here can put the code of implementation of staggered perimeters 
+
         const bool    is_external = extrusion->inset_idx == 0;
         ExtrusionRole role = is_external ? erExternalPerimeter : erPerimeter;
 
@@ -509,8 +539,17 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
         // Append paths to collection.
         if (!paths.empty()) {
+
+            // apply slowdow to the paths
+            for (ExtrusionPath& path : paths) {
+                path.is_even = _is_even;
+                path.width *= _flow_ratio;
+                path.mm3_per_mm *= _flow_ratio;
+            }
+
             if (extrusion->is_closed) {
                 ExtrusionLoop extrusion_loop(std::move(paths), pg_extrusion.is_contour ? elrDefault : elrHole);
+                extrusion_loop.is_even = _is_even;
                 extrusion_loop.make_counter_clockwise();
                 // TODO: it seems in practice that ExtrusionLoops occasionally have significantly disconnected paths,
                 // triggering the asserts below. Is this a problem?
@@ -531,6 +570,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                     assert(std::prev(it)->polyline.last_point() == it->polyline.first_point());
                 }
                 ExtrusionMultiPath multi_path;
+                multi_path.is_even = _is_even;
                 multi_path.paths.emplace_back(std::move(paths.front()));
 
                 for (auto it_path = std::next(paths.begin()); it_path != paths.end(); ++it_path) {
@@ -1129,7 +1169,8 @@ void PerimeterGenerator::process_classic()
     coord_t ext_perimeter_spacing   = this->ext_perimeter_flow.scaled_spacing();
     coord_t ext_perimeter_spacing2;
     // Orca: ignore precise_outer_wall if wall_sequence is not InnerOuter
-    if(config->precise_outer_wall && config->wall_sequence == WallSequence::InnerOuter)
+    if (config->precise_outer_wall && (config->wall_sequence == WallSequence::InnerOuter ||
+        (config->wall_sequence == WallSequence::OddEven && config->outermost_wall_control.value)))
         ext_perimeter_spacing2 = scaled<coord_t>(0.5f * (this->ext_perimeter_flow.width() + this->perimeter_flow.width()));
     else
         ext_perimeter_spacing2 = scaled<coord_t>(0.5f * (this->ext_perimeter_flow.spacing() + this->perimeter_flow.spacing()));
@@ -1533,6 +1574,35 @@ void PerimeterGenerator::process_classic()
                             break;
                         // go to the next perimeter from the current position to continue scanning for external walls in the same island
                         position = arr_i + 1;
+                    }
+                }
+            } else if (this->config->wall_sequence == WallSequence::OddEven && layer_id > 0) {
+                if (entities.entities.size() > 2) {                 // 3 walls minimum needed to do odd-even ordering
+                    std::vector<int> _even_odd(loop_number + 1, 0); // calculate new order
+                    int              _outer_walls = this->config->outermost_wall_control ? 1 : 0;
+                    int              _loops_count = loop_number - _outer_walls;
+                    float            _flow_ratio  = config->even_loops_flow_ratio;
+
+                    reorder_oddeven_loops(_even_odd, this->config->loop_sequence, _loops_count, _outer_walls);
+
+                    ExtrusionEntityCollection _new_extrusion; // sort perimeters by the order
+                    for (int _ip = 0; _ip <= loop_number; _ip++)
+                        for (ExtrusionEntity* _extrusion : entities.entities) {
+                            if (abs(_even_odd[_ip]) == _extrusion->inset_idx) {
+                                if (_even_odd[_ip] < 0) {
+                                    ExtrusionLoop* _loop = static_cast<ExtrusionLoop*>(_extrusion);
+                                    for (ExtrusionPath& _path : _loop->paths) {
+                                        _path.is_even     = true;
+                                        _path.mm3_per_mm *= _flow_ratio;
+                                        _path.width *= _flow_ratio;
+                                    }
+                                }
+                                _new_extrusion.append(*_extrusion);
+                            }
+                        }
+                    entities.entities.clear();
+                    for (auto _extrusion : _new_extrusion) {
+                        entities.append(*_extrusion);
                     }
                 }
             }
@@ -2124,7 +2194,8 @@ void PerimeterGenerator::process_arachne()
         if (is_topmost_layer && loop_number > 0 && config->only_one_wall_top)
             loop_number = 0;
         
-        auto apply_precise_outer_wall = config->precise_outer_wall && config->wall_sequence == WallSequence::InnerOuter;
+        auto apply_precise_outer_wall = config->precise_outer_wall && (config->wall_sequence == WallSequence::InnerOuter ||
+                                        (config->wall_sequence == WallSequence::OddEven && config->outermost_wall_control.value));
         // Orca: properly adjust offset for the outer wall if precise_outer_wall is enabled.
         ExPolygons last = offset_ex(surface.expolygon.simplify_p(surface_simplify_resolution),
                        apply_precise_outer_wall? -float(ext_perimeter_width - ext_perimeter_spacing )
@@ -2253,6 +2324,7 @@ void PerimeterGenerator::process_arachne()
 
 		bool is_outer_wall_first =
             	this->config->wall_sequence == WallSequence::OuterInner ||
+                this->config->wall_sequence == WallSequence::OddEven ||
             	this->config->wall_sequence == WallSequence::InnerOuterInner;
         
         if (layer_id == 0){ // disable inner outer inner algorithm after the first layer
@@ -2439,6 +2511,25 @@ void PerimeterGenerator::process_arachne()
                     // go to the next perimeter from the current position to continue scanning for external walls in the same island
                     position = arr_i + 1;
                 }
+            }
+        } else if (this->config->wall_sequence == WallSequence::OddEven && layer_id > 0) {
+            if (ordered_extrusions.size() > 2) { // 3 walls minimum needed to do odd-even ordering
+                std::vector<int> _even_odd(loop_number + 1, 0); // calculate new order
+                int              _outer_walls = this->config->outermost_wall_control ? 1 : 0 ;
+                int              _loops_count = loop_number - _outer_walls;
+
+                reorder_oddeven_loops(_even_odd, this->config->loop_sequence, _loops_count, _outer_walls);
+
+                std::vector<PerimeterGeneratorArachneExtrusion> _new_extrusion; // sort perimeters by the order
+                _new_extrusion.reserve(ordered_extrusions.size());
+                for (int _ip = 0; _ip <= loop_number; _ip++)
+                    for (PerimeterGeneratorArachneExtrusion& _extrusion : ordered_extrusions) {
+                        if (abs(_even_odd[_ip]) == _extrusion.extrusion->inset_idx) {
+                            _extrusion.extrusion->is_even = (_even_odd[_ip] < 0); 
+                            _new_extrusion.emplace_back(_extrusion);
+                        }
+                    }
+                ordered_extrusions = std::move(_new_extrusion);
             }
         }
         

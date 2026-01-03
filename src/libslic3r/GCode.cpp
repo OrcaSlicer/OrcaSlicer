@@ -6082,8 +6082,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (speed == -1) {
         if (path.role() == erPerimeter) {
             speed = m_config.get_abs_value("inner_wall_speed");
+            speed = (path.is_even ? m_config.even_loops_speed.get_abs_value(speed) : speed);
             if (sloped) {
-                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(m_config.get_abs_value("inner_wall_speed")));
+                speed = std::min(speed, m_config.scarf_joint_speed.get_abs_value(speed));
             }
         } else if (path.role() == erExternalPerimeter) {
             speed = m_config.get_abs_value("outer_wall_speed");
