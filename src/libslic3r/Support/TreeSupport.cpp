@@ -1885,7 +1885,7 @@ Polygons TreeSupport::get_trim_support_regions(
             polygons_append(polygons_trimming, offset({ expoly }, trimming_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS));
             }
         }
-    if (!m_slicing_params.soluble_interface && m_object_config->thick_bridges) {
+    if (!m_slicing_params.zero_gap_interface_top && m_object_config->thick_bridges) {
         // Collect all bottom surfaces, which will be extruded with a bridging flow.
         for (; i < object.layers().size(); ++i) {
             const Layer& object_layer = *object.layers()[i];
@@ -3150,7 +3150,7 @@ void TreeSupport::generate_contact_points()
     coord_t    radius_scaled         = scale_(base_radius);
     bool       on_buildplate_only    = m_object_config->support_on_build_plate_only.value;
     const bool roof_enabled          = config.support_interface_top_layers.value > 0;
-    const bool force_tip_to_roof = roof_enabled && m_support_params.soluble_interface;
+    const bool force_tip_to_roof = roof_enabled && m_support_params.zero_gap_interface_top;
 
     //First generate grid points to cover the entire area of the print.
     BoundingBox bounding_box = m_object->bounding_box();
@@ -3183,7 +3183,7 @@ void TreeSupport::generate_contact_points()
   //      z_distance_top = round(z_distance_top / layer_height) * layer_height;
   //  // BBS: add extra distance if thick bridge is enabled
   //  // Note: normal support uses print_z, but tree support uses integer layers, so we need to subtract layer_height
-  //  if (!m_slicing_params.soluble_interface && m_object_config->thick_bridges) {
+  //  if (!m_slicing_params.zero_gap_interface_top && m_object_config->thick_bridges) {
   //      z_distance_top += m_object->layers()[0]->regions()[0]->region().bridging_height_avg(m_object->print()->config()) - layer_height;
 		//}
   //  }

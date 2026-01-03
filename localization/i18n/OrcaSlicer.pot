@@ -13553,7 +13553,10 @@ msgstr ""
 msgid "Raft contact Z distance"
 msgstr ""
 
-msgid "Z gap between object and raft. Ignored for soluble interface."
+msgid ""
+"Z gap between raft and object. "
+"If Support Top Z Distance is 0, this value is ignored and "
+"the object is printed in direct contact with the raft (no gap)."
 msgstr ""
 
 msgid "Raft expansion"
@@ -14304,13 +14307,16 @@ msgstr ""
 msgid "Top Z distance"
 msgstr ""
 
-msgid "The Z gap between the top support interface and object."
+msgid "Z gap between the support's top and object."
 msgstr ""
 
 msgid "Bottom Z distance"
 msgstr ""
 
-msgid "The Z gap between the bottom support interface and object."
+msgid ""
+"Z gap between the object and the support bottom. "
+"If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+"is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr ""
 
 msgid "Support/raft base"

@@ -4586,7 +4586,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("raft_contact_distance", coFloat);
     def->label = L("Raft contact Z distance");
     def->category = L("Support");
-    def->tooltip = L("Z gap between object and raft. Ignored for soluble interface.");
+    def->tooltip = L("Z gap between raft and object. "
+                    "If Support Top Z Distance is 0, this value is ignored and "
+                    "the object is printed in direct contact with the raft (no gap).");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -5531,7 +5533,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top Z distance");
     def->min = 0;
     def->category = L("Support");
-    def->tooltip = L("The Z gap between the top support interface and object.");
+    def->tooltip = L("Z gap between the support's top and object.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
 //    def->min = 0;
 #if 0
@@ -5548,7 +5550,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_bottom_z_distance", coFloat);
     def->label = L("Bottom Z distance");
     def->category = L("Support");
-    def->tooltip = L("The Z gap between the bottom support interface and object.");
+    def->tooltip = L("Z gap between the object and the support bottom. "
+                    "If Support Top Z Distance is 0 and the bottom has interface layers, this value "
+                    "is ignored and the support is printed in direct contact with the object (no gap).");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
