@@ -860,60 +860,66 @@ void PrintConfigDef::init_fff_params()
     def = this->add("supertack_plate_temp", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Cool Plate SuperTack.");
+                     "A value of 0 means the filament does not support printing on the Cool Plate SuperTack. "
+                     "A value of -1 will skip setting the temperature for subsequent layers.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
-    def->min = 0;
+    def->min = -1;
     def->max = 120;
     def->set_default_value(new ConfigOptionInts{35});
 
     def = this->add("cool_plate_temp", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Cool Plate.");
+                     "A value of 0 means the filament does not support printing on the Cool Plate. "
+                     "A value of -1 will skip setting the temperature for subsequent layers.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
-    def->min = 0;
+    def->min = -1;
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{ 35 });
 
     def = this->add("textured_cool_plate_temp", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Textured Cool Plate.");
+                     "A value of 0 means the filament does not support printing on the Textured Cool Plate. "
+                     "A value of -1 will skip setting the temperature for subsequent layers.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
-    def->min = 0;
+    def->min = -1;
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{ 40 });
 
     def = this->add("eng_plate_temp", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Engineering Plate.");
+                     "A value of 0 means the filament does not support printing on the Engineering Plate. "
+                     "A value of -1 will skip setting the temperature for subsequent layers.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
-    def->min = 0;
+    def->min = -1;
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{ 45 });
 
     def = this->add("hot_plate_temp", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the High Temp Plate.");
+                     "A value of 0 means the filament does not support printing on the High Temp Plate. "
+                     "A value of -1 will skip setting the temperature for subsequent layers.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
-    def->min = 0;
+    def->min = -1;
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{ 45 });
 
     def = this->add("textured_plate_temp", coInts);
     def->label = L("Other layers");
     def->tooltip = L("Bed temperature for layers except the initial one. "
-                     "A value of 0 means the filament does not support printing on the Textured PEI Plate.");
+                     "A value of 0 means the filament does not support printing on the Textured PEI Plate. "
+                     "A value of -1 will skip setting the temperature for subsequent layers.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->full_label = L("Bed temperature");
-    def->min = 0;
+    def->min = -1;
     def->max = 300;
     def->set_default_value(new ConfigOptionInts{45});
 
