@@ -221,6 +221,7 @@ class GCodeViewer
         float temperature{ 0.0f };
         float volumetric_rate{ 0.0f };
         float layer_time{ 0.0f };
+        float pressure_advance{ 0.0f };
         unsigned char extruder_id{ 0 };
         unsigned char cp_color_id{ 0 };
         std::vector<Sub_Path> sub_paths;
@@ -420,6 +421,8 @@ class GCodeViewer
             // Color mapping by layer time.
             Range layer_duration;
 Range layer_duration_log;
+            // Color mapping by pressure advance.
+            Range pressure_advance;
             void reset() {
                 height.reset();
                 width.reset();
@@ -429,6 +432,7 @@ Range layer_duration_log;
                 temperature.reset();
                 layer_duration.reset();
                 layer_duration_log.reset(true);
+                pressure_advance.reset();
             }
         };
 
@@ -722,6 +726,7 @@ public:
         FilamentId,
         LayerTime,
         LayerTimeLog,
+        PressureAdvance,
         Count
     };
     // helper to render shells

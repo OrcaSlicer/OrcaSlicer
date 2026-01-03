@@ -1638,6 +1638,9 @@ void GCodeProcessor::register_commands()
         {"M702", [this](const GCodeReader::GCodeLine& line) { process_M702(line); }}, // Unload the current filament into the MK3 MMU2 unit at the end of print.
         {"M1020", [this](const GCodeReader::GCodeLine& line) { process_M1020(line); }}, // Select Tool
 
+        {"M900", [this](const GCodeReader::GCodeLine& line) { process_M900(line); }}, // Marlin: Set pressure advance
+        {"M572", [this](const GCodeReader::GCodeLine& line) { process_M572(line); }}, // RepRapFirmware/Duet: Set pressure advance
+
         {"T", [this](const GCodeReader::GCodeLine& line) { process_T(line); }}, // Select Tool
         {"SYNC", [this](const GCodeReader::GCodeLine& line) { process_SYNC(line); }}, // SYNC TIME
 
@@ -2762,6 +2765,11 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
         if (boost::iequals(cmd, "SET_VELOCITY_LIMIT"))
         {
             process_SET_VELOCITY_LIMIT(line);
+            return;
+        }
+        if (boost::iequals(cmd, "SET_PRESSURE_ADVANCE"))
+        {
+            process_SET_PRESSURE_ADVANCE(line);
             return;
         }
     }
@@ -5116,6 +5124,36 @@ void GCodeProcessor::process_M106(const GCodeReader::GCodeLine& line)
     }
 }
 
+void GCodeProcessor::process_M900(const GCodeReader::GCodeLine &line)
+{
+    float pa_value = m_pressure_advance;
+    line.has_value('K', pa_value);
+    m_pressure_advance = std::max(0.0f, pa_value);
+    // BOOST_LOG_TRIVIAL(debug) << "M900 command: PA set to " << m_pressure_advance;
+}
+
+void GCodeProcessor::process_M572(const GCodeReader::GCodeLine &line)
+{
+    float pa_value = m_pressure_advance;
+    line.has_value('S', pa_value);
+    m_pressure_advance = std::max(0.0f, pa_value);
+    // BOOST_LOG_TRIVIAL(debug) << "M572 command: PA set to " << m_pressure_advance;
+}
+
+void GCodeProcessor::process_SET_PRESSURE_ADVANCE(const GCodeReader::GCodeLine& line)
+{
+    std::regex regex(R"(SET_PRESSURE_ADVANCE\s+(?:.*\s+)?ADVANCE\s*=\s*([\d.]+))");
+    std::smatch matches;
+
+    if (std::regex_search(line.raw(), matches, regex) && matches.size() > 1) {
+        float pa_value = 0;
+        try {
+            pa_value = std::stof(matches[1].str());
+        } catch (...) {}
+        m_pressure_advance = std::max(0.0f, pa_value);
+    }
+}
+
 void GCodeProcessor::process_M107(const GCodeReader::GCodeLine& line)
 {
     m_fan_speed = 0.0f;
@@ -5665,6 +5703,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
         m_travel_dist,
         m_fan_speed,
         m_extruder_temps[filament_id],
+        m_pressure_advance,
         static_cast<float>(m_result.moves.size()),
         static_cast<float>(m_layer_id), //layer_duration: set later
         //BBS: add arc move related data
