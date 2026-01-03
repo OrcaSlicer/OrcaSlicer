@@ -408,6 +408,9 @@ set(_dep_list
     )
 
 if (MSVC)
+    include(mesa/mesa.cmake) # Add Mesa3D OpenGL software renderer
+    list(APPEND _dep_list "dep_mesa")
+
     # Experimental
     #list(APPEND _dep_list "dep_qhull")
 else()

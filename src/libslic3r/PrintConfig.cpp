@@ -10011,10 +10011,10 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->set_default_value(new ConfigOptionBool(false));
 
 #if (defined(_MSC_VER) || defined(__MINGW32__)) && defined(SLIC3R_GUI)
-    /*def = this->add("sw_renderer", coBool);
+    def = this->add("sw_renderer", coBool);
     def->label = L("Render with a software renderer");
     def->tooltip = L("Render with a software renderer. The bundled MESA software renderer is loaded instead of the default OpenGL driver.");
-    def->min = 0;*/
+    def->min = 0;
 #endif /* _MSC_VER */
 
     def = this->add("load_custom_gcodes", coString);
