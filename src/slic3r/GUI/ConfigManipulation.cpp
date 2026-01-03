@@ -722,7 +722,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_line("brim_ears_detection_length", have_brim_ear);
 
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
-    toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0);
+    toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f);
 
     bool have_raft = config->opt_int("raft_layers") > 0;
     bool have_support_material = config->opt_bool("enable_support") || have_raft;

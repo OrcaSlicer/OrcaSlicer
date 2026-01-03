@@ -689,6 +689,17 @@ void PrintConfigDef::init_common_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionInt(1));	
 
+    def           = this->add("elefant_foot_layers_density", coPercent);
+    def->label    = L("Elefant foot layers density");
+    def->category = L("Quality");
+    def->tooltip  = L("Density of internal solid infill for elefant foot layers compensation. "
+                      "The initial value for the second layer is set. "
+                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers. ");
+    def->sidetext = "%";
+    def->min      = 50;
+    def->max      = 100;
+    def->set_default_value(new ConfigOptionPercent(100));
+
     def = this->add("layer_height", coFloat);
     def->label = L("Layer height");
     def->category = L("Quality");
