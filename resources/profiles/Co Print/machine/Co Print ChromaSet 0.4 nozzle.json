@@ -146,7 +146,7 @@
     "high_current_on_filament_swap": [
         "0"
     ],
-     "enable_filament_ramming": [
+    "enable_filament_ramming": [
         "0"
     ],
     "z_hop_types": "Spiral Lift"
