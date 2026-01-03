@@ -4551,6 +4551,15 @@ void PrintConfigDef::init_fff_params()
     def->height = 6;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
+
+    def = this->add("process_change_extrusion_role_gcode", coString);
+    def->label = L("Change extrusion role G-code (process)");
+    def->tooltip = L("This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString());
     
     def = this->add("printer_model", coString);
     def->label = L("Printer type");
@@ -6066,6 +6075,15 @@ void PrintConfigDef::init_fff_params()
     def->height = 5;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString());
+
+    def = this->add("filament_change_extrusion_role_gcode", coStrings);
+    def->label = L("Change extrusion role G-code (filament)");
+    def->tooltip = L("This G-code is inserted when the extrusion role is changed for the active filament.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionStrings{ "" });
 
     def = this->add("top_surface_line_width", coFloatOrPercent);
     def->label = L("Top surface");
@@ -10403,6 +10421,8 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
                                "travel_point_1_x", "travel_point_1_y", "travel_point_2_x", "travel_point_2_y", "travel_point_3_x",
                                "travel_point_3_y", "x_after_toolchange", "y_after_toolchange", "z_after_toolchange"}},
     {"change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
+    {"filament_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
+    {"process_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
     {"printing_by_object_gcode",    {}},
     {"machine_pause_gcode",         {}},
     {"template_custom_gcode",       {}},

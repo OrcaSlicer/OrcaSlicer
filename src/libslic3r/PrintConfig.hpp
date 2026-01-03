@@ -1326,6 +1326,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
     ((ConfigOptionString,              change_filament_gcode))
     ((ConfigOptionString,              change_extrusion_role_gcode))
+    ((ConfigOptionString,              process_change_extrusion_role_gcode))
+    ((ConfigOptionStrings,             filament_change_extrusion_role_gcode))
     ((ConfigOptionFloat,               travel_speed))
     ((ConfigOptionFloat,               travel_speed_z))
     ((ConfigOptionBool,                silent_mode))
