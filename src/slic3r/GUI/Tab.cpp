@@ -5492,7 +5492,7 @@ void TabPrinter::toggle_options()
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
 
-        if (m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfMarlinLegacy) {
+        if (m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfMarlinLegacy && m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfKlipper) {
             bool input_shaping_enabled = m_config->opt_bool("input_shaping_enable");
             bool reprap = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
             toggle_option("input_shaping_type", input_shaping_enabled);
