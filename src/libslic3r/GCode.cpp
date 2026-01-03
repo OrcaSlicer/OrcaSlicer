@@ -3628,7 +3628,7 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
 }
 
 
-// Print the machine envelope G-code based on the "machine_max_xxx" parameters.
+// Print the machine envelope G-code for the Marlin firmware based on the "machine_max_xxx" parameters.
 // Do not process this piece of G-code by the time estimator, it already knows the values through another sources.
 void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print, int extruder_id)
 {
