@@ -85,6 +85,38 @@
             "sub_path": "filament/base/fdm_filament_tpu.json"
         },
         {
+            "name": "Elas ASA @base",
+            "sub_path": "filament/Elas/Elas ASA @base.json"
+        },
+        {
+            "name": "Elas PETG Basic @base",
+            "sub_path": "filament/Elas/Elas PETG Basic @base.json"
+        },
+        {
+            "name": "Elas PLA Basic @base",
+            "sub_path": "filament/Elas/Elas PLA Basic @base.json"
+        },
+        {
+            "name": "Elas PLA Pro @base",
+            "sub_path": "filament/Elas/Elas PLA Pro @base.json"
+        },
+        {
+            "name": "Elas ASA @System",
+            "sub_path": "filament/Elas/Elas ASA @System.json"
+        },
+        {
+            "name": "Elas PETG Basic @System",
+            "sub_path": "filament/Elas/Elas PETG Basic @System.json"
+        },
+        {
+            "name": "Elas PLA Basic @System",
+            "sub_path": "filament/Elas/Elas PLA Basic @System.json"
+        },
+        {
+            "name": "Elas PLA Pro @System",
+            "sub_path": "filament/Elas/Elas PLA Pro @System.json"
+        },
+        {
             "name": "FusRock ABS-GF @System",
             "sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
         },

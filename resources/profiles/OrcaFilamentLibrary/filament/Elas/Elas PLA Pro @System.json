@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "Elas PLA Pro @System",
+    "inherits": "Elas PLA Pro @base",
+    "from": "system",
+    "setting_id": "OGFSA00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "25"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "compatible_printers": []
+}
