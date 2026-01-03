@@ -1,3 +1,7 @@
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "4.0")
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+endif()
+
 #
 # This CMake project downloads, configures and builds OrcaSlicer dependencies on Unix and Windows.
 #
@@ -177,6 +181,7 @@ if (NOT IS_CROSS_COMPILE OR NOT APPLE)
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
         ${_gen}
         CMAKE_ARGS
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_MODULE_PATH:STRING=${PROJECT_SOURCE_DIR}/../cmake/modules
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
@@ -221,6 +226,7 @@ else()
         DOWNLOAD_DIR        ${DEP_DOWNLOAD_DIR}/${projectname}
         ${_gen}
         CMAKE_ARGS
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
             -DCMAKE_INSTALL_PREFIX:STRING=${DESTDIR}
             -DCMAKE_PREFIX_PATH:STRING=${DESTDIR}
             -DBUILD_SHARED_LIBS:BOOL=OFF

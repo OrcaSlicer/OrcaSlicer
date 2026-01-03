@@ -19,6 +19,7 @@
 //#include "ConfigWizard.hpp"
 #include "wxExtensions.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
 #include "GUI_App.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
@@ -207,6 +208,16 @@ void DownloadProgressDialog::update_release_note(std::string release_note, std::
 
 std::unique_ptr<UpgradeNetworkJob> DownloadProgressDialog::make_job() { return std::make_unique<UpgradeNetworkJob>(); }
 
-void DownloadProgressDialog::on_finish() { wxGetApp().restart_networking(); }
+void DownloadProgressDialog::on_finish()
+{
+    if (wxGetApp().hot_reload_network_plugin()) {
+        return;
+    }
+
+    MessageDialog dlg(nullptr,
+        _L("The network plugin was installed but could not be loaded. Please restart the application."),
+        _L("Restart Required"), wxOK | wxICON_INFORMATION);
+    dlg.ShowModal();
+}
 
 }} // namespace Slic3r::GUI

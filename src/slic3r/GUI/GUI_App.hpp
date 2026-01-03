@@ -312,6 +312,7 @@ private:
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
     bool             m_show_http_errpr_msgdlg{false};
+    bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     HttpServer       m_http_server;
     bool             m_show_gcode_window{true};
@@ -689,6 +690,11 @@ public:
     void            restart_networking();
     void            check_config_updates_from_updater() { check_updates(false); }
 
+    void            show_network_plugin_download_dialog(bool is_update = false);
+    bool            hot_reload_network_plugin();
+    std::string     get_latest_network_version() const;
+    bool            has_network_update_available() const;
+
 private:
     int             updating_bambu_networking();
     bool            on_init_inner();
@@ -715,6 +721,7 @@ private:
     bool                    m_init_app_config_from_older { false };
     bool                    m_datadir_redefined { false };
     std::string             m_older_data_dir_path;
+    bool                    m_unsigned_plugin_warning_shown { false };
     boost::optional<Semver> m_last_config_version;
     bool                    m_config_corrupted { false };
     std::string             m_open_method;

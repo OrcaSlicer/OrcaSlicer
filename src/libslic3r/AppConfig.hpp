@@ -24,6 +24,12 @@ using namespace nlohmann;
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK "always_ask"
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY "load_geometry_only"
 
+#define SETTING_NETWORK_PLUGIN_VERSION "network_plugin_version"
+#define SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS "network_plugin_skipped_versions"
+#define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
+#define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
+#define BAMBU_NETWORK_AGENT_VERSION_LEGACY  "01.10.01.01"
+
 #define SUPPORT_DARK_MODE
 //#define _MSW_DARK_MODE
 
@@ -346,6 +352,21 @@ public:
 	static const std::string SECTION_FILAMENTS;
     static const std::string SECTION_MATERIALS;
     static const std::string SECTION_EMBOSS_STYLE;
+
+    std::string get_network_plugin_version() const;
+    void set_network_plugin_version(const std::string& version);
+
+    std::vector<std::string> get_skipped_network_versions() const;
+    void add_skipped_network_version(const std::string& version);
+    bool is_network_version_skipped(const std::string& version) const;
+    void clear_skipped_network_versions();
+
+    bool is_network_update_prompt_disabled() const;
+    void set_network_update_prompt_disabled(bool disabled);
+
+    bool should_remind_network_update_later() const;
+    void set_remind_network_update_later(bool remind);
+    void clear_remind_network_update_later();
 
 private:
 	template<typename T>

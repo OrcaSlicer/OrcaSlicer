@@ -135,6 +135,8 @@ public:
     MachineObject(DeviceManager* manager, NetworkAgent* agent, std::string name, std::string id, std::string ip);
     ~MachineObject();
 
+    void set_agent(NetworkAgent* agent) { m_agent = agent; }
+
 public:
     enum ActiveState {
         NotActive,
