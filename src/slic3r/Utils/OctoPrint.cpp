@@ -322,6 +322,13 @@ bool OctoPrint::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
             .on_resolve([&ra = resolved_addr](const std::vector<BonjourReply>& replies) {
                 for (const auto & rpl : replies) {
                     boost::asio::ip::address ip(rpl.ip);
+                    if (ip.is_v6()) {
+                        auto v6 = ip.to_v6();
+                        if (v6.is_link_local()) {
+                            BOOST_LOG_TRIVIAL(info) << "Skipping IPv6 link-local address: " << rpl.ip;
+                            continue;
+                        }
+                    }
                     ra.emplace_back(ip);
                     BOOST_LOG_TRIVIAL(info) << "Resolved IP address: " << rpl.ip;
                 }
