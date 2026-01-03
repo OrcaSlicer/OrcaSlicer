@@ -28,7 +28,11 @@ TextInput::TextInput()
     border_width = 1;
     border_color = StateColor(std::make_pair(0xDBDBDB, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Hovered),
                               std::make_pair(0xDBDBDB, (int) StateColor::Normal));
-    background_color = StateColor(std::make_pair(0xF0F0F1, (int) StateColor::Disabled), std::make_pair(*wxWHITE, (int) StateColor::Normal));
+    background_color = StateColor(
+        std::make_pair(0xF0F0F1, (int) StateColor::Disabled),
+        std::make_pair(0xE5F0EE, (int) StateColor::Focused),
+        std::make_pair(*wxWHITE, (int) StateColor::Normal)
+    );
     SetFont(Label::Body_12);
 }
 
@@ -57,15 +61,24 @@ void TextInput::Create(wxWindow *     parent,
     wxWindow::SetLabel(label);
     assert((style & wxRIGHT) == 0);
     style &= ~wxALIGN_MASK;
+    bool is_multiline = style & wxTE_MULTILINE;
+    if(!is_multiline)
+        style &= ~wxRIGHT;
     state_handler.attach({&label_color, & text_color});
     state_handler.update_binds();
-    text_ctrl = new TextCtrl(this, wxID_ANY, text, {4, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER);
+    text_ctrl = is_multiline ? new TextCtrl(this, wxID_ANY, text, wxPoint(1,1) * border_width, wxDefaultSize, style | wxBORDER_NONE)
+                             : new TextCtrl(this, wxID_ANY, text, wxPoint(4,4)               , wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER);
     text_ctrl->SetFont(Label::Body_14);
     text_ctrl->SetInitialSize(text_ctrl->GetBestSize());
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
     text_ctrl->SetForegroundColour(text_color.colorForStates(state_handler.states()));
     state_handler.attach_child(text_ctrl);
+    text_ctrl->Bind(wxEVT_SET_FOCUS, [this](auto &e) {
+        text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
+        e.Skip();
+    });
     text_ctrl->Bind(wxEVT_KILL_FOCUS, [this](auto &e) {
+        text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
         OnEdit();
         e.SetId(GetId());
         ProcessEventLocally(e);
@@ -76,7 +89,8 @@ void TextInput::Create(wxWindow *     parent,
         e.SetId(GetId());
         ProcessEventLocally(e);
     });
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    if(!is_multiline) // dont block right click on multiline
+        text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
     if (!icon.IsEmpty()) {
         this->icon = ScalableBitmap(this, icon.ToStdString(), 16);
     }
@@ -194,7 +208,10 @@ void TextInput::DoSetSize(int x, int y, int width, int height, int sizeFlags)
     bool align_right = GetWindowStyle() & wxALIGN_RIGHT;
     if (align_right)
         textPos.x += labelSize.x;
-    if (text_ctrl) {
+    if (text_ctrl->IsMultiLine()) {
+        text_ctrl->SetSize(wxSize(size.x - border_width * 2, size.y - border_width * 2));
+        text_ctrl->SetPosition({border_width, border_width});
+    }else{
         wxSize textSize = text_ctrl->GetSize();
         textSize.x = size.x - textPos.x - labelSize.x - 10;
         text_ctrl->SetSize(textSize);

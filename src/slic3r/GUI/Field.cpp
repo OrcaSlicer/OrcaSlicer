@@ -750,13 +750,13 @@ void TextCtrl::BUILD() {
 
 	// BBS: new param ui style
     // const long style = m_opt.multiline ? wxTE_MULTILINE : wxTE_PROCESS_ENTER/*0*/;
-    static Builder<wxTextCtrl> builder1;
+    static Builder<::TextInput> builder1; // ORCA Text input with multiline support
     static Builder<::TextInput> builder2;
     auto temp = m_opt.multiline
-        ? (wxWindow*)builder1.build(m_parent, wxID_ANY, "", wxDefaultPosition, size, wxTE_MULTILINE)
+        ? builder1.build(m_parent, "", "", "", wxDefaultPosition, size, wxTE_MULTILINE)
         : builder2.build(m_parent, "", "", "", wxDefaultPosition, size, wxTE_PROCESS_ENTER);
     temp->SetLabel(_L(m_opt.sidetext));
-	auto text_ctrl = m_opt.multiline ? (wxTextCtrl *)temp : ((TextInput *) temp)->GetTextCtrl();
+	auto text_ctrl = temp->GetTextCtrl();
     text_ctrl->SetLabel(text_value);
     temp->SetSize(size);
     m_combine_side_text = !m_opt.multiline;
@@ -791,11 +791,11 @@ void TextCtrl::BUILD() {
         }), text_ctrl->GetId());
     } else {
         // Orca: adds logic that scrolls the parent if the text control doesn't have focus
-        text_ctrl->Bind(wxEVT_MOUSEWHEEL, [text_ctrl](wxMouseEvent& event) {
+        text_ctrl->Bind(wxEVT_MOUSEWHEEL, [text_ctrl, temp](wxMouseEvent& event) {
             if (text_ctrl->HasFocus() && text_ctrl->GetScrollRange(wxVERTICAL) != 1)
                 event.Skip(); // don't consume the event so that the text control will scroll
             else
-                text_ctrl->GetParent()->ScrollLines((event.GetWheelRotation() > 0 ? -1 : 1) * event.GetLinesPerAction());
+                temp->GetParent()->ScrollLines((event.GetWheelRotation() > 0 ? -1 : 1) * event.GetLinesPerAction());
         });
     }
 

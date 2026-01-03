@@ -181,7 +181,7 @@ public:
 
     ::TextInput*        m_input_designer {nullptr};
     ::TextInput*        m_input_model_name {nullptr};
-    wxTextCtrl*         m_input_description {nullptr};
+    ::TextInput*        m_input_description {nullptr};
     ComboBox*           m_combo_license {nullptr};
     bool Show(bool show) override;
     void                init_license_list();

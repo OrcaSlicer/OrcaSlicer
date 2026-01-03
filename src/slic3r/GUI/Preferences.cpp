@@ -518,8 +518,6 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     input_title->Wrap(DESIGN_TITLE_SIZE.x);
 
     auto       input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
-    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
-    input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
     wxTextValidator validator(wxFILTER_DIGITS);
     input->SetToolTip(tooltip);
@@ -565,8 +563,6 @@ wxBoxSizer *PreferencesDialog::create_camera_orbit_mult_input(wxString title, wx
     auto param = "camera_orbit_mult";
 
     auto       input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
-    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
-    input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
     wxTextValidator validator(wxFILTER_NUMERIC);
     input->SetToolTip(tooltip);
@@ -637,8 +633,6 @@ wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString toolt
     m_backup_interval_time = app_config->get("backup_interval");
 
     auto input = new ::TextInput(m_parent, wxEmptyString, _L("sec"), "loop", wxDefaultPosition, wxSize(FromDIP(97), -1), wxTE_PROCESS_ENTER);
-    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
-    input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(m_backup_interval_time);
     wxTextValidator validator(wxFILTER_DIGITS);
     input->SetToolTip(_L("The period of backup in seconds."));

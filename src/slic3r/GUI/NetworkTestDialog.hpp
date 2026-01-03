@@ -7,6 +7,7 @@
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 #include <slic3r/GUI/Widgets/Button.hpp>
+#include <slic3r/GUI/Widgets/TextInput.hpp>
 #include <wx/artprov.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/button.h>
@@ -62,7 +63,7 @@ protected:
 	wxStaticText* text_ping_title;
 	wxStaticText* text_ping_value;
 	wxStaticText* text_result;
-	wxTextCtrl* txt_log;
+	TextInput* txt_log;
 
 	wxBoxSizer* create_top_sizer(wxWindow* parent);
 	wxBoxSizer* create_info_sizer(wxWindow* parent);
