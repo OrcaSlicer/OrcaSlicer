@@ -11,6 +11,9 @@
     "nozzle_diameter": [
         "0.4"
     ],
+    "nozzle_volume": [
+        "156"
+    ],
     "retract_before_wipe": [
         "0%"
     ],
@@ -132,7 +135,7 @@
         "0"
     ],
     "parking_pos_retraction": [
-        "25"
+        "0"
     ],
     "retract_when_changing_layer": [
         "0"
@@ -141,7 +144,10 @@
         "0"
     ],
     "high_current_on_filament_swap": [
-        "1"
+        "0"
+    ],
+    "enable_filament_ramming": [
+        "0"
     ],
     "z_hop_types": "Spiral Lift"
 }
