@@ -392,4 +392,18 @@ wxSize TextRenderer::GetSize() const
     return GetTextExtent(m_value);
 }
 
+// ----------------------------------------------------------------------------
+// ColorRenderer
+// ----------------------------------------------------------------------------
 
+bool   ColorRenderer::SetValue(const wxVariant& value) {
+    color << value;
+    return true;
+}
+
+bool   ColorRenderer::Render(wxRect cell, wxDC* dc, int state) {
+    cell.Deflate(4);
+    dc->SetBrush(wxBrush(color));
+    dc->DrawRectangle(cell);
+    return true;
+}

@@ -169,7 +169,7 @@ static std::set<int> cannot_input_key = {9, 10, 13, 33, 35, 36, 37, 38, 40, 41, 
 
 static std::set<char> special_key = {'\n', '\t', '\r', '\v', '@', ';'};
 
-static std::string remove_special_key(const std::string &str)
+std::string remove_special_key(const std::string &str)
 {
     std::string res_str;
     for (char c : str) {
@@ -481,7 +481,7 @@ static std::string calculate_md5(const std::string &input)
     return md5;
 }
 
-static std::string get_filament_id(std::string vendor_typr_serial)
+std::string get_filament_id(std::string vendor_typr_serial)
 {
     std::unordered_map<std::string, std::set<std::string>> filament_id_to_filament_name;
 

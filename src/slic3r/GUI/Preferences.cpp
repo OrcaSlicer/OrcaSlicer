@@ -1377,6 +1377,11 @@ void PreferencesDialog::create_items()
     });
     g_sizer->Add(item_restore_hide_pop_ups);
 
+    auto item_restore_spoolman_consumption_dialog = create_item_button(_L("Spoolman consumption"), _L("Clear"), L"", _L("Clear my choice for hiding the Spoolman consumption dialog."), []() {
+        wxGetApp().app_config->set_bool("show_spoolman_consumption_dialog", true);
+    });
+    g_sizer->Add(item_restore_spoolman_consumption_dialog);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 

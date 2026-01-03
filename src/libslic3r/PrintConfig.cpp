@@ -2694,11 +2694,28 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionStrings());
     def->cli = ConfigOptionDef::nocli;
 
+    def = this->add("filament_remaining_weight", coFloats);
+    def->set_default_value(new ConfigOptionFloats());
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("filament_remaining_length", coFloats);
+    def->set_default_value(new ConfigOptionFloats());
+    def->cli = ConfigOptionDef::nocli;
+
     def = this->add("filament_vendor", coStrings);
     def->label = L("Vendor");
     def->tooltip = L("Vendor of filament. For show only.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings{L("(Undefined)")});
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("spoolman_spool_id", coInts);
+    def->label = L("Spoolman ID");
+    def->tooltip = L("The spool ID of this filament profile within your Spoolman instance. This will allow automatic spool switching when "
+                     "using moonraker to track spool usage and one touch updating of this filament profile from the Spoolman properties. "
+                     "Setting this to a value of 0 disables its functionality.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInts({ 0 }));
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("infill_direction", coFloat);
@@ -3557,6 +3574,12 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_multi_bed_types", coBool);
     def->label = L("Support multi bed types");
     def->tooltip = L("Enable this option if you want to use multiple bed types.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("handles_spoolman_consumption", coBool);
+    def->label = L("Handles Spoolman consumption");
+    def->tooltip = L("Indicates that the printer will handle sending consumption requests to Spoolman");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -7771,7 +7794,7 @@ DynamicPrintConfig DynamicPrintConfig::full_print_config()
 	return DynamicPrintConfig((const PrintRegionConfig&)FullPrintConfig::defaults());
 }
 
-DynamicPrintConfig::DynamicPrintConfig(const StaticPrintConfig& rhs) : DynamicConfig(rhs, rhs.keys_ref())
+DynamicPrintConfig::DynamicPrintConfig(const StaticPrintConfig& rhs) : DynamicConfigWithDef(rhs, rhs.keys_ref())
 {
 }
 

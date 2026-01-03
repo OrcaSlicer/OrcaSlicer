@@ -801,7 +801,28 @@ ConfigSubstitutions ConfigBase::load_from_json(const std::string &file, ForwardC
 
 int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContext& substitution_context, bool load_inherits_to_config, std::map<std::string, std::string>& key_values, std::string& reason)
 {
-    json j;
+    try {
+        json j;
+        boost::nowide::ifstream ifs(file);
+        ifs >> j;
+        ifs.close();
+        return load_from_json(j, substitution_context, load_inherits_to_config, key_values, reason, file);
+    }
+    catch (const std::ifstream::failure &err)  {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a ifstream error, reason = " << err.what();
+        reason = std::string("ifstreamError: ") + err.what();
+        //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file, e.what()));
+    }
+    catch(nlohmann::detail::parse_error &err) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a nlohmann::detail::parse_error, reason = " << err.what();
+        reason = std::string("JsonParseError: ") + err.what();
+        //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file, err.what()));
+    }
+    return -1;
+}
+
+int ConfigBase::load_from_json(const json &data, ConfigSubstitutionContext& substitution_context, bool load_inherits_to_config, std::map<std::string, std::string>& key_values, std::string& reason, const std::string& file)
+{
     std::list<std::string> different_settings_append;
     std::string new_support_style;
     std::string is_infill_first;
@@ -855,17 +876,13 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
         };
 
     try {
-        boost::nowide::ifstream ifs(file);
-        ifs >> j;
-        ifs.close();
-
         const ConfigDef* config_def = this->def();
         if (config_def == nullptr) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no config defs!";
             return -1;
         }
         //parse the json elements
-        for (auto it = j.begin(); it != j.end(); it++) {
+        for (auto it = data.begin(); it != data.end(); it++) {
             if (boost::iequals(it.key(),BBL_JSON_KEY_VERSION)) {
                 key_values.emplace(BBL_JSON_KEY_VERSION, it.value());
             }
@@ -1076,16 +1093,7 @@ int ConfigBase::load_from_json(const std::string &file, ConfigSubstitutionContex
         this->handle_legacy_composite();
         return 0;
     }
-    catch (const std::ifstream::failure &err)  {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a ifstream error, reason = " << err.what();
-        reason = std::string("ifstreamError: ") + err.what();
-        //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file, e.what()));
-    }
-    catch(nlohmann::detail::parse_error &err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a nlohmann::detail::parse_error, reason = " << err.what();
-        reason = std::string("JsonParseError: ") + err.what();
-        //throw ConfigurationError(format("Failed loading configuration file \"%1%\": %2%", file, err.what()));
-    }
+
     catch(std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__<< ": parse "<<file<<" got a generic exception, reason = " << err.what();
         reason = std::string("std::exception: ") + err.what();
@@ -1443,7 +1451,7 @@ ConfigSubstitutions ConfigBase::load_from_gcode_file(const std::string &file, Fo
 }
 
 //BBS: add json support
-void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const
+json ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const
 {
     json j;
     //record the headers
@@ -1478,12 +1486,16 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
         }
     }
 
-    boost::nowide::ofstream c;
-    c.open(file, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
-    c.close();
+    if (!file.empty()) {
+        boost::nowide::ofstream c;
+        c.open(file, std::ios::out | std::ios::trunc);
+        c << std::setw(4) << j << std::endl;
+        c.close();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
+    }
+
+    return j;
 }
 
 void ConfigBase::save(const std::string &file) const

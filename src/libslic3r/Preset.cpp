@@ -519,7 +519,7 @@ void Preset::load_info(const std::string& file)
     }
 }
 
-void Preset::save_info(std::string file)
+void Preset::save_info(std::string file) const
 {
     //BBS: add project embedded preset logic
     if (this->is_project_embedded)
@@ -558,7 +558,7 @@ void Preset::remove_files()
 }
 
 //BBS: add logic for only difference save
-void Preset::save(DynamicPrintConfig* parent_config)
+void Preset::save(const DynamicPrintConfig* parent_config, json* output /*= nullptr*/) const
 {
     //BBS: add project embedded preset logic
     if (this->is_project_embedded)
@@ -575,7 +575,14 @@ void Preset::save(DynamicPrintConfig* parent_config)
     else
         from_str = std::string("Default");
 
-    boost::filesystem::create_directories(fs::path(this->file).parent_path());
+    json j;
+
+    // If an empty string is passed as the file path, the preset is not outputted to a file
+    std::string file_str;
+    if (!output) {
+        file_str = this->file;
+        boost::filesystem::create_directories(fs::path(file_str).parent_path());
+    }
 
     //BBS: only save difference if it has parent
     if (parent_config) {
@@ -595,14 +602,14 @@ void Preset::save(DynamicPrintConfig* parent_config)
 
         for (auto option: dirty_options)
         {
-            ConfigOption *opt_src = config.option(option);
+            const ConfigOption *opt_src = config.option(option);
             ConfigOption *opt_dst = temp_config.option(option, true);
             if (opt_dst->is_scalar() || !(opt_dst->nullable()))
                 opt_dst->set(opt_src);
             else {
-                ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
+                const ConfigOptionVectorBase* opt_vec_src = static_cast<const ConfigOptionVectorBase*>(opt_src);
                 ConfigOptionVectorBase* opt_vec_dst = static_cast<ConfigOptionVectorBase*>(opt_dst);
-                ConfigOptionVectorBase* opt_vec_inherit = static_cast<ConfigOptionVectorBase*>(parent_config->option(option));
+                const ConfigOptionVectorBase* opt_vec_inherit = static_cast<const ConfigOptionVectorBase*>(parent_config->option(option));
                 if (opt_vec_src->size() == 1)
                     opt_dst->set(opt_src);
                 else if (key_set1->find(option) != key_set1->end()) {
@@ -615,19 +622,23 @@ void Preset::save(DynamicPrintConfig* parent_config)
                     opt_dst->set(opt_src);
             }
         }
-        temp_config.save_to_json(this->file, this->name, from_str, this->version.to_string());
+        j = temp_config.save_to_json(file_str, this->name, from_str, this->version.to_string());
     } else if (!filament_id.empty() && inherits().empty()) {
         DynamicPrintConfig temp_config = config;
         temp_config.set_key_value(BBL_JSON_KEY_FILAMENT_ID, new ConfigOptionString(filament_id));
-        temp_config.save_to_json(this->file, this->name, from_str, this->version.to_string());
+        j = temp_config.save_to_json(file_str, this->name, from_str, this->version.to_string());
     } else {
-        this->config.save_to_json(this->file, this->name, from_str, this->version.to_string());
+        j = this->config.save_to_json(file_str, this->name, from_str, this->version.to_string());
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " save config for: " << this->name << " and filament_id: " << filament_id << " and base_id: " << this->base_id;
 
-    fs::path idx_file(this->file);
-    idx_file.replace_extension(".info");
-    this->save_info(idx_file.string());
+    if (output) {
+        *output = std::move(j);
+    } else {
+        fs::path idx_file(this->file);
+        idx_file.replace_extension(".info");
+        this->save_info(idx_file.string());
+    }
 }
 
 void Preset::reload(Preset const &parent)
@@ -990,7 +1001,8 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_long_retractions_when_cut","filament_retraction_distances_when_cut", "idle_temperature",
     //BBS filament change length while the extruder color
     "filament_change_length","filament_flush_volumetric_speed","filament_flush_temp",
-    "long_retractions_when_ec", "retraction_distances_when_ec"
+    "long_retractions_when_ec", "retraction_distances_when_ec",
+    "spoolman_spool_id"
     };
 
 static std::vector<std::string> s_Preset_machine_limits_options {
@@ -1026,7 +1038,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "cooling_tube_retraction",
     "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "purge_in_prime_tower", "enable_filament_ramming",
     "z_offset",
-    "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
+    "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "handles_spoolman_consumption", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
     "bed_temperature_formula", "nozzle_flush_dataset"
     };
 
@@ -2311,6 +2323,24 @@ Preset& PresetCollection::load_preset(const std::string &path, const std::string
     return preset;
 }
 
+bool PresetCollection::load_full_config(DynamicPrintConfig& config)
+{
+    const auto& inherits = Preset::inherits(config);
+    if (inherits.empty())
+        return true;
+
+    const auto inherits_preset = this->find_preset2(inherits);
+    if (!inherits_preset)
+        return false;
+
+    const auto& inherits_config = inherits_preset->config;
+    const auto input_copy = config;
+    config.clear();
+    config.apply(inherits_config);
+    config.apply(input_copy);
+    return true;
+}
+
 bool PresetCollection::clone_presets(std::vector<Preset const *> const &presets, std::vector<std::string> &failures, std::function<void(Preset &, Preset::Type &)> modifier, bool force_rewritten)
 {
     std::vector<Preset> new_presets;
@@ -2392,7 +2422,7 @@ bool PresetCollection::clone_presets_for_filament(Preset const *const &     pres
 {
     std::vector<Preset const *> const presets = {preset};
     return clone_presets(presets, failures, [&filament_name, &filament_id, &dynamic_config, &compatible_printers](Preset &preset, Preset::Type &type) {
-        preset.name        = filament_name + " @" + compatible_printers;
+        preset.name        = filament_name + (compatible_printers.empty() ? "" : (" @" + compatible_printers));
         if (type == Preset::TYPE_FILAMENT) {
             preset.config.apply_only(dynamic_config, {"filament_vendor", "compatible_printers", "filament_type"},true);
 
@@ -2689,7 +2719,7 @@ const std::string& PresetCollection::get_preset_name_by_alias(const std::string&
             it_preset->is_visible && (it_preset->is_compatible || size_t(it_preset - m_presets.begin()) == m_idx_selected))
 	        return it_preset->name;
         }
-		
+
     return alias;
 }
 

@@ -732,6 +732,10 @@ public:
     bool get_machine_sync_status();
 
     void update_machine_sync_status();
+    // Return the plate that is currently being sliced
+    // If all plates are being sliced, Plater::priv::m_cur_slice_plate is returned
+    // If no plate is being sliced or a singluar plate is being sliced, partplate_list.get_curr_plate_index() is returned
+    int get_current_slicing_plate_index() const;
 
 #if ENABLE_ENVIRONMENT_MAP
     void init_environment_texture();

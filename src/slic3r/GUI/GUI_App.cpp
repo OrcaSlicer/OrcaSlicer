@@ -108,6 +108,7 @@
 #include "Notebook.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include "Spoolman.hpp"
 
 //BBS: DailyTip and UserGuide Dialog
 #include "WebDownPluginDlg.hpp"
@@ -2705,6 +2706,8 @@ bool GUI_App::on_init_inner()
             show_error(nullptr, ex.what());
         }
     //}
+
+    Spoolman::update_visible_spool_statistics();
 
 #ifdef WIN32
 #if !wxVERSION_EQUAL_OR_GREATER_THAN(3,1,3)

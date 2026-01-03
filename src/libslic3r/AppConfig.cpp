@@ -472,6 +472,9 @@ void AppConfig::set_defaults()
         set_bool("is_split_compound", false);
     }
 
+    if (get("show_spoolman_consumption_dialog").empty())
+        set_bool("show_spoolman_consumption_dialog", true);
+
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
     erase("app", "main_frame_pos");

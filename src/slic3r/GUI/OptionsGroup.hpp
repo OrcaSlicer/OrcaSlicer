@@ -200,6 +200,7 @@ public:
 	bool				is_activated() { return sizer != nullptr; }
 
 	void remove_option_if(std::function<bool(std::string const &)> const & comp);
+    void msw_rescale();
 protected:
 	std::map<t_config_option_key, Option>	m_options;
     wxWindow*				m_parent {nullptr};
@@ -246,10 +247,10 @@ public:
 
 class ConfigOptionsGroup: public OptionsGroup {
 public:
-	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, const wxString& icon, DynamicPrintConfig* config = nullptr,
+	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, const wxString& icon, DynamicConfigWithDef* config = nullptr,
 						bool is_tab_opt = false, column_t extra_clmn = nullptr) :
 		OptionsGroup(parent, title, icon, is_tab_opt, extra_clmn), m_config(config) {}
-	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, DynamicPrintConfig* config = nullptr,
+	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, DynamicConfigWithDef* config = nullptr,
 						bool is_tab_opt = false, column_t extra_clmn = nullptr) :
 		ConfigOptionsGroup(parent, title, wxEmptyString, config, is_tab_opt, extra_clmn) {}
 	ConfigOptionsGroup(	wxWindow* parent, const wxString& title, ModelConfig* config,
@@ -263,7 +264,7 @@ public:
 	const t_opt_map&   opt_map() const throw() { return m_opt_map; }
 
 	void 		set_config_category_and_type(const wxString &category, int type) { m_config_category = category; m_config_type = type; }
-    void        set_config(DynamicPrintConfig* config) {
+    void        set_config(DynamicConfigWithDef* config) {
 		m_config = config; m_modelconfig = nullptr; }
 	Option		get_option(const std::string& opt_key, int opt_index = -1);
 	Line		create_single_option_line(const std::string& title, const std::string& path = std::string(), int idx = -1) /*const*/{
@@ -285,7 +286,7 @@ public:
 	void		on_change_OG(const t_config_option_key& opt_id, const boost::any& value) override;
 	void		back_to_initial_value(const std::string& opt_key) override;
 	void		back_to_sys_value(const std::string& opt_key) override;
-	void		back_to_config_value(const DynamicPrintConfig& config, const std::string& opt_key);
+	void		back_to_config_value(const DynamicConfigWithDef& config, const std::string& opt_key);
     void		on_kill_focus(const std::string& opt_key) override;
 	void		reload_config();
     // return value shows visibility : false => all options are hidden
@@ -293,14 +294,14 @@ public:
     void        Show(const bool show);
     bool        is_visible(ConfigOptionMode mode);
     bool        update_visibility(ConfigOptionMode mode);
-    void        msw_rescale();
+    // void        msw_rescale();
     void        sys_color_changed();
     void        refresh();
 	boost::any	config_value(const std::string& opt_key, int opt_index, bool deserialize);
 	// return option value from config
-	boost::any	get_config_value(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index = -1);
+	boost::any	get_config_value(const DynamicConfigWithDef& config, const std::string& opt_key, int opt_index = -1);
 	// BBS: restore all pages in preset
-	boost::any	get_config_value2(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index = -1);
+	boost::any	get_config_value2(const DynamicConfigWithDef& config, const std::string& opt_key, int opt_index = -1);
 	Field*		get_fieldc(const t_config_option_key& opt_key, int opt_index);
 	std::pair<OG_CustomCtrl*, bool*>	get_custom_ctrl_with_blinking_ptr(const t_config_option_key& opt_key, int opt_index/* = -1*/);
 
@@ -310,7 +311,7 @@ protected:
     // Reference to libslic3r config or ModelConfig::get(), non-owning pointer.
     // The reference is const, so that the spots which modify m_config are clearly
     // demarcated by const_cast and m_config_changed_callback is called afterwards.
-    const DynamicPrintConfig*	m_config {nullptr};
+    const DynamicConfigWithDef*	m_config {nullptr};
     // If the config is modelconfig, then ModelConfig::touch() has to be called after value change.
     ModelConfig*				m_modelconfig { nullptr };
 	t_opt_map					m_opt_map;
@@ -325,7 +326,7 @@ protected:
 // It is designed for single extruder multiple material machine.
 class ExtruderOptionsGroup : public ConfigOptionsGroup {
 public:
-	ExtruderOptionsGroup(wxWindow* parent, const wxString& title, const wxString& icon, DynamicPrintConfig* config = nullptr, // ORCA: add support for icons
+	ExtruderOptionsGroup(wxWindow* parent, const wxString& title, const wxString& icon, DynamicConfigWithDef* config = nullptr, // ORCA: add support for icons
 		bool is_tab_opt = false, column_t extra_clmn = nullptr) :
 		ConfigOptionsGroup(parent, title, icon, config, is_tab_opt, extra_clmn) {}
 

@@ -14,6 +14,7 @@
 #include "PrintConfig.hpp"
 #include "Semver.hpp"
 #include "ProjectTask.hpp"
+#include "nlohmann/json.hpp"
 
 //BBS: change system directories
 #define PRESET_SYSTEM_DIR      "system"
@@ -268,17 +269,38 @@ public:
     long long           updated_time{0};    //last updated time
     std::map<std::string, std::string> key_values;
 
+    // indicate if spoolman is enabled for this preset
+    // works for filament presets only. All other profiles return false
+    bool spoolman_enabled() const {
+        if (type == TYPE_FILAMENT)
+            return config.opt_int("spoolman_spool_id", 0) > 0;
+        return false;
+    }
+
+    struct SpoolmanStatistics {
+        // Orca: spoolman statistics. these are not stored in the preset file
+        double remaining_length = 0;
+        double remaining_weight = 0;
+        double used_length      = 0;
+        double used_weight      = 0;
+        bool   archived         = false;
+    };
+
+    // the statistics a ptr so that they are a shared value for both the saved and edited preset
+    std::shared_ptr<SpoolmanStatistics> spoolman_statistics = std::make_shared<SpoolmanStatistics>();
+
     static std::string  get_type_string(Preset::Type type);
     // get string type for iot
     static std::string  get_iot_type_string(Preset::Type type);
     static Preset::Type get_type_from_string(std::string type_str);
     void                load_info(const std::string& file);
-    void                save_info(std::string file = "");
+    void                save_info(std::string file = "") const;
     void                remove_files();
 
     //BBS: add logic for only difference save
     //if parent_config is null, save all keys, otherwise, only save difference
-    void                save(DynamicPrintConfig* parent_config);
+    //if output is null, save the data to file, otherwise, save the data to output
+    void                save(const DynamicPrintConfig* parent_config, nlohmann::json* output = nullptr) const;
     void                reload(Preset const & parent);
 
     // Return a label of this preset, consisting of a name and a "(modified)" suffix, if this preset is dirty.
@@ -494,6 +516,9 @@ public:
     Preset&         load_preset(const std::string &path, const std::string &name, const DynamicPrintConfig &config, bool select = true, Semver file_version = Semver());
     Preset&         load_preset(const std::string &path, const std::string &name, DynamicPrintConfig &&config, bool select = true, Semver file_version = Semver());
 
+    // Loads the config options from the inherits preset into the provided partial config
+    bool load_full_config(DynamicPrintConfig& config);
+
     bool clone_presets(std::vector<Preset const *> const &presets, std::vector<std::string> &failures, std::function<void(Preset &, Preset::Type &)> modifier, bool force_rewritten = false);
     bool clone_presets_for_printer(
         std::vector<Preset const *> const &templates, std::vector<std::string> &failures, std::string const &printer, std::function <std::string(std::string)> create_filament_id, bool force_rewritten = false);
@@ -692,6 +717,15 @@ public:
         { this->update_compatible(active_printer, active_print, select_other_if_incompatible, [](const Preset&) -> int { return 0; }); }
 
     size_t          num_visible() const { return std::count_if(m_presets.begin(), m_presets.end(), [](const Preset &preset){return preset.is_visible;}); }
+
+    // gets all presets that are visible and compatible
+    std::vector<Preset *> get_compatible() {
+        std::vector<Preset *> ret;
+        for (auto& item : m_presets)
+            if (item.is_visible && item.is_compatible)
+                ret.emplace_back(&item);
+        return ret;
+    }
 
     // Compare the content of get_selected_preset() with get_edited_preset() configs, return true if they differ.
     bool                        current_is_dirty() const

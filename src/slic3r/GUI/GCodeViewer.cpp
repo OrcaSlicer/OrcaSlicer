@@ -984,20 +984,6 @@ void GCodeViewer::load(const GCodeProcessorResult& gcode_result, const Print& pr
     m_max_print_height = gcode_result.printable_height;
 
     load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
-    
-    // ORCA: Only show filament/color print preview if more than one tool/extruder is actually used in the toolpaths.
-    // Only reset back to Toolpaths (FeatureType) if we are currently in ColorPrint and this load is single-tool.
-    if (m_extruder_ids.size() > 1) {
-        auto it = std::find(view_type_items.begin(), view_type_items.end(), EViewType::ColorPrint);
-        if (it != view_type_items.end())
-            m_view_type_sel = std::distance(view_type_items.begin(), it);
-        set_view_type(EViewType::ColorPrint);
-    } else if (m_view_type == EViewType::ColorPrint) {
-        auto it = std::find(view_type_items.begin(), view_type_items.end(), EViewType::FeatureType);
-        if (it != view_type_items.end())
-            m_view_type_sel = std::distance(view_type_items.begin(), it);
-        set_view_type(EViewType::FeatureType);
-    }
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();

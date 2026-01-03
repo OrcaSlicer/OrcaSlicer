@@ -307,16 +307,30 @@ error:
     return NULL;
 }
 
-wxBitmap* BitmapCache::load_svg(const std::string &bitmap_name, unsigned target_width, unsigned target_height, 
+wxBitmap* BitmapCache::load_svg(const std::string &bitmap_name, unsigned target_width, unsigned target_height,
     const bool grayscale/* = false*/, const bool dark_mode/* = false*/, const std::string& new_color /*= ""*/, const float scale_in_center/* = 0*/)
 {
+    std::map<std::string, std::string> replaces;
+    if (!new_color.empty())
+        replaces["\"#009688\""] = "\"" + new_color + "\"";
+    return load_svg(bitmap_name, target_width, target_height, grayscale, dark_mode, replaces, scale_in_center);
+}
+
+wxBitmap* BitmapCache::load_svg(const std::string &bitmap_name, unsigned target_width, unsigned target_height,
+    const bool grayscale, const bool dark_mode, const std::map<std::string, std::string>& replacement_colors, const float scale_in_center/* = 0*/)
+{
+    std::string color_key;
+    if (!replacement_colors.empty())
+        for (const auto& [key, val] : replacement_colors)
+            color_key.append(key).append(",").append(val);
+
     std::string bitmap_key = bitmap_name + ( target_height !=0 ? 
                                            "-h" + std::to_string(target_height) : 
                                            "-w" + std::to_string(target_width))
                                          + (m_scale != 1.0f ? "-s" + float_to_string_decimal_point(m_scale) : "")
                                          + (dark_mode ? "-dm" : "")
                                          + (grayscale ? "-gs" : "")
-                                         + new_color;
+                                         + color_key;
 
     auto it = m_map.find(bitmap_key);
     if (it != m_map.end())
@@ -347,8 +361,8 @@ wxBitmap* BitmapCache::load_svg(const std::string &bitmap_name, unsigned target_
     if (strstr(bitmap_name.c_str(), "toggle_on") != NULL && dark_mode) // ORCA only replace color of toggle button
         replaces["#009688"] = "#00675b";
 
-    if (!new_color.empty())
-        replaces["\"#009688\""] = "\"" + new_color + "\"";
+    if (!replacement_colors.empty())
+        replaces.insert(replacement_colors.begin(), replacement_colors.end());
 
      NSVGimage *image = nullptr;
     if (strstr(bitmap_name.c_str(), "printer_thumbnail") == NULL) {

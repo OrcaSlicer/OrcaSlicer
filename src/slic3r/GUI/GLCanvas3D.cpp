@@ -6927,6 +6927,11 @@ void GLCanvas3D::_update_select_plate_toolbar_stats_item(bool force_selected) {
 
     if (force_selected && m_sel_plate_toolbar.show_stats_item)
         m_sel_plate_toolbar.m_all_plates_stats_item->selected = true;
+
+    if (m_sel_plate_toolbar.m_all_plates_stats_item->selected) {
+        auto evt = SimpleEvent(EVT_GLTOOLBAR_SELECT_ALL_PLATES_STATS);
+        wxPostEvent(wxGetApp().plater(), evt);
+    }
 }
 
 bool GLCanvas3D::_update_imgui_select_plate_toolbar()

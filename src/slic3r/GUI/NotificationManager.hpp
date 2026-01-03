@@ -130,6 +130,8 @@ enum class NotificationType
 	NetfabbFinished,
 	// Short meesage to fill space between start and finish of export
 	ExportOngoing,
+    // A message showing that Spoolman filament consumption finished and allow a rollback of the action
+    SpoolmanConsumptionFinished,
     // Progressbar of download from prusaslicer://url
     URLDownload,
 	// BBS: Short meesage to fill space between start and finish of arranging
@@ -223,17 +225,20 @@ public:
     void push_slicing_error_notification(const std::string &text, std::vector<ModelObject const *> objs);
 	// Creates Slicing Warning notification with a custom text and no fade out.
     void push_slicing_warning_notification(const std::string &text, bool gray, ModelObject const *obj, ObjectID oid, int warning_step, int warning_msg_id, NotificationLevel level = NotificationLevel::WarningNotificationLevel);
-	// marks slicing errors as gray
-	void set_all_slicing_errors_gray(bool g);
-	// marks slicing warings as gray
-	void set_all_slicing_warnings_gray(bool g);
+    // marks slicing errors as gray for the specified plate
+    void set_all_slicing_errors_gray(bool g, int plate_id = -1);
+    // marks slicing warings as gray for the specified plate
+    void set_all_slicing_warnings_gray(bool g, int plate_id = -1);
 //	void set_slicing_warning_gray(const std::string& text, bool g);
 	// immediately stops showing slicing errors
 	void close_slicing_errors_and_warnings();
+    // close slicing errors for a specific plate index
+    void close_slicing_errors_and_warnings(int plate_idx);
 	void close_slicing_error_notification(const std::string& text);
+    void hide_slicing_notifications_from_other_plates(int current_plate_id);
 	// Release those slicing warnings, which refer to an ObjectID, which is not in the list.
 	// living_oids is expected to be sorted.
-	void remove_slicing_warnings_of_released_objects(const std::vector<ObjectID>& living_oids);
+	void remove_slicing_warnings_of_released_objects(const std::vector<ObjectID>& living_oids, int plate_id);
 	// general error message
 	void push_general_error_notification(const std::string& text);
 	void close_general_error_notification(const std::string& text);
@@ -256,7 +261,7 @@ public:
 		std::function<bool(wxEvtHandler*)> callback = std::function<bool(wxEvtHandler*)>());
     void set_simplify_suggestion_multiline(const ObjectID oid, bool bMulti);
 	// Close object warnings, whose ObjectID is not in the list.
-	// living_oids is expected to be sorted.
+	// living_oids is expected to be sorted and contain all ObjectIDs for the current project (all plates).
 	void remove_simplify_suggestion_of_released_objects(const std::vector<ObjectID>& living_oids);
 	void remove_simplify_suggestion_with_id(const ObjectID oid);
 	// Called when the side bar changes its visibility, as the "slicing complete" notification supplements
@@ -269,6 +274,8 @@ public:
 	// Exporting finished, show this information with path, button to open containing folder and if ejectable - eject button
 	void push_exporting_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
 	void push_import_finished_notification(const std::string& path, const std::string& dir_path, bool on_removable);
+
+    void push_spoolman_consumption_finished_notification();
 
     // Download URL progress notif
     void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
@@ -620,6 +627,7 @@ private:
 		{}
 		ObjectID 	object_id;
 		int    		warning_step { 0 };
+	    int      	plate_id { 0 };
 	};
 
 	class PlaterWarningNotification : public PopNotification

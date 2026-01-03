@@ -254,9 +254,11 @@ void BackgroundSlicingProcess::process_fff()
 				finalize_gcode();
 			else
 				export_gcode();
+	        wxQueueEvent(wxGetApp().mainframe->m_plater, new wxCommandEvent(m_event_export_finished_id));
 	    } else if (! m_upload_job.empty()) {
 			wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, new wxCommandEvent(m_event_export_began_id));
 			prepare_upload();
+	        wxQueueEvent(wxGetApp().mainframe->m_plater, new wxCommandEvent(m_event_export_finished_id));
 	    } else {
 			m_print->set_status(100, _utf8(L("Slicing complete")));
 	    }
@@ -897,10 +899,10 @@ void BackgroundSlicingProcess::export_gcode()
 	}
 
 	// BBS
-	auto evt = new wxCommandEvent(m_event_export_finished_id, GUI::wxGetApp().mainframe->m_plater->GetId());
-	wxString output_gcode_str = wxString::FromUTF8(export_path.c_str(), export_path.length());
-	evt->SetString(output_gcode_str);
-	wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, evt);
+	// auto evt = new wxCommandEvent(m_event_export_finished_id, GUI::wxGetApp().mainframe->m_plater->GetId());
+	// wxString output_gcode_str = wxString::FromUTF8(export_path.c_str(), export_path.length());
+	// evt->SetString(output_gcode_str);
+	// wxQueueEvent(GUI::wxGetApp().mainframe->m_plater, evt);
 
 	// BBS: to be checked. Whether use export_path or output_path.
 	gcode_add_line_number(export_path, m_fff_print->full_print_config());

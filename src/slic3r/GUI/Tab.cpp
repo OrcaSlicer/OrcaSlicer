@@ -52,6 +52,7 @@
 #include "WipeTowerDialog.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "Spoolman.hpp"
 
 #ifdef WIN32
 	#include <commctrl.h>
@@ -3822,6 +3823,21 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
     }
 }
 
+void TabFilament::update_spoolman_statistics() {
+    Preset* selected_preset = &m_presets->get_selected_preset();
+
+    if (!selected_preset->spoolman_enabled())
+        return;
+
+    auto spoolman_stats = selected_preset->spoolman_statistics;
+
+    m_active_page->get_field("spoolman_remaining_weight")->set_value(double_to_string(spoolman_stats->remaining_weight, 2), false);
+    m_active_page->get_field("spoolman_used_weight")->set_value(double_to_string(spoolman_stats->used_weight, 2), false);
+    m_active_page->get_field("spoolman_remaining_length")->set_value(double_to_string(spoolman_stats->remaining_length * 0.001, 2), false);
+    m_active_page->get_field("spoolman_used_length")->set_value(double_to_string(spoolman_stats->used_length * 0.001, 2), false);
+    m_active_page->get_field("spoolman_archived")->set_value(spoolman_stats->archived, false);
+}
+
 void TabFilament::build()
 {
     m_presets = &m_preset_bundle->filaments;
@@ -4063,10 +4079,136 @@ void TabFilament::build()
         option.opt.height = gcode_field_height;// 150;
         optgroup->append_single_option_line(option);
 
+    page = add_options_page(L("Spoolman"), "advanced");
+        optgroup = page->new_optgroup("Basic information");
+        optgroup->append_single_option_line("spoolman_spool_id");
+
+        line = {"Spoolman Update", ""};
+        line.append_option(Option(ConfigOptionDef(), "spoolman_update"));
+        line.widget = [&](wxWindow* parent){
+            auto sizer = new wxBoxSizer(wxHORIZONTAL);
+
+            auto on_click = [&](bool stats_only) {
+                if (m_presets->current_is_dirty() && m_active_page->get_field("spoolman_spool_id")->m_is_modified_value) {
+                    show_error(this, "This profile cannot be updated with an unsaved Spool ID value. Please save the profile, then try updating again.");
+                    return;
+                }
+                if (!Spoolman::is_server_valid()) {
+                    show_error(this, "Failed to get data from the Spoolman server. Make sure that the port is correct and the server is running.");
+                    return;
+                }
+                auto res = Spoolman::update_filament_preset_from_spool(&m_presets->get_edited_preset(), true, stats_only);
+
+                if (res.has_failed()) {
+                    show_error(this, res.build_error_dialog_message());
+                    return;
+                }
+
+                update_spoolman_statistics();
+                this->update_dirty();
+            };
+
+            auto refresh_all_btn = new Button(parent, _L("Update Filament"));
+            refresh_all_btn->Bind(wxEVT_BUTTON, [on_click](wxCommandEvent& evt) { on_click(false); });
+            refresh_all_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            sizer->Add(refresh_all_btn);
+
+            auto refresh_stats_btn = new Button(parent, _L("Update Stats"));
+            refresh_stats_btn->Bind(wxEVT_BUTTON, [on_click](wxCommandEvent& evt) { on_click(true); });
+            refresh_stats_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            sizer->Add(refresh_stats_btn);
+            return sizer;
+        };
+        optgroup->append_line(line);
+
+        line = {"Preset Sync", ""};
+        line.append_option(Option(ConfigOptionDef(), "spoolman_preset_sync"));
+        line.widget = [&](wxWindow* parent){
+            auto sizer = new wxBoxSizer(wxHORIZONTAL);
+
+            auto sync_to_spoolman_btn = new Button(parent, _L("Save Preset"));
+            sync_to_spoolman_btn->Bind(wxEVT_BUTTON, [&](wxCommandEvent& evt) {
+                auto res = Spoolman::save_preset_to_spoolman(&m_presets->get_selected_preset());
+                if (res.has_failed())
+                    show_error(this, res.build_error_dialog_message());
+            });
+            sync_to_spoolman_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            sizer->Add(sync_to_spoolman_btn);
+
+            auto load_from_spoolman_btn = new Button(parent, _L("Load Preset"));
+            load_from_spoolman_btn->Bind(wxEVT_BUTTON, [&](wxCommandEvent& evt) {
+                if (m_presets->current_is_dirty() && m_active_page->get_field("spoolman_spool_id")->m_is_modified_value) {
+                    show_error(this, "This profile cannot be updated with an unsaved Spool ID value. Please save the profile, then try updating again.");
+                    return;
+                }
+
+                if (!Spoolman::is_server_valid()) {
+                    show_error(this, "Failed to get data from the Spoolman server. Make sure that the port is correct and the server is running.");
+                    return;
+                }
+
+                auto selected_preset = m_presets->get_selected_preset();
+                auto edited_preset = m_presets->get_edited_preset();
+                auto spool = Spoolman::get_instance()->get_spoolman_spool_by_id(
+                    selected_preset.config.opt_int("spoolman_spool_id", 0));
+
+                if (spool->filament->preset_data.empty()) {
+                    show_error(this, "The Spoolman filament does not contain any preset data.");
+                    return;
+                }
+
+                const auto success = spool->filament->get_config_from_preset_data(edited_preset.config);
+                if (!success) {
+                    show_error(this, "The stored preset data is invalid.");
+                    return;
+                }
+
+                // Do not change preset name in this operation
+                auto current_preset_name = selected_preset.config.opt_string("filament_settings_id", 0u);
+                edited_preset.config.set_key_value("filament_settings_id", new ConfigOptionStrings({current_preset_name}));
+
+                // Apply spool configuration changes
+                spool->apply_to_config(edited_preset.config);
+
+                this->update_dirty();
+            });
+            load_from_spoolman_btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            sizer->Add(load_from_spoolman_btn);
+
+            return sizer;
+        };
+        optgroup->append_line(line);
+
+        optgroup = page->new_optgroup(_L("Spool Statistics"));
+
+        auto build_statistics_line = [&](const std::string& key, const std::string& label,
+                                         const std::string& sidetext, const ConfigOptionType& type = coFloat) {
+            auto def = ConfigOptionDef();
+            def.opt_key = key;
+            def.label = label;
+            def.type = type;
+            def.sidetext = sidetext;
+            def.readonly = true;
+            if (type == coFloat)
+                def.set_default_value(new ConfigOptionFloat());
+            else if (type == coBool)
+                def.set_default_value(new ConfigOptionBool());
+            return optgroup->append_single_option_line(Option(def, key));
+        };
+
+        build_statistics_line("spoolman_remaining_weight", "Remaining Weight", "g");
+        build_statistics_line("spoolman_used_weight", "Used Weight", "g");
+        build_statistics_line("spoolman_remaining_length", "Remaining Length", "m");
+        build_statistics_line("spoolman_used_length", "Used Length", "m");
+        build_statistics_line("spoolman_archived", "Archived", "", coBool);
+
+    page->m_should_show_fn = [&](bool) {
+        return Spoolman::is_enabled();
+    };
+
     page = add_options_page(L("Multimaterial"), "custom-gcode_multi_material"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Wipe tower parameters"), "param_tower");
         optgroup->append_single_option_line("filament_minimal_purge_on_wipe_tower", "material_multimaterial#multimaterial-wipe-tower-parameters");
-        
         optgroup = page->new_optgroup(L("Multi Filament"));
         // optgroup->append_single_option_line("filament_flush_temp", "", 0);
         // optgroup->append_single_option_line("filament_flush_volumetric_speed", "", 0);
@@ -4265,6 +4407,11 @@ void TabFilament::toggle_options()
         toggle_line("long_retractions_when_ec", is_multi_extruder && is_BBL_printer, 256 + extruder_idx);
         toggle_line("retraction_distances_when_ec", is_multi_extruder && is_BBL_printer && m_config->opt_bool("long_retractions_when_ec", extruder_idx), 256 + extruder_idx);
     }
+
+    if (m_active_page->title() == L("Spoolman")) {
+        toggle_line("spoolman_update", m_config->opt_int("spoolman_spool_id", 0) > 0);
+        update_spoolman_statistics();
+    }
 }
 
 void TabFilament::update()
@@ -4375,6 +4522,7 @@ void TabPrinter::build_fff()
 
         optgroup->append_single_option_line("printer_structure", "printer_basic_information_advanced#printer-structure");
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
+        optgroup->append_single_option_line("handles_spoolman_consumption");
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
@@ -5214,10 +5362,12 @@ void TabPrinter::toggle_options()
         for (auto el : {"use_firmware_retraction", "use_relative_e_distances", "support_multi_bed_types", "pellet_modded_printer", "bed_mesh_max", "bed_mesh_min", "bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "thumbnails"})
           toggle_line(el, !is_BBL_printer);
 
+        toggle_line("handles_spoolman_consumption", Spoolman::is_enabled());
+
         auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
         toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf == gcfMarlinFirmware);
     }
-    
+
 
     if (m_active_page->title() == L("Machine G-code")) {
         PresetBundle *preset_bundle = wxGetApp().preset_bundle;
@@ -7096,7 +7246,7 @@ void Page::update_visibility(ConfigOptionMode mode, bool update_contolls_visibil
 #endif
     }
 
-    m_show = ret_val;
+    m_show = m_should_show_fn ? m_should_show_fn(ret_val) : ret_val;
 #ifdef __WXMSW__
     if (!m_show) return;
     // BBS: fix field control position
