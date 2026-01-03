@@ -135,6 +135,15 @@ void SpinInput::SetRange(int min, int max)
 {
     this->min = min;
     this->max = max;
+    if (text_ctrl) {
+        if (min < 0) {
+            wxTextValidator validator(wxFILTER_INCLUDE_CHAR_LIST);
+            validator.SetCharIncludes("0123456789-");
+            text_ctrl->SetValidator(validator);
+        } else {
+            text_ctrl->SetValidator(wxTextValidator(wxFILTER_DIGITS));
+        }
+    }
 }
 
 void SpinInput::DoSetToolTipText(wxString const &tip)

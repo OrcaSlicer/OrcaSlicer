@@ -4424,6 +4424,8 @@ LayerResult GCode::process_layer(
             bed_temp = get_highest_bed_temperature(false,print);
         else
             bed_temp = get_bed_temperature(first_extruder_id, false, m_config.curr_bed_type);
+		// ORCA: Only set bed temperature if it's greater than or equal to 0 (-1 means the feature is disabled)
+        if (bed_temp >= 0)
         gcode += m_writer.set_bed_temperature(bed_temp);
         // Mark the temperature transition from 1st to 2nd layer to be finished.
         m_second_layer_things_done = true;
