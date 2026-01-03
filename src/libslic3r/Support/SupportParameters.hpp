@@ -102,18 +102,21 @@ struct SupportParameters {
 
         this->base_angle = Geometry::deg2rad(float(object_config.support_angle.value));
         this->interface_angle = Geometry::deg2rad(float(object_config.support_angle.value + 90.));
-        // Orca: Force solid support interface when using support ironing
-        this->interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->support_material_interface_flow.spacing();
-        this->interface_density = std::min(1., this->support_material_interface_flow.spacing() / this->interface_spacing);
-        // Orca: Force solid support interface when using support ironing
+        // ORCA: split top/bottom interface spacing and density, and force solid top when ironing.
+        this->top_interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->support_material_interface_flow.spacing();
+        this->top_interface_density = std::min(1., this->support_material_interface_flow.spacing() / this->top_interface_spacing);
+        // ORCA: bottom interface spacing/density separated from top settings.
+        this->bottom_interface_spacing = object_config.support_bottom_interface_spacing.value + this->support_material_interface_flow.spacing();
+        this->bottom_interface_density = std::min(1., this->support_material_interface_flow.spacing() / this->bottom_interface_spacing);
+        // ORCA: force solid raft interface when ironing (top spacing).
         double raft_interface_spacing = (this->ironing ? 0 : object_config.support_interface_spacing.value) + this->raft_interface_flow.spacing();
         this->raft_interface_density = std::min(1., this->raft_interface_flow.spacing() / raft_interface_spacing);
         this->support_spacing = object_config.support_base_pattern_spacing.value + this->support_material_flow.spacing();
         this->support_density = std::min(1., this->support_material_flow.spacing() / this->support_spacing);
         if (object_config.support_interface_top_layers.value == 0) {
             // No interface layers allowed, print everything with the base support pattern.
-            this->interface_spacing = this->support_spacing;
-            this->interface_density = this->support_density;
+            this->top_interface_spacing = this->support_spacing;
+            this->top_interface_density = this->support_density;
         }
 
         SupportMaterialPattern  support_pattern = object_config.support_base_pattern;
@@ -121,7 +124,7 @@ struct SupportParameters {
         this->base_fill_pattern =
             support_pattern == smpHoneycomb ? ipHoneycomb :
             this->support_density > 0.95 || this->with_sheath ? ipRectilinear : ipSupportBase;
-        this->interface_fill_pattern = (this->interface_density > 0.95 ? ipRectilinear : ipSupportBase);
+        this->interface_fill_pattern = (this->top_interface_density > 0.95 ? ipRectilinear : ipSupportBase);
         this->raft_interface_fill_pattern = this->raft_interface_density > 0.95 ? ipRectilinear : ipSupportBase;
         if (object_config.support_interface_pattern == smipGrid)
             this->contact_fill_pattern = ipGrid;
@@ -132,7 +135,7 @@ struct SupportParameters {
             (object_config.support_interface_pattern == smipAuto && this->zero_gap_interface_top) ||
             object_config.support_interface_pattern == smipConcentric ?
             ipConcentric :
-            (this->interface_density > 0.95 ? ipRectilinear : ipSupportBase);
+            (this->top_interface_density > 0.95 ? ipRectilinear : ipSupportBase);
 
         this->raft_angle_1st_layer  = 0.f;
         this->raft_angle_base       = 0.f;
@@ -239,10 +242,13 @@ struct SupportParameters {
 
     float    				base_angle;
     float    				interface_angle;
-    coordf_t 				interface_spacing;
+    coordf_t 				top_interface_spacing;
+    coordf_t 				bottom_interface_spacing;
     coordf_t				support_expansion=0;
-    // Density of the top / bottom interface and contact layers.
-    coordf_t 				interface_density;
+    // Density of the top interface and contact layers.
+    coordf_t 				top_interface_density;
+    // Density of the bottom interface and contact layers.
+    coordf_t 				bottom_interface_density;
     // Density of the raft interface and contact layers.
     coordf_t 				raft_interface_density;
     coordf_t 				support_spacing;
