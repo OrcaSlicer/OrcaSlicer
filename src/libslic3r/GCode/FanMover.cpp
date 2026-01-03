@@ -271,6 +271,12 @@ void FanMover::_process_T(const std::string_view command)
 
 void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCodeLine& line)
 {
+    // Check for overhang hint from CoolingBuffer
+    if (line.raw().find(";_FAN_MOVER_HINT_OVERHANG") != std::string::npos) {
+        m_is_overhang_hint = true;
+        return; // Don't output the hint line
+    }
+
     // processes 'normal' gcode lines
     bool need_flush = false;
     std::string cmd(line.cmd());
@@ -309,7 +315,12 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
                 if (!m_is_custom_gcode) {
                     // if slow down => put in the queue. if not =>
                     if (m_back_buffer_fan_speed < fan_speed) {
-                        if (nb_seconds_delay > 0 && (!only_overhangs || current_role == ExtrusionRole::erOverhangPerimeter)) {
+                        bool is_overhang = (current_role == ExtrusionRole::erOverhangPerimeter || m_is_overhang_hint);
+                        bool trigger_speedup = (!only_overhangs || (is_perimeter(current_role) && is_overhang));
+                        
+                        if (is_overhang) m_is_overhang_hint = false;
+
+                        if (nb_seconds_delay > 0 && trigger_speedup) {
                             //don't put this command in the queue
                             time = -1;
                             // this M106 need to go in the past
@@ -418,6 +429,10 @@ void FanMover::_process_gcode_line(GCodeReader& reader, const GCodeReader::GCode
             if (line.raw().size() > 10 && line.raw().rfind(";TYPE:", 0) == 0) {
                 // get the type of the next extrusions
                 std::string extrusion_string = line.raw().substr(6, line.raw().size() - 6);
+                // trim trailing newline/carriage return
+                while (!extrusion_string.empty() && (extrusion_string.back() == '\r' || extrusion_string.back() == '\n')) {
+                    extrusion_string.pop_back();
+                }
                 current_role = ExtrusionEntity::string_to_role(extrusion_string);
             }
             if (line.raw().size() > 16) {
