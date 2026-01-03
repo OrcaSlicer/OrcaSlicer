@@ -69,28 +69,24 @@ unsigned char *utf8_check(unsigned char *s)
 }
 
 
-int main(int argc, char const *argv[])
+static const char* target;
+
+void error_exit(const char* error, const char* filename)
 {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <program/library> <file>" << std::endl;
-        return -1;
-    }
+    std::cerr << "\n\tError: " << error << ": " << filename << "\n"
+              << "\tTarget: " << target << "\n"
+              << std::endl;
+    std::exit(-2);
+}
 
-    const char* target = argv[1];
-    const char* filename = argv[2];
 
-    const auto error_exit = [=](const char* error) {
-        std::cerr << "\n\tError: " << error << ": " << filename << "\n"
-            << "\tTarget: " << target << "\n"
-            << std::endl;
-        std::exit(-2);
-    };
-
+void utf8_check_file(const char* filename)
+{
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
     const auto size = file.tellg();
 
     if (size == 0) {
-        return 0;
+        return;
     }
 
     file.seekg(0, std::ios::beg);
@@ -101,7 +97,7 @@ int main(int argc, char const *argv[])
 
         // Check UTF-8 validity
         if (utf8_check(reinterpret_cast<unsigned char*>(buffer.data())) != nullptr) {
-            error_exit("Source file does not contain (valid) UTF-8");
+            error_exit("Source file does not contain (valid) UTF-8", filename);
         }
 
         // Check against a BOM mark
@@ -109,10 +105,25 @@ int main(int argc, char const *argv[])
             && buffer[0] == '\xef'
             && buffer[1] == '\xbb'
             && buffer[2] == '\xbf') {
-            error_exit("Source file is valid UTF-8 but contains a BOM mark");
+            error_exit("Source file is valid UTF-8 but contains a BOM mark", filename);
         }
     } else {
-        error_exit("Could not read source file");
+        error_exit("Could not read source file", filename);
+    }
+}
+
+
+int main(int argc, char const *argv[])
+{
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " <program/library> <file[s]>" << std::endl;
+        return -1;
+    }
+
+    target = argv[1];
+    
+    for (int i = 2; i < argc; i++) {
+        utf8_check_file(argv[i]);
     }
 
     return 0;
