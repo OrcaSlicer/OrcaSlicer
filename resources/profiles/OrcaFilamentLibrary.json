@@ -445,6 +445,10 @@
             "sub_path": "filament/NIT/NIT PLA @base.json"
         },
         {
+            "name": "Numakers PLA+ @base",
+            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
+        },
+        {
             "name": "Overture Air PLA @base",
             "sub_path": "filament/Overture/Overture Air PLA @base.json"
         },
@@ -517,12 +521,12 @@
             "sub_path": "filament/Polymaker/Panchroma PLA Neon @base.json"
         },
         {
-            "name": "Panchroma PLA Silk @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Silk @base.json"
+            "name": "Panchroma PLA Satin @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @base.json"
         },
         {
-            "name": "Panchroma PLA Stain @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @base.json"
+            "name": "Panchroma PLA Silk @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Silk @base.json"
         },
         {
             "name": "Panchroma PLA Starlight @base",
@@ -691,10 +695,6 @@
         {
             "name": "Overture TPU @base",
             "sub_path": "filament/Overture/Overture TPU @base.json"
-        },
-        {
-            "name": "Numakers PLA+ @base",
-            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
         },
         {
             "name": "Bambu ABS @System",
@@ -981,6 +981,10 @@
             "sub_path": "filament/NIT/NIT PLA @System.json"
         },
         {
+            "name": "Numakers PLA+ @System",
+            "sub_path": "filament/Numakers/Numakers PLA+ @System.json"
+        },
+        {
             "name": "Overture Air PLA @System",
             "sub_path": "filament/Overture/Overture Air PLA @System.json"
         },
@@ -1053,12 +1057,12 @@
             "sub_path": "filament/Polymaker/Panchroma PLA Neon @System.json"
         },
         {
-            "name": "Panchroma PLA Silk @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Silk @System.json"
+            "name": "Panchroma PLA Satin @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @System.json"
         },
         {
-            "name": "Panchroma PLA Stain @System",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @System.json"
+            "name": "Panchroma PLA Silk @System",
+            "sub_path": "filament/Polymaker/Panchroma PLA Silk @System.json"
         },
         {
             "name": "Panchroma PLA Starlight @System",
