@@ -3634,53 +3634,64 @@ void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print, int ex
 {
     int matched_machine_limit_idx = get_extruder_id(extruder_id) * 2;
     const auto flavor = print.config().gcode_flavor.value;
-    if ((flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfRepRapFirmware) &&
-        print.config().emit_machine_limits_to_gcode.value == true) {
-        int factor = flavor == gcfRepRapFirmware ? 60 : 1; // RRF M203 and M566 are in mm/min
-        file.write_format("M201 X%d Y%d Z%d E%d\n",
-            int(print.config().machine_max_acceleration_x.values[matched_machine_limit_idx] + 0.5),
-            int(print.config().machine_max_acceleration_y.values[matched_machine_limit_idx] + 0.5),
-            int(print.config().machine_max_acceleration_z.values[matched_machine_limit_idx] + 0.5),
-            int(print.config().machine_max_acceleration_e.values[matched_machine_limit_idx] + 0.5));
-        file.write_format("M203 X%d Y%d Z%d E%d\n",
-            int(print.config().machine_max_speed_x.values[matched_machine_limit_idx] * factor + 0.5),
-            int(print.config().machine_max_speed_y.values[matched_machine_limit_idx] * factor + 0.5),
-            int(print.config().machine_max_speed_z.values[matched_machine_limit_idx] * factor + 0.5),
-            int(print.config().machine_max_speed_e.values[matched_machine_limit_idx] * factor + 0.5));
+    if (print.config().emit_machine_limits_to_gcode.value){
+        if (flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfRepRapFirmware) {
+            int factor = flavor == gcfRepRapFirmware ? 60 : 1; // RRF M203 and M566 are in mm/min
+            file.write_format("M201 X%d Y%d Z%d E%d\n",
+                int(print.config().machine_max_acceleration_x.values[matched_machine_limit_idx] + 0.5),
+                int(print.config().machine_max_acceleration_y.values[matched_machine_limit_idx] + 0.5),
+                int(print.config().machine_max_acceleration_z.values[matched_machine_limit_idx] + 0.5),
+                int(print.config().machine_max_acceleration_e.values[matched_machine_limit_idx] + 0.5));
+            file.write_format("M203 X%d Y%d Z%d E%d\n",
+                int(print.config().machine_max_speed_x.values[matched_machine_limit_idx] * factor + 0.5),
+                int(print.config().machine_max_speed_y.values[matched_machine_limit_idx] * factor + 0.5),
+                int(print.config().machine_max_speed_z.values[matched_machine_limit_idx] * factor + 0.5),
+                int(print.config().machine_max_speed_e.values[matched_machine_limit_idx] * factor + 0.5));
 
-        // Now M204 - acceleration. This one is quite hairy thanks to how Marlin guys care about
-        // Legacy Marlin should export travel acceleration the same as printing acceleration.
-        // MarlinFirmware has the two separated.
-        int travel_acc = flavor == gcfMarlinLegacy
-                       ? int(print.config().machine_max_acceleration_extruding.values.front() + 0.5)
-                       : int(print.config().machine_max_acceleration_travel.values.front() + 0.5);
-        if (flavor == gcfRepRapFirmware)
-            file.write_format("M204 P%d T%d ; sets acceleration (P, T), mm/sec^2\n",
-                int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
-                travel_acc);
-        else if (flavor == gcfMarlinFirmware)
-            // New Marlin uses M204 P[print] R[retract] T[travel]
-            file.write_format("M204 P%d R%d T%d ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2\n",
-                int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
-                int(print.config().machine_max_acceleration_retracting.values.front() + 0.5),
-                int(print.config().machine_max_acceleration_travel.values.front() + 0.5));
-        else
-            file.write_format("M204 P%d R%d T%d\n",
-                int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
-                int(print.config().machine_max_acceleration_retracting.values.front() + 0.5),
-                travel_acc);
+            // Now M204 - acceleration. This one is quite hairy thanks to how Marlin guys care about
+            // Legacy Marlin should export travel acceleration the same as printing acceleration.
+            // MarlinFirmware has the two separated.
+            int travel_acc = flavor == gcfMarlinLegacy
+                           ? int(print.config().machine_max_acceleration_extruding.values.front() + 0.5)
+                           : int(print.config().machine_max_acceleration_travel.values.front() + 0.5);
+            if (flavor == gcfRepRapFirmware)
+                file.write_format("M204 P%d T%d ; sets acceleration (P, T), mm/sec^2\n",
+                    int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
+                    travel_acc);
+            else if (flavor == gcfMarlinFirmware)
+                // New Marlin uses M204 P[print] R[retract] T[travel]
+                file.write_format("M204 P%d R%d T%d ; sets acceleration (P, T) and retract acceleration (R), mm/sec^2\n",
+                    int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
+                    int(print.config().machine_max_acceleration_retracting.values.front() + 0.5),
+                    int(print.config().machine_max_acceleration_travel.values.front() + 0.5));
+            else
+                file.write_format("M204 P%d R%d T%d\n",
+                    int(print.config().machine_max_acceleration_extruding.values.front() + 0.5),
+                    int(print.config().machine_max_acceleration_retracting.values.front() + 0.5),
+                    travel_acc);
 
-        assert(is_decimal_separator_point());
-        file.write_format(flavor == gcfRepRapFirmware
-            ? "M566 X%.2lf Y%.2lf Z%.2lf E%.2lf ; sets the jerk limits, mm/min\n"
-            : "M205 X%.2lf Y%.2lf Z%.2lf E%.2lf ; sets the jerk limits, mm/sec\n",
-            print.config().machine_max_jerk_x.values.front() * factor,
-            print.config().machine_max_jerk_y.values.front() * factor,
-            print.config().machine_max_jerk_z.values.front() * factor,
-            print.config().machine_max_jerk_e.values.front() * factor);
+            assert(is_decimal_separator_point());
+            file.write_format(flavor == gcfRepRapFirmware
+                ? "M566 X%.2lf Y%.2lf Z%.2lf E%.2lf ; sets the jerk limits, mm/min\n"
+                : "M205 X%.2lf Y%.2lf Z%.2lf E%.2lf ; sets the jerk limits, mm/sec\n",
+                print.config().machine_max_jerk_x.values.front() * factor,
+                print.config().machine_max_jerk_y.values.front() * factor,
+                print.config().machine_max_jerk_z.values.front() * factor,
+                print.config().machine_max_jerk_e.values.front() * factor);
 
-        // New Marlin uses M205 J[mm] for junction deviation (only apply if it is > 0)
-        file.write_format(writer().set_junction_deviation(config().machine_max_junction_deviation.values.front()).c_str());
+            // New Marlin uses M205 J[mm] for junction deviation (only apply if it is > 0)
+            file.write_format(writer().set_junction_deviation(config().machine_max_junction_deviation.values.front()).c_str());
+
+            // Override input shaping values
+            if (print.config().input_shaping_emit.value && flavor != gcfMarlinLegacy) {
+                file.write_format(writer().set_input_shaping('X', print.config().input_shaping_damp_x.value,
+                    print.config().input_shaping_freq_x.value, print.config().opt_serialize("input_shaping_type")).c_str());
+                if (flavor != gcfRepRapFirmware){
+                    file.write_format(writer().set_input_shaping('Y', print.config().input_shaping_damp_y.value,
+                        print.config().input_shaping_freq_y.value, "").c_str());
+                }
+            }
+        }
     }
 }
 
