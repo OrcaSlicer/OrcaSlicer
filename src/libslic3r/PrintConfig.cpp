@@ -261,6 +261,14 @@ static t_config_enum_values s_keys_map_WallDirection{
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WallDirection)
 
+// Orca: Archimedean chords direction
+static t_config_enum_values s_keys_map_ArchimedeanChordsDirection{
+    { "default",     int(ArchimedeanChordsDirection::Default) },
+    { "from_center", int(ArchimedeanChordsDirection::FromCenter) },
+    { "to_center",   int(ArchimedeanChordsDirection::ToCenter) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ArchimedeanChordsDirection)
+
 //BBS
 static t_config_enum_values s_keys_map_PrintSequence {
     { "by layer",     int(PrintSequence::ByLayer) },
@@ -1919,7 +1927,39 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels = def_top_fill_pattern->enum_labels;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
 
-	def                = this->add("internal_solid_infill_pattern", coEnum);
+    def = this->add("top_surface_archimedean_direction", coEnum);
+    def->label = L("Top surface chord direction");
+    def->category = L("Strength");
+    def->tooltip = L("Controls the direction of the Archimedean chords spiral pattern for top surface. "
+                     "'Default' keeps the current behavior without forcing direction. "
+                     "'From center' forces the spiral to go from center toward edges. "
+                     "'To center' forces the spiral to go from edges toward center.");
+    def->enum_keys_map = &ConfigOptionEnum<ArchimedeanChordsDirection>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.push_back("from_center");
+    def->enum_values.push_back("to_center");
+    def->enum_labels.push_back(L("Default"));
+    def->enum_labels.push_back(L("From center"));
+    def->enum_labels.push_back(L("To center"));
+    def->set_default_value(new ConfigOptionEnum<ArchimedeanChordsDirection>(ArchimedeanChordsDirection::Default));
+
+    def = this->add("bottom_surface_archimedean_direction", coEnum);
+    def->label = L("Bottom surface chord direction");
+    def->category = L("Strength");
+    def->tooltip = L("Controls the direction of the Archimedean chords spiral pattern for bottom surface. "
+                     "'Default' keeps the current behavior without forcing direction. "
+                     "'From center' forces the spiral to go from center toward edges. "
+                     "'To center' forces the spiral to go from edges toward center.");
+    def->enum_keys_map = &ConfigOptionEnum<ArchimedeanChordsDirection>::get_enum_values();
+    def->enum_values.push_back("default");
+    def->enum_values.push_back("from_center");
+    def->enum_values.push_back("to_center");
+    def->enum_labels.push_back(L("Default"));
+    def->enum_labels.push_back(L("From center"));
+    def->enum_labels.push_back(L("To center"));
+    def->set_default_value(new ConfigOptionEnum<ArchimedeanChordsDirection>(ArchimedeanChordsDirection::Default));
+
+    def                = this->add("internal_solid_infill_pattern", coEnum);
     def->label         = L("Internal solid infill pattern");
     def->category      = L("Strength");
     def->tooltip       = L("Line pattern of internal solid infill. if the detect narrow internal solid infill be enabled, the concentric pattern will be used for the small area.");
@@ -1927,7 +1967,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_values   = def_top_fill_pattern->enum_values;
     def->enum_labels   = def_top_fill_pattern->enum_labels;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
-    
+
     def = this->add("outer_wall_line_width", coFloatOrPercent);
     def->label = L("Outer wall");
     def->category = L("Quality");

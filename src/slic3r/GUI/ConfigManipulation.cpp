@@ -652,6 +652,14 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("top_surface_density", has_top_shell);
     toggle_field("bottom_surface_density", has_bottom_shell);
 
+    // Orca: Show Archimedean direction only when the pattern is Archimedean Chords
+    bool has_top_archimedean = has_top_shell &&
+        config->opt_enum<InfillPattern>("top_surface_pattern") == ipArchimedeanChords;
+    bool has_bottom_archimedean = has_bottom_shell &&
+        config->opt_enum<InfillPattern>("bottom_surface_pattern") == ipArchimedeanChords;
+    toggle_line("top_surface_archimedean_direction", has_top_archimedean);
+    toggle_line("bottom_surface_archimedean_direction", has_bottom_archimedean);
+
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
         "sparse_infill_speed", "bridge_speed", "internal_bridge_speed", "bridge_angle", "internal_bridge_angle",
         "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "solid_infill_filament",

@@ -126,6 +126,17 @@ enum class WallDirection
     Count,
 };
 
+// Orca: Archimedean chords direction
+enum class ArchimedeanChordsDirection
+{
+    // Keep current behavior without forcing direction
+    Default,
+    // Force spiral from center to edges (inner-out)  
+    FromCenter,
+    // Force spiral from edges toward center (outer-in)
+    ToCenter,
+};
+
 //BBS
 enum class PrintSequence {
     ByLayer,
@@ -1043,7 +1054,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,              top_surface_density))
     ((ConfigOptionPercent,               bottom_surface_density))
     ((ConfigOptionEnum<InfillPattern>,  top_surface_pattern))
+    ((ConfigOptionEnum<ArchimedeanChordsDirection>, top_surface_archimedean_direction))
     ((ConfigOptionEnum<InfillPattern>,  bottom_surface_pattern))
+    ((ConfigOptionEnum<ArchimedeanChordsDirection>, bottom_surface_archimedean_direction))
     ((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))
     ((ConfigOptionFloatOrPercent,       outer_wall_line_width))
     ((ConfigOptionFloat,                outer_wall_speed))
