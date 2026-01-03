@@ -134,9 +134,6 @@
     ],
     "thumbnails_format": "PNG",
     "nozzle_type": "brass",
-    "single_extruder_multi_material": "1",
     "machine_end_gcode": ";===== date: 20240510 =====================\nM400 ; wait for buffer to clear\nG92 E0 ; zero the extruder\nG1 E-0.8 F1800 ; retract\nG1 Z{max_layer_z + 0.5} F900 ; lower z a little\nG1 X65 Y245 F12000 ; move to safe pos \nG1 Y245 F3000\n\nG1 X65 Y245 F12000\nG1 Y245 F3000\nM140 S0 ; turn off bed\nM106 S0 ; turn off fan\nM106 P2 S0 ; turn off remote part cooling fan\nM106 P3 S0 ; turn off chamber cooling fan\n",
-    "layer_change_gcode": ";LAYER:{layer_num+1}\n",
-    "change_filament_gcode": "",
-    "machine_pause_gcode": "M600"
+    "layer_change_gcode": ";LAYER:{layer_num+1}\n"
 }

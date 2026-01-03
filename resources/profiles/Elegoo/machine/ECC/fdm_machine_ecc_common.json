@@ -111,6 +111,7 @@
     "cooling_tube_retraction": "90",
     "parking_pos_retraction": "90",
     "single_extruder_multi_material": "1",
+    "manual_filament_change": "0",
     "support_air_filtration": "0",
     "wipe": [
         "1"
@@ -123,8 +124,8 @@
     "layer_change_gcode": "",
     "machine_start_gcode": "",
     "machine_end_gcode": "",
-    "change_filament_gcode": "",
+    "change_filament_gcode": "M600",
+    "machine_pause_gcode": "PAUSE",
     "purge_in_prime_tower": "0",
-    "manual_filament_change": "1",
     "enable_filament_ramming": "0"
 }
