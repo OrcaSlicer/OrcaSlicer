@@ -5,7 +5,7 @@
 	"inherits": "fdm_openeye_common",
 	"instantiation": "true",
     "adaptive_bed_mesh_margin": "10",
-    "bed_mesh_max": "235,235",
+    "bed_mesh_max": "211,211",
     "bed_mesh_min": "1.5,7",
     "layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}\n_MMU_UPDATE_HEIGHT",
     "machine_end_gcode": "MMU_END\nEND_PRINT",
