@@ -12,6 +12,7 @@
 #include "GCode/PrintExtents.hpp"
 #include "GCode/Thumbnails.hpp"
 #include "GCode/WipeTower.hpp"
+#include "GCode/PchipInterpolatorHelper.hpp"
 #include "ShortestPath.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
@@ -94,6 +95,7 @@ static const size_t g_max_label_object = 64;
 Vec2d travel_point_1;
 Vec2d travel_point_2;
 Vec2d travel_point_3;
+
 static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 {
     // give safe value in case there is no start_end_points in config
@@ -1044,10 +1046,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // SoftFever: set new PA for new filament
         if (gcodegen.config().enable_pressure_advance.get_at(new_filament_id)) {
-            gcode += gcodegen.writer().set_pressure_advance(gcodegen.config().pressure_advance.get_at(new_filament_id));
+            gcode += gcodegen.writer().set_pressure_advance(gcodegen.get_pressure_advance_for_extruder(new_filament_id));
             // Orca: Adaptive PA
             // Reset Adaptive PA processor last PA value
-            gcodegen.m_pa_processor->resetPreviousPA(gcodegen.config().pressure_advance.get_at(new_filament_id));
+            gcodegen.m_pa_processor->resetPreviousPA(gcodegen.get_pressure_advance_for_extruder(new_filament_id));
         }
 
         // A phony move to the end position at the wipe tower.
@@ -1174,10 +1176,10 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // SoftFever: set new PA for new filament
         if (new_extruder_id != -1 && gcodegen.config().enable_pressure_advance.get_at(new_extruder_id)) {
-            gcode += gcodegen.writer().set_pressure_advance(gcodegen.config().pressure_advance.get_at(new_extruder_id));
+            gcode += gcodegen.writer().set_pressure_advance(gcodegen.get_pressure_advance_for_extruder(new_extruder_id));
             // Orca: Adaptive PA
             // Reset Adaptive PA processor last PA value
-            gcodegen.m_pa_processor->resetPreviousPA(gcodegen.config().pressure_advance.get_at(new_extruder_id));
+            gcodegen.m_pa_processor->resetPreviousPA(gcodegen.get_pressure_advance_for_extruder(new_extruder_id));
         }
 
         // A phony move to the end position at the wipe tower.
@@ -2896,10 +2898,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         }
         // Orca: add missing PA settings for initial filament
         if (m_config.enable_pressure_advance.get_at(initial_non_support_extruder_id)) {
-            file.write(m_writer.set_pressure_advance(m_config.pressure_advance.get_at(initial_non_support_extruder_id)));
+            file.write(m_writer.set_pressure_advance(this->get_pressure_advance_for_extruder(initial_non_support_extruder_id)));
             // Orca: Adaptive PA
             // Reset Adaptive PA processor last PA value
-            m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(initial_non_support_extruder_id));
+            m_pa_processor->resetPreviousPA(this->get_pressure_advance_for_extruder(initial_non_support_extruder_id));
         }
     }
 
@@ -6804,6 +6806,118 @@ float GCode::interpolate_value_across_layers(float start_value, float end_value)
     }
 }
 
+// Orca: Calculate the correct pressure advance value based on nozzle diameter
+double GCode::get_pressure_advance_for_extruder(unsigned int filament_id) const
+{
+    const std::string& pa_string = m_config.pressure_advance.get_at(filament_id);
+    if (pa_string.empty()) return 0.0;
+
+    // Remove spaces and tabs keeping newlines for parsing
+    std::string clean_string = pa_string;
+    clean_string.erase(std::remove_if(clean_string.begin(), clean_string.end(),
+                                     [](char c) { return c == ' ' || c == '\t' || c == '\r'; }), clean_string.end());
+
+    // Legacy format: single value without comma
+    if (clean_string.find(',') == std::string::npos) {
+        try { return std::stod(clean_string); } catch (...) { return 0.0; }
+    }
+
+    // Parse nozzle,pa pairs
+    std::vector<std::pair<double, double>> pa_values;
+
+    for (size_t start = 0, end; start < clean_string.length(); start = end + 1) {
+        end = clean_string.find('\n', start);
+        if (end == std::string::npos) end = clean_string.length();
+        if (end <= start) continue;
+
+        size_t comma = clean_string.find(',', start);
+        if (comma != std::string::npos && comma < end) {
+            try {
+                pa_values.emplace_back(std::stod(clean_string.substr(start, comma - start)),
+                                     std::stod(clean_string.substr(comma + 1, end - comma - 1)));
+            } catch (...) { /* Skip invalid lines */ }
+        }
+        if (end == clean_string.length()) break;
+    }
+
+    if (pa_values.empty()) return 0.0;
+
+    // Early return for single value - no interpolation needed
+    if (pa_values.size() == 1) return pa_values[0].second;
+
+    // Auto-detect if columns are swapped by checking if values are multiples of 0.05 (nozzle characteristic)
+    auto is_multiple_of_005 = [](double val) -> bool {
+        double remainder = std::fmod(std::abs(val), 0.05);
+        return remainder < 0.001 || remainder > 0.049;
+    };
+
+    int first_col_multiples_count = 0;
+    int second_col_multiples_count = 0;
+
+    for (const auto& [first, second] : pa_values) {
+        const bool left_is_multiple  = is_multiple_of_005(first);
+        const bool right_is_multiple = is_multiple_of_005(second);
+
+        if (left_is_multiple && !right_is_multiple)
+            first_col_multiples_count++;
+        if (!left_is_multiple && right_is_multiple)
+            second_col_multiples_count++;
+    }
+
+    // Swap columns if needed (second column has more nozzle-like values)
+    if (second_col_multiples_count > first_col_multiples_count && first_col_multiples_count == 0) {
+        for (auto& [first, second] : pa_values) {
+            std::swap(first, second);
+        }
+    }
+
+    std::sort(pa_values.begin(), pa_values.end());
+
+    constexpr double epsilon = 0.001;
+    const double nozzle_diameter = m_config.nozzle_diameter.get_at(get_extruder_id(filament_id));
+
+    // Deduplicate nozzle entries to avoid zero-length segments in the interpolator.
+    std::vector<std::pair<double, double>> unique_pa_values;
+    unique_pa_values.reserve(pa_values.size());
+    for (const auto& entry : pa_values) {
+        if (unique_pa_values.empty() || std::abs(entry.first - unique_pa_values.back().first) > epsilon) {
+            unique_pa_values.push_back(entry);
+        } else {
+            unique_pa_values.back().second = entry.second;
+        }
+    }
+
+    if (unique_pa_values.empty()) return 0.0;
+    if (unique_pa_values.size() == 1) return unique_pa_values.front().second;
+
+    std::vector<double> nozzle_points;
+    std::vector<double> pa_points;
+    nozzle_points.reserve(unique_pa_values.size());
+    pa_points.reserve(unique_pa_values.size());
+    for (const auto& [nozzle, pa] : unique_pa_values) {
+        nozzle_points.push_back(nozzle);
+        pa_points.push_back(pa);
+    }
+
+    try {
+        PchipInterpolatorHelper interpolator(nozzle_points, pa_points);
+        return interpolator.interpolate(nozzle_diameter);
+    } catch (...) {
+        // Fall back to linear interpolation if PCHIP construction fails.
+    }
+
+    auto it = std::lower_bound(unique_pa_values.begin(), unique_pa_values.end(), nozzle_diameter,
+                               [](const std::pair<double, double>& p, double val) { return p.first < val; });
+
+    if (it != unique_pa_values.end() && std::abs(it->first - nozzle_diameter) < epsilon) return it->second;
+    if (it == unique_pa_values.begin()) return unique_pa_values.front().second;
+    if (it == unique_pa_values.end()) return unique_pa_values.back().second;
+
+    const auto& [upper_nozzle, upper_pa] = *it;
+    const auto& [lower_nozzle, lower_pa] = *(it - 1);
+    return lower_pa + (upper_pa - lower_pa) * (nozzle_diameter - lower_nozzle) / (upper_nozzle - lower_nozzle);
+}
+
 std::string encodeBase64(uint64_t value)
 {
     //Always use big endian mode
@@ -7216,11 +7330,12 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             gcode += this->placeholder_parser_process("filament_start_gcode", filament_start_gcode, new_filament_id, &config);
             check_add_eol(gcode);
         }
+
         if (m_config.enable_pressure_advance.get_at(new_filament_id)) {
-            gcode += m_writer.set_pressure_advance(m_config.pressure_advance.get_at(new_filament_id));
-            // Orca: Adaptive PA
-            // Reset Adaptive PA processor last PA value
-            m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(new_filament_id));
+           gcode += m_writer.set_pressure_advance(get_pressure_advance_for_extruder(new_filament_id));
+           // Orca: Adaptive PA
+           // Reset Adaptive PA processor last PA value
+           m_pa_processor->resetPreviousPA(get_pressure_advance_for_extruder(new_filament_id));
         }
 
         gcode += m_writer.toolchange(new_filament_id);
@@ -7479,10 +7594,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += m_ooze_prevention.post_toolchange(*this);
 
     if (m_config.enable_pressure_advance.get_at(new_filament_id)) {
-        gcode += m_writer.set_pressure_advance(m_config.pressure_advance.get_at(new_filament_id));
+        gcode += m_writer.set_pressure_advance(get_pressure_advance_for_extruder(new_filament_id));
         // Orca: Adaptive PA
         // Reset Adaptive PA processor last PA value
-        m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(new_filament_id));
+        m_pa_processor->resetPreviousPA(get_pressure_advance_for_extruder(new_filament_id));
     }
     //Orca: tool changer or IDEX's firmware may change Z position, so we set it to unknown/undefined
     m_last_pos_defined = false;
