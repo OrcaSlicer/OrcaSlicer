@@ -557,7 +557,7 @@ inline void extrusion_entities_append_paths_with_wipe(ExtrusionEntitiesPtr &dst,
                 Point temp = polyline.first_point() - last_end_point;
                 if (Vec2d(temp.x(), temp.y()).norm() <= 3 * scaled(width)) {
                     multi_path->paths.emplace_back(role, mm3_per_mm, width, height, true);
-                    multi_path->paths.back().polyline = std::move(Polyline(last_end_point, polyline.first_point()));
+                    multi_path->paths.back().polyline = Polyline(last_end_point, polyline.first_point());
                 } else {
                     dst.push_back(multi_path);
                     multi_path = new ExtrusionMultiPath();
