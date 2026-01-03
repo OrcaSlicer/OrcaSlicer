@@ -1,0 +1,43 @@
+name: Generate Doxygen Documentation
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Every Monday at midnight UTC
+  workflow_dispatch:      # Manual trigger
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Docs
+    runs-on: ubuntu-latest
+    # Only run on main branch of the main repository
+    if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Doxygen and Graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Generate documentation
+        run: |
+          # Override DOT_NUM_THREADS to avoid parallel dot race condition bug
+          sed -i 's/^DOT_NUM_THREADS.*/DOT_NUM_THREADS = 1/' .doxygen
+          doxygen .doxygen
+          # Verify documentation was generated
+          if [ ! -f "internal_docs/index.html" ]; then
+            echo "Error: Documentation generation failed - index.html not found"
+            exit 1
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy internal_docs --project-name=orcaslicer-internals
