@@ -712,7 +712,7 @@ unsigned int Step::get_triangle_num(double linear_defletion, double angle_deflet
                 return 0;
             }
         }
-    } catch(Exception e) {
+    } catch(const Exception &e) {
         return 0;
     }
     

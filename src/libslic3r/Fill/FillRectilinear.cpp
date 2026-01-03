@@ -3458,7 +3458,7 @@ Polylines FillLateralHoneycomb::fill_surface(const Surface *surface, const FillP
     //     |
     //     |
     // 0 --+--
-    //    / \
+    //    ⟋ ⟍
     // why inverted?
     // it makes determining some of the properties easier
     // and the two angled legs provide additional horizontal stiffness

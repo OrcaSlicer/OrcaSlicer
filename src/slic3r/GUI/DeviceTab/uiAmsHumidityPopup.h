@@ -1,9 +1,9 @@
-//**********************************************************/
-/* File: uiAmsHumidityPopup.h
-*  Description: The popup with DevAms Humidity
+/**********************************************************
+* File: uiAmsHumidityPopup.h
+* Description: The popup with DevAms Humidity
 *
 *  \n class uiAmsHumidityPopup
-//**********************************************************/
+**********************************************************/
 
 #pragma once
 #include "slic3r/GUI/Widgets/AMSItem.hpp"
@@ -68,7 +68,7 @@ private:
 
     wxStaticBitmap* m_dry_state_img;
     Label*          m_dry_state;
-    
+
     Label* m_humidity_header;
     Label* m_humidity_label;
 
@@ -82,3 +82,4 @@ private:
 };
 
 }} // namespace Slic3r::GUI
+

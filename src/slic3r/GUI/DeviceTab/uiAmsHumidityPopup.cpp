@@ -1,9 +1,9 @@
-//**********************************************************/
-/* File: uiAmsHumidityPopup.cpp
+/**********************************************************
+* File: uiAmsHumidityPopup.cpp
 *  Description: The popup with DevAms Humidity
 *
 * \n class uiAmsHumidityPopup
-//**********************************************************/
+**********************************************************/
 
 #include "uiAmsHumidityPopup.h"
 
@@ -32,7 +32,7 @@ void uiAmsPercentHumidityDryPopup::Create()
     idle_img = ScalableBitmap(this, "ams_drying", 16);
     drying_img = ScalableBitmap(this, "ams_is_drying", 16);
 
-    // background 
+    // background
     SetBackgroundColour(*wxWHITE);
 
     // create title sizer
@@ -191,3 +191,4 @@ void uiAmsPercentHumidityDryPopup::msw_rescale()
 } // namespace GUI
 
 } // namespace Slic3r
+
