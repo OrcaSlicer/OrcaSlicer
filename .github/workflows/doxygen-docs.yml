@@ -16,6 +16,12 @@ jobs:
     # Only run on main branch of the main repository
     if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main'
     steps:
+      - uses: thejerrybao/setup-swap-space@v1
+        with:
+          swap-space-path: /swapfile
+          swap-size-gb: 8
+          remove-existing-swap-files: true
+          
       - name: Checkout repository
         uses: actions/checkout@v6
 
