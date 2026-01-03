@@ -257,7 +257,7 @@ public:
     }
 
     void emit_string(const std::string &s) {
-        strncpy(ptr_err.ptr, s.c_str(), s.size());
+        memcpy(ptr_err.ptr, s.c_str(), s.size());
         ptr_err.ptr += s.size();
     }
 
