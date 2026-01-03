@@ -12443,7 +12443,8 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
 
     auto cur_flowrate = filament_config->option<ConfigOptionFloats>("filament_flow_ratio")->get_at(0);
     Flow infill_flow = Flow(nozzle_diameter * 1.2f, layer_height, nozzle_diameter);
-    double filament_max_volumetric_speed = filament_config->option<ConfigOptionFloats>("filament_max_volumetric_speed")->get_at(0);
+    // for sure, use max volumetric flow of 75% of the current setting to prevent underflow near the limit of the nozzle
+    double filament_max_volumetric_speed = filament_config->option<ConfigOptionFloats>("filament_max_volumetric_speed")->get_at(0) * 0.75;
     double max_infill_speed;
     if (linear)
         max_infill_speed = filament_max_volumetric_speed /
@@ -12452,6 +12453,17 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         max_infill_speed = filament_max_volumetric_speed / (infill_flow.mm3_per_mm() * (pass == 1 ? 1.2 : 1));
     double internal_solid_speed = std::floor(std::min(print_config->opt_float("internal_solid_infill_speed"), max_infill_speed));
     double top_surface_speed = std::floor(std::min(print_config->opt_float("top_surface_speed"), max_infill_speed));
+
+    // disable z-hop and retract wipe
+    filament_config->set_key_value("filament_z_hop", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
+    filament_config->set_key_value("filament_wipe_distance", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
+    filament_config->set_key_value("filament_retract_lift_enforce", new ConfigOptionEnumsGenericNullable{ConfigOptionEnumsGenericNullable::nil_value()});
+    filament_config->set_key_value("filament_z_hop_types", new ConfigOptionEnumsGenericNullable{ConfigOptionEnumsGenericNullable::nil_value()});
+
+    printerConfig->set_key_value("z_hop", new ConfigOptionFloats{0.0f});
+    printerConfig->set_key_value("wipe_distance", new ConfigOptionFloats{0.0f});
+    printerConfig->set_key_value("retract_lift_enforce", new ConfigOptionEnumsGeneric{RetractLiftEnforceType::rletAllSurfaces});
+    printerConfig->set_key_value("z_hop_types", new ConfigOptionEnumsGeneric{ZHopType::zhtNormal});
 
     // adjust parameters
     for (auto _obj : objects) {
@@ -12472,7 +12484,7 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("sparse_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
         _obj->config.set_key_value("top_surface_line_width", new ConfigOptionFloatOrPercent(nozzle_diameter * 1.2f, false));
         _obj->config.set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(nozzle_diameter * 1.2f, false));
-        _obj->config.set_key_value("top_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipArchimedeanChords));
+        _obj->config.set_key_value("top_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipMonotonicLine));
         _obj->config.set_key_value("top_solid_infill_flow_ratio", new ConfigOptionFloat(1.0f));
         _obj->config.set_key_value("infill_direction", new ConfigOptionFloat(45));
         _obj->config.set_key_value("solid_infill_direction", new ConfigOptionFloat(135));

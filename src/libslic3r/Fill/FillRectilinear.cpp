@@ -2874,6 +2874,55 @@ bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillPa
 		traverse_graph_generate_polylines(poly_with_offset, params, segs, this->has_consistent_pattern(), polylines_out);
     }
 
+    // Check if we're in flow calibration mode
+    bool is_flow_calibration = params.extrusion_role == erTopSolidInfill &&
+                               this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
+                               this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool() &&
+                               params.monotonic;
+
+    if (is_flow_calibration && !polylines_out.empty()) {
+        // Get the range of newly added polylines
+        auto start_it = polylines_out.begin() + n_polylines_out_initial;
+        auto end_it   = polylines_out.end();
+
+        if (start_it != end_it) {
+            // 1) For sure sort lines by X of the midpoint so lines are ordered left-to-right across objects.
+            std::stable_sort(start_it, end_it, [](const Polyline& a, const Polyline& b) {
+                // Midpoint X as average of endpoints
+                auto ax = (int64_t) a.points.front().x() + (int64_t) a.points.back().x();
+                auto bx = (int64_t) b.points.front().x() + (int64_t) b.points.back().x();
+                if (ax == bx) {
+                    // Tiebreaker by midpoint Y, then by start X to stabilize order
+                    auto ay = (int64_t) a.points.front().y() + (int64_t) a.points.back().y();
+                    auto by = (int64_t) b.points.front().y() + (int64_t) b.points.back().y();
+                    if (ay == by)
+                        return a.points.front().x() < b.points.front().x();
+                    return ay < by;
+                }
+                return ax < bx;
+            });
+            
+            // 2) Normalize direction: make every polyline point "up-right".
+            for (auto it = start_it; it != end_it; ++it) {
+                if (it->points.empty())
+                    continue;
+                const Point& p0  = it->points.front();
+                const Point& p1  = it->points.back();
+                auto         vec = (p1 - p0).template cast<double>();
+                double       dir = vec.x() + vec.y();
+                if (dir < 0.0) {
+                    std::reverse(it->points.begin(), it->points.end());
+                }
+            }
+
+            // 3) Split into halves and reverse order of the 2nd half so it prints towards the 1st half.
+            size_t total  = std::distance(start_it, end_it);
+            size_t mid    = total / 2;
+            auto   mid_it = start_it + mid;
+            std::reverse(mid_it, end_it);
+        }
+    }
+
 #ifdef SLIC3R_DEBUG
     {
         {
