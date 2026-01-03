@@ -274,8 +274,8 @@ SideTools::SideTools(wxWindow *parent, wxWindowID id, const wxPoint &pos, const 
     wxBoxSizer* connection_sizer_V = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* connection_sizer_H = new wxBoxSizer(wxHORIZONTAL);
 
-    m_hyperlink = new wxHyperlinkCtrl(m_connection_info, wxID_ANY, _L("Failed to connect to the server"), wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"), wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE);
-    m_hyperlink->SetBackgroundColour(wxColour(255, 111, 0));
+    // ORCA standardized HyperLink
+    m_hyperlink = new HyperLink(m_connection_info, _L("Failed to connect to the server"), wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
 
     m_more_err_open = ScalableBitmap(this, "monitir_err_open", 16);
     m_more_err_close = ScalableBitmap(this, "monitir_err_close", 16);
@@ -328,13 +328,10 @@ SideTools::SideTools(wxWindow *parent, wxWindowID id, const wxPoint &pos, const 
     wxBoxSizer* sizer_error_desc = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer* sizer_extra_info = new wxBoxSizer(wxHORIZONTAL);
 
-    m_link_network_state = new wxHyperlinkCtrl(m_side_error_panel, wxID_ANY,_L("Check the status of current system services"),"",wxDefaultPosition,wxDefaultSize, wxHL_ALIGN_CENTRE |wxST_ELLIPSIZE_END);
-    m_link_network_state->SetMinSize(wxSize(FromDIP(220), -1));
+    // ORCA standardized HyperLink
+    m_link_network_state = new HyperLink(m_side_error_panel, _L("Check the status of current system services"), wxGetApp().link_to_network_check(), wxST_ELLIPSIZE_END);
     m_link_network_state->SetMaxSize(wxSize(FromDIP(220), -1));
     m_link_network_state->SetFont(::Label::Body_12);
-    m_link_network_state->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_network_check(); });
-    m_link_network_state->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {m_link_network_state->SetCursor(wxCURSOR_HAND); });
-    m_link_network_state->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {m_link_network_state->SetCursor(wxCURSOR_ARROW); });
 
     auto st_title_error_code = new wxStaticText(m_side_error_panel, wxID_ANY, _L("code"), wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     auto st_title_error_code_doc = new wxStaticText(m_side_error_panel, wxID_ANY, ": ");

@@ -3414,7 +3414,7 @@ void GUI_App::set_side_menu_popup_status(bool status)
     m_side_popup_status = status;
 }
 
-void GUI_App::link_to_network_check()
+std::string GUI_App::link_to_network_check()
 {
     std::string url;
     std::string country_code = app_config->get_country_code();
@@ -3429,10 +3429,11 @@ void GUI_App::link_to_network_check()
     else {
         url = "https://status.bambulab.com";
     }
-    wxLaunchDefaultBrowser(url);
+    //wxLaunchDefaultBrowser(url);
+    return url; // ORCA
 }
 
-void GUI_App::link_to_lan_only_wiki()
+std::string GUI_App::link_to_lan_only_wiki()
 {
     std::string url;
     std::string country_code = app_config->get_country_code();
@@ -3446,7 +3447,8 @@ void GUI_App::link_to_lan_only_wiki()
     else {
         url = "https://wiki.bambulab.com/en/knowledge-sharing/enable-lan-mode";
     }
-    wxLaunchDefaultBrowser(url);
+    //wxLaunchDefaultBrowser(url);
+    return url; // ORCA
 }
 
 bool GUI_App::tabs_as_menu() const

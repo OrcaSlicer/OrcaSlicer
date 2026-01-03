@@ -492,6 +492,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/ErrorMsgStaticText.hpp
     GUI/Widgets/FanControl.cpp
     GUI/Widgets/FanControl.hpp
+    GUI/Widgets/HyperLink.cpp
+    GUI/Widgets/HyperLink.hpp
     GUI/Widgets/ImageSwitchButton.cpp
     GUI/Widgets/ImageSwitchButton.hpp
     GUI/Widgets/Label.cpp
