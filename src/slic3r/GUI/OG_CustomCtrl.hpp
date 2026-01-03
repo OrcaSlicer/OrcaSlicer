@@ -55,11 +55,12 @@ class OG_CustomCtrl :public wxPanel
         ~CtrlLine() { ctrl = nullptr; }
 
         int     get_max_win_width();
+        int     get_max_opt_pos();
         void    correct_items_positions();
         void    msw_rescale();
         void    update_visibility(ConfigOptionMode mode);
 
-        void render_separator(wxDC& dc, wxCoord v_pos);
+        void render_separator(wxDC& dc, wxCoord h_pos, wxCoord v_pos);
 
         void    render(wxDC& dc, wxCoord h_pos, wxCoord v_pos);
         wxCoord draw_text      (wxDC& dc, wxPoint pos, const wxString& text, const wxColour* color, int width, bool is_url = false, bool is_main = false);
