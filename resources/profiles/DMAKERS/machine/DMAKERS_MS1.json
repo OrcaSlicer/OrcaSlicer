@@ -1,0 +1,7 @@
+{
+  "name": "DMAKERS_MS1",
+  "bed_shape": "rectangular",
+  "bed_size": [220, 220, 250],
+  "origin": "front_left",
+  "nozzles": ["0.4 nozzle"]
+}
