@@ -3939,6 +3939,41 @@ void TabFilament::build()
         line.append_option(optgroup->get_option("textured_plate_temp"));
         optgroup->append_line(line);
 
+        line = { L("Smooth PEO Plate"),
+                 L("Bed temperature when the Smooth PEO Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEO Plate.") };
+        line.label_path = "material_temperatures#bed";
+        line.append_option(optgroup->get_option("peo_plate_temp_initial_layer"));
+        line.append_option(optgroup->get_option("peo_plate_temp"));
+        optgroup->append_line(line);
+
+        line = { L("Smooth PET Plate"),
+                 L("Bed temperature when the Smooth PET Plate is installed. A value of 0 means the filament does not support printing on the Smooth PET Plate.") };
+        line.label_path = "material_temperatures#bed";
+        line.append_option(optgroup->get_option("pet_plate_temp_initial_layer"));
+        line.append_option(optgroup->get_option("pet_plate_temp"));
+        optgroup->append_line(line);
+
+        line = { L("Smooth PEY Plate"),
+                 L("Bed temperature when the Smooth PEY Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEY Plate.") };
+        line.label_path = "material_temperatures#bed";
+        line.append_option(optgroup->get_option("pey_plate_temp_initial_layer"));
+        line.append_option(optgroup->get_option("pey_plate_temp"));
+        optgroup->append_line(line);
+
+        line = { L("Smooth H1H Plate"),
+                 L("Bed temperature when the Smooth H1H Plate is installed. A value of 0 means the filament does not support printing on the Smooth H1H Plate.") };
+        line.label_path = "material_temperatures#bed";
+        line.append_option(optgroup->get_option("h1h_plate_temp_initial_layer"));
+        line.append_option(optgroup->get_option("h1h_plate_temp"));
+        optgroup->append_line(line);
+
+        line = { L("Smooth Phantom Plate"),
+                 L("Bed temperature when the Smooth Phantom Plate is installed. A value of 0 means the filament does not support printing on the Smooth Phantom Plate.") };
+        line.label_path = "material_temperatures#bed";
+        line.append_option(optgroup->get_option("phantom_plate_temp_initial_layer"));
+        line.append_option(optgroup->get_option("phantom_plate_temp"));
+        optgroup->append_line(line);
+
         optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value)
         {
             DynamicPrintConfig& filament_config = m_preset_bundle->filaments.get_edited_preset().config;
@@ -4212,7 +4247,10 @@ void TabFilament::toggle_options()
 
         const std::vector<std::string> bed_temp_keys = {"supertack_plate_temp_initial_layer", "cool_plate_temp_initial_layer",
                                                         "textured_cool_plate_temp_initial_layer", "eng_plate_temp_initial_layer",
-                                                        "textured_plate_temp_initial_layer", "hot_plate_temp_initial_layer"};
+                                                        "textured_plate_temp_initial_layer", "hot_plate_temp_initial_layer",
+                                                        "peo_plate_temp_initial_layer", "pet_temp_initial_layer",
+                                                        "pey_temp_initial_layer", "h1h_temp_initial_layer",
+                                                        "phantom_temp_initial_layer"};
 
         bool support_multi_bed_types = std::find(bed_temp_keys.begin(), bed_temp_keys.end(), bed_temp_1st_layer_key) ==
                                            bed_temp_keys.end() ||

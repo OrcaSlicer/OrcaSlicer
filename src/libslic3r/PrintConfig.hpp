@@ -301,6 +301,11 @@ enum BedType {
     btPTE,
     btPCT,
     btSuperTack,
+    btPEO,
+    btPET,
+    btPEY,
+    btH1H,
+    btPHANTOM,
     btCount
 };
 
@@ -421,6 +426,21 @@ static std::string bed_type_to_gcode_string(const BedType type)
     case btPTE:
         type_str = "textured_plate";
         break;
+    case btPEO:
+        type_str = "peo_plate";
+        break;
+    case btPET:
+        type_str = "pet_plate";
+        break;
+    case btPEY:
+        type_str = "pey_plate";
+        break;
+    case btH1H:
+        type_str = "h1h_plate";
+        break;
+    case btPHANTOM:
+        type_str = "phantom_plate";
+        break;
     default:
         type_str = "unknown";
         break;
@@ -448,6 +468,21 @@ static std::string get_bed_temp_key(const BedType type)
 
     if (type == btPTE)
         return "textured_plate_temp";
+    
+    if (type == btPEO)
+        return "peo_plate_temp";
+
+    if (type == btPET)
+        return "pet_plate_temp";
+
+    if (type == btPEY)
+        return "pey_plate_temp";
+
+    if (type == btH1H)
+        return "h1h_plate_temp";
+
+    if (type == btPHANTOM)
+        return "phantom_plate_temp";
 
     return "";
 }
@@ -471,6 +506,22 @@ static std::string get_bed_temp_1st_layer_key(const BedType type)
 
     if (type == btPTE)
         return "textured_plate_temp_initial_layer";
+    
+    if (type == btPEO)
+        return "peo_plate_temp_initial_layer";
+
+    if (type == btPET)
+        return "pet_plate_temp_initial_layer";
+
+    if (type == btPEY)
+        return "pey_plate_temp_initial_layer";
+
+    if (type == btH1H)
+        return "h1h_plate_temp_initial_layer";
+
+    if (type == btPHANTOM)
+        return "phantom_plate_temp_initial_layer";
+
 
     return "";
 }
@@ -1413,12 +1464,22 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInts,               eng_plate_temp))
     ((ConfigOptionInts,               hot_plate_temp)) // hot is short for high temperature
     ((ConfigOptionInts,               textured_plate_temp))
+    ((ConfigOptionInts,               peo_plate_temp))
+    ((ConfigOptionInts,               pet_plate_temp))
+    ((ConfigOptionInts,               pey_plate_temp))
+    ((ConfigOptionInts,               h1h_plate_temp))
+    ((ConfigOptionInts,               phantom_plate_temp))
     ((ConfigOptionInts,               supertack_plate_temp_initial_layer))
     ((ConfigOptionInts,               cool_plate_temp_initial_layer))
     ((ConfigOptionInts,               textured_cool_plate_temp_initial_layer))
     ((ConfigOptionInts,               eng_plate_temp_initial_layer))
     ((ConfigOptionInts,               hot_plate_temp_initial_layer)) // hot is short for high temperature
     ((ConfigOptionInts,               textured_plate_temp_initial_layer))
+    ((ConfigOptionInts,               peo_plate_temp_initial_layer))
+    ((ConfigOptionInts,               pet_plate_temp_initial_layer))
+    ((ConfigOptionInts,               pey_plate_temp_initial_layer))
+    ((ConfigOptionInts,               h1h_plate_temp_initial_layer))
+    ((ConfigOptionInts,               phantom_plate_temp_initial_layer))
     ((ConfigOptionBools,              enable_overhang_bridge_fan))
     ((ConfigOptionInts,               overhang_fan_speed))
     ((ConfigOptionEnumsGeneric,       overhang_fan_threshold))

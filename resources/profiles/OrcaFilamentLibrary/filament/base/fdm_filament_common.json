@@ -177,6 +177,36 @@
     "textured_plate_temp_initial_layer": [
         "60"
     ],
+    "peo_plate_temp": [
+        "60"
+    ],
+    "peo_plate_temp_initial_layer": [
+        "60"
+    ],
+    "pet_plate_temp": [
+        "60"
+    ],
+    "pet_plate_temp_initial_layer": [
+        "60"
+    ],
+    "pey_plate_temp": [
+        "60"
+    ],
+    "pey_plate_temp_initial_layer": [
+        "60"
+    ],
+    "h1h_plate_temp": [
+        "60"
+    ],
+    "h1h_plate_temp_initial_layer": [
+        "60"
+    ],
+    "phantom_plate_temp": [
+        "60"
+    ],
+    "phantom_plate_temp_initial_layer": [
+        "60"
+    ],
     "filament_start_gcode": [
         "; Filament gcode\n"
     ],

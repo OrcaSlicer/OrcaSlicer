@@ -44,6 +44,36 @@
     "textured_plate_temp_initial_layer": [
         "70"
     ],
+    "peo_plate_temp": [
+        "70"
+    ],
+    "peo_plate_temp_initial_layer": [
+        "70"
+    ],
+    "pet_plate_temp": [
+        "70"
+    ],
+    "pet_plate_temp_initial_layer": [
+        "70"
+    ],
+    "pey_plate_temp": [
+        "70"
+    ],
+    "pey_plate_temp_initial_layer": [
+        "70"
+    ],
+    "h1h_plate_temp": [
+        "70"
+    ],
+    "h1h_plate_temp_initial_layer": [
+        "70"
+    ],
+    "phantom_plate_temp": [
+        "70"
+    ],
+    "phantom_plate_temp_initial_layer": [
+        "70"
+    ],
     "nozzle_temperature_initial_layer": [
         "235"
     ],

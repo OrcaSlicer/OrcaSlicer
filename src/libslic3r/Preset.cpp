@@ -961,7 +961,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_flow_ratio", "filament_density", "filament_adhesiveness_category", "filament_cost", "filament_minimal_purge_on_wipe_tower",
     "nozzle_temperature", "nozzle_temperature_initial_layer",
     // BBS
-    "cool_plate_temp", "textured_cool_plate_temp", "eng_plate_temp", "hot_plate_temp", "textured_plate_temp", "cool_plate_temp_initial_layer", "textured_cool_plate_temp_initial_layer", "eng_plate_temp_initial_layer", "hot_plate_temp_initial_layer", "textured_plate_temp_initial_layer", "supertack_plate_temp_initial_layer", "supertack_plate_temp",
+    "cool_plate_temp", "textured_cool_plate_temp", "eng_plate_temp", "hot_plate_temp", "textured_plate_temp", "peo_plate_temp", "pet_plate_temp", "pey_plate_temp", "h1h_plate_temp", "phantom_plate_temp", "cool_plate_temp_initial_layer", "textured_cool_plate_temp_initial_layer", "eng_plate_temp_initial_layer", "hot_plate_temp_initial_layer", "textured_plate_temp_initial_layer", "supertack_plate_temp_initial_layer", "supertack_plate_temp", "peo_plate_temp_initial_layer", "pet_plate_temp_initial_layer", "pey_plate_temp_initial_layer", "h1h_plate_temp_initial_layer", "phantom_plate_temp_initial_layer",
     // "bed_type",
     //BBS:temperature_vitrification
     "temperature_vitrification", "reduce_fan_stop_start_freq","dont_slow_down_outer_wall", "slow_down_for_layer_cooling", "fan_min_speed",
