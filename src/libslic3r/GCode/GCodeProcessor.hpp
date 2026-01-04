@@ -87,6 +87,8 @@ class Print;
         std::array<Mode, static_cast<size_t>(ETimeMode::Count)> modes;
         unsigned int                                        total_filament_changes;
         unsigned int                                        total_extruder_changes;
+        float                                               total_travel_distance;
+        unsigned int                                        total_travel_moves;
 
         PrintEstimatedStatistics() { reset(); }
 
@@ -104,6 +106,8 @@ class Print;
             used_filaments_per_role.clear();
             total_filament_changes = 0;
             total_extruder_changes = 0;
+            total_travel_distance = 0.0f;
+            total_travel_moves = 0;
         }
     };
 

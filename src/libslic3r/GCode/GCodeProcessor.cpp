@@ -3761,9 +3761,10 @@ void GCodeProcessor::process_G1(const GCodeReader::GCodeLine& line, const std::o
         return;
 
     EMoveType type = move_type(delta_pos);
+    const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
+    m_travel_dist = delta_xyz;
+
     if (type == EMoveType::Extrude) {
-        const float delta_xyz = std::sqrt(sqr(delta_pos[X]) + sqr(delta_pos[Y]) + sqr(delta_pos[Z]));
-        m_travel_dist = delta_xyz;
         float volume_extruded_filament = area_filament_cross_section * delta_pos[E];
         float area_toolpath_cross_section = volume_extruded_filament / delta_xyz;
 
@@ -5637,6 +5638,11 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type)
     m_last_line_id = (type == EMoveType::Color_change || type == EMoveType::Pause_Print || type == EMoveType::Custom_GCode) ?
         m_line_id + 1 :
         ((type == EMoveType::Seam) ? m_last_line_id : m_line_id);
+
+    if (type == EMoveType::Travel) {
+        m_result.print_statistics.total_travel_moves++;
+        m_result.print_statistics.total_travel_distance += m_travel_dist;
+    }
 
     //BBS: apply plate's and extruder's offset to arc interpolation points
     if (path_type == EMovePathType::Arc_move_cw ||
