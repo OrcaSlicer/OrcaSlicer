@@ -1518,6 +1518,12 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
 
     if (name == "plugins") {
         std::string config_version = app_config->get_network_plugin_version();
+        if (config_version.empty()) {
+            config_version = BBL::get_latest_network_version();
+            BOOST_LOG_TRIVIAL(info) << "[install_plugin] config_version was empty, using latest: " << config_version;
+            app_config->set_network_plugin_version(config_version);
+            app_config->save();
+        }
         if (!config_version.empty() && boost::filesystem::exists(legacy_lib_path)) {
 #if defined(_MSC_VER) || defined(_WIN32)
             auto versioned_lib = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + "_" + config_version + ".dll");
@@ -3211,6 +3217,12 @@ bool GUI_App::on_init_network(bool try_backup)
     if (config_version.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
         m_networking_need_update = true;
+
+        if (!m_device_manager)
+            m_device_manager = new Slic3r::DeviceManager();
+        if (!m_user_manager)
+            m_user_manager = new Slic3r::UserManager();
+
         return false;
     }
     int load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
