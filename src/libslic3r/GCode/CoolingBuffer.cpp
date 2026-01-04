@@ -71,6 +71,9 @@ struct CoolingLine
         // ORCA: Add support for ironing fan speed control
         TYPE_IRONING_FAN_START         = 1 << 19,
         TYPE_IRONING_FAN_END           = 1 << 20,
+        // ORCA: Add support for infill fan speed control
+        TYPE_INFILL_FAN_START          = 1 << 21,
+        TYPE_INFILL_FAN_END            = 1 << 22,
     };
 
     CoolingLine(unsigned int type, size_t  line_start, size_t  line_end) :
@@ -531,6 +534,10 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_IRONING_FAN_START;
         } else if (boost::starts_with(sline, ";_IRONING_FAN_END")) { // ORCA: Add support for ironing fan speed control
             line.type = CoolingLine::TYPE_IRONING_FAN_END;
+        } else if (boost::starts_with(sline, ";_INFILL_FAN_START")) { // ORCA: Add support for infill fan speed control
+            line.type = CoolingLine::TYPE_INFILL_FAN_START;
+        } else if (boost::starts_with(sline, ";_INFILL_FAN_END")) { // ORCA: Add support for infill fan speed control
+            line.type = CoolingLine::TYPE_INFILL_FAN_END;
         } else if (boost::starts_with(sline, "G4 ")) {
             // Parse the wait time.
             line.type = CoolingLine::TYPE_G4;
@@ -727,11 +734,14 @@ std::string CoolingBuffer::apply_layer_cooldown(
     int  supp_interface_fan_speed = 0;
     bool ironing_fan_control= false; // ORCA: Add support for ironing fan speed control
     int  ironing_fan_speed   = 0; // ORCA: Add support for ironing fan speed control
+    bool infill_fan_control = false; // ORCA: Add support for infill fan speed control
+    int  infill_fan_speed   = 0; // ORCA: Add support for infill fan speed control
     auto change_extruder_set_fan = [ this, layer_id, layer_time, &new_gcode,
         &overhang_fan_control, &overhang_fan_speed,
         &internal_bridge_fan_control, &internal_bridge_fan_speed,
         &supp_interface_fan_control, &supp_interface_fan_speed,
-        &ironing_fan_control, &ironing_fan_speed
+        &ironing_fan_control, &ironing_fan_speed,
+        &infill_fan_control, &infill_fan_speed
     ](bool immediately_apply) {
 #define EXTRUDER_CONFIG(OPT) m_config.OPT.get_at(m_current_extruder)
         float fan_min_speed = EXTRUDER_CONFIG(fan_min_speed);
@@ -788,6 +798,10 @@ std::string CoolingBuffer::apply_layer_cooldown(
             // ORCA: Add support for ironing fan speed control
             ironing_fan_speed   = EXTRUDER_CONFIG(ironing_fan_speed);
             ironing_fan_control = ironing_fan_speed >= 0;
+
+            // ORCA: Add support for infill fan speed control
+            infill_fan_speed   = EXTRUDER_CONFIG(infill_fan_speed);
+            infill_fan_control = infill_fan_speed >= 0;
 #undef EXTRUDER_CONFIG
             
         } else {
@@ -801,6 +815,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
             internal_bridge_fan_speed = 0; // ORCA: Add support for separate internal bridge fan speed control
             ironing_fan_control = false; // ORCA: Add support for ironing fan speed control
             ironing_fan_speed = 0; // ORCA: Add support for ironing fan speed control
+            infill_fan_control = false; // ORCA: Add support for infill fan speed control
+            infill_fan_speed = 0; // ORCA: Add support for infill fan speed control
         }
         if (fan_speed_new != m_fan_speed) {
             m_fan_speed = fan_speed_new;
@@ -826,6 +842,7 @@ std::string CoolingBuffer::apply_layer_cooldown(
                                                                {CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START, false}, // ORCA: Add support for separate internal bridge fan speed control
                                                                {CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START, false},
                                                                {CoolingLine::TYPE_IRONING_FAN_START, false}, // ORCA: Add support for ironing fan speed control
+                                                               {CoolingLine::TYPE_INFILL_FAN_START, false}, // ORCA: Add support for infill fan speed control
                                                                {CoolingLine::TYPE_FORCE_RESUME_FAN, false}};
     bool need_set_fan = false;
 
@@ -882,6 +899,16 @@ std::string CoolingBuffer::apply_layer_cooldown(
         } else if (line->type & CoolingLine::TYPE_IRONING_FAN_END && fan_speed_change_requests[CoolingLine::TYPE_IRONING_FAN_START]) {
             if (ironing_fan_control) {
                 fan_speed_change_requests[CoolingLine::TYPE_IRONING_FAN_START] = false;
+            }
+            need_set_fan = true;
+        } else if (line->type & CoolingLine::TYPE_INFILL_FAN_START) { // ORCA: Add support for infill fan speed control
+            if (infill_fan_control && !fan_speed_change_requests[CoolingLine::TYPE_INFILL_FAN_START]) {
+                fan_speed_change_requests[CoolingLine::TYPE_INFILL_FAN_START] = true;
+                need_set_fan = true;
+            }
+        } else if (line->type & CoolingLine::TYPE_INFILL_FAN_END && fan_speed_change_requests[CoolingLine::TYPE_INFILL_FAN_START]) { // ORCA: Add support for infill fan speed control
+            if (infill_fan_control) {
+                fan_speed_change_requests[CoolingLine::TYPE_INFILL_FAN_START] = false;
             }
             need_set_fan = true;
         } else if (line->type & CoolingLine::TYPE_FORCE_RESUME_FAN) {
@@ -985,6 +1012,9 @@ std::string CoolingBuffer::apply_layer_cooldown(
             } else if (fan_speed_change_requests[CoolingLine::TYPE_INTERNAL_BRIDGE_FAN_START]){ // ORCA: Add support for separate internal bridge fan speed control
                 new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, internal_bridge_fan_speed);
                 m_current_fan_speed = internal_bridge_fan_speed;
+            } else if (fan_speed_change_requests[CoolingLine::TYPE_INFILL_FAN_START]){ // ORCA: Add support for infill fan speed control
+                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, infill_fan_speed);
+                m_current_fan_speed = infill_fan_speed;
             }
             else if (fan_speed_change_requests[CoolingLine::TYPE_SUPPORT_INTERFACE_FAN_START]){
                 new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, supp_interface_fan_speed);
