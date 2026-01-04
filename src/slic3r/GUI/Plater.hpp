@@ -496,6 +496,7 @@ public:
     void publish_project();
 
     void reload_from_disk();
+    void reload_from_directory();
     void replace_with_stl();
     void replace_all_with_stl();
     void reload_all_from_disk();
@@ -673,6 +674,7 @@ public:
     bool can_undo() const;
     bool can_redo() const;
     bool can_reload_from_disk() const;
+    bool can_reload_from_directory() const;
     bool can_replace_with_stl() const;
     bool can_replace_all_with_stl() const;
     bool can_mirror() const;

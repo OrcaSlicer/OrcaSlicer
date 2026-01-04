@@ -4414,6 +4414,7 @@ struct Plater::priv
     void export_gcode(fs::path output_path, bool output_path_on_removable_media, PrintHostJob upload_job);
 
     void reload_from_disk();
+    void reload_from_directory();
     bool replace_volume_with_stl(int object_idx, int volume_idx, const fs::path& new_path, const std::string& snapshot = "");
     void replace_with_stl();
     void replace_all_with_stl();
@@ -4526,6 +4527,7 @@ struct Plater::priv
     bool can_set_instance_to_object() const;
     bool can_mirror() const;
     bool can_reload_from_disk() const;
+    bool can_reload_from_directory() const;
     //BBS:
     bool can_fillcolor() const;
     bool has_assemble_view() const;
@@ -8593,6 +8595,244 @@ void Plater::priv::reload_from_disk()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " finish.";
 }
 
+void Plater::priv::reload_from_directory()
+{
+    // collect selected reloadable ModelVolumes
+    std::vector<std::pair<int, int>> selected_volumes = reloadable_volumes(model, get_selection());
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " entry, reloadable volumes: " << selected_volumes.size();
+    
+    if (selected_volumes.empty())
+        return;
+
+    std::sort(selected_volumes.begin(), selected_volumes.end(), [](const std::pair<int, int> &v1, const std::pair<int, int> &v2) {
+        return (v1.first < v2.first) || (v1.first == v2.first && v1.second < v2.second);
+    });
+    selected_volumes.erase(std::unique(selected_volumes.begin(), selected_volumes.end(), [](const std::pair<int, int> &v1, const std::pair<int, int> &v2) {
+        return (v1.first == v2.first) && (v1.second == v2.second);
+    }), selected_volumes.end());
+
+    // Ask user to select a directory
+    wxDirDialog dir_dialog(q, _L("Select directory to reload files from"), "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+    if (dir_dialog.ShowModal() != wxID_OK)
+        return;
+    
+    fs::path base_dir = fs::path(dir_dialog.GetPath().ToUTF8().data());
+    
+    // Collect paths of files to load from the chosen directory
+    std::vector<fs::path> input_paths;
+    std::vector<wxString> missing_files;
+    
+    for (auto [obj_idx, vol_idx] : selected_volumes) {
+        const ModelObject *object = model.objects[obj_idx];
+        const ModelVolume *volume = object->volumes[vol_idx];
+        
+        // Get the filename from the source input file
+        fs::path filename;
+        if (!volume->source.input_file.empty()) {
+            filename = fs::path(volume->source.input_file).filename();
+        } else if (!volume->name.empty()) {
+            filename = fs::path(volume->name);
+        }
+        
+        if (filename.empty()) {
+            missing_files.push_back(_L("Unknown file for volume"));
+            continue;
+        }
+        
+        // Construct the new path in the chosen directory
+        fs::path new_path = base_dir / filename;
+        if (fs::exists(new_path)) {
+            input_paths.push_back(new_path);
+        } else {
+            missing_files.push_back(from_u8(filename.string()));
+        }
+    }
+    
+    // Report missing files
+    if (!missing_files.empty()) {
+        wxString message = _L("The following files were not found in the selected directory:") + "\n";
+        for (const wxString& s : missing_files) {
+            message += "  - " + s + "\n";
+        }
+        if (input_paths.empty()) {
+            MessageDialog dlg(q, message, _L("No files found"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+            dlg.ShowModal();
+            return;
+        } else {
+            message += "\n" + _L("Do you want to continue reloading the found files?");
+            MessageDialog dlg(q, message, _L("Some files missing"), wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION);
+            if (dlg.ShowModal() != wxID_YES)
+                return;
+        }
+    }
+    
+    if (input_paths.empty())
+        return;
+    
+    std::sort(input_paths.begin(), input_paths.end());
+    input_paths.erase(std::unique(input_paths.begin(), input_paths.end()), input_paths.end());
+    
+    Plater::TakeSnapshot snapshot(q, "Reload from directory");
+    
+    std::vector<wxString> fail_list;
+    
+    // Load one file at a time
+    for (size_t i = 0; i < input_paths.size(); ++i) {
+        const auto& path = input_paths[i].string();
+        auto obj_color_fun = [this, &path](ObjDialogInOut &in_out) {
+            if (!boost::iends_with(path, ".obj")) { return; }
+            const std::vector<std::string> extruder_colours = wxGetApp().plater()->get_extruder_colors_from_plater_config();
+            ObjColorDialog color_dlg(nullptr, in_out, extruder_colours);
+            if (color_dlg.ShowModal() != wxID_OK) {
+                in_out.filament_ids.clear();
+            }
+        };
+        wxBusyCursor wait;
+        wxBusyInfo info(_L("Reload from:") + " " + from_u8(path), q->get_current_canvas3D()->get_wxglcanvas());
+        
+        Model new_model;
+        try {
+            PlateDataPtrs plate_data;
+            std::vector<Preset*> project_presets;
+            
+            if (boost::iends_with(path, ".stp") || boost::iends_with(path, ".step")) {
+                double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_defletion"));
+                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_defletion"));
+                bool is_split = wxGetApp().app_config->get_bool("is_split_compound");
+                new_model = Model::read_from_step(path, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, nullptr, nullptr, nullptr, linear, angle, is_split);
+            } else {
+                new_model = Model::read_from_file(path, nullptr, nullptr, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, &plate_data, &project_presets, nullptr, nullptr, nullptr, nullptr, nullptr, 0, obj_color_fun);
+            }
+            
+            for (ModelObject* model_object : new_model.objects) {
+                model_object->center_around_origin();
+                model_object->ensure_on_bed();
+            }
+            
+            if (plate_data.size() > 0) {
+                partplate_list.update_slice_context_to_current_plate(background_process);
+                this->preview->update_gcode_result(partplate_list.get_current_slice_result());
+                release_PlateData_list(plate_data);
+                sidebar->obj_list()->reload_all_plates();
+            }
+        } catch (std::exception&) {
+            fail_list.push_back(from_u8(path));
+            continue;
+        }
+        
+        // Match and replace volumes
+        for (auto [obj_idx, vol_idx] : selected_volumes) {
+            ModelObject *old_model_object = model.objects[obj_idx];
+            ModelVolume *old_volume = old_model_object->volumes[vol_idx];
+            
+            bool sinking = old_model_object->min_z() < SINKING_Z_THRESHOLD;
+            
+            bool has_source = !old_volume->source.input_file.empty() &&
+                boost::algorithm::iequals(fs::path(old_volume->source.input_file).filename().string(), fs::path(path).filename().string());
+            bool has_name = !old_volume->name.empty() && 
+                boost::algorithm::iequals(old_volume->name, fs::path(path).filename().string());
+            
+            if (has_source || has_name) {
+                int new_volume_idx = -1;
+                int new_object_idx = -1;
+                bool match_found = false;
+                
+                if (has_source && old_volume->source.object_idx < int(new_model.objects.size())) {
+                    const ModelObject *obj = new_model.objects[old_volume->source.object_idx];
+                    if (old_volume->source.volume_idx < int(obj->volumes.size())) {
+                        if (boost::algorithm::iequals(fs::path(obj->volumes[old_volume->source.volume_idx]->source.input_file).filename().string(), 
+                                                       fs::path(old_volume->source.input_file).filename().string())) {
+                            new_volume_idx = old_volume->source.volume_idx;
+                            new_object_idx = old_volume->source.object_idx;
+                            match_found = true;
+                        }
+                    }
+                }
+                
+                if (!match_found && has_name) {
+                    for (size_t o = 0; o < new_model.objects.size(); ++o) {
+                        ModelObject *obj = new_model.objects[o];
+                        bool found = false;
+                        for (size_t v = 0; v < obj->volumes.size(); ++v) {
+                            if (obj->volumes[v]->name == old_volume->name) {
+                                new_volume_idx = (int)v;
+                                new_object_idx = (int)o;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                        if (obj->name == old_volume->name) {
+                            new_object_idx = (int)o;
+                            break;
+                        }
+                    }
+                }
+                
+                if (new_object_idx < 0 || int(new_model.objects.size()) <= new_object_idx) {
+                    fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));
+                    continue;
+                }
+                
+                ModelObject *new_model_object = new_model.objects[new_object_idx];
+                if (new_volume_idx >= 0 && int(new_model_object->volumes.size()) <= new_volume_idx) {
+                    fail_list.push_back(from_u8(has_source ? old_volume->source.input_file : old_volume->name));
+                    continue;
+                }
+                
+                ModelVolume *new_volume = nullptr;
+                if (new_volume_idx < 0 && new_object_idx >= 0) {
+                    TriangleMesh mesh = new_model_object->mesh();
+                    new_volume = old_model_object->add_volume(std::move(mesh));
+                    new_volume->name = new_model_object->name;
+                    new_volume->source.input_file = path;
+                } else {
+                    new_volume = old_model_object->add_volume(*new_model_object->volumes[new_volume_idx]);
+                }
+                
+                new_volume->set_new_unique_id();
+                new_volume->config.apply(old_volume->config);
+                new_volume->set_type(old_volume->type());
+                new_volume->set_material_id(old_volume->material_id());
+                new_volume->set_transformation(old_volume->get_transformation());
+                new_volume->translate(new_volume->get_transformation().get_matrix_no_offset() * (new_volume->source.mesh_offset - old_volume->source.mesh_offset));
+                
+                if (old_volume->source.is_converted_from_inches)
+                    new_volume->convert_from_imperial_units();
+                else if (old_volume->source.is_converted_from_meters)
+                    new_volume->convert_from_meters();
+                
+                std::swap(old_model_object->volumes[vol_idx], old_model_object->volumes.back());
+                old_model_object->delete_volume(old_model_object->volumes.size() - 1);
+                
+                if (!sinking)
+                    old_model_object->ensure_on_bed();
+                old_model_object->sort_volumes(true);
+                
+                sla::reproject_points_and_holes(old_model_object);
+            }
+        }
+    }
+    
+    if (!fail_list.empty()) {
+        wxString message = _L("Unable to reload:") + "\n";
+        for (const wxString& s : fail_list) {
+            message += s + "\n";
+        }
+        MessageDialog dlg(q, message, _L("Error during reload"), wxOK | wxOK_DEFAULT | wxICON_WARNING);
+        dlg.ShowModal();
+    }
+    
+    // Update 3D scene
+    update();
+    
+    for (size_t i = 0; i < model.objects.size(); ++i) {
+        view3D->get_canvas3d()->update_instance_printable_state_for_object(i);
+    }
+    
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " finish.";
+}
+
 void Plater::priv::reload_all_from_disk()
 {
     if (model.objects.empty())
@@ -10776,6 +11016,17 @@ bool Plater::priv::can_reload_from_disk() const
     paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
 
     return !paths.empty();
+}
+
+bool Plater::priv::can_reload_from_directory() const
+{
+    if (sidebar->obj_list()->has_selected_cut_object())
+        return false;
+
+    // Only show this option when multiple parts are selected or an assembly is selected
+    std::vector<std::pair<int, int>> selected_volumes = reloadable_volumes(model, get_selection());
+    // Require at least 2 reloadable volumes (either multi-select or an assembly)
+    return selected_volumes.size() > 1;
 }
 
 void Plater::priv::update_publish_dialog_status(wxString &msg, int percent)
@@ -15203,6 +15454,11 @@ void Plater::reload_from_disk()
     p->reload_from_disk();
 }
 
+void Plater::reload_from_directory()
+{
+    p->reload_from_directory();
+}
+
 void Plater::replace_with_stl()
 {
     p->replace_with_stl();
@@ -17818,6 +18074,7 @@ bool Plater::can_copy_to_clipboard() const
 bool Plater::can_undo() const { return IsShown() && p->is_view3D_shown() && p->undo_redo_stack().has_undo_snapshot(); }
 bool Plater::can_redo() const { return IsShown() && p->is_view3D_shown() && p->undo_redo_stack().has_redo_snapshot(); }
 bool Plater::can_reload_from_disk() const { return p->can_reload_from_disk(); }
+bool Plater::can_reload_from_directory() const { return p->can_reload_from_directory(); }
 //BBS
 bool Plater::can_fillcolor() const { return p->can_fillcolor(); }
 bool Plater::has_assmeble_view() const { return p->has_assemble_view(); }
