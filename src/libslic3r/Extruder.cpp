@@ -168,7 +168,14 @@ double Extruder::filament_flow_ratio() const
 // Return a "retract_before_wipe" percentage as a factor clamped to <0, 1>
 double Extruder::retract_before_wipe() const
 {
-    return std::min(1., std::max(0., m_config->retract_before_wipe.get_at(m_id) * 0.01));
+    return std::clamp(m_config->retract_before_wipe.get_at(m_id) * 0.01, 0., 1.);
+}
+
+// Orca:
+// Return a "retract_after_wipe" percentage as a factor clamped to <0, 1>
+double Extruder::retract_after_wipe() const
+{
+    return std::min(std::clamp(m_config->retract_after_wipe.get_at(m_id) * 0.01, 0., 1.), 1. - retract_before_wipe());
 }
 
 double Extruder::retraction_length() const

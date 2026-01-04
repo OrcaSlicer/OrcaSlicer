@@ -63,6 +63,8 @@ public:
     double filament_cost() const;
     double filament_flow_ratio() const;
     double retract_before_wipe() const;
+    // Orca:
+    double retract_after_wipe() const;
     double retraction_length() const;
     double retract_lift() const;
     int    retract_speed() const;
