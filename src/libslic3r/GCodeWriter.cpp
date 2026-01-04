@@ -340,6 +340,7 @@ std::string GCodeWriter::set_pressure_advance(double pa) const
         return gcode.str();
     if(m_is_bbl_printers){
         //SoftFever: set L1000 to use linear model
+        gcode << "M400\n";
         gcode << "M900 K" <<std::setprecision(4)<< pa << " L1000 M10 ; Override pressure advance value\n";
     }
     else{

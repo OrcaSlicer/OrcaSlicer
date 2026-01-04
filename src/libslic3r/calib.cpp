@@ -26,15 +26,22 @@ std::string CalibPressureAdvance::move_to(Vec2d pt, GCodeWriter &writer, std::st
 {
     std::stringstream gcode;
 
-    gcode << writer.retract(); // retract before z move or move
     if(z > EPSILON && layer_height >= 0){
+        gcode << writer.retract(); // retract before z move
         gcode << writer.travel_to_z(z, "z-hop"); // Perform z hop
         gcode << writer.travel_to_xy(pt, comment); // Travel with z move
         gcode << writer.travel_to_z(layer_height, "undo z-hop"); // Undo z hop
+        gcode << writer.unretract(); // unretract after z move is complete
     }else {
+        const bool need_retract = get_distance(pt, Vec2d(m_last_pos.x(), m_last_pos.y())) >= m_config.option<ConfigOptionFloats>("retraction_minimum_travel")->get_at(0);
+        if (need_retract) {
+            gcode << writer.retract();
+        }
         gcode << writer.travel_to_xy(pt, comment);
+        if (need_retract) {
+            gcode << writer.unretract();
+        }
     }
-    gcode << writer.unretract(); // unretract after z move is complete
 
     m_last_pos = Vec3d(pt.x(), pt.y(), 0);
 
