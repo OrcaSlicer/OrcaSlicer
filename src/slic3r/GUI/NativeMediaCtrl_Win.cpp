@@ -195,7 +195,7 @@ bool NativeMediaCtrl::Impl::InitializeMediaFoundation()
     if (FAILED(hr)) return false;
 
     RECT rect;
-    GetClientRect(m_hwnd, &rect);
+    ::GetClientRect(m_hwnd, &rect);
     m_width = std::max(1L, rect.right - rect.left);
     m_height = std::max(1L, rect.bottom - rect.top);
 

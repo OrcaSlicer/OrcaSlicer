@@ -13,7 +13,7 @@ export REQUIRED_DEV_PACKAGES=(
     git
     glew
     gstreamer
-    gstreamermm
+    gst-plugins-base
     gtk3
     libmspack
     libsecret
