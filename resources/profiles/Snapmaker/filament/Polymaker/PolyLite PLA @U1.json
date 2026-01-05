@@ -1,0 +1,11 @@
+{
+  "type": "filament",
+  "from": "system",
+  "instantiation": "true",
+  "name": "PolyLite PLA @U1",
+  "setting_id": "6486836500",
+  "inherits": "PolyLite PLA @U1 base",
+  "compatible_printers": [
+    "Snapmaker U1 (0.4 nozzle)"
+  ]
+}
