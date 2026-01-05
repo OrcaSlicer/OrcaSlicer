@@ -4,6 +4,8 @@ add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests.cpp
     test_3mf.cpp
     test_aabbindirect.cpp
+    test_appconfig.cpp
+    test_bambu_networking.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_config.cpp
@@ -29,6 +31,7 @@ if (TARGET OpenVDB::openvdb)
 endif()
 
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
 if (WIN32)
