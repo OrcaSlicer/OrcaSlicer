@@ -1524,7 +1524,7 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
             app_config->set_network_plugin_version(config_version);
             GUI::wxGetApp().CallAfter([this] {
                 if (app_config)
-            app_config->save();
+                    app_config->save();
             });
         }
         if (!config_version.empty() && boost::filesystem::exists(legacy_lib_path)) {
@@ -1643,6 +1643,70 @@ void GUI_App::restart_networking()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(" exit, m_agent=%1%")%m_agent;
 }
 
+// Network plugin hot reload timeout constants (in milliseconds)
+namespace {
+    constexpr int CALLBACK_DRAIN_TIMEOUT_MS   = 200;  // Time to drain pending CallAfter callbacks
+    constexpr int NETWORK_IDLE_TIMEOUT_MS     = 500;  // Max wait for network operations to complete
+    constexpr int FINAL_DRAIN_TIMEOUT_MS      = 100;  // Final event processing before destruction
+    constexpr int POLL_INTERVAL_MS            = 50;   // Polling interval for state checks
+    constexpr int MAX_YIELD_ITERATIONS        = 20;   // Maximum wxYield calls per drain cycle
+}
+
+// Process pending wx events with bounded iteration count
+void GUI_App::drain_pending_events(int timeout_ms)
+{
+    const auto deadline = std::chrono::steady_clock::now() +
+                          std::chrono::milliseconds(timeout_ms);
+    int yield_count = 0;
+
+    while (std::chrono::steady_clock::now() < deadline) {
+        // Process pending events
+        if (wxTheApp) {
+            wxTheApp->ProcessPendingEvents();
+        }
+
+        // Bounded wxYield to prevent infinite loops
+        if (yield_count < MAX_YIELD_ITERATIONS) {
+            wxYield();
+            ++yield_count;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(POLL_INTERVAL_MS));
+    }
+}
+
+// Wait for network operations to complete with state verification
+bool GUI_App::wait_for_network_idle(int timeout_ms)
+{
+    const auto deadline = std::chrono::steady_clock::now() +
+                          std::chrono::milliseconds(timeout_ms);
+
+    while (std::chrono::steady_clock::now() < deadline) {
+        if (!m_agent) {
+            return true;  // Agent already gone
+        }
+
+        // Verify all operations completed
+        bool server_disconnected = !m_agent->is_server_connected();
+
+        if (server_disconnected) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": network is idle";
+            return true;
+        }
+
+        // Process events while waiting
+        if (wxTheApp) {
+            wxTheApp->ProcessPendingEvents();
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(POLL_INTERVAL_MS));
+    }
+
+    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": timeout after " << timeout_ms
+                                << "ms, server_connected=" << (m_agent ? m_agent->is_server_connected() : false);
+    return false;
+}
+
 bool GUI_App::hot_reload_network_plugin()
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": starting hot reload";
@@ -1671,8 +1735,8 @@ bool GUI_App::hot_reload_network_plugin()
     }
 
     if (m_agent) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": clearing callbacks and stopping operations";
-
+        // Phase 1: Clear all callbacks (stops new invocations)
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 1 - clearing callbacks";
         m_agent->set_on_ssdp_msg_fn(nullptr);
         m_agent->set_on_user_login_fn(nullptr);
         m_agent->set_on_printer_connected_fn(nullptr);
@@ -1685,23 +1749,39 @@ bool GUI_App::hot_reload_network_plugin()
         m_agent->set_on_local_message_fn(nullptr);
         m_agent->set_queue_on_main_fn(nullptr);
 
-        m_agent->start_discovery(false, false);
-        m_agent->disconnect_printer();
+        // Phase 2: Drain pending CallAfter callbacks (bounded)
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 2 - draining callbacks";
+        drain_pending_events(CALLBACK_DRAIN_TIMEOUT_MS);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        // Phase 3: Stop operations and verify return values
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 3 - stopping operations";
+        bool discovery_stopped = m_agent->start_discovery(false, false);
+        int disconnect_result = m_agent->disconnect_printer();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": discovery_stopped=" << discovery_stopped
+                                << ", disconnect_result=" << disconnect_result;
 
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": destroying network agent";
+        // Phase 4: Wait for idle with state verification
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 4 - waiting for idle";
+        bool became_idle = wait_for_network_idle(NETWORK_IDLE_TIMEOUT_MS);
+        if (!became_idle) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": proceeding despite timeout";
+        }
+
+        // Phase 5: Final bounded drain before destruction
+        drain_pending_events(FINAL_DRAIN_TIMEOUT_MS);
+
+        // Phase 6: Destroy agent
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 6 - destroying agent";
         delete m_agent;
         m_agent = nullptr;
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
 
+    // Phase 7: Unload module
     if (Slic3r::NetworkAgent::is_network_module_loaded()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": unloading old module";
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Phase 7 - unloading module";
+        drain_pending_events(FINAL_DRAIN_TIMEOUT_MS);
         int unload_result = Slic3r::NetworkAgent::unload_network_module();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": unload result = " << unload_result;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": unload_result=" << unload_result;
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": calling restart_networking";

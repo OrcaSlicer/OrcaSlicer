@@ -703,6 +703,8 @@ private:
     void            init_networking_callbacks();
     void            init_app_config();
     void            remove_old_networking_plugins();
+    void            drain_pending_events(int timeout_ms);
+    bool            wait_for_network_idle(int timeout_ms);
     //BBS set extra header for http request
     std::map<std::string, std::string> get_extra_header();
     void            init_http_extra_header();
