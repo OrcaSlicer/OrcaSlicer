@@ -39,7 +39,7 @@ jobs:
           lfs: 'true'
 
       - name: load cached deps
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
@@ -105,14 +105,14 @@ jobs:
       # Upload Artifacts
       # - name: Upload Mac ${{ inputs.arch }} artifacts
       #   if: inputs.os == 'macos-14'
-      #   uses: actions/upload-artifact@v5
+      #   uses: actions/upload-artifact@v6
       #   with:
       #     name: OrcaSlicer_dep_mac_${{ env.date }}
       #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.tar.gz
 
       - name: Upload Windows artifacts
         if: inputs.os == 'windows-latest'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_dep_win64_${{ env.date }}
           path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.zip
@@ -121,7 +121,7 @@ jobs:
         if: ${{ ! env.ACT && inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04' }}
         env:
           ubuntu-ver: ${{ (inputs.os == 'ubuntu-20.04' && '2004') || (inputs.os == 'ubuntu-24.04' && '2404') || '' }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_dep_ubuntu_${{ env.ubuntu-ver }}_${{ env.date }}
           path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep_ubuntu_*.tar.gz
