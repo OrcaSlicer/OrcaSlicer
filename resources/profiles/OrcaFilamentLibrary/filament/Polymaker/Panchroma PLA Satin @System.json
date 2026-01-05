@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Satin @System",
+    "renamed_from": "Panchroma PLA Stain @System",
+    "inherits": "Panchroma PLA Satin @base",
+    "from": "system",
+    "setting_id": "OGFSPM005",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}
