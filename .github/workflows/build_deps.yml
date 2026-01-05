@@ -95,12 +95,19 @@ jobs:
         run: |
             ./build_linux.sh -dr
 
+      - name: Pack dependencies
+        if: ${{ !cancelled() && ! env.ACT}}
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          tar -cf deps_packet.tar -C ${{ env.DEPS_PATH }} .
+
       - name: Upload OrcaSlicer_dep director(ies) for use later
         if: ${{ !cancelled() && ! env.ACT}}
         uses: actions/upload-artifact@v6
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.DEPS_PATH }}
+          path: deps_packet.tar
           retention-days: 10 # It's not too big, but we don't need it for a very long time.
           if-no-files-found: error
 
