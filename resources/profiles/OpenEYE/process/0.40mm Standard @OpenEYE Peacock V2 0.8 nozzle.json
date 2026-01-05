@@ -1,0 +1,27 @@
+{
+    "type": "process",
+    "name": "0.40mm Standard @OpenEYE Peacock V2 0.8 nozzle",
+    "inherits": "fdm_process_openeye_0.40_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP126",
+    "instantiation": "true",
+    "description": "Standard profile for 0.8mm nozzle, prioritizing speed.",
+    "bridge_speed": "50",
+    "default_acceleration": "8000",
+    "gap_infill_speed": "250",
+    "initial_layer_infill_speed": "105",
+    "initial_layer_speed": "50",
+    "inner_wall_speed": "300",
+    "internal_solid_infill_speed": "250",
+    "outer_wall_speed": "200",
+    "overhang_3_4_speed": "30",
+    "overhang_4_4_speed": "10",
+    "prime_tower_brim_width": "3",
+    "prime_tower_width": "60",
+    "sparse_infill_speed": "350",
+    "top_surface_speed": "200",
+    "travel_speed": "500",
+    "compatible_printers": [
+        "OpenEYE Peacock V2 0.8 nozzle"
+    ]
+}

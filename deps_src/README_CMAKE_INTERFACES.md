@@ -24,18 +24,7 @@ target_link_libraries(your_target PRIVATE semver::semver)
 target_link_libraries(your_target PRIVATE hints)
 ```
 
-### 3. **spline** (Interface Library)
-- **Type**: Interface library (header-only)
-- **Target**: `spline` or `spline::spline`
-- **Headers**: `spline.h`
-- **Usage**:
-```cmake
-target_link_libraries(your_target PRIVATE spline)
-# or
-target_link_libraries(your_target PRIVATE spline::spline)
-```
-
-### 4. **stb_dxt** (Interface Library)
+### 3. **stb_dxt** (Interface Library)
 - **Type**: Interface library (header-only)
 - **Target**: `stb_dxt` or `stb_dxt::stb_dxt`
 - **Headers**: `stb_dxt.h`
@@ -53,10 +42,9 @@ target_link_libraries(your_target PRIVATE stb_dxt::stb_dxt)
 1. **In your CMakeLists.txt**, simply link the library:
 ```cmake
 add_executable(my_app main.cpp)
-target_link_libraries(my_app 
-    PRIVATE 
+target_link_libraries(my_app
+    PRIVATE
         semver::semver      # For version parsing
-        spline::spline      # For spline interpolation
         stb_dxt::stb_dxt    # For DXT texture compression
         hints               # For hints functionality
 )
@@ -66,9 +54,6 @@ target_link_libraries(my_app
 ```cpp
 // For semver
 #include <semver.h>
-
-// For spline
-#include <spline.h>
 
 // For stb_dxt
 #include <stb_dxt.h>
@@ -100,7 +85,6 @@ target_link_libraries(mycomponent
     PUBLIC
         semver::semver  # Version handling is part of public API
     PRIVATE
-        spline::spline  # Used internally for interpolation
         stb_dxt::stb_dxt # Used internally for texture compression
 )
 
