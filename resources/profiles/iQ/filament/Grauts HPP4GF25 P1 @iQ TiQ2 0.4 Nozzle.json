@@ -1,0 +1,303 @@
+{
+    "type": "filament",
+    "name": "Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "setting_id": "IQS1",
+    "filament_id": "IQM1",
+    "instantiation": "true",
+    "compatible_prints": [
+        "0.20mm Standard @iQ TiQ2 P1 - HPP4GF25 Grauts (0.4 Nozzle)"
+    ],
+    "filament_cost": [
+        "70.58"
+    ],
+    "filament_density": [
+        "1.09"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode\n{if current_extruder==0}\nG1 Z{layer_z+2} F900 ; safe distance for T0 while tool change\nG1 X-17 Y1 F9000\nG1 X-17 Y45 F9000\nG1 Y1 F9000\nG1 Y45 F9000\n{endif}\n\n{if current_extruder==1}\n{if current_extruder==0}T1{endif}\nG1 X-23 Y3 F9000\nG1 Y45 F9000\nG1 Y3 F9000\nG1 Y45 F9000\n{endif}\n"
+    ],
+    "filament_flow_ratio": [
+        "0.926"
+    ],
+    "filament_settings_id": [
+        "Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle"
+    ],
+    "filament_shrink": [
+        "98.994%"
+    ],
+    "filament_shrinkage_compensation_z": [
+        "99%"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\n{if current_extruder==0}\nG1 X-17 Y1 F9000\nG1 Y45 F9000\nG1 Y1 F9000\nG1 Y45 F9000\n{if layer_z==0}G1 Z{first_layer_height + 2.0}{endif}\n{if layer_z==0}G1 X[first_layer_print_min_0] Y[first_layer_print_min_1]{endif}\n{if layer_z==0}G1 Z{layer_z}{endif}\n{endif}\n\n{if current_extruder==1}\nG1 X-23 Y3 F9000\nG1 Y45 F9000\nG1 Y3 F9000\nG1 Y45 F9000\n{endif}\n"
+    ],
+    "filament_type": [
+        "HPP4GF25"
+    ],
+    "hot_plate_temp": [
+        "110"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "idle_temperature": [
+        "180"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "280"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
+    ],
+    "temperature_vitrification": [
+        "127"
+    ],
+    "version": "2.3.1.10",
+
+
+    "activate_air_filtration": [
+        "0"
+    ],
+    "activate_chamber_temp_control": [
+        "0"
+    ],
+    "adaptive_pressure_advance": [
+        "0"
+    ],
+    "adaptive_pressure_advance_bridges": [
+        "0"
+    ],
+    "adaptive_pressure_advance_model": [
+        "0,0,0\n0,0,0"
+    ],
+    "adaptive_pressure_advance_overhangs": [
+        "0"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "chamber_temperature": [
+        "0"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "compatible_printers": [
+        "iQ TiQ2 0.4 Nozzle"
+    ],
+    "compatible_printers_condition": "",
+    "compatible_prints_condition": "",
+    "complete_print_exhaust_fan_speed": [
+        "80"
+    ],
+    "cool_plate_temp": [
+        "105"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "105"
+    ],
+    "default_filament_colour": [
+        "#000000"
+    ],
+    "dont_slow_down_outer_wall": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "60"
+    ],
+    "enable_overhang_bridge_fan": [
+        "1"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "105"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "105"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_cooling_final_speed": [
+        "3.5"
+    ],
+    "filament_cooling_initial_speed": [
+        "10"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_deretraction_speed": [
+        "nil"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_is_support": [
+        "0"
+    ],
+    "filament_loading_speed": [
+        "10"
+    ],
+    "filament_loading_speed_start": [
+        "50"
+    ],
+    "filament_long_retractions_when_cut": [
+        "nil"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_multitool_ramming": [
+        "1"
+    ],
+    "filament_multitool_ramming_flow": [
+        "40"
+    ],
+    "filament_multitool_ramming_volume": [
+        "10"
+    ],
+    "filament_notes": [
+        ""
+    ],
+    "filament_ramming_parameters": [
+        "120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
+    ],
+    "filament_retract_before_wipe": [
+        "nil"
+    ],
+    "filament_retract_lift_above": [
+        "nil"
+    ],
+    "filament_retract_lift_below": [
+        "nil"
+    ],
+    "filament_retract_lift_enforce": [
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
+        "nil"
+    ],
+    "filament_retract_when_changing_layer": [
+        "nil"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "4"
+    ],
+    "filament_retraction_minimum_travel": [
+        "nil"
+    ],
+    "filament_retraction_speed": [
+        "40"
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "filament_stamping_distance": [
+        "45"
+    ],
+    "filament_stamping_loading_speed": [
+        "29"
+    ],
+    "filament_toolchange_delay": [
+        "0"
+    ],
+    "filament_unloading_speed": [
+        "100"
+    ],
+    "filament_unloading_speed_start": [
+        "100"
+    ],
+    "filament_vendor": [
+        "iQ Materials"
+    ],
+    "filament_wipe": [
+        "nil"
+    ],
+    "filament_wipe_distance": [
+        "nil"
+    ],
+    "filament_z_hop": [
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "nil"
+    ],
+    "full_fan_speed_layer": [
+        "0"
+    ],
+    "internal_bridge_fan_speed": [
+        "-1"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "pellet_flow_coefficient": [
+        "0.4157"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "required_nozzle_HRC": [
+        "0"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "3"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "supertack_plate_temp": [
+        "35"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "35"
+    ],
+    "support_material_interface_fan_speed": [
+        "-1"
+    ],
+    "textured_cool_plate_temp": [
+        "40"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "40"
+    ],
+    "textured_plate_temp": [
+        "105"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "105"
+    ]
+}

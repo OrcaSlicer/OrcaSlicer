@@ -3,7 +3,7 @@
 set -e
 set -o pipefail
 
-while getopts ":dpa:snt:xbc:1h" opt; do
+while getopts ":dpa:snt:xbc:1Th" opt; do
   case "${opt}" in
     d )
         export BUILD_TARGET="deps"
@@ -37,6 +37,9 @@ while getopts ":dpa:snt:xbc:1h" opt; do
     1 )
         export CMAKE_BUILD_PARALLEL_LEVEL=1
         ;;
+    T )
+        export BUILD_TESTS="1"
+        ;;
     h ) echo "Usage: ./build_release_macos.sh [-d]"
         echo "   -d: Build deps only"
         echo "   -a: Set ARCHITECTURE (arm64 or x86_64 or universal)"
@@ -47,6 +50,7 @@ while getopts ":dpa:snt:xbc:1h" opt; do
         echo "   -b: Build without reconfiguring CMake"
         echo "   -c: Set CMake build configuration, default is Release"
         echo "   -1: Use single job for building"
+        echo "   -T: Build and run tests"
         exit 0
         ;;
     * )
@@ -83,6 +87,15 @@ fi
 
 if [ -z "$OSX_DEPLOYMENT_TARGET" ]; then
   export OSX_DEPLOYMENT_TARGET="11.3"
+fi
+
+CMAKE_VERSION=$(cmake --version | head -1 | sed 's/[^0-9]*\([0-9]*\).*/\1/')
+if [ "$CMAKE_VERSION" -ge 4 ] 2>/dev/null; then
+  export CMAKE_POLICY_VERSION_MINIMUM=3.5
+  export CMAKE_POLICY_COMPAT="-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+  echo "Detected CMake 4.x, adding compatibility flag (env + cmake arg)"
+else
+  export CMAKE_POLICY_COMPAT=""
 fi
 
 echo "Build params:"
@@ -133,7 +146,8 @@ function build_deps() {
                         -G "${DEPS_CMAKE_GENERATOR}" \
                         -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                         -DCMAKE_OSX_ARCHITECTURES:STRING="${_ARCH}" \
-                        -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}"
+                        -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
+                        ${CMAKE_POLICY_COMPAT}
                 fi
                 cmake --build . --config "$BUILD_CONFIG" --target deps
             )
@@ -170,12 +184,23 @@ function build_slicer() {
                     -G "${SLICER_CMAKE_GENERATOR}" \
                     -DORCA_TOOLS=ON \
                     ${ORCA_UPDATER_SIG_KEY:+-DORCA_UPDATER_SIG_KEY="$ORCA_UPDATER_SIG_KEY"} \
+                    ${BUILD_TESTS:+-DBUILD_TESTS=ON} \
                     -DCMAKE_BUILD_TYPE="$BUILD_CONFIG" \
                     -DCMAKE_OSX_ARCHITECTURES="${_ARCH}" \
-                    -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}"
+                    -DCMAKE_OSX_DEPLOYMENT_TARGET="${OSX_DEPLOYMENT_TARGET}" \
+                    ${CMAKE_POLICY_COMPAT}
             fi
             cmake --build . --config "$BUILD_CONFIG" --target "$SLICER_BUILD_TARGET"
         )
+
+        if [ "1." == "$BUILD_TESTS". ]; then
+            echo "Running tests for $_ARCH..."
+            (
+                set -x
+                cd "$PROJECT_BUILD_DIR"
+                ctest --build-config "$BUILD_CONFIG" --output-on-failure
+            )
+        fi
 
         echo "Verify localization with gettext..."
         (

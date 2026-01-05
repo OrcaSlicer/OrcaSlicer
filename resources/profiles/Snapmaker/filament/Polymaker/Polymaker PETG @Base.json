@@ -1,0 +1,29 @@
+{
+    "filament_density": [
+        "1.3"
+    ],
+    "temp_min": [
+        "240"
+    ],
+    "temp_max": [
+        "260"
+    ],
+    "temperture_vitrification": [
+        "75"
+    ],
+    "idle_temperture": [
+        "0"
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "description": "",
+    "inherits": "fdm_filament_petg",
+    "name": "Polymaker PETG @Base",
+    "type": "filament",
+    "instantiation": "false",
+    "from": "system",
+    "filament_vendor": [
+        "Polymaker"
+    ]
+}

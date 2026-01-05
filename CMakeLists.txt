@@ -1,3 +1,7 @@
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "4.0")
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "" FORCE)
+endif()
+
 cmake_minimum_required(VERSION 3.13)
 
 # Verify that your CMake version is exactly 3.5 series or higher on windows
@@ -571,6 +575,7 @@ endif()
 if(POLICY CMP0167)
   cmake_policy(SET CMP0167 NEW)
 endif()
+set(Boost_NO_SYSTEM_PATHS TRUE)
 find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
 
 add_library(boost_libs INTERFACE)
@@ -687,6 +692,10 @@ find_package(PNG REQUIRED)
 
 set(OpenGL_GL_PREFERENCE "LEGACY")
 find_package(OpenGL REQUIRED)
+
+if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    set(OPENGL_LIBRARIES "-framework OpenGL" CACHE STRING "OpenGL framework" FORCE)
+endif()
 
 set(GLEW_ROOT "${CMAKE_PREFIX_PATH}")
 message("GLEW_ROOT: ${GLEW_ROOT}")

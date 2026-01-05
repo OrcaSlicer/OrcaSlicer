@@ -197,6 +197,20 @@ void TabButtonsListCtrl::SetPaddingSize(const wxSize& size) {
     }
 }
 
+void TabButtonsListCtrl::SetFooterText(const wxString& text)
+{
+    if (!m_footer_text) {
+        m_footer_text = new wxStaticText(this, wxID_ANY, text);
+        m_footer_text->SetForegroundColour(wxColour(128, 128, 128));
+        m_footer_text->SetFont(Label::Body_10);
+        int em = em_unit(this);
+        m_sizer->Add(m_footer_text, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, em / 2);
+    } else {
+        m_footer_text->SetLabel(text);
+    }
+    m_sizer->Layout();
+}
+
 //#endif // _WIN32
 
 
