@@ -448,7 +448,6 @@ public:
 	void			set_selection();
 	void			set_value(const std::string& value, bool change_event = false);
 	void			set_value(const boost::any& value, bool change_event = false) override;
-	void			set_values(const std::vector<std::string> &values);
 	void			set_values(const wxArrayString &values);
 	boost::any&		get_value() override;
 

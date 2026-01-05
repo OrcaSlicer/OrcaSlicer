@@ -1592,26 +1592,6 @@ void Choice::set_value(const boost::any& value, bool change_event)
 	m_disable_change_event = false;
 }
 
-//! it's needed for _update_serial_ports()
-void Choice::set_values(const std::vector<std::string>& values)
-{
-	if (values.empty())
-		return;
-	m_disable_change_event = true;
-
-// 	# it looks that Clear() also clears the text field in recent wxWidgets versions,
-// 	# but we want to preserve it
-	auto ww = dynamic_cast<choice_ctrl*>(window);
-	auto value = ww->GetValue();
-	ww->Clear();
-	ww->Append("");
-	for (const auto &el : values)
-		ww->Append(wxString(el));
-	ww->SetValue(value);
-
-	m_disable_change_event = false;
-}
-
 void Choice::set_values(const wxArrayString &values)
 {
 	if (values.empty())
