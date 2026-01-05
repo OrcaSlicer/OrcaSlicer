@@ -10,7 +10,8 @@ namespace Slic3r {
 const int g_min_flush_volume_from_support = 700;
 const int g_flush_volume_to_support = 230;
 
-const int g_max_flush_volume = 900;
+const int g_max_flush_volume = 20000; //Orca: increase limit to 20k vs 900 in upstream BBS code.
+                                      // Retain a clamp to guard against extreme values entered in the UI
 
 static float to_radians(float degree)
 {
