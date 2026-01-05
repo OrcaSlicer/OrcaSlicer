@@ -1,10 +1,10 @@
 on:
     workflow_call:
       inputs:
-        artifact-name:
+        cache-key:
           required: true
           type: string
-        artifact-path:
+        cache-path:
           required: true
           type: string
         os:
@@ -30,23 +30,12 @@ jobs:
         with:
           lfs: 'true'
 
-      - name: Download deps artifacts
-        uses: actions/download-artifact@v7
+      - name: load cached deps
+        uses: actions/cache@v5
         with:
-          name: ${{ inputs.artifact-name }}
-          path: .
-
-      - name: Unpack dependencies
-        shell: bash
-        run: |
-          if [ ! -f deps_packet.tar ]; then
-            echo "Error: deps_packet.tar not found"
-            ls -R
-            exit 1
-          fi
-          mkdir -p ${{ inputs.artifact-path }}
-          tar -xf deps_packet.tar -C ${{ inputs.artifact-path }}
-          rm deps_packet.tar
+          path: ${{ inputs.cache-path }}
+          key: ${{ inputs.cache-key }}
+          fail-on-cache-miss: true
 
       - uses: lukka/get-cmake@latest
         with:
