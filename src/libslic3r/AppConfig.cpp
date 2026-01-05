@@ -146,7 +146,7 @@ void AppConfig::set_defaults()
             if (was_legacy && network_version.empty()) {
                 // User had legacy mode enabled - set to legacy version number
                 BOOST_LOG_TRIVIAL(info) << "Migrating legacy_networking=true to network_plugin_version=01.10.01.01";
-                set("network_plugin_version", BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+                set_network_plugin_version(BAMBU_NETWORK_AGENT_VERSION_LEGACY);
             }
             // Note: If was_legacy=false, we leave the version empty and let the GUI layer set it to the latest version
 

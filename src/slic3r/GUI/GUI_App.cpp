@@ -1522,7 +1522,10 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
             config_version = BBL::get_latest_network_version();
             BOOST_LOG_TRIVIAL(info) << "[install_plugin] config_version was empty, using latest: " << config_version;
             app_config->set_network_plugin_version(config_version);
+            GUI::wxGetApp().CallAfter([this] {
+                if (app_config)
             app_config->save();
+            });
         }
         if (!config_version.empty() && boost::filesystem::exists(legacy_lib_path)) {
 #if defined(_MSC_VER) || defined(_WIN32)
