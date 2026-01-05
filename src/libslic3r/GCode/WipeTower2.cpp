@@ -1215,6 +1215,10 @@ WipeTower::ToolChangeResult WipeTower2::construct_tcr(WipeTowerWriter2& writer,
     result.extrusions   = std::move(writer.extrusions());
     result.wipe_path    = std::move(writer.wipe_path());
     result.is_finish_first = is_finish;
+    // ORCA: Always initialize the tool_change_start_pos with a valid position
+    // to avoid undefined variable travel on X in Gcode.cpp function std::string WipeTowerIntegration::post_process_wipe_tower_moves
+    result.tool_change_start_pos = result.start_pos;  // always valid fallback
+
     return result;
 }
 

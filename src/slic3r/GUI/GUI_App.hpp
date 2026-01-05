@@ -356,6 +356,9 @@ public:
     bool show_3d_navigator() const { return app_config->get_bool("show_3d_navigator"); }
     void toggle_show_3d_navigator() const { app_config->set_bool("show_3d_navigator", !show_3d_navigator()); }
 
+    bool show_canvas_zoom_button() const { return app_config->get_bool("show_canvas_zoom_button"); }
+    void toggle_canvas_zoom_button() const { app_config->set_bool("show_canvas_zoom_button", !show_canvas_zoom_button()); }
+
     bool show_outline() const { return app_config->get_bool("show_outline"); }
     void toggle_show_outline() const { app_config->set_bool("show_outline", !show_outline()); }
 
@@ -404,8 +407,8 @@ public:
     //update side popup status
     bool            get_side_menu_popup_status();
     void            set_side_menu_popup_status(bool status);
-    void            link_to_network_check();
-    void            link_to_lan_only_wiki();
+    std::string     link_to_network_check(); // ORCA
+    std::string     link_to_lan_only_wiki(); // ORCA
 
     const wxColour& get_label_clr_modified() { return m_color_label_modified; }
     const wxColour& get_label_clr_sys()     { return m_color_label_sys; }
