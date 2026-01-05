@@ -2503,6 +2503,8 @@ StatusPanel::~StatusPanel()
 
 void StatusPanel::init_scaled_buttons()
 {
+    if (!m_project_task_panel) return;
+
     m_project_task_panel->init_scaled_buttons();
     m_bpButton_z_10->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_10->SetCornerRadius(0);

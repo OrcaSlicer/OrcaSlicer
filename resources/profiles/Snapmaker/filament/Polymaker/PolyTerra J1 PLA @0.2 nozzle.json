@@ -1,0 +1,11 @@
+{
+  "type": "filament",
+  "from": "system",
+  "instantiation": "true",
+  "name": "PolyTerra J1 PLA @0.2 nozzle",
+  "setting_id": "1072374370",
+  "inherits": "PolyTerra PLA @0.2 nozzle",
+  "compatible_printers": [
+    "Snapmaker J1 (0.2 nozzle)"
+  ]
+}

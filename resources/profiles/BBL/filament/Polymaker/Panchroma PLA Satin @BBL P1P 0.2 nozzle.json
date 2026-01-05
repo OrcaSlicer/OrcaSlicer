@@ -1,0 +1,30 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Satin @BBL P1P 0.2 nozzle",
+    "renamed_from": "Panchroma PLA Stain @BBL P1P 0.2 nozzle",
+    "inherits": "Panchroma PLA Satin @base",
+    "from": "system",
+    "setting_id": "GFSPM005_05",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab P1P 0.2 nozzle"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.6"
+    ],
+    "slow_down_layer_time": [
+        "15"
+    ]
+}

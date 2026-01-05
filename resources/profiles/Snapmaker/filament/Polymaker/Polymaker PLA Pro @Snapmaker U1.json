@@ -1,0 +1,96 @@
+{
+    "type": "filament",
+    "name": "Polymaker PLA Pro @Snapmaker U1",
+    "from": "system",
+    "instantiation": "true",
+    "cool_plate_temp": [
+        "50"
+    ],
+    "eng_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp": [
+        "65"
+    ],
+    "textured_plate_temp": [
+        "50"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "50"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "50"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_vendor": [
+        "Polymaker"
+    ],
+    "bed_type": [
+        "Cool Plate"
+    ],
+    "full_fan_speed_layer": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "slow_down_min_speed": [
+        "5"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "temperature_vitrification": [
+        "61"
+    ],
+    "nozzle_temperature_range_high": [
+        "230"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "setting_id": "PMPL03_U1",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "inherits": "Polymaker PLA Pro @Base",
+    "filament_id": "PMPL03"
+}
