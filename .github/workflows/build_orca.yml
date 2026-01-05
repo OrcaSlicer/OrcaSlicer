@@ -34,19 +34,7 @@ jobs:
         uses: actions/download-artifact@v7
         with:
           name: ${{ inputs.artifact-name }}
-          path: .
-
-      - name: Unpack dependencies
-        shell: bash
-        run: |
-          if [ ! -f deps_packet.tar ]; then
-            echo "Error: deps_packet.tar not found"
-            ls -R
-            exit 1
-          fi
-          mkdir -p ${{ inputs.artifact-path }}
-          tar -xf deps_packet.tar -C ${{ inputs.artifact-path }}
-          rm deps_packet.tar
+          path: ${{ inputs.artifact-path }}
 
       - uses: lukka/get-cmake@latest
         with:
