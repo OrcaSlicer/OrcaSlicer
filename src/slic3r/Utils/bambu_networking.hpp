@@ -318,7 +318,7 @@ static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
     {"02.03.00.62", "02.03.00.62", nullptr, true, nullptr},
     {"02.01.01.52", "02.01.01.52", nullptr, false, nullptr},
     {"02.00.02.50", "02.00.02.50", nullptr, false, "This version may crash on startup due to Bambu Lab's signature verification."},
-    {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, "Legacy version - may not support newer firmware features. Only use if you have issues with modern versions."},
+    {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, nullptr},
 };
 
 static const size_t AVAILABLE_NETWORK_VERSIONS_COUNT = sizeof(AVAILABLE_NETWORK_VERSIONS) / sizeof(AVAILABLE_NETWORK_VERSIONS[0]);
