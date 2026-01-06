@@ -5557,6 +5557,9 @@ void TabPrinter::toggle_options()
             toggle_option("machine_max_jerk_e", enable_jerk, i);
         }
 
+        bool emittable_limits = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfMarlinLegacy || m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfMarlinFirmware || m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
+        toggle_option("emit_machine_limits_to_gcode", emittable_limits);
+
         bool resonance_avoidance = m_config->opt_bool("resonance_avoidance");
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
