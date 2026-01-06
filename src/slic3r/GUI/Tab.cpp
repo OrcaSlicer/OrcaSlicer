@@ -5561,14 +5561,16 @@ void TabPrinter::toggle_options()
         toggle_option("min_resonance_avoidance_speed", resonance_avoidance);
         toggle_option("max_resonance_avoidance_speed", resonance_avoidance);
 
-        bool input_shaping_compatible = m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfMarlinLegacy && m_config->opt_enum<GCodeFlavor>("gcode_flavor") != GCodeFlavor::gcfKlipper;
+        bool input_shaping_compatible = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfMarlinFirmware || m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
 
         for (auto is : {"input_shaping_emit", "input_shaping_type", "input_shaping_freq_x", "input_shaping_freq_y",
                             "input_shaping_damp_x", "input_shaping_damp_y"})
                 toggle_line(is, input_shaping_compatible);
 
         if (input_shaping_compatible) {
-            bool input_shaping_emit = m_config->opt_bool("input_shaping_emit");
+            bool emit_machine_limits_to_gcode = m_config->opt_bool("emit_machine_limits_to_gcode");
+            toggle_option("input_shaping_emit", emit_machine_limits_to_gcode);
+            bool input_shaping_emit = emit_machine_limits_to_gcode && m_config->opt_bool("input_shaping_emit");
             bool reprap = m_config->opt_enum<GCodeFlavor>("gcode_flavor") == GCodeFlavor::gcfRepRapFirmware;
             toggle_option("input_shaping_type", input_shaping_emit);
             toggle_option("input_shaping_freq_x", input_shaping_emit);
