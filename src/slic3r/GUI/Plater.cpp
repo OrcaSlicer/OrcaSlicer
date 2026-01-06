@@ -2563,22 +2563,23 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto update_extruder_diameter = [&diameters, &diameter, &nozzle_diameter](int extruder_index,ExtruderGroup & extruder) {
             extruder.combo_diameter->Clear();
             int select = -1;
-            // ORCA if user defined a custom nozzle in printer config select it instead inherited one. this will show correct nozzle diameter in combobox if its exist in nozzle diameters list
+            // ORCA get the actual nozzle diameter from printer config
             auto nozzle_dia = get_diameter_string(nozzle_diameter->values[extruder_index]);
-            if(nozzle_dia != diameter && std::find(diameters.begin(), diameters.end(), nozzle_dia) != diameters.end())
-                diameter = nozzle_dia;
             // ORCA try to add nozzle diameter from config if list is empty. fixes blank nozzle combo box when preset has no alias
             if(diameters[0].empty() && !nozzle_dia.empty()){
                 diameters[0] = nozzle_dia;
-                diameter = nozzle_dia;
+            }
+            // Orca: Check if the actual nozzle diameter exists in the list, if not add it as a custom option
+            if (std::find(diameters.begin(), diameters.end(), nozzle_dia) == diameters.end() && !nozzle_dia.empty()) {
+                diameters.push_back(nozzle_dia);
             }
             for (size_t i = 0; i < diameters.size(); ++i) {
-                if (diameters[i] == diameter)
+                if (diameters[i] == nozzle_dia)
                     select = extruder.combo_diameter->GetCount();
                 extruder.combo_diameter->Append(diameters[i], {});
             }
             extruder.combo_diameter->SetSelection(select);
-            extruder.diameter = diameter;
+            extruder.diameter = nozzle_dia;
         };
         auto image_path = get_cur_select_bed_image();
         if (is_dual_extruder) {
