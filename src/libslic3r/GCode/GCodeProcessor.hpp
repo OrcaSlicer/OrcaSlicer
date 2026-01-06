@@ -57,21 +57,12 @@ class Print;
             float time;
             float prepare_time;
             std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> custom_gcode_times;
-            std::vector<std::pair<EMoveType, float>> moves_times;
-            std::vector<std::pair<ExtrusionRole, float>> roles_times;
-            std::vector<float> layers_times;
 
             void reset() {
                 time = 0.0f;
                 prepare_time = 0.0f;
                 custom_gcode_times.clear();
                 custom_gcode_times.shrink_to_fit();
-                moves_times.clear();
-                moves_times.shrink_to_fit();
-                roles_times.clear();
-                roles_times.shrink_to_fit();
-                layers_times.clear();
-                layers_times.shrink_to_fit();
             }
         };
 
@@ -125,7 +116,7 @@ class Print;
 
     struct GCodeCheckResult
     {
-        int error_code = 0;   // 0 means succeed, 0b 0001 multi extruder printable area error, 0b 0010 multi extruder printable height error, 
+        int error_code = 0;   // 0 means succeed, 0b 0001 multi extruder printable area error, 0b 0010 multi extruder printable height error,
         // 0b 0100 plate printable area error, 0b 1000 plate printable height error, 0b 10000 wrapping detection area error
         std::map<int, std::vector<std::pair<int, int>>> print_area_error_infos;   // printable_area  extruder_id to <filament_id - object_label_id> which cannot printed in this extruder
         std::map<int, std::vector<std::pair<int, int>>> print_height_error_infos;   // printable_height extruder_id to <filament_id - object_label_id> which cannot printed in this extruder
@@ -186,31 +177,23 @@ class Print;
             Vec3f position{ Vec3f::Zero() }; // mm
             float delta_extruder{ 0.0f }; // mm
             float feedrate{ 0.0f }; // mm/s
+            float actual_feedrate{ 0.0f }; // mm/s
             float width{ 0.0f }; // mm
             float height{ 0.0f }; // mm
             float mm3_per_mm{ 0.0f };
             float travel_dist{ 0.0f }; // mm
             float fan_speed{ 0.0f }; // percentage
             float temperature{ 0.0f }; // Celsius degrees
-            float time{ 0.0f }; // s
-            float layer_duration{ 0.0f }; // s (layer id before finalize)
+            std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
+            unsigned int layer_id{ 0 };
+            bool internal_only{ false };
 
-
-            //BBS: arc move related data
-            EMovePathType move_path_type{ EMovePathType::Noop_move };
-            Vec3f arc_center_position{ Vec3f::Zero() };      // mm
-            std::vector<Vec3f> interpolation_points;     // interpolation points of arc for drawing
+            //BBS
             int  object_label_id{-1};
             float print_z{0.0f};
 
             float volumetric_rate() const { return feedrate * mm3_per_mm; }
-            //BBS: new function to support arc move
-            bool is_arc_move_with_interpolation_points() const {
-                return (move_path_type == EMovePathType::Arc_move_ccw || move_path_type == EMovePathType::Arc_move_cw) && interpolation_points.size();
-            }
-            bool is_arc_move() const {
-                return move_path_type == EMovePathType::Arc_move_ccw || move_path_type == EMovePathType::Arc_move_cw;
-            }
+            float actual_volumetric_rate() const { return actual_feedrate * mm3_per_mm; }
         };
 
         struct SliceWarning {
@@ -240,6 +223,7 @@ class Print;
         int timelapse_warning_code {0};
         bool support_traditional_timelapse{true};
         float printable_height;
+        float z_offset;
         SettingsIds settings_ids;
         size_t filaments_count;
         bool backtrace_enabled;
@@ -253,7 +237,7 @@ class Print;
         std::vector<int>   limit_filament_maps;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
-        std::vector<std::pair<float, std::pair<size_t, size_t>>> spiral_vase_layers;
+        bool spiral_vase_mode;
         //BBS
         std::vector<SliceWarning> warnings;
         int nozzle_hrc;
@@ -264,9 +248,6 @@ class Print;
         std::map<std::pair<int,int>, int > filament_change_count_map;
 
         BedType bed_type = BedType::btCount;
-#if ENABLE_GCODE_VIEWER_STATISTICS
-        int64_t time{ 0 };
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
         void reset();
 
         //BBS: add mutex for protection of gcode result
@@ -293,7 +274,7 @@ class Print;
             filament_costs = other.filament_costs;
             print_statistics = other.print_statistics;
             custom_gcode_per_print_z = other.custom_gcode_per_print_z;
-            spiral_vase_layers = other.spiral_vase_layers;
+            spiral_vase_mode = other.spiral_vase_mode;
             warnings = other.warnings;
             bed_type = other.bed_type;
             gcode_check_result = other.gcode_check_result;
@@ -378,10 +359,6 @@ class Print;
 
         static bool s_IsBBLPrinter;
 
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        static const std::string Mm3_Per_Mm_Tag;
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-
     private:
         using AxisCoords = std::array<double, 4>;
         using ExtruderColors = std::vector<unsigned char>;
@@ -430,9 +407,12 @@ class Print;
             float cruise_feedrate{ 0.0f }; // mm/sec
 
             float acceleration_time(float entry_feedrate, float acceleration) const;
-            float cruise_time() const;
+            float cruise_time() const { return (cruise_feedrate != 0.0f) ? cruise_distance() / cruise_feedrate : 0.0f; }
             float deceleration_time(float distance, float acceleration) const;
-            float cruise_distance() const;
+            float acceleration_distance() const { return accelerate_until; }
+            float cruise_distance() const { return decelerate_after - accelerate_until; }
+            float deceleration_distance(float distance) const { return distance - decelerate_after; }
+            bool is_cruise_only(float distance) const { return std::abs(cruise_distance() - distance) < EPSILON; }
         };
 
         struct TimeBlock
@@ -446,6 +426,7 @@ class Print;
 
             EMoveType move_type{ EMoveType::Noop };
             ExtrusionRole role{ erNone };
+            unsigned int move_id{ 0 };
             unsigned int g1_line_id{ 0 };
             unsigned int remaining_internal_g1_lines{ 0 };
             unsigned int layer_id{ 0 };
@@ -460,7 +441,10 @@ class Print;
             // Calculates this block's trapezoid
             void calculate_trapezoid();
 
-            float time() const;
+            float time() const {
+                return trapezoid.acceleration_time(feedrate_profile.entry, acceleration) +
+                       trapezoid.cruise_time() + trapezoid.deceleration_time(distance, acceleration);
+            }
         };
 
 
@@ -477,7 +461,7 @@ class Print;
                 AxisCoords axis_feedrate; // mm/s
                 AxisCoords abs_axis_feedrate; // mm/s
 
-                //BBS: unit vector of enter speed and exit speed in x-y-z space. 
+                //BBS: unit vector of enter speed and exit speed in x-y-z space.
                 //For line move, there are same. For arc move, there are different.
                 Vec3f enter_direction;
                 Vec3f exit_direction;
@@ -501,6 +485,20 @@ class Print;
                 float elapsed_time;
             };
 
+            struct ActualSpeedMove
+            {
+                unsigned int move_id{ 0 };
+                std::optional<Vec3f> position;
+                float actual_feedrate{ 0.0f };
+                std::optional<float> delta_extruder;
+                std::optional<float> feedrate;
+                std::optional<float> width;
+                std::optional<float> height;
+                std::optional<float> mm3_per_mm;
+                std::optional<float> fan_speed;
+                std::optional<float> temperature;
+            };
+
             bool enabled;
             float acceleration; // mm/s^2
             // hard limit for the acceleration, to which the firmware will clamp.
@@ -512,7 +510,9 @@ class Print;
             // hard limit for the travel acceleration, to which the firmware will clamp.
             float max_travel_acceleration; // mm/s^2
             float extrude_factor_override_percentage;
-            float time; // s
+            // We accumulate total print time in doubles to reduce the loss of precision
+            // while adding big floating numbers with small float numbers.
+            double time; // s
             struct StopTime
             {
                 unsigned int g1_line_id;
@@ -526,17 +526,14 @@ class Print;
             CustomGCodeTime gcode_time;
             std::vector<TimeBlock> blocks;
             std::vector<G1LinesCacheItem> g1_times_cache;
-            std::array<float, static_cast<size_t>(EMoveType::Count)> moves_time;
-            std::array<float, static_cast<size_t>(ExtrusionRole::erCount)> roles_time;
-            std::vector<float> layers_time;
+            float first_layer_time;
+            std::vector<ActualSpeedMove> actual_speed_moves;
             //BBS: prepare stage time before print model, including start gcode time and mostly same with start gcode time
             float prepare_time;
 
             void reset();
 
-            // Simulates firmware st_synchronize() call
-            void simulate_st_synchronize(float additional_time = 0.0f);
-            void calculate_time(size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
+            void calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
         };
 
         struct UsedFilaments  // filaments per ColorChange
@@ -765,10 +762,6 @@ class Print;
         //BBS: x, y offset for gcode generated
         double          m_x_offset{ 0 };
         double          m_y_offset{ 0 };
-        //BBS: arc move related data
-        EMovePathType m_move_path_type{ EMovePathType::Noop_move };
-        Vec3f m_arc_center{ Vec3f::Zero() };    // mm
-        std::vector<Vec3f> m_interpolation_points;
 
         unsigned int m_line_id;
         unsigned int m_last_line_id;
@@ -807,9 +800,6 @@ class Print;
         float m_preheat_time;
         int m_preheat_steps;
         bool m_disable_m73;
-#if ENABLE_GCODE_VIEWER_STATISTICS
-        std::chrono::time_point<std::chrono::high_resolution_clock> m_start_time;
-#endif // ENABLE_GCODE_VIEWER_STATISTICS
 
         enum class EProducer
         {
@@ -835,12 +825,6 @@ class Print;
 
         GCodeProcessorResult m_result;
         static unsigned int s_result_id;
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        DataChecker m_mm3_per_mm_compare{ "mm3_per_mm", 0.01f };
-        DataChecker m_height_compare{ "height", 0.01f };
-        DataChecker m_width_compare{ "width", 0.01f };
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
     public:
         GCodeProcessor();
@@ -876,6 +860,11 @@ class Print;
 
         // Streaming interface, for processing G-codes just generated by PrusaSlicer in a pipelined fashion.
         void initialize(const std::string& filename);
+        void initialize_result_moves() {
+            // 1st move must be a dummy move
+            assert(m_result.moves.empty());
+            m_result.moves.emplace_back(GCodeProcessorResult::MoveVertex());
+        }
         void process_buffer(const std::string& buffer);
         void finalize(bool post_process);
 
@@ -884,9 +873,7 @@ class Print;
         std::string get_time_dhm(PrintEstimatedStatistics::ETimeMode mode) const;
         std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> get_custom_gcode_times(PrintEstimatedStatistics::ETimeMode mode, bool include_remaining) const;
 
-        std::vector<std::pair<EMoveType, float>> get_moves_time(PrintEstimatedStatistics::ETimeMode mode) const;
-        std::vector<std::pair<ExtrusionRole, float>> get_roles_time(PrintEstimatedStatistics::ETimeMode mode) const;
-        std::vector<float> get_layers_time(PrintEstimatedStatistics::ETimeMode mode) const;
+        float get_first_layer_time(PrintEstimatedStatistics::ETimeMode mode) const;
 
         //BBS: set offset for gcode writer
         void set_xy_offset(double x, double y) { m_x_offset = x; m_y_offset = y; }
@@ -917,7 +904,16 @@ class Print;
         // Move
         void process_G0(const GCodeReader::GCodeLine& line);
         void process_G1(const GCodeReader::GCodeLine& line, const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
-        void process_G2_G3(const GCodeReader::GCodeLine& line);
+        enum class G1DiscretizationOrigin {
+            G1,
+            G2G3,
+        };
+        void process_G1(const std::array<std::optional<double>, 4>& axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt },
+            const std::optional<double>& feedrate = std::nullopt, G1DiscretizationOrigin origin = G1DiscretizationOrigin::G1,
+            const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
+
+        // Arc Move
+        void process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise);
 
         void process_VG1(const GCodeReader::GCodeLine& line);
 
@@ -1054,7 +1050,7 @@ class Print;
         void run_post_process();
 
         //BBS: different path_type is only used for arc move
-        void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move);
+        void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
 
         void set_extrusion_role(ExtrusionRole role);
 
@@ -1077,10 +1073,15 @@ class Print;
         void process_custom_gcode_time(CustomGCode::Type code);
         void process_filaments(CustomGCode::Type code);
 
+        void calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
+
         // Simulates firmware st_synchronize() call
         void simulate_st_synchronize(float additional_time = 0.0f);
 
         void update_estimated_times_stats();
+
+        double extract_absolute_position_on_axis(Axis axis, const GCodeReader::GCodeLine& line, double area_filament_cross_section);
+
         //BBS:
         void update_slice_warnings();
 

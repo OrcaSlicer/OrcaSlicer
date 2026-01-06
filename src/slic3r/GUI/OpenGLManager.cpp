@@ -16,6 +16,8 @@
 #include <wx/glcanvas.h>
 #include <wx/msgdlg.h>
 
+#include "GUI_Init.hpp"
+
 #ifdef __APPLE__
 // Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets
 #include <wx/platinfo.h>
@@ -114,6 +116,10 @@ void OpenGLManager::GLInfo::detect() const
         float* max_anisotropy = const_cast<float*>(&m_max_anisotropy);
         glsafe(::glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy));
     }
+
+    if (!GLEW_ARB_compatibility)
+        *const_cast<bool*>(&m_core_profile) = true;
+
     *const_cast<bool*>(&m_detected) = true;
 }
 
@@ -182,6 +188,9 @@ std::string OpenGLManager::GLInfo::to_string(bool for_github) const
 
     out << h2_start << "OpenGL installation" << h2_end << line_end;
     out << b_start << "GL version:   " << b_end << m_version << line_end;
+#if !SLIC3R_OPENGL_ES
+    out << b_start << "Profile:      " << b_end << (is_core_profile() ? "Core" : "Compatibility") << line_end;
+#endif // !SLIC3R_OPENGL_ES
     out << b_start << "Vendor:       " << b_end << m_vendor << line_end;
     out << b_start << "Renderer:     " << b_end << m_renderer << line_end;
     out << b_start << "GLSL version: " << b_end << m_glsl_version << line_end;
@@ -241,6 +250,7 @@ OpenGLManager::~OpenGLManager()
 bool OpenGLManager::init_gl(bool popup_error)
 {
     if (!m_gl_initialized) {
+        glewExperimental = true;
         GLenum result = glewInit();
         if (result != GLEW_OK) {
             BOOST_LOG_TRIVIAL(error) << "Unable to init glew library";
@@ -268,11 +278,11 @@ bool OpenGLManager::init_gl(bool popup_error)
 
         bool valid_version = s_gl_info.is_version_greater_or_equal_to(2, 0);
         if (!valid_version) {
-            BOOST_LOG_TRIVIAL(error) << "Found opengl version <= 2.0"<< std::endl;
+            BOOST_LOG_TRIVIAL(error) << "Found opengl version <= 3.2"<< std::endl;
             // Complain about the OpenGL version.
             if (popup_error) {
                 wxString message = from_u8((boost::format(
-                    _utf8(L("The application cannot run normally because OpenGL version is lower than 2.0.\n")))).str());
+                    _utf8(L("The application cannot run normally because OpenGL version is lower than 3.2.\n")))).str());
                 message += "\n";
                 message += _L("Please upgrade your graphics card driver.");
                 wxMessageBox(message, _L("Unsupported OpenGL version"), wxOK | wxICON_ERROR);
@@ -316,10 +326,79 @@ bool OpenGLManager::init_gl(bool popup_error)
     return true;
 }
 
-wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas)
+wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<int, int>& required_opengl_version, bool enable_compatibility_profile,
+    bool enable_debug)
 {
     if (m_context == nullptr) {
-        m_context = new wxGLContext(&canvas);
+        // m_debug_enabled = enable_debug;
+
+        const int gl_major = required_opengl_version.first;
+        const int gl_minor = required_opengl_version.second;
+        const bool supports_core_profile =
+            std::find(OpenGLVersions::core.begin(), OpenGLVersions::core.end(), std::make_pair(gl_major, gl_minor)) != OpenGLVersions::core.end();
+
+        if (gl_major == 0 && !enable_compatibility_profile) {
+            // search for highest supported core profile version
+            // disable wxWidgets logging to avoid showing the log dialog in case the following code fails generating a valid gl context
+            wxLogNull logNo;
+            for (auto v = OpenGLVersions::core.rbegin(); v != OpenGLVersions::core.rend(); ++v) {
+                wxGLContextAttrs attrs;
+                attrs.PlatformDefaults().MajorVersion(v->first).MinorVersion(v->second).CoreProfile().ForwardCompatible();
+                // if (m_debug_enabled)
+                //     attrs.DebugCtx();
+                attrs.EndList();
+                m_context = new wxGLContext(&canvas, nullptr, &attrs);
+                if (m_context->IsOK())
+                    break;
+                else {
+                    delete m_context;
+                    m_context = nullptr;
+                }
+            }
+        }
+
+        if (m_context == nullptr) {
+            // search for requested compatibility profile version
+            if (enable_compatibility_profile) {
+                // disable wxWidgets logging to avoid showing the log dialog in case the following code fails generating a valid gl context
+                wxLogNull logNo;
+                wxGLContextAttrs attrs;
+                attrs.PlatformDefaults().CompatibilityProfile();
+                // if (m_debug_enabled)
+                //     attrs.DebugCtx();
+                attrs.EndList();
+                m_context = new wxGLContext(&canvas, nullptr, &attrs);
+                if (!m_context->IsOK()) {
+                    delete m_context;
+                    m_context = nullptr;
+                }
+            }
+            // search for requested core profile version
+            else if (supports_core_profile) {
+                // disable wxWidgets logging to avoid showing the log dialog in case the following code fails generating a valid gl context
+                wxLogNull logNo;
+                wxGLContextAttrs attrs;
+                attrs.PlatformDefaults().MajorVersion(gl_major).MinorVersion(gl_minor).CoreProfile().ForwardCompatible();
+                // if (m_debug_enabled)
+                //     attrs.DebugCtx();
+                attrs.EndList();
+                m_context = new wxGLContext(&canvas, nullptr, &attrs);
+                if (!m_context->IsOK()) {
+                    delete m_context;
+                    m_context = nullptr;
+                }
+            }
+        }
+
+        if (m_context == nullptr) {
+            wxGLContextAttrs attrs;
+            attrs.PlatformDefaults();
+            // if (m_debug_enabled)
+            //     attrs.DebugCtx();
+            attrs.EndList();
+            // if no valid context was created use the default one
+            m_context = new wxGLContext(&canvas, nullptr, &attrs);
+        }
 
 #ifdef __APPLE__
         // Part of hack to remove crash when closing the application on OSX 10.9.5 when building against newer wxWidgets

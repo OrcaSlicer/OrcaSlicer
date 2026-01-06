@@ -286,8 +286,8 @@ class GLCanvas3D
 
         bool is_allowed() const;
 
-        bool is_enabled() const;
-        void set_enabled(bool enabled);
+        bool is_enabled() const { return m_enabled; }
+        void set_enabled(bool enabled) { m_enabled = is_allowed() && enabled; }
 
         void show_tooltip_information(const GLCanvas3D& canvas, std::map<wxString, wxString> captions_texts, float x, float y);
         void render_variable_layer_height_dialog(const GLCanvas3D& canvas);
@@ -327,24 +327,19 @@ class GLCanvas3D
             static const Vec3d Invalid_3D_Point;
             static const int MoveThresholdPx;
 
-            Point start_position_2D;
-            Vec3d start_position_3D;
-            int move_volume_idx;
-            bool move_requires_threshold;
-            Point move_start_threshold_position_2D;
-
-        public:
-            Drag();
+            Point start_position_2D{ Invalid_2D_Point };
+            Vec3d start_position_3D{ Invalid_3D_Point };
+            int move_volume_idx{ -1 };
+            bool move_requires_threshold{ false };
+            Point move_start_threshold_position_2D{ Invalid_2D_Point };
         };
 
-        bool dragging;
-        Vec2d position;
-        Vec3d scene_position;
+        bool dragging{ false };
+        Vec2d position{ DBL_MAX, DBL_MAX };
+        Vec3d scene_position{ DBL_MAX, DBL_MAX, DBL_MAX };
+        bool ignore_left_up{ false };
         Drag drag;
-        bool ignore_left_up;
         bool ignore_right_up;
-
-        Mouse();
 
         void set_start_position_2D_as_invalid() { drag.start_position_2D = Drag::Invalid_2D_Point; }
         void set_start_position_3D_as_invalid() { drag.start_position_3D = Drag::Invalid_3D_Point; }
@@ -543,7 +538,7 @@ private:
     mutable IMToolbar m_sel_plate_toolbar;
     mutable GLToolbar m_assemble_view_toolbar;
     mutable IMReturnToolbar m_return_toolbar;
-    mutable Vec2i32 m_axis_button_pos = {128, 5};
+    mutable Vec2i32 m_canvas_toolbar_pos = {140, 5};
     mutable float m_sc{1};
     mutable float m_paint_toolbar_width;
 
@@ -638,6 +633,9 @@ private:
     int custom_height_count = 0;
     int assembly_view_count = 0;
 
+    // used to show layers times on the layers slider when pre-gcode view is active
+    std::vector<float> m_gcode_layers_times_cache;
+
 public:
     OrientSettings& get_orient_settings()
     {
@@ -685,7 +683,7 @@ public:
 
     struct ToolbarHighlighter
     {
-        void set_timer_owner(wxEvtHandler* owner, int timerid = wxID_ANY);
+        void set_timer_owner(wxEvtHandler* owner, int timerid = wxID_ANY) { m_timer.SetOwner(owner, timerid); }
         void init(GLToolbarItem* toolbar_item, GLCanvas3D* canvas);
         void blink();
         void invalidate();
@@ -700,7 +698,7 @@ public:
 
     struct GizmoHighlighter
     {
-        void set_timer_owner(wxEvtHandler* owner, int timerid = wxID_ANY);
+        void set_timer_owner(wxEvtHandler* owner, int timerid = wxID_ANY) { m_timer.SetOwner(owner, timerid); }
         void init(GLGizmosManager* manager, GLGizmosManager::EType gizmo, GLCanvas3D* canvas);
         void blink();
         void invalidate();
@@ -764,22 +762,33 @@ public:
     void reset_explosion_ratio() { m_explosion_ratio = 1.0; }
     void on_change_color_mode(bool is_dark, bool reinit = true);
     const bool get_dark_mode_status() { return m_is_dark; }
-    void set_as_dirty();
+    void set_as_dirty() { m_dirty = true; }
     void requires_check_outside_state() { m_requires_check_outside_state = true; }
 
-    unsigned int get_volumes_count() const;
+    unsigned int get_volumes_count() const { return (unsigned int)m_volumes.volumes.size(); }
     const GLVolumeCollection& get_volumes() const { return m_volumes; }
     void reset_volumes();
     ModelInstanceEPrintVolumeState check_volumes_outside_state(ObjectFilamentResults* object_results = nullptr) const;
+    void check_volumes_outside_state(GLVolumeCollection& volumes) const { check_volumes_outside_state(volumes, nullptr, false); }
     bool is_all_plates_selected() { return m_sel_plate_toolbar.m_all_plates_stats_item && m_sel_plate_toolbar.m_all_plates_stats_item->selected; }
     const float get_scale() const;
 
+private:
+    // returns true if all the volumes are completely contained in the print volume
+    // returns the containment state in the given out_state, if non-null
+    bool check_volumes_outside_state(GLVolumeCollection& volumes, ModelInstanceEPrintVolumeState* out_state, bool selection_only = true) const;
+
+public:
     //BBS
     GCodeViewer& get_gcode_viewer() { return m_gcode_viewer; }
     void init_gcode_viewer(ConfigOptionMode mode, Slic3r::PresetBundle* preset_bundle) { m_gcode_viewer.init(mode, preset_bundle); }
     void reset_gcode_toolpaths() { m_gcode_viewer.reset(); }
     const GCodeViewer::SequentialView& get_gcode_sequential_view() const { return m_gcode_viewer.get_sequential_view(); }
     void update_gcode_sequential_view_current(unsigned int first, unsigned int last) { m_gcode_viewer.update_sequential_view_current(first, last); }
+    const libvgcode::Interval& get_gcode_view_full_range() const { return m_gcode_viewer.get_gcode_view_full_range(); }
+    const libvgcode::Interval& get_gcode_view_enabled_range() const { return m_gcode_viewer.get_gcode_view_enabled_range(); }
+    const libvgcode::Interval& get_gcode_view_visible_range() const { return m_gcode_viewer.get_gcode_view_visible_range(); }
+    const libvgcode::PathVertex& get_gcode_vertex_at(size_t id) const { return m_gcode_viewer.get_gcode_vertex_at(id); }
 
     void toggle_selected_volume_visibility(bool selected_visible);
     void toggle_sla_auxiliaries_visibility(bool visible, const ModelObject* mo = nullptr, int instance_idx = -1);
@@ -788,7 +797,7 @@ public:
     void update_instance_printable_state_for_objects(const std::vector<size_t>& object_idxs);
 
     void set_config(const DynamicPrintConfig* config);
-    void set_process(BackgroundSlicingProcess* process);
+    void set_process(BackgroundSlicingProcess* process) { m_process = process; }
     void set_model(Model* model);
     const Model* get_model() const { return m_model; }
 
@@ -832,22 +841,28 @@ public:
     BoundingBoxf3 scene_bounding_box() const;
     BoundingBoxf3 plate_scene_bounding_box(int plate_idx) const;
 
-    bool is_layers_editing_enabled() const;
-    bool is_layers_editing_allowed() const;
+    bool is_layers_editing_enabled() const { return m_layers_editing.is_enabled(); }
+    bool is_layers_editing_allowed() const { return m_layers_editing.is_allowed(); }
 
     void reset_layer_height_profile();
     void adaptive_layer_height_profile(float quality_factor);
     void smooth_layer_height_profile(const HeightProfileSmoothingParams& smoothing_params);
 
-    bool is_reload_delayed() const;
+    bool is_reload_delayed() const { return m_reload_delayed; }
 
     void enable_layers_editing(bool enable);
-    void enable_legend_texture(bool enable);
-    void enable_picking(bool enable);
-    void enable_moving(bool enable);
-    void enable_gizmos(bool enable);
-    void enable_selection(bool enable);
-    void enable_main_toolbar(bool enable);
+    void enable_picking(bool enable)
+    {
+        m_picking_enabled = enable;
+        // Orca: invalidate hover state when dragging is toggled, otherwise if we turned off dragging
+        // while hovering above a volume, the hovering state won't update even if mouse has moved away.
+        // Fixes https://github.com/OrcaSlicer/OrcaSlicer/pull/9979#issuecomment-3065575889
+        m_hover_volume_idxs.clear();
+    }
+    void enable_moving(bool enable) { m_moving_enabled = enable; }
+    void enable_gizmos(bool enable) { m_gizmos.set_enabled(enable); }
+    void enable_selection(bool enable) { m_selection.set_enabled(enable); }
+    void enable_main_toolbar(bool enable) { m_main_toolbar.set_enabled(enable); }
     //BBS: GUI refactor: GLToolbar
     void _update_select_plate_toolbar_stats_item(bool force_selected = false);
     void reset_select_plate_toolbar_selection();
@@ -855,10 +870,10 @@ public:
     void enable_assemble_view_toolbar(bool enable);
     void enable_return_toolbar(bool enable);
     void enable_separator_toolbar(bool enable);
-    void enable_dynamic_background(bool enable);
+    void enable_dynamic_background(bool enable) { m_dynamic_background_enabled = enable; }
     void enable_labels(bool enable) { m_labels.enable(enable); }
     void enable_slope(bool enable) { m_slope.enable(enable); }
-    void allow_multisample(bool allow);
+    void allow_multisample(bool allow) { m_multisample_allowed = allow; }
 
     void zoom_to_bed();
     void zoom_to_volumes();
@@ -963,9 +978,6 @@ public:
                                  bool                               for_picking  = false,
                                  bool                               ban_light = false);
 
-    //BBS use gcoder viewer render calibration thumbnails
-    void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params);
-
     //BBS
     void select_curr_plate_all();
     void select_object_from_idx(std::vector<int>& object_idxs);
@@ -976,18 +988,14 @@ public:
     void deselect_all();
     void exit_gizmo();
     void set_selected_visible(bool visible);
-    void delete_selected();
+    void delete_selected() { m_selection.erase(); }
     void ensure_on_bed(unsigned int object_idx, bool allow_negative_z);
 
-    bool is_gcode_legend_enabled() const { return m_gcode_viewer.is_legend_enabled(); }
-    GCodeViewer::EViewType get_gcode_view_type() const { return m_gcode_viewer.get_view_type(); }
-    const std::vector<double>& get_gcode_layers_zs() const;
-    std::vector<double> get_volumes_print_zs(bool active_only) const;
-    unsigned int get_gcode_options_visibility_flags() const { return m_gcode_viewer.get_options_visibility_flags(); }
-    void set_gcode_options_visibility_from_flags(unsigned int flags);
-    unsigned int get_toolpath_role_visibility_flags() const { return m_gcode_viewer.get_toolpath_role_visibility_flags(); }
-    void set_volumes_z_range(const std::array<double, 2>& range);
-    std::vector<CustomGCode::Item>& get_custom_gcode_per_print_z() { return m_gcode_viewer.get_custom_gcode_per_print_z(); }
+    std::vector<double> get_gcode_layers_zs() const { return m_gcode_viewer.get_layers_zs(); }
+    std::vector<float> get_gcode_layers_times() const { return m_gcode_viewer.get_layers_times(); }
+    const std::vector<float>& get_gcode_layers_times_cache() const { return m_gcode_layers_times_cache; }
+    void reset_gcode_layers_times_cache() { m_gcode_layers_times_cache.clear(); }
+    void set_volumes_z_range(const std::array<double, 2>& range) { m_volumes.set_range(range[0] - 1e-6, range[1] + 1e-6); }
     size_t get_gcode_extruders_count() { return m_gcode_viewer.get_extruders_count(); }
 
     std::vector<int> load_object(const ModelObject& model_object, int obj_idx, std::vector<int> instance_idxs);
@@ -1003,16 +1011,16 @@ public:
     void set_shells_on_previewing(bool is_preview) { m_gcode_viewer.set_shells_on_preview(is_preview); }
 
     //BBS: add only gcode mode
-    void load_gcode_preview(const GCodeProcessorResult& gcode_result, const std::vector<std::string>& str_tool_colors, bool only_gcode);
-    void refresh_gcode_preview_render_paths();
-    void set_gcode_view_preview_type(GCodeViewer::EViewType type) { return m_gcode_viewer.set_view_type(type); }
-    GCodeViewer::EViewType get_gcode_view_preview_type() const { return m_gcode_viewer.get_view_type(); }
+    void load_gcode_preview(const GCodeProcessorResult& gcode_result, const std::vector<std::string>& str_tool_colors,
+        const std::vector<std::string>& str_color_print_colors, bool only_gcode);
+    void set_gcode_view_type(libvgcode::EViewType type) { return m_gcode_viewer.set_view_type(type); }
+    libvgcode::EViewType get_gcode_view_type() const { return m_gcode_viewer.get_view_type(); }
+
     void load_sla_preview();
-    //void load_preview(const std::vector<std::string>& str_tool_colors, const std::vector<CustomGCode::Item>& color_print_values);
     void bind_event_handlers();
     void unbind_event_handlers();
 
-    void on_size(wxSizeEvent& evt);
+    void on_size(wxSizeEvent& evt) { m_dirty = true; }
     void on_idle(wxIdleEvent& evt);
     void on_char(wxKeyEvent& evt);
     void on_key(wxKeyEvent& evt);
@@ -1079,7 +1087,8 @@ public:
         inline double rotation() const { return m_rotation; }
         inline const Vec2d bb_size() const { return m_bb.size(); }
 
-        void apply_wipe_tower() const;
+        void apply_wipe_tower() const { apply_wipe_tower(m_pos, m_rotation); }
+        void apply_wipe_tower(Vec2d pos, double rot) const;
     };
 
     // BBS: add partplate logic
@@ -1101,7 +1110,7 @@ public:
     Vec2f get_nearest_empty_cell(const Vec2f start_point, const Vec2f step = {10, 10});
 
     void set_cursor(ECursorType type);
-    void msw_rescale();
+    void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
 
@@ -1111,8 +1120,8 @@ public:
     void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
     void force_main_toolbar_right_action(int item_id) { m_main_toolbar.force_right_action(item_id, *this); }
 
-    bool has_toolpaths_to_export() const;
-    void export_toolpaths_to_obj(const char* filename) const;
+    bool has_toolpaths_to_export() const { return m_gcode_viewer.can_export_toolpaths(); }
+    void export_toolpaths_to_obj(const char* filename) const { m_gcode_viewer.export_toolpaths_to_obj(filename); }
 
     void mouse_up_cleanup();
 
@@ -1234,7 +1243,7 @@ private:
     void _render_selection();
     void _render_sequential_clearance();
 #if ENABLE_RENDER_SELECTION_CENTER
-    void _render_selection_center();
+    void _render_selection_center() { m_selection.render_center(m_gizmos.is_dragging()); }
 #endif // ENABLE_RENDER_SELECTION_CENTER
     void _check_and_update_toolbar_icon_scale();
     void _render_overlays();
@@ -1246,7 +1255,7 @@ private:
     void _render_imgui_select_plate_toolbar();
     void _render_assemble_view_toolbar() const;
     void _render_return_toolbar() const;
-    void _render_camera_toolbar();
+    void _render_canvas_toolbar();
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
     void _render_collapse_toolbar() const;
@@ -1260,7 +1269,7 @@ private:
     void _render_camera_target();
 #endif // ENABLE_SHOW_CAMERA_TARGET
     void _render_sla_slices();
-    void _render_selection_sidebar_hints();
+    void _render_selection_sidebar_hints() { m_selection.render_sidebar_hints(m_sidebar_field, m_gizmos.get_uniform_scaling()); }
     //BBS: GUI refactor: adjust main toolbar position
     bool _render_orient_menu(float left, float right, float bottom, float top);
     bool _render_arrange_menu(float left, float right, float bottom, float top);
@@ -1271,23 +1280,12 @@ private:
     // Convert the screen space coordinate to world coordinate on the bed.
     Vec3d _mouse_to_bed_3d(const Point& mouse_pos);
 
-    void _start_timer();
-    void _stop_timer();
-
-    // Create 3D thick extrusion lines for a skirt and brim.
-    // Adds a new Slic3r::GUI::3DScene::Volume to volumes, updates collision with the build_volume.
-    void _load_print_toolpaths(const BuildVolume &build_volume);
-    // Create 3D thick extrusion lines for object forming extrusions.
-    // Adds a new Slic3r::GUI::3DScene::Volume to $self->volumes,
-    // one for perimeters, one for infill and one for supports, updates collision with the build_volume.
-    void _load_print_object_toolpaths(const PrintObject& print_object, const BuildVolume &build_volume,
-        const std::vector<std::string>& str_tool_colors, const std::vector<CustomGCode::Item>& color_print_values);
-    // Create 3D thick extrusion lines for wipe tower extrusions, updates collision with the build_volume.
-    void _load_wipe_tower_toolpaths(const BuildVolume &build_volume, const std::vector<std::string>& str_tool_colors);
+    void _start_timer() { m_timer.Start(100, wxTIMER_CONTINUOUS); }
+    void _stop_timer() { m_timer.Stop(); }
 
     // Load SLA objects and support structures for objects, for which the slaposSliceSupports step has been finished.
-	void _load_sla_shells();
-    void _update_sla_shells_outside_state();
+  	void _load_sla_shells();
+    void _update_sla_shells_outside_state() { check_volumes_outside_state(); }
     void _set_warning_notification_if_needed(EWarning warning);
 
     //BBS: add partplate print volume get function

@@ -936,7 +936,11 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         return;
 
     GLShaderProgram* sink_shader = GUI::wxGetApp().get_shader("flat");
-    GLShaderProgram* edges_shader = GUI::wxGetApp().get_shader("flat");
+#if SLIC3R_OPENGL_ES
+    GLShaderProgram* edges_shader = GUI::wxGetApp().get_shader("dashed_lines");
+#else
+    GLShaderProgram* edges_shader = GUI::OpenGLManager::get_gl_info().is_core_profile() ? GUI::wxGetApp().get_shader("dashed_thick_lines") : GUI::wxGetApp().get_shader("flat");
+#endif // SLIC3R_OPENGL_ES
 
     if (type == ERenderType::Transparent) {
         glsafe(::glEnable(GL_BLEND));

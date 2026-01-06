@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+	"instantiation": "true",
+    "version": "1.0.0.0",
+    "from": "system",
+    "name": "Cubicon PLA+ @Cubicon xCeler-Plus 0.4 nozzle",
+
+    "compatible_printers": [
+        "Cubicon xCeler-Plus 0.4 nozzle"
+    ],
+    "inherits": "Cubicon PLA+ @base"
+}
