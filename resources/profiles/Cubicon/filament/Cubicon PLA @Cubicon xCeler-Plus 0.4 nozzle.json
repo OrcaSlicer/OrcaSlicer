@@ -3,10 +3,10 @@
 	"instantiation": "true",
     "version": "1.0.0.0",
     "from": "system",
-    "name": "Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle",
+    "name": "Cubicon PLA @Cubicon xCeler-Plus 0.4 nozzle",
 
     "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle"
+        "Cubicon xCeler-Plus 0.4 nozzle"
     ],
-    "inherits": "Cubicon PLA+ @base"
+    "inherits": "Cubicon PLA @base"
 }
