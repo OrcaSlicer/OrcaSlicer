@@ -616,6 +616,10 @@ DPIFrame(NULL, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, BORDERLESS_FRAME_
     wxGetApp().UpdateDarkUIWin(this);
 #endif // _MSW_DARK_MODE
 
+    // Give both windows stable names so their geometries are persisted independently
+    this->SetName("mainframe");
+    m_settings_dialog.SetName("settings_dialog");
+
     wxGetApp().persist_window_geometry(this, true);
     wxGetApp().persist_window_geometry(&m_settings_dialog, true);
     // bind events from DiffDlg

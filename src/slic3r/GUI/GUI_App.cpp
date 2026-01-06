@@ -4166,15 +4166,17 @@ void GUI_App::update_ui_from_settings()
 
 void GUI_App::persist_window_geometry(wxTopLevelWindow *window, bool default_maximized)
 {
-    const std::string name = into_u8(window->GetName());
+    std::string name = into_u8(window->GetName());
+    if (name.empty())
+        name = "mainframe"; // keep legacy key for unnamed windows
 
     window->Bind(wxEVT_CLOSE_WINDOW, [=](wxCloseEvent &event) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ": received wxEVT_CLOSE_WINDOW, trigger save for window_mainframe";
-        window_pos_save(window, "mainframe");
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ": received wxEVT_CLOSE_WINDOW, trigger save for window_" << name;
+        window_pos_save(window, name);
         event.Skip();
     });
 
-    if (window_pos_restore(window, "mainframe", default_maximized)) {
+    if (window_pos_restore(window, name, default_maximized)) {
         on_window_geometry(window, [=]() {
             window_pos_sanitize(window);
         });
@@ -7416,6 +7418,10 @@ void GUI_App::window_pos_save(wxTopLevelWindow* window, const std::string &name)
     const auto config_key = (boost::format("window_%1%") % name).str();
 
     WindowMetrics metrics = WindowMetrics::from_window(window);
+    // Avoid persisting unusable sizes (which can happen for hidden/unrealized dialogs)
+    if (metrics.get_rect().GetWidth() <= 0 || metrics.get_rect().GetHeight() <= 0)
+        return;
+
     app_config->set(config_key, metrics.serialize());
     app_config->save();
 }
