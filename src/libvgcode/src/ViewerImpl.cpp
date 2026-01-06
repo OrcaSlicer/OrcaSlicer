@@ -301,6 +301,7 @@ static const std::array<Color, size_t(EGCodeExtrusionRole::COUNT)> DEFAULT_EXTRU
     {  77, 128, 186 }, // InternalBridgeInfill
     {   0,  59, 110 }, // Brim
     {   0,  64,   0 }, // SupportTransition
+    { 128, 128, 128 }, // Mixed
 } };
 
 static const std::array<Color, size_t(EOptionType::COUNT)> DEFAULT_OPTIONS_COLORS{ {

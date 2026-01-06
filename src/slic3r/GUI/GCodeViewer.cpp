@@ -1219,7 +1219,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 
     //BBS
     m_conflict_result = gcode_result.conflict_result;
-    if (m_conflict_result) { m_conflict_result.value().layer = m_viewer.get_layer_id_at(m_conflict_result.value()._height); }
+    if (m_conflict_result) { m_conflict_result.value().layer = m_viewer.get_layer_id_at(static_cast<float>(m_conflict_result.value()._height)); }
 
     m_gcode_check_result = gcode_result.gcode_check_result;
 
@@ -2015,7 +2015,7 @@ void GCodeViewer::render_toolpaths()
         if (ImGui::BeginTable("Data", 2)) {
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
-            ImGuiWrapper::text_colored(ImGuiWrapper.COL_ORANGE_LIGHT, "# vertices");
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, "# vertices");
             ImGui::TableSetColumnIndex(1);
             ImGuiWrapper::text(std::to_string(m_viewer.get_vertices_count()));
 
@@ -4026,7 +4026,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             }
             ImGui::SameLine(max_len);
             char buf[64];
-            int layer = m_viewer.get_layer_id_at(m_viewer.get_layer_id_at(custom_gcode.print_z));
+            int layer = m_viewer.get_layer_id_at(custom_gcode.print_z);
             ::sprintf(buf, "%d",layer );
             imgui.text(buf);
             ImGui::SameLine(max_len * 1.5);
