@@ -960,7 +960,30 @@ void PartPlate::render_exclude_area(bool force_default_color) {
 void PartPlate::render_grid(bool bottom) {
 	//glsafe(::glEnable(GL_MULTISAMPLE));
 	// draw grid
-	glsafe(::glLineWidth(1.0f * m_scale_factor));
+
+    // ORCA: OpenGL Core Profile support
+    // FIXME: ideally, we'd use the same shader for both the thin and thick lines, but for some reason setting the uniforms has no effect
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr) {
+        return;
+    }
+
+    shader->start_using();
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const std::array<int, 4>& viewport = camera.get_viewport();
+    const Transform3d& view_matrix = camera.get_view_matrix();
+    const Transform3d& projection_matrix = camera.get_projection_matrix();
+
+    shader->set_uniform("view_model_matrix", view_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile())
+        glsafe(::glLineWidth(1.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
 
     ColorRGBA color;
 	if (bottom)
@@ -974,9 +997,37 @@ void PartPlate::render_grid(bool bottom) {
     m_gridlines.set_color(color);
     m_gridlines.render();
 
-	glsafe(::glLineWidth(2.0f * m_scale_factor));
+    shader->stop_using();
+
+    // ORCA: OpenGL Core Profile support
+#if SLIC3R_OPENGL_ES
+    shader = wxGetApp().get_shader("dashed_lines");
+#else
+    shader = OpenGLManager::get_gl_info().is_core_profile() ? wxGetApp().get_shader("dashed_thick_lines") : wxGetApp().get_shader("flat");
+#endif // SLIC3R_OPENGL_ES
+    if (shader == nullptr) {
+        return;
+    }
+    shader->start_using();
+
+    shader->set_uniform("view_model_matrix", view_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        shader->set_uniform("viewport_size", Vec2d(double(viewport[2]), double(viewport[3])));
+        shader->set_uniform("width", 0.25f);
+#if !SLIC3R_OPENGL_ES
+    } else {
+        glsafe(::glLineWidth(2.0f * m_scale_factor));
+    }
+#endif // !SLIC3R_OPENGL_ES
+
     m_gridlines_bolder.set_color(color);
     m_gridlines_bolder.render();
+
+    shader->stop_using();
 }
 
 void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
@@ -984,20 +1035,32 @@ void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
 	if (m_print && m_print->config().print_sequence == PrintSequence::ByObject && mode != HEIGHT_LIMIT_NONE)
 	{
 		// draw lower limit
-		glsafe(::glLineWidth(3.0f * m_scale_factor));
+	    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+	    if (!OpenGLManager::get_gl_info().is_core_profile())
+	        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
         m_height_limit_common.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
         m_height_limit_common.render();
 
 		if ((mode == HEIGHT_LIMIT_BOTTOM) || (mode == HEIGHT_LIMIT_BOTH)) {
-			glsafe(::glLineWidth(3.0f * m_scale_factor));
-            m_height_limit_bottom.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
+		    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+		    if (!OpenGLManager::get_gl_info().is_core_profile())
+		        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
+		    m_height_limit_bottom.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
             m_height_limit_bottom.render();
 		}
 
 		// draw upper limit
 		if ((mode == HEIGHT_LIMIT_TOP) || (mode == HEIGHT_LIMIT_BOTH)){
-            glsafe(::glLineWidth(3.0f * m_scale_factor));
-            m_height_limit_top.set_color(HEIGHT_LIMIT_TOP_COLOR);
+		    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+		    if (!OpenGLManager::get_gl_info().is_core_profile())
+		        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
+		    m_height_limit_top.set_color(HEIGHT_LIMIT_TOP_COLOR);
             m_height_limit_top.render();
 		}
 	}
@@ -3164,9 +3227,6 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
             }
         }
 
-        if (show_grid)
-            render_grid(bottom);
-
         render_height_limit(mode);
 
         glsafe(::glDisable(GL_BLEND));
@@ -3177,6 +3237,9 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
 
         shader->stop_using();
     }
+
+    if (show_grid)
+        render_grid(bottom);
 
     if (!bottom && m_selected && !force_background_color) {
         if (m_partplate_list)

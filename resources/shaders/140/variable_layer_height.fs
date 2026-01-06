@@ -15,6 +15,8 @@ in vec2 intensity;
 
 in float object_z;
 
+out vec4 out_color;
+
 void main()
 {
     float object_z_row = z_to_texture_row * object_z;
@@ -37,5 +39,5 @@ void main()
         color = mix(texture(z_texture, vec2(z_texture_col, z_texture_row_to_normalized * (z_texture_row + 0.5    )), -10000.),
                     texture(z_texture, vec2(z_texture_col, z_texture_row_to_normalized * (z_texture_row * 2. + 1.)),  10000.), lod);            
     // Mix the final color.
-    gl_FragColor = vec4(vec3(intensity.y), 1.0) +  intensity.x * mix(color, vec4(1.0, 1.0, 0.0, 1.0), z_blend);
+    out_color = vec4(vec3(intensity.y), 1.0) +  intensity.x * mix(color, vec4(1.0, 1.0, 0.0, 1.0), z_blend);
 }

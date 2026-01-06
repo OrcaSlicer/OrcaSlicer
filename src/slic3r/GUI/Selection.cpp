@@ -2618,9 +2618,14 @@ void Selection::render_bounding_box(const BoundingBoxf3& box, const Transform3d&
 
     glsafe(::glEnable(GL_DEPTH_TEST));
 
-    glsafe(::glLineWidth(2.0f * m_scale_factor));
+#if SLIC3R_OPENGL_ES
+    GLShaderProgram* shader = wxGetApp().get_shader("dashed_lines");
+#else
+    if (!OpenGLManager::get_gl_info().is_core_profile())
+        glsafe(::glLineWidth(2.0f * m_scale_factor));
 
-    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    GLShaderProgram* shader = OpenGLManager::get_gl_info().is_core_profile() ? wxGetApp().get_shader("dashed_thick_lines") : wxGetApp().get_shader("flat");
+#endif // SLIC3R_OPENGL_ES
     if (shader == nullptr)
         return;
 
@@ -2628,6 +2633,16 @@ void Selection::render_bounding_box(const BoundingBoxf3& box, const Transform3d&
     const Camera& camera = wxGetApp().plater()->get_camera();
     shader->set_uniform("view_model_matrix", camera.get_view_matrix() * trafo);
     shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        const std::array<int, 4>& viewport = camera.get_viewport();
+        shader->set_uniform("viewport_size", Vec2d(double(viewport[2]), double(viewport[3])));
+        shader->set_uniform("width", 1.5f);
+        shader->set_uniform("gap_size", 0.0f);
+#if !SLIC3R_OPENGL_ES
+    }
+#endif // !SLIC3R_OPENGL_ES
     m_box.set_color(to_rgba(color));
     m_box.render();
     shader->stop_using();
