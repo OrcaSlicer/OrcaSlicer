@@ -462,7 +462,7 @@
     "filament_list": [
         {
             "name": "PolyTerra PLA @0.2 nozzle",
-            "sub_path": "filament/PolyTerra PLA @0.2 nozzle.json"
+            "sub_path": "filament/Polymaker/PolyTerra PLA @0.2 nozzle.json"
         },
         {
             "name": "Snapmaker PLA Lite @U1 base",
@@ -482,11 +482,11 @@
         },
         {
             "name": "PolyTerra Dual PLA @0.2 nozzle",
-            "sub_path": "filament/PolyTerra Dual PLA @0.2 nozzle.json"
+            "sub_path": "filament/Polymaker/PolyTerra Dual PLA @0.2 nozzle.json"
         },
         {
             "name": "PolyTerra J1 PLA @0.2 nozzle",
-            "sub_path": "filament/PolyTerra J1 PLA @0.2 nozzle.json"
+            "sub_path": "filament/Polymaker/PolyTerra J1 PLA @0.2 nozzle.json"
         },
         {
             "name": "Snapmaker PLA Lite @U1",
@@ -609,6 +609,14 @@
             "sub_path": "filament/Snapmaker PET @base.json"
         },
         {
+            "name": "PolyLite PETG @Base",
+            "sub_path": "filament/Polymaker/PolyLite PETG @Base.json"
+        },
+        {
+            "name": "Polymaker PETG @Base",
+            "sub_path": "filament/Polymaker/Polymaker PETG @Base.json"
+        },
+        {
             "name": "Snapmaker Dual PETG @base",
             "sub_path": "filament/Snapmaker Dual PETG @base.json"
         },
@@ -641,16 +649,104 @@
             "sub_path": "filament/Snapmaker PETG-CF @base.json"
         },
         {
+            "name": "Panchroma CoPE @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma CoPE @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Celestial @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Celestial @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Galaxy @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Galaxy @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Glow @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Glow @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Luminous @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Luminous @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Marble @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Marble @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Matte @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Matte @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Metallic @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Metallic @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Neon @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Neon @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Silk @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Silk @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Starlight @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Starlight @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Temp Shift @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Temp Shift @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA Translucent @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Translucent @U1 base.json"
+        },
+        {
+            "name": "Panchroma PLA UV Shift @U1 base",
+            "sub_path": "filament/Polymaker/Panchroma PLA UV Shift @U1 base.json"
+        },
+        {
             "name": "PolyLite PLA @U1 base",
-            "sub_path": "filament/PolyLite PLA @U1 base.json"
+            "sub_path": "filament/Polymaker/PolyLite PLA @U1 base.json"
         },
         {
             "name": "PolyLite PLA @base",
-            "sub_path": "filament/PolyLite PLA @base.json"
+            "sub_path": "filament/Polymaker/PolyLite PLA @base.json"
+        },
+        {
+            "name": "PolyLite PLA Pro @U1 base",
+            "sub_path": "filament/Polymaker/PolyLite PLA Pro @U1 base.json"
         },
         {
             "name": "PolyTerra PLA @U1 base",
-            "sub_path": "filament/PolyTerra PLA @U1 base.json"
+            "sub_path": "filament/Polymaker/PolyTerra PLA @U1 base.json"
+        },
+        {
+            "name": "Polymaker HT-PLA @Base",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA @Base.json"
+        },
+        {
+            "name": "Polymaker HT-PLA @U1 base",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA @U1 base.json"
+        },
+        {
+            "name": "Polymaker HT-PLA-GF @Base",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @Base.json"
+        },
+        {
+            "name": "Polymaker HT-PLA-GF @U1 base",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @U1 base.json"
+        },
+        {
+            "name": "Polymaker PLA Pro @Base",
+            "sub_path": "filament/Polymaker/Polymaker PLA Pro @Base.json"
         },
         {
             "name": "Snapmaker Dual PLA @base",
@@ -885,6 +981,14 @@
             "sub_path": "filament/Snapmaker PET.json"
         },
         {
+            "name": "PolyLite PETG @Snapmaker U1",
+            "sub_path": "filament/Polymaker/PolyLite PETG @Snapmaker U1.json"
+        },
+        {
+            "name": "Polymaker PETG @Snapmaker U1",
+            "sub_path": "filament/Polymaker/Polymaker PETG @Snapmaker U1.json"
+        },
+        {
             "name": "Snapmaker Dual PETG",
             "sub_path": "filament/Snapmaker Dual PETG.json"
         },
@@ -937,20 +1041,108 @@
             "sub_path": "filament/Snapmaker PETG-CF.json"
         },
         {
+            "name": "Panchroma CoPE @U1",
+            "sub_path": "filament/Polymaker/Panchroma CoPE @U1.json"
+        },
+        {
+            "name": "Panchroma PLA @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Celestial @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Celestial @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Galaxy @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Galaxy @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Glow @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Glow @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Luminous @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Luminous @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Marble @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Marble @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Matte @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Matte @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Metallic @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Metallic @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Neon @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Neon @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Silk @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Silk @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Starlight @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Starlight @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Temp Shift @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Temp Shift @U1.json"
+        },
+        {
+            "name": "Panchroma PLA Translucent @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Translucent @U1.json"
+        },
+        {
+            "name": "Panchroma PLA UV Shift @U1",
+            "sub_path": "filament/Polymaker/Panchroma PLA UV Shift @U1.json"
+        },
+        {
             "name": "PolyLite PLA @U1",
-            "sub_path": "filament/PolyLite PLA @U1.json"
+            "sub_path": "filament/Polymaker/PolyLite PLA @U1.json"
         },
         {
             "name": "PolyLite J1 PLA",
-            "sub_path": "filament/PolyLite J1 PLA.json"
+            "sub_path": "filament/Polymaker/PolyLite J1 PLA.json"
         },
         {
             "name": "PolyLite PLA @0.2 nozzle",
-            "sub_path": "filament/PolyLite PLA @0.2 nozzle.json"
+            "sub_path": "filament/Polymaker/PolyLite PLA @0.2 nozzle.json"
+        },
+        {
+            "name": "PolyLite PLA Pro @U1",
+            "sub_path": "filament/Polymaker/PolyLite PLA Pro @U1.json"
         },
         {
             "name": "PolyTerra PLA @U1",
-            "sub_path": "filament/PolyTerra PLA @U1.json"
+            "sub_path": "filament/Polymaker/PolyTerra PLA @U1.json"
+        },
+        {
+            "name": "Polymaker HT-PLA @Snapmaker U1",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA @Snapmaker U1.json"
+        },
+        {
+            "name": "Polymaker HT-PLA @U1",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA @U1.json"
+        },
+        {
+            "name": "Polymaker HT-PLA-GF @Snapmaker U1",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @Snapmaker U1.json"
+        },
+        {
+            "name": "Polymaker HT-PLA-GF @U1",
+            "sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @U1.json"
+        },
+        {
+            "name": "Polymaker PLA Pro @Snapmaker U1",
+            "sub_path": "filament/Polymaker/Polymaker PLA Pro @Snapmaker U1.json"
         },
         {
             "name": "Snapmaker Dual PLA",
@@ -1158,11 +1350,11 @@
         },
         {
             "name": "PolyLite Dual PLA @0.2 nozzle",
-            "sub_path": "filament/PolyLite Dual PLA @0.2 nozzle.json"
+            "sub_path": "filament/Polymaker/PolyLite Dual PLA @0.2 nozzle.json"
         },
         {
             "name": "PolyLite J1 PLA @0.2 nozzle",
-            "sub_path": "filament/PolyLite J1 PLA @0.2 nozzle.json"
+            "sub_path": "filament/Polymaker/PolyLite J1 PLA @0.2 nozzle.json"
         },
         {
             "name": "Snapmaker Dual PLA Eco",
@@ -1206,7 +1398,7 @@
         },
         {
             "name": "PolyTerra J1 PLA",
-            "sub_path": "filament/PolyTerra J1 PLA.json"
+            "sub_path": "filament/Polymaker/PolyTerra J1 PLA.json"
         },
         {
             "name": "Snapmaker PLA Matte @U1 base",

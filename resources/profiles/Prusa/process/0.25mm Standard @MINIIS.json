@@ -29,7 +29,11 @@
     "gap_infill_speed": "60",
     "support_speed": "80",
     "travel_speed": "300",
-    "support_top_z_distance": "0.25",
+    "support_base_pattern_spacing": "2",
+    "support_top_z_distance": "0.22",
+    "support_bottom_z_distance": "0.22",
+    "support_bottom_interface_spacing": "0.22",
+    "support_interface_spacing": "0.25",
     "compatible_printers": [
         "Prusa MINIIS 0.6 nozzle"
     ]

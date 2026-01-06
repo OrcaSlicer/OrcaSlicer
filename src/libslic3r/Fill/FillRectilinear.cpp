@@ -3000,7 +3000,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     params.density /= double(sweep_params.size());
     assert(params.density > 0.0001f && params.density <= 1.f);
 
-    ExPolygonWithOffset poly_with_offset_base(surface->expolygon, 0, float(scale_(this->overlap - 0.5 * this->spacing)));
+    ExPolygonWithOffset poly_with_offset_base(surface->expolygon, 0, float(scale_(this->overlap + 0.5 * params.multiline * this->spacing)));//increase offset to crop infill lines when using multiline infill
     if (poly_with_offset_base.n_contours == 0)
         // Not a single infill line fits.
         return true;
@@ -3012,19 +3012,24 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     for (const SweepParams &sweep : sweep_params) {
         // Rotate polygons so that we can work with vertical lines here
         float angle = rotate_vector.first + sweep.angle_base;
-        //Fill Multiline
-        for (int i = 0; i < params.multiline; ++i) {
-            coord_t group_offset = i * line_spacing;
-            coord_t internal_offset = (i - (params.multiline - 1) / 2.0f) * line_width;
-            coord_t total_offset  = group_offset + internal_offset;
-            coord_t pattern_shift = scale_(sweep.pattern_shift + unscale_(total_offset));
 
-            make_fill_lines(ExPolygonWithOffset(poly_with_offset_base, -angle), rotate_vector.second.rotated(-angle), angle,
-                            line_width + coord_t(SCALED_EPSILON), line_spacing, pattern_shift, fill_lines);
-        }
+        make_fill_lines(ExPolygonWithOffset(poly_with_offset_base, -angle), rotate_vector.second.rotated(-angle), angle,
+                        line_width + coord_t(SCALED_EPSILON), line_spacing, coord_t(scale_(sweep.pattern_shift)), fill_lines);
     }
+        
+    // Apply multiline offset if needed
+    multiline_fill(fill_lines, params, spacing);
+ 
+    // Contract surface polygon by half line width to avoid excesive overlap with perimeter
+    ExPolygons contracted = offset_ex(surface->expolygon, -float(scale_(0.5 * this->spacing)));
+    
+    // if contraction results in empty polygon, use original surface
+    const ExPolygon &intersection_surface = contracted.empty() ? surface->expolygon : contracted.front();
 
-if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb ) && params.multiline >1 )
+    // Intersect polylines with perimeter
+    fill_lines = intersection_pl(std::move(fill_lines), intersection_surface);
+
+    if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb ) && params.multiline >1 )
     remove_overlapped(fill_lines, line_width);
 
     if (!fill_lines.empty()) {
@@ -3033,7 +3038,260 @@ if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb 
                 fill_lines = chain_polylines(std::move(fill_lines));
             append(polylines_out, std::move(fill_lines));
         } else
-            connect_infill(std::move(fill_lines), poly_with_offset_base.polygons_outer, get_extents(surface->expolygon.contour), polylines_out, this->spacing, params);
+             connect_infill(std::move(fill_lines), intersection_surface, polylines_out, this->spacing, params);
+    }
+
+    return true;
+}
+
+bool FillRectilinear::fill_surface_trapezoidal(
+    const Surface*                            surface,
+    FillParams                                params,
+    const std::initializer_list<SweepParams>& sweep_params,
+    Polylines&                                polylines_out,
+    int                                       Pattern_type) // 0=grid, 1=triangular
+{
+    assert(params.multiline > 1);
+
+    Polylines polylines;
+
+    // Common parameters
+    const coord_t d1 = coord_t(scale_(this->spacing)) * params.multiline; // Infill total wall thickness
+
+    // Pattern-specific parameters
+    coord_t                  period;
+    double                   base_angle;
+    std::pair<double, Point> rotate_vector = this->_infill_direction(surface);
+
+    if (Pattern_type == 0) {
+        // Grid pattern parameters
+        period     = coord_t((2.0 * d1 / params.density) * std::sqrt(2.0));
+        base_angle = rotate_vector.first + M_PI_4; // 45
+    } else {
+        // Triangular pattern parameters
+        period     = coord_t(( 2.0 * d1 / params.density) * std::sqrt(3.0));
+        base_angle = rotate_vector.first + M_PI_2; //90
+    }
+
+    // Obtain the expolygon and rotate to align with pattern base angle
+    ExPolygon expolygon = surface->expolygon;
+    if (std::abs(base_angle) >= EPSILON) {
+        expolygon.rotate(-base_angle, rotate_vector.second);
+    }
+
+    // Use extended object bounding box for consistent pattern across layers
+    BoundingBox bb = this->extended_object_bounding_box();
+
+    switch (Pattern_type) {
+    case 0: // Grid / Trapezoidal
+    {
+        // Generate a non-crossing trapezoidal pattern to avoid overextrusion at intersections when `multiline > 1`.
+        //      P1--P2
+        //     /      \
+        //  P0/        \P3__P4
+        //
+        // P1x-P2x=P3x-P4x=d1
+        // P0y-P1y=P2y-P3y=d2
+        
+        const coord_t d2 = coord_t(0.5 * period - d1);
+
+        //  Align bounding box to the grid
+        bb.merge(align_to_grid(bb.min, Point(period, period)));
+        const coord_t xmin = bb.min.x();
+        const coord_t xmax = bb.max.x();
+        const coord_t ymin = bb.min.y();
+        const coord_t ymax = bb.max.y();
+
+        // Create the two base row patterns once
+        Polyline base_row_normal;
+        base_row_normal.points.reserve(((xmax - xmin) / period + 1) * 5); // 5 points per trapezoid
+        Polyline base_row_flipped;
+        base_row_flipped.points.reserve(((xmax - xmin) / period + 1) * 5); // 5 points per trapezoid
+
+        // Build complete rows from xmin to xmax
+        for (coord_t x = xmin; x < xmax; x += period) {
+            // Normal row
+            base_row_normal.points.emplace_back(Point(x, d1 / 2));                    // P0
+            base_row_normal.points.emplace_back(Point(x + d1, d1 / 2));               // P1
+            base_row_normal.points.emplace_back(Point(x + d1 + d2, d1 / 2 + d2));     // P2
+            base_row_normal.points.emplace_back(Point(x + 2 * d1 + d2, d1 / 2 + d2)); // P3
+            base_row_normal.points.emplace_back(Point(x + 2 * d1 + 2 * d2, d1 / 2));  // P4
+        }
+
+        // Flipped row (mirrored vertically)
+        base_row_flipped.points = base_row_normal.points;
+        for (auto& p : base_row_flipped.points) {
+            p.y() = period / 2 - p.y();
+        }
+        
+        // Pre-allocate polylines
+        const size_t estimated_rows = ((ymax - ymin) / (period / 2) + 1);
+        polylines.reserve(estimated_rows);
+
+        bool flip_vertical = false;
+
+        // Now just copy and translate vertically
+        for (coord_t y = ymin; y < ymax; y += period / 2) {
+            Polyline pl_row = flip_vertical ? base_row_flipped : base_row_normal;
+
+            // Translate all points vertically
+            for (Point& p : pl_row.points) {
+                p.y() += y;
+            }
+
+            polylines.emplace_back(std::move(pl_row));
+            flip_vertical = !flip_vertical;
+        }
+
+        // transpose points for odd layers
+        if (layer_id % 2 == 1) {
+            for (Polyline& pl : polylines) {
+                for (Point& p : pl.points) {
+                    std::swap(p.x(), p.y());
+                    p.x() += d1 / 2;
+                    p.y() -= d1 / 2;
+                }
+            }
+        }
+        break;
+    }
+
+    case 1: // Triangular
+    {
+        // Generate a non-crossing trapezoidal pattern with a base line below.
+        //      P1-P2
+        //     /     \
+        //  P0/       \P3_P4
+        //  ----------------
+        // P1x-P2x=P3x-P4x=d2
+        // P0y-P1y=P2y-P3y=h-2d1
+        //
+        
+        // Triangular pattern density adjustment:
+        const coord_t d2_tri = coord_t(2.0 / std::sqrt(3.0) * d1);
+        const coord_t h      = coord_t(0.5 * std::sqrt(3.0) * period); // height of triangle
+
+        //  Align bounding box to the grid
+        bb.merge(align_to_grid(bb.center(), Point(period,h)));
+        const int    layer_mod = layer_id % 3;
+        const double angle     = layer_mod * 2.0 * M_PI / 3.0;
+
+        const Point rotation_center = bb.center();
+        const coord_t half_w = bb.size().x() / 2;
+        const coord_t half_h = bb.size().y() / 2;
+        
+        // Compute how many full periods fit in each direction
+        const coord_t num_periods_x = coord_t(std::ceil(half_w / double(period)));
+        coord_t num_periods_y =coord_t(std::ceil(half_h / double(h)));        
+        // Ensure an even number of rows so the pattern stays centered
+        if ((num_periods_y % 2) != 0)
+            ++num_periods_y;
+        
+        // Compute aligned limits (symmetric around the origin)
+        const coord_t x_min_aligned = -num_periods_x * period;
+        const coord_t x_max_aligned =  num_periods_x * period;   
+        const coord_t y_min_aligned = -num_periods_y * h;
+        const coord_t y_max_aligned =  num_periods_y * h;
+
+        // Pre-allocate estimated number of polylines
+        const size_t estimated_rows = (y_max_aligned - y_min_aligned) / h + 2;
+        const size_t estimated_polylines = (estimated_rows + 1) * 2; // base line + trapezoid line per row
+        polylines.reserve(estimated_polylines);
+
+        // Create the two base row templates once
+        Polyline base_line_template;
+        base_line_template.points.reserve(2); // 2 points for base line
+        Polyline trapezoid_row_normal;
+        trapezoid_row_normal.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 5); // 5 points per trapezoid
+        Polyline trapezoid_row_shifted;
+        trapezoid_row_shifted.points.reserve(((x_max_aligned - x_min_aligned) / period + 1) * 5); // 5 points per trapezoid
+        // Build base line template (from x_min_aligned to x_max_aligned)
+        base_line_template.points.emplace_back(Point(x_min_aligned, 0));
+        base_line_template.points.emplace_back(Point(x_max_aligned, 0));
+
+        // Build complete trapezoid rows once
+        // Normal row (no shift)
+        for (coord_t x = x_min_aligned; x < x_max_aligned; x += period) {
+            trapezoid_row_normal.points.emplace_back(Point(x + d2_tri / 2, d1));                  // P0
+            trapezoid_row_normal.points.emplace_back(Point(x + period / 2 - d2_tri / 2, h - d1)); // P1
+            trapezoid_row_normal.points.emplace_back(Point(x + period / 2 + d2_tri / 2, h - d1)); // P2
+            trapezoid_row_normal.points.emplace_back(Point(x + period - d2_tri / 2, d1));         // P3
+            trapezoid_row_normal.points.emplace_back(Point(x + period, d1));                      // P4
+        }
+
+        // Shifted row (mirrored vertically)
+        trapezoid_row_shifted.points = trapezoid_row_normal.points;
+        for (auto& p : trapezoid_row_shifted.points)
+            p.y() = h - p.y();
+
+        bool shift_row = false;
+
+        // Generate pattern by copying and translating templates vertically
+        for (coord_t y = y_min_aligned; y < y_max_aligned; y += h) {
+            // Base line - copy and translate
+            Polyline base_line = base_line_template;
+            for (Point& p : base_line.points) {
+                p.y() += y;
+            }
+            polylines.emplace_back(std::move(base_line));
+
+            // Trapezoid line - copy and translate the appropriate template
+            Polyline trapezoid_line = shift_row ? trapezoid_row_shifted : trapezoid_row_normal;
+            for (Point& p : trapezoid_line.points) {
+                p.y() += y;
+            }
+
+            if (!trapezoid_line.points.empty()) {
+                polylines.emplace_back(std::move(trapezoid_line));
+            }
+
+            shift_row = !shift_row;
+        }
+
+        //  Rotate around origin (0,0)
+        if (layer_mod)
+            for (auto& pl : polylines)
+                pl.rotate(angle, Point(0,0));
+
+        break;
+    }
+
+    default:
+        // Handle unknown pattern type
+        break;
+    }
+
+    // Apply multiline fill
+    multiline_fill(polylines, params, spacing);
+
+    // Contract surface polygon by half line width to avoid excesive overlap with perimeter
+    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
+
+    // if contraction results in empty polygon, use original surface
+    const ExPolygon &intersection_surface = contracted.empty() ? expolygon : contracted.front();
+
+    // Intersect polylines with offset expolygon
+    polylines = intersection_pl(std::move(polylines), intersection_surface);
+
+    // Remove very short segments that may cause connection issues
+    const double minlength = scale_(0.8 * this->spacing);
+    if (minlength > 0 && !polylines.empty()) {
+        polylines.erase(std::remove_if(polylines.begin(), polylines.end(),
+                                       [minlength](const Polyline& pl) { return pl.length() < minlength; }),
+                        polylines.end());
+    }
+
+    // Connect infill lines using offset expolygon
+    int infill_start_idx = polylines_out.size();
+    if (!polylines.empty()) {
+        Slic3r::Fill::chain_or_connect_infill(std::move(polylines), intersection_surface, polylines_out, this->spacing, params);
+
+        // Rotate back the infill lines to original orientation
+        if (std::abs(base_angle) >= EPSILON) {
+            for (auto it = polylines_out.begin() + infill_start_idx; it != polylines_out.end(); ++it) {
+                it->rotate(base_angle, rotate_vector.second);
+            }
+        }
     }
 
     return true;
@@ -3077,15 +3335,27 @@ Polylines FillMonotonicLine::fill_surface(const Surface* surface, const FillPara
 Polylines FillGrid::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
-    if (! this->fill_surface_by_multilines(
-            surface, params,
-            { { 0.f, 0.f }, { float(M_PI / 2.), 0.f } },
-            polylines_out))
-        BOOST_LOG_TRIVIAL(error) << "FillGrid::fill_surface() failed to fill a region.";
 
-    if (this->layer_id % 2 == 1)
-        for (int i = 0; i < polylines_out.size(); i++)
-            std::reverse(polylines_out[i].begin(), polylines_out[i].end());
+    if (params.multiline > 1) {
+        // Experimental trapezoidal grid
+        if (!this->fill_surface_trapezoidal(
+                 surface, params,
+                 { { 0.f, 0.f }, { float(M_PI / 2.), 0.f } },
+                polylines_out,0))
+            BOOST_LOG_TRIVIAL(error) << "FillGrid::fill_surface_trapezoidal() failed.";
+
+    } else {
+        if (!this->fill_surface_by_multilines(
+                surface, params,
+                { { 0.f, 0.f }, { float(M_PI / 2.), 0.f } },
+                polylines_out))
+            BOOST_LOG_TRIVIAL(error) << "FillGrid::fill_surface() failed to fill a region.";
+    
+
+       if (this->layer_id % 2 == 1)
+           for (int i = 0; i < polylines_out.size(); i++)
+               std::reverse(polylines_out[i].begin(), polylines_out[i].end());
+    }
     return polylines_out;
 }
 
@@ -3108,12 +3378,23 @@ Polylines FillLateralLattice::fill_surface(const Surface *surface, const FillPar
 
 Polylines FillTriangles::fill_surface(const Surface *surface, const FillParams &params){
     Polylines polylines_out;
+        if (params.multiline > 1) {
+        // Experimental trapezoidal grid
+        if (!this->fill_surface_trapezoidal(
+                 surface, params,
+                 { { 0.f, 0.f }, { float(M_PI / 2.), 0.f } },
+                polylines_out,1))
+            BOOST_LOG_TRIVIAL(error) << "FillGrid::fill_surface_trapezoidal() failed.";
+
+    } else {
     if (! this->fill_surface_by_multilines(
             surface, params,
             { { 0.f, 0.f }, { float(M_PI / 3.), 0.f }, { float(2. * M_PI / 3.), 0. } },
             polylines_out))
         BOOST_LOG_TRIVIAL(error) << "FillTriangles::fill_surface() failed to fill a region.";
+    }
     return polylines_out;
+    
 }
 
 Polylines FillStars::fill_surface(const Surface *surface, const FillParams &params)
@@ -3144,8 +3425,8 @@ Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParam
     using namespace boost::math::float_constants;
     Polylines polylines_out;
 
-    coord_t line_width = coord_t(scale_(this->spacing));
-    coord_t period = coord_t(scale_(this->spacing) / params.density) * 4;
+    coord_t line_width = coord_t(scale_(this->spacing)) * params.multiline;
+    coord_t period = coord_t(scale_(this->spacing) *params.multiline / params.density) * 4;
 
     // First half tetrahedral fill
     double  pattern_z_shift = 0.0;

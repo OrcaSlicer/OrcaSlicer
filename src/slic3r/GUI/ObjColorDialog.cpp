@@ -47,14 +47,7 @@ wxBoxSizer* ObjColorDialog::create_btn_sizer(long flags,bool exist_error)
     auto btn_sizer = new wxBoxSizer(wxHORIZONTAL);
     if (!exist_error) {
         btn_sizer->AddSpacer(FromDIP(25));
-        wxStaticText *tips = new wxStaticText(this, wxID_ANY, _L("Open Wiki for more information >"));
-        /* wxFont        font(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false);
-         font.SetUnderlined(true);
-         tips->SetFont(font);*/
-        auto font = tips->GetFont();
-        font.SetUnderlined(true);
-        tips->SetFont(font);
-        tips->SetForegroundColour(wxColour("#009687"));
+        auto *tips = new HyperLink(this, _L("Wiki Guide")); // ORCA
         tips->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
             bool is_zh = wxGetApp().app_config->get("language") == "zh_CN";
             if (is_zh) {

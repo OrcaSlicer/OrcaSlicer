@@ -1,0 +1,10 @@
+{
+    "type": "machine_model",
+    "name": "Cubicon xCeler-Plus",
+    "nozzle_diameter": "0.4",
+    "bed_model": "",
+    "bed_texture": "Cubicon xCeler-I_bed_texture.svg",
+    "family": "Cubicon",
+    "machine_tech": "FFF",
+    "default_materials": "Cubicon PLA @Cubicon xCeler-Plus"
+}

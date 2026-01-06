@@ -32,6 +32,7 @@ public:
     wxString GetPageText(size_t n) const;
     const wxSize& GetPaddingSize(size_t n);
     void SetPaddingSize(const wxSize& size);
+    void SetFooterText(const wxString& text);
     TabButton*                      pageButton;
 
 private:
@@ -43,6 +44,7 @@ private:
     int                             m_selection {-1};
     int                             m_btn_margin;
     int                             m_line_margin;
+    wxStaticText*                   m_footer_text {nullptr};
 };
 
 class Tabbook: public wxBookCtrlBase
@@ -259,6 +261,11 @@ public:
     void Rescale()
     {
         GetBtnsListCtrl()->Rescale();
+    }
+
+    void SetFooterText(const wxString& text)
+    {
+        GetBtnsListCtrl()->SetFooterText(text);
     }
 
     void OnNavigationKey(wxNavigationKeyEvent& event)

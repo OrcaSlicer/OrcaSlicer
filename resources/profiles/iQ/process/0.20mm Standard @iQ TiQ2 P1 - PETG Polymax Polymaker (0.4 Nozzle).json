@@ -20,6 +20,9 @@
     "enable_overhang_speed": "0",
     "enable_prime_tower": "0",
     "gap_infill_speed": "50",
+    "thick_internal_bridges": "0",
+    "enable_extra_bridge_layer": "apply_to_all",
+    "bottom_shell_thickness": "0.8",
     "initial_layer_infill_speed": "25",
     "initial_layer_speed": "25",
     "initial_layer_travel_speed": "50%",
@@ -63,10 +66,11 @@
     "tree_support_wall_count": "2",
     "wall_direction": "ccw",
     "wall_loops": "3",
-    "wall_sequence": "inner-outer-inner wall",
+    "wall_sequence": "inner wall/outer wall",
     "support_base_pattern": "rectilinear-grid",
     "support_interface_pattern": "rectilinear_interlaced",
     "support_interface_spacing": "0",
-    "small_perimeter_speed": "30%",
+    "small_perimeter_speed": "50",
+    "support_interface_speed": "50",
     "brim_type": "no_brim"
 }

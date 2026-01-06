@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <set>
+#include <algorithm>
 #if defined(_MSC_VER) || defined(_WIN32)
 #include <Windows.h>
 #else
@@ -27,6 +29,7 @@ static void* source_module = NULL;
 #endif
 
 bool NetworkAgent::use_legacy_network = true;
+NetworkLibraryLoadError NetworkAgent::s_load_error = {};
 
 typedef int (*func_start_print_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
 typedef int (*func_start_local_print_with_record_legacy)(void *agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn);
@@ -219,10 +222,128 @@ std::string NetworkAgent::get_libpath_in_current_directory(std::string library_n
     return lib_path;
 }
 
-
-int NetworkAgent::initialize_network_module(bool using_backup)
+std::string NetworkAgent::get_versioned_library_path(const std::string& version)
 {
-    //int ret = -1;
+    std::string data_dir_str = data_dir();
+    boost::filesystem::path data_dir_path(data_dir_str);
+    auto plugin_folder = data_dir_path / "plugins";
+
+#if defined(_MSC_VER) || defined(_WIN32)
+    return (plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll")).string();
+#elif defined(__WXMAC__)
+    return (plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dylib")).string();
+#else
+    return (plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".so")).string();
+#endif
+}
+
+bool NetworkAgent::versioned_library_exists(const std::string& version)
+{
+    if (version.empty()) return false;
+    std::string path = get_versioned_library_path(version);
+
+    // Check if versioned library exists
+    if (boost::filesystem::exists(path)) return true;
+
+    // For legacy version, also check if unversioned legacy library exists
+    // (it will be auto-migrated to versioned format when loaded)
+    if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
+        return legacy_library_exists();
+    }
+
+    return false;
+}
+
+bool NetworkAgent::legacy_library_exists()
+{
+    std::string data_dir_str = data_dir();
+    boost::filesystem::path data_dir_path(data_dir_str);
+    auto plugin_folder = data_dir_path / "plugins";
+
+#if defined(_MSC_VER) || defined(_WIN32)
+    auto legacy_path = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + ".dll");
+#elif defined(__WXMAC__)
+    auto legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".dylib");
+#else
+    auto legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".so");
+#endif
+    return boost::filesystem::exists(legacy_path);
+}
+
+void NetworkAgent::remove_legacy_library()
+{
+    std::string data_dir_str = data_dir();
+    boost::filesystem::path data_dir_path(data_dir_str);
+    auto plugin_folder = data_dir_path / "plugins";
+
+#if defined(_MSC_VER) || defined(_WIN32)
+    auto legacy_path = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + ".dll");
+#elif defined(__WXMAC__)
+    auto legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".dylib");
+#else
+    auto legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".so");
+#endif
+
+    if (boost::filesystem::exists(legacy_path)) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": removing legacy library at " << legacy_path.string();
+        boost::system::error_code ec;
+        boost::filesystem::remove(legacy_path, ec);
+        if (ec) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to remove legacy library: " << ec.message();
+        }
+    }
+}
+
+std::vector<std::string> NetworkAgent::scan_plugin_versions()
+{
+    std::vector<std::string> discovered_versions;
+    std::string data_dir_str = data_dir();
+    boost::filesystem::path plugin_folder = boost::filesystem::path(data_dir_str) / "plugins";
+
+    if (!boost::filesystem::is_directory(plugin_folder)) {
+        return discovered_versions;
+    }
+
+#if defined(_MSC_VER) || defined(_WIN32)
+    std::string prefix = std::string(BAMBU_NETWORK_LIBRARY) + "_";
+    std::string extension = ".dll";
+#elif defined(__WXMAC__)
+    std::string prefix = std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_";
+    std::string extension = ".dylib";
+#else
+    std::string prefix = std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_";
+    std::string extension = ".so";
+#endif
+
+    boost::system::error_code ec;
+    for (auto& entry : boost::filesystem::directory_iterator(plugin_folder, ec)) {
+        if (ec) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": error iterating directory: " << ec.message();
+            break;
+        }
+        if (!boost::filesystem::is_regular_file(entry.status()))
+            continue;
+
+        std::string filename = entry.path().filename().string();
+
+        if (filename.rfind(prefix, 0) != 0)
+            continue;
+        if (filename.size() <= extension.size() ||
+            filename.compare(filename.size() - extension.size(), extension.size(), extension) != 0)
+            continue;
+
+        std::string version = filename.substr(prefix.size(),
+                                               filename.size() - prefix.size() - extension.size());
+        discovered_versions.push_back(version);
+    }
+
+    return discovered_versions;
+}
+
+int NetworkAgent::initialize_network_module(bool using_backup, const std::string& version)
+{
+    clear_load_error();
+
     std::string library;
     std::string data_dir_str = data_dir();
     boost::filesystem::path data_dir_path(data_dir_str);
@@ -232,25 +353,74 @@ int NetworkAgent::initialize_network_module(bool using_backup)
         plugin_folder = plugin_folder/"backup";
     }
 
-    //first load the library
+    if (version.empty()) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": version is required but not provided";
+        set_load_error(
+            "Network library version not specified",
+            "A version must be specified to load the network library",
+            ""
+        );
+        return -1;
+    }
+
+    // Auto-migration: If loading legacy version and versioned library doesn't exist,
+    // but unversioned legacy library does exist, rename it to versioned format
+    if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
+        boost::filesystem::path versioned_path;
+        boost::filesystem::path legacy_path;
 #if defined(_MSC_VER) || defined(_WIN32)
-    library = plugin_folder.string() + "\\" + std::string(BAMBU_NETWORK_LIBRARY) + ".dll";
-    wchar_t lib_wstr[128];
+        versioned_path = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll");
+        legacy_path = plugin_folder / (std::string(BAMBU_NETWORK_LIBRARY) + ".dll");
+#elif defined(__WXMAC__)
+        versioned_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dylib");
+        legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".dylib");
+#else
+        versioned_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".so");
+        legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".so");
+#endif
+        if (!boost::filesystem::exists(versioned_path) && boost::filesystem::exists(legacy_path)) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto-migrating unversioned legacy library to versioned format";
+
+            try {
+                // Rename unversioned to versioned in the same folder (main or backup).
+                boost::filesystem::rename(legacy_path, versioned_path);
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": successfully renamed " << legacy_path.string() << " to "
+                                        << versioned_path.string();
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to rename legacy library: " << e.what();
+            }
+        }
+    }
+
+    // Load versioned library
+#if defined(_MSC_VER) || defined(_WIN32)
+    library = plugin_folder.string() + "\\" + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll";
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": loading versioned library at " << library;
+#else
+    #if defined(__WXMAC__)
+    std::string lib_ext = ".dylib";
+    #else
+    std::string lib_ext = ".so";
+    #endif
+    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + lib_ext;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": loading versioned library at " << library;
+#endif
+
+#if defined(_MSC_VER) || defined(_WIN32)
+    wchar_t lib_wstr[256];
     memset(lib_wstr, 0, sizeof(lib_wstr));
     ::MultiByteToWideChar(CP_UTF8, NULL, library.c_str(), strlen(library.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
     netwoking_module = LoadLibrary(lib_wstr);
-    /*if (!netwoking_module) {
-        library = std::string(BAMBU_NETWORK_LIBRARY) + ".dll";
-        memset(lib_wstr, 0, sizeof(lib_wstr));
-        ::MultiByteToWideChar(CP_UTF8, NULL, library.c_str(), strlen(library.c_str()) + 1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
-        netwoking_module = LoadLibrary(lib_wstr);
-    }*/
     if (!netwoking_module) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", try load library directly from current directory");
-
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": versioned library not found, trying current directory";
         std::string library_path = get_libpath_in_current_directory(std::string(BAMBU_NETWORK_LIBRARY));
         if (library_path.empty()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", can not get path in current directory for %1%") % BAMBU_NETWORK_LIBRARY;
+            set_load_error(
+                "Network library not found",
+                "Could not locate versioned library: " + library,
+                library
+            );
             return -1;
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", current path %1%")%library_path;
@@ -259,29 +429,28 @@ int NetworkAgent::initialize_network_module(bool using_backup)
         netwoking_module = LoadLibrary(lib_wstr);
     }
 #else
-    #if defined(__WXMAC__)
-    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".dylib";
-    #else
-    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".so";
-    #endif
-    printf("loading network module at %s\n", library.c_str());
-    netwoking_module = dlopen( library.c_str(), RTLD_LAZY);
+    netwoking_module = dlopen(library.c_str(), RTLD_LAZY);
     if (!netwoking_module) {
-        /*#if defined(__WXMAC__)
-        library = std::string("lib") + BAMBU_NETWORK_LIBRARY + ".dylib";
-        #else
-        library = std::string("lib") + BAMBU_NETWORK_LIBRARY + ".so";
-        #endif*/
-        //netwoking_module = dlopen( library.c_str(), RTLD_LAZY);
         char* dll_error = dlerror();
-        printf("error, dlerror is %s\n", dll_error);
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", error, dlerror is %1%")%dll_error;
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": dlopen failed: " << (dll_error ? dll_error : "unknown error");
+        set_load_error(
+            "Failed to load network library",
+            dll_error ? std::string(dll_error) : "Unknown dlopen error",
+            library
+        );
     }
     printf("after dlopen, network_module is %p\n", netwoking_module);
 #endif
 
     if (!netwoking_module) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", can not Load Library for %1%")%library;
+        if (!s_load_error.has_error) {
+            set_load_error(
+                "Network library failed to load",
+                "LoadLibrary/dlopen returned null",
+                library
+            );
+        }
         return -1;
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", successfully loaded library %1%, module %2%")%library %netwoking_module;
@@ -390,6 +559,12 @@ int NetworkAgent::initialize_network_module(bool using_backup)
 
     get_mw_user_preference_ptr = reinterpret_cast<func_get_mw_user_preference>(get_network_function("bambu_network_get_mw_user_preference"));
     get_mw_user_4ulist_ptr     = reinterpret_cast<func_get_mw_user_4ulist>(get_network_function("bambu_network_get_mw_user_4ulist"));
+
+    if (get_version_ptr) {
+        std::string version = get_version_ptr();
+        printf("network plugin version: %s\n", version.c_str());
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": network plugin version = " << version;
+    }
 
     return 0;
 }
@@ -515,6 +690,11 @@ int NetworkAgent::unload_network_module()
     return 0;
 }
 
+bool NetworkAgent::is_network_module_loaded()
+{
+    return netwoking_module != nullptr;
+}
+
 #if defined(_MSC_VER) || defined(_WIN32)
 HMODULE NetworkAgent::get_bambu_source_entry()
 #else
@@ -608,6 +788,24 @@ std::string NetworkAgent::get_version()
     }
     BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", get_version not supported,return 00.00.00.00!");
     return "00.00.00.00";
+}
+
+NetworkLibraryLoadError NetworkAgent::get_load_error()
+{
+    return s_load_error;
+}
+
+void NetworkAgent::clear_load_error()
+{
+    s_load_error = NetworkLibraryLoadError{};
+}
+
+void NetworkAgent::set_load_error(const std::string& message, const std::string& technical_details, const std::string& attempted_path)
+{
+    s_load_error.has_error = true;
+    s_load_error.message = message;
+    s_load_error.technical_details = technical_details;
+    s_load_error.attempted_path = attempted_path;
 }
 
 int NetworkAgent::init_log()
@@ -1662,3 +1860,63 @@ int NetworkAgent::get_model_mall_rating_result(int job_id, std::string &rating_r
 }
 
 } //namespace
+
+std::vector<BBL::NetworkLibraryVersionInfo> BBL::get_all_available_versions()
+{
+    std::vector<NetworkLibraryVersionInfo> result;
+    std::set<std::string> known_base_versions;
+    std::set<std::string> all_known_versions;
+
+    for (size_t i = 0; i < AVAILABLE_NETWORK_VERSIONS_COUNT; ++i) {
+        result.push_back(NetworkLibraryVersionInfo::from_static(AVAILABLE_NETWORK_VERSIONS[i]));
+        known_base_versions.insert(AVAILABLE_NETWORK_VERSIONS[i].version);
+        all_known_versions.insert(AVAILABLE_NETWORK_VERSIONS[i].version);
+    }
+
+    std::vector<std::string> discovered = Slic3r::NetworkAgent::scan_plugin_versions();
+
+    std::vector<std::pair<std::string, std::string>> suffixed_versions;
+
+    for (const auto& version : discovered) {
+        if (all_known_versions.count(version) > 0)
+            continue;
+
+        std::string base = extract_base_version(version);
+        std::string suffix = extract_suffix(version);
+
+        if (suffix.empty())
+            continue;
+
+        if (known_base_versions.count(base) == 0)
+            continue;
+
+        suffixed_versions.emplace_back(base, version);
+        all_known_versions.insert(version);
+    }
+
+    std::sort(suffixed_versions.begin(), suffixed_versions.end(),
+              [](const auto& a, const auto& b) {
+                  if (a.first != b.first) return a.first > b.first;
+                  return a.second < b.second;
+              });
+
+    for (const auto& [base, full] : suffixed_versions) {
+        size_t insert_pos = 0;
+        for (size_t i = 0; i < result.size(); ++i) {
+            if (result[i].base_version == base) {
+                insert_pos = i + 1;
+                while (insert_pos < result.size() &&
+                       result[insert_pos].base_version == base) {
+                    ++insert_pos;
+                }
+                break;
+            }
+        }
+
+        std::string sfx = extract_suffix(full);
+        result.insert(result.begin() + insert_pos,
+                      NetworkLibraryVersionInfo::from_discovered(full, base, sfx));
+    }
+
+    return result;
+}

@@ -2,7 +2,7 @@
     "type": "machine",
     "name": "Cubicon xCeler-I 0.4 nozzle",
     "inherits": "fdm_machine_common",
-    "from": "User",
+    "from": "system",
     "instantiation": "true",
     "adaptive_bed_mesh_margin": "0",
     "auxiliary_fan": "1",
@@ -22,9 +22,9 @@
     "cooling_tube_length": "0",
     "cooling_tube_retraction": "0",
     "default_filament_profile": [
-        "Cubicon PLA @base"
+        "Cubicon PLA @Cubicon xCeler-I"
     ],
-    "default_print_profile": "0.08mm Extra Fine @Creality K1 (0.4 nozzle)",
+    "default_print_profile": "cubicon default @base",
     "deretraction_speed": [
         "30"
     ],
