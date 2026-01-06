@@ -451,7 +451,9 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                 if ((position - prev_move.position).norm() > EPSILON &&
                     (position - curr_move.position).norm() > EPSILON) {
                     const float delta_extruder = interpolate ? lerp(prev_move.delta_extruder, curr_move.delta_extruder, t) : curr_move.delta_extruder;
-                    const float feedrate = interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
+                    const float feedrate = curr_move.feedrate; //  ORCA: set feedrate to the gcode feed rate to prevent visualiser from
+                                                                // displaying erroneous speed transition when actual speed/actual flow views are NOT selected.
+                                                                // interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
                     const float width = interpolate ? lerp(prev_move.width, curr_move.width, t) : curr_move.width;
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
                     // ORCA: Fix issue with flow rate changes being visualized incorrectly
@@ -480,7 +482,9 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
                 if ((position - prev_move.position).norm() > EPSILON &&
                     (position - curr_move.position).norm() > EPSILON) {
                     const float delta_extruder = interpolate ? lerp(prev_move.delta_extruder, curr_move.delta_extruder, t) : curr_move.delta_extruder;
-                    const float feedrate = interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
+                    const float feedrate = curr_move.feedrate; //  ORCA: set feedrate to the gcode feed rate to prevent visualiser from
+                                                                // displaying erroneous speed transition when actual speed/actual flow views are NOT selected.
+                                                                // interpolate ? lerp(prev_move.feedrate, curr_move.feedrate, t) : curr_move.feedrate;
                     const float width = interpolate ? lerp(prev_move.width, curr_move.width, t) : curr_move.width;
                     const float height = interpolate ? lerp(prev_move.height, curr_move.height, t) : curr_move.height;
                     // ORCA: Fix issue with flow rate changes being visualized incorrectly
