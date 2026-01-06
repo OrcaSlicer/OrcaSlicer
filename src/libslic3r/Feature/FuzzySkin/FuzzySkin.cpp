@@ -162,8 +162,8 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
     }
 
     if (ext_lines.back().p == ext_lines.front().p) { // Connect endpoints.
-        out.back().p = out.front().p;
-        out.back().w = out.front().w;
+        out.front().p = out.back().p;
+        out.front().w = out.back().w;
     }
 
     if (out.size() >= 3)

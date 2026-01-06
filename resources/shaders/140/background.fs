@@ -5,9 +5,7 @@ uniform vec4 bottom_color;
 
 in vec2 tex_coord;
 
-out vec4 out_color;
-
 void main()
 {
-    out_color = mix(bottom_color, top_color, tex_coord.y);
+    gl_FragColor = mix(bottom_color, top_color, tex_coord.y);
 }

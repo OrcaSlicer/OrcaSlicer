@@ -326,7 +326,7 @@ public:
     void load_gcode();
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
-    void reload_print();
+    void refresh_print();
 
     // SoftFever
     void calib_pa(const Calib_Params& params);

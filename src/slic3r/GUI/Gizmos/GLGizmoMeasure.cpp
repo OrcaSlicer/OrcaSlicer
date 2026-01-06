@@ -1184,30 +1184,24 @@ void GLGizmoMeasure::render_dimensioning()
 
         const Transform3d ss_to_ndc_matrix = TransformHelper::ndc_to_ss_matrix_inverse(viewport);
 
-#if !SLIC3R_OPENGL_ES
+#if ENABLE_GL_CORE_PROFILE
         if (OpenGLManager::get_gl_info().is_core_profile()) {
-#endif // !SLIC3R_OPENGL_ES
             shader->stop_using();
 
-#if SLIC3R_OPENGL_ES
-            shader = wxGetApp().get_shader("dashed_lines");
-#else
-             shader = wxGetApp().get_shader("dashed_thick_lines");
-#endif // SLIC3R_OPENGL_ES
+            shader = wxGetApp().get_shader("dashed_thick_lines");
             if (shader == nullptr)
                 return;
 
             shader->start_using();
             shader->set_uniform("projection_matrix", Transform3d::Identity());
+            const std::array<int, 4>& viewport = camera.get_viewport();
             shader->set_uniform("viewport_size", Vec2d(double(viewport[2]), double(viewport[3])));
             shader->set_uniform("width", 1.0f);
             shader->set_uniform("gap_size", 0.0f);
-#if !SLIC3R_OPENGL_ES
         }
         else
-             glsafe(::glLineWidth(2.0f));
-#endif // !SLIC3R_OPENGL_ES
-
+#endif // ENABLE_GL_CORE_PROFILE
+            glsafe(::glLineWidth(2.0f));
         // stem
         shader->set_uniform("view_model_matrix", overlap ?
             ss_to_ndc_matrix * Geometry::translation_transform(v1ss_3) * q12ss * Geometry::translation_transform(-2.0 * TRIANGLE_HEIGHT * Vec3d::UnitX()) * Geometry::scale_transform({ v12ss_len + 4.0 * TRIANGLE_HEIGHT, 1.0f, 1.0f }) :
@@ -1215,9 +1209,8 @@ void GLGizmoMeasure::render_dimensioning()
         m_dimensioning.line.set_color(color);
         m_dimensioning.line.render();
 
-#if !SLIC3R_OPENGL_ES
+#if ENABLE_GL_CORE_PROFILE
         if (OpenGLManager::get_gl_info().is_core_profile()) {
-#endif // !SLIC3R_OPENGL_ES
             shader->stop_using();
 
             shader = wxGetApp().get_shader("flat");
@@ -1225,11 +1218,10 @@ void GLGizmoMeasure::render_dimensioning()
                 return;
 
             shader->start_using();
-#if !SLIC3R_OPENGL_ES
         }
         else
+#endif // ENABLE_GL_CORE_PROFILE
             glsafe(::glLineWidth(1.0f));
-#endif // !SLIC3R_OPENGL_ES
 
         // arrow 1
         if (show_first_tri) {
@@ -1449,16 +1441,11 @@ void GLGizmoMeasure::render_dimensioning()
         }
 
         const Camera& camera = wxGetApp().plater()->get_camera();
-#if !SLIC3R_OPENGL_ES
+#if ENABLE_GL_CORE_PROFILE
         if (OpenGLManager::get_gl_info().is_core_profile()) {
-#endif // !SLIC3R_OPENGL_ES
             shader->stop_using();
 
-#if SLIC3R_OPENGL_ES
-            shader = wxGetApp().get_shader("dashed_lines");
-#else
             shader = wxGetApp().get_shader("dashed_thick_lines");
-#endif // SLIC3R_OPENGL_ES
             if (shader == nullptr)
                 return;
 
@@ -1468,20 +1455,18 @@ void GLGizmoMeasure::render_dimensioning()
             shader->set_uniform("viewport_size", Vec2d(double(viewport[2]), double(viewport[3])));
             shader->set_uniform("width", 1.0f);
             shader->set_uniform("gap_size", 0.0f);
-#if !SLIC3R_OPENGL_ES
         }
         else
-            glsafe(::glLineWidth(2.0f));
-#endif // !SLIC3R_OPENGL_ES
+#endif // ENABLE_GL_CORE_PROFILE
+          glsafe(::glLineWidth(2.0f));
 
         // arc
         shader->set_uniform("projection_matrix", camera.get_projection_matrix());
         shader->set_uniform("view_model_matrix", camera.get_view_matrix() * Geometry::translation_transform(center));
         m_dimensioning.arc.render();
 
-#if !SLIC3R_OPENGL_ES
+#if ENABLE_GL_CORE_PROFILE
         if (OpenGLManager::get_gl_info().is_core_profile()) {
-#endif // !SLIC3R_OPENGL_ES
             shader->stop_using();
 
             shader = wxGetApp().get_shader("flat");
@@ -1489,11 +1474,10 @@ void GLGizmoMeasure::render_dimensioning()
                 return;
 
             shader->start_using();
-#if !SLIC3R_OPENGL_ES
         }
         else
-            glsafe(::glLineWidth(1.0f));
-#endif // !SLIC3R_OPENGL_ES
+#endif // ENABLE_GL_CORE_PROFILE
+          glsafe(::glLineWidth(1.0f));
 
         // arrows
         auto render_arrow = [this, shader, &camera, &normal, &center, &e1_unit, draw_radius, step, resolution](unsigned int endpoint_id) {

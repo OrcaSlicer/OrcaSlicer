@@ -4,9 +4,9 @@
 #include <wx/dcgraph.h>
 #include <wx/gdicmn.h>
 #include <wx/dcclient.h>
+#include <wx/hyperlink.h>
 #include "Button.hpp"
 #include "Label.hpp"
-#include "HyperLink.hpp" // ORCA
 #include "../GUI/Tabbook.hpp"
 #include "../DeviceManager.hpp"
 #include "../wxExtensions.hpp"
@@ -99,13 +99,13 @@ public:
 private:
     SideToolsPanel* m_side_tools{ nullptr };
     Tabbook*        m_tabpanel{ nullptr };
-    HyperLink* m_link_network_state{ nullptr }; // ORCA
+    wxHyperlinkCtrl* m_link_network_state{ nullptr };
     Label* m_st_txt_error_code{ nullptr };
     Label* m_st_txt_error_desc{ nullptr };
     Label* m_st_txt_extra_info{ nullptr };
     wxWindow* m_side_error_panel{ nullptr };
     Button* m_connection_info{ nullptr };
-    HyperLink* m_hyperlink{ nullptr }; // ORCA
+    wxHyperlinkCtrl* m_hyperlink{ nullptr };
     ScalableButton* m_more_button{ nullptr };
     ScalableBitmap      m_more_err_open;
     ScalableBitmap      m_more_err_close;

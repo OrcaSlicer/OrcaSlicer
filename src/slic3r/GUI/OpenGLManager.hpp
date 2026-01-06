@@ -24,12 +24,8 @@ public:
     class GLInfo
     {
         bool m_detected{ false };
-        bool m_core_profile{ false };
         int m_max_tex_size{ 0 };
         float m_max_anisotropy{ 0.0f };
-#if ENABLE_OPENGL_AUTO_AA_SAMPLES
-        int m_samples{ 0 };
-#endif // ENABLE_OPENGL_AUTO_AA_SAMPLES
 
         std::string m_version;
         std::string m_glsl_version;
@@ -43,8 +39,6 @@ public:
         const std::string& get_glsl_version() const;
         const std::string& get_vendor() const;
         const std::string& get_renderer() const;
-
-        bool is_core_profile() const { return m_core_profile; }
 
         bool is_mesa() const;
 
@@ -99,7 +93,7 @@ public:
     ~OpenGLManager();
 
     bool init_gl(bool popup_error = true);
-    wxGLContext* init_glcontext(wxGLCanvas& canvas, const std::pair<int, int>& required_opengl_version, bool enable_compatibility_profile, bool enable_debug);
+    wxGLContext* init_glcontext(wxGLCanvas& canvas);
 
     GLShaderProgram* get_shader(const std::string& shader_name) { return m_shaders_manager.get_shader(shader_name); }
     GLShaderProgram* get_current_shader() { return m_shaders_manager.get_current_shader(); }

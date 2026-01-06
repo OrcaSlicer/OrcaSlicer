@@ -251,8 +251,6 @@ set(lisbslic3r_sources
     GCode/WipeTower.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
-    Geometry/ArcWelder.hpp
-    Geometry/ArcWelder.cpp
     Geometry/Bicubic.hpp
     Geometry/Circle.cpp
     Geometry/Circle.hpp

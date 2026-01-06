@@ -4,8 +4,11 @@
 #include "../libslic3r.h"
 #include "../PrintConfig.hpp"
 #include "../ExtrusionEntity.hpp"
-#include "PchipInterpolatorHelper.hpp"
 #include <memory>
+
+namespace tk {
+class spline;
+} // namespace tk
 
 namespace Slic3r {
 
@@ -23,7 +26,8 @@ private:
     std::vector<double> eLengths;
     std::vector<double> flowComps;
 
-    std::unique_ptr<PchipInterpolatorHelper> flowModel;
+    // TODO: Cubic Spline
+    std::unique_ptr<tk::spline> flowModel;
 
     double flow_comp_model(const double line_length);
 

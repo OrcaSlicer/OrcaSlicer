@@ -116,14 +116,8 @@ class NetworkAgent
 
 public:
     static std::string get_libpath_in_current_directory(std::string library_name);
-    static std::string get_versioned_library_path(const std::string& version);
-    static bool versioned_library_exists(const std::string& version);
-    static bool legacy_library_exists();
-    static void remove_legacy_library();
-    static std::vector<std::string> scan_plugin_versions();
-    static int initialize_network_module(bool using_backup = false, const std::string& version = "");
+    static int initialize_network_module(bool using_backup = false);
     static int unload_network_module();
-    static bool is_network_module_loaded();
 #if defined(_MSC_VER) || defined(_WIN32)
     static HMODULE get_bambu_source_entry();
 #else
@@ -132,10 +126,6 @@ public:
     static std::string get_version();
     static void* get_network_function(const char* name);
     static bool use_legacy_network;
-
-    static NetworkLibraryLoadError get_load_error();
-    static void clear_load_error();
-    static void set_load_error(const std::string& message, const std::string& technical_details, const std::string& attempted_path);
     NetworkAgent(std::string log_dir);
     ~NetworkAgent();
 
@@ -241,8 +231,6 @@ public:
 private:
     bool enable_track = false;
     void*                   network_agent { nullptr };
-
-    static NetworkLibraryLoadError s_load_error;
 
     static func_check_debug_consistent         check_debug_consistent_ptr;
     static func_get_version                    get_version_ptr;

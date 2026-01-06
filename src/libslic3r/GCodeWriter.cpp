@@ -444,27 +444,22 @@ std::string GCodeWriter::reset_e(bool force)
     }
 }
 
-std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
+std::string GCodeWriter::enable_power_loss_recovery(bool enable)
 {
     std::ostringstream gcode;
-
-    if (mode == PowerLossRecoveryMode::PrinterConfiguration)
-        return std::string();
-
-    const bool enable = mode == PowerLossRecoveryMode::Enable;
-
+    
     if (m_is_bbl_printers) {
-        gcode << "M1003 S" << (enable ? "1" : "0");
+        gcode << "; start tracking Power Loss Recovery https://wiki.bambulab.com/en/knowledge-sharing/power-loss-recovery\n";
+        gcode << "M1003 S" << (enable ? "1" : "0") << "\n";
     }
     else if (FLAVOR_IS(gcfMarlinFirmware)) {
-        gcode << "M413 S" << (enable ? "1" : "0");
-    } else {
-        return std::string();
+        gcode << "; start tracking Power-loss Recovery https://marlinfw.org/docs/gcode/M413.html\n";
+        gcode << "M413 S" << (enable ? "1" : "0") << "\n";
     }
-    if (GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
-    gcode << "\n";
+    
     return gcode.str();
 }
+
 
 std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, bool allow_100) const
 {

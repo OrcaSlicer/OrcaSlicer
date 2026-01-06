@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include dev-utils for encoding check and other utilities
 add_subdirectory(dev-utils)
+# Clipper2 math utils
+add_subdirectory(clipper2)
 # add_subdirectory(avrdude)
 # Note: semver and hints are now included from deps_src/CMakeLists.txt
 
@@ -15,7 +17,6 @@ add_subdirectory(libslic3r)
 
 if (SLIC3R_GUI)
     # imgui, imguizmo, and hidapi are now included from deps_src
-    add_subdirectory(libvgcode)
 
     if(WIN32)
         message(STATUS "WXWIN environment set to: $ENV{WXWIN}")

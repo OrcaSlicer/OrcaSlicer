@@ -269,7 +269,7 @@ void SelectMObjectPopup::Popup(wxWindow* WXUNUSED(focus))
         }
     }
 
-    wxPostEvent(this, wxTimerEvent(*m_refresh_timer));
+    wxPostEvent(this, wxTimerEvent());
     PopupWindow::Popup();
 }
 
@@ -505,7 +505,7 @@ void CalibrationPanel::init_timer()
     m_refresh_timer = new wxTimer();
     m_refresh_timer->SetOwner(this);
     m_refresh_timer->Start(REFRESH_INTERVAL);
-    wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
+    wxPostEvent(this, wxTimerEvent());
 }
 
 void CalibrationPanel::on_timer(wxTimerEvent& event) {
@@ -634,7 +634,7 @@ bool CalibrationPanel::Show(bool show) {
         m_refresh_timer->Stop();
         m_refresh_timer->SetOwner(this);
         m_refresh_timer->Start(REFRESH_INTERVAL);
-        wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
+        wxPostEvent(this, wxTimerEvent());
 
         DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
         if (dev) {
