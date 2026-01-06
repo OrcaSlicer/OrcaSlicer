@@ -1,0 +1,22 @@
+{
+    "type": "filament",
+    "filament_id": "GFSEP016",
+    "setting_id": "GFSEP016_00",
+    "name": "Eolas Prints TPU Transition @System",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_tpu",
+    "filament_color": ["#4d9398"],
+    "filament_vendor": ["Eolas Prints"],
+    "filament_type": ["TPU"],
+    "nozzle_temperature": ["220"],
+    "nozzle_temperature_initial_layer": ["225"],
+    "nozzle_temperature_range_low": ["210"],
+    "nozzle_temperature_range_high": ["240"],
+    "hot_plate_temp": ["50"],
+    "hot_plate_temp_initial_layer": ["55"],
+    "filament_density": ["1.21"],
+    "filament_cost": ["22.50"],
+    "filament_spool_weight": ["1000"],
+    "filament_max_volumetric_speed": ["5"]
+}

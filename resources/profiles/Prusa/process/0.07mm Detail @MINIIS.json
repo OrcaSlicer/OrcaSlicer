@@ -21,7 +21,9 @@
     "bottom_shell_layers": "8",
     "bridge_speed": "30",
     "internal_solid_infill_speed": "140",
-    "support_top_z_distance": "0.1",
+    "support_base_pattern_spacing": "1",
+    "support_top_z_distance": "0.09",
+    "support_bottom_z_distance": "0.09",
     "compatible_printers": [
         "Prusa MINIIS 0.25 nozzle"
     ]

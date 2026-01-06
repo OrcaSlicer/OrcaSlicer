@@ -93,7 +93,7 @@ jobs:
       - name: Apt-Install Dependencies
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ github.sha }}-tests
       - uses: lukka/get-cmake@latest
@@ -105,7 +105,7 @@ jobs:
           tar -xvf build_tests.tar
           scripts/run_unit_tests.sh
       - name: Upload Test Logs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: ${{ failure() }}
         with:
           name: unit-test-logs
@@ -169,7 +169,7 @@ jobs:
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'

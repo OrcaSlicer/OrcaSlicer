@@ -23,6 +23,8 @@
 namespace Slic3r {
 namespace GUI {
 
+const std::vector<std::pair<int, int>> OpenGLVersions::core    = { {3,2}, {3,3}, {4,0}, {4,1}, {4,2}, {4,3}, {4,4}, {4,5}, {4,6} };
+
 int GUI_Run(GUI_InitParams &params)
 {
 #if __APPLE__

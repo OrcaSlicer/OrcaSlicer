@@ -643,7 +643,6 @@ void GLGizmoSimplify::on_render()
 
     const Transform3d trafo_matrix = selected_volume->world_matrix();
     auto* gouraud_shader = wxGetApp().get_shader("gouraud_light");
-    glsafe(::glPushAttrib(GL_DEPTH_TEST));
     glsafe(::glEnable(GL_DEPTH_TEST));
     gouraud_shader->start_using();
     const Camera& camera = wxGetApp().plater()->get_camera();
@@ -657,20 +656,29 @@ void GLGizmoSimplify::on_render()
     gouraud_shader->stop_using();
 
     if (m_show_wireframe) {
-        auto* contour_shader = wxGetApp().get_shader("mm_contour");
+#if SLIC3R_OPENGL_ES
+        auto* contour_shader = wxGetApp().get_shader("wireframe");
+#else
+        auto *contour_shader = wxGetApp().get_shader("mm_contour");
+#endif // SLIC3R_OPENGL_ES
         contour_shader->start_using();
         contour_shader->set_uniform("offset", OpenGLManager::get_gl_info().is_mesa() ? 0.0005 : 0.00001);
         contour_shader->set_uniform("view_model_matrix", view_model_matrix);
         contour_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
         const ColorRGBA color = m_glmodel.get_color();
         m_glmodel.set_color(ColorRGBA::WHITE());
-        glsafe(::glLineWidth(1.0f));
+#if !SLIC3R_OPENGL_ES
+        if (!OpenGLManager::get_gl_info().is_core_profile())
+            glsafe(::glLineWidth(1.0f));
         glsafe(::glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+#endif // !SLIC3R_OPENGL_ES
         //ScopeGuard offset_fill_guard([]() { glsafe(::glDisable(GL_POLYGON_OFFSET_FILL)); });
         //glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
         //glsafe(::glPolygonOffset(5.0, 5.0));
         m_glmodel.render();
+#if !SLIC3R_OPENGL_ES
         glsafe(::glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+#endif // !SLIC3R_OPENGL_ES
         m_glmodel.set_color(color);
         contour_shader->stop_using();
     }

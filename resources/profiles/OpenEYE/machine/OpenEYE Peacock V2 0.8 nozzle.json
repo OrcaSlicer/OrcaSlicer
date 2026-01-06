@@ -1,0 +1,24 @@
+{
+    "type": "machine",
+    "name": "OpenEYE Peacock V2 0.8 nozzle",
+    "inherits": "OpenEYE Peacock V2 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM004",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printer_model": "OpenEYE Peacock V2",
+    "printer_variant": "0.8",
+	"default_print_profile": "0.40mm Standard @OpenEYE Peacock V2 0.8 nozzle",
+    "default_bed_type": "Textured PEI Plate",
+    "max_layer_height": [
+        "0.56"
+    ],
+    "min_layer_height": [
+        "0.16"
+    ],
+    "retraction_length": [
+        "3"
+    ]
+}

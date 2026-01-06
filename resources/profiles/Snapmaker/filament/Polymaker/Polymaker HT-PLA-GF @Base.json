@@ -1,0 +1,29 @@
+{
+    "filament_density": [
+        "1.34"
+    ],
+    "temp_min": [
+        "210"
+    ],
+    "temp_max": [
+        "230"
+    ],
+    "temperture_vitrification": [
+        "148"
+    ],
+    "idle_temperture": [
+        "0"
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "description": "",
+    "inherits": "fdm_filament_pla",
+    "name": "Polymaker HT-PLA-GF @Base",
+    "type": "filament",
+    "instantiation": "false",
+    "from": "system",
+    "filament_vendor": [
+        "Polymaker"
+    ]
+}

@@ -29,6 +29,14 @@ ImageDPIFrame::ImageDPIFrame()
 #ifdef __APPLE__
     SetWindowStyleFlag(GetWindowStyleFlag() | wxSTAY_ON_TOP);
 #endif
+
+    // ORCA add border
+    Bind(wxEVT_PAINT, [this](wxPaintEvent& evt) {
+        wxPaintDC dc(this);
+        dc.SetPen(StateColor::darkModeColorFor(wxColour("#DBDBDB")));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
+    });
     
     m_sizer_main           = new wxBoxSizer(wxVERTICAL);
 

@@ -1,0 +1,41 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Marble @U1 base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFPM003",
+    "instantiation": "false",
+    "filament_cost": [
+        "21.99"
+    ],
+    "filament_density": [
+        "1.31"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "filament_vendor": [
+        "Polymaker"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "temperature_vitrification": [
+        "61"
+    ]
+}

@@ -1,6 +1,8 @@
 #include "Tab.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 #include <wx/app.h>
 #include <wx/button.h>
@@ -194,6 +196,11 @@ void MonitorPanel::init_tabpanel()
 
     m_hms_panel = new HMSPanel(m_tabpanel);
     m_tabpanel->AddPage(m_hms_panel, _L("Assistant(HMS)"),    "", false);
+
+    std::string network_ver = Slic3r::NetworkAgent::get_version();
+    if (!network_ver.empty()) {
+        m_tabpanel->SetFooterText(wxString::Format("Network plugin v%s", network_ver));
+    }
 
     m_initialized = true;
     show_status((int)MonitorStatus::MONITOR_NO_PRINTER);
@@ -407,6 +414,7 @@ bool MonitorPanel::Show(bool show)
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (show) {
         start_update();
+        update_network_version_footer();
 
         m_refresh_timer->Stop();
         m_refresh_timer->SetOwner(this);
@@ -515,6 +523,26 @@ void MonitorPanel::jump_to_LiveView()
     }
 
     m_status_info_panel->get_media_play_ctrl()->jump_to_play();
+}
+
+void MonitorPanel::update_network_version_footer()
+{
+    std::string binary_version = Slic3r::NetworkAgent::get_version();
+    if (binary_version.empty())
+        return;
+
+    std::string configured_version = wxGetApp().app_config->get_network_plugin_version();
+    std::string suffix = BBL::extract_suffix(configured_version);
+    std::string configured_base = BBL::extract_base_version(configured_version);
+
+    wxString footer_text;
+    if (!suffix.empty() && configured_base == binary_version) {
+        footer_text = wxString::Format("Network plugin v%s (%s)", binary_version, suffix);
+    } else {
+        footer_text = wxString::Format("Network plugin v%s", binary_version);
+    }
+
+    m_tabpanel->SetFooterText(footer_text);
 }
 
 } // GUI

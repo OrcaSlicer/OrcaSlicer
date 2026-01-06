@@ -565,40 +565,6 @@ inline bool all_inside_vertices_normals_interleaved(const std::vector<float> &pa
     return true;
 }
 
-bool BuildVolume::all_paths_inside_vertices_and_normals_interleaved(const std::vector<float>& paths, const Eigen::AlignedBox<float, 3>& paths_bbox, bool ignore_bottom) const
-{
-    assert(paths.size() % 6 == 0);
-    static constexpr const double epsilon = BedEpsilon;
-    switch (m_type) {
-    case BuildVolume_Type::Rectangle:
-    {
-        BoundingBox3Base<Vec3d> build_volume = this->bounding_volume().inflated(epsilon);
-        if (m_max_print_height == 0.0)
-            build_volume.max.z() = std::numeric_limits<double>::max();
-        if (ignore_bottom)
-            build_volume.min.z() = -std::numeric_limits<double>::max();
-        return build_volume.contains(paths_bbox.min().cast<double>()) && build_volume.contains(paths_bbox.max().cast<double>());
-    }
-    case BuildVolume_Type::Circle:
-    {
-        const Vec2f c = unscaled<float>(m_circle.center);
-        const float r = unscaled<double>(m_circle.radius) + float(epsilon);
-        const float r2 = sqr(r);
-        return m_max_print_height == 0.0 ?
-            all_inside_vertices_normals_interleaved(paths, [c, r2](Vec3f p) { return (to_2d(p) - c).squaredNorm() <= r2; }) :
-            all_inside_vertices_normals_interleaved(paths, [c, r2, z = m_max_print_height + epsilon](Vec3f p) { return (to_2d(p) - c).squaredNorm() <= r2 && p.z() <= z; });
-    }
-    case BuildVolume_Type::Convex:
-        //FIXME doing test on convex hull until we learn to do test on non-convex polygons efficiently.
-    case BuildVolume_Type::Custom:
-        return m_max_print_height == 0.0 ?
-            all_inside_vertices_normals_interleaved(paths, [this](Vec3f p) { return Geometry::inside_convex_polygon(m_top_bottom_convex_hull_decomposition_bed, to_2d(p).cast<double>()); }) :
-            all_inside_vertices_normals_interleaved(paths, [this, z = m_max_print_height + epsilon](Vec3f p) { return Geometry::inside_convex_polygon(m_top_bottom_convex_hull_decomposition_bed, to_2d(p).cast<double>()) && p.z() <= z; });
-    default:
-        return true;
-    }
-}
-
 std::string_view BuildVolume::type_name(BuildVolume_Type type)
 {
     using namespace std::literals;

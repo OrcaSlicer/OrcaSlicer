@@ -1,0 +1,82 @@
+{
+    "type": "filament",
+	"instantiation": "true",
+    "version": "1.0.0.0",
+
+    "compatible_printers": [
+        "Cubicon xCeler-I 0.4 nozzle",
+        "Cubicon xCeler-Plus 0.4 nozzle"
+    ],
+    
+    "default_filament_colour": "",
+    
+    "filament_id": "P510cfc0",
+    
+    "filament_settings_id": [
+        "Cubicon PETG @base"
+    ],
+    
+    "filament_type": [
+        "PETG"
+    ],
+    
+    "filament_vendor": [
+        "Cubicon"
+    ],
+    
+    "inherits": "fdm_filament_pet",
+    
+    "is_custom_defined": "0",
+    "name": "Cubicon PETG @base",
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],    
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],    
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "filament_density": [
+        "1.24"
+    ],
+    "filament_flow_ratio": [
+        "0.99"
+    ],     
+    "filament_max_volumetric_speed": [
+        "8"
+    ],    
+    "nozzle_temperature_initial_layer": [
+        "235"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "80"
+    ],
+    "slow_down_min_speed": [
+        "30"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],                        
+    "nozzle_temperature": [
+        "240"
+    ],       
+    "temperature_vitrification": [
+        "70"
+    ],                        
+    "nozzle_temperature_range_low": [
+        "230"
+    ],       
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ]       
+}

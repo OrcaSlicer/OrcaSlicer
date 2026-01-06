@@ -1,26 +1,12 @@
 {
     "type": "filament",
+	"instantiation": "true",
+    "version": "1.0.0.0",
+    "from": "system",
     "name": "Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "Cubicon PLA @Cubicon xCeler-I 0.4 nozzle",
-    "filament_id": "P510cfa1",
-    "instantiation": "true",
+
     "compatible_printers": [
         "Cubicon xCeler-I 0.4 nozzle"
     ],
-    "default_filament_colour": "",
-    "filament_settings_id": [
-        "Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle"
-    ],
-    "filament_type": [
-        "PLA"
-    ],
-    "filament_vendor": [
-        "Cubicon"
-    ],
-    "temperature_vitrification": [
-        "52"
-    ],
-    "nozzle_temperature_range_high": [
-        "220"
-    ]
+    "inherits": "Cubicon PLA+ @base"
 }

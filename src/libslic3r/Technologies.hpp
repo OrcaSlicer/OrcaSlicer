@@ -18,10 +18,6 @@
 #define DISABLE_INSTANCES_SYNCH 0
 // Use wxDataViewRender instead of wxDataViewCustomRenderer
 #define ENABLE_NONCUSTOM_DATA_VIEW_RENDERING 0
-// Enable G-Code viewer statistics imgui dialog
-#define ENABLE_GCODE_VIEWER_STATISTICS 0
-// Enable G-Code viewer comparison between toolpaths height and width detected from gcode and calculated at gcode generation 
-#define ENABLE_GCODE_VIEWER_DATA_CHECKING 0
 // Enable project dirty state manager debug window
 #define ENABLE_PROJECT_DIRTY_STATE_DEBUG_WINDOW 0
 
@@ -39,28 +35,21 @@
 // Enable rework of Reload from disk command
 #define ENABLE_RELOAD_FROM_DISK_REWORK 1
 
-//====================
-// 2.4.0.beta1 techs
-//====================
-#define ENABLE_2_4_0_BETA1 1
-
 // Enable rendering modifiers and similar objects always as transparent
-#define ENABLE_MODIFIERS_ALWAYS_TRANSPARENT (1 && ENABLE_2_4_0_BETA1)
-
-
-//====================
-// 2.4.0.beta2 techs
-//====================
-#define ENABLE_2_4_0_BETA2 1
+#define ENABLE_MODIFIERS_ALWAYS_TRANSPARENT 1
 
 // Enable modified ImGuiWrapper::slider_float() to create a compound widget where
 // an additional button can be used to set the keyboard focus into the slider
 // to allow the user to type in the desired value
-#define ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT (1 && ENABLE_2_4_0_BETA2)
+#define ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT 1
 // Enable fit print volume command for circular printbeds
-#define ENABLE_ENHANCED_PRINT_VOLUME_FIT (1 && ENABLE_2_4_0_BETA2)
+#define ENABLE_ENHANCED_PRINT_VOLUME_FIT 1
 // Enable picking using raytracing
 #define ENABLE_RAYCAST_PICKING_DEBUG 0
 
+// Enable imgui debug dialog for new gcode viewer (using libvgcode)
+#define ENABLE_NEW_GCODE_VIEWER_DEBUG 0
+// Enable extension of tool position imgui dialog to show actual speed profile
+#define ENABLE_ACTUAL_SPEED_DEBUG 1
 
 #endif // _prusaslicer_technologies_h_

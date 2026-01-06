@@ -42,3 +42,4 @@ deps_src/build/
 test.js
 /.cache/
 .clangd
+internal_docs/

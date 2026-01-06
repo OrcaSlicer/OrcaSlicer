@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "M3D Enabler D8500 MM Model",
+    "model_id": "M3D_D8500_MM",
+    "family": "M3D",
+    "machine_tech": "FFF",
+    "nozzle_diameter": "0.4",
+    "bed_model": "model/M3D_bed_model.stl",
+    "bed_texture": "model/M3D_bed_texture.png",
+    "default_materials": "Generic PLA @system",
+    "scan_folder": "1"
+}

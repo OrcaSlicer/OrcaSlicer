@@ -1,0 +1,37 @@
+{
+    "name": "M3D",
+    "version": "1.0.0",
+    "force_update": "0",
+    "description": "Configuration for M3D printers",
+    "machine_model_list": [
+        {
+            "name": "M3D Enabler D8500 MM Model",
+            "sub_path": "machine/M3D Enabler D8500 MM Model.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "M3D Enabler D8500 MM",
+            "sub_path": "machine/M3D Enabler D8500 MM.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "0.15mm MM @D8500",
+            "sub_path": "process/0.15mm MM @D8500.json"
+        },
+        {
+            "name": "0.20mm MM @D8500",
+            "sub_path": "process/0.20mm MM @D8500.json"
+        }
+    ],
+    "filament_list": []
+}

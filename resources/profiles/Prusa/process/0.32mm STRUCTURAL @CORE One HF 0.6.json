@@ -4,7 +4,7 @@
     "inherits": "0.32mm STRUCTURAL @MK4S HF0.6",
     "from": "system",
     "instantiation": "true",
-    "overhang_2_4_speed": "35",
+    "overhang_3_4_speed": "35",
     "support_speed": "110",
     "support_interface_speed": "50%",
     "travel_speed": "350",

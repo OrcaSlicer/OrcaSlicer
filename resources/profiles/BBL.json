@@ -1406,6 +1406,10 @@
             "sub_path": "filament/Generic PLA-CF @base.json"
         },
         {
+            "name": "Numakers PLA+ @base",
+            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
+        },
+        {
             "name": "Overture Matte PLA @base",
             "sub_path": "filament/Overture/Overture Matte PLA @base.json"
         },
@@ -1458,12 +1462,12 @@
             "sub_path": "filament/Polymaker/Panchroma PLA Neon @base.json"
         },
         {
-            "name": "Panchroma PLA Silk @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Silk @base.json"
+            "name": "Panchroma PLA Satin @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @base.json"
         },
         {
-            "name": "Panchroma PLA Stain @base",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @base.json"
+            "name": "Panchroma PLA Silk @base",
+            "sub_path": "filament/Polymaker/Panchroma PLA Silk @base.json"
         },
         {
             "name": "Panchroma PLA Starlight @base",
@@ -5102,6 +5106,42 @@
             "sub_path": "filament/Generic PLA-CF @BBL P2S.json"
         },
         {
+            "name": "Numakers PLA+ @BBL A1",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL A1 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1 0.2 nozzle.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL A1M",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1M.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL A1M 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1M 0.2 nozzle.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL P1P",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL P1P.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL P1P 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL P1P 0.2 nozzle.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL X1",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL X1C",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1C.json"
+        },
+        {
+            "name": "Numakers PLA+ @BBL X1C 0.2 nozzle",
+            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1C 0.2 nozzle.json"
+        },
+        {
             "name": "Overture Matte PLA @BBL A1",
             "sub_path": "filament/Overture/Overture Matte PLA @BBL A1.json"
         },
@@ -5642,6 +5682,46 @@
             "sub_path": "filament/Polymaker/Panchroma PLA Neon @BBL X1C 0.2 nozzle.json"
         },
         {
+            "name": "Panchroma PLA Satin @BBL A1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL A1.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL A1 0.2 nozzle",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL A1 0.2 nozzle.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL A1M",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL A1M.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL A1M 0.2 nozzle",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL A1M 0.2 nozzle.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL P1P",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL P1P.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL P1P 0.2 nozzle",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL P1P 0.2 nozzle.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL X1",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL X1.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL X1 0.2 nozzle",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL X1 0.2 nozzle.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL X1C",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL X1C.json"
+        },
+        {
+            "name": "Panchroma PLA Satin @BBL X1C 0.2 nozzle",
+            "sub_path": "filament/Polymaker/Panchroma PLA Satin @BBL X1C 0.2 nozzle.json"
+        },
+        {
             "name": "Panchroma PLA Silk @BBL A1",
             "sub_path": "filament/Polymaker/Panchroma PLA Silk @BBL A1.json"
         },
@@ -5676,46 +5756,6 @@
         {
             "name": "Panchroma PLA Silk @BBL X1C",
             "sub_path": "filament/Polymaker/Panchroma PLA Silk @BBL X1C.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL A1",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL A1.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL A1 0.2 nozzle",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL A1 0.2 nozzle.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL A1M",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL A1M.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL A1M 0.2 nozzle",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL A1M 0.2 nozzle.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL P1P",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL P1P.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL P1P 0.2 nozzle",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL P1P 0.2 nozzle.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL X1",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL X1.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL X1 0.2 nozzle",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL X1 0.2 nozzle.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL X1C",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL X1C.json"
-        },
-        {
-            "name": "Panchroma PLA Stain @BBL X1C 0.2 nozzle",
-            "sub_path": "filament/Polymaker/Panchroma PLA Stain @BBL X1C 0.2 nozzle.json"
         },
         {
             "name": "Panchroma PLA Starlight @BBL A1",
@@ -7660,46 +7700,6 @@
         {
             "name": "Overture TPU @BBL X1C 0.2 nozzle",
             "sub_path": "filament/Overture/Overture TPU @BBL X1C 0.2 nozzle.json"
-        },
-        {
-            "name": "Numakers PLA+ @base",
-            "sub_path": "filament/Numakers/Numakers PLA+ @base.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL A1",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL A1 0.2 nozzle",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1 0.2 nozzle.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL A1M",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1M.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL A1M 0.2 nozzle",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL A1M 0.2 nozzle.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL P1P",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL P1P.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL P1P 0.2 nozzle",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL P1P 0.2 nozzle.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL X1",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL X1C",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1C.json"
-        },
-        {
-            "name": "Numakers PLA+ @BBL X1C 0.2 nozzle",
-            "sub_path": "filament/Numakers/Numakers PLA+ @BBL X1C 0.2 nozzle.json"
         },
         {
             "name": "fdm_filament_dual_common",

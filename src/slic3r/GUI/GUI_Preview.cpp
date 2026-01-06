@@ -5,6 +5,9 @@
 #include "GUI_Preview.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#if ENABLE_OPENGL_AUTO_AA_SAMPLES
+#include "GUI_Init.hpp"
+#endif // ENABLE_OPENGL_AUTO_AA_SAMPLES
 #include "I18N.hpp"
 #include "3DScene.hpp"
 #include "BackgroundSlicingProcess.hpp"
@@ -55,6 +58,10 @@ bool View3D::init(wxWindow* parent, Bed3D& bed, Model* model, DynamicPrintConfig
     if (!Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0 /* disable wxTAB_TRAVERSAL */))
         return false;
 
+#if ENABLE_OPENGL_AUTO_AA_SAMPLES
+    const GUI_InitParams* const init_params = wxGetApp().init_params;
+    m_canvas_widget = OpenGLManager::create_wxglcanvas(*this, (init_params != nullptr) ? init_params->opengl_aa : false);
+#else
     m_canvas_widget = OpenGLManager::create_wxglcanvas(*this);
     if (m_canvas_widget == nullptr)
         return false;
@@ -254,6 +261,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
 #endif // _WIN32
 
     m_canvas_widget = OpenGLManager::create_wxglcanvas(*this);
+#endif // ENABLE_OPENGL_AUTO_AA_SAMPLES
     if (m_canvas_widget == nullptr)
         return false;
 
@@ -264,8 +272,7 @@ bool Preview::init(wxWindow* parent, Bed3D& bed, Model* model)
     m_canvas->set_model(model);
     m_canvas->set_process(m_process);
     m_canvas->set_type(GLCanvas3D::ECanvasType::CanvasPreview);
-    m_canvas->enable_legend_texture(true);
-
+    m_canvas->get_gcode_viewer().enable_legend(true);
     //BBS: GUI refactor: GLToolbar
     if (wxGetApp().is_editor()) {
         m_canvas->enable_select_plate_toolbar(true);
@@ -332,50 +339,16 @@ void Preview::load_print(bool keep_z_range, bool only_gcode)
 }
 
 //BBS: add only gcode mode
-void Preview::reload_print(bool keep_volumes, bool only_gcode)
+void Preview::reload_print(bool only_gcode)
 {
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" %1%: enter, keep_volumes %2%")%__LINE__ %keep_volumes;
-#ifdef __linux__
-    // We are getting mysterious crashes on Linux in gtk due to OpenGL context activation GH #1874 #1955.
-    // So we are applying a workaround here: a delayed release of OpenGL vertex buffers.
-    if (!IsShown())
-    {
-        m_volumes_cleanup_required = !keep_volumes;
-        return;
-    }
-#endif /* __linux__ */
-    if (
-#ifdef __linux__
-        m_volumes_cleanup_required ||
-#endif /* __linux__ */
-        !keep_volumes)
-    {
-        m_canvas->reset_volumes();
-        //BBS: add m_loaded_print logic
-        //m_loaded = false;
-        m_loaded_print = nullptr;
-#ifdef __linux__
-        m_volumes_cleanup_required = false;
-#endif /* __linux__ */
-    }
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" %1%: enter")%__LINE__;
 
-    load_print(false, only_gcode);
-    m_only_gcode = only_gcode;
-}
-
-//BBS: add only gcode mode
-void Preview::refresh_print()
-{
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" %1%: enter, current m_loaded_print %2%")%__LINE__ %m_loaded_print;
     //BBS: add m_loaded_print logic
     //m_loaded = false;
     m_loaded_print = nullptr;
 
-    if (!IsShown())
-        return;
-
-    load_print(true, m_only_gcode);
-    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" %1%: exit")%__LINE__;
+    load_print(false, only_gcode);
+    m_only_gcode = only_gcode;
 }
 
 //BBS: always load shell at preview
@@ -396,7 +369,7 @@ void Preview::msw_rescale()
     get_canvas3d()->msw_rescale();
 
     // rescale legend
-    refresh_print();
+    reload_print(m_only_gcode);
 }
 
 void Preview::sys_color_changed()
@@ -580,7 +553,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
         ticks_info_from_curr_plate = plater->model().get_curr_plate_custom_gcodes();
     else {
         ticks_info_from_curr_plate.mode   = CustomGCode::Mode::SingleExtruder;
-        ticks_info_from_curr_plate.gcodes = m_canvas->get_custom_gcode_per_print_z();
+        ticks_info_from_curr_plate.gcodes = m_gcode_result->custom_gcode_per_print_z;
     }
     check_layers_slider_values(ticks_info_from_curr_plate.gcodes, layers_z);
 
@@ -612,7 +585,7 @@ void Preview::update_layers_slider(const std::vector<double>& layers_z, bool kee
     m_layers_slider->SetTicksValues(ticks_info_from_curr_plate);
 
     auto print_mode_stat = m_gcode_result->print_statistics.modes.front();
-    m_layers_slider->SetLayersTimes(print_mode_stat.layers_times, print_mode_stat.time);
+    m_layers_slider->SetLayersTimes(m_canvas->get_gcode_layers_times_cache(), print_mode_stat.time);
 
     // Suggest the auto color change, if model looks like sign
     if (m_layers_slider->IsNewPrint()) {
@@ -701,28 +674,17 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
     else if (directly_preview && !has_layers)
         keep_z_range = false;
 
-    GCodeViewer::EViewType gcode_view_type = m_canvas->get_gcode_view_preview_type();
-    bool gcode_preview_data_valid = !m_gcode_result->moves.empty();
+    libvgcode::EViewType gcode_view_type = m_canvas->get_gcode_view_type();
+    const bool gcode_preview_data_valid = !m_gcode_result->moves.empty();
+    const bool is_pregcode_preview = !gcode_preview_data_valid && wxGetApp().is_editor();
 
-    // Collect colors per extruder.
-    std::vector<std::string> colors;
-    std::vector<CustomGCode::Item> color_print_values = {};
-    // set color print values, if it si selected "ColorPrint" view type
-    if (gcode_view_type == GCodeViewer::EViewType::ColorPrint) {
-        colors = wxGetApp().plater()->get_colors_for_color_print(m_gcode_result);
-
-        if (!gcode_preview_data_valid) {
-            if (wxGetApp().is_editor())
-                //BBS
-                color_print_values = wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes;
-            else
-                color_print_values = m_canvas->get_custom_gcode_per_print_z();
-            colors.push_back("#808080"); // gray color for pause print or custom G-code
-        }
-    }
-    else if (gcode_preview_data_valid || gcode_view_type == GCodeViewer::EViewType::Tool) {
-        colors = wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result);
-        color_print_values.clear();
+    const std::vector<std::string> tool_colors = wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result);
+    const std::vector<CustomGCode::Item>& color_print_values = wxGetApp().is_editor() ?
+        wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes : m_gcode_result->custom_gcode_per_print_z;
+    std::vector<std::string> color_print_colors;
+    if (!color_print_values.empty()) {
+        color_print_colors = wxGetApp().plater()->get_colors_for_color_print(m_gcode_result);
+        color_print_colors.push_back("#808080"); // gray color for pause print or custom G-code
     }
 
     std::vector<double> zs;
@@ -735,7 +697,9 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
             //BBS: add more log
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": will load gcode_preview from result, moves count %1%") % m_gcode_result->moves.size();
             //BBS: add only gcode mode
-            m_canvas->load_gcode_preview(*m_gcode_result, colors, only_gcode);
+            m_canvas->load_gcode_preview(*m_gcode_result, tool_colors, color_print_colors, only_gcode);
+            // the view type may have been changed by the call m_canvas->load_gcode_preview()
+            gcode_view_type = m_canvas->get_gcode_view_type();
             //BBS show sliders
             show_moves_sliders();
 
@@ -748,7 +712,7 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
             //m_loaded = true;
             m_loaded_print = print;
         }
-        else if (wxGetApp().is_editor()) {
+        else if (is_pregcode_preview) {
             // Load the initial preview based on slices, not the final G-code.
             //BBS: only display shell before slicing result out
             //m_canvas->load_preview(colors, color_print_values);
@@ -764,7 +728,7 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
             std::vector<CustomGCode::Item> gcodes = wxGetApp().is_editor() ?
                 //BBS
                 wxGetApp().plater()->model().get_curr_plate_custom_gcodes().gcodes :
-                m_canvas->get_custom_gcode_per_print_z();
+                m_gcode_result->custom_gcode_per_print_z;
             const wxString choice = !gcodes.empty() ?
                 _L("Multicolor Print") :
                 (number_extruders > 1) ? _L("Filaments") : _L("Line Type");
@@ -775,7 +739,8 @@ void Preview::load_print_as_fff(bool keep_z_range, bool only_gcode)
             //BBS
             show_layers_sliders(false);
             m_canvas_widget->Refresh();
-        } else
+        }
+        else
             update_layers_slider(zs, keep_z_range);
     }
 }
@@ -798,7 +763,12 @@ bool AssembleView::init(wxWindow* parent, Bed3D& bed, Model* model, DynamicPrint
     if (!Create(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0 /* disable wxTAB_TRAVERSAL */))
         return false;
 
+#if ENABLE_OPENGL_AUTO_AA_SAMPLES
+    const GUI_InitParams* const init_params = wxGetApp().init_params;
+    m_canvas_widget = OpenGLManager::create_wxglcanvas(*this, (init_params != nullptr) ? init_params->opengl_aa : false);
+#else
     m_canvas_widget = OpenGLManager::create_wxglcanvas(*this);
+#endif // ENABLE_OPENGL_AUTO_AA_SAMPLES
     if (m_canvas_widget == nullptr)
         return false;
 

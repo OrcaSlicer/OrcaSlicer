@@ -4,12 +4,15 @@
     "inherits": "0.20mm SOLUBLE FULL @MK4S 0.4",
     "from": "system",
     "instantiation": "true",
-    "overhang_2_4_speed": "50",
+    "overhang_3_4_speed": "50",
     "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.4 and printer_notes!~/.*HF_NOZZLE.*/",
     "travel_speed": "350",
     "travel_acceleration": "7000",
     "default_acceleration": "3000",
     "support_interface_top_layers": "3",
     "initial_layer_infill_speed": "100",
-    "initial_layer_speed": "45"
+    "initial_layer_speed": "45",
+    "small_perimeter_speed": "50",
+    "inner_wall_speed": "70",
+    "outer_wall_speed": "50"
 }

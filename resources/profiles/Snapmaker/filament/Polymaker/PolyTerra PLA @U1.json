@@ -1,0 +1,11 @@
+{
+  "type": "filament",
+  "from": "system",
+  "instantiation": "true",
+  "name": "PolyTerra PLA @U1",
+  "setting_id": "12580059400",
+  "inherits": "PolyTerra PLA @U1 base",
+  "compatible_printers": [
+    "Snapmaker U1 (0.4 nozzle)"
+  ]
+}

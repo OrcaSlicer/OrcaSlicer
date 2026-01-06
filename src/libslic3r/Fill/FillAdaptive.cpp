@@ -1371,42 +1371,47 @@ void Filler::_fill_surface_single(
         all_polylines.reserve(lines.size());
         std::transform(lines.begin(), lines.end(), std::back_inserter(all_polylines), [](const Line& l) { return Polyline{ l.a, l.b }; });
 
-         // Apply multiline offset if needed
-         multiline_fill(all_polylines, params, spacing);
+        // Apply multiline offset if needed
+        multiline_fill(all_polylines, params, spacing);
 
         // Crop all polylines
         all_polylines = intersection_pl(std::move(all_polylines), expolygon);
 #endif
     }
 
-    // After intersection_pl some polylines with only one line are split into more lines
-    for (Polyline &polyline : all_polylines) {
-        //FIXME assert that all the points are collinear and in between the start and end point.
-        if (polyline.points.size() > 2)
-            polyline.points.erase(polyline.points.begin() + 1, polyline.points.end() - 1);
-    }
-//    assert(has_no_collinear_lines(all_polylines));
+    if (params.multiline == 1) {
+        // After intersection_pl some polylines with only one line are split into more lines
+        for (Polyline& polyline : all_polylines) {
+            // FIXME assert that all the points are collinear and in between the start and end point.
+            if (polyline.points.size() > 2)
+                polyline.points.erase(polyline.points.begin() + 1, polyline.points.end() - 1);
+        }
+        //    assert(has_no_collinear_lines(all_polylines));
 
 #ifdef ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT
-    {
-        static int iRun = 0;
-        export_infill_lines_to_svg(expolygon, all_polylines, debug_out_path("FillAdaptive-initial-%d.svg", iRun++));
-    }
+        {
+            static int iRun = 0;
+            export_infill_lines_to_svg(expolygon, all_polylines, debug_out_path("FillAdaptive-initial-%d.svg", iRun++));
+        }
 #endif /* ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT */
 
-    const auto hook_length     = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length)));
-    const auto hook_length_max = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length_max)));
+        const auto hook_length     = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length)));
+        const auto hook_length_max = coordf_t(std::min<float>(std::numeric_limits<coord_t>::max(), scale_(params.anchor_length_max)));
 
     Polylines all_polylines_with_hooks = all_polylines.size() > 1 ? connect_lines_using_hooks(std::move(all_polylines), expolygon, this->spacing, hook_length, hook_length_max) : std::move(all_polylines);
 
 #ifdef ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT
-    {
-        static int iRun = 0;
-        export_infill_lines_to_svg(expolygon, all_polylines_with_hooks, debug_out_path("FillAdaptive-hooks-%d.svg", iRun++));
-    }
+        {
+            static int iRun = 0;
+            export_infill_lines_to_svg(expolygon, all_polylines_with_hooks, debug_out_path("FillAdaptive-hooks-%d.svg", iRun++));
+        }
 #endif /* ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT */
 
-    chain_or_connect_infill(std::move(all_polylines_with_hooks), expolygon, polylines_out, this->spacing, params);
+        chain_or_connect_infill(std::move(all_polylines_with_hooks), expolygon, polylines_out, this->spacing, params);
+    } else { 
+        // if multiline  is > 1 infill is ready to connect
+        chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
+    }
 
 #ifdef ADAPTIVE_CUBIC_INFILL_DEBUG_OUTPUT
     {
@@ -1442,6 +1447,17 @@ static std::vector<CubeProperties> make_cubes_properties(double max_cube_edge_le
         cubes_properties.emplace_back(props);
         if (edge_length > max_cube_edge_length)
             break;
+    }
+    // Orca: Ensure at least 2 levels so build_octree() will insert triangles.
+    // Fixes scenario where adaptive fill is disconnected from walls on low densities
+    if (cubes_properties.size() == 1) {
+        CubeProperties p = cubes_properties.back();
+        p.edge_length      *= 2.0;
+        p.height           = p.edge_length * sqrt(3);
+        p.diagonal_length  = p.edge_length * sqrt(2);
+        p.line_z_distance  = p.edge_length / sqrt(3);
+        p.line_xy_distance = p.edge_length / sqrt(6);
+        cubes_properties.push_back(p);
     }
     return cubes_properties;
 }
