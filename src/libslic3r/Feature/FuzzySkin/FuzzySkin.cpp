@@ -110,9 +110,90 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
         poly = std::move(out);
 }
 
+// Orca: Geometry of Fuzzy Art shapes:
+// Coordinates 0,0 is the attachment point to the wall. The unit of scale is the number 1.
+// The main direction of drawing along the Y-axis is perpendicular to the outer wall.
+// The line_width variable determines the width of the extruded track. Fuzzy Art elements may depend on it, and it is mandatory to convey a negative value in order to define a Fuzzy Art element.
+// A zero-width point means a line break. This is a required marker at the end of an instruction!
+std::vector<FuzzyArtJunction> get_fuzzy_art_shape(const FuzzySkinConfig& cfg, coord_t& line_width) {
+    std::vector<FuzzyArtJunction> points;
+    double w = unscale_(line_width) * cfg.art_width_aspect_ratio / cfg.art_length;
+    double w2 = w * 2;
+    switch (cfg.art_mode) {
+    case FuzzyArt::Hair:
+        points.emplace_back(Vec2d(0., 0.), -line_width);
+        points.emplace_back(Vec2d(0., 1.), -line_width);
+        break;
+    case FuzzyArt::Needle:
+        points.emplace_back(Vec2d(0., 0.), -line_width);
+        points.emplace_back(Vec2d(0., 1.), -1);
+        break;
+    case FuzzyArt::Pin:
+        points.emplace_back(Vec2d(0., 0.), -line_width);
+        points.emplace_back(Vec2d(0., 1. - w2), -line_width);
+        points.emplace_back(Vec2d(0. + w2, 1.), -line_width);
+        points.emplace_back(Vec2d(0., 1. + w2), -line_width);
+        points.emplace_back(Vec2d(0. - w2, 1.), -line_width);
+        points.emplace_back(Vec2d(0., 1. - w2), -line_width);
+        break;
+    case FuzzyArt::Curl:
+        for (double i = 0.; i < 8.; i++ ) {
+            double r = M_PI_4 * i;
+            points.emplace_back(Vec2d(sin(r) / 2. * cfg.art_width_aspect_ratio, 0.5 - cos(r) / 2.), -line_width);
+        }
+        points.emplace_back(Vec2d(0., 0.), -line_width); // finish circle
+    }
+    points.emplace_back(Vec2d(0., 0.), 0); // push stop point
+    return points;        
+};
+
+// Orca: FuzzyArt: drawing additional objects in place of Fuzzy Skin
+void fuzzy_art_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg) {
+    auto*        p0                      = &ext_lines.front();
+    const double min_dist_between_points = scale_(cfg.art_point_distance);
+    double       dist_left_over          = random_value() * min_dist_between_points; // the distance to be traversed on the line before making the first new point
+    double       p0pa_length             = scale_(cfg.art_length);
+    coord_t      fa_width                = p0->w * cfg.art_flow_ratio;
+
+    Arachne::ExtrusionJunctions out;
+    std::vector<ConnectionPoint> c_points;
+
+    for (auto& p1 : ext_lines) {
+        Vec2d  p0p1      = (p1.p - p0->p).cast<double>();
+        double angle     = atan2(p0p1.y(), p0p1.x());
+        double p0p1_size = p0p1.norm();
+        double p0pa_dist = dist_left_over;
+        for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points) {
+            Point pa = p0->p + (p0p1 * (p0pa_dist / p0p1_size)).cast<coord_t>();
+            c_points.emplace_back(ConnectionPoint{pa, angle}); 
+        }
+        dist_left_over = p0pa_dist - p0p1_size;
+        p0 = &p1;
+    }
+    std::vector<FuzzyArtJunction> fajs = get_fuzzy_art_shape(cfg, fa_width);
+    out.reserve(ext_lines.size() + c_points.size() * fajs.size());
+    for (auto c_point : c_points) {
+        for (auto faj : fajs) {
+            Point                      p(scale_(faj.first * cfg.art_length).cast<coord_t>());
+            Arachne::ExtrusionJunction ej(c_point.first + p.rotated(c_point.second), faj.second, p0->perimeter_index);
+            out.emplace_back(ej);
+        }
+    }
+    for (auto ej : ext_lines)  // Orca: add pervious perimeter
+        out.emplace_back(std::move(ej));
+    if (out.size() >= 3) 
+        ext_lines = std::move(out);
+}
+
 // Thanks Cura developers for this function.
 void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg)
 {
+    if (cfg.art_mode != FuzzyArt::None) {
+        if (cfg.has_fuzzy_art_layer)
+            fuzzy_art_line(ext_lines, slice_z, cfg);
+        return;
+    }
+    
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
     const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
@@ -176,6 +257,8 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
     g.has_fuzzy_skin = false;
     g.has_fuzzy_hole = false;
 
+    bool has_fuzzy_art_layer = g.has_fuzzy_art_layer;
+    
     std::unordered_map<FuzzySkinConfig, SurfacesPtr> regions;
     for (auto region : *g.compatible_regions) {
         const auto&           region_config = region->region().config();
@@ -187,7 +270,14 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
                                   region_config.fuzzy_skin_scale,
                                   region_config.fuzzy_skin_octaves,
                                   region_config.fuzzy_skin_persistence,
-                                  region_config.fuzzy_skin_mode};
+                                  region_config.fuzzy_skin_mode,
+                                  region_config.fuzzy_art, 
+                                  region_config.fuzzy_art_length.value, 
+                                  region_config.fuzzy_art_width_aspect_ratio.get_abs_value(1),
+                                  region_config.fuzzy_art_point_distance.value,
+                                  region_config.fuzzy_art_flow_ratio.get_abs_value(1),
+                                  region_config.fuzzy_art_speed.get_abs_value(100),
+                                  has_fuzzy_art_layer};
         auto&                 surfaces = regions[cfg];
         for (const auto& surface : region->slices.surfaces) {
             surfaces.push_back(&surface);

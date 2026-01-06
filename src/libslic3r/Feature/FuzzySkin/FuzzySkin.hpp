@@ -9,6 +9,11 @@ namespace Slic3r::Feature::FuzzySkin {
 
 void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkinConfig& cfg);
 
+typedef std::pair<Vec2d, coord_t> FuzzyArtJunction;
+typedef std::pair<Point, double> ConnectionPoint;
+std::vector<FuzzyArtJunction> get_fuzzy_art_shape(const FuzzySkinConfig& cfg, coord_t& line_width);
+void fuzzy_art_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg);
+
 void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg);
 
 void group_region_by_fuzzify(PerimeterGenerator& g);

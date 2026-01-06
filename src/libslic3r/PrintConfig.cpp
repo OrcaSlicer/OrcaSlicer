@@ -193,6 +193,15 @@ static t_config_enum_values s_keys_map_FuzzySkinMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinMode)
 
+static t_config_enum_values s_keys_map_FuzzyArt{
+    {"none",            int(FuzzyArt::None)},
+    {"hair",            int(FuzzyArt::Hair)},
+    {"needle",          int(FuzzyArt::Needle)},
+    {"pin",             int(FuzzyArt::Pin)},
+    {"curl",            int(FuzzyArt::Curl)}
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzyArt)
+
 static t_config_enum_values s_keys_map_InfillPattern {
     { "monotonic", ipMonotonic },
     { "monotonicline", ipMonotonicLine },
@@ -3330,6 +3339,88 @@ void PrintConfigDef::init_fff_params()
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
+
+    def                = this->add("fuzzy_art", coEnum);
+    def->label         = L("FuzzyArt");
+    def->category      = L("Others");
+    def->tooltip       = L("A special mode for creating artistic patterns using fuzzy skin processing algorithms. ");
+    def->enum_keys_map = &ConfigOptionEnum<FuzzyArt>::get_enum_values();
+    def->enum_values.push_back("none");
+    def->enum_values.push_back("hair");
+    def->enum_values.push_back("needle");
+    def->enum_values.push_back("pin");
+    def->enum_values.push_back("curl");
+    def->enum_labels.push_back(L("None"));
+    def->enum_labels.push_back(L("Hair"));
+    def->enum_labels.push_back(L("Needle"));
+    def->enum_labels.push_back(L("Pin"));
+    def->enum_labels.push_back(L("Curl"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<FuzzyArt>(FuzzyArt::None));
+
+    def              = this->add("fuzzy_art_length", coFloat);
+    def->label       = L("FuzzyArt element length");
+    def->category    = L("Others");
+    def->tooltip     = L("The transverse length of the fuzzy art element. ");
+    def->sidetext    = L("mm"); // milimeters, CIS languages need translation
+    def->min         = 0;
+    def->max         = 100;
+    def->mode        = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(10.));
+
+    def              = this->add("fuzzy_art_width_aspect_ratio", coFloatOrPercent);
+    def->label       = L("FuzzyArt width aspect ratio");
+    def->category    = L("Others");
+    def->tooltip     = L("Relative width of a FuzzyArt element from the length. ");
+    def->sidetext    = L("1 or %");
+    def->min         = 10.;
+    def->max         = 300.;
+    def->max_literal = 3.;
+    def->mode        = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(100., true));
+
+    def              = this->add("fuzzy_art_point_distance", coFloat);
+    def->label       = L("FuzzyArt point distance");
+    def->category    = L("Others");
+    def->tooltip     = L("The average distance between the FuzzyArt elements introduced on each line segment.");
+    def->sidetext    = L("mm"); // milimeters, CIS languages need translation
+    def->min         = 0.;
+    def->max         = 5.;
+    def->mode        = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.));
+
+    def              = this->add("fuzzy_art_flow_ratio", coFloatOrPercent);
+    def->label       = L("FuzzyArt flow");
+    def->category    = L("Others");
+    def->tooltip     = L("The amount of material to extrude during fuzzy art. ");
+    def->sidetext    = L("1 or %");
+    def->min         = 10.;
+    def->max         = 200.;
+    def->max_literal = 2.;
+    def->mode        = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(100., true));
+
+    def              = this->add("fuzzy_art_speed", coFloatOrPercent);
+    def->label       = L("FuzzyArt speed");
+    def->category    = L("Others");
+    def->tooltip     = L("Speed of fuzzy art element which is outermost and visible. "
+                         "It's used to be slower to get better quality. "
+                         "This amount can be specified in millimeters per second or as a percentage of the outer wall speed. ");
+    def->sidetext    = L("mm/s or %"); // milimeters per second, CIS languages need translation
+    def->ratio_over  = "outer_wall_speed";
+    def->min         = 1.;
+    def->max         = 150.;
+    def->mode        = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatOrPercent(30., false));
+
+    def              = this->add("fuzzy_art_period", coInt);
+    def->label       = L("FuzzyArt on every");
+    def->category    = L("Others");
+    def->tooltip     = L("Fuzzy art on every N layers. ");
+    def->sidetext    = L("layer(s)");
+    def->min         = 1;
+    def->mode        = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(1));
 
     def = this->add("filter_out_gap_fill", coFloat);
     def->label = L("Filter out tiny gaps");
