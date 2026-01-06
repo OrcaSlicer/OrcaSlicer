@@ -1,6 +1,6 @@
 {
     "type": "process",
-    "name": "0.12mm Standard @Anycubic Kobra 2 Neo 0.4 nozzle",
+    "name": "0.12mm Detail @Anycubic Kobra 2 Neo 0.4 nozzle",
     "inherits": "fdm_process_common",
     "from": "system",
     "setting_id": "GP004",
@@ -289,4 +289,5 @@
     "xy_contour_compensation": "0",
     "xy_hole_compensation": "0",
     "solid_infill_rotate_template": ""
+
 }
