@@ -432,10 +432,11 @@
         return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
       }
 
-
       function updateVolumeRange(min_volume,max_volume){
+        // Orca: "Typical" guidance only unlinked from upper bound in the slicer.
+        const TYPICAL_MAX_FLUSH_VOLUME = 900;
         const panel = document.getElementById('volume_range_panel');
-        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_volume}, ${max_volume}]`);
+        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_volume}, ${TYPICAL_MAX_FLUSH_VOLUME}]`);
       }
 
       function updateMultiplierRange(min_multiplier,max_multiplier){
