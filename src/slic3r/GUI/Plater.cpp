@@ -12592,8 +12592,8 @@ void Plater::calib_temp(const Calib_Params& params) {
     auto obj_bb = model().objects[0]->bounding_box_exact();
     auto block_count = lround((350 - params.end) / 5 + 1);
     if(block_count > 0){
-        // add EPSILON offset to avoid cutting at the exact location where the flat surface is
-        auto new_height = block_count * 10.0 + EPSILON;
+        // subtract EPSILON offset to avoid cutting at the exact location where the flat surface is
+        auto new_height = block_count * 10.0 - EPSILON;
         if (new_height < obj_bb.size().z()) {
             cut_horizontal(0, 0, new_height, ModelObjectCutAttribute::KeepLower);
         }
@@ -12619,8 +12619,16 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
-
+    const auto old_linear = wxGetApp().app_config->get("linear_defletion");
+    const auto old_angle  = wxGetApp().app_config->get("angle_defletion");
+    // Force coarse STEP tessellation for volumetric speed calibration
+    wxGetApp().app_config->set("linear_defletion", "0.05"); // mm
+    wxGetApp().app_config->set("angle_defletion", "0.5");   // degrees
+    // Orca: This temporarily adjusts STEP import defaults to avoid degenerate geometry in the volumetric speed calibration model.
     add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step");
+    // Values are restored immediately after import.
+    wxGetApp().app_config->set("linear_defletion", old_linear);
+    wxGetApp().app_config->set("angle_defletion", old_angle);
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
@@ -12727,7 +12735,7 @@ void Plater::calib_retraction(const Calib_Params& params)
 
     //  cut upper
     auto obj_bb = obj->bounding_box_exact();
-    auto height = 1.0 + 0.4 + ((params.end - params.start)) / params.step;
+    auto height = 1.0 + 0.4 + ((params.end - params.start)) / params.step - EPSILON;
     if (height < obj_bb.size().z()) {
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
