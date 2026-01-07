@@ -1,8 +1,8 @@
 name: Check profiles
-on: 
+on:
   pull_request:
-    branches: 
-    - main 
+    branches:
+    - main
     paths:
     - 'resources/profiles/**'
     - ".github/workflows/check_profiles.yml"
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Log level'     
+        description: 'Log level'
         required: true
         default: 'warning'
 
@@ -19,16 +19,26 @@ jobs:
   check_translation:
     name: Check profiles
     runs-on: ubuntu-24.04
-    steps:  
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Run extra JSON check
+        id: extra_json_check
+        continue-on-error: true
         run: |
-          python3 ./scripts/orca_extra_profile_check.py
+          set +e
+          output=$(python3 ./scripts/orca_extra_profile_check.py 2>&1)
+          exit_code=$?
+          echo "$output"
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
 
       # download
-      - name: Download 
+      - name: Download
         working-directory: ${{ github.workspace }}
         run: |
           curl -LJO https://github.com/SoftFever/Orca_tools/releases/download/1/OrcaSlicer_profile_validator
@@ -36,15 +46,82 @@ jobs:
 
       # validate profiles
       - name: validate system profiles
+        id: validate_system
+        continue-on-error: true
         run: |
-          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2
+          set +e
+          output=$(./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1)
+          exit_code=$?
+          echo "$output"
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
 
       - name: validate custom presets
+        id: validate_custom
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: |
+          set +e
           curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
           unzip ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
-          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2
+          output=$(./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1)
+          exit_code=$?
+          echo "$output"
+          echo "output<<EOF" >> $GITHUB_OUTPUT
+          echo "$output" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
+          exit $exit_code
+
+      - name: Post error comment on PR
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let body = '## ❌ Profile Validation Errors\n\n';
+
+            const extraJsonCheck = '${{ steps.extra_json_check.outcome }}';
+            const validateSystem = '${{ steps.validate_system.outcome }}';
+            const validateCustom = '${{ steps.validate_custom.outcome }}';
+
+            if (extraJsonCheck === 'failure') {
+              body += '### Extra JSON Check Failed\n\n';
+              body += '```\n';
+              body += `${{ steps.extra_json_check.outputs.output }}`.substring(0, 30000);
+              body += '\n```\n\n';
+            }
+
+            if (validateSystem === 'failure') {
+              body += '### System Profile Validation Failed\n\n';
+              body += '```\n';
+              body += `${{ steps.validate_system.outputs.output }}`.substring(0, 30000);
+              body += '\n```\n\n';
+            }
+
+            if (validateCustom === 'failure') {
+              body += '### Custom Preset Validation Failed\n\n';
+              body += '```\n';
+              body += `${{ steps.validate_custom.outputs.output }}`.substring(0, 30000);
+              body += '\n```\n\n';
+            }
+
+            body += '---\n*Please fix the above errors and push a new commit.*';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+      - name: Fail if any check failed
+        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        run: |
+          echo "One or more profile checks failed. See above for details."
+          exit 1
 
 
 
