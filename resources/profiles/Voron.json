@@ -6,7 +6,7 @@
     "machine_model_list": [
         {
             "name": "Voron 0.1",
-            "sub_path": "machine/Voron 0..json"
+            "sub_path": "machine/Voron 0.1.json"
         },
         {
             "name": "Voron 2.4 250",
