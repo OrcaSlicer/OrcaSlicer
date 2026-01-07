@@ -28,14 +28,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          output=$(python3 ./scripts/orca_extra_profile_check.py 2>&1)
-          exit_code=$?
-          echo "$output"
-          echo "output<<EOF" >> $GITHUB_OUTPUT
-          echo "$output" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
-          exit $exit_code
+          python3 ./scripts/orca_extra_profile_check.py 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
+          exit ${PIPESTATUS[0]}
 
       # download
       - name: Download
@@ -50,14 +44,8 @@ jobs:
         continue-on-error: true
         run: |
           set +e
-          output=$(./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1)
-          exit_code=$?
-          echo "$output"
-          echo "output<<EOF" >> $GITHUB_OUTPUT
-          echo "$output" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
-          exit $exit_code
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
+          exit ${PIPESTATUS[0]}
 
       - name: validate custom presets
         id: validate_custom
@@ -67,55 +55,50 @@ jobs:
           set +e
           curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
           unzip ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
-          output=$(./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1)
-          exit_code=$?
-          echo "$output"
-          echo "output<<EOF" >> $GITHUB_OUTPUT
-          echo "$output" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "exit_code=$exit_code" >> $GITHUB_OUTPUT
-          exit $exit_code
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
+          exit ${PIPESTATUS[0]}
 
       - name: Post error comment on PR
         if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
-        uses: actions/github-script@v7
-        with:
-          script: |
-            let body = '## ❌ Profile Validation Errors\n\n';
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "## :x: Profile Validation Errors"
+            echo ""
 
-            const extraJsonCheck = '${{ steps.extra_json_check.outcome }}';
-            const validateSystem = '${{ steps.validate_system.outcome }}';
-            const validateCustom = '${{ steps.validate_custom.outcome }}';
+            if [ "${{ steps.extra_json_check.outcome }}" = "failure" ]; then
+              echo "### Extra JSON Check Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/extra_json_check.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
 
-            if (extraJsonCheck === 'failure') {
-              body += '### Extra JSON Check Failed\n\n';
-              body += '```\n';
-              body += `${{ steps.extra_json_check.outputs.output }}`.substring(0, 30000);
-              body += '\n```\n\n';
-            }
+            if [ "${{ steps.validate_system.outcome }}" = "failure" ]; then
+              echo "### System Profile Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_system.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
 
-            if (validateSystem === 'failure') {
-              body += '### System Profile Validation Failed\n\n';
-              body += '```\n';
-              body += `${{ steps.validate_system.outputs.output }}`.substring(0, 30000);
-              body += '\n```\n\n';
-            }
+            if [ "${{ steps.validate_custom.outcome }}" = "failure" ]; then
+              echo "### Custom Preset Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_custom.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
 
-            if (validateCustom === 'failure') {
-              body += '### Custom Preset Validation Failed\n\n';
-              body += '```\n';
-              body += `${{ steps.validate_custom.outputs.output }}`.substring(0, 30000);
-              body += '\n```\n\n';
-            }
+            echo "---"
+            echo "*Please fix the above errors and push a new commit.*"
+          } > ${{ runner.temp }}/pr_comment.md
 
-            body += '---\n*Please fix the above errors and push a new commit.*';
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: body
-            });
+          gh pr comment ${{ github.event.pull_request.number }} --body-file ${{ runner.temp }}/pr_comment.md
 
       - name: Fail if any check failed
         if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
