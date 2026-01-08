@@ -1292,8 +1292,8 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Advanced");
     def->tooltip = L("This factor affects the amount of material for sparse infill.\n\n"
                      "The actual sparse infill flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio.");
-    def->min = 0;
-    def->max = 2;
+    def->min = 0.5;
+    def->max = 3;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
