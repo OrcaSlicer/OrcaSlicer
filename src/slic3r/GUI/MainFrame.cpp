@@ -3043,23 +3043,49 @@ void MainFrame::init_menubar_as_editor()
         }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
-    // Flow rate (with submenu)
-    auto flowrate_menu = new wxMenu();
-    append_menu_item(
-        flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow rate test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
+    // Flow rate (Wizard Dialog)
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
+        [this](wxCommandEvent&) {
+            if (!m_plater) return;
+
+            wxDialog dlg(this, wxID_ANY, _L("Flow Rate Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+            auto sizer = new wxBoxSizer(wxVERTICAL);
+
+            // Type selection
+            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Calibration Test Type:")), 0, wxALL, 5);
+            wxString types[] = { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") };
+            auto typeChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, types);
+            typeChoice->SetSelection(2); // Default to YOLO Recommended
+            sizer->Add(typeChoice, 0, wxEXPAND | wxALL, 5);
+
+            // Pattern selection
+            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Top Surface Pattern:")), 0, wxALL, 5);
+            wxString patterns[] = { _L("Archimedean Chords"), _L("Monotonic"), _L("Monotonic Line"), _L("Rectilinear") };
+            auto patternChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, patterns);
+            patternChoice->SetSelection(0); // Default to Archimedean Chords
+            sizer->Add(patternChoice, 0, wxEXPAND | wxALL, 5);
+
+            // Buttons
+            sizer->Add(dlg.CreateButtonSizer(wxOK | wxCANCEL), 0, wxALIGN_CENTER | wxALL, 10);
+
+            dlg.SetSizerAndFit(sizer);
+            dlg.CenterOnParent();
+
+            if (dlg.ShowModal() == wxID_OK) {
+                int type = typeChoice->GetSelection();
+                int patternIdx = patternChoice->GetSelection();
+                InfillPattern pattern = ipArchimedeanChords;
+                if (patternIdx == 1) pattern = ipMonotonic;
+                else if (patternIdx == 2) pattern = ipMonotonicLine;
+                else if (patternIdx == 3) pattern = ipRectilinear;
+
+                bool is_linear = (type >= 2);
+                int pass = (type % 2) + 1;
+
+                m_plater->calib_flowrate(is_linear, pass, pattern);
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow rate test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    flowrate_menu->AppendSeparator();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowrate calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowrate calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    m_topbar->GetCalibMenu()->AppendSubMenu(flowrate_menu, _L("Flow rate"));
 
     // Retraction test
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction test"), _L("Retraction test"),
@@ -3162,21 +3188,48 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flowrate (with submenu)
-    auto flowrate_menu = new wxMenu();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow rate test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow rate test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_submenu(calib_menu,flowrate_menu,wxID_ANY,_L("Flow rate"),_L("Flow rate"),"",
-                   [this]() {return m_plater->is_view3D_shown();; });
-    flowrate_menu->AppendSeparator();
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowrate calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
-        [this]() {return m_plater->is_view3D_shown();; }, this);
-    append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowrate calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
+    // Flow rate (Wizard Dialog)
+    append_menu_item(calib_menu, wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
+        [this](wxCommandEvent&) {
+            if (!m_plater) return;
+
+            wxDialog dlg(this, wxID_ANY, _L("Flow Rate Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+            auto sizer = new wxBoxSizer(wxVERTICAL);
+
+            // Type selection
+            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Calibration Test Type:")), 0, wxALL, 5);
+            wxString types[] = { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") };
+            auto typeChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, types);
+            typeChoice->SetSelection(2); // Default to YOLO Recommended
+            sizer->Add(typeChoice, 0, wxEXPAND | wxALL, 5);
+
+            // Pattern selection
+            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Top Surface Pattern:")), 0, wxALL, 5);
+            wxString patterns[] = { _L("Archimedean Chords"), _L("Monotonic"), _L("Monotonic Line"), _L("Rectilinear") };
+            auto patternChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, patterns);
+            patternChoice->SetSelection(0); // Default to Archimedean Chords
+            sizer->Add(patternChoice, 0, wxEXPAND | wxALL, 5);
+
+            // Buttons
+            sizer->Add(dlg.CreateButtonSizer(wxOK | wxCANCEL), 0, wxALIGN_CENTER | wxALL, 10);
+
+            dlg.SetSizerAndFit(sizer);
+            dlg.CenterOnParent();
+
+            if (dlg.ShowModal() == wxID_OK) {
+                int type = typeChoice->GetSelection();
+                int patternIdx = patternChoice->GetSelection();
+                InfillPattern pattern = ipArchimedeanChords;
+                if (patternIdx == 1) pattern = ipMonotonic;
+                else if (patternIdx == 2) pattern = ipMonotonicLine;
+                else if (patternIdx == 3) pattern = ipRectilinear;
+
+                bool is_linear = (type >= 2);
+                int pass = (type % 2) + 1;
+
+                m_plater->calib_flowrate(is_linear, pass, pattern);
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Retraction test
