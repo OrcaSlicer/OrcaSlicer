@@ -3044,41 +3044,56 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flow rate (Wizard Dialog)
+    class FlowRateCalibrationDialog : public DPIDialog {
+    public:
+        FlowRateCalibrationDialog(wxWindow* parent)
+            : DPIDialog(parent, wxID_ANY, _L("Flow Rate Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+        {
+            auto sizer = new wxBoxSizer(wxVERTICAL);
+
+            // Type selection
+            sizer->Add(new wxStaticText(this, wxID_ANY, _L("Calibration Test Type:")), 0, wxALL, 5);
+            wxString types[] = { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") };
+            m_typeChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, types);
+            m_typeChoice->SetSelection(2); // Default to YOLO Recommended
+            sizer->Add(m_typeChoice, 0, wxEXPAND | wxALL, 5);
+
+            // Pattern selection
+            sizer->Add(new wxStaticText(this, wxID_ANY, _L("Top Surface Pattern:")), 0, wxALL, 5);
+            // ORCA: Remove unwanted patterns
+            wxString patterns[] = { _L("Archimedean Chords"), _L("Monotonic") };
+            m_patternChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, patterns);
+            m_patternChoice->SetSelection(0); // Default to Archimedean Chords
+            sizer->Add(m_patternChoice, 0, wxEXPAND | wxALL, 5);
+
+            // Buttons
+            sizer->Add(CreateButtonSizer(wxOK | wxCANCEL), 0, wxALIGN_CENTER | wxALL, 10);
+
+            SetSizerAndFit(sizer);
+            CenterOnParent();
+        }
+
+        int GetTypeSelection() const { return m_typeChoice->GetSelection(); }
+        int GetPatternSelection() const { return m_patternChoice->GetSelection(); }
+
+        void on_dpi_changed(const wxRect& suggested_rect) override {}
+
+    private:
+        wxChoice* m_typeChoice;
+        wxChoice* m_patternChoice;
+    };
+
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
         [this](wxCommandEvent&) {
             if (!m_plater) return;
 
-            wxDialog dlg(this, wxID_ANY, _L("Flow Rate Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
-            auto sizer = new wxBoxSizer(wxVERTICAL);
-
-            // Type selection
-            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Calibration Test Type:")), 0, wxALL, 5);
-            wxString types[] = { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") };
-            auto typeChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, types);
-            typeChoice->SetSelection(2); // Default to YOLO Recommended
-            sizer->Add(typeChoice, 0, wxEXPAND | wxALL, 5);
-
-            // Pattern selection
-            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Top Surface Pattern:")), 0, wxALL, 5);
-            wxString patterns[] = { _L("Archimedean Chords"), _L("Monotonic"), _L("Monotonic Line"), _L("Rectilinear") };
-            auto patternChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, patterns);
-            patternChoice->SetSelection(0); // Default to Archimedean Chords
-            sizer->Add(patternChoice, 0, wxEXPAND | wxALL, 5);
-
-            // Buttons
-            sizer->Add(dlg.CreateButtonSizer(wxOK | wxCANCEL), 0, wxALIGN_CENTER | wxALL, 10);
-
-            dlg.SetSizerAndFit(sizer);
-            dlg.CenterOnParent();
-
+            FlowRateCalibrationDialog dlg(this);
             if (dlg.ShowModal() == wxID_OK) {
-                int type = typeChoice->GetSelection();
-                int patternIdx = patternChoice->GetSelection();
+                int type = dlg.GetTypeSelection();
+                int patternIdx = dlg.GetPatternSelection();
                 InfillPattern pattern = ipArchimedeanChords;
                 if (patternIdx == 1) pattern = ipMonotonic;
-                else if (patternIdx == 2) pattern = ipMonotonicLine;
-                else if (patternIdx == 3) pattern = ipRectilinear;
-
+                
                 bool is_linear = (type >= 2);
                 int pass = (type % 2) + 1;
 
@@ -3188,42 +3203,18 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flowrate (with submenu)
-    // Flow rate (Wizard Dialog)
+    // ORCA: Flow rate (Wizard Dialog)
     append_menu_item(calib_menu, wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
         [this](wxCommandEvent&) {
             if (!m_plater) return;
 
-            wxDialog dlg(this, wxID_ANY, _L("Flow Rate Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
-            auto sizer = new wxBoxSizer(wxVERTICAL);
-
-            // Type selection
-            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Calibration Test Type:")), 0, wxALL, 5);
-            wxString types[] = { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") };
-            auto typeChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, types);
-            typeChoice->SetSelection(2); // Default to YOLO Recommended
-            sizer->Add(typeChoice, 0, wxEXPAND | wxALL, 5);
-
-            // Pattern selection
-            sizer->Add(new wxStaticText(&dlg, wxID_ANY, _L("Top Surface Pattern:")), 0, wxALL, 5);
-            wxString patterns[] = { _L("Archimedean Chords"), _L("Monotonic"), _L("Monotonic Line"), _L("Rectilinear") };
-            auto patternChoice = new wxChoice(&dlg, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, patterns);
-            patternChoice->SetSelection(0); // Default to Archimedean Chords
-            sizer->Add(patternChoice, 0, wxEXPAND | wxALL, 5);
-
-            // Buttons
-            sizer->Add(dlg.CreateButtonSizer(wxOK | wxCANCEL), 0, wxALIGN_CENTER | wxALL, 10);
-
-            dlg.SetSizerAndFit(sizer);
-            dlg.CenterOnParent();
-
+            FlowRateCalibrationDialog dlg(this);
             if (dlg.ShowModal() == wxID_OK) {
-                int type = typeChoice->GetSelection();
-                int patternIdx = patternChoice->GetSelection();
+                int type = dlg.GetTypeSelection();
+                int patternIdx = dlg.GetPatternSelection();
                 InfillPattern pattern = ipArchimedeanChords;
                 if (patternIdx == 1) pattern = ipMonotonic;
-                else if (patternIdx == 2) pattern = ipMonotonicLine;
-                else if (patternIdx == 3) pattern = ipRectilinear;
-
+                
                 bool is_linear = (type >= 2);
                 int pass = (type % 2) + 1;
 
