@@ -85,19 +85,18 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::OBJECT_C
                     {"xy_hole_compensation", "",5}, {"xy_contour_compensation", "",6}, {"elefant_foot_compensation", "",7},
                     {"make_overhang_printable_angle","", 8},{"make_overhang_printable_hole_size","",9}, {"wall_sequence","",10},
                     {"precise_z_height", "",10}
-
                     }},
-    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"brim_object_gap", "",3},{"brim_use_efc_outline", "",4},
-                    {"enable_support", "",5},{"support_type", "",6},{"support_threshold_angle", "",7}, {"support_threshold_overlap", "",8}, {"support_on_build_plate_only", "",9},
-                    {"support_filament", "",10},{"support_interface_filament", "",11},{"support_expansion", "",12},{"support_style", "",13},
-                    {"tree_support_brim_width", "",14}, {"tree_support_branch_angle", "",15},{"tree_support_branch_angle_organic","",16}, {"tree_support_wall_count", "",17},{"tree_support_branch_diameter_angle", "",18},//tree support
-                    {"support_bottom_z_distance", "",19},{"support_top_z_distance", "",20},{"support_base_pattern", "",21},{"support_base_pattern_spacing", "",22},
-                    {"support_interface_top_layers", "",23},{"support_interface_bottom_layers", "",24},{"support_interface_spacing", "",25},{"support_bottom_interface_spacing", "",26},
-                    {"support_object_xy_distance", "",27}, {"bridge_no_support", "",28},{"max_bridge_length", "",29},{"support_critical_regions_only", "",30},{"support_remove_small_overhang","",31},
-                    {"support_object_first_layer_gap","",32}
-                            }},
+    { L("Support"), {{"brim_type", "",1},{"brim_width", "",2},{"brim_object_gap", "",3},{"brim_flow_ratio", "",4},{"brim_use_efc_outline", "",5},
+                    {"enable_support", "",6},{"support_type", "",7},{"support_threshold_angle", "",8}, {"support_threshold_overlap", "",9}, {"support_on_build_plate_only", "",10},
+                    {"support_filament", "",11},{"support_interface_filament", "",12},{"support_expansion", "",13},{"support_style", "",14},
+                    {"tree_support_brim_width", "",15}, {"tree_support_branch_angle", "",16},{"tree_support_branch_angle_organic","",17}, {"tree_support_wall_count", "",18},{"tree_support_branch_diameter_angle", "",19},//tree support
+                    {"support_bottom_z_distance", "",20},{"support_top_z_distance", "",21},{"support_base_pattern", "",22},{"support_base_pattern_spacing", "",23},
+                    {"support_interface_top_layers", "",24},{"support_interface_bottom_layers", "",25},{"support_interface_spacing", "",26},{"support_bottom_interface_spacing", "",27},
+                    {"support_object_xy_distance", "",28}, {"bridge_no_support", "",29},{"max_bridge_length", "",30},{"support_critical_regions_only", "",31},{"support_remove_small_overhang","",32},
+                    {"support_object_first_layer_gap","",33}
+                    }},
     { L("Speed"), {{"support_speed", "",12}, {"support_interface_speed", "",13}
-                    }}
+                  }}
 };
 
 std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::PART_CATEGORY_SETTINGS=
@@ -109,7 +108,7 @@ std::map<std::string, std::vector<SimpleSettingData>>  SettingsFactory::PART_CAT
                     {"sparse_infill_density", "",1},{"sparse_infill_pattern", "",1},{"lateral_lattice_angle_1", "",1},{"lateral_lattice_angle_2", "",1},{"infill_overhang_angle", "",1},{"infill_anchor", "",1},{"infill_anchor_max", "",1},{"top_surface_pattern", "",1},{"bottom_surface_pattern", "",1}, {"internal_solid_infill_pattern", "",1},
                     {"align_infill_direction_to_model", "", 1},
                     {"extra_solid_infills", "", 1},
-        {"infill_combination", "",1}, {"infill_combination_max_layer_height", "",1}, {"infill_wall_overlap", "",1},{"top_bottom_infill_wall_overlap", "",1}, {"solid_infill_direction", "",1}, {"infill_direction", "",1}, {"bridge_angle", "",1}, {"internal_bridge_angle", "",1}, {"minimum_sparse_infill_area", "",1}
+                    {"infill_combination", "",1}, {"infill_combination_max_layer_height", "",1}, {"infill_wall_overlap", "",1},{"top_bottom_infill_wall_overlap", "",1}, {"solid_infill_direction", "",1}, {"infill_direction", "",1}, {"bridge_angle", "",1}, {"internal_bridge_angle", "",1}, {"minimum_sparse_infill_area", "",1}
                     }},
     { L("Speed"), {{"outer_wall_speed", "",1},{"inner_wall_speed", "",2},{"sparse_infill_speed", "",3},{"top_surface_speed", "",4}, {"internal_solid_infill_speed", "",5},
                     {"enable_overhang_speed", "",6}, {"overhang_1_4_speed", "",7}, {"overhang_2_4_speed", "",8}, {"overhang_3_4_speed", "",9}, {"overhang_4_4_speed", "",10},

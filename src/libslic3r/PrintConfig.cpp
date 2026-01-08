@@ -1583,6 +1583,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("brim_flow_ratio", coFloat);
+    def->label = L("Brim flow ratio");
+    def->category = L("Support");
+    def->tooltip = L("This factor affects the amount of material for brims.\n\n"
+                     "The actual brim flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio.\n\n"
+                     "Note: The resulting value will not be affected by the first-layer flow ratio.");
+    def->min = 0;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1));
+
     def = this->add("brim_use_efc_outline", coBool);
     def->label = L("Brim follows compensated outline");
     def->category = L("Support");
