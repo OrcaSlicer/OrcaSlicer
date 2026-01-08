@@ -4,8 +4,8 @@
     "inherits": "0.30mm DETAIL @MK4S 0.8",
     "from": "system",
     "instantiation": "true",
-    "overhang_2_4_speed": "35",
-    "top_surface_speed": "2000",
+    "overhang_3_4_speed": "35",
+    "top_surface_acceleration": "2000",
     "inner_wall_acceleration": "2500",
     "internal_solid_infill_acceleration": "5000",
     "sparse_infill_acceleration": "7000",
@@ -15,5 +15,6 @@
     "support_interface_top_layers": "3",
     "initial_layer_infill_speed": "55",
     "initial_layer_speed": "45",
-    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.8 and printer_notes!~/.*HF_NOZZLE.*/"
+    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.8 and printer_notes!~/.*HF_NOZZLE.*/",
+    "gap_infill_speed": "45"
 }

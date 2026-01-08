@@ -4,9 +4,9 @@
     "inherits": "0.15mm STRUCTURAL @MK4S 0.6",
     "from": "system",
     "instantiation": "true",
-    "inner_wall_speed": "80",
-    "overhang_2_4_speed": "30",
-    "overhang_3_4_speed": "70%",
+    "inner_wall_speed": "70",
+    "overhang_3_4_speed": "30",
+    "overhang_4_4_speed": "70%",
     "travel_speed": "350",
     "travel_acceleration": "7000",
     "default_acceleration": "3000",
@@ -18,5 +18,6 @@
     "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE.*/ and nozzle_diameter[0]==0.6",
     "inner_wall_acceleration": "2500",
     "outer_wall_acceleration": "1500",
-    "top_surface_acceleration": "2000"
+    "top_surface_acceleration": "2000",
+    "gap_infill_speed": "70"
 }

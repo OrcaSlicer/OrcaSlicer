@@ -1010,6 +1010,7 @@ bool PrintObject::invalidate_state_by_config_options(
     for (const t_config_option_key &opt_key : opt_keys) {
         if (   opt_key == "brim_width"
             || opt_key == "brim_object_gap"
+            || opt_key == "brim_use_efc_outline"
             || opt_key == "brim_type"
             || opt_key == "brim_ears_max_angle"
             || opt_key == "brim_ears_detection_length"
@@ -1279,6 +1280,8 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "wall_direction"
             || opt_key == "enable_overhang_speed"
             || opt_key == "detect_thin_wall"
+            || opt_key == "cut_corners" 
+            || opt_key == "cut_corners_overlap" 
             || opt_key == "precise_outer_wall") {
             steps.emplace_back(posPerimeters);
             steps.emplace_back(posSupportMaterial);

@@ -2727,8 +2727,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
         auto probe_dist_x  = std::max(1., m_config.bed_mesh_probe_distance.value.x());
         auto probe_dist_y  = std::max(1., m_config.bed_mesh_probe_distance.value.y());
-        int  probe_count_x = std::max(3, (int) std::ceil(mesh_bbox.size().x() / probe_dist_x));
-        int  probe_count_y = std::max(3, (int) std::ceil(mesh_bbox.size().y() / probe_dist_y));
+        int  probe_count_x = std::max(3, (int) std::ceil(mesh_bbox.size().x() / probe_dist_x) + 1);
+        int  probe_count_y = std::max(3, (int) std::ceil(mesh_bbox.size().y() / probe_dist_y) + 1);
         auto bed_mesh_algo = "bicubic";
         if (probe_count_x * probe_count_y <= 6) { // lagrange needs up to a total of 6 mesh points
             bed_mesh_algo = "lagrange";
@@ -3084,10 +3084,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         m_sorted_layer_filaments.emplace_back(lt.extruders);
                 }
 
-                // Orca: finish tracking power lost recovery
+                // Orca: disable power loss recovery if it was enabled earlier
                 {
-                    if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
-                        file.write(m_writer.enable_power_loss_recovery(false));
+                    const auto plr_mode = print.config().enable_power_loss_recovery.value;
+                    if (m_second_layer_things_done && plr_mode == PowerLossRecoveryMode::Enable) {
+                        file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
                     }
                 }
                 ++ finished_objects;
@@ -3165,9 +3166,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     m_sorted_layer_filaments.emplace_back(lt.extruders);
             }
 
-            // Orca: finish tracking power lost recovery
-            if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
-                file.write(m_writer.enable_power_loss_recovery(false));
+            // Orca: disable power loss recovery
+            if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == PowerLossRecoveryMode::Enable) {
+                file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
             }
             if (m_wipe_tower)
                 // Purge the extruder, pull out the active filament.
@@ -4251,8 +4252,8 @@ LayerResult GCode::process_layer(
     bool is_multi_extruder = m_config.nozzle_diameter.size() > 1;
 
     bool need_insert_timelapse_gcode_for_traditional = false;
-    if (!m_wipe_tower || !m_wipe_tower->enable_timelapse_print()) {
-        need_insert_timelapse_gcode_for_traditional = ((is_i3_printer && !m_spiral_vase)|| is_multi_extruder);
+    if ((!m_wipe_tower || !m_wipe_tower->enable_timelapse_print()) && (is_BBL_Printer() || !m_config.time_lapse_gcode.value.empty())) {
+        need_insert_timelapse_gcode_for_traditional = ((is_i3_printer && !m_spiral_vase) || is_multi_extruder);
     }
 
     bool has_insert_timelapse_gcode = false;
@@ -4268,19 +4269,18 @@ LayerResult GCode::process_layer(
     gcode += this->change_layer(print_z);  // this will increase m_layer_index
     m_layer = &layer;
     m_object_layer_over_raft = false;
-    if(is_BBL_Printer()){
-    } else {
-        if (!m_config.time_lapse_gcode.value.empty()) {
-            DynamicConfig config;
-            config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
-            config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
-            config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
-            gcode += this->placeholder_parser_process("timelapse_gcode", print.config().time_lapse_gcode.value, m_writer.filament()->id(),
-                                                      &config) +
-                     "\n";
-        }
+
+    if (!m_config.time_lapse_gcode.value.empty() && !is_BBL_Printer()) {
+        DynamicConfig config;
+        config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
+        config.set_key_value("layer_z", new ConfigOptionFloat(print_z));
+        config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
+        gcode += this->placeholder_parser_process("timelapse_gcode",
+             print.config().time_lapse_gcode.value, m_writer.filament()->id(), &config)
+             + "\n";
     }
-    if (! m_config.layer_change_gcode.value.empty()) {
+
+    if (!m_config.layer_change_gcode.value.empty()) {
         DynamicConfig config;
         config.set_key_value("most_used_physical_extruder_id", new ConfigOptionInt(m_config.physical_extruder_map.get_at(most_used_extruder)));
         config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
@@ -4382,10 +4382,9 @@ LayerResult GCode::process_layer(
     }
 
     if (!first_layer && !m_second_layer_things_done) {
-        // Orca: start tracking power lost recovery
-        if (print.config().enable_power_loss_recovery.value == true) {
-            gcode += m_writer.enable_power_loss_recovery(true);
-        }
+        // Orca: set power loss recovery
+        const auto plr_mode = print.config().enable_power_loss_recovery.value;
+        gcode += m_writer.enable_power_loss_recovery(plr_mode);
 
         if (print.is_BBL_printer()) {
             // BBS: open first layer inspection at second layer
@@ -4729,7 +4728,7 @@ LayerResult GCode::process_layer(
 
         auto timelapse_pos=m_timelapse_pos_picker.pick_pos(ctx);
 
-        std::string timepals_gcode;
+        std::string timelapse_gcode;
         if (!print.config().time_lapse_gcode.value.empty()) {
             DynamicConfig config;
             config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index));
@@ -4740,17 +4739,18 @@ LayerResult GCode::process_layer(
             config.set_key_value("timelapse_pos_x", new ConfigOptionInt((int)timelapse_pos.x()));
             config.set_key_value("timelapse_pos_y", new ConfigOptionInt((int)timelapse_pos.y()));
             config.set_key_value("has_timelapse_safe_pos", new ConfigOptionBool(timelapse_pos != DefaultTimelapsePos));
-            timepals_gcode = this->placeholder_parser_process("timelapse_gcode", print.config().time_lapse_gcode.value, m_writer.filament()->id(), &config) + "\n";
+            timelapse_gcode = this->placeholder_parser_process("timelapse_gcode", print.config().time_lapse_gcode.value, m_writer.filament()->id(), &config) + "\n";
         }
-        if (!timepals_gcode.empty()) {
-        m_writer.set_current_position_clear(false);
 
-        double temp_z_after_tool_change;
-        if (GCodeProcessor::get_last_z_from_gcode(timepals_gcode, temp_z_after_tool_change)) {
-            Vec3d pos = m_writer.get_position();
-            pos(2)    = temp_z_after_tool_change;
-            m_writer.set_position(pos);
-        }
+        if (!timelapse_gcode.empty()) {
+            m_writer.set_current_position_clear(false);
+
+            double temp_z_after_tool_change;
+            if (GCodeProcessor::get_last_z_from_gcode(timelapse_gcode, temp_z_after_tool_change)) {
+                Vec3d pos = m_writer.get_position();
+                pos(2)    = temp_z_after_tool_change;
+                m_writer.set_position(pos);
+            }
         }
 
         // (layer_object_label_ids.size() < 64) this restriction comes from _encode_label_ids_to_base64()
@@ -4771,13 +4771,13 @@ LayerResult GCode::process_layer(
             std::string end_str = std::string("; object ids of this layer") + std::to_string(m_layer_index + 1) + (" end: ") + oss.str() + "\n";
             end_str   += "M625\n";
 
-            timepals_gcode = start_str + timepals_gcode + end_str;
+            timelapse_gcode = start_str + timelapse_gcode + end_str;
         }
 
-        return timepals_gcode;
+        return timelapse_gcode;
     };
 
-    if (!need_insert_timelapse_gcode_for_traditional) { // Equivalent to the timelapse gcode placed in layer_change_gcode
+    if (!need_insert_timelapse_gcode_for_traditional  && is_BBL_Printer()) { // Equivalent to the timelapse gcode placed in layer_change_gcode
         if (FILAMENT_CONFIG(retract_when_changing_layer)) {
             gcode += this->retract(false, false, auto_lift_type, true);
         }
@@ -4873,10 +4873,12 @@ LayerResult GCode::process_layer(
 
             gcode_toolchange = this->set_extruder(extruder_id, print_z);
         }
+
         if (!gcode_toolchange.empty()) {
             // Disable vase mode for layers that has toolchange
             result.spiral_vase_enable = false;
         }
+        
         gcode += std::move(gcode_toolchange);
 
         // let analyzer tag generator aware of a role type change
@@ -5931,6 +5933,10 @@ double GCode::calc_max_volumetric_speed(const double layer_height, const double 
 std::string GCode::_extrude(const ExtrusionPath &path, std::string description, double speed)
 {
     std::string gcode;
+    const double nozzle_diameter = EXTRUDER_CONFIG(nozzle_diameter);
+    const bool   possible_loop   = path.is_closed() || path.is_loop() ||
+                                   ((path.last_point() - path.first_point()).norm() * SCALING_FACTOR <
+                                   (nozzle_diameter + m_config.seam_gap.get_abs_value(nozzle_diameter)) );
 
     if (is_bridge(path.role()))
         description += " (bridge)";
@@ -6185,10 +6191,16 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             );
         }
 
-        // if still in avoidance mode and under “max”, clamp to “min”
-        if (m_resonance_avoidance
-            && speed <= m_config.max_resonance_avoidance_speed.value) {
-            speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
+            // if still in avoidance mode and under "max", adjust speed:
+            // - speeds in lower half of range: clamp down to "min"
+            // - speeds in upper half of range: boost up to "max"
+        if (m_resonance_avoidance && speed < m_config.max_resonance_avoidance_speed.value) {
+            if (speed < m_config.min_resonance_avoidance_speed.value +
+                            ((m_config.max_resonance_avoidance_speed.value - m_config.min_resonance_avoidance_speed.value) / 2)) {
+                speed = std::min(speed, m_config.min_resonance_avoidance_speed.value);
+            } else {
+                speed = m_config.max_resonance_avoidance_speed.value;
+            }
         }
 
         // reset flag for next segment
@@ -6527,7 +6539,30 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             if (!m_config.enable_arc_fitting || path.polyline.fitting_result.empty() || m_config.spiral_mode || sloped != nullptr) {
                 double path_length = 0.;
                 double total_length = sloped == nullptr ? 0. : path.polyline.length() * SCALING_FACTOR;
-                for (const Line& line : path.polyline.lines()) {
+                
+                //Orca: Cut corners
+                Lines  lines(path.polyline.lines());
+                std::vector<double> corners(lines.size(), 0);
+                int          _angle_idx = 0;
+
+                #define M_2PI (M_PI * 2.)
+                auto constrain2PI = [](double x) {
+                    while (x < 0.) x += M_2PI;
+                    return fmod(x, M_2PI);
+                };
+                auto constrainPI = [](double x) {
+                    while (x < 0.) x += M_2PI;
+                    return fmod(x + M_PI, M_2PI) - M_PI;
+                };
+
+                if (m_config.cut_corners) { // collect angle info for all junctions
+                    for (int _i = 1; _i < lines.size(); _i++)
+                        corners[_i] = constrainPI(constrain2PI(lines[_i].orientation()) - constrain2PI(lines[_i - 1].orientation())) / 2.;
+                    if (possible_loop) 
+                        corners[0] = constrainPI(constrain2PI(lines[0].orientation()) - constrain2PI(lines[lines.size() - 1].orientation())) / 2.;
+                }
+
+                for (const Line& line : lines) {
                     std::string tempDescription = description;
                     const double line_length = line.length() * SCALING_FACTOR;
                     if (line_length < EPSILON)
@@ -6544,10 +6579,41 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                     }
                     if (sloped == nullptr) {
                         // Normal extrusion
-                        gcode += m_writer.extrude_to_xy(
-                            this->point_to_gcode(line.b),
-                            dE,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                        Vec2d const _b = this->point_to_gcode(line.b);     // end point
+                        if (m_config.cut_corners) { // Orca: Сut corners 
+                            Vec2d const _a = this->point_to_gcode(line.a); // start point
+                            Vec2d _c(this->point_to_gcode(line.b) - _a);   // line's vector
+                            double const semi_diameter = nozzle_diameter / 2.;
+                            double const onehalf_diameter = nozzle_diameter * 1.5;
+                            _c.normalize(); // get normalized vector
+
+                            double const _lN = nozzle_diameter * (1. - m_config.cut_corners_overlap); // get lenght for cutting lines at the line ends to pervent corner overflow
+                            double const _lS = (_angle_idx ? semi_diameter * tan(abs(corners[_angle_idx])) : 0.); // get the start cutting lenght for overlaping lines
+                            double const _lE = (_angle_idx == lines.size() - 1 ? semi_diameter * tan(abs(corners[0])) : 0.); // get the end cutting lenght for overlaping lines
+
+                            double const _eL = dE / line_length; // get line flowrate
+                            double const _eN = _eL * _lN;        // get compensation extrusion volume
+                            double const _eS = _eL * _lS;        // get start extrusion volume
+                            double const _eE = _eL * _lE;        // get end extrusion volume
+
+                            double const sum_d = _eN + _eS + _eE;
+                            if (dE > sum_d * 2.) { // reduce cutting for small extrusion lines 
+                                dE -= sum_d;
+                                if (nozzle_diameter * 3. < line_length) { // if cut corners used, send an additional commands to the g-code, owerwise print the line with reduced volume
+                                    if ((_lS + _lN) < onehalf_diameter) 
+                                        gcode += m_writer.extrude_to_xy(_a + _c * (_lN  + _lS), 0., GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                                    else 
+                                        for (double _v = 0.; _v < _lS; _v += semi_diameter)
+                                            gcode += m_writer.extrude_to_xy(_a + _c * (_lN  + _v), _eS * semi_diameter / pow(_lS, 2) * _v, GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                                    gcode += m_writer.extrude_to_xy(_b - _c * (_lN + _lE), dE, GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                                    if ((_lE + _lN) > onehalf_diameter) 
+                                        for (double _v = _lE; _v > 0.; _v -= semi_diameter) 
+                                            gcode += m_writer.extrude_to_xy(_b - _c * (_lN + _v), _eE * semi_diameter / pow(_lE, 2) * _v, GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                                    dE = 0.; // send to finish extrude with zero-flow to the end point
+                                }
+                            } 
+                        }
+                        gcode += m_writer.extrude_to_xy(_b, dE, GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     } else {
                         // Sloped extrusion
                         const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
@@ -6558,6 +6624,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             dE * e_ratio,
                             GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     }
+                    _angle_idx++;
                 }
             } else {
                 // BBS: start to generate gcode from arc fitting data which includes line and arc

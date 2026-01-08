@@ -42,6 +42,7 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     };
     m_max_jerk_z = print_config.machine_max_jerk_z.values.front();
     m_max_jerk_e = print_config.machine_max_jerk_e.values.front();
+    m_resolution = print_config.resolution.value;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
@@ -443,22 +444,27 @@ std::string GCodeWriter::reset_e(bool force)
     }
 }
 
-std::string GCodeWriter::enable_power_loss_recovery(bool enable)
+std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
 {
     std::ostringstream gcode;
-    
+
+    if (mode == PowerLossRecoveryMode::PrinterConfiguration)
+        return std::string();
+
+    const bool enable = mode == PowerLossRecoveryMode::Enable;
+
     if (m_is_bbl_printers) {
-        gcode << "; start tracking Power Loss Recovery https://wiki.bambulab.com/en/knowledge-sharing/power-loss-recovery\n";
-        gcode << "M1003 S" << (enable ? "1" : "0") << "\n";
+        gcode << "M1003 S" << (enable ? "1" : "0");
     }
     else if (FLAVOR_IS(gcfMarlinFirmware)) {
-        gcode << "; start tracking Power-loss Recovery https://marlinfw.org/docs/gcode/M413.html\n";
-        gcode << "M413 S" << (enable ? "1" : "0") << "\n";
+        gcode << "M413 S" << (enable ? "1" : "0");
+    } else {
+        return std::string();
     }
-    
+    if (GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
+    gcode << "\n";
     return gcode.str();
 }
-
 
 std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, bool allow_100) const
 {
@@ -787,8 +793,18 @@ std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, c
 
     if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
         std::ostringstream oss;
-        const double z_start = m_pos(2);                // starting Z height
-        const int segments = 24;                        // number of linear segments to use for approximating the arc
+        const double z_start = m_pos(2); // starting Z height
+
+        // --------------------------------------------------------------------
+        // Determine number of segments based on Resolution
+        // --------------------------------------------------------------------
+        const double ref_resolution = 0.01; // reference resolution in mm
+        const double ref_segments  = 16.0;  // reference number of segments at reference resolution
+        
+        // number of linear segments to use for approximating the arc, clamp between 4 and 24
+        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 24);
+        // --------------------------------------------------------------------
+
         const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
         const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
         const double cx = px + ij_offset(0);            // center x

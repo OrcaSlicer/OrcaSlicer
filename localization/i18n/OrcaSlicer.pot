@@ -11108,6 +11108,19 @@ msgid ""
 "easily."
 msgstr ""
 
+msgid "Brim follows compensated outline"
+msgstr ""
+
+msgid ""
+"When enabled, the brim is aligned with the first-layer perimeter geometry "
+"after Elephant Foot Compensation is applied.\n"
+"This option is intended for cases where Elephant Foot Compensation "
+"significantly alters the first-layer footprint.\n"
+"\n"
+"If your current setup already works well, enabling it may be unnecessary and "
+"can cause the brim to fuse with upper layers."
+msgstr ""
+
 msgid "Brim ears"
 msgstr ""
 
