@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSN95",
+    "name": "QIDI Support For PAHT @Qidi X-Max 4 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI Support For PAHT@X-Max 4-Series",
+	"compatible_printers": ["Qidi X-Max 4 0.6 nozzle"]
+}

@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "QIDI ABS Rapido @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI ABS Rapido@X-Max 4-Series",
+    "nozzle_temperature": ["250"],
+    "pressure_advance": ["0.011"],
+    "slow_down_min_speed": ["10"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}

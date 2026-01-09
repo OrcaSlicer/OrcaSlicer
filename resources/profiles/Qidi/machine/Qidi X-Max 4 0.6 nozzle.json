@@ -1,0 +1,18 @@
+{
+    "type": "machine",
+    "setting_id": "GM008",
+    "name": "Qidi X-Max 4 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Qidi X-Max 4 0.4 nozzle",
+    "default_filament_profile": ["QIDI PLA Rapido @Qidi X-Max 4 0.6 nozzle"],
+    "default_print_profile": "0.30mm Standard @X-Max 4 0.6 nozzle",
+    "max_layer_height": ["0.42"],
+    "min_layer_height": ["0.12"],
+    "nozzle_diameter": ["0.6"],
+    "printer_model": "Qidi X-Max 4",
+    "printer_variant": "0.6",
+    "retraction_length": ["1.4"],
+    "retraction_minimum_travel": ["3"],
+    "support_box_temp_control": "1"
+}

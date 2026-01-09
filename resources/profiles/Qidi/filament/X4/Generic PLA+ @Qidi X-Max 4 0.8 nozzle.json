@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSL99",
+    "name": "Generic PLA+ @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Generic PLA+@X-Max 4-Series",
+    "pressure_advance": ["0.008"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}

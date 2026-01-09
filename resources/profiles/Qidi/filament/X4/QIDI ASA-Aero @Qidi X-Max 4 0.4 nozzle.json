@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "QIDI ASA-Aero @Qidi X-Max 4 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI ASA-Aero@X-Max 4-Series",
+	"compatible_printers": ["Qidi X-Max 4 0.4 nozzle"]
+}

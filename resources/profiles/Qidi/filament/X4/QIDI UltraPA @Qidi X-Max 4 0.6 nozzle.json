@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSN98",
+    "name": "QIDI UltraPA @Qidi X-Max 4 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI UltraPA@X-Max 4-Series",
+	"compatible_printers": ["Qidi X-Max 4 0.6 nozzle"]
+}

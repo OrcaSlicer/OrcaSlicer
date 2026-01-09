@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+	"setting_id": "GFSL98",
+    "name": "QIDI PLA-CF @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI PLA-CF@X-Max 4-Series",
+    "filament_max_volumetric_speed": ["18"],
+    "pressure_advance": ["0.008"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}

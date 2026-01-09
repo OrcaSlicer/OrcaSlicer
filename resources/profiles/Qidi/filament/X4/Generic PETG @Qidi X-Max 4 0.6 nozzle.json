@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSG99",
+    "name": "Generic PETG @Qidi X-Max 4 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Generic PETG@X-Max 4-Series",
+    "pressure_advance": ["0.04"],
+	"compatible_printers": ["Qidi X-Max 4 0.6 nozzle"]
+}

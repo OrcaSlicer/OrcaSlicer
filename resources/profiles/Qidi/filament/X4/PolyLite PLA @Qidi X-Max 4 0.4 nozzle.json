@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSL99",
+    "name": "PolyLite PLA @Qidi X-Max 4 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "PolyLite PLA@X-Max 4-Series",
+	"compatible_printers": ["Qidi X-Max 4 0.4 nozzle"]
+}

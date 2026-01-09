@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "setting_id": "GFSG99",
+    "name": "QIDI PETG Rapido @Qidi X-Max 4 0.2 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI PETG Rapido@X-Max 4-Series",
+    "filament_max_volumetric_speed": ["1"],
+    "pressure_advance": ["0.054"],
+	"compatible_printers": ["Qidi X-Max 4 0.2 nozzle"]
+}
