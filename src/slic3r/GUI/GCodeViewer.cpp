@@ -683,7 +683,7 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
                 max_text_width = w;
         }
 
-        required_width = id_width + max_text_width + 2.0f * ImGui::GetStyle().WindowPadding.x;
+        required_width = id_width + max_text_width;
     }
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
