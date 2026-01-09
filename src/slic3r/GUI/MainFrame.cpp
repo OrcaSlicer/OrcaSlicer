@@ -3044,61 +3044,12 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flow rate (Wizard Dialog)
-    class FlowRateCalibrationDialog : public DPIDialog {
-    public:
-        FlowRateCalibrationDialog(wxWindow* parent)
-            : DPIDialog(parent, wxID_ANY, _L("Flow Rate Calibration"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
-        {
-            auto sizer = new wxBoxSizer(wxVERTICAL);
-
-            // Type selection
-            sizer->Add(new wxStaticText(this, wxID_ANY, _L("Calibration Test Type:")), 0, wxALL, 5);
-            wxString types[] = { _L("Pass 1 (Coarse)"), _L("Pass 2 (Fine)"), _L("YOLO (Recommended)"), _L("YOLO (Perfectionist)") };
-            m_typeChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 4, types);
-            m_typeChoice->SetSelection(2); // Default to YOLO Recommended
-            sizer->Add(m_typeChoice, 0, wxEXPAND | wxALL, 5);
-
-            // Pattern selection
-            sizer->Add(new wxStaticText(this, wxID_ANY, _L("Top Surface Pattern:")), 0, wxALL, 5);
-            // ORCA: Remove unwanted patterns
-            wxString patterns[] = { _L("Archimedean Chords"), _L("Monotonic") };
-            m_patternChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, patterns);
-            m_patternChoice->SetSelection(0); // Default to Archimedean Chords
-            sizer->Add(m_patternChoice, 0, wxEXPAND | wxALL, 5);
-
-            // Buttons
-            sizer->Add(CreateButtonSizer(wxOK | wxCANCEL), 0, wxALIGN_CENTER | wxALL, 10);
-
-            SetSizerAndFit(sizer);
-            CenterOnParent();
-        }
-
-        int GetTypeSelection() const { return m_typeChoice->GetSelection(); }
-        int GetPatternSelection() const { return m_patternChoice->GetSelection(); }
-
-        void on_dpi_changed(const wxRect& suggested_rect) override {}
-
-    private:
-        wxChoice* m_typeChoice;
-        wxChoice* m_patternChoice;
-    };
-
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
         [this](wxCommandEvent&) {
             if (!m_plater) return;
-
-            FlowRateCalibrationDialog dlg(this);
-            if (dlg.ShowModal() == wxID_OK) {
-                int type = dlg.GetTypeSelection();
-                int patternIdx = dlg.GetPatternSelection();
-                InfillPattern pattern = ipArchimedeanChords;
-                if (patternIdx == 1) pattern = ipMonotonic;
-                
-                bool is_linear = (type >= 2);
-                int pass = (type % 2) + 1;
-
-                m_plater->calib_flowrate(is_linear, pass, pattern);
-            }
+            if (!m_flow_rate_calib_dlg)
+                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
+            m_flow_rate_calib_dlg->ShowModal();
         }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
@@ -3207,19 +3158,9 @@ void MainFrame::init_menubar_as_editor()
     append_menu_item(calib_menu, wxID_ANY, _L("Flow Rate"), _L("Flow Rate Calibration"),
         [this](wxCommandEvent&) {
             if (!m_plater) return;
-
-            FlowRateCalibrationDialog dlg(this);
-            if (dlg.ShowModal() == wxID_OK) {
-                int type = dlg.GetTypeSelection();
-                int patternIdx = dlg.GetPatternSelection();
-                InfillPattern pattern = ipArchimedeanChords;
-                if (patternIdx == 1) pattern = ipMonotonic;
-                
-                bool is_linear = (type >= 2);
-                int pass = (type % 2) + 1;
-
-                m_plater->calib_flowrate(is_linear, pass, pattern);
-            }
+            if (!m_flow_rate_calib_dlg)
+                m_flow_rate_calib_dlg = new FlowRateCalibrationDialog((wxWindow*)this, wxID_ANY, m_plater);
+            m_flow_rate_calib_dlg->ShowModal();
         }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
