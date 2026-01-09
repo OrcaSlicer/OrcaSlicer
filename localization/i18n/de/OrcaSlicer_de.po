@@ -14499,7 +14499,7 @@ msgid "Travel speed of initial layer."
 msgstr "Bewegungsgeschwindigkeit der ersten Schicht"
 
 msgid "Number of slow layers"
-msgstr "Anzahl der lansamen Schichten"
+msgstr "Anzahl der langsamen Schichten"
 
 msgid ""
 "The first few layers are printed slower than normal. The speed is gradually "
