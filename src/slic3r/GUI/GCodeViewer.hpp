@@ -103,7 +103,7 @@ public:
             void set_visible(bool visible) { m_visible = visible; }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
-            void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height);
+            void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
             void on_change_color_mode(bool is_dark) { m_is_dark = is_dark; }
         };
 

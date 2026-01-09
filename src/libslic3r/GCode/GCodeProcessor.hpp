@@ -185,6 +185,7 @@ class Print;
             float fan_speed{ 0.0f }; // percentage
             float temperature{ 0.0f }; // Celsius degrees
             std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
+            float layer_duration{ 0.0f }; // s
             unsigned int layer_id{ 0 };
             bool internal_only{ false };
 

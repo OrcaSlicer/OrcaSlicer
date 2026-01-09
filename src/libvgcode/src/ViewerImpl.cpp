@@ -1034,6 +1034,11 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
         }
     }
 
+    // Populate layer_duration for each vertex from the accumulated layer times
+    for (PathVertex& v : m_vertices) {
+        v.layer_duration = m_layers.get_layer_time(m_settings.time_mode, static_cast<size_t>(v.layer_id));
+    }
+
     if (!m_layers.empty())
         m_layers.set_view_range(0, static_cast<uint32_t>(m_layers.count()) - 1);
 
@@ -1306,6 +1311,10 @@ void ViewerImpl::set_time_mode(ETimeMode mode)
 {
     m_settings.time_mode = mode;
     m_settings.update_colors = true;
+    // Update layer_duration for all vertices based on the new time mode
+    for (PathVertex& v : m_vertices) {
+        v.layer_duration = m_layers.get_layer_time(mode, static_cast<size_t>(v.layer_id));
+    }
 }
 
 void ViewerImpl::set_layers_view_range(Interval::value_type min, Interval::value_type max)
