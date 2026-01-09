@@ -1280,13 +1280,13 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "wall_direction"
             || opt_key == "enable_overhang_speed"
             || opt_key == "detect_thin_wall"
-            || opt_key == "cut_corners" 
-            || opt_key == "cut_corners_overlap" 
             || opt_key == "precise_outer_wall") {
             steps.emplace_back(posPerimeters);
             steps.emplace_back(posSupportMaterial);
         } else if (opt_key == "bridge_flow" || opt_key == "internal_bridge_flow") {
-            if (m_config.support_top_z_distance > 0.) {
+            if (m_config.support_top_z_distance > 0.
+            || opt_key == "cut_corners" 
+            || opt_key == "cut_corners_overlap") {
             	// Only invalidate due to bridging if bridging is enabled.
             	// If later "support_top_z_distance" is modified, the complete PrintObject is invalidated anyway.
             	steps.emplace_back(posPerimeters);

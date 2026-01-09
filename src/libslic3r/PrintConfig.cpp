@@ -4531,7 +4531,7 @@ void PrintConfigDef::init_fff_params()
     def->min      = 0.;
     def->max      = 1.;
     def->mode     = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0.5));
+    def->set_default_value(new ConfigOptionFloat(0.625));
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
