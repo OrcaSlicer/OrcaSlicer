@@ -315,7 +315,7 @@ static bool is_printable_filament_changed(const DynamicPrintConfig& new_full_con
         }
 
         Polygons split_polys;
-        for (const Polygon poly : extruder_polys) {
+        for (const Polygon& poly : extruder_polys) {
             Polygons res = diff(printable_poly, poly);
             if (!res.empty()) { split_polys.emplace_back(res[0]); }
         }
