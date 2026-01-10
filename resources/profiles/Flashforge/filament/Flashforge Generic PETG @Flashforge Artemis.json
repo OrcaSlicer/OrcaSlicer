@@ -40,7 +40,7 @@
         "50"
     ],
     "filament_start_gcode": [
-        "; filament start gcode \n;right_extruder_material:PETG"
+        "; filament start gcode \n; right_extruder_material:PETG"
     ],
     "filament_end_gcode": [
         "; filament end gcode\n"
@@ -64,10 +64,10 @@
         "250"
     ],
     "nozzle_temperature_initial_layer": [
-        "245"
+        "235"
     ],
     "nozzle_temperature": [
-        "245"
+        "235"
     ],
     "fan_cooling_layer_time": [
         "30"
