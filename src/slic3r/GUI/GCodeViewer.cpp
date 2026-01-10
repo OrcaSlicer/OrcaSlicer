@@ -307,9 +307,6 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGui::SetNextWindowBgAlpha(0.8f);
         imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         ImGui::AlignTextToFramePadding();
-        // ORCA: Commented out position label
-        // ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, _u8L("Position") + ":");
-        // ImGui::SameLine();
         libvgcode::PathVertex vertex = viewer->get_current_vertex();
         size_t vertex_id = viewer->get_current_vertex_id();
         if (vertex.type == libvgcode::EMoveType::Seam) {
@@ -318,7 +315,6 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         }
 
         char buf[1024];
-        // ORCA: Extended info in position window
         sprintf(buf, "X: %.3f, Y: %.3f, Z: %.3f Speed: %.0f ", vertex.position[0], vertex.position[1], vertex.position[2], vertex.feedrate);
         switch (view_type) {
             case libvgcode::EViewType::Height: {
@@ -775,7 +771,6 @@ void GCodeViewer::SequentialView::render(const bool has_render_path, float legen
     if (has_render_path && m_show_marker) {
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
-        // ORCA: Pass view_type
         marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
     }
 

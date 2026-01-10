@@ -181,6 +181,7 @@ protected:
     Plater* m_plater;
 };
 
+class BitmapComboBox;
 class FlowRateCalibrationDialog : public DPIDialog
 {
 public:
@@ -193,7 +194,7 @@ protected:
     Calib_Params m_params;
 
     RadioGroup* m_rbType;
-    RadioGroup* m_rbPattern;
+    BitmapComboBox* m_rbPattern;
     Plater* m_plater;
 };
 }} // namespace Slic3r::GUI

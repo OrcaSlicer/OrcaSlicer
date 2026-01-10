@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
+#include "BitmapComboBox.hpp"
+#include "libslic3r/Utils.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -1449,8 +1451,27 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
     auto labeled_box_pattern = new LabeledStaticBox(this, _L("Top Surface Pattern"));
     auto pattern_box = new wxStaticBoxSizer(labeled_box_pattern, wxVERTICAL);
 
-    m_rbPattern = new RadioGroup(this, { _L("Archimedean Chords"), _L("Monotonic") }, wxVERTICAL, 1);
+    // ORCA: Use BitmapComboBox with icons instead of RadioGroup
+    m_rbPattern = new BitmapComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
+    
+    boost::filesystem::path image_path(Slic3r::resources_dir());
+    image_path /= "images";
+
+    auto add_pattern_item = [&](const std::string& name, const wxString& label) {
+        auto icon_name = "param_" + name;
+        if (boost::filesystem::exists(image_path / (icon_name + ".svg"))) {
+            // Using 24px icon size to match other settings (Field.cpp uses 24)
+            ScalableBitmap bm(this, icon_name, 24);
+            m_rbPattern->Append(label, bm.bmp());
+        } else {
+            m_rbPattern->Append(label);
+        }
+    };
+
+    add_pattern_item("archimedeanchords", _L("Archimedean Chords"));
+    add_pattern_item("monotonic", _L("Monotonic"));
     m_rbPattern->SetSelection(0); // Default to Archimedean Chords
+
     pattern_box->Add(m_rbPattern, 0, wxALL | wxEXPAND, FromDIP(4));
     v_sizer->Add(pattern_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
