@@ -1,8 +1,8 @@
 name: Check profiles
-on: 
+on:
   pull_request:
-    branches: 
-    - main 
+    branches:
+    - main
     paths:
     - 'resources/profiles/**'
     - ".github/workflows/check_profiles.yml"
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Log level'     
+        description: 'Log level'
         required: true
         default: 'warning'
 
@@ -19,16 +19,20 @@ jobs:
   check_translation:
     name: Check profiles
     runs-on: ubuntu-24.04
-    steps:  
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
       - name: Run extra JSON check
+        id: extra_json_check
+        continue-on-error: true
         run: |
-          python3 ./scripts/orca_extra_profile_check.py
+          set +e
+          python3 ./scripts/orca_extra_profile_check.py 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
+          exit ${PIPESTATUS[0]}
 
       # download
-      - name: Download 
+      - name: Download
         working-directory: ${{ github.workspace }}
         run: |
           curl -LJO https://github.com/SoftFever/Orca_tools/releases/download/1/OrcaSlicer_profile_validator
@@ -36,15 +40,71 @@ jobs:
 
       # validate profiles
       - name: validate system profiles
+        id: validate_system
+        continue-on-error: true
         run: |
-          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2
+          set +e
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
+          exit ${PIPESTATUS[0]}
 
       - name: validate custom presets
+        id: validate_custom
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: |
+          set +e
           curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
           unzip ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
-          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Post error comment on PR
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "## :x: Profile Validation Errors"
+            echo ""
+
+            if [ "${{ steps.extra_json_check.outcome }}" = "failure" ]; then
+              echo "### Extra JSON Check Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/extra_json_check.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.validate_system.outcome }}" = "failure" ]; then
+              echo "### System Profile Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_system.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.validate_custom.outcome }}" = "failure" ]; then
+              echo "### Custom Preset Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_custom.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            echo "---"
+            echo "*Please fix the above errors and push a new commit.*"
+          } > ${{ runner.temp }}/pr_comment.md
+
+          gh pr comment ${{ github.event.pull_request.number }} --body-file ${{ runner.temp }}/pr_comment.md
+
+      - name: Fail if any check failed
+        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        run: |
+          echo "One or more profile checks failed. See above for details."
+          exit 1
 
 
 

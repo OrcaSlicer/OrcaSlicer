@@ -307,6 +307,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGui::SetNextWindowBgAlpha(0.8f);
         imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         ImGui::AlignTextToFramePadding();
+        // ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, _u8L("Position") + ":");
+        // ImGui::SameLine();
         libvgcode::PathVertex vertex = viewer->get_current_vertex();
         size_t vertex_id = viewer->get_current_vertex_id();
         if (vertex.type == libvgcode::EMoveType::Seam) {
@@ -367,7 +369,6 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             ImGui::SameLine();
             ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, to_string(vertex.role).c_str());
         }
-
         ImGui::SameLine();
         if (imgui.image_button(properties_shown ? ImGui::HorizontalHide : ImGui::HorizontalShow, properties_shown ? _u8L("Hide properties") : _u8L("Show properties"))) {
             properties_shown = !properties_shown;
@@ -682,7 +683,7 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
                 max_text_width = w;
         }
 
-        required_width = id_width + max_text_width + 2.0f * ImGui::GetStyle().WindowPadding.x;
+        required_width = id_width + max_text_width;
     }
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();

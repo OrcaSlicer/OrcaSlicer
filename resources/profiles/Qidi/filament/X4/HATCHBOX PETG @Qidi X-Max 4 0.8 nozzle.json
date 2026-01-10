@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSG99",
+    "name": "HATCHBOX PETG @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "HATCHBOX PETG@X-Max 4-Series",
+    "pressure_advance": ["0.04"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}
