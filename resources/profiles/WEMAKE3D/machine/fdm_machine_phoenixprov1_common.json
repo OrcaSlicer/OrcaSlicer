@@ -1,0 +1,135 @@
+{
+  "type": "machine",
+  "name": "fdm_machine_phoenixprov1_common",
+  "inherits": "fdm_machine_common",
+  "from": "system",
+  "instantiation": "false",
+  "printable_area": [ "0x0", "300x0", "300x300", "0x300" ],
+
+  "extruder_colour": [
+    "#018001"
+  ],
+  "extruder_offset": [
+    "0x0"
+  ],
+  "machine_max_acceleration_e": [
+    "8000",
+    "8000"
+  ],
+  "machine_max_acceleration_extruding": [
+    "3000",
+    "3000"
+  ],
+  "machine_max_acceleration_retracting": [
+    "8000",
+    "8000"
+  ],
+  "machine_max_acceleration_travel": [
+    "3000",
+    "3000"
+  ],
+  "machine_max_acceleration_x": [
+    "3000",
+    "3000"
+  ],
+  "machine_max_acceleration_y": [
+    "2000",
+    "2000"
+  ],
+  "machine_max_acceleration_z": [
+    "250",
+    "250"
+  ],
+  "machine_max_speed_e": [
+    "120",
+    "120"
+  ],
+  "machine_max_speed_x": [
+    "300",
+    "200"
+  ],
+  "machine_max_speed_y": [
+    "300",
+    "200"
+  ],
+  "machine_max_speed_z": [
+    "40",
+    "40"
+  ],
+  "machine_max_jerk_e": [
+    "2.5",
+    "2.5"
+  ],
+  "machine_max_jerk_x": [
+    "9",
+    "9"
+  ],
+  "machine_max_jerk_y": [
+    "9",
+    "9"
+  ],
+  "machine_max_jerk_z": [
+    "0.2",
+    "0.4"
+  ],
+  "machine_min_extruding_rate": [
+    "0",
+    "0"
+  ],
+  "machine_min_travel_rate": [
+    "0",
+    "0"
+  ],
+  "max_layer_height": [
+    "0.3"
+  ],
+  "min_layer_height": [
+    "0.08"
+  ],
+  "printable_height": "400",
+  "extruder_clearance_radius": "65",
+  "extruder_clearance_height_to_rod": "36",
+  "extruder_clearance_height_to_lid": "140",
+  "nozzle_diameter": [
+    "0.2",
+    "0.3",
+    "0.4",
+    "0.6"
+  ],
+  "printer_settings_id": "",
+  "printer_technology": "FFF",
+  "printer_variant": "0.4",
+  "retraction_minimum_travel": [
+    "1"
+  ],
+  "retract_before_wipe": [
+    "70%"
+  ],
+  "retract_when_changing_layer": [
+    "1"
+  ],
+
+  "retract_length_toolchange": [
+    "2"
+  ],
+  "z_hop": [
+    "0.4"
+  ],
+  "retract_restart_extra": [
+    "0"
+  ],
+  "retract_restart_extra_toolchange": [
+    "0"
+  ],
+
+  "machine_start_gcode": "G90 ; use absolute coordinates\nM83 ; extruder relative mode\nM204 S[machine_max_acceleration_extruding] T[machine_max_acceleration_retracting]\nM104 S[first_layer_temperature] ; set extruder temp\nM140 S[first_layer_bed_temperature] ; set bed temp\nG28 ; home all\nG34; Align Z\nG29; UBL\n\nG1 Y1.0 Z0.3 F1000 ; move print head up\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S[first_layer_temperature] ; wait for extruder temp\nG92 E0.0\n; initial load\nG1 X205.0 E19 F1000\nG1 Y1.6\nG1 X5.0 E19 F1000\nG92 E0.0\n; intro line\nG1 Y2.0 Z0.2 F1000\nG1 X65.0 E9.0 F1000\nG1 X105.0 E12.5 F1000\nG92 E0.0",
+  "machine_end_gcode": ";PRINT_END\nG91 ;Relative positionning\nG1 E-2 F2700 ;Retract a bit\nG1 E-8 X5 Y5 Z3 F3000 ;Retract\nG90 ;Absolute positionning\nG1 X10 Y300 F6000;Finish print\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM84",
+  "single_extruder_multi_material": "1",
+  "change_filament_gcode": "",
+  "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+  "layer_change_gcode": "",
+  "machine_pause_gcode": "M600\n",
+  "wipe": [
+    "1"
+  ]
+}

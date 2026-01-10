@@ -1,0 +1,23 @@
+{
+  "type": "machine",
+  "name": "WEMAKE3D TinyBotV1 0.3mm nozzle",
+  "inherits": "fdm_machine_tinybotv1_common",
+  "from": "system",
+  "setting_id": "GM001",
+  "instantiation": "true",
+  "printer_model": "WEMAKE3D TinyBotV1",
+ 
+  "nozzle_diameter": [
+    "0.3"
+  ],
+  "printer_variant": "0.3",
+  "max_layer_height": [
+    "0.24"
+  ],
+  "min_layer_height": [
+    "0.06"
+  ],
+  "printer_settings_id": "WEMAKE3D",
+
+  "nozzle_type": "brass"
+}

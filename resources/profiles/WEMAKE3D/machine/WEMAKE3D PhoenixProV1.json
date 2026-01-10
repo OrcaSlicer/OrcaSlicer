@@ -1,0 +1,13 @@
+{
+  "type": "machine_model",
+  "name": "WEMAKE3D PhoenixProV1",
+  "model_id": "v1",
+  "nozzle_diameter": "0.2;0.3;0.4;0.6",
+  "machine_tech": "FFF",
+  "family": "WEMAKE3D",
+  "bed_model": "WEMAKE3D PhoenixProV1_buildplate_model.stl",
+  "bed_texture": "WEMAKE3D PhoenixProV1_buildplate_texture.png",
+  "hotend_model": "",
+  "default_materials": "Generic PETG @System;Generic PLA @System"
+  
+}

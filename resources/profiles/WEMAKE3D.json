@@ -1,0 +1,192 @@
+{
+	"name": "WEMAKE3D",
+	"version": "02.03.01.20",
+	"force_update": "0",
+	"description": "WEMAKE3D configurations",
+	"machine_model_list": [
+		{
+			"name": "WEMAKE3D PhoenixProV1",
+			"sub_path": "machine/WEMAKE3D PhoenixProV1.json"
+		},
+		{
+			"name": "WEMAKE3D TinyBotV1",
+			"sub_path": "machine/WEMAKE3D TinyBotV1.json"
+		}
+
+	],
+	"process_list": [
+		{
+			"name": "fdm_process_common",
+			"sub_path": "process/fdm_process_common.json"
+		},
+		{
+			"name": "fdm_process_phoenixProV1_common",
+			"sub_path": "process/fdm_process_phoenixProV1_common.json"
+		},
+		{
+			"name": "fdm_process_tinyBotV1_common",
+			"sub_path": "process/fdm_process_tinyBotV1_common.json"
+		},
+		{
+			"name": "0.12mm Extra Fine @WEMAKE3D PhoenixProV1 0.4mm nozzle",
+			"sub_path": "process/0.12mm Extra Fine @WEMAKE3D PhoenixProV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "0.16mm Draft @WEMAKE3D PhoenixProV1 0.2mm nozzle",
+			"sub_path": "process/0.16mm Draft @WEMAKE3D PhoenixProV1 0.2mm nozzle.json"
+
+		},
+		{
+			"name": "0.08mm Fine @WEMAKE3D PhoenixProV1 0.2mm nozzle",
+			"sub_path": "process/0.08mm Fine @WEMAKE3D PhoenixProV1 0.2mm nozzle.json"
+
+		},
+		{
+			"name": "0.06mm Extra Fine @WEMAKE3D PhoenixProV1 0.3mm nozzle",
+			"sub_path": "process/0.06mm Extra Fine @WEMAKE3D PhoenixProV1 0.3mm nozzle.json"
+
+		},
+		{
+			"name": "0.12mm Fine @WEMAKE3D PhoenixProV1 0.3mm nozzle",
+			"sub_path": "process/0.12mm Fine @WEMAKE3D PhoenixProV1 0.3mm nozzle.json"
+		},
+		{
+			"name": "0.15mm Standard @WEMAKE3D PhoenixProV1 0.3mm nozzle",
+			"sub_path": "process/0.15mm Standard @WEMAKE3D PhoenixProV1 0.3mm nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @WEMAKE3D PhoenixProV1 0.3mm nozzle",
+			"sub_path": "process/0.24mm Draft @WEMAKE3D PhoenixProV1 0.3mm nozzle.json"
+		},
+		{
+			"name": "0.2mm Standard @WEMAKE3D PhoenixProV1 0.4mm nozzle",
+			"sub_path": "process/0.2mm Standard @WEMAKE3D PhoenixProV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @WEMAKE3D PhoenixProV1 0.4mm nozzle",
+			"sub_path": "process/0.32mm Draft @WEMAKE3D PhoenixProV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "0.48mm Extra Draft @WEMAKE3D PhoenixProV1 0.6mm nozzle",
+			"sub_path": "process/0.48mm Extra Draft @WEMAKE3D PhoenixProV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "0.4mm Draft @WEMAKE3D PhoenixProV1 0.6mm nozzle",
+			"sub_path": "process/0.4mm Draft @WEMAKE3D PhoenixProV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "0.25mm Fine @WEMAKE3D PhoenixProV1 0.6mm nozzle",
+			"sub_path": "process/0.25mm Fine @WEMAKE3D PhoenixProV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "0.12mm Extra Fine @WEMAKE3D TinyBotV1 0.4mm nozzle",
+			"sub_path": "process/0.12mm Extra Fine @WEMAKE3D TinyBotV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "0.16mm Draft @WEMAKE3D TinyBotV1 0.2mm nozzle",
+			"sub_path": "process/0.16mm Draft @WEMAKE3D TinyBotV1 0.2mm nozzle.json"
+
+		},
+		{
+			"name": "0.08mm Fine @WEMAKE3D TinyBotV1 0.2mm nozzle",
+			"sub_path": "process/0.08mm Fine @WEMAKE3D TinyBotV1 0.2mm nozzle.json"
+
+		},
+		{
+			"name": "0.06mm Extra Fine @WEMAKE3D TinyBotV1 0.3mm nozzle",
+			"sub_path": "process/0.06mm Extra Fine @WEMAKE3D TinyBotV1 0.3mm nozzle.json"
+
+		},
+		{
+			"name": "0.12mm Fine @WEMAKE3D TinyBotV1 0.3mm nozzle",
+			"sub_path": "process/0.12mm Fine @WEMAKE3D TinyBotV1 0.3mm nozzle.json"
+		},
+		{
+			"name": "0.12mm Extra Fine @WEMAKE3D TinyBotV1 0.6mm nozzle",
+			"sub_path": "process/0.12mm Extra Fine @WEMAKE3D TinyBotV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "0.12mm Extra Fine @WEMAKE3D PhoenixProV1 0.6mm nozzle",
+			"sub_path": "process/0.12mm Extra Fine @WEMAKE3D PhoenixProV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "0.15mm Standard @WEMAKE3D TinyBotV1 0.3mm nozzle",
+			"sub_path": "process/0.15mm Standard @WEMAKE3D TinyBotV1 0.3mm nozzle.json"
+		},
+		{
+			"name": "0.24mm Draft @WEMAKE3D TinyBotV1 0.3mm nozzle",
+			"sub_path": "process/0.24mm Draft @WEMAKE3D TinyBotV1 0.3mm nozzle.json"
+		},
+		{
+			"name": "0.2mm Standard @WEMAKE3D TinyBotV1 0.4mm nozzle",
+			"sub_path": "process/0.2mm Standard @WEMAKE3D TinyBotV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "0.32mm Draft @WEMAKE3D TinyBotV1 0.4mm nozzle",
+			"sub_path": "process/0.32mm Draft @WEMAKE3D TinyBotV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "0.48mm Extra Draft @WEMAKE3D TinyBotV1 0.6mm nozzle",
+			"sub_path": "process/0.48mm Extra Draft @WEMAKE3D TinyBotV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "0.4mm Draft @WEMAKE3D TinyBotV1 0.6mm nozzle",
+			"sub_path": "process/0.4mm Draft @WEMAKE3D TinyBotV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "0.25mm Fine @WEMAKE3D TinyBotV1 0.6mm nozzle",
+			"sub_path": "process/0.25mm Fine @WEMAKE3D TinyBotV1 0.6mm nozzle.json"
+		}
+
+	],
+	"filament_list": [],
+	"machine_list": [
+		{
+			"name": "fdm_machine_common",
+			"sub_path": "machine/fdm_machine_common.json"
+		},
+		{
+			"name": "fdm_machine_phoenixprov1_common",
+			"sub_path": "machine/fdm_machine_phoenixprov1_common.json"
+		},
+		{
+			"name": "fdm_machine_tinybotv1_common",
+			"sub_path": "machine/fdm_machine_tinybotv1_common.json"
+		},
+		{
+			"name": "WEMAKE3D PhoenixProV1 0.2mm nozzle",
+			"sub_path": "machine/WEMAKE3D PhoenixProV1 0.2mm nozzle.json"
+		},
+		{
+			"name": "WEMAKE3D PhoenixProV1 0.3mm nozzle",
+			"sub_path": "machine/WEMAKE3D PhoenixProV1 0.3mm nozzle.json"
+
+		},
+		{
+			"name": "WEMAKE3D PhoenixProV1 0.4mm nozzle",
+			"sub_path": "machine/WEMAKE3D PhoenixProV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "WEMAKE3D PhoenixProV1 0.6mm nozzle",
+			"sub_path": "machine/WEMAKE3D PhoenixProV1 0.6mm nozzle.json"
+		},
+		{
+			"name": "WEMAKE3D TinyBotV1 0.2mm nozzle",
+			"sub_path": "machine/WEMAKE3D TinyBotV1 0.2mm nozzle.json"
+		},
+		{
+			"name": "WEMAKE3D TinyBotV1 0.3mm nozzle",
+			"sub_path": "machine/WEMAKE3D TinyBotV1 0.3mm nozzle.json"
+
+		},
+		{
+			"name": "WEMAKE3D TinyBotV1 0.4mm nozzle",
+			"sub_path": "machine/WEMAKE3D TinyBotV1 0.4mm nozzle.json"
+		},
+		{
+			"name": "WEMAKE3D TinyBotV1 0.6mm nozzle",
+			"sub_path": "machine/WEMAKE3D TinyBotV1 0.6mm nozzle.json"
+		}
+	]
+
+}

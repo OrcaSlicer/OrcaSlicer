@@ -1,0 +1,18 @@
+{
+  "type": "process",
+  "name": "fdm_process_tinyBotV1_common",
+  "inherits": "fdm_process_common",
+  "from": "system",
+  "instantiation": "false",
+  
+  "print_sequence": "by layer",
+  "default_acceleration": "3000",
+  "top_surface_acceleration": "3500",
+  "travel_acceleration": "5000",
+  "inner_wall_acceleration": "3500",
+  "outer_wall_acceleration": "3000",
+  
+  "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode"
+  
+
+}

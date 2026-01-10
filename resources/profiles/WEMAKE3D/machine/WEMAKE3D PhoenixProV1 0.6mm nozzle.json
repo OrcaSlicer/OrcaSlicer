@@ -1,0 +1,23 @@
+{
+  "type": "machine",
+  "name": "WEMAKE3D PhoenixProV1 0.6mm nozzle",
+  "inherits": "fdm_machine_phoenixprov1_common",
+  "from": "system",
+  "setting_id": "GM001",
+  "instantiation": "true",
+  "printer_model": "WEMAKE3D PhoenixProV1",
+ 
+  "nozzle_diameter": [
+    "0.6"
+  ],
+  "printer_variant": "0.6",
+  "max_layer_height": [
+    "0.48"
+  ],
+  "min_layer_height": [
+    "0.12"
+  ],
+  "printer_settings_id": "WEMAKE3D",
+  
+  "nozzle_type": "brass"
+}

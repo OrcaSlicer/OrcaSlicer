@@ -1,0 +1,12 @@
+{
+  "type": "process",
+  "name": "fdm_process_phoenixProV1_common",
+  "inherits": "fdm_process_common",
+  "from": "system",
+  "instantiation": "false",
+  "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode"
+  
+
+ 
+  
+}
