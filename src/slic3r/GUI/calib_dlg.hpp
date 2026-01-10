@@ -181,7 +181,6 @@ protected:
     Plater* m_plater;
 };
 
-class BitmapComboBox;
 class FlowRateCalibrationDialog : public DPIDialog
 {
 public:
@@ -194,7 +193,8 @@ protected:
     Calib_Params m_params;
 
     RadioGroup* m_rbType;
-    BitmapComboBox* m_rbPattern;
+    // ORCA: use standard OrcaSlicer ComboBox instead of BitmapComboBox
+    ComboBox* m_rbPattern;
     Plater* m_plater;
 };
 }} // namespace Slic3r::GUI
