@@ -81,6 +81,8 @@ public:
 
             void init(std::string filename);
 
+            void set_color(const ColorRGBA& color) { m_model.set_color(color); }
+
             const BoundingBoxf3& get_bounding_box() const { return m_model.get_bounding_box(); }
 
             void set_world_position(const Vec3f& position) { m_world_position = position; }
@@ -179,6 +181,7 @@ public:
 
 private:
     std::vector<int> m_plater_extruder;
+    std::vector<ColorRGBA> m_tool_colors;
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
     //BBS: save m_gcode_result as well

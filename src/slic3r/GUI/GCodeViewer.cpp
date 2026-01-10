@@ -1122,6 +1122,11 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_gcode_result = &gcode_result;
     m_only_gcode_in_preview = only_gcode;
 
+    m_tool_colors.clear();
+    for (const auto& color_str : str_tool_colors) {
+        m_tool_colors.push_back(libvgcode::convert(libvgcode::convert(color_str)));
+    }
+
     m_sequential_view.gcode_window.load_gcode(gcode_result.filename, gcode_result.lines_ends);
 
     //BBS: add only gcode mode
@@ -1333,6 +1338,7 @@ void GCodeViewer::reset()
     m_custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
     m_left_extruder_filament.clear();
     m_right_extruder_filament.clear();
+    m_tool_colors.clear();
     m_sequential_view.gcode_window.reset();
     m_contained_in_bed = true;
 }
@@ -1362,6 +1368,12 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     auto endpoints = m_viewer.get_view_full_range();
     m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
     const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
+    //ORCA: update nozzle color
+    if (curr_vertex.extruder_id < m_tool_colors.size()) {
+        ColorRGBA color = m_tool_colors[curr_vertex.extruder_id];
+        color.a(0.85f);
+        m_sequential_view.marker.set_color(color);
+    }
     m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
     m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
     // BBS fixed buttom margin. m_moves_slider.pos_y
