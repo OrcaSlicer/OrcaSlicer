@@ -320,9 +320,14 @@ ConfigOption* ConfigOptionDef::create_default_option() const
 
 bool ConfigOptionDef::is_value_valid(const double value, const int max_precision /*= 4*/) const
 {
-    if (this->min == 0.f && value < 0) { // Special handling of 0
+    // Special handling for the nil values
+    // The nil value is a valid one only for nullable options
+    if (std::isnan(value))
+        return this->nullable;
+
+    // Special handling of 0
+    if (this->min == 0.f && value < 0)
         return false;
-    }
 
     const double ep = std::pow(0.1, max_precision);
     if (is_approx(value, (double) this->min, ep) || is_approx(value, (double) this->max, ep))

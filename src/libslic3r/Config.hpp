@@ -2460,7 +2460,7 @@ public:
     // By setting min=0, only nonnegative input is allowed.
     float                               min = -FLT_MAX;
     float                               max =  FLT_MAX;
-    bool                                is_value_valid(double value, int max_precision = 4) const;
+    bool                                is_value_valid(const double value, const int max_precision = 4) const;
     // To check if it's not a typo and a % is missing
     double                              max_literal = 1;
     ConfigOptionMode                    mode = comSimple;

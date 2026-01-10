@@ -2159,9 +2159,9 @@ void PrintConfigDef::init_fff_params()
                      "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
                      "\n\nThe final object flow ratio is this value multiplied by the filament flow ratio.");
     def->mode = comAdvanced;
-    def->max = 2;
+    def->max = 2.f;
     def->min = 0.01f;
-    def->set_default_value(new ConfigOptionFloat(1));
+    def->set_default_value(new ConfigOptionFloat(1.f));
 
     def = this->add("enable_pressure_advance", coBools);
     def->label = L("Enable pressure advance");
@@ -3051,9 +3051,10 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Speed");
     def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0;
+    def->min = 0.f;
+    def->max = 0.5f;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(0.f));
 
     def = this->add("outer_wall_jerk", coFloat);
     def->label = L("Outer wall");
@@ -3313,9 +3314,9 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The average distance between the random points introduced on each line segment.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0.01f; // point distance cannot be 0! Otherwise we get infinite loop + OOM due to infinite line division.
-    def->max = 5;
+    def->max = 5.f;
     def->mode = comSimple;
-    def->set_default_value(new ConfigOptionFloat(0.3));
+    def->set_default_value(new ConfigOptionFloat(0.3f));
 
     def = this->add("fuzzy_skin_first_layer", coBool);
     def->label = L("Apply fuzzy skin to first layer");
@@ -4205,10 +4206,10 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Machine limits");
     def->tooltip = L("Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware\nIf your Marlin 2 printer uses Classic Jerk set this value to 0.)");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0;
-    def->max = 1;
+    def->min = 0.f;
+    def->max = 0.5f;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloats { 0.01});
+    def->set_default_value(new ConfigOptionFloats{ 0.01f });
 
     // M205 S... [mm/sec]
     def = this->add("machine_min_extruding_rate", coFloats);
