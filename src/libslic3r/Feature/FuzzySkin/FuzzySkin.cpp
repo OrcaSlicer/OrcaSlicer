@@ -355,10 +355,27 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     // No intersection, skip
                     continue;
                 }
-                bool full_loop_fuzzified = std::all_of(extrusion->junctions.begin(), extrusion->junctions.end(),
-                                       [&r](const Arachne::ExtrusionJunction& j) {
-                                           return expolygons_contain(const_cast<ExPolygons&>(r.second), j.p);
-                                       });
+
+                bool        full_loop_fuzzified = true; //Global fuzzy skin or loop fully painted
+                const auto& junctions           = extrusion->junctions;
+                const auto& expolys             = r.second;
+
+                for (size_t i = 0; i < junctions.size(); ++i) {
+                    const auto& junction     = junctions[i];
+                    bool        point_inside = false;
+
+                    for (const auto& expoly : expolys) {
+                        if (expoly.contains(junction.p)) {
+                            point_inside = true;
+                            break;
+                        }
+                    }
+
+                    if (!point_inside) {
+                        full_loop_fuzzified = false;
+                        break;
+                    }
+                }
 
                 // Fuzzy splitted extrusion
                 if (full_loop_fuzzified) {
