@@ -2151,7 +2151,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->max = 2;
     def->min = 0.01f;
-    def->set_default_value(new ConfigOptionFloat(1));
+    def->set_default_value(new ConfigOptionFloat(1.0));
 
     def = this->add("enable_pressure_advance", coBools);
     def->label = L("Enable pressure advance");
@@ -3179,7 +3179,7 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comAdvanced;
     def->nullable = true;
-    def->set_default_value(new ConfigOptionPercentsNullable{ ConfigOptionPercentsNullable::nil_value() });
+    def->set_default_value(new ConfigOptionPercentsNullable{ 15 }); 
 
     def = this->add("filament_ironing_spacing", coFloats);
     def->label = L("Ironing line spacing");
@@ -3190,7 +3190,7 @@ void PrintConfigDef::init_fff_params()
     def->max = 1;
     def->mode = comAdvanced;
     def->nullable = true;
-    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+    def->set_default_value(new ConfigOptionFloatsNullable{ 0.1 }); 
 
     def = this->add("filament_ironing_inset", coFloats);
     def->label = L("Ironing inset");
@@ -3201,7 +3201,7 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->mode = comAdvanced;
     def->nullable = true;
-    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+    def->set_default_value(new ConfigOptionFloatsNullable{ 0.0 });
 
     def = this->add("filament_ironing_speed", coFloats);
     def->label = L("Ironing speed");
@@ -3211,7 +3211,7 @@ void PrintConfigDef::init_fff_params()
     def->min = 1;
     def->mode = comAdvanced;
     def->nullable = true;
-    def->set_default_value(new ConfigOptionFloatsNullable{ ConfigOptionFloatsNullable::nil_value() });
+    def->set_default_value(new ConfigOptionFloatsNullable{ 15.0 }); 
 
     def = this->add("fuzzy_skin", coEnum);
     def->label = L("Fuzzy Skin");
