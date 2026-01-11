@@ -355,11 +355,16 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     // No intersection, skip
                     continue;
                 }
+                bool full_loop_fuzzified = std::all_of(extrusion->junctions.begin(), extrusion->junctions.end(),
+                                       [&r](const Arachne::ExtrusionJunction& j) {
+                                           return expolygons_contain(const_cast<ExPolygons&>(r.second), j.p);
+                                       });
 
                 // Fuzzy splitted extrusion
-                if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
+                if (full_loop_fuzzified) {
                     // The entire polygon is fuzzified
                     fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
+                    continue;
                 } else {
                     const auto                              current_ext = extrusion->junctions;
                     std::vector<Arachne::ExtrusionJunction> segment;
