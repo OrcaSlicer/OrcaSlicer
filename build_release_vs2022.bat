@@ -2,6 +2,43 @@
 @echo off
 set WP=%CD%
 
+@REM Load optional local build configuration (.config) for generator and parallelism.
+set "SCRIPT_DIR=%~dp0"
+set "ORCA_CONFIG_FILE=%SCRIPT_DIR%.config"
+if exist "%ORCA_CONFIG_FILE%" (
+    for /f "usebackq tokens=1,2 delims== " %%A in ("%ORCA_CONFIG_FILE%") do (
+        if /I "%%A"=="GENERATOR" (
+            if not defined ORCA_FORCE_NINJA if not defined ORCA_FORCE_NMAKE (
+                if /I "%%B"=="NINJA" (
+                    set "ORCA_FORCE_NINJA=1"
+                    set "ORCA_FORCE_NMAKE="
+                ) else if /I "%%B"=="NMAKE" (
+                    set "ORCA_FORCE_NINJA="
+                    set "ORCA_FORCE_NMAKE=1"
+                )
+            )
+        ) else if /I "%%A"=="PARALLEL" (
+            set "CMAKE_BUILD_PARALLEL_LEVEL=%%B"
+        )
+    )
+)
+
+@REM If CMAKE_BUILD_PARALLEL_LEVEL is still not set, default it to the
+@REM number of logical processors so that all cmake --build calls run
+@REM in parallel.
+if not defined CMAKE_BUILD_PARALLEL_LEVEL (
+    if defined NUMBER_OF_PROCESSORS (
+        set "CMAKE_BUILD_PARALLEL_LEVEL=%NUMBER_OF_PROCESSORS%"
+    )
+)
+
+@REM Prepare a reusable parallel build flag for all cmake --build calls.
+if defined CMAKE_BUILD_PARALLEL_LEVEL (
+    set "CMAKE_BUILD_PARALLEL_OPTS=-j %CMAKE_BUILD_PARALLEL_LEVEL%"
+) else (
+    set "CMAKE_BUILD_PARALLEL_OPTS=-j"
+)
+
 @REM Pack deps
 if "%1"=="pack" (
     setlocal ENABLEDELAYEDEXPANSION 
@@ -19,9 +56,19 @@ if "%1"=="debug" set debug=ON
 if "%2"=="debug" set debug=ON
 if "%1"=="debuginfo" set debuginfo=ON
 if "%2"=="debuginfo" set debuginfo=ON
+
+@REM For single-config generators like NMake, a full Debug build is incompatible
+@REM with the prebuilt Release-only third-party libraries (Boost, OpenCV, TBB,
+@REM wxWidgets). When using the "debug" mode together with ORCA_FORCE_NMAKE,
+@REM map the build type to RelWithDebInfo so that the OrcaSlicer binaries match
+@REM the Release CRT and iterator level while still producing debug symbols.
 if "%debug%"=="ON" (
-    set build_type=Debug
     set build_dir=build-dbg
+    if defined ORCA_FORCE_NMAKE (
+        set build_type=RelWithDebInfo
+    ) else (
+        set build_type=Debug
+    )
 ) else (
     if "%debuginfo%"=="ON" (
         set build_type=RelWithDebInfo
@@ -67,7 +114,7 @@ if defined ORCA_FORCE_NINJA (
     set CMAKE_BUILD_EXTRA_ARGS=-- -m
 )
 cmake ../ %CMAKE_GEN_ARGS% -DCMAKE_BUILD_TYPE=%build_type%
-cmake --build . --config %build_type% --target deps %CMAKE_BUILD_EXTRA_ARGS%
+cmake --build . --config %build_type% --target deps %CMAKE_BUILD_PARALLEL_OPTS% %CMAKE_BUILD_EXTRA_ARGS%
 @echo off
 
 if "%1"=="deps" exit /b 0
@@ -99,14 +146,14 @@ if defined ORCA_FORCE_NINJA (
 )
 cmake .. %CMAKE_GEN_ARGS% -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type% %CMAKE_PCH_ARGS%
 if defined ORCA_FORCE_NINJA (
-    cmake --build . --config %build_type% %CMAKE_BUILD_EXTRA_ARGS%
+    cmake --build . --config %build_type% %CMAKE_BUILD_PARALLEL_OPTS% %CMAKE_BUILD_EXTRA_ARGS%
 ) else if defined ORCA_FORCE_NMAKE (
-    cmake --build . --config %build_type% %CMAKE_BUILD_EXTRA_ARGS%
+    cmake --build . --config %build_type% %CMAKE_BUILD_PARALLEL_OPTS% %CMAKE_BUILD_EXTRA_ARGS%
 ) else (
-    cmake --build . --config %build_type% --target ALL_BUILD %CMAKE_BUILD_EXTRA_ARGS%
+    cmake --build . --config %build_type% --target ALL_BUILD %CMAKE_BUILD_PARALLEL_OPTS% %CMAKE_BUILD_EXTRA_ARGS%
 )
 @echo off
 cd ..
 call scripts/run_gettext.bat
 cd %build_dir%
-cmake --build . --target install --config %build_type%
+cmake --build . --target install --config %build_type% %CMAKE_BUILD_PARALLEL_OPTS%

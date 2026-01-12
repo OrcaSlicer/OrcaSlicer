@@ -114,6 +114,14 @@ if not defined ORCA_FORCE_NINJA if not defined ORCA_FORCE_NMAKE (
 REM --- Run the new VS2022 debug build script from the repo root ---
 pushd "%SCRIPT_DIR%" >nul 2>&1
 
+REM If we are using the NMake generator, ensure the build-dbg directory
+REM is configured explicitly. Use RelWithDebInfo so that the OrcaSlicer
+REM binaries match the prebuilt Release-only third-party libraries
+REM (OpenCV, Boost, TBB, wxWidgets) while still generating debug info.
+if defined ORCA_FORCE_NMAKE (
+    cmake -S . -B build-dbg -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+)
+
 call "%SCRIPT_DIR%build_debug_vs2022.bat" %*
 set "EXITCODE=%ERRORLEVEL%"
 
