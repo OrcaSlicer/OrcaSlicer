@@ -1369,10 +1369,12 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
     const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
     //ORCA: update nozzle color
-    if (curr_vertex.extruder_id < m_tool_colors.size()) {
+    if (wxGetApp().app_config->get_bool("dynamic_nozzle_color") && curr_vertex.extruder_id < m_tool_colors.size()) {
         ColorRGBA color = m_tool_colors[curr_vertex.extruder_id];
-        color.a(0.85f);
+        color.a(0.5f);
         m_sequential_view.marker.set_color(color);
+    } else {
+        m_sequential_view.marker.set_color({ 1.0f, 1.0f, 1.0f, 0.5f });
     }
     m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
     m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
