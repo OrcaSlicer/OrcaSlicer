@@ -330,6 +330,7 @@ void AppConfig::set_defaults()
         set_bool("show_daily_tips", true);
     }
 
+    // ORCA: Add dynamic nozzle color feature
     if (get("dynamic_nozzle_color").empty()) {
         set_bool("dynamic_nozzle_color", true);
     }

@@ -1297,6 +1297,7 @@ void PreferencesDialog::create_items()
     auto item_multi_machine    = create_item_checkbox(_L("Multi device management"), _L("With this option enabled, you can send a task to multiple devices at the same time and manage multiple devices."), "enable_multi_machine", _L("(Requires restart)"));
     g_sizer->Add(item_multi_machine);
 
+    // ORCA: Add dynamic nozzle color feature
     auto item_dynamic_nozzle_color = create_item_checkbox(_L("Dynamic nozzle color"), _L("Show the nozzle in the color of the current filament in the G-code preview."), "dynamic_nozzle_color");
     g_sizer->Add(item_dynamic_nozzle_color);
 

@@ -1368,7 +1368,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
     auto endpoints = m_viewer.get_view_full_range();
     m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
     const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
-    //ORCA: update nozzle color
+    // ORCA: Dynamic nozzle color feature. Use 0.5f alpha to match default nozzle transparency.
     if (wxGetApp().app_config->get_bool("dynamic_nozzle_color") && curr_vertex.extruder_id < m_tool_colors.size()) {
         ColorRGBA color = m_tool_colors[curr_vertex.extruder_id];
         color.a(0.5f);
