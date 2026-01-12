@@ -6544,6 +6544,15 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                 Lines  lines(path.polyline.lines());
                 std::vector<double> corners(lines.size(), 0);
                 int          _angle_idx = 0;
+                bool     is_cut_corners = m_config.cut_corners && (
+                                           path.role() == erPerimeter 
+                                        || path.role() == erExternalPerimeter 
+                                        || path.role() == erOverhangPerimeter
+                                        //|| path.role() == erInternalInfill
+                                        //|| path.role() == erSolidInfill
+                                        || path.role() == erTopSolidInfill 
+                                        || path.role() == erBottomSurface 
+                                        || path.role() == erGapFill);
 
                 #define M_2PI (M_PI * 2.)
                 auto constrain2PI = [](double x) {
@@ -6555,7 +6564,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                     return fmod(x + M_PI, M_2PI) - M_PI;
                 };
 
-                if (m_config.cut_corners) { // collect angle info for all junctions
+                if (is_cut_corners) { // collect angle info for all junctions
                     for (int _i = 1; _i < lines.size(); _i++)
                         corners[_i] = constrainPI(constrain2PI(lines[_i].orientation()) - constrain2PI(lines[_i - 1].orientation())) / 2.;
                     if (possible_loop) 
@@ -6569,7 +6578,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                         continue;
                     path_length += line_length;
                     auto dE = e_per_mm * line_length;
-                    if (_needSAFC(path)) {
+                    if (_needSAFC(path) && !is_cut_corners) {
                         auto oldE = dE;
                         dE = m_small_area_infill_flow_compensator->modify_flow(line_length, dE, path.role());
 
@@ -6579,38 +6588,44 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                     }
                     if (sloped == nullptr) {
                         // Normal extrusion
-                        Vec2d const _b = this->point_to_gcode(line.b);     // end point
-                        if (m_config.cut_corners) { // Orca: Сut corners 
-                            Vec2d const _a = this->point_to_gcode(line.a); // start point
-                            Vec2d _c(this->point_to_gcode(line.b) - _a);   // line's vector
-                            double const semi_diameter = nozzle_diameter / 2.;
-                            double const onehalf_diameter = nozzle_diameter * 1.5;
+                        Vec2d const _b = this->point_to_gcode(line.b);              // end point
+                        if (is_cut_corners) {                                       // Orca: Сut corners 
+                            Vec2d const _a = this->point_to_gcode(line.a);          // start point
+                            Vec2d _c(this->point_to_gcode(line.b) - _a);            // line's vector
+                            double const semi_diameter = nozzle_diameter * 0.5;
+                            double const quarter_diameter = nozzle_diameter * 0.25;
                             _c.normalize(); // get normalized vector
 
-                            double const _lN = nozzle_diameter * (1. - m_config.cut_corners_overlap); // get lenght for cutting lines at the line ends to pervent corner overflow
-                            double const _lS = (_angle_idx ? semi_diameter * tan(abs(corners[_angle_idx])) : 0.); // get the start cutting lenght for overlaping lines
-                            double const _lE = (_angle_idx == lines.size() - 1 ? semi_diameter * tan(abs(corners[0])) : 0.); // get the end cutting lenght for overlaping lines
+                            double _aS = (_angle_idx ? abs(corners[_angle_idx]) : 0.); // get the start angle for overlaping lines
+                            double _aE = (_angle_idx == lines.size() - 1 ? abs(corners[0]) : 0.); // get the end angle for overlaping lines
+                            double _lS = semi_diameter * tan(_aS); // get the start cutting lenght for overlaping lines
+                            double _lE = semi_diameter * tan(_aE); // get the end cutting lenght for overlaping lines
+                            double _k = 1.;
+                            double const _dS = semi_diameter * sin(corners[_angle_idx]) * 0.5;
+                            if ((_lS + _lE) > line_length) { // correct the lengths if the sloped ranges are longer than the line
+                                _k = line_length / (_lS + _lE);
+                                _lS *= _k;
+                                _lE *= _k;
+                            }
 
-                            double const _eL = dE / line_length;     // get line flowrate
-                            double const _eN = _eL * _lN;            // get compensation extrusion volume
-                            double const _eS = _eL * _lS;            // get start extrusion volume
-                            double const _eE = _eL * _lE;            // get end extrusion volume
+                            double const _mS = std::max(_lS, semi_diameter);
+                            double const _mE = std::max(_lE, semi_diameter);
 
                             if (GCodeWriter::full_gcode_comment) tempDescription = "shrinked " + tempDescription;
-                            dE -= _eN + _eN + _eS + _eE;
-                            if ((_lN + _lN + _lS + _lE) < line_length && nozzle_diameter * 2. < line_length) {  // if cut corners used, send an additional commands to the g-code, owerwise print the line with reduced volume 
-                                if ((_lS + _lN) < onehalf_diameter) 
-                                    gcode += m_writer.extrude_to_xy(_a + _c * (_lN  + _lS), 0., GCodeWriter::full_gcode_comment ? "start junction cut" : "", path.is_force_no_extrusion());
-                                else 
-                                    for (double _v = 0.; _v < _lS; _v += semi_diameter)
-                                        gcode += m_writer.extrude_to_xy(_a + _c * (_lN  + _v), _eS * semi_diameter / pow(_lS, 2) * _v, GCodeWriter::full_gcode_comment ? "start junction gradient" : "", path.is_force_no_extrusion());
-                                gcode += m_writer.extrude_to_xy(_b - _c * (_lN + _lE), dE, GCodeWriter::full_gcode_comment ? "cutted " + tempDescription : "", path.is_force_no_extrusion());
-                                if ((_lE + _lN) > onehalf_diameter) 
-                                    for (double _v = _lE; _v > 0.; _v -= semi_diameter) 
-                                        gcode += m_writer.extrude_to_xy(_b - _c * (_lN + _v), _eE * semi_diameter / pow(_lE, 2) * _v, GCodeWriter::full_gcode_comment ? "end junction gradient" : "", path.is_force_no_extrusion());
-                                gcode += m_writer.extrude_to_xy(_b, 0., GCodeWriter::full_gcode_comment ? "end junction cut" : "", path.is_force_no_extrusion());
-                                dE = 0.; // stop any g-code after that
-                            } 
+                            if (nozzle_diameter * 2. < line_length) { // if cut corners used, send an additional commands to the g-code,owerwise print the line with reduced volume
+                                gcode += m_writer.extrude_to_xy(_a + _c * semi_diameter, e_per_mm * semi_diameter * m_config.cut_corners_overlap * (1 - _aS / M_PI_2), GCodeWriter::full_gcode_comment ? "s-junct cut" : "", path.is_force_no_extrusion());
+                                double _v = semi_diameter;
+                                for (; _v < _lS; _v += semi_diameter)
+                                    gcode += m_writer.extrude_to_xy(_a + _c * _v, e_per_mm * lerp(0., semi_diameter / _lS, _v), GCodeWriter::full_gcode_comment ? "s-junct slope" : "", path.is_force_no_extrusion());
+                                double const _eK = e_per_mm * std::max(line_length - (_v > _lS ? _v - _lS : 0.) - _mS - _mE, 0.); // get complex compensation extrusion volume
+                                if (_eK > 0.) gcode += m_writer.extrude_to_xy(_b - _c * _mE, _eK, GCodeWriter::full_gcode_comment ? "cutted " + tempDescription : "", path.is_force_no_extrusion());
+                                _v = _lE;
+                                for (; _v > semi_diameter; _v -= semi_diameter)
+                                    gcode += m_writer.extrude_to_xy(_b - _c * _v, e_per_mm * lerp(0., semi_diameter / _lE, (_v - quarter_diameter)), GCodeWriter::full_gcode_comment ? "e-junct slope" : "", path.is_force_no_extrusion());
+                                if (GCodeWriter::full_gcode_comment) tempDescription = "e-junct cut";
+                                dE = e_per_mm * ((_v > 0. ? _v : 0.) + semi_diameter * m_config.cut_corners_overlap * (1 - _aE / M_PI_2));
+                            } else
+                                dE = e_per_mm * m_config.cut_corners_overlap * std::max(line_length - (_lS + _lE) / 2. / _k - nozzle_diameter * m_config.cut_corners_overlap * (_aS + _aE) / M_PI_2, 0.); // with difference between a round (real) and square (slicer's math) nozzle
                         }
                         if (dE) gcode += m_writer.extrude_to_xy(_b, dE, GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     } else {
@@ -6624,8 +6639,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                             GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
                     }
                     _angle_idx++;
-                }
-            } else {
+                }            } else {
                 // BBS: start to generate gcode from arc fitting data which includes line and arc
                 const std::vector<PathFittingData>& fitting_result = path.polyline.fitting_result;
                 for (size_t fitting_index = 0; fitting_index < fitting_result.size(); fitting_index++) {
