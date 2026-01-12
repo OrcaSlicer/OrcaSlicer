@@ -8041,6 +8041,10 @@ size_t DynamicPrintConfig::get_parameter_size(const std::string& param_name, siz
 static void extend_extruder_variant(DynamicPrintConfig& config, const unsigned int num_extruders)
 {
     // 1. Make sure the `extruder_variant_list` is the same length as extruder cnt
+    if (!config.has("extruder_variant_list")) {
+        config.set_key_value("extruder_variant_list",
+                             new ConfigOptionStrings(std::vector<std::string>(num_extruders, "Direct Drive Standard")));
+    }
     auto extruder_variant_opt = dynamic_cast<ConfigOptionStrings*>(config.option("extruder_variant_list"));
     assert(extruder_variant_opt != nullptr);
     extruder_variant_opt->resize(num_extruders, extruder_variant_opt); // Use the first option as the default value, so all extruders have the same variant
