@@ -511,7 +511,6 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
         str.Replace(" ", wxEmptyString, true);
         if (!str.IsEmpty()) {
             bool invalid_val = false;
-            bool out_of_range_val = false;
             wxStringTokenizer thumbnails(str, ",");
             while (thumbnails.HasMoreTokens()) {
                 wxString token = thumbnails.GetNextToken();
@@ -522,26 +521,8 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                     if (x_str.ToDouble(&x) && thumbnail.HasMoreTokens()) {
                         wxString y_str = thumbnail.GetNextToken();
                         if (y_str.ToDouble(&y) && !thumbnail.HasMoreTokens()) {
-                            if (m_opt_id == "bed_exclude_area") {
-                                if (0 <= x && x <= 350 && 0 <= y && y <= 350) {
-                                    out_values.push_back(Vec2d(x, y));
-                                    continue;
-                                }
-                            }
-                            else if (m_opt_id == "printable_area") {
-                                if (0 <= x && x <= 1000 && 0 <= y && y <= 1000) {
-                                    out_values.push_back(Vec2d(x, y));
-                                    continue;
-                                }
-                            }
-                            else {
-                                if (0 < x && x < 1000 && 0 < y && y < 1000) {
-                                    out_values.push_back(Vec2d(x, y));
-                                    continue;
-                                }
-                            }
-                            out_of_range_val = true;
-                            break;
+                            out_values.push_back(Vec2d(x, y));
+                            continue;
                         }
                     }
                 }
@@ -549,14 +530,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 break;
             }
 
-            if (out_of_range_val) {
-                wxString text_value;
-                if (!m_value.empty())
-                    text_value = get_thumbnails_string(boost::any_cast<std::vector<Vec2d>>(m_value));
-                set_value(text_value, true);
-                show_error(m_parent, _L("Value is out of range."));
-            }
-            else if (invalid_val) {
+            if (invalid_val) {
                 wxString text_value;
                 if (!m_value.empty())
                     text_value = get_thumbnails_string(boost::any_cast<std::vector<Vec2d>>(m_value));

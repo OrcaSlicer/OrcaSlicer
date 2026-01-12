@@ -90,6 +90,25 @@ namespace Slic3r
         userMachineList.clear();
     }
 
+    void DeviceManager::set_agent(NetworkAgent* agent)
+    {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": updating agent for "
+                                << localMachineList.size() << " local and "
+                                << userMachineList.size() << " user machines";
+        m_agent = agent;
+
+        std::lock_guard<std::mutex> lock(listMutex);
+        for (auto& it : localMachineList) {
+            if (it.second) {
+                it.second->set_agent(agent);
+            }
+        }
+        for (auto& it : userMachineList) {
+            if (it.second) {
+                it.second->set_agent(agent);
+            }
+        }
+    }
 
     void DeviceManager::EnableMultiMachine(bool enable)
     {

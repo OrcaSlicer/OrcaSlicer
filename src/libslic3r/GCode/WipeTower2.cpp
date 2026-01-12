@@ -2036,7 +2036,11 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     // brim (first layer only)
     if (first_layer) {
         writer.append("; WIPE_TOWER_BRIM_START\n");
-        size_t loops_num = (m_wipe_tower_brim_width + spacing/2.f) / spacing;
+            float brim_width = m_wipe_tower_brim_width;
+        if (brim_width < 0.f)
+            brim_width = WipeTower::get_auto_brim_by_height(m_wipe_tower_height);
+
+        size_t loops_num = (brim_width + spacing / 2.f) / spacing;
         
         for (size_t i = 0; i < loops_num; ++ i) {
             poly = offset(poly, scale_(spacing)).front();
