@@ -439,7 +439,7 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
             library
         );
     }
-    printf("after dlopen, network_module is %p\n", networking_module);
+    BOOST_LOG_TRIVIAL(info) << boost::format("after dlopen, network_module is %1%") % networking_module;
 #endif
 
     if (!networking_module) {
