@@ -63,9 +63,6 @@
     "max_travel_detour_distance": "0",
     "machine_prepare_compensation_time": "260",
     "minimum_sparse_infill_area": "15",
-    "nozzle_flush_dataset": [
-        "0"
-    ],
     "only_one_wall_top": "1",
     "outer_wall_acceleration": ["3000"],
     "outer_wall_line_width": "0.42",
@@ -174,7 +171,5 @@
     "prime_tower_lift_height": "-1",
     "prime_tower_max_speed": "90",
     "prime_tower_flat_ironing":"0",
-    "wrapping_detection_gcode": "",
-    "wrapping_exclude_area": [],
     "compatible_printers": []
 }
