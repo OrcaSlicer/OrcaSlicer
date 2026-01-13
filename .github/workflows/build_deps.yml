@@ -43,6 +43,7 @@ jobs:
         with:
           path: ${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
+          lookup-only: ${{ inputs.force-build }}  # We want a clean build for force; this method preserves the outputs of this step
 
       - uses: lukka/get-cmake@latest
         with:
