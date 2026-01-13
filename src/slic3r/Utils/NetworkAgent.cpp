@@ -21,10 +21,10 @@ namespace Slic3r {
 #define BAMBU_SOURCE_LIBRARY "BambuSource"
 
 #if defined(_MSC_VER) || defined(_WIN32)
-static HMODULE netwoking_module = NULL;
+static HMODULE networking_module = NULL;
 static HMODULE source_module = NULL;
 #else
-static void* netwoking_module = NULL;
+static void* networking_module = NULL;
 static void* source_module = NULL;
 #endif
 
@@ -410,8 +410,8 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
     wchar_t lib_wstr[256];
     memset(lib_wstr, 0, sizeof(lib_wstr));
     ::MultiByteToWideChar(CP_UTF8, NULL, library.c_str(), strlen(library.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
-    netwoking_module = LoadLibrary(lib_wstr);
-    if (!netwoking_module) {
+    networking_module = LoadLibrary(lib_wstr);
+    if (!networking_module) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": versioned library not found, trying current directory";
         std::string library_path = get_libpath_in_current_directory(std::string(BAMBU_NETWORK_LIBRARY));
         if (library_path.empty()) {
@@ -426,11 +426,11 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", current path %1%")%library_path;
         memset(lib_wstr, 0, sizeof(lib_wstr));
         ::MultiByteToWideChar(CP_UTF8, NULL, library_path.c_str(), strlen(library_path.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
-        netwoking_module = LoadLibrary(lib_wstr);
+        networking_module = LoadLibrary(lib_wstr);
     }
 #else
-    netwoking_module = dlopen(library.c_str(), RTLD_LAZY);
-    if (!netwoking_module) {
+    networking_module = dlopen(library.c_str(), RTLD_LAZY);
+    if (!networking_module) {
         char* dll_error = dlerror();
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": dlopen failed: " << (dll_error ? dll_error : "unknown error");
         set_load_error(
@@ -439,10 +439,10 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
             library
         );
     }
-    printf("after dlopen, network_module is %p\n", netwoking_module);
+    printf("after dlopen, network_module is %p\n", networking_module);
 #endif
 
-    if (!netwoking_module) {
+    if (!networking_module) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", can not Load Library for %1%")%library;
         if (!s_load_error.has_error) {
             set_load_error(
@@ -453,10 +453,10 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
         }
         return -1;
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", successfully loaded library %1%, module %2%")%library %netwoking_module;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", successfully loaded library %1%, module %2%")%library %networking_module;
 
     // load file transfer interface
-    InitFTModule(netwoking_module);
+    InitFTModule(networking_module);
 
     //load the functions
     check_debug_consistent_ptr        =  reinterpret_cast<func_check_debug_consistent>(get_network_function("bambu_network_check_debug_consistent"));
@@ -571,21 +571,21 @@ int NetworkAgent::initialize_network_module(bool using_backup, const std::string
 
 int NetworkAgent::unload_network_module()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", network module %1%")%netwoking_module;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", network module %1%")%networking_module;
     UnloadFTModule();
 #if defined(_MSC_VER) || defined(_WIN32)
-    if (netwoking_module) {
-        FreeLibrary(netwoking_module);
-        netwoking_module = NULL;
+    if (networking_module) {
+        FreeLibrary(networking_module);
+        networking_module = NULL;
     }
     if (source_module) {
         FreeLibrary(source_module);
         source_module = NULL;
     }
 #else
-    if (netwoking_module) {
-        dlclose(netwoking_module);
-        netwoking_module = NULL;
+    if (networking_module) {
+        dlclose(networking_module);
+        networking_module = NULL;
     }
     if (source_module) {
         dlclose(source_module);
@@ -692,7 +692,7 @@ int NetworkAgent::unload_network_module()
 
 bool NetworkAgent::is_network_module_loaded()
 {
-    return netwoking_module != nullptr;
+    return networking_module != nullptr;
 }
 
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -701,7 +701,7 @@ HMODULE NetworkAgent::get_bambu_source_entry()
 void* NetworkAgent::get_bambu_source_entry()
 #endif
 {
-    if ((source_module) || (!netwoking_module))
+    if ((source_module) || (!networking_module))
         return source_module;
 
     //int ret = -1;
@@ -753,13 +753,13 @@ void* NetworkAgent::get_network_function(const char* name)
 {
     void* function = nullptr;
 
-    if (!netwoking_module)
+    if (!networking_module)
         return function;
 
 #if defined(_MSC_VER) || defined(_WIN32)
-    function = GetProcAddress(netwoking_module, name);
+    function = GetProcAddress(networking_module, name);
 #else
-    function = dlsym(netwoking_module, name);
+    function = dlsym(networking_module, name);
 #endif
 
     if (!function) {
