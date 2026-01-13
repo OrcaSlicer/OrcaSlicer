@@ -119,7 +119,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     info->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
 
     // ORCA standardized HyperLink
-    HyperLink *tips = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/stl-transformation");
+    HyperLink *tips = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/prepare_stl_transformation");
     tips->SetFont(::Label::Body_12);
  
     info->Wrap(FromDIP(400));
