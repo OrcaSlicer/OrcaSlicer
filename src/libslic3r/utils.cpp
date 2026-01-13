@@ -295,6 +295,11 @@ std::string custom_shapes_dir()
     return (boost::filesystem::path(g_data_dir) / "shapes").string();
 }
 
+std::string handy_models_dir()
+{
+    return (boost::filesystem::path(resources_dir()) / "handy_models").string();
+}
+
 static std::atomic<bool> debug_out_path_called(false);
 
 std::string debug_out_path(const char *name, ...)
@@ -1028,7 +1033,7 @@ bool is_gallery_file(const std::string &path, char const* type)
 
 bool is_shapes_dir(const std::string& dir)
 {
-	return dir == sys_shapes_dir() || dir == custom_shapes_dir();
+	return dir == sys_shapes_dir() || dir == custom_shapes_dir() || dir == handy_models_dir();
 }
 
 } // namespace Slic3r
