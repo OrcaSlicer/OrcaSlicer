@@ -688,6 +688,9 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_extruder_remap.resize(m_extruders_colors.size());
             for (size_t i = 0; i < m_extruder_remap.size(); ++i)
                 m_extruder_remap[i] = i;
+            
+            // ORCA: Update used filaments cache on open
+            this->update_used_filaments();
         }
     }
     
@@ -763,6 +766,10 @@ void GLGizmoMmuSegmentation::update_model_object()
         wxGetApp().obj_list()->update_info_items(obj_idx);
         wxGetApp().plater()->get_partplate_list().notify_instance_update(obj_idx, 0);
         m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+
+        // ORCA: Refresh cache if UI is open
+        if (m_show_filament_remap_ui)
+            this->update_used_filaments();
     }
 }
 
@@ -825,6 +832,10 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
         this->init_extruders_data();
 
     this->init_model_triangle_selectors();
+
+    // ORCA: Refresh cache when model changes
+    if (m_show_filament_remap_ui)
+        this->update_used_filaments();
 }
 
 void GLGizmoMmuSegmentation::tool_changed(wchar_t old_tool, wchar_t new_tool)
@@ -1010,6 +1021,35 @@ void GLMmSegmentationGizmo3DScene::finalize_triangle_indices()
     }
 }
 
+// ORCA: Update the cache of used filaments (both base volume extruders and painted triangles)
+void GLGizmoMmuSegmentation::update_used_filaments()
+{
+    m_used_filaments.clear();
+
+    // Add base extruder IDs from volumes (unpainted areas)
+    for (int ext_id : m_volumes_extruder_idxs) {
+        // ext_id is 1-based (1 = Extruder 1), 0 = Default (usually maps to first available or object default)
+        // Here we assume 0 maps to index 0 (Extruder 1) for simplicity in display, 
+        // or we should check logic in init_model_triangle_selectors where it does:
+        // int extruder_idx = (mv->extruder_id() > 0) ? mv->extruder_id() - 1 : 0;
+        int idx = (ext_id > 0) ? ext_id - 1 : 0;
+        if (idx >= 0 && idx < m_extruders_colors.size())
+             m_used_filaments.insert((size_t)idx);
+    }
+
+    // Add painted states
+    for (const auto& selector : m_triangle_selectors) {
+        if (!selector) continue;
+        TriangleSelector::TriangleSplittingData data = selector->serialize();
+        std::vector<EnforcerBlockerType> states = TriangleSelector::extract_used_facet_states(data);
+        for (EnforcerBlockerType s : states) {
+             int idx = (int)s - (int)EnforcerBlockerType::Extruder1;
+             if (idx >= 0 && idx < m_extruders_colors.size())
+                 m_used_filaments.insert((size_t)idx);
+        }
+    }
+}
+
 void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float max_tooltip_width)
 {
     size_t n_extr = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
@@ -1017,12 +1057,18 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     const ImVec2 max_label_size = ImGui::CalcTextSize("99", NULL, true);
     const ImVec2 button_size(max_label_size.x + m_imgui->scaled(0.5f), 0.f);
 
-    for (int src = 0; src < (int)n_extr; ++src) {
+    bool first = true;
+    // ORCA: Use m_used_filaments to show only relevant source filaments
+    for (size_t src : m_used_filaments) {
+        if (src >= n_extr) continue;
+
         const ColorRGBA &src_col = m_extruders_colors[src];          // keep for text contrast
         const ColorRGBA &dst_col = m_extruders_colors[m_extruder_remap[src]];
         ImVec4 col_vec = ImGuiWrapper::to_ImVec4(dst_col);
 
-        if (src) ImGui::SameLine();
+        if (!first) ImGui::SameLine();
+        first = false;
+
         std::string btn_id = "##remap_src_" + std::to_string(src);
         
         ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoInputs |
@@ -1193,21 +1239,48 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
     ModelObject* mo = m_c->selection_info()->model_object();
     if (!mo) return;
 
+    bool volume_extruder_changed = false;
+
     for (ModelVolume* mv : mo->volumes) {
         if (!mv->is_model_part()) continue;
         ++idx;
         TriangleSelectorGUI* ts = m_triangle_selectors[idx].get();
         if (!ts) continue;
+
+        // Remap painted triangles
         ts->remap_triangle_state(state_map);
         ts->request_update_render_data(true);
+
+        // ORCA: Remap base volume extruder as well if selected
+        int current_ext_id = mv->extruder_id();
+        int current_idx = (current_ext_id > 0) ? current_ext_id - 1 : 0;
+        
+        if (current_idx >= 0 && current_idx < m_extruder_remap.size()) {
+            size_t dest_idx = m_extruder_remap[current_idx];
+            if (dest_idx != current_idx) {
+                mv->config.set("extruder", (int)dest_idx + 1);
+                if (idx < m_volumes_extruder_idxs.size())
+                    m_volumes_extruder_idxs[idx] = (int)dest_idx + 1;
+                volume_extruder_changed = true;
+            }
+        }
+
         updated = true;
     }
 
     if (updated) {
+        // ORCA: Update renderer colors if base volume extruder changed
+        if (volume_extruder_changed)
+            this->update_triangle_selectors_colors();
+
         wxGetApp().plater()->get_notification_manager()->push_notification(
             _L("Filament remapping finished.").ToStdString());
         update_model_object();
         m_parent.set_as_dirty();
+        
+        // ORCA: Refresh used filaments cache
+        if (m_show_filament_remap_ui)
+            this->update_used_filaments();
     }
 }
 
