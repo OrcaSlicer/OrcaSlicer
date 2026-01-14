@@ -25,6 +25,10 @@
             "sub_path": "filament/base/fdm_filament_bvoh.json"
         },
         {
+            "name": "fdm_filament_cope",
+            "sub_path": "filament/base/fdm_filament_cope.json"
+        },
+        {
             "name": "fdm_filament_eva",
             "sub_path": "filament/base/fdm_filament_eva.json"
         },
@@ -167,6 +171,10 @@
         {
             "name": "Generic BVOH @System",
             "sub_path": "filament/Generic BVOH @System.json"
+        },
+        {
+            "name": "Generic CoPE @System",
+            "sub_path": "filament/Generic CoPE @System.json"
         },
         {
             "name": "Generic EVA @System",
@@ -862,7 +870,7 @@
         },
         {
             "name": "COEX NYLEX PA6-CF @System",
-            "sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
+            "sub_path": "filament/COEX/COEX NYLEX UNFILLED @System.json"
         },
         {
             "name": "Fiberon PA12-CF @System",
