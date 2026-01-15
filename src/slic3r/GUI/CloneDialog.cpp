@@ -16,7 +16,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     m_cancel_process = false;
 
     auto v_sizer = new wxBoxSizer(wxVERTICAL);
-    auto f_sizer = new wxFlexGridSizer(2, 2, FromDIP(4) , FromDIP(20));
+    auto f_sizer = new wxFlexGridSizer(2, 2, FromDIP(4), FromDIP(20));
 
     auto count_label = new wxStaticText(this, wxID_ANY, _L("Number of copies:"), wxDefaultPosition, wxDefaultSize, 0);
     m_count_spin = new SpinInput(this, wxEmptyString, "", wxDefaultPosition, wxSize(FromDIP(120), -1), wxSP_ARROW_KEYS, 1, 1000, 1);
@@ -28,6 +28,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     arrange_label->Wrap(FromDIP(300));
     m_arrange_cb = new ::CheckBox(this);
     m_arrange_cb->SetValue(m_config->get("auto_arrange") == "true");
+
     f_sizer->Add(arrange_label, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
     f_sizer->Add(m_arrange_cb , 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(5));
 
@@ -43,6 +44,9 @@ CloneDialog::CloneDialog(wxWindow *parent)
     bottom_sizer->Add(m_progress, 2, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"Fill", "OK", "Cancel"}, "", 1 /*left_aligned*/);
+
+    // Keep pointer to OK button so we can trigger it manually on Enter.
+    Button *ok_btn = dlg_btns->GetOK();
 
     dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with copies"));
     dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
@@ -73,15 +77,17 @@ CloneDialog::CloneDialog(wxWindow *parent)
         for (int i = 0; i < m_count; i++) { // same method with Selection::clone()
             m_progress->SetValue(static_cast<int>(static_cast<double>(i) / m_count * 100)); // pass 0 / 100
             sel.paste_from_clipboard();
-            if(m_cancel_process){
+
+            if (m_cancel_process) {
                 m_plater->undo();
                 return;
             }
+ 
             wxYield(); // Allow event loop to process updates
         }
 
-        if(!m_cancel_process){
-            if (m_arrange_cb->GetValue()){
+        if (!m_cancel_process) {
+            if (m_arrange_cb->GetValue()) {
                 m_plater->set_prepare_state(Job::PREPARE_STATE_MENU);
                 m_plater->arrange();
             }
@@ -90,9 +96,9 @@ CloneDialog::CloneDialog(wxWindow *parent)
         }
     });
 
-    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
         m_cancel_process = true;
-        if(m_plater->IsFrozen())
+        if (m_plater->IsFrozen())
             m_plater->Thaw();
         EndModal(wxID_CANCEL);
     });
@@ -104,7 +110,27 @@ CloneDialog::CloneDialog(wxWindow *parent)
     this->SetSizer(v_sizer);
     this->Layout();
     v_sizer->Fit(this);
+
     wxGetApp().UpdateDlgDarkUI(this);
+
+    // ------------------ ENTER KEY OVERRIDE ------------------
+    // This makes Enter inside the spinbox behave EXACTLY like clicking OK.
+    Bind(wxEVT_CHAR_HOOK, [this, ok_btn](wxKeyEvent &e)
+    {
+        const int key = e.GetKeyCode();
+
+        if ((key == WXK_RETURN || key == WXK_NUMPAD_ENTER) &&
+            m_count_spin->GetTextCtrl()->HasFocus())
+        {
+            // Trigger OK button's handler manually
+            wxCommandEvent evt(wxEVT_BUTTON, ok_btn->GetId());
+            ok_btn->GetEventHandler()->ProcessEvent(evt);
+        } else {
+            // Not handled here, process normally
+            e.Skip();
+        }
+    });
+    // --------------------------------------------------------
 }
 
 CloneDialog::~CloneDialog() {}
