@@ -759,10 +759,11 @@ void CalibUtils::calib_pa_pattern(const CalibInfo &calib_info, Model& model)
     full_config.apply(print_config);
     full_config.apply(filament_config);
     full_config.apply(printer_config);
+    const auto& config_pattern = SuggestedConfigCalibPAPattern();
 
     float nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
 
-    for (const auto& opt : SuggestedConfigCalibPAPattern().float_pairs) {
+    for (const auto& opt : config_pattern.float_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second));
     }
 
@@ -771,16 +772,16 @@ void CalibUtils::calib_pa_pattern(const CalibInfo &calib_info, Model& model)
             full_config, print_config.get_abs_value("line_width"),
             print_config.get_abs_value("layer_height"), calib_info.extruder_id, 0)));
 
-    for (const auto& opt : SuggestedConfigCalibPAPattern().nozzle_ratio_pairs) {
+    for (const auto& opt : config_pattern.nozzle_ratio_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloatOrPercent(nozzle_diameter * opt.second / 100, false));
     }
 
-    for (const auto& opt : SuggestedConfigCalibPAPattern().int_pairs) {
+    for (const auto& opt : config_pattern.int_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionInt(opt.second));
     }
 
-    print_config.set_key_value(SuggestedConfigCalibPAPattern().brim_pair.first,
-        new ConfigOptionEnum<BrimType>(SuggestedConfigCalibPAPattern().brim_pair.second));
+    print_config.set_key_value(config_pattern.brim_pair.first,
+        new ConfigOptionEnum<BrimType>(config_pattern.brim_pair.second));
 
     //DynamicPrintConfig full_config;
     full_config.apply(FullPrintConfig::defaults());
@@ -810,7 +811,9 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
     float nozzle_diameter = full_config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
     int extruder_count = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
-    for (const auto opt : SuggestedConfigCalibPAPattern().float_pairs) { print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second)); }
+    const auto& config_pattern = SuggestedConfigCalibPAPattern();
+
+    for (const auto& opt : config_pattern.float_pairs) { print_config.set_key_value(opt.first, new ConfigOptionFloat(opt.second)); }
 
     std::vector<CalibInfo> sorted_calib_infos = calib_infos;
     std::sort(sorted_calib_infos.begin(), sorted_calib_infos.end(), [](const CalibInfo &left_item, const CalibInfo &right_item) {
@@ -825,13 +828,13 @@ void CalibUtils::set_for_auto_pa_model_and_config(const std::vector<CalibInfo> &
                 print_config.get_abs_value("layer_height"), calib_info.extruder_id, 0)));
     }
 
-    for (const auto opt : SuggestedConfigCalibPAPattern().nozzle_ratio_pairs) {
+    for (const auto& opt : config_pattern.nozzle_ratio_pairs) {
         print_config.set_key_value(opt.first, new ConfigOptionFloatOrPercent(nozzle_diameter * opt.second / 100, false));
     }
 
-    for (const auto opt : SuggestedConfigCalibPAPattern().int_pairs) { print_config.set_key_value(opt.first, new ConfigOptionInt(opt.second)); }
+    for (const auto& opt : config_pattern.int_pairs) { print_config.set_key_value(opt.first, new ConfigOptionInt(opt.second)); }
 
-    print_config.set_key_value(SuggestedConfigCalibPAPattern().brim_pair.first, new ConfigOptionEnum<BrimType>(SuggestedConfigCalibPAPattern().brim_pair.second));
+    print_config.set_key_value(config_pattern.brim_pair.first, new ConfigOptionEnum<BrimType>(config_pattern.brim_pair.second));
 
     auto* _wall_generator = print_config.option<ConfigOptionEnum<PerimeterGeneratorType>>("wall_generator");
     _wall_generator->value   = PerimeterGeneratorType::Arachne;
@@ -995,7 +998,7 @@ bool CalibUtils::calib_generic_auto_pa_cali(const std::vector<CalibInfo> &calib_
 
         js["nozzle_diameter"] = nozzle_diameter;
         std::string filament_ids;
-        for (const auto calib_info : calib_infos) {
+        for (const auto& calib_info : calib_infos) {
             filament_ids += calib_info.filament_prest->filament_id;
             filament_ids += " ";
         }
