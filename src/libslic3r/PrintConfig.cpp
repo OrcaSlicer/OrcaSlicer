@@ -9704,12 +9704,6 @@ CLIActionsConfigDef::CLIActionsConfigDef()
     def->cli = "uptodate";
     def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("downward_check", coStrings);
-    def->label = L("downward machines check");
-    def->tooltip = L("check whether current machine downward compatible with the machines in the list.");
-    def->cli_params = "\"machine1.json;machine2.json;...\"";
-    def->set_default_value(new ConfigOptionStrings());
-
     def = this->add("load_defaultfila", coBool);
     def->label = L("Load default filaments");
     def->tooltip = L("Load first filament as default for those not loaded.");
