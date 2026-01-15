@@ -115,7 +115,6 @@ protected:
     
     // Filament remap feature
     std::vector<size_t>               m_extruder_remap;      // index → target extruder index
-    bool                              m_show_filament_remap_ui = false;
     // ORCA: Cache used filaments to filter UI
     std::set<size_t>                  m_used_filaments;      // Set of used filament indices (cached)
 

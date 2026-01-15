@@ -679,26 +679,57 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     }
 
     ImGui::Separator();
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
 
+    // ORCA: Remap filaments section (Border only, Title in border)
+    {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        std::string title = into_u8(m_desc.at("perform_remap"));
+        ImVec2 title_size = ImGui::CalcTextSize(title.c_str());
+        float half_title_h = title_size.y * 0.5f;
+        float available_width = ImGui::GetContentRegionAvail().x;
 
-    if (m_imgui->button(m_desc.at("perform_remap"))) {
-        m_show_filament_remap_ui = !m_show_filament_remap_ui;
-        if (m_show_filament_remap_ui) {
-            // reset remap to identity on opening
-            m_extruder_remap.resize(m_extruders_colors.size());
-            for (size_t i = 0; i < m_extruder_remap.size(); ++i)
-                m_extruder_remap[i] = i;
+        // Space for title on top border
+        ImGui::Dummy(ImVec2(0.0f, half_title_h));
+        
+        ImGui::BeginGroup();
+        {
+            float padding = m_imgui->scaled(0.5f); // Small padding
+            ImGui::Indent(padding);
+            ImGui::Dummy(ImVec2(0.0f, half_title_h + padding));
             
-            // ORCA: Update used filaments cache on open
-            this->update_used_filaments();
+            render_filament_remap_ui(window_width, max_tooltip_width);
+            
+            ImGui::Dummy(ImVec2(0.0f, padding));
+            ImGui::Unindent(padding);
         }
+        ImGui::EndGroup();
+        
+        ImVec2 p_min = ImGui::GetItemRectMin();
+        ImVec2 p_max = ImGui::GetItemRectMax();
+        
+        // Ensure full width of the gizmo window
+        if (available_width > 0)
+            p_max.x = p_min.x + available_width;
+
+        ImU32 border_col = ImGui::GetColorU32(ImGuiCol_Border);
+        ImU32 text_col = ImGui::GetColorU32(ImGuiCol_Text);
+        ImU32 bg_col = ImGui::GetColorU32(ImGuiCol_WindowBg); // Masking color
+        
+        // Draw Border with small rounding (no scaled(4.0) anymore!)
+        draw_list->AddRect(p_min, p_max, border_col, 3.0f);
+        
+        // Mask the border behind the title
+        float title_x = p_min.x + m_imgui->scaled(0.5f);
+        ImVec2 mask_min(title_x - 2.0f, p_min.y - half_title_h);
+        ImVec2 mask_max(title_x + title_size.x + 2.0f, p_min.y + half_title_h);
+        draw_list->AddRectFilled(mask_min, mask_max, bg_col);
+        
+        // Draw Title
+        draw_list->AddText(ImVec2(title_x, p_min.y - half_title_h), text_col, title.c_str());
     }
-    
-    // Render filament swap UI if enabled
-    if (m_show_filament_remap_ui) {
-        ImGui::Separator();
-        render_filament_remap_ui(window_width, max_tooltip_width);
-    }
+
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
@@ -767,9 +798,8 @@ void GLGizmoMmuSegmentation::update_model_object()
         wxGetApp().plater()->get_partplate_list().notify_instance_update(obj_idx, 0);
         m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
 
-        // ORCA: Refresh cache if UI is open
-        if (m_show_filament_remap_ui)
-            this->update_used_filaments();
+        // ORCA: Refresh cache
+        this->update_used_filaments();
     }
 }
 
@@ -834,8 +864,7 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
     this->init_model_triangle_selectors();
 
     // ORCA: Refresh cache when model changes
-    if (m_show_filament_remap_ui)
-        this->update_used_filaments();
+    this->update_used_filaments();
 }
 
 void GLGizmoMmuSegmentation::tool_changed(wchar_t old_tool, wchar_t new_tool)
@@ -1057,6 +1086,8 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     const ImVec2 max_label_size = ImGui::CalcTextSize("99", NULL, true);
     const ImVec2 button_size(max_label_size.x + m_imgui->scaled(0.5f), 0.f);
 
+    m_imgui->text(_L("From:"));
+
     bool first = true;
     // ORCA: Use m_used_filaments to show only relevant source filaments
     for (size_t src : m_used_filaments) {
@@ -1130,6 +1161,8 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         
         if (ImGui::BeginPopup(pop_id.c_str())) {
             
+            m_imgui->text(_L("To:"));
+
             for (int dst = 0; dst < (int)n_extr; ++dst) {
                 const ColorRGBA &dst_col_popup = m_extruders_colors[dst];
                 ImVec4 dst_vec = ImGuiWrapper::to_ImVec4(dst_col_popup);
@@ -1180,6 +1213,11 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                     m_extruder_remap[src] = dst;
                     // update the source button color immediately
                     ImGui::CloseCurrentPopup();
+
+                    // ORCA: Live update
+                    this->remap_filament_assignments();
+                    // Reset mapping for this source since it's applied to the model
+                    m_extruder_remap[src] = src;
                 }
             }
             ImGui::EndPopup();
@@ -1191,15 +1229,6 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     }
 
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.3f));
-
-    if (m_imgui->button(m_desc.at("remap"))) {
-        remap_filament_assignments();
-        m_show_filament_remap_ui = false;
-    }
-
-    ImGui::SameLine();
-    if (m_imgui->button(m_desc.at("cancel_remap")))
-        m_show_filament_remap_ui = false;
 }
 
 void GLGizmoMmuSegmentation::remap_filament_assignments()
@@ -1279,8 +1308,7 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
         m_parent.set_as_dirty();
         
         // ORCA: Refresh used filaments cache
-        if (m_show_filament_remap_ui)
-            this->update_used_filaments();
+        this->update_used_filaments();
     }
 }
 
