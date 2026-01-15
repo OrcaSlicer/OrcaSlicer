@@ -290,7 +290,7 @@ static std::string to_string(libvgcode::EGCodeExtrusionRole role)
     }
 }
 
-void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height)
+void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
     static float last_window_width = 0.0f;
     static size_t last_text_length = 0;
@@ -307,8 +307,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGui::SetNextWindowBgAlpha(0.8f);
         imgui.begin(std::string("ToolPosition"), ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove);
         ImGui::AlignTextToFramePadding();
-        ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, _u8L("Position") + ":");
-        ImGui::SameLine();
+        // ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, _u8L("Position") + ":");
+        // ImGui::SameLine();
         libvgcode::PathVertex vertex = viewer->get_current_vertex();
         size_t vertex_id = viewer->get_current_vertex_id();
         if (vertex.type == libvgcode::EMoveType::Seam) {
@@ -317,9 +317,58 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         }
 
         char buf[1024];
-        sprintf(buf, "X: %.3f, Y: %.3f, Z: %.3f", vertex.position[0], vertex.position[1], vertex.position[2]);
-        ImGuiWrapper::text(std::string(buf));
+        sprintf(buf, "X: %.3f, Y: %.3f, Z: %.3f Speed: %.0f ", vertex.position[0], vertex.position[1], vertex.position[2], vertex.feedrate);
+        switch (view_type) {
+            case libvgcode::EViewType::Height: {
+                sprintf(buf, "%s %s%.2f", buf, _u8L("Height: ").c_str(), vertex.height);
+                break;
+            }
+            case libvgcode::EViewType::Width: {
+                sprintf(buf, "%s %s%.2f", buf, _u8L("Width: ").c_str(), vertex.width);
+                break;
+            }
+            case libvgcode::EViewType::VolumetricFlowRate: {
+                sprintf(buf, "%s %s%.2f", buf, _u8L("Flow: ").c_str(), vertex.volumetric_rate());
+                break;
+            }
+            case libvgcode::EViewType::FanSpeed: {
+                sprintf(buf, "%s %s%.0f", buf, _u8L("Fan: ").c_str(), vertex.fan_speed);
+                break;
+            }
+            case libvgcode::EViewType::Temperature: {
+                sprintf(buf, "%s %s%.0f", buf, _u8L("Temperature: ").c_str(), vertex.temperature);
+                break;
+            }
+            case libvgcode::EViewType::LayerTimeLinear:
+            case libvgcode::EViewType::LayerTimeLogarithmic: {
+                sprintf(buf, "%s %s%.1f", buf, _u8L("Layer Time: ").c_str(), vertex.layer_duration);
+                break;
+            }
+            case libvgcode::EViewType::Tool: {
+                sprintf(buf, "%s %s%d", buf, _u8L("Tool: ").c_str(), vertex.extruder_id + 1);
+                break;
+            }
+            case libvgcode::EViewType::ColorPrint: {
+                sprintf(buf, "%s %s%d", buf, _u8L("Color: ").c_str(), vertex.color_id + 1);
+                break;
+            }
+            case libvgcode::EViewType::ActualVolumetricFlowRate: {
+                sprintf(buf, "%s %s%.2f", buf, _u8L("Actual Flow: ").c_str(), vertex.actual_volumetric_rate());
+                break;
+            }
+            case libvgcode::EViewType::ActualSpeed: {
+                sprintf(buf, "%s %s%.1f", buf, _u8L("Actual Speed: ").c_str(), vertex.actual_feedrate);
+                break;
+            }
 
+            default:
+                break;
+            }
+        ImGuiWrapper::text(std::string(buf));
+        if (view_type == libvgcode::EViewType::FeatureType) {
+            ImGui::SameLine();
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, to_string(vertex.role).c_str());
+        }
         ImGui::SameLine();
         if (imgui.image_button(properties_shown ? ImGui::HorizontalHide : ImGui::HorizontalShow, properties_shown ? _u8L("Hide properties") : _u8L("Show properties"))) {
             properties_shown = !properties_shown;
@@ -634,7 +683,7 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
                 max_text_width = w;
         }
 
-        required_width = id_width + max_text_width + 2.0f * ImGui::GetStyle().WindowPadding.x;
+        required_width = id_width + max_text_width;
     }
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
@@ -723,7 +772,7 @@ void GCodeViewer::SequentialView::render(const bool has_render_path, float legen
     if (has_render_path && m_show_marker) {
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
-        marker.render_position_window(viewer, canvas_width, canvas_height);
+        marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
     }
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();

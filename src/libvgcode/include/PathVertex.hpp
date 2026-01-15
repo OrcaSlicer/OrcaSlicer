@@ -82,6 +82,10 @@ struct PathVertex
     // Segment estimated times
     //
     std::array<float, TIME_MODES_COUNT> times{ 0.0f, 0.0f };
+    //
+    // Layer duration in seconds
+    //
+    float layer_duration{ 0.0f };
 
     //
     // Return true if the segment is an extrusion move

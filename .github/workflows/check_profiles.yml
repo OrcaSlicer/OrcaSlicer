@@ -14,6 +14,10 @@ on:
         required: true
         default: 'warning'
 
+permissions:
+  pull-requests: write
+  contents: read
+
 
 jobs:
   check_translation:
@@ -54,7 +58,7 @@ jobs:
         run: |
           set +e
           curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
-          unzip ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
+          unzip -q ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
           exit ${PIPESTATUS[0]}
 
