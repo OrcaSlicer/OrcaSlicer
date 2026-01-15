@@ -3692,9 +3692,15 @@ int GCode::get_bed_temperature(const int extruder_id, const bool is_first_layer,
 
 int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print& print) const
 {
+    return get_highest_bed_temperature(is_first_layer, print, is_first_layer);
+}
+
+int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print& print, const bool use_first_layer_filaments) const
+{
     auto bed_type = m_config.curr_bed_type;
     int bed_temp = 0;
-    for (auto fidx : print.get_slice_used_filaments(is_first_layer)) {
+    const auto filaments = print.get_slice_used_filaments(use_first_layer_filaments);
+    for (auto fidx : filaments) {
         bed_temp = std::max(bed_temp, get_bed_temperature(fidx, is_first_layer, bed_type));
     }
     return bed_temp;
@@ -4419,7 +4425,9 @@ LayerResult GCode::process_layer(
         // BBS
         int bed_temp = 0;
         if (m_config.bed_temperature_formula == BedTempFormula::btfHighestTemp)
-            bed_temp = get_highest_bed_temperature(false,print);
+            // Using the hottest "other layers" temperature from filaments that touched the bed - so
+            // filaments not on the bed don't raise the temperature unnecessarily.
+            bed_temp = get_highest_bed_temperature(false, print, true);
         else
             bed_temp = get_bed_temperature(first_extruder_id, false, m_config.curr_bed_type);
         gcode += m_writer.set_bed_temperature(bed_temp);
