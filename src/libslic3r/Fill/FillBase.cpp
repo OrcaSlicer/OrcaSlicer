@@ -72,6 +72,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipZigZag:              return new FillZigZag();
     case ipCrossZag:            return new FillCrossZag();
     case ipLockedZag:           return new FillLockedZag();
+    case ipScatteredRectilinear: return new FillScatteredRectilinear();
     default: throw Slic3r::InvalidArgument("unknown type");
     }
 }
