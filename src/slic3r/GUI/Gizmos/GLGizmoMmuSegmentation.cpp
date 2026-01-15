@@ -702,6 +702,20 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             render_filament_remap_ui(window_width, max_tooltip_width);
             
             ImGui::Dummy(ImVec2(0.0f, padding));
+
+            // ORCA: Add Remap and Cancel buttons
+            if (m_imgui->button(m_desc.at("remap"))) {
+                this->remap_filament_assignments();
+                // Reset mapping to identity after apply
+                for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
+            }
+            ImGui::SameLine();
+            if (m_imgui->button(m_desc.at("cancel_remap"))) {
+                // Reset mapping to identity
+                for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
+            }
+
+            ImGui::Dummy(ImVec2(0.0f, padding));
             ImGui::Unindent(padding);
         }
         ImGui::EndGroup();
@@ -1217,11 +1231,6 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                     m_extruder_remap[src] = dst;
                     // update the source button color immediately
                     ImGui::CloseCurrentPopup();
-
-                    // ORCA: Live update
-                    this->remap_filament_assignments();
-                    // Reset mapping for this source since it's applied to the model
-                    m_extruder_remap[src] = src;
                 }
             }
             ImGui::EndPopup();
