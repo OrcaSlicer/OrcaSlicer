@@ -681,7 +681,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     ImGui::Separator();
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
 
-    // ORCA: Remap filaments section (Border only, Title in border)
+    // ORCA: Remap filaments section (Border only, Title in border). 
+    // Styled as a panel for visual grouping.
     {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         std::string title = into_u8(m_desc.at("perform_remap"));
@@ -708,6 +709,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImVec2 p_min = ImGui::GetItemRectMin();
         ImVec2 p_max = ImGui::GetItemRectMax();
         
+        // ORCA: Ensure panel fills available width.
         // Ensure full width of the gizmo window
         if (available_width > 0)
             p_max.x = p_min.x + available_width;
@@ -716,10 +718,10 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImU32 text_col = ImGui::GetColorU32(ImGuiCol_Text);
         ImU32 bg_col = ImGui::GetColorU32(ImGuiCol_WindowBg); // Masking color
         
-        // Draw Border with small rounding (no scaled(4.0) anymore!)
+        // ORCA: Draw Border with small rounding.
         draw_list->AddRect(p_min, p_max, border_col, 3.0f);
         
-        // Mask the border behind the title
+        // ORCA: Mask the border behind the title for a "Fieldset" look.
         float title_x = p_min.x + m_imgui->scaled(0.5f);
         ImVec2 mask_min(title_x - 2.0f, p_min.y - half_title_h);
         ImVec2 mask_max(title_x + title_size.x + 2.0f, p_min.y + half_title_h);
@@ -1086,8 +1088,6 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     const ImVec2 max_label_size = ImGui::CalcTextSize("99", NULL, true);
     const ImVec2 button_size(max_label_size.x + m_imgui->scaled(0.5f), 0.f);
 
-    m_imgui->text(_L("From:"));
-
     bool first = true;
     // ORCA: Use m_used_filaments to show only relevant source filaments
     for (size_t src : m_used_filaments) {
@@ -1101,11 +1101,16 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         first = false;
 
         std::string btn_id = "##remap_src_" + std::to_string(src);
+        std::string pop_id = "popup_" + std::to_string(src);
         
         ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoInputs |
                                     ImGuiColorEditFlags_NoLabel  | ImGuiColorEditFlags_NoPicker |
                                     ImGuiColorEditFlags_NoTooltip;
-        if (m_selected_extruder_idx != src) flags |= ImGuiColorEditFlags_NoBorder;
+        
+        // ORCA: Show border ONLY if the popup is open (visual feedback for active selection)
+        // Decoupled from m_selected_extruder_idx to prevent unwanted selection highlights.
+        if (!ImGui::IsPopupOpen(pop_id.c_str()))
+             flags |= ImGuiColorEditFlags_NoBorder;
         
         #ifdef __APPLE__
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA);
@@ -1140,7 +1145,6 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                 IM_COL32(0,0,0,255), dst_txt.c_str());
 
         // popup with possible destinations
-        std::string pop_id = "popup_" + std::to_string(src);
         if (clicked) {
             // Calculate popup position centered below the current button
             ImVec2 button_pos = ImGui::GetItemRectMin();
@@ -1227,8 +1231,6 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         ImGui::PopStyleColor(2); // PopupBg and Border
         ImGui::PopStyleVar(2);   // PopupRounding and PopupBorderSize
     }
-
-    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.3f));
 }
 
 void GLGizmoMmuSegmentation::remap_filament_assignments()
@@ -1302,8 +1304,7 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
         if (volume_extruder_changed)
             this->update_triangle_selectors_colors();
 
-        wxGetApp().plater()->get_notification_manager()->push_notification(
-            _L("Filament remapping finished.").ToStdString());
+        // ORCA: Removed "Filament remapping finished" notification to reduce UI noise.
         update_model_object();
         m_parent.set_as_dirty();
         
