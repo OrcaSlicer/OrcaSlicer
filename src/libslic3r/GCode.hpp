@@ -635,7 +635,7 @@ private:
     std::vector<std::vector<unsigned int>>  m_sorted_layer_filaments;
     // BBS
     int get_bed_temperature(const int extruder_id, const bool is_first_layer, const BedType bed_type) const;
-    int get_highest_bed_temperature(const bool is_first_layer,const Print &print) const;
+    int get_highest_bed_temperature(const bool is_first_layer, const Print &print, const bool use_first_layer_filaments) const;
 
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
     std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
