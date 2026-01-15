@@ -683,6 +683,11 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
+    if (m_imgui->button(m_desc.at("perform_remap"))) {
+        m_show_remap_panel = !m_show_remap_panel;
+    }
+
+    if (m_show_remap_panel)
     {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         std::string title = into_u8(m_desc.at("perform_remap"));
@@ -695,7 +700,10 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         
         ImGui::BeginGroup();
         {
-            float padding = m_imgui->scaled(0.5f); // Small padding
+            // ORCA: Tighter spacing for the panel content
+            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(m_imgui->scaled(0.4f), m_imgui->scaled(0.3f)));
+
+            float padding = m_imgui->scaled(0.25f); // Reduced padding
             ImGui::Indent(padding);
             ImGui::Dummy(ImVec2(0.0f, half_title_h + padding));
             
@@ -717,6 +725,8 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
             ImGui::Dummy(ImVec2(0.0f, padding));
             ImGui::Unindent(padding);
+            
+            ImGui::PopStyleVar(); // Pop ItemSpacing
         }
         ImGui::EndGroup();
         

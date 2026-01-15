@@ -114,6 +114,7 @@ protected:
     bool                              m_detect_geometry_edge = true;
     
     // Filament remap feature
+    bool                              m_show_remap_panel = false;
     std::vector<size_t>               m_extruder_remap;      // index → target extruder index
     // ORCA: Cache used filaments to filter UI
     std::set<size_t>                  m_used_filaments;      // Set of used filament indices (cached)
