@@ -1697,11 +1697,12 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("default_acceleration", coFloat);
     def->label = L("Normal printing");
+    def->category = L("Speed");
     def->tooltip = L("The default acceleration of both normal printing and travel except initial layer.");
     def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(500.0));
+    def->set_default_value(new ConfigOptionFloat(5000));
 
     def = this->add("default_filament_profile", coStrings);
     def->label = L("Default filament profile");
@@ -2144,10 +2145,11 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("print_flow_ratio", coFloat);
     def->label = L("Flow ratio");
+    def->category = L("Quality");
     def->tooltip = L("The material may have volumetric change after switching between molten and crystalline states. "
                      "This setting changes all extrusion flow of this filament in G-code proportionally. "
                      "The recommended value range is between 0.95 and 1.05. "
-                     "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
+                     "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow." 
                      "\n\nThe final object flow ratio is this value multiplied by the filament flow ratio.");
     def->mode = comAdvanced;
     def->max = 2;
@@ -2750,6 +2752,7 @@ void PrintConfigDef::init_fff_params()
     // Infill multiline
     def             = this->add("fill_multiline", coInt);
     def->label      = L("Fill Multiline");
+    def->category   = L("Strength");
     def->tooltip    = L("Using multiple lines for the infill pattern, if supported by infill pattern.");
     def->min = 1;
     def->max = 10; // Maximum number of lines for infill pattern
@@ -2895,14 +2898,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(20, false));
 
-    def = this->add("outer_wall_acceleration", coFloat);
-    def->label = L("Outer wall");
-    def->tooltip = L("Acceleration of outer walls.");
-    def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
-    def->min = 0;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(10000));
-
     def = this->add("inner_wall_acceleration", coFloat);
     def->label = L("Inner wall");
     def->category = L("Speed");
@@ -3006,6 +3001,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("default_junction_deviation", coFloat);
     def->label = L("Junction Deviation");
+    def->category = L("Speed");
     def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
@@ -3190,6 +3186,7 @@ void PrintConfigDef::init_fff_params()
     // Filament ironing overrides
     def = this->add("filament_ironing_flow", coPercents);
     def->label = L("Ironing flow");
+    def->category = L("Quality");
     def->tooltip = L("Filament-specific override for ironing flow. This allows you to customize the ironing flow "
                      "for each filament type. Too high value results in overextrusion on the surface.");
     def->sidetext = "%";
@@ -3201,6 +3198,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_ironing_spacing", coFloats);
     def->label = L("Ironing line spacing");
+    def->category = L("Quality");
     def->tooltip = L("Filament-specific override for ironing line spacing. This allows you to customize the spacing "
                      "between ironing lines for each filament type.");
     def->sidetext = "mm";
@@ -3212,6 +3210,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_ironing_inset", coFloats);
     def->label = L("Ironing inset");
+    def->category = L("Quality");
     def->tooltip = L("Filament-specific override for ironing inset. This allows you to customize the distance to keep "
                      "from the edges when ironing for each filament type.");
     def->sidetext = "mm";
@@ -3223,6 +3222,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_ironing_speed", coFloats);
     def->label = L("Ironing speed");
+    def->category = L("Speed");
     def->tooltip = L("Filament-specific override for ironing speed. This allows you to customize the print speed "
                      "of ironing lines for each filament type.");
     def->sidetext = "mm/s";
@@ -3372,11 +3372,12 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def          = this->add("precise_z_height", coBool);
     def->label   = L("Precise Z height");
+    def->category = L("Quality");
     def->tooltip = L("Enable this to get precise Z height of object after slicing. "
                      "It will get the precise object height by fine-tuning the layer heights of the last few layers. "
                      "Note that this is an experimental parameter.");
     def->mode    = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(0));
+    def->set_default_value(new ConfigOptionBool(false));
 
     // BBS
     def = this->add("enable_arc_fitting", coBool);
@@ -5164,12 +5165,12 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("skirt_start_angle", coFloat);
     def->label = L("Skirt start point");
+    def->category = L("Support");
     def->tooltip = L("Angle from the object center to skirt start point. Zero is the most right position, counter clockwise is positive angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -180;
     def->max = 180;
-    def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(-135));
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("skirt_height", coInt);
     def->label = L("Skirt height");
