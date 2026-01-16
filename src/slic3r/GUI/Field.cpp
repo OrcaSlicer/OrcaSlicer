@@ -710,6 +710,13 @@ void TextCtrl::BUILD() {
 		const ConfigOptionStrings *vec = m_opt.get_default_value<ConfigOptionStrings>();
 		if (vec == nullptr || vec->empty()) break; //for the case of empty default value
 		text_value = vec->get_at(m_opt_idx);
+		// For multiline fields, unescape newlines and other escape sequences
+		if (m_opt.multiline) {
+			std::string unescaped_value;
+			if (unescape_string_cstyle(text_value.ToStdString(), unescaped_value)) {
+				text_value = wxString::FromUTF8(unescaped_value);
+			}
+		}
 		break;
 	}
     case coPoint:
@@ -731,7 +738,7 @@ void TextCtrl::BUILD() {
         : builder2.build(m_parent, "", "", "", wxDefaultPosition, size, wxTE_PROCESS_ENTER);
     temp->SetLabel(_L(m_opt.sidetext));
 	auto text_ctrl = m_opt.multiline ? (wxTextCtrl *)temp : ((TextInput *) temp)->GetTextCtrl();
-    text_ctrl->SetLabel(text_value);
+    text_ctrl->SetValue(text_value);
     temp->SetSize(size);
     m_combine_side_text = !m_opt.multiline;
     if (parent_is_custom_ctrl && m_opt.height < 0)
