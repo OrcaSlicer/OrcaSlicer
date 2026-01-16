@@ -1682,21 +1682,47 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         }
 
         for (const std::string& opt_key : dirty_options) {
+            auto* old_opt = old_config.option(opt_key);
+            auto* new_opt = new_config.option(opt_key);
+
+            bool handled_as_vector = false;
+            // Orca: expand vector options to show per-item changes (e.g. per-extruder temperatures)
+            if (new_opt && new_opt->is_vector() && new_opt->type() != coStrings && new_opt->type() != coPoints) {
+                const auto* new_vec = dynamic_cast<const ConfigOptionVectorBase*>(new_opt);
+                const auto* old_vec = dynamic_cast<const ConfigOptionVectorBase*>(old_opt);
+                size_t vec_size = new_vec->size();
+                if (old_vec && old_vec->size() > vec_size) vec_size = old_vec->size();
+
+                if (vec_size > 0) {
+                    handled_as_vector = true;
+                    for (size_t i = 0; i < vec_size; ++i) {
+                        std::string indexed_key = opt_key + "#" + std::to_string(i);
+
+                        // Check if this specific index changed
+                        wxString val_old = get_string_value(indexed_key, old_config);
+                        wxString val_new = get_string_value(indexed_key, new_config);
+
+                        if (val_old == val_new) continue;
+
+                        const Search::Option& option = searcher.get_option(indexed_key, type);
+                        if (option.opt_key() == indexed_key) {
+                            PresetItem pi = { type, indexed_key, option.category_local, option.group_local, option.label_local, val_old, val_new };
+                            m_presetitems.push_back(pi);
+                        }
+                    }
+                }
+            }
+
+            if (handled_as_vector) continue;
+
             const Search::Option& option = searcher.get_option(opt_key, type);
-            std::string found_opt_key = option.opt_key();
-            if (found_opt_key != opt_key && found_opt_key != opt_key + "#0") {
+            if (option.opt_key() != opt_key) {
                 // When founded option isn't the correct one.
                 // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
                 // because of they don't exist in searcher
                 continue;
             }
 
-            /*m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
-                get_string_value(opt_key, old_config), get_string_value(opt_key, new_config), category_icon_map.at(option.category));*/
-
-
-            //PresetItem pi = {opt_key, type, 1983};
-            //m_presetitems.push_back()
             PresetItem pi = {type, opt_key, option.category_local, option.group_local, option.label_local, get_string_value(opt_key, old_config), get_string_value(opt_key, new_config)};
             m_presetitems.push_back(pi);
 
@@ -2231,8 +2257,7 @@ void DiffPresetDialog::update_tree()
             wxString right_val = get_string_value(opt_key, right_congig);
 
             Search::Option option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
-            std::string found_opt_key = option.opt_key();
-            if (found_opt_key != opt_key && found_opt_key != opt_key + "#0") {
+            if (option.opt_key() != opt_key) {
                 // temporary solution, just for testing
                 m_tree->Append(opt_key, type, "Undef category", "Undef group", opt_key, left_val, right_val, "undefined"); // ORCA: use low resolution compatible icon
                 // When founded option isn't the correct one.

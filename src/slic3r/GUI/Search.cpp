@@ -94,7 +94,8 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
 
         int cnt = 0;
 
-        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER) && opt_key != "printable_area")
+        // Orca: include TYPE_FILAMENT and TYPE_PRINT to expand vector options (e.g. nozzle_temperature)
+        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_FILAMENT || type == Preset::TYPE_PRINT) && opt_key != "printable_area")
             switch (config->option(opt_key)->type()) {
             case coInts: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             case coBools: change_opt_key<ConfigOptionBools>(opt_key, config, cnt); break;
