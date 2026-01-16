@@ -1702,7 +1702,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = L(u8"mm/s²");	// milimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(500));
+    def->set_default_value(new ConfigOptionFloat(500.0));
 
     def = this->add("default_filament_profile", coStrings);
     def->label = L("Default filament profile");
@@ -3377,7 +3377,7 @@ void PrintConfigDef::init_fff_params()
                      "It will get the precise object height by fine-tuning the layer heights of the last few layers. "
                      "Note that this is an experimental parameter.");
     def->mode    = comAdvanced;
-    def->set_default_value(new ConfigOptionBool(false));
+    def->set_default_value(new ConfigOptionBool(0));
 
     // BBS
     def = this->add("enable_arc_fitting", coBool);
