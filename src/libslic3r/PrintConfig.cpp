@@ -2149,7 +2149,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The material may have volumetric change after switching between molten and crystalline states. "
                      "This setting changes all extrusion flow of this filament in G-code proportionally. "
                      "The recommended value range is between 0.95 and 1.05. "
-                     "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow." 
+                     "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
                      "\n\nThe final object flow ratio is this value multiplied by the filament flow ratio.");
     def->mode = comAdvanced;
     def->max = 2;
