@@ -4062,6 +4062,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine(max_len*1.5);
         imgui.title(cgcode_time_str, false);
 
+        // ORCA: Get layer Zs as doubles
+        std::vector<double> layer_zs = get_layers_zs();
+
         for (Slic3r::CustomGCode::Item custom_gcode : custom_gcode_per_print_z) {
             ImGui::Dummy({window_padding, window_padding});
             ImGui::SameLine();
@@ -4075,8 +4078,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             }
             ImGui::SameLine(max_len);
             char buf[64];
-            int layer = m_viewer.get_layer_id_at(custom_gcode.print_z);
-            ::sprintf(buf, "%d",layer );
+            int layer = find_close_layer_idx(layer_zs, custom_gcode.print_z, epsilon()); // ORCA: find layer index by Z
+            ::sprintf(buf, "%d", layer + 1); // +1 because layer 0 is the first layer
             imgui.text(buf);
             ImGui::SameLine(max_len * 1.5);
 
@@ -4084,7 +4087,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             float custom_gcode_time = 0;
             if (layer > 0)
             {
-                for (int i = 0; i < layer-1; i++) {
+                for (int i = 0; i < layer; i++) { // sum all previous layers time
                     custom_gcode_time += layer_times[i];
                 }
             }
