@@ -5170,6 +5170,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -180;
     def->max = 180;
+    def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(-135));
 
     def = this->add("skirt_height", coInt);
