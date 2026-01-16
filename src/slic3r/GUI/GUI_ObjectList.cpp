@@ -6127,7 +6127,8 @@ void ObjectList::set_extruder_for_selected_items(const int extruder)
          * So, if Instance is selected, get its Object item and change it
          */
         ItemType sel_item_type = m_objects_model->GetItemType(sel_item);
-        wxDataViewItem item = (sel_item_type & itInstance) ? m_objects_model->GetObject(item) : sel_item;
+        // ORCA: Fix crash when setting filament for instance (item was used uninitialized)
+        wxDataViewItem item = (sel_item_type & itInstance) ? m_objects_model->GetObject(sel_item) : sel_item;
         ItemType type = m_objects_model->GetItemType(item);
         if (type & itVolume) {
             const int obj_idx = m_objects_model->GetObjectIdByItem(item);
