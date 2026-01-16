@@ -180,7 +180,7 @@ wxBoxSizer* NetworkTestDialog::create_result_sizer(wxWindow* parent)
 	text_result->Wrap(-1);
 	sizer->Add(text_result, 0, wxALL, 5);
 
-	txt_log = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE);
+	txt_log = new TextInput(this, "", "", "", wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
 	sizer->Add(txt_log, 1, wxALL | wxEXPAND, 5);
 	return sizer;
 }
@@ -205,7 +205,7 @@ void NetworkTestDialog::init_bind()
 		buf << std::put_time(now_time, "%a %b %d %H:%M:%S");
 		wxString info = wxString::Format("%s:", buf.str()) + evt.GetString() + "\n";
 		try {
-			txt_log->AppendText(info);
+			txt_log->GetTextCtrl()->AppendText(info);
 		}
 		catch (std::exception& e) {
 			BOOST_LOG_TRIVIAL(error) << "Unkown Exception in print_log, exception=" << e.what();

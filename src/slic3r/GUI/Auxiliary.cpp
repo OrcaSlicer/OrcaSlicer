@@ -1100,8 +1100,7 @@ void AuxiliaryPanel::update_all_cover()
      m_text_description->SetForegroundColour(*wxBLACK);
      m_text_description->Wrap(-1);
      m_sizer_description->Add(m_text_description, 0, wxALIGN_TOP | wxRIGHT, FromDIP(10));
-     m_input_description = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, 
-                                          wxSize(FromDIP(450), FromDIP(300)), wxTE_MULTILINE | wxTE_PROCESS_ENTER);
+     m_input_description = new TextInput(this, "", "", "", wxDefaultPosition, wxSize(FromDIP(450), FromDIP(300)), wxTE_MULTILINE | wxTE_PROCESS_ENTER);
      m_input_description->SetFont(::Label::Body_14);
      m_sizer_description->Add(m_input_description, 0, wxALIGN_CENTER, 0);
 
@@ -1181,13 +1180,13 @@ void DesignerPanel::update_info()
 
     if (wxGetApp().plater()->model().model_info != nullptr) {
         m_input_model_name->GetTextCtrl()->SetValue(wxString::FromUTF8(wxGetApp().plater()->model().model_info->model_name));
-        m_input_description->ChangeValue(wxString::FromUTF8(wxGetApp().plater()->model().model_info->description));
+        m_input_description->GetTextCtrl()->ChangeValue(wxString::FromUTF8(wxGetApp().plater()->model().model_info->description));
         if (!m_combo_license->SetStringSelection(wxString::FromUTF8(wxGetApp().plater()->model().model_info->license))) {
             m_combo_license->SetSelection(0);
         }
     } else {
         m_input_model_name->GetTextCtrl()->SetValue(wxEmptyString);
-        m_input_description->ChangeValue(wxEmptyString);
+        m_input_description->GetTextCtrl()->ChangeValue(wxEmptyString);
         m_combo_license->SetSelection(0);
     }
 }
