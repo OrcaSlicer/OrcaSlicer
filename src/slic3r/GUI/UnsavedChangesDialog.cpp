@@ -1683,7 +1683,8 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
 
         for (const std::string& opt_key : dirty_options) {
             const Search::Option& option = searcher.get_option(opt_key, type);
-            if (option.opt_key() != opt_key) {
+            std::string found_opt_key = option.opt_key();
+            if (found_opt_key != opt_key && found_opt_key != opt_key + "#0") {
                 // When founded option isn't the correct one.
                 // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
                 // because of they don't exist in searcher
@@ -2230,7 +2231,8 @@ void DiffPresetDialog::update_tree()
             wxString right_val = get_string_value(opt_key, right_congig);
 
             Search::Option option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
-            if (option.opt_key() != opt_key) {
+            std::string found_opt_key = option.opt_key();
+            if (found_opt_key != opt_key && found_opt_key != opt_key + "#0") {
                 // temporary solution, just for testing
                 m_tree->Append(opt_key, type, "Undef category", "Undef group", opt_key, left_val, right_val, "undefined"); // ORCA: use low resolution compatible icon
                 // When founded option isn't the correct one.
