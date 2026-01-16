@@ -1168,6 +1168,31 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                 ImVec2(pos.x + (size.x - txt_sz.x) * 0.5f, pos.y + (size.y - txt_sz.y) * 0.5f),
                 IM_COL32(0,0,0,255), dst_txt.c_str());
 
+        // ORCA: Show original color as a small triangle in the corner if remapped
+        if (src != m_extruder_remap[src]) {
+            float s = m_imgui->scaled(0.55f);
+            float offset = m_imgui->scaled(0.15f); // Inset to avoid rounded corner clipping
+            ImVec2 p = ImVec2(pos.x + offset, pos.y + offset);
+            
+            // Contrast outline: White for dark backgrounds, Black for light backgrounds
+            ImU32 outline_col = (gray * 255.f < 80.f) ? IM_COL32(255, 255, 255, 180) : IM_COL32(0, 0, 0, 180);
+
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            draw_list->AddTriangleFilled(
+                p,
+                ImVec2(p.x + s, p.y),
+                ImVec2(p.x, p.y + s),
+                ImGuiWrapper::to_ImU32(src_col));
+            
+            // ORCA: Add a thin outline for better contrast when colors are similar
+            draw_list->AddTriangle(
+                p,
+                ImVec2(p.x + s, p.y),
+                ImVec2(p.x, p.y + s),
+                outline_col,
+                0.5f);
+        }
+
         // popup with possible destinations
         if (clicked) {
             // Calculate popup position centered below the current button
