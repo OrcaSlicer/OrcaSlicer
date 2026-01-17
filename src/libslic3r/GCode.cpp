@@ -3717,7 +3717,7 @@ void GCode::_print_first_layer_bed_temperature(GCodeOutputStream &file, Print &p
     std::vector<int> temps_per_bed;
     int bed_temp = 0;
     if (m_config.bed_temperature_formula.value == BedTempFormula::btfHighestTemp) {
-        bed_temp = get_highest_bed_temperature(true, print);
+        bed_temp = get_highest_bed_temperature();
     }
     else {
         bed_temp = get_bed_temperature(first_printing_extruder_id, true, print.config().curr_bed_type);
