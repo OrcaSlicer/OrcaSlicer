@@ -3698,13 +3698,17 @@ int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print& p
 int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print& print, const bool use_first_layer_filaments) const
 {
     int max_temp = 0;
-    const auto &filament_indices = use_first_layer_filaments ? print.first_layer_extruders() : print.extruders();
+    // Use print.extruders() as it is the standard way to get used IDs in Orca
+    const auto &filament_indices = print.extruders();
 
     for (unsigned int idx : filament_indices) {
-        int temp = is_first_layer ? print.config().first_layer_bed_temperature.get_at(idx) : print.config().bed_temperature.get_at(idx);
-        max_temp = std::max(max_temp, temp);
+        // Use bed_temperature_initial for the first layer in OrcaSlicer
+        int temp = is_first_layer ? 
+                   print.config().bed_temperature_initial.get_at(idx) : 
+                   print.config().bed_temperature.get_at(idx);
+        
+        if (temp > max_temp) max_temp = temp;
     }
-
     return max_temp;
 }
 
@@ -3720,7 +3724,7 @@ void GCode::_print_first_layer_bed_temperature(GCodeOutputStream &file, Print &p
     int bed_temp = 0;
     if (m_config.bed_temperature_formula.value == BedTempFormula::btfHighestTemp) {
 		// Pass 'true' as the 3rd argument to maintain the original "first layer" behavior here
-        bed_temp = get_highest_bed_temperature(true, m_print, true);
+        bed_temp = get_highest_bed_temperature(true, *m_print, true);
     }
     else {
         bed_temp = get_bed_temperature(first_printing_extruder_id, true, print.config().curr_bed_type);
