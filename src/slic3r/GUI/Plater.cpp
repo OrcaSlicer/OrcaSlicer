@@ -12376,6 +12376,7 @@ void Plater::_calib_pa_tower(const Calib_Params& params) {
     obj_cfg.set_key_value("brim_ears_max_angle", new ConfigOptionFloat(135.f));
     obj_cfg.set_key_value("brim_width", new ConfigOptionFloat(6.f));
     obj_cfg.set_key_value("seam_slope_type", new ConfigOptionEnum<SeamScarfType>(SeamScarfType::None));
+    obj_cfg.set_key_value("overhang_reverse", new ConfigOptionBool(false));
     print_config.set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
 
     changed_objects({ 0 });
