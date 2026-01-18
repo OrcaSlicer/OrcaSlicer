@@ -204,6 +204,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "chamber_temperature",
         "thumbnails",
         "thumbnails_format",
+        // ORCA: Add support for thumbnails at end of file
+        "thumbnails_end_file",
         "seam_gap",
         "role_based_wipe_speed",
         "wipe_speed",

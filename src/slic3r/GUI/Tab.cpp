@@ -4386,6 +4386,8 @@ void TabPrinter::build_fff()
         option = optgroup->get_option("thumbnails");
         option.opt.full_width = true;
         optgroup->append_single_option_line(option, "printer_basic_information_advanced#g-code-thumbnails");
+        // ORCA: Add support for thumbnails at end of file
+        optgroup->append_single_option_line("thumbnails_end_file", "printer_basic_information_advanced#g-code-thumbnails");
         // optgroup->append_single_option_line("thumbnails_format");
         optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
             wxTheApp->CallAfter([this, opt_key, value]() {

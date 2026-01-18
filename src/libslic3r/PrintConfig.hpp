@@ -1533,6 +1533,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPoints,             start_end_points))
     ((ConfigOptionEnum<TimelapseType>,    timelapse_type))
     ((ConfigOptionString,             thumbnails))
+    // ORCA: Add support for thumbnails at end of file
+    ((ConfigOptionBool,               thumbnails_end_file))
     // BBS: move from PrintObjectConfig
     ((ConfigOptionBool, independent_support_layer_height))
     // SoftFever

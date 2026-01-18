@@ -2227,6 +2227,8 @@ static BambuBedType to_bambu_bed_type(BedType type)
 void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb)
 {
     PROFILE_FUNC();
+    // ORCA: Add support for thumbnails at end of file
+    std::string thumbnails_buffer;
 
     m_print = &print;
     m_timelapse_pos_picker.init(&print,m_writer.get_xy_offset().cast<coord_t>());
@@ -2415,9 +2417,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 throw Slic3r::ExportError(error_str);
             }
 
-            if (!thumbnails.empty())
-                GCodeThumbnails::export_thumbnails_to_file(
-                    thumbnail_cb, print.get_plate_index(), thumbnails, [&file](const char* sz) { file.write(sz); }, [&print]() { print.throw_if_canceled(); });
+            if (!thumbnails.empty()) {
+                // ORCA: Add support for thumbnails at end of file
+                if (print.config().thumbnails_end_file.value) {
+                    GCodeThumbnails::export_thumbnails_to_file(
+                        thumbnail_cb, print.get_plate_index(), thumbnails, 
+                        [&thumbnails_buffer](const char* sz) { thumbnails_buffer += sz; }, 
+                        [&print]() { print.throw_if_canceled(); });
+                } else {
+                    GCodeThumbnails::export_thumbnails_to_file(
+                        thumbnail_cb, print.get_plate_index(), thumbnails, 
+                        [&file](const char* sz) { file.write(sz); }, 
+                        [&print]() { print.throw_if_canceled(); });
+                }
+            }
         }
     }
 
@@ -3282,6 +3295,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     }
     file.write("\n");
+
+    // ORCA: Add support for thumbnails at end of file
+    if (!thumbnails_buffer.empty()) {
+        file.write(thumbnails_buffer);
+    }
 
     print.throw_if_canceled();
 }

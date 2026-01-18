@@ -6530,6 +6530,13 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back("ColPic");
     def->set_default_value(new ConfigOptionEnum<GCodeThumbnailsFormat>(GCodeThumbnailsFormat::PNG));
 
+    // ORCA: Add support for thumbnails at end of file
+    def = this->add("thumbnails_end_file", coBool);
+    def->label = L("G-code thumbnails to the end of file");
+    def->tooltip = L("Append G-code thumbnails to the end of the file instead of the beginning.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("use_relative_e_distances", coBool);
     def->label = L("Use relative E distances");
     def->tooltip = L("Relative extrusion is recommended when using \"label_objects\" option. "
