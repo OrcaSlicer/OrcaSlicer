@@ -6532,7 +6532,7 @@ void PrintConfigDef::init_fff_params()
 
     // ORCA: Add support for thumbnails at end of file
     def = this->add("thumbnails_end_file", coBool);
-    def->label = L("G-code thumbnails to the end of file");
+    def->label = L("Thumbnails at file end");
     def->tooltip = L("Append G-code thumbnails to the end of the file instead of the beginning.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
