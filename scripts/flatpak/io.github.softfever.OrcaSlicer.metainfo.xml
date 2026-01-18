@@ -38,7 +38,7 @@
         <p>A powerful, free and open-source 3D printer slicer that features cutting-edge technology.</p>
     </description>
     <branding>
-      <color type="primary" scheme_preference="light">#009688</color>
+        <color type="primary" scheme_preference="light">#009688</color>
     </branding>
     <releases>
         <release version="official"> <url>https://github.com/OrcaSlicer/OrcaSlicer/releases</url>
