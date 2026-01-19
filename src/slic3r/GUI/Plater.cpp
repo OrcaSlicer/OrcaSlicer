@@ -12592,8 +12592,8 @@ void Plater::calib_temp(const Calib_Params& params) {
     auto obj_bb = model().objects[0]->bounding_box_exact();
     auto block_count = lround((350 - params.end) / 5 + 1);
     if(block_count > 0){
-        // add EPSILON offset to avoid cutting at the exact location where the flat surface is
-        auto new_height = block_count * 10.0 + EPSILON;
+        // subtract EPSILON offset to avoid cutting at the exact location where the flat surface is
+        auto new_height = block_count * 10.0 - EPSILON;
         if (new_height < obj_bb.size().z()) {
             cut_horizontal(0, 0, new_height, ModelObjectCutAttribute::KeepLower);
         }
@@ -12619,7 +12619,6 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
-
     add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step");
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
@@ -12727,7 +12726,7 @@ void Plater::calib_retraction(const Calib_Params& params)
 
     //  cut upper
     auto obj_bb = obj->bounding_box_exact();
-    auto height = 1.0 + 0.4 + ((params.end - params.start)) / params.step;
+    auto height = 1.0 + 0.4 + ((params.end - params.start)) / params.step - EPSILON;
     if (height < obj_bb.size().z()) {
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
@@ -17592,20 +17591,16 @@ void Plater::post_process_string_object_exception(StringObjectException &err)
             int extruder_id = atoi(err.params[2].c_str()) - 1;
             if (extruder_id < preset_bundle->filament_presets.size()) {
                 std::string filament_name = preset_bundle->filament_presets[extruder_id];
+                // ORCA: Prefer the selected preset's alias/name and trim any @Printer suffix for display.
                 for (auto filament_it = preset_bundle->filaments.begin(); filament_it != preset_bundle->filaments.end(); filament_it++) {
                     if (filament_it->name == filament_name) {
-                        if (filament_it->is_system) {
+                        if (!filament_it->alias.empty()) {
                             filament_name = filament_it->alias;
                         } else {
-                            auto preset = preset_bundle->filaments.get_preset_base(*filament_it);
-                            if (preset && !preset->alias.empty()) {
-                                filament_name = preset->alias;
-                            } else {
-                                char target = '@';
-                                size_t pos    = filament_name.find(target);
-                                if (pos != std::string::npos) {
-                                    filament_name = filament_name.substr(0, pos - 1);
-                                }
+                            char target = '@';
+                            size_t pos  = filament_name.find(target);
+                            if (pos != std::string::npos) {
+                                filament_name = filament_name.substr(0, pos - 1);
                             }
                         }
                         break;
