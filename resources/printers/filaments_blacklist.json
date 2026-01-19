@@ -1,0 +1,76 @@
+{
+  "whitelist": [
+  ],
+  "blacklist": [
+    {
+      "type": "TPU",
+      "action": "prohibition",
+      "slot": "ams",
+      "description": "TPU is not supported by AMS."
+    },
+    {
+      "vendor": "Bambu Lab",
+      "type": "PET-CF",
+      "action": "prohibition",
+      "slot": "ams",
+      "description": "AMS does not support 'Bambu Lab PET-CF'."
+    },
+    {
+      "type": "TPU",
+      "action": "warning",
+      "description": "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
+    },
+    {
+      "type": "TPU-AMS",
+      "action": "warning",
+      "description": "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
+    },
+    {
+      "type": "PVA",
+      "action": "warning",
+      "slot": "ams",
+      "description": "Damp PVA will become flexible and get stuck inside AMS, please take care to dry it before use."
+    },
+    {
+      "type": "PVA",
+      "action": "warning",
+      "slot": "ext",
+      "description": "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
+    },
+    {
+      "type": "PPS-CF",
+      "model_id":["O1S"],
+      "action": "warning",
+      "description": "PPS-CF is brittle and could break in bended PTFE tube above Toolhead.",
+      "wiki": "https://e.bambulab.com/t?c=UC64kdlpHxN3Mb15"
+    },
+    {
+      "type": "PPA-CF",
+      "model_id":["O1S"],
+      "action": "warning",
+      "description": "PPA-CF is brittle and could break in bended PTFE tube above Toolhead.",
+      "wiki": "https://e.bambulab.com/t?c=UC64kdlpHxN3Mb15"
+    },
+    {
+      "type_suffix": "CF",
+      "action": "warning",
+      "slot": "ams",
+      "description": "CF/GF filaments are hard and brittle, it's easy to break or get stuck in AMS, please use with caution."
+    },
+    {
+      "type_suffix": "GF",
+      "action": "warning",
+	  "slot": "ams",
+      "description": "CF/GF filaments are hard and brittle, it's easy to break or get stuck in AMS, please use with caution."
+    },
+    {
+      "vendor": "Bambu Lab",
+      "type": "PLA",
+      "name": "PLA Glow",
+	  "model_id":["N1","N2S"],
+      "action": "warning",
+      "slot": "ams",
+      "description": "The rough surface of PLA Glow can accelerate wear on the AMS system, particularly on the internal components of the AMS Lite."
+    }
+  ]
+}

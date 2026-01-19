@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Folgertech i3",
+    "model_id": "i3",
+    "nozzle_diameter": "0.4;0.6",
+    "machine_tech": "FFF",
+    "family": "Folgertech",
+    "bed_model": "Folgertech_i3_buildplate_model.stl",
+    "bed_texture": "Folgertech_i3_buildplate_texture.png",
+    "hotend_model": "hotend.stl",
+    "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System;"
+}

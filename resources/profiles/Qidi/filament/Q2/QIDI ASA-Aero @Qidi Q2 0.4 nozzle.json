@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "QIDI ASA-Aero @Qidi Q2 0.4 nozzle",
+    "inherits": "QIDI ASA-Aero@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q2 0.4 nozzle"
+    ]
+}

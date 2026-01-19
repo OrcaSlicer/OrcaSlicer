@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "SecKit SK-Tank",
+    "model_id": "SK-Tank",
+    "url": "https://seckit3dp.design",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "SecKit",
+    "bed_model": "SK-Tank_Bed.stl",
+    "bed_texture": "seckit_logo.svg",
+    "hotend_model": "hotend.stl",
+    "default_materials": "SecKit Generic ABS;SecKit Generic PLA;SecKit Generic PLA-CF;SecKit Generic PETG;SecKit Generic TPU;SecKit Generic ASA;SecKit Generic PC;SecKit Generic PVA;SecKit Generic PA;SecKit Generic PA-CF"
+}

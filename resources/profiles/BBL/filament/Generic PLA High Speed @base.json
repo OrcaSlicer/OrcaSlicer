@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Generic PLA High Speed @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFL95",
+    "instantiation": "false",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ]
+}

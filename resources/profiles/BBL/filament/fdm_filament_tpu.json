@@ -1,0 +1,91 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_tpu",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "instantiation": "false",
+    "additional_cooling_fan_speed": [
+        "70"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "cool_plate_temp": [
+        "30"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "30"
+    ],
+    "eng_plate_temp": [
+        "30"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "30"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_cost": [
+        "20"
+    ],
+    "filament_density": [
+        "1.24"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_retraction_length": [
+        "0.4"
+    ],
+    "filament_type": [
+        "TPU"
+    ],
+    "filament_adhesiveness_category": [
+        "600"
+    ],
+    "hot_plate_temp": [
+        "35"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "35"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "200"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
+    "temperature_vitrification": [
+        "30"
+    ],
+    "textured_plate_temp": [
+        "35"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if  (bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S255\n{elsif(bed_temperature[current_extruder] >30)||(bed_temperature_initial_layer[current_extruder] >30)}M106 P3 S180\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n\n"
+    ]
+}

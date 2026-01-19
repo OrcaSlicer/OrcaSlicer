@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Anycubic Kobra",
+    "model_id": "Anycubic-Kobra",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Anycubic",
+    "bed_model": "anycubic_kobra_buildplate_model.stl",
+    "bed_texture": "anycubic_kobra_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Anycubic Generic ABS;Anycubic Generic PLA;Anycubic Generic PLA-CF;Anycubic Generic PETG;Anycubic Generic TPU;Anycubic Generic ASA;Anycubic Generic PC;Anycubic Generic PVA;Anycubic Generic PA;Anycubic Generic PA-CF"
+}

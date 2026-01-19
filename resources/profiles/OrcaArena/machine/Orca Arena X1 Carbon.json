@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Orca Arena X1 Carbon",
+    "model_id": "orca_arena_x1c",
+    "url": "",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "ARENA-3DP",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "OrcaArena Generic PLA Silk;OrcaArena Generic PLA;Arena PLA Matte @Arena X1C;Arena PLA Basic @Arena X1C;Arena ABS @Arena X1C;Arena PC @Arena X1C;Arena Support W @Arena X1C;Arena TPU 95A @Arena X1C;PolyTerra PLA @Arena X1C;PolyLite PLA @Arena X1C;"
+}

@@ -1,0 +1,39 @@
+{
+    "type": "machine",
+    "name": "Prusa MINIIS 0.8 nozzle",
+    "inherits": "Prusa MINIIS 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "gcode_flavor": "marlin2",
+    "printer_model": "Prusa MINI IS",
+    "printer_variant": "0.8",
+    "default_filament_profile": [
+        "Prusa Generic PLA @MINIIS 0.8"
+    ],
+    "default_print_profile": "0.40mm Standard @MINIIS",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "max_layer_height": [
+        "0.55"
+    ],
+    "min_layer_height": [
+        "0.2"
+    ],
+    "retraction_length": [
+        "2.8"
+    ],
+    "retraction_speed": [
+        "45"
+    ],
+    "deretraction_speed": [
+        "20"
+    ],
+    "thumbnails": [
+        "16x16/QOI",
+        "220x124/QOI",
+        "200x240/QOI",
+        "640x480/PNG"
+    ]
+}

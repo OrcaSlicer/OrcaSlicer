@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Anycubic Kobra 2 Pro",
+    "machine_tech": "FFF",
+    "family": "Anycubic",
+    "model_id": "Anycubic Kobra 2 Pro",
+    "nozzle_diameter": "0.4",
+    "bed_model": "Anycubic Kobra 2 Pro_buildplate_model.stl",
+    "bed_texture": "Anycubic Kobra 2 Pro_buildplate_texture.svg",
+    "hotend_model": "",
+    "default_materials": "Anycubic PLA @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PLA SE @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PLA High Speed @Anycubic Kobra 2 Pro 0.4 nozzle;Generic ABS @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PLA Silk @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PETG @Anycubic Kobra 2 Pro 0.4 nozzle;Generic TPU @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PLA+ @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PLA Matte @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PLA Glow @Anycubic Kobra 2 Pro 0.4 nozzle;Anycubic PLA Slik @Anycubic Kobra 2 Pro 0.4 nozzle"
+}

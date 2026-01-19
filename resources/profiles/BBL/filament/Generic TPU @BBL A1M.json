@@ -1,0 +1,28 @@
+{
+    "type": "filament",
+    "name": "Generic TPU @BBL A1M",
+    "inherits": "Generic TPU",
+    "from": "system",
+    "setting_id": "GFSU99_00",
+    "instantiation": "true",
+    "hot_plate_temp": [
+        "30"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "30"
+    ],
+    "textured_plate_temp": [
+        "30"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "30"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.4 nozzle",
+        "Bambu Lab A1 mini 0.6 nozzle",
+        "Bambu Lab A1 mini 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if (bed_temperature[current_extruder] >35)||(bed_temperature_initial_layer[current_extruder] >35)}M106 P3 S255\n{elsif (bed_temperature[current_extruder] >30)||(bed_temperature_initial_layer[current_extruder] >30)}M106 P3 S180\n{endif} \n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard @Geeetech Thunder 0.2 nozzle",
+    "inherits": "fdm_process_Geeetech_HS_0.10_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP_Geeetech_008",
+    "instantiation": "true",
+    "default_acceleration": "5000",
+    "top_surface_acceleration": "3000",
+    "initial_layer_acceleration": "500",
+    "travel_acceleration": "5000",
+    "inner_wall_acceleration": "5000",
+    "outer_wall_acceleration": "4000",
+    "initial_layer_infill_speed": "25",
+    "initial_layer_speed": "20",
+    "travel_speed": "300",
+    "compatible_printers": [
+        "Geeetech Thunder 0.2 nozzle"
+    ]
+}

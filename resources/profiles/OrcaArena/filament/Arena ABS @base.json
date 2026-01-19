@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Arena ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "GFB00",
+    "instantiation": "false",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_cost": [
+        "24.99"
+    ],
+    "filament_vendor": [
+        "Orca Arena"
+    ]
+}

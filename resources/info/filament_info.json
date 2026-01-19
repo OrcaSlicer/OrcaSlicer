@@ -1,0 +1,43 @@
+{
+    "version": "1.0.0.4",
+    "high_temp_filament": [
+        "ABS",
+        "ASA",
+        "ASA-CF",
+        "PC",
+        "PA",
+        "PA-CF",
+        "PA-GF",
+        "PA6-CF",
+        "PET-CF",
+        "PPS",
+        "PPS-CF",
+        "PPA-CF",
+        "PPA-GF",
+        "ABS-GF",
+        "ASA-AERO"
+    ],
+    "low_temp_filament": [
+        "PLA",
+        "TPU",
+        "TPU-AMS",
+        "PLA-CF",
+        "PLA-AERO",
+        "PVA",
+        "BVOH",
+        "PCTG",
+        "PETG",
+        "PETG-CF",
+        "SBS"
+    ],
+    "high_low_compatible_filament":[
+        "HIPS",
+        "PE",
+        "PP",
+        "EVA",
+        "PE-CF",
+        "PP-CF",
+        "PP-GF",
+        "PHA"
+    ]
+}

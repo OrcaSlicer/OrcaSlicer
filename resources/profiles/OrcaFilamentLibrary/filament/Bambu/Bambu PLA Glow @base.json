@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Glow @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFA12",
+    "instantiation": "false",
+    "filament_cost": [
+        "29.99"
+    ],
+    "filament_density": [
+        "1.26"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "temperature_vitrification": [
+        "45"
+    ]
+}

@@ -1,0 +1,30 @@
+{
+    "type": "machine",
+    "name": "BLOCKS Pro S100 0.8 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "instantiation": "true",
+    "settings_id": "GM003",
+    "printer_model": "BLOCKS Pro S100",
+    "default_print_profile": "0.40mm Standard 0.8 nozzle @Blocks",
+    "max_layer_height": [
+        "0.56"
+    ],
+    "min_layer_height": [
+        "0.20"
+    ],
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printable_area": [
+        "0x0",
+        "1000x0",
+        "1000x1000",
+        "0x1000"
+    ],
+    "printable_height": "900",
+    "upward_compatible_machine": [
+        "BLOCKS Pro S100"
+    ],
+    "printer_variant": "0.8"
+}

@@ -1,0 +1,75 @@
+{
+    "type": "filament",
+    "name": "QIDI Support For PET/PA",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "GFSN99",
+    "filament_id": "GFN98",
+    "instantiation": "true",
+    "filament_type": [
+        "PA-S"
+    ],
+    "filament_is_support": [
+        "1"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "overhang_fan_threshold": [
+        "95%"
+    ],
+    "overhang_fan_speed": [
+        "30"
+    ],
+    "fan_cooling_layer_time": [
+        "10"
+    ],
+    "full_fan_speed_layer": [
+        "0"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.02"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "filament_density": [
+        "1.16"
+    ],
+    "filament_flow_ratio": [
+        "0.91"
+    ],
+    "nozzle_temperature_range_low": [
+        "260"
+    ],
+    "nozzle_temperature_range_high": [
+        "280"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "compatible_printers": [
+        "Qidi X-CF Pro 0.4 nozzle"
+    ]
+}

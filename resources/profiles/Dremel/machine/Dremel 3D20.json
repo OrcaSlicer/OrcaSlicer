@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Dremel 3D20",
+    "nozzle_diameter": "0.4",
+    "family": "Dremel",
+    "bed_model": "dremel_3d20_buildplate_model.stl",
+    "bed_texture": "",
+    "hotend_model": "",
+    "machine_tech": "FFF",
+    "model_id": "Dremel_3D20",
+    "default_materials": "Dremel Generic PLA @3D20 all"
+}

@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Overture Rock PLA @BBL P1P 0.2 nozzle",
+    "inherits": "Overture Rock PLA @base",
+    "from": "system",
+    "setting_id": "GFOT004_05",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab P1P 0.2 nozzle"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.6"
+    ]
+}

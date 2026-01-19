@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Snapmaker Breakaway Support For PLA @U1",
+    "inherits": "Snapmaker Breakaway Support @base",
+    "from": "system",
+    "setting_id": "41460000000",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "filament_type": [
+        "PLA"
+    ]
+}

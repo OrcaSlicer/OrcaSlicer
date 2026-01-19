@@ -1,0 +1,83 @@
+{
+    "type": "filament",
+    "name": "Flashforge PETG Pro @FF AD5X 0.25 nozzle",
+    "inherits": "Flashforge PETG @FF AD5M 0.25 Nozzle",
+    "from": "system",
+    "setting_id": "GFSA04_12",
+    "instantiation": "true",
+    "close_fan_the_first_x_layers": [
+        "2"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "75"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "75"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_settings_id": [
+        "Flashforge PETG Pro @FF AD5X 0.25 nozzle"
+    ],
+    "compatible_printers": [
+        "Flashforge AD5X 0.25 nozzle"
+    ],
+    "hot_plate_temp": [
+        "75"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "75"
+    ],
+    "nozzle_temperature": [
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "overhang_fan_threshold": [
+        "10%"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "30"
+    ],
+    "textured_cool_plate_temp": [
+        "75"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "75"
+    ],
+    "textured_plate_temp": [
+        "75"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "75"
+    ]
+}

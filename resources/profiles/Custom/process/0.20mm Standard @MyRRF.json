@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @MyRRF",
+    "inherits": "fdm_process_rrf_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.2",
+    "bottom_shell_layers": "3",
+    "top_shell_layers": "4"
+}

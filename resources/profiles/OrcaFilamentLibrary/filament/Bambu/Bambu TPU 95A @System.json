@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 95A @System",
+    "inherits": "Bambu TPU 95A @base",
+    "from": "system",
+    "setting_id": "OGFSU00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3.6"
+    ],
+    "compatible_printers": []
+}

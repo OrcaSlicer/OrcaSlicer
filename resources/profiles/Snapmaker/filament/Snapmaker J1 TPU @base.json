@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Snapmaker J1 TPU @base",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "4092268632",
+    "instantiation": "false",
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ]
+}

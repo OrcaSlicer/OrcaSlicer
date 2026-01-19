@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @Qidi Q1 Pro",
+    "inherits": "0.20mm Standard @Qidi X3",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
+}

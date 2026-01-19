@@ -1,0 +1,73 @@
+{
+    "name": "Vivedino",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "Vivedino configurations",
+    "machine_model_list": [
+        {
+            "name": "Troodon 2.0 - Klipper",
+            "sub_path": "machine/Troodon2Klipper.json"
+        },
+        {
+            "name": "Troodon 2.0 - RRF",
+            "sub_path": "machine/Troodon2RRF.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_klipper_common",
+            "sub_path": "process/fdm_process_klipper_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @Troodon2",
+            "sub_path": "process/0.08mm Extra Fine @Troodon2.json"
+        },
+        {
+            "name": "0.12mm Fine @Troodon2",
+            "sub_path": "process/0.12mm Fine @Troodon2.json"
+        },
+        {
+            "name": "0.15mm Optimal @Troodon2",
+            "sub_path": "process/0.15mm Optimal @Troodon2.json"
+        },
+        {
+            "name": "0.20mm Standard @Troodon2",
+            "sub_path": "process/0.20mm Standard @Troodon2.json"
+        },
+        {
+            "name": "0.24mm Draft @Troodon2",
+            "sub_path": "process/0.24mm Draft @Troodon2.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Troodon2",
+            "sub_path": "process/0.28mm Extra Draft @Troodon2.json"
+        }
+    ],
+    "filament_list": [],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "fdm_rrf_common",
+            "sub_path": "machine/fdm_rrf_common.json"
+        },
+        {
+            "name": "Troodon 2.0 Klipper 0.4 nozzle",
+            "sub_path": "machine/Troodon 2.0 Klipper 0.4 nozzle.json"
+        },
+        {
+            "name": "Troodon 2.0 RRF 0.4 nozzle",
+            "sub_path": "machine/Troodon 2.0 RRF 0.4 nozzle.json"
+        }
+    ]
+}

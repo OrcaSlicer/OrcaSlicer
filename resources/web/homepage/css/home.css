@@ -1,0 +1,738 @@
+*
+{
+	padding:0px;
+	border: 0px;
+	margin: 0px;
+    font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;
+	border-color: #D7D7D7;
+	user-select: none;
+}
+
+html, body {
+	height: 100%;
+	width: 100%;
+    margin: 0px;
+    padding: 0px;
+	line-height: 20px;
+    font-size: 16px;	
+}
+
+.ZScrol::-webkit-scrollbar {/*滚动条整体样式*/
+    width: 12px;     /*高宽分别对应横竖滚动条的尺寸*/
+    height: 1px;
+	padding: 2px;
+}
+
+.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    border-radius: 6px;
+    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+	box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    background-color: #AAAAAA;
+}
+
+.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
+        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+	    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        border-radius: 10px;
+        background: #EDEDED;
+}
+
+
+.RedFont
+{
+	font-size:12px;
+	color: #F07E4A;		
+}
+
+.LinkBtn
+{
+	font-size:12px;
+	color: #00ffea;	
+	cursor: pointer;
+}
+
+.LinkBtn:hover
+{
+	text-decoration:underline;
+}
+
+/*------------------*/
+#DebugText
+{
+	height:30px;
+}
+
+/*------------------*/
+body
+{
+	display:flex;
+	justify-content: flex-start;
+}
+
+#LeftBoard
+{
+	border-right-width: 1px;
+	border-right-style: solid;
+	width:262px;
+	height: 100%;
+}
+
+#LoginArea
+{
+	height: 180px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: nowrap;
+	position: relative;
+	width:262px;
+}
+
+
+#Login1
+{
+	height:36px;
+	line-height: 36px;
+	display: flex;
+	flex-direction: column;		/*ORCA*/
+	align-items: center;		/*Allow icon centered vertically*/
+	justify-content: center;	/*and use login button in new line*/
+	user-select: none;
+}
+
+#NoPluginTip
+{
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	bottom: 0px;
+	right: 0px;
+	z-index: 1;
+	display: none;
+	flex-direction: column;
+	justify-content: flex-end;
+	padding: 5px;
+}
+
+
+#DownloadBtn
+{
+	color:#00ffd9;
+}
+
+
+#Icon1
+{
+	margin-right: 10px;	
+}
+
+#BBLIcon
+{
+	height:96px; /*ORCA use bigger icon to fit logo size*/
+}
+
+#Login2
+{
+	display: none;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	width: 262px;
+}
+
+#UserAvatarIcon
+{
+	height: 85px;
+}
+
+#UserName
+{
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	text-align: center;
+	overflow: hidden; 
+	width: 80%;
+}
+
+#LogoutBtn
+{
+	margin-top: 5px;
+}
+
+/*------------------*/
+#BtnArea
+{
+	
+}
+
+
+.BtnItem
+{
+    padding-left:40px;	
+	height:50px;
+	line-height: 50px;
+	display: flex;
+	justify-content:flex-start;
+	cursor: pointer;
+}
+
+.BtnItem:hover
+{
+	background-color: #BFE1DE; /*ORCA color with %25 opacity*/
+}
+
+.BtnItemSelected
+{
+	background-color: #BFE1DE; /*ORCA color with %25 opacity*/
+}
+
+.BtnIcon
+{
+	margin-right:6px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.LeftIcon
+{
+	width:20px;
+	height: 20px;
+}
+
+
+/*--------------------*/
+#RightBoard
+{
+	width: 100%;
+	height: 100%;
+	min-width: 835px;
+	overflow-y:auto;
+}
+
+#ContentBoard
+{
+	overflow-y:auto;
+	padding: 0px 40px;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	height: 100%;
+}
+
+.TitleSmallIcon
+{
+	width:30px;
+	height: 30px;
+	margin-right: 10px;
+}
+
+#MenuArea
+{
+	height: 140px;
+	display: flex;
+	align-items: center;
+	flex: 0 0 140px;
+}
+
+.MenuItem
+{
+	border-width: 1px;
+	border-style: solid;
+	border-radius: 12px;
+	height: 101px;
+	width: 253px;
+	padding-left: 20px;
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	margin-right: 16px;
+	cursor: pointer;
+}
+
+.MenuItem:hover
+{
+	border-color: #009688;		/*ORCA color*/
+	background-color: #E5F0EE; /*ORCA color with %25 opacity*/
+}
+
+.MenuIcon
+{
+	margin-right: 1em;
+}
+
+.MenuIcon img
+{
+	width:56px;
+	height: 56px;
+}
+
+.MenuDesc
+{
+	color: #A8A8A8;
+}
+
+
+.Content-Title
+{
+	line-height: 30px;
+	font-weight: 700;
+}
+
+#HotspotWEB
+{
+	width:100%;
+	height: 420px;
+}
+
+#HotModelBlock
+{
+	display:flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0px;
+}
+
+#HotModel_LEFT_Title
+{
+	display:flex;
+	align-items: center;
+	padding: 6px 0px;	
+}
+
+#HotModel_RIGHT_Title
+{
+	font-size:16px;
+}
+
+
+.HotModel_PrevImg
+{
+	width: 200px;
+	height: 148px;
+	object-fit: cover;
+}
+
+
+#RecentFileArea
+{
+	margin-top: 10px;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+#RecentTitleBlock
+{
+	display:flex;
+	align-items: center;
+	padding: 6px 0px;
+}
+
+#RecentClearAllBtn
+{
+	margin-left: 20px;
+	display: none;
+}
+
+#RecentTitle
+{
+	
+}
+
+#FileList
+{
+	flex: 1;
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	overflow-y: auto;
+}
+
+.FileItem
+{
+	width: 184px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    word-break: break-all;
+	position: relative;
+	cursor: pointer;
+	margin: 8px;
+}
+
+.FileTip
+{
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+}
+
+.FileImg
+{
+	text-align: center;
+	background-color: #E4E4E4;
+	border-radius: 8px;
+	width: 184px;
+	height: 184px;	
+}
+
+.FileItem img
+{
+	width: 184px;
+	height: 184px;
+	border-radius: 8px;
+	display: inline-block;
+	object-fit: cover;
+}
+
+.FileName
+{
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    word-break: break-all;	
+}
+
+.FileDate
+{
+	color: #A8A8A8;
+}
+
+#recnet_context_menu
+{
+	position: absolute;
+	margin: 0px;
+	padding: 10px;
+	border: 0px;
+	min-width: 100px;
+	border: 1px solid #D7D7D7;
+    top: 100px;
+	border-radius: 5px;
+	color: #323A3D;
+	background-color: #fff;
+    display: none;
+	z-index: 1;
+}
+
+.CT_Item
+{
+	padding: 4px 12px;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.CT_Item:hover
+{
+	cursor: pointer;
+	background-color:#009688; /*ORCA color*/
+	border-radius: 4px;
+	color: #fff;
+}
+
+
+.CT_Icon
+{
+	margin-right: 6px;
+	width: 16px;
+	height: 16px;	
+}
+
+#CT_Delete_Bar:hover  .CT_Delete
+{
+	background: url("../img/remove2.svg");
+	background-repeat: no-repeat;
+	background-size: contain;	
+}
+
+.CT_Delete
+{
+	background: url("../img/remove.svg");
+	background-repeat: no-repeat;
+	background-size: contain;	
+}
+
+#CT_Folder_Bar:hover .CT_Explore
+{
+	background: url("../img/open_folder2.svg");
+	background-repeat: no-repeat;
+	background-size: contain;	
+}
+
+.CT_Explore
+{
+	background: url("../img/open_folder.svg");
+	background-repeat: no-repeat;
+	background-size: contain;		
+}
+
+
+.CT_Seperate
+{
+	border-bottom:1px solid  #C5C5C5;
+}
+
+.CT_Text
+{
+	line-height: 20px;
+	height: 20px;	
+	display: block;
+}
+
+/*--------Mall------*/
+#MallBoard
+{
+	height: 100%;
+	max-width: 1600px;
+	overflow-y: hidden;
+	padding: 0px 40px;
+	display: none;
+}
+
+#MallWeb
+{
+	width: 100%;
+	height: 95%;
+	border: 1px solid #D9D9D9;
+}
+
+/*------Manual------*/
+#ManualBoard
+{
+	height: 100%;
+	max-width: 1600px;
+	overflow-y: hidden;
+	padding: 0px 40px;
+	display: none;
+}
+
+#ManualWeb
+{
+	width: 100%;
+	height: 95%;
+	border: 1px solid #D9D9D9;
+}
+
+
+/*---------Wiki----------*/
+#WikiGuideBigBoard
+{
+	display:none;
+}
+
+
+#WikiGuideBoard
+{
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	overflow-y: auto;
+	margin: 30px 40px;
+	position: relative;
+	top: 0px;
+	bottom: 0px;
+	right: 0px;
+	left: 0px;
+}
+
+
+@media screen and (max-width: 1100px) {
+.GuideBlock
+{
+	width: calc(50% - 20px);
+	margin: 0px 10px 40px 10px;
+	cursor: pointer;
+}
+}
+
+@media screen and ( min-width:1101px) and ( max-width:1680px )
+{
+	.GuideBlock
+	{
+		width: calc(33% - 20px);
+	    margin: 0px 10px 40px 10px;
+		cursor: pointer;
+	}
+}
+
+@media screen and ( min-width:1681px) and (max-width:2120px ) {
+.GuideBlock
+{
+    width: calc(25% - 20px);	
+	margin: 0px 10px 40px 10px;
+	cursor: pointer;
+}
+}
+
+@media screen and ( min-width:2121px) and (max-width:2620px ) {
+.GuideBlock
+{
+    width: calc(20% - 20px);
+	margin: 0px 10px 40px 10px;
+	cursor: pointer;
+}
+}
+
+@media screen  and (min-width:2621px ) and (max-width:3120px ) {
+.GuideBlock
+{
+    width: calc(16.6% - 20px);
+	margin: 0px 10px 40px 10px;
+	cursor: pointer;
+}
+}
+
+@media screen  and (min-width:3121px ) {
+.GuideBlock
+{
+    width: calc(14.2% - 20px);
+	margin: 0px 10px 40px 10px;
+	cursor: pointer;
+}
+}
+
+
+
+
+.UG_IMG
+{
+	width: 100%;	
+}
+
+.UG_IMG img
+{
+	width: 100%;
+	border-radius: 5px 5px 0px 0px;
+}
+
+.UG_TITLE
+{
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 20px;
+	width: 100%;
+	margin-top: 20px;
+	margin-bottom: 4px;
+}
+
+.UG_DESC
+{
+	width: 100%;
+	line-height: 18px;
+	color: #4E5454;
+	font-size: 14px;
+}
+
+/*--Staff Pick--*/
+#HotModelArea
+{
+	display: none;
+}
+
+#HotModel_Swiper
+{
+	padding: 0px;
+}
+
+.HotModel_Designer_Info
+{
+	display:flex;
+	align-items: center;
+	height: 28px;
+	padding: 0px 8px;	
+}
+
+.HotModel_Designer_Info img
+{
+	width: 16px;
+	height: 16px;
+	border-radius: 8px;
+}
+
+.HotModel_Designer_Info span
+{
+	margin-left: 6px;
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#HotModel_RIGHT_Title:hover
+{
+	cursor: pointer;	
+	color:#009688;	
+}
+
+.HotModelPiece
+{
+	width: 200px!important;
+	display:flex;
+	flex-direction: column;
+	cursor: pointer;
+	border: 1px solid #EEEEEE;
+	box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.04);
+    border-radius: 8px;
+}
+
+.HotModel_PrevBlock
+{
+	height: 150px;
+}
+
+.HotModel_PrevImg
+{
+	width: 200px;
+	height: 150px;
+}
+
+.HotModel_NameText
+{
+	height: 32px;
+	line-height: 32px;
+	padding: 0px 8px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 14px;
+}
+
+
+.swiper-scrollbar
+{
+	height: 10px!important;
+}
+
+.swiper-button-prev
+{
+	width: 40px!important;
+	height: 40px!important;
+	border-radius: 20px!important;
+	background: rgba(244, 244, 244, 0.88);
+}
+
+.swiper-button-next
+{
+	width: 40px!important;
+	height: 40px!important;
+	border-radius: 20px!important;
+	background: rgba(244, 244, 244, 0.88);
+}
+
+.swiper
+{
+    --swiper-theme-color: #ff6600;/* 设置Swiper风格 */
+    --swiper-navigation-color: #676767;/* 单独设置按钮颜色 */
+    --swiper-navigation-size: 12px;/* 设置按钮大小 */
+}
+
+.swiper-button-disabled
+{
+	opacity: 1!important;
+	cursor: pointer!important;
+	pointer-events: auto!important;
+}

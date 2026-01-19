@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "PolyLite ASA @System",
+    "inherits": "PolyLite ASA @base",
+    "from": "system",
+    "setting_id": "OGFSB61_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

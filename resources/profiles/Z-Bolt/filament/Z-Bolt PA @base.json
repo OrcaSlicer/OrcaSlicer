@@ -1,0 +1,51 @@
+{
+    "type": "filament",
+    "name": "Z-Bolt PA @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "GFSL400",
+    "filament_id": "GFL400",
+    "instantiation": "false",
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "overhang_fan_speed": [
+        "30"
+    ],
+    "overhang_fan_threshold": [
+        "0%"
+    ],
+    "hot_plate_temp": [
+        "140"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "140"
+    ],
+    "nozzle_temperature": [
+        "265"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "265"
+    ],
+    "textured_plate_temp": [
+        "130"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "140"
+    ],
+    "chamber_temperatures": [
+        "80"
+    ]
+}

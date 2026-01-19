@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu ASA-CF @BBL A1 0.6 nozzle",
+    "inherits": "Bambu ASA-CF @base",
+    "from": "system",
+    "setting_id": "GFSB51_05",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

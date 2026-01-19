@@ -1,0 +1,19 @@
+{
+    "type": "process",
+    "name": "0.12mm Fine @M1",
+    "inherits": "fdm_process_M1_common",
+    "from": "system",
+    "setting_id": "m1_p002",
+    "instantiation": "true",
+    "layer_height": "0.12",
+    "bottom_shell_layers": "5",
+    "top_shell_layers": "6",
+    "support_top_z_distance": "0.08",
+    "support_bottom_z_distance": "0.08",
+    "initial_layer_print_height": "0.2",
+    "compatible_printers": [
+        "M1 0.4 nozzle",
+        "M1 0.2 nozzle",
+        "M1 0.6 nozzle"
+    ]
+}

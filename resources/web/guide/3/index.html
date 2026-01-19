@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="max-age=7200" />
+<title>引导_P1</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
+<link rel="stylesheet" type="text/css" href="../css/common.css" />	
+<link rel="stylesheet" type="text/css" href="3.css" />
+<link rel="stylesheet" type="text/css" href="../css/dark.css" />
+<script type="text/javascript" src="../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../js/json2.js"></script>	
+<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="./3.js"></script>	
+</head>
+<body onLoad="OnInit()">
+<div id="Title">
+	<div class="trans" tid="t6">We kindly request your help to improve<br/> everyone's printing</div>
+</div>
+<div id="Content">
+	<div id="PolicyTxt" class="TextS2 TextArea1 ZScrol">
+<a class="trans" tid="t54">In the 3D Printing community, we learn from each other’s successes and failures to adjust our own slicing parameters and settings. Orca Slicer follows the same principle and uses machine learning to improve its performance from the successes and failures of the vast number of prints by our users. We are training Orca Slicer to be smarter by feeding them the real-world data. If you are willing, this service will access information from your error logs and usage logs, which may include information described in </a><a class="HyperLink trans" tid="t55" href="https://bambulab.com/policies/privacy" target="_blank">Privacy Policy</a><a class="trans" tid="t56">
+. We will not collect any Personal Data by which an individual can be identified directly or indirectly, including without limitation names, addresses, payment information, or phone numbers. By enabling this service, you agree to these terms and the statement about Privacy Policy.
+</a>
+	</div>
+<br/>	
+
+	<label> <!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
+	<input id="ChoosePrivacy" type="checkbox" onClick="SendPrivacySelect()"  onChange="SendPrivacySelect()" />
+	<span class="trans TextS1" tid="t7">Allow sending anonymous data</span>
+</label>
+</div>		
+<div id="AcceptArea">
+	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t8" id="PreBtn"  onclick="window.open('../11/index.html','_self')">Back</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t9" id="AcceptBtn"  onclick="GotoNextPage()">Next</div>
+</div>
+</body>
+</html>

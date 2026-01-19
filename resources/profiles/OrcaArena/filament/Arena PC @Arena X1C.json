@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "Arena PC @Arena X1C",
+    "inherits": "Arena PC @base",
+    "from": "system",
+    "setting_id": "GFSC00",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Orca Arena X1 Carbon 0.4 nozzle"
+    ]
+}

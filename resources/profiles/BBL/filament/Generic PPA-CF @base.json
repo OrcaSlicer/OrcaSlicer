@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Generic PPA-CF @base",
+    "inherits": "fdm_filament_ppa",
+    "from": "system",
+    "filament_id": "GFN97",
+    "instantiation": "false",
+    "description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_vendor": [
+        "Generic"
+    ]
+}

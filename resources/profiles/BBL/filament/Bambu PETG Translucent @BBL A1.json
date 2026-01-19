@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Translucent @BBL A1",
+    "inherits": "Bambu PETG Translucent @base",
+    "from": "system",
+    "setting_id": "GFSG01_05",
+    "instantiation": "true",
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "filament_retraction_length": [
+        "0.3"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle"
+    ]
+}

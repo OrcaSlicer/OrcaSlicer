@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Generic PA-CF @System",
+    "renamed_from": "My Generic PA-CF",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "OGFSA04",
+    "filament_id": "OGFN98",
+    "instantiation": "true",
+    "filament_type": [
+        "PA-CF"
+    ],
+    "compatible_printers": []
+}

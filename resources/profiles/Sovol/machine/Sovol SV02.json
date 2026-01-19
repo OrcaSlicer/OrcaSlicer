@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Sovol SV02",
+    "model_id": "Sovol-SV02",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Sovol",
+    "bed_model": "sovol_sv02_buildplate_model.stl",
+    "bed_texture": "sovol_sv02_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic ABS @System;Generic PETG @System;Generic PLA @System"
+}

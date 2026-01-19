@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard 0.2 nozzle @Voron",
+    "inherits": "fdm_process_voron_common_0_2",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.10",
+    "bottom_shell_layers": "5",
+    "top_shell_layers": "6"
+}

@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.24mm Draft @Qidi XSmart3",
+    "inherits": "0.24mm Draft @Qidi X3",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi X-Smart 3 0.4 nozzle"
+    ]
+}

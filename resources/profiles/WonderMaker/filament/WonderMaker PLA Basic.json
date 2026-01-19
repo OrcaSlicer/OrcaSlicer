@@ -1,0 +1,52 @@
+{
+    "type": "filament",
+    "name": "WonderMaker PLA Basic",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFA00",
+    "instantiation": "true",
+    "filament_cost": [
+        "24.99"
+    ],
+    "filament_density": [
+        "1.26"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "filament_vendor": [
+        "WonderMaker"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "filament_scarf_height": [
+        "10%"
+    ],
+    "filament_scarf_gap": [
+        "0%"
+    ],
+    "filament_scarf_length": [
+        "10"
+    ],
+    "filament_multitool_ramming": [
+        "1"
+    ],
+    "compatible_printers": [
+        "WonderMaker ZR 0.2 nozzle",
+        "WonderMaker ZR 0.4 nozzle",
+        "WonderMaker ZR 0.6 nozzle",
+        "WonderMaker ZR 0.8 nozzle",
+        "WonderMaker ZR Ultra 0.2 nozzle",
+        "WonderMaker ZR Ultra 0.4 nozzle",
+        "WonderMaker ZR Ultra 0.6 nozzle",
+        "WonderMaker ZR Ultra 0.8 nozzle",
+        "WonderMaker ZR Ultra S 0.2 nozzle",
+        "WonderMaker ZR Ultra S 0.4 nozzle",
+        "WonderMaker ZR Ultra S 0.6 nozzle",
+        "WonderMaker ZR Ultra S 0.8 nozzle"
+    ]
+}

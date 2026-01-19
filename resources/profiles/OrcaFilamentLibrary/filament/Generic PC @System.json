@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "Generic PC @System",
+    "renamed_from": "My Generic PC",
+    "inherits": "fdm_filament_pc",
+    "from": "system",
+    "setting_id": "OGFSA04",
+    "filament_id": "OGFC99",
+    "instantiation": "true",
+    "compatible_printers": []
+}

@@ -1,0 +1,22 @@
+{
+    "type": "process",
+    "setting_id": "GP004",
+    "name": "0.20mm Standard @Tiertime UP300 HS",
+    "from": "system",
+    "inherits": "fdm_process_tiertime_HS_common",
+    "instantiation": "true",
+    "elefant_foot_compensation": "0.15",
+    "top_shell_thickness": "1.0",
+    "bridge_flow": "1",
+    "initial_layer_speed": "50",
+    "initial_layer_infill_speed": "105",
+    "outer_wall_speed": "150",
+    "inner_wall_speed": "200",
+    "sparse_infill_speed": "200",
+    "internal_solid_infill_speed": "200",
+    "gap_infill_speed": "150",
+    "top_shell_layers": "5",
+    "compatible_printers": [
+        "Tiertime UP300 HS 0.4 nozzle"
+    ]
+}

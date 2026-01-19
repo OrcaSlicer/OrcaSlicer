@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "QIDI PLA-CF @Qidi Q2 0.8 nozzle",
+    "inherits": "QIDI PLA-CF@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSL98",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "pressure_advance": [
+        "0.008"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.8 nozzle"
+    ]
+}

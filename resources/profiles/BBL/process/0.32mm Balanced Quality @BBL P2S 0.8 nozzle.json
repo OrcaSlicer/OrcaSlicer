@@ -1,0 +1,172 @@
+{
+    "type": "process",
+    "name": "0.32mm Balanced Quality @BBL P2S 0.8 nozzle",
+    "inherits": "fdm_process_single_0.32_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP215",
+    "instantiation": "true",
+    "description": "Strength profile for 0.8mm nozzle, prioritizing strength.",
+    "bottom_surface_pattern": "monotonicline",
+    "bridge_speed": [
+        "30",
+        "30"
+    ],
+    "default_acceleration": [
+        "10000",
+        "10000"
+    ],
+    "enable_overhang_speed": [
+        "1",
+        "1"
+    ],
+    "enable_height_slowdown": [
+        "0",
+        "0"
+    ],
+    "gap_infill_speed": [
+        "50",
+        "50"
+    ],
+    "inner_wall_speed": [
+        "300",
+        "300"
+    ],
+    "internal_solid_infill_speed": [
+        "250",
+        "250"
+    ],
+    "initial_layer_infill_speed": [
+        "55",
+        "55"
+    ],
+    "initial_layer_speed": [
+        "35",
+        "35"
+    ],
+    "initial_layer_acceleration": [
+        "500",
+        "500"
+    ],
+    "inner_wall_acceleration": [
+        "0",
+        "0"
+    ],
+    "initial_layer_travel_acceleration": [
+        "6000",
+        "6000"
+    ],
+    "outer_wall_speed": [
+        "200",
+        "200"
+    ],
+    "overhang_3_4_speed": [
+        "15",
+        "15"
+    ],
+    "overhang_4_4_speed": [
+        "10",
+        "10"
+    ],
+    "outer_wall_acceleration": [
+        "5000",
+        "5000"
+    ],
+    "overhang_1_4_speed": [
+        "0",
+        "0"
+    ],
+    "overhang_2_4_speed": [
+        "50",
+        "50"
+    ],
+    "overhang_totally_speed": [
+        "10",
+        "10"
+    ],
+    "prime_tower_brim_width": "-1",
+    "prime_tower_width": "60",
+    "print_extruder_id": [
+        "1",
+        "1"
+    ],
+    "print_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
+    "sparse_infill_speed": [
+        "270",
+        "270"
+    ],
+    "smooth_coefficient": "4",
+    "slowdown_start_height": [
+        "0",
+        "0"
+    ],
+    "slowdown_start_speed": [
+        "1000",
+        "1000"
+    ],
+    "slowdown_start_acc": [
+        "100000",
+        "100000"
+    ],
+    "slowdown_end_height": [
+        "400",
+        "400"
+    ],
+    "slowdown_end_speed": [
+        "1000",
+        "1000"
+    ],
+    "slowdown_end_acc": [
+        "100000",
+        "100000"
+    ],
+    "small_perimeter_speed": [
+        "50%",
+        "50%"
+    ],
+    "small_perimeter_threshold": [
+        "0",
+        "0"
+    ],
+    "sparse_infill_acceleration": [
+        "100%",
+        "100%"
+    ],
+    "support_speed": [
+        "150",
+        "150"
+    ],
+    "support_interface_speed": [
+        "80",
+        "80"
+    ],
+    "travel_speed": [
+        "600",
+        "600"
+    ],
+    "top_surface_speed": [
+        "150",
+        "150"
+    ],
+    "top_surface_acceleration": [
+        "2000",
+        "2000"
+    ],
+    "travel_speed_z": [
+        "0",
+        "0"
+    ],
+    "travel_acceleration": [
+        "10000",
+        "10000"
+    ],
+    "vertical_shell_speed": [
+        "80%",
+        "80%"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P2S 0.8 nozzle"
+    ]
+}

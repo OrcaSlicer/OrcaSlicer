@@ -1,0 +1,45 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Silk @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFA05",
+    "instantiation": "false",
+    "description": "To make the prints get higher gloss, please dry the filament before use, and set the outer wall speed to be 40 to 60 mm/s when slicing.",
+    "filament_cost": [
+        "29.99"
+    ],
+    "filament_density": [
+        "1.32"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "filament_scarf_height": [
+        "5%"
+    ],
+    "filament_scarf_gap": [
+        "0%"
+    ],
+    "impact_strength_z": [
+        "4.6"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if  (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200\n{elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150\n{elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+    ]
+}

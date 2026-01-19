@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.20mm SPEED @MK4S HF0.6",
+    "inherits": "0.20mm SPEED @MK4S 0.6",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_layers": "3",
+    "compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.6 and printer_notes=~/.*HF_NOZZLE.*/",
+    "inner_wall_acceleration": "4000",
+    "inner_wall_speed": "200",
+    "internal_solid_infill_speed": "200",
+    "outer_wall_acceleration": "4000",
+    "outer_wall_speed": "200",
+    "small_perimeter_speed": "170",
+    "sparse_infill_speed": "200",
+    "support_interface_speed": "55",
+    "support_speed": "110"
+}

@@ -1,0 +1,163 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>global_r.c -- global variables and their functions</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149; <a href="qh-globa_r.htm#TOC">Global</a>
+&#149; <a href="qh-io_r.htm">Io</a> &#149; <a href="qh-mem_r.htm">Mem</a>
+&#149; <a href="qh-merge_r.htm">Merge</a> &#149; <a href="qh-poly_r.htm">Poly</a>
+&#149; <a href="qh-qhull_r.htm">Qhull</a> &#149; <a href="qh-set_r.htm">Set</a>
+&#149; <a href="qh-stat_r.htm">Stat</a> &#149; <a href="qh-user_r.htm">User</a>
+</p>
+
+<hr>
+<!-- Main text of document. -->
+
+<h2>global_r.c -- global variables and their functions</h2>
+<blockquote>
+<p>Qhull uses a data structure, <tt>qhT</tt>, to store
+globally defined constants, lists, sets, and variables. It is passed as the
+first argument to most functions.
+</p>
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom_r.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <b>Global</b> &#149;
+<a href="qh-io_r.htm#TOC">Io</a> &#149; <a href="qh-mem_r.htm#TOC">Mem</a> &#149;
+<a href="qh-merge_r.htm#TOC">Merge</a> &#149; <a href="qh-poly_r.htm#TOC">Poly</a> &#149;
+<a href="qh-qhull_r.htm#TOC">Qhull</a> &#149; <a href="qh-set_r.htm#TOC">Set</a> &#149;
+<a href="qh-stat_r.htm#TOC">Stat</a> &#149; <a href="qh-user_r.htm#TOC">User</a> </p>
+
+<h3>Index to <a href="global_r.c">global_r.c</a> and
+<a href="libqhull_r.h">libqhull_r.h</a></h3>
+
+<ul>
+<li><a href="#ovar">Qhull's global variables</a> </li>
+<li><a href="#ofunc">Global variable and initialization
+routines</a> </li>
+</ul>
+
+<h3><a href="qh-globa_r.htm#TOC">&#187;</a><a name="ovar">Qhull's global
+variables</a></h3>
+
+<ul>
+<li><a href=global_r.c#qh_version>qh_version</a> version string
+<li><a href="libqhull_r.h#qh">qh</a> all global variables for
+qhull are in <tt>qh,qhmem</tt>, and <tt>qhstat</tt></li>
+<li><a href="libqhull_r.h#qh">QHULL_LIB_CHECK</a> Check for compatible library</li>
+<li><a href="libqhull_r.h#qh-const">qh constants</a> configuration
+flags and constants for Qhull </li>
+<li><a href="libqhull_r.h#qh-prec">qh precision constants</a>
+precision constants for Qhull </li>
+<li><a href="libqhull_r.h#qh-codetern">qh internal constants</a>
+internal constants for Qhull </li>
+<li><a href="libqhull_r.h#qh-lists">qh facet and vertex lists</a>
+lists of facets and vertices </li>
+<li><a href="libqhull_r.h#qh-var">qh global variables</a> minimum
+and maximum distances, next visit ids, several flags, and
+other global variables. </li>
+<li><a href="libqhull_r.h#qh-set">qh global sets</a> global sets
+for merging, hashing, input, etc. </li>
+<li><a href="libqhull_r.h#qh-buf">qh global buffers</a> buffers
+for matrix operations and input </li>
+<li><a href="libqhull_r.h#qh-static">qh static variables</a>
+static variables for individual functions </li>
+</ul>
+
+<h3><a href="qh-globa_r.htm#TOC">&#187;</a><a name="ofunc">Global variable and
+initialization routines</a></h3>
+
+<ul>
+<li><a href="global_r.c#appendprint">qh_appendprint</a> append
+output format to <tt>qh.PRINTout</tt> </li>
+<li><a href="global_r.c#freebuffers">qh_freebuffers</a> free
+global memory buffers </li>
+<li><a href="global_r.c#freeqhull">qh_freeqhull</a> free memory
+used by qhull </li>
+<li><a href="global_r.c#init_A">qh_init_A</a> called before
+error handling initialized </li>
+<li><a href="global_r.c#init_B">qh_init_B</a> called after
+points are defined </li>
+<li><a href="global_r.c#init_qhull_command">qh_init_qhull_command</a>
+build <tt>qh.qhull_command</tt> from <tt>argc/argv</tt></li>
+<li><a href="global_r.c#initflags">qh_initflags</a> set flags
+and constants from command line </li>
+<li><a href="global_r.c#initqhull_buffers">qh_initqhull_buffers</a>
+initialize global memory buffers </li>
+<li><a href="global_r.c#initqhull_globals">qh_initqhull_globals</a>
+initialize global variables </li>
+<li><a href="global_r.c#initqhull_mem">qh_initqhull_mem</a>
+initialize Qhull memory management </li>
+<li><a href="global_r.c#initqhull_start">qh_initqhull_start</a>
+allocate qh_qh and call qh_initqhull_start2()
+<li><a href="global_r.c#initqhull_start2">qh_initqhull_start2</a>
+initialize default values at Qhull startup </li>
+<li><a href="global_r.c#initthresholds">qh_initthresholds</a>
+initialize 'Pdn' and 'PDn' thresholds </li>
+<li><a href="global_r.c#lib_check">qh_lib_check</a> check for compatible Qhull library.  Invoked by QHULL_LIB_CHECK at start of each program.</li>
+<li><a href="global_r.c#option">qh_option</a> append option
+description to <tt>qh.global_options</tt> </li>
+<li><a href="global_r.c#restore_qhull">qh_restore_qhull</a>
+restores a previously saved qhull </li>
+<li><a href="global_r.c#save_qhull">qh_save_qhull</a> saves
+qhull for a later qh_restore_qhull() </li>
+<li><a href="global_r.c#strtol">qh_strtol</a> duplicates
+strtod() and strtol() </li>
+<li><a href="global_r.c#zero">qh_zero</a> zeroes qhT before first use</li>
+</ul>
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149;
+<a href="qh-globa_r.htm">Global</a> &#149; <a href="qh-io_r.htm">Io</a>
+&#149; <a href="qh-mem_r.htm">Mem</a> &#149; <a href="qh-merge_r.htm">Merge</a>
+&#149; <a href="qh-poly_r.htm">Poly</a> &#149; <a href="qh-qhull_r.htm#TOC">Qhull</a>
+&#149; <a href="qh-set_r.htm">Set</a> &#149; <a href="qh-stat_r.htm">Stat</a>
+&#149; <a href="qh-user_r.htm">User</a><br>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

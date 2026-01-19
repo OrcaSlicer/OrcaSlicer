@@ -1,0 +1,469 @@
+From 7cf6c014a36f1712efbdbe9bc52d2d4922b54673 Mon Sep 17 00:00:00 2001
+From: tamasmeszaros <meszaros.q@gmail.com>
+Date: Wed, 30 Oct 2019 12:54:52 +0100
+Subject: [PATCH] Blosc 1.17 fixes and cmake config script
+
+Signed-off-by: tamasmeszaros <meszaros.q@gmail.com>
+---
+ CMakeLists.txt                   | 105 +++++++++++++++++-----------------
+ blosc/CMakeLists.txt             | 118 +++++++++------------------------------
+ cmake/FindLZ4.cmake              |   6 +-
+ cmake/FindSnappy.cmake           |   8 ++-
+ cmake/FindZstd.cmake             |   8 ++-
+ cmake_config.cmake.in            |  24 ++++++++
+ internal-complibs/CMakeLists.txt |  35 ++++++++++++
+ 7 files changed, 157 insertions(+), 147 deletions(-)
+ create mode 100644 cmake_config.cmake.in
+ create mode 100644 internal-complibs/CMakeLists.txt
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 59d9fab..e9134c2 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -71,7 +71,7 @@
+ #    DEV: static includes blosc.a and blosc.h
+ 
+ 
+-cmake_minimum_required(VERSION 2.8.12)
++cmake_minimum_required(VERSION 3.1) # Threads::Threads target available from 3.1
+ if (NOT CMAKE_VERSION VERSION_LESS 3.3)
+     cmake_policy(SET CMP0063 NEW)
+ endif()
+@@ -124,55 +124,30 @@ option(PREFER_EXTERNAL_ZSTD
+ 
+ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+ 
+-
+-if(NOT DEACTIVATE_LZ4)
+-    if(PREFER_EXTERNAL_LZ4)
+-        find_package(LZ4)
+-    else()
+-        message(STATUS "Using LZ4 internal sources.")
+-    endif(PREFER_EXTERNAL_LZ4)
+-    # HAVE_LZ4 will be set to true because even if the library is
+-    # not found, we will use the included sources for it
+-    set(HAVE_LZ4 TRUE)
+-endif(NOT DEACTIVATE_LZ4)
+-
+-if(NOT DEACTIVATE_SNAPPY)
+-    if(PREFER_EXTERNAL_SNAPPY)
+-        find_package(Snappy)
+-    else()
+-        message(STATUS "Using Snappy internal sources.")
+-    endif(PREFER_EXTERNAL_SNAPPY)
+-    # HAVE_SNAPPY will be set to true because even if the library is not found,
+-    # we will use the included sources for it
+-    set(HAVE_SNAPPY TRUE)
+-endif(NOT DEACTIVATE_SNAPPY)
+-
+-if(NOT DEACTIVATE_ZLIB)
+-    # import the ZLIB_ROOT environment variable to help finding the zlib library
+-    if(PREFER_EXTERNAL_ZLIB)
+-        set(ZLIB_ROOT $ENV{ZLIB_ROOT})
+-        find_package(ZLIB)
+-        if (NOT ZLIB_FOUND )
+-            message(STATUS "No zlib found.  Using internal sources.")
+-        endif (NOT ZLIB_FOUND )
+-    else()
+-        message(STATUS "Using zlib internal sources.")
+-    endif(PREFER_EXTERNAL_ZLIB)
+-    # HAVE_ZLIB will be set to true because even if the library is not found,
+-    # we will use the included sources for it
+-    set(HAVE_ZLIB TRUE)
+-endif(NOT DEACTIVATE_ZLIB)
+-
+-if (NOT DEACTIVATE_ZSTD)
+-    if (PREFER_EXTERNAL_ZSTD)
+-        find_package(Zstd)
+-    else ()
+-        message(STATUS "Using ZSTD internal sources.")
+-    endif (PREFER_EXTERNAL_ZSTD)
+-    # HAVE_ZSTD will be set to true because even if the library is
+-    # not found, we will use the included sources for it
+-    set(HAVE_ZSTD TRUE)
+-endif (NOT DEACTIVATE_ZSTD)
++set(LIBS "")
++macro(use_package _pkg _tgt)
++    string(TOUPPER ${_pkg} _PKG)
++    if(NOT DEACTIVATE_${_PKG})
++        if(PREFER_EXTERNAL_${_PKG})
++            find_package(${_pkg})
++            if (NOT ${_pkg}_FOUND )
++                message(STATUS "No ${_pkg} found.  Using internal sources.")
++            endif()
++        else()
++            message(STATUS "Using ${_pkg} internal sources.")
++        endif(PREFER_EXTERNAL_${_PKG})
++        # HAVE_${_pkg} will be set to true because even if the library is
++        # not found, we will use the included sources for it
++        set(HAVE_${_PKG} TRUE)
++        list(APPEND LIBS ${_pkg}::${_tgt})
++    endif(NOT DEACTIVATE_${_PKG})
++endmacro()
++
++set(ZLIB_ROOT $ENV{ZLIB_ROOT})
++use_package(ZLIB ZLIB)
++use_package(LZ4 LZ4)
++use_package(Snappy snappy)
++use_package(Zstd Zstd)
+ 
+ # create the config.h file
+ configure_file ("blosc/config.h.in"  "blosc/config.h" )
+@@ -316,6 +291,7 @@ endif()
+ 
+ 
+ # subdirectories
++add_subdirectory(internal-complibs)
+ add_subdirectory(blosc)
+ 
+ if(BUILD_TESTS)
+@@ -328,7 +304,6 @@ if(BUILD_BENCHMARKS)
+     add_subdirectory(bench)
+ endif(BUILD_BENCHMARKS)
+ 
+-
+ # uninstall target
+ if (BLOSC_INSTALL)
+     configure_file(
+@@ -338,10 +313,38 @@ if (BLOSC_INSTALL)
+     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/blosc.pc"
+             DESTINATION lib/pkgconfig COMPONENT DEV)
+ 
++    configure_file(
++        "${CMAKE_CURRENT_SOURCE_DIR}/cmake_config.cmake.in"
++        "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/BloscConfig.cmake"
++        @ONLY)
++
+     configure_file(
+         "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+         "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+         IMMEDIATE @ONLY)
++
++    include(CMakePackageConfigHelpers)
++    write_basic_package_version_file(
++        "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/BloscConfigVersion.cmake"
++        VERSION ${BLOSC_VERSION_MAJOR}.${BLOSC_VERSION_MINOR}.${BLOSC_VERSION_PATCH}
++        COMPATIBILITY AnyNewerVersion
++    )
++
++    export(EXPORT BloscTargets
++       FILE "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/BloscTargets.cmake"
++       NAMESPACE Blosc::)
++
++    install(EXPORT BloscTargets
++            FILE BloscTargets.cmake
++            NAMESPACE Blosc::
++            DESTINATION lib/cmake/Blosc
++            EXPORT_LINK_INTERFACE_LIBRARIES)
++
++    install(FILES
++                "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/BloscConfig.cmake"
++                "${CMAKE_CURRENT_BINARY_DIR}/cmakeexports/BloscConfigVersion.cmake"
++            DESTINATION lib/cmake/Blosc COMPONENT DEV)
++
+     add_custom_target(uninstall
+         COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+ endif()
+diff --git a/blosc/CMakeLists.txt b/blosc/CMakeLists.txt
+index 1d1bebe..f554abe 100644
+--- a/blosc/CMakeLists.txt
++++ b/blosc/CMakeLists.txt
+@@ -1,52 +1,11 @@
+ # a simple way to detect that we are using CMAKE
+ add_definitions(-DUSING_CMAKE)
+ 
+-set(INTERNAL_LIBS ${PROJECT_SOURCE_DIR}/internal-complibs)
+-
+ # Hide symbols by default unless they're specifically exported.
+ # This makes it easier to keep the set of exported symbols the
+ # same across all compilers/platforms.
+ set(CMAKE_C_VISIBILITY_PRESET hidden)
+ 
+-# includes
+-set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+-if(NOT DEACTIVATE_LZ4)
+-    if (LZ4_FOUND)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${LZ4_INCLUDE_DIR})
+-    else(LZ4_FOUND)
+-        set(LZ4_LOCAL_DIR ${INTERNAL_LIBS}/lz4-1.9.1)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${LZ4_LOCAL_DIR})
+-    endif(LZ4_FOUND)
+-endif(NOT DEACTIVATE_LZ4)
+-
+-if(NOT DEACTIVATE_SNAPPY)
+-    if (SNAPPY_FOUND)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${SNAPPY_INCLUDE_DIR})
+-    else(SNAPPY_FOUND)
+-        set(SNAPPY_LOCAL_DIR ${INTERNAL_LIBS}/snappy-1.1.1)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${SNAPPY_LOCAL_DIR})
+-    endif(SNAPPY_FOUND)
+-endif(NOT DEACTIVATE_SNAPPY)
+-
+-if(NOT DEACTIVATE_ZLIB)
+-    if (ZLIB_FOUND)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIR})
+-    else(ZLIB_FOUND)
+-        set(ZLIB_LOCAL_DIR ${INTERNAL_LIBS}/zlib-1.2.8)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${ZLIB_LOCAL_DIR})
+-    endif(ZLIB_FOUND)
+-endif(NOT DEACTIVATE_ZLIB)
+-
+-if (NOT DEACTIVATE_ZSTD)
+-    if (ZSTD_FOUND)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${ZSTD_INCLUDE_DIR})
+-    else (ZSTD_FOUND)
+-        set(ZSTD_LOCAL_DIR ${INTERNAL_LIBS}/zstd-1.4.1)
+-        set(BLOSC_INCLUDE_DIRS ${BLOSC_INCLUDE_DIRS} ${ZSTD_LOCAL_DIR} ${ZSTD_LOCAL_DIR}/common)
+-    endif (ZSTD_FOUND)
+-endif (NOT DEACTIVATE_ZSTD)
+-
+-include_directories(${BLOSC_INCLUDE_DIRS})
+ 
+ # library sources
+ set(SOURCES blosc.c blosclz.c fastcopy.c shuffle-generic.c bitshuffle-generic.c
+@@ -73,53 +32,13 @@ if(WIN32)
+         message(STATUS "using the internal pthread library for win32 systems.")
+         set(SOURCES ${SOURCES} win32/pthread.c)
+     else(NOT Threads_FOUND)
+-        set(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
++        list(APPEND LIBS Threads::Threads)
+     endif(NOT Threads_FOUND)
+ else(WIN32)
+     find_package(Threads REQUIRED)
+-    set(LIBS ${LIBS} ${CMAKE_THREAD_LIBS_INIT})
++    list(APPEND LIBS Threads::Threads)
+ endif(WIN32)
+ 
+-if(NOT DEACTIVATE_LZ4)
+-    if(LZ4_FOUND)
+-        set(LIBS ${LIBS} ${LZ4_LIBRARY})
+-    else(LZ4_FOUND)
+-        file(GLOB LZ4_FILES ${LZ4_LOCAL_DIR}/*.c)
+-        set(SOURCES ${SOURCES} ${LZ4_FILES})
+-    endif(LZ4_FOUND)
+-endif(NOT DEACTIVATE_LZ4)
+-
+-if(NOT DEACTIVATE_SNAPPY)
+-    if(SNAPPY_FOUND)
+-        set(LIBS ${LIBS} ${SNAPPY_LIBRARY})
+-    else(SNAPPY_FOUND)
+-        file(GLOB SNAPPY_FILES ${SNAPPY_LOCAL_DIR}/*.cc)
+-        set(SOURCES ${SOURCES} ${SNAPPY_FILES})
+-    endif(SNAPPY_FOUND)
+-endif(NOT DEACTIVATE_SNAPPY)
+-
+-if(NOT DEACTIVATE_ZLIB)
+-    if(ZLIB_FOUND)
+-        set(LIBS ${LIBS} ${ZLIB_LIBRARY})
+-    else(ZLIB_FOUND)
+-        file(GLOB ZLIB_FILES ${ZLIB_LOCAL_DIR}/*.c)
+-        set(SOURCES ${SOURCES} ${ZLIB_FILES})
+-    endif(ZLIB_FOUND)
+-endif(NOT DEACTIVATE_ZLIB)
+-
+-if (NOT DEACTIVATE_ZSTD)
+-    if (ZSTD_FOUND)
+-        set(LIBS ${LIBS} ${ZSTD_LIBRARY})
+-    else (ZSTD_FOUND)
+-      file(GLOB ZSTD_FILES
+-        ${ZSTD_LOCAL_DIR}/common/*.c
+-        ${ZSTD_LOCAL_DIR}/compress/*.c
+-        ${ZSTD_LOCAL_DIR}/decompress/*.c)
+-        set(SOURCES ${SOURCES} ${ZSTD_FILES})
+-    endif (ZSTD_FOUND)
+-endif (NOT DEACTIVATE_ZSTD)
+-
+-
+ # targets
+ if (BUILD_SHARED)
+     add_library(blosc_shared SHARED ${SOURCES})
+@@ -191,14 +110,17 @@ if (BUILD_TESTS)
+     endif()
+ endif()
+ 
++add_library(blosc INTERFACE)
++
+ if (BUILD_SHARED)
+-    target_link_libraries(blosc_shared ${LIBS})
+-    target_include_directories(blosc_shared PUBLIC ${BLOSC_INCLUDE_DIRS})
++    target_link_libraries(blosc_shared PRIVATE ${LIBS})
++    target_include_directories(blosc_shared PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
++    target_link_libraries(blosc INTERFACE blosc_shared)
+ endif()
+ 
+ if (BUILD_TESTS)
+-    target_link_libraries(blosc_shared_testing ${LIBS})
+-    target_include_directories(blosc_shared_testing PUBLIC ${BLOSC_INCLUDE_DIRS})
++    target_link_libraries(blosc_shared_testing PRIVATE ${LIBS})
++    target_include_directories(blosc_shared_testing PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+ endif()
+ 
+ if(BUILD_STATIC)
+@@ -207,17 +129,31 @@ if(BUILD_STATIC)
+     if (MSVC)
+         set_target_properties(blosc_static PROPERTIES PREFIX lib)
+     endif()
+-    target_link_libraries(blosc_static ${LIBS})
+-    target_include_directories(blosc_static PUBLIC ${BLOSC_INCLUDE_DIRS})
++    # With the static library, cmake has to deal with transitive dependencies
++    target_link_libraries(blosc_static PRIVATE ${LIBS})
++    target_include_directories(blosc_static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
++    if (NOT BUILD_SHARED)
++        target_link_libraries(blosc INTERFACE blosc_static)
++    endif()
+ endif(BUILD_STATIC)
+ 
++
+ # install
+ if(BLOSC_INSTALL)
+     install(FILES blosc.h blosc-export.h DESTINATION include COMPONENT DEV)
++    set(_inst_libs "blosc")
+     if(BUILD_SHARED)
+-        install(TARGETS blosc_shared DESTINATION ${lib_dir} COMPONENT LIB)
++        list(APPEND _inst_libs blosc_shared)
+     endif(BUILD_SHARED)
+     if(BUILD_STATIC)
+-        install(TARGETS blosc_static DESTINATION ${lib_dir} COMPONENT DEV)
++        list(APPEND _inst_libs blosc_static)
+     endif(BUILD_STATIC)
++
++    install(TARGETS ${_inst_libs}
++            EXPORT BloscTargets
++            LIBRARY DESTINATION ${lib_dir}
++            ARCHIVE DESTINATION ${lib_dir}
++            RUNTIME DESTINATION bin
++            COMPONENT DEV
++            INCLUDES DESTINATION include)
+ endif(BLOSC_INSTALL)
+diff --git a/cmake/FindLZ4.cmake b/cmake/FindLZ4.cmake
+index e581a80..05de6ef 100644
+--- a/cmake/FindLZ4.cmake
++++ b/cmake/FindLZ4.cmake
+@@ -5,6 +5,10 @@ find_library(LZ4_LIBRARY NAMES lz4)
+ if (LZ4_INCLUDE_DIR AND LZ4_LIBRARY)
+     set(LZ4_FOUND TRUE)
+     message(STATUS "Found LZ4 library: ${LZ4_LIBRARY}")
++    add_library(LZ4::LZ4 UNKNOWN IMPORTED)
++    set_target_properties(LZ4::LZ4 PROPERTIES
++        IMPORTED_LOCATION ${LZ4_LIBRARY}
++        INTERFACE_INCLUDE_DIRECTORIES ${LZ4_INCLUDE_DIR})
+ else ()
+     message(STATUS "No LZ4 library found.  Using internal sources.")
+-endif ()
++endif ()
+\ No newline at end of file
+diff --git a/cmake/FindSnappy.cmake b/cmake/FindSnappy.cmake
+index 688d4d5..21dbee1 100644
+--- a/cmake/FindSnappy.cmake
++++ b/cmake/FindSnappy.cmake
+@@ -3,8 +3,12 @@ find_path(SNAPPY_INCLUDE_DIR snappy-c.h)
+ find_library(SNAPPY_LIBRARY NAMES snappy)
+ 
+ if (SNAPPY_INCLUDE_DIR AND SNAPPY_LIBRARY)
+-    set(SNAPPY_FOUND TRUE)
++    set(Snappy_FOUND TRUE)
++    add_library(Snappy::snappy UNKNOWN IMPORTED)
++    set_target_properties(Snappy::snappy PROPERTIES
++        IMPORTED_LOCATION ${SNAPPY_LIBRARY}
++        INTERFACE_INCLUDE_DIRECTORIES ${SNAPPY_INCLUDE_DIR})
+     message(STATUS "Found SNAPPY library: ${SNAPPY_LIBRARY}")
+ else ()
+     message(STATUS "No snappy found.  Using internal sources.")
+-endif ()
++endif ()
+\ No newline at end of file
+diff --git a/cmake/FindZstd.cmake b/cmake/FindZstd.cmake
+index 7db4bb9..cabc2f8 100644
+--- a/cmake/FindZstd.cmake
++++ b/cmake/FindZstd.cmake
+@@ -3,8 +3,12 @@ find_path(ZSTD_INCLUDE_DIR zstd.h)
+ find_library(ZSTD_LIBRARY NAMES zstd)
+ 
+ if (ZSTD_INCLUDE_DIR AND ZSTD_LIBRARY)
+-    set(ZSTD_FOUND TRUE)
++    set(Zstd_FOUND TRUE)
++    add_library(Zstd::Zstd UNKNOWN IMPORTED)
++    set_target_properties(Zstd::Zstd PROPERTIES
++        IMPORTED_LOCATION ${ZSTD_LIBRARY}
++        INTERFACE_INCLUDE_DIRECTORIES ${ZSTD_INCLUDE_DIR})
+     message(STATUS "Found Zstd library: ${ZSTD_LIBRARY}")
+ else ()
+     message(STATUS "No Zstd library found.  Using internal sources.")
+-endif ()
++endif ()
+\ No newline at end of file
+diff --git a/cmake_config.cmake.in b/cmake_config.cmake.in
+new file mode 100644
+index 0000000..0f6af24
+--- /dev/null
++++ b/cmake_config.cmake.in
+@@ -0,0 +1,24 @@
++include(CMakeFindDependencyMacro)
++
++include("${CMAKE_CURRENT_LIST_DIR}/BloscTargets.cmake")
++
++function(_blosc_remap_configs from_Cfg to_Cfg)
++    string(TOUPPER ${from_Cfg} from_CFG)
++    string(TOLOWER ${from_Cfg} from_cfg)
++
++    if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/BloscTargets-${from_cfg}.cmake)
++        foreach(tgt IN ITEMS blosc_static blosc_shared blosc)
++            if(TARGET Blosc::${tgt})
++                set_target_properties(Blosc::${tgt} PROPERTIES
++                    MAP_IMPORTED_CONFIG_${from_CFG} ${to_Cfg})
++            endif()
++        endforeach()
++    endif()
++endfunction()
++
++# MSVC will try to link RelWithDebInfo or MinSizeRel target with debug config
++# if no matching installation is present which would result in link errors.
++if(MSVC)
++    _blosc_remap_configs(RelWithDebInfo Release)
++    _blosc_remap_configs(MinSizeRel Release)
++endif()
+diff --git a/internal-complibs/CMakeLists.txt b/internal-complibs/CMakeLists.txt
+new file mode 100644
+index 0000000..4586efa
+--- /dev/null
++++ b/internal-complibs/CMakeLists.txt
+@@ -0,0 +1,35 @@
++macro(add_lib_target pkg tgt incdir files)
++    string(TOUPPER ${pkg} TGT)
++    if(NOT DEACTIVATE_${TGT} AND NOT ${pkg}_FOUND)
++        add_library(${tgt}_objs OBJECT ${files})
++        add_library(${tgt} INTERFACE)
++        target_include_directories(${tgt}_objs PRIVATE $<BUILD_INTERFACE:${incdir}>)
++        target_include_directories(${tgt} INTERFACE $<BUILD_INTERFACE:${incdir}>)
++        #set_target_properties(${tgt} PROPERTIES INTERFACE_SOURCES "$<TARGET_OBJECTS:${tgt}_objs>")
++        set_target_properties(${tgt}_objs PROPERTIES POSITION_INDEPENDENT_CODE ON)
++        target_sources(${tgt} INTERFACE "$<BUILD_INTERFACE:$<TARGET_OBJECTS:${tgt}_objs>>")
++        add_library(${pkg}::${tgt} ALIAS ${tgt})
++
++        # This creates dummy (empty) interface targets in the exported config.
++        install(TARGETS ${tgt} EXPORT BloscTargets INCLUDES DESTINATION include)
++    endif()
++    unset(TGT)
++endmacro()
++
++set(ZLIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1.2.8)
++file(GLOB ZLIB_FILES ${ZLIB_DIR}/*.c)
++add_lib_target(ZLIB ZLIB ${ZLIB_DIR} "${ZLIB_FILES}")
++
++set(SNAPPY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/snappy-1.1.1)
++file(GLOB SNAPPY_FILES ${SNAPPY_DIR}/*.cc)
++add_lib_target(Snappy snappy ${SNAPPY_DIR} "${SNAPPY_FILES}")
++
++set(LZ4_DIR ${CMAKE_CURRENT_SOURCE_DIR}/lz4-1.9.1)
++file(GLOB LZ4_FILES ${LZ4_DIR}/*.c)
++add_lib_target(LZ4 LZ4 ${LZ4_DIR} "${LZ4_FILES}")
++
++set(ZSTD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zstd-1.4.1)
++file(GLOB ZSTD_FILES ${ZSTD_DIR}/common/*.c ${ZSTD_DIR}/compress/*.c ${ZSTD_DIR}/decompress/*.c)
++add_lib_target(Zstd Zstd ${ZSTD_DIR} "${ZSTD_FILES}")
++target_include_directories(Zstd INTERFACE $<BUILD_INTERFACE:${ZSTD_DIR}/common>)
++target_include_directories(Zstd_objs PRIVATE $<BUILD_INTERFACE:${ZSTD_DIR}/common>)
+\ No newline at end of file
+-- 
+2.16.2.windows.1
+

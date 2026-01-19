@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Fiberon PA6-CF @System",
+    "inherits": "Fiberon PA6-CF @base",
+    "from": "system",
+    "setting_id": "OGFSL50_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

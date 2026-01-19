@@ -1,0 +1,29 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PA @MINIIS 0.25",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280"
+    ],
+    "nozzle_temperature": [
+        "280"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.55"
+    ],
+    "compatible_printers": [
+        "Prusa MINIIS 0.25 nozzle"
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "MM hqs hj",
+    "model_id": "MM-hqs-hj",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "magicmaker",
+    "bed_model": "220210_buildplate_model.stl",
+    "bed_texture": "MM_buildplate_texture.png",
+    "hotend_model": "MM_hotend.stl",
+    "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System;Generic TPU @System"
+}

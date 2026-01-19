@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "name": "Anker Generic PETG-CF @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "GFG98",
+    "instantiation": "false",
+    "filament_type": [
+        "PETG-CF"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "filament_cost": [
+        "35"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_retraction_speed": "20",
+    "filament_deretraction_speed": "60",
+    "filament_retract_when_changing_layer": "1",
+    "filament_wipe": "1",
+    "filament_retract_before_wipe": "100"
+}

@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Generic PA-CF @BBL A1",
+    "inherits": "Generic PA-CF",
+    "from": "system",
+    "setting_id": "GFSN98_01",
+    "instantiation": "true",
+    "temperature_vitrification": [
+        "108"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

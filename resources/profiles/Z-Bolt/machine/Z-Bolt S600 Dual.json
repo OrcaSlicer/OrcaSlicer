@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Z-Bolt S600 Dual",
+    "model_id": "Z-Bolt-S600 Dual",
+    "nozzle_diameter": "0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Z-Bolt",
+    "bed_model": "Z-Bolt_S600_buildplate_model.stl",
+    "bed_texture": "Z-Bolt_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Z-Bolt PLA @base;Z-Bolt ABS @base;Z-Bolt PETG @base;Z-Bolt PA @base;Z-Bolt ABS HT @base"
+}

@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.30mm Standard @Z-Bolt S800 0.6 nozzle",
+    "inherits": "fdm_process_zbolt_0.30_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP317",
+    "instantiation": "true",
+    "description": "It has a big layer height, and results in apparent layer lines and ordinary printing quality and printing time.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Z-Bolt S800 Dual 0.6 nozzle"
+    ]
+}

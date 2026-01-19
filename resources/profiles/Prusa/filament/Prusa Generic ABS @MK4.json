@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic ABS @MK4",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.926"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\nM900 K{if nozzle_diameter[0]==0.4}0.03{elsif nozzle_diameter[0]==0.25}0.1{elsif nozzle_diameter[0]==0.3}0.06{elsif nozzle_diameter[0]==0.35}0.05{elsif nozzle_diameter[0]==0.5}0.03{elsif nozzle_diameter[0]==0.6}0.02{elsif nozzle_diameter[0]==0.8}0.01{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*PRINTER_MODEL_MK4IS.*/}\nM572 S{if nozzle_diameter[0]==0.4}0.02{elsif nozzle_diameter[0]==0.5}0.018{elsif nozzle_diameter[0]==0.6}0.012{elsif nozzle_diameter[0]==0.8}0.01{elsif nozzle_diameter[0]==0.25}0.09{elsif nozzle_diameter[0]==0.3}0.065{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S40 ; set heatbreak target temp"
+    ],
+    "filament_ramming_parameters": [
+        "250 100 42.4 42.4 42.4 42.4 42.4 | 0.05 42.4 0.45 42.4 0.95 42.4 1.45 42.4 1.95 42.4 2.45 42.4 2.95 42.4 3.45 42.4 3.95 42.4 4.45 42.4 4.95 42.4"
+    ],
+    "compatible_printers": [
+        "Prusa MK4 0.25 nozzle",
+        "Prusa MK4 0.4 nozzle",
+        "Prusa MK4 0.6 nozzle",
+        "Prusa MK4 0.8 nozzle"
+    ]
+}

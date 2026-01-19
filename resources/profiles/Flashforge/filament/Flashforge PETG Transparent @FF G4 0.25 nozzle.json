@@ -1,0 +1,46 @@
+{
+    "type": "filament",
+    "name": "Flashforge PETG Transparent @FF G4 0.25 nozzle",
+    "inherits": "Flashforge PETG @FF AD5M 0.25 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "1"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_settings_id": [
+        "Flashforge PETG Transparent @FF G4 0.25 nozzle"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 0.25 nozzle"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "pressure_advance": [
+        "0.045"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ]
+}

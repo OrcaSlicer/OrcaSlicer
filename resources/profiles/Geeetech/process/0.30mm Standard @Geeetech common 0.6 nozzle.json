@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.30mm Standard @Geeetech common 0.6 nozzle",
+    "inherits": "fdm_process_geeetech_0.30_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP_Geeetech_026",
+    "instantiation": "true",
+    "elefant_foot_compensation": "0.15",
+    "compatible_printers": [
+        "Geeetech A10 Pro 0.6 nozzle",
+        "Geeetech A20 0.6 nozzle",
+        "Geeetech A30 Pro 0.6 nozzle",
+        "Geeetech Mizar 0.6 nozzle",
+        "Geeetech Mizar S 0.6 nozzle",
+        "Geeetech Mizar Pro 0.6 nozzle",
+        "Geeetech Mizar Max 0.6 nozzle"
+    ]
+}

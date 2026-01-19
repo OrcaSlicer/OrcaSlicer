@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Lulzbot 2.85mm PETG",
+    "inherits": "Generic PETG @System",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "filament_id": "GFG99",
+    "instantiation": "true",
+    "filament_diameter": [
+        "2.85"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "compatible_printers": [
+        "Lulzbot Taz 6 0.5 nozzle",
+        "Lulzbot Taz 4 or 5 0.5 nozzle",
+        "Lulzbot Taz Pro Dual 0.5 nozzle"
+    ]
+}

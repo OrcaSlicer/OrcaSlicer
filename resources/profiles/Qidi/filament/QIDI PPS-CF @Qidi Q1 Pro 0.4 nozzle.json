@@ -1,0 +1,45 @@
+{
+    "type": "filament",
+    "name": "QIDI PPS-CF @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "QIDI PPS-CF",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_settings_id": [
+        "QIDI PPS-CF @Qidi Q1 Pro 0.4 nozzle"
+    ],
+    "nozzle_temperature": [
+        "320"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "320"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "pressure_advance": [
+        "0.03"
+    ],
+    "slow_down_layer_time": [
+        "2"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
+}

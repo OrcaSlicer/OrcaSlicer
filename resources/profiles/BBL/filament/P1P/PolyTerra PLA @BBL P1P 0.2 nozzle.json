@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "PolyTerra PLA @BBL P1P 0.2 nozzle",
+    "inherits": "PolyTerra PLA @BBL X1C",
+    "from": "system",
+    "setting_id": "GFSL24_10",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "50"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.8",
+        "1.8"
+    ],
+    "hot_plate_temp": [
+        "65"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "textured_plate_temp": [
+        "65"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "65"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P1P 0.2 nozzle"
+    ]
+}

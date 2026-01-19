@@ -1,0 +1,125 @@
+From 1d6cd7c2f8640db3cda194c1b9b82f1e4b321395 Mon Sep 17 00:00:00 2001
+From: "chunmao.guo" <chunmao.guo@bambulab.com>
+Date: Thu, 5 Jan 2023 15:55:57 +0800
+Subject: [PATCH] FIX: limit_handles
+
+---
+ boost/process/detail/posix/executor.hpp  |  4 +++-
+ boost/process/detail/posix/pipe_out.hpp  | 13 +++++++++++--
+ boost/process/detail/used_handles.hpp    |  3 +++
+ boost/process/detail/windows/handles.hpp | 10 +++++++---
+ 4 files changed, 24 insertions(+), 6 deletions(-)
+
+diff --git a/boost/process/detail/posix/executor.hpp b/boost/process/detail/posix/executor.hpp
+index ca7713c..5521720 100644
+--- a/boost/process/detail/posix/executor.hpp
++++ b/boost/process/detail/posix/executor.hpp
+@@ -325,6 +325,7 @@ public:
+     }
+     void set_error(const std::error_code &ec, const std::string &msg) {set_error(ec, msg.c_str());};
+ 
++    int error_sink() const { return _pipe_sink; }
+ };
+ 
+ template<typename Sequence>
+@@ -388,6 +389,8 @@ child executor<Sequence>::invoke(boost::mpl::false_, boost::mpl::false_)
+             set_error(err, "fcntl(2) failed");//this might throw, so we need to be sure our pipe is safe.
+             return child();
+         }
++        _pipe_sink = p.p[1];
++        
+         _ec.clear();
+         boost::fusion::for_each(seq, call_on_setup(*this));
+ 
+@@ -411,7 +414,6 @@ child executor<Sequence>::invoke(boost::mpl::false_, boost::mpl::false_)
+         }
+         else if (pid == 0)
+         {
+-            _pipe_sink = p.p[1];
+             ::close(p.p[0]);
+ 
+             boost::fusion::for_each(seq, call_on_exec_setup(*this));
+diff --git a/boost/process/detail/posix/pipe_out.hpp b/boost/process/detail/posix/pipe_out.hpp
+index d54cca4..a081d78 100644
+--- a/boost/process/detail/posix/pipe_out.hpp
++++ b/boost/process/detail/posix/pipe_out.hpp
+@@ -18,7 +18,7 @@
+ namespace boost { namespace process { namespace detail { namespace posix {
+ 
+ template<int p1, int p2>
+-struct pipe_out : handler_base_ext
++struct pipe_out : handler_base_ext, ::boost::process::detail::uses_handles
+ {
+     int sink;
+     int source; //opposite end
+@@ -30,6 +30,14 @@ struct pipe_out : handler_base_ext
+     {
+         p.assign_sink(-1);
+     }
++    
++    std::array<int, 4> get_used_handles()
++    {
++        const auto pp1 = p1 != -1 ? p1 : p2;
++        const auto pp2 = p2 != -1 ? p2 : p1;
++        
++        return {sink, source, pp1, pp2};
++    }
+ 
+     template<typename Executor>
+     void on_error(Executor &, const std::error_code &) const
+@@ -66,7 +74,7 @@ void pipe_out<2,-1>::on_exec_setup(Executor &e) const
+     if (::dup2(sink, STDERR_FILENO) == -1)
+          e.set_error(::boost::process::detail::get_last_error(), "dup2() failed");
+ 
+-    if (sink != STDOUT_FILENO)
++    if (sink != STDERR_FILENO)
+         ::close(sink);
+     ::close(source);
+ }
+@@ -81,6 +89,7 @@ void pipe_out<1,2>::on_exec_setup(Executor &e) const
+          e.set_error(::boost::process::detail::get_last_error(), "dup2() failed");
+     if ((sink != STDOUT_FILENO) && (sink != STDERR_FILENO))
+         ::close(sink);
++    ::close(source);
+ }
+ 
+ class async_pipe;
+diff --git a/boost/process/detail/used_handles.hpp b/boost/process/detail/used_handles.hpp
+index 4d56af3..5d71dc3 100644
+--- a/boost/process/detail/used_handles.hpp
++++ b/boost/process/detail/used_handles.hpp
+@@ -61,6 +61,9 @@ struct foreach_handle_invocator
+ template<typename Executor, typename Function>
+ void foreach_used_handle(Executor &exec, Function &&func)
+ {
++#if defined(BOOST_POSIX_API)
++    func(exec.error_sink());
++#endif
+     boost::fusion::for_each(boost::fusion::filter_if<does_use_handle<boost::mpl::_>>(exec.seq),
+                             foreach_handle_invocator<Function>(func));
+ }
+diff --git a/boost/process/detail/windows/handles.hpp b/boost/process/detail/windows/handles.hpp
+index 7a93ac2..f120ef7 100644
+--- a/boost/process/detail/windows/handles.hpp
++++ b/boost/process/detail/windows/handles.hpp
+@@ -139,10 +139,14 @@ struct limit_handles_ : handler_base_ext
+                     ::boost::winapi::DWORD_ flags = 0u;
+                     if (itr != all_handles.end())
+                         *itr = ::boost::winapi::INVALID_HANDLE_VALUE_;
+-                    else if ((::boost::winapi::GetHandleInformation(*itr, &flags) != 0)
+-                            &&((flags & ::boost::winapi::HANDLE_FLAG_INHERIT_) == 0)) //it is NOT inherited anyhow, so ignore too
+-                        *itr = ::boost::winapi::INVALID_HANDLE_VALUE_;
+                 });
++        for (auto& h : all_handles) {
++            ::boost::winapi::DWORD_ flags = 0u;
++            if ((h != ::boost::winapi::INVALID_HANDLE_VALUE_)
++                && (::boost::winapi::GetHandleInformation(h, &flags) != 0)
++                && ((flags & ::boost::winapi::HANDLE_FLAG_INHERIT_) == 0)) //it is NOT inherited anyhow, so ignore too
++                h = ::boost::winapi::INVALID_HANDLE_VALUE_;
++        }
+ 
+         auto part_itr = std::partition(all_handles.begin(), all_handles.end(),
+                                        [](::boost::winapi::HANDLE_ handle) {return handle != ::boost::winapi::INVALID_HANDLE_VALUE_;});
+-- 
+2.36.1.windows.1
+

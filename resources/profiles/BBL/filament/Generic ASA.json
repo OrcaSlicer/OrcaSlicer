@@ -1,0 +1,19 @@
+{
+    "type": "filament",
+    "name": "Generic ASA",
+    "inherits": "Generic ASA @base",
+    "from": "system",
+    "setting_id": "GFSB98",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.4 nozzle",
+        "Bambu Lab X1 0.4 nozzle",
+        "Bambu Lab X1 Carbon 0.6 nozzle",
+        "Bambu Lab X1 Carbon 0.8 nozzle",
+        "Bambu Lab X1 0.6 nozzle",
+        "Bambu Lab X1 0.8 nozzle",
+        "Bambu Lab P1S 0.4 nozzle",
+        "Bambu Lab P1S 0.6 nozzle",
+        "Bambu Lab P1S 0.8 nozzle"
+    ]
+}

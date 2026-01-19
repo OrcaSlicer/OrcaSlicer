@@ -1,0 +1,12 @@
+{
+    "type": "process",
+    "name": "0.08mm SuperDetail @Creality Ender5Pro (2019) 0.25",
+    "inherits": "fdm_process_creality_common_0_25",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "bottom_shell_layers": "9",
+    "top_shell_layers": "11",
+    "layer_height": "0.08",
+    "bridge_flow": "0.7"
+}

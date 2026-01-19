@@ -1,0 +1,71 @@
+{
+    "type": "filament",
+    "name": "Fiberon PA6-GF @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "OGFL51",
+    "instantiation": "false",
+    "eng_plate_temp": [
+        "40"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "40"
+    ],
+    "fan_cooling_layer_time": [
+        "15"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "filament_cost": [
+        "63.99"
+    ],
+    "filament_density": [
+        "1.2"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_type": [
+        "PA-GF"
+    ],
+    "filament_vendor": [
+        "Polymaker"
+    ],
+    "full_fan_speed_layer": [
+        "2"
+    ],
+    "hot_plate_temp": [
+        "40"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "40"
+    ],
+    "nozzle_temperature": [
+        "300"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "300"
+    ],
+    "nozzle_temperature_range_low": [
+        "280"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "temperature_vitrification": [
+        "191"
+    ],
+    "textured_plate_temp": [
+        "40"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "40"
+    ]
+}

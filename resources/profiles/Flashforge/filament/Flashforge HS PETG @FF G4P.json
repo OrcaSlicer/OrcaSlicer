@@ -1,0 +1,61 @@
+{
+    "type": "filament",
+    "name": "Flashforge HS PETG @FF G4P",
+    "inherits": "Flashforge Generic PETG",
+    "from": "system",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "1"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "80"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "80"
+    ],
+    "filament_settings_id": [
+        "Flashforge HS PETG @FF G4P"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 Pro 0.4 nozzle"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "pressure_advance": [
+        "0.08"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "textured_plate_temp": [
+        "80"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "80"
+    ]
+}

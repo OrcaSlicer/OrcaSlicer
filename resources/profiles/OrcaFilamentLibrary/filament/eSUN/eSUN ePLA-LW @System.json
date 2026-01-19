@@ -1,0 +1,46 @@
+{
+    "type": "filament",
+    "name": "eSUN ePLA-LW @System",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "LWSL02_00",
+    "filament_id": "ESN02",
+    "instantiation": "true",
+    "filament_type": [
+        "PLA-AERO"
+    ],
+    "filament_cost": [
+        "33.99"
+    ],
+    "filament_density": [
+        "1.2"
+    ],
+    "filament_flow_ratio": [
+        "0.48"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_vendor": [
+        "eSUN"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "nozzle_temperature": [
+        "243"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "243"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "temperature_vitrification": [
+        "53"
+    ],
+    "compatible_printers": []
+}

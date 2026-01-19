@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Generic PC @base",
+    "inherits": "fdm_filament_pc",
+    "from": "system",
+    "filament_id": "GFC99",
+    "instantiation": "false",
+    "description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

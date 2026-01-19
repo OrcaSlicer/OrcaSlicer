@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu Support For PA/PET @System",
+    "inherits": "Bambu Support For PA/PET @base",
+    "from": "system",
+    "setting_id": "OGFSS03_00",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "compatible_printers": []
+}

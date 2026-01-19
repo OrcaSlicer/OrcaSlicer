@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../../road-faq/xsl/road-faq.xsl"?>
+
+<rf:topic xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+    xsi:schemaLocation="http://schemas.roadintranet.org/road-faq-1 /road/road-faq/xsl/road-faq.xsd"  
+   xmlns:rf="http://schemas.roadintranet.org/road-faq-1"
+ title=" C++ interface to Qhull"
+ file="qhull-cpp.xml"
+ fileid="$Id: //main/2015/qhull/html/qhull-cpp.xml#2 $$Change: 2027 $"
+ fileChange="$DateTime: 2015/11/09 23:18:11 $$Author: bbarber $">
+    <div><h4>Qhull C++  -- C++ interface to Qhull</h4></div>
+    <rf:copyright>
+        <a href="../cpp/COPYING.txt">Copyright</a> (c) 2009-2015, C.B. Barber
+    </rf:copyright>
+   <rf:section id="cpp-cpp-links" title="Useful Links for Qhull C++">
+       <div>
+           <p> This draft
+               document records some of the design decisions for Qhull C++.  Convert it to HTML by road-faq.xsl from <a href="http://www.qhull.org/road/road-faq/road-faq.html">road-faq</a>.
+               
+               Please send comments and suggestions to <a
+                   href="mailto:bradb@shore.net">bradb@shore.net</a>
+           </p>
+       </div>
+       <div class="twocol">
+           <div class="col leftcol">
+               Help
+               <ul><li>
+                </li><li>
+               </li><li>
+               </li></ul>
+           </div>
+           <div class="col rightcol">
+             <ul><li>
+             </li><li>
+             </li></ul>
+         </div>
+       </div>
+       <div>
+           . <!-- clear the two column display -->
+       </div>
+       
+   </rf:section>
+    <rf:section id="qhull-api" title="Qhull's collection classes">
+  
+         <rf:item id="collection-api" title="API for Qhull collections" date="Feb 2009" author="bbarber">
+             Qhull's collection APIs are modeled on Qt's collection API (QList, QVector, QHash) w/o QT_STRICT_ITERATORS.  They support STL and Qt programming.  
+             
+             <p>Some of Qhull's collection classes derive from STL classes.  If so, 
+             please avoid additional STL functions and operators added by inheritance.
+             These collection classes may be rewritten to derive from Qt classes instead.
+             See Road's <rf:iref item="cpp-collection-api"/>.
+	     </p>
+	     
+             
+             Qhull's collection API (where applicable).  For documentation, see Qt's QList, QMap, QListIterator, QMapIterator, QMutableListIterator, and QMutableMapIterator
+             <ul><li>
+                 STL types [list, qlinkedlist, qlist, qvector, vector] -- const_iterator, iterator
+             </li><li>
+                 STL types describing iterators [list, qlinkedlist, qlist, qvector, vector] -- const_pointer, const_reference, difference_type,
+                     pointer, reference, size_type, value_type.
+                 Pointer and reference types not defined if unavailable (not needed for &lt;algorithm&gt;)
+             </li><li>
+                 const_iterator, iterator types -- difference_type, iterator_category, pointer, reference, value_type
+             </li><li>
+                 Qt types [qlinkedlist, qlist, qvector] -- ConstIterator, Iterator, QhullclassIterator, MutableQhullclassIterator.
+                 Qt's foreach requires const_iterator.
+             </li><li>
+                 Types for sets/maps [hash_map, QHash] -- key_compare, key_type, mapped_type
+             </li><li>
+                 Constructor -- default constructor, copy constructor, assignment operator, destructor
+             </li><li>
+                 Conversion -- to/from/as corresponding C, STL, and Qt constructs.  Include toQList and toStdVector (may be filtered, e.g., QhullFacetSet).
+                               Do not define fromStdList and fromQList if container is not reference counted (i.e., acts like a value)
+             </li><li>
+                 Get/set -- configuration options for class
+             </li><li>
+                 STL-style iterator - begin, constBegin, constEnd, end, key, value, =, *, [], ->, ++, --, +, -, ==, !=, &lt;,
+                 &lt;=, &gt;, &gt;=, const_iterator(iterator), iterator COMPARE const_iterator.  
+                 An iterator is an abstraction of a pointer.  It is not aware of its container.
+             </li><li>
+                 Java-style iterator [qiterator.h] - countRemaining, findNext, findPrevious, hasNext, hasPrevious, next, peekNext, peekPrevious, previous, toBack, toFront, = Coordinates
+             </li><li>
+                 Mutable Java-style iterator adds - insert, remove, setValue, value
+             </li><li>
+                 Element access -- back, first, front, last
+             </li><li>
+                 Element access w/ index -- [], at (const&amp; only), constData, data, mid, value
+             </li><li>
+                 Read-only - (int)count, empty, isEmpty, (size_t)size.  Count() and size() may be filtered.  If so, they may be zero when !empty().
+             </li><li>
+                 Read-only for sets/maps - capacity, key, keys, reserve, resize, values
+             </li><li>
+                 Operator - ==, !=, +, +=, &lt;&lt;
+             </li><li>
+                 Read-write -- append, clear, erase, insert, move, prepend, pop_back, pop_front, push_back, push_front, removeAll, removeAt, removeFirst, removeLast, replace,
+                 swap, takeAt, takeFirst, takeLast
+             </li><li>
+                 Read-write for sets/maps -- insertMulti, squeeze, take, unite
+             </li><li>
+                 Search -- contains(const T &amp;), count(const T &amp;), indexOf, lastIndexOf
+             </li><li>
+                 Search for sets/maps -- constFind, lowerBound, upperBound
+             </li><li>
+                 Stream I/O -- stream &lt;&lt;
+             </li></ul>
+
+             STL list and vector -- For unfiltered access to each element.
+             <ul><li>
+                 <a href="http://stdcxx.apache.org/doc/stdlibug/16-3.html">Apache: Creating your own containers</a> -- requirements for STL containers.  Iterators should define the types from 'iterator_traits'.
+             </li><li>
+                 STL types -- allocator_type, const_iterator, const_pointer, const_reference, const_reverse_iterator, difference_type, iterator, iterator_category, pointer, reference, reverse_iterator, size_type, value_type
+             </li><li>
+                 STL constructors -- MyType(), MyType(count), MyType(count, value), MyType(first, last),
+                 MyType(MyType&amp;),
+             </li><li>
+                 STL getter/setters -- at (random_access only), back, begin, capacity, end, front, rbegin, rend, size, max_size
+             </li><li>
+                 STL predicates -- empty
+             </li><li>
+                 STL iterator types -- const_pointer, const_reference, difference_type, iterator_category, pointer, reference, value_type
+             </li><li>
+                 STL iterator operators -- *, -&lt;, ++, --, +=, -=, +, -, [], ==, !=, &lt;, &gt;, &gt;=, &lt;=
+             </li><li>
+                 STL operators -- =, [] (random_access only), ==, !=, &lt;, &gt;, &lt;=, &gt;=
+             </li><li>
+                 STL modifiers -- assign, clear, erase, insert, pop_back, push_back, reserve, resize, swap
+             </li><li>
+             </li></ul>
+
+             Qt Qlist  -- For unfiltered access to each element
+             <ul><li>
+             </li><li>
+                 Additional Qt types -- ConstIterator, Iterator, QListIterator, QMutableListIterator
+             </li><li>
+                 Additional Qt get/set -- constBegin, constEnd, count, first, last, value (random_access only)
+             </li><li>
+                 Additional Qt predicates -- isEmpty
+             </li><li>
+                 Additional Qt -- mid (random_access only)
+             </li><li>
+                 Additional Qt search -- contains, count(T&amp;), indexOf (random_access only), lastIndeOf (random_access only)
+             </li><li>
+                 Additional Qt modifiers -- append, insert(index,value) (random_access only), move (random_access only), pop_front, prepend, push_front, removeAll, removeAt (random_access only), removeFirst, removeLast, replace, swap by index, takeAt, takeFirst, takeLast
+             </li><li>
+                 Additional Qt operators -- +, &lt;&lt;, +=,
+                         stream &lt;&lt; and &gt;&gt;
+             </li><li>
+                 Unsupported types by Qt -- allocator_type, const_reverse_iterator, reverse_iterator
+             </li><li>
+                 Unsupported accessors by Qt -- max_size, rbegin, rend
+             </li><li>
+                 Unsupported constructors by Qt -- multi-value constructors
+             </li><li>
+                 unsupported modifiers by Qt -- assign, muli-value inserts, STL's swaps
+             </li><li>
+             </li></ul>
+
+             STL map and Qt QMap.  These use nearly the same API as list and vector classes.  They add the following.
+             <ul><li>
+               STL types -- key_compare, key_type, mapped_type
+             </li><li>
+                 STL search -- equal_range, find, lower_bound, upper_bound
+             </li><li>
+               Qt removes -- equal_range, key_compare
+             </li><li>
+                 Qt renames -- lowerBound, upperBound
+             </li><li>
+               Qt adds -- constFind, insertMulti, key, keys, take, uniqueKeys, unite, values
+             </li><li>
+                 Not applicable to map and QMap -- at, back, pop_back, pop_front, push_back, push_front, swap
+             </li><li>
+                Not applicable to QMap -- append, first, last, lastIndexOf, mid, move, prepend, removeAll, removeAt, removeFirst, removeLast, replace, squeeze, takeAt, takeFirst, takeLast
+             </li><li>
+                 Not applicable to map -- assign
+             </li></ul>
+
+             Qt QHash.  STL extensions provide similar classes, e.g., Microsoft's stdext::hash_set.  THey are nearly the same as QMap
+             <ul><li>
+             </li><li>
+             </li><li>
+               Not applicable to Qhash -- lowerBound, unite, upperBound, 
+             </li><li>
+               Qt adds -- squeeze
+             </li></ul>
+         </rf:item>
+        <rf:item id="class-api" title="API for Qhull collections" date="Feb 2009" author="bbarber">
+            <ul><li>
+                check... -- Throw error on failure
+            </li><li>
+                try... -- Return false on failure.  Do not throw errors.
+            </li><li>
+                ...Temporarily -- lifetime depends on source. e.g., toByteArrayTemporarily
+            </li><li>
+                ...p -- indicates pointer-to.
+            </li><li>
+                end... -- points to one beyond the last available
+            </li><li>
+                private functions -- No syntactic indication.  They may become public later on.
+            </li><li>
+                Error messages -- Preceed error messages with the name of the class throwing the error (e.g. "ClassName: ...").  If this is an internal error, use "ClassName inconsistent: ..."
+            </li><li>
+               parameter order -- qhRunId, dimension, coordinates, count.
+            </li><li>
+               toClass -- Convert into a Class object (makes a deep copy)
+            </li><li>
+                qRunId -- Requires Qh installed.  Some routines allow 0 for limited info (e.g., operator&lt;&lt;)
+            </li><li>
+                Disable methods in derived classes -- If the default constructor, copy constructor, or copy assignment is disabled, it should be also disabled in derived classes (better error messages).
+            </li><li>
+                Constructor order -- default constructor, other constructors, copy constructor, copy assignment, destructor
+            </li></ul>
+        </rf:item>
+    </rf:section>
+</rf:topic>

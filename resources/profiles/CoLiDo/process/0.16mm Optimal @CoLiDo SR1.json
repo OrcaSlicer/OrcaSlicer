@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.16mm Optimal @CoLiDo SR1",
+    "inherits": "fdm_process_colidosr1_common",
+    "from": "system",
+    "setting_id": "GP006",
+    "instantiation": "true",
+    "layer_height": "0.16",
+    "bottom_shell_layers": "4",
+    "top_shell_layers": "5",
+    "support_top_z_distance": "0.16",
+    "support_bottom_z_distance": "0.16",
+    "initial_layer_print_height": "0.2",
+    "default_acceleration": "10000",
+    "enable_support": "1",
+    "print_settings_id": "0.16mm Optimal @CoLiDo SR1",
+    "support_style": "tree_hybrid",
+    "support_type": "tree(auto)",
+    "travel_speed": "300"
+}

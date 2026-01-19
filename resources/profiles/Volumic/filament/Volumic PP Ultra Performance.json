@@ -1,0 +1,46 @@
+{
+    "type": "filament",
+    "name": "Volumic PP Ultra (Performance)",
+    "inherits": "fdm_filament_pp",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1.24"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225"
+    ],
+    "nozzle_temperature": [
+        "225"
+    ],
+    "hot_plate_temp": [
+        "90"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_max_volumetric_speed": [
+        "40"
+    ],
+    "compatible_printers": [
+        "EXO42 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.6 nozzle)",
+        "EXO65 Performance (0.8 nozzle)",
+        "SH65 Performance (0.4 nozzle)",
+        "EXO42 IDRE (0.4 nozzle)",
+        "EXO42 IDRE COPY MODE (0.4 nozzle)",
+        "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+        "EXO65 IDRE (0.4 nozzle)",
+        "EXO65 IDRE COPY MODE (0.4 nozzle)",
+        "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+        "SH65 IDRE (0.4 nozzle)",
+        "SH65 IDRE COPY MODE (0.4 nozzle)",
+        "SH65 IDRE MIRROR MODE (0.4 nozzle)"
+    ]
+}

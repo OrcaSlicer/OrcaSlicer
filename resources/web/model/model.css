@@ -1,0 +1,382 @@
+*
+{
+	margin:0px;
+	padding: 0px;
+	border: 0px;
+	font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;
+	user-select: none;
+}
+
+html
+{
+	height: 100%;
+}
+
+body
+{
+	min-width: 1280px;
+	height: 100%;
+	display:flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	background-color: #F4F4F4;	
+	font-size: 14px;	
+	color: #595959;	
+	line-height: 24px;
+}
+
+#EmptyArea
+{
+	min-width: 1280px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	display: flex;
+}
+
+
+#WholeArea
+{
+	height:  100%;
+	position: relative;
+	overflow-y: hidden;
+	display: none;
+}
+
+.ZScrol::-webkit-scrollbar {/*滚动条整体样式*/
+    width: 8px;     /*高宽分别对应横竖滚动条的尺寸*/
+    height: 8px;
+	padding: 2px;
+}
+
+.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    border-radius: 6px;
+    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+	box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    background-color: #AAAAAA;
+}
+
+.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
+        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+	    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        border-radius: 10px;
+        background: #EDEDED;
+}
+
+
+.TopBottomBar
+{
+	height: 24px;
+}
+
+.FloorBottomBar
+{
+	height: 100px;
+}
+
+
+/*----Basic----*/
+.Text_Title
+{
+	font-size: 16px;
+	font-weight: 700;
+	color: black;	
+}
+
+.Text_Value
+{
+	color: black;
+}
+
+.Text_Bold
+{
+	font-weight: 700;
+}
+
+.Text_TitleBoard
+{
+	border-bottom: 1px solid #DDDDDD;
+	padding: 16px  0px;
+}
+
+.Text_TitleArea div
+{
+	height: 32px;
+	line-height: 32px;
+}
+
+#Model_Name_Line
+{
+	width: 800px;
+}
+
+#ModelNameBar
+{
+	width: 100%;
+	display: flex;
+	overflow:hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+#ModelName
+{
+	overflow:hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;	
+}
+
+
+.Block_BKGA
+{
+	background-color: white;
+}
+
+.Block_BKGB
+{
+	background-color: #F4F4F4;
+}
+
+/*---Swiper---*/
+.swiper
+{
+    --swiper-theme-color: #ff6600;/* 设置Swiper风格 */
+    --swiper-navigation-color: #009688;/* 单独设置按钮颜色 */
+    --swiper-navigation-size: 30px;/* 设置按钮大小 */
+}
+
+/*---Left---*/
+#LeftProcessBlock
+{
+	position:fixed;
+	top: 24px;
+	width: 264px;
+	height: 160px;
+    flex-shrink: 0;
+}
+
+.LeftProcessBar
+{
+	border-left: 2px solid #DDDDDD;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+}
+
+.LeftProcessBar img
+{
+	margin-left:18px;
+}
+
+.LeftProcessBar span
+{
+	margin-left: 20px;
+}
+
+.LeftTipIcon
+{
+	width: 20px;
+	height: 20px;
+}
+
+.ProcessBarSelected
+{
+	border-left-color:#009688;
+}
+
+.ProcessBarSelected span
+{
+	color:#009688;
+}
+
+#Info_ProcessBar.ProcessBarSelected img
+{
+	content:url("img/info_g.svg");
+}
+
+#File_ProcessBar.ProcessBarSelected img
+{
+	content:url("img/file_g.svg");
+}
+
+#Profile_ProcessBar.ProcessBarSelected img
+{
+	content:url("img/profile_g.svg");
+}
+
+
+
+/*---Right---*/
+
+/*--Basic Info--*/
+#Info_Inside_Board
+{
+	display: flex;
+	height: calc(100% - 24px);
+	overflow-y:auto;
+}
+
+.InfoBlock
+{
+	background-color: white;
+	padding: 20px 40px;
+}
+
+.InfoBlock:nth-child(n+2)
+{
+	margin-top: 8px;
+}
+
+#ModelInfoBlock
+{
+	width: 1000px;
+}
+
+#Model_Name_Area {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+}
+
+#Model_Preview_Image
+{
+	height: 480px;
+}
+
+.swiper
+{
+	margin: 24px 0px;
+}
+
+.swiper-slide
+{
+	cursor:pointer;
+	display: flex;
+	align-content: center;
+	justify-content: center;
+}
+
+.swiper-slide img
+{
+    max-width:100%;
+    max-height:100%;
+}
+
+/*---Document---*/
+#LeftEmptyBlock
+{
+
+}
+
+#Model_Desc img
+{
+	max-width:100%;
+}
+
+#Model_Accessories
+{
+}
+
+.File_Board
+{
+	background-color: #F4F4F4;
+	padding: 12px 15px;	
+}
+
+.File_Board:nth-child(n+2)
+{
+	margin-top: 16px;
+}
+
+.FileListBoard
+{
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.FileItem
+{
+	width:406px;
+	background-color: white;
+	display: flex;
+	align-items: center;
+	padding: 12px 15px;
+	margin: 4px 0px;
+}
+
+.FileItem:nth-child(2n+1)
+{
+	margin-right: 16px;
+}
+
+
+.FileIcon img
+{
+	width: 36px;
+	height: 42px;
+}
+
+.ImageIcon img
+{
+	width: 36px;
+	height: 42px;
+	object-fit: cover;
+}
+
+.FileText
+{
+	width: 306px;
+	height: 40px;
+	line-height: 20px;
+	padding: 0px 16px;
+	display: flex;
+	align-items: center;
+}
+
+.FileSize
+{
+	display:none;
+}
+
+.FileName
+{
+	width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.FileMenu
+{
+	height: 32px;
+	width: 32px;
+	display: flex;
+	cursor: pointer;
+	align-items: center;
+	justify-content: center;
+}
+
+.FileMenu img
+{
+	width: 24px;
+}
+
+
+/*---Profile---*/
+#Profile_Preview_Image
+{
+	height: 480px;
+}
+
+.viewer-button
+{
+	background-color: rgba(255,0,0,.5)!important;
+}
+
+#AddModelInfoBtn
+{
+	margin-top: 20px;
+}

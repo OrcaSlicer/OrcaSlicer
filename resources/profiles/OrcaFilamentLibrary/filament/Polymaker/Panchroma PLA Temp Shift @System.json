@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Temp Shift @System",
+    "inherits": "Panchroma PLA Temp Shift @base",
+    "from": "system",
+    "setting_id": "OGFSPM015",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

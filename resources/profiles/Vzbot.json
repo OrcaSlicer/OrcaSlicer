@@ -1,0 +1,226 @@
+{
+    "name": "Vzbot",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "Vzbot configurations",
+    "machine_model_list": [
+        {
+            "name": "Vzbot 235 AWD",
+            "sub_path": "machine/Vzbot 235 AWD.json"
+        },
+        {
+            "name": "Vzbot 330 AWD",
+            "sub_path": "machine/Vzbot 330 AWD.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_common_0.5_nozzle",
+            "sub_path": "process/fdm_process_common_0.5_nozzle.json"
+        },
+        {
+            "name": "fdm_process_common_0.6_nozzle",
+            "sub_path": "process/fdm_process_common_0.6_nozzle.json"
+        },
+        {
+            "name": "fdm_process_Vzbot_common",
+            "sub_path": "process/fdm_process_Vzbot_common.json"
+        },
+        {
+            "name": "fdm_process_Vzbot_common_0.5_nozzle",
+            "sub_path": "process/fdm_process_Vzbot_common_0.5_nozzle.json"
+        },
+        {
+            "name": "fdm_process_Vzbot_common_0.6_nozzle",
+            "sub_path": "process/fdm_process_Vzbot_common_0.6_nozzle.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @Vzbot",
+            "sub_path": "process/0.08mm Extra Fine @Vzbot.json"
+        },
+        {
+            "name": "0.12mm Fine @Vzbot",
+            "sub_path": "process/0.12mm Fine @Vzbot.json"
+        },
+        {
+            "name": "0.15mm Optimal @Vzbot",
+            "sub_path": "process/0.15mm Optimal @Vzbot.json"
+        },
+        {
+            "name": "0.20mm Standard @Vzbot",
+            "sub_path": "process/0.20mm Standard @Vzbot.json"
+        },
+        {
+            "name": "0.24mm Draft @Vzbot",
+            "sub_path": "process/0.24mm Draft @Vzbot.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Vzbot",
+            "sub_path": "process/0.28mm Extra Draft @Vzbot.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Vzbot 0.5nozzle",
+            "sub_path": "process/0.28mm Extra Draft @Vzbot_0.5_nozzle.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Vzbot 0.6nozzle",
+            "sub_path": "process/0.28mm Extra Draft @Vzbot_0.6_nozzle.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @Vzbot 0.5nozzle",
+            "sub_path": "process/0.08mm Extra Fine @Vzbot_0.5_nozzle.json"
+        },
+        {
+            "name": "0.12mm Fine @Vzbot 0.5nozzle",
+            "sub_path": "process/0.12mm Fine @Vzbot_0.5_nozzle.json"
+        },
+        {
+            "name": "0.15mm Optimal @Vzbot 0.5nozzle",
+            "sub_path": "process/0.15mm Optimal @Vzbot_0.5_nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Vzbot 0.5nozzle",
+            "sub_path": "process/0.20mm Standard @Vzbot_0.5_nozzle.json"
+        },
+        {
+            "name": "0.24mm Draft @Vzbot 0.5nozzle",
+            "sub_path": "process/0.24mm Draft @Vzbot_0.5_nozzle.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @Vzbot 0.6nozzle",
+            "sub_path": "process/0.08mm Extra Fine @Vzbot_0.6_nozzle.json"
+        },
+        {
+            "name": "0.12mm Fine @Vzbot 0.6nozzle",
+            "sub_path": "process/0.12mm Fine @Vzbot_0.6_nozzle.json"
+        },
+        {
+            "name": "0.15mm Optimal @Vzbot 0.6nozzle",
+            "sub_path": "process/0.15mm Optimal @Vzbot_0.6_nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @Vzbot 0.6nozzle",
+            "sub_path": "process/0.20mm Standard @Vzbot_0.6_nozzle.json"
+        },
+        {
+            "name": "0.24mm Draft @Vzbot 0.6nozzle",
+            "sub_path": "process/0.24mm Draft @Vzbot_0.6_nozzle.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "Vzbot Generic ABS",
+            "sub_path": "filament/Vzbot Generic ABS.json"
+        },
+        {
+            "name": "Vzbot Generic ASA",
+            "sub_path": "filament/Vzbot Generic ASA.json"
+        },
+        {
+            "name": "Vzbot Generic PA",
+            "sub_path": "filament/Vzbot Generic PA.json"
+        },
+        {
+            "name": "Vzbot Generic PA-CF",
+            "sub_path": "filament/Vzbot Generic PA-CF.json"
+        },
+        {
+            "name": "Vzbot Generic PC",
+            "sub_path": "filament/Vzbot Generic PC.json"
+        },
+        {
+            "name": "Vzbot Generic PETG",
+            "sub_path": "filament/Vzbot Generic PETG.json"
+        },
+        {
+            "name": "Vzbot Generic PLA",
+            "sub_path": "filament/Vzbot Generic PLA.json"
+        },
+        {
+            "name": "Vzbot Generic PLA-CF",
+            "sub_path": "filament/Vzbot Generic PLA-CF.json"
+        },
+        {
+            "name": "Vzbot Generic PVA",
+            "sub_path": "filament/Vzbot Generic PVA.json"
+        },
+        {
+            "name": "Vzbot Generic TPU",
+            "sub_path": "filament/Vzbot Generic TPU.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "Vzbot 235 AWD 0.4 nozzle",
+            "sub_path": "machine/Vzbot 235 AWD 0.4 nozzle.json"
+        },
+        {
+            "name": "Vzbot 330 AWD 0.4 nozzle",
+            "sub_path": "machine/Vzbot 330 AWD 0.4 nozzle.json"
+        },
+        {
+            "name": "Vzbot 235 AWD 0.5 nozzle",
+            "sub_path": "machine/Vzbot 235 AWD 0.5 nozzle.json"
+        },
+        {
+            "name": "Vzbot 235 AWD 0.6 nozzle",
+            "sub_path": "machine/Vzbot 235 AWD 0.6 nozzle.json"
+        },
+        {
+            "name": "Vzbot 330 AWD 0.5 nozzle",
+            "sub_path": "machine/Vzbot 330 AWD 0.5 nozzle.json"
+        },
+        {
+            "name": "Vzbot 330 AWD 0.6 nozzle",
+            "sub_path": "machine/Vzbot 330 AWD 0.6 nozzle.json"
+        }
+    ]
+}

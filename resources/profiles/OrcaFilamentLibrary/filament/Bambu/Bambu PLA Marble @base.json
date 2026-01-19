@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Marble @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFA07",
+    "instantiation": "false",
+    "filament_cost": [
+        "29.99"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ]
+}

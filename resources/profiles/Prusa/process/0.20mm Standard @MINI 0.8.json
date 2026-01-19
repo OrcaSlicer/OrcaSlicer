@@ -1,0 +1,25 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @MINI 0.8",
+    "inherits": "fdm_process_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "initial_layer_speed": "20",
+    "initial_layer_infill_speed": "25",
+    "gap_infill_speed": "40",
+    "bridge_speed": "25",
+    "default_jerk": "8",
+    "initial_layer_acceleration": "700",
+    "inner_wall_speed": "50",
+    "internal_solid_infill_speed": "140",
+    "outer_wall_speed": "40",
+    "overhang_2_4_speed": "30",
+    "print_settings_id": "MINI - Copy",
+    "sparse_infill_speed": "140",
+    "top_surface_speed": "40",
+    "travel_speed": "150",
+    "compatible_printers": [
+        "Prusa MINI 0.8 nozzle"
+    ]
+}

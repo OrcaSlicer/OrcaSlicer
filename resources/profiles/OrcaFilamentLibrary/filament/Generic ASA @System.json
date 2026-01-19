@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "Generic ASA @System",
+    "renamed_from": "My Generic ASA",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "setting_id": "OGFSA04",
+    "filament_id": "OGFB98",
+    "instantiation": "true",
+    "compatible_printers": []
+}

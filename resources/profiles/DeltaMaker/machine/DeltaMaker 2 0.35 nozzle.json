@@ -1,0 +1,27 @@
+{
+    "type": "machine",
+    "name": "DeltaMaker 2 0.35 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "DeltaMaker 2",
+    "default_print_profile": "0.18mm Standard @DeltaMaker",
+    "nozzle_diameter": [
+        "0.35"
+    ],
+    "printer_variant": "0.35",
+    "printable_height": "260",
+    "printable_area": [
+        "-69x-120",
+        "-138x0",
+        "-69x120",
+        "69x120",
+        "138x0",
+        "69x-120"
+    ],
+    "default_filament_profile": [
+        "DeltaMaker Brand PLA",
+        "DeltaMaker Generic PLA"
+    ]
+}

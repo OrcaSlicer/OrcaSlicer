@@ -1,0 +1,96 @@
+{
+    "type": "process",
+    "name": "0.12mm Fine @BBL H2DP",
+    "inherits": "fdm_process_dual_0.12_nozzle_0.4",
+    "from": "system",
+    "setting_id": "GP127",
+    "instantiation": "true",
+    "bottom_shell_layers": "7",
+    "default_acceleration": [
+        "4000",
+        "4000",
+        "4000",
+        "4000"
+    ],
+    "gap_infill_speed": [
+        "50",
+        "50",
+        "50",
+        "50"
+    ],
+    "initial_layer_speed": [
+        "40",
+        "40",
+        "40",
+        "40"
+    ],
+    "inner_wall_speed": [
+        "120",
+        "120",
+        "120",
+        "120"
+    ],
+    "internal_solid_infill_speed": [
+        "150",
+        "150",
+        "150",
+        "150"
+    ],
+    "initial_layer_infill_speed": [
+        "70",
+        "70",
+        "70",
+        "70"
+    ],
+    "outer_wall_speed": [
+        "60",
+        "60",
+        "60",
+        "60"
+    ],
+    "outer_wall_acceleration": [
+        "2000",
+        "2000",
+        "2000",
+        "2000"
+    ],
+    "overhang_1_4_speed": [
+        "60",
+        "60",
+        "60",
+        "60"
+    ],
+    "overhang_2_4_speed": [
+        "30",
+        "30",
+        "30",
+        "30"
+    ],
+    "overhang_3_4_speed": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "prime_tower_width": "60",
+    "prime_tower_brim_width": "-1",
+    "sparse_infill_pattern": "gyroid",
+    "sparse_infill_speed": [
+        "100",
+        "100",
+        "100",
+        "100"
+    ],
+    "top_shell_layers": "9",
+    "top_color_penetration_layers": "7",
+    "top_shell_thickness": "0.8",
+    "top_surface_speed": [
+        "150",
+        "150",
+        "150",
+        "150"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D Pro 0.4 nozzle"
+    ]
+}

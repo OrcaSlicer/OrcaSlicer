@@ -1,0 +1,24 @@
+{
+    "type": "process",
+    "name": "0.14mm Extra Draft @BBL A1M 0.2 nozzle",
+    "inherits": "fdm_process_single_0.14_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP053",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.2 mm nozzle, it has a bigger layer height, and results in slightly visible layer lines, but shorter printing time.",
+    "default_acceleration": [
+        "6000"
+    ],
+    "initial_layer_speed": [
+        "16"
+    ],
+    "initial_layer_infill_speed": [
+        "28"
+    ],
+    "travel_speed": [
+        "700"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.2 nozzle"
+    ]
+}

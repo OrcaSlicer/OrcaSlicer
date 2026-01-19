@@ -1,0 +1,6 @@
+#add_subdirectory(slasupporttree)
+#add_subdirectory(openvdb)
+# add_subdirectory(meshboolean)
+add_subdirectory(its_neighbor_index)
+# add_subdirectory(opencsg)
+#add_subdirectory(aabb-evaluation)

@@ -1,0 +1,26 @@
+{
+    "type": "process",
+    "name": "fdm_process_voron_common_0_6",
+    "inherits": "fdm_process_voron_common",
+    "from": "system",
+    "instantiation": "false",
+    "initial_layer_line_width": "0.62",
+    "initial_layer_print_height": "0.3",
+    "outer_wall_line_width": "0.62",
+    "line_width": "0.62",
+    "sparse_infill_line_width": "0.62",
+    "inner_wall_line_width": "0.62",
+    "internal_solid_infill_line_width": "0.62",
+    "support_line_width": "0.62",
+    "top_surface_line_width": "0.62",
+    "compatible_printers": [
+        "Voron 0.1 0.6 nozzle",
+        "Voron 2.4 250 0.6 nozzle",
+        "Voron 2.4 300 0.6 nozzle",
+        "Voron 2.4 350 0.6 nozzle",
+        "Voron Trident 250 0.6 nozzle",
+        "Voron Trident 300 0.6 nozzle",
+        "Voron Trident 350 0.6 nozzle",
+        "Voron Switchwire 250 0.6 nozzle"
+    ]
+}

@@ -1,0 +1,49 @@
+{
+    "type": "filament",
+    "name": "QIDI PLA Rapido Metal@Q2-Series",
+    "inherits": "fdm_filament_q_common",
+    "from": "system",
+    "setting_id": "GFSL99",
+    "filament_id": "QD_1_1_3",
+    "instantiation": "false",
+    "filament_type": [
+        "PLA"
+    ],
+    "additional_cooling_fan_speed": [
+        "100"
+    ],
+    "filament_adhesiveness_category": [
+        "100"
+    ],
+    "filament_density": [
+        "1.20"
+    ],
+    "impact_strength_z": [
+        "16.8"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
+    ],
+    "nozzle_temperature_range_low": [
+        "190"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "45"
+    ],
+    "supertack_plate_temp": [
+        "45"
+    ],
+    "temperature_vitrification": [
+        "45"
+    ],
+    "compatible_printers": []
+}

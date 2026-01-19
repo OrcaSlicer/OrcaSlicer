@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Artillery Sidewinder X3 Plus",
+    "model_id": "Artillery-Sidewinder-X3-Plus",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Artillery",
+    "bed_model": "artillery_sidewinderx3plus_buildplate_model.stl",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "Artillery PLA Basic;Artillery PLA Matte;Artillery PLA Silk;Artillery PLA Tough;Artillery PETG;Artillery TPU;Artillery ABS;"
+}

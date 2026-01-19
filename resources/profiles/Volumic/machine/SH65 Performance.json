@@ -1,0 +1,10 @@
+{
+    "type": "machine_model",
+    "name": "SH65 Performance",
+    "model_id": "V650300K",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "VOLUMIC",
+    "bed_model": "SH65_bed.STL",
+    "default_materials": "Volumic PLA Ultra"
+}

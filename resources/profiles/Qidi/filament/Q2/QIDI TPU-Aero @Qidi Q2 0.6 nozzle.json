@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "QIDI TPU-Aero @Qidi Q2 0.6 nozzle",
+    "inherits": "QIDI TPU-Aero@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSR98",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q2 0.6 nozzle"
+    ]
+}

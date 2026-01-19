@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Generic PHA @base",
+    "inherits": "fdm_filament_pha",
+    "from": "system",
+    "filament_id": "GFR98",
+    "instantiation": "false"
+}

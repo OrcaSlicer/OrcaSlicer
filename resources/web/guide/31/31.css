@@ -1,0 +1,40 @@
+
+#PolicyTxt
+{
+	background-color: #EBEBEB;
+	padding: 12px;
+	word-wrap:break-word;
+	overflow-y: scroll;
+	min-height: 200px;
+	text-indent: 2em;
+}
+
+#PolicyTxt::-webkit-scrollbar {/*滚动条整体样式*/
+    width: 5px;     /*高宽分别对应横竖滚动条的尺寸*/
+    height: 1px;
+}
+
+#PolicyTxt::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    border-radius: 10px;
+    -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+	box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+    background-color: #AAAAAA;
+}
+
+#PolicyTxt::-webkit-scrollbar-track {/*滚动条里面轨道*/
+        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+	    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        border-radius: 10px;
+        background: #EDEDED;
+}
+
+#C_List li
+{
+	margin-left: 4em;
+}
+
+p
+{ 
+	text-indent:2em;
+	margin-bottom: 2px;
+}

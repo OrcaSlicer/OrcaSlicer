@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PETG @MK4S HF0.6",
+    "inherits": "Prusa Generic PETG @MK4S HF0.4",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Generic PETG @MK4S HF0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S HF0.6 nozzle"
+    ],
+    "fan_cooling_layer_time": "22",
+    "filament_max_volumetric_speed": [
+        "33"
+    ],
+    "nozzle_temperature": "240",
+    "nozzle_temperature_initial_layer": "230",
+    "overhang_fan_speed": "45",
+    "slow_down_layer_time": "10"
+}

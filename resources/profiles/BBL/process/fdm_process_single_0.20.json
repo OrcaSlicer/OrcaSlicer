@@ -1,0 +1,33 @@
+{
+    "type": "process",
+    "name": "fdm_process_single_0.20",
+    "inherits": "fdm_process_single_common",
+    "from": "system",
+    "instantiation": "false",
+    "bridge_flow": "1",
+    "elefant_foot_compensation": "0.15",
+    "gap_infill_speed": [
+        "250"
+    ],
+    "initial_layer_infill_speed": [
+        "105"
+    ],
+    "initial_layer_speed": [
+        "50"
+    ],
+    "inner_wall_speed": [
+        "300"
+    ],
+    "internal_solid_infill_speed": [
+        "250"
+    ],
+    "outer_wall_speed": [
+        "200"
+    ],
+    "sparse_infill_speed": [
+        "270"
+    ],
+    "top_shell_layers": "5",
+    "top_color_penetration_layers": "5",
+    "top_shell_thickness": "1.0"
+}

@@ -1,0 +1,118 @@
+{
+    "type": "filament",
+    "name": "Artillery ASA @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
+    "instantiation": "true",
+    "chamber_temperature": [
+        "55"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "0"
+    ],
+    "fan_cooling_layer_time": [
+        "40"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_retract_lift_below": [
+        "259"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "filament_settings_id": [
+        "Artillery ASA @Artillery M1 Pro 0.4 nozzle"
+    ],
+    "filament_type": [
+        "ASA"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature": [
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "compatible_printers": [
+        "Artillery M1 Pro 0.4 nozzle"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "filament_retraction_speed": [
+        "nil"
+    ],
+    "filament_start_gcode": [
+        ""
+    ],
+    "filament_vendor": [
+        "Artillery"
+    ],
+    "filament_z_hop": [
+        "0.4"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "nozzle_temperature_range_high": [
+        "280"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ],
+    "temperature_vitrification": [
+        "110"
+    ],
+    "overhang_fan_threshold": [
+        "10%"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.064"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ],
+    "cool_plate_temp": [
+        "100"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "100"
+    ],
+    "version": "2.1.2.2"
+
+}

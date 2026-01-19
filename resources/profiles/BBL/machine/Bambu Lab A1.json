@@ -1,0 +1,13 @@
+{
+    "type": "machine_model",
+    "name": "Bambu Lab A1",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "url": "http://www.bambulab.com/Parameters/printer_model/Bambu Lab X1.json",
+    "bed_model": "bbl-3dp-X1.stl",
+    "bed_texture": "bbl-3dp-logo.svg",
+    "default_bed_type": "Textured PEI Plate",
+    "family": "BBL-3DP",
+    "machine_tech": "FFF",
+    "model_id": "N2S",
+    "default_materials": "Bambu PLA Matte @BBL A1;Bambu PLA Basic @BBL A1;Bambu PLA Silk @BBL A1;Bambu Support For PA/PET @BBL A1;Bambu ABS @BBL A1;Bambu TPU 95A @BBL A1;Bambu PLA Tough @BBL A1;Generic PLA @BBL A1;Generic PLA High Speed @BBL A1;Generic PETG @BBL A1;Generic PVA @BBL A1;Bambu PETG HF @BBL A1"
+}

@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Dynamic @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFA13",
+    "instantiation": "false",
+    "filament_cost": [
+        "31.99"
+    ],
+    "filament_density": [
+        "1.26"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ]
+}

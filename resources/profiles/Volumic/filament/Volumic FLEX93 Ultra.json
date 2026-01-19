@@ -1,0 +1,43 @@
+{
+    "type": "filament",
+    "name": "Volumic FLEX93 Ultra",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSR99",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1.20"
+    ],
+    "nozzle_temperature": [
+        "235"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "80"
+    ],
+    "filament_max_volumetric_speed": [
+        "5"
+    ],
+    "compatible_printers": [
+        "EXO42 (0.4 nozzle)",
+        "EXO65 (0.6 nozzle)",
+        "SH65 (0.4 nozzle)",
+        "VS30MK3 (0.4 nozzle)",
+        "VS30SC2 (0.4 nozzle)",
+        "VS30SC (0.4 nozzle)",
+        "VS30ULTRA (0.4 nozzle)",
+        "VS30MK2 (0.4 nozzle)",
+        "VS20MK2 (0.4 nozzle)",
+        "EXO42 Stage 2 (0.4 nozzle)",
+        "EXO65 Stage 2 (0.6 nozzle)",
+        "SH65 Stage 2 (0.4 nozzle)",
+        "VS30SC2 Stage 2 (0.4 nozzle)",
+        "VS30MK3 Stage 2 (0.4 nozzle)"
+    ]
+}

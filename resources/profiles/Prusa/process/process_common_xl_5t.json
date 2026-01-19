@@ -1,0 +1,16 @@
+{
+    "type": "process",
+    "name": "process_common_xl_5t",
+    "inherits": "process_common_xl",
+    "from": "system",
+    "instantiation": "false",
+    "enable_prime_tower": "1",
+    "wipe_tower_cone_angle": "25",
+    "wipe_tower_extra_spacing": "150%",
+    "wipe_tower_rotation_angle": "90",
+    "single_extruder_multi_material_priming": "0",
+    "ooze_prevention": "1",
+    "standby_temperature_delta": "-40",
+    "preheat_time": "120",
+    "preheat_steps": "10"
+}

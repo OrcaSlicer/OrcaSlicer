@@ -1,0 +1,57 @@
+{
+    "name": "Tronxy",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "Tronxy configurations",
+    "machine_model_list": [
+        {
+            "name": "Tronxy X5SA 400 Marlin Firmware",
+            "sub_path": "machine/Tronxy X5SA 400 Marlin Firmware.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @Tronxy",
+            "sub_path": "process/0.08mm Extra Fine @Tronxy.json"
+        },
+        {
+            "name": "0.12mm Fine @Tronxy",
+            "sub_path": "process/0.12mm Fine @Tronxy.json"
+        },
+        {
+            "name": "0.15mm Optimal @Tronxy",
+            "sub_path": "process/0.15mm Optimal @Tronxy.json"
+        },
+        {
+            "name": "0.20mm Standard @Tronxy",
+            "sub_path": "process/0.20mm Standard @Tronxy.json"
+        },
+        {
+            "name": "0.24mm Draft @Tronxy",
+            "sub_path": "process/0.24mm Draft @Tronxy.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Tronxy",
+            "sub_path": "process/0.28mm Extra Draft @Tronxy.json"
+        },
+        {
+            "name": "fdm_process_tronxy_common",
+            "sub_path": "process/fdm_process_tronxy_common.json"
+        }
+    ],
+    "filament_list": [],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "Tronxy X5SA 400 0.4 nozzle",
+            "sub_path": "machine/Tronxy X5SA 400 0.4 nozzle.json"
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Galaxy @System",
+    "inherits": "Panchroma PLA Galaxy @base",
+    "from": "system",
+    "setting_id": "OGFSPM007",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

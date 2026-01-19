@@ -1,0 +1,712 @@
+{
+    "name": "Tiertime",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "Tiertime configurations",
+    "machine_model_list": [
+        {
+            "name": "Tiertime UP400 Pro",
+            "sub_path": "machine/Tiertime UP400 Pro.json"
+        },
+        {
+            "name": "Tiertime UP310 Pro",
+            "sub_path": "machine/Tiertime UP310 Pro.json"
+        },
+        {
+            "name": "Tiertime UP300 HS",
+            "sub_path": "machine/Tiertime UP300 HS.json"
+        },
+        {
+            "name": "Tiertime UP600 HS",
+            "sub_path": "machine/Tiertime UP600 HS.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_tiertime_common",
+            "sub_path": "process/fdm_process_tiertime_common.json"
+        },
+        {
+            "name": "fdm_process_tiertime_HS_common",
+            "sub_path": "process/fdm_process_tiertime_HS_common.json"
+        },
+        {
+            "name": "0.12mm Fine @Tiertime UP400 Pro",
+            "sub_path": "process/0.12mm Fine @Tiertime UP400 Pro.json"
+        },
+        {
+            "name": "0.16mm Optimal @Tiertime UP400 Pro",
+            "sub_path": "process/0.16mm Optimal @Tiertime UP400 Pro.json"
+        },
+        {
+            "name": "0.20mm Standard @Tiertime UP400 Pro",
+            "sub_path": "process/0.20mm Standard @Tiertime UP400 Pro.json"
+        },
+        {
+            "name": "0.24mm Draft @Tiertime UP400 Pro",
+            "sub_path": "process/0.24mm Draft @Tiertime UP400 Pro.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Tiertime UP400 Pro",
+            "sub_path": "process/0.28mm Extra Draft @Tiertime UP400 Pro.json"
+        },
+        {
+            "name": "0.12mm Fine @Tiertime UP310 Pro",
+            "sub_path": "process/0.12mm Fine @Tiertime UP310 Pro.json"
+        },
+        {
+            "name": "0.16mm Optimal @Tiertime UP310 Pro",
+            "sub_path": "process/0.16mm Optimal @Tiertime UP310 Pro.json"
+        },
+        {
+            "name": "0.20mm Standard @Tiertime UP310 Pro",
+            "sub_path": "process/0.20mm Standard @Tiertime UP310 Pro.json"
+        },
+        {
+            "name": "0.24mm Draft @Tiertime UP310 Pro",
+            "sub_path": "process/0.24mm Draft @Tiertime UP310 Pro.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Tiertime UP310 Pro",
+            "sub_path": "process/0.28mm Extra Draft @Tiertime UP310 Pro.json"
+        },
+        {
+            "name": "0.12mm Fine @Tiertime UP300 HS",
+            "sub_path": "process/0.12mm Fine @Tiertime UP300 HS.json"
+        },
+        {
+            "name": "0.16mm Optimal @Tiertime UP300 HS",
+            "sub_path": "process/0.16mm Optimal @Tiertime UP300 HS.json"
+        },
+        {
+            "name": "0.20mm Standard @Tiertime UP300 HS",
+            "sub_path": "process/0.20mm Standard @Tiertime UP300 HS.json"
+        },
+        {
+            "name": "0.24mm Draft @Tiertime UP300 HS",
+            "sub_path": "process/0.24mm Draft @Tiertime UP300 HS.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Tiertime UP300 HS",
+            "sub_path": "process/0.28mm Extra Draft @Tiertime UP300 HS.json"
+        },
+        {
+            "name": "0.12mm Fine @Tiertime UP600 HS",
+            "sub_path": "process/0.12mm Fine @Tiertime UP600 HS.json"
+        },
+        {
+            "name": "0.16mm Optimal @Tiertime UP600 HS",
+            "sub_path": "process/0.16mm Optimal @Tiertime UP600 HS.json"
+        },
+        {
+            "name": "0.20mm Standard @Tiertime UP600 HS",
+            "sub_path": "process/0.20mm Standard @Tiertime UP600 HS.json"
+        },
+        {
+            "name": "0.24mm Draft @Tiertime UP600 HS",
+            "sub_path": "process/0.24mm Draft @Tiertime UP600 HS.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @Tiertime UP600 HS",
+            "sub_path": "process/0.28mm Extra Draft @Tiertime UP600 HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.18_nozzle_0.6",
+            "sub_path": "process/fdm_process_tiertime_0.18_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.24_nozzle_0.6",
+            "sub_path": "process/fdm_process_tiertime_0.24_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.30_nozzle_0.6",
+            "sub_path": "process/fdm_process_tiertime_0.30_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.36_nozzle_0.6",
+            "sub_path": "process/fdm_process_tiertime_0.36_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.42_nozzle_0.6",
+            "sub_path": "process/fdm_process_tiertime_0.42_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.24_nozzle_0.8",
+            "sub_path": "process/fdm_process_tiertime_0.24_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.32_nozzle_0.8",
+            "sub_path": "process/fdm_process_tiertime_0.32_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.40_nozzle_0.8",
+            "sub_path": "process/fdm_process_tiertime_0.40_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.48_nozzle_0.8",
+            "sub_path": "process/fdm_process_tiertime_0.48_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.56_nozzle_0.8",
+            "sub_path": "process/fdm_process_tiertime_0.56_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.18_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_tiertime_0.18_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.24_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_tiertime_0.24_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.30_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_tiertime_0.30_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.36_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_tiertime_0.36_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.42_nozzle_0.6_HS",
+            "sub_path": "process/fdm_process_tiertime_0.42_nozzle_0.6_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.24_nozzle_0.8_HS",
+            "sub_path": "process/fdm_process_tiertime_0.24_nozzle_0.8_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.32_nozzle_0.8_HS",
+            "sub_path": "process/fdm_process_tiertime_0.32_nozzle_0.8_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.40_nozzle_0.8_HS",
+            "sub_path": "process/fdm_process_tiertime_0.40_nozzle_0.8_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.48_nozzle_0.8_HS",
+            "sub_path": "process/fdm_process_tiertime_0.48_nozzle_0.8_HS.json"
+        },
+        {
+            "name": "fdm_process_tiertime_0.56_nozzle_0.8_HS",
+            "sub_path": "process/fdm_process_tiertime_0.56_nozzle_0.8_HS.json"
+        },
+        {
+            "name": "0.18mm Fine @Tiertime UP400 Pro 0.6 nozzle",
+            "sub_path": "process/0.18mm Fine @Tiertime UP400 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Tiertime UP400 Pro 0.6 nozzle",
+            "sub_path": "process/0.24mm Standard @Tiertime UP400 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @Tiertime UP400 Pro 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @Tiertime UP400 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Strength @Tiertime UP400 Pro 0.6 nozzle",
+            "sub_path": "process/0.30mm Strength @Tiertime UP400 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "0.36mm Draft @Tiertime UP400 Pro 0.6 nozzle",
+            "sub_path": "process/0.36mm Draft @Tiertime UP400 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "0.42mm Extra Draft @Tiertime UP400 Pro 0.6 nozzle",
+            "sub_path": "process/0.42mm Extra Draft @Tiertime UP400 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "0.18mm Fine @Tiertime UP600 HS 0.6 nozzle",
+            "sub_path": "process/0.18mm Fine @Tiertime UP600 HS 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Standard @Tiertime UP600 HS 0.6 nozzle",
+            "sub_path": "process/0.24mm Standard @Tiertime UP600 HS 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @Tiertime UP600 HS 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @Tiertime UP600 HS 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Strength @Tiertime UP600 HS 0.6 nozzle",
+            "sub_path": "process/0.30mm Strength @Tiertime UP600 HS 0.6 nozzle.json"
+        },
+        {
+            "name": "0.36mm Draft @Tiertime UP600 HS 0.6 nozzle",
+            "sub_path": "process/0.36mm Draft @Tiertime UP600 HS 0.6 nozzle.json"
+        },
+        {
+            "name": "0.42mm Extra Draft @Tiertime UP600 HS 0.6 nozzle",
+            "sub_path": "process/0.42mm Extra Draft @Tiertime UP600 HS 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Fine @Tiertime UP400 Pro 0.8 nozzle",
+            "sub_path": "process/0.24mm Fine @Tiertime UP400 Pro 0.8 nozzle.json"
+        },
+        {
+            "name": "0.32mm Standard @Tiertime UP400 Pro 0.8 nozzle",
+            "sub_path": "process/0.32mm Standard @Tiertime UP400 Pro 0.8 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @Tiertime UP400 Pro 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @Tiertime UP400 Pro 0.8 nozzle.json"
+        },
+        {
+            "name": "0.48mm Draft @Tiertime UP400 Pro 0.8 nozzle",
+            "sub_path": "process/0.48mm Draft @Tiertime UP400 Pro 0.8 nozzle.json"
+        },
+        {
+            "name": "0.56mm Extra Draft @Tiertime UP400 Pro 0.8 nozzle",
+            "sub_path": "process/0.56mm Extra Draft @Tiertime UP400 Pro 0.8 nozzle.json"
+        },
+        {
+            "name": "0.24mm Fine @Tiertime UP600 HS 0.8 nozzle",
+            "sub_path": "process/0.24mm Fine @Tiertime UP600 HS 0.8 nozzle.json"
+        },
+        {
+            "name": "0.32mm Standard @Tiertime UP600 HS 0.8 nozzle",
+            "sub_path": "process/0.32mm Standard @Tiertime UP600 HS 0.8 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @Tiertime UP600 HS 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @Tiertime UP600 HS 0.8 nozzle.json"
+        },
+        {
+            "name": "0.48mm Draft @Tiertime UP600 HS 0.8 nozzle",
+            "sub_path": "process/0.48mm Draft @Tiertime UP600 HS 0.8 nozzle.json"
+        },
+        {
+            "name": "0.56mm Extra Draft @Tiertime UP600 HS 0.8 nozzle",
+            "sub_path": "process/0.56mm Extra Draft @Tiertime UP600 HS 0.8 nozzle.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_pctg",
+            "sub_path": "filament/fdm_filament_pctg.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_hips",
+            "sub_path": "filament/fdm_filament_hips.json"
+        },
+        {
+            "name": "fdm_filament_pps",
+            "sub_path": "filament/fdm_filament_pps.json"
+        },
+        {
+            "name": "fdm_filament_ppa",
+            "sub_path": "filament/fdm_filament_ppa.json"
+        },
+        {
+            "name": "fdm_filament_pe",
+            "sub_path": "filament/fdm_filament_pe.json"
+        },
+        {
+            "name": "fdm_filament_pp",
+            "sub_path": "filament/fdm_filament_pp.json"
+        },
+        {
+            "name": "fdm_filament_eva",
+            "sub_path": "filament/fdm_filament_eva.json"
+        },
+        {
+            "name": "fdm_filament_pha",
+            "sub_path": "filament/fdm_filament_pha.json"
+        },
+        {
+            "name": "fdm_filament_bvoh",
+            "sub_path": "filament/fdm_filament_bvoh.json"
+        },
+        {
+          "name": "fdm_filament_sbs",
+          "sub_path": "filament/fdm_filament_sbs.json"
+        },
+        {
+            "name": "Tiertime PLA",
+            "sub_path": "filament/Tiertime PLA.json"
+        },
+        {
+            "name": "Tiertime ABS",
+            "sub_path": "filament/Tiertime ABS.json"
+        },
+        {
+            "name": "Tiertime ASA",
+            "sub_path": "filament/Tiertime ASA.json"
+        },
+        {
+            "name": "Tiertime PA6-CF",
+            "sub_path": "filament/Tiertime PA6-CF.json"
+        },
+        {
+            "name": "Tiertime PC",
+            "sub_path": "filament/Tiertime PC.json"
+        },
+        {
+            "name": "Tiertime PET-CF",
+            "sub_path": "filament/Tiertime PET-CF.json"
+        },
+        {
+            "name": "Tiertime PETG",
+            "sub_path": "filament/Tiertime PETG.json"
+        },
+        {
+            "name": "Tiertime PLA-CF",
+            "sub_path": "filament/Tiertime PLA-CF.json"
+        },
+        {
+            "name": "Tiertime PVA",
+            "sub_path": "filament/Tiertime PVA.json"
+        },
+        {
+            "name": "Tiertime TPU 95A",
+            "sub_path": "filament/Tiertime TPU 95A.json"
+        },
+        {
+            "name": "Tiertime PLA@300HS",
+            "sub_path": "filament/Tiertime PLA@300HS.json"
+        },
+        {
+            "name": "Tiertime ABS@300HS",
+            "sub_path": "filament/Tiertime ABS@300HS.json"
+        },
+        {
+            "name": "Tiertime ASA@300HS",
+            "sub_path": "filament/Tiertime ASA@300HS.json"
+        },
+        {
+            "name": "Tiertime PA6-CF@300HS",
+            "sub_path": "filament/Tiertime PA6-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime PC@300HS",
+            "sub_path": "filament/Tiertime PC@300HS.json"
+        },
+        {
+            "name": "Tiertime PET-CF@300HS",
+            "sub_path": "filament/Tiertime PET-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime PETG@300HS",
+            "sub_path": "filament/Tiertime PETG@300HS.json"
+        },
+        {
+            "name": "Tiertime PLA-CF@300HS",
+            "sub_path": "filament/Tiertime PLA-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime PVA@300HS",
+            "sub_path": "filament/Tiertime PVA@300HS.json"
+        },
+        {
+            "name": "Tiertime TPU 95A@300HS",
+            "sub_path": "filament/Tiertime TPU 95A@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic ABS",
+            "sub_path": "filament/Tiertime Generic ABS.json"
+        },
+        {
+            "name": "Tiertime Generic ASA",
+            "sub_path": "filament/Tiertime Generic ASA.json"
+        },
+        {
+            "name": "Tiertime Generic BVOH",
+            "sub_path": "filament/Tiertime Generic BVOH.json"
+        },
+        {
+            "name": "Tiertime Generic EVA",
+            "sub_path": "filament/Tiertime Generic EVA.json"
+        },
+        {
+            "name": "Tiertime Generic HIPS",
+            "sub_path": "filament/Tiertime Generic HIPS.json"
+        },
+        {
+            "name": "Tiertime Generic PA-CF",
+            "sub_path": "filament/Tiertime Generic PA-CF.json"
+        },
+        {
+            "name": "Tiertime Generic PA",
+            "sub_path": "filament/Tiertime Generic PA.json"
+        },
+        {
+            "name": "Tiertime Generic PC",
+            "sub_path": "filament/Tiertime Generic PC.json"
+        },
+        {
+            "name": "Tiertime Generic PCTG",
+            "sub_path": "filament/Tiertime Generic PCTG.json"
+        },
+        {
+            "name": "Tiertime Generic PE-CF",
+            "sub_path": "filament/Tiertime Generic PE-CF.json"
+        },
+        {
+            "name": "Tiertime Generic PE",
+            "sub_path": "filament/Tiertime Generic PE.json"
+        },
+        {
+            "name": "Tiertime Generic PETG",
+            "sub_path": "filament/Tiertime Generic PETG.json"
+        },
+        {
+            "name": "Tiertime Generic PETG-CF",
+            "sub_path": "filament/Tiertime Generic PETG-CF.json"
+        },
+        {
+            "name": "Tiertime Generic PHA",
+            "sub_path": "filament/Tiertime Generic PHA.json"
+        },
+        {
+            "name": "Tiertime Generic PLA High Speed",
+            "sub_path": "filament/Tiertime Generic PLA High Speed.json"
+        },
+        {
+            "name": "Tiertime Generic PLA Silk",
+            "sub_path": "filament/Tiertime Generic PLA Silk.json"
+        },
+        {
+            "name": "Tiertime Generic PLA-CF",
+            "sub_path": "filament/Tiertime Generic PLA-CF.json"
+        },
+        {
+            "name": "Tiertime Generic PLA",
+            "sub_path": "filament/Tiertime Generic PLA.json"
+        },
+        {
+            "name": "Tiertime Generic PP-CF",
+            "sub_path": "filament/Tiertime Generic PP-CF.json"
+        },
+        {
+            "name": "Tiertime Generic PP-GF",
+            "sub_path": "filament/Tiertime Generic PP-GF.json"
+        },
+        {
+            "name": "Tiertime Generic PP",
+            "sub_path": "filament/Tiertime Generic PP.json"
+        },
+        {
+            "name": "Tiertime Generic PPA-CF",
+            "sub_path": "filament/Tiertime Generic PPA-CF.json"
+        },
+        {
+            "name": "Tiertime Generic PPA-GF",
+            "sub_path": "filament/Tiertime Generic PPA-GF.json"
+        },
+        {
+            "name": "Tiertime Generic PPS-CF",
+            "sub_path": "filament/Tiertime Generic PPS-CF.json"
+        },
+        {
+            "name": "Tiertime Generic PPS",
+            "sub_path": "filament/Tiertime Generic PPS.json"
+        },
+        {
+            "name": "Tiertime Generic PVA",
+            "sub_path": "filament/Tiertime Generic PVA.json"
+        },
+        {
+            "name": "Tiertime Generic SBS",
+            "sub_path": "filament/Tiertime Generic SBS.json"
+        }
+        ,
+        {
+            "name": "Tiertime Generic TPU",
+            "sub_path": "filament/Tiertime Generic TPU.json"
+        },
+        {
+            "name": "Tiertime Generic ABS@300HS",
+            "sub_path": "filament/Tiertime Generic ABS@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic ASA@300HS",
+            "sub_path": "filament/Tiertime Generic ASA@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic BVOH@300HS",
+            "sub_path": "filament/Tiertime Generic BVOH@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic EVA@300HS",
+            "sub_path": "filament/Tiertime Generic EVA@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic HIPS@300HS",
+            "sub_path": "filament/Tiertime Generic HIPS@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PA-CF@300HS",
+            "sub_path": "filament/Tiertime Generic PA-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PA@300HS",
+            "sub_path": "filament/Tiertime Generic PA@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PC@300HS",
+            "sub_path": "filament/Tiertime Generic PC@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PCTG@300HS",
+            "sub_path": "filament/Tiertime Generic PCTG@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PE-CF@300HS",
+            "sub_path": "filament/Tiertime Generic PE-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PE@300HS",
+            "sub_path": "filament/Tiertime Generic PE@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PETG@300HS",
+            "sub_path": "filament/Tiertime Generic PETG@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PETG-CF@300HS",
+            "sub_path": "filament/Tiertime Generic PETG-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PHA@300HS",
+            "sub_path": "filament/Tiertime Generic PHA@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PLA High Speed@300HS",
+            "sub_path": "filament/Tiertime Generic PLA High Speed@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PLA Silk@300HS",
+            "sub_path": "filament/Tiertime Generic PLA Silk@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PLA-CF@300HS",
+            "sub_path": "filament/Tiertime Generic PLA-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PLA@300HS",
+            "sub_path": "filament/Tiertime Generic PLA@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PP-CF@300HS",
+            "sub_path": "filament/Tiertime Generic PP-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PP-GF@300HS",
+            "sub_path": "filament/Tiertime Generic PP-GF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PP@300HS",
+            "sub_path": "filament/Tiertime Generic PP@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PPA-CF@300HS",
+            "sub_path": "filament/Tiertime Generic PPA-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PPA-GF@300HS",
+            "sub_path": "filament/Tiertime Generic PPA-GF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PPS-CF@300HS",
+            "sub_path": "filament/Tiertime Generic PPS-CF@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PPS@300HS",
+            "sub_path": "filament/Tiertime Generic PPS@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic PVA@300HS",
+            "sub_path": "filament/Tiertime Generic PVA@300HS.json"
+        },
+        {
+            "name": "Tiertime Generic SBS@300HS",
+            "sub_path": "filament/Tiertime Generic SBS@300HS.json"
+        }
+        ,
+        {
+            "name": "Tiertime Generic TPU@300HS",
+            "sub_path": "filament/Tiertime Generic TPU@300HS.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_tiertime_common",
+            "sub_path": "machine/fdm_tiertime_common.json"
+        },
+        {
+            "name": "Tiertime UP400 Pro 0.4 nozzle",
+            "sub_path": "machine/Tiertime UP400 Pro 0.4 nozzle.json"
+        },
+        {
+            "name": "Tiertime UP310 Pro 0.4 nozzle",
+            "sub_path": "machine/Tiertime UP310 Pro 0.4 nozzle.json"
+        },
+        {
+            "name": "Tiertime UP300 HS 0.4 nozzle",
+            "sub_path": "machine/Tiertime UP300 HS 0.4 nozzle.json"
+        },
+        {
+            "name": "Tiertime UP600 HS 0.4 nozzle",
+            "sub_path": "machine/Tiertime UP600 HS 0.4 nozzle.json"
+        },
+        {
+            "name": "Tiertime UP400 Pro 0.6 nozzle",
+            "sub_path": "machine/Tiertime UP400 Pro 0.6 nozzle.json"
+        },
+        {
+            "name": "Tiertime UP400 Pro 0.8 nozzle",
+            "sub_path": "machine/Tiertime UP400 Pro 0.8 nozzle.json"
+        },
+        {
+            "name": "Tiertime UP600 HS 0.6 nozzle",
+            "sub_path": "machine/Tiertime UP600 HS 0.6 nozzle.json"
+        },
+        {
+            "name": "Tiertime UP600 HS 0.8 nozzle",
+            "sub_path": "machine/Tiertime UP600 HS 0.8 nozzle.json"
+        }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "type": "process",
+    "name": "0.08mm Standard @MK4",
+    "inherits": "process_common_mk4",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "support_top_z_distance": "0.08",
+    "support_bottom_z_distance": "0.08",
+    "layer_height": "0.08",
+    "initial_layer_print_height": "0.2",
+    "compatible_printers": [
+        "Prusa MK4 0.25 nozzle",
+        "Prusa MK4 0.4 nozzle"
+    ]
+}

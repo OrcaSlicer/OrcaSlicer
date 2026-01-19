@@ -1,0 +1,41 @@
+{
+    "type": "machine",
+    "name": "Anker M5C 0.6 nozzle",
+    "inherits": "fdm_marlin_common",
+    "from": "system",
+    "setting_id": "GM012",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "min_layer_height": [
+        "0.15"
+    ],
+    "max_layer_height": [
+        "0.48"
+    ],
+    "printer_model": "Anker M5C",
+    "printer_variant": "0.6",
+    "auxiliary_fan": "0",
+    "bed_exclude_area": [],
+    "default_filament_profile": [
+        "Anker Generic PLA+"
+    ],
+    "default_print_profile": "0.30mm Standard 0.6 nozzle @Anker",
+    "extruder_clearance_height_to_lid": "250",
+    "extruder_clearance_height_to_rod": "30",
+    "extruder_clearance_radius": "45",
+    "printer_structure": "i3",
+    "nozzle_type": "brass",
+    "printable_height": "250",
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "upward_compatible_machine": []
+}

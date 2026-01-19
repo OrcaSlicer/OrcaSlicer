@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Generic PC @Qidi Q2 0.2 nozzle",
+    "inherits": "Generic PC@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.94"
+    ],
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "chamber_temperatures": [
+        "0"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.2 nozzle"
+    ]
+}

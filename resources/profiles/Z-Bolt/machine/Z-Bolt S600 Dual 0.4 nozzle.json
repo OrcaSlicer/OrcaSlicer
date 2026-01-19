@@ -1,0 +1,32 @@
+{
+    "type": "machine",
+    "name": "Z-Bolt S600 Dual 0.4 nozzle",
+    "inherits": "Z-Bolt S600 0.4 nozzle",
+    "from": "system",
+    "setting_id": "GM024",
+    "instantiation": "true",
+    "printer_settings_id": "Z-Bolt",
+    "manual_filament_change": "0",
+    "single_extruder_multi_material": "0",
+    "nozzle_diameter": [
+        "0.4",
+        "0.4"
+    ],
+    "printer_model": "Z-Bolt S600 Dual",
+    "printer_variant": "0.4",
+    "default_print_profile": "0.20mm Standard @Z-Bolt S600",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "change_filament_gcode": "G91\nG1 Z{z_hop[0]} F1000\nG90",
+    "machine_start_gcode": "START_PRINT TOOL_NR=[initial_tool] T_BED=[bed_temperature_initial_layer] T_EXTRUDER=[first_layer_temperature[initial_tool]] T_CHAMBER=[chamber_temperature] {if is_extruder_used[0]}T0_TEMP={first_layer_temperature[0]}{endif} {if is_extruder_used[1]}T1_TEMP={first_layer_temperature[1]}{endif}"
+}

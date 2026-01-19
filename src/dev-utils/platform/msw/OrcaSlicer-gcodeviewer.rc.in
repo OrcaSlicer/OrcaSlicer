@@ -1,0 +1,25 @@
+1 VERSIONINFO
+FILEVERSION @SLIC3R_VERSION@
+PRODUCTVERSION @SLIC3R_VERSION@
+{
+ BLOCK "StringFileInfo"
+ {
+  BLOCK "040904E4"
+  {
+   VALUE "CompanyName", "SoftFever"
+   VALUE "FileDescription", "@SLIC3R_APP_NAME@ G-code Viewer"
+   VALUE "FileVersion", "@SLIC3R_BUILD_ID@"
+   VALUE "ProductName", "@SLIC3R_APP_NAME@ G-code Viewer"
+   VALUE "ProductVersion", "@SLIC3R_BUILD_ID@"
+   VALUE "InternalName", "@SLIC3R_APP_NAME@ G-code Viewer"
+   VALUE "LegalCopyright", ""
+   VALUE "OriginalFilename", "bambu-gcodeviewer.exe"
+  }
+ }
+ BLOCK "VarFileInfo"
+ {
+   VALUE "Translation", 0x409, 1252
+ }
+}
+2 ICON "@SLIC3R_RESOURCES_DIR@/images/OrcaSlicer-gcodeviewer.ico"
+1 24 "OrcaSlicer.manifest" 

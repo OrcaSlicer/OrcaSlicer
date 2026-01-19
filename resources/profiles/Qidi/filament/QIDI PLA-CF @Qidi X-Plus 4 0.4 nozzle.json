@@ -1,0 +1,33 @@
+{
+    "type": "filament",
+    "name": "QIDI PLA-CF @Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "Qidi PLA-CF",
+    "from": "system",
+    "setting_id": "GFSL98",
+    "filament_id": "QD_0_1_5",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.93"
+    ],
+    "first_layer_temperature": [
+        "220"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_settings_id": [
+        "QIDI PLA-CF @Qidi X-Plus 4 0.4 nozzle"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "pressure_advance": [
+        "0.034"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.4 nozzle"
+    ]
+}

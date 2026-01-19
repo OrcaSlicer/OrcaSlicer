@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.36mm Draft @BBL A1M 0.6 nozzle",
+    "inherits": "fdm_process_single_0.36_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP055",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.6 mm nozzle, it has a bigger layer height, and results in more apparent layer lines and lower printing quality, but shorter printing time in some printing cases.",
+    "default_acceleration": [
+        "6000"
+    ],
+    "travel_speed": [
+        "700"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.6 nozzle"
+    ]
+}

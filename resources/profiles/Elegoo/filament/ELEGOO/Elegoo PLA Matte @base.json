@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Elegoo PLA Matte @base",
+    "inherits": "fdm_elegoo_filament_pla",
+    "from": "system",
+    "filament_id": "EPLAMB00",
+    "instantiation": "false",
+    "filament_cost": [
+        "0"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_vendor": [
+        "Elegoo"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

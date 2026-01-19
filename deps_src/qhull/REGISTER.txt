@@ -1,0 +1,32 @@
+Dear Qhull User
+
+We would like to find out how you are using our software.  Think of
+Qhull as a new kind of shareware: you share your science and successes 
+with us, and we share our software and support with you. 
+
+If you use Qhull, please send us a note telling
+us what you are doing with it.
+
+We need to know:
+
+  (1) What you are working on - an abstract of your work would be
+      fine.
+
+  (2) How Qhull has helped you, for example, by increasing your 
+      productivity or allowing you to do things you could not do
+      before.  If Qhull had a direct bearing on your work, please 
+      tell us about this.
+
+We encourage you to cite Qhull in your publications.  
+
+To cite Qhull, please use
+
+        Barber, C.B., Dobkin, D.P., and Huhdanpaa, H.T., "The Quickhull 
+        algorithm for convex hulls," ACM Trans. on Mathematical Software,
+        22(4):469-483, Dec 1996, http://www.qhull.org.
+
+Please send e-mail to
+
+    bradb@shore.net
+
+Thank you!

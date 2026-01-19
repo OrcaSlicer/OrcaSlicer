@@ -1,0 +1,112 @@
+{
+    "type": "machine",
+    "name": "Lulzbot Taz 6 0.5 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "LZ006",
+    "instantiation": "true",
+    "printer_model": "Lulzbot Taz 6",
+    "default_print_profile": "0.25mm Standard @Lulzbot Taz 6",
+    "nozzle_diameter": [
+        "0.5"
+    ],
+    "printable_area": [
+        "0x0",
+        "280x0",
+        "280x280",
+        "0x280"
+    ],
+    "printable_height": "250",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "emit_machine_limits_to_gcode": "0",
+    "machine_max_acceleration_extruding": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000",
+        "1000"
+    ],
+    "machine_max_acceleration_travel": [
+        "1250",
+        "1250"
+    ],
+    "machine_max_acceleration_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_acceleration_z": [
+        "100",
+        "100"
+    ],
+    "machine_max_speed_e": [
+        "60",
+        "60"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "10",
+        "10"
+    ],
+    "machine_max_jerk_e": [
+        "5",
+        "5"
+    ],
+    "machine_max_jerk_x": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_y": [
+        "8",
+        "8"
+    ],
+    "machine_max_jerk_z": [
+        "0.4",
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.4"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "printer_settings_id": "Lulzbot",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "70%"
+    ],
+    "retraction_length": [
+        "5"
+    ],
+    "retract_length_toolchange": [
+        "1"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "single_extruder_multi_material": "1",
+    "default_filament_profile": [
+        "Lulzbot 2.85mm PLA"
+    ],
+    "machine_start_gcode": ";This G-Code has been translated from LulzBot's CuraLE (v4.13.10) startup GCODE for Taz 6 Single Extruder by Wrathernaut\nM73 P0; clear GLCD progress bar\nM75; start GLCD timer\nM107; disable fans\nM420 S; disable leveling matrix\nG90; absolute positioning\nM82; set extruder to absolute mode\nG92 E0; set extruder position to 0\nM140 S{bed_temperature_initial_layer[0]}; start bed heating up (w)\nG28 XY; home X and Y\nG1 X-19 Y258 F1000; move to safe homing position\nM109 {if filament_type[0] == \"PLA\"}R180\n{elsif filament_type[0] == \"ABS\"}R190\n{elsif filament_type[0] == \"ABS-GF\"}R190\n{elsif filament_type[0] == \"ASA\"}R190\n{elsif filament_type[0] == \"ASA-Aero\"}R190\n{elsif filament_type[0] == \"BVOH\"}R170\n{elsif filament_type[0] == \"EVA\"}R170\n{elsif filament_type[0] == \"PA\"}R220\n{elsif filament_type[0] == \"PA-CF\"}R220\n{elsif filament_type[0] == \"PA-GF\"}R220\n{elsif filament_type[0] == \"PA6-CF\"}R220\n{elsif filament_type[0] == \"PA11-CF\"}R220\n{elsif filament_type[0] == \"ASA-Aero\"}R170\n{elsif filament_type[0] == \"PC\"}R220\n{elsif filament_type[0] == \"PC-CF\"}R220\n{elsif filament_type[0] == \"PCTG\"}R180\n{elsif filament_type[0] == \"PE\"}R190\n{elsif filament_type[0] == \"PE-CF\"}R190\n{elsif filament_type[0] == \"PET-CF\"}R190\n{elsif filament_type[0] == \"PETG\"}R190\n{elsif filament_type[0] == \"PETG-CF10\"}R190\n{elsif filament_type[0] == \"PHA\"}R180\n{elsif filament_type[0] == \"PLA-AERO\"}R180\n{elsif filament_type[0] == \"PLA-CF\"}R180\n{elsif filament_type[0] == \"PP\"}R180\n{elsif filament_type[0] == \"PP-CF\"}R180\n{elsif filament_type[0] == \"PP-GF\"}R180\n{elsif filament_type[0] == \"PPS\"}R180\n{elsif filament_type[0] == \"PPS-CF\"}R180\n{elsif filament_type[0] == \"PVA\"}R180\n{elsif filament_type[0] == \"PVB\"}R180\n{elsif filament_type[0] == \"SBS\"}R180\n{elsif filament_type[0] == \"TPU\"}R180\n{elsif filament_type[0] == \"FLEX\"}R180\n{elsif filament_type[0] == \"PET\"}R170\n{elsif filament_type[0] == \"HIPS\"}R170\n{elsif filament_type[0] == \"NYLON\"}R220\n{else}R190; unknown filament type soften temp before homing Z{endif}\nG28 Z; home Z\nG1 E-15 F100; retract filament\nM109 {if filament_type[0] == \"PLA\"}R180\n{elsif filament_type[0] == \"ABS\"}R190\n{elsif filament_type[0] == \"ABS-GF\"}R190\n{elsif filament_type[0] == \"ASA\"}R190\n{elsif filament_type[0] == \"ASA-Aero\"}R190\n{elsif filament_type[0] == \"BVOH\"}R170\n{elsif filament_type[0] == \"EVA\"}R170\n{elsif filament_type[0] == \"PA\"}R220\n{elsif filament_type[0] == \"PA-CF\"}R220\n{elsif filament_type[0] == \"PA-GF\"}R220\n{elsif filament_type[0] == \"PA6-CF\"}R220\n{elsif filament_type[0] == \"PA11-CF\"}R220\n{elsif filament_type[0] == \"ASA-Aero\"}R170\n{elsif filament_type[0] == \"PC\"}R220\n{elsif filament_type[0] == \"PC-CF\"}R220\n{elsif filament_type[0] == \"PCTG\"}R190\n{elsif filament_type[0] == \"PE\"}R190\n{elsif filament_type[0] == \"PE-CF\"}R190\n{elsif filament_type[0] == \"PET-CF\"}R190\n{elsif filament_type[0] == \"PETG\"}R190\n{elsif filament_type[0] == \"PETG-CF10\"}R190\n{elsif filament_type[0] == \"PHA\"}R180\n{elsif filament_type[0] == \"PLA-AERO\"}R180\n{elsif filament_type[0] == \"PLA-CF\"}R180\n{elsif filament_type[0] == \"PP\"}R180\n{elsif filament_type[0] == \"PP-CF\"}R180\n{elsif filament_type[0] == \"PP-GF\"}R180\n{elsif filament_type[0] == \"PPS\"}R180\n{elsif filament_type[0] == \"PPS-CF\"}R180\n{elsif filament_type[0] == \"PVA\"}R180\n{elsif filament_type[0] == \"PVB\"}R180\n{elsif filament_type[0] == \"SBS\"}R180\n{elsif filament_type[0] == \"TPU\"}R180\n{elsif filament_type[0] == \"FLEX\"}R180\n{elsif filament_type[0] == \"PET\"}R170\n{elsif filament_type[0] == \"HIPS\"}R180\n{elsif filament_type[0] == \"NYLON\"}R220\n{else}R170; unknown filament type wipe temp{endif}\n;M206 X0 Y0 Z0; uncomment to adjust wipe position (+X ~ nozzle moves left)(+Y ~ nozzle moves forward)(+Z ~ nozzle moves down)\nG12; wiping sequence\nM206 X0 Y0 Z0; reseting stock nozzle position ### CAUTION: changing this line can affect print quality ###\nG1 Z10 F5000; raise nozzle after wipe\nM109 {if filament_type[0] == \"PLA\"}R160\n{elsif filament_type[0] == \"ABS\"}R170\n{elsif filament_type[0] == \"ABS-GF\"}R170\n{elsif filament_type[0] == \"ASA\"}R170\n{elsif filament_type[0] == \"ASA-Aero\"}R170\n{elsif filament_type[0] == \"BVOH\"}R170\n{elsif filament_type[0] == \"EVA\"}R170\n{elsif filament_type[0] == \"PA\"}R200\n{elsif filament_type[0] == \"PA-CF\"}R200\n{elsif filament_type[0] == \"PA-GF\"}R170\n{elsif filament_type[0] == \"PA6-CF\"}R170\n{elsif filament_type[0] == \"PA11-CF\"}R200\n{elsif filament_type[0] == \"ASA-Aero\"}R170\n{elsif filament_type[0] == \"PC\"}R200\n{elsif filament_type[0] == \"PC-CF\"}R200\n{elsif filament_type[0] == \"PCTG\"}R180\n{elsif filament_type[0] == \"PE\"}R180\n{elsif filament_type[0] == \"PE-CF\"}R180\n{elsif filament_type[0] == \"PET-CF\"}R170\n{elsif filament_type[0] == \"PETG\"}R170\n{elsif filament_type[0] == \"PETG-CF10\"}R170\n{elsif filament_type[0] == \"PHA\"}R180\n{elsif filament_type[0] == \"PLA-AERO\"}R180\n{elsif filament_type[0] == \"PLA-CF\"}R180\n{elsif filament_type[0] == \"PP\"}R180\n{elsif filament_type[0] == \"PP-CF\"}R180\n{elsif filament_type[0] == \"PP-GF\"}R180\n{elsif filament_type[0] == \"PPS\"}R180\n{elsif filament_type[0] == \"PPS-CF\"}R180\n{elsif filament_type[0] == \"PVA\"}R160\n{elsif filament_type[0] == \"PVB\"}R160\n{elsif filament_type[0] == \"SBS\"}R180\n{elsif filament_type[0] == \"TPU\"}R160\n{elsif filament_type[0] == \"FLEX\"}R160\n{elsif filament_type[0] == \"PET\"}R170\n{elsif filament_type[0] == \"HIPS\"}R160\n{elsif filament_type[0] == \"NYLON\"}R200\n{else}R170; unknown filament type probe temp{endif}\nG1 X-10 Y293 F4000; move above first probe point\nM204 S100; set probing acceleration\nG29; start auto-leveling sequence\nM420 S1; enable leveling matrix\nM204 S500; restore standard acceleration\nG1 X0 Y0 Z15 F5000; move up off last probe point\nG4 S1; pause\nM400; wait for moves to finish\nM117 Heating...; progress indicator message on LCD\nM109 R{nozzle_temperature_initial_layer[0]}; wait for extruder to reach printing temp (w)\nM190 R{bed_temperature_initial_layer[0]}; wait for bed to reach printing temp\nG1 Z2 E0 F75; prime tiny bit of filament into the nozzle\nM117 TAZ 6 Printing...; progress indicator message on LCD\n;Start G-Code End",
+    "machine_end_gcode": ";End G-Code Begin\nM400; wait for moves to finish\nM140 S0; start bed cooling\nM104 S0; disable hotend\nM107; disable fans\nG91; relative positioning\nG1 E-1 F300; filament retraction to release pressure\nG1 Z20 E-5 X-20 Y-20 F3000; lift up and retract even more filament\nG1 E6; re-prime extruder\nG90; absolute positioning\nG1 Y280 F3000; present finished print\nM77; stop GLCD timer\nM84; disable steppers\nG90; absolute positioning\nM117 Print Complete.; print complete message\n;End G-Code End",
+    "before_layer_change_gcode": "G92 E0; reset relative extrusion",
+    "layer_change_gcode": "; LAYER:{layer_num}\nM117 Layer: {layer_num +1} / [total_layer_count]",
+    "change_filament_gcode": "M400\nM600 B10 X115 Y-10 Z10\nM190 S{bed_temperature[0]}\nM109 S{temperature[0]}",
+    "machine_pause_gcode": "M600 B10",
+    "scan_first_layer": "0"
+}

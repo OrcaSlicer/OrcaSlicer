@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Eryone PP @0.2 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Eryone PP",
+    "compatible_printers": [
+        "Thinker X400 0.2 nozzle"
+    ],
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "filament_settings_id": [
+        "Eryone PP @0.2 nozzle"
+    ]
+}

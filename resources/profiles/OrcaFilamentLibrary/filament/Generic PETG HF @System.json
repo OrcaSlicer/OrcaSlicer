@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Generic PETG HF @System",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "OGFSG96_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "compatible_printers": []
+}

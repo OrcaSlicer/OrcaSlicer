@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "name": "Arena PET-CF @Arena X1C",
+    "inherits": "Arena PET-CF @base",
+    "from": "system",
+    "setting_id": "GFST01",
+    "instantiation": "true",
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "2"
+    ],
+    "compatible_printers": [
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 Carbon 0.6 nozzle",
+        "Orca Arena X1 Carbon 0.8 nozzle"
+    ]
+}

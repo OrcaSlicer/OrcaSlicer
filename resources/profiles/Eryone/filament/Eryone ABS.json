@@ -1,0 +1,111 @@
+{
+    "type": "filament",
+    "name": "Eryone ABS",
+    "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA01",
+    "filament_id": "EFL91",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Thinker X400 0.4 nozzle"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "70"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "70"
+    ],
+    "eng_plate_temp": [
+        "100"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "105"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "70"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_settings_id": [
+        "Eryone ABS"
+    ],
+    "filament_density": [
+        "1.04"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=0\n"
+    ],
+    "filament_type": [
+        "ABS"
+    ],
+    "filament_flow_ratio": [
+        "0.92"
+    ],
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_vendor": [
+        "Eryone"
+    ],
+    "hot_plate_temp": [
+        "95"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "95"
+    ],
+    "nozzle_temperature": [
+        "255"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ],
+    "required_nozzle_HRC": [
+        "3"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "support_material_interface_fan_speed": [
+        "60"
+    ],
+    "temperature_vitrification": [
+        "100"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "105"
+    ]
+}

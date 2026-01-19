@@ -1,0 +1,292 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<title>Qhull precision options</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/delaunay.html"><img
+src="qh--dt.gif" alt="[delaunay]" align="middle" width="100"
+height="100"></a> Qhull precision options</h1>
+
+This section lists the precision options for Qhull. These options are
+indicated by an upper-case letter followed by a number.
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<hr>
+
+<p><a href="index.htm#TOC">&#187;</a> <a href="qh-quick.htm#programs">Programs</a>
+<a name="prec">&#149;</a> <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<h2>Precision options</h2>
+
+<p>Most users will not need to set these options. They are best
+used for <a href="qh-impre.htm#approximate">approximating</a> a
+convex hull. They may also be used for testing Qhull's handling
+of precision errors.</p>
+
+<p>By default, Qhull uses options '<a href="#C0">C-0</a>' for
+2-d, 3-d and 4-d, and '<a href="qh-optq.htm#Qx">Qx</a>' for 5-d
+and higher. These options use facet merging to handle precision
+errors.  You may also use joggled input '<a href="qh-optq.htm#QJn">QJ</a>'
+to avoid precision problems.
+For more information see <a
+href="qh-impre.htm">Imprecision in Qhull</a>.</p>
+
+<dl compact>
+    <dt>&nbsp;</dt>
+    <dd><b>General</b></dd>
+    <dt><a href="#Cn2">Cn</a></dt>
+    <dd>centrum radius for post-merging</dd>
+    <dt><a href="#Cn">C-n</a></dt>
+    <dd>centrum radius for pre-merging</dd>
+    <dt><a href="#An2">An</a></dt>
+    <dd>cosine of maximum angle for post-merging</dd>
+    <dt><a href="#An">A-n</a></dt>
+    <dd>cosine of maximum angle for pre-merging</dd>
+    <dt><a href="qh-optq.htm#Qx">Qx</a></dt>
+    <dd>exact pre-merges (allows coplanar facets)</dd>
+    <dt><a href="#C0">C-0</a></dt>
+    <dd>handle all precision errors</dd>
+    <dt><a href="#Wn">Wn</a></dt>
+    <dd>min distance above plane for outside points</dd>
+</dl>
+
+<dl compact>
+    <dt>&nbsp;</dt>
+    <dd><b>Experimental</b></dd>
+    <dt><a href="#Un">Un</a></dt>
+    <dd>max distance below plane for a new, coplanar point</dd>
+    <dt><a href="#En">En</a></dt>
+    <dd>max roundoff error for distance computation</dd>
+    <dt><a href="#Vn">Vn</a></dt>
+    <dd>min distance above plane for a visible facet</dd>
+    <dt><a href="#Rn">Rn</a></dt>
+    <dd>randomly perturb computations by a factor of [1-n,1+n]</dd>
+</dl>
+
+<dl compact>
+</dl>
+
+<hr>
+
+<h3><a href="#prec">&#187;</a><a name="An">A-n - cosine of maximum
+angle for pre-merging.</a></h3>
+
+<p>Pre-merging occurs while Qhull constructs the hull. It is
+indicated by '<a href="#Cn">C-n</a>', 'A-n', or '<a
+href="qh-optq.htm#Qx">Qx</a>'.</p>
+
+<p>If the angle between a pair of facet normals is greater than <i>n</i>,
+Qhull merges one of the facets into a neighbor. It selects the
+facet that is closest to a neighboring facet.</p>
+
+<p>For example, option 'A-0.99' merges facets during the
+construction of the hull. If the cosine of the angle between
+facets is greater than 0.99, one or the other facet is merged.
+Qhull accounts for the maximum roundoff error.</p>
+
+<p>If 'A-n' is set without '<a href="#Cn">C-n</a>', then '<a
+href="#C0">C-0</a>' is automatically set. </p>
+
+<p>In 5-d and higher, you should set '<a href="qh-optq.htm#Qx">Qx</a>'
+along with 'A-n'. It skips merges of coplanar facets until after
+the hull is constructed and before '<a href="#An2">An</a>' and '<a
+href="#Cn2">Cn</a>' are checked. </p>
+
+<h3><a href="#prec">&#187;</a><a name="An2">An - cosine of maximum angle for
+post-merging.</a></h3>
+
+<p>Post merging occurs after the hull is constructed. For
+example, option 'A0.99' merges a facet if the cosine of the angle
+between facets is greater than 0.99. Qhull accounts for the
+maximum roundoff error.</p>
+
+<p>If 'An' is set without '<a href="#Cn2">Cn</a>', then '<a
+href="#Cn2">C0</a>' is automatically set. </p>
+
+<h3><a href="#prec">&#187;</a><a name="C0">C-0 - handle all precision
+errors </a></h3>
+
+<p>Qhull handles precision errors by merging facets. The 'C-0'
+option handles all precision errors in 2-d, 3-d, and 4-d. It is
+set by default. It may be used in higher dimensions, but
+sometimes the facet width grows rapidly. It is usually better to
+use '<a href="qh-optq.htm#Qx">Qx</a>' in 5-d and higher.
+Use '<a href="qh-optq.htm#QJn">QJ</a>' to joggle the input
+instead of merging facets.
+Use '<a
+href="qh-optq.htm#Q0">Q0</a>' to turn both options off.</p>
+
+<p>Qhull optimizes 'C-0' (&quot;_zero-centrum&quot;) by testing
+vertices instead of centrums for adjacent simplices. This may be
+slower in higher dimensions if merges decrease the number of
+processed points. The optimization may be turned off by setting a
+small value such as 'C-1e-30'. See <a href="qh-impre.htm">How
+Qhull handles imprecision</a>.</p>
+
+<h3><a href="#prec">&#187;</a><a name="Cn">C-n - centrum radius for
+pre-merging</a></h3>
+
+<p>Pre-merging occurs while Qhull constructs the hull. It is
+indicated by 'C-n', '<a href="#An">A-n</a>', or '<a
+href="qh-optq.htm#Qx">Qx</a>'.</p>
+
+<p>The <i>centrum</i> of a facet is a point on the facet for
+testing facet convexity. It is the average of the vertices
+projected to the facet's hyperplane. Two adjacent facets are
+convex if each centrum is clearly below the other facet. </p>
+
+<p>If adjacent facets are non-convex, one of the facets is merged
+into a neighboring facet. Qhull merges the facet that is closest
+to a neighboring facet. </p>
+
+<p>For option 'C-n', <i>n</i> is the centrum radius. For example,
+'C-0.001' merges facets whenever the centrum is less than 0.001
+from a neighboring hyperplane. Qhull accounts for roundoff error
+when testing the centrum.</p>
+
+<p>In 5-d and higher, you should set '<a href="qh-optq.htm#Qx">Qx</a>'
+along with 'C-n'. It skips merges of coplanar facets until after
+the hull is constructed and before '<a href="#An2">An</a>' and '<a
+href="#Cn2">Cn</a>' are checked. </p>
+
+<h3><a href="#prec">&#187;</a><a name="Cn2">Cn - centrum radius for
+post-merging</a></h3>
+
+<p>Post-merging occurs after Qhull constructs the hull. It is
+indicated by '<a href="#Cn2">Cn</a>' or '<a href="#An2">An</a>'. </p>
+
+<p>For option '<a href="#Cn2">Cn</a>', <i>n</i> is the centrum
+radius. For example, 'C0.001' merges facets when the centrum is
+less than 0.001 from a neighboring hyperplane. Qhull accounts for
+roundoff error when testing the centrum.</p>
+
+<p>Both pre-merging and post-merging may be defined. If only
+post-merging is used ('<a href="qh-optq.htm#Q0">Q0</a>' with
+'Cn'), Qhull may fail to produce a hull due to precision errors
+during the hull's construction.</p>
+
+<h3><a href="#prec">&#187;</a><a name="En">En - max roundoff error
+for distance computations</a></h3>
+
+<p>This allows the user to change the maximum roundoff error
+computed by Qhull. The value computed by Qhull may be overly
+pessimistic. If 'En' is set too small, then the output may not be
+convex. The statistic &quot;max. distance of a new vertex to a
+facet&quot; (from option '<a href="qh-optt.htm#Ts">Ts</a>') is a
+reasonable upper bound for the actual roundoff error. </p>
+
+<h3><a href="#prec">&#187;</a><a name="Rn">Rn - randomly perturb
+computations </a></h3>
+
+<p>This option perturbs every distance, hyperplane, and angle
+computation by up to <i>(+/- n * max_coord)</i>. It simulates the
+effect of roundoff errors. Unless '<a href="#En">En</a>' is
+explicitly set, it is adjusted for 'Rn'. The command 'qhull Rn'
+will generate a convex hull despite the perturbations. See the <a
+href="qh-eg.htm#merge">Examples </a>section for an example.</p>
+
+<p>Options 'Rn C-n' have the effect of '<a href="#Wn">W2n</a>'
+and '<a href="#Cn">C-2n</a>'. To use time as the random number
+seed, use option '<a href="qh-optq.htm#QRn">QR-1</a>'.</p>
+
+<h3><a href="#prec">&#187;</a><a name="Un">Un - max distance for a
+new, coplanar point </a></h3>
+
+<p>This allows the user to set coplanarity. When pre-merging ('<a
+href="#Cn">C-n </a>', '<a href="#An">A-n</a>' or '<a
+href="qh-optq.htm#Qx">Qx</a>'), Qhull merges a new point into any
+coplanar facets. The default value for 'Un' is '<a href="#Vn">Vn</a>'.</p>
+
+<h3><a href="#prec">&#187;</a><a name="Vn">Vn - min distance for a
+visible facet </a></h3>
+
+<p>This allows the user to set facet visibility. When adding a
+point to the convex hull, Qhull determines all facets that are
+visible from the point. A facet is visible if the distance from
+the point to the facet is greater than 'Vn'.</p>
+
+<p>Without merging, the default value for 'Vn' is the roundoff
+error ('<a href="#En">En</a>'). With merging, the default value
+is the pre-merge centrum ('<a href="#Cn">C-n</a>') in 2-d or 3-d,
+or three times that in other dimensions. If the outside width is
+specified with option '<a href="#Wn">Wn </a>', the maximum,
+default value for 'Vn' is '<a href="#Wn">Wn</a>'.</p>
+
+<p>Qhull warns if 'Vn' is greater than '<a href="#Wn">Wn</a>' and
+furthest outside ('<a href="qh-optq.htm#Qf">Qf</a>') is not
+selected; this combination usually results in flipped facets
+(i.e., reversed normals).</p>
+
+<h3><a href="#prec">&#187;</a><a name="Wn">Wn - min distance above
+plane for outside points</a></h3>
+
+<p>Points are added to the convex hull only if they are clearly
+outside of a facet. A point is outside of a facet if its distance
+to the facet is greater than 'Wn'. Without pre-merging, the
+default value for 'Wn' is '<a href="#En">En </a>'. If the user
+specifies pre-merging and does not set 'Wn', than 'Wn' is set to
+the maximum of '<a href="#Cn">C-n</a>' and <i>maxcoord*(1 - </i><a
+href="#An"><i>A-n</i></a><i>)</i>.</p>
+
+<p>This option is good for <a href="qh-impre.htm#approximate">approximating</a>
+a convex hull.</p>
+
+<p>Options '<a href="qh-optq.htm#Qc">Qc</a>' and '<a
+href="qh-optq.htm#Qi">Qi</a>' use the minimum vertex to
+distinguish coplanar points from interior points.</p>
+<!-- Navigation links -->
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+<!-- GC common information -->
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

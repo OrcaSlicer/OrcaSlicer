@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "QIDI ABS Odorless @Qidi Q2 0.6 nozzle",
+    "inherits": "QIDI ABS Odorless@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "24.5"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "pressure_advance": [
+        "0.014"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.6 nozzle"
+    ]
+}

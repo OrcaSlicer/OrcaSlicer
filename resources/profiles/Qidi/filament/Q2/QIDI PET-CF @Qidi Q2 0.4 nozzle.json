@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "QIDI PET-CF @Qidi Q2 0.4 nozzle",
+    "inherits": "QIDI PET-CF@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSN99",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q2 0.4 nozzle"
+    ]
+}

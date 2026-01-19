@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "fdm_process_zbolt_0.20",
+    "inherits": "fdm_process_zbolt_common",
+    "from": "system",
+    "instantiation": "false",
+    "elefant_foot_compensation": "0.15",
+    "top_shell_thickness": "1.0",
+    "bridge_flow": "1",
+    "initial_layer_speed": "40",
+    "initial_layer_infill_speed": "60",
+    "outer_wall_speed": "200",
+    "inner_wall_speed": "300",
+    "sparse_infill_speed": "270",
+    "internal_solid_infill_speed": "250",
+    "gap_infill_speed": "250",
+    "top_shell_layers": "5"
+}

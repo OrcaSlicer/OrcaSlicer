@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Generic PC @0.2 nozzle",
+    "inherits": "Generic PC @base",
+    "from": "system",
+    "setting_id": "GFSC99_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.2 nozzle",
+        "Bambu Lab X1 0.2 nozzle"
+    ]
+}

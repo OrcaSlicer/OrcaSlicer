@@ -1,0 +1,42 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_common",
+    "from": "system",
+    "instantiation": "false",
+    "filament_vendor": [
+        "Generic"
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "filament_is_support": [
+        "0"
+    ],
+    "required_nozzle_HRC": [
+        "0"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "10"
+    ],
+    "filament_cooling_moves": [
+        "0"
+    ],
+    "filament_cooling_initial_speed": [
+        "0"
+    ],
+    "filament_cooling_final_speed": [
+        "0"
+    ]
+}

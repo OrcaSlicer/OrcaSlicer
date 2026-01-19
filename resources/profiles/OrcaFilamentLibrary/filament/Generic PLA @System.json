@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "name": "Generic PLA @System",
+    "renamed_from": "My Generic PLA",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "OGFSA04",
+    "instantiation": "true",
+    "compatible_printers": []
+}

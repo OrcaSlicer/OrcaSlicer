@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PLA @MK4S 0.6",
+    "inherits": "Prusa Generic PLA @MK4S",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Generic PLA @MK4S 0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S 0.6 nozzle"
+    ],
+    "fan_cooling_layer_time": "22",
+    "nozzle_temperature": "210",
+    "slow_down_layer_time": "10"
+}

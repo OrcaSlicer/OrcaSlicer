@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Bambu Support For PLA @System",
+    "inherits": "Bambu Support For PLA @base",
+    "from": "system",
+    "setting_id": "OGFSS02_02",
+    "instantiation": "true",
+    "compatible_printers": []
+}

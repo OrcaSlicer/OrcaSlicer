@@ -1,0 +1,479 @@
+{
+    "name": "WonderMaker",
+    "url": "",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "WonderMaker configurations",
+    "machine_model_list": [
+        {
+            "name": "WonderMaker ZR",
+            "sub_path": "machine/WonderMaker ZR.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra",
+            "sub_path": "machine/WonderMaker ZR Ultra.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra S",
+            "sub_path": "machine/WonderMaker ZR Ultra S.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_wm_common",
+            "sub_path": "process/fdm_process_wm_common.json"
+        },
+        {
+            "name": "fdm_process_wm_0.06_nozzle_0.2",
+            "sub_path": "process/fdm_process_wm_0.06_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_wm_0.08",
+            "sub_path": "process/fdm_process_wm_0.08.json"
+        },
+        {
+            "name": "fdm_process_wm_0.08_nozzle_0.2",
+            "sub_path": "process/fdm_process_wm_0.08_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_wm_0.10_nozzle_0.2",
+            "sub_path": "process/fdm_process_wm_0.10_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_wm_0.12",
+            "sub_path": "process/fdm_process_wm_0.12.json"
+        },
+        {
+            "name": "fdm_process_wm_0.12_nozzle_0.2",
+            "sub_path": "process/fdm_process_wm_0.12_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_wm_0.14_nozzle_0.2",
+            "sub_path": "process/fdm_process_wm_0.14_nozzle_0.2.json"
+        },
+        {
+            "name": "fdm_process_wm_0.16",
+            "sub_path": "process/fdm_process_wm_0.16.json"
+        },
+        {
+            "name": "fdm_process_wm_0.18_nozzle_0.6",
+            "sub_path": "process/fdm_process_wm_0.18_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_wm_0.20",
+            "sub_path": "process/fdm_process_wm_0.20.json"
+        },
+        {
+            "name": "fdm_process_wm_0.24",
+            "sub_path": "process/fdm_process_wm_0.24.json"
+        },
+        {
+            "name": "fdm_process_wm_0.24_nozzle_0.6",
+            "sub_path": "process/fdm_process_wm_0.24_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_wm_0.24_nozzle_0.8",
+            "sub_path": "process/fdm_process_wm_0.24_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_wm_0.28",
+            "sub_path": "process/fdm_process_wm_0.28.json"
+        },
+        {
+            "name": "fdm_process_wm_0.30_nozzle_0.6",
+            "sub_path": "process/fdm_process_wm_0.30_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_wm_0.32_nozzle_0.8",
+            "sub_path": "process/fdm_process_wm_0.32_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_wm_0.36_nozzle_0.6",
+            "sub_path": "process/fdm_process_wm_0.36_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_wm_0.40_nozzle_0.8",
+            "sub_path": "process/fdm_process_wm_0.40_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_wm_0.42_nozzle_0.6",
+            "sub_path": "process/fdm_process_wm_0.42_nozzle_0.6.json"
+        },
+        {
+            "name": "fdm_process_wm_0.48_nozzle_0.8",
+            "sub_path": "process/fdm_process_wm_0.48_nozzle_0.8.json"
+        },
+        {
+            "name": "fdm_process_wm_0.56_nozzle_0.8",
+            "sub_path": "process/fdm_process_wm_0.56_nozzle_0.8.json"
+        },
+        {
+            "name": "0.06mm Fine @WonderMaker ZR 0.2 nozzle",
+            "sub_path": "process/0.06mm Fine @WonderMaker ZR 0.2 nozzle.json"
+        },
+        {
+            "name": "0.06mm Fine @WonderMaker ZR Ultra 0.2 nozzle",
+            "sub_path": "process/0.06mm Fine @WonderMaker ZR Ultra 0.2 nozzle.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @WonderMaker ZR",
+            "sub_path": "process/0.08mm Extra Fine @WonderMaker ZR.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @WonderMaker ZR Ultra",
+            "sub_path": "process/0.08mm Extra Fine @WonderMaker ZR Ultra.json"
+        },
+        {
+            "name": "0.08mm Optimal @WonderMaker ZR 0.2 nozzle",
+            "sub_path": "process/0.08mm Optimal @WonderMaker ZR 0.2 nozzle.json"
+        },
+        {
+            "name": "0.08mm Optimal @WonderMaker ZR Ultra 0.2 nozzle",
+            "sub_path": "process/0.08mm Optimal @WonderMaker ZR Ultra 0.2 nozzle.json"
+        },
+        {
+            "name": "0.10mm Standard @WonderMaker ZR 0.2 nozzle",
+            "sub_path": "process/0.10mm Standard @WonderMaker ZR 0.2 nozzle.json"
+        },
+        {
+            "name": "0.10mm Standard @WonderMaker ZR Ultra 0.2 nozzle",
+            "sub_path": "process/0.10mm Standard @WonderMaker ZR Ultra 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm Fine @WonderMaker ZR",
+            "sub_path": "process/0.12mm Fine @WonderMaker ZR.json"
+        },
+        {
+            "name": "0.12mm Fine @WonderMaker ZR Ultra",
+            "sub_path": "process/0.12mm Fine @WonderMaker ZR Ultra.json"
+        },
+        {
+            "name": "0.12mm Draft @WonderMaker ZR 0.2 nozzle",
+            "sub_path": "process/0.12mm Draft @WonderMaker ZR 0.2 nozzle.json"
+        },
+        {
+            "name": "0.12mm Draft @WonderMaker ZR Ultra 0.2 nozzle",
+            "sub_path": "process/0.12mm Draft @WonderMaker ZR Ultra 0.2 nozzle.json"
+        },
+        {
+            "name": "0.14mm Extra Draft @WonderMaker ZR 0.2 nozzle",
+            "sub_path": "process/0.14mm Extra Draft @WonderMaker ZR 0.2 nozzle.json"
+        },
+        {
+            "name": "0.14mm Extra Draft @WonderMaker ZR Ultra 0.2 nozzle",
+            "sub_path": "process/0.14mm Extra Draft @WonderMaker ZR Ultra 0.2 nozzle.json"
+        },
+        {
+            "name": "0.16mm Optimal @WonderMaker ZR",
+            "sub_path": "process/0.16mm Optimal @WonderMaker ZR.json"
+        },
+        {
+            "name": "0.16mm Optimal @WonderMaker ZR Ultra",
+            "sub_path": "process/0.16mm Optimal @WonderMaker ZR Ultra.json"
+        },
+        {
+            "name": "0.18mm Fine @WonderMaker ZR 0.6 nozzle",
+            "sub_path": "process/0.18mm Fine @WonderMaker ZR 0.6 nozzle.json"
+        },
+        {
+            "name": "0.18mm Fine @WonderMaker ZR Ultra 0.6 nozzle",
+            "sub_path": "process/0.18mm Fine @WonderMaker ZR Ultra 0.6 nozzle.json"
+        },
+        {
+            "name": "0.20mm Standard @WonderMaker ZR",
+            "sub_path": "process/0.20mm Standard @WonderMaker ZR.json"
+        },
+        {
+            "name": "0.20mm Standard @WonderMaker ZR Ultra",
+            "sub_path": "process/0.20mm Standard @WonderMaker ZR Ultra.json"
+        },
+        {
+            "name": "0.24mm Draft @WonderMaker ZR",
+            "sub_path": "process/0.24mm Draft @WonderMaker ZR.json"
+        },
+        {
+            "name": "0.24mm Draft @WonderMaker ZR Ultra",
+            "sub_path": "process/0.24mm Draft @WonderMaker ZR Ultra.json"
+        },
+        {
+            "name": "0.24mm Optimal @WonderMaker ZR 0.6 nozzle",
+            "sub_path": "process/0.24mm Optimal @WonderMaker ZR 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Optimal @WonderMaker ZR Ultra 0.6 nozzle",
+            "sub_path": "process/0.24mm Optimal @WonderMaker ZR Ultra 0.6 nozzle.json"
+        },
+        {
+            "name": "0.24mm Fine @WonderMaker ZR 0.8 nozzle",
+            "sub_path": "process/0.24mm Fine @WonderMaker ZR 0.8 nozzle.json"
+        },
+        {
+            "name": "0.24mm Fine @WonderMaker ZR Ultra 0.8 nozzle",
+            "sub_path": "process/0.24mm Fine @WonderMaker ZR Ultra 0.8 nozzle.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @WonderMaker ZR",
+            "sub_path": "process/0.28mm Extra Draft @WonderMaker ZR.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @WonderMaker ZR Ultra",
+            "sub_path": "process/0.28mm Extra Draft @WonderMaker ZR Ultra.json"
+        },
+        {
+            "name": "0.30mm Standard @WonderMaker ZR 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @WonderMaker ZR 0.6 nozzle.json"
+        },
+        {
+            "name": "0.30mm Standard @WonderMaker ZR Ultra 0.6 nozzle",
+            "sub_path": "process/0.30mm Standard @WonderMaker ZR Ultra 0.6 nozzle.json"
+        },
+        {
+            "name": "0.32mm Optimal @WonderMaker ZR 0.8 nozzle",
+            "sub_path": "process/0.32mm Optimal @WonderMaker ZR 0.8 nozzle.json"
+        },
+        {
+            "name": "0.32mm Optimal @WonderMaker ZR Ultra 0.8 nozzle",
+            "sub_path": "process/0.32mm Optimal @WonderMaker ZR Ultra 0.8 nozzle.json"
+        },
+        {
+            "name": "0.36mm Draft @WonderMaker ZR 0.6 nozzle",
+            "sub_path": "process/0.36mm Draft @WonderMaker ZR 0.6 nozzle.json"
+        },
+        {
+            "name": "0.36mm Draft @WonderMaker ZR Ultra 0.6 nozzle",
+            "sub_path": "process/0.36mm Draft @WonderMaker ZR Ultra 0.6 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @WonderMaker ZR 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @WonderMaker ZR 0.8 nozzle.json"
+        },
+        {
+            "name": "0.40mm Standard @WonderMaker ZR Ultra 0.8 nozzle",
+            "sub_path": "process/0.40mm Standard @WonderMaker ZR Ultra 0.8 nozzle.json"
+        },
+        {
+            "name": "0.42mm Extra Draft @WonderMaker ZR 0.6 nozzle",
+            "sub_path": "process/0.42mm Extra Draft @WonderMaker ZR 0.6 nozzle.json"
+        },
+        {
+            "name": "0.42mm Extra Draft @WonderMaker ZR Ultra 0.6 nozzle",
+            "sub_path": "process/0.42mm Extra Draft @WonderMaker ZR Ultra 0.6 nozzle.json"
+        },
+        {
+            "name": "0.48mm Draft @WonderMaker ZR 0.8 nozzle",
+            "sub_path": "process/0.48mm Draft @WonderMaker ZR 0.8 nozzle.json"
+        },
+        {
+            "name": "0.48mm Draft @WonderMaker ZR Ultra 0.8 nozzle",
+            "sub_path": "process/0.48mm Draft @WonderMaker ZR Ultra 0.8 nozzle.json"
+        },
+        {
+            "name": "0.56mm Extra Draft @WonderMaker ZR 0.8 nozzle",
+            "sub_path": "process/0.56mm Extra Draft @WonderMaker ZR 0.8 nozzle.json"
+        },
+        {
+            "name": "0.56mm Extra Draft @WonderMaker ZR Ultra 0.8 nozzle",
+            "sub_path": "process/0.56mm Extra Draft @WonderMaker ZR Ultra 0.8 nozzle.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_bvoh",
+            "sub_path": "filament/fdm_filament_bvoh.json"
+        },
+        {
+            "name": "fdm_filament_eva",
+            "sub_path": "filament/fdm_filament_eva.json"
+        },
+        {
+            "name": "fdm_filament_hips",
+            "sub_path": "filament/fdm_filament_hips.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_pctg",
+            "sub_path": "filament/fdm_filament_pctg.json"
+        },
+        {
+            "name": "fdm_filament_pe",
+            "sub_path": "filament/fdm_filament_pe.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pha",
+            "sub_path": "filament/fdm_filament_pha.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_pp",
+            "sub_path": "filament/fdm_filament_pp.json"
+        },
+        {
+            "name": "fdm_filament_ppa",
+            "sub_path": "filament/fdm_filament_ppa.json"
+        },
+        {
+            "name": "fdm_filament_pps",
+            "sub_path": "filament/fdm_filament_pps.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_sbs",
+            "sub_path": "filament/fdm_filament_sbs.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "WonderMaker ABS",
+            "sub_path": "filament/WonderMaker ABS.json"
+        },
+        {
+            "name": "WonderMaker ASA",
+            "sub_path": "filament/WonderMaker ASA.json"
+        },
+        {
+            "name": "WonderMaker PET-CF",
+            "sub_path": "filament/WonderMaker PET-CF.json"
+        },
+        {
+            "name": "WonderMaker PETG Basic",
+            "sub_path": "filament/WonderMaker PETG Basic.json"
+        },
+        {
+            "name": "WonderMaker PLA Basic",
+            "sub_path": "filament/WonderMaker PLA Basic.json"
+        },
+        {
+            "name": "WonderMaker PLA Marble",
+            "sub_path": "filament/WonderMaker PLA Marble.json"
+        },
+        {
+            "name": "WonderMaker PLA Matte",
+            "sub_path": "filament/WonderMaker PLA Matte.json"
+        },
+        {
+            "name": "WonderMaker PLA Metal",
+            "sub_path": "filament/WonderMaker PLA Metal.json"
+        },
+        {
+            "name": "WonderMaker PLA Silk",
+            "sub_path": "filament/WonderMaker PLA Silk.json"
+        },
+        {
+            "name": "WonderMaker PLA Wood",
+            "sub_path": "filament/WonderMaker PLA Wood.json"
+        },
+        {
+            "name": "WonderMaker PVA",
+            "sub_path": "filament/WonderMaker PVA.json"
+        },
+        {
+            "name": "WonderMaker TPU 95A",
+            "sub_path": "filament/WonderMaker TPU 95A.json"
+        },
+        {
+            "name": "WonderMaker ABS @WonderMaker ZR Ultra S",
+            "sub_path": "filament/WonderMaker ABS @WonderMaker ZR Ultra S.json"
+        },
+        {
+            "name": "WonderMaker ASA @WonderMaker ZR Ultra S",
+            "sub_path": "filament/WonderMaker ASA @WonderMaker ZR Ultra S.json"
+        },
+        {
+            "name": "WonderMaker PET-CF @WonderMaker ZR Ultra S",
+            "sub_path": "filament/WonderMaker PET-CF @WonderMaker ZR Ultra S.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "WonderMaker ZR 0.4 nozzle",
+            "sub_path": "machine/WonderMaker ZR 0.4 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra 0.4 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra 0.4 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra S 0.4 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra S 0.4 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR 0.2 nozzle",
+            "sub_path": "machine/WonderMaker ZR 0.2 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR 0.6 nozzle",
+            "sub_path": "machine/WonderMaker ZR 0.6 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR 0.8 nozzle",
+            "sub_path": "machine/WonderMaker ZR 0.8 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra 0.2 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra 0.2 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra 0.6 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra 0.6 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra 0.8 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra 0.8 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra S 0.2 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra S 0.2 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra S 0.6 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra S 0.6 nozzle.json"
+        },
+        {
+            "name": "WonderMaker ZR Ultra S 0.8 nozzle",
+            "sub_path": "machine/WonderMaker ZR Ultra S 0.8 nozzle.json"
+        }
+    ]
+}

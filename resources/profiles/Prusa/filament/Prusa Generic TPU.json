@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic TPU",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3.2"
+    ],
+    "compatible_printers": [
+        "Prusa MK3S 0.25 nozzle",
+        "Prusa MK3S 0.4 nozzle",
+        "Prusa MK3S 0.6 nozzle",
+        "Prusa MK3S 0.8 nozzle",
+        "Prusa MINI 0.25 nozzle",
+        "Prusa MINI 0.4 nozzle",
+        "Prusa MINI 0.6 nozzle",
+        "Prusa MINI 0.8 nozzle"
+    ]
+}

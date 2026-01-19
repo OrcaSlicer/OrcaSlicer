@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Qidi Generic PC @Qidi X-Plus 4 0.4 nozzle",
+    "inherits": "Qidi Generic PC",
+    "from": "system",
+    "setting_id": "GFSC99",
+    "filament_id": "GFC99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.4 nozzle"
+    ]
+}

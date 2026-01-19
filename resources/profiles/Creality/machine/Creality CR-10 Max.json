@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Creality CR-10 Max",
+    "model_id": "Creality_CR-10_Max",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Creality",
+    "bed_model": "creality_cr10max_buildplate_model.stl",
+    "bed_texture": "creality_cr10max_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+}

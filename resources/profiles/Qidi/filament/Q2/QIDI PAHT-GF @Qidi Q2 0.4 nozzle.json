@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "QIDI PAHT-GF @Qidi Q2 0.4 nozzle",
+    "inherits": "QIDI PAHT-GF@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSN99",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q2 0.4 nozzle"
+    ]
+}

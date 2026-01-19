@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="max-age=7200" />
+<title>Model</title>	
+
+<script type="text/javascript" src="../include/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../include/json2.js"></script>	
+<script type="text/javascript" src="../include/globalapi.js"></script>	
+
+<link rel="stylesheet" type="text/css" href="../include/swiper/swiper-bundle.min.css" />
+<script type="text/javascript" src="../include/swiper/swiper-bundle.min.js"></script>
+<link rel="stylesheet" type="text/css" href="../include/viewer/viewer.min.css" />
+<script type="text/javascript" src="../include/viewer/viewer-jquery.min.js"></script>
+<script type="text/javascript" src="../data/text.js"></script>	
+	
+<link rel="stylesheet" type="text/css" href="model.css" />	
+<link rel="stylesheet" type="text/css" href="./css/dark.css" />	
+<link rel="stylesheet" type="text/css" href="../include/global.css" /> <!-- ORCA One for all-->
+	
+<script type="text/javascript" src="test.js"></script>
+<script type="text/javascript" src="model.js"></script>	
+</head>
+<body onLoad="OnInit()">
+
+<div id="EmptyArea">
+	<div><img src="img/null.png"></div>
+	<div class="Text_Title Text_Bold trans" tid='orca2'>no model information</div>
+	<div id="AddModelInfoBtn" class="ButtonStyleConfirm ButtonTypeWindow trans" tid='orca1' onClick="OnClickEditProjectInfo()">Edit Project Info</div>
+</div>
+	
+<div id="WholeArea">
+  <div class="TopBottomBar">&nbsp;</div>	
+	
+  <div id="Info_Inside_Board" class="ZScrol" >
+  <div id="LeftProcessBlock" class="Block_BKGA">
+    <div id="Info_ProcessBar" class="LeftProcessBar ProcessBarSelected" onclick="OnMenuClick('Model_Basic');">
+	  <img class="LeftTipIcon" src="img/info_h.svg" /><span class="trans" tid='t95'>Model Information</span>
+	</div>
+    <div id="File_ProcessBar" class="LeftProcessBar" onclick="OnMenuClick('Model_Accessories');">
+	  <img class="LeftTipIcon" src="img/file_h.svg" /><span class="trans" tid='t96'>Accessories</span>
+	</div>
+    <div id="Profile_ProcessBar" class="LeftProcessBar" onclick="OnMenuClick('Model_Profile');">
+	  <img class="LeftTipIcon ProfileIcon" src="img/profile_h.svg" /><span class="trans" tid='t97'>Profile Information</span>
+	</div>	  
+    <div id="Edit_ProcessBar" class="LeftProcessBar" onclick="OnClickEditProjectInfo();">
+		<img class="LeftTipIcon" src="img/edit.svg" /><span class="trans" tid='orca1'>Edit Project Info</span>
+	</div>
+  </div>	  
+	  
+  <div id="LeftEmptyBlock" style="height: 100%;width:280px;">&nbsp;</div>
+	
+  <div id="ModelInfoBlock" class="ZScrol">
+	<div id="Model_Basic" class="InfoBlock">
+		<div id="Model_Name_Area" class="Text_TitleBoard">
+		<div id="Model_Name_Line" class="Text_TitleArea">
+		   <div class="Text_Title" id="ModelNameBar" ><div  class="trans" tid='t98' >Model name</div><div>:</div><div title="xxxxxxxxxx" id="ModelName" style="margin-left: 8px;">xxxxxxxxxx</div></div>
+		   <div><span id="ModelAuthorType" class="trans" tid='t92'>Model Author</span><span>:</span><span id="ModelAuthorName" style="margin-left: 8px;" class="Text_Value">xxxxxxx</span></div>
+		</div>
+	    <div id="ModelLicenceImg"><img src="img/by-nc-nd.png"></div>
+		</div>
+		
+		<div id="Model_Preview_Image" class="swiper">
+			<ul id="ModelPreviewList" class="swiper-wrapper">
+<!--				<li class="swiper-slide"><img class="Model_PrevImg" src="img/p1.png" /></li>
+				<li class="swiper-slide"><img class="Model_PrevImg" src="img/p2.png" /></li>
+				<li class="swiper-slide"><img class="Model_PrevImg" src="img/p3.png" /></li>
+				<li class="swiper-slide"><img class="Model_PrevImg" src="img/p4.png" /></li>
+				<li class="swiper-slide"><img class="Model_PrevImg" src="img/p5.png" /></li>
+				<li class="swiper-slide"><img class="Model_PrevImg" src="img/p6.png" /></li>-->
+			</ul>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+			<div class="swiper-pagination"></div>
+		</div>
+		
+	    <div id="Model_Desc_Area">
+			<div class="Text_Title Text_Bold trans" tid='t100'>Model description</div>
+			<div id="Model_Desc">
+<!--			<p>Summary</p><p>Build guide: <a href="http://danielnoree.com/the-openrc-f1-build-guide/">http://danielnoree.com/the-openrc-f1-build-guide/</a></p><p>Questions &amp; Answers: <a href="http://danielnoree.com/openrc-questions/">http://danielnoree.com/openrc-questions/</a><br>OpenRC Electronics: <a href="http://danielnoree.com/openrc-electronics/">http://danielnoree.com/openrc-electronics/</a></p><p>Consider supporting me on Patreon: <a href="https://www.patreon.com/DanielNoree">https://www.patreon.com/DanielNoree</a></p><p>Complete hardware/electronics lists and kits available here: <a href="http://danielnoree.com/openrc-electronics/">http://danielnoree.com/openrc-electronics/</a></p><p>Please respect the license under which this project is released. Thank you!</p><p>Other OpenR/C Projects:<br>OpenR/C Quadcopter: <a href="https://www.thingiverse.com/thing:793425">http://www.thingiverse.com/thing:793425</a><br>OpenR/C Truggy: <a href="https://www.thingiverse.com/thing:42198">http://www.thingiverse.com/thing:42198</a><br>OpenR/C Touring Car: <a href="https://www.thingiverse.com/thing:83024">http://www.thingiverse.com/thing:83024</a></p><p>Add your OpenR/C build to the buildmap: <a href="https://zeemaps.com/map?group=1888242">https://zeemaps.com/map?group=1888242</a></p><p>This is the OpenR/C Formula 1 car. It´s the third generation OpenR/C car and this time around focus is on simplicity! You can print everything in PLA except the tires which are done in NinjaFlex! Of course you can print it in any material you like but for those that want to print a car but only have PLA at hand, this is the project for you!</p><p>Print the calibration cude to see if you need to finetune your printer for the M3 nuts to fit in their pockets: <a href="https://www.thingiverse.com/thing:2297328">http://www.thingiverse.com/thing:2297328</a></p><p>A note on the servo saver. It´s designed to be used with PLA, the upper and lower BOM applies force similar to a spring in a convetional servo saver. Of course the pressure depends on the type of material used, infill etc. Fine tuning can be done adding washer under or over the servo saver.</p><p>The "Main Turning Vane´s" needs to have it´s lower part trimmed using a "exacto knife". Then slide it in the chassie plate and push it over the "Lid" and it should snap into place-</p><p>Parts that need support added:</p><p>Front Spoiler.stl</p><p>Front.stl</p><p>Rear Rim.stl</p><p>Rear Wing.stl</p><p>Servo Saver Lower.stl</p><p>Things to buy:</p><p>Ok, obviously you need some filament which you´ll get from your favourite filament supplier.</p><p>You also need M3 screws and nuts which you can get at your local hardware store. Check the BOM list for what to get.</p><p>Some bearings are needed aswell, check the BOM list or buy a kit from FastEddyBearings.com: <a href="http://www.fasteddybearings.com/openrc-f1-sealed-bearing-kit/">http://www.fasteddybearings.com/openrc-f1-sealed-bearing-kit/</a></p><p>Suggestion for electronics: <a href="http://danielnoree.com/openrc-electronics/">http://danielnoree.com/openrc-electronics/</a></p><p>Google + Community: <a href="https://plus.google.com/u/0/communities/112745535856143176146">https://plus.google.com/u/0/communities/112745535856143176146</a></p><p>You can aslo ask questions in the Facebook group: <a href="https://www.facebook.com/groups/1111886228841596/">https://www.facebook.com/groups/1111886228841596/</a></p><p>Rain tires designed by Thomas Palm are available here: <a href="https://www.thingiverse.com/thing:999257">http://www.thingiverse.com/thing:999257</a></p><p>Low profile rims &amp; tires designed by Thomas Palm are available here: <a href="https://www.thingiverse.com/thing:1103751">http://www.thingiverse.com/thing:1103751</a></p><p>Short video: <a href="https://youtu.be/eTST_g2g2xQ">https://youtu.be/eTST_g2g2xQ</a></p><p>Please consider supporting me on Patreon: <a href="https://www.patreon.com/DanielNoree">https://www.patreon.com/DanielNoree</a></p><p>Like my FaceBook page - <a href="https://www.facebook.com/Daniel-Nor%C3%A9e-576194949211855/">https://www.facebook.com/Daniel-Nor%C3%A9e-576194949211855/</a><br>Subscribe to my YouTube channel - <a href="https://www.youtube.com/user/DanielNoree2">https://www.youtube.com/user/DanielNoree2</a></p><p>INSTAGRAM <a href="https://www.instagram.com/danielnoree/">https://www.instagram.com/danielnoree/</a><br>TWITTER <a href="https://twitter.com/DanielNoree">https://twitter.com/DanielNoree</a><br>GOOGLE+ <a href="https://plus.google.com/u/1/+DanielNoree">https://plus.google.com/u/1/+DanielNoree</a><br>FACEBOOK <a href="https://www.facebook.com/daniel.noree">https://www.facebook.com/daniel.noree</a></p><p>GOOGLE+ OPENRC COMMUNITY <a href="https://plus.google.com/communities/112745535856143176146">https://plus.google.com/communities/112745535856143176146</a><br>FACEBOOK OPENRC GROUP <a href="https://www.facebook.com/groups/1111886228841596/">https://www.facebook.com/groups/1111886228841596/</a></p><p>&nbsp;</p><p>&nbsp;</p><figure class="media"><div data-oembed-url="https://www.youtube.com/watch?v=VhTR0SytEao"><div style="position: relative; padding-bottom: 100%; height: 0; padding-bottom: 56.2493%;"><iframe src="https://www.youtube.com/embed/VhTR0SytEao" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen=""></iframe></div></div></figure>-->
+			</div>
+		</div>
+    </div>
+	  
+	<div id="Model_Accessories" class="InfoBlock">
+		<div class="Text_Title Text_Bold">
+			<span class="trans" tid='t96'>Accessories</span>&nbsp;<span>(</span><span id="FileTotalNum">0</span><span>)</span>		
+		</div>
+		
+			
+	    <div id="FILE_BOM_List" class="File_Board">
+			<div><span class="trans" tid='t101'>BOM</span>&nbsp;<span>(</span><span id="BOMTotalNum">0</span><span>)</span>	</div>
+			<div class="FileListBoard">
+<!--				<div class="FileItem">
+					<div class="FileIcon"><img src="img/pdf.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379193713791937137919371379193713791937137919371379193713791937137919371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="ImageIcon"><img src="d:/preview.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu" onClick=""><img src="img/s.svg" /></div>
+				</div>				
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/excel.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/pdf.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/default.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>	-->			
+			</div>
+		</div>		
+		
+	    <div id="FILE_ASSEMBLY_List" class="File_Board">
+			<div><span class="trans" tid='t102'>Assembly Guide</span>&nbsp;<span>(</span><span id="AssemblyTotalNum">0</span><span>)</span>  </div>
+			<div class="FileListBoard">
+<!--				<div class="FileItem">
+					<div class="FileIcon"><img src="img/pdf.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/excel.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/pdf.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/default.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>	-->			
+			</div>
+		</div>		
+		
+	    <div id="FILE_OTHER_List" class="File_Board">
+			<div><span class="trans" tid='t103'>Other</span>&nbsp;<span>(</span><span id="OtherFileTotalNum">0</span><span>)</span>  </div>
+			<div class="FileListBoard">
+<!--				<div class="FileItem">
+					<div class="FileIcon"><img src="img/default.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/excel.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/default.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>
+				<div class="FileItem">
+					<div class="FileIcon"><img src="img/pdf.png" /></div>
+					<div class="FileText">
+						<div class="FileName">19371379.pdf</div>
+						<div class="FileSize">232MB</div>
+					</div>
+					<div class="FileMenu"><img src="img/s.svg" /></div>
+				</div>	-->			
+			</div>
+		</div>		
+		
+	</div>
+	  
+	<div id="Model_Profile" class="InfoBlock">
+		<div id="Profile_Name_Area" class="Text_TitleBoard">
+		<div id="Profile_Name_Line" class="Text_TitleArea">
+		   <div class="Text_Title" ><span  class="trans" tid='t104'>Profile name</span><span>:</span><span id="ProfileName" style="margin-left: 8px;">xxxxxxxxxxx</span></div>
+		   <div><span class="trans" tid='t105'>Profile Author</span><span>:</span><span id="ProfileAuthor" style="margin-left: 8px;" class="Text_Value">xxxxxx</span></div>
+		</div>
+		</div>
+		
+		<div id="Profile_Preview_Image" class="swiper">
+			<div  id="ProfilePreviewList" class="swiper-wrapper">
+<!--				<div class="swiper-slide"><img class="Model_PrevImg" src="img/p1.png" /></div>
+				<div class="swiper-slide"><img class="Model_PrevImg" src="img/p2.png" /></div>
+				<div class="swiper-slide"><img class="Model_PrevImg" src="img/p3.png" /></div>
+				<div class="swiper-slide"><img class="Model_PrevImg" src="img/p4.png" /></div>
+				<div class="swiper-slide"><img class="Model_PrevImg" src="img/p5.png" /></div>
+				<div class="swiper-slide"><img class="Model_PrevImg" src="img/p6.png" /></div>-->
+			</div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+			<div class="swiper-pagination"></div>
+		</div>
+		
+	    <div id="Profile_Desc_Area">
+			<div class="Text_Title Text_Bold trans" tid='t106' >Profile description</div>
+			<div id="Profile_Desc">
+<!--			<p>Summary</p><p>Build guide: <a href="http://danielnoree.com/the-openrc-f1-build-guide/">http://danielnoree.com/the-openrc-f1-build-guide/</a></p><p>Questions &amp; Answers: <a href="http://danielnoree.com/openrc-questions/">http://danielnoree.com/openrc-questions/</a><br>OpenRC Electronics: <a href="http://danielnoree.com/openrc-electronics/">http://danielnoree.com/openrc-electronics/</a></p><p>Consider supporting me on Patreon: <a href="https://www.patreon.com/DanielNoree">https://www.patreon.com/DanielNoree</a></p><p>Complete hardware/electronics lists and kits available here: <a href="http://danielnoree.com/openrc-electronics/">http://danielnoree.com/openrc-electronics/</a></p><p>Please respect the license under which this project is released. Thank you!</p><p>Other OpenR/C Projects:<br>OpenR/C Quadcopter: <a href="https://www.thingiverse.com/thing:793425">http://www.thingiverse.com/thing:793425</a><br>OpenR/C Truggy: <a href="https://www.thingiverse.com/thing:42198">http://www.thingiverse.com/thing:42198</a><br>OpenR/C Touring Car: <a href="https://www.thingiverse.com/thing:83024">http://www.thingiverse.com/thing:83024</a></p><p>Add your OpenR/C build to the buildmap: <a href="https://zeemaps.com/map?group=1888242">https://zeemaps.com/map?group=1888242</a></p><p>This is the OpenR/C Formula 1 car. It´s the third generation OpenR/C car and this time around focus is on simplicity! You can print everything in PLA except the tires which are done in NinjaFlex! Of course you can print it in any material you like but for those that want to print a car but only have PLA at hand, this is the project for you!</p><p>Print the calibration cude to see if you need to finetune your printer for the M3 nuts to fit in their pockets: <a href="https://www.thingiverse.com/thing:2297328">http://www.thingiverse.com/thing:2297328</a></p><p>A note on the servo saver. It´s designed to be used with PLA, the upper and lower BOM applies force similar to a spring in a convetional servo saver. Of course the pressure depends on the type of material used, infill etc. Fine tuning can be done adding washer under or over the servo saver.</p><p>The "Main Turning Vane´s" needs to have it´s lower part trimmed using a "exacto knife". Then slide it in the chassie plate and push it over the "Lid" and it should snap into place-</p><p>Parts that need support added:</p><p>Front Spoiler.stl</p><p>Front.stl</p><p>Rear Rim.stl</p><p>Rear Wing.stl</p><p>Servo Saver Lower.stl</p><p>Things to buy:</p><p>Ok, obviously you need some filament which you´ll get from your favourite filament supplier.</p><p>You also need M3 screws and nuts which you can get at your local hardware store. Check the BOM list for what to get.</p><p>Some bearings are needed aswell, check the BOM list or buy a kit from FastEddyBearings.com: <a href="http://www.fasteddybearings.com/openrc-f1-sealed-bearing-kit/">http://www.fasteddybearings.com/openrc-f1-sealed-bearing-kit/</a></p><p>Suggestion for electronics: <a href="http://danielnoree.com/openrc-electronics/">http://danielnoree.com/openrc-electronics/</a></p><p>Google + Community: <a href="https://plus.google.com/u/0/communities/112745535856143176146">https://plus.google.com/u/0/communities/112745535856143176146</a></p><p>You can aslo ask questions in the Facebook group: <a href="https://www.facebook.com/groups/1111886228841596/">https://www.facebook.com/groups/1111886228841596/</a></p><p>Rain tires designed by Thomas Palm are available here: <a href="https://www.thingiverse.com/thing:999257">http://www.thingiverse.com/thing:999257</a></p><p>Low profile rims &amp; tires designed by Thomas Palm are available here: <a href="https://www.thingiverse.com/thing:1103751">http://www.thingiverse.com/thing:1103751</a></p><p>Short video: <a href="https://youtu.be/eTST_g2g2xQ">https://youtu.be/eTST_g2g2xQ</a></p><p>Please consider supporting me on Patreon: <a href="https://www.patreon.com/DanielNoree">https://www.patreon.com/DanielNoree</a></p><p>Like my FaceBook page - <a href="https://www.facebook.com/Daniel-Nor%C3%A9e-576194949211855/">https://www.facebook.com/Daniel-Nor%C3%A9e-576194949211855/</a><br>Subscribe to my YouTube channel - <a href="https://www.youtube.com/user/DanielNoree2">https://www.youtube.com/user/DanielNoree2</a></p><p>INSTAGRAM <a href="https://www.instagram.com/danielnoree/">https://www.instagram.com/danielnoree/</a><br>TWITTER <a href="https://twitter.com/DanielNoree">https://twitter.com/DanielNoree</a><br>GOOGLE+ <a href="https://plus.google.com/u/1/+DanielNoree">https://plus.google.com/u/1/+DanielNoree</a><br>FACEBOOK <a href="https://www.facebook.com/daniel.noree">https://www.facebook.com/daniel.noree</a></p><p>GOOGLE+ OPENRC COMMUNITY <a href="https://plus.google.com/communities/112745535856143176146">https://plus.google.com/communities/112745535856143176146</a><br>FACEBOOK OPENRC GROUP <a href="https://www.facebook.com/groups/1111886228841596/">https://www.facebook.com/groups/1111886228841596/</a></p><p>&nbsp;</p><p>&nbsp;</p><figure class="media"><div data-oembed-url="https://www.youtube.com/watch?v=VhTR0SytEao"><div style="position: relative; padding-bottom: 100%; height: 0; padding-bottom: 56.2493%;"><iframe src="https://www.youtube.com/embed/VhTR0SytEao" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0;" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen=""></iframe></div></div></figure>-->
+			</div>
+		</div>		
+	</div>
+  
+	<div class="FloorBottomBar">&nbsp; </div>	  
+  </div> 
+  </div>	 
+	
+</div>
+</body>
+</html>

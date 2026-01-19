@@ -1,0 +1,83 @@
+{
+    "type": "filament",
+    "name": "Arena PET-CF @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "GFT01",
+    "instantiation": "false",
+    "temperature_vitrification": [
+        "185"
+    ],
+    "overhang_fan_threshold": [
+        "0%"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "slow_down_layer_time": [
+        "2"
+    ],
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "filament_vendor": [
+        "Orca Arena"
+    ],
+    "filament_type": [
+        "PET-CF"
+    ],
+    "filament_cost": [
+        "84.99"
+    ],
+    "filament_density": [
+        "1.29"
+    ],
+    "nozzle_temperature_range_low": [
+        "260"
+    ],
+    "nozzle_temperature_range_high": [
+        "290"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ]
+}

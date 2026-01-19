@@ -1,0 +1,164 @@
+app-id: io.github.softfever.OrcaSlicer
+runtime: org.gnome.Platform
+runtime-version: "48"
+sdk: org.gnome.Sdk
+command: entrypoint
+separate-locales: true
+rename-icon: OrcaSlicer
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --share=network
+  - --device=all
+  - --filesystem=home
+  - --filesystem=xdg-run/gvfs
+  - --filesystem=/run/media
+  - --filesystem=/media
+  - --filesystem=/run/spnav.sock:ro
+  # Allow OrcaSlicer to talk to other instances
+  - --talk-name=io.github.softfever.OrcaSlicer.InstanceCheck.*
+  - --system-talk-name=org.freedesktop.UDisks2
+  - --env=SPNAV_SOCKET=/run/spnav.sock
+
+modules:
+
+  # JPEG codec for the liveview
+  - name: gst-plugins-good
+    buildsystem: meson
+    config-opts:
+      - -Dauto_features=disabled
+      - -Djpeg=enabled
+      - -Ddoc=disabled
+      - -Dexamples=disabled
+      - -Dtests=disabled
+    sources:
+      - type: archive
+        url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.22.8.tar.xz
+        sha256: e305b9f07f52743ca481da0a4e0c76c35efd60adaf1b0694eb3bb021e2137e39
+
+  - name: glu
+    config-opts:
+      - --disable-static
+    sources:
+      - type: archive
+        url: https://ftp.osuosl.org/pub/blfs/conglomeration/glu/glu-9.0.2.tar.xz
+        sha256: 6e7280ff585c6a1d9dfcdf2fca489251634b3377bfc33c29e4002466a38d02d4
+    cleanup:
+      - /include
+      - /lib/*.a
+      - /lib/*.la
+      - /lib/pkgconfig
+
+  - name: kde-extra-cmake-modules
+    buildsystem: cmake-ninja
+    sources:
+      - type: git
+        url: https://github.com/KDE/extra-cmake-modules
+        tag: v5.249.0
+    cleanup:
+      - /
+
+  - name: libspnav
+    sources:
+      - type: archive
+        url: https://github.com/FreeSpacenav/libspnav/releases/download/v1.2/libspnav-1.2.tar.gz
+        sha256: 093747e7e03b232e08ff77f1ad7f48552c06ac5236316a5012db4269951c39db
+
+  - name: orca_deps
+    build-options:
+      build-args:
+        - --share=network # allow cmake to download the needed deps
+      env:
+        BUILD_DIR: deps/build_flatpak
+    buildsystem: simple
+    build-commands:
+      # start build
+      - |
+        cmake -S deps -B $BUILD_DIR \
+          -DFLATPAK=ON \
+          -DDEP_DOWNLOAD_DIR=/run/build/orca_deps/external-packages \
+          -DCMAKE_PREFIX_PATH=/app \
+          -DDESTDIR=/app \
+          -DCMAKE_INSTALL_PREFIX=/app
+      - cmake --build $BUILD_DIR --parallel --target dep_wxWidgets
+      - cmake --build $BUILD_DIR --parallel
+      - rm -rf /run/build/orca_deps/external-packages
+
+    cleanup:
+      - /app/include
+      - "*.a"
+      - "*.la"
+
+    sources:
+      # OrcaSlicer Source Archive
+      - type: dir
+        path: ../../deps
+        dest: deps
+
+      - type: file
+        path: patches/0001-Enable-using-a-dark-theme-when-Gnome-dark-style-is-s.patch
+        dest: deps/wxWidgets
+        dest-filename: 0001-flatpak.patch
+
+  - name: OrcaSlicer
+    buildsystem: simple
+    build-commands:
+      - |
+        cmake . -B build_flatpak \
+          -DFLATPAK=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_PREFIX_PATH=/app \
+          -DCMAKE_INSTALL_PREFIX=/app
+      - cmake --build build_flatpak --target OrcaSlicer -j$FLATPAK_BUILDER_N_JOBS
+      - ./scripts/run_gettext.sh
+      - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
+
+    cleanup:
+      - /include
+
+    post-install:
+
+      - | # Desktop Integration files
+        install -Dm644 -t /app/share/icons/hicolor/scalable/apps/ resources/images/OrcaSlicer.svg
+        install -Dm644 ${FLATPAK_ID}.metainfo.xml /app/share/metainfo/${FLATPAK_ID}.metainfo.xml
+        mv /app/share/applications/OrcaSlicer.desktop /app/share/applications/${FLATPAK_ID}.desktop
+        desktop-file-edit --set-key=Exec --set-value="entrypoint %U" /app/share/applications/${FLATPAK_ID}.desktop
+        install -Dm755 entrypoint /app/bin
+        install -Dm755 umount /app/bin
+
+    sources:
+      # OrcaSlicer Source Archive
+      - type: dir
+        path: ../../cmake
+        dest: cmake
+      - type: dir
+        path: ../../deps_src
+        dest: deps_src
+      - type: dir
+        path: ../../resources
+        dest: resources
+      - type: dir
+        path: ../../src
+        dest: src
+
+      - type: file
+        path: ../../CMakeLists.txt
+      - type: file
+        path: ../../LICENSE.txt
+      - type: file
+        path: ../../version.inc
+      - type: file
+        path: ../run_gettext.sh
+        dest: scripts
+
+      # AppData metainfo for Gnome Software & Co.
+      - type: file
+        path: io.github.softfever.OrcaSlicer.metainfo.xml
+
+      # start-up script
+      - type: file
+        path: entrypoint
+
+      # umount wrapper used to redirect umount calls to udisk2
+      - type: file
+        path: umount

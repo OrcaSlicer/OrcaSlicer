@@ -1,0 +1,82 @@
+{
+    "type": "filament",
+    "name": "Flashforge HS PLA Burnt Ti @FF G4 0.6 HF nozzle",
+    "inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "1"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "40"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "40"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "35"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_ramming_parameters": [
+        "105 105 9.87097 10.129 10.129 10.9247 14.1505 18.1505 19.7634 19.7419 19.8925 19.5484 13.9785 4.45161 0.0430108 0.236559 0.473118 0.301075| 0.05 9.73979 0.45 10.2409 0.95 11.2409 1.45 19.5688 1.95 19.5925 2.45 19.9355 2.95 0.503226 3.45 0.331183 3.95 0.116129 4.45 7.6 4.95 7.6"
+    ],
+    "filament_settings_id": [
+        "Flashforge HS PLA Burnt Ti @FF G4 0.6 HF nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n; right_extruder_material:PLA\n\n\n"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 0.6 HF nozzle"
+    ],
+    "nozzle_temperature": [
+        "200"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "215"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "pressure_advance": [
+        "0.025"
+    ],
+    "slow_down_layer_time": [
+        "9"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "temperature_vitrification": [
+        "45"
+    ],
+    "textured_cool_plate_temp": [
+        "45"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ]
+}

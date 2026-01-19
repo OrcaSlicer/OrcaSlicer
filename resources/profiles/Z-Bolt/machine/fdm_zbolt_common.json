@@ -1,0 +1,118 @@
+{
+    "type": "machine",
+    "name": "fdm_zbolt_common",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "auxiliary_fan": "0",
+    "default_filament_profile": [
+        "Z-Bolt Generic PLA"
+    ],
+    "default_print_profile": "0.20mm Standard @Z-Bolt S300",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "9000",
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "3"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "max_layer_height": [
+        "0.4"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "z_hop_types": "Normal Lift",
+    "nozzle_type": "hardened_steel",
+    "single_extruder_multi_material": "1",
+    "machine_start_gcode": "START_PRINT",
+    "machine_end_gcode": "END_PRINT",
+    "machine_pause_gcode": "PAUSE"
+}

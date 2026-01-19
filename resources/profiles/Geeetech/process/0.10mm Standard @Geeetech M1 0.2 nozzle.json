@@ -1,0 +1,33 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard @Geeetech M1 0.2 nozzle",
+    "inherits": "fdm_process_Geeetech_HS_0.10_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP_Geeetech_041",
+    "instantiation": "true",
+    "initial_layer_speed": "30",
+    "initial_layer_infill_speed": "50",
+    "outer_wall_speed": "100",
+    "inner_wall_speed": "120",
+    "sparse_infill_speed": "150",
+    "internal_solid_infill_speed": "100",
+    "top_surface_speed": "50",
+    "gap_infill_speed": "80",
+    "travel_speed": "200",
+    "default_acceleration": "2000",
+    "outer_wall_acceleration": "1500",
+    "inner_wall_acceleration": "3000",
+    "initial_layer_acceleration": "500",
+    "top_surface_acceleration": "2000",
+    "travel_acceleration": "3000",
+    "default_jerk": "10",
+    "initial_layer_jerk": "10",
+    "outer_wall_jerk": "10",
+    "infill_jerk": "10",
+    "travel_jerk": "10",
+    "inner_wall_jerk": "10",
+    "top_surface_jerk": "10",
+    "compatible_printers": [
+        "Geeetech M1 0.2 nozzle"
+    ]
+}

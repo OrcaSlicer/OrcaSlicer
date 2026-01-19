@@ -1,0 +1,19 @@
+{
+    "type": "process",
+    "name": "0.08mm Extra Fine @MyToolChanger",
+    "inherits": "fdm_process_mytoolchanger_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.08",
+    "bottom_shell_layers": "7",
+    "top_shell_layers": "9",
+    "support_top_z_distance": "0.08",
+    "support_bottom_z_distance": "0.08",
+    "initial_layer_print_height": "0.2",
+    "compatible_printers": [
+        "MyToolChanger 0.4 nozzle",
+        "MyToolChanger 0.2 nozzle",
+        "MyToolChanger 0.6 nozzle"
+    ]
+}

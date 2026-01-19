@@ -1,0 +1,71 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PETG @MINIIS 0.8",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "50"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "20"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "hot_plate_temp": [
+        "85"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "85"
+    ],
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.15"
+    ],
+    "filament_retraction_speed": [
+        "45"
+    ],
+    "filament_deretraction_speed": [
+        "25"
+    ],
+    "filament_retraction_minimum_travel": [
+        "1"
+    ],
+    "compatible_printers": [
+        "Prusa MINIIS 0.8 nozzle"
+    ]
+}

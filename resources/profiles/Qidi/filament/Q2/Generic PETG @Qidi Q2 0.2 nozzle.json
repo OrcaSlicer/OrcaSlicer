@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Generic PETG @Qidi Q2 0.2 nozzle",
+    "inherits": "Generic PETG@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.056"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.2 nozzle"
+    ]
+}

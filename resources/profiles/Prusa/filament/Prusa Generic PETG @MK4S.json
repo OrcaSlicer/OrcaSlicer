@@ -1,0 +1,48 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PETG @MK4S",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Generic PETG @MK4S",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4S 0.25 nozzle",
+        "Prusa MK4S 0.3 nozzle",
+        "Prusa MK4S 0.4 nozzle",
+        "Prusa MK4S 0.5 nozzle"
+    ],
+    "default_filament_colour": "#FF8000",
+    "fan_max_speed": "40",
+    "filament_cost": [
+        "27.82"
+    ],
+    "filament_end_gcode": [
+        "; Filament-specific end gcode"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_minimal_purge_on_wipe_tower": "35",
+    "filament_notes": [
+        ""
+    ],
+    "filament_retract_before_wipe": "20",
+    "filament_retraction_length": "0.8",
+    "filament_start_gcode": [
+        "M900 K{if nozzle_diameter[filament_extruder_id]==0.4}0.07{elsif nozzle_diameter[filament_extruder_id]==0.25}0.12{elsif nozzle_diameter[filament_extruder_id]==0.3}0.09{elsif nozzle_diameter[filament_extruder_id]==0.35}0.08{elsif nozzle_diameter[filament_extruder_id]==0.6}0.04{elsif nozzle_diameter[filament_extruder_id]==0.5}0.05{elsif nozzle_diameter[filament_extruder_id]==0.8}0.02{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*(MK4IS|XLIS|MK4S|MK3.9S).*/}\nM572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.053{elsif nozzle_diameter[filament_extruder_id]==0.5}0.042{elsif nozzle_diameter[filament_extruder_id]==0.6}0.032{elsif nozzle_diameter[filament_extruder_id]==0.8}0.018{elsif nozzle_diameter[filament_extruder_id]==0.25}0.18{elsif nozzle_diameter[filament_extruder_id]==0.3}0.1{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S36 ; set heatbreak target temp"
+    ],
+    "filament_ramming_parameters": [
+        "250 100 42.4 42.4 42.4 42.4 42.4 | 0.05 42.4 0.45 42.4 0.95 42.4 1.45 42.4 1.95 42.4 2.45 42.4 2.95 42.4 3.45 42.4 3.95 42.4 4.45 42.4 4.95 42.4"
+    ],
+    "filament_wipe": "1",
+    "filament_z_hop": "0.15",
+    "full_fan_speed_layer": "5",
+    "hot_plate_temp": "90",
+    "hot_plate_temp_initial_layer": "85",
+    "nozzle_temperature": "240",
+    "nozzle_temperature_initial_layer": "230",
+    "overhang_fan_speed": "40",
+    "slow_down_layer_time": "7",
+    "slow_down_min_speed": "15"
+}

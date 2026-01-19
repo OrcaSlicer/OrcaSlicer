@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "QIDI PETG-GF @Qidi X-Plus 4 0.8 nozzle",
+    "inherits": "QIDI PETG-GF",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "QD_0_1_43",
+    "instantiation": "true",
+    "filament_settings_id": [
+        "QIDI PETG-GF @Qidi X-Plus 4 0.8 nozzle"
+    ],
+    "pressure_advance": [
+        "0.04"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 4 0.8 nozzle"
+    ]
+}

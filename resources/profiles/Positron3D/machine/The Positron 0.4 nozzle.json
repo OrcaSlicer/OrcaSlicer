@@ -1,0 +1,20 @@
+{
+    "type": "machine",
+    "name": "The Positron 0.4 nozzle",
+    "inherits": "fdm_common_the_positron",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "The Positron",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "180x0",
+        "180x180",
+        "0x180"
+    ],
+    "printable_height": "165"
+}

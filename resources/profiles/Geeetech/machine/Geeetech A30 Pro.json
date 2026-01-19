@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Geeetech A30 Pro",
+    "model_id": "Geeetech_A30 Pro",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Geeetech",
+    "bed_model": "320x320.stl",
+    "bed_texture": "Geeetech_buildplate_texture.svg",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @System;Generic PLA @System;Generic PETG @System;Generic ABS @System;Generic TPU @System"
+}

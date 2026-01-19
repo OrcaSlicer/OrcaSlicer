@@ -1,0 +1,21 @@
+{
+    "type": "process",
+    "name": "0.20 Strength @Snapmaker U1 (0.4 nozzle)",
+    "inherits": "fdm_process_U1_0.20",
+    "from": "system",
+    "setting_id": "GP013",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. So, it results in higher strength of the prints, but more filament consumption and longer printing time.",
+    "outer_wall_speed": "60",
+    "sparse_infill_density": "25%",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "wall_loops": "6",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ],
+    "ooze_prevention": "1",
+    "slowdown_for_curled_perimeters": "0",
+    "standby_temperature_delta": "-150",
+    "wipe_tower_filament": "1"
+}

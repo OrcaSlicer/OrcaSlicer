@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Creality CR-M4",
+    "model_id": "Creality-CR-M4",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Creality",
+    "bed_model": "creality_crm4_buildplate_model.stl",
+    "bed_texture": "creality_crm4_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+}

@@ -1,0 +1,19 @@
+{
+    "type": "process",
+    "name": "0.30mm Standard @BBL A1 0.6 nozzle",
+    "inherits": "fdm_process_single_0.30_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP096",
+    "instantiation": "true",
+    "description": "It has a big layer height, and results in apparent layer lines and ordinary printing quality and printing time.",
+    "default_acceleration": [
+        "6000"
+    ],
+    "elefant_foot_compensation": "0.075",
+    "travel_speed": [
+        "700"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.6 nozzle"
+    ]
+}

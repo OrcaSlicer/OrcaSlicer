@@ -1,0 +1,10 @@
+{
+    "type": "process",
+    "name": "0.10mm High Quality @Artillery M1 Pro 0.2 nozzle",
+    "inherits": "0.08mm High Quality @Artillery M1 Pro 0.2 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "layer_height": "0.1",
+    "print_settings_id": "0.10mm High Quality @Artillery M1 Pro 0.2 nozzle",
+    "version": "2.1.1.0"
+}

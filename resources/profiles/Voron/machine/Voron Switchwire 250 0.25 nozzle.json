@@ -1,0 +1,27 @@
+{
+    "type": "machine",
+    "name": "Voron Switchwire 250 0.25 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Voron Switchwire 250",
+    "default_print_profile": "0.10mm Standard 0.25 nozzle @Voron",
+    "max_layer_height": [
+        "0.20"
+    ],
+    "min_layer_height": [
+        "0.06"
+    ],
+    "nozzle_diameter": [
+        "0.25"
+    ],
+    "printable_area": [
+        "0x0",
+        "250x0",
+        "250x210",
+        "0x210"
+    ],
+    "printable_height": "240",
+    "printer_variant": "0.25"
+}

@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic ASA @CORE One 0.6",
+    "inherits": "Prusa Generic ASA @CORE One",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusa Generic ASA @CORE One 0.6",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa CORE One 0.6 nozzle"
+    ],
+    "nozzle_temperature": [
+        "255"
+    ],
+    "slow_down_layer_time": [
+        "15"
+    ]
+}

@@ -1,0 +1,33 @@
+{
+    "type": "process",
+    "name": "High speed - 0.25mm",
+    "inherits": "fdm_process_volumic_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.25",
+    "initial_layer_print_height": "0.25",
+    "bottom_shell_layers": "3",
+    "top_shell_layers": "3",
+    "initial_layer_speed": "80",
+    "initial_layer_infill_speed": "80",
+    "outer_wall_speed": "90",
+    "inner_wall_speed": "135",
+    "internal_solid_infill_speed": "135",
+    "top_surface_speed": "135",
+    "gap_infill_speed": "135",
+    "sparse_infill_speed": "135",
+    "travel_speed": "135",
+    "support_speed": "135",
+    "support_interface_speed": "135",
+    "skirt_speed": "135",
+    "compatible_printers": [
+        "EXO42 (0.4 nozzle)",
+        "EXO65 (0.6 nozzle)",
+        "SH65 (0.4 nozzle)",
+        "VS30MK3 (0.4 nozzle)",
+        "VS30SC2 (0.4 nozzle)",
+        "VS30SC (0.4 nozzle)",
+        "VS30ULTRA (0.4 nozzle)"
+    ]
+}

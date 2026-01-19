@@ -1,0 +1,34 @@
+#!/bin/bash
+# these are the Clear Linux specific build functions
+
+# Addtional bundles for OrcaSlicer
+export REQUIRED_BUNDLES=(
+    c-basic
+    dev-utils
+    devpkg-curl
+    devpkg-glew
+    devpkg-glu
+    devpkg-gstreamer
+    devpkg-gtk3
+    devpkg-libmspack
+    devpkg-libsecret
+    devpkg-openssl
+    devpkg-webkitgtk
+    file
+    git
+    lib-opengl
+    perl-basic
+    texinfo
+    wget
+)
+
+if [[ -n "$UPDATE_LIB" ]]
+then
+    echo "Updating linux ..."
+    echo swupd bundle-add -y "${REQUIRED_BUNDLES[@]}"
+    echo -e "done\n"
+    exit 0
+fi
+
+export FOUND_GTK3_DEV
+FOUND_GTK3_DEV=$(find /usr/lib64/libgtk-3.so 2>/dev/null || true)

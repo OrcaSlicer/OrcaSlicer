@@ -1,0 +1,58 @@
+{
+    "name": "Template",
+    "version": "01.07.00.02",
+    "force_update": "0",
+    "description": "Template configurations",
+    "machine_model_list": [
+    ],
+  "process_list": [
+    {
+      "name": "process template",
+      "sub_path": "process/process template.json"
+    }
+  ],
+  "filament_list": [
+    {
+      "name": "filament_abs_template",
+      "sub_path": "filament/filament_abs_template.json"
+    },
+    {
+      "name": "filament_asa_template",
+      "sub_path": "filament/filament_asa_template.json"
+    },
+    {
+      "name": "filament_hips_template",
+      "sub_path": "filament/filament_hips_template.json"
+    },
+    {
+      "name": "filament_pa_template",
+      "sub_path": "filament/filament_pa_template.json"
+    },
+    {
+      "name": "filament_pet_template",
+      "sub_path": "filament/filament_pet_template.json"
+    },
+    {
+      "name": "filament_pla_template",
+      "sub_path": "filament/filament_pla_template.json"
+    },
+    {
+      "name": "filament_ppa_template",
+      "sub_path": "filament/filament_ppa_template.json"
+    },
+    {
+      "name": "filament_pps_template",
+      "sub_path": "filament/filament_pps_template.json"
+    },
+    {
+      "name": "filament_pva_template",
+      "sub_path": "filament/filament_pva_template.json"
+    },
+    {
+      "name": "filament_tpu_template",
+      "sub_path": "filament/filament_tpu_template.json"
+    }
+  ],
+    "machine_list": [
+    ]
+}

@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.24mm Optimal @BBL A1M 0.6 nozzle",
+    "inherits": "fdm_process_single_0.24_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP054",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.6 mm nozzle, it has a smaller layer height, and results in less apparent layer lines and slight higher printing quality, but longer printing time.",
+    "default_acceleration": [
+        "6000"
+    ],
+    "travel_speed": [
+        "700"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.6 nozzle"
+    ]
+}

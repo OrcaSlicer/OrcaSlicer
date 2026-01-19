@@ -1,0 +1,21 @@
+{
+    "type": "machine",
+    "name": "Prusa XL 0.8 nozzle",
+    "inherits": "fdm_machine_common_xl",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
+    "gcode_flavor": "marlin2",
+    "printer_model": "Prusa XL",
+    "default_filament_profile": "Prusa Generic PLA @XL",
+    "default_print_profile": "0.40mm Quality @Prusa XL 0.8",
+    "printer_variant": "0.8",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "max_layer_height": "0.6",
+    "min_layer_height": "0.2",
+    "retraction_length": "0.6",
+    "retraction_speed": "25",
+    "detraction_speed": "15"
+}

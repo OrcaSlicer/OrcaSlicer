@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Fiberon PA12-CF @System",
+    "inherits": "Fiberon PA12-CF @base",
+    "from": "system",
+    "setting_id": "OGFSL52_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

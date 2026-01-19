@@ -1,0 +1,63 @@
+{
+    "type": "filament",
+    "name": "Bambu ASA-Aero @base",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "OGFB02",
+    "instantiation": "false",
+    "description": "This filament is only used to print models with a low density usually, and some special parameters are required. To get better printing quality, please refer to this wiki: ASA Aero Printing Guide.",
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_cost": [
+        "49.99"
+    ],
+    "filament_density": [
+        "0.99"
+    ],
+    "filament_flow_ratio": [
+        "0.52"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_retraction_length": [
+        "1.5"
+    ],
+    "filament_type": [
+        "ASA-Aero"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "filament_wipe_distance": [
+        "5"
+    ],
+    "filament_z_hop_types": [
+        "Normal Lift"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "270"
+    ],
+    "overhang_fan_speed": [
+        "50"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ]
+}

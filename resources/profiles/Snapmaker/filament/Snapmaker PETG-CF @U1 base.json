@@ -1,0 +1,95 @@
+{
+    "type": "filament",
+    "name": "Snapmaker PETG-CF @U1 base",
+    "inherits": "fdm_filament_petg",
+    "from": "system",
+    "filament_id": "10425112260",
+    "instantiation": "false",
+    "filament_end_gcode": [
+        ""
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "overhang_fan_threshold": [
+        "10%"
+    ],
+    "overhang_fan_speed": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "10"
+    ],
+    "filament_cost": [
+        "40"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_max_volumetric_speed": [
+        "6.4"
+    ],
+    "filament_retraction_minimum_travel": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "nil"
+    ],
+    "filament_loading_speed_start": [
+        "35"
+    ],
+    "filament_loading_speed": [
+        "35"
+    ],
+    "filament_unloading_speed_start": [
+        "35"
+    ],
+    "filament_unloading_speed": [
+        "35"
+    ],
+    "filament_load_time": [
+        "2"
+    ],
+    "filament_unload_time": [
+        "2"
+    ],
+    "filament_cooling_moves": [
+        "2"
+    ],
+    "filament_cooling_initial_speed": [
+        "35"
+    ],
+    "filament_cooling_final_speed": [
+        "60"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "temperature_vitrification": [
+        "178"
+    ],
+    "fan_max_speed": [
+        "20"
+    ],
+    "fan_min_speed": [
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "filament_type": [
+        "PETG-CF"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "nozzle_temperature_range_high": [
+        "255"
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @Magneto X",
+    "inherits": "fdm_process_pply_0.20",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Peopoly Magneto X 0.4 nozzle"
+    ]
+}

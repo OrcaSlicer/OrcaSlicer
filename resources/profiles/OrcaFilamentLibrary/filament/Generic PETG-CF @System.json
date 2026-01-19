@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "Generic PETG-CF @System",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "OGFSG50",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "5"
+    ],
+    "filament_max_volumetric_speed": [
+        "11.5"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "compatible_printers": []
+}

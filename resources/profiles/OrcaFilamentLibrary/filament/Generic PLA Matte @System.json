@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Generic PLA Matte @System",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "OGFSL99_02",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "11"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "compatible_printers": []
+}

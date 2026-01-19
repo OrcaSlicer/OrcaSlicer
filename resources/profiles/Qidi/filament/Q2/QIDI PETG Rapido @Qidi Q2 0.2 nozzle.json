@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "QIDI PETG Rapido @Qidi Q2 0.2 nozzle",
+    "inherits": "QIDI PETG Rapido@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.054"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.2 nozzle"
+    ]
+}

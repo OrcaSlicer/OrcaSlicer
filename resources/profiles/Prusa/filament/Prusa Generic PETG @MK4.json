@@ -1,0 +1,53 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PETG @MK4",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "90"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nM900 K{if nozzle_diameter[0]==0.4}0.035{elsif nozzle_diameter[0]==0.25}0.12{elsif nozzle_diameter[0]==0.3}0.09{elsif nozzle_diameter[0]==0.35}0.08{elsif nozzle_diameter[0]==0.6}0.04{elsif nozzle_diameter[0]==0.5}0.05{elsif nozzle_diameter[0]==0.8}0.02{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*PRINTER_MODEL_MK4IS.*/}\nM572 S{if nozzle_diameter[0]==0.4}0.055{elsif nozzle_diameter[0]==0.5}0.042{elsif nozzle_diameter[0]==0.6}0.025{elsif nozzle_diameter[0]==0.8}0.018{elsif nozzle_diameter[0]==0.25}0.18{elsif nozzle_diameter[0]==0.3}0.1{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S36 ; set heatbreak target temp"
+    ],
+    "filament_ramming_parameters": [
+        "250 100 42.4 42.4 42.4 42.4 42.4 | 0.05 42.4 0.45 42.4 0.95 42.4 1.45 42.4 1.95 42.4 2.45 42.4 2.95 42.4 3.45 42.4 3.95 42.4 4.45 42.4 4.95 42.4"
+    ],
+    "compatible_printers": [
+        "Prusa MK4 0.25 nozzle",
+        "Prusa MK4 0.4 nozzle",
+        "Prusa MK4 0.6 nozzle",
+        "Prusa MK4 0.8 nozzle"
+    ]
+}

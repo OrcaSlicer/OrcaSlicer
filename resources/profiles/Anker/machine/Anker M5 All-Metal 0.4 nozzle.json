@@ -1,0 +1,35 @@
+{
+    "type": "machine",
+    "name": "Anker M5 All-Metal 0.4 nozzle",
+    "inherits": "fdm_marlin_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_model": "Anker M5 All-Metal Hot End",
+    "printer_variant": "0.4",
+    "auxiliary_fan": "0",
+    "bed_exclude_area": [],
+    "default_filament_profile": [
+        "Anker Generic PLA+"
+    ],
+    "default_print_profile": "0.20mm Standard @Anker",
+    "extruder_clearance_height_to_lid": "250",
+    "extruder_clearance_height_to_rod": "30",
+    "extruder_clearance_radius": "45",
+    "printer_structure": "i3",
+    "nozzle_type": "brass",
+    "printable_height": "250",
+    "printable_area": [
+        "0x0",
+        "235x0",
+        "235x235",
+        "0x235"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "upward_compatible_machine": []
+}

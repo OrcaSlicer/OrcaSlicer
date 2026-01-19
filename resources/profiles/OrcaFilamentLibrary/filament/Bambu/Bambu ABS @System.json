@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "Bambu ABS @System",
+    "inherits": "Bambu ABS @base",
+    "from": "system",
+    "setting_id": "OGFSB00",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "60"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "slow_down_layer_time": [
+        "12"
+    ],
+    "compatible_printers": []
+}

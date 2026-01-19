@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Anker Generic ASA @base",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "GFB98",
+    "instantiation": "false"
+}

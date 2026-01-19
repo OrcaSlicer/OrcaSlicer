@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "Generic PCTG @BBL A1",
+    "inherits": "Generic PCTG @base",
+    "from": "system",
+    "setting_id": "GFSG97_01",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

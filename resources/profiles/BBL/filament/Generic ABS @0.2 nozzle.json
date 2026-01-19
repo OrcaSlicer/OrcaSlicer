@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Generic ABS @0.2 nozzle",
+    "inherits": "Generic ABS @base",
+    "from": "system",
+    "setting_id": "GFSB99_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.2 nozzle",
+        "Bambu Lab X1 0.2 nozzle",
+        "Bambu Lab P1S 0.2 nozzle"
+    ]
+}

@@ -1,0 +1,32 @@
+{
+    "type": "filament",
+    "name": "Generic HIPS @BBL A1M 0.2 nozzle",
+    "inherits": "Generic HIPS @base",
+    "from": "system",
+    "setting_id": "GFSS98_03",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "70"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "70"
+    ],
+    "filament_max_volumetric_speed": [
+        "0.5"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.2 nozzle"
+    ]
+}

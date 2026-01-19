@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Anker Generic PA @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "GFN99",
+    "instantiation": "false"
+}

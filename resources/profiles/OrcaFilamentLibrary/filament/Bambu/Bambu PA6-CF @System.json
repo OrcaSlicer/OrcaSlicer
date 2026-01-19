@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Bambu PA6-CF @System",
+    "inherits": "Bambu PA6-CF @base",
+    "from": "system",
+    "setting_id": "OGFSN05_02",
+    "instantiation": "true",
+    "compatible_printers": []
+}

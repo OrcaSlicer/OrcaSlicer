@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.15mm Optimal @BIQU BX (0.4 nozzle)",
+    "inherits": "fdm_process_biqu_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "bottom_shell_layers": "4",
+    "top_shell_layers": "5",
+    "layer_height": "0.15",
+    "compatible_printers": [
+        "BIQU BX (0.4 nozzle)"
+    ]
+}

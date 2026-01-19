@@ -1,0 +1,274 @@
+{
+    "name": "Custom Printer",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "My configurations",
+    "machine_model_list": [
+        {
+            "name": "Generic Klipper Printer",
+            "sub_path": "machine/MyKlipper.json"
+        },
+        {
+            "name": "Generic Marlin Printer",
+            "sub_path": "machine/MyMarlin.json"
+        },
+        {
+            "name": "Generic RRF Printer",
+            "sub_path": "machine/MyRRF.json"
+        },
+        {
+            "name": "Generic ToolChanger Printer",
+            "sub_path": "machine/MyToolChanger.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_klipper_common",
+            "sub_path": "process/fdm_process_klipper_common.json"
+        },
+        {
+            "name": "fdm_process_marlin_common",
+            "sub_path": "process/fdm_process_marlin_common.json"
+        },
+        {
+            "name": "fdm_process_rrf_common",
+            "sub_path": "process/fdm_process_rrf_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @MyKlipper",
+            "sub_path": "process/0.08mm Extra Fine @MyKlipper.json"
+        },
+        {
+            "name": "0.12mm Fine @MyKlipper",
+            "sub_path": "process/0.12mm Fine @MyKlipper.json"
+        },
+        {
+            "name": "0.15mm Optimal @MyKlipper",
+            "sub_path": "process/0.15mm Optimal @MyKlipper.json"
+        },
+        {
+            "name": "0.16mm Optimal @MyKlipper",
+            "sub_path": "process/0.16mm Optimal @MyKlipper.json"
+        },
+        {
+            "name": "0.20mm Standard @MyKlipper",
+            "sub_path": "process/0.20mm Standard @MyKlipper.json"
+        },
+        {
+            "name": "0.24mm Draft @MyKlipper",
+            "sub_path": "process/0.24mm Draft @MyKlipper.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @MyKlipper",
+            "sub_path": "process/0.28mm Extra Draft @MyKlipper.json"
+        },
+        {
+            "name": "0.32mm Standard @MyKlipper",
+            "sub_path": "process/0.32mm Extra Draft @MyKlipper.json"
+        },
+        {
+            "name": "0.40mm Standard @MyKlipper",
+            "sub_path": "process/0.40mm Extra Draft @MyKlipper.json"
+        },
+        {
+            "name": "0.56mm Standard @MyKlipper",
+            "sub_path": "process/0.56mm Extra Draft @MyKlipper.json"
+        },
+        {
+            "name": "fdm_process_mytoolchanger_common",
+            "sub_path": "process/fdm_process_mytoolchanger_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @MyMarlin",
+            "sub_path": "process/0.08mm Extra Fine @MyMarlin.json"
+        },
+        {
+            "name": "0.12mm Fine @MyMarlin",
+            "sub_path": "process/0.12mm Fine @MyMarlin.json"
+        },
+        {
+            "name": "0.15mm Optimal @MyMarlin",
+            "sub_path": "process/0.15mm Optimal @MyMarlin.json"
+        },
+        {
+            "name": "0.20mm Standard @MyMarlin",
+            "sub_path": "process/0.20mm Standard @MyMarlin.json"
+        },
+        {
+            "name": "0.24mm Draft @MyMarlin",
+            "sub_path": "process/0.24mm Draft @MyMarlin.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @MyMarlin",
+            "sub_path": "process/0.28mm Extra Draft @MyMarlin.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @MyRRF",
+            "sub_path": "process/0.08mm Extra Fine @MyRRF.json"
+        },
+        {
+            "name": "0.12mm Fine @MyRRF",
+            "sub_path": "process/0.12mm Fine @MyRRF.json"
+        },
+        {
+            "name": "0.15mm Optimal @MyRRF",
+            "sub_path": "process/0.15mm Optimal @MyRRF.json"
+        },
+        {
+            "name": "0.20mm Standard @MyRRF",
+            "sub_path": "process/0.20mm Standard @MyRRF.json"
+        },
+        {
+            "name": "0.24mm Draft @MyRRF",
+            "sub_path": "process/0.24mm Draft @MyRRF.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @MyRRF",
+            "sub_path": "process/0.28mm Extra Draft @MyRRF.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @MyToolChanger",
+            "sub_path": "process/0.08mm Extra Fine @MyToolChanger.json"
+        },
+        {
+            "name": "0.12mm Fine @MyToolChanger",
+            "sub_path": "process/0.12mm Fine @MyToolChanger.json"
+        },
+        {
+            "name": "0.15mm Optimal @MyToolChanger",
+            "sub_path": "process/0.15mm Optimal @MyToolChanger.json"
+        },
+        {
+            "name": "0.16mm Optimal @MyToolChanger",
+            "sub_path": "process/0.16mm Optimal @MyToolChanger.json"
+        },
+        {
+            "name": "0.20mm Standard @MyToolChanger",
+            "sub_path": "process/0.20mm Standard @MyToolChanger.json"
+        },
+        {
+            "name": "0.24mm Draft @MyToolChanger",
+            "sub_path": "process/0.24mm Draft @MyToolChanger.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @MyToolChanger",
+            "sub_path": "process/0.28mm Extra Draft @MyToolChanger.json"
+        },
+        {
+            "name": "0.32mm Extra Draft @MyToolChanger",
+            "sub_path": "process/0.32mm Extra Draft @MyToolChanger.json"
+        },
+        {
+            "name": "0.40mm Standard @MyToolChanger",
+            "sub_path": "process/0.40mm Extra Draft @MyToolChanger.json"
+        },
+        {
+            "name": "0.56mm Standard @MyToolChanger",
+            "sub_path": "process/0.56mm Extra Draft @MyToolChanger.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "Generic ABS @MyToolChanger",
+            "sub_path": "filament/Generic ABS @MyToolChanger.json"
+        },
+        {
+            "name": "Generic ASA @MyToolChanger",
+            "sub_path": "filament/Generic ASA @MyToolChanger.json"
+        },
+        {
+            "name": "Generic PA @MyToolChanger",
+            "sub_path": "filament/Generic PA @MyToolChanger.json"
+        },
+        {
+            "name": "Generic PA-CF @MyToolChanger",
+            "sub_path": "filament/Generic PA-CF @MyToolChanger.json"
+        },
+        {
+            "name": "Generic PC @MyToolChanger",
+            "sub_path": "filament/Generic PC @MyToolChanger.json"
+        },
+        {
+            "name": "Generic PETG @MyToolChanger",
+            "sub_path": "filament/Generic PETG @MyToolChanger.json"
+        },
+        {
+            "name": "Generic PLA @MyToolChanger",
+            "sub_path": "filament/Generic PLA @MyToolChanger.json"
+        },
+        {
+            "name": "Generic PLA-CF @MyToolChanger",
+            "sub_path": "filament/Generic PLA-CF @MyToolChanger.json"
+        },
+        {
+            "name": "Generic PVA @MyToolChanger",
+            "sub_path": "filament/Generic PVA @MyToolChanger.json"
+        },
+        {
+            "name": "Generic TPU @MyToolChanger",
+            "sub_path": "filament/Generic TPU @MyToolChanger.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "MyMarlin 0.4 nozzle",
+            "sub_path": "machine/MyMarlin 0.4 nozzle.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "fdm_rrf_common",
+            "sub_path": "machine/fdm_rrf_common.json"
+        },
+        {
+            "name": "MyKlipper 0.2 nozzle",
+            "sub_path": "machine/MyKlipper 0.2 nozzle.json"
+        },
+        {
+            "name": "MyKlipper 0.4 nozzle",
+            "sub_path": "machine/MyKlipper 0.4 nozzle.json"
+        },
+        {
+            "name": "MyKlipper 0.6 nozzle",
+            "sub_path": "machine/MyKlipper 0.6 nozzle.json"
+        },
+        {
+            "name": "MyKlipper 0.8 nozzle",
+            "sub_path": "machine/MyKlipper 0.8 nozzle.json"
+        },
+        {
+            "name": "fdm_toolchanger_common",
+            "sub_path": "machine/fdm_toolchanger_common.json"
+        },
+        {
+            "name": "MyRRF 0.4 nozzle",
+            "sub_path": "machine/MyRRF 0.4 nozzle.json"
+        },
+        {
+            "name": "MyToolChanger 0.2 nozzle",
+            "sub_path": "machine/MyToolChanger 0.2 nozzle.json"
+        },
+        {
+            "name": "MyToolChanger 0.4 nozzle",
+            "sub_path": "machine/MyToolChanger 0.4 nozzle.json"
+        },
+        {
+            "name": "MyToolChanger 0.6 nozzle",
+            "sub_path": "machine/MyToolChanger 0.6 nozzle.json"
+        },
+        {
+            "name": "MyToolChanger 0.8 nozzle",
+            "sub_path": "machine/MyToolChanger 0.8 nozzle.json"
+        }
+    ]
+}

@@ -1,0 +1,100 @@
+{
+    "type": "filament",
+    "name": "Flashforge HS PETG @FF G4P HF",
+    "inherits": "Flashforge Generic ABS @G3U",
+    "from": "system",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "1"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "fan_max_speed": [
+        "90"
+    ],
+    "fan_min_speed": [
+        "40"
+    ],
+    "filament_cost": [
+        "30"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "25"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_settings_id": [
+        "Flashforge HS PETG @FF G4P HF"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material: PLA\n"
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_unloading_speed": [
+        "90"
+    ],
+    "filament_unloading_speed_start": [
+        "100"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 Pro 0.4 HF nozzle"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "pressure_advance": [
+        "0.075"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "slow_down_min_speed": [
+        "30"
+    ],
+    "support_material_interface_fan_speed": [
+        "90"
+    ],
+    "temperature_vitrification": [
+        "70"
+    ],
+    "textured_cool_plate_temp": [
+        "80"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "80"
+    ]
+}

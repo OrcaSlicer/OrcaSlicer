@@ -1,0 +1,19 @@
+{
+    "type": "filament",
+    "name": "Bambu PET-CF @BBL A1",
+    "inherits": "Bambu PET-CF @base",
+    "from": "system",
+    "setting_id": "GFST01_01",
+    "instantiation": "true",
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.8 nozzle",
+        "Bambu Lab A1 0.6 nozzle"
+    ]
+}

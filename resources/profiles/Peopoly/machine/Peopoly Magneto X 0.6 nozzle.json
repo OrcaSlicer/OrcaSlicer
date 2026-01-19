@@ -1,0 +1,32 @@
+{
+    "type": "machine",
+    "name": "Peopoly Magneto X 0.6 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "Peopoly Magneto X",
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printer_variant": "0.6",
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x400",
+        "0x400"
+    ],
+    "printable_height": "300",
+    "max_layer_height": [
+        "0.42"
+    ],
+    "min_layer_height": [
+        "0.12"
+    ],
+    "retract_length_toolchange": [
+        "3"
+    ],
+    "retraction_length": [
+        "1"
+    ]
+}

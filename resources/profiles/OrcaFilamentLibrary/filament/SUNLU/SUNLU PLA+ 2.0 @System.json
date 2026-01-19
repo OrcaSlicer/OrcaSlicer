@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "SUNLU PLA+ 2.0 @System",
+    "inherits": "SUNLU PLA+ 2.0 @base",
+    "from": "system",
+    "setting_id": "OSNLS04",
+    "instantiation": "true",
+    "compatible_printers": []
+}

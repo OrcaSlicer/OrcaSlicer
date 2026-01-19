@@ -1,0 +1,22 @@
+{
+    "type": "machine",
+    "name": "Prusa XL 5T 0.8 nozzle",
+    "inherits": "fdm_machine_common_xl_5t",
+    "from": "system",
+    "setting_id": "GM_PRUSA_006",
+    "instantiation": "true",
+    "gcode_flavor": "marlin2",
+    "printer_model": "Prusa XL 5T",
+    "default_filament_profile": "Prusa Generic PLA @XL 5T",
+    "default_print_profile": "0.40mm Quality @Prusa XL 5T 0.8",
+    "printer_variant": "0.8",
+    "max_layer_height": "0.6",
+    "min_layer_height": "0.2",
+    "nozzle_diameter": [
+        "0.8",
+        "0.8",
+        "0.8",
+        "0.8",
+        "0.8"
+    ]
+}

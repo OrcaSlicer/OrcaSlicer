@@ -1,0 +1,305 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>io.c -- input and output operations</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149; <a href="qh-globa.htm">Global</a>
+&#149; <a href="qh-io.htm#TOC">Io</a> &#149; <a href="qh-mem.htm">Mem</a>
+&#149; <a href="qh-merge.htm">Merge</a> &#149; <a href="qh-poly.htm">Poly</a>
+&#149; <a href="qh-qhull.htm">Qhull</a> &#149; <a href="qh-set.htm">Set</a>
+&#149; <a href="qh-stat.htm">Stat</a> &#149; <a href="qh-user.htm">User</a>
+</p>
+<hr>
+
+<h2>io.c -- input and output operations</h2>
+<blockquote>
+
+<p>Qhull provides a wide range of input
+and output options. To organize the code, most output formats use
+the same driver: </p>
+
+<pre>
+    qh_printbegin( fp, format, facetlist, facets, printall );
+
+    FORALLfacet_( facetlist )
+      qh_printafacet( fp, format, facet, printall );
+
+    FOREACHfacet_( facets )
+      qh_printafacet( fp, format, facet, printall );
+
+    qh_printend( fp, format );
+</pre>
+
+<p>Note the 'printall' flag. It selects whether or not
+qh_skipfacet() is tested. </p>
+
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom.htm#TOC">Geom</a> <a name="TOC">&#149;</a>
+<a href="qh-globa.htm#TOC">Global</a> &#149; <b>Io</b> &#149;
+<a href="qh-mem.htm#TOC">Mem</a> &#149; <a href="qh-merge.htm#TOC">Merge</a> &#149;
+<a href="qh-poly.htm#TOC">Poly</a> &#149; <a href="qh-qhull.htm#TOC">Qhull</a> &#149;
+<a href="qh-set.htm#TOC">Set</a> &#149; <a href="qh-stat.htm#TOC">Stat</a> &#149;
+<a href="qh-user.htm#TOC">User</a> </p>
+
+<h3>Index to <a href="io.c">io.c</a> and <a href="io.h">io.h</a></h3>
+
+<ul>
+<li><a href="#iconst">io.h constants and types</a> </li>
+<li><a href="#ilevel">User level functions</a> </li>
+<li><a href="#iprint">Print functions for all output formats</a></li>
+<li><a href="#itext">Text output functions</a> </li>
+<li><a href="#iutil">Text utility functions</a></li>
+<li><a href="#igeom">Geomview output functions</a> </li>
+<li><a href="#iview">Geomview utility functions</a></li>
+</ul>
+
+<h3><a href="qh-io.htm#TOC">&#187;</a><a name="iconst">io.h constants and types</a></h3>
+
+<ul>
+<li><a href="io.h#qh_MAXfirst">qh_MAXfirst</a> maximum length
+of first two lines of stdin </li>
+<li><a href="io.h#qh_WHITESPACE">qh_WHITESPACE</a> possible
+values of white space </li>
+<li><a href="io.h#printvridgeT">printvridgeT</a> function to
+print results of qh_printvdiagram or qh_eachvoronoi</li>
+</ul>
+
+<h3><a href="qh-io.htm#TOC">&#187;</a><a name="ilevel">User level functions</a></h3>
+
+<ul>
+<li><a href="io.c#copyfilename">qh_copyfilename</a>
+copy filename identified by qh_skipfilename
+<li><a href="io.c#eachvoronoi_all">qh_eachvoronoi_all</a>
+visit each Voronoi ridge of the Voronoi diagram
+<li><a href="io.c#prepare_output">qh_prepare_output</a>
+prepare Qhull for output (called by qh_produce_output())
+<li><a href="io.c#printhelp_degenerate">qh_printhelp_degenerate</a>
+prints descriptive message for precision error </li>
+<li><a href="io.c#printhelp_singular">qh_printhelp_singular</a>
+print help message for singular data </li>
+<li><a href="libqhull.c#printsummary">qh_printsummary</a> print
+summary ('s')</li>
+<li><a href="io.c#produce_output">qh_produce_output</a>
+prints out the result of qhull()</li>
+<li><a href="io.c#produce_output">qh_produce_output2</a>
+prints out the result of qhull() without calling qh_prepare_output()</li>
+<li><a href="io.c#readfeasible">qh_readfeasible</a> read
+interior point from remainder and qh fin ('H')</li>
+<li><a href="io.c#readpoints">qh_readpoints</a> read input
+points </li>
+<li><a href="io.c#setfeasible">qh_setfeasible</a> set
+interior point from qh feasible_string ('Hn,n,n')</li>
+<li><a href="io.c#skipfilename">qh_skipfilename</a>
+skip filename in string
+</ul>
+
+<h3><a href="qh-io.htm#TOC">&#187;</a><a name="iprint">Print functions for all
+output formats</a></h3>
+
+<ul>
+<li><a href="io.c#countfacets">qh_countfacets</a> count good
+facets for printing and set visitid </li>
+<li><a href="io.c#markkeep">qh_markkeep</a> mark good facets
+that meet qh.KEEParea ('PAn'), qh.KEEPmerge ('PMn'), and qh.KEEPminArea ('PFn')</li>
+<li><a href="io.c#order_vertexneighbors">qh_order_vertexneighbors</a>
+order neighbors for a 3-d vertex by adjacency ('i', 'o')</li>
+<li><a href="io.c#printafacet">qh_printafacet</a> print facet
+in an output format </li>
+<li><a href="io.c#printbegin">qh_printbegin</a> print header
+for an output format </li>
+<li><a href="io.c#printend">qh_printend</a> print trailer for
+an output format </li>
+<li><a href="user.c#printfacetlist">qh_printfacetlist</a>
+print facets in a facetlist</li>
+<li><a href="io.c#printfacets">qh_printfacets</a> print
+facetlist and/or facet set in an output format </li>
+<li><a href="io.c#printneighborhood">qh_printneighborhood</a>
+print neighborhood of one or two facets ('Po')</li>
+<li><a href="io.c#produce_output">qh_produce_output</a>
+print the results of qh_qhull() </li>
+<li><a href="io.c#skipfacet">qh_skipfacet</a> True if not
+printing this facet ('Pdk:n', 'QVn', 'QGn')</li>
+<li><a href="io.c#facetvertices">qh_facetvertices</a> return
+vertices in a set of facets ('p')</li>
+</ul>
+
+<h3><a href="qh-io.htm#TOC">&#187;</a><a name="itext">Text output functions</a></h3>
+<ul>
+<li><a href="io.c#eachvoronoi">qh_eachvoronoi</a>
+print or visit each Voronoi ridge for an input site of the Voronoi diagram
+<li><a href="io.c#printextremes">qh_printextremes</a> print
+extreme points by point ID (vertices of convex hull) ('Fx')</li>
+<li><a href="io.c#printextremes_2d">qh_printextremes_2d</a> print
+2-d extreme points by point ID ('Fx')</li>
+<li><a href="io.c#printextremes_d">qh_printextremes_d</a> print
+extreme points of input sites for Delaunay triangulations ('Fx')</li>
+<li><a href="io.c#printfacet">qh_printfacet</a> print all
+fields of a facet ('f')</li>
+<li><a href="io.c#printfacet2math">qh_printfacet2math</a> print
+2-d Maple or Mathematica output for a facet ('FM' or 'm')</li>
+<li><a href="io.c#printfacet3math">qh_printfacet3math</a>
+print 3-d Maple or Mathematica facet ('FM' or 'm')</li>
+<li><a href="io.c#printfacet3vertex">qh_printfacet3vertex</a>
+print vertices for a 3-d facet ('i', 'o')</li>
+<li><a href="io.c#printfacetheader">qh_printfacetheader</a>
+prints header fields of a facet ('f')</li>
+<li><a href="io.c#printfacetNvertex_nonsimplicial">qh_printfacetNvertex_nonsimplicial</a>
+print vertices for an N-d non-simplicial facet ('i', 'Ft')</li>
+<li><a href="io.c#printfacetNvertex_simplicial">qh_printfacetNvertex_simplicial</a>
+print vertices for an N-d simplicial facet ('i', 'o', 'Ft')</li>
+<li><a href="io.c#printfacetridges">qh_printfacetridges</a>
+prints ridges of a facet ('f')</li>
+<li><a href="io.c#printpoints_out">qh_printpoints_out</a> prints
+vertices for facets by their point coordinates ('p')</li>
+<li><a href="io.c#printridge">qh_printridge</a> print all
+fields for a ridge ('f')</li>
+<li><a href="io.c#printvdiagram">qh_printvdiagram</a> print
+voronoi diagram as Voronoi vertices for each input pair</li>
+<li><a href="io.c#printvertex">qh_printvertex</a> print all
+fields for a vertex ('f')</li>
+<li><a href="io.c#printvertexlist">qh_printvertexlist</a>
+print vertices used by a list or set of facets ('f')</li>
+<li><a href="io.c#printvertices">qh_printvertices</a> print a
+set of vertices ('f')</li>
+<li><a href="io.c#printvneighbors">qh_printvneighbors</a>
+print vertex neighbors of vertices ('FN')</li>
+<li><a href="io.c#printvoronoi">qh_printvoronoi</a> print
+voronoi diagram in 'o' or 'G' format</li>
+</ul>
+
+<h3><a href="qh-io.htm#TOC">&#187;</a><a name="iutil">Text utility functions</a></h3>
+<ul>
+<li><a href="io.c#dfacet">dfacet</a> print facet by ID </li>
+<li><a href="io.c#dvertex">dvertex</a> print vertex by ID </li>
+<li><a href="io.c#compare_facetarea">qh_compare_facetarea</a>
+used by qsort() to order facets by area </li>
+<li><a href="io.c#compare_facetmerge">qh_compare_facetmerge</a>
+used by qsort() to order facets by number of merges </li>
+<li><a href="io.c#compare_facetvisit">qh_compare_facetvisit</a>
+used by qsort() to order facets by visit ID or ID </li>
+<li><a href="io.c#compare_vertexpoint">qh_compare_vertexpoint</a>
+used by qsort() to order vertices by point ID </li>
+<li><a href="io.c#detvnorm">qh_detvnorm</a> determine normal for Voronoi ridge </li>
+<li><a href="io.c#detvridge">qh_detvridge</a> determine Voronoi
+ridge for an input site
+<li><a href="io.c#detvridge3">qh_detvridge3</a> determine 3-d Voronoi
+ridge for an input site
+<li><a href="io.c#facet2point">qh_facet2point</a> return two
+projected temporary vertices for a 2-d facet ('m', 'G')</li>
+<li><a href="io.c#markvoronoi">qh_markvoronoi</a> mark Voronoi
+vertices for printing
+<li><a href="io.c#printcenter">qh_printcenter</a> print
+facet-&gt;center as centrum or Voronoi center ('Ft', 'v p', 'FC', 'f') </li>
+<li><a href="io.c#printpoint">qh_printpoint</a>, qh_printpointid, print
+coordinates of a point ('p', 'o', 'Fp', 'G', 'f')</li>
+<li><a href="io.c#printpoint3">qh_printpoint3</a> prints 2-d,
+3-d, or 4-d point as 3-d coordinates ('G')</li>
+<li><a href="io.c#printvdiagram2">qh_printvdiagram2</a> print
+voronoi diagram for each ridge of each vertex from qh_markvoronoi</li>
+<li><a href="io.c#printvnorm">qh_printvnorm</a> print
+separating plane of the Voronoi diagram for a pair of input sites</li>
+<li><a href="io.c#printvridge">qh_printvridge</a> print
+ridge of the Voronoi diagram for a pair of input sites</li>
+<li><a href="io.c#projectdim3">qh_projectdim3</a> project 2-d
+3-d or 4-d point to a 3-d point ('G')</li>
+</ul>
+
+<h3><a href="qh-io.htm#TOC">&#187;</a><a name="igeom">Geomview output functions</a></h3>
+<ul>
+<li><a href="io.c#printfacet2geom">qh_printfacet2geom</a>
+print facet as a 2-d VECT object </li>
+<li><a href="io.c#printfacet2geom_points">qh_printfacet2geom_points</a>
+print points as a 2-d VECT object with offset </li>
+<li><a href="io.c#printfacet3geom_nonsimplicial">qh_printfacet3geom_nonsimplicial</a>
+print Geomview OFF for a 3-d nonsimplicial facet. </li>
+<li><a href="io.c#printfacet3geom_points">qh_printfacet3geom_points</a>
+prints a 3-d facet as OFF Geomview object. </li>
+<li><a href="io.c#printfacet3geom_simplicial">qh_printfacet3geom_simplicial</a>
+print Geomview OFF for a 3-d simplicial facet. </li>
+<li><a href="io.c#printfacet4geom_nonsimplicial">qh_printfacet4geom_nonsimplicial</a>
+print Geomview 4OFF file for a 4d nonsimplicial facet </li>
+<li><a href="io.c#printfacet4geom_simplicial">qh_printfacet4geom_simplicial</a>
+print Geomview 4OFF file for a 4d simplicial facet </li>
+<li><a href="io.c#printhyperplaneintersection">qh_printhyperplaneintersection</a>
+print hyperplane intersection as OFF or 4OFF </li>
+<li><a href="io.c#printvoronoi">qh_printvoronoi</a> print
+voronoi diagram in 'o' or 'G' format</li>
+</ul>
+<h3><a href="qh-io.htm#TOC">&#187;</a><a name="iview">Geomview utility functions</a></h3>
+<ul>
+<li><a href="io.c#geomplanes">qh_geomplanes</a>
+    return outer and inner planes for Geomview</li>
+<li><a href="io.c#printcentrum">qh_printcentrum</a> print
+centrum for a facet in OOGL format </li>
+<li><a href="io.c#printend4geom">qh_printend4geom</a> helper
+function for qh_printbegin/printend </li>
+<li><a href="io.c#printhyperplaneintersection">qh_printhyperplaneintersection</a>
+print Geomview OFF or 4OFF for the intersection of two
+hyperplanes in 3-d or 4-d </li>
+<li><a href="io.c#printline3geom">qh_printline3geom</a> prints a
+line as a VECT </li>
+<li><a href="io.c#printpointvect">qh_printpointvect</a>
+prints a 2-d or 3-d point as 3-d VECT's </li>
+<li><a href="io.c#printpointvect2">qh_printpointvect2</a>
+prints a 2-d or 3-d point as 2 3-d VECT's </li>
+<li><a href="io.c#printspheres">qh_printspheres</a> prints 3-d
+vertices as OFF spheres </li>
+</ul>
+<p>
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149;
+<a href="qh-globa.htm">Global</a> &#149; <a href="qh-io.htm">Io</a>
+&#149; <a href="qh-mem.htm">Mem</a> &#149; <a href="qh-merge.htm">Merge</a>
+&#149; <a href="qh-poly.htm">Poly</a> &#149; <a href="qh-qhull.htm#TOC">Qhull</a>
+&#149; <a href="qh-set.htm">Set</a> &#149; <a href="qh-stat.htm">Stat</a>
+&#149; <a href="qh-user.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

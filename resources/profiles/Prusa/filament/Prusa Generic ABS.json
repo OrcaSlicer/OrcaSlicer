@@ -1,0 +1,27 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic ABS",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.926"
+    ],
+    "filament_max_volumetric_speed": [
+        "11"
+    ],
+    "filament_start_gcode": [
+        "; Filament gcode\nM900 K{if printer_notes=~/.*PRINTER_MODEL_MINI.*/ and nozzle_diameter[0]==0.6}0.12{elsif printer_notes=~/.*PRINTER_MODEL_MINI.*/ and nozzle_diameter[0]==0.8}0.06{elsif printer_notes=~/.*PRINTER_MODEL_MINI.*/}0.2{elsif nozzle_diameter[0]==0.8}0.01{elsif nozzle_diameter[0]==0.6}0.02{else}0.04{endif} ; Filament gcode LA 1.5\n{if printer_notes=~/.*PRINTER_MODEL_MINI.*/};{elsif printer_notes=~/.*PRINTER_HAS_BOWDEN.*/}M900 K200{elsif nozzle_diameter[0]==0.6}M900 K12{elsif nozzle_diameter[0]==0.8};{else}M900 K20{endif} ; Filament gcode LA 1.0"
+    ],
+    "compatible_printers": [
+        "Prusa MK3S 0.25 nozzle",
+        "Prusa MK3S 0.4 nozzle",
+        "Prusa MK3S 0.6 nozzle",
+        "Prusa MK3S 0.8 nozzle",
+        "Prusa MINI 0.25 nozzle",
+        "Prusa MINI 0.4 nozzle",
+        "Prusa MINI 0.6 nozzle",
+        "Prusa MINI 0.8 nozzle"
+    ]
+}

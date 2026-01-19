@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.08mm Extra Fine @RatRig",
+    "inherits": "fdm_process_ratrig_common",
+    "from": "system",
+    "setting_id": "GP001",
+    "instantiation": "true",
+    "layer_height": "0.08",
+    "bottom_shell_layers": "7",
+    "top_shell_layers": "9",
+    "compatible_printers": [
+        "RatRig V-Core 3 200 0.4 nozzle",
+        "RatRig V-Core 3 300 0.4 nozzle",
+        "RatRig V-Core 3 400 0.4 nozzle",
+        "RatRig V-Core 3 500 0.4 nozzle",
+        "RatRig V-Minion 0.4 nozzle",
+        "RatRig V-Cast 0.4 nozzle",
+        "RatRig V-Cast 0.6 nozzle"
+    ]
+}

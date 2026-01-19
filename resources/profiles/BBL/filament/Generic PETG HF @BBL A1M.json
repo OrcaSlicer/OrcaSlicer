@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Generic PETG HF @BBL A1M",
+    "inherits": "Generic PETG HF @base",
+    "from": "system",
+    "setting_id": "GFSG96_06",
+    "instantiation": "true",
+    "filament_retraction_length": [
+        "0.4"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.4 nozzle",
+        "Bambu Lab A1 mini 0.6 nozzle",
+        "Bambu Lab A1 mini 0.8 nozzle"
+    ]
+}

@@ -1,0 +1,39 @@
+{
+    "type": "filament",
+    "name": "Eryone Silk PLA",
+    "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA041",
+    "filament_id": "EFL941",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Thinker X400 0.4 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=1"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0\n"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_type": [
+        "Silk"
+    ],
+    "filament_settings_id": [
+        "Eryone Silk PLA"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ]
+}

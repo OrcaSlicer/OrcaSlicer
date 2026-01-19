@@ -1,0 +1,130 @@
+body
+{
+	background-color:#242428;
+}
+
+*
+{
+	border-color: #3E3E45;
+}
+
+
+.TextS1
+{
+	color:#efeff0;
+}
+
+.TextS2
+{
+	color:#B3B3B5;
+}
+
+.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    background-color: #939594;
+}
+
+.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
+        background: #161817;
+}
+
+
+
+
+/*----Left Menu Button----*/
+.BtnItem
+{
+	color:#B3B3B5;
+}
+
+.BtnItem:hover
+{
+	color: #efeff0;
+	background-color: #223C3C;
+}
+
+.BtnItem:hover .LeftIcon
+{
+	filter: brightness(300%);
+}
+
+.BtnItemSelected
+{
+	color: #efeff0;
+	background-color: #223C3C;
+}
+
+.BtnItemSelected .LeftIcon
+{
+	filter: brightness(300%);
+}
+
+/*-----Right Top MenuBtn-----*/
+.MenuItem:hover
+{
+	border-color: #00675b;
+	background-color: #223C3C;
+}
+
+.FileImg
+{
+	background-color: #36363C; /*ORCA use darker color for dark theme for thumbnails*/
+}
+
+#recnet_context_menu
+{
+	color: #efeff0;
+	background-color:#242428;
+	border: 0px;
+	box-shadow: 0px 0px 3px #DCDCDC;
+}
+
+.CT_Item:hover
+{
+	background-color:#00675b; /*ORCA color*/
+}
+
+/*----User Manual------*/
+.UG_DESC
+{
+	color:#818183;
+}
+
+/*---Staff PIck----*/
+#HotModel_Swiper
+{
+	
+}
+
+.HotModel_NameText
+{
+	height: 32px;
+}
+
+.HotModelPiece
+{
+	border: 1px solid #4C4C55;
+	box-shadow: 0px 2px 12px rgba(0, 0, 0, 0.04);
+	background-color: #4C4C55;
+}
+
+#HotModel_RIGHT_Title
+{
+	color: #818183;
+}
+
+.swiper
+{
+    --swiper-navigation-color: #EFEFF0;/* 单独设置按钮颜色 */
+}
+
+.swiper-button-prev
+{
+	background: rgba(54, 54, 60, 0.88);
+    border: 1px solid rgba(129, 129, 131, 0.64);
+}
+
+.swiper-button-next
+{
+	background: rgba(54, 54, 60, 0.88);
+    border: 1px solid rgba(129, 129, 131, 0.64);
+}

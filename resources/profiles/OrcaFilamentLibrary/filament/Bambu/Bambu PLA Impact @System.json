@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Impact @System",
+    "inherits": "Bambu PLA Impact @base",
+    "from": "system",
+    "setting_id": "OGFSA03",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "23.2"
+    ],
+    "compatible_printers": []
+}

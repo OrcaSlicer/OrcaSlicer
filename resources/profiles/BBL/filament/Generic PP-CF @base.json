@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Generic PP-CF @base",
+    "inherits": "fdm_filament_pp",
+    "from": "system",
+    "filament_id": "GFP96",
+    "instantiation": "false",
+    "filament_cost": [
+        "77.99"
+    ],
+    "filament_density": [
+        "1.01"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_type": [
+        "PP-CF"
+    ]
+}

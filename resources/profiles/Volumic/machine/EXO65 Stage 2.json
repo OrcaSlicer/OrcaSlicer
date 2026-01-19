@@ -1,0 +1,10 @@
+{
+    "type": "machine_model",
+    "name": "EXO65 Stage 2",
+    "model_id": "V650S2",
+    "nozzle_diameter": "0.6",
+    "machine_tech": "FFF",
+    "family": "VOLUMIC",
+    "bed_model": "EXO65_bed.STL",
+    "default_materials": "Volumic UNIVERSAL Ultra"
+}

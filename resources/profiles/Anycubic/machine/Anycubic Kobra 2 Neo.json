@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Anycubic Kobra 2 Neo",
+    "machine_tech": "FFF",
+    "family": "Anycubic",
+    "model_id": "Anycubic Kobra 2 Neo",
+    "nozzle_diameter": "0.4",
+    "bed_model": "Anycubic Kobra 2 Neo_buildplate_model.stl",
+    "bed_texture": "Anycubic Kobra 2 Neo_buildplate_texture.svg",
+    "hotend_model": "",
+    "default_materials": "Anycubic PLA @Anycubic Kobra 2 Neo 0.4 nozzle"
+}

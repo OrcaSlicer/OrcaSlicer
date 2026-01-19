@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "PolyLite ABS @Qidi Q2 0.6 nozzle",
+    "inherits": "PolyLite ABS@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.02"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.6 nozzle"
+    ]
+}

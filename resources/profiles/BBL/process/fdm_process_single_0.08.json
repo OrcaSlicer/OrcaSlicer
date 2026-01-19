@@ -1,0 +1,48 @@
+{
+    "type": "process",
+    "name": "fdm_process_single_0.08",
+    "inherits": "fdm_process_single_common",
+    "from": "system",
+    "instantiation": "false",
+    "bottom_shell_layers": "7",
+    "bottom_color_penetration_layers": "7",
+    "bridge_flow": "1",
+    "elefant_foot_compensation": "0.15",
+    "gap_infill_speed": [
+        "350"
+    ],
+    "initial_layer_infill_speed": [
+        "105"
+    ],
+    "initial_layer_speed": [
+        "50"
+    ],
+    "inner_wall_speed": [
+        "350"
+    ],
+    "internal_solid_infill_speed": [
+        "350"
+    ],
+    "ironing_flow": "8%",
+    "layer_height": "0.08",
+    "outer_wall_speed": [
+        "200"
+    ],
+    "overhang_1_4_speed": [
+        "60"
+    ],
+    "overhang_2_4_speed": [
+        "30"
+    ],
+    "overhang_3_4_speed": [
+        "10"
+    ],
+    "sparse_infill_speed": [
+        "450"
+    ],
+    "support_bottom_z_distance": "0.08",
+    "support_threshold_angle": "15",
+    "support_top_z_distance": "0.08",
+    "top_shell_layers": "9",
+    "top_color_penetration_layers": "9"
+}

@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Creality Generic PC",
+    "inherits": "fdm_filament_pc",
+    "from": "system",
+    "filament_id": "GFC99",
+    "instantiation": "false",
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "filament_flow_ratio": [
+        "0.94"
+    ]
+}

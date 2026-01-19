@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "PolyLite ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "OGFB60",
+    "instantiation": "false",
+    "filament_cost": [
+        "26.9"
+    ],
+    "filament_density": [
+        "1.03"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_vendor": [
+        "Polymaker"
+    ]
+}

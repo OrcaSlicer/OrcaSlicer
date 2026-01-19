@@ -1,0 +1,35 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic FLEX @XL",
+    "inherits": "fdm_filament_flex",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_loading_speed_start": "3",
+    "filament_loading_speed": "28",
+    "filament_unloading_speed_start": "100",
+    "filament_unloading_speed": "90",
+    "filament_load_time": "0",
+    "filament_unload_time": "0",
+    "filament_cooling_moves": "4",
+    "filament_cooling_initial_speed": "2.2",
+    "filament_cooling_final_speed": "3.4",
+    "filament_retract_lift_below": "0.6",
+    "filament_multitool_ramming": [
+        "0"
+    ],
+    "filament_multitool_ramming_volume": [
+        "40"
+    ],
+    "filament_multitool_ramming_flow": [
+        "2.5"
+    ],
+    "compatible_printers": [
+        "Prusa XL 0.25 nozzle",
+        "Prusa XL 0.3 nozzle",
+        "Prusa XL 0.4 nozzle",
+        "Prusa XL 0.5 nozzle",
+        "Prusa XL 0.6 nozzle",
+        "Prusa XL 0.8 nozzle"
+    ]
+}

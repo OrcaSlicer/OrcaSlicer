@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Anker Generic PA-CF @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "GFN98",
+    "instantiation": "false",
+    "filament_type": [
+        "PA-CF"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "filament_cost": [
+        "55"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ]
+}

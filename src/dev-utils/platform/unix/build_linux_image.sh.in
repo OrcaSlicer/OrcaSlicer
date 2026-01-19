@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+
+# Despite the script name, this doesn't necessarily create an "image";
+# it sets up a compatibility script wrapper for the binary and arranges some resources.
+
+export ROOT=$(echo $ROOT | grep . || pwd)
+export NCORES=`nproc --all`
+CONFIG=Release
+
+while getopts ":ihR:" opt; do
+  case ${opt} in
+    i )
+        export BUILD_IMAGE="1"
+        ;;
+    h ) echo "Usage: ./build_linux_image.sh [-i][-R config]"
+        echo "   -i: Generate Appimage (optional)"
+        echo "   -R: Specify from which config to obtain the binary: Release, RelWithDebInfo, or Debug"
+        exit 1
+        ;;
+    R )
+        CONFIG=$OPTARG
+        ;;
+  esac
+done
+
+echo -n "[9/9] Generating Linux app..."
+#{
+    # create directory and copy into it
+    if [ -d "package" ]; then
+	rm -rf package
+    fi
+    mkdir -p package/bin
+
+    # Copy Resources
+    cp -Rf ../resources package/resources
+    
+    # Find and hard link the @SLIC3R_APP_CMD@ binary from Multi-Config build
+    ORIGINAL_BINARY_LOCATION=""
+    if [ -f "src/${CONFIG}/@SLIC3R_APP_CMD@" ]; then
+	ORIGINAL_BINARY_LOCATION="$(realpath "src/${CONFIG}/@SLIC3R_APP_CMD@")"
+    elif [ -f "src/@SLIC3R_APP_CMD@" ]; then
+        # Fallback for single-config builds
+        ORIGINAL_BINARY_LOCATION="$(realpath "src/@SLIC3R_APP_CMD@")"
+    else
+        echo "Error: @SLIC3R_APP_CMD@ binary not found in any configuration directory"
+        exit 1
+    fi
+    cp -fl "${ORIGINAL_BINARY_LOCATION}" package/bin/@SLIC3R_APP_CMD@
+
+    # create bin
+cat << EOF >@SLIC3R_APP_CMD@
+#!/bin/bash
+DIR=\$(readlink -f "\$0" | xargs dirname)
+export LD_LIBRARY_PATH="\$DIR/bin:\$LD_LIBRARY_PATH"
+
+# FIXME: OrcaSlicer segfault workarounds
+# 1) OrcaSlicer will segfault on systems where locale info is not as expected (i.e. Holo-ISO arch-based distro)
+export LC_ALL=C
+
+if [ "\$XDG_SESSION_TYPE" = "wayland" ] && [ "\$ZINK_DISABLE_OVERRIDE" != "1" ]; then
+    if command -v glxinfo >/dev/null 2>&1; then
+        RENDERER=\$(glxinfo | grep "OpenGL renderer string:" | sed 's/.*: //')
+        if echo "\$RENDERER" | grep -qi "NVIDIA"; then
+            if command -v nvidia-smi >/dev/null 2>&1; then
+                DRIVER_VERSION=\$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | head -n1)
+                DRIVER_MAJOR=\$(echo "\$DRIVER_VERSION" | cut -d. -f1)
+                [ "\$DRIVER_MAJOR" -gt 555 ] && ZINK_FORCE_OVERRIDE=1
+            fi
+            if [ "\$ZINK_FORCE_OVERRIDE" = "1" ]; then
+                export __GLX_VENDOR_LIBRARY_NAME=mesa
+                export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+                export MESA_LOADER_DRIVER_OVERRIDE=zink
+                export GALLIUM_DRIVER=zink
+                export WEBKIT_DISABLE_DMABUF_RENDERER=1
+            fi
+        fi
+    fi
+fi
+exec "\$DIR/bin/@SLIC3R_APP_CMD@" "\$@"
+EOF
+
+    chmod ug+x @SLIC3R_APP_CMD@
+    cp -fl @SLIC3R_APP_CMD@ package/@SLIC3R_APP_CMD@
+    # Nothing uses this tar? Remove if nobody has complained and it's been a while since this comment added.
+    # Original commit was https://github.com/OrcaSlicer/OrcaSlicer/commit/f5a4862da52fc68f77b5201ddf330a9800d83228
+    # and it doesn't appear to have been used there either.
+    #pushd package > /dev/null
+    #tar -cvf ../@SLIC3R_APP_KEY@.tar .  &>/dev/null
+    #popd > /dev/null
+#} &> $ROOT/Build.log # Capture all command output
+echo "done"
+
+if [[ -n "$BUILD_IMAGE" ]]
+then
+echo -n "Creating Appimage for distribution..."
+#{
+    # AppImage script modifies files in place, so make a copy and clean up after.
+    rm -rf package_appimage
+    cp -Rf package package_appimage
+    pushd package_appimage > /dev/null
+    chmod +x ../build_appimage.sh
+    if ../build_appimage.sh; then
+	# Clean up on success.
+	popd > /dev/null
+	mv package_appimage/"@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage" "@SLIC3R_APP_KEY@_Linux_V@SoftFever_VERSION@.AppImage"
+	rm -fR package_appimage
+    else
+	# Leave files on failure so you can debug.
+	popd > /dev/null
+    fi
+#} &> $ROOT/Build.log # Capture all command output
+echo "done"
+fi

@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Z-Bolt PETG @0.6 nozzle",
+    "inherits": "Z-Bolt PETG @base",
+    "from": "system",
+    "setting_id": "GFSL306",
+    "filament_id": "GFL306",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "10"
+    ],
+    "compatible_printers": [
+        "Z-Bolt S300 0.6 nozzle",
+        "Z-Bolt S300 Dual 0.6 nozzle",
+        "Z-Bolt S400 0.6 nozzle",
+        "Z-Bolt S400 Dual 0.6 nozzle",
+        "Z-Bolt S600 0.6 nozzle",
+        "Z-Bolt S600 Dual 0.6 nozzle",
+        "Z-Bolt S800 Dual 0.6 nozzle",
+        "Z-Bolt S1000 0.6 nozzle",
+        "Z-Bolt S1000 Dual 0.6 nozzle"
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @The Positron",
+    "inherits": "fdm_process_the_positron_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.2",
+    "compatible_printers": [
+        "The Positron 0.4 nozzle",
+        "The Positron 0.6 nozzle",
+        "The Positron 0.8 nozzle"
+    ]
+}

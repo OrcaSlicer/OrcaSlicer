@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Snapmaker J1 PLA Eco @0.2 nozzle",
+    "inherits": "Snapmaker J1 PLA Eco @base",
+    "from": "system",
+    "setting_id": "2482225039",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker J1 (0.2 nozzle)"
+    ],
+    "filament_max_volumetric_speed": [
+        "2"
+    ]
+}

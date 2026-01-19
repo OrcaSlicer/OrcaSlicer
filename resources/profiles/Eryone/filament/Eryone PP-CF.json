@@ -1,0 +1,75 @@
+{
+    "type": "filament",
+    "name": "Eryone PP-CF",
+    "inherits": "Eryone Standard PLA",
+    "from": "system",
+    "setting_id": "EFSA33",
+    "filament_id": "EFL33",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Thinker X400 0.4 nozzle"
+    ],
+    "fan_max_speed": [
+        "35"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+    ],
+    "filament_flow_ratio": [
+        "0.92"
+    ],
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_notes": [
+        "Printing platform glue spraying"
+    ],
+    "filament_retraction_length": [
+        "1"
+    ],
+    "filament_vendor": [
+        "Eryone"
+    ],
+    "filament_settings_id": [
+        "Eryone PP-CF"
+    ],
+    "filament_type": [
+        "PP-CF"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\nSET_FAN_SPEED FAN=filter_fan SPEED=0"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "support_material_interface_fan_speed": [
+        "60"
+    ],
+    "temperature_vitrification": [
+        "160"
+    ]
+}

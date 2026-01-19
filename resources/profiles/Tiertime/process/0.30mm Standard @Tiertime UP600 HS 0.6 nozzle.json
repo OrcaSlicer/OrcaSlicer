@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.30mm Standard @Tiertime UP600 HS 0.6 nozzle",
+    "inherits": "fdm_process_tiertime_0.30_nozzle_0.6_HS",
+    "from": "system",
+    "setting_id": "GP023",
+    "instantiation": "true",
+    "description": "It has a big layer height, and results in apparent layer lines and ordinary printing quality and printing time.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Tiertime UP600 HS 0.6 nozzle"
+    ]
+}

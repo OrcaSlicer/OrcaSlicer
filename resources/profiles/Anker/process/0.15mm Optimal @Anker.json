@@ -1,0 +1,13 @@
+{
+    "type": "process",
+    "name": "0.15mm Optimal @Anker",
+    "inherits": "fdm_process_anker_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.15",
+    "initial_layer_print_height": "0.15",
+    "bottom_shell_layers": "5",
+    "top_shell_layers": "6",
+    "bridge_flow": "0.85"
+}

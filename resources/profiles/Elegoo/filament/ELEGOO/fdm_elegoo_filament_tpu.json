@@ -1,0 +1,85 @@
+{
+    "type": "filament",
+    "name": "fdm_elegoo_filament_tpu",
+    "inherits": "fdm_elegoo_filament_common",
+    "from": "system",
+    "instantiation": "false",
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1"
+    ],
+    "cool_plate_temp": [
+        "30"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "30"
+    ],
+    "eng_plate_temp": [
+        "30"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "30"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_cost": [
+        "0"
+    ],
+    "filament_density": [
+        "1.24"
+    ],
+    "filament_max_volumetric_speed": [
+        "3"
+    ],
+    "filament_retraction_length": [
+        "0.4"
+    ],
+    "filament_type": [
+        "TPU"
+    ],
+    "hot_plate_temp": [
+        "35"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "35"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "200"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "temperature_vitrification": [
+        "30"
+    ],
+    "textured_plate_temp": [
+        "35"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_start_gcode": [
+        "; Filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

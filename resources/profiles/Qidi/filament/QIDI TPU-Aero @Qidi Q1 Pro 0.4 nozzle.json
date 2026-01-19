@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "QIDI TPU-Aero @Qidi Q1 Pro 0.4 nozzle",
+    "inherits": "QIDI TPU-Aero",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_settings_id": [
+        "QIDI TPU-Aero @Qidi Q1 Pro 0.4 nozzle"
+    ],
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.4 nozzle"
+    ]
+}

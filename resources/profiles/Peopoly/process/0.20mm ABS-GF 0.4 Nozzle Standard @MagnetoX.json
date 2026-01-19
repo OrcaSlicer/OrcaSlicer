@@ -1,0 +1,28 @@
+{
+    "type": "process",
+    "name": "0.20mm ABS-GF 0.4 Nozzle Standard @MagnetoX",
+    "inherits": "fdm_process_pply_0.20",
+    "from": "system",
+    "setting_id": "GP015",
+    "instantiation": "true",
+    "top_shell_thickness": "0.6",
+    "bridge_flow": "1",
+    "initial_layer_speed": "100",
+    "initial_layer_infill_speed": "140",
+    "outer_wall_speed": "160",
+    "inner_wall_speed": "200",
+    "sparse_infill_speed": "200",
+    "internal_solid_infill_speed": "200",
+    "top_surface_speed": "140",
+    "gap_infill_speed": "200",
+    "wall_loops": "3",
+    "brim_type": "no_brim",
+    "skirt_distance": "2",
+    "skirt_loops": "2",
+    "top_shell_layers": "5",
+    "bottom_shell_layers": "5",
+    "sparse_infill_density": "20",
+    "compatible_printers": [
+        "Peopoly Magneto X 0.4 nozzle"
+    ]
+}

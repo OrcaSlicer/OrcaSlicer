@@ -1,0 +1,28 @@
+{
+    "type": "machine",
+    "name": "Flashforge Adventurer 4 Series 0.3 Nozzle",
+    "inherits": "fdm_adventurer4_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "Flashforge Adventurer 4 Series",
+    "default_print_profile": "0.13mm Standard @Flashforge AD4 0.3 Nozzle",
+    "nozzle_diameter": [
+        "0.3"
+    ],
+    "printer_variant": "0.3",
+    "max_layer_height": [
+        "0.13"
+    ],
+    "min_layer_height": [
+        "0.0"
+    ],
+    "retraction_length": [
+        "1"
+    ],
+    "z_hop": [
+        "0.3"
+    ],
+    "nozzle_type": "stainless_steel",
+    "host_type": "flashforge"
+}

@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Vzbot 235 AWD",
+    "model_id": "Vzbot 235 AWD",
+    "nozzle_diameter": "0.4;0.5;0.6",
+    "machine_tech": "FFF",
+    "family": "Vzbot",
+    "bed_model": "Vz235SlicerBedModel-cnc.stl",
+    "bed_texture": "VzBot_PS_bed_235.svg",
+    "hotend_model": "Goliath.stl",
+    "default_materials": "Vzbot Generic ABS;Vzbot Generic PLA;Vzbot Generic PLA-CF;Vzbot Generic PETG;Vzbot Generic TPU;Vzbot Generic ASA;Vzbot Generic PC;Vzbot Generic PVA;Vzbot Generic PA;Vzbot Generic PA-CF"
+}

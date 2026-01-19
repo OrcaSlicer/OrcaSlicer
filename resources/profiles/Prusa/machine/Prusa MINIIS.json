@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Prusa MINI IS",
+    "model_id": "MINI",
+    "nozzle_diameter": "0.25;0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Prusa",
+    "bed_model": "miniis_bed.stl",
+    "bed_texture": "miniis.svg",
+    "hotend_model": "",
+    "default_materials": "Prusa Generic PLA-CF @MINIIS;Prusa Generic PC @MINIIS;Prusa Generic PVA @MINIIS;Prusa Generic PA @MINIIS;Prusa Generic PA-CF @MINIIS;Prusa Generic ABS @MINIIS;Prusa Generic PLA @MINIIS;Prusa Generic PLA @MINIIS 0.6;Prusa Generic PLA @MINIIS 0.8;Prusa Generic PETG @MINIIS;Prusa Generic PETG @MINIIS 0.6;Prusa Generic PETG @MINIIS 0.8;Prusa Generic TPU @MINIIS;Prusa Generic ASA @MINIIS;"
+}

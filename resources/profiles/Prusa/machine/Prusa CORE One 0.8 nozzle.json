@@ -1,0 +1,15 @@
+{
+    "type": "machine",
+    "name": "Prusa CORE One 0.8 nozzle",
+    "inherits": "Prusa CORE One HF 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "default_filament_profile": "Prusament PLA @CORE One 0.8",
+    "default_print_profile": "0.40mm QUALITY @CORE One 0.8",
+    "nozzle_diameter": [
+        "0.8"
+    ],
+    "printer_model": "Prusa CORE One",
+    "printer_notes": "Don't remove the following keywords! These keywords are used in the \"compatible printer\" condition of the print and filament profiles to link the particular print and filament profiles to this printer profile.\nPRINTER_MODEL_COREONE\nPG\nNO_TEMPLATES",
+    "printer_variant": "0.8"
+}

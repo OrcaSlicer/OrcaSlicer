@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "Snapmaker ABS @U1",
+    "inherits": "Snapmaker ABS @U1 base",
+    "from": "system",
+    "setting_id": "937533070",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ]
+}

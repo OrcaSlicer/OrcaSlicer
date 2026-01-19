@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Qidi X-Plus 4",
+    "model_id": "Qidi-XPlus-4",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Qidi",
+    "bed_model": "qidi_xplus4_buildplate_model.stl",
+    "bed_texture": "qidi_xplus4_buildplate_texture.png",
+    "hotend_model": "qidi_xseries_gen3_hotend.stl",
+    "default_materials": "QIDI PLA Rapido;QIDI ABS Rapido;QIDI PETG Tough;QIDI PLA Rapido Matte;QIDI ASA;Qidi Generic PETG"
+}

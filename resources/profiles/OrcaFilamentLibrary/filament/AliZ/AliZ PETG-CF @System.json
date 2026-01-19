@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "AliZ PETG-CF @System",
+    "inherits": "AliZ PETG-CF @base",
+    "from": "system",
+    "setting_id": "AliZGFSG50",
+    "instantiation": "true"
+}

@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "InfiMech TX",
+    "model_id": "InfiMech_TX",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "InfiMechDesign",
+    "bed_model": "InfiMech TX-bed.stl",
+    "bed_texture": "InfiMech TX-texture.png",
+    "hotend_model": "",
+    "default_materials": "InfiMech Generic ABS;InfiMech Generic PA-CF;InfiMech Generic PC;InfiMech Generic PETG;InfiMech Generic PLA;InfiMech Generic TPU"
+}

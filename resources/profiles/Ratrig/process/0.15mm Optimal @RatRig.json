@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.15mm Optimal @RatRig",
+    "inherits": "fdm_process_ratrig_common",
+    "from": "system",
+    "setting_id": "GP003",
+    "instantiation": "true",
+    "bottom_shell_layers": "4",
+    "top_shell_layers": "5",
+    "layer_height": "0.15",
+    "compatible_printers": [
+        "RatRig V-Core 3 200 0.4 nozzle",
+        "RatRig V-Core 3 300 0.4 nozzle",
+        "RatRig V-Core 3 400 0.4 nozzle",
+        "RatRig V-Core 3 500 0.4 nozzle",
+        "RatRig V-Minion 0.4 nozzle",
+        "RatRig V-Cast 0.4 nozzle",
+        "RatRig V-Cast 0.6 nozzle"
+    ]
+}

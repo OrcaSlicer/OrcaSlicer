@@ -1,0 +1,13 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @Creality CR-6 0.4",
+    "inherits": "fdm_process_creality_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "top_shell_layers": "4",
+    "compatible_printers": [
+        "Creality CR-6 SE 0.4 nozzle",
+        "Creality CR-6 Max 0.4 nozzle"
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "CoLiDo SR1",
+    "model_id": "CoLiDo_SR1",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "CoLiDo",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "CoLiDo PLA @CoLiDo SR1;CoLiDo ABS @CoLiDo SR1;CoLiDo PETG @CoLiDo SR1;CoLiDo PLA Silk @CoLiDo SR1"
+}

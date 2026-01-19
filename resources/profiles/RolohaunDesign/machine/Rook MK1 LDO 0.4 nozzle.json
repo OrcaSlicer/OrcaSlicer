@@ -1,0 +1,20 @@
+{
+    "type": "machine",
+    "name": "Rook MK1 LDO 0.4 nozzle",
+    "inherits": "fdm_common_Rook MK1 LDO",
+    "from": "system",
+    "setting_id": "RKMK1_m001",
+    "instantiation": "true",
+    "printer_model": "Rook MK1 LDO",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "110x0",
+        "110x110",
+        "0x110"
+    ],
+    "printable_height": "111"
+}

@@ -1,0 +1,109 @@
+{
+    "type": "machine",
+    "name": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "support_chamber_temp_control": "0",
+    "printer_technology": "FFF",
+    "deretraction_speed": [
+        "60"
+    ],
+    "extruder_colour": [
+        "#018001"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "silent_mode": "0",
+    "machine_max_acceleration_e": [
+        "4000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "6000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "1000"
+    ],
+    "machine_max_acceleration_x": [
+        "6000"
+    ],
+    "machine_max_acceleration_y": [
+        "6000"
+    ],
+    "machine_max_acceleration_z": [
+        "300"
+    ],
+    "machine_max_acceleration_travel": [
+        "6000"
+    ],
+    "machine_max_speed_e": [
+        "50"
+    ],
+    "machine_max_speed_x": [
+        "600"
+    ],
+    "machine_max_speed_y": [
+        "600"
+    ],
+    "machine_max_speed_z": [
+        "30"
+    ],
+    "machine_max_jerk_e": [
+        "3"
+    ],
+    "machine_max_jerk_x": [
+        "12"
+    ],
+    "machine_max_jerk_y": [
+        "12"
+    ],
+    "machine_max_jerk_z": [
+        "0.3"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.05"
+    ],
+    "printer_settings_id": "",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.5"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "60"
+    ],
+    "single_extruder_multi_material": "1",
+    "manual_filament_change": "1",
+    "support_air_filtration": "0",
+    "wipe": [
+        "1"
+    ]
+}

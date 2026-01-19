@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.16mm Optimal @Magneto X",
+    "inherits": "fdm_process_pply_0.16",
+    "from": "system",
+    "setting_id": "GP003",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Peopoly Magneto X 0.4 nozzle"
+    ]
+}

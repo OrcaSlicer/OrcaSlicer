@@ -1,0 +1,96 @@
+{
+    "type": "filament",
+    "name": "Artillery PVA @Artillery M1 Pro 0.4 nozzle",
+    "inherits": "Artillery Generic PLA",
+    "from": "system",
+    "instantiation": "true",
+    "chamber_temperature": [
+        "50"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "100"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "100"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "additional_cooling_fan_speed": [
+        "50"
+    ],
+    "filament_settings_id": [
+        "Artillery PVA @Artillery M1 Pro 0.4 nozzle"
+    ],
+    "filament_type": [
+        "PVA"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "is_custom_defined": "0",
+    "nozzle_temperature": [
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_range_low": [
+        "210"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "compatible_printers": [
+        "Artillery M1 Pro 0.4 nozzle"
+    ],
+    "filament_retraction_length": [
+        "1.3"
+    ],
+    "filament_retraction_speed": [
+        "40"
+    ],
+    "filament_start_gcode": [
+        ""
+    ],
+    "filament_vendor": [
+        "Artillery"
+    ],
+    "filament_z_hop": [
+        "0.4"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "temperature_vitrification": [
+        "220"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "overhang_fan_speed": [
+        "80"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.05"
+    ],
+    "version": "2.1.2.2"
+}

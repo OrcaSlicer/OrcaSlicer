@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "QIDI ASA @Qidi Q2 0.8 nozzle",
+    "inherits": "QIDI ASA@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "13"
+    ],
+    "pressure_advance": [
+        "0.011"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.8 nozzle"
+    ]
+}

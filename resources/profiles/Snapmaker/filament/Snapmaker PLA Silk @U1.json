@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "Snapmaker PLA Silk @U1",
+    "inherits": "Snapmaker PLA Silk @U1 base",
+    "from": "system",
+    "setting_id": "13282506860",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker U1 (0.4 nozzle)"
+    ]
+}

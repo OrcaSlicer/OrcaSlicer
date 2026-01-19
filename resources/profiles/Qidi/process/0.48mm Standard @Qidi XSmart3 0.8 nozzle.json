@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.48mm Standard @Qidi XSmart3 0.8 nozzle",
+    "inherits": "fdm_process_QIDI_0.48_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP034",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi X-Smart 3 0.8 nozzle"
+    ]
+}

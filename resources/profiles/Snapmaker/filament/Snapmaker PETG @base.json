@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Snapmaker PETG @base",
+    "inherits": "fdm_filament_petg",
+    "from": "system",
+    "filament_id": "1895495477",
+    "instantiation": "false"
+}

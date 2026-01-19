@@ -1,0 +1,46 @@
+{
+    "type": "filament",
+    "name": "Volumic ASA Ultra (Performance)",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245"
+    ],
+    "nozzle_temperature": [
+        "245"
+    ],
+    "hot_plate_temp": [
+        "85"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_max_volumetric_speed": [
+        "50"
+    ],
+    "compatible_printers": [
+        "EXO42 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.6 nozzle)",
+        "EXO65 Performance (0.8 nozzle)",
+        "SH65 Performance (0.4 nozzle)",
+        "EXO42 IDRE (0.4 nozzle)",
+        "EXO42 IDRE COPY MODE (0.4 nozzle)",
+        "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+        "EXO65 IDRE (0.4 nozzle)",
+        "EXO65 IDRE COPY MODE (0.4 nozzle)",
+        "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+        "SH65 IDRE (0.4 nozzle)",
+        "SH65 IDRE COPY MODE (0.4 nozzle)",
+        "SH65 IDRE MIRROR MODE (0.4 nozzle)"
+    ]
+}

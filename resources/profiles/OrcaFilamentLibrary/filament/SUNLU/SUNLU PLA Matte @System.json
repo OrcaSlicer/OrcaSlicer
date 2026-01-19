@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "SUNLU PLA Matte @System",
+    "inherits": "SUNLU PLA Matte @base",
+    "from": "system",
+    "setting_id": "OSNLS02",
+    "instantiation": "true",
+    "compatible_printers": []
+}

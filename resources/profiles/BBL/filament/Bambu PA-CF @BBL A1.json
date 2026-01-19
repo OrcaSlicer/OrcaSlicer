@@ -1,0 +1,31 @@
+{
+    "type": "filament",
+    "name": "Bambu PA-CF @BBL A1",
+    "inherits": "Bambu PA-CF @base",
+    "from": "system",
+    "setting_id": "GFSN03_01",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "full_fan_speed_layer": [
+        "2"
+    ],
+    "nozzle_temperature": [
+        "290"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "290"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

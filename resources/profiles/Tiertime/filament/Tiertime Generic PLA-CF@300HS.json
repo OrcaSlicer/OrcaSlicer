@@ -1,0 +1,59 @@
+{
+    "type": "filament",
+    "name": "Tiertime Generic PLA-CF@300HS",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFL98_01",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "cool_plate_temp": [
+        "45"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_type": [
+        "PLA-CF"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "hot_plate_temp": [
+        "65"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "textured_plate_temp": [
+        "65"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "65"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if  (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200\n{elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150\n{elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+    ],
+    "compatible_printers": [
+        "Tiertime UP300 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.6 nozzle",
+        "Tiertime UP600 HS 0.8 nozzle"
+    ]
+}

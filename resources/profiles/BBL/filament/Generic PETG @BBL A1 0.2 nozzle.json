@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "Generic PETG @BBL A1 0.2 nozzle",
+    "inherits": "Generic PETG @base",
+    "from": "system",
+    "setting_id": "GFSG99_04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "textured_plate_temp": [
+        "80"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "80"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.2 nozzle"
+    ]
+}

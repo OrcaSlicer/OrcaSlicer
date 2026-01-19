@@ -1,0 +1,17 @@
+{
+    "type": "process",
+    "name": "0.20mm Strength @Z-Bolt S800",
+    "inherits": "fdm_process_zbolt_0.20",
+    "from": "system",
+    "setting_id": "GP312",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.4 mm nozzle, it has more wall loops and a higher sparse infill density. So, it results in higher strength of the prints, but more filament consumption and longer printing time.",
+    "outer_wall_speed": "60",
+    "sparse_infill_density": "25%",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "wall_loops": "6",
+    "compatible_printers": [
+        "Z-Bolt S800 Dual 0.4 nozzle"
+    ]
+}

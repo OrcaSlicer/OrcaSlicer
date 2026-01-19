@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Elegoo RAPID PETG @EC",
+    "inherits": "Elegoo RAPID PETG @base",
+    "from": "system",
+    "setting_id": "ERPETGEC",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.024"
+    ],
+    "compatible_printers": [
+        "Elegoo Centauri 0.4 nozzle",
+        "Elegoo Centauri 0.6 nozzle",
+        "Elegoo Centauri 0.8 nozzle"
+    ]
+}

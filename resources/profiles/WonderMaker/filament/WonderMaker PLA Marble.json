@@ -1,0 +1,37 @@
+{
+    "type": "filament",
+    "name": "WonderMaker PLA Marble",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFA07",
+    "instantiation": "true",
+    "filament_cost": [
+        "29.99"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_vendor": [
+        "WonderMaker"
+    ],
+    "filament_multitool_ramming": [
+        "1"
+    ],
+    "compatible_printers": [
+        "WonderMaker ZR 0.2 nozzle",
+        "WonderMaker ZR 0.4 nozzle",
+        "WonderMaker ZR 0.6 nozzle",
+        "WonderMaker ZR 0.8 nozzle",
+        "WonderMaker ZR Ultra 0.2 nozzle",
+        "WonderMaker ZR Ultra 0.4 nozzle",
+        "WonderMaker ZR Ultra 0.6 nozzle",
+        "WonderMaker ZR Ultra 0.8 nozzle",
+        "WonderMaker ZR Ultra S 0.2 nozzle",
+        "WonderMaker ZR Ultra S 0.4 nozzle",
+        "WonderMaker ZR Ultra S 0.6 nozzle",
+        "WonderMaker ZR Ultra S 0.8 nozzle"
+    ]
+}

@@ -1,0 +1,56 @@
+{
+    "type": "filament",
+    "name": "Arena PAHT-CF @base",
+    "inherits": "fdm_filament_pa",
+    "from": "system",
+    "filament_id": "GFN04",
+    "instantiation": "false",
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "fan_cooling_layer_time": [
+        "5"
+    ],
+    "full_fan_speed_layer": [
+        "2"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "filament_vendor": [
+        "Orca Arena"
+    ],
+    "filament_density": [
+        "1.06"
+    ],
+    "filament_flow_ratio": [
+        "0.96"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "290"
+    ],
+    "overhang_fan_threshold": [
+        "0%"
+    ],
+    "overhang_fan_speed": [
+        "40"
+    ],
+    "filament_type": [
+        "PA-CF"
+    ],
+    "filament_cost": [
+        "94.99"
+    ],
+    "temperature_vitrification": [
+        "180"
+    ],
+    "nozzle_temperature": [
+        "290"
+    ]
+}

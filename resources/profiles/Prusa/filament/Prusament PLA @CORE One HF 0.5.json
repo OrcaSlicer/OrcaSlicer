@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "Prusament PLA @CORE One HF 0.5",
+    "inherits": "Prusament PLA @CORE One",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament PLA @CORE One HF 0.5",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa CORE One HF 0.5 nozzle"
+    ],
+    "filament_max_volumetric_speed": [
+        "27"
+    ],
+    "filament_start_gcode": [
+        "M572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.036{elsif nozzle_diameter[filament_extruder_id]==0.5}0.026{elsif nozzle_diameter[filament_extruder_id]==0.6}0.022{elsif nozzle_diameter[filament_extruder_id]==0.8}0.015{elsif nozzle_diameter[filament_extruder_id]==0.25}0.12{elsif nozzle_diameter[filament_extruder_id]==0.3}0.08{else}0{endif} ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "slow_down_layer_time": [
+        "11"
+    ]
+}

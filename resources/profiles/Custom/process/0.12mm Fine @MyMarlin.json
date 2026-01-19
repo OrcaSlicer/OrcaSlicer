@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.12mm Fine @MyMarlin",
+    "inherits": "fdm_process_marlin_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "layer_height": "0.12",
+    "bottom_shell_layers": "5",
+    "top_shell_layers": "6"
+}

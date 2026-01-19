@@ -1,0 +1,41 @@
+{
+    "type": "filament",
+    "name": "PolyLite ASA @base",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "OGFB61",
+    "instantiation": "false",
+    "eng_plate_temp": [
+        "100"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "100"
+    ],
+    "filament_cost": [
+        "23.6"
+    ],
+    "filament_density": [
+        "1.02"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_vendor": [
+        "Polymaker"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ]
+}

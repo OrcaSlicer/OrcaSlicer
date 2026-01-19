@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "WonderMaker ZR Ultra S",
+    "model_id": "WonderMaker ZR Ultra S",
+    "nozzle_diameter": "0.2;0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "WonderMaker",
+    "bed_model": "wm_buildplate_model.stl",
+    "bed_texture": "",
+    "hotend_model": "wm_3dp_hotend.stl",
+    "default_materials": "WonderMaker PLA Basic;WonderMaker PETG Basic;WonderMaker ABS"
+}

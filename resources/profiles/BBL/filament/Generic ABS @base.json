@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Generic ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "GFB99",
+    "instantiation": "false",
+    "description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

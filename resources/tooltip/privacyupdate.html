@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="stylesheet" href="./main.css" />
+        <script src="./main.js"></script>
+    </head>
+    <body id = "content" style="background-color: #F8F8F8;">
+        <div class="container markdown-body" id="contents"></div>
+    </body>
+    <script>
+        const resizeOberver = new ResizeObserver((entities) => {
+            const height = entities[0].contentRect.height
+            document.title = height.toFixed()
+        })
+        resizeOberver.observe(document.querySelector('#contents'))
+        window.showMarkdownFile = function (file) {
+            $.get(file, function( data ) {
+                window.showMarkdown(encodeURIComponent(data));
+            });
+        }
+		
+		function SwitchDarkMode(is_dark_mode)
+		{
+            document.getElementById("content").style.backgroundColor = is_dark_mode ? "#36363C" : "#F8F8F8";
+            document.getElementById("content").style.color = is_dark_mode ? "#FFFFFF" : "#000000";
+		}
+	
+    </script>
+</html>

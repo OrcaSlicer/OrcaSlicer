@@ -1,0 +1,133 @@
+name: 🐞 Bug Report
+description: File a bug report
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Thank you for using Orca Slicer and wanting to report a bug.**
+        
+        Please note that this is not the place to make feature requests or ask for help.
+        For this, please use the [Feature request](https://github.com/OrcaSlicer/OrcaSlicer/issues/new?assignees=&labels=&projects=&template=feature_request.yml) issue type or you can discuss your idea on our [Discord server](https://discord.gg/P4VE9UY9gJ) with others.
+        
+        Before filing, please check if the issue already exists (either open or closed) by using the search bar on the issues page. If it does, comment there. Even if it's closed, we can reopen it based on your comment.
+  - type: checkboxes
+    attributes:
+      label: Is there an existing issue for this problem?
+      description: Please search to see if an issue already exists for the bug you encountered.
+      options:
+        - label: I have searched the existing issues
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: OrcaSlicer Version
+      description: Which version of Orca Slicer are you running? You can see the full version in `Help` -> `About Orca Slicer`.
+      placeholder: e.g. 1.9.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os_type
+    attributes:
+      label: "Operating System (OS)"
+      description: "What OSes are you are experiencing issues on?"
+      multiple: true
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: "OS Version"
+      description: "What OS version does this relate to?"
+      placeholder: "i.e. OS: Windows 7/8/10/11 ..., Ubuntu 22.04/Fedora 36 ..., macOS 10.15/11.1/12.3 ..."
+    validations:
+      required: true
+  - type: textarea
+    id: system_info
+    attributes:
+      label: Additional system information
+      description: For the performance issue, please also show the CPU, Memory information; For the 3D Rendering issue, please also show the Display Card information.
+      placeholder: |
+        CPU: 11th gen Intel r core tm i7-1185g7/AMD Ryzen 7 6800h/...
+        Memory: 32/16 GB...
+        Display Card: NVIDIA Quadro P400/...
+    validations:
+      required: false
+  - type: input
+    id: printer
+    attributes:
+      label: Printer
+      description: Which printer was selected
+      placeholder: Voron 2.4/VzBot/Prusa MK4/Bambu Lab X1 series/Bambu Lab P1P/...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce_steps
+    attributes:
+      label: How to reproduce
+      description: Please described the detailed steps to reproduce this issue
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: actual_results
+    attributes:
+      label: Actual results
+      description: What happens after the above steps? Please, enclose a screenshot whenever possible (even when you think the description is clear). 
+    validations:
+      required: true
+  - type: textarea
+    id: expected_results
+    attributes:
+      label: Expected results
+      description: What should happen after the above steps?
+    validations:
+      required: true
+  - type: markdown
+    id: file_required
+    attributes:
+      value: |
+        Please be sure to add the following files:
+          * Please upload a ZIP archive containing the **project file** used when the problem arise. Please export it just before or after the problem occurs. Even if you did nothing and/or there is no object, export it! (We need the configurations in project file).
+            You can export the project file from the application menu in `File`->`Save project as...`, then zip it
+          * A **log file** for crashes and similar issues.
+            You can find your log file here:
+            Windows: `%APPDATA%\OrcaSlicer\log` or usually `C:\Users\<your username>\AppData\Roaming\OrcaSlicer\log`
+            MacOS: `$HOME/Library/Application Support/OrcaSlicer/log`
+            Linux: `$HOME/.config/OrcaSlicer/log`
+            If Orca Slicer still starts, you can also reach this directory from the application menu in `Help` -> `Show Configuration Folder`
+            You can zip the log directory, or just select the newest logs when this issue happens, and zip them
+  - type: textarea
+    id: file_uploads
+    attributes:
+      label: Project file & Debug log uploads
+      description:  Drop the project file and debug log here
+      placeholder: |
+        Project File: `File` -> `Save project as...` then zip it & drop it here
+        Log File:  `Help` -> `Show Configuration Folder`, then zip the log directory, or just select the newest logs in `log` when this issue happens and zip them, then drop the zip file here
+    validations:
+      required: true
+  - type: checkboxes
+    id: file_checklist
+    attributes:
+      label: Checklist of files to include
+      options:
+        - label: Log file
+        - label: Project file
+  - type: textarea
+    attributes:
+      label: Anything else?
+      description: |
+        Screenshots? References? Anything that will give us more context about the issue you are encountering!
+
+        Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
+    validations:
+      required: false

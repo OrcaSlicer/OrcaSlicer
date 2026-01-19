@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Arena PLA Basic @Arena X1C",
+    "inherits": "Arena PLA Basic @base",
+    "from": "system",
+    "setting_id": "GFSA00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "compatible_printers": [
+        "Orca Arena X1 Carbon 0.4 nozzle",
+        "Orca Arena X1 Carbon 0.6 nozzle"
+    ]
+}

@@ -1,0 +1,24 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 95A @base",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "OGFU01",
+    "instantiation": "false",
+    "description": "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide.",
+    "filament_cost": [
+        "41.99"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ]
+}

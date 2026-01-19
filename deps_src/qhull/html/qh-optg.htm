@@ -1,0 +1,274 @@
+<html>
+
+<head>
+<title>Qhull Geomview options (G)</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<hr>
+<!-- Main text of document -->
+
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/delaunay.html"><img
+src="qh--dt.gif" alt="[delaunay]" align="middle" width="100"
+height="100"></a> Qhull Geomview options (G)</h1>
+
+This section lists the Geomview options for Qhull. These options are
+indicated by 'G' followed by a letter.  See
+<a href="qh-opto.htm#output">Output</a>, <a href="qh-optp.htm#print">Print</a>,
+and <a href="qh-optf.htm#format">Format</a> for other output options.
+
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<hr>
+
+<p><a href="index.htm#TOC">&#187;</a> <a href="qh-quick.htm#programs">Programs</a>
+<a name="geomview">&#149;</a> <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+
+<h2>Geomview output options</h2>
+
+<p><a href="http://www.geomview.org">Geomview</a> is the graphical
+viewer for visualizing Qhull output in 2-d, 3-d and 4-d.</p>
+
+<p>Geomview displays each facet of the convex hull. The color of
+a facet is determined by the coefficients of the facet's normal
+equation. For imprecise hulls, Geomview displays the inner and
+outer hull. Geomview can also display points, ridges, vertices,
+coplanar points, and facet intersections. </p>
+
+<p>For 2-d Delaunay triangulations, Geomview displays the
+corresponding paraboloid.  Geomview displays the 2-d Voronoi
+diagram. For halfspace intersections, it displays the
+dual convex hull. </p>
+
+<dl compact>
+    <dt>&nbsp;</dt>
+    <dd><b>General</b></dd>
+    <dt><a href="#G">G</a></dt>
+    <dd>display Geomview output</dd>
+    <dt><a href="#Gt">Gt</a></dt>
+    <dd>display transparent 3-d Delaunay triangulation</dd>
+    <dt><a href="#GDn">GDn</a></dt>
+    <dd>drop dimension n in 3-d and 4-d output </dd>
+
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>Specific</b></dd>
+    <dt><a href="#Ga">Ga</a></dt>
+    <dd>display all points as dots</dd>
+    <dt><a href="#Gc">Gc</a></dt>
+    <dd>display centrums (2-d, 3-d)</dd>
+    <dt><a href="#Gp">Gp</a></dt>
+    <dd>display coplanar points and vertices as radii</dd>
+    <dt><a href="#Gh">Gh</a></dt>
+    <dd>display hyperplane intersections</dd>
+    <dt><a href="#Gi">Gi</a></dt>
+    <dd>display inner planes only (2-d, 3-d)</dd>
+    <dt><a href="#Go">Go</a></dt>
+    <dd>display outer planes only (2-d, 3-d)</dd>
+    <dt><a href="#Gr">Gr</a></dt>
+    <dd>display ridges (3-d)</dd>
+    <dt><a href="#Gv">Gv</a></dt>
+    <dd>display vertices as spheres</dd>
+    <dt><a href="#Gn">Gn</a></dt>
+    <dd>do not display planes</dd>
+
+</dl>
+
+<hr>
+
+<h3><a href="#geomview">&#187;</a><a name="G">G - produce output for
+viewing with Geomview</a></h3>
+
+<p>By default, option 'G' displays edges in 2-d, outer planes in
+3-d, and ridges in 4-d.</p>
+
+<p>A ridge can be explicit or implicit. An explicit ridge is a <i>(d-1)</i>-dimensional
+simplex between two facets. In 4-d, the explicit ridges are
+triangles. An implicit ridge is the topological intersection of
+two neighboring facets. It is the union of explicit ridges.</p>
+
+<p>For non-simplicial 4-d facets, the explicit ridges can be
+quite complex. When displaying a ridge in 4-d, Qhull projects the
+ridge's vertices to one of its facets' hyperplanes. Use '<a
+href="#Gh">Gh</a>' to project ridges to the intersection of both
+hyperplanes. This usually results in a cleaner display. </p>
+
+<p>For 2-d Delaunay triangulations, Geomview displays the
+corresponding paraboloid.  Geomview displays the 2-d Voronoi
+diagram. For halfspace intersections, it displays the
+dual convex hull.
+
+<h3><a href="#geomview">&#187;</a><a name="Ga">Ga - display all
+points as dots </a></h3>
+
+<p>Each input point is displayed as a green dot.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Gc">Gc - display centrums
+(3-d) </a></h3>
+
+<p>The centrum is defined by a green radius sitting on a blue
+plane. The plane corresponds to the facet's hyperplane. If you
+sight along a facet's hyperplane, you will see that all
+neighboring centrums are below the facet. The radius is defined
+by '<a href="qh-optc.htm#Cn">C-n</a>' or '<a
+href="qh-optc.htm#Cn2">Cn</a>'.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="GDn">GDn - drop dimension
+n in 3-d and 4-d output </a></h3>
+
+<p>The result is a 2-d or 3-d object. In 4-d, this corresponds to
+viewing the 4-d object from the nth axis without perspective.
+It's best to view 4-d objects in pieces. Use the '<a
+href="qh-optp.htm#Pdk">Pdk</a>' '<a href="qh-optp.htm#Pg">Pg</a>'
+'<a href="qh-optp.htm#PG">PG</a>' '<a href="qh-optq.htm#QGn">QGn</a>'
+and '<a href="qh-optq.htm#QVn">QVn</a>' options to select a few
+facets. If one of the facets is perpendicular to an axis, then
+projecting along that axis will show the facet exactly as it is
+in 4-d. If you generate many facets, use Geomview's <tt>ginsu</tt>
+module to view the interior</p>
+
+<p>To view multiple 4-d dimensions at once, output the object
+without 'GDn' and read it with Geomview's <tt>ndview</tt>. As you
+rotate the object in one set of dimensions, you can see how it
+changes in other sets of dimensions.</p>
+
+<p>For additional control over 4-d objects, output the object
+without 'GDn' and read it with Geomview's <tt>4dview</tt>. You
+can slice the object along any 4-d plane. You can also flip the
+halfspace that's deleted when slicing. By combining these
+features, you can get some interesting cross sections.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Gh">Gh - display
+hyperplane intersections (3-d, 4-d)</a></h3>
+
+<p>In 3-d, the intersection is a black line. It lies on two
+neighboring hyperplanes, c.f., the blue squares associated with
+centrums ('<a href="#Gc">Gc </a>'). In 4-d, the ridges are
+projected to the intersection of both hyperplanes. If you turn on
+edges (Geomview's 'appearances' menu), each triangle corresponds
+to one ridge. The ridges may overlap each other.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Gi">Gi - display inner
+planes only (2-d, 3-d)</a></h3>
+
+<p>The inner plane of a facet is below all of its vertices. It is
+parallel to the facet's hyperplane. The inner plane's color is
+the opposite of the outer plane's color, i.e., <i>[1-r,1-g,1-b] </i>.
+Its edges are determined by the vertices.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Gn">Gn - do not display
+planes </a></h3>
+
+<p>By default, Geomview displays the precise plane (no merging)
+or both inner and output planes (if merging). If merging,
+Geomview does not display the inner plane if the the difference
+between inner and outer is too small.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Go">Go - display outer
+planes only (2-d, 3-d)</a></h3>
+
+<p>The outer plane of a facet is above all input points. It is
+parallel to the facet's hyperplane. Its color is determined by
+the facet's normal, and its edges are determined by the vertices.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Gp">Gp - display coplanar
+points and vertices as radii </a></h3>
+
+<p>Coplanar points ('<a href="qh-optq.htm#Qc">Qc</a>'), interior
+points ('<a href="qh-optq.htm#Qi">Qi</a>'), outside points ('<a
+href="qh-optt.htm#TCn">TCn</a>' or '<a href="qh-optt.htm#TVn">TVn</a>'),
+and vertices are displayed as red and yellow radii. The radii are
+perpendicular to the corresponding facet. Vertices are aligned
+with an interior point. The radii define a ball which corresponds
+to the imprecision of the point. The imprecision is the maximum
+of the roundoff error, the centrum radius, and <i>maxcoord * (1 -
+</i><a href="qh-optc.htm#An"><i>A-n</i></a><i>)</i>. It is at
+least 1/20'th of the maximum coordinate, and ignores post merging
+if pre-merging is done.</p>
+
+<p>If '<a href="qh-optg.htm#Gv">Gv</a>' (print vertices as
+spheres) is also selected, option 'Gp' displays coplanar
+points as radii.  Select options <a href="qh-optq.htm#Qc">Qc</a>'
+and/or '<a href="qh-optq.htm#Qi">Qi</a>'. Options 'Qc Gpv' displays
+coplanar points while 'Qci Gpv' displays coplanar and interior
+points.  Option 'Qc' is automatically selected if 'Qi' is not
+selected with options 'Gpv'.
+
+<h3><a href="#geomview">&#187;</a><a name="Gr">Gr - display ridges
+(3-d) </a></h3>
+
+<p>A ridge connects the two vertices that are shared by
+neighboring facets. It is displayed in green. A ridge is the
+topological edge between two facets while the hyperplane
+intersection is the geometric edge between two facets. Ridges are
+always displayed in 4-d.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Gt">Gt - transparent 3-d
+Delaunay </a></h3>
+
+<p>A 3-d Delaunay triangulation looks like a convex hull with
+interior facets. Option 'Gt' removes the outside ridges to reveal
+the outermost facets. It automatically sets options '<a
+href="#Gr">Gr</a>' and '<a href="#GDn">GDn</a>'. See example <a
+href="qh-eg.htm#17f">eg.17f.delaunay.3</a>.</p>
+
+<h3><a href="#geomview">&#187;</a><a name="Gv">Gv - display vertices
+as spheres (2-d, 3-d)</a></h3>
+
+<p>The radius of the sphere corresponds to the imprecision of the
+data. See '<a href="#Gp">Gp</a>' for determining the radius.</p>
+
+<!-- Navigation links -->
+
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a></p>
+<!-- GC common information -->
+
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

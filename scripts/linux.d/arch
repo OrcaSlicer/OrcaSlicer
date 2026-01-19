@@ -1,0 +1,46 @@
+#!/bin/bash
+# these are the Arch Linux specific build functions
+
+# Addtional Dev packages for OrcaSlicer
+export REQUIRED_DEV_PACKAGES=(
+    cmake
+    curl
+    dbus
+    eglexternalplatform
+    extra-cmake-modules
+    file
+    gettext
+    git
+    glew
+    gstreamer
+    gstreamermm
+    gtk3
+    libmspack
+    libsecret
+    libspnav
+    mesa
+    ninja
+    openssl
+    texinfo
+    wayland-protocols
+    webkit2gtk
+    wget
+)
+
+if [[ -n "$UPDATE_LIB" ]]
+then
+    echo -n -e "Updating linux ...\n"
+    NEEDED_PKGS=()
+    for PKG in "${REQUIRED_DEV_PACKAGES[@]}"; do
+        pacman -Q "${PKG}" > /dev/null || NEEDED_PKGS+=("${PKG}")
+    done
+
+    if [[ "${#NEEDED_PKGS[*]}" -gt 0 ]]; then
+        sudo pacman -Syy --noconfirm "${NEEDED_PKGS[@]}"
+    fi
+    echo -e "done\n"
+    exit 0
+fi
+
+export FOUND_GTK3_DEV
+FOUND_GTK3_DEV=$(pacman -Q gtk3)

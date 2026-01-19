@@ -1,0 +1,416 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<title>qdelaunay Qu -- furthest-site Delaunay triangulation</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<a name="TOP"><b>Up</b></a><b>:</b>
+<a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="#synopsis">sy</a>nopsis
+&#149; <a href="#input">in</a>put &#149; <a href="#outputs">ou</a>tputs
+&#149; <a href="#controls">co</a>ntrols &#149; <a href="#graphics">gr</a>aphics
+&#149; <a href="#notes">no</a>tes &#149; <a href="#conventions">co</a>nventions
+&#149; <a href="#options">op</a>tions
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/delaunay.html"><img
+src="qh--dt.gif" alt="[delaunay]" align="middle" width="100"
+height="100"></a>qdelaunay Qu -- furthest-site Delaunay triangulation</h1>
+
+<p>The furthest-site Delaunay triangulation corresponds to the upper facets of the <a href="qdelaun.htm">Delaunay construction</a>.
+Its vertices are the
+extreme points of the input sites.
+It is the dual of the <a
+href="qvoron_f.htm">furthest-site Voronoi diagram</a>.
+
+<blockquote>
+<dl>
+    <dt><b>Example:</b> rbox 10 D2 | qdelaunay <a
+        href="qh-optq.htm#Qu">Qu</a> <a
+        href="qh-optq.htm#Qt">Qt</a> <a href="qh-opto.htm#s">s</a>
+        <a href="qh-opto.htm#i">i</a> <a href="qh-optt.htm#TO">TO
+        result</a></dt>
+    <dd>Compute the 2-d, furthest-site Delaunay triangulation of 10 random
+        points. Triangulate the output.
+        Write a summary to the console and the regions to
+        'result'.</dd>
+    <dt>&nbsp;</dt>
+    <dt><b>Example:</b> rbox 10 D2 | qdelaunay <a
+        href="qh-optq.htm#Qu">Qu</a> <a
+        href="qh-optq.htm#QJn">QJ</a> <a href="qh-opto.htm#s">s</a>
+        <a href="qh-opto.htm#i">i</a> <a href="qh-optt.htm#TO">TO
+        result</a></dt>
+    <dd>Compute the 2-d, furthest-site Delaunay triangulation of 10 random
+        points. Joggle the input to guarantee triangular output.
+        Write a summary to the console and the regions to
+        'result'.</dd>
+    <dt>&nbsp;</dt>
+    <dt><b>Example:</b> rbox r y c G1 D2 | qdelaunay <a
+        href="qh-optq.htm#Qu">Qu</a> <a href="qh-opto.htm#s">s</a>
+        <a href="qh-optf.htm#Fv">Fv</a> <a href="qh-optt.htm#TO">TO
+        result</a></dt>
+    <dd>Compute the 2-d, furthest-site Delaunay triangulation of a triangle inside
+                a square.
+        Write a summary to the console and unoriented regions to 'result'.
+        Merge regions for cocircular input sites (e.g., the square).
+                The square is the only furthest-site
+        Delaunay region.</dd>
+</dl>
+</blockquote>
+
+<p>As with the Delaunay triangulation, Qhull computes the
+furthest-site Delaunay triangulation by lifting the input sites to a
+paraboloid. The lower facets correspond to the Delaunay
+triangulation while the upper facets correspond to the
+furthest-site triangulation. Neither triangulation includes
+&quot;vertical&quot; facets (i.e., facets whose last hyperplane
+coefficient is nearly zero). Vertical facets correspond to input
+sites that are coplanar to the convex hull of the input. An
+example is points on the boundary of a lattice.</p>
+
+<p>By default, qdelaunay merges cocircular and cospherical regions.
+For example, the furthest-site Delaunay triangulation of a square inside a diamond
+('rbox D2 c d G4 | qdelaunay Qu') consists of one region (the diamond).
+
+<p>If you use '<a href="qh-optq.htm#Qt">Qt</a>' (triangulated output),
+all furthest-site Delaunay regions will be simplicial (e.g., triangles in 2-d).
+Some regions may be
+degenerate and have zero area.
+
+<p>If you use '<a href="qh-optq.htm#QJn">QJ</a>' (joggled input), all furthest-site
+Delaunay regions
+will be simplicial (e.g., triangles in 2-d).  Joggled input
+is less accurate than triangulated output ('Qt').  See <a
+href="qh-impre.htm#joggle">Merged facets or joggled input</a>. </p>
+
+<p>The output for 3-d, furthest-site Delaunay triangulations may be confusing if the
+input contains cospherical data. See the FAQ item
+<a href=qh-faq.htm#extra>Why
+are there extra points in a 4-d or higher convex hull?</a>
+Avoid these problems with triangulated output ('<a href="qh-optq.htm#Qt">Qt</a>') or
+joggled input ('<a href="qh-optq.htm#QJn">QJ</a>').
+</p>
+
+<p>The 'qdelaunay' program is equivalent to
+'<a href=qhull.htm#outputs>qhull d</a> <a href=qh-optq.htm#Qbb>Qbb</a>' in 2-d to 3-d, and
+'<a href=qhull.htm#outputs>qhull d</a> <a href=qh-optq.htm#Qbb>Qbb</a> <a href=qh-optq.htm#Qx>Qx</a>'
+in 4-d and higher.  It disables the following Qhull
+<a href=qh-quick.htm#options>options</a>: <i>d n v H U Qb QB Qc Qf Qg Qi
+Qm Qr QR Qv Qx TR E V FC Fi Fo Fp FV Q0,etc</i>.
+
+
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+
+<hr>
+
+<h3><a href="#TOP">&#187;</a><a name="synopsis">furthest-site qdelaunay synopsis</a></h3>
+<blockquote>
+
+See <a href="qdelaun.htm#synopsis">qdelaunay synopsis</a>.  The same
+program is used for both constructions.  Use option '<a href="qh-optq.htm#Qu">Qu</a>'
+for furthest-site Delaunay triangulations.
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="input">furthest-site qdelaunay
+input</a></h3>
+
+<blockquote>
+<p>The input data on <tt>stdin</tt> consists of:</p>
+<ul>
+    <li>dimension
+    <li>number of points</li>
+    <li>point coordinates</li>
+</ul>
+
+<p>Use I/O redirection (e.g., qdelaunay Qu &lt; data.txt), a pipe (e.g., rbox 10 | qdelaunay Qu),
+or the '<a href=qh-optt.htm#TI>TI</a>' option (e.g., qdelaunay Qu TI data.txt).
+
+<p>For example, this is a square containing four random points.
+Its furthest-site Delaunay
+triangulation contains one square.
+<p>
+<blockquote>
+<tt>rbox c 4 D2 &gt; data</tt>
+<blockquote><pre>
+2 RBOX c 4 D2
+8
+-0.4999921736307369 -0.3684622117955817
+0.2556053225468894 -0.0413498678629751
+0.0327672376602583 -0.2810408135699488
+-0.452955383763607 0.17886471718444
+  -0.5   -0.5
+  -0.5    0.5
+   0.5   -0.5
+   0.5    0.5
+</pre></blockquote>
+
+<p><tt>qdelaunay Qu i &lt; data</tt>
+<blockquote><pre>
+
+Furthest-site Delaunay triangulation by the convex hull of 8 points in 3-d:
+
+  Number of input sites: 8
+  Number of Delaunay regions: 1
+  Number of non-simplicial Delaunay regions: 1
+
+Statistics for: RBOX c 4 D2 | QDELAUNAY s Qu i
+
+  Number of points processed: 8
+  Number of hyperplanes created: 20
+  Number of facets in hull: 11
+  Number of distance tests for qhull: 34
+  Number of merged facets: 1
+  Number of distance tests for merging: 107
+  CPU seconds to compute hull (after input): 0.02
+
+1
+7 6 4 5
+</pre></blockquote>
+</blockquote>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="outputs">furthest-site qdelaunay
+outputs</a></h3>
+<blockquote>
+
+<p>These options control the output of furthest-site Delaunay triangulations:</p>
+<blockquote>
+
+<dl compact>
+    <dd><b>furthest-site Delaunay regions</b></dd>
+    <dt><a href="qh-opto.htm#i">i</a></dt>
+    <dd>list input sites for each furthest-site Delaunay region. The first line is the number of regions.  The
+        remaining lines list the input sites for each region.  The regions are
+                oriented.  In 3-d and
+        higher, report cospherical sites by adding extra points.  For the points-in-square example,
+        the square is the only furthest-site Delaunay region.</dd>
+    <dt><a href="qh-optf.htm#Fv">Fv</a></dt>
+    <dd>list input sites for each furthest-site Delaunay region.  The first line is the number of regions.
+        Each remaining line starts with the number of input sites.  The regions
+        are unoriented.  For the points-in-square example,
+        the square is the only furthest-site Delaunay region.</dd>
+    <dt><a href="qh-optf.htm#Ft">Ft</a></dt>
+    <dd>print a triangulation of the furthest-site Delaunay regions in OFF format.  The first line
+        is the dimension.  The second line is the number of input sites and added points,
+        followed by the number of simplices and the number of ridges.
+    The input coordinates are next, followed by the centrum coordinates.  There is
+        one centrum for each non-simplicial furthest-site Delaunay region.  Each remaining line starts
+        with dimension+1.  The
+        simplices are oriented.
+        For the points-in-square example, the square has a centrum at the
+        origin.  It splits the square into four triangular regions.</dd>
+    <dt><a href="qh-optf.htm#Fn">Fn</a></dt>
+    <dd>list neighboring regions for each furthest-site Delaunay region.  The first line is the
+        number of regions.  Each remaining line starts with the number of
+        neighboring regions.  Negative indices (e.g., <em>-1</em>) indicate regions
+        outside of the furthest-site Delaunay triangulation.
+        For the points-in-square example, the four neighboring regions
+        are outside of the triangulation.  They belong to the regular
+        Delaunay triangulation.</dd>
+    <dt><a href="qh-optf.htm#FN">FN</a></dt>
+    <dd>list the furthest-site Delaunay regions for each input site.  The first line is the
+        total number of input sites.  Each remaining line starts with the number of
+        furthest-site Delaunay regions.  Negative indices (e.g., <em>-1</em>) indicate regions
+        outside of the furthest-site Delaunay triangulation.
+        For the points-in-square example, the four random points belong to no region
+        while the square's vertices belong to region <em>0</em> and three
+        regions outside of the furthest-site Delaunay triangulation.</dd>
+    <dt><a href="qh-optf.htm#Fa">Fa</a></dt>
+    <dd>print area for each furthest-site Delaunay region. The first line is the number of regions.
+        The areas follow, one line per region.  For the points-in-square example, the
+        square has unit area. </dd>
+
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>Input sites</b></dd>
+    <dt><a href="qh-optf.htm#Fx">Fx</a></dt>
+    <dd>list extreme points of the input sites.  These points are vertices of the furthest-point
+        Delaunay triangulation.  They are on the
+        boundary of the convex hull.   The first line is the number of
+        extreme points.  Each point is listed, one per line.  The points-in-square example
+        has four extreme points.</dd>
+    <dt>&nbsp;</dt>
+    <dt>&nbsp;</dt>
+    <dd><b>General</b></dd>
+    <dt><a href="qh-optf.htm#FA">FA</a></dt>
+    <dd>compute total area for '<a href="qh-opto.htm#s">s</a>'
+        and '<a href="qh-optf.htm#FS">FS</a>'.  This is the
+                same as the area of the convex hull.</dd>
+    <dt><a href="qh-opto.htm#o">o</a></dt>
+    <dd>print upper facets of the corresponding convex hull (a
+        paraboloid)</dd>
+    <dt><a href="qh-opto.htm#m">m</a></dt>
+    <dd>Mathematica output for the upper facets of the paraboloid (2-d triangulations).</dd>
+    <dt><a href="qh-optf.htm#FM">FM</a></dt>
+    <dd>Maple output for the upper facets of the paraboloid (2-d triangulations).</dd>
+    <dt><a href="qh-optg.htm#G">G</a></dt>
+    <dd>Geomview output for the paraboloid (2-d or 3-d triangulations).</dd>
+    <dt><a href="qh-opto.htm#s">s</a></dt>
+    <dd>print summary for the furthest-site Delaunay triangulation. Use '<a
+        href="qh-optf.htm#Fs">Fs</a>' and '<a
+        href="qh-optf.htm#FS">FS</a>' for numeric data.</dd>
+</dl>
+</blockquote>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="controls">furthest-site qdelaunay
+controls</a></h3>
+<blockquote>
+
+<p>These options provide additional control:</p>
+<blockquote>
+
+<dl compact>
+   <dt><a href="qh-optq.htm#Qu">Qu</a></dt>
+    <dd>must be used for furthest-site Delaunay triangulation.</dd>
+    <dt><a href="qh-optq.htm#Qt">Qt</a></dt>
+    <dd>triangulated output.  Qhull triangulates non-simplicial facets.  It may produce
+     degenerate facets of zero area.</dd>
+   <dt><a href="qh-optq.htm#QJn">QJ</a></dt>
+    <dd>joggle the input to avoid cospherical and coincident
+        sites.    It is less accurate than triangulated output ('Qt').</dd>
+    <dt><a href="qh-optq.htm#QVn">QVn</a></dt>
+    <dd>select facets adjacent to input site <em>n</em> (marked
+        'good').</dd>
+    <dt><a href="qh-optt.htm#Tv">Tv</a></dt>
+    <dd>verify result.</dd>
+    <dt><a href="qh-optt.htm#TO">TI file</a></dt>
+    <dd>input data from file.  The filename may not use spaces or quotes.</dd>
+    <dt><a href="qh-optt.htm#TO">TO file</a></dt>
+    <dd>output results to file.  Use single quotes if the filename
+        contains spaces (e.g., <tt>TO 'file with spaces.txt'</tt></dd>
+    <dt><a href="qh-optt.htm#TFn">TFn</a></dt>
+    <dd>report progress after constructing <em>n</em> facets</dd>
+    <dt><a href="qh-optp.htm#PDk">PDk:1</a></dt>
+    <dd>include upper and lower facets in the output.  Set <em>k</em>
+        to the last dimension (e.g., 'PD2:1' for 2-d inputs). </dd>
+    <dt><a href="qh-opto.htm#f">f</a></dt>
+    <dd>facet dump.  Print the data structure for each facet (i.e., furthest-site Delaunay region).</dd>
+</dl>
+</blockquote>
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="graphics">furthest-site qdelaunay
+graphics</a></h3>
+<blockquote>
+
+See <a href="qdelaun.htm#graphics">Delaunay graphics</a>.
+They are the same except for Mathematica and Maple output.
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="notes">furthest-site
+qdelaunay notes</a></h3>
+<blockquote>
+
+<p>The furthest-site Delaunay triangulation does not
+record coincident input sites.  Use <tt>qdelaunay</tt> instead.
+
+<p><tt>qdelaunay Qu</tt> does not work for purely cocircular
+or cospherical points (e.g., rbox c | qdelaunay Qu).  Instead,
+use <tt>qdelaunay Qz</tt> -- when all points are vertices of the convex
+hull of the input sites, the Delaunay triangulation is the same
+as the furthest-site Delaunay triangulation.
+
+<p>A non-simplicial, furthest-site Delaunay region indicates nearly cocircular or
+cospherical input sites. To avoid non-simplicial regions triangulate
+the output ('<a href="qh-optq.htm#Qt">Qt</a>') or joggle
+the input ('<a href="qh-optq.htm#QJn">QJ</a>').  Joggled input
+is less accurate than triangulated output.
+You may also triangulate
+non-simplicial regions with option '<a
+href="qh-optf.htm#Ft">Ft</a>'. It adds
+the centrum to non-simplicial regions. Alternatively, use an <a
+href="qh-impre.htm#exact">exact arithmetic code</a>.</p>
+
+<p>Furthest-site Delaunay triangulations do not include facets that are
+coplanar with the convex hull of the input sites.  A facet is
+coplanar if the last coefficient of its normal is
+nearly zero (see <a href="../src/libqhull/user.h#ZEROdelaunay">qh_ZEROdelaunay</a>).
+
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="conventions">furthest-site qdelaunay conventions</a></h3>
+<blockquote>
+
+<p>The following terminology is used for furthest-site Delaunay
+triangulations in Qhull. The underlying structure is the upper
+facets of a convex hull in one higher dimension. See <a
+href="qconvex.htm#conventions">convex hull conventions</a>, <a
+href="qdelaun.htm#conventions">Delaunay conventions</a>,
+and <a href="index.htm#structure">Qhull's data structures</a></p>
+<blockquote>
+<ul>
+    <li><em>input site</em> - a point in the input (one dimension
+        lower than a point on the convex hull)</li>
+    <li><em>point</em> - <i>d+1</i> coordinates. The last
+        coordinate is the sum of the squares of the input site's
+        coordinates</li>
+    <li><em>vertex</em> - a point on the paraboloid. It
+        corresponds to a unique input site. </li>
+    <li><em>furthest-site Delaunay facet</em> - an upper facet of the
+        paraboloid. The last coefficient of its normal is
+                clearly positive.</li>
+    <li><em>furthest-site Delaunay region</em> - a furthest-site Delaunay
+            facet projected to the input sites</li>
+    <li><em>non-simplicial facet</em> - more than <em>d</em>
+        points are cocircular or cospherical</li>
+    <li><em>good facet</em> - a furthest-site Delaunay facet with optional
+        restrictions by '<a href="qh-optq.htm#QVn">QVn</a>', etc.</li>
+</ul>
+</blockquote>
+</blockquote>
+<h3><a href="#TOP">&#187;</a><a name="options">furthest-site qdelaunay options</a></h3>
+<blockquote>
+
+See <a href="qdelaun.htm#options">qdelaunay options</a>.    The same
+program is used for both constructions.  Use option '<a href="qh-optq.htm#Qu">Qu</a>'
+for furthest-site Delaunay triangulations.
+
+</blockquote>
+<!-- Navigation links -->
+<hr>
+
+<p><b>Up:</b> <a href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="#synopsis">sy</a>nopsis
+&#149; <a href="#input">in</a>put &#149; <a href="#outputs">ou</a>tputs
+&#149; <a href="#controls">co</a>ntrols &#149; <a href="#graphics">gr</a>aphics
+&#149; <a href="#notes">no</a>tes &#149; <a href="#conventions">co</a>nventions
+&#149; <a href="#options">op</a>tions
+<!-- GC common information -->
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><img src="qh--geom.gif"
+align="middle" width="40" height="40"></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: Sept. 25, 1995 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+    "type": "filament",
+    "name": "Generic PETG @BBL A1M",
+    "inherits": "Generic PETG @base",
+    "from": "system",
+    "setting_id": "GFSG99_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.4 nozzle",
+        "Bambu Lab A1 mini 0.6 nozzle",
+        "Bambu Lab A1 mini 0.8 nozzle"
+    ]
+}

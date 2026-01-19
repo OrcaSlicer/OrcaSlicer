@@ -1,0 +1,85 @@
+{
+    "name": "Positron 3D",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "Positron 3D Printer Profile",
+    "machine_model_list": [
+        {
+            "name": "The Positron",
+            "sub_path": "machine/The Positron.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_the_positron_common",
+            "sub_path": "process/fdm_process_the_positron_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @The Positron",
+            "sub_path": "process/0.08mm Extra Fine @The Positron.json"
+        },
+        {
+            "name": "0.12mm Fine @The Positron",
+            "sub_path": "process/0.12mm Fine @The Positron.json"
+        },
+        {
+            "name": "0.16mm Optimal @The Positron",
+            "sub_path": "process/0.16mm Optimal @The Positron.json"
+        },
+        {
+            "name": "0.20mm Standard @The Positron",
+            "sub_path": "process/0.20mm Standard @The Positron.json"
+        },
+        {
+            "name": "0.24mm Draft @The Positron",
+            "sub_path": "process/0.24mm Draft @The Positron.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @The Positron",
+            "sub_path": "process/0.28mm Extra Draft @The Positron.json"
+        },
+        {
+            "name": "0.32mm Standard @The Positron",
+            "sub_path": "process/0.32mm Extra Draft @The Positron.json"
+        },
+        {
+            "name": "0.40mm Standard @The Positron",
+            "sub_path": "process/0.40mm Extra Draft @The Positron.json"
+        },
+        {
+            "name": "0.56mm Standard @The Positron",
+            "sub_path": "process/0.56mm Extra Draft @The Positron.json"
+        }
+    ],
+    "filament_list": [],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_common_the_positron",
+            "sub_path": "machine/fdm_common_the_positron.json"
+        },
+        {
+            "name": "The Positron 0.2 nozzle",
+            "sub_path": "machine/The Positron 0.2 nozzle.json"
+        },
+        {
+            "name": "The Positron 0.4 nozzle",
+            "sub_path": "machine/The Positron 0.4 nozzle.json"
+        },
+        {
+            "name": "The Positron 0.6 nozzle",
+            "sub_path": "machine/The Positron 0.6 nozzle.json"
+        },
+        {
+            "name": "The Positron 0.8 nozzle",
+            "sub_path": "machine/The Positron 0.8 nozzle.json"
+        }
+    ]
+}

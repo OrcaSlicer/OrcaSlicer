@@ -1,0 +1,19 @@
+{
+    "type": "process",
+    "name": "0.08mm Extra Fine @BBL A1M",
+    "inherits": "fdm_process_single_0.08",
+    "from": "system",
+    "setting_id": "GP049",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, and results in almost negligible layer lines and longer printing time.",
+    "default_acceleration": [
+        "6000"
+    ],
+    "elefant_foot_compensation": "0",
+    "travel_speed": [
+        "700"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.4 nozzle"
+    ]
+}

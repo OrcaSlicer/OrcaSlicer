@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Generic PETG HF @BBL A1 0.2 nozzle",
+    "inherits": "Generic PETG HF @base",
+    "from": "system",
+    "setting_id": "GFSG96_05",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.2 nozzle"
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "SUNLU PLA Marble @System",
+    "inherits": "SUNLU PLA Marble @base",
+    "from": "system",
+    "setting_id": "OSNLS06",
+    "instantiation": "true",
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "compatible_printers": []
+}

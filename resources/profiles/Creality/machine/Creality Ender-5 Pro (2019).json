@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Creality Ender-5 Pro (2019)",
+    "model_id": "Creality_Ender_5_Pro_2019",
+    "nozzle_diameter": "0.2;0.25;0.3;0.4;0.5;0.6;0.8;1.0",
+    "machine_tech": "FFF",
+    "family": "Creality",
+    "bed_model": "creality_ender5pro_buildplate_model.stl",
+    "bed_texture": "creality_ender5pro_buildplate_texture.png",
+    "hotend_model": "hotend.stl",
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+}

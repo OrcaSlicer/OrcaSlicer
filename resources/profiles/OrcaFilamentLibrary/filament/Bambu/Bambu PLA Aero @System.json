@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Aero @System",
+    "inherits": "Bambu PLA Aero @base",
+    "from": "system",
+    "setting_id": "OGFSA11_01",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "compatible_printers": []
+}

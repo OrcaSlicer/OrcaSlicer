@@ -1,0 +1,13 @@
+{
+    "type": "machine",
+    "name": "Prusa MK4S 0.4 nozzle",
+    "inherits": "fdm_machine_common_mk4s",
+    "from": "system",
+    "instantiation": "true",
+    "default_filament_profile": "Prusa Generic PLA @MK4S",
+    "default_print_profile": "0.20mm SPEED @MK4S 0.4",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_model": "Prusa MK4S"
+}

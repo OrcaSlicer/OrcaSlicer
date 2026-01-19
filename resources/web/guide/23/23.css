@@ -1,0 +1,202 @@
+
+.ChooseBlock
+{
+	display:flex;
+	line-height: 32px;
+}
+
+.CName
+{
+	width:130px;
+	font-weight: 700;
+	height: 100%;
+	text-align: right;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.CValues
+{
+	display:flex;
+	justify-content: flex-start;
+	align-content: flex-start;
+	flex-wrap: wrap;
+}
+
+input
+{
+	margin-left: 20px;
+	margin-right: 6px;
+	vertical-align: middle;
+}
+
+#ItemSelectArea
+{
+	flex: 0 0 40px;
+	height:40px;
+	border-top: 1px solid #009688;
+	display: flex;
+	align-items: center;
+}
+
+#ItemBlockArea
+{
+	display:flex;
+	overflow-x:auto;
+	flex-wrap:wrap;
+	flex-direction: column;
+	justify-content:flex-start;
+	align-items: flex-start;
+	align-content:flex-start;
+	line-height: 32px;
+	height: 100%;
+	flex:1 0 236px;
+}
+
+.MItem
+{
+	min-width: 180px; /* ORCA Filtered items > slightly reduce min width to fit more items*/
+	height: 32px;
+}
+
+
+#NoticeMask
+{
+	background-color: #000;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+	opacity: 0.05;
+	display: none;
+}
+
+#NoticeBody
+{
+	display: none;
+	width: 500px;
+	border-width: 1px;
+	border-style: solid;
+	border-radius: 4px;
+	background-color: inherit;	
+	position: absolute;
+	left: 50%;
+	top: 200px;
+	margin-left: -250px;
+}
+
+#NoticeBar
+{
+	background-color:#00f0d8;
+	height: 40px;
+	line-height: 40px;
+	color: #fff;
+	text-align: center;
+}
+
+#NoticeContent
+{
+	padding: 4mm 10mm;	
+}
+
+
+#NoticeBtns
+{
+	margin-top: 4mm;
+	display: flex;
+	justify-content:flex-end;
+}
+
+#SystemFilamentsArea
+{
+	display: none;
+	flex-direction: column;
+}
+
+#CFilament_Btn_Area
+{
+	display: flex;
+	align-items: center;
+	height: 30px;
+}
+
+#Title
+{
+	margin: 0px 40px;
+	border-bottom: 1px solid #000;
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	align-items: center;
+}
+
+#Title div
+{
+	cursor: pointer;
+	font-size: 24px;
+}
+
+#Title div.TitleSelected
+{
+	height: calc(100% - 6px);
+	display: flex;
+	align-items: center;
+	border-bottom: 6px solid #009688;
+}
+
+#Title div.TitleUnselected
+{
+	height: 100%;
+	display: flex;
+	align-items: center;
+	color: #000;
+}
+
+#CustomFilamentsArea
+{
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+#CFilament_List
+{
+	display:flex;
+	overflow-x:auto;
+	flex-wrap:wrap;
+	flex-direction: column;
+	justify-content:flex-start;
+	align-items: flex-start;
+	align-content:flex-start;
+	line-height: 32px;
+
+	height: 100%;
+}
+
+.CFilament_Item
+{
+	display: flex;
+	align-items: center;
+	margin-right: 30px;
+}
+
+.CFilament_Name
+{
+	width: 220px;
+	overflow: hidden;
+    white-space: nowrap; /* ?????? */
+    text-overflow: ellipsis; /* ????????? */
+}
+
+.CFilament_EditBtn
+{
+	cursor: pointer;
+	width: 20px;
+	height: 20px;
+}
+
+.CFilament_EditBtn:hover
+{
+	
+}

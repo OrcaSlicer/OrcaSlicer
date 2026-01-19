@@ -1,0 +1,229 @@
+{
+    "type": "machine",
+    "name": "Anycubic Kobra 2 Pro 0.4 nozzle",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_technology": "FFF",
+    "printer_settings_id": "Anycubic Kobra 2 Pro 0.4 nozzle",
+    "printer_model": "Anycubic Kobra 2 Pro",
+    "printer_variant": "0.4",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "default_print_profile": "0.16mm Optimal @Anycubic Kobra 2 Pro 0.4 nozzle",
+    "default_filament_profile": [
+        "Anycubic PLA @Anycubic Kobra 2 Pro 0.4 nozzle"
+    ],
+    "disable_m73": "1",
+    "gcode_flavor": "klipper",
+    "printable_area": [
+        "0x0",
+        "220x0",
+        "220x220",
+        "0x220"
+    ],
+    "printable_height": "250",
+    "thumbnails": [
+        "230x110"
+    ],
+    "thumbnails_format": "PNG",
+    "adaptive_bed_mesh_margin": "0",
+    "auxiliary_fan": "0",
+    "bbl_use_printhost": "0",
+    "bed_custom_model": "",
+    "bed_custom_texture": "",
+    "bed_exclude_area": [],
+    "bed_mesh_max": "99999,99999",
+    "bed_mesh_min": "-99999,-99999",
+    "bed_mesh_probe_distance": "50,50",
+    "before_layer_change_gcode": "",
+    "best_object_pos": "0.5,0.5",
+    "change_extrusion_role_gcode": "",
+    "change_filament_gcode": "",
+    "cooling_tube_length": "0",
+    "cooling_tube_retraction": "0",
+    "deretraction_speed": [
+        "30"
+    ],
+    "emit_machine_limits_to_gcode": "1",
+    "enable_filament_ramming": "0",
+    "enable_long_retraction_when_cut": "0",
+    "extra_loading_move": "0",
+    "extruder_clearance_height_to_lid": "256",
+    "extruder_clearance_height_to_rod": "25",
+    "extruder_clearance_radius": "73",
+    "extruder_colour": [
+        "#018001"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "1",
+    "fan_speedup_time": "0",
+    "head_wrap_detect_zone": [
+        "226x224",
+        "256x224",
+        "256x256",
+        "226x256"
+    ],
+    "high_current_on_filament_swap": "0",
+    "host_type": "octoprint",
+    "layer_change_gcode": "; layer num/total_layer_count: {layer_num+1}/[total_layer_count]\n; update layer progress\nM73 L{layer_num+1}\nM991 S0 P{layer_num} ;notify layer change",
+    "long_retractions_when_cut": [
+        "0"
+    ],
+    "machine_end_gcode": "{if max_layer_z < max_print_height}G1 Z{z_offset+min(max_layer_z+2, max_print_height)} F600 ; Move print head up{endif}\nG1 X5 Y{print_bed_max[1]*0.95} F{travel_speed*60} ; present print\n{if max_layer_z < max_print_height-10}G1 Z{z_offset+min(max_layer_z+70, max_print_height-10)} F600 ; Move print head further up{endif}\n{if max_layer_z < max_print_height*0.6}G1 Z{max_print_height*0.6} F600 ; Move print head further up{endif}\nM140 S0 ; turn off heatbed\nM104 S0 ; turn off temperature\nM84; disable stepper motors",
+    "machine_load_filament_time": "25",
+    "machine_max_acceleration_e": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_travel": [
+        "9000",
+        "9000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_jerk_e": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_x": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_y": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_z": [
+        "8",
+        "8"
+    ],
+    "machine_max_speed_e": [
+        "80",
+        "80"
+    ],
+    "machine_max_speed_x": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "16",
+        "16"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "machine_pause_gcode": "M601",
+    "machine_start_gcode": "G90 ;Use absolute coordinates\nM83 ;Extruder relative mode\nM140 S[first_layer_bed_temperature] ;Set bed temp\nM190 S[first_layer_bed_temperature] ;Wait for bed temp\nM104 S[first_layer_temperature] ;Set extruder temp\nM109 S[first_layer_temperature] ;Wait for extruder temp\nG28 ;Move X/Y/Z to min endstops\nG1 Z0.28 ;Lift nozzle a bit\nG92 E0 ;Specify current extruder position as zero\nG1 Y226 F1800 ;Move Y to purge point\nG1 X180 E25 F500 ;Extrude 25mm of filament in a 5cm line\nG92 E0 ;Zero the extruded length again\nG1 E-0.2 F500 ;Retract a little\nG1 X181 F4000 ;Quickly wipe away from the filament line\nM117\nM900 K0.07",
+    "machine_unload_filament_time": "29",
+    "manual_filament_change": "0",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_height": "4",
+    "nozzle_hrc": "0",
+    "nozzle_type": "brass",
+    "nozzle_volume": "117",
+    "parking_pos_retraction": "0",
+    "preferred_orientation": "0",
+    "printer_notes": "",
+    "printer_structure": "i3",
+    "printing_by_object_gcode": "",
+    "purge_in_prime_tower": "0",
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "255"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_distances_when_cut": [
+        "18"
+    ],
+    "retraction_length": [
+        "1.5"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "scan_first_layer": "0",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "support_air_filtration": "0",
+    "support_chamber_temp_control": "0",
+    "support_multi_bed_types": "0",
+    "template_custom_gcode": "",
+    "time_cost": "0",
+    "time_lapse_gcode": "",
+    "upward_compatible_machine": [],
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "0",
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "1"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "z_hop_types": [
+        "Auto Lift"
+    ],
+    "z_offset": "0"
+}

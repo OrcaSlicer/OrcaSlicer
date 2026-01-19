@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Basic @System",
+    "inherits": "Bambu PLA Basic @base",
+    "from": "system",
+    "setting_id": "OGFSA00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "compatible_printers": []
+}

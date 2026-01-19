@@ -1,0 +1,19 @@
+{
+    "type": "process",
+    "name": "fdm_process_creality_common_0_6",
+    "inherits": "fdm_process_creality_common",
+    "from": "system",
+    "instantiation": "false",
+    "outer_wall_line_width": "0.63",
+    "line_width": "0.66",
+    "initial_layer_line_width": "0.63",
+    "sparse_infill_line_width": "0.66",
+    "inner_wall_line_width": "0.66",
+    "internal_solid_infill_line_width": "0.66",
+    "support_line_width": "0.54",
+    "top_surface_line_width": "0.6",
+    "wall_loops": "2",
+    "compatible_printers": [
+        "Creality Ender-5 Pro (2019) 0.6 nozzle"
+    ]
+}

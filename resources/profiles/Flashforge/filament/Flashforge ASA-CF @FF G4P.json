@@ -1,0 +1,58 @@
+{
+    "type": "filament",
+    "name": "Flashforge ASA-CF @FF G4P",
+    "inherits": "Flashforge Generic ABS",
+    "from": "system",
+    "instantiation": "true",
+    "activate_chamber_temp_control": [
+        "1"
+    ],
+    "chamber_temperature": [
+        "60"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "50"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "100"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "100"
+    ],
+    "filament_settings_id": [
+        "Flashforge ASA-CF @FF G4P"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material: ASA-CF\n"
+    ],
+    "filament_type": [
+        "ASA"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 Pro 0.4 nozzle"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ]
+}

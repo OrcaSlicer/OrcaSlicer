@@ -1,0 +1,13 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @MK4",
+    "inherits": "process_common_mk4",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Prusa MK4 0.4 nozzle",
+        "Prusa MK4 0.6 nozzle",
+        "Prusa MK4 0.8 nozzle"
+    ]
+}

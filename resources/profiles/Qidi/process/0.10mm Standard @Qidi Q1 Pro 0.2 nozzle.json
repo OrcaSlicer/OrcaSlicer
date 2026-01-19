@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.10mm Standard @Qidi Q1 Pro 0.2 nozzle",
+    "inherits": "fdm_process_QIDI_0.10_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP007",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.2 nozzle"
+    ]
+}

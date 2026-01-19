@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Generic ToolChanger Printer",
+    "model_id": "my_toolchanger_01",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "MyPrinter",
+    "bed_model": "Custom_350_bed.stl",
+    "bed_texture": "orcaslicer_bed_texture.svg",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @MyToolChanger;Generic ABS @MyToolChanger;Generic PLA-CF @MyToolChanger;Generic PETG @MyToolChanger;Generic TPU @MyToolChanger;Generic ASA @MyToolChanger;Generic PC @MyToolChanger;Generic PVA @MyToolChanger;Generic PA @MyToolChanger;Generic PA-CF @MyToolChanger"
+}

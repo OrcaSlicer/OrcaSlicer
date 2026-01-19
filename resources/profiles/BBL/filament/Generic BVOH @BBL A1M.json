@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "Generic BVOH @BBL A1M",
+    "inherits": "Generic BVOH @base",
+    "from": "system",
+    "setting_id": "GFSS97_01",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.4 nozzle",
+        "Bambu Lab A1 mini 0.6 nozzle",
+        "Bambu Lab A1 mini 0.8 nozzle"
+    ]
+}

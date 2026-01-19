@@ -1,0 +1,38 @@
+{
+    "type": "filament",
+    "name": "Generic PC @BBL A1 0.2 nozzle",
+    "inherits": "Generic PC @base",
+    "from": "system",
+    "setting_id": "GFSC99_08",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "100"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "20"
+    ],
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.2 nozzle"
+    ]
+}

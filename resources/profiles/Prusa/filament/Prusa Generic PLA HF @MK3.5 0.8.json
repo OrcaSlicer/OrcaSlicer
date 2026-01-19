@@ -1,0 +1,27 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic PLA HF @MK3.5 0.8",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFL99_7",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "37"
+    ],
+    "slow_down_layer_time": [
+        "15"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.014"
+    ],
+    "compatible_printers": [
+        "Prusa MK3.5 0.8 nozzle"
+    ]
+}

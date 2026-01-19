@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Generic PVA @base",
+    "inherits": "fdm_filament_pva",
+    "from": "system",
+    "filament_id": "GFS99",
+    "instantiation": "false",
+    "description": "This is a water-soluble support filament, and usually it is only for the support structure and not for the model body. Printing this filament is of many requirements, and to get better printing quality, please refer to this wiki: PVA Printing Guide.",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ]
+}

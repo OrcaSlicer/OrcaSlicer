@@ -1,0 +1,113 @@
+{
+    "type": "filament",
+    "name": "Prusa Generic TPU @CORE One",
+    "inherits": "fdm_filament_flex",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusa Generic TPU @CORE One",
+    "instantiation": "true",
+    "chamber_temperature": [
+        "30"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "compatible_printers": [
+        "Prusa CORE One 0.25 nozzle",
+        "Prusa CORE One 0.3 nozzle",
+        "Prusa CORE One 0.4 nozzle",
+        "Prusa CORE One 0.5 nozzle",
+        "Prusa CORE One HF 0.4 nozzle",
+        "Prusa CORE One HF 0.5 nozzle"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_cost": [
+        "82"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_deretraction_speed": [
+        "20"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_end_gcode": [
+        "; Filament-specific end gcode"
+    ],
+    "filament_flow_ratio": [
+        "1.08"
+    ],
+    "filament_max_volumetric_speed": [
+        "2.5"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "15"
+    ],
+    "filament_notes": [
+        ""
+    ],
+    "filament_retraction_length": [
+        "2.5"
+    ],
+    "filament_retraction_minimum_travel": [
+        "2"
+    ],
+    "filament_retraction_speed": [
+        "60"
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "filament_start_gcode": [
+        "M900 K0 ; Filament gcode\n\nM142 S36 ; set heatbreak target temp"
+    ],
+    "filament_type": [
+        "FLEX"
+    ],
+    "filament_vendor": [
+        "Generic"
+    ],
+    "filament_wipe": [
+        "0"
+    ],
+    "filament_z_hop": [
+        "0"
+    ],
+    "hot_plate_temp": [
+        "50"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "50"
+    ],
+    "idle_temperature": [
+        "150"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "overhang_fan_speed": [
+        "70"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "slow_down_min_speed": [
+        "15"
+    ]
+}

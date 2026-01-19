@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Creality Ender-3",
+    "model_id": "Creality-Ender3",
+    "nozzle_diameter": "0.2;0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Creality",
+    "bed_model": "creality_ender3v2_buildplate_model.stl",
+    "bed_texture": "creality_ender3v2_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+}

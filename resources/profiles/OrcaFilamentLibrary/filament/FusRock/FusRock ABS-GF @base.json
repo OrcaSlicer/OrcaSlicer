@@ -1,0 +1,163 @@
+{
+    "type": "filament",
+    "name": "FusRock ABS-GF @base",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "filament_id": "OGFR00",
+    "instantiation": "false",
+    "description": "When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials（https://wiki.fusrock.com）.",
+    "filament_extruder_variant": [
+        "Direct Drive Standard"
+    ],
+    "filament_adhesiveness_category": [
+        "200"
+    ],
+    "filament_type": [
+        "ABS-GF"
+    ],
+    "filament_vendor": [
+        "FusRock"
+    ],
+    "filament_flow_ratio": [
+        "0.92"
+    ],
+    "filament_density": [
+        "1.08"
+    ],
+    "filament_cost": [
+        "13"
+    ],
+    "nozzle_temperature_range_low": [
+        "240"
+    ],
+    "nozzle_temperature_range_high": [
+        "280"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
+    "supertack_plate_temp": [
+        "0"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "105"
+    ],
+    "eng_plate_temp": [
+        "105"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "105"
+    ],
+    "hot_plate_temp": [
+        "105"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "105"
+    ],
+    "textured_plate_temp": [
+        "105"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "nozzle_temperature": [
+        "270"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "fan_cooling_layer_time": [
+        "12"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "enable_overhang_bridge_fan": [
+        "1"
+    ],
+    "overhang_fan_threshold": [
+        "10%"
+    ],
+    "overhang_threshold_participating_cooling": [
+        "100%"
+    ],
+    "overhang_fan_speed": [
+        "30"
+    ],
+    "pre_start_fan_time": [
+        "0"
+    ],
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "activate_air_filtration": [
+        "1"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "30"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "10"
+    ],
+    "filament_retraction_length": [
+        "0.8"
+    ],
+    "filament_z_hop": [
+        "0.4"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift"
+    ],
+    "filament_retraction_speed": [
+        "30"
+    ],
+    "filament_deretraction_speed": [
+        "0"
+    ],
+    "filament_retraction_minimum_travel": [
+        "2"
+    ],
+    "filament_retract_when_changing_layer": [
+        "0"
+    ],
+    "filament_wipe": [
+        "0"
+    ],
+    "filament_wipe_distance": [
+        "2"
+    ],
+    "filament_retract_before_wipe": [
+        "100%"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n\n"
+    ],
+    "filament_notes": "//EN\n1.Be sure to read it carefully before using (https://wiki.fusrock.com).\n2.When printing this filament, there's a risk of nozzle clogging, oozing, warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials（https://wiki.fusrock.com）.\\n3.Thank you for choosing us FusRock.\n*This setting may not be able to adapt to all models. In some cases, you need to modify and adjust the parameters by yourself to improve the printing effect.\n*FusRock 3D printing filaments are intended for general-purpose printing and have been tested under standard conditions. However, the performance and safety of printed objects are affected by multiple factors, including printing parameters, model design, usage environment, and the specific application.\n*By using FusRock materials, the user acknowledges and agrees to independently evaluate whether the printed parts are suitable for their intended use, and assumes all associated risks.\n*FusRock shall not be held liable for any damage, injury, or loss that may result from the use of printed products made with our materials, including but not limited to structural failure, functional defects, or safety hazards under actual usage conditions.Before applying printed parts in any critical, functional, or commercial context, thorough testing must be conducted. Except for the certifications explicitly stated for specific FusRock materials, our products are not certified for medical, aerospace, or life-support applications.\n//CN\n1.使用前请务必仔细阅读（https://wiki.fusrock.com）。\n2.打印该耗材时，可能会出现喷嘴堵塞、拉丝、翘边以及层间附着力不足等问题。为了获得更好的打印效果，请参考此维基页面：高温 / 工程材料打印技巧（https://wiki.fusrock.com）。\n3.感谢您选择FusRock。\n*此设置不一定能够适配所有模型，存在部分情况下需要您自行修改调整参数来提升打印效果。\n*FusRock 3D打印耗材适用于通用打印用途，已在标准条件下进行测试。然而，打印成品的性能与安全性受多种因素影响，包括打印参数、模型设计、使用环境及实际用途。\n*使用FusRock材料即表示用户已知悉并同意，自行评估打印件是否适用于其具体应用，并承担由此产生的全部风险。\n*FusRock对使用本公司耗材打印的产品在实际应用中可能导致的任何损害、伤害或损失不承担任何责任，包括但不限于结构失效、功能异常或使用环境中的安全隐患。在将打印件应用于关键、功能性或商业性场景前，请务必进行充分测试。除FusRock已标明材料所获得的各项认证资质外，FusRock产品未取得医疗、航天或生命支持系统认证资质。",
+    "impact_strength_z": [
+        "5.3"
+    ]
+}

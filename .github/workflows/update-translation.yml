@@ -1,0 +1,38 @@
+name: Update Translation Catalog
+on: 
+  # schedule:
+  #   - cron: 0 0 * * 1
+  workflow_dispatch:
+
+jobs:
+  update_translation:
+    name: Update translation
+    runs-on: ubuntu-latest
+    steps:  
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install gettext
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gettext
+
+      - name: Update translation catalog
+        run: |
+          ./scripts/run_gettext.sh --full
+          git add localization/i18n/*
+
+      - name: Commit translation catalog updates
+        uses: qoomon/actions--create-commit@v1
+        id: commit
+        with:
+          message: Update translation catalog
+          skip-empty: true
+
+      - name: Push changes
+        run: git push

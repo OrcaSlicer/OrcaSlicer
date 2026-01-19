@@ -1,0 +1,46 @@
+{
+    "type": "filament",
+    "name": "Volumic FLEX93 Ultra (Performance)",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "setting_id": "GFSR99",
+    "filament_id": "GFU99",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "1.00"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "235"
+    ],
+    "nozzle_temperature": [
+        "235"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_max_volumetric_speed": [
+        "20"
+    ],
+    "compatible_printers": [
+        "EXO42 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.4 nozzle)",
+        "EXO65 Performance (0.6 nozzle)",
+        "EXO65 Performance (0.8 nozzle)",
+        "SH65 Performance (0.4 nozzle)",
+        "EXO42 IDRE (0.4 nozzle)",
+        "EXO42 IDRE COPY MODE (0.4 nozzle)",
+        "EXO42 IDRE MIRROR MODE (0.4 nozzle)",
+        "EXO65 IDRE (0.4 nozzle)",
+        "EXO65 IDRE COPY MODE (0.4 nozzle)",
+        "EXO65 IDRE MIRROR MODE (0.4 nozzle)",
+        "SH65 IDRE (0.4 nozzle)",
+        "SH65 IDRE COPY MODE (0.4 nozzle)",
+        "SH65 IDRE MIRROR MODE (0.4 nozzle)"
+    ]
+}

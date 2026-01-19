@@ -1,0 +1,11 @@
+{
+    "type": "process",
+    "name": "0.24mm Standard @Artillery M1 Pro 0.6 nozzle",
+    "inherits": "0.24mm Draft @Artillery M1 Pro 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "detect_thin_wall": "0",
+    "print_settings_id": "0.24mm Standard @Artillery M1 Pro 0.6 nozzle",
+    "is_custom_defined": "0",
+    "version": "2.1.1.0"
+}

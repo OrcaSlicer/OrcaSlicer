@@ -1,0 +1,60 @@
+{
+    "type": "filament",
+    "name": "Bambu Support For PLA/PETG @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFS05",
+    "instantiation": "false",
+    "description": "This is a non-water-soluble support filament, and usually it is only for the support structure and not for the model body. To get better printing quality, please refer to this wiki: Printing Tips for Support Filament and Support Function.",
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_max_speed": [
+        "30"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_cost": [
+        "69.98"
+    ],
+    "filament_density": [
+        "1.19"
+    ],
+    "filament_is_support": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "6"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "0"
+    ],
+    "textured_plate_temp": [
+        "60"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ]
+}

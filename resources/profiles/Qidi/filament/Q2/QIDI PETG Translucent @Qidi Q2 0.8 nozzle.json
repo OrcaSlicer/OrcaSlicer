@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "QIDI PETG Translucent @Qidi Q2 0.8 nozzle",
+    "inherits": "QIDI PETG Translucent@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSG99",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.04"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.8 nozzle"
+    ]
+}

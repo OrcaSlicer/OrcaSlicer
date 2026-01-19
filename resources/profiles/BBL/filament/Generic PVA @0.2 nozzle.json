@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Generic PVA @0.2 nozzle",
+    "inherits": "Generic PVA @base",
+    "from": "system",
+    "setting_id": "GFSS99_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "0.5"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.2 nozzle",
+        "Bambu Lab X1 0.2 nozzle",
+        "Bambu Lab P1S 0.2 nozzle",
+        "Bambu Lab X1E 0.2 nozzle"
+    ]
+}

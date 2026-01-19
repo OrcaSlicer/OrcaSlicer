@@ -1,0 +1,23 @@
+{
+    "type": "process",
+    "name": "fdm_process_klipper_common",
+    "inherits": "fdm_process_common",
+    "from": "system",
+    "instantiation": "false",
+    "default_acceleration": "5000",
+    "top_surface_acceleration": "3000",
+    "travel_acceleration": "7000",
+    "inner_wall_acceleration": "5000",
+    "outer_wall_acceleration": "3000",
+    "initial_layer_acceleration": "500",
+    "initial_layer_speed": "50",
+    "initial_layer_infill_speed": "105",
+    "outer_wall_speed": "120",
+    "inner_wall_speed": "200",
+    "internal_solid_infill_speed": "200",
+    "top_surface_speed": "100",
+    "gap_infill_speed": "100",
+    "sparse_infill_speed": "200",
+    "travel_speed": "350",
+    "exclude_object": "1"
+}

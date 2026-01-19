@@ -1,0 +1,19 @@
+{
+    "type": "machine",
+    "name": "MyRRF 0.4 nozzle",
+    "inherits": "fdm_rrf_common",
+    "from": "system",
+    "setting_id": "GM003",
+    "instantiation": "true",
+    "printer_model": "Generic RRF Printer",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "250x0",
+        "250x250",
+        "0x250"
+    ],
+    "printable_height": "250"
+}

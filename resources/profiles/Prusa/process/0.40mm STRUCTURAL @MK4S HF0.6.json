@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.40mm STRUCTURAL @MK4S HF0.6",
+    "inherits": "0.40mm SPEED @MK4S HF0.6",
+    "from": "system",
+    "instantiation": "true",
+    "bridge_speed": "30",
+    "inner_wall_acceleration": "2000",
+    "inner_wall_speed": "80",
+    "internal_solid_infill_acceleration": "2500",
+    "internal_solid_infill_speed": "100",
+    "outer_wall_acceleration": "1500",
+    "outer_wall_speed": "45",
+    "small_perimeter_speed": "45",
+    "sparse_infill_acceleration": "3000",
+    "sparse_infill_speed": "100",
+    "top_surface_acceleration": "1500"
+}

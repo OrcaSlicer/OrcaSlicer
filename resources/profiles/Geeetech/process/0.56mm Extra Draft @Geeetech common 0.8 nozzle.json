@@ -1,0 +1,17 @@
+{
+    "type": "process",
+    "name": "0.56mm Extra Draft @Geeetech common 0.8 nozzle",
+    "inherits": "fdm_process_geeetech_0.56_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP_Geeetech_037",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Geeetech A10 Pro 0.8 nozzle",
+        "Geeetech A20 0.8 nozzle",
+        "Geeetech A30 Pro 0.8 nozzle",
+        "Geeetech Mizar 0.8 nozzle",
+        "Geeetech Mizar S 0.8 nozzle",
+        "Geeetech Mizar Pro 0.8 nozzle",
+        "Geeetech Mizar Max 0.8 nozzle"
+    ]
+}

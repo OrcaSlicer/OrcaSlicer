@@ -1,0 +1,1547 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="GENERATOR" content="Microsoft FrontPage 2.0">
+<title>Qhull FAQ</title>
+<!-- Navigation links
+NOTE -- verify all links by 'grep href=' 'grep name=' add # 'sort /+7'
+<base href> does not work since #TOC is relative to base instead of doc
+-->
+</head>
+
+<body>
+
+<p><a name="TOP"><b>Up:</b></a> <a
+ href="http://www.qhull.org">Home page</a> for Qhull
+(http://www.qhull.org)<br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents<br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="#TOC">FAQ: Table of Contents</a> (please
+wait while loading) <br>
+
+<hr>
+<!-- Main text of document -->
+<h1><a
+ href="http://www.geom.uiuc.edu/graphics/pix/Special_Topics/Computational_Geometry/4dcube.html"><IMG
+ align=middle alt ="[4-d cube]"
+ height=100 src="qh--4d.gif" width=100 ></a> Frequently Asked Questions about Qhull</h1><!--
+<p><i>This is the most recent FAQ. It was updated Sept. 13, 1999.</i>
+-->
+<p>If your question does not appear here, see: </p>
+
+<ul>
+    <li><a href="http://www.qhull.org/news">News</a> about Qhull
+    <li><a href="index.htm#TOC">Qhull manual:</a> table of contents
+    <li><a href="../README.txt">Installation</a> instructions for Qhull and rbox
+
+    <li><a href="mailto:qhull@qhull.org">Send e-mail</a> to
+  qhull@qhull.org
+    <li><a href="mailto:qhull_bug@qhull.org">Report bugs</a>
+        to qhull_bug@qhull.org </li>
+</ul>
+
+<p>Qhull is a general dimension code for computing convex hulls,
+Delaunay triangulations, halfspace intersections about a point,
+Voronoi diagrams, furthest-site Delaunay triangulations, and
+furthest-site Voronoi diagrams. These structures have
+applications in science, engineering, statistics, and
+mathematics. For a detailed introduction, see O'Rourke [<a
+ href="index.htm#orou94" >'94</a>], <i>Computational Geometry in C</i>.
+</p>
+
+<p>There are separate programs for each application of
+Qhull.  These programs disable experimental and inappropriate
+options.  If you prefer, you may use Qhull directly.  All programs
+run the same code.
+
+<p>Version 3.1 added triangulated output ('<a href="qh-optq.htm#Qt">Qt</a>').
+It should be used for Delaunay triangulations instead of
+using joggled input ('<a href="qh-optq.htm#QJn">QJ</a>').
+
+<p><i>Brad Barber, Arlington MA,
+2010/01/09 <!--
+--> </i></p>
+
+<p><b>Copyright &copy; 1998-2015 C.B. Barber</b></p>
+
+<hr>
+
+<h2><a href="#TOP">&#187;</a><a name="TOC">FAQ: Table of Contents </a></h2>
+
+<p>Within each category, the most recently asked questions are
+first.
+<ul>
+    <li>Startup questions <ul>
+            <li><a href="#console">How</a> do I run Qhull from Windows?
+            <li><a href="#input">How</a> do I enter points for Qhull?
+            <li><a href="#learn">How</a> do I learn to use Qhull?</li>
+        </ul>
+    <li>Convex hull questions<ul>
+        <li><a href="#area">How</a> do I report just the area and volume of a
+    convex hull?
+        <li><a href="#extra">Why</a> are there extra points in a 4-d or higher
+    convex hull?
+        <li><a href="#dup">How</a> do I report duplicate
+            vertices? </li>
+        </ul>
+    <li>Delaunay triangulation questions<ul>
+                <li><a href="#flat">How</a> do I get rid of nearly flat Delaunay
+    triangles?
+                <li><a href="#vclosest">How</a> do I find the Delaunay triangle or Voronoi
+    region that is closest to a point?
+
+                <li><a href="#mesh">How</a> do I compute the Delaunay triangulation of a
+    non-convex object?
+
+                <li><a href="#mesh">How</a> do I mesh a volume from a set of triangulated
+    surface points?
+
+                        <li><a href="#constrained">Can</a> Qhull produce a triangular mesh for an
+    object?
+
+                <li><a href="#dridges">For</a> 3-d Delaunay triangulations, how do I
+    report the triangles of each tetrahedron?
+
+        <li><a href="#3dd">How</a> do I construct a 3-d Delaunay triangulation?
+        <li><a href="#2d">How</a> do I get the triangles for a 2-d Delaunay
+    triangulation and the vertices of its Voronoi diagram?
+        <li><a href="#big">Can </a>Qhull triangulate a
+            hundred 16-d points?</li>
+        </ul>
+
+    <li>Voronoi diagram questions<ul>
+        <li>See also "Delaunay diagram questions".  Qhull computes the Voronoi diagram from the Delaunay triagulation.
+        <li><a href="#volume">How</a> do I compute the volume of a Voronoi region?
+        <li><a href="#maxsphere">How</a> do I get the radii of the empty
+                spheres for each Voronoi vertex?
+
+                <li><a href="#square">What</a> is the Voronoi diagram of a square?
+
+        <li><a href="#vsphere">How</a> do I construct the Voronoi diagram of
+    cospherical points?
+        <li><a href="#rays">Can</a> Qhull compute the unbounded rays of the
+    Voronoi diagram?
+        </ul>
+    <li>Approximation questions<ul>
+        <li><a href="#simplex">How</a> do I approximate data
+            with a simplex?</li>
+        </ul>
+    <li>Halfspace questions<ul>
+        <li><a href="#halfspace">How</a> do I compute the
+                        intersection of halfspaces with Qhull?</li>
+        </ul>
+    <li><a name="library">Qhull library</a> questions<ul>
+        <li><a href="#math">Is</a> Qhull available for Mathematica, Matlab, or
+    Maple?
+
+        <li><a href="#ridges">Why</a> are there too few ridges?
+        <li><a href="#call">Can</a> Qhull use coordinates without placing them in
+    a data file?
+        <li><a href="#size">How</a> large are Qhull's data structures?
+        <li><a href="#inc">Can</a> Qhull construct convex hulls and Delaunay
+    triangulations one point at a time?
+        <li><a href="#ridges2">How</a> do I visit the ridges of a Delaunay
+    triangulation?
+        <li><a href="#listd">How</a> do I visit the Delaunay facets?
+    <LI><a
+    href="#outside">When</a> is a point outside or inside a facet?
+        <li><a href="#closest">How</a> do I find the facet that is closest to a
+    point?
+        <li><a href="#vclosest">How</a> do I find the Delaunay triangle or Voronoi
+    region that is closest to a point?
+        <li><a href="#vertices">How</a> do I list the vertices?
+        <li><a href="#test">How</a> do I test code that uses the Qhull library?
+        <li><a href="#orient">When</a> I compute a plane
+            equation from a facet, I sometimes get an
+            outward-pointing normal and sometimes an
+            inward-pointing normal</li>
+        </ul>
+    </li>
+</ul>
+
+<hr>
+
+<h2><a href="#TOC">&#187;</a><a name="startup">Startup</a> questions</h2>
+
+<h4><a href="#TOC">&#187;</a><a name="console">How</a> do I run Qhull
+from Windows?</h4><blockquote>
+
+<p>Qhull is a console program. You will first need a command window
+(i.e., a "command prompt"). You can double click on
+'eg\Qhull-go.bat'. </p>
+
+<blockquote><ul>
+    <li>Type 'qconvex', 'qdelaunay', 'qhalf', 'qvoronoi,
+      'qhull', and 'rbox' for a synopsis of each program.
+
+    <li>Type 'rbox c D2 | qconvex s i' to compute the
+      convex hull of a square.
+
+    <li>Type 'rbox c D2 | qconvex s i TO results.txt' to
+      write the results to the file 'results.txt'. A summary is still printed on
+      the the console.
+
+    <li>Type 'rbox c D2' to see the input format for
+      qconvex.
+
+    <li>Type 'qconvex &lt; data.txt s i TO results.txt' to
+      read input data from 'data.txt'.
+
+    <li>If you want to enter data by hand, type 'qconvex s i TO
+        results.txt' to read input data from the console. Type in
+        the numbers and end with a ctrl-D. </li>
+</ul></blockquote>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="input">How</a> do I enter
+points for Qhull?</h4><blockquote>
+
+<p>Qhull takes its data from standard input. For example, create
+a file named 'data.txt' with the following contents: </p>
+
+<blockquote>
+    <pre>
+2  #sample 2-d input
+5  #number of points
+1 2  #coordinates of points
+-1.1 3
+3 2.2
+4 5
+-10 -10
+</pre>
+</blockquote>
+
+<p>Then call qconvex with 'qconvex &lt; data.txt'. It will print a
+summary of the convex hull. Use 'qconvex &lt; data.txt o' to print
+the vertices and edges. See also <a href="index.htm#input">input
+format</a>. </p>
+
+<p>You can generate sample data with rbox, e.g., 'rbox 10'
+generates 10 random points in 3-d. Use a pipe ('|') to run rbox
+and qhull together, e.g., </p>
+
+<blockquote>
+    <p>rbox c | qconvex o </p>
+</blockquote>
+
+<p>computes the convex hull of a cube. </p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="learn">How</a> do I learn to
+use Qhull?</h4><blockquote>
+
+<p>First read: </p>
+
+<ul>
+    <li><a href="index.htm">Introduction</a> to Qhull
+    <li><a href="index.htm#when">When</a> to use Qhull
+    <li><a href="qconvex.htm">qconvex</a> -- convex hull
+    <li><a href="qdelaun.htm">qdelaunay</a> -- Delaunay triangulation
+    <li><a href="qhalf.htm">qhalf</a> -- half-space intersection about a point
+
+    <li><a href="qvoronoi.htm">qvoronoi</a> -- Voronoi diagram
+    <li><a href="rbox.htm">Rbox</a>, for sample inputs
+    <li><a href="qh-eg.htm">Examples</a> of Qhull</li>
+</ul>
+
+<p>Look at Qhull's on-line documentation: </p>
+
+<ul>
+    <li>'qconvex' gives a synopsis of qconvex and its options
+
+    <li>'rbox' lists all of the options for generating point
+    sets
+    <li>'qconvex - | more' lists the options for qconvex
+    <li>'qconvex .' gives a concise list of options
+    <li>'qdelaunay', 'qhalf', 'qvoronoi', and 'qhull' also have a synopsis and option list</li>
+</ul>
+
+<p>Then try out the Qhull programs on small examples. </p>
+
+<ul>
+    <li>'rbox c' lists the vertices of a cube
+    <li>'rbox c | qconvex' is the convex hull of a cube
+    <li>'rbox c | qconvex o' lists the vertices and facets of
+    a cube
+    <li>'rbox c | qconvex Qt o' triangulates the cube
+    <li>'rbox c | qconvex QJ o' joggles the input and
+    triangulates the cube
+    <li>'rbox c D2 | qconvex' generates the convex hull of a
+    square
+    <li>'rbox c D4 | qconvex' generates the convex hull of a
+    hypercube
+    <li>'rbox 6 s D2 | qconvex p Fx' lists 6 random points in
+    a circle and lists the vertices of their convex hull in order
+    <li>'rbox c D2 c G2 | qdelaunay' computes the Delaunay
+    triangulation of two embedded squares. It merges the cospherical facets.
+    <li>'rbox c D2 c G2 | qdelaunay Qt' computes the Delaunay
+    triangulation of two embedded squares. It triangulates the cospherical facets.
+    <li>'rbox c D2 c G2 | qvoronoi o' computes the
+    corresponding Voronoi vertices and regions.
+    <li>'rbox c D2 c G2 | qvoronio Fv' shows the Voronoi diagram
+        for the previous example. Each line is one edge of the
+        diagram. The first number is 4, the next two numbers list
+        a pair of input sites, and the last two numbers list the
+        corresponding pair of Voronoi vertices. </li>
+</ul>
+
+<p>Install <a href="http://www.geomview.org">Geomview</a>
+if you are running SGI Irix, Solaris, SunOS, Linux, HP, IBM
+RS/6000, DEC Alpha, or Next. You can then visualize the output of
+Qhull. Qhull comes with Geomview <a href="qh-eg.htm">examples</a>.
+</p>
+
+<p>Then try Qhull with a small example of your application. Work
+out the results by hand. Then experiment with Qhull's options to
+find the ones that you need. </p>
+
+<p>You will need to decide how Qhull should handle precision
+problems. It can triangulate the output ('<a
+ href="qh-optq.htm#Qt" >Qt</a>'), joggle the input ('<a
+ href="qh-optq.htm#QJn" >QJ</a>'), or merge facets (the default). </p>
+
+<ul>
+    <li>With joggle, Qhull produces simplicial (i.e.,
+    triangular) output by joggling the input.  After joggle,
+    no points are cocircular or cospherical.
+    <li>With facet merging, Qhull produces a better
+    approximation and does not modify the input.
+    <li>With triangulated output, Qhull merges facets and triangulates
+    the result.</li>
+    <li>See <a href="qh-impre.htm#joggle">Merged facets or joggled input</a>. </li>
+</ul>
+
+</blockquote>
+<h2><a href="#TOC">&#187;</a><a name="convex">Convex hull questions</a></h2>
+
+<h4><a href="#TOC">&#187;</a><a name="area">How</a> do I report just the area
+                        and volume of a convex hull?</h4><blockquote>
+
+Use option 'FS'.  For example,
+
+<blockquote><pre>
+C:\qhull>rbox 10 | qconvex FS
+0
+2 2.192915621644613 0.2027867899638665
+
+C:\qhull>rbox 10 | qconvex FA
+
+Convex hull of 10 points in 3-d:
+
+  Number of vertices: 10
+  Number of facets: 16
+
+Statistics for: RBOX 10 | QCONVEX FA
+
+  Number of points processed: 10
+  Number of hyperplanes created: 28
+  Number of distance tests for qhull: 44
+  CPU seconds to compute hull (after input):  0
+  Total facet area:   2.1929156
+  Total volume:       0.20278679
+</pre></blockquote>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="extra">Why</a> are there extra
+points in a 4-d or higher convex hull?</h4><blockquote>
+
+<p>You may see extra points if you use options '<a
+ href="qh-opto.htm#i" >i</a>' or '<a href="qh-optf.htm#Ft">Ft</a>'
+ without using triangulated output ('<a href="qh-optq.htm#Qt">Qt</a>').
+The extra points occur when a facet is non-simplicial (i.e., a
+facet with more than <i>d</i> vertices). For example, Qhull
+reports the following for one facet of the convex hull of a hypercube.
+Option 'Pd0:0.5' returns the facet along the positive-x axis: </p>
+
+<blockquote>
+    <pre>
+rbox c D4 | qconvex i Pd0:0.5
+12
+17 13 14 15
+17 13 12 14
+17 11 13 15
+17 14 11 15
+17 10 11 14
+17 14 12 8
+17 12 13 8
+17 10 14 8
+17 11 10 8
+17 13 9 8
+17 9 11 8
+17 11 9 13
+</pre>
+</blockquote>
+
+<p>The 4-d hypercube has 16 vertices; so point "17" was
+added by qconvex. Qhull adds the point in order to report a
+simplicial decomposition of the facet. The point corresponds to
+the "centrum" which Qhull computes to test for
+convexity. </p>
+
+<p>Triangulate the output ('<a href="qh-optq.htm#Qt">Qt</a>') to avoid the extra points.
+Since the hypercube is 4-d, each simplicial facet is a tetrahedron.
+<blockquote>
+<pre>
+C:\qhull3.1>rbox c D4 | qconvex i Pd0:0.5 Qt
+9
+9 13 14 15
+12 9 13 14
+9 11 13 15
+11 9 14 15
+9 10 11 14
+12 9 14 8
+9 12 13 8
+9 10 14 8
+10 9 11 8
+</pre>
+</blockquote>
+
+<p>Use the '<a href="qh-optf.htm#Fv">Fv</a>' option to print the
+vertices of simplicial and non-simplicial facets. For example,
+here is the same hypercube facet with option 'Fv' instead of 'i':
+</p>
+
+<blockquote>
+    <pre>
+C:\qhull&gt;rbox c D4 | qconvex Pd0:0.5 Fv
+1
+8 9 10 12 11 13 14 15 8
+</pre>
+</blockquote>
+
+<p>The coordinates of the extra point are printed with the '<A
+ href="qh-optf.htm#Ft" >Ft</a>' option. </p>
+
+<blockquote>
+    <pre>
+rbox c D4 | qconvex Pd0:0.5 Ft
+4
+17 12 3
+  -0.5   -0.5   -0.5   -0.5
+  -0.5   -0.5   -0.5    0.5
+  -0.5   -0.5    0.5   -0.5
+  -0.5   -0.5    0.5    0.5
+  -0.5    0.5   -0.5   -0.5
+  -0.5    0.5   -0.5    0.5
+  -0.5    0.5    0.5   -0.5
+  -0.5    0.5    0.5    0.5
+   0.5   -0.5   -0.5   -0.5
+   0.5   -0.5   -0.5    0.5
+   0.5   -0.5    0.5   -0.5
+   0.5   -0.5    0.5    0.5
+   0.5    0.5   -0.5   -0.5
+   0.5    0.5   -0.5    0.5
+   0.5    0.5    0.5   -0.5
+   0.5    0.5    0.5    0.5
+   0.5      0      0      0
+4 16 13 14 15
+4 16 13 12 14
+4 16 11 13 15
+4 16 14 11 15
+4 16 10 11 14
+4 16 14 12 8
+4 16 12 13 8
+4 16 10 14 8
+4 16 11 10 8
+4 16 13 9 8
+4 16 9 11 8
+4 16 11 9 13
+</pre>
+</blockquote>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="dup">How</a> do I report
+duplicate vertices?</h4><blockquote>
+
+<p>There's no direct way. You can use option
+'<a href="qh-optf.htm#FP">FP</a>' to
+report the distance to the nearest vertex for coplanar input
+points. Select the minimum distance for a duplicated vertex, and
+locate all input sites less than this distance. </p>
+
+<p>For Delaunay triangulations, all coplanar points are nearly
+incident to a vertex. If you want a report of coincident input
+sites, do not use option '<a href="qh-optq.htm#QJn">QJ</a>'. By
+adding a small random quantity to each input coordinate, it
+prevents coincident input sites. </p>
+
+</blockquote>
+<h2><a href="#TOC">&#187;</a><a name="delaunay">Delaunay triangulation questions</a></h2>
+
+<h4><a href="#TOC">&#187;</a><a name="flat">How</a> do I get rid of
+nearly flat Delaunay triangles?</h4><blockquote>
+
+<p>Nearly flat triangles occur when boundary points are nearly
+collinear or coplanar.  They also occur for nearly coincident
+points.  Both events can easily occur when using joggle.  For example
+(rbox 10 W0 D2 | qdelaunay QJ Fa) lists the areas of the Delaunay
+triangles of 10 points on the boundary of a square.  Some of
+these triangles are nearly flat.  This occurs when one point
+is joggled inside of two other points.  In this case, nearly flat
+triangles do not occur with triangulated output (rbox 10 W0 D2 | qdelaunay Qt Fa).
+
+
+<p>Another example, (rbox c P0 P0 D2 | qdelaunay QJ Fa), computes the
+areas of the Delaunay triangles for the unit square and two
+instances of the origin.  Four of the triangles have an area
+of 0.25 while two have an area of 2.0e-11.  The later are due to
+the duplicated origin.  With triangulated output (rbox c P0 P0 D2 | qdelaunay Qt Fa)
+there are four triangles of equal area.
+
+<p>Nearly flat triangles also occur without using joggle.  For
+example, (rbox c P0 P0,0.4999999999 | qdelaunay Fa), computes
+the areas of the Delaunay triangles for the unit square,
+a nearly collinear point, and the origin.  One triangle has an
+area of 3.3e-11.
+
+<p>Unfortunately, none of Qhull's merging options remove nearly
+flat Delaunay triangles due to nearly collinear or coplanar boundary
+points.
+The merging options concern the empty circumsphere
+property of Delaunay triangles.  This is independent of the area of
+the Delaunay triangles.  Qhull does handle nearly coincident points.
+
+<p>If you are calling Qhull from a program, you can merge slivers into an adjacent facet.
+In d dimensions with simplicial facets (e.g., from 'Qt'), each facet has
+d+1 neighbors.  Each neighbor shares d vertices of the facet's d+1 vertices.  Let the
+other vertex be the <i>opposite</i> vertex.  For each neighboring facet, if its circumsphere
+includes the opposite.vertex, the two facets can be merged. [M. Treacy]
+
+<p>You can handle collinear or coplanar boundary points by
+enclosing the points in a box.  For example,
+(rbox c P0 P0,0.4999999999 c G1 | qdelaunay Fa), surrounds the
+previous points with [(1,1), (1,-1), (-1,-1), (-1, 1)].
+Its Delaunay triangulation does not include a
+nearly flat triangle.  The box also simplifies the graphical
+output from Qhull.
+
+<p>Without joggle, Qhull lists coincident points as "coplanar"
+points.  For example, (rbox c P0 P0 D2 | qdelaunay Fa), ignores
+the duplicated origin and lists four triangles of size 0.25.
+Use 'Fc' to list the coincident points (e.g.,
+rbox c P0 P0 D2 | qdelaunay Fc).
+
+<p>There is no easy way to determine coincident points with joggle.
+Joggle removes all coincident, cocircular, and cospherical points
+before running Qhull.  Instead use facet merging (the default)
+or triangulated output ('<a href="qh-optq.htm#Qt">Qt</a>').
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="mesh">How</a> do I compute
+the Delaunay triangulation of a non-convex object?</h4><blockquote>
+
+<p>A similar question is
+"How do I mesh a volume from a set of triangulated surface points?"
+
+<p>This is an instance of the constrained Delaunay Triangulation
+problem.  Qhull does not handle constraints.  The boundary of the
+Delaunay triangulation is always convex.  But if the input set
+contains enough points, the triangulation will include the
+boundary.  The number of points needed depends on the input.
+
+<p>Shewchuk has developed a theory of constrained Delaunay triangulations.
+See his
+<a href="http://www.cs.cmu.edu/~jrs/jrspapers.html#cdt">paper</a> at the
+1998 Computational Geometry Conference.  Using these ideas, constraints
+could be added to Qhull.  They would have many applications.
+
+<p>There is a large literature on mesh generation and many commercial
+offerings.  For pointers see
+<a href="http://www.imr.sandia.gov/papers/topics.html">Owen's International Meshing Roundtable</a>
+and <a href="http://www.robertschneiders.de/meshgeneration/meshgeneration.html">Schneiders'
+Finite Element Mesh Generation page</a>.</p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="constrained">Can</a> Qhull
+produce a triangular mesh for an object?</h4><blockquote>
+
+<p>Yes for convex objects, no for non-convex objects. For
+non-convex objects, it triangulates the concavities. Unless the
+object has many points on its surface, triangles may cross the
+surface. </p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="dridges">For</a> 3-d Delaunay
+triangulations, how do I report the triangles of each
+tetrahedron?</h4><blockquote>
+
+<p>For points in general position, a 3-d Delaunay triangulation
+generates tetrahedron. Each face of a tetrahedron is a triangle.
+For example, the 3-d Delaunay triangulation of random points on
+the surface of a cube, is a cellular structure of tetrahedron. </p>
+
+<p>Use triangulated output ('qdelaunay Qt i') or joggled input ('qdelaunay QJ i')
+to generate the Delaunay triangulation.
+Option 'i' reports each tetrahedron. The triangles are
+every combination of 3 vertices. Each triangle is a
+"ridge" of the Delaunay triangulation. </p>
+
+<p>For example, </p>
+
+<pre>
+        rbox 10 | qdelaunay Qt i
+        14
+        9 5 8 7
+        0 9 8 7
+        5 3 8 7
+        3 0 8 7
+        5 4 8 1
+        4 6 8 1
+        2 9 5 8
+        4 2 5 8
+        4 2 9 5
+        6 2 4 8
+        9 2 0 8
+        2 6 0 8
+        2 4 9 1
+        2 6 4 1
+</pre>
+
+<p>is the Delaunay triangulation of 10 random points. Ridge 9-5-8
+occurs twice. Once for tetrahedron 9 5 8 7 and the other for
+tetrahedron 2 9 5 8. </p>
+
+<p>You can also use the Qhull library to generate the triangles.
+See "<a href="#ridges2">How</a> do I visit the ridges of a
+Delaunay triangulation?"</p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="3dd">How</a> do I construct a
+3-d Delaunay triangulation?</h4><blockquote>
+
+<p>For 3-d Delaunay triangulations with cospherical input sites,
+use triangulated output ('<a href="qh-optq.htm#Qt">Qt</a>') or
+joggled input  ('<a href="qh-optq.htm#QJn">QJ</a>').  Otherwise
+option 'i' will
+triangulate non-simplicial facets by adding a point to the facet.
+
+<p>If you want non-simplicial output for cospherical sites, use
+option
+'<a href="qh-optf.htm#Fv">Fv</a>' or '<a href="qh-opto.htm#o">o</a>'.
+For option 'o', ignore the last coordinate. It is the lifted
+coordinate for the corresponding convex hull in 4-d.
+
+<p>The following example is a cube
+inside a tetrahedron. The 8-vertex facet is the cube. Ignore the
+last coordinates. </p>
+
+<blockquote>
+    <pre>
+C:\qhull&gt;rbox r y c G0.1 | qdelaunay Fv
+4
+12 20 44
+   0.5      0      0 0.3055555555555555
+   0    0.5      0 0.3055555555555555
+   0      0    0.5 0.3055555555555555
+  -0.5   -0.5   -0.5 0.9999999999999999
+  -0.1   -0.1   -0.1 -6.938893903907228e-018
+  -0.1   -0.1    0.1 -6.938893903907228e-018
+  -0.1    0.1   -0.1 -6.938893903907228e-018
+  -0.1    0.1    0.1 -6.938893903907228e-018
+   0.1   -0.1   -0.1 -6.938893903907228e-018
+   0.1   -0.1    0.1 -6.938893903907228e-018
+   0.1    0.1   -0.1 -6.938893903907228e-018
+   0.1    0.1    0.1 -6.938893903907228e-018
+4 2 11 1 0
+4 10 1 0 3
+4 11 10 1 0
+4 2 9 0 3
+4 9 11 2 0
+4 7 2 1 3
+4 11 7 2 1
+4 8 10 0 3
+4 9 8 0 3
+5 8 9 10 11 0
+4 10 6 1 3
+4 6 7 1 3
+5 6 8 10 4 3
+5 6 7 10 11 1
+4 5 9 2 3
+4 7 5 2 3
+5 5 8 9 4 3
+5 5 6 7 4 3
+8 5 6 8 7 9 10 11 4
+5 5 7 9 11 2
+</pre>
+</blockquote>
+
+<p>If you want simplicial output use options
+'<a href="qh-optq.htm#Qt">Qt</a> <A
+ href="qh-optf.htm#Ft" >i</a>' or
+'<a href="qh-optq.htm#QJn">QJ</a> <A
+ href="qh-optf.htm#Ft" >i</a>', e.g.,
+</p>
+
+<blockquote>
+    <pre>
+rbox r y c G0.1 | qdelaunay Qt i
+31
+2 11 1 0
+11 10 1 0
+9 11 2 0
+11 7 2 1
+8 10 0 3
+9 8 0 3
+10 6 1 3
+6 7 1 3
+5 9 2 3
+7 5 2 3
+9 8 10 11
+8 10 11 0
+9 8 11 0
+6 8 10 4
+8 6 10 3
+6 8 4 3
+6 7 10 11
+10 6 11 1
+6 7 11 1
+8 5 4 3
+5 8 9 3
+5 6 4 3
+6 5 7 3
+5 9 10 11
+8 5 9 10
+7 5 10 11
+5 6 7 10
+8 5 10 4
+5 6 10 4
+5 9 11 2
+7 5 11 2
+</pre>
+</blockquote>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="2d">How</a> do I get the
+triangles for a 2-d Delaunay triangulation and the vertices of
+its Voronoi diagram?</h4><blockquote>
+
+<p>To compute the Delaunay triangles indexed by the indices of
+the input sites, use </p>
+
+<blockquote>
+    <p>rbox 10 D2 | qdelaunay Qt i </p>
+</blockquote>
+
+<p>To compute the Voronoi vertices and the Voronoi region for
+each input site, use </p>
+
+<blockquote>
+    <p>rbox 10 D2 | qvoronoi o </p>
+</blockquote>
+
+<p>To compute each edge ("ridge") of the Voronoi
+diagram for each pair of adjacent input sites, use</p>
+
+<blockquote>
+    <p>rbox 10 D2 | qvoronoi Fv </p>
+</blockquote>
+
+<p>To compute the area and volume of the Voronoi region for input site 5 (site 0 is the first one),
+use </p>
+
+<blockquote>
+    <p>rbox 10 D2 | qvoronoi QV5 p | qconvex s FS </p>
+</blockquote>
+
+<p>To compute the lines ("hyperplanes") that define the
+Voronoi region for input site 5, use </p>
+
+<blockquote>
+    <p>rbox 10 D2 | qvoronoi QV5 p | qconvex n </p>
+</blockquote>
+or
+<blockquote>
+    <p>rbox 10 D2 | qvoronoi QV5 Fi Fo</p>
+</blockquote>
+
+<p>To list the extreme points of the input sites use </p>
+
+<blockquote>
+    <p>rbox 10 D2 | qdelaunay Fx </p>
+</blockquote>
+
+<p>You will get the same point ids with </p>
+
+<blockquote>
+    <p>rbox 10 D2 | qconvex Fx </p>
+</blockquote>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="big">Can </a>Qhull triangulate
+a hundred 16-d points?</h4><blockquote>
+
+<p>No. This is an immense structure. A triangulation of 19, 16-d
+points has 43 simplices. If you add one point at a time, the
+triangulation increased as follows: 43, 189, 523, 1289, 2830,
+6071, 11410, 20487. The last triangulation for 26 points used 13
+megabytes of memory. When Qhull uses virtual memory, it becomes
+too slow to use. </p>
+
+</blockquote>
+<h2><a href="#TOC">&#187;</a><a name="voronoi">Voronoi
+diagram questions</a></h2>
+
+<h4><a href="#TOC">&#187;</a><a name="volume">How</a> do I compute the volume of a Voronoi region?</h4><blockquote>
+
+<p>For each Voronoi region, compute the convex hull of the region's Voronoi vertices.  The volume of each convex hull is the volume
+of the corresponding Vornoi region.</p>
+
+<p>For example, to compute the volume of the bounded Voronoi region about [0,0,0]: output the origin's Voronoi vertices and
+compute the volume of their convex hull.  The last number from option '<a href="qh-optf.htm#FS">FS</a>' is the volume.</p>
+<blockquote><pre>
+rbox P0 10 | qvoronoi QV0 p | qhull FS
+0
+2 1.448134756744281 0.1067973560800857
+</pre></blockquote>
+
+<p>For another example, see <a href="#2d">How</a> do I get the triangles for a 2-d Delaunay
+    triangulation and the vertices of its Voronoi diagram?</p>
+
+<p>This approach is slow if you are using the command line.  A faster approcach is to call Qhull from
+a program.  The fastest method is Clarkson's <a href="http://www.netlib.org/voronoi/hull.html">hull</a> program.
+It computes the volume for all Voronoi regions.</p>
+
+<p>An unbounded Voronoi region does not have a volume.</p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="maxsphere">How</a> do I get the radii of the empty
+                spheres for each Voronoi vertex?</h4><blockquote>
+
+Use option '<a href="qh-optf.htm#Fi">Fi</a>' to list each bisector (i.e. Delaunay ridge).  Then compute the
+minimum distance for each Voronoi vertex.
+
+<p>There's other ways to get the same information.   Let me know if you
+find a better method.
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="square">What</a> is the Voronoi diagram
+                            of a square?</h4><blockquote>
+
+<p>
+Consider a square,
+<blockquote><pre>
+C:\qhull&gt;rbox c D2
+2 RBOX c D2
+4
+  -0.5   -0.5
+  -0.5    0.5
+   0.5   -0.5
+   0.5    0.5
+</pre></blockquote>
+
+<p>There's two ways to compute the Voronoi diagram: with facet merging
+or with joggle.  With facet merging, the
+result is:
+
+<blockquote><pre>
+C:\qhull&gt;rbox c D2 | qvoronoi Qz
+
+Voronoi diagram by the convex hull of 5 points in 3-d:
+
+  Number of Voronoi regions and at-infinity: 5
+  Number of Voronoi vertices: 1
+  Number of facets in hull: 5
+
+Statistics for: RBOX c D2 | QVORONOI Qz
+
+  Number of points processed: 5
+  Number of hyperplanes created: 7
+  Number of distance tests for qhull: 8
+  Number of merged facets: 1
+  Number of distance tests for merging: 29
+  CPU seconds to compute hull (after input):  0
+
+C:\qhull&gt;rbox c D2 | qvoronoi Qz o
+2
+2 5 1
+-10.101 -10.101
+     0      0
+2 0 1
+2 0 1
+2 0 1
+2 0 1
+0
+
+C:\qhull&gt;rbox c D2 | qvoronoi Qz Fv
+4
+4 0 1 0 1
+4 0 2 0 1
+4 1 3 0 1
+4 2 3 0 1
+</pre></blockquote>
+
+<p>There is one Voronoi vertex at the origin and rays from the origin
+along each of the coordinate axes.
+The last line '4 2 3 0 1' means that there is
+a ray that bisects input points #2 and #3 from infinity (vertex 0) to
+the origin (vertex 1).
+Option 'Qz' adds an artificial point since the input is cocircular.
+Coordinates -10.101 indicate the
+vertex at infinity.
+
+<p>With triangulated output, the Voronoi vertex is
+duplicated:
+
+<blockquote><pre>
+C:\qhull3.1>rbox c D2 | qvoronoi Qt Qz
+
+Voronoi diagram by the convex hull of 5 points in 3-d:
+
+  Number of Voronoi regions and at-infinity: 5
+  Number of Voronoi vertices: 2
+  Number of triangulated facets: 1
+
+Statistics for: RBOX c D2 | QVORONOI Qt Qz
+
+  Number of points processed: 5
+  Number of hyperplanes created: 7
+  Number of facets in hull: 6
+  Number of distance tests for qhull: 8
+  Number of distance tests for merging: 33
+  Number of distance tests for checking: 30
+  Number of merged facets: 1
+  CPU seconds to compute hull (after input): 0.05
+
+C:\qhull3.1>rbox c D2 | qvoronoi Qt Qz o
+2
+3 5 1
+-10.101 -10.101
+     0      0
+     0      0
+3 2 0 1
+2 1 0
+2 2 0
+3 2 0 1
+0
+
+C:\qhull3.1>rbox c D2 | qvoronoi Qt Qz Fv
+4
+4 0 2 0 2
+4 0 1 0 1
+4 1 3 0 1
+4 2 3 0 2
+</pre></blockquote>
+
+
+<p>With joggle, the input is no longer cocircular and the Voronoi vertex is
+split into two:
+
+<blockquote><pre>
+C:\qhull&gt;rbox c D2 | qvoronoi Qt Qz
+
+C:\qhull&gt;rbox c D2 | qvoronoi QJ o
+2
+3 4 1
+-10.101 -10.101
+-4.71511718558304e-012 -1.775812830118184e-011
+9.020340030474472e-012 -4.02267108512433e-012
+2 0 1
+3 2 1 0
+3 2 0 1
+2 2 0
+
+C:\qhull&gt;rbox c D2 | qvoronoi QJ Fv
+5
+4 0 2 0 1
+4 0 1 0 1
+4 1 2 1 2
+4 1 3 0 2
+4 2 3 0 2
+</pre></blockquote>
+
+<p>Note that the Voronoi diagram includes the same rays as
+  before plus a short edge between the two vertices.</p>
+
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="vsphere">How</a> do I construct
+the Voronoi diagram of cospherical points?</h4><blockquote>
+
+<p>Three-d terrain data can be approximated with cospherical
+points. The Delaunay triangulation of cospherical points is the
+same as their convex hull. If the points lie on the unit sphere,
+the facet normals are the Voronoi vertices [via S. Fortune]. </p>
+
+<p>For example, consider the points {[1,0,0], [-1,0,0], [0,1,0],
+...}. Their convex hull is: </p>
+
+<pre>
+rbox d G1 | qconvex o
+3
+6 8 12
+     0      0     -1
+     0      0      1
+     0     -1      0
+     0      1      0
+    -1      0      0
+     1      0      0
+3 3 1 4
+3 1 3 5
+3 0 3 4
+3 3 0 5
+3 2 1 5
+3 1 2 4
+3 2 0 4
+3 0 2 5
+</pre>
+
+<p>The facet normals are: </p>
+
+<pre>
+rbox d G1 | qconvex n
+4
+8
+-0.5773502691896258  0.5773502691896258  0.5773502691896258 -0.5773502691896258
+ 0.5773502691896258  0.5773502691896258  0.5773502691896258 -0.5773502691896258
+-0.5773502691896258  0.5773502691896258 -0.5773502691896258 -0.5773502691896258
+ 0.5773502691896258  0.5773502691896258 -0.5773502691896258 -0.5773502691896258
+ 0.5773502691896258 -0.5773502691896258  0.5773502691896258 -0.5773502691896258
+-0.5773502691896258 -0.5773502691896258  0.5773502691896258 -0.5773502691896258
+-0.5773502691896258 -0.5773502691896258 -0.5773502691896258 -0.5773502691896258
+ 0.5773502691896258 -0.5773502691896258 -0.5773502691896258 -0.5773502691896258
+</pre>
+
+<p>If you drop the offset from each line (the last number), each
+line is the Voronoi vertex for the corresponding facet. The
+neighboring facets for each point define the Voronoi region for
+each point. For example: </p>
+
+<pre>
+rbox d G1 | qconvex FN
+6
+4 7 3 2 6
+4 5 0 1 4
+4 7 4 5 6
+4 3 1 0 2
+4 6 2 0 5
+4 7 3 1 4
+</pre>
+
+<p>The Voronoi vertices {7, 3, 2, 6} define the Voronoi region
+for point 0. Point 0 is [0,0,-1]. Its Voronoi vertices are </p>
+
+<pre>
+-0.5773502691896258  0.5773502691896258 -0.5773502691896258
+ 0.5773502691896258  0.5773502691896258 -0.5773502691896258
+-0.5773502691896258 -0.5773502691896258 -0.5773502691896258
+ 0.5773502691896258 -0.5773502691896258 -0.5773502691896258
+</pre>
+
+<p>In this case, the Voronoi vertices are oriented, but in
+general they are unordered. </p>
+
+<p>By taking the dual of the Delaunay triangulation, you can
+construct the Voronoi diagram. For cospherical points, the convex
+hull vertices for each facet, define the input sites for each
+Voronoi vertex. In 3-d, the input sites are oriented. For
+example: </p>
+
+<pre>
+rbox d G1 | qconvex i
+8
+3 1 4
+1 3 5
+0 3 4
+3 0 5
+2 1 5
+1 2 4
+2 0 4
+0 2 5
+</pre>
+
+<p>The convex hull vertices for facet 0 are {3, 1, 4}. So Voronoi
+vertex 0 (i.e., [-0.577, 0.577, 0.577]) is the Voronoi vertex for
+input sites {3, 1, 4} (i.e., {[0,1,0], [0,0,1], [-1,0,0]}). </p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="rays">Can</a> Qhull compute the
+unbounded rays of the Voronoi diagram?</h4><blockquote>
+
+<p>Use '<a href="qh-optf.htm#Fo2">Fo</a>' to compute the separating
+hyperplanes for unbounded Voronoi regions. The corresponding ray
+goes to infinity from the Voronoi vertices. If you enclose the
+input sites in a large enough box, the outermost bounded regions
+will represent the unbounded regions of the original points. </p>
+
+<p>If you do not box the input sites, you can identify the
+unbounded regions. They list '0' as a vertex. Vertex 0 represents
+"infinity". Each unbounded ray includes vertex 0 in
+option '<a href="qh-optf.htm#Fv2">Fv</a>. See <A
+ href="qvoronoi.htm#graphics" >Voronoi graphics</a> and <A
+ href="qvoronoi.htm#notes" >Voronoi notes</a>. </p>
+
+</blockquote>
+<h2><a href="#TOC">&#187;</a>Approximation questions</h2>
+
+<h4><a href="#TOC">&#187;</a><a name="simplex">How</a> do I
+approximate data with a simplex</h4><blockquote>
+
+<p>Qhull may be used to help select a simplex that approximates a
+data set. It will take experimentation. Geomview will help to
+visualize the results. This task may be difficult to do in 5-d
+and higher. Use rbox options 'x' and 'y' to produce random
+distributions within a simplex. Your methods work if you can
+recover the simplex. </p>
+
+<p>Use Qhull's precision options to get a first approximation to
+the hull, say with 10 to 50 facets. For example, try 'C0.05' to
+remove small facets after constructing the hull. Use 'W0.05' to
+ignore points within 0.05 of a facet. Use 'PA5' to print the five
+largest facets by area. </p>
+
+<p>Then use other methods to fit a simplex to this data. Remove
+outlying vertices with few nearby points. Look for large facets
+in different quadrants. You can use option 'Pd0d1d2' to print all
+the facets in a quadrant. </p>
+
+<p>In 4-d and higher, use the outer planes (option 'Fo' or
+'facet-&gt;maxoutside') since the hyperplane of an approximate
+facet may be below many of the input points. </p>
+
+<p>For example, consider fitting a cube to 1000 uniformly random
+points in the unit cube. In this case, the first try was good: </p>
+
+<blockquote>
+    <pre>
+rbox 1000 | qconvex W0.05 C0.05 PA6 Fo
+4
+6
+0.35715408374381 0.08706467018177928 -0.9299788727015564 -0.5985514741284483
+0.995841591359023 -0.02512604712761577 0.08756829720435189 -0.5258834069202866
+0.02448099521570909 -0.02685210459017302 0.9993396046151313 -0.5158104982631999
+-0.9990223929415094 -0.01261133513150079 0.04236994958247349 -0.509218270408407
+-0.0128069014364698 -0.9998380680115362 0.01264203427283151 -0.5002512653670584
+0.01120895057872914 0.01803671994177704 -0.9997744926535512 -0.5056824072956361
+</pre>
+</blockquote>
+
+</blockquote>
+<h2><a href="#TOC">&#187;</a>Halfspace questions</h2>
+
+<h4><a href="#TOC">&#187;</a><a name="halfspace">How</a> do I compute the
+                            intersection of halfspaces with Qhull?</h4><blockquote>
+
+<p>Qhull computes the halfspace intersection about a point.  The
+point must be inside all of the halfspaces.  Given a point, a
+duality turns a halfspace intersection problem into a convex
+hull problem.
+
+<p>Use linear programming if you
+do not know a point in the interior of the halfspaces.
+See the <a href="qhalf.htm#notes">notes</a> for qhalf. You will need
+  a linear programming code. This may require a fair amount of work to
+  implement.</p>
+
+
+
+</blockquote>
+<h2><a href="#TOC">&#187;</a><a name="library">Qhull library
+questions</a></h2>
+
+<h4><a href="#TOC">&#187;</a><a name="math">Is</a> Qhull available for Mathematica, Matlab, or Maple?</h4><blockquote>
+
+<p><b>MATLAB</b>
+
+<p>Z. You of <a href="http://www.mathworks.com">MathWorks</a> added qhull to MATLAB 6.
+See functions <a href="http://www.mathworks.com/help/techdoc/ref/convhulln.html"
+ >convhulln</a>,
+        <a href="http://www.mathworks.com/help/techdoc/ref/delaunayn.html"
+ >delaunayn</a>,
+        <a href="http://www.mathworks.com/help/techdoc/ref/griddata3.html"
+ >griddata3</a>,
+        <a href="http://www.mathworks.com/help/techdoc/ref/griddatan.html"
+ >griddatan</a>,
+        <a href="http://www.mathworks.com/help/techdoc/ref/tsearch.html"
+ >tsearch</a>,
+        <a href="http://www.mathworks.com/help/techdoc/ref/tsearchn.html"
+ >tsearchn</a>, and
+    <a href="http://www.mathworks.com/help/techdoc/ref/voronoin.html"
+ >voronoin</a>.  V. Brumberg update MATLAB R14 for Qhull 2003.1 and triangulated output.
+
+<p>Engwirda wrote <a href="http://www.mathworks.com/matlabcentral/fileexchange/loadFile.do?objectId=10307&objectType=file">mesh2d</a> for unstructured mesh generation in MATLAB.
+It is based on the iterative method of Persson and generally results in better quality meshes than delaunay refinement.
+
+
+<p><b>Mathematica and Maple</b>
+
+<p>See <a href="http://library.wolfram.com/infocenter/MathSource/1160/"
+ >qh-math</a>
+for a Delaunay interface to Mathematica.  It includes projects for CodeWarrior
+on the Macintosh and Visual C++ on Win32 PCs.
+
+<p>See  Mathematica ('<a
+href="qh-opto.htm#m">m</a>') and Maple ('<a
+href="qh-optf.htm#FM">FM</a>') output options.
+
+<p></p>
+</blockquote><h4><a href="#TOC">&#187;</a><a name="ridges">Why</a> are there too few ridges?</h4><blockquote>
+
+The following sample code may produce fewer ridges than expected:
+
+<blockquote><pre>
+  facetT *facetp;
+  ridgeT *ridge, **ridgep;
+
+  FORALLfacets {
+    printf("facet f%d\n", facet->id);
+    FOREACHridge_(facet->ridges) {
+      printf("   ridge r%d between f%d and f%d\n", ridge->id, ridge->top->id, ridge->bottom->id);
+    }
+  }
+</pre></blockquote>
+
+<p>  Qhull does not create ridges for  simplicial facets.
+Instead it computes ridges from  facet-&gt;neighbors. To make ridges for a
+simplicial facet, use qh_makeridges() in  merge.c. Usefacet-&gt;visit_id to visit
+each ridge once (instead of twice).  For example,
+
+<blockquote><pre>
+  facetT *facet, *neighbor;
+  ridgeT *ridge, **ridgep;
+
+  qh visit_id++;
+  FORALLfacets {
+    printf("facet f%d\n", facet->id);
+    qh_makeridges(facet);
+    facet->visitId= qh visit_id;
+    FOREACHridge_(facet->ridges) {
+        neighbor= otherfacet_(ridge, visible);
+        if (neighbor->visitid != qh visit_id)
+            printf("   ridge r%d between f%d and f%d\n", ridge->id, ridge->top->id, ridge->bottom->id);
+    }
+  }
+</pre></blockquote>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="call">Can</a> Qhull use coordinates without placing
+                        them in a data file?</h4><blockquote>
+
+<p>You may call Qhull from a program.  Please use the reentrant Qhull library (libqhullstatic_r.a, libqhull_r.so, or qhull_r.dll).
+
+See user_eg.c and "Qhull-template" in user_r.c for examples..
+
+See <a href="qh-code.htm">Qhull internals</a> for an introduction to Qhull's reentrant library and its C++ interface.
+
+<p>Hint: Start with a small example for which you know the
+  answer.</p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="size">How</a> large are Qhull's data structures?</h4><blockquote>
+
+<p>Qhull uses a general-dimension data structure.
+The size depends on the dimension.  Use option 'Ts' to print
+out the memory statistics [e.g., 'rbox D2 10 | qconvex Ts'].
+
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="inc">Can</a> Qhull construct
+convex hulls and Delaunay triangulations one point at a time?</h4><blockquote>
+
+<p>The Qhull library may be used to construct convex hulls and
+Delaunay triangulations one point at a time. It may not be used
+for deleting points or moving points. </p>
+
+<p>Qhull is designed for batch processing. Neither Clarkson's
+randomized incremental algorithm nor Qhull are designed for
+on-line operation. For many applications, it is better to
+reconstruct the convex hull or Delaunay triangulation from
+scratch for each new point. </p>
+
+<p>With random point sets and on-line processing, Clarkson's
+algorithm should run faster than Qhull. Clarkson uses the
+intermediate facets to reject new, interior points, while Qhull,
+when used on-line, visits every facet to reject such points. If
+used on-line for n points, Clarkson may take O(n) times as much
+memory as the average off-line case, while Qhull's space
+requirement does not change. </p>
+
+<p>If you triangulate the output before adding all the points
+(option 'Qt' and procedure qh_triangulate), you must set
+option '<a href="qh-optq.htm#Q11">Q11</a>'.  It duplicates the
+normals of triangulated facets and recomputes the centrums.
+This should be avoided for regular use since triangulated facets
+are not clearly convex with their neighbors.  It appears to
+work most of the time, but fails for cases that Qhull normally
+handles well [see the test call to qh_triangulate in qh_addpoint].
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="ridges2">How</a> do I visit the
+ridges of a Delaunay triangulation?</h4><blockquote>
+
+<p>To visit the ridges of a Delaunay triangulation, visit each
+facet. Each ridge will appear twice since it belongs to two
+facets. In pseudo-code: </p>
+
+<pre>
+    for each facet of the triangulation
+        if the facet is Delaunay (i.e., part of the lower convex hull)
+            for each ridge of the facet
+                if the ridge's neighboring facet has not been visited
+                    ... process a ridge of the Delaunay triangulation ...
+</pre>
+
+<p>In undebugged, C code: </p>
+
+<pre>
+    qh visit_id++;
+    FORALLfacets_(facetlist)
+        if (!facet-&gt;upperdelaunay) {
+            facet-&gt;visitid= qh visit_id;
+            qh_makeridges(facet);
+            FOREACHridge_(facet-&gt;ridges) {
+                neighbor= otherfacet_(ridge, facet);
+                if (neighbor-&gt;visitid != qh visit_id) {
+                    /* Print ridge here with facet-id and neighbor-id */
+                    /*fprintf(fp, "f%d\tf%d\t",facet-&gt;id,neighbor-&gt;ID);*/
+                    FOREACHvertex_(ridge-&gt;vertices)
+                        fprintf(fp,"%d ",qh_pointid (vertex-&gt;point) );
+                    qh_printfacetNvertex_simplicial (fp, facet, format);
+                    fprintf(fp," ");
+                    if(neighbor-&gt;upperdelaunay)
+                        fprintf(fp," -1 -1 -1 -1 ");
+                    else
+                        qh_printfacetNvertex_simplicial (fp, neighbor, format);
+                    fprintf(fp,"\n");
+                }
+            }
+        }
+    }
+</pre>
+
+<p>Qhull should be redesigned as a class library, or at least as
+an API. It currently provides everything needed, but the
+programmer has to do a lot of work. Hopefully someone will write
+C++ wrapper classes or a Python module for Qhull. </p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="listd">How</a> do I visit the
+Delaunay regions?</h4><blockquote>
+
+<p>Qhull constructs a Delaunay triangulation by lifting the
+input sites to a paraboloid. The Delaunay triangulation
+corresponds to the lower convex hull of the lifted points. To
+visit each facet of the lower convex hull, use: </p>
+
+<pre>
+    facetT *facet;
+
+    ...
+    FORALLfacets {
+        if (!facet-&gt;upperdelaunay) {
+            ... only facets for Delaunay regions ...
+        }
+    }
+</pre>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="outside">When</a> is a point
+outside or inside a facet?</h4><blockquote>
+
+<p>A point is outside of a facet if it is clearly outside the
+facet's outer plane. The outer plane is defined by an offset
+(facet-&gt;maxoutside) from the facet's hyperplane. </p>
+
+<pre>
+    facetT *facet;
+    pointT *point;
+    realT dist;
+
+    ...
+    qh_distplane(point, facet, &amp;dist);
+    if (dist &gt; facet-&gt;maxoutside + 2 * qh DISTround) {
+        /* point is clearly outside of facet */
+    }
+</pre>
+
+<p>A point is inside of a facet if it is clearly inside the
+facet's inner plane. The inner plane is computed as the maximum
+distance of a vertex to the facet. It may be computed for an
+individual facet, or you may use the maximum over all facets. For
+example: </p>
+
+<pre>
+    facetT *facet;
+    pointT *point;
+    realT dist;
+
+    ...
+    qh_distplane(point, facet, &amp;dist);
+    if (dist &lt; qh min_vertex - 2 * qh DISTround) {
+        /* point is clearly inside of facet */
+    }
+</pre>
+
+<p>Both tests include two qh.DISTrounds because the computation
+of the furthest point from a facet may be off by qh.DISTround and
+the computation of the current distance to the facet may be off
+by qh.DISTround. </p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="closest">How</a> do I find the
+facet that is closest to a point?</h4><blockquote>
+
+<p>Use qh_findbestfacet(). For example, </p>
+
+<pre>
+    coordT point[ DIM ];
+    boolT isoutside;
+    realT bestdist;
+    facetT *facet;
+
+    ... set coordinates for point ...
+
+    facet= qh_findbestfacet (point, qh_ALL, &amp;bestdist, &amp;isoutside);
+
+    /* 'facet' is the closest facet to 'point' */
+</pre>
+
+<p>qh_findbestfacet() performs a directed search for the facet
+furthest below the point. If the point lies inside this facet,
+qh_findbestfacet() performs an exhaustive search of all facets.
+An exhaustive search may be needed because a facet on the far
+side of a lens-shaped distribution may be closer to a point than
+all of the facet's neighbors. The exhaustive search may be
+skipped for spherical distributions. </p>
+
+<p>Also see, "<a href="#vclosest">How</a> do I find the
+Delaunay triangle that is closest to a
+point?" </p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="vclosest">How</a> do I find the
+Delaunay triangle or Voronoi region that is closest to a point?</h4><blockquote>
+
+<p>A Delaunay triangulation subdivides the plane, or in general
+dimension, subdivides space.  Given a point, how do you determine
+the subdivision containing the point?  Or, given a set of points,
+how do you determine the subdivision containing each point of the set?
+Efficiency is important -- an exhaustive search of the subdivision
+is too slow.
+
+<p>First compute the Delaunay triangle with qh_new_qhull() in user_r.c or Qhull::runQhull().
+Lift the point to the paraboloid by summing the squares of the
+coordinates. Use qh_findbestfacet() [poly2.c] to find the closest Delaunay
+triangle. Determine the closest vertex to find the corresponding
+Voronoi region.  Do not use options
+'<a href="qh-optq.htm#Qbb">Qbb</a>', '<a href="qh-optq.htm#QbB">QbB</a>',
+'<a href="qh-optq.htm#Qbk">Qbk:n</a>', or '<A
+ href="qh-optq.htm#QBk" >QBk:n</a>' since these scale the last
+coordinate.  Optimizations of qh_findbestfacet() should
+be possible for Delaunay triangulations.</p>
+
+<p>You first need to lift the point to the paraboloid (i.e., the
+last coordinate is the sum of the squares of the point's coordinates).
+The
+routine, qh_setdelaunay() [geom2.c], lifts an array of points to the
+paraboloid. The following excerpt is from findclosest() in
+user_eg.c. </p>
+
+<pre>
+    coordT point[ DIM + 1];  /* one extra coordinate for lifting the point */
+    boolT isoutside;
+    realT bestdist;
+    facetT *facet;
+
+    ... set coordinates for point[] ...
+
+    qh_setdelaunay (DIM+1, 1, point);
+    facet= qh_findbestfacet (point, qh_ALL, &amp;bestdist, &amp;isoutside);
+    /* 'facet' is the closest Delaunay triangle to 'point' */
+</pre>
+
+<p>The returned facet either contains the point or it is the
+closest Delaunay triangle along the convex hull of the input set.
+
+<p>Point location is an active research area in Computational
+Geometry.  For a practical approach, see Mucke, et al, "Fast randomized
+point location without preprocessing in two- and
+three-dimensional Delaunay triangulations," <i>Computational
+Geometry '96</i>, p. 274-283, May 1996.
+For an introduction to planar point location see [O'Rourke '93].
+Also see, "<A
+ href="#closest" >How</a> do I find the facet that is closest to a
+point?" </p>
+
+<p>To locate the closest Voronoi region, determine the closest
+vertex of the closest Delaunay triangle. </p>
+
+<pre>
+    realT dist, bestdist= REALmax;
+        vertexT *bestvertex= NULL, *vertex, **vertexp;
+
+    /* 'facet' is the closest Delaunay triangle to 'point' */
+
+    FOREACHvertex_( facet-&gt;vertices ) {
+        dist= qh_pointdist( point, vertex-&gt;point, DIM );
+        if (dist &lt; bestdist) {
+            bestdist= dist;
+            bestvertex= vertex;
+        }
+    }
+    /* 'bestvertex' represents the Voronoi region closest to 'point'.  The corresponding
+       input site is 'bestvertex-&gt;point' */
+</pre>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="vertices">How</a> do I list the
+vertices?</h4><blockquote>
+
+<p>To list the vertices (i.e., extreme points) of the convex hull
+use </p>
+
+<blockquote>
+    <pre>
+    vertexT *vertex;
+
+    FORALLvertices {
+      ...
+      // vertex-&gt;point is the coordinates of the vertex
+      // qh_pointid(vertex-&gt;point) is the point ID of the vertex
+      ...
+    }
+    </pre>
+</blockquote>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="test">How</a> do I test code
+that uses the Qhull library?</h4><blockquote>
+
+<p>Compare the output from your program with the output from the
+Qhull program. Use option 'T1' or 'T4' to trace what Qhull is
+doing. Prepare a <i>small</i> example for which you know the
+output. Run the example through the Qhull program and your code.
+Compare the trace outputs. If you do everything right, the two
+trace outputs should be almost the same. The trace output will
+also guide you to the functions that you need to review. </p>
+
+</blockquote><h4><a href="#TOC">&#187;</a><a name="orient">When</a> I compute a
+plane equation from a facet, I sometimes get an outward-pointing
+normal and sometimes an inward-pointing normal</h4><blockquote>
+
+<p>Qhull orients simplicial facets, and prints oriented output
+for 'i', 'Ft', and other options. The orientation depends on <i>both</i>
+the vertex order and the flag facet-&gt;toporient.</p>
+
+<p>Qhull does not orient
+  non-simplicial facets. Instead it orients the facet's ridges. These are
+  printed with the 'Qt' and 'Ft' option. The facet's hyperplane is oriented.  </p>
+
+</blockquote>
+<hr><!-- Navigation links -->
+
+<p><a><b>Up:</b> </a><a
+ href="http://www.qhull.org">Home page for Qhull</a><br>
+<b>Up:</b> <a href="index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>To:</b> <a href="qh-quick.htm#programs">Programs</a>
+&#149; <a href="qh-quick.htm#options">Options</a>
+&#149; <a href="qh-opto.htm#output">Output</a>
+&#149; <a href="qh-optf.htm#format">Formats</a>
+&#149; <a href="qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="qh-optp.htm#print">Print</a>
+&#149; <a href="qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="qh-optc.htm#prec">Precision</a>
+&#149; <a href="qh-optt.htm#trace">Trace</a>
+&#149; <a href="../src/libqhull_r/index.htm">Functions</a><br>
+<b>To:</b> <a href="#TOC">FAQ: Table of Contents</a><br><!-- GC common information -->
+
+<hr>
+
+<p><a href="http://www.geom.uiuc.edu/"><IMG align=middle
+ height=40 src="qh--geom.gif" width=40 ></a><i>The Geometry Center
+Home Page </i></p>
+
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created:
+Sept. 25, 1995 --- <!-- hhmts start -->Last modified: see top
+<!-- hhmts end --> </p>
+</body>
+</html>

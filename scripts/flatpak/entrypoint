@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+# Work-around https://gitlab.gnome.org/GNOME/gnome-build-meta/-/issues/754
+grep -q org.freedesktop.Platform.GL.nvidia /.flatpak-info && export WEBKIT_DISABLE_DMABUF_RENDERER=1
+
+# Work-around https://github.com/bambulab/BambuStudio/issues/3440
+export LC_ALL=C.UTF-8
+
+exec /app/bin/orca-slicer "$@"

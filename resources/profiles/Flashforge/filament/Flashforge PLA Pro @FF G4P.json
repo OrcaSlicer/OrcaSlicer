@@ -1,0 +1,64 @@
+{
+    "type": "filament",
+    "name": "Flashforge PLA Pro @FF G4P",
+    "inherits": "Flashforge Generic HS PLA",
+    "from": "system",
+    "instantiation": "true",
+    "activate_air_filtration": [
+        "1"
+    ],
+    "additional_cooling_fan_speed": [
+        "40"
+    ],
+    "complete_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "cool_plate_temp": [
+        "55"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "55"
+    ],
+    "during_print_exhaust_fan_speed": [
+        "40"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_settings_id": [
+        "Flashforge PLA Pro @FF G4P"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n;right_extruder_material:PLA\n"
+    ],
+    "compatible_printers": [
+        "Flashforge Guider4 Pro 0.4 nozzle"
+    ],
+    "hot_plate_temp": [
+        "55"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "nozzle_temperature_range_high": [
+        "240"
+    ],
+    "pressure_advance": [
+        "0.035"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "textured_plate_temp": [
+        "55"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "55"
+    ]
+}

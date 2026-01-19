@@ -1,0 +1,485 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>poly_r.c, poly2_r.c -- polyhedron operations</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149; <a href="qh-globa_r.htm">Global</a>
+&#149; <a href="qh-io_r.htm">Io</a> &#149; <a href="qh-mem_r.htm">Mem</a>
+&#149; <a href="qh-merge_r.htm">Merge</a> &#149; <a href="qh-poly_r.htm#TOC">Poly</a>
+&#149; <a href="qh-qhull_r.htm">Qhull</a> &#149; <a href="qh-set_r.htm">Set</a>
+&#149; <a href="qh-stat_r.htm">Stat</a> &#149; <a href="qh-user_r.htm">User</a>
+</p>
+<hr>
+
+<h2>poly_r.c, poly2_r.c -- polyhedron operations</h2>
+<blockquote>
+
+<p>Qhull uses dimension-free terminology. Qhull builds a
+polyhedron in dimension <em>d. </em>A <em>polyhedron</em> is a
+simplicial complex of faces with geometric information for the
+top and bottom-level faces. A (<em>d-1</em>)-face is a <em>facet</em>,
+a (<em>d-2</em>)-face is a <em>ridge</em>, and a <em>0</em>-face
+is a <em>vertex</em>. For example in 3-d, a facet is a polygon
+and a ridge is an edge. A facet is built from a ridge (the <em>base</em>)
+and a vertex (the <em>apex</em>). See
+<a href="../../html/index.htm#structure">Qhull's data structures</a>.</p>
+
+<p>Qhull's primary data structure is a polyhedron. A
+polyhedron is a list of facets. Each facet has a set of
+neighboring facets and a set of vertices. Each facet has a
+hyperplane. For example, a tetrahedron has four facets.
+If its vertices are <em>a, b, c, d</em>, and its facets
+are <em>1, 2, 3, 4,</em> the tetrahedron is </p>
+<blockquote>
+<ul>
+<li>facet 1 <ul>
+    <li>vertices: b c d </li>
+    <li>neighbors: 2 3 4 </li>
+</ul>
+</li>
+<li>facet 2 <ul>
+    <li>vertices: a c d </li>
+    <li>neighbors: 1 3 4 </li>
+</ul>
+</li>
+<li>facet 3 <ul>
+    <li>vertices: a b d </li>
+    <li>neighbors: 1 2 4 </li>
+</ul>
+</li>
+<li>facet 4 <ul>
+    <li>vertices: a b c </li>
+    <li>neighbors: 1 2 3 </li>
+</ul>
+</li>
+</ul>
+</blockquote>
+<p>A facet may be simplicial or non-simplicial. In 3-d, a
+<i>simplicial facet</i> has three vertices and three
+neighbors. A <i>nonsimplicial facet</i> has more than
+three vertices and more than three neighbors. A
+nonsimplicial facet has a set of ridges and a centrum. </p>
+<p>
+A simplicial facet has an orientation. An <i>orientation</i>
+is either <i>top</i> or <i>bottom</i>.
+The flag, <tt>facet-&gt;toporient,</tt>
+defines the orientation of the facet's vertices.  For example in 3-d,
+'top' is left-handed orientation (i.e., the vertex order follows the direction
+of the left-hand fingers when the thumb is pointing away from the center).
+Except for axis-parallel facets in 5-d and higher, topological orientation
+determines the geometric orientation of the facet's hyperplane.
+
+<p>A nonsimplicial facet is due to merging two or more
+facets. The facet's ridge set determine a simplicial
+decomposition of the facet. Each ridge is a 1-face (i.e.,
+it has two vertices and two neighboring facets). The
+orientation of a ridge is determined by the order of the
+neighboring facets. The flag, <tt>facet-&gt;toporient,</tt>is
+ignored. </p>
+<p>A nonsimplicial facet has a centrum for testing
+convexity. A <i>centrum</i> is a point on the facet's
+hyperplane that is near the center of the facet. Except
+for large facets, it is the arithmetic average of the
+facet's vertices. </p>
+<p>A nonsimplicial facet is an approximation that is
+defined by offsets from the facet's hyperplane. When
+Qhull finishes, the <i>outer plane</i> is above all
+points while the <i>inner plane</i> is below the facet's
+vertices. This guarantees that any exact convex hull
+passes between the inner and outer planes. The outer
+plane is defined by <tt>facet-&gt;maxoutside</tt> while
+the inner plane is computed from the facet's vertices.</p>
+
+<p>Qhull 3.1 includes triangulation of non-simplicial facets
+('<a href="../../html/qh-optq.htm#Qt">Qt</a>').
+These facets,
+called <i>tricoplanar</i>, share the same normal. centrum, and Voronoi center.
+One facet (keepcentrum) owns these data structures.
+While tricoplanar facets are more accurate than the simplicial facets from
+joggled input, they
+may have zero area or flipped orientation.
+
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom_r.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <a href="qh-globa_r.htm#TOC">Global</a>
+&#149; <a href="qh-io_r.htm#TOC">Io</a> &#149; <a href="qh-mem_r.htm#TOC">Mem</a>
+&#149; <a href="qh-merge_r.htm#TOC">Merge</a> &#149; <b>Poly</b>
+&#149; <a href="qh-qhull_r.htm#TOC">Qhull</a> &#149; <a href="qh-set_r.htm#TOC">Set</a>
+&#149; <a href="qh-stat_r.htm#TOC">Stat</a> &#149; <a href="qh-user_r.htm#TOC">User</a>
+</p>
+<h3>Index to <a href="poly_r.c">poly_r.c</a>,
+<a href="poly2_r.c">poly2_r.c</a>, <a href="poly_r.h">poly_r.h</a>,
+and <a href="libqhull_r.h">libqhull_r.h</a></h3>
+<ul>
+<li><a href="#ptype">Data types and global
+lists for polyhedrons</a> </li>
+<li><a href="#pconst">poly_r.h constants</a> </li>
+<li><a href="#pgall">Global FORALL macros</a> </li>
+<li><a href="#pall">FORALL macros</a> </li>
+<li><a href="#peach">FOREACH macros</a> </li>
+<li><a href="#pieach">Indexed FOREACH macros</a> </li>
+<li><a href="#pmacro">Other macros for polyhedrons</a><p>&nbsp;</li>
+<li><a href="#plist">Facetlist functions</a> </li>
+<li><a href="#pfacet">Facet functions</a> </li>
+<li><a href="#pvertex">Vertex, ridge, and point
+functions</a> </li>
+<li><a href="#phash">Hashtable functions</a> </li>
+<li><a href="#pnew">Allocation and deallocation
+functions</a> </li>
+<li><a href="#pcheck">Check functions</a> </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="ptype">Data
+types and global lists for polyhedrons</a></h3>
+<ul>
+<li><a href="libqhull_r.h#facetT">facetT</a> defines a
+facet </li>
+<li><a href="libqhull_r.h#ridgeT">ridgeT</a> defines a
+ridge </li>
+<li><a href="libqhull_r.h#vertexT">vertexT</a> defines a
+vertex </li>
+<li><a href="libqhull_r.h#qh-lists">qh facet and vertex
+lists</a> lists of facets and vertices </li>
+<li><a href="libqhull_r.h#qh-set">qh global sets</a>
+global sets for merging, hashing, input, etc. </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pconst">poly_r.h constants</a></h3>
+<ul>
+<li><a href="poly_r.h#ALGORITHMfault">ALGORITHMfault</a>
+flag to not report errors in qh_checkconvex() </li>
+<li><a href="poly_r.h#DATAfault">DATAfault</a> flag to
+report errors in qh_checkconvex() </li>
+<li><a href="poly_r.h#DUPLICATEridge">DUPLICATEridge</a>
+special value for facet-&gt;neighbor to indicate
+a duplicate ridge </li>
+<li><a href="poly_r.h#MERGEridge">MERGEridge</a>
+special value for facet-&gt;neighbor to indicate
+a merged ridge </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pgall">Global FORALL
+macros</a></h3>
+<ul>
+<li><a href="libqhull_r.h#FORALLfacets">FORALLfacets</a>
+assign 'facet' to each facet in qh.facet_list </li>
+<li><a href="poly_r.h#FORALLnew_facets">FORALLnew_facets</a>
+assign 'facet' to each facet in qh.newfacet_list </li>
+<li><a href="poly_r.h#FORALLvisible_facets">FORALLvisible_facets</a>
+assign 'visible' to each visible facet in
+qh.visible_list </li>
+<li><a href="libqhull_r.h#FORALLpoints">FORALLpoints</a>
+assign 'point' to each point in qh.first_point,
+qh.num_points </li>
+<li><a href="libqhull_r.h#FORALLvertices">FORALLvertices</a>
+assign 'vertex' to each vertex in qh.vertex_list </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pall">FORALL macros</a></h3>
+<ul>
+<li><a href="poly_r.h#FORALLfacet_">FORALLfacet_</a>
+assign 'facet' to each facet in facetlist </li>
+<li><a href="libqhull_r.h#FORALLpoint_">FORALLpoint_</a>
+assign 'point' to each point in points array</li>
+<li><a href="poly_r.h#FORALLsame_">FORALLsame_</a>
+assign 'same' to each facet in samecycle</li>
+<li><a href="poly_r.h#FORALLsame_cycle_">FORALLsame_cycle_</a>
+assign 'same' to each facet in samecycle</li>
+<li><a href="poly_r.h#FORALLvertex_">FORALLvertex_</a>
+assign 'vertex' to each vertex in vertexlist </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="peach">FOREACH macros</a></h3>
+<ul>
+<li><a href="libqhull_r.h#FOREACHfacet_">FOREACHfacet_</a>
+assign 'facet' to each facet in facets </li>
+<li><a href="libqhull_r.h#FOREACHneighbor_">FOREACHneighbor_</a>
+assign 'neighbor' to each facet in
+facet-&gt;neighbors or vertex-&gt;neighbors</li>
+<li><a href="poly_r.h#FOREACHnewfacet_">FOREACHnewfacet_</a>
+assign 'newfacet' to each facet in facet set </li>
+<li><a href="libqhull_r.h#FOREACHpoint_">FOREACHpoint_</a>
+assign 'point' to each point in points set </li>
+<li><a href="libqhull_r.h#FOREACHridge_">FOREACHridge_</a>
+assign 'ridge' to each ridge in ridge set </li>
+<li><a href="libqhull_r.h#FOREACHvertex_">FOREACHvertex_</a>
+assign 'vertex' to each vertex in vertex set </li>
+<li><a href="poly_r.h#FOREACHvertexA_">FOREACHvertexA_</a>
+assign 'vertexA' to each vertex in vertex set</li>
+<li><a href="poly_r.h#FOREACHvisible_">FOREACHvisible_</a>
+assign 'visible' to each facet in facet set </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pieach">Indexed
+FOREACH macros</a></h3>
+<ul>
+<li><a href="libqhull_r.h#FOREACHfacet_i_">FOREACHfacet_i_</a>
+assign 'facet' and 'facet_i' to each facet in
+facet set </li>
+<li><a href="libqhull_r.h#FOREACHneighbor_i_">FOREACHneighbor_i_</a>
+assign 'neighbor' and 'neighbor_i' to each facet
+in facet-&gt;neighbors or vertex-&gt;neighbors</li>
+<li><a href="libqhull_r.h#FOREACHpoint_i_">FOREACHpoint_i_</a>
+assign 'point' and 'point_i' to each point in
+points set </li>
+<li><a href="libqhull_r.h#FOREACHridge_i_">FOREACHridge_i_</a>
+assign 'ridge' and 'ridge_i' to each ridge in
+ridges set </li>
+<li><a href="libqhull_r.h#FOREACHvertex_i_">FOREACHvertex_i_</a>
+assign 'vertex' and 'vertex_i' to each vertex in
+vertices set </li>
+<li><a href="poly_r.h#FOREACHvertexreverse12_">FOREACHvertexreverse12_</a>
+assign 'vertex' to each vertex in vertex set;
+reverse the order of first two vertices </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pmacro">Other macros for polyhedrons</a></h3>
+<ul>
+<li><a href="libqhull_r.h#getid_">getid_</a> return ID for
+a facet, ridge, or vertex </li>
+<li><a href="libqhull_r.h#otherfacet_">otherfacet_</a>
+return neighboring facet for a ridge in a facet </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="plist">Facetlist
+functions</a></h3>
+<ul>
+<li><a href="poly_r.c#appendfacet">qh_appendfacet</a>
+appends facet to end of qh.facet_list</li>
+<li><a href="poly_r.c#attachnewfacets">qh_attachnewfacets</a>
+attach new facets in qh.newfacet_list to the
+horizon </li>
+<li><a href="poly2_r.c#findgood">qh_findgood</a>
+identify good facets for qh.PRINTgood </li>
+<li><a href="poly2_r.c#findgood_all">qh_findgood_all</a>
+identify more good facets for qh.PRINTgood </li>
+<li><a href="poly2_r.c#furthestnext">qh_furthestnext</a>
+move facet with furthest of furthest points to
+facet_next </li>
+<li><a href="poly2_r.c#initialhull">qh_initialhull</a>
+construct the initial hull as a simplex of
+vertices </li>
+<li><a href="poly2_r.c#nearcoplanar">qh_nearcoplanar</a>
+  remove near-inside points from coplanar sets</li>
+<li><a href="poly2_r.c#prependfacet">qh_prependfacet</a>
+prepends facet to start of facetlist </li>
+<li><a href="user_r.c#printfacetlist">qh_printfacetlist</a>
+print facets in a facetlist</li>
+<li><a href="poly2_r.c#printlists">qh_printlists</a>
+print out facet list for debugging </li>
+<li><a href="poly_r.c#removefacet">qh_removefacet</a>
+unlinks facet from qh.facet_list</li>
+<li><a href="poly2_r.c#resetlists">qh_resetlists</a>
+reset qh.newvertex_list, qh.newfacet_list, and
+qh.visible_list </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pfacet">Facet
+functions</a></h3>
+<ul>
+<li><a href="poly2_r.c#createsimplex">qh_createsimplex</a>
+create a simplex of facets from a set of vertices
+</li>
+<li><a href="poly2_r.c#findbestlower">qh_findbestlower</a> find best
+non-upper, non-flipped facet for point at upperfacet</li>
+<li><a href="poly2_r.c#furthestout">qh_furthestout</a>
+make furthest outside point the last point of a
+facet's outside set </li>
+<li><a href="poly_r.c#makenew_nonsimplicial">qh_makenew_nonsimplicial</a>
+make new facets from ridges of visible facets </li>
+<li><a href="poly_r.c#makenew_simplicial">qh_makenew_simplicial</a>
+make new facets for horizon neighbors </li>
+<li><a href="poly_r.c#makenewfacet">qh_makenewfacet</a>
+create a facet from vertices and apex </li>
+<li><a href="poly2_r.c#makenewfacets">qh_makenewfacets</a>
+make new facets from vertex, horizon facets, and
+visible facets </li>
+<li><a href="poly_r.c#makenewplanes">qh_makenewplanes</a>
+make new hyperplanes for facets </li>
+<li><a href="poly2_r.c#outcoplanar">qh_outcoplanar</a>
+move points from outside set to coplanar set </li>
+<li><a href="poly2_r.c#setvoronoi_all">qh_setvoronoi_all</a>
+compute Voronoi centers for all facets </li>
+<li><a href="poly2_r.c#triangulate">qh_triangulate</a>
+triangulate non-simplicial facets</li>
+<li><a href="poly2_r.c#triangulate_facet">qh_triangulate_facet</a>
+triangulate a non-simplicial facet</li>
+<li><a href="poly2_r.c#triangulate_link">qh_triangulate_link</a>
+link facets together from qh_triangulate</li>
+<li><a href="poly2_r.c#triangulate_mirror">qh_triangulate_mirror</a>
+delete mirrored facets from qh_triangulate</li>
+<li><a href="poly2_r.c#triangulate_null">qh_triangulate_null</a>
+delete null facet from qh_triangulate</li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pvertex">Vertex,
+ridge, and point functions</a></h3>
+<ul>
+<li><a href="poly_r.c#appendvertex">qh_appendvertex</a>
+append vertex to end of qh.vertex_list, </li>
+<li><a href="io_r.c#detvridge">qh_detvridge</a> determine Voronoi
+ridge for an input site
+<li><a href="io_r.c#detvridge3">qh_detvridge3</a> determine 3-d Voronoi
+ridge for an input site
+<li><a href="poly2_r.c#facet3vertex">qh_facet3vertex</a>
+return an oriented vertex set for a 3-d facet </li>
+<li><a href="poly_r.c#facetintersect">qh_facetintersect</a>
+return intersection of simplicial facets </li>
+<li><a href="poly2_r.c#initialvertices">qh_initialvertices</a>
+return non-singular set of initial vertices </li>
+<li><a href="poly2_r.c#isvertex">qh_isvertex</a> true
+if point is in a vertex set </li>
+<li><a href="poly2_r.c#nearvertex">qh_nearvertex</a>
+return nearest vertex to point </li>
+<li><a href="poly2_r.c#nextridge3d">qh_nextridge3d</a>
+iterate over each ridge and vertex for a 3-d
+facet </li>
+<li><a href="poly2_r.c#point">qh_point</a> return point
+for a point ID </li>
+<li><a href="poly2_r.c#pointfacet">qh_pointfacet</a>
+return temporary set of facets indexed by point
+ID </li>
+<li><a href="poly_r.c#pointid">qh_pointid</a> return ID
+for a point</li>
+<li><a href="poly2_r.c#pointvertex">qh_pointvertex</a>
+return temporary set of vertices indexed by point
+ID </li>
+<li><a href="poly_r.c#removevertex">qh_removevertex</a>
+unlink vertex from qh.vertex_list, </li>
+<li><a href="poly_r.c#updatevertices">qh_updatevertices</a>
+update vertex neighbors and delete interior
+vertices </li>
+<li><a href="poly2_r.c#vertexintersect">qh_vertexintersect</a>
+intersect two vertex sets </li>
+<li><a href="poly2_r.c#vertexintersect_new">qh_vertexintersect_new</a>
+return intersection of two vertex sets </li>
+<li><a href="poly2_r.c#vertexneighbors">qh_vertexneighbors</a>
+for each vertex in hull, determine facet
+neighbors </li>
+<li><a href="poly2_r.c#vertexsubset">qh_vertexsubset</a>
+returns True if vertexsetA is a subset of
+vertexsetB </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="phash">Hashtable functions</a></h3>
+<ul>
+<li><a href="poly2_r.c#addhash">qh_addhash</a> add hash
+element to linear hash table</li>
+<li><a href="poly_r.c#gethash">qh_gethash</a> return
+hash value for a set</li>
+<li><a href="poly2_r.c#matchduplicates">qh_matchduplicates</a>
+match duplicate ridges in hash table </li>
+<li><a href="poly_r.c#matchneighbor">qh_matchneighbor</a>
+try to match subridge of new facet with a
+neighbor </li>
+<li><a href="poly_r.c#matchnewfacets">qh_matchnewfacets</a>
+match new facets with their new facet neighbors </li>
+<li><a href="poly_r.c#matchvertices">qh_matchvertices</a>
+tests whether a facet and hash entry match at a
+ridge </li>
+<li><a href="poly2_r.c#newhashtable">qh_newhashtable</a>
+allocate a new qh_r.hash_table </li>
+<li><a href="poly2_r.c#printhashtable">qh_printhashtable</a>
+print hash table </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pnew">Allocation and
+deallocation functions</a></h3>
+<ul>
+<li><a href="poly2_r.c#clearcenters">qh_clearcenters</a>
+clear old data from facet-&gt;center </li>
+<li><a href="poly_r.c#deletevisible">qh_deletevisible</a>
+delete visible facets and vertices </li>
+<li><a href="poly_r.c#delfacet">qh_delfacet</a> free up
+the memory occupied by a facet </li>
+<li><a href="poly2_r.c#delridge">qh_delridge</a> delete
+ridge</li>
+<li><a href="poly2_r.c#delvertex">qh_delvertex</a>
+delete vertex </li>
+<li><a href="poly_r.c#newfacet">qh_newfacet</a> create
+and allocate space for a facet </li>
+<li><a href="poly_r.c#newridge">qh_newridge</a> create
+and allocate space for a ridge </li>
+<li><a href="poly2_r.c#newvertex">qh_newvertex</a>
+create and allocate space for a vertex </li>
+</ul>
+<h3><a href="qh-poly_r.htm#TOC">&#187;</a><a name="pcheck">Check
+functions</a></h3>
+<ul>
+<li><a href="poly2_r.c#check_bestdist">qh_check_bestdist</a>
+check that points are not outside of facets </li>
+<li><a href="poly2_r.c#check_dupridge">qh_check_dupridge</a>
+check duplicate ridge between facet1 and facet2 for wide merge </li>
+<li><a href="poly2_r.c#check_maxout">qh_check_maxout</a>
+updates qh.max_outside and checks all points
+against bestfacet </li>
+<li><a href="poly2_r.c#check_output">qh_check_output</a>
+check topological and geometric output</li>
+<li><a href="poly2_r.c#check_point">qh_check_point</a>
+check that point is not outside of facet </li>
+<li><a href="poly2_r.c#check_points">qh_check_points</a>
+check that all points are inside all facets </li>
+<li><a href="poly2_r.c#checkconvex">qh_checkconvex</a>
+check that each ridge in facetlist is convex </li>
+<li><a href="poly2_r.c#checkfacet">qh_checkfacet</a>
+check for consistency errors in facet </li>
+<li><a href="poly_r.c#checkflipped">qh_checkflipped</a>
+check facet orientation to the interior point </li>
+<li><a href="poly2_r.c#checkflipped_all">qh_checkflipped_all</a>
+check facet orientation for a facet list </li>
+<li><a href="poly2_r.c#checkpolygon">qh_checkpolygon</a>
+check topological structure </li>
+<li><a href="poly2_r.c#checkvertex">qh_checkvertex</a>
+check vertex for consistency </li>
+<li><a href="poly2_r.c#infiniteloop">qh_infiniteloop</a>
+report error for a loop of facets </li>
+<li><a href="poly2_r.c#printlists">qh_printlists</a>
+print out facet list for debugging </li>
+</ul>
+
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149;
+<a href="qh-globa_r.htm">Global</a> &#149; <a href="qh-io_r.htm">Io</a>
+&#149; <a href="qh-mem_r.htm">Mem</a> &#149; <a href="qh-merge_r.htm">Merge</a>
+&#149; <a href="qh-poly_r.htm">Poly</a> &#149; <a href="qh-qhull_r.htm#TOC">Qhull</a>
+&#149; <a href="qh-set_r.htm">Set</a> &#149; <a href="qh-stat_r.htm">Stat</a>
+&#149; <a href="qh-user_r.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

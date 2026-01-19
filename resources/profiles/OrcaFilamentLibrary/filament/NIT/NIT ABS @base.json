@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "NIT ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "NIT01",
+    "instantiation": "false",
+    "description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+    "filament_cost": [
+        "10"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_vendor": [
+        "NIT"
+    ]
+}

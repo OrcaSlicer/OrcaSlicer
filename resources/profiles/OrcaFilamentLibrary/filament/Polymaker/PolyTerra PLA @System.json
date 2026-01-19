@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "PolyTerra PLA @System",
+    "renamed_from": "PolyTerra PLA",
+    "inherits": "PolyTerra PLA @base",
+    "from": "system",
+    "setting_id": "OGFSL18",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "22"
+    ],
+    "compatible_printers": []
+}

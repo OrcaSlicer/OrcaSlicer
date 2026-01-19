@@ -1,0 +1,48 @@
+{
+    "type": "filament",
+    "name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "GFSA99_07",
+    "filament_id": "GFA99",
+    "instantiation": "true",
+    "filament_vendor": [
+        "CoLiDo"
+    ],
+    "compatible_printers": [
+        "CoLiDo DIY 4.0 V2 0.4 nozzle"
+    ],
+    "additional_cooling_fan_speed": [
+        "100"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "filament_deretraction_speed": [
+        "40"
+    ],
+    "filament_flow_ratio": [
+        "0.967"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "filament_retraction_length": [
+        "0.6"
+    ],
+    "filament_settings_id": [
+        "CoLiDo PLA+ @CoLiDo DIY 4.0 V2"
+    ],
+    "nozzle_temperature": [
+        "200"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "200"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "pressure_advance": [
+        "0.024"
+    ]
+}

@@ -1,0 +1,44 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Dynamic @BBL A1M 0.2 nozzle",
+    "inherits": "Bambu PLA Dynamic @base",
+    "from": "system",
+    "setting_id": "GFSA13_07",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "2"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "slow_down_layer_time": [
+        "6"
+    ],
+    "textured_plate_temp": [
+        "65"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "65"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.2 nozzle"
+    ]
+}

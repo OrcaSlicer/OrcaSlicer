@@ -1,0 +1,20 @@
+{
+    "type": "machine",
+    "name": "M1 0.4 nozzle",
+    "inherits": "fdm_common_M1",
+    "from": "system",
+    "setting_id": "m1_m001",
+    "instantiation": "true",
+    "printer_model": "M1",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "106x0",
+        "106x106",
+        "0x106"
+    ],
+    "printable_height": "100"
+}

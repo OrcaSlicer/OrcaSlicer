@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG-CF @BBL A1M 0.4 nozzle",
+    "inherits": "Bambu PETG-CF @BBL A1M",
+    "from": "system",
+    "setting_id": "GFSG50_04",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.4 nozzle"
+    ]
+}

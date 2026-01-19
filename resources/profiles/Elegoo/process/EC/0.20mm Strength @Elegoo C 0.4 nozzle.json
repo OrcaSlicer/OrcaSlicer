@@ -1,0 +1,13 @@
+{
+    "type": "process",
+    "name": "0.20mm Strength @Elegoo C 0.4 nozzle",
+    "inherits": "0.20mm Standard @Elegoo C 0.4 nozzle",
+    "instantiation": "true",
+    "wall_sequence": "inner-outer-inner wall",
+    "reduce_crossing_wall": "1",
+    "bottom_shell_layers": "5",
+    "outer_wall_speed": "120",
+    "sparse_infill_density": "20%",
+    "top_shell_layers": "6",
+    "wall_loops": "6"
+}

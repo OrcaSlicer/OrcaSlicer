@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Generic SBS @System",
+    "inherits": "fdm_filament_sbs",
+    "from": "system",
+    "setting_id": "OGFSL99",
+    "instantiation": "true",
+    "compatible_printers": []
+}

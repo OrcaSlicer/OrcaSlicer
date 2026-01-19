@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "eSUN PETG @System",
+    "inherits": "eSUN PETG @base",
+    "from": "system",
+    "setting_id": "PET01_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

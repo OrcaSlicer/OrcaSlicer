@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.08mm Optimal @WonderMaker ZR 0.2 nozzle",
+    "inherits": "fdm_process_wm_0.08_nozzle_0.2",
+    "from": "system",
+    "setting_id": "GP025",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.2 mm nozzle, it has a smaller layer height, and results in almost invisible layer lines and higher printing quality, but shorter printing time.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "WonderMaker ZR 0.2 nozzle"
+    ]
+}

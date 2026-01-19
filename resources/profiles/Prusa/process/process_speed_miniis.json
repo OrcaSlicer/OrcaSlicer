@@ -1,0 +1,21 @@
+{
+    "type": "process",
+    "name": "process_speed_miniis",
+    "inherits": "process_common_miniis",
+    "from": "system",
+    "instantiation": "false",
+    "outer_wall_speed": "140",
+    "inner_wall_speed": "140",
+    "small_perimeter_speed": "140",
+    "sparse_infill_speed": "140",
+    "internal_solid_infill_speed": "140",
+    "top_surface_speed": "80",
+    "gap_infill_speed": "80",
+    "initial_layer_acceleration": "500",
+    "top_surface_acceleration": "1000",
+    "inner_wall_acceleration": "2500",
+    "outer_wall_acceleration": "2000",
+    "bridge_acceleration": "1500",
+    "internal_solid_infill_acceleration": "4000",
+    "overhang_1_4_speed": "60"
+}

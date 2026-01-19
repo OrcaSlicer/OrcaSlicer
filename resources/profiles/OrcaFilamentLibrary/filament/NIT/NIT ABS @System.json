@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "NIT ABS @System",
+    "inherits": "NIT ABS @base",
+    "from": "system",
+    "setting_id": "ABS01_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

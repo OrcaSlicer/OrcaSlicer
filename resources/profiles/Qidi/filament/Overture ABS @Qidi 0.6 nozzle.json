@@ -1,0 +1,23 @@
+{
+    "type": "filament",
+    "name": "Overture ABS @Qidi 0.6 nozzle",
+    "inherits": "Overture ABS @Qidi",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.018"
+    ],
+    "compatible_printers": [
+        "Qidi X-Plus 0.6 nozzle",
+        "Qidi X-Max 0.6 nozzle",
+        "Qidi X-CF Pro 0.6 nozzle",
+        "Qidi X-Smart 3 0.6 nozzle",
+        "Qidi X-Plus 3 0.6 nozzle",
+        "Qidi X-Max 3 0.6 nozzle"
+    ]
+}

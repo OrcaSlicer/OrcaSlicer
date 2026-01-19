@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "Bambu PAHT-CF @System",
+    "inherits": "Bambu PAHT-CF @base",
+    "from": "system",
+    "setting_id": "OGFSN04",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "compatible_printers": []
+}

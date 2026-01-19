@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.56mm Extra Draft @WonderMaker ZR 0.8 nozzle",
+    "inherits": "fdm_process_wm_0.56_nozzle_0.8",
+    "from": "system",
+    "setting_id": "GP035",
+    "instantiation": "true",
+    "description": "Compared with the default profile of a 0.8 mm nozzle, it has a much bigger layer height, and results in extremely apparent layer lines and much lower printing quality, but much shorter printing time in some printing cases.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "WonderMaker ZR 0.8 nozzle"
+    ]
+}

@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "Overture ABS @Qidi Q2 0.8 nozzle",
+    "inherits": "Overture ABS@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.01"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.8 nozzle"
+    ]
+}

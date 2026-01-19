@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Neon @System",
+    "inherits": "Panchroma PLA Neon @base",
+    "from": "system",
+    "setting_id": "OGFSPM013",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

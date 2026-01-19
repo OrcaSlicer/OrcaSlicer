@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "QIDI Support For PET/PA @Qidi Q2 0.6 nozzle",
+    "inherits": "QIDI Support For PET/PA@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSN96",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Qidi Q2 0.6 nozzle"
+    ]
+}

@@ -1,0 +1,27 @@
+{
+    "type": "filament",
+    "name": "FDplast ABS @base",
+    "inherits": "fdm_filament_abs",
+    "from": "system",
+    "filament_id": "FDPLAST01",
+    "instantiation": "false",
+    "description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+    "filament_cost": [
+        "11"
+    ],
+    "default_filament_colour": [
+        ""
+    ],
+    "filament_vendor": [
+        "FDplast"
+    ],
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "nozzle_temperature_range_high": [
+        "260"
+    ],
+    "nozzle_temperature_range_low": [
+        "245"
+    ]
+}

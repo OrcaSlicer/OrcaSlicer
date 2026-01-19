@@ -1,0 +1,77 @@
+{
+    "type": "machine",
+    "name": "fdm_Geeetech_HS_common",
+    "inherits": "fdm_geeetech_common",
+    "from": "system",
+    "instantiation": "false",
+    "gcode_flavor": "klipper",
+    "auxiliary_fan": "1",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_y": [
+        "600",
+        "600"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "20"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_y": [
+        "12",
+        "12"
+    ],
+    "machine_max_jerk_z": [
+        "2",
+        "2"
+    ],
+    "default_filament_profile": [
+        "Generic PLA @System"
+    ],
+    "change_filament_gcode": "",
+    "machine_pause_gcode": "M0",
+    "machine_start_gcode": "G28\nM141 S0\nG0 Z50 F600\nM190 S[first_layer_bed_temperature]\nG28 Z\nG29 ; mesh bed leveling ,comment this code to close it\nG0 X0 Y0 Z50 F6000\nM109 S[first_layer_temperature]\nM83\nG0 Z5 F1200\nG0 X{first_layer_print_min[0]} Y{max(0, first_layer_print_min[1] - 2)} F12000\nG0 Z0.2 F600\nG1 E3 F1800\nG0 Z0.3 F600\nG1 X{min(first_layer_print_min[0] + 30,print_bed_max[0])} E6 F600",
+    "machine_end_gcode": "M104 S0\nM140 S0\nG92 E0\nG1 E-3 F1800\nG90\nG0 Z{min(max_print_height,max_layer_z+10)} F600\nG0 X0 Y{print_bed_max[1]} F12000",
+    "scan_first_layer": "0"
+}

@@ -1,0 +1,32 @@
+{
+    "type": "filament",
+    "name": "Tiertime Generic ASA",
+    "inherits": "fdm_filament_asa",
+    "from": "system",
+    "filament_id": "GFB98",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ],
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.4 nozzle",
+        "Tiertime UP400 Pro 0.6 nozzle",
+        "Tiertime UP400 Pro 0.8 nozzle",
+        "Tiertime UP310 Pro 0.4 nozzle"
+    ]
+}

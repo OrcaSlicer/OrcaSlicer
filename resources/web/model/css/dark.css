@@ -1,0 +1,68 @@
+body
+{
+	background-color:#242428;
+	color: #B3B3B5;
+}
+
+a
+{
+	color: #009688;
+}
+
+.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    background-color: #939594;
+}
+
+.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
+        background: #161817;
+}
+
+#EmptyArea img
+{
+	content:url(../img/null2.png);
+}
+
+.Text_Title
+{
+	color: #EFEFF0;
+}
+
+.Text_Value
+{
+	color: #B3B3B5;
+}
+
+.Text_TitleBoard
+{
+	border-bottom: 1px solid #54545A;
+}
+
+.LeftProcessBar
+{
+	border-left: 2px solid #4C4C55;
+}
+
+.ProcessBarSelected
+{
+	border-left-color:#009688;
+}
+
+.Block_BKGA
+{
+	background-color:#36363C;
+}
+
+.InfoBlock
+{
+	background-color:#36363C;
+}
+
+.File_Board
+{
+	background-color:#242428;
+}
+
+.FileItem
+{
+	background-color:#36363C;
+}

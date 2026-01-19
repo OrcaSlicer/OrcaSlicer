@@ -1,0 +1,10 @@
+{
+    "type": "process",
+    "name": "fdm_process_colido160v2_common",
+    "inherits": "fdm_process_colidox16_common",
+    "from": "system",
+    "instantiation": "false",
+    "compatible_printers": [
+        "CoLiDo 160 V2 0.4 nozzle"
+    ]
+}

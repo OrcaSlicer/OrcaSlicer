@@ -1,0 +1,65 @@
+{
+    "type": "filament",
+    "name": "AliZ PETG-Metal @base",
+    "inherits": "AliZ PETG @base",
+    "from": "system",
+    "filament_id": "AZ01-2",
+    "instantiation": "false",
+    "fan_cooling_layer_time": [
+        "30"
+    ],
+    "overhang_fan_speed": [
+        "100"
+    ],
+    "close_fan_the_first_x_layers": [
+        "2"
+    ],
+    "enable_pressure_advance": [
+        "0"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_cost": [
+        "49.9"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "13"
+    ],
+    "filament_vendor": [
+        "Aliz"
+    ],
+    "hot_plate_temp": [
+        "79"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "79"
+    ],
+    "nozzle_temperature": [
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "pressure_advance": [
+        "0.036"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ]
+}

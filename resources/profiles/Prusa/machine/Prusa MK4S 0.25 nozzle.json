@@ -1,0 +1,21 @@
+{
+    "type": "machine",
+    "name": "Prusa MK4S 0.25 nozzle",
+    "inherits": "Prusa MK4S 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "default_print_profile": "0.12mm STRUCTURAL @MK4S 0.25",
+    "machine_max_acceleration_travel": [
+        "2500",
+        "2500"
+    ],
+    "max_layer_height": "0.15",
+    "min_layer_height": "0.05",
+    "nozzle_diameter": [
+        "0.25"
+    ],
+    "printer_model": "Prusa MK4S",
+    "printer_variant": "0.25",
+    "retraction_length": "0.8",
+    "z_hop": "0.15"
+}

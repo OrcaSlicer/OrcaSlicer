@@ -1,0 +1,50 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA-CF @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFA50",
+    "instantiation": "false",
+    "additional_cooling_fan_speed": [
+        "0"
+    ],
+    "cool_plate_temp": [
+        "45"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "filament_cost": [
+        "34.99"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_type": [
+        "PLA-CF"
+    ],
+    "filament_vendor": [
+        "Bambu Lab"
+    ],
+    "nozzle_temperature_range_low": [
+        "210"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "supertack_plate_temp": [
+        "50"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "50"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ]
+}

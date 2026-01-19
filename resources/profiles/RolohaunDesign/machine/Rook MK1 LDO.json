@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Rook MK1 LDO",
+    "model_id": "RKMK1_1",
+    "nozzle_diameter": "0.4;0.2;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "RolohaunDesign",
+    "bed_model": "",
+    "bed_texture": "bedtexture-rook-green-120.png",
+    "hotend_model": "",
+    "default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
+}

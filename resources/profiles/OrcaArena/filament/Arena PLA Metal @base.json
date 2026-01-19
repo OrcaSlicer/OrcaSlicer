@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "Arena PLA Metal @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFA02",
+    "instantiation": "false",
+    "filament_vendor": [
+        "Orca Arena"
+    ],
+    "filament_cost": [
+        "29.99"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_density": [
+        "1.25"
+    ]
+}

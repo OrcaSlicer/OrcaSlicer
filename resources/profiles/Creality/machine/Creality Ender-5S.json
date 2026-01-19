@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Creality Ender-5S",
+    "model_id": "Creality-Ender5S",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Creality",
+    "bed_model": "creality_ender5s_buildplate_model.stl",
+    "bed_texture": "creality_ender5s_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Creality Generic PLA;Creality Generic PETG;Creality Generic ABS"
+}

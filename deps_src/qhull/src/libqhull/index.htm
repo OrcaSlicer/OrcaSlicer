@@ -1,0 +1,264 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Qhull functions, macros, and data structures</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code</a><br>
+<b>To:</b> <a href="#TOC">Qhull files</a><br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149; <a href="qh-globa.htm">Global</a>
+&#149; <a href="qh-io.htm">Io</a> &#149; <a href="qh-mem.htm">Mem</a>
+&#149; <a href="qh-merge.htm">Merge</a> &#149; <a href="qh-poly.htm">Poly</a>
+&#149; <a href="qh-qhull.htm">Qhull</a> &#149; <a href="qh-set.htm">Set</a>
+&#149; <a href="qh-stat.htm">Stat</a> &#149; <a href="qh-user.htm">User</a>
+
+<hr>
+<!-- Main text of document. -->
+
+<h1>Qhull functions, macros, and data structures</h1>
+<blockquote>
+<p>The following sections provide an overview and index to
+Qhull's functions, macros, and data structures.
+Each section starts with an introduction.
+See also <a href=../../html/qh-code.htm#library>Calling
+Qhull from C programs</a> and <a href="../../html/qh-code.htm#cpp">Calling Qhull from C++ programs</a>.</p>
+
+<p>Qhull uses the following conventions:</p>
+<blockquote>
+
+<ul>
+<li>in code, global variables start with &quot;qh &quot;
+<li>in documentation, global variables start with 'qh.'
+<li>constants start with an upper case word
+<li>important globals include an '_'
+<li>functions, macros, and constants start with &quot;qh_&quot;</li>
+<li>data types end in &quot;T&quot;</li>
+<li>macros with arguments end in &quot;_&quot;</li>
+<li>iterators are macros that use local variables</li>
+<li>iterators for sets start with &quot;FOREACH&quot;</li>
+<li>iterators for lists start with &quot;FORALL&quot;</li>
+<li>qhull options are in single quotes (e.g., 'Pdn')</li>
+<li>lists are sorted alphabetically</li>
+<li>preprocessor directives on left margin for older compilers</li>
+</ul>
+</blockquote>
+<p>
+When reading the code, please note that the
+global data structure, 'qh', is a macro.  It
+either expands to &quot;qh_qh.&quot; or to
+&quot;qh_qh-&gt;&quot;. The later is used for
+applications which run concurrent calls to qh_qhull().
+<p>
+When reading code with an editor, a search for
+'<i>&quot;function</i>'
+will locate the header of <i>qh_function</i>.  A search for '<i>* function</i>'
+will locate the tail of <i>qh_function</i>.
+
+<p>A useful starting point is <a href="libqhull.h">libqhull.h</a>.  It defines most
+of Qhull data structures and top-level functions.  Search for <i>'PFn'</i> to
+determine the corresponding constant in Qhull.  Search for <i>'Fp'</i> to
+determine the corresponding <a href="libqhull.h#qh_PRINT">qh_PRINT...</a> constant.
+Search <a href="io.c">io.c</a> to learn how the print function is implemented.</p>
+
+<p>If your web browser is configured for .c and .h files, the function, macro, and data type links
+go to the corresponding source location.  To configure your web browser for .c and .h files.
+<ul>
+<li>In the Download Preferences or Options panel, add file extensions 'c' and 'h' to mime type 'text/html'.
+<li>Opera 12.10
+<ol>
+<li>In Tools > Preferences > Advanced > Downloads
+<li>Uncheck 'Hide file types opened with Opera'
+<li>Quick find 'html'
+<li>Select 'text/html' > Edit
+<li>Add File extensions 'c,h,'
+<li>Click 'OK'
+</ol>
+<li>Internet Explorer -- Mime types are not available from 'Internet Options'.    Is there a registry key for these settings?
+<li>Firefox -- Mime types are not available from 'Preferences'.  Is there an add-on to change the file extensions for a mime type?
+<li>Chrome -- Can Chrome be configured?
+</ul>
+
+<p>
+Please report documentation and link errors
+to <a href="mailto:qhull-bug@qhull.org">qhull-bug@qhull.org</a>.
+</blockquote>
+
+<p><b>Copyright &copy; 1997-2015 C.B. Barber</b></p>
+
+<hr>
+
+<h2><a href="#TOP">&#187;</a><a name="TOC">Qhull files</a> </h2>
+<blockquote>
+
+<p>This sections lists the .c and .h files for Qhull. Please
+refer to these files for detailed information.</p>
+<blockquote>
+
+<dl>
+<dt><a href="../../Makefile"><b>Makefile</b></a><b>, </b><a href="../../CMakeLists.txt"><b>CMakeLists.txt</b></a></dt>
+<dd><tt>Makefile</tt> is preconfigured for gcc.  <tt>CMakeLists.txt</tt> supports multiple
+platforms with <a href=http://www.cmake.org/>CMake</a>.
+Qhull includes project files for Visual Studio and Qt.
+</dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="libqhull.h"><b>libqhull.h</b></a> </dt>
+<dd>Include file for the Qhull library (<tt>libqhull.so</tt>, <tt>qhull.dll</tt>, <tt>libqhullstatic.a</tt>).
+Data structures are documented under <a href="qh-poly.htm">Poly</a>.
+Global variables are documented under <a href="qh-globa.htm">Global</a>.
+Other data structures and variables are documented under
+<a href="qh-qhull.htm#TOC">Qhull</a> or <a href="qh-geom.htm"><b>Geom</b></a><b>.</b></dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-geom.htm"><b>Geom</b></a><b>, </b>
+<a href="geom.h"><b>geom.h</b></a><b>, </b>
+<a href="geom.c"><b>geom.c</b></a><b>, </b>
+<a href="geom2.c"><b>geom2.c</b></a><b>, </b>
+<a href="random.c"><b>random.c</b></a><b>, </b>
+<a href="random.h"><b>random.h</b></a></dt>
+<dd>Geometric routines. These routines implement mathematical
+functions such as Gaussian elimination and geometric
+routines needed for Qhull. Frequently used routines are
+in <tt>geom.c</tt> while infrequent ones are in <tt>geom2.c</tt>.
+</dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-globa.htm"><b>Global</b></a><b>, </b>
+<a href="global.c"><b>global.c</b></a><b>, </b>
+<a href="libqhull.h"><b>libqhull.h</b></a> </dt>
+<dd>Global routines. Qhull uses a global data structure, <tt>qh</tt>,
+to store globally defined constants, lists, sets, and
+variables.
+<tt>global.c</tt> initializes and frees these
+structures. </dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-io.htm"><b>Io</b></a><b>, </b><a href="io.h"><b>io.h</b></a><b>,
+</b><a href="io.c"><b>io.c</b></a> </dt>
+<dd>Input and output routines. Qhull provides a wide range of
+input and output options.</dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-mem.htm"><b>Mem</b></a><b>, </b>
+<a href="mem.h"><b>mem.h</b></a><b>, </b>
+<a href="mem.c"><b>mem.c</b></a> </dt>
+<dd>Memory routines. Qhull provides memory allocation and
+deallocation. It uses quick-fit allocation.</dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-merge.htm"><b>Merge</b></a><b>, </b>
+<a href="merge.h"><b>merge.h</b></a><b>, </b>
+<a href="merge.c"><b>merge.c</b></a> </dt>
+<dd>Merge routines. Qhull handles precision problems by
+merged facets or joggled input. These routines merge simplicial facets,
+merge non-simplicial facets, merge cycles of facets, and
+rename redundant vertices.</dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-poly.htm"><b>Poly</b></a><b>, </b>
+<a href="poly.h"><b>poly.h</b></a><b>, </b>
+<a href="poly.c"><b>poly.c</b></a><b>, </b>
+<a href="poly2.c"><b>poly2.c</b></a><b>, </b>
+<a href="libqhull.h"><b>libqhull.h</b></a> </dt>
+<dd>Polyhedral routines. Qhull produces a polyhedron as a
+list of facets with vertices, neighbors, ridges, and
+geometric information. <tt>libqhull.h</tt> defines the main
+data structures. Frequently used routines are in <tt>poly.c</tt>
+while infrequent ones are in <tt>poly2.c</tt>.</dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-qhull.htm#TOC"><b>Qhull</b></a><b>, </b>
+<a href="libqhull.c"><b>libqhull.c</b></a><b>, </b>
+<a href="libqhull.h"><b>libqhull.h</b></a><b>, </b>
+<a href="qhull_a.h"><b>qhull_a.h</b></a><b>, </b>
+<a href="../qhullo/unix.c"><b>unix.c</b></a> <b>, </b>
+<a href="../qconvex/qconvex.c"><b>qconvex.c</b></a> <b>, </b>
+<a href="../qdelaunay/qdelaun.c"><b>qdelaun.c</b></a> <b>, </b>
+<a href="../qhalf/qhalf.c"><b>qhalf.c</b></a> <b>, </b>
+<a href="../qvoronoi/qvoronoi.c"><b>qvoronoi.c</b></a> </dt>
+<dd>Top-level routines. The Quickhull algorithm is
+implemented by <tt>libqhull.c</tt>. <tt>qhull_a.h</tt>
+includes all header files. </dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-set.htm"><b>Set</b></a><b>, </b>
+<a href="qset.h"><b>qset.h</b></a><b>, </b>
+<a href="qset.c"><b>qset.c</b></a> </dt>
+<dd>Set routines. Qhull implements its data structures as
+sets. A set is an array of pointers that is expanded as
+needed. This is a separate package that may be used in
+other applications. </dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-stat.htm"><b>Stat</b></a><b>, </b>
+<a href="stat.h"><b>stat.h</b></a><b>, </b>
+<a href="stat.c"><b>stat.c</b></a> </dt>
+<dd>Statistical routines. Qhull maintains statistics about
+its implementation. </dd>
+
+<dt>&nbsp;</dt>
+<dt><a href="qh-user.htm"><b>User</b></a><b>, </b>
+<a href="user.h"><b>user.h</b></a><b>, </b>
+<a href="user.c"><b>user.c</b></a><b>, </b>
+<a href="../user_eg/user_eg.c"><b>user_eg.c</b></a><b>, </b>
+<a href="../user_eg2/user_eg2.c"><b>user_eg2.c</b></a><b>, </b>
+</dt>
+<dd>User-defined routines. Qhull allows the user to configure
+the code with defined constants and specialized routines.
+</dd>
+</dl>
+</blockquote>
+
+</blockquote>
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="#TOC">Qhull files</a><br>
+<b>To:</b> <a href="qh-geom.htm">Geom</a> &#149;
+<a href="qh-globa.htm">Global</a> &#149; <a href="qh-io.htm">Io</a>
+&#149; <a href="qh-mem.htm">Mem</a> &#149; <a href="qh-merge.htm">Merge</a>
+&#149; <a href="qh-poly.htm">Poly</a> &#149; <a href="qh-qhull.htm#TOC">Qhull</a>
+&#149; <a href="qh-set.htm">Set</a> &#149; <a href="qh-stat.htm">Stat</a>
+&#149; <a href="qh-user.htm">User</a><br>
+
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+    "type": "machine",
+    "name": "Flashforge Adventurer 4 Series HS Nozzle",
+    "inherits": "fdm_adventurer4_common",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_variant": "HS",
+    "printer_model": "Flashforge Adventurer 4 Series",
+    "default_print_profile": "0.20mm High-Speed @Flashforge AD4 HS Nozzle",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "max_layer_height": [
+        "0.30"
+    ],
+    "min_layer_height": [
+        "0.10"
+    ],
+    "retraction_length": [
+        "5.0"
+    ],
+    "auxiliary_fan": "1",
+    "host_type": "flashforge",
+    "wipe": [
+        "0"
+    ]
+}

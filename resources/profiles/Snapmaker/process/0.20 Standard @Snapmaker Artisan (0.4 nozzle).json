@@ -1,0 +1,12 @@
+{
+    "type": "process",
+    "name": "0.20 Standard @Snapmaker Artisan (0.4 nozzle)",
+    "inherits": "fdm_process_a400",
+    "from": "system",
+    "setting_id": "864558918",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Snapmaker Artisan (0.4 nozzle)"
+    ],
+    "elefant_foot_compensation": "0.15"
+}

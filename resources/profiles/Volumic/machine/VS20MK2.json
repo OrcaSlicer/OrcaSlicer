@@ -1,0 +1,10 @@
+{
+    "type": "machine_model",
+    "name": "VS20MK2",
+    "model_id": "V20",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "VOLUMIC",
+    "bed_model": "VS20_bed.STL",
+    "default_materials": "Volumic UNIVERSAL Ultra"
+}

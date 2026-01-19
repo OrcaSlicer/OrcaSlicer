@@ -1,0 +1,28 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 95A @BBL A1",
+    "inherits": "Bambu TPU 95A @base",
+    "from": "system",
+    "setting_id": "GFSU01_01",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3.6"
+    ],
+    "hot_plate_temp": [
+        "45"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "45"
+    ],
+    "textured_plate_temp": [
+        "45"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "45"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

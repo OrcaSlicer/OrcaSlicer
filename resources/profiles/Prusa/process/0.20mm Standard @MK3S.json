@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @MK3S",
+    "inherits": "fdm_process_common",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "initial_layer_speed": "20",
+    "initial_layer_infill_speed": "25",
+    "outer_wall_speed": "35",
+    "inner_wall_speed": "60",
+    "sparse_infill_speed": "200",
+    "internal_solid_infill_speed": "200",
+    "top_surface_speed": "50",
+    "gap_infill_speed": "40",
+    "travel_speed": "180",
+    "compatible_printers": [
+        "Prusa MK3S 0.4 nozzle"
+    ]
+}

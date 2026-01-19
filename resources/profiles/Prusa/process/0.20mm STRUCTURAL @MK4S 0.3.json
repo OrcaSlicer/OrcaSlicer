@@ -1,0 +1,12 @@
+{
+    "type": "process",
+    "name": "0.20mm STRUCTURAL @MK4S 0.3",
+    "inherits": "0.16mm STRUCTURAL @MK4S 0.3",
+    "from": "system",
+    "instantiation": "true",
+    "bottom_shell_layers": "4",
+    "layer_height": "0.2",
+    "raft_contact_distance": "0.18",
+    "support_top_z_distance": "0.2",
+    "top_shell_layers": "5"
+}

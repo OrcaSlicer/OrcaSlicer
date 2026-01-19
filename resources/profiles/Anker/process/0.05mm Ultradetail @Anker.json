@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.05mm Ultradetail @Anker",
+    "inherits": "fdm_process_anker_common",
+    "from": "system",
+    "setting_id": "GP002",
+    "instantiation": "true",
+    "layer_height": "0.05",
+    "initial_layer_print_height": "0.15",
+    "bottom_shell_layers": "10",
+    "top_shell_layers": "14",
+    "bridge_flow": "0.70",
+    "skirt_height": "3"
+}

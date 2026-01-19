@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Phrozen Arco",
+    "machine_tech": "FFF",
+    "family": "Phrozen",
+    "model_id": "Phrozen Arco",
+    "nozzle_diameter": "0.4",
+    "bed_model": "Phrozen Arco_buildplate_model.stl",
+    "bed_texture": "Phrozen Arco_buildplate_texture.svg",
+    "hotend_model": "",
+    "default_materials": "Phrozen PLA @Phrozen Arco 0.4 nozzle"
+}

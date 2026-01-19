@@ -1,0 +1,26 @@
+{
+    "type": "machine",
+    "name": "The Positron 0.2 nozzle",
+    "inherits": "fdm_common_the_positron",
+    "from": "system",
+    "setting_id": "GM002",
+    "instantiation": "true",
+    "printer_model": "The Positron",
+    "nozzle_diameter": [
+        "0.2"
+    ],
+    "max_layer_height": [
+        "0.16"
+    ],
+    "min_layer_height": [
+        "0.04"
+    ],
+    "printer_variant": "0.2",
+    "printable_area": [
+        "0x0",
+        "180x0",
+        "180x180",
+        "0x180"
+    ],
+    "printable_height": "165"
+}

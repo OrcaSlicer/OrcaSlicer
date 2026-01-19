@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "name": "Bambu PA6-CF @BBL A1",
+    "inherits": "Bambu PA6-CF @base",
+    "from": "system",
+    "setting_id": "GFSN05_00",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

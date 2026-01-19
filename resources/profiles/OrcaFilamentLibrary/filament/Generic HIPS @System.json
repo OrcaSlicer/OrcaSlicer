@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Generic HIPS @System",
+    "inherits": "fdm_filament_hips",
+    "from": "system",
+    "setting_id": "OGFSS98_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

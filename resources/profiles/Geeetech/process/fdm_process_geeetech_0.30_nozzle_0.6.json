@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "fdm_process_geeetech_0.30_nozzle_0.6",
+    "inherits": "fdm_process_geeetech_common",
+    "from": "system",
+    "instantiation": "false",
+    "layer_height": "0.3",
+    "initial_layer_print_height": "0.3",
+    "bridge_flow": "1",
+    "line_width": "0.62",
+    "outer_wall_line_width": "0.62",
+    "initial_layer_line_width": "0.62",
+    "sparse_infill_line_width": "0.62",
+    "inner_wall_line_width": "0.62",
+    "internal_solid_infill_line_width": "0.62",
+    "support_line_width": "0.62",
+    "top_surface_line_width": "0.62"
+}

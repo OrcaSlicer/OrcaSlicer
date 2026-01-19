@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Overture Matte PLA @BBL A1M 0.2 nozzle",
+    "inherits": "Overture Matte PLA @BBL A1M",
+    "from": "system",
+    "setting_id": "GFSL05_06",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1.8"
+    ],
+    "compatible_printers": [
+        "Bambu Lab P1P 0.2 nozzle"
+    ]
+}

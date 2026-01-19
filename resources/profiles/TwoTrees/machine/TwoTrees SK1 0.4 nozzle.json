@@ -1,0 +1,116 @@
+{
+    "type": "machine",
+    "name": "TwoTrees SK1 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "TwoTrees SK1",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_type": "hardened_steel",
+    "printable_area": [
+        "0x0",
+        "256x0",
+        "256x256",
+        "0x256"
+    ],
+    "printable_height": "256",
+    "default_print_profile": "0.20mm Standard @SK1",
+    "machine_start_gcode": [
+        "M107 ; Turn off the fan\nG21  ; set units to millimeters\nG90  ; use absolute coordinates\nM83  ; use relative distances for extrusion\n\nM104 S220     ; set extruder temp\nM140 S60  ; set bed temp\nM109 S220      ; wait for extruder temp\nM190 S60  ; wait for bed temp\nG1 E-1.5 F2100 ; retract\n\n;G32  ;Load bed mesh\nG28   ;home\nG29   ;bed leveling\n\nM104 S[first_layer_temperature]      ; set extruder temp\nM140 S[first_layer_bed_temperature]  ; set bed temp\nM109 S[first_layer_temperature]      ; wait for extruder temp\nM190 S[first_layer_bed_temperature]  ; wait for bed temp\n\nG0 Z2.0 F600;\nG0 X50 Y10 F12000;\n\nG92 E0.0 ; reset extruder distance position\nG0 Z0.4 F600;\nG1 X100.0 E10 F3000.0 ; intro line\nG92 E0.0 ; reset extruder distance position\nG1 X200.0 E15 F3000.0 ; intro line\nG92 E0.0 ; reset extruder distance position\nG0 Z0.8 F600;\nG1 X100.0 E15 F3000.0 ; intro line\n\nG1 Z0.4 F600     ;Wipe\nG0 Y12 F6000    ;Wipe\nG1 X100 F6000    ;Wipe\nG0 Y8 F12000   ;Wipe\nG1 X200 F6000    ;Wipe\nG1 X190 Y12 F6000 ;Wipe\nG1 X180 Y8 F6000 ;Wipe\nG1 X170 Y12 F6000 ;Wipe\nG1 X160 Y8 F6000 ;Wipe\nG1 X150 Y12 F6000 ;Wipe\n\n\n;G0 Z2.0 F600;\nG92 E0.0 ; reset extruder distance position\n\nSET_VELOCITY_LIMIT ACCEL_TO_DECEL=10000"
+    ],
+    "machine_end_gcode": [
+        "M104 S0 ; turn off temperature\nM140 S0 ; turn off heatbed\n\nG92 E0.0     ; reset extruder distance position\nG1 E-1 F2100 ; retract\n\nG0 X50 Y250 F12000;\nM84    ; disable motors\n\nM107   ; turn off fan\n\nSET_VELOCITY_LIMIT ACCEL_TO_DECEL=4000"
+    ],
+    "change_filament_gcode": "PAUSE",
+    "machine_max_acceleration_e": [
+        "20000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "1250"
+    ],
+    "machine_max_acceleration_retracting": [
+        "15000",
+        "1250"
+    ],
+    "machine_max_acceleration_travel": [
+        "1500",
+        "1250"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "1000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "1000"
+    ],
+    "machine_max_acceleration_z": [
+        "100",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "1",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "5",
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "5",
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "0.2",
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "50",
+        "120"
+    ],
+    "machine_max_speed_x": [
+        "730",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "730",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "15",
+        "12"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "machine_pause_gcode": "PAUSE",
+    "max_layer_height": "0.32",
+    "min_layer_height": "0.08",
+    "retract_before_wipe": "100%",
+    "retract_length_toolchange": "10",
+    "retraction_length": "0.4",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retraction_speed": [
+        "50"
+    ],
+    "deretraction_speed": [
+        "0"
+    ],
+    "thumbnails": [
+        "300x300"
+    ],
+    "thumbnails_format": "PNG",
+    "support_multi_bed_types": "1"
+}

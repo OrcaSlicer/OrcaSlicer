@@ -1,0 +1,17 @@
+{
+    "type": "filament",
+    "name": "QIDI ABS Rapido Metal @Qidi Q2 0.6 nozzle",
+    "inherits": "QIDI ABS Rapido Metal@Q2-Series",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "nozzle_temperature": [
+        "250"
+    ],
+    "pressure_advance": [
+        "0.016"
+    ],
+    "compatible_printers": [
+        "Qidi Q2 0.6 nozzle"
+    ]
+}

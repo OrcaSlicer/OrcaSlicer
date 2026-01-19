@@ -1,0 +1,165 @@
+{
+  "type": "filament",
+  "name": "Generic PPA template",
+  "instantiation": "false",
+  "activate_air_filtration": [
+    "1"
+  ],
+  "chamber_temperatures": [
+    "0"
+  ],
+  "close_fan_the_first_x_layers": [
+    "3"
+  ],
+  "complete_print_exhaust_fan_speed": [
+    "70"
+  ],
+  "cool_plate_temp": [
+    "0"
+  ],
+  "cool_plate_temp_initial_layer": [
+    "0"
+  ],
+  "during_print_exhaust_fan_speed": [
+    "70"
+  ],
+  "eng_plate_temp": [
+    "100"
+  ],
+  "eng_plate_temp_initial_layer": [
+    "100"
+  ],
+  "fan_cooling_layer_time": [
+    "5"
+  ],
+  "fan_max_speed": [
+    "30"
+  ],
+  "fan_min_speed": [
+    "10"
+  ],
+  "filament_cost": [
+    "20"
+  ],
+  "filament_density": [
+    "1.17"
+  ],
+  "filament_deretraction_speed": [
+    "nil"
+  ],
+  "filament_diameter": [
+    "1.75"
+  ],
+  "filament_flow_ratio": [
+    "0.96"
+  ],
+  "filament_is_support": [
+    "0"
+  ],
+  "filament_max_volumetric_speed": [
+    "8"
+  ],
+  "filament_minimal_purge_on_wipe_tower": [
+    "15"
+  ],
+  "filament_retract_before_wipe": [
+    "nil"
+  ],
+  "filament_retract_restart_extra": [
+    "nil"
+  ],
+  "filament_retract_when_changing_layer": [
+    "nil"
+  ],
+  "filament_retraction_length": [
+    "nil"
+  ],
+  "filament_retraction_minimum_travel": [
+    "nil"
+  ],
+  "filament_retraction_speed": [
+    "nil"
+  ],
+  "filament_settings_id": [
+    ""
+  ],
+  "filament_soluble": [
+    "0"
+  ],
+  "filament_type": [
+    "PPA-CF"
+  ],
+  "filament_vendor": [
+    "Generic"
+  ],
+  "filament_wipe": [
+    "nil"
+  ],
+  "filament_wipe_distance": [
+    "nil"
+  ],
+  "filament_z_hop": [
+    "nil"
+  ],
+  "filament_z_hop_types": [
+    "nil"
+  ],
+  "full_fan_speed_layer": [
+    "0"
+  ],
+  "hot_plate_temp": [
+    "100"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "100"
+  ],
+  "nozzle_temperature": [
+    "290"
+  ],
+  "nozzle_temperature_initial_layer": [
+    "290"
+  ],
+  "nozzle_temperature_range_high": [
+    "320"
+  ],
+  "nozzle_temperature_range_low": [
+    "280"
+  ],
+  "overhang_fan_speed": [
+    "40"
+  ],
+  "overhang_fan_threshold": [
+    "0%"
+  ],
+  "reduce_fan_stop_start_freq": [
+    "0"
+  ],
+  "required_nozzle_HRC": [
+    "40"
+  ],
+  "slow_down_for_layer_cooling": [
+    "1"
+  ],
+  "slow_down_layer_time": [
+    "2"
+  ],
+  "slow_down_min_speed": [
+    "20"
+  ],
+  "temperature_vitrification": [
+    "210"
+  ],
+  "textured_plate_temp": [
+    "100"
+  ],
+  "textured_plate_temp_initial_layer": [
+    "100"
+  ],
+  "compatible_printers": [],
+  "filament_start_gcode": [
+    "; Filament gcode\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+  ],
+  "filament_end_gcode": [
+    "; filament end gcode \nM106 P3 S0\n"
+  ]
+}

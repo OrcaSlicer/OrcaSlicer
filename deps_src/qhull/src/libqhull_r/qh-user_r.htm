@@ -1,0 +1,271 @@
+<!-- Do not edit with Front Page, it adds too many spaces -->
+<html>
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>user_r.c -- user-definable operations</title>
+</head>
+
+<body>
+<!-- Navigation links -->
+<p><a name="TOP"><b>Up:</b></a> <a
+href="http://www.qhull.org">Home page</a> for Qhull<br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual</a>: Table of Contents <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a><br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149; <a href="qh-globa_r.htm">Global</a>
+&#149; <a href="qh-io_r.htm">Io</a> &#149; <a href="qh-mem_r.htm">Mem</a>
+&#149; <a href="qh-merge_r.htm">Merge</a> &#149; <a href="qh-poly_r.htm">Poly</a>
+&#149; <a href="qh-qhull_r.htm">Qhull</a> &#149; <a href="qh-set_r.htm">Set</a>
+&#149; <a href="qh-stat_r.htm">Stat</a> &#149; <a href="qh-user_r.htm#TOC">User</a>
+</p>
+<hr>
+<h2>user_r.c -- user-definable operations</h2>
+<blockquote>
+<p>This section contains functions and constants that the
+user may want to change. </p>
+
+</blockquote>
+<p><b>Copyright &copy; 1995-2015 C.B. Barber</b></p>
+<hr>
+<p><a href="#TOP">&#187;</a> <a href="qh-geom_r.htm#TOC">Geom</a>
+<a name="TOC">&#149;</a> <a href="qh-globa_r.htm#TOC">Global</a>
+&#149; <a href="qh-io_r.htm#TOC">Io</a> &#149; <a href="qh-mem_r.htm#TOC">Mem</a>
+&#149; <a href="qh-merge_r.htm#TOC">Merge</a> &#149; <a href="qh-poly_r.htm#TOC">Poly</a>
+&#149; <a href="qh-qhull_r.htm#TOC">Qhull</a> &#149; <a href="qh-set_r.htm#TOC">Set</a>
+&#149; <a href="qh-stat_r.htm#TOC">Stat</a> &#149; <b>User</b>
+</p>
+<h3>Index to <a href="user_r.c">user_r.c</a>, <a href="usermem_r.c">usermem_r.c</a>, <a href="userprintf_r.c">userprintf_r.c</a>, <a href="userprintf_rbox_r.c">userprintf_rbox_r.c</a> and
+<a href="user_r.h">user_r.h</a></h3>
+<ul>
+<li><a href="#qulllib">qhull library constants</a></li>
+<li><a href="#utype">user_r.h data types and
+configuration macros</a> </li>
+<li><a href="#ujoggle">joggle constants</a></li>
+<li><a href="#uperform">performance related constants</a></li>
+<li><a href="#umemory">memory constants</a></li>
+<li><a href="#ucond">conditional compilation</a></li>
+<li><a href="#umerge">merge constants</a> </li>
+<li><a href="#ufunc">user_r.c functions</a> </li>
+<li><a href="#u2func">usermem_r.c functions</a> </li>
+<li><a href="#u3func">userprintf_r.c functions</a> </li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="qulllib">Qhull library constants</a></h3>
+<ul>
+<li><a href="user_r.h#filenamelen">FILENAMElen</a> -- max length of TI or TO filename </li>
+<li><a href="user_r.h#msgcode">msgcode</a> -- unique message codes for qh_fprintf </li>
+<li><a href="user_r.h#qh_OPTIONline">qh_OPTIONline</a> -- max length of option line ('FO')</li>
+</ul>
+
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="utype">user_r.h data
+types and configuration macros</a></h3>
+<ul>
+<li><a href="user_r.h#realT">realT, qh_REAL...</a> size
+of floating point numbers </li>
+<li><a href="user_r.h#countT">countT, COUNTmax</a> size
+of counts and identifiers, typically 'int' or 'long long' </li>
+<li><a href="user_r.h#CPUclock">qh_CPUclock</a> clock()
+function for reporting the total time spent by
+Qhull </li>
+<li><a href="user_r.h#RANDOM">qh_RANDOM...</a> random
+number generator </li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="udef">definition constants</a></h3>
+<ul>
+<li><a href="user_r.h#DEFAULTbox">qh_DEFAULTbox</a>
+define default box size for rbox, 'Qbb', and 'QbB' (Geomview expects 0.5) </li>
+<li><a href="user_r.h#INFINITE">qh_INFINITE</a> on
+output, indicates Voronoi center at infinity </li>
+<li><a href="user_r.h#ORIENTclock">qh_ORIENTclock</a>
+define convention for orienting facets</li>
+<li><a href="user_r.h#ZEROdelaunay">qh_ZEROdelaunay</a>
+define facets that are ignored in Delaunay triangulations</li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="ujoggle">joggle constants</a></h3>
+<ul>
+<li><a href="user_r.h#JOGGLEagain">qh_JOGGLEagain</a>
+how often to retry before using qh_JOGGLEmaxincrease
+again </li>
+<li><a href="user_r.h#JOGGLEdefault">qh_JOGGLEdefault</a>
+default value for qh.JOGGLEmax for 'QP' </li>
+<li><a href="user_r.h#JOGGLEincrease">qh_JOGGLEincrease</a>
+factor to increase qh.JOGGLEmax on retrys for
+'QPn' </li>
+<li><a href="user_r.h#JOGGLEmaxincrease">qh_JOGGLEmaxincrease</a> max
+for increasing qh.JOGGLEmax relative to
+qh.MAXwidth </li>
+<li><a href="user_r.h#JOGGLEretry">qh_JOGGLEmaxretry</a>
+report error if this many retries </li>
+<li><a href="user_r.h#JOGGLEretry">qh_JOGGLEretry</a>
+how often to retry before using qh_JOGGLEmax </li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="uperform">performance
+related constants</a></h3>
+<ul>
+<li><a href="user_r.h#HASHfactor">qh_HASHfactor</a>
+total/used hash slots </li>
+<li><a href="user_r.h#INITIALmax">qh_INITIALmax</a> if
+dim &gt;= qh_INITIALmax, use min/max coordinate
+points for initial simplex </li>
+<li><a href="user_r.h#INITIALsearch">qh_INITIALsearch</a>
+if qh.INITIALmax, search points up to this
+dimension </li>
+<li><a href="user_r.h#NOtrace">qh_NOtrace</a> disallow
+tracing </li>
+<li><a href="user_r.h#VERIFYdirect">qh_VERIFYdirect</a>
+'Tv' verifies all <em>points X facets</em> if op
+count is smaller </li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="umemory">memory constants</a></h3>
+<ul>
+<li><a href="user_r.h#MEMalign">qh_MEMalign</a> memory
+alignment for qh_meminitbuffers() in global_r.c </li>
+<li><a href="user_r.h#MEMbufsize">qh_MEMbufsize</a>
+size of additional memory buffers </li>
+<li><a href="user_r.h#MEMinitbuf">qh_MEMinitbuf</a>
+size of initial memory buffer </li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="ucond">conditional compilation</a></h3>
+<ul>
+<li><a href="user_r.h#compiler">compiler</a> defined symbols,
+e.g., _STDC_ and _cplusplus
+
+<li><a href="user_r.h#COMPUTEfurthest">qh_COMPUTEfurthest</a>
+    compute furthest distance to an outside point instead of storing it with the facet
+<li><a href="user_r.h#KEEPstatistics">qh_KEEPstatistics</a>
+    enable statistic gathering and reporting with option 'Ts'
+<li><a href="user_r.h#MAXoutside">qh_MAXoutside</a>
+record outer plane for each facet
+<li><a href="user_r.h#NOmerge">qh_NOmerge</a>
+disable facet merging
+<li><a href="user_r.h#NOtrace">qh_NOtrace</a>
+disable tracing with option 'T4'
+<li><a href="user_r.h#QHpointer">qh_QHpointer</a>
+access global data with pointer or static structure
+<li><a href="user_r.h#QUICKhelp">qh_QUICKhelp</a>
+use abbreviated help messages, e.g., for degenerate inputs
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="umerge">merge
+constants</a></h3>
+<ul>
+<li><a href="user_r.h#BESTcentrum">qh_BESTcentrum</a>
+when does qh_findbestneighbor() test centrums? </li>
+<li><a href="user_r.h#BESTnonconvex">qh_BESTnonconvex</a>
+when does qh_findbestneighbor() test nonconvex
+ridges only? </li>
+<li><a href="user_r.h#COPLANARratio">qh_COPLANARratio</a>
+what is qh.MINvisible? </li>
+<li><a href="user_r.h#DIMreduceBuild">qh_DIMreduceBuild</a>
+max dimension for vertex reduction </li>
+<li><a href="user_r.h#DIMmergeVertex">qh_DIMmergeVertex</a>
+max dimension for vertex merging </li>
+<li><a href="user_r.h#DISToutside">qh_DISToutside</a>
+when is a point clearly outside of a facet for qh_findbestnew and qh_partitionall</li>
+<li><a href="user_r.h#MAXnarrow">qh_MAXnarrow</a> max.
+cosine for qh.NARROWhull </li>
+<li><a href="user_r.h#MAXnewcentrum">qh_MAXnewcentrum</a>
+when does qh_reducevertices_centrum() reset the
+centrum? </li>
+<li><a href="user_r.h#MAXnewmerges">qh_MAXnewmerges</a>
+when does qh_merge_nonconvex() call
+qh_reducevertices_centrums? </li>
+<li><a href="user_r.h#RATIOnearinside">qh_RATIOnearinside</a>
+ratio for retaining inside points for
+qh_check_maxout() </li>
+<li><a href="user_r.h#SEARCHdist">qh_SEARCHdist</a>
+when is facet coplanar with the best facet for qh_findbesthorizon</li>
+<li><a href="user_r.h#USEfindbestnew">qh_USEfindbestnew</a>
+when to use qh_findbestnew for qh_partitionpoint()</li>
+<li><a href="user_r.h#WARNnarrow">qh_WARNnarrow</a>
+max. cosine to warn about qh.NARROWhull </li>
+<li><a href="user_r.h#WIDEcoplanar">qh_WIDEcoplanar</a>
+what is a wide facet? </li>
+<li><a href="user_r.h#WIDEduplicate">qh_WIDEduplicate</a>
+what is a wide ratio on merging duplicate ridges? </li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="ufunc">user_r.c
+functions</a></h3>
+<ul>
+<li><a href="user_r.c#qhull_template">Qhull template</a> for calling qh_new_qhull from your program</li>
+<li><a href="user_r.c#errexit">qh_errexit</a> report
+error and exit qhull()</li>
+<li><a href="user_r.c#errprint">qh_errprint</a> print
+information about facets and ridges </li>
+<li><a href="user_r.c#new_qhull">qh_new_qhull</a> call qhull on an array
+of points</li>
+<li><a href="user_r.c#printfacetlist">qh_printfacetlist</a>
+print all fields of all facets </li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="u2func">usermem_r.c
+functions</a></h3>
+<ul>
+<li><a href="usermem_r.c#qh_exit">qh_exit</a> exit program, same as exit().  May be redefined as throw "QH10003.." by libqhullcpp/usermem_r-cpp.cpp</li>
+<li><a href="usermem_r.c#qh_fprintf_stderr">qh_fprintf_stderr</a> print to stderr when qh->ferr is not defined.</li>
+<li><a href="usermem_r.c#qh_free">qh_free</a> free memory, same as free().</li>
+<li><a href="usermem_r.c#qh_malloc">qh_malloc</a> allocate memory, same as malloc()</li>
+</ul>
+
+<h3><a href="qh-user_r.htm#TOC">&#187;</a><a name="u3func">userprintf_r.c
+ and userprintf_rbox,c functions</a></h3>
+<ul>
+<li><a href="userprintf_r.c#qh_fprintf">qh_fprintf</a> print
+information from Qhull, sames as fprintf(). </li>
+<li><a href="userprintf_rbox_r.c#qh_fprintf_rbox">qh_fprintf_rbox</a> print
+information from Rbox, sames as fprintf(). </li>
+</ul>
+
+<p><!-- Navigation links --> </p>
+<hr>
+<p><b>Up:</b>
+<a href="http://www.qhull.org">Home page for
+Qhull</a> <br>
+<b>Up:</b> <a href="../../html/index.htm#TOC">Qhull manual: Table of Contents</a> <br>
+<b>Up:</b> <a href="../../html/qh-quick.htm#programs">Programs</a>
+&#149; <a href="../../html/qh-quick.htm#options">Options</a>
+&#149; <a href="../../html/qh-opto.htm#output">Output</a>
+&#149; <a href="../../html/qh-optf.htm#format">Formats</a>
+&#149; <a href="../../html/qh-optg.htm#geomview">Geomview</a>
+&#149; <a href="../../html/qh-optp.htm#print">Print</a>
+&#149; <a href="../../html/qh-optq.htm#qhull">Qhull</a>
+&#149; <a href="../../html/qh-optc.htm#prec">Precision</a>
+&#149; <a href="../../html/qh-optt.htm#trace">Trace</a>
+&#149; <a href="index.htm">Functions</a><br>
+<b>Up:</b> <a href="../../html/qh-code.htm#TOC">Qhull code: Table of Contents</a> <br>
+<b>To:</b> <a href="index.htm">Qhull functions</a>, macros, and data structures<br>
+<b>To:</b> <a href="qh-geom_r.htm">Geom</a> &#149;
+<a href="qh-globa_r.htm">Global</a> &#149; <a href="qh-io_r.htm">Io</a>
+&#149; <a href="qh-mem_r.htm">Mem</a> &#149; <a href="qh-merge_r.htm">Merge</a>
+&#149; <a href="qh-poly_r.htm">Poly</a> &#149; <a href="qh-qhull_r.htm#TOC">Qhull</a>
+&#149; <a href="qh-set_r.htm">Set</a> &#149; <a href="qh-stat_r.htm">Stat</a>
+&#149; <a href="qh-user_r.htm">User</a><br>
+</p>
+<p><!-- GC common information --> </p>
+<hr>
+<p><a href="http://www.geom.uiuc.edu/"><img
+src="../../html/qh--geom.gif" align="middle" width="40" height="40"></a><i>The
+Geometry Center Home Page </i></p>
+<p>Comments to: <a href=mailto:qhull@qhull.org>qhull@qhull.org</a>
+</a><br>
+Created: May 2, 1997 --- <!-- hhmts start --> Last modified: see top <!-- hhmts end --> </p>
+</body>
+</html>

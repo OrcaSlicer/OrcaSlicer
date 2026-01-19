@@ -1,0 +1,36 @@
+{
+    "type": "filament",
+    "name": "QIDI PA-Ultra @Qidi Q1 Pro 0.8 nozzle",
+    "inherits": "QIDI PA-Ultra",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "GFB99",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_max_volumetric_speed": [
+        "4"
+    ],
+    "filament_settings_id": [
+        "QIDI PA-Ultra @Qidi Q1 Pro 0.8 nozzle"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "overhang_fan_speed": [
+        "50"
+    ],
+    "slow_down_min_speed": [
+        "20"
+    ],
+    "compatible_printers": [
+        "Qidi Q1 Pro 0.8 nozzle"
+    ]
+}

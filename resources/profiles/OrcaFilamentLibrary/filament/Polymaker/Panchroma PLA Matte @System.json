@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Matte @System",
+    "inherits": "Panchroma PLA Matte @base",
+    "from": "system",
+    "setting_id": "GFSPM002",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

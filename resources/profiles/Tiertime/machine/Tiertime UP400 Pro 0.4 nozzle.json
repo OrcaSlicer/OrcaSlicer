@@ -1,0 +1,21 @@
+{
+    "type": "machine",
+    "setting_id": "GM001",
+    "name": "Tiertime UP400 Pro 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_tiertime_common",
+    "printer_model": "Tiertime UP400 Pro",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "printable_area": [
+        "0x0",
+        "400x0",
+        "400x350",
+        "0x350"
+    ],
+
+    "printable_height": "380"
+}

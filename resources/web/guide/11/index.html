@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="max-age=7200" />
+<title>引导_P21</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
+<link rel="stylesheet" type="text/css" href="../css/common.css" />		
+<link rel="stylesheet" type="text/css" href="11.css" />
+<link rel="stylesheet" type="text/css" href="../css/dark.css" />	
+<script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" src="../js/json2.js"></script>	
+<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="11.js"></script>		
+</head>
+<body onLoad="OnInit()">
+<div id="Title">
+	<div class="trans" tid="t47">Please select your login region</div>
+</div>
+<div id="Content">
+	<div id="EarthIcon"><img src="earth.png"/></div>
+	<div id="RegionList">
+		<div class="trans RegionItem RegionSelected TextS1" tid="t48" region="Asia-Pacific" onclick="ChooseRegion('Asia-Pacific')">Asia-Pacific</div>
+		<div class="trans RegionItem" tid="t49" region="China" onclick="ChooseRegion('China')">China</div>
+		<div class="trans RegionItem" tid="t60" region="Europe" onclick="ChooseRegion('Europe')">Europe</div>
+		<div class="trans RegionItem" tid="t61" region="North America" onclick="ChooseRegion('North America')">North America</div>
+		<div class="trans RegionItem" tid="t62" region="Others" onclick="ChooseRegion('Others')">Others</div>
+	</div>
+<!--	<div id="ChangeTip">
+		<div><img class="TipIcon" src="tip.png" /></div>
+		<div tid="t63">After changing the region, your account will be logged out. Please log in again later.</div>
+	</div>-->
+</div>
+<div id="AcceptArea">
+	<div class="ButtonStyleConfirm ButtonTypeChoice trans" id="AcceptBtn" tid="t9"  onclick="GotoPolicyPage()">Next</div>
+</div>	
+</body>
+</html>

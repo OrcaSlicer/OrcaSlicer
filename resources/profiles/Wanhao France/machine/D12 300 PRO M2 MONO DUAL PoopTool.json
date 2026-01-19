@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "D12 300 PRO M2 MONO DUAL PoopTool",
+    "model_id": "D12 300 PRO M2 MONO DUAL PoopTool",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Wanhao France",
+    "bed_model": "Wanhao_D12-300_buildplate_model.stl",
+    "bed_texture": "D12_texture.png",
+    "hotend_model": "Wanhao D12-300_hotend.stl",
+    "default_materials": "YUMI PLA Bowden;YUMI PETG;"
+}

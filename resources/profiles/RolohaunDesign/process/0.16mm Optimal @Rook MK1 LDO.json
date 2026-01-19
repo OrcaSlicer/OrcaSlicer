@@ -1,0 +1,20 @@
+{
+    "type": "process",
+    "name": "0.16mm Optimal @Rook MK1 LDO",
+    "inherits": "fdm_process_Rook MK1 LDO_common",
+    "from": "system",
+    "setting_id": "RKMK1_p003",
+    "instantiation": "true",
+    "bottom_shell_layers": "4",
+    "top_shell_layers": "5",
+    "support_top_z_distance": "0.16",
+    "support_bottom_z_distance": "0.16",
+    "layer_height": "0.16",
+    "initial_layer_print_height": "0.2",
+    "compatible_printers": [
+        "Rook MK1 LDO 0.4 nozzle",
+        "Rook MK1 LDO 0.2 nozzle",
+        "Rook MK1 LDO 0.6 nozzle",
+        "Rook MK1 LDO 0.8 nozzle"
+    ]
+}

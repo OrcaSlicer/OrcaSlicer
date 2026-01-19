@@ -1,0 +1,224 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="max-age=7200" />
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />	
+<title>homepage</title>
+<link rel="stylesheet" type="text/css" href="../include/global.css" />	<!-- ORCA One for all-->
+<link rel="stylesheet" type="text/css" href="./css/home.css" />
+<link rel="stylesheet" type="text/css" href="./css/dark.css" />	
+
+<script type="text/javascript" src="../include/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../include/json2.js"></script>	
+<script type="text/javascript" src="../include/globalapi.js"></script>	
+
+<link rel="stylesheet" type="text/css" href="../include/swiper/swiper-bundle.min.css" />
+<script type="text/javascript" src="../include/swiper/swiper-bundle.min.js"></script>
+<script type="text/javascript" src="../data/text.js"></script>		
+	
+<script type="text/javascript" src="js/home.js"></script>
+</head>
+<body class="ZScrol" onLoad="OnInit()">
+<div id="LeftBoard" style="display: none;">
+	<div id="LoginArea">
+	<div id="Login1">
+		<div id="Icon1"><img id="BBLIcon" src="../image/logo.png" /></div> <!-- ORCA use square icon for better consistency on UI -->
+		<div id="LoginBtn" class="ButtonStyleRegular ButtonTypeWindow" onClick="OnLoginOrRegister()"><span class="trans" tid="t26">login</span> / <span class="trans" tid="t27">register</span></div>
+	</div>
+		
+	<div id="Login2">
+		<div>
+			<img id="UserAvatarIcon" src="img/c.jpg" onerror="this.onerror=null;this.src='img/c.jpg';" />
+		</div>
+		<div id="UserName" class="TextS1"></div>
+		<div id="LogoutBtn" class="ButtonStyleAlert ButtonTypeWindow trans" tid="t50" onClick="OnLogOut()">log out</div>
+	</div>	
+		
+	<div id="NoPluginTip">	
+	    <div id="NoPluginText"><a class="RedFont trans" tid="t76">Network plugin not detected. Click </a><a Class="LinkBtn trans" onClick="BeginDownloadNetworkPlugin()" tid="t77">here</a><a class="RedFont trans" tid="t78"> to install it.</a></div>
+	</div>
+		
+	</div>
+
+	<div id="BtnArea">
+	    <div menu="recent" class="BtnItem BtnItemSelected" onClick="GotoMenu('recent')">
+			<div class="BtnIcon "><img class="LeftIcon" src="img/i2.png" /></div>
+			<div class="trans" tid="t28">recent</div> 
+		</div>	
+
+	</div>
+</div>
+
+<div id="RightBoard">
+<div id="ContentBoard" class="ZScrol" board="recent">
+    <div style="height: 14px;"></div>	
+	<div id="MenuArea">
+<!--		<div class="MenuItem" onClick="OnClickModelDepot()">
+			<div class="MenuIcon"><img src="img/i6.png"></div>
+			<div>
+				<div class="trans TextS1" tid="t90">3D Model</div>
+				<div class="MenuDesc trans"  tid="t91">Download 3D Models</div>
+			</div>
+		</div>	-->	
+		<div class="MenuItem" onClick="OnClickNewProject()">
+			<div class="MenuIcon"><img src="img/i4.png"></div>
+			<div>
+				<div class="trans TextS1" tid="t31">new project</div>
+				<div class="MenuDesc trans"  tid="t32">create new project</div>
+			</div>
+		</div>
+		<div class="MenuItem" onClick="OnClickOpenProject()">
+			<div class="MenuIcon"><img src="img/i5.png"></div>
+			<div>
+				<div class="trans TextS1" tid="t33">open project</div>
+				<div class="MenuDesc">3mf</div>
+			</div>
+		</div>		
+	</div>
+	
+	<div id="DebugText"></div>	
+	<div id="RecentFileArea">
+		<div id="RecentTitleBlock">
+		    <div id="RecentTitle" class="Content-Title trans TextS1" tid="t35">recent open</div>
+			<div id="RecentClearAllBtn" class="ButtonStyleRegular ButtonTypeWindow trans" tid="t12" onClick="OnDeleteAllRecentFiles()">Clear all</div>
+		</div>
+		<div id="FileList">
+<!--		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>
+		    <div class="FileItem" onClick="OnOpenRecentFile('aaaa')" fpath='d:\model\11.3mf'>
+				<a class="FileTip" title="d:\model\11.3mf"></a>
+				<div class="FileImg"><img src="img/d.png"/></div>
+				<div class="FileName TextS1">abcd12334abcd12334abcd12334.3mf</div>
+				<div class="FileDate">2021/12/27 09:22</div>
+			</div>	-->		
+		</div>
+	</div>
+	
+    <div style="height: 14px;"></div>	
+	
+	<div id="recnet_context_menu">
+		<div id="CT_Delete_Bar" class="CT_Item" onClick="OnDeleteRecentFile()">
+			<div class="CT_Icon CT_Delete"></div>
+			<div class="CT_Text trans" tid="t88">clear</div>
+		</div>
+		<div id="CT_Folder_Bar" class="CT_Item " onClick="OnExploreRecentFile()" >
+			<div class="CT_Icon CT_Explore"></div>
+			<div class="CT_Text trans" tid="t89">open in explorer </div>
+		</div>				
+    </div>
+	
+	
+</div>
+
+</div>	
+</body>
+<script type="text/javascript">
+	//HandleStudio(TestData);
+    document.onkeydown = function (event) {
+		var e = event || window.event || arguments.callee.caller.arguments[0];
+
+		if (e.ctrlKey && e.metaKey)
+			OutputKey(e.keyCode, true, false, true);
+		else if (e.ctrlKey)
+			OutputKey(e.keyCode, true, false, false);
+		else if (e.metaKey)
+			OutputKey(e.keyCode, false, false, true);
+
+		if (e.shiftKey && e.ctrlKey)
+			OutputKey(e.keyCode, true, true, false);
+
+		if (e.shiftKey && e.metaKey)
+			OutputKey(e.keyCode, false, true, true);
+
+		if (window.event) {
+			try { e.keyCode = 0; } catch (e) { }
+			e.returnValue = false;
+		}
+	};
+
+	window.addEventListener('mousewheel', function (event) {
+		if (event.ctrlKey === true || event.metaKey) {
+			event.preventDefault();
+		}
+	}, { passive: false });
+
+</script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

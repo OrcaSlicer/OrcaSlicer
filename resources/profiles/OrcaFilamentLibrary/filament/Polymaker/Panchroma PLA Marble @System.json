@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "name": "Panchroma PLA Marble @System",
+    "inherits": "Panchroma PLA Marble @base",
+    "from": "system",
+    "setting_id": "OGFSPM003",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "16"
+    ]
+}

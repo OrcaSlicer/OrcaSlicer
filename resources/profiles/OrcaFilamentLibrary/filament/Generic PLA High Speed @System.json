@@ -1,0 +1,19 @@
+{
+    "type": "filament",
+    "name": "Generic PLA High Speed @System",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "setting_id": "OGFSL95_00",
+    "filament_id": "OGFL95",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "compatible_printers": []
+}

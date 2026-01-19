@@ -1,0 +1,96 @@
+{
+    "type": "filament",
+    "name": "Prusament PC Blend @CORE One",
+    "inherits": "fdm_filament_pc",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "filament_id": "Prusament PC Blend @CORE One",
+    "instantiation": "true",
+    "chamber_temperature": [
+        "40"
+    ],
+    "close_fan_the_first_x_layers": [
+        "4"
+    ],
+    "compatible_printers": [
+        "Prusa CORE One 0.25 nozzle",
+        "Prusa CORE One 0.3 nozzle",
+        "Prusa CORE One 0.4 nozzle",
+        "Prusa CORE One 0.5 nozzle"
+    ],
+    "fan_cooling_layer_time": [
+        "35"
+    ],
+    "fan_max_speed": [
+        "25"
+    ],
+    "fan_min_speed": [
+        "15"
+    ],
+    "filament_cost": [
+        "51.53"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_diameter": [
+        "1.75"
+    ],
+    "filament_end_gcode": [
+        "; Filament-specific end gcode"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_minimal_purge_on_wipe_tower": [
+        "35"
+    ],
+    "filament_notes": [
+        ""
+    ],
+    "filament_soluble": [
+        "0"
+    ],
+    "filament_start_gcode": [
+        "M900 K{if nozzle_diameter[filament_extruder_id]==0.4}0.07{elsif nozzle_diameter[filament_extruder_id]==0.3}0.09{elsif nozzle_diameter[filament_extruder_id]==0.35}0.08{elsif nozzle_diameter[filament_extruder_id]==0.6}0.04{elsif nozzle_diameter[filament_extruder_id]==0.5}0.05{elsif nozzle_diameter[filament_extruder_id]==0.8}0.02{else}0{endif} ; Filament gcode\n\n{if printer_notes=~/.*(MK4IS|XLIS|MK4S|MK3.9S|CORE One).*/}\nM572 S{if nozzle_diameter[filament_extruder_id]==0.4}0.05{elsif nozzle_diameter[filament_extruder_id]==0.5}0.035{elsif nozzle_diameter[filament_extruder_id]==0.6}0.025{elsif nozzle_diameter[filament_extruder_id]==0.8}0.016{elsif nozzle_diameter[filament_extruder_id]==0.25}0.14{elsif nozzle_diameter[filament_extruder_id]==0.3}0.09{else}0{endif} ; Filament gcode\n{endif}\n\nM142 S45 ; set heatbreak target temp"
+    ],
+    "filament_type": [
+        "PC"
+    ],
+    "filament_vendor": [
+        "Prusa Polymers"
+    ],
+    "filament_z_hop": [
+        "0.2"
+    ],
+    "hot_plate_temp": [
+        "115"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "110"
+    ],
+    "idle_temperature": [
+        "130"
+    ],
+    "nozzle_temperature": [
+        "275"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "275"
+    ],
+    "overhang_fan_speed": [
+        "25"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "20"
+    ],
+    "slow_down_min_speed": [
+        "15"
+    ]
+}

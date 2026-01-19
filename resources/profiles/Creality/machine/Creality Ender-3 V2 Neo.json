@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Creality Ender-3 V2 Neo",
+    "model_id": "Creality_Ender_3_V2_Neo",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Creality",
+    "bed_model": "creality_ender3v2neo_buildplate_model.stl",
+    "bed_texture": "creality_ender3v2neo_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Creality Generic ABS;Creality Generic ASA;Creality Generic PLA;Creality Generic PETG"
+}

@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Elegoo Neptune 3",
+    "model_id": "Elegoo-Neptune-3",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "Elegoo",
+    "bed_model": "elegoo_neptune3_buildplate_model.stl",
+    "bed_texture": "elegoo_neptune3_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "Generic ABS @Elegoo;Generic PETG @Elegoo;Generic PLA @Elegoo"
+}

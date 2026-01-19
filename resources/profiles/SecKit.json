@@ -1,0 +1,150 @@
+{
+    "name": "SecKit",
+    "version": "02.03.01.10",
+    "force_update": "0",
+    "description": "SecKit configurations",
+    "machine_model_list": [
+        {
+            "name": "SecKit SK-Tank",
+            "sub_path": "machine/SecKit SK-Tank.json"
+        },
+        {
+            "name": "Seckit Go3",
+            "sub_path": "machine/Seckit Go3.json"
+        }
+    ],
+    "process_list": [
+        {
+            "name": "fdm_process_common",
+            "sub_path": "process/fdm_process_common.json"
+        },
+        {
+            "name": "fdm_process_seckit_common",
+            "sub_path": "process/fdm_process_seckit_common.json"
+        },
+        {
+            "name": "0.08mm Extra Fine @SecKit",
+            "sub_path": "process/0.08mm Extra Fine @SecKit.json"
+        },
+        {
+            "name": "0.12mm Fine @SecKit",
+            "sub_path": "process/0.12mm Fine @SecKit.json"
+        },
+        {
+            "name": "0.15mm Optimal @SecKit",
+            "sub_path": "process/0.15mm Optimal @SecKit.json"
+        },
+        {
+            "name": "0.20mm Standard @SecKit",
+            "sub_path": "process/0.20mm Standard @SecKit.json"
+        },
+        {
+            "name": "0.24mm Draft @SecKit",
+            "sub_path": "process/0.24mm Draft @SecKit.json"
+        },
+        {
+            "name": "0.28mm Extra Draft @SecKit",
+            "sub_path": "process/0.28mm Extra Draft @SecKit.json"
+        },
+        {
+            "name": "0.30mm Fast @SecKit",
+            "sub_path": "process/0.30mm Fast @SecKit.json"
+        }
+    ],
+    "filament_list": [
+        {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
+        },
+        {
+            "name": "SecKit Generic ABS",
+            "sub_path": "filament/SecKit Generic ABS.json"
+        },
+        {
+            "name": "SecKit Generic ASA",
+            "sub_path": "filament/SecKit Generic ASA.json"
+        },
+        {
+            "name": "SecKit Generic PA",
+            "sub_path": "filament/SecKit Generic PA.json"
+        },
+        {
+            "name": "SecKit Generic PA-CF",
+            "sub_path": "filament/SecKit Generic PA-CF.json"
+        },
+        {
+            "name": "SecKit Generic PC",
+            "sub_path": "filament/SecKit Generic PC.json"
+        },
+        {
+            "name": "SecKit Generic PETG",
+            "sub_path": "filament/SecKit Generic PETG.json"
+        },
+        {
+            "name": "SecKit Generic PLA",
+            "sub_path": "filament/SecKit Generic PLA.json"
+        },
+        {
+            "name": "SecKit Generic PLA-CF",
+            "sub_path": "filament/SecKit Generic PLA-CF.json"
+        },
+        {
+            "name": "SecKit Generic PVA",
+            "sub_path": "filament/SecKit Generic PVA.json"
+        },
+        {
+            "name": "SecKit Generic TPU",
+            "sub_path": "filament/SecKit Generic TPU.json"
+        }
+    ],
+    "machine_list": [
+        {
+            "name": "fdm_machine_common",
+            "sub_path": "machine/fdm_machine_common.json"
+        },
+        {
+            "name": "fdm_klipper_common",
+            "sub_path": "machine/fdm_klipper_common.json"
+        },
+        {
+            "name": "SecKit Go3 0.4 nozzle",
+            "sub_path": "machine/SecKit Go3 0.4 nozzle.json"
+        },
+        {
+            "name": "SecKit SK-Tank 0.4 nozzle",
+            "sub_path": "machine/SecKit SK-Tank 0.4 nozzle.json"
+        }
+    ]
+}

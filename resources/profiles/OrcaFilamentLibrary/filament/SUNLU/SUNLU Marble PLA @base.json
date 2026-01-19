@@ -1,0 +1,20 @@
+{
+    "type": "filament",
+    "name": "SUNLU PLA Marble @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFSNL06",
+    "instantiation": "false",
+    "filament_cost": [
+        "31.99"
+    ],
+    "filament_density": [
+        "1.25"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_vendor": [
+        "SUNLU"
+    ]
+}

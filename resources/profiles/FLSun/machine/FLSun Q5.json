@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "FLSun Q5",
+    "model_id": "FLSun-Q5",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "FLSun",
+    "bed_model": "flsun_q5_buildplate_model.stl",
+    "bed_texture": "flsun_q5_buildplate_texture.png",
+    "hotend_model": "",
+    "default_materials": "FLSun Generic ABS;FLSun Generic PLA;FLSun Generic PLA-CF;FLSun Generic PETG;FLSun Generic TPU;FLSun Generic ASA;FLSun Generic PC;FLSun Generic PVA;FLSun Generic PA;FLSun Generic PA-CF"
+}

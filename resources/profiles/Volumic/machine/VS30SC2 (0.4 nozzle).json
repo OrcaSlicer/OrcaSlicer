@@ -1,0 +1,56 @@
+{
+    "type": "machine",
+    "name": "VS30SC2 (0.4 nozzle)",
+    "inherits": "fdm_volumic_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "VS30SC2",
+    "default_print_profile": "Normal speed - 0.15mm",
+    "host_type": "esp3d",
+    "print_host": "192.168.0.60",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printable_area": [
+        "0x0",
+        "300x0",
+        "300x200",
+        "0x200"
+    ],
+    "printable_height": "310",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "gcode_flavor": "marlin",
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.025"
+    ],
+    "printer_variant": "0.4",
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_length": [
+        "2.4"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "30"
+    ],
+    "machine_max_acceleration_x": [
+        "2000"
+    ],
+    "machine_max_acceleration_y": [
+        "2000"
+    ],
+    "machine_max_acceleration_z": [
+        "50"
+    ],
+    "machine_start_gcode": "M117 Demarrage\nM106 S0\nM140 S[first_layer_bed_temperature]\nM104 T0 S[first_layer_temperature]\nG28\nG90\nM82\nG92 E0\nG1 Z5 F600\nG1 X1 Y199 F6000\nM109 T0 S[first_layer_temperature]\nM300 P350\nG92 E0\nM117 Impression",
+    "before_layer_change_gcode": "G92 E0",
+    "machine_end_gcode": "M107\nM104 S0\nM140 S0\nG0 X1 Y199 F5000\nM84\nM300"
+}

@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Snapmaker PLA Eco @base",
+    "inherits": "fdm_filament_pla_eco",
+    "from": "system",
+    "filament_id": "1695556157",
+    "instantiation": "false"
+}

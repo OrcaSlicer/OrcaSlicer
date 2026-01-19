@@ -1,0 +1,50 @@
+{
+    "type": "filament",
+    "name": "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle",
+    "inherits": "Flashforge Generic PLA",
+    "from": "system",
+    "setting_id": "GFSA04",
+    "instantiation": "true",
+    "cool_plate_temp": [
+        "45"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "60"
+    ],
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "filament_settings_id": [
+        "Flashforge PLA Sparkle @FF AD5X 0.8 nozzle"
+    ],
+    "compatible_printers": [
+        "Flashforge AD5X 0.8 nozzle"
+    ],
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "210"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "210"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "textured_cool_plate_temp": [
+        "45"
+    ],
+    "textured_cool_plate_temp_initial_layer": [
+        "45"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "60"
+    ]
+}

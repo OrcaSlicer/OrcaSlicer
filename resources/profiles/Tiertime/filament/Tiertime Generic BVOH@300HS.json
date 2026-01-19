@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Tiertime Generic BVOH@300HS",
+    "inherits": "fdm_filament_bvoh",
+    "from": "system",
+    "filament_id": "GFS97_01",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Tiertime UP300 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.4 nozzle",
+        "Tiertime UP600 HS 0.6 nozzle",
+        "Tiertime UP600 HS 0.8 nozzle"
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "Anker Generic PC 0.25 nozzle",
+    "inherits": "Anker Generic PC @base",
+    "from": "system",
+    "setting_id": "GFSC99_25",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3"
+    ],
+    "compatible_printers": [
+        "Anker M5 All-Metal 0.25 nozzle",
+        "Anker M5C 0.25 nozzle"
+    ]
+}

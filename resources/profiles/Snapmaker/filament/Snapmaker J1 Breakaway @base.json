@@ -1,0 +1,8 @@
+{
+    "type": "filament",
+    "name": "Snapmaker J1 Breakaway @base",
+    "inherits": "fdm_filament_breakaway",
+    "from": "system",
+    "filament_id": "3492897526",
+    "instantiation": "false"
+}

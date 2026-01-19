@@ -1,0 +1,14 @@
+{
+    "type": "filament",
+    "name": "Overture ASA @System",
+    "inherits": "Overture ASA @base",
+    "from": "system",
+    "setting_id": "OGFOT009",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.95"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ]
+}

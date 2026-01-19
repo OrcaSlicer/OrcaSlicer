@@ -1,0 +1,10 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @CoLiDo SR1",
+    "inherits": "fdm_process_colidosr1_common",
+    "from": "system",
+    "setting_id": "GP006",
+    "instantiation": "true",
+    "layer_height": "0.2",
+    "print_settings_id": "0.20mm Standard @CoLiDo SR1"
+}

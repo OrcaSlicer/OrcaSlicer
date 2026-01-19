@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU for AMS @BBL A1",
+    "inherits": "Bambu TPU for AMS @base",
+    "from": "system",
+    "setting_id": "GFSU02_02",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "40"
+    ],
+    "filament_deretraction_speed": [
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "0.4"
+    ],
+    "filament_retraction_speed": [
+        "nil"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

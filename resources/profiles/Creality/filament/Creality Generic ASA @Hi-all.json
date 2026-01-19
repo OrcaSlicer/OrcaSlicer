@@ -1,0 +1,21 @@
+{
+    "type": "filament",
+    "name": "Creality Generic ASA @Hi-all",
+    "inherits": "Creality Generic ASA",
+    "from": "system",
+    "setting_id": "GFSA04_00",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "9"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else}\nM104 S[first_layer_temperature]\n{endif}\n"
+    ],
+    "compatible_printers": [
+        "Creality Hi 0.4 nozzle",
+        "Creality Hi 0.6 nozzle"
+    ]
+}

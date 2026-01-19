@@ -1,0 +1,15 @@
+{
+    "type": "process",
+    "name": "0.24mm Standard @Tiertime UP400 Pro 0.6 nozzle",
+    "inherits": "fdm_process_tiertime_0.24_nozzle_0.6",
+    "from": "system",
+    "setting_id": "GP016",
+    "instantiation": "true",
+    "description": "It has a balanced layer height for good quality and reasonable printing time.",
+    "elefant_foot_compensation": "0.15",
+    "smooth_coefficient": "150",
+    "overhang_totally_speed": "50",
+    "compatible_printers": [
+        "Tiertime UP400 Pro 0.6 nozzle"
+    ]
+}

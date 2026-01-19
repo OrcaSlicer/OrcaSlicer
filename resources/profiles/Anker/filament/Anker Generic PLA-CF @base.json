@@ -1,0 +1,38 @@
+{
+    "type": "filament",
+    "name": "Anker Generic PLA-CF @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "GFL98",
+    "instantiation": "false",
+    "filament_type": [
+        "PLA-CF"
+    ],
+    "required_nozzle_HRC": [
+        "40"
+    ],
+    "filament_cost": [
+        "25"
+    ],
+    "temperature_vitrification": [
+        "70"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225"
+    ],
+    "nozzle_temperature": [
+        "220"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "hot_plate_temp": [
+        "65"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "slow_down_layer_time": [
+        "7"
+    ]
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="max-age=7200" />
+<title>引导_P1</title>
+<link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
+<link rel="stylesheet" type="text/css" href="6.css" />
+<script type="text/javascript" src="../js/jquery-2.1.1.min.js"></script>
+<script type="text/javascript" src="../js/json2.js"></script>	
+<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../js/globalapi.js"></script>	
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="6.js"></script>	
+</head>
+<body onLoad="OnInit()">
+	
+<div id="DownBlock">
+	<div id="DownArea">
+	<div id="DownText">
+	    <div id="DownStepText" class="trans" tid="t71">Downloading</div>
+		<div id="RetryBtn" onClick="RetryDownload()"></div>
+    </div>
+	<div>
+		<div id="PercentTip"></div>
+		<div id="PercentBkg"></div>
+	</div>
+	</div>
+	
+	<div id="DownSuccessTip" class="trans" tid="t73">Installation successful.</div>
+	
+	<div id="InstallFailedTip">
+	    <div><a class="trans" tid="t79">Failed to install plug-in. </a><a class="trans" tid="t80">Try the following steps:</a></div>
+	    <div><a class="trans" tid="t81">1, Click </a><a class="trans LinkBtn" tid="t77" onClick="OpenPluginFolder()">here</a><a class="trans" tid="t82"> to open the plug-in directory</a> </div>
+		<div class="trans" tid="t83">2, Close all open Orca Slicer</div>
+		<div class="trans" tid="t84">3, Delete all files under the plug-in directory</div>
+		<div class="trans" tid="t85">4, Reopen Orca Slicer and install the plug-in again</div>
+	</div>
+	
+	
+</div>
+	
+<div id="BtnBlock">
+	<div id="CancelBtn"  class="ButtonStyleRegular ButtonTypeChoice trans" tid="t38" onClick="CancelDownload()"    >Cancel</div>
+	<div id="RestartBtn" class="ButtonStyleRegular ButtonTypeChoice trans" tid="t25" onClick="RestartBambuStudio()">Finish</div>
+	<div id="CloseBtn"   class="ButtonStyleRegular ButtonTypeChoice trans" tid="t86" onClick="CloseDownDialog()"   >Close </div>
+</div>
+</body>
+</html>

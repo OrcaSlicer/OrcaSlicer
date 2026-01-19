@@ -1,0 +1,114 @@
+{
+    "type": "machine",
+    "name": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "false",
+    "printer_technology": "FFF",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "gcode_flavor": "klipper",
+    "silent_mode": "1",
+    "machine_max_acceleration_e": [
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "5000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000"
+    ],
+    "machine_max_acceleration_x": [
+        "3500"
+    ],
+    "machine_max_acceleration_y": [
+        "3500"
+    ],
+    "machine_max_acceleration_z": [
+        "500"
+    ],
+    "machine_max_speed_e": [
+        "120"
+    ],
+    "machine_max_speed_x": [
+        "500"
+    ],
+    "machine_max_speed_y": [
+        "500"
+    ],
+    "machine_max_speed_z": [
+        "150"
+    ],
+    "machine_max_jerk_e": [
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "10"
+    ],
+    "machine_max_jerk_y": [
+        "10"
+    ],
+    "machine_max_jerk_z": [
+        "2"
+    ],
+    "machine_min_extruding_rate": [
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0"
+    ],
+    "max_layer_height": [
+        "0.3"
+    ],
+    "min_layer_height": [
+        "0.1"
+    ],
+    "extruder_clearance_radius": "65",
+    "extruder_clearance_height_to_rod": "36",
+    "extruder_clearance_height_to_lid": "140",
+    "printer_settings_id": "",
+    "retraction_minimum_travel": [
+        "2"
+    ],
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "7"
+    ],
+    "retract_length_toolchange": [
+        "2"
+    ],
+    "z_hop": [
+        "0.8"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retraction_speed": [
+        "80"
+    ],
+    "deretraction_speed": [
+        "40"
+    ],
+    "single_extruder_multi_material": "0",
+    "change_filament_gcode": "",
+    "z_lift_type": "NormalLift",
+    "default_print_profile": "",
+    "nozzle_type": "undefine",
+    "auxiliary_fan": "0",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_pause_gcode": "",
+    "machine_start_gcode": "M104 S[nozzle_temperature_initial_layer] ; set temp\nG28\nM109 S[nozzle_temperature_initial_layer] ; wait for temp\nG28\nG91 ; relative positioning\nG1 Z-40 F4000\nG90 ; absolute positioning\n",
+    "machine_end_gcode": "G28\nM104 S0\nM84 ; disable motors"
+}

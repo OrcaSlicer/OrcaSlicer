@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Prusa MK3S",
+    "model_id": "MK3S",
+    "nozzle_diameter": "0.25;0.4;0.6;0.8",
+    "machine_tech": "FFF",
+    "family": "Prusa",
+    "bed_model": "mk3_bed.stl",
+    "bed_texture": "mk3.svg",
+    "hotend_model": "",
+    "default_materials": "Prusa Generic ABS;Prusa Generic PLA;Prusa Generic PLA-CF;Prusa Generic PETG;Prusa Generic TPU;Prusa Generic ASA;Prusa Generic PC;Prusa Generic PVA;Prusa Generic PA;Prusa Generic PA-CF"
+}

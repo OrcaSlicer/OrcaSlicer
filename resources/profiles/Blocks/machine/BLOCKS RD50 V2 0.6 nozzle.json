@@ -1,0 +1,39 @@
+{
+    "type": "machine",
+    "name": "BLOCKS RD50 V2 0.6 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "instantiation": "true",
+    "settings_id": "GM007",
+    "printer_model": "BLOCKS RD50 V2",
+    "default_print_profile": "0.26mm Standard 0.6 nozzle @Blocks_RD50_V2",
+    "max_layer_height": [
+        "0.40"
+    ],
+    "min_layer_height": [
+        "0.10"
+    ],
+    "nozzle_diameter": [
+        "0.6"
+    ],
+    "printable_area": [
+        "0x0",
+        "500x0",
+        "500x500",
+        "0x500"
+    ],
+    "printable_height": "500",
+    "upward_compatible_machine": [
+        "BLOCKS RD50 V2"
+    ],
+    "retraction_length": [
+        "1.2"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "deretraction_speed": [
+        "80"
+    ],
+    "printer_variant": "0.6"
+}
