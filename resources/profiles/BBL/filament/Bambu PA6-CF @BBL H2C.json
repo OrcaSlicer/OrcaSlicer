@@ -1,0 +1,79 @@
+{
+    "type": "filament",
+    "name": "Bambu PA6-CF @BBL H2C",
+    "inherits": "Bambu PA6-CF @base",
+    "from": "system",
+    "setting_id": "GFSN05_09",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "counter_coef_2": [
+        "0.00565"
+    ],
+    "counter_coef_3": [
+        "-0.0202"
+    ],
+    "counter_limit_max": [
+        "0.03"
+    ],
+    "filament_flow_ratio": [
+        "0.96",
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "8",
+        "8"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "235",
+        "235"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "1",
+        "1"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "275",
+        "275"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "275",
+        "275"
+    ],
+    "temperature_vitrification": [
+        "150"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.6 nozzle",
+        "Bambu Lab H2C 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

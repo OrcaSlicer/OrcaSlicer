@@ -1,0 +1,88 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA-CF @BBL H2C 0.4 nozzle",
+    "inherits": "Bambu PLA-CF @base",
+    "from": "system",
+    "setting_id": "GFSA50_18",
+    "instantiation": "true",
+    "counter_coef_2": [
+        "0.012"
+    ],
+    "counter_coef_3": [
+        "-0.063"
+    ],
+    "counter_limit_max": [
+        "0.07"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "15",
+        "15"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "190",
+        "190"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "1",
+        "1"
+    ],
+    "filament_retract_length_nc": [
+        "18",
+        "18"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "hole_coef_2": [
+        "-0.0103"
+    ],
+    "hole_coef_3": [
+        "0.1974"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "230",
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230",
+        "230"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.4 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

@@ -1,0 +1,77 @@
+{
+    "type": "filament",
+    "name": "Bambu PVA @BBL H2C",
+    "inherits": "Bambu PVA @base",
+    "from": "system",
+    "setting_id": "GFSS04_18",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_flow_ratio": [
+        "1",
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "6",
+        "6"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "200",
+        "200"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "1",
+        "1"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "240",
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240",
+        "240"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "temperature_vitrification": [
+        "40"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.6 nozzle",
+        "Bambu Lab H2C 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}
