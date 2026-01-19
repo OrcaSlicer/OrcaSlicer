@@ -2744,7 +2744,6 @@ void PrintConfigDef::init_fff_params()
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
     def->enum_values.push_back("alignedrectilinear");
-    def->enum_values.push_back("scatteredrectilinear");
     def->enum_values.push_back("zigzag");
     def->enum_values.push_back("crosszag");
     def->enum_values.push_back("lockedzag");
@@ -2769,9 +2768,9 @@ void PrintConfigDef::init_fff_params()
     def->enum_values.push_back("hilbertcurve");
     def->enum_values.push_back("archimedeanchords");
     def->enum_values.push_back("octagramspiral");
+    def->enum_values.push_back("scatteredrectilinear");
     def->enum_labels.push_back(L("Rectilinear"));
     def->enum_labels.push_back(L("Aligned Rectilinear"));
-    def->enum_labels.push_back(L("Scattered Rectilinear"));
     def->enum_labels.push_back(L("Zig Zag"));
     def->enum_labels.push_back(L("Cross Zag"));
     def->enum_labels.push_back(L("Locked Zag"));
@@ -2796,6 +2795,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Hilbert Curve"));
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
+    def->enum_labels.push_back(L("Scattered Rectilinear"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
 
     def           = this->add("lateral_lattice_angle_1", coFloat);
