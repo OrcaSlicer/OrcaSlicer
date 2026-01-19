@@ -2616,12 +2616,10 @@ void PrintObject::bridge_over_infill()
         AABBTreeLines::LinesDistancer<Line> lines_tree(anchors);
 
         // Check it the infill that require a fixed infill angle.
-        switch (dominant_pattern) {
-        case ip3DHoneycomb:
-        case ipCrossHatch:
-            return (infill_direction + 45.0) * 2.0 * M_PI / 360.;
-        default: break;
-        }
+        // ORCA: For CrossHatch and 3DHoneycomb, we want to align the bridge with the infill,
+        // but also respect the geometry of the bridge (shortest path).
+        // So we don't return immediately, but restrict the final angle at the end.
+
 
         std::map<double, int> counted_directions;
         for (const Polygon &p : bridged_area) {
@@ -2672,9 +2670,9 @@ void PrintObject::bridge_over_infill()
                     score_acc += dirs_window->second;
                 }
             }
-            if (window_start_angle > 1.5 * PI) {
+            if (window_end_angle > 1.5 * PI) {
                 for (auto dirs_window = counted_directions.begin();
-                     dirs_window != counted_directions.upper_bound(window_start_angle - 1.5 * PI); dirs_window++) {
+                     dirs_window != counted_directions.upper_bound(0.5 * PI + (window_end_angle - 1.5 * PI)); dirs_window++) {
                     dir_acc += (dirs_window->first + PI) * dirs_window->second;
                     score_acc += dirs_window->second;
                 }
@@ -2691,6 +2689,12 @@ void PrintObject::bridge_over_infill()
         switch (dominant_pattern) {
         case ipHilbertCurve: bridging_angle += 0.25 * PI; break;
         case ipOctagramSpiral: bridging_angle += (1.0 / 16.0) * PI; break;
+        case ip3DHoneycomb:
+        case ipCrossHatch:
+             // ORCA: For these patterns, the infill lines are orthogonal (0 and 90 relative to infill angle).
+             // The detected angle is perpendicular to one of them. We want to be at 45 degrees to both.
+             bridging_angle += 0.25 * PI;
+             break;
         default: break;
         }
 
