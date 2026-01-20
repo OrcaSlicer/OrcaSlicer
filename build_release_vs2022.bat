@@ -19,6 +19,8 @@ if exist "%ORCA_CONFIG_FILE%" (
             )
         ) else if /I "%%A"=="PARALLEL" (
             set "CMAKE_BUILD_PARALLEL_LEVEL=%%B"
+        ) else if /I "%%A"=="BUILD_TYPE" (
+            set "ORCA_DEFAULT_BUILD_TYPE=%%B"
         )
     )
 )
@@ -56,6 +58,15 @@ if "%1"=="debug" set debug=ON
 if "%2"=="debug" set debug=ON
 if "%1"=="debuginfo" set debuginfo=ON
 if "%2"=="debuginfo" set debuginfo=ON
+
+@REM If no explicit args were provided, fall back to BUILD_TYPE from .config.
+if "%debug%"=="OFF" if "%debuginfo%"=="OFF" if defined ORCA_DEFAULT_BUILD_TYPE (
+    if /I "%ORCA_DEFAULT_BUILD_TYPE%"=="Debug" (
+        set debug=ON
+    ) else if /I "%ORCA_DEFAULT_BUILD_TYPE%"=="RelWithDebInfo" (
+        set debuginfo=ON
+    )
+)
 
 @REM For single-config generators like NMake, a full Debug build is incompatible
 @REM with the prebuilt Release-only third-party libraries (Boost, OpenCV, TBB,

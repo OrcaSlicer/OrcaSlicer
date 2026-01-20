@@ -121,6 +121,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/EncodedFilament.cpp
     GUI/ExtraRenderers.cpp
     GUI/ExtraRenderers.hpp
+    GUI/GaussianSplatImportDialog.cpp
+    GUI/GaussianSplatImportDialog.hpp
+    GUI/TaichiDialog.cpp
+    GUI/TaichiDialog.hpp
     GUI/ExtrusionCalibration.cpp
     GUI/ExtrusionCalibration.hpp
     GUI/Field.cpp

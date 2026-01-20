@@ -191,10 +191,14 @@ set(lisbslic3r_sources
     Format/bbs_3mf.cpp
     Format/bbs_3mf.hpp
     format.hpp
+    Format/GaussianSplatTaichiLang.cpp
+    Format/GaussianSplatTaichiLang.hpp
     Format/OBJ.cpp
     Format/OBJ.hpp
     Format/objparser.cpp
     Format/objparser.hpp
+    Format/TaichiLang.cpp
+    Format/TaichiLang.hpp
     Format/SL1.cpp
     Format/SL1.hpp
     Format/STEP.cpp

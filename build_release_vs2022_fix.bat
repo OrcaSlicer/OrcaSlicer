@@ -38,6 +38,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM --- Ensure a consistent Windows SDK target for all translation units ---
+REM Some dependencies (e.g. Boost.Asio) emit a warning if _WIN32_WINNT is not defined.
+REM We target Windows 7+ here (0x0601) by default.
+set "CL=/D_WIN32_WINNT=0x0601 /DWINVER=0x0601 %CL%"
+
 REM --- Configure CMake build parallelism based on CPU logical cores ---
 if not defined CMAKE_BUILD_PARALLEL_LEVEL (
     set "CMAKE_BUILD_PARALLEL_LEVEL=%NUMBER_OF_PROCESSORS%"

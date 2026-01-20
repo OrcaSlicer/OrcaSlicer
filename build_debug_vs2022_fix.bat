@@ -19,6 +19,8 @@ if exist "%ORCA_CONFIG_FILE%" (
             )
         ) else if /I "%%A"=="PARALLEL" (
             set "CMAKE_BUILD_PARALLEL_LEVEL=%%B"
+        ) else if /I "%%A"=="BUILD_TYPE" (
+            set "ORCA_DEFAULT_BUILD_TYPE=%%B"
         )
     )
 )
@@ -37,6 +39,11 @@ if errorlevel 1 (
     echo [ERROR] Failed to initialize Visual Studio 2022 x64 build environment via VsDevCmd.
     exit /b 1
 )
+
+REM --- Ensure a consistent Windows SDK target for all translation units ---
+REM Some dependencies (e.g. Boost.Asio) emit a warning if _WIN32_WINNT is not defined.
+REM We target Windows 7+ here (0x0601) by default.
+set "CL=/D_WIN32_WINNT=0x0601 /DWINVER=0x0601 %CL%"
 
 REM --- Configure CMake build parallelism based on CPU logical cores ---
 if not defined CMAKE_BUILD_PARALLEL_LEVEL (
@@ -114,15 +121,51 @@ if not defined ORCA_FORCE_NINJA if not defined ORCA_FORCE_NMAKE (
 REM --- Run the new VS2022 debug build script from the repo root ---
 pushd "%SCRIPT_DIR%" >nul 2>&1
 
-REM If we are using the NMake generator, ensure the build-dbg directory
-REM is configured explicitly. Use RelWithDebInfo so that the OrcaSlicer
-REM binaries match the prebuilt Release-only third-party libraries
-REM (OpenCV, Boost, TBB, wxWidgets) while still generating debug info.
-if defined ORCA_FORCE_NMAKE (
-    cmake -S . -B build-dbg -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+REM Decide build type:
+REM - If user passes debug/debuginfo at CLI, that wins.
+REM - Otherwise use BUILD_TYPE from .config (default Release if missing).
+set "ORCA_REQUESTED_BUILD_TYPE="
+set "ORCA_HAS_CLI_OVERRIDE=0"
+
+for %%X in (%*) do (
+    if /I "%%X"=="debug" (
+        set "ORCA_REQUESTED_BUILD_TYPE=Debug"
+        set "ORCA_HAS_CLI_OVERRIDE=1"
+    ) else if /I "%%X"=="debuginfo" (
+        set "ORCA_REQUESTED_BUILD_TYPE=RelWithDebInfo"
+        set "ORCA_HAS_CLI_OVERRIDE=1"
+    )
 )
 
-call "%SCRIPT_DIR%build_debug_vs2022.bat" %*
+if "%ORCA_HAS_CLI_OVERRIDE%"=="0" (
+    if defined ORCA_DEFAULT_BUILD_TYPE (
+        set "ORCA_REQUESTED_BUILD_TYPE=%ORCA_DEFAULT_BUILD_TYPE%"
+    ) else (
+        set "ORCA_REQUESTED_BUILD_TYPE=Release"
+    )
+)
+
+REM If we are using the NMake generator, keep a configured single-config build dir
+REM consistent with the requested type. (Debug is mapped later by build_release_vs2022.bat
+REM when using NMake, but configuring RelWithDebInfo here keeps the cache consistent.)
+if defined ORCA_FORCE_NMAKE (
+    if /I "%ORCA_REQUESTED_BUILD_TYPE%"=="Debug" (
+        cmake -S . -B build-dbg -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    ) else if /I "%ORCA_REQUESTED_BUILD_TYPE%"=="RelWithDebInfo" (
+        cmake -S . -B build-dbginfo -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    ) else (
+        cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+    )
+)
+
+REM Route to the appropriate underlying script based on requested build type.
+if /I "%ORCA_REQUESTED_BUILD_TYPE%"=="Release" (
+    call "%SCRIPT_DIR%build_release_vs2022.bat" %*
+) else if /I "%ORCA_REQUESTED_BUILD_TYPE%"=="RelWithDebInfo" (
+    call "%SCRIPT_DIR%build_release_vs2022.bat" debuginfo %*
+) else (
+    call "%SCRIPT_DIR%build_debug_vs2022.bat" %*
+)
 set "EXITCODE=%ERRORLEVEL%"
 
 popd >nul 2>&1

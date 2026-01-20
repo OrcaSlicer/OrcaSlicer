@@ -26,6 +26,8 @@
 
 #include "MainFrame.hpp"
 
+#include "TaichiDialog.hpp"
+
 #include <wx/panel.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>
@@ -2432,6 +2434,54 @@ static void add_common_view_menu_items(wxMenu* view_menu, MainFrame* mainFrame, 
         "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
     append_menu_item(view_menu, wxID_ANY, _CTX(L_CONTEXT("Right", "Camera"), "Camera") + "\t" + ctrl + "6", _L("Right View"),[mainFrame](wxCommandEvent &) { mainFrame->select_view("right"); },
         "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
+
+    view_menu->AppendSeparator();
+    append_menu_check_item(view_menu, wxID_ANY, _L("Taichi") + dots, _L("Show/hide Taichi language window"),
+        [mainFrame](wxCommandEvent&) {
+            if (mainFrame != nullptr)
+                mainFrame->toggle_taichi_dialog();
+        },
+        mainFrame,
+        [mainFrame]() { return mainFrame != nullptr && mainFrame->plater() != nullptr && mainFrame->plater()->is_view3D_shown(); },
+        [mainFrame]() { return mainFrame != nullptr && mainFrame->is_taichi_dialog_open(); },
+        mainFrame);
+}
+
+void MainFrame::open_taichi_dialog()
+{
+    if (m_taichi_dlg != nullptr) {
+        m_taichi_dlg->Show();
+        m_taichi_dlg->Raise();
+        return;
+    }
+
+    m_taichi_dlg = new TaichiDialog(this);
+    m_taichi_dlg->Show();
+}
+
+void MainFrame::toggle_taichi_dialog()
+{
+    if (m_taichi_dlg == nullptr) {
+        open_taichi_dialog();
+        return;
+    }
+
+    if (m_taichi_dlg->IsShown())
+        m_taichi_dlg->Hide();
+    else {
+        m_taichi_dlg->Show();
+        m_taichi_dlg->Raise();
+    }
+}
+
+bool MainFrame::is_taichi_dialog_open() const
+{
+    return m_taichi_dlg != nullptr && m_taichi_dlg->IsShown();
+}
+
+void MainFrame::on_taichi_dialog_closed()
+{
+    m_taichi_dlg = nullptr;
 }
 
 void MainFrame::init_menubar_as_editor()
@@ -3024,6 +3074,16 @@ void MainFrame::init_menubar_as_editor()
         m_topbar->AddDropDownSubMenu(editMenu, _L("Edit"));
     if (viewMenu)
         m_topbar->AddDropDownSubMenu(viewMenu, _L("View"));
+
+    // Make Taichi discoverable from the topbar dropdown (not buried under View).
+    append_menu_check_item(
+        m_topbar->GetTopMenu(), wxID_ANY, _L("Taichi") + dots + "\t" + ctrl + shift + "T", _L("Show/hide Taichi language window"),
+        [this](wxCommandEvent&) { this->toggle_taichi_dialog(); },
+        this,
+        [this]() { return this->plater() != nullptr && this->plater()->is_view3D_shown(); },
+        [this]() { return this->is_taichi_dialog_open(); },
+        this);
+
     //BBS add Preference
 
     append_menu_item(

@@ -144,19 +144,56 @@ if exist "%PERL_MSI%" (
 echo.
 :VCPKG
 echo === Step 7: Ensure expat and OpenSSL are installed via vcpkg ===
-where vcpkg >nul 2>&1
-if errorlevel 1 (
-    echo [WARN] vcpkg not found on PATH; skipping 'vcpkg install expat'.
-) else (
-    echo [INFO] Running 'vcpkg install expat openssl'...
-    vcpkg install expat openssl
-    if errorlevel 1 (
-        echo [WARN] 'vcpkg install expat openssl' failed. You may need to run it manually.
-    ) else (
-        echo [INFO] 'vcpkg install expat openssl' completed successfully.
+set "VCPKG_EXE="
+
+REM Prefer a standalone vcpkg instance if available.
+if defined VCPKG_ROOT if exist "%VCPKG_ROOT%\vcpkg.exe" set "VCPKG_EXE=%VCPKG_ROOT%\vcpkg.exe"
+if not defined VCPKG_EXE if exist "C:\vcpkg\vcpkg.exe" set "VCPKG_EXE=C:\vcpkg\vcpkg.exe"
+
+REM Fall back to whatever is on PATH.
+if not defined VCPKG_EXE (
+    for /f "delims=" %%I in ('where vcpkg 2^>nul') do (
+        if not defined VCPKG_EXE set "VCPKG_EXE=%%I"
     )
+)
+
+if not defined VCPKG_EXE (
+    echo [WARN] vcpkg not found; skipping vcpkg dependency install.
+    echo        If you want this step, install a standalone vcpkg and set VCPKG_ROOT (e.g. C:\vcpkg).
+) else (
+    echo [INFO] Using vcpkg: "%VCPKG_EXE%"
+
+    REM Visual Studio’s bundled vcpkg is typically manifest-only and will error in classic mode.
+    set "VCPKG_IS_VS="
+    echo %VCPKG_EXE% | findstr /I /C:"\VC\vcpkg\" >nul && set "VCPKG_IS_VS=1"
+
+    if exist "%~dp0vcpkg.json" (
+        echo [INFO] Detected vcpkg.json; using manifest mode: 'vcpkg install'
+        "%VCPKG_EXE%" install
+        if errorlevel 1 (
+            echo [WARN] 'vcpkg install' failed. You may need to run it manually.
+        ) else (
+            echo [INFO] 'vcpkg install' completed successfully.
+        )
+    ) else (
+        if defined VCPKG_IS_VS (
+            echo [WARN] Detected Visual Studio bundled vcpkg (manifest-only); skipping classic 'vcpkg install expat openssl'.
+            echo        Fix options:
+            echo          1^) Install standalone vcpkg (recommended) and set VCPKG_ROOT to it, then re-run configure.bat
+            echo          2^) Add a vcpkg.json manifest to this repo and let vcpkg manage deps in manifest mode
+        ) else (
+            echo [INFO] Running 'vcpkg install expat openssl'...
+            "%VCPKG_EXE%" install expat openssl
+            if errorlevel 1 (
+                echo [WARN] 'vcpkg install expat openssl' failed. You may need to run it manually.
+            ) else (
+                echo [INFO] 'vcpkg install expat openssl' completed successfully.
+            )
+        )
+    )
+
     echo [INFO] Running 'vcpkg integrate install'...
-    vcpkg integrate install
+    "%VCPKG_EXE%" integrate install
     if errorlevel 1 (
         echo [WARN] 'vcpkg integrate install' failed. You may need to run it manually.
     ) else (
@@ -172,14 +209,14 @@ if "%CPU_COUNT%"=="" set "CPU_COUNT=1"
 
 echo.
 echo Select default CMake generator for OrcaSlicer builds:
-echo   [1] Ninja (requires ninja.exe on PATH)
-echo   [2] NMake Makefiles
+echo   [1] NMake Makefiles
+echo   [2] Ninja (requires ninja.exe on PATH)
 set "GEN_CHOICE="
 set /p GEN_CHOICE="Enter choice [1/2, default=1]: "
 if "%GEN_CHOICE%"=="" set "GEN_CHOICE=1"
 
-set "GEN_KIND=NINJA"
-if "%GEN_CHOICE%"=="2" set "GEN_KIND=NMAKE"
+set "GEN_KIND=NMAKE"
+if "%GEN_CHOICE%"=="2" set "GEN_KIND=NINJA"
 
 set "PARALLEL_LEVEL="
 if /I "%GEN_KIND%"=="NMAKE" (
@@ -190,12 +227,26 @@ if /I "%GEN_KIND%"=="NMAKE" (
     if "%PARALLEL_LEVEL%"=="" set "PARALLEL_LEVEL=%PARALLEL_DEFAULT%"
 )
 
+echo.
+echo Select default build type for OrcaSlicer builds:
+echo   [1] Release
+echo   [2] RelWithDebInfo (Release + debug symbols)
+echo   [3] Debug (may be mapped to RelWithDebInfo with NMake)
+set "BUILD_CHOICE="
+set /p BUILD_CHOICE="Enter choice [1/2/3, default=1]: "
+if "%BUILD_CHOICE%"=="" set "BUILD_CHOICE=1"
+
+set "BUILD_KIND=Release"
+if "%BUILD_CHOICE%"=="2" set "BUILD_KIND=RelWithDebInfo"
+if "%BUILD_CHOICE%"=="3" set "BUILD_KIND=Debug"
+
 set "CONFIG_CFG=%~dp0.config"
 if /I "%GEN_KIND%"=="NINJA" (
     > "%CONFIG_CFG%" (
         echo # Auto-generated local build config for OrcaSlicer.
         echo # Delete this file and re-run configure.bat to change settings.
         echo GENERATOR=NINJA
+        echo BUILD_TYPE=%BUILD_KIND%
     )
 ) else (
     > "%CONFIG_CFG%" (
@@ -203,12 +254,13 @@ if /I "%GEN_KIND%"=="NINJA" (
         echo # Delete this file and re-run configure.bat to change settings.
         echo GENERATOR=NMAKE
         echo PARALLEL=%PARALLEL_LEVEL%
+        echo BUILD_TYPE=%BUILD_KIND%
     )
 )
 
 echo.
 echo [INFO] Saved build configuration to "%CONFIG_CFG%".
-echo        build_release_vs2022_fix.bat will use this generator/parallelism.
+echo        build_release_vs2022_fix.bat will use this generator/parallelism/build type.
 
 :DONE
 echo.

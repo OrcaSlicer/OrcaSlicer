@@ -52,6 +52,7 @@ class PrintHostQueueDialog;
 class Plater;
 class MainFrame;
 class ParamsDialog;
+class TaichiDialog;
 
 enum QuickSlice
 {
@@ -289,6 +290,15 @@ public:
     //BBS
     void        show_log_window();
 
+    // Opens (or raises) the Taichi language window.
+    void        open_taichi_dialog();
+    // Shows/hides the Taichi language window.
+    void        toggle_taichi_dialog();
+    // True if the Taichi language window exists and is currently shown.
+    bool        is_taichi_dialog_open() const;
+    // Called by TaichiDialog when closing; clears internal pointer.
+    void        on_taichi_dialog_closed();
+
     void        update_ui_from_settings();
     //BBS
     void        show_sync_dialog();
@@ -381,6 +391,7 @@ public:
     WebViewPanel*         m_webview { nullptr };
     PrinterWebView*       m_printer_view{nullptr};
     wxLogWindow*          m_log_window { nullptr };
+    TaichiDialog*         m_taichi_dlg { nullptr };
     // BBS
     //wxBookCtrlBase*       m_tabpanel { nullptr };
     Notebook*             m_tabpanel{ nullptr };

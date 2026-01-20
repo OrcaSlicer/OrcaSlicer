@@ -20,7 +20,7 @@
 # therefore, unfortunatelly, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
 #
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 if (APPLE)
     # if CMAKE_OSX_DEPLOYMENT_TARGET is not set, set it to 11.3
     if (NOT CMAKE_OSX_DEPLOYMENT_TARGET)
