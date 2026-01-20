@@ -2664,8 +2664,7 @@ void PrintObject::bridge_over_infill()
             // current span of directions is 0.5 PI to 1.5 PI (due to the aproach.). Edge values should also account for the
             //  opposite direction.
             if (window_start_angle < 0.5 * PI) {
-                // ORCA: Handle wrap-around for sliding window when it goes below the 0.5 PI boundary.
-                // This ensures robust angle detection even when the model is rotated, preventing the angle from defaulting to 0.
+                // ORCA: Handle wrap-around (0.5 PI boundary) to ensure robust angle detection on rotation.
                 for (auto dirs_window = counted_directions.lower_bound(1.5 * PI - (0.5 * PI - window_start_angle));
                      dirs_window != counted_directions.end(); dirs_window++) {
                     dir_acc += (dirs_window->first - PI) * dirs_window->second;
@@ -2673,8 +2672,7 @@ void PrintObject::bridge_over_infill()
                 }
             }
             if (window_end_angle > 1.5 * PI) {
-                // ORCA: Handle wrap-around for sliding window when it exceeds the 1.5 PI boundary.
-                // This ensures robust angle detection even when the model is rotated, preventing the angle from defaulting to 0.
+                // ORCA: Handle wrap-around (1.5 PI boundary) to ensure robust angle detection on rotation.
                 for (auto dirs_window = counted_directions.begin();
                      dirs_window != counted_directions.upper_bound(0.5 * PI + (window_end_angle - 1.5 * PI)); dirs_window++) {
                     dir_acc += (dirs_window->first + PI) * dirs_window->second;
@@ -2693,12 +2691,11 @@ void PrintObject::bridge_over_infill()
         switch (dominant_pattern) {
         case ipHilbertCurve: bridging_angle += 0.25 * PI; break;
         case ipOctagramSpiral: bridging_angle += (1.0 / 16.0) * PI; break;
-        case ip3DHoneycomb:
-        case ipCrossHatch:
-             // ORCA: For these patterns, the infill lines are orthogonal (0 and 90 relative to infill angle).
-             // The detected angle is perpendicular to one of them. We want to be at 45 degrees to both.
-             bridging_angle += 0.25 * PI;
-             break;
+        // ORCA: For these patterns, the infill lines are orthogonal (0 and 90 relative to infill angle).
+        // The detected angle is perpendicular to one of them. We want to be at 45 degrees to both.
+        case ip3DHoneycomb: bridging_angle += 0.25 * PI; break;
+        case ipCrossHatch: bridging_angle += 0.25 * PI; break;
+
         default: break;
         }
 
