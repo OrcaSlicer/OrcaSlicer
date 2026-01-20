@@ -3511,7 +3511,7 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
 class TranslationProcessor
 {
     using UpAction = std::function<void(void)>;
-    using DownAction = std::function<void(const Vec3d&, bool, bool)>;
+    using DownAction = std::function<void(const Vec3d&, bool, bool, bool)>;
 
     UpAction m_up_action{ nullptr };
     DownAction m_down_action{ nullptr };
@@ -3536,6 +3536,8 @@ public:
             case WXK_NUMPAD_RIGHT: case WXK_RIGHT:
             case WXK_NUMPAD_UP:    case WXK_UP:
             case WXK_NUMPAD_DOWN:  case WXK_DOWN:
+            case '[':
+            case '\'':
             {
                 m_running = false;
                 m_up_action();
@@ -3584,12 +3586,24 @@ public:
                 apply = true;
                 break;
             }
+            case '[':
+            {
+                m_direction = Vec3d::UnitZ();
+                apply = true;
+                break;
+            }
+            case '\'':
+            {
+                m_direction = -Vec3d::UnitZ();
+                apply = true;
+                break;
+            }
             default: { break; }
             }
 
             if (apply) {
                 m_running = true;
-                m_down_action(m_direction, evt.ShiftDown(), evt.CmdDown());
+                m_down_action(m_direction, evt.ShiftDown(), evt.CmdDown(), evt.AltDown() && evt.CmdDown());
             }
         }
     }
@@ -3615,9 +3629,9 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
             refresh_camera_scene_box();
             m_dirty = true;
         },
-        [this](const Vec3d& direction, bool slow, bool camera_space) {
+        [this](const Vec3d& direction, bool slow, bool camera_space, bool fine) {
             m_selection.setup_cache();
-            double multiplier = slow ? 1.0 : 10.0;
+            double multiplier = fine ? 0.1 : (slow ? 1.0 : 10.0);
 
             Vec3d displacement;
             if (camera_space) {
@@ -3842,7 +3856,11 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
         && keyCode != WXK_LEFT
         && keyCode != WXK_UP
         && keyCode != WXK_RIGHT
-        && keyCode != WXK_DOWN) {
+        && keyCode != WXK_DOWN
+        && keyCode != WXK_HOME
+        && keyCode != WXK_END
+        && keyCode != WXK_NUMPAD_HOME
+        && keyCode != WXK_NUMPAD_END) {
         evt.Skip();   // Needed to have EVT_CHAR generated as well
     }
 }
