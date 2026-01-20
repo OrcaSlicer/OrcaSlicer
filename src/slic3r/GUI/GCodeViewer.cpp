@@ -320,15 +320,24 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         sprintf(buf, "X: %.3f, Y: %.3f, Z: %.3f Speed: %.0f ", vertex.position[0], vertex.position[1], vertex.position[2], vertex.feedrate);
         switch (view_type) {
             case libvgcode::EViewType::Height: {
-                sprintf(buf, "%s %s%.2f", buf, _u8L("Height: ").c_str(), vertex.height);
+                if (vertex.is_extrusion())
+                    sprintf(buf, "%s %s%.2f", buf, _u8L("Height: ").c_str(), vertex.height);
+                else
+                    sprintf(buf, "%s %s%s", buf, _u8L("Height: ").c_str(), _u8L("N/A").c_str());
                 break;
             }
             case libvgcode::EViewType::Width: {
-                sprintf(buf, "%s %s%.2f", buf, _u8L("Width: ").c_str(), vertex.width);
+                if (vertex.is_extrusion())
+                    sprintf(buf, "%s %s%.2f", buf, _u8L("Width: ").c_str(), vertex.width);
+                else
+                    sprintf(buf, "%s %s%s", buf, _u8L("Width: ").c_str(), _u8L("N/A").c_str());
                 break;
             }
             case libvgcode::EViewType::VolumetricFlowRate: {
-                sprintf(buf, "%s %s%.2f", buf, _u8L("Flow: ").c_str(), vertex.volumetric_rate());
+                if (vertex.is_extrusion())
+                    sprintf(buf, "%s %s%.2f", buf, _u8L("Flow: ").c_str(), vertex.volumetric_rate());
+                else
+                    sprintf(buf, "%s %s%s", buf, _u8L("Flow: ").c_str(), _u8L("N/A").c_str());
                 break;
             }
             case libvgcode::EViewType::FanSpeed: {
@@ -367,7 +376,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
         ImGuiWrapper::text(std::string(buf));
         if (view_type == libvgcode::EViewType::FeatureType) {
             ImGui::SameLine();
-            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, to_string(vertex.role).c_str());
+            ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, vertex.is_extrusion() ? to_string(vertex.role).c_str() : _u8L("N/A").c_str());
         }
         ImGui::SameLine();
         if (imgui.image_button(properties_shown ? ImGui::HorizontalHide : ImGui::HorizontalShow, properties_shown ? _u8L("Hide properties") : _u8L("Show properties"))) {
