@@ -11422,8 +11422,17 @@ msgstr "Fletxa cap a la dreta"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Moure la selecció 10 mm en direcció X positiva"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Moure la selecció 10 mm en direcció Z positiva"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Moure la selecció 10 mm en direcció Z negativa"
+
 msgid "Movement step set to 1 mm"
 msgstr "Pas de moviment configurat a 1 mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Pas de moviment configurat a 0.1 mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "teclat 1-9: establir filament per a objecte/peça"

@@ -10964,8 +10964,17 @@ msgstr "Стрілка праворуч"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Перемістити виділення на 10 мм у позитивному напрямку X"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Перемістити виділення на 10 мм у позитивному напрямку Z"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Перемістити виділення на 10 мм у негативному напрямку по осі Z"
+
 msgid "Movement step set to 1 mm"
 msgstr "Крок переміщення встановлено на 1 мм"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Крок переміщення встановлено на 0.1 мм"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "клавіатура 1-9: встановити філамент для об'єкта/деталі"

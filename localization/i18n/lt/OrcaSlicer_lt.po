@@ -11320,8 +11320,17 @@ msgstr "Rodyklė dešinėn"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Perkelti pasirinktą10 mm teigiama X kryptimi"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Perkelti pasirinktą10 mm teigiama Z kryptimi"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Perkelti pasirinktą10 mm neigiama Z kryptimi"
+
 msgid "Movement step set to 1 mm"
 msgstr "Judėjimo žingsnis nustatytas į 1 mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Judėjimo žingsnis nustatytas į 0.1 mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "klaviatūra 1-9: nustatyti objekto/dalies giją"

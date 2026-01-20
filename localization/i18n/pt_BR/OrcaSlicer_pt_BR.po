@@ -11403,8 +11403,17 @@ msgstr "Seta para direita"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Mover seleção 10 mm na direção X positiva"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Mover seleção 10 mm na direção Z positiva"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Mover seleção 10 mm na direção Z negativa"
+
 msgid "Movement step set to 1 mm"
 msgstr "Passo de movimento configurado para 1 mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Passo de movimento configurado para 0.1 mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Teclado 1-9: ajustar filamento para objeto/peça"

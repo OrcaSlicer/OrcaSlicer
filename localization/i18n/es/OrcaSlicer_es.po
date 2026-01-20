@@ -11560,8 +11560,17 @@ msgstr "Flecha hacia derecha"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Mover la selección 10 mm en dirección X positiva"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Mover la selección 10 mm en dirección Z positiva"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Mover la selección 10 mm en dirección Z negativa"
+
 msgid "Movement step set to 1 mm"
 msgstr "Paso de movimiento configurado a 1 mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Paso de movimiento configurado a 0.1 mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Teclado 1-9: ajustar el filamento para el objeto/pieza"

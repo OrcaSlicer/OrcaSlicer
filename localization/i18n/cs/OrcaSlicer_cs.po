@@ -11182,8 +11182,17 @@ msgstr "Šipka vpravo"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Přesuňte výběr o 10 mm v kladném směru osy X"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Posunout výběr o 10 mm v kladném směru Z"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Posunout výběr o 10 mm v záporném směru Z"
+
 msgid "Movement step set to 1 mm"
 msgstr "Krok pohybu nastaven na 1 mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Krok pro posun výběru o velikosti 0.1 mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Keyboard 1-9: set filament for object/part"

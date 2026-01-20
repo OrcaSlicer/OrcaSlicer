@@ -10430,8 +10430,17 @@ msgstr ""
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Move selection 10mm in positive X direction"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Move selection 10mm in positive Z direction"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Move selection 10mm in negative Z direction"
+
 msgid "Movement step set to 1 mm"
 msgstr "Movement step set to 1mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Movement step set to 0.1mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Keyboard 1-9: set filament for object/part"

@@ -11215,8 +11215,17 @@ msgstr "Pil Höger"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "Flytta markeringen 10mm i positiv X riktning"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "Flytta markeringen 10mm i positiv Z riktning"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "Flytta markeringen 10mm i negativ Z riktning"
+
 msgid "Movement step set to 1 mm"
 msgstr "Rörelse steg är vald till 1mm"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "Rörelse steg är vald till 0.1mm"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "tangentbord 1-9: fastställer filament för objekt/del"

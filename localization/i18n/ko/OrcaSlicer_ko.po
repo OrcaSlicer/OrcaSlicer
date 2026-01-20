@@ -10855,8 +10855,17 @@ msgstr "화살표 오른쪽으로"
 msgid "Move selection 10 mm in positive X direction"
 msgstr "선택 항목을 +X 방향으로 10mm 이동"
 
+msgid "Move selection 10 mm in positive Z direction"
+msgstr "선택 항목을 +Z 방향으로 10mm 이동"
+
+msgid "Move selection 10 mm in negative Z direction"
+msgstr "선택 항목을 -Z 방향으로 10mm 이동"
+
 msgid "Movement step set to 1 mm"
 msgstr "1mm로 이동"
+
+msgid "Movement step set to 0.1 mm"
+msgstr "0.1mm로 이동"
 
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "키보드 1-9: 객체/부품에 필라멘트 할당"
