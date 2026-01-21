@@ -2775,6 +2775,13 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("bed_temperature_initial_layer", new ConfigOptionInts(*first_bed_temp_opt));
         this->placeholder_parser().set("bed_temperature", new ConfigOptionInts(*bed_temp_opt));
         this->placeholder_parser().set("bed_temperature_initial_layer_single", new ConfigOptionInt(target_bed_temp));
+        // Add bed_temperature_single for non-first-layer bed temperature (mirrors bed_temperature_initial_layer_single)
+        int target_bed_temp_other = 0;
+        if (m_config.bed_temperature_formula == BedTempFormula::btfHighestTemp)
+            target_bed_temp_other = get_highest_bed_temperature(false, print);
+        else
+            target_bed_temp_other = get_bed_temperature(initial_extruder_id, false, curr_bed_type);
+        this->placeholder_parser().set("bed_temperature_single", new ConfigOptionInt(target_bed_temp_other));
         this->placeholder_parser().set("bed_temperature_initial_layer_vector", new ConfigOptionString());
         this->placeholder_parser().set("chamber_temperature", new ConfigOptionInts(m_config.chamber_temperature));
         this->placeholder_parser().set("overall_chamber_temperature", new ConfigOptionInt(max_chamber_temp));
@@ -4417,12 +4424,17 @@ LayerResult GCode::process_layer(
         }
 
         // BBS
+        // Check if the layer_change_gcode already sets bed temperature (e.g., for multi-zone heated beds)
+        // Only emit automatic bed temperature command if layer_change_gcode doesn't handle it
+        int temp_by_gcode = -1;
+        bool bed_temp_set_by_layer_gcode = custom_gcode_sets_temperature(m_config.layer_change_gcode.value, 140, 190, false, temp_by_gcode);
         int bed_temp = 0;
         if (m_config.bed_temperature_formula == BedTempFormula::btfHighestTemp)
             bed_temp = get_highest_bed_temperature(false,print);
         else
             bed_temp = get_bed_temperature(first_extruder_id, false, m_config.curr_bed_type);
-        gcode += m_writer.set_bed_temperature(bed_temp);
+        if (!bed_temp_set_by_layer_gcode)
+            gcode += m_writer.set_bed_temperature(bed_temp);
         // Mark the temperature transition from 1st to 2nd layer to be finished.
         m_second_layer_things_done = true;
     }
