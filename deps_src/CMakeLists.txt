@@ -8,6 +8,7 @@ add_subdirectory(agg)
 add_subdirectory(ankerl)
 add_subdirectory(earcut)
 add_subdirectory(fast_float)
+add_subdirectory(glaze)
 add_subdirectory(nanosvg)
 add_subdirectory(nlohmann)
 add_subdirectory(stb_dxt)     # Header-only STB DXT compression library
