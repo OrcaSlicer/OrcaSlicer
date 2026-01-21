@@ -1273,6 +1273,9 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 
             params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
 
+        } else if (surface_fill.params.pattern == ipZigZag) {
+            params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
+
         }
 		if (surface_fill.params.pattern == ipGrid)
 			params.can_reverse = false;
