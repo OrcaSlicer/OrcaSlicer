@@ -139,7 +139,7 @@ TEST_CASE("Fill: Pattern Path Length", "[Fill]") {
         }
     }
 
-    #if 0   // Disabled temporarily due to precission issues on the Mac VM
+    #if 0   // Disabled temporarily due to precision issues on the Mac VM
     SECTION("Solid surface fill") {
         Slic3r::Points points {
             Point::new_scale(6883102, 9598327.01296997),

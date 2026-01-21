@@ -37,7 +37,7 @@ enum class TestMesh {
     two_hollow_squares
 };
 
-// Neccessary for <c++17
+// Necessary for <c++17
 struct TestMeshHash {
     std::size_t operator()(TestMesh tm) const {
         return static_cast<std::size_t>(tm);

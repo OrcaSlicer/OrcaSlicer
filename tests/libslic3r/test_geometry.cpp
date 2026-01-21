@@ -170,7 +170,7 @@ TEST_CASE("Bounding boxes are scaled appropriately", "[Geometry]"){
 }
 
 
-TEST_CASE("Offseting a line generates a polygon correctly", "[Geometry]"){
+TEST_CASE("Offsetting a line generates a polygon correctly", "[Geometry]"){
 	Slic3r::Polyline tmp = { Point(10,10), Point(20,10) };
     Slic3r::Polygon area = offset(tmp,5).at(0);
     REQUIRE(area.area() == Slic3r::Polygon(Points({Point(10,5),Point(20,5),Point(20,15),Point(10,15)})).area());

@@ -3,7 +3,7 @@
 
 # PrusaSlicer specifics:
 # This file is backported from CMake 3.15 distribution to behave uniformly
-# across all versions of CMake. It explicitly adds GLEW_STATIC complile 
+# across all versions of CMake. It explicitly adds GLEW_STATIC compile 
 # definition to static targets which is needed to prevent link errors.
 
 #[=======================================================================[.rst:
