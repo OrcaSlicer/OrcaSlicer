@@ -6395,12 +6395,21 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         exist_preset = true;
     }
 
-    Preset* _current_printer = nullptr;
+    Preset* _curr_preset = nullptr;
     if (m_presets->type() == Preset::TYPE_FILAMENT) {
-        _current_printer = const_cast<Preset*>(&wxGetApp().preset_bundle->printers.get_selected_preset_base());
+        // Orca: check if compatible_printers/prints exists and is not empty, set it to the current printer/print if it is empty
+        // When the checkbox is TRUE (i.e., compatible with ALL), the list is already emptied on_toggle
+        if (!m_compatible_printers.checkbox->GetValue()) {
+            _curr_preset = const_cast<Preset*>(&wxGetApp().preset_bundle->printers.get_selected_preset_base());
+            this->load_key_value(m_compatible_printers.key_list, std::vector<std::string> { _curr_preset->name });
+        }
+        if (!m_compatible_prints.checkbox->GetValue()) {
+            _curr_preset = const_cast<Preset*>(&wxGetApp().preset_bundle->prints.get_selected_preset_base());
+            this->load_key_value(m_compatible_prints.key_list, std::vector<std::string> { _curr_preset->name });
+        }
     }
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.json
-    m_presets->save_current_preset(name, detach, save_to_project, nullptr, _current_printer);
+    m_presets->save_current_preset(name, detach, save_to_project, nullptr);
 
     //BBS create new settings
     new_preset = m_presets->find_preset(name, false, true);
