@@ -6387,7 +6387,8 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     }
 
     //BBS record current preset name
-    std::string curr_preset_name = m_presets->get_edited_preset().name;
+    Preset& edited_preset = m_presets->get_edited_preset();
+    std::string curr_preset_name = edited_preset.name;
 
     bool exist_preset = false;
     Preset* new_preset = m_presets->find_preset(name, false);
@@ -6395,12 +6396,17 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         exist_preset = true;
     }
 
-    Preset* _current_printer = nullptr;
-    if (m_presets->type() == Preset::TYPE_FILAMENT) {
-        _current_printer = const_cast<Preset*>(&wxGetApp().preset_bundle->printers.get_selected_preset_base());
+    // Orca: check if compatible_printers exists and is not empty, set it to the current printer if it is empty
+    // Ensures that custom filaments based on system are not accidentally allowed for all printers
+    // Can still be set for all after creation
+    if (m_presets->type() == Preset::TYPE_FILAMENT && !exist_preset && edited_preset.is_system) {
+        Preset* _curr_printer = const_cast<Preset*>(&wxGetApp().preset_bundle->printers.get_selected_preset_base());
+        ConfigOptionStrings* compatible_printers = m_config->option<ConfigOptionStrings>("compatible_printers");
+        if (nullptr != _curr_printer && compatible_printers && compatible_printers->values.empty())
+            compatible_printers->values.push_back(_curr_printer->name);
     }
     // Save the preset into Slic3r::data_dir / presets / section_name / preset_name.json
-    m_presets->save_current_preset(name, detach, save_to_project, nullptr, _current_printer);
+    m_presets->save_current_preset(name, detach, save_to_project, nullptr);
 
     //BBS create new settings
     new_preset = m_presets->find_preset(name, false, true);
