@@ -3145,9 +3145,20 @@ bool Sidebar::is_new_project_in_gcode3mf()
 
 void Sidebar::on_bed_type_change(BedType bed_type)
 {
-    // btDefault option is not included in global bed type setting
-    int sel_idx = (int)bed_type - 1;
-    if (p->combo_printer_bed != nullptr) p->combo_printer_bed->SetSelection(sel_idx);
+    // Orca: Map BedType to the current combo list (some printers filter types).
+
+    if (p->combo_printer_bed == nullptr)
+        return;
+
+    for (size_t i = 0; i < m_cur_combox_bed_types.size(); ++i) {
+        if (m_cur_combox_bed_types[i] == bed_type) {
+            p->combo_printer_bed->SetSelection(int(i));
+            return;
+        }
+    }
+
+    if (!m_cur_combox_bed_types.empty())
+        p->combo_printer_bed->SetSelection(0);
 }
 
 std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject* obj)
