@@ -12066,6 +12066,8 @@ void Plater::calib_pa(const Calib_Params& params)
     const auto calib_pa_name = wxString::Format(L"Pressure Advance Test");
     new_project(false, false, calib_pa_name);
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
+    auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     switch (params.mode) {
         case CalibMode::Calib_PA_Line:
             add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.stl");
@@ -12078,9 +12080,6 @@ void Plater::calib_pa(const Calib_Params& params)
             break;
         default: break;
     }
-    auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
-    printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
-    printer_config->set_key_value("overhang_reverse", new ConfigOptionBool(false));
     p->background_process.fff_print()->set_calib_params(params);
 }
 
