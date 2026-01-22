@@ -2672,7 +2672,7 @@ void PrintObject::bridge_over_infill()
                 }
             }
             if (window_end_angle > 1.5 * PI) {
-                // ORCA: Handle wrap-around (1.5 PI boundary) to ensure robust angle detection on rotation.
+ 
                 for (auto dirs_window = counted_directions.begin();
                      dirs_window != counted_directions.upper_bound(0.5 * PI + (window_end_angle - 1.5 * PI)); dirs_window++) {
                     dir_acc += (dirs_window->first + PI) * dirs_window->second;
