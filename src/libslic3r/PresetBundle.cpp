@@ -13,6 +13,7 @@
 #include <set>
 #include <fstream>
 #include <unordered_set>
+#include <future>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/clamp.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -4045,13 +4046,135 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
         return reason;
     };
 
+    struct SubfileHeader
+    {
+        std::string name;
+        std::string inherits;
+        std::string instantiation;
+        std::string reason;
+        bool        valid {true};
+    };
+
+    auto scan_and_sort_subfiles = [this, path, vendor_name](
+        const std::vector<std::pair<std::string, std::string>> &subfiles,
+        std::vector<std::pair<std::string, std::string>> &      ordered,
+        const char *                                            label) -> bool {
+        if (subfiles.size() <= 1) {
+            ordered = subfiles;
+            return true;
+        }
+
+        std::vector<SubfileHeader> headers(subfiles.size());
+        std::atomic<size_t>        next_index {0};
+        const size_t               max_threads = std::max<size_t>(1, std::thread::hardware_concurrency());
+        const size_t               worker_count = std::min(max_threads, subfiles.size());
+        std::vector<std::future<void>> workers;
+        workers.reserve(worker_count);
+
+        for (size_t t = 0; t < worker_count; ++t) {
+            workers.emplace_back(std::async(std::launch::async, [&]() {
+                for (;;) {
+                    size_t idx = next_index.fetch_add(1);
+                    if (idx >= subfiles.size())
+                        break;
+                    const auto &subfile_iter = subfiles[idx];
+                    std::string subfile = path + "/" + vendor_name + "/" + subfile_iter.second;
+                    try {
+                        boost::nowide::ifstream ifs(subfile);
+                        json j;
+                        ifs >> j;
+                        for (auto it = j.begin(); it != j.end(); it++) {
+                            if (boost::iequals(it.key(), BBL_JSON_KEY_NAME))
+                                headers[idx].name = it.value();
+                            else if (boost::iequals(it.key(), BBL_JSON_KEY_INHERITS))
+                                headers[idx].inherits = it.value();
+                            else if (boost::iequals(it.key(), BBL_JSON_KEY_INSTANTIATION))
+                                headers[idx].instantiation = it.value();
+                        }
+                        if (headers[idx].name.empty()) {
+                            headers[idx].valid = false;
+                            headers[idx].reason = "missing name";
+                        }
+                    }
+                    catch (const std::exception &err) {
+                        headers[idx].valid = false;
+                        headers[idx].reason = err.what();
+                    }
+                }
+            }));
+        }
+        for (auto &worker : workers)
+            worker.get();
+
+        bool all_valid = true;
+        for (const auto &header : headers) {
+            if (!header.valid) {
+                all_valid = false;
+                break;
+            }
+        }
+        if (!all_valid) {
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1% prescan skipped due to invalid header") % label;
+            ordered = subfiles;
+            return false;
+        }
+
+        std::unordered_map<std::string, size_t> name_to_index;
+        name_to_index.reserve(headers.size());
+        for (size_t i = 0; i < headers.size(); ++i) {
+            if (!headers[i].name.empty())
+                name_to_index.emplace(headers[i].name, i);
+        }
+
+        std::vector<int>  state(headers.size(), 0);
+        std::vector<size_t> ordered_indices;
+        ordered_indices.reserve(headers.size());
+        bool cycle = false;
+
+        std::function<void(size_t)> dfs = [&](size_t i) {
+            if (state[i] == 2)
+                return;
+            if (state[i] == 1) {
+                cycle = true;
+                return;
+            }
+            state[i] = 1;
+            const std::string &parent = headers[i].inherits;
+            if (!parent.empty()) {
+                auto it = name_to_index.find(parent);
+                if (it != name_to_index.end())
+                    dfs(it->second);
+            }
+            state[i] = 2;
+            ordered_indices.push_back(i);
+        };
+
+        for (size_t i = 0; i < headers.size(); ++i)
+            if (state[i] == 0)
+                dfs(i);
+
+        if (cycle || ordered_indices.size() != headers.size()) {
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": %1% prescan detected cycle, using original order") % label;
+            ordered = subfiles;
+            return false;
+        }
+
+        ordered.clear();
+        ordered.reserve(subfiles.size());
+        for (auto idx : ordered_indices)
+            ordered.push_back(subfiles[idx]);
+        return true;
+    };
+
     std::map<std::string, DynamicPrintConfig> configs;
     std::map<std::string, std::string> filament_id_maps;
     //3.1) paste the process
     presets = &this->prints;
     configs.clear();
     filament_id_maps.clear();
-    for (auto& subfile : process_subfiles)
+    std::vector<std::pair<std::string, std::string>> ordered_process_subfiles;
+    scan_and_sort_subfiles(process_subfiles, ordered_process_subfiles, "process");
+    for (auto& subfile : ordered_process_subfiles)
     {
         std::string reason = parse_subfile(substitution_context, substitutions, flags, subfile, configs, filament_id_maps, presets, presets_loaded);
         if (!reason.empty()) {
@@ -4068,7 +4191,9 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     configs.clear();
     filament_id_maps.clear();
     const auto is_orca_lib = vendor_name == ORCA_FILAMENT_LIBRARY;
-    for (auto& subfile : filament_subfiles)
+    std::vector<std::pair<std::string, std::string>> ordered_filament_subfiles;
+    scan_and_sort_subfiles(filament_subfiles, ordered_filament_subfiles, "filament");
+    for (auto& subfile : ordered_filament_subfiles)
     {
         std::string reason = parse_subfile(substitution_context, substitutions, flags, subfile, configs, filament_id_maps, presets,
                                            presets_loaded, is_orca_lib);
@@ -4089,7 +4214,9 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     presets = &this->printers;
     configs.clear();
     filament_id_maps.clear();
-    for (auto& subfile : machine_subfiles)
+    std::vector<std::pair<std::string, std::string>> ordered_machine_subfiles;
+    scan_and_sort_subfiles(machine_subfiles, ordered_machine_subfiles, "printer");
+    for (auto& subfile : ordered_machine_subfiles)
     {
         std::string reason = parse_subfile(substitution_context, substitutions, flags, subfile, configs, filament_id_maps, presets, presets_loaded);
         if (!reason.empty()) {
