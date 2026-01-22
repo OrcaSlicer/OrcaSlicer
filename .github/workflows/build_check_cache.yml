@@ -33,7 +33,7 @@ jobs:
       - name: set outputs
         id: set_outputs
         env:
-          dep-folder-name: ${{ inputs.os != 'macos-14' && '/OrcaSlicer_dep' || '' }}
+          dep-folder-name: ${{ inputs.os != 'orca-macos-arm64' && '/OrcaSlicer_dep' || '' }}
           output-cmd: ${{ inputs.os == 'windows-latest' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
           echo cache-key=${{ inputs.os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
