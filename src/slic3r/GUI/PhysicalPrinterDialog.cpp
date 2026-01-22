@@ -210,6 +210,42 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
         return sizer;
     };
 
+
+    auto ultimaker_generate_creds = [=](wxWindow* parent) {
+        auto sizer = create_sizer_with_btn(parent, &m_printhost_generate_creds_btn, "ultimaker_generate_creds", _L("Generate API Key"));
+
+        m_printhost_generate_creds_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
+            std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
+            if (!host) {
+                const wxString text = _L("Could not get a valid Printer Host reference");
+                show_error(this, text);
+                return;
+            }
+
+            wxString msg = "generate_auth_creds";
+            bool result;
+            {
+                // Show a wait cursor during the connection test, as it is blocking UI.
+                wxBusyCursor wait;
+                // Send request to printer for api key and such
+                result = host->test(msg); // using test with special input because I don't want to create the generate_auth_creds func for every printer
+
+                // Prompt user to approve access on the machine.
+                show_info(this, "API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again.", "API Key created.");
+                
+            }
+            if (result)
+                show_info(this, host->get_test_ok_msg(), _L("Success!"));
+            else
+                show_error(this, host->get_test_failed_msg(msg));
+
+            update();
+            });
+
+        return sizer;
+    };
+
+
     auto print_host_logout = [&](wxWindow* parent) {
         auto sizer = create_sizer_with_btn(parent, &m_printhost_logout_btn, "", _L("Log Out"));
 
@@ -248,6 +284,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     Line host_line = m_optgroup->create_single_option_line(option);
     host_line.append_widget(printhost_browse);
     host_line.append_widget(print_host_test);
+    host_line.append_widget(ultimaker_generate_creds);
     host_line.append_widget(print_host_logout);
     m_optgroup->append_line(host_line);
 
@@ -446,6 +483,9 @@ void PhysicalPrinterDialog::update_printhost_buttons()
     std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
     if (host) {
         m_printhost_test_btn->Enable(!m_config->opt_string("print_host").empty() && host->can_test());
+        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && strcmp( host->get_name(), 'Ultimaker') == 0);
+        // m_printhost_generate_creds_btn->Show(strcmp( host->get_name(), 'Ultimaker') == 0);
+        // m_printhost_generate_creds_btn->SetLabel(host->is_cloud() ? _L("Generate API Key") : _L("Generate API Key"));
         m_printhost_browse_btn->Show(host->has_auto_discovery());
         m_printhost_logout_btn->Show(host->is_logged_in());
         m_printhost_test_btn->SetLabel(host->is_cloud() ? _L("Login/Test") : _L("Test"));
@@ -547,8 +587,13 @@ void PhysicalPrinterDialog::update(bool printer_change)
         m_optgroup->hide_field("bbl_use_print_host_webui");
         m_optgroup->enable_field("printhost_cafile");
         m_optgroup->enable_field("printhost_ssl_ignore_revoke");
-        if (m_printhost_cafile_browse_btn)
-            m_printhost_cafile_browse_btn->Enable();
+        if (m_printhost_cafile_browse_btn) { m_printhost_cafile_browse_btn->Enable(); }
+        
+        // m_optgroup->hide_field("ultimaker_generate_creds");
+        // m_optgroup->hide_field("m_printhost_generate_creds_btn");
+        // m_printhost_generate_creds_btn->Enable(!m_config->opt_string("print_host").empty() && opt->value == htUltimaker);
+        // m_printhost_generate_creds_btn->Show(opt->value == htUltimaker);
+        // if (m_printhost_generate_creds_btn) { m_printhost_generate_creds_btn->Disable(); }
 
         // hide pre-configured address, in case user switched to a different host type
         if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
@@ -635,7 +680,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
             }
         
         if (opt->value == htUltimaker) {
-                m_optgroup->hide_field("printhost_apikey");
+                m_optgroup->show_field("printhost_apikey");
                 m_optgroup->hide_field("printhost_authorization_type");
                 m_optgroup->enable_field("print_host");
                 m_optgroup->show_field("print_host_webui");
@@ -643,6 +688,10 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->hide_field("printhost_cafile");
                 if (m_printhost_cafile_browse_btn) {
                     m_printhost_cafile_browse_btn->Disable();
+                }
+                m_optgroup->show_field("ultimaker_generate_creds");
+                if (m_printhost_generate_creds_btn) {
+                    m_printhost_generate_creds_btn->Enable();
                 }
             }
     }
@@ -726,6 +775,7 @@ void PhysicalPrinterDialog::on_dpi_changed(const wxRect& suggested_rect)
 
     m_printhost_browse_btn->Rescale();
     m_printhost_test_btn->Rescale();
+    m_printhost_generate_creds_btn->Rescale();
     m_printhost_logout_btn->Rescale();
     if (m_printhost_cafile_browse_btn)
         m_printhost_cafile_browse_btn->Rescale();

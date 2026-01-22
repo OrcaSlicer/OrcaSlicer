@@ -28,8 +28,29 @@ namespace pt = boost::property_tree;
 namespace Slic3r {
 
 Ultimaker::Ultimaker(DynamicPrintConfig *config) :
+	
+	m_host(config->opt_string("print_host")),
 	host(config->opt_string("print_host")),
-	password(config->opt_string("printhost_apikey"))
+	// password(config->opt_string("printhost_apikey")),
+	// m_host(config->opt_string("print_host")),
+    m_apikey(config->opt_string("printhost_apikey"))
+    // m_cafile(config->opt_string("printhost_cafile")),
+	// m_authorization_type(config->opt_string("printhost_authorization_type"))
+	// m_authorization_type(config->option<ConfigOptionEnum<AuthorizationType>>("printhost_authorization_type")->value)
+    // m_username(config->opt_string("printhost_user")),
+    // m_password(config->opt_string("printhost_password")),
+    // m_ssl_revoke_best_effort(config->opt_bool("printhost_ssl_ignore_revoke"))
+
+	/*
+	m_host(config->opt_string("print_host")),
+    m_apikey(config->opt_string("printhost_apikey")),
+    m_cafile(config->opt_string("printhost_cafile")),
+    m_ssl_revoke_best_effort(config->opt_bool("printhost_ssl_ignore_revoke")),
+
+	m_authorization_type(config->option<ConfigOptionEnum<AuthorizationType>>("printhost_authorization_type")->value),
+    m_username(config->opt_string("printhost_user")),
+    m_password(config->opt_string("printhost_password"))
+	*/
 {}
 
 const char* Ultimaker::get_name() const { return "Ultimaker"; }
@@ -37,6 +58,14 @@ const char* Ultimaker::get_name() const { return "Ultimaker"; }
 // Modified from OctoPrint::test in OctoPrint.cpp
 bool Ultimaker::test(wxString &msg) const
 {
+
+	// If called with specific arg, just generate the auth creds.
+	if (msg == "generate_auth_creds") {
+		BOOST_LOG_TRIVIAL(warning) << "Ultimaker: test called with generate_auth_creds! Generating the auth credentials.";
+		this->generate_auth_creds();
+		return true;
+	}
+
 	// auto connectionType = connect(msg);
 	// disconnect(connectionType);
 
@@ -62,6 +91,7 @@ bool Ultimaker::test(wxString &msg) const
         msg = format_error(body, error, status);
         })
         .on_complete([&, this](std::string body, unsigned) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: url completed without error: %1%") % url;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got system variant: %2%") % name % body;
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; // DEBUG
 
@@ -101,7 +131,8 @@ bool Ultimaker::test(wxString &msg) const
 	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; //DEBUG
     BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Now doing authentication test.") % name;
 	std::string auth_result = test_auth();
-    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Result: %2%") % name % auth_result;
+	if ( not(boost::starts_with(auth_result,"OK")) ) { msg = auth_result; res = false; };
+    BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth test result: %2%") % name % auth_result;
 	
     return res;
 }
@@ -122,17 +153,18 @@ wxString Ultimaker::get_test_failed_msg (wxString &msg) const
 
 
 #pragma region Auth
-// Copied over from PrusaLink::set_auth in OctoPrint.cpp
+// Modified from PrusaLink::set_auth in OctoPrint.cpp
 void Ultimaker::set_auth(Http& http) const
 {
-    switch (m_authorization_type) {
-    case atKeyPassword:
-        http.header("X-Api-Key", get_apikey());
-        break;
-    case atUserPassword:
-        http.auth_digest(m_username, m_password);
-        break;
-    };
+    // switch (m_authorization_type) {
+    // case atKeyPassword:
+		BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: set_auth, api key of %1%") % get_apikey();
+        // http.header("X-Api-Key", get_apikey());
+        // break;
+    // case atUserPassword:
+    http.auth_digest("OrcaSlicer", m_apikey);
+    //     break;
+    // };
 
     // if (!get_cafile().empty()) {
     //     http.ca_file(get_cafile());
@@ -141,28 +173,81 @@ void Ultimaker::set_auth(Http& http) const
 
 
 bool Ultimaker::has_auth_creds() const{
-	// TODO: implement. True if has authentication credentials, false otherwise
-	return false;
+	// True if has authentication credentials, false otherwise
+	return not(m_apikey.empty());
 }
 
 
 bool Ultimaker::is_authorized() const{
-	//auto url = get_connect_url(false);
-	//auto http = Http::get(std::move(url));
+	// auto url = get_connect_url(false);
+	// auto http = Http::get(std::move(url));
 
-	// TODO: Implement this
-	return false;
+	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: is_authorized() attempting to see if creds are valid.");
+
+    const char* name = get_name();
+
+    bool res = true;
+    auto url = (boost::format("http://%1%/api/v1/auth/verify") % host).str();
+
+    auto http = Http::get(std::move(url));
+    set_auth(http);
+    http.on_error([&](std::string body, std::string error, unsigned status) {
+        BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Error verifying credentials: %2%, HTTP %3%, body: `%4%`") % name % error % status % body;
+		res = false;
+
+		if (status == 403 || body == "{\"message\": \"Authorization required.\"}") {
+			// TODO: add logic for returning err to user dialog msg
+		}
+
+        })
+        .on_complete([&, this](std::string body, unsigned) {
+            BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: url completed without error: %1%") % url;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Got credential verification: %2%") % name % body;
+            BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth] res=%2%") % name % res; // DEBUG
+
+            try {
+                /*std::stringstream ss(body);
+                pt::ptree ptree;
+                pt::read_json(ss, ptree);
+
+                if (!ptree.get_optional<std::string>("api")) {
+                    res = false;
+                    return;
+                }
+
+				const auto text = ptree.get_optional<std::string>("text");*/
+
+				// Validate that response is correct ("Ultimaker 3", "Ultimaker 3 extended" or "Ultimaker S5")
+				res = (boost::starts_with(body, "\"ok\""));
+            }
+            catch (const std::exception &) {
+                res = false;
+				BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error") % name;
+				// BOOST_LOG_TRIVIAL(error) << boost::format("%1%: Caught error: %2%") % name % e;
+            }
+        })
+#ifdef WIN32
+        .ssl_revoke_best_effort(m_ssl_revoke_best_effort)
+        .on_ip_resolve([&](std::string address) {
+            // Workaround for Windows 10/11 mDNS resolve issue, where two mDNS resolves in succession fail.
+            // Remember resolved address to be reused at successive REST API call.
+            // msg = GUI::from_u8(address);
+        })
+#endif // WIN32
+        .perform_sync();
 	
-
+	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth] res=%2%") % name % res; //DEBUG
+	return res;
 }
 
 
-std::string Ultimaker::generate_auth_creds() {
+std::string Ultimaker::generate_auth_creds() const {
 	//TODO: Implement.
 	// Send POST request to generate creds
 	// Get the ID and key from the request
 	// Wait for user to authorize on the physical machine
 	// Return the result.
+	BOOST_LOG_TRIVIAL(warning) << "Ultimaker: generate_auth_creds called!";
 	return "Unimplemeneted.";
 }
 
@@ -175,11 +260,11 @@ std::string Ultimaker::test_auth() const {
 	Returns "OK" if no errors and creds are valid.
 	*/
 	const char* name = get_name();
-	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Testing auth.") % name;
+	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Testing for presence of auth creds...") % name;
 
 	// Auth credentials are alreay existing (user-entered)
 	if (has_auth_creds()) {
-		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials found.") % name;
+		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Has auth credentials. Testing validity...") % name;
 
 		if (is_authorized()) {
 			BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials are valid. Returning OK") % name;
@@ -187,14 +272,15 @@ std::string Ultimaker::test_auth() const {
 
 		} else {
 			BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials are INVALID.") % name;
-			return "Invalid Credentials";
+			return "Invalid authentication credentials";
 		}
 	} else { // Auth credentials do not exist
 		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Auth credentials do NOT already exist.") % name;
+		BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: TODO: create generateAuthCreds logic.") % name;
 		//TODO create the auth creds
 		// generateAuthCreds(); // NOT a cost member function, what to do? Add another button?
 
-		return "OK";
+		return "Error: No authentication credentials found!";
 	}
 
 }

@@ -25,7 +25,7 @@ public:
 
 	bool has_auth_creds() const;
 	bool is_authorized() const;
-	std::string generate_auth_creds();
+	std::string generate_auth_creds() const;
 	std::string test_auth() const;
 
 	bool upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const override;
@@ -34,18 +34,20 @@ public:
     PrintHostPostUploadActions get_post_upload_actions() const override { return PrintHostPostUploadAction::StartPrint | PrintHostPostUploadAction::StartSimulation; }
 	std::string get_host() const override { return host; }
 	const std::string& get_apikey() const { return m_apikey; }
-    const std::string& get_cafile() const { return m_cafile; }
+    // const std::string& get_cafile() const { return m_cafile; }
 
 protected:
 	// Host authorization type.
-	AuthorizationType m_authorization_type;
-	// username and password for HTTP Digest Authentization (RFC RFC2617)
-	std::string m_username;
-	std::string m_password;
+    // AuthorizationType m_authorization_type;
+    // username and password for HTTP Digest Authentization (RFC RFC2617)
+    // std::string m_username;
+    // std::string m_password;
 
 	std::string m_host;
     std::string m_apikey;
-    std::string m_cafile;
+    // std::string m_cafile;
+
+	// bool m_ssl_revoke_best_effort;
    
 private:
 	enum class ConnectionType { rrf, dsf, error };
