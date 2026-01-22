@@ -12080,6 +12080,7 @@ void Plater::calib_pa(const Calib_Params& params)
     }
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
+    printer_config->set_key_value("overhang_reverse", new ConfigOptionBool(false));
     p->background_process.fff_print()->set_calib_params(params);
 }
 
