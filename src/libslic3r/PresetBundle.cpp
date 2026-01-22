@@ -4050,12 +4050,11 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
     {
         std::string name;
         std::string inherits;
-        std::string instantiation;
         std::string reason;
         bool        valid {true};
     };
 
-    auto scan_and_sort_subfiles = [this, path, vendor_name](
+    auto scan_and_sort_subfiles = [&path, &vendor_name](
         const std::vector<std::pair<std::string, std::string>> &subfiles,
         std::vector<std::pair<std::string, std::string>> &      ordered,
         const char *                                            label) -> bool {
@@ -4074,7 +4073,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
         for (size_t t = 0; t < worker_count; ++t) {
             workers.emplace_back(std::async(std::launch::async, [&]() {
                 for (;;) {
-                    size_t idx = next_index.fetch_add(1);
+                    size_t idx = next_index.fetch_add(1, std::memory_order_relaxed);
                     if (idx >= subfiles.size())
                         break;
                     const auto &subfile_iter = subfiles[idx];
@@ -4083,14 +4082,11 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                         boost::nowide::ifstream ifs(subfile);
                         json j;
                         ifs >> j;
-                        for (auto it = j.begin(); it != j.end(); it++) {
-                            if (boost::iequals(it.key(), BBL_JSON_KEY_NAME))
-                                headers[idx].name = it.value();
-                            else if (boost::iequals(it.key(), BBL_JSON_KEY_INHERITS))
-                                headers[idx].inherits = it.value();
-                            else if (boost::iequals(it.key(), BBL_JSON_KEY_INSTANTIATION))
-                                headers[idx].instantiation = it.value();
-                        }
+                        // Only read the fields we need for dependency ordering
+                        if (j.contains(BBL_JSON_KEY_NAME))
+                            headers[idx].name = j[BBL_JSON_KEY_NAME].get<std::string>();
+                        if (j.contains(BBL_JSON_KEY_INHERITS))
+                            headers[idx].inherits = j[BBL_JSON_KEY_INHERITS].get<std::string>();
                         if (headers[idx].name.empty()) {
                             headers[idx].valid = false;
                             headers[idx].reason = "missing name";
@@ -4126,16 +4122,17 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 name_to_index.emplace(headers[i].name, i);
         }
 
-        std::vector<int>  state(headers.size(), 0);
+        std::vector<int>  state(headers.size(), 0);  // 0=unvisited, 1=in-progress, 2=done
         std::vector<size_t> ordered_indices;
         ordered_indices.reserve(headers.size());
         bool cycle = false;
 
         std::function<void(size_t)> dfs = [&](size_t i) {
-            if (state[i] == 2)
+            if (cycle || state[i] == 2)
                 return;
             if (state[i] == 1) {
                 cycle = true;
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": cycle detected at preset '%1%'") % headers[i].name;
                 return;
             }
             state[i] = 1;
@@ -4145,8 +4142,10 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
                 if (it != name_to_index.end())
                     dfs(it->second);
             }
-            state[i] = 2;
-            ordered_indices.push_back(i);
+            if (!cycle) {
+                state[i] = 2;
+                ordered_indices.push_back(i);
+            }
         };
 
         for (size_t i = 0; i < headers.size(); ++i)
