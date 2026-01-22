@@ -1,0 +1,21 @@
+{
+    "type": "process",
+    "name": "0.32mm SPEED @CORE One L 0.6",
+    "inherits": "0.32mm SPEED @MK4S 0.6",
+    "from": "system",
+    "instantiation": "true",
+    "overhang_2_4_speed": "30",
+    "overhang_3_4_speed": "70%",
+    "travel_speed": "500",
+    "travel_acceleration": "6000",
+    "default_acceleration": "3000",
+    "support_interface_top_layers": "3",
+    "initial_layer_infill_speed": "70",
+    "initial_layer_speed": "45",
+    "internal_solid_infill_acceleration": "6000",
+    "sparse_infill_acceleration": "7000",
+    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE_L[^_a-zA-Z0-9].*/ and nozzle_diameter[0]==0.6 and printer_notes!~/.*HF_NOZZLE.*/",
+    "inner_wall_acceleration": "6000",
+    "outer_wall_acceleration": "3000",
+    "top_surface_acceleration": "2000"
+}

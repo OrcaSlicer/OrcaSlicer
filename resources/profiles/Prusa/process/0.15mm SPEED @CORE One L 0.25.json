@@ -1,0 +1,14 @@
+{
+    "type": "process",
+    "name": "0.15mm SPEED @CORE One L 0.25",
+    "inherits": "0.15mm SPEED @MK4S 0.25",
+    "from": "system",
+    "instantiation": "true",
+    "travel_acceleration": "4000",
+    "travel_speed": "500",
+    "default_acceleration": "3000",
+    "support_interface_top_layers": "3",
+    "initial_layer_infill_speed": "45",
+    "initial_layer_speed": "25",
+    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE_L[^_a-zA-Z0-9].*/ and nozzle_diameter[0]==0.25"
+}
