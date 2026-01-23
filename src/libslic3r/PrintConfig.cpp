@@ -1234,6 +1234,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("relative_bridge_angle", coBool);
+    def->label = L("Relative bridge angle");
+    def->category = L("Strength");
+    def->tooltip = L("When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");
     def->category = L("Strength");

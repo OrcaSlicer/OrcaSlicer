@@ -517,10 +517,19 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     SurfaceCollection bridges;
     {
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges. layer" << this->layer()->print_z;
-        const double custom_angle = this->region().config().bridge_angle.value;
-        bridges.surfaces = custom_angle > 0 ?
-            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, Geometry::deg2rad(custom_angle)) :
+        const auto  &region_config   = this->region().config();
+        const double custom_angle_deg = region_config.bridge_angle.value;
+        const bool   relative_angle   = region_config.relative_bridge_angle.value;
+        const double custom_angle_rad = Geometry::deg2rad(custom_angle_deg);
+        bridges.surfaces = (custom_angle_deg > 0 && !relative_angle) ?
+            expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_angle_rad) :
             expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius);
+        if (custom_angle_deg > 0 && relative_angle) {
+            for (Surface &bridge_surface : bridges.surfaces) {
+                if (bridge_surface.bridge_angle >= 0)
+                    bridge_surface.bridge_angle += custom_angle_rad;
+            }
+        }
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges - done";
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
         {
@@ -782,12 +791,17 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 // would get merged into a single one while they need different directions
                 // also, supply the original expolygon instead of the grown one, because in case
                 // of very thin (but still working) anchors, the grown expolygon would go beyond them
-                double custom_angle = Geometry::deg2rad(this->region().config().bridge_angle.value);
-                if (custom_angle > 0.0) {
-                    bridges[idx_last].bridge_angle = custom_angle;
+                const auto &region_config   = this->region().config();
+                const double custom_angle_deg = region_config.bridge_angle.value;
+                const bool   relative_angle   = region_config.relative_bridge_angle.value;
+                const double custom_angle_rad = Geometry::deg2rad(custom_angle_deg);
+                if (custom_angle_deg > 0.0 && !relative_angle) {
+                    bridges[idx_last].bridge_angle = custom_angle_rad;
                 } else {
                     auto [bridging_dir, unsupported_dist] = detect_bridging_direction(to_polygons(initial), to_polygons(lower_layer->lslices));
                     bridges[idx_last].bridge_angle = PI + std::atan2(bridging_dir.y(), bridging_dir.x());
+                    if (custom_angle_deg > 0.0 && relative_angle)
+                        bridges[idx_last].bridge_angle += custom_angle_rad;
                 }
 
                 /*
