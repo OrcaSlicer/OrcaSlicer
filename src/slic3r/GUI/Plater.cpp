@@ -2371,7 +2371,14 @@ void Sidebar::update_all_preset_comboboxes()
     } else {
         //p->btn_connect_printer->Show();
         p->m_printer_connect->Show();
-        p->m_bpButton_ams_filament->Hide();
+
+        // ORCA: show/hide sync-ams button based on filament sync mode
+        auto agent = wxGetApp().getAgent();
+        if (agent && agent->get_filament_sync_mode() != FilamentSyncMode::none)
+            p->m_bpButton_ams_filament->Show();
+        else
+            p->m_bpButton_ams_filament->Hide();
+
         auto print_btn_type = MainFrame::PrintSelectType::eExportGcode;
         wxString url = cfg.opt_string("print_host_webui").empty() ? cfg.opt_string("print_host") : cfg.opt_string("print_host_webui");
         wxString apikey;
@@ -3161,10 +3168,48 @@ void Sidebar::on_bed_type_change(BedType bed_type)
         p->combo_printer_bed->SetSelection(0);
 }
 
+/**
+ * Build a map of filament configurations from the connected printer's AMS (Automatic Material System).
+ *
+ * Data Flow Architecture:
+ * =======================
+ * This function reads pre-populated state from MachineObject - it does NOT directly call
+ * NetworkAgent APIs. The data pipeline is:
+ *
+ *   Printer Device (MQTT/LAN messages)
+ *       ↓
+ *   NetworkAgent (receives JSON, triggers OnMessageFn callbacks)
+ *       ↓
+ *   MachineObject::parse_json() (updates device state)
+ *       ├── vt_slot (std::vector<DevAmsTray>) - virtual tray data for external filament
+ *       └── DevFilaSystem → DevAms → DevAmsTray - AMS unit hierarchy
+ *       ↓
+ *   build_filament_ams_list() [THIS FUNCTION] - aggregates into DynamicPrintConfig maps
+ *
+ * Data Sources:
+ * - obj->vt_slot: Virtual trays for external/manual filament loading (when ams_support_virtual_tray is true)
+ * - obj->GetFilaSystem()->GetAmsList(): Map of AMS units, each containing multiple DevAmsTray slots
+ *
+ * Return Value:
+ * - Map key encoding:
+ *   - Virtual trays: 0x10000 + vt_tray.id (first/main extruder), or just vt_tray.id (secondary)
+ *   - AMS trays: 0x10000 + (ams_id * 4 + slot_id) (main extruder), or (ams_id * 4 + slot_id) (secondary)
+ *   - The 0x10000 flag indicates the main/right extruder
+ * - Map value: DynamicPrintConfig with filament properties (id, type, color, etc.)
+ *
+ * @param obj The MachineObject representing the connected printer (nullable)
+ * @return Map of tray indices to filament configurations
+ */
 std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject* obj)
 {
     std::map<int, DynamicPrintConfig> filament_ams_list;
     if (!obj) return filament_ams_list;
+
+    // For pull-mode agents (e.g., HTTP REST API), refresh DevFilaSystem first
+    auto* agent = wxGetApp().getDeviceManager()->get_agent();
+    if (agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+        agent->fetch_filament_info(obj->get_dev_id());
+    }
 
     auto build_tray_config = [](DevAmsTray const &tray, std::string const &name, std::string ams_id, std::string slot_id) {
         BOOST_LOG_TRIVIAL(info) << boost::format("build_filament_ams_list: name %1% setting_id %2% type %3% color %4%")
@@ -3285,7 +3330,14 @@ void Sidebar::get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size) {
 
 void Sidebar::load_ams_list(MachineObject* obj)
 {
-    std::map<int, DynamicPrintConfig> filament_ams_list = build_filament_ams_list(obj);
+    std::map<int, DynamicPrintConfig> filament_ams_list;
+
+    // build_filament_ams_list handles both subscription-based and non-subscription-based agents:
+    // - For non-subscription agents, it calls fetch_filament_info() first to populate DevFilaSystem
+    // - Then it always reads from DevFilaSystem to build the filament list
+    if (obj) {
+        filament_ams_list = build_filament_ams_list(obj);
+    }
 
     bool device_change     = false;
     const std::string& device = obj ? obj->get_dev_id() : "";
@@ -3315,8 +3367,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     wxBusyCursor cursor;
     // Force load ams list
     auto obj = wxGetApp().getDeviceManager()->get_selected_machine();
-    if (obj)
-        GUI::wxGetApp().sidebar().load_ams_list(obj);
+    if (!obj)
+        return;
+    GUI::wxGetApp().sidebar().load_ams_list(obj);
 
     auto & list = wxGetApp().preset_bundle->filament_ams_list;
     if (list.empty()) {
@@ -15134,7 +15187,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
             // set designInfo before export and reset after export
             if (wxGetApp().is_user_login()) {
                 p->model.design_info                 = std::make_shared<ModelDesignInfo>();
-                //p->model.design_info->Designer       = wxGetApp().getAgent()->get_user_nickanme();
+                //p->model.design_info->Designer       = wxGetApp().getAgent()->get_user_nickname();
                 p->model.design_info->Designer       = "";
                 p->model.design_info->DesignerUserId = wxGetApp().getAgent()->get_user_id();
                 BOOST_LOG_TRIVIAL(trace) << "design_info prepare, designer = "<< "";

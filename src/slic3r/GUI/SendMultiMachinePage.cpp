@@ -439,9 +439,9 @@ void SendMultiMachinePage::refresh_user_device()
     Fit();
 }
 
-BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
+PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
 {
-    BBL::PrintParams params;
+    PrintParams params;
 
     //get all setting
     bool bed_leveling = app_config->get("print", "bed_leveling") == "1" ? true : false;
@@ -734,7 +734,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
     }
 
 
-    std::vector<BBL::PrintParams> print_params;
+    std::vector<PrintParams> print_params;
 
     for (auto it = m_device_items.begin(); it != m_device_items.end(); ++it) {
         auto obj = it->second->get_obj();
@@ -742,7 +742,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
         if (obj && obj->is_online() && !obj->can_abort() && !obj->is_in_upgrading() && it->second->get_state_selected() == 1 && it->second->state_printable <= 2) {
 
             if (!it->second->is_blocking_printing(obj)) {
-                BBL::PrintParams params = request_params(obj);
+                PrintParams params = request_params(obj);
                 print_params.push_back(params);
             }
         }

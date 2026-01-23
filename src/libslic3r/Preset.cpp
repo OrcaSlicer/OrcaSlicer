@@ -1017,7 +1017,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "scan_first_layer", "enable_power_loss_recovery", "wrapping_detection_layers", "wrapping_exclude_area", "machine_load_filament_time", "machine_unload_filament_time", "machine_tool_change_time", "time_cost", "machine_pause_gcode", "template_custom_gcode",
     "nozzle_type", "nozzle_hrc","auxiliary_fan", "nozzle_volume","upward_compatible_machine", "z_hop_types", "travel_slope", "retract_lift_enforce","support_chamber_temp_control","support_air_filtration","printer_structure",
     "best_object_pos", "head_wrap_detect_zone",
-    "host_type", "print_host", "printhost_apikey", "bbl_use_printhost",
+    "host_type", "print_host", "printhost_apikey", "bbl_use_printhost", "printer_agent",
     "print_host_webui",
     "printhost_cafile","printhost_port","printhost_authorization_type",
     "printhost_user", "printhost_password", "printhost_ssl_ignore_revoke", "thumbnails", "thumbnails_format",
@@ -1502,7 +1502,7 @@ int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std
     }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " uploading user preset name is: " << preset.name << "and create filament_id is: " << preset.filament_id
                             << " and base_id is: " << preset.base_id;
-    key_values[BBL_JSON_KEY_UPDATE_TIME] = std::to_string(preset.updated_time);
+    key_values[ORCA_JSON_KEY_UPDATE_TIME] = std::to_string(preset.updated_time);
     key_values[BBL_JSON_KEY_TYPE] = Preset::get_iot_type_string(preset.type);
     return 0;
 }
@@ -1802,8 +1802,8 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
 
     //update_time
     long long cloud_update_time = 0;
-    if (preset_values.find(BBL_JSON_KEY_UPDATE_TIME) != preset_values.end()) {
-        cloud_update_time = std::atoll(preset_values[BBL_JSON_KEY_UPDATE_TIME].c_str());
+    if (preset_values.find(ORCA_JSON_KEY_UPDATE_TIME) != preset_values.end()) {
+        cloud_update_time = std::atoll(preset_values[ORCA_JSON_KEY_UPDATE_TIME].c_str());
     }
 
     //user_id
@@ -3395,6 +3395,7 @@ static std::vector<std::string> s_PhysicalPrinter_opts {
     "printer_technology",
     "bbl_use_printhost",
     "host_type",
+    "printer_agent",
     "print_host",
     "print_host_webui",
     "printhost_apikey",

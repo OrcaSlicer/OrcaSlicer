@@ -170,7 +170,7 @@ public:
     void on_send(wxCommandEvent& event);
     bool Show(bool show);
 
-    BBL::PrintParams request_params(MachineObject* obj);
+    PrintParams request_params(MachineObject* obj);
 
     bool get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info);
     wxBoxSizer* create_item_title(wxString title, wxWindow* parent, wxString tooltip);

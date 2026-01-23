@@ -24,6 +24,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "format.hpp"
 #include "Tab.hpp"
 #include "wxExtensions.hpp"
@@ -124,8 +125,22 @@ PhysicalPrinterDialog::~PhysicalPrinterDialog()
 void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgroup)
 {
     m_optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
-        if (opt_key == "host_type" || opt_key == "printhost_authorization_type")
+        // Special handling for printer_agent: convert fake enum index to string agent ID
+        if (opt_key == "printer_agent") {
+            try {
+                int selected_idx = boost::any_cast<int>(value);
+                auto agents = NetworkAgentFactory::get_registered_printer_agents();
+                if (selected_idx >= 0 && selected_idx < static_cast<int>(agents.size())) {
+                    m_config->set_key_value("printer_agent",
+                                          new ConfigOptionString(agents[selected_idx].id));
+                }
+            } catch (const boost::bad_any_cast&) {
+                // If value is not an int, ignore
+            }
             this->update();
+        } else if (opt_key == "host_type" || opt_key == "printhost_authorization_type") {
+            this->update();
+        }
         if (opt_key == "print_host")
             this->update_printhost_buttons();
         if (opt_key == "printhost_port")
@@ -135,6 +150,55 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     };
 
     m_optgroup->append_single_option_line("host_type");
+
+    // Build printer agent dropdown from registry (only if network agent is available)
+    if (wxGetApp().getAgent() != nullptr) {
+        auto agents = NetworkAgentFactory::get_registered_printer_agents();
+
+        if (!agents.empty()) {
+            // Create a fake enum option to force a Choice widget instead of TextCtrl
+            // (printer_agent is coString in config, but we need a dropdown)
+            ConfigOptionDef def;
+            def.type    = coEnum;
+            def.width   = Field::def_width();
+            def.label   = L("Printer Agent");
+            def.tooltip = L("Select the network agent implementation for printer communication. "
+                            "Available agents are registered at startup.");
+            def.mode    = comAdvanced;
+
+            // Populate enum values and labels from registered agents
+            for (const auto& agent : agents) {
+                def.enum_values.push_back(agent.id);
+                def.enum_labels.push_back(agent.display_name);
+            }
+
+            // Set initial selection based on current config value or default
+            const std::string current_agent  = m_config->opt_string("printer_agent");
+            std::string       selected_agent = current_agent;
+
+            if (selected_agent.empty()) {
+                selected_agent = NetworkAgentFactory::get_default_printer_agent_id();
+            }
+
+            // Verify selected agent is valid
+            auto it = std::find_if(agents.begin(), agents.end(), [&selected_agent](const auto& a) { return a.id == selected_agent; });
+            if (it == agents.end()) {
+                selected_agent = NetworkAgentFactory::get_default_printer_agent_id();
+            }
+
+            // Set default value for the enum (using the index)
+            auto def_it = std::find_if(agents.begin(), agents.end(), [&selected_agent](const auto& a) { return a.id == selected_agent; });
+            if (def_it != agents.end()) {
+                size_t default_idx = std::distance(agents.begin(), def_it);
+                def.set_default_value(new ConfigOptionInt(static_cast<int>(default_idx)));
+            }
+
+            // Create and append the option line
+            auto agent_option = Option(def, "printer_agent");
+            Line agent_line   = m_optgroup->create_single_option_line(agent_option);
+            m_optgroup->append_line(agent_line);
+        }
+    }
 
     auto create_sizer_with_btn = [](wxWindow* parent, Button** btn, const std::string& icon_name, const wxString& label) {
         *btn = new Button(parent, label);
@@ -685,6 +749,31 @@ void PhysicalPrinterDialog::update_host_type(bool printer_change)
         int host_type = std::clamp(index_in_choice + ((int)ht->m_opt.enum_values.size() - (int)types.size()), 0, (int)ht->m_opt.enum_values.size() - 1);
         PrintHostType type = static_cast<PrintHostType>(host_type);
         m_config->set_key_value("host_type", new ConfigOptionEnum<PrintHostType>(type));
+    }
+}
+
+void PhysicalPrinterDialog::update_printer_agent_type()
+{
+    if (m_config == nullptr)
+        return;
+
+    Field* agent_field = m_optgroup->get_field("printer_agent");
+    if (!agent_field)
+        return;
+
+    Choice* agent_choice = dynamic_cast<Choice*>(agent_field);
+    if (!agent_choice)
+        return;
+
+    // Sync selection with current config value
+    const std::string current_agent = m_config->opt_string("printer_agent");
+
+    auto agents = NetworkAgentFactory::get_registered_printer_agents();
+    for (size_t i = 0; i < agents.size(); ++i) {
+        if (agents[i].id == current_agent) {
+            agent_choice->set_value(i);
+            return;
+        }
     }
 }
 

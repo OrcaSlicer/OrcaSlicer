@@ -15,6 +15,7 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
 
 #ifdef __WINDOWS__
@@ -1411,6 +1412,11 @@ void PreferencesDialog::create_items()
     auto item_system_sync      = create_item_checkbox(_L("Update built-in Presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
 
+    auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),
+                                                      _L("Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"),
+                                                      SETTING_USE_ENCRYPTED_TOKEN_FILE);
+    g_sizer->Add(item_token_storage);
+
     //// ONLINE > Network plugin
     g_sizer->Add(create_item_title(_L("Network plugin")), 1, wxEXPAND);
 
@@ -1433,11 +1439,11 @@ void PreferencesDialog::create_items()
 
     std::string current_version = app_config->get_network_plugin_version();
     if (current_version.empty()) {
-        current_version = BBL::get_latest_network_version();
+        current_version = get_latest_network_version();
     }
     int current_selection = 0;
 
-    m_available_versions = BBL::get_all_available_versions();
+    m_available_versions = get_all_available_versions();
 
     for (size_t i = 0; i < m_available_versions.size(); i++) {
         const auto& ver = m_available_versions[i];
@@ -1468,7 +1474,7 @@ void PreferencesDialog::create_items()
             std::string new_version = selected_ver.version;
             std::string old_version = app_config->get_network_plugin_version();
             if (old_version.empty()) {
-                old_version = BBL::get_latest_network_version();
+                old_version = get_latest_network_version();
             }
 
             app_config->set(SETTING_NETWORK_PLUGIN_VERSION, new_version);

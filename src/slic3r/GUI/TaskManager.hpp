@@ -33,7 +33,7 @@ public:
     static int g_task_info_id;
     typedef std::function<void(TaskState state, int percent)> StateChangedFn;
 
-    TaskStateInfo(const BBL::PrintParams param);
+    TaskStateInfo(const PrintParams param);
 
     TaskStateInfo() {
         task_info_id = ++TaskStateInfo::g_task_info_id;
@@ -47,9 +47,9 @@ public:
             m_state_changed_fn(m_state, m_sending_percent);
         }
     }
-    BBL::PrintParams get_params() { return m_params; }
+    PrintParams get_params() { return m_params; }
 
-    BBL::PrintParams& params() { return m_params; }
+    PrintParams& params() { return m_params; }
 
     std::string get_job_id(){return profile_id;}
 
@@ -109,7 +109,7 @@ private:
     TaskState         m_state;
     std::string       m_task_name;
     std::string       m_device_name;
-    BBL::PrintParams  m_params;
+    PrintParams  m_params;
     int               m_sending_percent;
     std::string       m_job_id;
     StateChangedFn    m_state_changed_fn;
@@ -147,7 +147,7 @@ public:
     static int SendingInterval;
     TaskManager(NetworkAgent* agent);
 
-    int start_print(const std::vector<BBL::PrintParams>& params, TaskSettings* settings = nullptr);
+    int start_print(const std::vector<PrintParams>& params, TaskSettings* settings = nullptr);
 
     static void set_max_send_at_same_time(int count);
 

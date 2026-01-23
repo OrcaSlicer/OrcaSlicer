@@ -340,6 +340,10 @@ public:
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }
+
+    // Dynamic printer agent switching
+    void switch_printer_agent(const std::string& agent_id);
+
     FilamentColorCodeQuery* get_filament_color_code_query();
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
     bool is_gcode_viewer() const { return m_app_mode == EAppMode::GCodeViewer; }
@@ -501,6 +505,7 @@ public:
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
     void            start_http_server();
+    void            start_http_server(int port);
     void            stop_http_server();
     void            switch_staff_pick(bool on);
 

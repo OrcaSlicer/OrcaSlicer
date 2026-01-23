@@ -2,7 +2,7 @@
 
 #include "slic3r/Utils/bambu_networking.hpp"
 
-using namespace BBL;
+using namespace Slic3r;
 
 TEST_CASE("extract_base_version", "[BambuNetworking]") {
     SECTION("version without suffix returns unchanged") {
