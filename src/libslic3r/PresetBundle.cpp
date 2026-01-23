@@ -13,6 +13,7 @@
 #include <set>
 #include <fstream>
 #include <unordered_set>
+#include <chrono>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/clamp.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -430,6 +431,7 @@ void PresetBundle::copy_files(const std::string& from)
 PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, ForwardCompatibilitySubstitutionRule substitution_rule,
                                                       const PresetPreferences& preferred_selection/* = PresetPreferences()*/)
 {
+    auto start = std::chrono::steady_clock::now();
     // First load the vendor specific system presets.
     PresetsConfigSubstitutions substitutions;
     std::string errors_cummulative;
@@ -455,7 +457,13 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
 
     set_calibrate_printer("");
 
-    //BBS: add config related logs
+    auto end = std::chrono::steady_clock::now();
+    BOOST_LOG_TRIVIAL(fatal)
+                << "load_presets user Time: "
+                << std::chrono::duration<double, std::milli>(end - start).count()
+                << " ms";
+
+                //BBS: add config related logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" finished, returned substitutions %1%")%substitutions.size();
     return substitutions;
 }
@@ -1434,6 +1442,7 @@ void PresetBundle::remove_users_preset(AppConfig &config, std::map<std::string, 
 //BBS: add json related logic, load system presets from json
 std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule)
 {
+    auto start = std::chrono::steady_clock::now();
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" enter, compatibility_rule %1%")%compatibility_rule;
     if (compatibility_rule == ForwardCompatibilitySubstitutionRule::EnableSystemSilent)
@@ -1550,6 +1559,14 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
 	}
 
 	this->update_system_maps();
+
+    auto end =  std::chrono::steady_clock::now();
+
+    BOOST_LOG_TRIVIAL(fatal)
+              << "load_system_presets_from_json Time: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+              << " ms";
+
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(" finished, errors_cummulative %1%")%errors_cummulative;
     return std::make_pair(std::move(substitutions), errors_cummulative);
