@@ -228,7 +228,7 @@ void Fill3DHoneycomb::_fill_surface_single(
     // ceiling to an integer value of layers per Z
     // (with a little nudge in case it's close to perfect)
     coordf_t layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
-    if(params.density > 0.42){ // exact layer pattern for >42% densit
+    if(params.density > 0.42){ // exact layer pattern for >42% density
       layersPerModule = 2;
       // re-adjust the grid size for a partial octahedral path
       // (scale of 1.1 guessed based on modeling)
