@@ -51,7 +51,7 @@ void FillConcentric::_fill_surface_single(
     }
 
     // Apply multiline offset if needed
-    multiline_fill(std::move(polylines_out), params, spacing);
+    multiline_fill(polylines_out, params, spacing);
 
     // clip the paths to prevent the extruder from getting exactly on the first point of the loop
     // Keep valid paths only.

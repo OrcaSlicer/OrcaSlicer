@@ -136,7 +136,7 @@ void FillTpmsFK::_fill_surface_single(const FillParams&              params,
     Polylines polylines = marchsq::get_polylines(sf, SCALED_SPARSE_INFILL_RESOLUTION);
 
     // Apply multiline offset if needed
-    multiline_fill(std::move(polylines), params, spacing);
+    multiline_fill(polylines, params, spacing);
 
     // Prune the lines within the expolygon.
     polylines = intersection_pl(std::move(polylines), expolygon);

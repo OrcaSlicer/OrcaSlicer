@@ -206,7 +206,7 @@ void FillCrossHatch ::_fill_surface_single(
     for (Polyline &pl : polylines) { pl.translate(bb.min); }
 
     // Apply multiline offset if needed
-    multiline_fill(std::move(polylines), params, spacing);
+    multiline_fill(polylines, params, spacing);
 
     polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
 

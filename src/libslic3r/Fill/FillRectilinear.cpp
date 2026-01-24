@@ -3018,7 +3018,7 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     }
         
     // Apply multiline offset if needed
-    multiline_fill(std::move(fill_lines), params, spacing);
+    multiline_fill(fill_lines, params, spacing);
  
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
     ExPolygons contracted = offset_ex(surface->expolygon, -float(scale_(0.5 * this->spacing)));
@@ -3262,7 +3262,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
     }
 
     // Apply multiline fill
-    multiline_fill(std::move(polylines), params, spacing);
+    multiline_fill(polylines, params, spacing);
 
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
     ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
