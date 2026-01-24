@@ -1760,6 +1760,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                             BridgeDetector detector{ unsupported,
                                                     lower_island.expolygons,
                                                     perimeter_spacing };
+                            // ORCA: Relative/Align Bridge Angle
                             const double custom_angle_deg = this->config->bridge_angle.value;
                             const bool   relative_angle   = this->config->relative_bridge_angle.value;
                             const double detect_angle_rad = (custom_angle_deg > 0.0 && !relative_angle) ? Geometry::deg2rad(custom_angle_deg) : 0.0;

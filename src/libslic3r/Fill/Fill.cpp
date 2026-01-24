@@ -942,6 +942,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
                 params.bridge_angle = float(surface.bridge_angle);
 
+                // ORCA: Relative/Aligned bridge infill angle
                 float align_offset = 0.f;
                 if (region_config.align_infill_direction_to_model) {
                     auto m = layer.object()->trafo().matrix();

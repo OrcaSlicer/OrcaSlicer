@@ -1244,6 +1244,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    // ORCA: Relative bridge angle
     def = this->add("relative_bridge_angle", coBool);
     def->label = L("Relative bridge angle");
     def->category = L("Strength");

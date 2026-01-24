@@ -522,6 +522,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     SurfaceCollection bridges;
     {
         BOOST_LOG_TRIVIAL(trace) << "Processing external surface, detecting bridges. layer" << this->layer()->print_z;
+        // ORCA: Relative/Align Bridge Angle
         const auto  &region_config    = this->region().config();
         const double custom_angle_deg = region_config.bridge_angle.value;
         const bool   relative_angle   = region_config.relative_bridge_angle.value;
@@ -796,6 +797,7 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 // would get merged into a single one while they need different directions
                 // also, supply the original expolygon instead of the grown one, because in case
                 // of very thin (but still working) anchors, the grown expolygon would go beyond them
+                // ORCA: Relative/Align Bridge Angle
                 const auto &region_config   = this->region().config();
                 const double custom_angle_deg = region_config.bridge_angle.value;
                 const bool   relative_angle   = region_config.relative_bridge_angle.value;
