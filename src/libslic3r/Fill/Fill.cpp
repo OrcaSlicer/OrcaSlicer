@@ -948,8 +948,15 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     align_offset = atan2((float)m(1, 0), (float)m(0, 0));
                     params.angle += align_offset;
                 }
-                if (params.bridge_angle >= 0.f)
-                    params.bridge_angle += align_offset;
+                if (params.bridge_angle >= 0.f && region_config.align_infill_direction_to_model) {
+                    bool apply_bridge_align = false;
+                    if (surface.is_internal_bridge())
+                        apply_bridge_align = region_config.internal_bridge_angle.value > 0.0 && !region_config.relative_bridge_angle.value;
+                    else if (surface.is_bridge())
+                        apply_bridge_align = region_config.bridge_angle.value > 0.0 && !region_config.relative_bridge_angle.value;
+                    if (apply_bridge_align)
+                        params.bridge_angle += align_offset;
+                }
 
                 // Calculate the actual flow we'll be using for this infill.
 		        params.bridge = is_bridge || Fill::use_bridge_flow(params.pattern);
