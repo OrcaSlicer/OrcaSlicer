@@ -1223,6 +1223,7 @@ void PrintConfigDef::init_fff_params()
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
+    def->max = 180;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
     
@@ -1239,6 +1240,7 @@ void PrintConfigDef::init_fff_params()
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
+    def->max = 180;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
