@@ -224,7 +224,7 @@ void Fill3DHoneycomb::_fill_surface_single(
     // This means that the resultant infill won't be an ideal truncated octahedron,
     // but it should look better than the equivalent quantised version
 
-    coordf_t layerHeight = scale_(params.layer_height/* * thickness_layers*/);
+    coordf_t layerHeight = scale_(params.layer_height);
     // ceiling to an integer value of layers per Z
     // (with a little nudge in case it's close to perfect)
     coordf_t layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
