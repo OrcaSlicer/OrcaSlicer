@@ -1219,7 +1219,7 @@ void PrintConfigDef::init_fff_params()
         "Otherwise the provided angle will be used according to:\n"
         " - The absolute coordinates \n"
         " - The absolute coordinate + Model rotation: If Align infill direction to model is enabled\n"
-        " - The optimar automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
+        " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
@@ -1236,7 +1236,7 @@ void PrintConfigDef::init_fff_params()
         "Otherwise the provided angle will be used according to:\n"
         " - The absolute coordinates \n"
         " - The absolute coordinate + Model rotation: If Align infill direction to model is enabled\n"
-        " - The optimar automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
+        " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
