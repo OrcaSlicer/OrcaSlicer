@@ -2612,7 +2612,7 @@ void PrintObject::bridge_over_infill()
     };
 
     // LAMBDA do determine optimal bridging angle
-    auto determine_bridging_angle = [](const Polygons &bridged_area, const Lines &anchors, InfillPattern dominant_pattern, double infill_direction) {
+    auto determine_bridging_angle = [](const Polygons &bridged_area, const Lines &anchors, InfillPattern dominant_pattern, double infill_direction, bool infill_combination) {
         AABBTreeLines::LinesDistancer<Line> lines_tree(anchors);
 
         // Check it the infill that require a fixed infill angle.
@@ -3009,11 +3009,12 @@ void PrintObject::bridge_over_infill()
                     if (!anchors.empty()) {
                         bridging_angle = determine_bridging_angle(area_to_be_bridge, to_lines(anchors),
                                                                   candidate.region->region().config().sparse_infill_pattern.value,
-                                                                  candidate.region->region().config().infill_direction.value);
+                                                                  candidate.region->region().config().infill_direction.value,
+                                                                  candidate.region->region().config().infill_combination.value);
                     } else {
                         // use expansion boundaries as anchors.
                         // Also, use Infill pattern that is neutral for angle determination, since there are no infill lines.
-                        bridging_angle = determine_bridging_angle(area_to_be_bridge, to_lines(boundary_plines), InfillPattern::ipLine, 0);
+                        bridging_angle = determine_bridging_angle(area_to_be_bridge, to_lines(boundary_plines), InfillPattern::ipLine, 0, false);
                     }
                     
                     // ORCA: Internal bridge angle override
