@@ -2201,7 +2201,9 @@ void GUI_App::init_networking_callbacks()
 
                 if (MachineObject* obj = m_device_manager->get_my_machine(dev_id)) {
                     obj->parse_json("lan", msg);
-                    if (this->m_device_manager->get_selected_machine() == obj) {
+                    // Orca: skip it if it doesn't support subscription based filament sync
+                    if (this->m_device_manager->get_selected_machine() == obj &&
+                        m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription) {
                         GUI::wxGetApp().sidebar().load_ams_list(obj);
                     }
                 }
@@ -3544,7 +3546,110 @@ void GUI_App::switch_printer_agent(const std::string& agent_id)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": m_device_manager is null, cannot check for deferred connection";
     }
 
+    // Auto-switch MachineObject
+    select_machine(effective_agent_id);
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
+}
+
+void GUI_App::select_machine(const std::string& agent_id)
+{
+    // Skip for BBL agent for now - uses its own device discovery/selection
+    // Orca todo: revisit in future if we want to support auto-switching for BBL printers
+    if (agent_id == BBL_PRINTER_AGENT_ID) {
+        return;
+    }
+
+    if (!m_device_manager || !preset_bundle) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
+        return;
+    }
+
+    // Get config source (preset or physical printer)
+    const auto& preset = preset_bundle->printers.get_edited_preset();
+    const DynamicPrintConfig* host_cfg = &preset.config;
+
+    std::string print_host = host_cfg->opt_string("print_host");
+    if (print_host.empty()) {
+        if (auto* physical_cfg = preset_bundle->physical_printers.get_selected_printer_config()) {
+            if (!physical_cfg->opt_string("print_host").empty()) {
+                host_cfg = physical_cfg;
+                print_host = host_cfg->opt_string("print_host");
+            }
+        }
+    }
+    if (print_host.empty()) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no print_host configured, skipping auto-switch";
+        return;
+    }
+
+    // Normalize host: strip protocol and path
+    std::string host = print_host;
+    if (host.find("http://") == 0) host = host.substr(7);
+    else if (host.find("https://") == 0) host = host.substr(8);
+    auto slash = host.find('/');
+    if (slash != std::string::npos) host = host.substr(0, slash);
+    // Strip inline port if present (port comes from printhost_port)
+    auto colon = host.find(':');
+    if (colon != std::string::npos) host = host.substr(0, colon);
+
+    // Get port from separate config
+    std::string port = host_cfg->opt_string("printhost_port");
+
+    // Build full address (host:port) for dev_ip
+    std::string full_addr = host;
+    if (!port.empty()) {
+        full_addr += ":" + port;
+    }
+
+    // Generate dev_id (replace . and : with _)
+    std::string dev_id = full_addr;
+    std::replace(dev_id.begin(), dev_id.end(), '.', '_');
+    std::replace(dev_id.begin(), dev_id.end(), ':', '_');
+
+    // Check if already exists by dev_id
+    MachineObject* existing = m_device_manager->get_local_machine(dev_id);
+
+    // If not found by dev_id, search by full_addr
+    if (!existing) {
+        auto local_machines = m_device_manager->get_local_machinelist();
+        for (auto& [id, machine] : local_machines) {
+            if (machine && machine->get_dev_ip() == full_addr) {
+                existing = machine;
+                dev_id = existing->get_dev_id();  // Use existing dev_id
+                break;
+            }
+        }
+    }
+
+    // If machine doesn't exist, create it first
+    if (!existing) {
+        BBLocalMachine machine;
+        machine.dev_id = dev_id;
+        machine.dev_ip = full_addr;
+        machine.dev_name = agent_id + " (" + full_addr + ")";
+        machine.printer_type = preset.config.opt_string("printer_model");
+
+        existing = m_device_manager->insert_local_device(
+            machine, "lan", "free", "", "");
+
+        if (!existing) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;
+            return;
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
+    }
+
+    // Use MonitorPanel::select_machine() to trigger full selection flow
+    // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
+    if (mainframe && mainframe->m_monitor) {
+        mainframe->m_monitor->select_machine(dev_id);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
+    } else {
+        // Fallback if MonitorPanel not available
+        m_device_manager->set_selected_machine(dev_id);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": fallback set_selected_machine dev_id=" << dev_id;
+    }
 }
 
 bool GUI_App::dark_mode()

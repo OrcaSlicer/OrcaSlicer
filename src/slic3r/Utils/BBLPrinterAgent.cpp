@@ -1,5 +1,6 @@
 #include "BBLPrinterAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "NetworkAgentFactory.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -208,7 +209,7 @@ int BBLPrinterAgent::set_user_selected_machine(std::string dev_id)
 AgentInfo BBLPrinterAgent::get_agent_info_static()
 {
     return AgentInfo{
-        .id = "bbl",
+        .id = BBL_PRINTER_AGENT_ID,
         .name = "Bambu Lab Printer Agent",
         .version = "",
         .description = "Bambu Lab printer agent"

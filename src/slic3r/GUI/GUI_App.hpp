@@ -725,6 +725,9 @@ private:
     bool            config_wizard_startup();
 	void            check_updates(const bool verbose);
 
+    // select or add MachineObject
+    void            select_machine(const std::string& agent_id);
+
     bool                    m_init_app_config_from_older { false };
     bool                    m_datadir_redefined { false };
     std::string             m_older_data_dir_path;
