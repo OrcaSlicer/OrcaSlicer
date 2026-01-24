@@ -2691,10 +2691,8 @@ void PrintObject::bridge_over_infill()
         switch (dominant_pattern) {
         case ipHilbertCurve: bridging_angle += 0.25 * PI; break;
         case ipOctagramSpiral: bridging_angle += (1.0 / 16.0) * PI; break;
-        // ORCA: For these patterns, the infill lines are orthogonal (0 and 90 relative to infill angle).
-        // The detected angle is perpendicular to one of them. We want to be at 45 degrees to both.
-        case ip3DHoneycomb: bridging_angle += 0.25 * PI; break;
-        case ipCrossHatch: bridging_angle += 0.25 * PI; break;
+        // ORCA FIX ME: For 3dhoneycomb, you must rotate it 90° from the normal position to adjust the bridging correctly. It doesn't work perfectly, but it's better than dropped bridges.
+        case ip3DHoneycomb: bridging_angle += infill_combination ? (0.5) * PI : 0; break;
 
         default: break;
         }
