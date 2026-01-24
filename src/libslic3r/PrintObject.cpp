@@ -2616,12 +2616,12 @@ void PrintObject::bridge_over_infill()
         AABBTreeLines::LinesDistancer<Line> lines_tree(anchors);
 
         // Check it the infill that require a fixed infill angle.
-        switch (dominant_pattern) {
-        case ip3DHoneycomb:
-        case ipCrossHatch:
-            return (infill_direction + 45.0) * 2.0 * M_PI / 360.;
-        default: break;
-        }
+        //switch (dominant_pattern) {
+        //case ip3DHoneycomb:
+        //case ipCrossHatch:
+        //    return (infill_direction + 45.0) * 2.0 * M_PI / 360.;
+        //default: break;
+        //}
 
         std::map<double, int> counted_directions;
         for (const Polygon &p : bridged_area) {
@@ -2691,6 +2691,7 @@ void PrintObject::bridge_over_infill()
         switch (dominant_pattern) {
         case ipHilbertCurve: bridging_angle += 0.25 * PI; break;
         case ipOctagramSpiral: bridging_angle += (1.0 / 16.0) * PI; break;
+        case ip3DHoneycomb: bridging_angle += 0.25 * PI; break;
         default: break;
         }
 
