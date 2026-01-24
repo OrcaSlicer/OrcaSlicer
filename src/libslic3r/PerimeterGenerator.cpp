@@ -1762,8 +1762,7 @@ void PerimeterGenerator::process_no_bridge(Surfaces& all_surfaces, coord_t perim
                                                     perimeter_spacing };
                             const double custom_angle_deg = this->config->bridge_angle.value;
                             const bool   relative_angle   = this->config->relative_bridge_angle.value;
-                            const bool   allow_relative   = relative_angle && this->config->counterbore_hole_bridging.value == chbNone;
-                            const double detect_angle_rad = (custom_angle_deg > 0.0 && !allow_relative) ? Geometry::deg2rad(custom_angle_deg) : 0.0;
+                            const double detect_angle_rad = (custom_angle_deg > 0.0 && !relative_angle) ? Geometry::deg2rad(custom_angle_deg) : 0.0;
                             if (detector.detect_angle(detect_angle_rad))
                                 expolygons_append(bridgeable, union_ex(detector.coverage(-1, true)));
                         }

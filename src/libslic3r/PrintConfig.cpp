@@ -1248,8 +1248,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Relative bridge angle");
     def->category = L("Strength");
     def->tooltip = L("When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it.\n"
-        "Recommended to add a small (<10°) to improve bridge covering in closed shapes.\n\n"
-        "If using some Bridge counterbore holes stratergy, this will not apply for external bridges.");
+        "Recommended to add a small (<10°) to improve bridge covering in closed shapes.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
