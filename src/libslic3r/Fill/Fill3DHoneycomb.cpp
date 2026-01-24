@@ -224,11 +224,11 @@ void Fill3DHoneycomb::_fill_surface_single(
     // This means that the resultant infill won't be an ideal truncated octahedron,
     // but it should look better than the equivalent quantised version
 
-    coordf_t layerHeight = scale_(thickness_layers);
+    coordf_t layerHeight = scale_(params.layer_height/* * thickness_layers*/);
     // ceiling to an integer value of layers per Z
     // (with a little nudge in case it's close to perfect)
     coordf_t layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
-    if(params.density > 0.42){ // exact layer pattern for >42% density
+    if(params.density > 0.42){ // exact layer pattern for >42% densit
       layersPerModule = 2;
       // re-adjust the grid size for a partial octahedral path
       // (scale of 1.1 guessed based on modeling)
