@@ -123,7 +123,7 @@ void FillPlanePath::_fill_surface_single(
     Polylines polylines = {polyline};
 
     // Apply multiline offset if needed
-    multiline_fill(polylines, params, spacing);
+    multiline_fill(std::move(polylines), params, spacing);
 
     if (polyline.size() >= 2) {
         polylines = intersection_pl(std::move(polylines), expolygon);

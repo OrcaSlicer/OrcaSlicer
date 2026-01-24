@@ -185,7 +185,7 @@ void FillGyroid::_fill_surface_single(
 		pl.translate(bb.min);
 
     // Apply multiline offset if needed
-    multiline_fill(polylines, params, spacing);
+    multiline_fill(std::move(polylines), params, spacing);
 
 	polylines = intersection_pl(std::move(polylines), expolygon);
 

@@ -1372,7 +1372,7 @@ void Filler::_fill_surface_single(
         std::transform(lines.begin(), lines.end(), std::back_inserter(all_polylines), [](const Line& l) { return Polyline{ l.a, l.b }; });
 
         // Apply multiline offset if needed
-        multiline_fill(all_polylines, params, spacing);
+        multiline_fill(std::move(all_polylines), params, spacing);
 
         // Crop all polylines
         all_polylines = intersection_pl(std::move(all_polylines), expolygon);

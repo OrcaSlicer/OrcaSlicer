@@ -272,7 +272,7 @@ void Fill3DHoneycomb::_fill_surface_single(
     }
 
     // Apply multiline offset if needed
-    multiline_fill(polylines, params, spacing);
+    multiline_fill(std::move(polylines), params, spacing);
 
     // clip pattern to boundaries, chain the clipped polylines
     polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
