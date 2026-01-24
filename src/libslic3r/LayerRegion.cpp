@@ -520,11 +520,12 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
         const auto  &region_config   = this->region().config();
         const double custom_angle_deg = region_config.bridge_angle.value;
         const bool   relative_angle   = region_config.relative_bridge_angle.value;
+        const bool   allow_relative   = relative_angle && region_config.counterbore_hole_bridging.value == chbNone;
         const double custom_angle_rad = Geometry::deg2rad(custom_angle_deg);
-        bridges.surfaces = (custom_angle_deg > 0 && !relative_angle) ?
+        bridges.surfaces = (custom_angle_deg > 0 && !allow_relative) ?
             expand_merge_surfaces(this->fill_surfaces.surfaces, stBottomBridge, expansion_zones, closing_radius, custom_angle_rad) :
             expand_bridges_detect_orientations(this->fill_surfaces.surfaces, expansion_zones, closing_radius);
-        if (custom_angle_deg > 0 && relative_angle) {
+        if (custom_angle_deg > 0 && allow_relative) {
             for (Surface &bridge_surface : bridges.surfaces) {
                 if (bridge_surface.bridge_angle >= 0)
                     bridge_surface.bridge_angle += custom_angle_rad;
@@ -794,13 +795,14 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 const auto &region_config   = this->region().config();
                 const double custom_angle_deg = region_config.bridge_angle.value;
                 const bool   relative_angle   = region_config.relative_bridge_angle.value;
+                const bool   allow_relative   = relative_angle && region_config.counterbore_hole_bridging.value == chbNone;
                 const double custom_angle_rad = Geometry::deg2rad(custom_angle_deg);
-                if (custom_angle_deg > 0.0 && !relative_angle) {
+                if (custom_angle_deg > 0.0 && !allow_relative) {
                     bridges[idx_last].bridge_angle = custom_angle_rad;
                 } else {
                     auto [bridging_dir, unsupported_dist] = detect_bridging_direction(to_polygons(initial), to_polygons(lower_layer->lslices));
                     bridges[idx_last].bridge_angle = PI + std::atan2(bridging_dir.y(), bridging_dir.x());
-                    if (custom_angle_deg > 0.0 && relative_angle)
+                    if (custom_angle_deg > 0.0 && allow_relative)
                         bridges[idx_last].bridge_angle += custom_angle_rad;
                 }
 
