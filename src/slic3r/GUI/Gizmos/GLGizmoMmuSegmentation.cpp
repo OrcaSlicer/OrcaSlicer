@@ -691,68 +691,44 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
         std::string title = into_u8(m_desc.at("perform_remap"));
-        ImVec2 title_size = ImGui::CalcTextSize(title.c_str());
-        float half_title_h = title_size.y * 0.5f;
         float available_width = ImGui::GetContentRegionAvail().x;
 
-        // Space for title on top border
-        ImGui::Dummy(ImVec2(0.0f, half_title_h));
+        // ORCA: Draw Background filled (consistent with Filaments section)
+        // Use static to remember height from previous frame so we can draw it behind.
+        static float remap_panel_high = 40.0f;
+        ImVec2 p_bg_min = ImGui::GetCursorScreenPos();
+        // Adjust background position: slight negative offset to align with padding, width fills available
+        // height from static variable.
+        draw_list->AddRectFilled({p_bg_min.x - 10.0f, p_bg_min.y - 7.0f}, {p_bg_min.x + available_width + ImGui::GetFrameHeight(), p_bg_min.y + remap_panel_high}, ImGui::GetColorU32(ImGuiCol_FrameBgActive, 1.0f), 5.0f);
         
+        float start_y = ImGui::GetCursorPos().y;
+
+        // Title as simple text
+        m_imgui->text(title);
+
         ImGui::BeginGroup();
-        {
-            // ORCA: Tighter spacing for the panel content
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(m_imgui->scaled(0.4f), m_imgui->scaled(0.3f)));
+        // ORCA: Reduce vertical spacing within this group
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(m_imgui->scaled(0.4f), m_imgui->scaled(0.2f)));
 
-            float padding = m_imgui->scaled(0.25f); // Reduced padding
-            ImGui::Indent(padding);
-            ImGui::Dummy(ImVec2(0.0f, half_title_h + padding));
-            
-            render_filament_remap_ui(window_width, max_tooltip_width);
-            
-            ImGui::Dummy(ImVec2(0.0f, padding));
-
-            // ORCA: Add Remap and Cancel buttons
-            if (m_imgui->button(m_desc.at("remap"))) {
-                this->remap_filament_assignments();
-                // Reset mapping to identity after apply
-                for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
-            }
-            ImGui::SameLine();
-            if (m_imgui->button(m_desc.at("cancel_remap"))) {
-                // Reset mapping to identity
-                for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
-            }
-
-            ImGui::Dummy(ImVec2(0.0f, padding));
-            ImGui::Unindent(padding);
-            
-            ImGui::PopStyleVar(); // Pop ItemSpacing
+        render_filament_remap_ui(window_width, max_tooltip_width);
+        
+        // ORCA: Add Remap and Cancel buttons
+        if (m_imgui->button(m_desc.at("remap"))) {
+            this->remap_filament_assignments();
+            // Reset mapping to identity after apply
+            for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
         }
-        ImGui::EndGroup();
-        
-        ImVec2 p_min = ImGui::GetItemRectMin();
-        ImVec2 p_max = ImGui::GetItemRectMax();
-        
-        // ORCA: Ensure panel fills available width.
-        // Ensure full width of the gizmo window
-        if (available_width > 0)
-            p_max.x = p_min.x + available_width;
+        ImGui::SameLine();
+        if (m_imgui->button(m_desc.at("cancel_remap"))) {
+            // Reset mapping to identity
+            for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
+        }
 
-        ImU32 border_col = ImGui::GetColorU32(ImGuiCol_Border);
-        ImU32 text_col = ImGui::GetColorU32(ImGuiCol_Text);
-        ImU32 bg_col = ImGui::GetColorU32(ImGuiCol_WindowBg); // Masking color
-        
-        // ORCA: Draw Border with small rounding.
-        draw_list->AddRect(p_min, p_max, border_col, 3.0f);
-        
-        // ORCA: Mask the border behind the title for a "Fieldset" look.
-        float title_x = p_min.x + m_imgui->scaled(0.5f);
-        ImVec2 mask_min(title_x - 2.0f, p_min.y - half_title_h);
-        ImVec2 mask_max(title_x + title_size.x + 2.0f, p_min.y + half_title_h);
-        draw_list->AddRectFilled(mask_min, mask_max, bg_col);
-        
-        // Draw Title
-        draw_list->AddText(ImVec2(title_x, p_min.y - half_title_h), text_col, title.c_str());
+        ImGui::PopStyleVar();
+        ImGui::EndGroup();
+
+        // ORCA: Update height for next frame fill
+        remap_panel_high = ImGui::GetCursorPos().y - start_y;
     }
 
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
@@ -1119,7 +1095,10 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
 
         const ColorRGBA &src_col = m_extruders_colors[src];          // keep for text contrast
         const ColorRGBA &dst_col = m_extruders_colors[m_extruder_remap[src]];
-        ImVec4 col_vec = ImGuiWrapper::to_ImVec4(dst_col);
+        
+        // ORCA: Button now shows the SOURCE color (per maintainer request)
+        // This keeps the UI stable until "Remap" is clicked.
+        ImVec4 col_vec = ImGuiWrapper::to_ImVec4(src_col);
 
         if (!first) ImGui::SameLine();
         first = false;
@@ -1153,8 +1132,9 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         #endif
 
         // overlay destination number with proper contrast calculation
+        // ORCA: Text still shows DESTINATION index, but contrast is against SOURCE color now.
         std::string dst_txt = std::to_string(m_extruder_remap[src] + 1);
-        float gray = 0.299f * dst_col.r() + 0.587f * dst_col.g() + 0.114f * dst_col.b();
+        float gray = 0.299f * src_col.r() + 0.587f * src_col.g() + 0.114f * src_col.b();
         ImVec2 txt_sz = ImGui::CalcTextSize(dst_txt.c_str());
         ImVec2 pos = ImGui::GetItemRectMin();
         ImVec2 size = ImGui::GetItemRectSize();
@@ -1168,21 +1148,24 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                 ImVec2(pos.x + (size.x - txt_sz.x) * 0.5f, pos.y + (size.y - txt_sz.y) * 0.5f),
                 IM_COL32(0,0,0,255), dst_txt.c_str());
 
-        // ORCA: Show original color as a small triangle in the corner if remapped
+        // ORCA: Show NEW color as a small triangle in the corner if remapped
         if (src != m_extruder_remap[src]) {
             float s = m_imgui->scaled(0.55f);
             float offset = m_imgui->scaled(0.15f); // Inset to avoid rounded corner clipping
             ImVec2 p = ImVec2(pos.x + offset, pos.y + offset);
             
             // Contrast outline: White for dark backgrounds, Black for light backgrounds
-            ImU32 outline_col = (gray * 255.f < 80.f) ? IM_COL32(255, 255, 255, 180) : IM_COL32(0, 0, 0, 180);
+            // Use dst_col (new color) for outline contrast check? Or src_col?
+            // Usually outline is around the triangle (dst_col).
+            float dst_gray = 0.299f * dst_col.r() + 0.587f * dst_col.g() + 0.114f * dst_col.b();
+            ImU32 outline_col = (dst_gray * 255.f < 80.f) ? IM_COL32(255, 255, 255, 180) : IM_COL32(0, 0, 0, 180);
 
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             draw_list->AddTriangleFilled(
                 p,
                 ImVec2(p.x + s, p.y),
                 ImVec2(p.x, p.y + s),
-                ImGuiWrapper::to_ImU32(src_col));
+                ImGuiWrapper::to_ImU32(dst_col));
             
             // ORCA: Add a thin outline for better contrast when colors are similar
             draw_list->AddTriangle(
@@ -1209,7 +1192,8 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         // Apply popup styling before BeginPopup using standard Orca colors
         ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, m_is_dark_mode ? ImGuiWrapper::COL_WINDOW_BG_DARK : ImGuiWrapper::COL_WINDOW_BG);
+        // ORCA: Use FrameBgActive for consistency and to ensure visibility of white filaments
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
         ImGui::PushStyleColor(ImGuiCol_Border, m_is_dark_mode ? ImVec4(0.5f, 0.5f, 0.5f, 1.0f) : ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
         
         if (ImGui::BeginPopup(pop_id.c_str())) {
