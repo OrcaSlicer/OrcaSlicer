@@ -356,6 +356,13 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
     }
 
     detect.dev_id       = info.dev_id.empty() ? dev_ip : info.dev_id;
+    if (!info.model_id.empty()) {
+        detect.model_id = info.model_id;
+    } else if (!config.model_id.empty()) {
+        detect.model_id = config.model_id;
+    } else {
+        detect.model_id = config.model_name;
+    }
     // Prefer fetched hostname, then preset model name, then generic fallback
     std::string fallback_name = config.model_name.empty() ? "Moonraker Printer" : config.model_name;
     detect.dev_name     = info.dev_name.empty() ? fallback_name : info.dev_name;
@@ -600,7 +607,9 @@ void MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
 {
     // Moonraker doesn't have standard filament tracking like Qidi
     // This is a no-op for standard Moonraker installations
-    BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent: fetch_filament_info (no-op) - dev_id=" << dev_id;
+    // Note: QidiPrinterAgent overrides this method with actual implementation
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info (base class no-op) called for dev_id=" << dev_id
+                            << " - if you see this for Qidi printer, virtual dispatch is broken!";
 }
 
 int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::string& json_str)
@@ -741,6 +750,7 @@ bool MoonrakerPrinterAgent::get_printhost_config(PrinthostConfig& config) const
     config.api_key    = host_cfg->opt_string("printhost_apikey");
     config.model_name = printer_cfg.opt_string("printer_model");
     config.base_url   = normalize_base_url(config.host, config.port);
+    config.model_id   = preset.get_printer_type(preset_bundle);
 
     return !config.base_url.empty();
 }
@@ -797,9 +807,13 @@ bool MoonrakerPrinterAgent::fetch_device_info(const std::string& base_url,
     }
 
     nlohmann::json result = json.contains("result") ? json["result"] : json;
-    info.dev_name         = result.value("hostname", "Moonraker Printer");
-    info.dev_id           = result.value("hostname", "");
-    info.version          = result.value("moonraker_version", "");
+    info.dev_name         = result.value("machine_name", result.value("hostname", ""));
+    info.dev_id           = result.value("machine_uuid", "");
+    if (info.dev_id.empty()) {
+        info.dev_id = result.value("serial_number", "");
+    }
+    info.model_id = result.value("model", "");
+    info.version  = result.value("software_version", result.value("firmware_version", ""));
 
     return true;
 }
@@ -1156,6 +1170,8 @@ void MoonrakerPrinterAgent::announce_printhost_device()
                                 << " (fetch_error=" << fetch_error << ")";
     }
 
+    const std::string model_id = config.model_id;
+
     if (auto* app_config = GUI::wxGetApp().app_config) {
         const std::string access_code = api_key.empty() ? k_no_api_key : api_key;
         app_config->set_str("access_code", dev_id, access_code);
@@ -1168,7 +1184,7 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     payload["dev_name"]     = dev_name;
     payload["dev_id"]       = dev_id;
     payload["dev_ip"]       = extract_host(base_url);
-    payload["dev_type"]     = "moonraker";
+    payload["dev_type"]     = model_id.empty() ? dev_name : model_id;
     payload["dev_signal"]   = "0";
     payload["connect_type"] = "lan";
     payload["bind_state"]   = "free";

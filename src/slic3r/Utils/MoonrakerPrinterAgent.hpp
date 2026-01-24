@@ -15,7 +15,7 @@
 
 namespace Slic3r {
 
-class MoonrakerPrinterAgent final : public IPrinterAgent
+class MoonrakerPrinterAgent : public IPrinterAgent
 {
 public:
     explicit MoonrakerPrinterAgent(std::string log_dir);
@@ -70,16 +70,18 @@ public:
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
     // Pull-mode agent (on-demand filament sync)
-    FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
-    void fetch_filament_info(std::string dev_id) override;
+    virtual FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
+    virtual void fetch_filament_info(std::string dev_id) override;
 
-private:
+protected:
+    // Types exposed for derived classes
     struct PrinthostConfig
     {
         std::string host;
         std::string port;
         std::string api_key;
         std::string base_url;
+        std::string model_id;
         std::string model_name;
     };
 
@@ -87,23 +89,34 @@ private:
     {
         std::string dev_id;
         std::string dev_name;
+        std::string model_id;
         std::string version;
     };
 
+    // Methods that derived classes may need to override or access
+    virtual bool get_printhost_config(PrinthostConfig& config) const;
+    virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
+    virtual std::string get_dev_type() const { return "moonraker"; }
+
+    // Host resolution methods
+    std::string resolve_host(const std::string& dev_id) const;
+    std::string resolve_api_key(const std::string& dev_id, const std::string& fallback) const;
+    void        store_host(const std::string& dev_id, const std::string& host, const std::string& api_key);
+
+    // State access for derived classes
+    mutable std::recursive_mutex       state_mutex;
+    std::map<std::string, std::string> host_by_device;
+    std::map<std::string, std::string> api_key_by_device;
+
+private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
-    bool get_printhost_config(PrinthostConfig& config) const;
-    bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
     bool fetch_server_info(const std::string& base_url, const std::string& api_key, std::string& version, std::string& error) const;
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
-
-    std::string resolve_host(const std::string& dev_id) const;
-    std::string resolve_api_key(const std::string& dev_id, const std::string& fallback) const;
-    void        store_host(const std::string& dev_id, const std::string& host, const std::string& api_key);
 
     void announce_printhost_device();
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
@@ -140,9 +153,6 @@ private:
                                    const std::string& api_key);
     void finish_connection();
 
-    mutable std::recursive_mutex       state_mutex;
-    std::map<std::string, std::string> host_by_device;
-    std::map<std::string, std::string> api_key_by_device;
     std::string                        ssdp_announced_host;
     std::string                        ssdp_announced_id;
     std::shared_ptr<ICloudServiceAgent> m_cloud_agent;
