@@ -1,21 +1,39 @@
 {
     "type": "filament",
     "name": "Bambu PETG Basic @BBL A1M 0.2 nozzle",
-    "inherits": "Bambu PETG Basic @BBL X1C 0.2 nozzle",
+    "inherits": "Bambu PETG Basic @base",
     "from": "system",
     "setting_id": "GFSG00_04",
     "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "15"
+    ],
+    "fan_max_speed": [
+        "35"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
     "filament_flow_ratio": [
         "0.94"
     ],
     "filament_long_retractions_when_cut": [
-        "nil"
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "1"
     ],
     "filament_retraction_distances_when_cut": [
-        "nil"
+        "18"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
     ],
     "pre_start_fan_time": [
-        "2"
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "7"
     ],
     "compatible_printers": [
         "Bambu Lab A1 mini 0.2 nozzle"

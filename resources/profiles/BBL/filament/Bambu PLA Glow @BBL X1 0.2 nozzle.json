@@ -6,6 +6,7 @@
     "setting_id": "GFSA12_09",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
+        "1",
         "1"
     ],
     "compatible_printers": [

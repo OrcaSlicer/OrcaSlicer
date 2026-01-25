@@ -5,6 +5,8 @@
     "from": "system",
     "instantiation": "true",
     "initial_layer_speed": "30",
+    "is_custom_defined": "0",
     "layer_height": "0.06",
-    "print_settings_id": "0.06mm High Quality @Artillery M1 Pro 0.2 nozzle"
+    "print_settings_id": "0.06mm High Quality @Artillery M1 Pro 0.2 nozzle",
+    "version": "2.1.1.0"
 }

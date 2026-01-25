@@ -69,7 +69,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     buf << put_time(std::localtime(&t), "%a_%b_%d_%H_%M_%S/");
     m_timestamp = buf.str();
 
-    std::string icon_path = (boost::format("%1%/images/BambuStudioTitle.ico") % Slic3r::resources_dir()).str();
+    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % Slic3r::resources_dir()).str();
     SetIcon(wxIcon(Slic3r::encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
     SetBackgroundColour(*wxWHITE);
 
@@ -276,7 +276,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_loading_icon = new AnimaIcon(m_book_first_panel, wxID_ANY, list, "refresh_printer", 100);
     m_loading_icon->SetMinSize(wxSize(FromDIP(25), FromDIP(25)));
 
-    m_loading_label = new Label(m_book_first_panel, _L("Loading ..."));
+    m_loading_label = new Label(m_book_first_panel, _L("Loading..."));
     m_loading_label->Wrap(-1);
     m_loading_label->SetBackgroundColour(*wxWHITE);
 
@@ -955,7 +955,7 @@ int PartSkipDialog::GetAllSkippedPartsNum()
 
 PartSkipConfirmDialog::PartSkipConfirmDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
-    std::string icon_path = (boost::format("%1%/images/BambuStudioTitle.ico") % Slic3r::resources_dir()).str();
+    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % Slic3r::resources_dir()).str();
     SetIcon(wxIcon(Slic3r::encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
     SetBackgroundColour(*wxWHITE);
     SetMinSize(wxSize(FromDIP(480), FromDIP(215)));

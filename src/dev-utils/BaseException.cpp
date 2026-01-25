@@ -9,6 +9,8 @@
 #include <boost/format.hpp>
 #include <mutex>
 
+#include "libslic3r_version.h"
+
 static std::string g_log_folder;
 static std::atomic<int> g_crash_log_count = 0;
 static std::mutex g_dump_mutex;
@@ -35,6 +37,9 @@ CBaseException::CBaseException(HANDLE hProcess, WORD wPID, LPCTSTR lpSymbolPath,
 		auto crash_log_path = boost::filesystem::path(log_folder / buf.str()).make_preferred();
 		std::string log_filename = crash_log_path.string();
 		output_file->open(log_filename, std::ios::out | std::ios::app);
+
+		// Output app build info in crash log so we could look for the correct PDB files
+        OutputString(_T("%s\n\n"), _T(SLIC3R_APP_NAME " " SoftFever_VERSION " Build " GIT_COMMIT_HASH));
 	}
 }
 

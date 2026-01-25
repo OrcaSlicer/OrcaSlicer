@@ -37,6 +37,7 @@
     "filament_type": [
         "PET"
     ],
+    "is_custom_defined": "0",
     "slow_down_layer_time": [
         "12"
     ],
@@ -82,14 +83,11 @@
     "overhang_fan_threshold": [
         "10%"
     ],
-    "overhang_fan_speed": [
-        "90"
-    ],
     "enable_pressure_advance": [
         "1"
     ],
     "pressure_advance": [
-        "0.063"
+        "0.08"
     ],
     "textured_plate_temp": [
         "80"
@@ -104,12 +102,16 @@
         "80"
     ],
     "filament_flow_ratio": [
-        "1.029"
+        "0.97"
     ],
     "slow_down_min_speed": [
         "20"
     ],
+    "overhang_fan_speed": [
+        "100"
+    ],
     "filament_deretraction_speed": [
         "30"
-    ]
+    ],
+    "version": "2.1.2.2"
 }

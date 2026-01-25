@@ -1,12 +1,15 @@
 {
     "type": "filament",
     "name": "Bambu PC @BBL H2DP 0.4 nozzle",
-    "inherits": "Bambu PC @BBL X1C",
+    "inherits": "Bambu PC @base",
     "from": "system",
     "setting_id": "GFSC00_27",
     "instantiation": "true",
     "chamber_temperatures": [
         "60"
+    ],
+    "fan_max_speed": [
+        "40"
     ],
     "filament_deretraction_speed": [
         "nil",
@@ -111,6 +114,9 @@
     "retraction_distances_when_ec": [
         "10",
         "10"
+    ],
+    "slow_down_layer_time": [
+        "12"
     ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",

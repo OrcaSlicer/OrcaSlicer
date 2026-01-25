@@ -42,6 +42,18 @@
     "filament_vendor": [
         "Bambu Lab"
     ],
+    "filament_prime_volume_nc": [
+        "60"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_change_length": [
+        "10"
+    ],
+    "filament_change_length_nc": [
+        "10"
+    ],
     "hot_plate_temp": [
         "70"
     ],
@@ -51,11 +63,11 @@
     "impact_strength_z": [
         "13.6"
     ],
-    "nozzle_temperature_range_high": [
-        "270"
-    ],
     "nozzle_temperature_range_low": [
         "230"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
     ],
     "overhang_fan_speed": [
         "90"
@@ -63,8 +75,14 @@
     "overhang_fan_threshold": [
         "10%"
     ],
+    "override_process_overhang_speed": [
+        "0"
+    ],
     "slow_down_layer_time": [
         "12"
+    ],
+    "temperature_vitrification": [
+        "60"
     ],
     "textured_plate_temp": [
         "70"

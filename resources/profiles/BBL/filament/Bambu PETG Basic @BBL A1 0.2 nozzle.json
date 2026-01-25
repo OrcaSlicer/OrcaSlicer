@@ -5,6 +5,15 @@
     "from": "system",
     "setting_id": "GFSG00_07",
     "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "15"
+    ],
+    "fan_max_speed": [
+        "35"
+    ],
+    "fan_min_speed": [
+        "20"
+    ],
     "filament_flow_ratio": [
         "0.94"
     ],
@@ -17,8 +26,14 @@
     "filament_retraction_distances_when_cut": [
         "18"
     ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
     "pre_start_fan_time": [
-        "2"
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "7"
     ],
     "compatible_printers": [
         "Bambu Lab A1 0.2 nozzle"

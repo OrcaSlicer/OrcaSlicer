@@ -9,6 +9,23 @@
       "description": "TPU is not supported by AMS."
     },
     {
+      "vendor": "Bambu Lab",
+      "type": "PET-CF",
+      "action": "prohibition",
+      "slot": "ams",
+      "description": "AMS does not support 'Bambu Lab PET-CF'."
+    },
+    {
+      "type": "TPU",
+      "action": "warning",
+      "description": "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
+    },
+    {
+      "type": "TPU-AMS",
+      "action": "warning",
+      "description": "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
+    },
+    {
       "type": "PVA",
       "action": "warning",
       "slot": "ams",

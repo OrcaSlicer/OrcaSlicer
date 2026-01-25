@@ -2,6 +2,16 @@
 #include "GUI_App.hpp"
 #include "I18N.hpp"
 
+#include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
+
+#include "slic3r/GUI/MsgDialog.hpp"
+
+#include "slic3r/GUI/Widgets/AnimaController.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+
 namespace Slic3r { namespace GUI {
 
 AMSSetting::AMSSetting(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style)
@@ -18,7 +28,7 @@ void AMSSetting::create()
     m_sizer_main = new wxBoxSizer(wxVERTICAL);
     SetBackgroundColour(*wxWHITE);
 
-    auto m_static_ams_settings = new wxStaticText(this, wxID_ANY, _L("AMS Settings"), wxDefaultPosition, wxDefaultSize, 0);
+    m_static_ams_settings = new wxStaticText(this, wxID_ANY, _L("AMS Settings"), wxDefaultPosition, wxDefaultSize, 0);
     m_static_ams_settings->SetFont(::Label::Head_14);
     m_static_ams_settings->SetForegroundColour(AMS_SETTING_GREY800);
 
@@ -26,6 +36,12 @@ void AMSSetting::create()
     m_panel_body = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, -1), wxTAB_TRAVERSAL);
     m_panel_body->SetBackgroundColour(*wxWHITE);
     wxBoxSizer *m_sizerl_body = new wxBoxSizer(wxVERTICAL);
+
+    m_ams_type = new AMSSettingTypePanel(m_panel_body, this);
+    m_ams_type->Show(false);
+
+    //m_ams_arrange_order = new AMSSettingArrangeAMSOrder(m_panel_body);
+    //m_ams_arrange_order->Show(false);
 
     m_panel_Insert_material = new wxPanel(m_panel_body, wxID_ANY, wxDefaultPosition, wxSize(-1, -1), wxTAB_TRAVERSAL);
     m_panel_Insert_material->SetBackgroundColour(*wxWHITE);
@@ -35,7 +51,7 @@ void AMSSetting::create()
     wxBoxSizer *m_sizer_Insert_material  = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_Insert_material_auto_read = new ::CheckBox(m_panel_Insert_material);
     m_checkbox_Insert_material_auto_read->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_insert_material_read, this);
-    m_sizer_Insert_material->Add(m_checkbox_Insert_material_auto_read, 0, wxTOP, 1);
+    m_sizer_Insert_material->Add(m_checkbox_Insert_material_auto_read, 0, wxALIGN_CENTER_VERTICAL);
 
     m_sizer_Insert_material->Add(0, 0, 0, wxLEFT, 12);
 
@@ -45,13 +61,10 @@ void AMSSetting::create()
     m_title_Insert_material_auto_read->SetFont(::Label::Head_13);
     m_title_Insert_material_auto_read->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_Insert_material_auto_read->Wrap(AMS_SETTING_BODY_WIDTH);
-    m_sizer_Insert_material->Add(m_title_Insert_material_auto_read, 0, wxALL | wxEXPAND, 0);
-
-
+    m_sizer_Insert_material->Add(m_title_Insert_material_auto_read, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
     wxBoxSizer *m_sizer_Insert_material_tip = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_Insert_material_tip_inline      = new wxBoxSizer(wxVERTICAL);
-
     m_sizer_Insert_material_tip->Add(0, 0, 0, wxLEFT, 10);
 
     // tip line1
@@ -90,22 +103,20 @@ void AMSSetting::create()
     m_sizer_Insert_material_tip->Add(m_sizer_Insert_material_tip_inline, 1, wxALIGN_CENTER, 0);
 
     m_sizer_main_Insert_material->Add(m_sizer_Insert_material, 0, wxEXPAND | wxTOP, FromDIP(4));
-    m_sizer_main_Insert_material->Add(m_sizer_Insert_material_tip, 0, wxEXPAND | wxLEFT | wxTOP, 18);
+    m_sizer_main_Insert_material->Add(m_sizer_Insert_material_tip, 0, wxEXPAND | wxLEFT | wxTOP, FromDIP(10));
     m_panel_Insert_material->SetSizer(m_sizer_main_Insert_material);
 
     // checkbox area 2
     wxBoxSizer *m_sizer_starting = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_starting_auto_read = new ::CheckBox(m_panel_body);
     m_checkbox_starting_auto_read->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_starting_read, this);
-    m_sizer_starting->Add(m_checkbox_starting_auto_read, 0, wxTOP, 1);
+    m_sizer_starting->Add(m_checkbox_starting_auto_read, 0, wxALIGN_CENTER_VERTICAL);
     m_sizer_starting->Add(0, 0, 0, wxLEFT, 12);
     m_title_starting_auto_read = new wxStaticText(m_panel_body, wxID_ANY, _L("Power on update"), wxDefaultPosition,wxDefaultSize, 0);
     m_title_starting_auto_read->SetFont(::Label::Head_13);
     m_title_starting_auto_read->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_starting_auto_read->Wrap(AMS_SETTING_BODY_WIDTH);
-    m_sizer_starting->Add(m_title_starting_auto_read, 1, wxEXPAND, 0);
-
-
+    m_sizer_starting->Add(m_title_starting_auto_read, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
     wxBoxSizer *m_sizer_starting_tip = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_starting_tip->Add(0, 0, 0, wxLEFT, 10);
@@ -136,13 +147,13 @@ void AMSSetting::create()
     wxBoxSizer* m_sizer_remain = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_remain = new ::CheckBox(m_panel_body);
     m_checkbox_remain->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_remain, this);
-    m_sizer_remain->Add(m_checkbox_remain, 0, wxTOP, 1);
+    m_sizer_remain->Add(m_checkbox_remain, 0, wxALIGN_CENTER_VERTICAL);
     m_sizer_remain->Add(0, 0, 0, wxLEFT, 12);
     m_title_remain = new wxStaticText(m_panel_body, wxID_ANY, _L("Update remaining capacity"), wxDefaultPosition, wxDefaultSize, 0);
     m_title_remain->SetFont(::Label::Head_13);
     m_title_remain->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_remain->Wrap(AMS_SETTING_BODY_WIDTH);
-    m_sizer_remain->Add(m_title_remain, 1, wxEXPAND, 0);
+    m_sizer_remain->Add(m_title_remain, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
 
 
@@ -164,13 +175,13 @@ void AMSSetting::create()
     wxBoxSizer* m_sizer_switch_filament = new wxBoxSizer(wxHORIZONTAL);
     m_checkbox_switch_filament = new ::CheckBox(m_panel_body);
     m_checkbox_switch_filament->Bind(wxEVT_TOGGLEBUTTON, &AMSSetting::on_switch_filament, this);
-    m_sizer_switch_filament->Add(m_checkbox_switch_filament, 0, wxTOP, 1);
+    m_sizer_switch_filament->Add(m_checkbox_switch_filament, 0, wxALIGN_CENTER_VERTICAL);
     m_sizer_switch_filament->Add(0, 0, 0, wxLEFT, 12);
     m_title_switch_filament = new wxStaticText(m_panel_body, wxID_ANY, _L("AMS filament backup"), wxDefaultPosition, wxDefaultSize, 0);
     m_title_switch_filament->SetFont(::Label::Head_13);
     m_title_switch_filament->SetForegroundColour(AMS_SETTING_GREY800);
     m_title_switch_filament->Wrap(AMS_SETTING_BODY_WIDTH);
-    m_sizer_switch_filament->Add(m_title_switch_filament, 1, wxEXPAND, 0);
+    m_sizer_switch_filament->Add(m_title_switch_filament, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT, 0);
 
 
 
@@ -242,22 +253,17 @@ void AMSSetting::create()
     m_sizer_remain_block->Add(m_sizer_remain_tip, 0, wxLEFT, 18);
     m_sizer_remain_block->Add(0, 0, 0, wxTOP, 15);
 
-    m_sizerl_body->Add(m_panel_Insert_material, 0, 0, 0);
-    m_sizerl_body->Add(m_sizer_starting, 0, wxEXPAND | wxTOP, FromDIP(8));
-    m_sizerl_body->Add(0, 0, 0, wxTOP, 8);
-    m_sizerl_body->Add(m_sizer_starting_tip, 0, wxLEFT, 18);
-    m_sizerl_body->Add(0, 0, 0, wxTOP, 15);
-    m_sizerl_body->Add(m_sizer_remain_block, 0, wxEXPAND, 0);
-    m_sizerl_body->Add(m_sizer_switch_filament, 0, wxEXPAND | wxTOP, FromDIP(8));
-    m_sizerl_body->Add(0, 0, 0, wxTOP, 8);
-    m_sizerl_body->Add(m_sizer_switch_filament_tip, 0, wxLEFT, 18);
-    m_sizerl_body->Add(0, 0, 0, wxTOP, 6);
-    m_sizerl_body->Add(0, 0, 0, wxTOP, FromDIP(5));
-    m_sizerl_body->Add(m_sizer_air_print, 0, wxEXPAND | wxTOP, FromDIP(8));
-    m_sizerl_body->Add(0, 0, 0, wxTOP, 8);
-    m_sizerl_body->Add(m_sizer_air_print_tip, 0, wxLEFT, 18);
-    m_sizerl_body->Add(0, 0, 0, wxTOP, 6);
-    m_sizerl_body->Add(0, 0, 0, wxTOP, FromDIP(5));
+    m_sizerl_body->AddSpacer(FromDIP(12));
+    m_sizerl_body->Add(m_ams_type, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(12));
+    //m_sizerl_body->Add(m_ams_arrange_order, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(12));    
+    m_sizerl_body->Add(m_panel_Insert_material, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_sizer_starting, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_sizer_starting_tip, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_sizer_remain_block, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_sizer_switch_filament, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_sizer_switch_filament_tip, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_sizer_air_print, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_sizer_air_print_tip, 0, wxEXPAND | wxTOP, FromDIP(12));
     m_sizerl_body->Add(m_panel_img, 1, wxEXPAND | wxALL, FromDIP(5));
 
     m_panel_body->SetSizer(m_sizerl_body);
@@ -274,17 +280,96 @@ void AMSSetting::create()
 
     this->Centre(wxBOTH);
     wxGetApp().UpdateDlgDarkUI(this);
+}
 
-    Bind(wxEVT_SHOW, [this](auto& e) {
-        if (this->IsShown()) {
-            if (ams_support_remain) {
-                m_sizer_remain_block->Show(true);
-            }
-            else {
-                m_sizer_remain_block->Show(false);
-            }
+void AMSSetting::UpdateByObj(MachineObject* obj)
+{
+    this->m_obj = obj;
+    if (!obj) {
+        this->Show(false);
+        return;
+    }
+
+    update_ams_img(obj);
+
+    m_ams_type->Update(obj);
+    //m_ams_arrange_order->Update(obj);
+    update_insert_material_read_mode(obj);
+    m_sizer_remain_block->Show(obj->is_support_update_remain);
+    update_starting_read_mode(obj->GetFilaSystem()->IsDetectOnPowerupEnabled());
+    update_remain_mode(obj->GetFilaSystem()->IsDetectRemainEnabled());
+    update_switch_filament(obj->GetFilaSystem()->IsAutoRefillEnabled());
+    update_air_printing_detection(obj);
+
+    update_firmware_switching_status();// on fila_firmware_switch
+}
+
+void AMSSetting::update_firmware_switching_status()
+{
+    if (!m_obj) {
+        return;
+    }
+
+    auto fila_firmware_switch = m_obj->GetFilaSystem()->GetAmsFirmwareSwitch().lock();
+    if (fila_firmware_switch->GetSuppotedFirmwares().empty()) {
+        return;
+    }
+
+    if (m_switching == fila_firmware_switch->IsSwitching()) {
+        return;
+    }
+    m_switching = fila_firmware_switch->IsSwitching();
+
+    // BFS: Update all children
+    auto children = GetChildren();
+    while (!children.IsEmpty()) {
+        auto win = children.front();
+        children.pop_front();
+
+        // do something with win
+        if (win == m_static_ams_settings || win == m_ams_type) {
+            continue;
         }
-    });
+
+        if (dynamic_cast<wxStaticText*>(win) != nullptr ||
+            dynamic_cast<CheckBox*>(win) != nullptr) {
+            win->Enable(!m_switching);
+        }
+
+        for (auto child : win->GetChildren()) {
+            children.push_back(child);
+        }
+    }
+}
+
+void AMSSetting::update_insert_material_read_mode(MachineObject* obj)
+{
+    if (obj) {
+        auto setting = obj->GetFilaSystem()->GetAmsSystemSetting().IsDetectOnInsertEnabled();
+        if (!setting.has_value()) {
+            m_panel_Insert_material->Show(false);
+            return;
+        }
+
+        // special case for A series
+        if (auto ptr = obj->GetFilaSystem()->GetAmsFirmwareSwitch().lock(); ptr->SupportSwitchFirmware()) {
+            if (ptr->GetCurrentFirmwareIdxSel() == DevAmsSystemFirmwareSwitch::IDX_LITE) {
+                m_panel_Insert_material->Show(false);
+                return;
+            }
+        } else if (DevPrinterConfigUtil::get_printer_use_ams_type(obj->printer_type) == "f1") {
+            m_panel_Insert_material->Show(false);
+            return;
+        }
+
+        std::string extra_ams_str = (boost::format("ams_f1/%1%") % 0).str();
+        auto extra_ams_it = obj->module_vers.find(extra_ams_str);
+        if (extra_ams_it != obj->module_vers.end()) {
+            update_insert_material_read_mode(setting.value(), extra_ams_it->second.sw_ver);
+        } else {
+            update_insert_material_read_mode(setting.value(), "");
+        }
+    }
 }
 
 void AMSSetting::update_insert_material_read_mode(bool selected, std::string version)
@@ -320,12 +405,27 @@ void AMSSetting::update_insert_material_read_mode(bool selected, std::string ver
     Fit();
 }
 
-void AMSSetting::update_ams_img(std::string ams_icon_str)
+void AMSSetting::update_ams_img(MachineObject* obj_)
 {
+    if (!obj_) {
+        return;
+    }
+
+    std::string ams_icon_str = DevPrinterConfigUtil::get_printer_ams_img(obj_->printer_type);
+    if (auto ams_switch = obj_->GetFilaSystem()->GetAmsFirmwareSwitch().lock();
+        ams_switch->GetCurrentFirmwareIdxSel() == 1) {
+        ams_icon_str = "ams_icon";// A series support AMS
+    }
+
+    // transfer to dark mode icon
     if (wxGetApp().dark_mode()&& ams_icon_str=="extra_icon") {
         ams_icon_str += "_dark";
     }
-    m_am_img->SetBitmap(create_scaled_bitmap(ams_icon_str, nullptr, 126));
+
+    if (ams_icon_str != m_ams_img_name) {
+        m_am_img->SetBitmap(create_scaled_bitmap(ams_icon_str, nullptr, 126));
+        m_am_img->Refresh();
+    }
 }
 
 void AMSSetting::update_starting_read_mode(bool selected)
@@ -345,7 +445,7 @@ void AMSSetting::update_starting_read_mode(bool selected)
 
 void AMSSetting::update_remain_mode(bool selected)
 {
-    if (obj->is_support_update_remain) {
+    if (m_obj->is_support_update_remain) {
         m_checkbox_remain->Show();
         m_title_remain->Show();
         m_tip_remain_line1->Show();
@@ -362,7 +462,7 @@ void AMSSetting::update_remain_mode(bool selected)
 
 void AMSSetting::update_switch_filament(bool selected)
 {
-    if (obj->is_support_filament_backup) {
+    if (m_obj->is_support_filament_backup) {
         m_checkbox_switch_filament->Show();
         m_title_switch_filament->Show();
         m_tip_switch_filament_line1->Show();
@@ -376,28 +476,24 @@ void AMSSetting::update_switch_filament(bool selected)
     m_checkbox_switch_filament->SetValue(selected);
 }
 
-void AMSSetting::update_air_printing_detection(bool selected)
+
+void AMSSetting::update_air_printing_detection(MachineObject* obj)
 {
-    if (false/*obj->is_support_air_print_detection*/) {
+    if(!obj) {
+        return;
+    }
+
+    if (obj->is_support_air_print_detection) {
         m_checkbox_air_print->Show();
         m_title_air_print->Show();
         m_tip_air_print_line->Show();
-    }
-    else {
+    } else {
         m_checkbox_air_print->Hide();
         m_title_air_print->Hide();
         m_tip_air_print_line->Hide();
     }
     Layout();
-    m_checkbox_air_print->SetValue(selected);
-}
-
-
-void AMSSetting::on_select_ok(wxMouseEvent &event)
-{
-    if (obj) {
-        obj->command_ams_calibrate(ams_id);
-    }
+    m_checkbox_air_print->SetValue(obj->ams_air_print_status);
 }
 
 void AMSSetting::on_insert_material_read(wxCommandEvent &event)
@@ -420,7 +516,7 @@ void AMSSetting::on_insert_material_read(wxCommandEvent &event)
     bool tray_read_opt = m_checkbox_Insert_material_auto_read->GetValue();
     bool remain_opt = m_checkbox_remain->GetValue();
 
-    obj->command_ams_user_settings(ams_id, start_read_opt, tray_read_opt, remain_opt);
+    m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt);
 
     m_sizer_Insert_material_tip_inline->Layout();
     Layout();
@@ -446,7 +542,7 @@ void AMSSetting::on_starting_read(wxCommandEvent &event)
     bool tray_read_opt  = m_checkbox_Insert_material_auto_read->GetValue();
     bool remain_opt = m_checkbox_remain->GetValue();
 
-    obj->command_ams_user_settings(ams_id, start_read_opt, tray_read_opt, remain_opt);
+    m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt);
 
     m_sizer_starting_tip_inline->Layout();
     Layout();
@@ -460,47 +556,239 @@ void AMSSetting::on_remain(wxCommandEvent& event)
     bool start_read_opt = m_checkbox_starting_auto_read->GetValue();
     bool tray_read_opt = m_checkbox_Insert_material_auto_read->GetValue();
     bool remain_opt = m_checkbox_remain->GetValue();
-    obj->command_ams_user_settings(ams_id, start_read_opt, tray_read_opt, remain_opt);
+    m_obj->command_ams_user_settings(start_read_opt, tray_read_opt, remain_opt);
     event.Skip();
 }
 
 void AMSSetting::on_switch_filament(wxCommandEvent& event)
 {
     bool switch_filament = m_checkbox_switch_filament->GetValue();
-    obj->command_ams_switch_filament(switch_filament);
+    m_obj->command_ams_switch_filament(switch_filament);
     event.Skip();
 }
 
 void AMSSetting::on_air_print_detect(wxCommandEvent& event)
 {
     bool air_print_detect = m_checkbox_air_print->GetValue();
-    obj->command_ams_air_print_detect(air_print_detect);
+    m_obj->command_ams_air_print_detect(air_print_detect);
     event.Skip();
-}
-
-wxString AMSSetting::append_title(wxString text)
-{
-    wxString lab;
-    auto *   widget = new wxStaticText(m_panel_body, wxID_ANY, text, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    widget->SetForegroundColour(*wxBLACK);
-    widget->Wrap(AMS_SETTING_BODY_WIDTH);
-    widget->SetMinSize(wxSize(AMS_SETTING_BODY_WIDTH, -1));
-    lab = widget->GetLabel();
-    widget->Destroy();
-    return lab;
-}
-
-wxStaticText *AMSSetting::append_text(wxString text)
-{
-    auto *widget = new wxStaticText(m_panel_body, wxID_ANY, text, wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    widget->Wrap(250);
-    widget->SetMinSize(wxSize(250, -1));
-    return widget;
 }
 
 void AMSSetting::on_dpi_changed(const wxRect &suggested_rect)
 {
-    //m_button_auto_demarcate->SetMinSize(AMS_SETTING_BUTTON_SIZE);
+    if (!m_ams_img_name.empty()) {
+        m_am_img->SetBitmap(create_scaled_bitmap(m_ams_img_name, nullptr, 126));
+        m_am_img->Refresh();
+    }
 }
+
+AMSSettingTypePanel::AMSSettingTypePanel(wxWindow* parent, AMSSetting* setting_dlg)
+    : wxPanel(parent), m_setting_dlg(setting_dlg)
+{
+    CreateGui();
+}
+
+AMSSettingTypePanel::~AMSSettingTypePanel()
+{
+    if (m_switching_icon->IsPlaying()) {
+        m_switching_icon->Stop();
+    }
+}
+
+void AMSSettingTypePanel::CreateGui()
+{
+    wxBoxSizer* h_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    Label* title = new Label(this, ::Label::Head_13, _L("AMS Type"));
+    title->SetBackgroundColour(*wxWHITE);
+
+    m_type_combobox = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(240, -1), 0, nullptr, wxCB_READONLY);
+    m_type_combobox->SetMinSize(wxSize(240, -1));
+    m_type_combobox->Bind(wxEVT_COMBOBOX, &AMSSettingTypePanel::OnAmsTypeChanged, this);
+
+    m_switching_tips = new Label(this, ::Label::Body_14);
+    m_switching_tips->SetBackgroundColour(*wxWHITE);
+    m_switching_tips->Show(false);
+
+    std::vector<std::string> list{ "ams_rfid_1", "ams_rfid_2", "ams_rfid_3", "ams_rfid_4" };
+    m_switching_icon = new AnimaIcon(this, wxID_ANY, list, "refresh_printer", 100);
+    m_switching_icon->SetMinSize(wxSize(FromDIP(20), FromDIP(20)));
+
+    h_sizer->Add(title, 0);
+    h_sizer->AddStretchSpacer();
+    h_sizer->Add(m_type_combobox, 0, wxEXPAND);
+    h_sizer->Add(m_switching_icon, 0, wxALIGN_CENTER);
+    h_sizer->Add(m_switching_tips, 0, wxEXPAND | wxLEFT | wxALIGN_CENTER, FromDIP(8));
+    SetSizer(h_sizer);
+    Layout();
+    Fit();
+}
+
+void AMSSettingTypePanel::Update(const MachineObject* obj)
+{
+    if (!obj) {
+        Show(false);
+        return;
+    }
+
+    m_ams_firmware_switch = obj->GetFilaSystem()->GetAmsFirmwareSwitch();
+    auto ptr = m_ams_firmware_switch.lock();
+    if (!ptr) {
+        Show(false);
+        return;
+    }
+
+    if (!ptr->SupportSwitchFirmware()) {
+        Show(false);
+        return;
+    }
+
+    if (ptr->IsSwitching())  {
+        int display_percent = obj->get_upgrade_percent();
+        if (display_percent == 100 || display_percent == 0) {
+            display_percent = 1;// special case, sometimes it's switching but percent is 0 or 100
+        }
+        const auto& tips = _L("Switching") + " " + wxString::Format("%d%%", display_percent);
+        m_switching_tips->SetLabel(tips);
+        m_switching_icon->Play();
+        m_switching_tips->Show(true);
+        m_switching_icon->Show(true);
+        m_type_combobox->Show(false);
+    } else {
+        int current_idx = ptr->GetCurrentFirmwareIdxSel();
+        auto ams_firmwares = ptr->GetSuppotedFirmwares();
+        if (m_ams_firmwares != ams_firmwares || m_ams_firmware_current_idx != current_idx) {
+            m_ams_firmware_current_idx = current_idx;
+            m_ams_firmwares = ams_firmwares;
+
+            m_type_combobox->Clear();
+            for (auto ams_firmware : m_ams_firmwares) {
+                if (m_ams_firmware_current_idx == ams_firmware.first) {
+                    m_type_combobox->Append(_L(ams_firmware.second.m_name));
+                } else {
+                    m_type_combobox->Append(_L(ams_firmware.second.m_name));
+                }
+            }
+            m_type_combobox->SetSelection(m_ams_firmware_current_idx);
+        }
+
+        if(m_switching_icon->IsPlaying()) {
+            m_switching_icon->Stop();
+        }
+
+        m_switching_tips->Show(false);
+        m_switching_icon->Show(false);
+        m_type_combobox->Show(true);
+    }
+
+    Show(true);
+    Layout();
+}
+
+void AMSSettingTypePanel::OnAmsTypeChanged(wxCommandEvent& event)
+{
+    auto part = m_ams_firmware_switch.lock();
+    if (!part) {
+        event.Skip();
+        return;
+    }
+
+    int new_selection_idx = m_type_combobox->GetSelection();
+    if (new_selection_idx == part->GetCurrentFirmwareIdxSel()) {
+        event.Skip();
+        return;
+    }
+   
+    auto obj_ = part->GetFilaSystem()->GetOwner();
+    if (obj_) {
+        if (obj_->is_in_printing() || obj_->is_in_upgrading())  {
+            MessageDialog dlg(this, _L("The printer is busy and cannot switch AMS type."), SLIC3R_APP_NAME + _L("Info"), wxOK | wxICON_INFORMATION);
+            dlg.ShowModal();
+            m_type_combobox->SetSelection(part->GetCurrentFirmwareIdxSel());
+            return;
+        }
+
+        auto ext = obj_->GetExtderSystem()->GetCurrentExtder();
+        if (ext && ext->HasFilamentInExt()) {
+            MessageDialog dlg(this, _L("Please unload all filament before switching."), SLIC3R_APP_NAME + _L("Info"), wxOK | wxICON_INFORMATION);
+            dlg.SetButtonLabel(wxID_OK, _L("Confirm"));
+            dlg.ShowModal();
+            m_type_combobox->SetSelection(part->GetCurrentFirmwareIdxSel());
+            if (m_setting_dlg) {
+                m_setting_dlg->EndModal(wxID_OK);
+            }
+            
+            return;
+        }
+
+        MessageDialog dlg(this, _L("AMS type switching needs firmware update, taking about 30s. Switch now ?"), SLIC3R_APP_NAME + _L("Info"), wxOK | wxCANCEL | wxICON_INFORMATION);
+        dlg.SetButtonLabel(wxID_OK, _L("Confirm"));
+        int rtn = dlg.ShowModal();
+        if (rtn != wxID_OK) {
+            m_type_combobox->SetSelection(part->GetCurrentFirmwareIdxSel());
+            return;
+        }
+
+        part->CrtlSwitchFirmware(new_selection_idx);
+    }
+
+    event.Skip();
+}
+
+#if 0 /*used option*/
+AMSSettingArrangeAMSOrder::AMSSettingArrangeAMSOrder(wxWindow* parent)
+    : wxPanel(parent)
+{
+    CreateGui();
+}
+
+void AMSSettingArrangeAMSOrder::CreateGui()
+{
+    wxBoxSizer* h_sizer = new wxBoxSizer(wxHORIZONTAL);
+    Label* title = new Label(this, ::Label::Head_13, _L("Arrange AMS Order"));
+    title->SetBackgroundColour(*wxWHITE);
+
+    m_btn_rearrange = new ScalableButton(this, wxID_ANY, "dev_ams_rearrange");
+    m_btn_rearrange->SetBackgroundColour(*wxWHITE);
+    m_btn_rearrange->SetMinSize(wxSize(FromDIP(13), FromDIP(13)));
+    m_btn_rearrange->Bind(wxEVT_BUTTON, &AMSSettingArrangeAMSOrder::OnBtnRearrangeClicked, this);
+    h_sizer->Add(title, 0);
+    h_sizer->AddStretchSpacer();
+    h_sizer->Add(m_btn_rearrange, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+    SetSizer(h_sizer);
+    Layout();
+    Fit();
+}
+
+void AMSSettingArrangeAMSOrder::Update(const MachineObject* obj)
+{
+    if (obj) {
+        m_ams_firmware_switch = obj->GetFilaSystem()->GetAmsFirmwareSwitch();
+        if (auto ptr = m_ams_firmware_switch.lock(); ptr->SupportSwitchFirmware()) {
+            Show(true);
+            return;
+        }
+    }
+
+    Show(false);
+}
+
+void AMSSettingArrangeAMSOrder::OnBtnRearrangeClicked(wxCommandEvent& event)
+{
+    auto part = m_ams_firmware_switch.lock();
+    if (part)  {
+        MessageDialog dlg(this, _L("AMS ID will be reset. If you want a specific ID sequence, "
+                                   "disconnect all AMS before resetting and connect them "
+                                   "in the desired order after resetting."),
+                                   SLIC3R_APP_NAME + _L("Info"), wxOK | wxCANCEL | wxICON_INFORMATION);
+        int rtn = dlg.ShowModal();
+        if (rtn == wxID_OK) {
+            part->GetFilaSystem()->CtrlAmsReset();
+        }
+    }
+
+    event.Skip();
+}
+#endif
 
 }} // namespace Slic3r::GUI

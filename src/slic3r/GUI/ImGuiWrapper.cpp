@@ -100,6 +100,9 @@ static const std::map<const wchar_t, std::string> font_icons = {
     {ImGui::CollapseBtn                , "collapse_btn"               },
     {ImGui::RevertBtn                  , "revert_btn"                 },
 
+    {ImGui::HorizontalHide        , "horizontal_hide"               },
+    {ImGui::HorizontalShow        , "horizontal_show"               },
+
     {ImGui::CloseBlockNotifButton      , "block_notification_close"           },
     {ImGui::CloseBlockNotifHoverButton , "block_notification_close_hover"     },
 
@@ -181,6 +184,7 @@ const ImVec4 ImGuiWrapper::COL_WINDOW_BG_DARK    = { 45 / 255.f, 45 / 255.f, 49 
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG        = { 250 / 255.f, 250 / 255.f, 250 / 255.f, 1.f }; // ORCA color matches with toolbar_background.png
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG_DARK   = { 57  / 255.f, 60  / 255.f, 66  / 255.f, 1.f }; // ORCA color matches with toolbar_background_dark.png
 const ImVec4 ImGuiWrapper::COL_ORCA              = to_ImVec4(ColorRGBA::ORCA());
+const ImVec4 ImGuiWrapper::COL_MODIFIED          = { 253.f / 255.f, 111.f / 255.f, 40.f / 255.f, 1}; // ORCA same color with m_color_label_modified
 
 int ImGuiWrapper::TOOLBAR_WINDOW_FLAGS = ImGuiWindowFlags_AlwaysAutoResize
                                  | ImGuiWindowFlags_NoMove
@@ -1111,11 +1115,12 @@ bool ImGuiWrapper::slider_float(const char* label, float* v, float v_min, float 
     const ImGuiStyle& style = ImGui::GetStyle();
     if (show_edit_btn) {
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, style.ItemSpacing.y });
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0);        // ORCA match edit button style
         ImGui::SameLine();
         std::wstring btn_name = ImGui::SliderFloatEditBtnIcon + boost::nowide::widen(str_label);
         ImGui::PushStyleColor(ImGuiCol_Button, { 0.25f, 0.25f, 0.25f, 0.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.5f, 0.5f, 0.5f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.5f, 0.5f, 0.5f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0, 0, 0, 0 }); // ORCA match edit button style
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  {0, 0, 0, 0 }); // ORCA match edit button style
         if (ImGui::Button(into_u8(btn_name).c_str())) {
             ImGui::SetKeyboardFocusHere(-1);
             this->set_requires_extra_frame();
@@ -1124,7 +1129,7 @@ bool ImGuiWrapper::slider_float(const char* label, float* v, float v_min, float 
         if (ImGui::IsItemHovered())
             this->tooltip(into_u8(_L("Edit")).c_str(), max_tooltip_width);
 
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2); // ORCA
     }
 
     if (label_visible) {
@@ -2685,18 +2690,22 @@ void ImGuiWrapper::pop_combo_style()
     ImGui::PopStyleColor(7);
 }
 
-void ImGuiWrapper::push_radio_style()
+void ImGuiWrapper::push_radio_style(const float scale)
 {
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(1.5f, 1.5f) * scale); // ORCA ensure icon size stays consistent
     if (m_is_dark_mode) {
-        ImGui::PushStyleColor(ImGuiCol_CheckMark, to_ImVec4(decode_color_to_float_array("#00675b"))); // ORCA use orca color for radio buttons
+        ImGui::PushStyleColor(ImGuiCol_CheckMark, to_ImVec4(decode_color_to_float_array("#009688"))); // ORCA use orca color for radio buttons
+        ImGui::PushStyleColor(ImGuiCol_Border   , to_ImVec4(decode_color_to_float_array("#949494"))); // ORCA match border color
     } else {
         ImGui::PushStyleColor(ImGuiCol_CheckMark, to_ImVec4(decode_color_to_float_array("#009688"))); // ORCA use orca color for radio buttons
+        ImGui::PushStyleColor(ImGuiCol_Border   , to_ImVec4(decode_color_to_float_array("#7C8282"))); // ORCA match border color
     }
 }
 
 void ImGuiWrapper::pop_radio_style()
 {
-    ImGui::PopStyleColor(1);
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar(1);
 }
 
 void ImGuiWrapper::init_font(bool compress)
@@ -3016,22 +3025,39 @@ void ImGuiWrapper::render_draw_data(ImDrawData *draw_data)
 
     shader->start_using();
 
-    // We are using the OpenGL fixed pipeline to make the example code simpler to read!
-    // Setup render state: alpha-blending enabled, no face culling, no depth testing, scissor enabled, vertex/texcoord/color pointers, polygon fill.
-    GLint last_texture;          glsafe(::glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture));
-    GLint last_polygon_mode[2];  glsafe(::glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode));
-    GLint last_viewport[4];      glsafe(::glGetIntegerv(GL_VIEWPORT, last_viewport));
-    GLint last_scissor_box[4];   glsafe(::glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box));
-    GLint last_texture_env_mode; glsafe(::glGetTexEnviv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, &last_texture_env_mode));
-    glsafe(::glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT | GL_TRANSFORM_BIT));
+    // Backup GL state
+    GLenum last_active_texture;       glsafe(::glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&last_active_texture));
+    GLuint last_program;              glsafe(::glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&last_program));
+    GLuint last_texture;              glsafe(::glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&last_texture));
+    GLuint last_array_buffer;         glsafe(::glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*)&last_array_buffer));
+    GLuint last_vertex_array_object = 0;
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile())
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint*)&last_vertex_array_object));
+    GLint last_viewport[4];           glsafe(::glGetIntegerv(GL_VIEWPORT, last_viewport));
+    GLint last_scissor_box[4];        glsafe(::glGetIntegerv(GL_SCISSOR_BOX, last_scissor_box));
+    GLenum last_blend_src_rgb;        glsafe(::glGetIntegerv(GL_BLEND_SRC_RGB, (GLint*)&last_blend_src_rgb));
+    GLenum last_blend_dst_rgb;        glsafe(::glGetIntegerv(GL_BLEND_DST_RGB, (GLint*)&last_blend_dst_rgb));
+    GLenum last_blend_src_alpha;      glsafe(::glGetIntegerv(GL_BLEND_SRC_ALPHA, (GLint*)&last_blend_src_alpha));
+    GLenum last_blend_dst_alpha;      glsafe(::glGetIntegerv(GL_BLEND_DST_ALPHA, (GLint*)&last_blend_dst_alpha));
+    GLenum last_blend_equation_rgb;   glsafe(::glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint*)&last_blend_equation_rgb));
+    GLenum last_blend_equation_alpha; glsafe(::glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint*)&last_blend_equation_alpha));
+    GLboolean last_enable_blend        = ::glIsEnabled(GL_BLEND);
+    GLboolean last_enable_cull_face    = ::glIsEnabled(GL_CULL_FACE);
+    GLboolean last_enable_depth_test   = ::glIsEnabled(GL_DEPTH_TEST);
+    GLboolean last_enable_stencil_test = ::glIsEnabled(GL_STENCIL_TEST);
+    GLboolean last_enable_scissor_test = ::glIsEnabled(GL_SCISSOR_TEST);
+
+    // set new GL state
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glEnable(GL_BLEND));
-    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    glsafe(::glBlendEquation(GL_FUNC_ADD));
+    glsafe(::glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
     glsafe(::glDisable(GL_CULL_FACE));
     glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glDisable(GL_STENCIL_TEST));
     glsafe(::glEnable(GL_SCISSOR_TEST));
-    glsafe(::glEnable(GL_TEXTURE_2D));
-    glsafe(::glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
-    glsafe(::glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE));
 
     // Setup viewport, orthographic projection matrix
     // Our visible imgui space lies from draw_data->DisplayPos (top left) to draw_data->DisplayPos+data_data->DisplaySize (bottom right). DisplayPos is (0,0) for single viewport apps.
@@ -3062,6 +3088,16 @@ void ImGuiWrapper::render_draw_data(ImDrawData *draw_data)
         const ImDrawIdx* idx_buffer  = cmd_list->IdxBuffer.Data;
         const GLsizeiptr vtx_buffer_size = (GLsizeiptr)cmd_list->VtxBuffer.Size * (int)sizeof(ImDrawVert);
         const GLsizeiptr idx_buffer_size = (GLsizeiptr)cmd_list->IdxBuffer.Size * (int)sizeof(ImDrawIdx);
+
+        GLuint vao_id = 0;
+#if !SLIC3R_OPENGL_ES
+        if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+            glsafe(::glGenVertexArrays(1, &vao_id));
+            glsafe(::glBindVertexArray(vao_id));
+#if !SLIC3R_OPENGL_ES
+        }
+#endif // !SLIC3R_OPENGL_ES
 
         GLuint vbo_id;
         glsafe(::glGenBuffers(1, &vbo_id));
@@ -3122,14 +3158,31 @@ void ImGuiWrapper::render_draw_data(ImDrawData *draw_data)
 
         glsafe(::glDeleteBuffers(1, &ibo_id));
         glsafe(::glDeleteBuffers(1, &vbo_id));
+#if !SLIC3R_OPENGL_ES
+        if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+            if (vao_id > 0)
+                glsafe(::glDeleteVertexArrays(1, &vao_id));
+#if !SLIC3R_OPENGL_ES
+        }
+#endif // !SLIC3R_OPENGL_ES
     }
 
-    // Restore modified state
-    glsafe(::glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, last_texture_env_mode));
-    glsafe(::glBindTexture(GL_TEXTURE_2D, (GLuint)last_texture));
-    glsafe(::glPopAttrib());
-    glsafe(::glPolygonMode(GL_FRONT, (GLenum)last_polygon_mode[0]);
-    glsafe(::glPolygonMode(GL_BACK,  (GLenum)last_polygon_mode[1])));
+    // Restore modified GL state
+    glsafe(::glBindTexture(GL_TEXTURE_2D, last_texture));
+    glsafe(::glActiveTexture(last_active_texture));
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile())
+#endif // !SLIC3R_OPENGL_ES
+        glsafe(::glBindVertexArray(last_vertex_array_object));
+    glsafe(::glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer));
+    glsafe(::glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha));
+    glsafe(::glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha));
+    if (last_enable_blend) glsafe(::glEnable(GL_BLEND)); else glsafe(::glDisable(GL_BLEND));
+    if (last_enable_cull_face) glsafe(::glEnable(GL_CULL_FACE)); else glsafe(::glDisable(GL_CULL_FACE));
+    if (last_enable_depth_test) glsafe(::glEnable(GL_DEPTH_TEST)); else glsafe(::glDisable(GL_DEPTH_TEST));
+    if (last_enable_stencil_test) glsafe(::glEnable(GL_STENCIL_TEST)); else glsafe(::glDisable(GL_STENCIL_TEST));
+    if (last_enable_scissor_test) glsafe(::glEnable(GL_SCISSOR_TEST)); else glsafe(::glDisable(GL_SCISSOR_TEST));
     glsafe(::glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]));
     glsafe(::glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]));
 

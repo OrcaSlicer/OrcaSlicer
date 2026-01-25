@@ -1,10 +1,16 @@
 {
     "type": "filament",
     "name": "PolyLite PLA @BBL H2DP 0.2 nozzle",
-    "inherits": "PolyLite PLA @BBL X1C",
+    "inherits": "PolyLite PLA @base",
     "from": "system",
     "setting_id": "GFSL00_11",
     "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"

@@ -54,6 +54,7 @@
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
+    "is_custom_defined": "0",
     "layer_change_gcode": "G92 E0",
     "machine_end_gcode": "G91 ;Relative positioning\nG1 E-1 F2700 ;Retract a bit\nG1 E-1 Z0.2 F2400 ;Retract and raise Z\nG1 X5 Y5 F3000 ;Wipe out\nG1 Z1 ;Raise Z more\nG90 ;Absolute positionning\nG1 X-5 Y305 F3000 ;Wipe out\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM84 X Y E ;Disable all steppers but Z",
     "machine_load_filament_time": "0",
@@ -211,6 +212,7 @@
     "upward_compatible_machine": [],
     "use_firmware_retraction": "0",
     "use_relative_e_distances": "1",
+    "version": "2.0.2.0",
     "wipe": [
         "0"
     ],

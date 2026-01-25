@@ -71,11 +71,20 @@ public:
     /*extruder*/
     static bool get_printer_can_set_nozzle(std::string type_str) { return get_value_from_config<bool>(type_str, "enable_set_nozzle_info"); }// can set nozzle from studio
 
+    /*print job*/
+    static bool support_ams_ext_mix_print(std::string type_str) { return get_value_from_config<bool>(type_str, "print", "support_ams_ext_mix_print"); }
+
     /*calibration*/
     static std::vector<std::string> get_unsupport_auto_cali_filaments(std::string type_str) { return get_value_from_config<std::vector<std::string>>(type_str, "auto_cali_not_support_filaments"); }
 
     /*detection*/
-    static bool support_wrapping_detection(const std::string& type_str) { return get_value_from_config<bool>(type_str, "support_wrapping_detection"); }
+     static bool support_wrapping_detection(const std::string& type_str) { return get_value_from_config<bool>(type_str, "support_wrapping_detection"); }
+
+    /*safety options*/
+    static bool support_safety_options(const std::string &type_str) { return get_value_from_config<bool>(type_str, "support_safety_options"); }
+
+    /*print check*/
+    static bool support_print_check_extension_fan_f000_mounted(const std::string& type_str) { return get_value_from_config<bool>(type_str, "print", "support_print_check_extension_fan_f000_mounted"); }
 
 public:
     template<typename T>
@@ -102,6 +111,25 @@ public:
         catch (...) { assert(0 && "get_value_from_config failed"); BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed"; }// there are file errors 
         return T();
     };
+
+    template<typename T>
+    static T get_value_from_config(const std::string& type_str, const std::string& item1, const std::string& item2)
+    {
+        try
+        {
+            const auto& json_item1 = get_value_from_config<nlohmann::json>(type_str, item1);
+            if (json_item1.contains(item2))
+            {
+                return json_item1[item2].get<T>();
+            }
+        }
+        catch (...)
+        {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to get " << item1 << ", " << item2;
+        }
+
+        return T();
+    }
 
     static nlohmann::json get_json_from_config(const std::string& type_str, const std::string& key1, const std::string& key2 = std::string())
     {

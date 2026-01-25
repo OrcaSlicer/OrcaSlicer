@@ -231,7 +231,7 @@ void MaterialItem::render(wxDC &dc)
 
 
 
-    dc.SetTextForeground(wxColour(0x26, 0x2E, 0x30));
+    dc.SetTextForeground(StateColor::darkModeColorFor(wxColour(0x26, 0x2E, 0x30)));
     dc.SetFont(::Label::Head_12);
 
     auto mapping_txt_size = wxSize(0, 0);
@@ -1257,12 +1257,10 @@ void AmsMapingPopup::update(MachineObject* obj, const std::vector<FilamentInfo>&
     Refresh();
 }
 
-std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(std::map<std::string, DevAms*> amsList)
+std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(const std::map<std::string, DevAms*, NumericStrCompare>& amsList)
 {
     std::vector<TrayData> m_tray_data;
-    std::map<std::string, DevAms *>::iterator ams_iter;
-
-    for (ams_iter = amsList.begin(); ams_iter != amsList.end(); ams_iter++) {
+    for (auto ams_iter = amsList.begin(); ams_iter != amsList.end(); ams_iter++) {
 
         BOOST_LOG_TRIVIAL(trace) << "ams_mapping ams id " << ams_iter->first.c_str();
 

@@ -92,6 +92,8 @@ set(lisbslic3r_sources
     clipper.hpp
     ClipperUtils.cpp
     ClipperUtils.hpp
+    Clipper2Utils.cpp
+    Clipper2Utils.hpp
     ClipperZUtils.hpp
     Color.cpp
     Color.hpp
@@ -251,6 +253,8 @@ set(lisbslic3r_sources
     GCode/WipeTower.hpp
     GCodeWriter.cpp
     GCodeWriter.hpp
+    Geometry/ArcWelder.hpp
+    Geometry/ArcWelder.cpp
     Geometry/Bicubic.hpp
     Geometry/Circle.cpp
     Geometry/Circle.hpp
@@ -581,6 +585,7 @@ target_link_libraries(libslic3r
         boost_libs
         cereal::cereal
         clipper
+        Clipper2
         draco::draco
         eigen
         glu-libtess

@@ -45,6 +45,7 @@ private:
     wxWindow* select_motor_noise { nullptr };
     wxWindow* select_nozzle_cali{ nullptr };
     wxWindow* select_heatbed_cali{ nullptr };
+    wxWindow* select_clumppos_cali{ nullptr };
     wxWindow* create_check_option(wxString title, wxWindow *parent, wxString tooltip, std::string param);
 
 public:

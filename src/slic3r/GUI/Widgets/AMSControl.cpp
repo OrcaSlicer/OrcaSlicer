@@ -133,37 +133,9 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_panel_option_right->SetMinSize(wxSize(FromDIP(180), -1));
     m_panel_option_right->SetMaxSize(wxSize(FromDIP(180), -1));
 
-    StateColor btn_bg_green(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled),
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-
-    StateColor btn_bg_white(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled),
-        std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Pressed),
-        std::pair<wxColour, int>(AMS_CONTROL_DEF_BLOCK_BK_COLOUR, StateColor::Hovered),
-        std::pair<wxColour, int>(AMS_CONTROL_WHITE_COLOUR, StateColor::Normal));
-
-    StateColor btn_bd_green(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled),
-        std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Enabled));
-
-    StateColor btn_bd_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled),
-        std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-
-    StateColor btn_text_green(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled),
-        std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Enabled));
-
-    StateColor btn_text_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled),
-        std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-
-
     /*option left*/
     m_button_auto_refill = new Button(m_panel_option_left, _L("Auto-refill"));
-    m_button_auto_refill->SetBackgroundColor(btn_bg_white);
-    m_button_auto_refill->SetBorderColor(btn_bd_white);
-    m_button_auto_refill->SetTextColor(btn_text_white);
-    m_button_auto_refill->SetFont(Label::Body_13);
-    m_button_auto_refill->SetMinSize(wxSize(FromDIP(80), FromDIP(34)));
-    m_button_auto_refill->SetMaxSize(wxSize(FromDIP(80), FromDIP(34)));
+    m_button_auto_refill->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_button_ams_setting_normal = ScalableBitmap(this, "ams_setting_normal", 24);
     m_button_ams_setting_hover = ScalableBitmap(this, "ams_setting_hover", 24);
@@ -182,12 +154,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
 
     /*option right*/
     m_button_extruder_feed = new Button(m_panel_option_right, _L("Load"));
-    m_button_extruder_feed->SetFont(Label::Body_13);
-    m_button_extruder_feed->SetBackgroundColor(btn_bg_green);
-    m_button_extruder_feed->SetBorderColor(btn_bd_green);
-    m_button_extruder_feed->SetTextColor(btn_text_green);
-    m_button_extruder_feed->SetMinSize(wxSize(FromDIP(80),FromDIP(34)));
-    m_button_extruder_feed->SetMaxSize(wxSize(FromDIP(80),FromDIP(34)));
+    m_button_extruder_feed->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_extruder_feed->EnableTooltipEvenDisabled();
 
 
@@ -203,12 +170,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     if (wxGetApp().app_config->get("language") == "pt_BR") m_button_extruder_feed->SetLabel("Load");
 
     m_button_extruder_back = new Button(m_panel_option_right, _L("Unload"));
-    m_button_extruder_back->SetBackgroundColor(btn_bg_white);
-    m_button_extruder_back->SetBorderColor(btn_bd_white);
-    m_button_extruder_back->SetTextColor(btn_text_white);
-    m_button_extruder_back->SetFont(Label::Body_13);
-    m_button_extruder_back->SetMinSize(wxSize(FromDIP(80), FromDIP(34)));
-    m_button_extruder_back->SetMaxSize(wxSize(FromDIP(80), FromDIP(34)));
+    m_button_auto_refill->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_extruder_back->EnableTooltipEvenDisabled();
 
     if (wxGetApp().app_config->get("language") == "de_DE") m_button_extruder_back->SetFont(Label::Body_9);
@@ -502,12 +464,9 @@ void AMSControl::msw_rescale()
 
     m_extruder->msw_rescale();
 
-    if (m_button_extruder_feed) m_button_extruder_feed->SetMinSize(wxSize(FromDIP(80), FromDIP(34)));
-    if (m_button_extruder_feed) m_button_extruder_feed->SetMaxSize(wxSize(FromDIP(80), FromDIP(34)));
-    if (m_button_extruder_back) m_button_extruder_back->SetMinSize(wxSize(FromDIP(80), FromDIP(34)));
-    if (m_button_extruder_back) m_button_extruder_back->SetMaxSize(wxSize(FromDIP(80), FromDIP(34)));
-    if (m_button_auto_refill) m_button_auto_refill->SetMinSize(wxSize(FromDIP(80), FromDIP(34)));
-    if (m_button_auto_refill) m_button_auto_refill->SetMaxSize(wxSize(FromDIP(80), FromDIP(34)));
+    if (m_button_extruder_feed) m_button_extruder_feed->Rescale(); // ORCA
+    if (m_button_extruder_back) m_button_extruder_back->Rescale(); // ORCA
+    if (m_button_auto_refill) m_button_auto_refill->Rescale();     // ORCA
     if (m_button_ams_setting) m_button_ams_setting->SetMinSize(wxSize(FromDIP(25), FromDIP(24)));
 
 
@@ -1605,7 +1564,6 @@ void AMSControl::on_filament_load(wxCommandEvent &event)
         return;
     }
 
-    m_button_extruder_back->Disable();
     for (auto i = 0; i < m_ams_info.size(); i++) {
         if (m_ams_info[i].ams_id == m_current_ams) { m_ams_info[i].current_action = AMSAction::AMS_ACTION_LOAD; }
     }
@@ -1622,7 +1580,6 @@ void AMSControl::on_extrusion_cali(wxCommandEvent &event)
 
 void AMSControl::on_filament_unload(wxCommandEvent &event)
 {
-    m_button_extruder_feed->Disable();
     for (auto i = 0; i < m_ams_info.size(); i++) {
         if (m_ams_info[i].ams_id == m_current_ams) { m_ams_info[i].current_action = AMSAction::AMS_ACTION_UNLOAD; }
     }
@@ -1636,9 +1593,6 @@ void AMSControl::auto_refill(wxCommandEvent& event)
 
 void AMSControl::on_ams_setting_click(wxMouseEvent &event)
 {
-    for (auto i = 0; i < m_ams_info.size(); i++) {
-        if (m_ams_info[i].ams_id == m_current_ams) { m_ams_info[i].current_action = AMSAction::AMS_ACTION_CALI; }
-    }
     post_event(SimpleEvent(EVT_AMS_SETTINGS));
 }
 

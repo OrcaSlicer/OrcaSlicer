@@ -1,7 +1,7 @@
 {
     "type": "process",
     "name": "0.20mm Standard @BBL A1M",
-    "inherits": "0.20mm Standard @BBL P1P",
+    "inherits": "fdm_process_single_0.20",
     "from": "system",
     "setting_id": "GP000",
     "instantiation": "true",

@@ -43,7 +43,7 @@ void DevAmsTray::reset()
     tag_uid             = "";
     setting_id          = "";
     filament_setting_id = "";
-    type                = "";
+    m_fila_type         = "";
     sub_brands          = "";
     color               = "";
     weight              = "";
@@ -67,7 +67,7 @@ void DevAmsTray::reset()
 bool DevAmsTray::is_tray_info_ready() const
 {
     if (color.empty()) return false;
-    if (type.empty()) return false;
+    if (m_fila_type.empty()) return false;
     //if (setting_id.empty()) return false;
     return true;
 }
@@ -75,27 +75,27 @@ bool DevAmsTray::is_tray_info_ready() const
 bool DevAmsTray::is_unset_third_filament() const
 {
     if (this->is_bbl) return false;
-    return (color.empty() || type.empty());
+    return (color.empty() || m_fila_type.empty());
 }
 
 std::string DevAmsTray::get_display_filament_type() const
 {
-    if (type == "PLA-S") return "Sup.PLA";
-    if (type == "PA-S") return "Sup.PA";
-    if (type == "ABS-S") return "Sup.ABS";
-    return type;
+    if (m_fila_type == "PLA-S") return "Sup.PLA";
+    if (m_fila_type == "PA-S") return "Sup.PA";
+    if (m_fila_type == "ABS-S") return "Sup.ABS";
+    return m_fila_type;
 }
 
 std::string DevAmsTray::get_filament_type()
 {
-    if (type == "Sup.PLA") { return "PLA-S"; }
-    if (type == "Sup.PA") { return "PA-S"; }
-    if (type == "Sup.ABS") { return "ABS-S"; }
-    if (type == "Support W") { return "PLA-S"; }
-    if (type == "Support G") { return "PA-S"; }
-    if (type == "Support") { if (setting_id == "GFS00") { type = "PLA-S"; } else if (setting_id == "GFS01") { type = "PA-S"; } else { return "PLA-S"; } }
+    if (m_fila_type == "Sup.PLA") { return "PLA-S"; }
+    if (m_fila_type == "Sup.PA") { return "PA-S"; }
+    if (m_fila_type == "Sup.ABS") { return "ABS-S"; }
+    if (m_fila_type == "Support W") { return "PLA-S"; }
+    if (m_fila_type == "Support G") { return "PA-S"; }
+    if (m_fila_type == "Support") { if (setting_id == "GFS00") { m_fila_type = "PLA-S"; } else if (setting_id == "GFS01") { m_fila_type = "PA-S"; } else { return "PLA-S"; } }
 
-    return type;
+    return m_fila_type;
 }
 
 
@@ -361,11 +361,14 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     int type_id = 1;   // 0:dummy 1:ams 2:ams-lite 3:n3f 4:n3s
 
                     /*ams info*/
-                    if (it->contains("info"))
-                    {
+                    if (it->contains("info")) {
                         const std::string& info = (*it)["info"].get<std::string>();
                         type_id = DevUtil::get_flag_bits(info, 0, 4);
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
+                    } else {
+                        if (!obj->is_enable_ams_np && obj->get_printer_ams_type() == "f1") {
+                            type_id = DevAms::AMS_LITE;
+                        }
                     }
 
                     /*AMS without initialization*/
@@ -513,21 +516,21 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 std::string type = MachineObject::setting_id_to_type(curr_tray->setting_id, (*tray_it)["tray_type"].get<std::string>());
                                 if (curr_tray->setting_id == "GFS00")
                                 {
-                                    curr_tray->type = "PLA-S";
+                                    curr_tray->m_fila_type = "PLA-S";
                                 }
                                 else if (curr_tray->setting_id == "GFS01")
                                 {
-                                    curr_tray->type = "PA-S";
+                                    curr_tray->m_fila_type = "PA-S";
                                 }
                                 else
                                 {
-                                    curr_tray->type = type;
+                                    curr_tray->m_fila_type = type;
                                 }
                             }
                             else
                             {
                                 curr_tray->setting_id = "";
-                                curr_tray->type = "";
+                                curr_tray->m_fila_type = "";
                             }
                             if (tray_it->contains("tray_sub_brands"))
                                 curr_tray->sub_brands = (*tray_it)["tray_sub_brands"].get<std::string>();

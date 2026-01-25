@@ -322,7 +322,9 @@ void SyncAmsInfoDialog::update_plate_combox()
 {
     if (m_combobox_plate) {
         m_combobox_plate->Clear();
-        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) { m_combobox_plate->Append(m_plate_number_choices_str[i]); }
+        for (size_t i = 0; i < m_plate_number_choices_str.size(); i++) {
+            m_combobox_plate->Append(m_plate_number_choices_str[i]);
+        }
         auto iter = std::find(m_plate_choices.begin(), m_plate_choices.end(), m_specify_plate_idx);
         if (iter != m_plate_choices.end()) {
             auto index = iter - m_plate_choices.begin();
@@ -528,7 +530,7 @@ void SyncAmsInfoDialog::add_two_image_control()
     m_choose_plate_sizer->Add(chose_combox_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxEXPAND | wxTOP, FromDIP(6));
     m_choose_plate_sizer->AddSpacer(FromDIP(10));
 
-    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(50), -1), 0, NULL, wxCB_READONLY);
+    m_combobox_plate = new ComboBox(m_two_thumbnail_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(60), -1), 0, NULL, wxCB_READONLY);
 
     m_combobox_plate->Bind(wxEVT_COMBOBOX, [this](auto &e) {
         if (e.GetSelection() < m_plate_choices.size()) {
@@ -931,6 +933,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
             auto flag = wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams");
             wxGetApp().app_config->set_bool("enable_append_color_by_sync_ams",!flag);
             m_append_color_checkbox->SetValue(!flag);
+            e.Skip();
         });
         m_append_color_checkbox->Hide();
         m_append_color_sizer->Add(m_append_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
@@ -951,6 +954,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
             auto flag = wxGetApp().app_config->get_bool("enable_merge_color_by_sync_ams");
             wxGetApp().app_config->set_bool("enable_merge_color_by_sync_ams",!flag);
             m_merge_color_checkbox->SetValue(!flag);
+            e.Skip();
         });
         m_merge_color_checkbox->Hide();
         m_merge_color_sizer->Add(m_merge_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
@@ -1497,7 +1501,7 @@ void SyncAmsInfoDialog::auto_supply_with_ext(std::vector<DevAmsTray> slots)
             if (slot.id.empty()) continue;
             m_ams_mapping_result[i].ams_id  = slot.id;
             m_ams_mapping_result[i].color   = slot.color;
-            m_ams_mapping_result[i].type    = slot.type;
+            m_ams_mapping_result[i].type    = slot.m_fila_type;
             m_ams_mapping_result[i].colors  = slot.cols;
             m_ams_mapping_result[i].tray_id = atoi(slot.id.c_str());
             m_ams_mapping_result[i].slot_id = "0";
@@ -1730,31 +1734,31 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
     } else if (status == PrintDialogStatus::PrintStatusInvalidPrinter) {
         update_print_status_msg(wxEmptyString, true, true);
     } else if (status == PrintDialogStatus::PrintStatusConnectingServer) {
-        wxString msg_text = _L("Connecting to server");
+        wxString msg_text = _L("Connecting to server...");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusReading) {
-        wxString msg_text = _L("Synchronizing device information");
+        wxString msg_text = _L("Synchronizing device information...");
         update_print_status_msg(msg_text, false, true);
     } else if (status == PrintDialogStatus::PrintStatusReadingFinished) {
         update_print_status_msg(wxEmptyString, false, true);
     } else if (status == PrintDialogStatus::PrintStatusReadingTimeout) {
-        wxString msg_text = _L("Synchronizing device information time out");
+        wxString msg_text = _L("Synchronizing device information timed out.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInUpgrading) {
-        wxString msg_text = _L("Cannot send the print job when the printer is updating firmware");
+        wxString msg_text = _L("Cannot send a print job while the printer is updating firmware.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInSystemPrinting) {
-        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends");
+        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusInPrinting) {
-        wxString msg_text = _L("The printer is busy on other print job");
+        wxString msg_text = _L("The printer is busy with another print job.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingSuccess) {
         update_print_status_msg(wxEmptyString, false, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingInvalid) {
         update_print_status_msg(wxEmptyString, true, false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingMixInvalid) {
-        wxString msg_text = _L("Please do not mix-use the Ext with AMS");
+        wxString msg_text = _L("Please do not mix-use the Ext with AMS.");
         update_print_status_msg(msg_text, true, false);
     } else if (status == PrintDialogStatus::PrintStatusNozzleDataInvalid) {
         wxString msg_text = _L("Invalid nozzle information, please refresh or manually set nozzle information.");
@@ -1823,10 +1827,10 @@ void SyncAmsInfoDialog::show_status(PrintDialogStatus status, std::vector<wxStri
         wxString msg_text = _L("Cannot send the print job to a printer whose firmware is required to get updated.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusBlankPlate) {
-        wxString msg_text = _L("Cannot send the print job for empty plate");
+        wxString msg_text = _L("Cannot send a print job for an empty plate.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusNotSupportedPrintAll) {
-        wxString msg_text = _L("This printer does not support printing all plates");
+        wxString msg_text = _L("This printer does not support printing all plates.");
         update_print_status_msg(msg_text, true, true);
     } else if (status == PrintDialogStatus::PrintStatusTimelapseWarning) {
         wxString   msg_text;
@@ -2392,19 +2396,6 @@ void SyncAmsInfoDialog::update_show_status()
         }
     }
 
-    if (!m_mapping_popup.m_supporting_mix_print && nozzle_nums == 1) {
-        bool useAms = false;
-        bool useExt = false;
-        for (auto iter = m_ams_mapping_result.begin(); iter != m_ams_mapping_result.end(); iter++) {
-            if (iter->tray_id != VIRTUAL_TRAY_MAIN_ID) { useAms = true; }
-            if (iter->tray_id == VIRTUAL_TRAY_MAIN_ID) { useExt = true; }
-            if (useAms && useExt) {
-                show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
-                return;
-            }
-        }
-    }
-
     // check ams and vt_slot mix use status
     {
         struct ExtruderStatus
@@ -2529,6 +2520,7 @@ void SyncAmsInfoDialog::on_dpi_changed(const wxRect &suggested_rect)
     m_button_cancel->SetCornerRadius(FromDIP(12));
     m_merge_color_checkbox->Rescale();
     m_append_color_checkbox->Rescale();
+    m_combobox_plate->Rescale();
     Fit();
     Refresh();
 }

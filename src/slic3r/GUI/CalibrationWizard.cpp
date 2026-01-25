@@ -375,7 +375,7 @@ bool CalibrationWizard::save_preset_with_index(const std::string &old_preset_nam
     return true;
 }
 
-void CalibrationWizard::cache_preset_info(MachineObject* obj, float nozzle_dia)
+void CalibrationWizard::cache_preset_info(MachineObject *obj, float nozzle_dia, BedType bed_type)
 {
     if (!obj) return;
 
@@ -388,6 +388,7 @@ void CalibrationWizard::cache_preset_info(MachineObject* obj, float nozzle_dia)
         CaliPresetInfo result;
         result.tray_id = item.first;
         result.nozzle_diameter = nozzle_dia;
+        result.bed_type        = bed_type;
         result.filament_id = item.second->filament_id;
         result.setting_id = item.second->setting_id;
         result.name = item.second->name;
@@ -396,13 +397,12 @@ void CalibrationWizard::cache_preset_info(MachineObject* obj, float nozzle_dia)
             int ams_id, slot_id, tray_id;
             get_tray_ams_and_slot_id(curr_obj, result.tray_id, ams_id, slot_id, tray_id);
             result.extruder_id = preset_page->get_extruder_id(ams_id);
-            result.nozzle_volume_type = preset_page->get_nozzle_volume_type(result.extruder_id);
             result.nozzle_diameter  = preset_page->get_nozzle_diameter(result.extruder_id);
         }
         else {
             result.extruder_id = 0;
-            result.nozzle_volume_type = NozzleVolumeType::nvtStandard;
         }
+        result.nozzle_volume_type = preset_page->get_nozzle_volume_type(result.extruder_id);
 
         obj->selected_cali_preset.push_back(result);
     }
@@ -697,7 +697,7 @@ void PressureAdvanceWizard::on_cali_start()
     float nozzle_dia = -1;
     preset_page->get_preset_info(nozzle_dia, plate_type);
 
-    CalibrationWizard::cache_preset_info(curr_obj, nozzle_dia);
+    CalibrationWizard::cache_preset_info(curr_obj, nozzle_dia, plate_type);
     if (/*nozzle_dia < 0 || */ plate_type == BedType::btDefault) {
         BOOST_LOG_TRIVIAL(error) << "CaliPreset: get preset info, nozzle and plate type error";
         return;
@@ -970,6 +970,7 @@ void PressureAdvanceWizard::on_cali_save()
                 if (save_page->is_all_failed()) {
                     MessageDialog msg_dlg(nullptr, _L("The failed test result has been dropped."), wxEmptyString, wxOK);
                     msg_dlg.ShowModal();
+                    back_preset_info(curr_obj, true);
                     show_step(start_step);
                     return;
                 }
@@ -1207,7 +1208,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             msg_dlg.ShowModal();
             return;
         }
-        CalibrationWizard::cache_preset_info(curr_obj, nozzle_dia);
+        CalibrationWizard::cache_preset_info(curr_obj, nozzle_dia, plate_type);
     }
     else if (from_page == FlowRatioCaliSource::FROM_COARSE_PAGE) {
         selected_filaments = get_cached_selected_filament(curr_obj);
@@ -1278,6 +1279,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
                 int selected_tray_id = curr_obj->selected_cali_preset.front().tray_id;
                 PresetCollection *filament_presets = &wxGetApp().preset_bundle->filaments;
                 Preset* preset = filament_presets->find_preset(curr_obj->selected_cali_preset.front().name);
+                plate_type = curr_obj->selected_cali_preset.front().bed_type;
                 if (preset) {
                     selected_filaments.insert(std::make_pair(selected_tray_id, preset));
                 }
@@ -1383,6 +1385,7 @@ void FlowRateWizard::on_cali_save()
             if (save_page->is_all_failed()) {
                 MessageDialog msg_dlg(nullptr, _L("The failed test result has been dropped."), wxEmptyString, wxOK);
                 msg_dlg.ShowModal();
+                back_preset_info(curr_obj, true);
                 show_step(start_step);
                 return;
             }
@@ -1672,7 +1675,7 @@ void MaxVolumetricSpeedWizard::on_cali_start()
 
     preset_page->get_preset_info(nozzle_dia, plate_type);
 
-    CalibrationWizard::cache_preset_info(curr_obj, nozzle_dia);
+    CalibrationWizard::cache_preset_info(curr_obj, nozzle_dia, plate_type);
 
     wxArrayString values = preset_page->get_custom_range_values();
     Calib_Params  params;
@@ -1762,6 +1765,7 @@ void MaxVolumetricSpeedWizard::on_cali_save()
 
     MessageDialog msg_dlg(nullptr, _L("Max volumetric speed calibration result has been saved to preset."), wxEmptyString, wxOK);
     msg_dlg.ShowModal();
+    back_preset_info(curr_obj, true);
     show_step(start_step);
 }
 

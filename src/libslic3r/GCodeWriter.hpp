@@ -61,6 +61,7 @@ public:
     std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
+    std::string enable_power_loss_recovery(PowerLossRecoveryMode mode);
     // return false if this extruder was already selected
     bool        need_toolchange(unsigned int filament_id) const;
     std::string set_extruder(unsigned int filament_id);
@@ -83,7 +84,10 @@ public:
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
     std::string unretract();
-    std::string lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
+    // do lift instantly
+    std::string eager_lift(const LiftType type);
+    // record a lift request, do realy lift in next travel
+    std::string lazy_lift(LiftType lift_type = LiftType::NormalLift, bool spiral_vase = false);
     std::string unlift();
     const Vec3d& get_position() const { return m_pos; }
     Vec3d&       get_position() { return m_pos; }
@@ -164,6 +168,9 @@ public:
     //BBS: x, y offset for gcode generated
     double          m_x_offset{ 0 };
     double          m_y_offset{ 0 };
+
+    // Orca: slicing resolution in mm
+    double          m_resolution = 0.01;
     
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;

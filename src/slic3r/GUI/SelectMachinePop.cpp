@@ -410,7 +410,13 @@ void SelectMachinePopup::Popup(wxWindow *WXUNUSED(focus))
         }
     }
 
-    wxPostEvent(this, wxTimerEvent());
+    {
+        wxGetApp().reset_to_active();
+        wxCommandEvent user_event(EVT_UPDATE_USER_MACHINE_LIST);
+        user_event.SetEventObject(this);
+        wxPostEvent(this, user_event);
+    }
+
     PopupWindow::Popup();
 }
 
@@ -590,8 +596,9 @@ void SelectMachinePopup::update_other_devices()
     m_placeholder_panel = new wxWindow(m_scrolledWindow, wxID_ANY, wxDefaultPosition, wxSize(-1,FromDIP(26)));
     wxBoxSizer* placeholder_sizer = new wxBoxSizer(wxVERTICAL);
 
-    m_hyperlink = new wxHyperlinkCtrl(m_placeholder_panel, wxID_ANY, _L("Can't find my devices?"), wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"), wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE);
-    m_hyperlink->SetNormalColour(StateColor::darkModeColorFor("#009789"));
+    // ORCA standardized HyperLink
+    m_hyperlink = new HyperLink(m_placeholder_panel, _L("Can't find my devices?"), wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
+    m_hyperlink->SetFont(::Label::Body_12);
     placeholder_sizer->Add(m_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
 

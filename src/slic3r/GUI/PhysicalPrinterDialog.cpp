@@ -64,10 +64,10 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     auto input_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxStaticText *label_top = new wxStaticText(this, wxID_ANY, from_u8((boost::format(_utf8(L("Save %s as"))) % into_u8(tab->title())).str()));
-    label_top->SetFont(::Label::Body_13);
+    label_top->SetFont(::Label::Body_14);
     label_top->SetForegroundColour(wxColour(38,46,48));
 
-    m_input_area = new RoundedRectangle(this, wxColor(172, 172, 172), wxDefaultPosition, wxSize(-1,-1), 3, 1);
+    m_input_area = new RoundedRectangle(this, StateColor::darkModeColorFor(wxColour("#DBDBDB")), wxDefaultPosition, wxSize(-1,-1), 3, 1);
     m_input_area->SetMinSize(wxSize(FromDIP(360), FromDIP(32)));
 
     wxBoxSizer *input_sizer_h = new wxBoxSizer(wxHORIZONTAL);
@@ -87,9 +87,9 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     m_valid_label = new wxStaticText(this, wxID_ANY, "");
     m_valid_label->SetForegroundColour(wxColor(255, 111, 0));
 
-    input_sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, BORDER_W);
-    input_sizer->Add(m_input_area, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, BORDER_W);
-    input_sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT, BORDER_W);
+    input_sizer->Add(label_top, 0, wxEXPAND | wxLEFT, BORDER_W);
+    input_sizer->Add(m_input_area, 0, wxEXPAND | wxTOP, BORDER_W);
+    input_sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, BORDER_W);
 
 
     m_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;

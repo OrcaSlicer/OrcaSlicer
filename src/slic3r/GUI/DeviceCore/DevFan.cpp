@@ -1,5 +1,5 @@
 #include <nlohmann/json.hpp>
-#include "DevFan.h" 
+#include "DevFan.h"
 #include <wx/app.h>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -158,62 +158,62 @@ void Slic3r::DevFan::ParseV2_0(const json &print_json) {
 
 
 
-        void Slic3r::DevFan::ParseV3_0(const json &device)
+void Slic3r::DevFan::ParseV3_0(const json &device)
 {
-            if (device.contains("airduct")) {
-                m_air_duct_data.curren_mode = -1;
-                m_air_duct_data.modes.clear();
-                m_air_duct_data.parts.clear();
+    if (device.contains("airduct")) {
+        is_support_airduct = true;
+        m_air_duct_data.curren_mode = -1;
+        m_air_duct_data.modes.clear();
+        m_air_duct_data.parts.clear();
 
-                m_air_duct_data.curren_mode = device["airduct"]["modeCur"].get<int>();
+        m_air_duct_data.curren_mode = device["airduct"]["modeCur"].get<int>();
 
-                const json &airduct = device["airduct"];
-                if (airduct.contains("modeCur")) { m_air_duct_data.curren_mode = airduct["modeCur"].get<int>(); }
-                if (airduct.contains("subMode")) { m_air_duct_data.m_sub_mode = airduct["subMode"].get<int>(); }
-                if (airduct.contains("modeList") && airduct["modeList"].is_array()) {
-                    auto list = airduct["modeList"].get<std::vector<json>>();
+        const json &airduct = device["airduct"];
+        if (airduct.contains("modeCur")) { m_air_duct_data.curren_mode = airduct["modeCur"].get<int>(); }
+        if (airduct.contains("subMode")) { m_air_duct_data.m_sub_mode = airduct["subMode"].get<int>(); }
+        if (airduct.contains("modeList") && airduct["modeList"].is_array()) {
+            auto list = airduct["modeList"].get<std::vector<json>>();
 
-                    for (int i = 0; i < list.size(); ++i) {
-                        // only show 2 mode for o
-                        if (m_owner->is_series_o() && i >= 2) { break; }
+            for (int i = 0; i < list.size(); ++i) {
+                // only show 2 mode for o
+                if (m_owner->is_series_o() && i >= 2) { break; }
 
-                        json    mode_json = list[i];
-                        AirMode mode;
-                        if (mode_json.contains("modeId")) mode.id = mode_json["modeId"].get<int>();
-                        if (mode_json.contains("ctrl")) {
-                            for (auto it_mode_ctrl = mode_json["ctrl"].begin(); it_mode_ctrl != mode_json["ctrl"].end(); it_mode_ctrl++) {
-                                mode.ctrl.push_back((*it_mode_ctrl).get<int>() >> 4);
-                            }
-                        }
-
-                        if (mode_json.contains("off")) {
-                            for (auto it_mode_off = mode_json["off"].begin(); it_mode_off != mode_json["off"].end(); *it_mode_off++) {
-                                mode.off.push_back((*it_mode_off).get<int>() >> 4);
-                            }
-                        }
-
-                        if (AIR_DUCT(mode.id) == AIR_DUCT::AIR_DUCT_EXHAUST) { continue; } /*STUDIO-12796*/
-                        m_air_duct_data.modes[mode.id] = mode;
+                json    mode_json = list[i];
+                AirMode mode;
+                if (mode_json.contains("modeId")) mode.id = mode_json["modeId"].get<int>();
+                if (mode_json.contains("ctrl")) {
+                    for (auto it_mode_ctrl = mode_json["ctrl"].begin(); it_mode_ctrl != mode_json["ctrl"].end(); it_mode_ctrl++) {
+                        mode.ctrl.push_back((*it_mode_ctrl).get<int>() >> 4);
                     }
                 }
 
-                if (airduct.contains("parts") && airduct["parts"].is_array()) {
-                    for (auto it_part = airduct["parts"].begin(); it_part != airduct["parts"].end(); it_part++) {
-                        int state = (*it_part)["state"].get<int>();
-                        int range = (*it_part)["range"].get<int>();
-
-                        AirParts part;
-                        part.type        = m_owner->get_flag_bits((*it_part)["id"].get<int>(), 0, 4);
-                        part.id          = m_owner->get_flag_bits((*it_part)["id"].get<int>(), 4, 8);
-                        part.func        = (*it_part)["func"].get<int>();
-                        part.state       = m_owner->get_flag_bits(state, 0, 8);
-                        part.range_start = m_owner->get_flag_bits(range, 0, 16);
-                        part.range_end   = m_owner->get_flag_bits(range, 16, 16);
-
-                        m_air_duct_data.parts.push_back(part);
+                if (mode_json.contains("off")) {
+                    for (auto it_mode_off = mode_json["off"].begin(); it_mode_off != mode_json["off"].end(); *it_mode_off++) {
+                        mode.off.push_back((*it_mode_off).get<int>() >> 4);
                     }
                 }
+
+                if (AIR_DUCT(mode.id) == AIR_DUCT::AIR_DUCT_EXHAUST) { continue; } /*STUDIO-12796*/
+                m_air_duct_data.modes[mode.id] = mode;
             }
-
         }
 
+        if (airduct.contains("parts") && airduct["parts"].is_array()) {
+            for (auto it_part = airduct["parts"].begin(); it_part != airduct["parts"].end(); it_part++) {
+                int state = (*it_part)["state"].get<int>();
+                int range = (*it_part)["range"].get<int>();
+
+                AirParts part;
+                part.type        = m_owner->get_flag_bits((*it_part)["id"].get<int>(), 0, 4);
+                part.id          = m_owner->get_flag_bits((*it_part)["id"].get<int>(), 4, 8);
+                part.func        = (*it_part)["func"].get<int>();
+                part.state       = m_owner->get_flag_bits(state, 0, 8);
+                part.range_start = m_owner->get_flag_bits(range, 0, 16);
+                part.range_end   = m_owner->get_flag_bits(range, 16, 16);
+
+                m_air_duct_data.parts.push_back(part);
+            }
+        }
+    }
+
+}

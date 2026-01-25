@@ -220,6 +220,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/GUI_Utils.hpp
     GUI/HintNotification.cpp
     GUI/HintNotification.hpp
+    GUI/ThermalPreconditioningDialog.cpp
+    GUI/ThermalPreconditioningDialog.hpp
     GUI/HMS.cpp
     GUI/HMS.hpp
     GUI/HMSPanel.cpp
@@ -297,6 +299,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/Worker.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
+    GUI/LibVGCode/LibVGCodeWrapper.hpp
+    GUI/LibVGCode/LibVGCodeWrapper.cpp
     GUI/MainFrame.cpp
     GUI/MainFrame.hpp
     GUI/MarkdownTip.cpp
@@ -454,6 +458,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/UnsavedChangesDialog.hpp
     GUI/UpdateDialogs.cpp
     GUI/UpdateDialogs.hpp
+    GUI/NetworkPluginDialog.cpp
+    GUI/NetworkPluginDialog.hpp
     GUI/UpgradePanel.cpp
     GUI/UpgradePanel.hpp
     GUI/UserManager.cpp
@@ -474,6 +480,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/AMSItem.hpp
     GUI/Widgets/AxisCtrlButton.cpp
     GUI/Widgets/AxisCtrlButton.hpp
+    GUI/SafetyOptionsDialog.hpp
+    GUI/SafetyOptionsDialog.cpp
     GUI/Widgets/Button.cpp
     GUI/Widgets/Button.hpp
     GUI/Widgets/CheckBox.cpp
@@ -488,6 +496,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/ErrorMsgStaticText.hpp
     GUI/Widgets/FanControl.cpp
     GUI/Widgets/FanControl.hpp
+    GUI/Widgets/HyperLink.cpp
+    GUI/Widgets/HyperLink.hpp
     GUI/Widgets/ImageSwitchButton.cpp
     GUI/Widgets/ImageSwitchButton.hpp
     GUI/Widgets/Label.cpp
@@ -617,6 +627,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/WebSocketClient.hpp
     Utils/WxFontUtils.cpp
     Utils/WxFontUtils.hpp
+    Utils/FileTransferUtils.cpp
+    Utils/FileTransferUtils.hpp
 )
 
 add_subdirectory(GUI/DeviceCore)
@@ -697,7 +709,15 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
 
 encoding_check(libslic3r_gui)
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo GLEW::GLEW OpenGL::GL hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+
+if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+    set(_opengl_link_lib "")
+else()
+    set(_opengl_link_lib OpenGL::GL)
+endif()
+
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode GLEW::GLEW OpenGL::GL hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+
 
 if (MSVC)
     target_link_libraries(libslic3r_gui Setupapi.lib)
@@ -715,7 +735,11 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${CURL_LIBRARIES}
     )
 elseif (APPLE)
-    target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY} "-framework Security")
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+        target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY} "-framework Security" "-framework OpenGL")
+    else()
+        target_link_libraries(libslic3r_gui ${DISKARBITRATION_LIBRARY} "-framework Security")
+    endif()
 endif()
 
 if (SLIC3R_STATIC)

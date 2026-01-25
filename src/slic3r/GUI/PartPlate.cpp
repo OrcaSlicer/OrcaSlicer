@@ -960,7 +960,30 @@ void PartPlate::render_exclude_area(bool force_default_color) {
 void PartPlate::render_grid(bool bottom) {
 	//glsafe(::glEnable(GL_MULTISAMPLE));
 	// draw grid
-	glsafe(::glLineWidth(1.0f * m_scale_factor));
+
+    // ORCA: OpenGL Core Profile support
+    // FIXME: ideally, we'd use the same shader for both the thin and thick lines, but for some reason setting the uniforms has no effect
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr) {
+        return;
+    }
+
+    shader->start_using();
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    const std::array<int, 4>& viewport = camera.get_viewport();
+    const Transform3d& view_matrix = camera.get_view_matrix();
+    const Transform3d& projection_matrix = camera.get_projection_matrix();
+
+    shader->set_uniform("view_model_matrix", view_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile())
+        glsafe(::glLineWidth(1.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
 
     ColorRGBA color;
 	if (bottom)
@@ -974,9 +997,37 @@ void PartPlate::render_grid(bool bottom) {
     m_gridlines.set_color(color);
     m_gridlines.render();
 
-	glsafe(::glLineWidth(2.0f * m_scale_factor));
+    shader->stop_using();
+
+    // ORCA: OpenGL Core Profile support
+#if SLIC3R_OPENGL_ES
+    shader = wxGetApp().get_shader("dashed_lines");
+#else
+    shader = OpenGLManager::get_gl_info().is_core_profile() ? wxGetApp().get_shader("dashed_thick_lines") : wxGetApp().get_shader("flat");
+#endif // SLIC3R_OPENGL_ES
+    if (shader == nullptr) {
+        return;
+    }
+    shader->start_using();
+
+    shader->set_uniform("view_model_matrix", view_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+#if !SLIC3R_OPENGL_ES
+    if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+        shader->set_uniform("viewport_size", Vec2d(double(viewport[2]), double(viewport[3])));
+        shader->set_uniform("width", 0.25f);
+#if !SLIC3R_OPENGL_ES
+    } else {
+        glsafe(::glLineWidth(2.0f * m_scale_factor));
+    }
+#endif // !SLIC3R_OPENGL_ES
+
     m_gridlines_bolder.set_color(color);
     m_gridlines_bolder.render();
+
+    shader->stop_using();
 }
 
 void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
@@ -984,20 +1035,32 @@ void PartPlate::render_height_limit(PartPlate::HeightLimitMode mode)
 	if (m_print && m_print->config().print_sequence == PrintSequence::ByObject && mode != HEIGHT_LIMIT_NONE)
 	{
 		// draw lower limit
-		glsafe(::glLineWidth(3.0f * m_scale_factor));
+	    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+	    if (!OpenGLManager::get_gl_info().is_core_profile())
+	        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
         m_height_limit_common.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
         m_height_limit_common.render();
 
 		if ((mode == HEIGHT_LIMIT_BOTTOM) || (mode == HEIGHT_LIMIT_BOTH)) {
-			glsafe(::glLineWidth(3.0f * m_scale_factor));
-            m_height_limit_bottom.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
+		    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+		    if (!OpenGLManager::get_gl_info().is_core_profile())
+		        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
+		    m_height_limit_bottom.set_color(HEIGHT_LIMIT_BOTTOM_COLOR);
             m_height_limit_bottom.render();
 		}
 
 		// draw upper limit
 		if ((mode == HEIGHT_LIMIT_TOP) || (mode == HEIGHT_LIMIT_BOTH)){
-            glsafe(::glLineWidth(3.0f * m_scale_factor));
-            m_height_limit_top.set_color(HEIGHT_LIMIT_TOP_COLOR);
+		    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+		    if (!OpenGLManager::get_gl_info().is_core_profile())
+		        glsafe(::glLineWidth(3.0f * m_scale_factor));
+#endif // !SLIC3R_OPENGL_ES
+		    m_height_limit_top.set_color(HEIGHT_LIMIT_TOP_COLOR);
             m_height_limit_top.render();
 		}
 	}
@@ -2041,8 +2104,10 @@ Vec3d PartPlate::estimate_wipe_tower_size(const DynamicPrintConfig & config, con
         depth = std::sqrt(volume / layer_height * extra_spacing);
         if (need_wipe_tower || plate_extruder_size > 1) {
             float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
+            double volume_depth         = depth;
             depth = std::max((double) min_wipe_tower_depth, depth);
-            depth += rib_width / std::sqrt(2) + m_print->config().wipe_tower_extra_rib_length.value;
+            rib_width = std::min(rib_width, depth / 2);
+            depth = rib_width / std::sqrt(2) + std::max(depth + m_print->config().wipe_tower_extra_rib_length.value, volume_depth);
             wipe_tower_size(0) = wipe_tower_size(1) = depth;
         }
     }
@@ -3162,9 +3227,6 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
             }
         }
 
-        if (show_grid)
-            render_grid(bottom);
-
         render_height_limit(mode);
 
         glsafe(::glDisable(GL_BLEND));
@@ -3175,6 +3237,9 @@ void PartPlate::render(const Transform3d& view_matrix, const Transform3d& projec
 
         shader->stop_using();
     }
+
+    if (show_grid)
+        render_grid(bottom);
 
     if (!bottom && m_selected && !force_background_color) {
         if (m_partplate_list)
@@ -5925,6 +5990,7 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 					plate_data_item->is_label_object_enabled = m_plate_list[i]->m_gcode_result->label_object_enabled;
                     plate_data_item->limit_filament_maps = m_plate_list[i]->m_gcode_result->limit_filament_maps;
                     plate_data_item->layer_filaments  = m_plate_list[i]->m_gcode_result->layer_filaments;
+                    plate_data_item->first_layer_time = std::to_string(m_plate_list[i]->cali_bboxes_data.first_layer_time);
 					Print *print                      = nullptr;
 					m_plate_list[i]->get_print((PrintBase **) &print, nullptr, nullptr);
 					if (print) {
@@ -6162,6 +6228,7 @@ void PartPlateList::init_bed_type_info()
     std::string bottom_texture_end_name = bed_texture_maps.find("bottom_texture_end_name") != bed_texture_maps.end() ? bed_texture_maps["bottom_texture_end_name"] : "";
     std::string bottom_texture_rect_str = bed_texture_maps.find("bottom_texture_rect") != bed_texture_maps.end() ? bed_texture_maps["bottom_texture_rect"] : "";
     std::string middle_texture_rect_str = bed_texture_maps.find("middle_texture_rect") != bed_texture_maps.end() ? bed_texture_maps["middle_texture_rect"] : "";
+    std::string use_double_extruder_default_texture = bed_texture_maps.find("use_double_extruder_default_texture") != bed_texture_maps.end() ? bed_texture_maps["use_double_extruder_default_texture"] : "";
     std::array<float, 4>        bottom_texture_rect = {0, 0, 0, 0}, middle_texture_rect = {0, 0, 0, 0};
     if (bottom_texture_rect_str.size() > 0) {
         std::vector<std::string> items;
@@ -6184,8 +6251,8 @@ void PartPlateList::init_bed_type_info()
         }
     }
     auto is_single_extruder = wxGetApp().preset_bundle->get_printer_extruder_count() == 1;
-    if (!is_single_extruder) {
-        m_allow_bed_type_in_double_nozzle.clear();
+    bool use_double_extruder_texture = !is_single_extruder || use_double_extruder_default_texture == "true";
+    if (use_double_extruder_texture) {
         pte_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_pte_middle.svg");
         auto &middle_rect = middle_texture_rect;
         if (middle_rect[2] > 0.f) {
@@ -6197,17 +6264,59 @@ void PartPlateList::init_bed_type_info()
             std::string pte_part2_name = "bbl_bed_pte_bottom_" + bottom_texture_end_name + ".svg";
             pte_part2 = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], pte_part2_name);
         }
+
         pei_part1  = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_pei_middle.svg");
         if (middle_rect[2] > 0.f) {
-            pei_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_pte_middle.svg");
+            pei_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_pei_middle.svg");
         }
         pei_part2  = BedTextureInfo::TexturePart(45, -14.5, 70, 8, "bbl_bed_pei_left_bottom.svg");
         if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
             std::string pei_part2_name = "bbl_bed_pei_bottom_" + bottom_texture_end_name + ".svg";
             pei_part2                  = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], pei_part2_name);
         }
-        m_allow_bed_type_in_double_nozzle[(int) btPEI] = true;
-        m_allow_bed_type_in_double_nozzle[(int) btPTE] = true;
+
+        st_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_st_middle.svg");
+        if (middle_rect[2] > 0.f) {
+            st_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_st_middle.svg");
+        }
+        st_part2 = BedTextureInfo::TexturePart(45, -14.5, 260, 8, "bbl_bed_st_left_bottom.svg");
+        if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
+            std::string st_part2_name = "bbl_bed_st_bottom_" + bottom_texture_end_name + ".svg";
+            st_part2                   = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], st_part2_name);
+        }
+
+        ep_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_ep_middle.svg");
+        if (middle_rect[2] > 0.f) {
+            ep_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_ep_middle.svg");
+        }
+        ep_part2 = BedTextureInfo::TexturePart(45, -14.5, 260, 8, "bbl_bed_ep_left_bottom.svg");
+        if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
+            std::string ep_part2_name = "bbl_bed_ep_bottom_" + bottom_texture_end_name + ".svg";
+            ep_part2                   = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], ep_part2_name);
+        }
+
+        pc_part1 = BedTextureInfo::TexturePart(57, 300, 236.12f, 10.f, "bbl_bed_pc_middle.svg");
+        if (middle_rect[2] > 0.f) {
+            pc_part1 = BedTextureInfo::TexturePart(middle_rect[0], middle_rect[1], middle_rect[2], middle_rect[3], "bbl_bed_pc_middle.svg"); }
+        pc_part2 = BedTextureInfo::TexturePart(45, -14.5, 70, 8, "bbl_bed_pc_left_bottom.svg");
+        if (bottom_texture_end_name.size() > 0 && bottom_rect[2] > 0.f) {
+            std::string pc_part2_name = "bbl_bed_pc_bottom_" + bottom_texture_end_name + ".svg";
+            pc_part2                  = BedTextureInfo::TexturePart(bottom_rect[0], bottom_rect[1], bottom_rect[2], bottom_rect[3], pc_part2_name);
+        }
+
+        m_allow_bed_type_in_double_nozzle.clear();
+        auto bed_types = wxGetApp().plater()->sidebar().get_cur_combox_bed_types();
+        for (int i = 0; i < bed_types.size(); i++) {
+            m_allow_bed_type_in_double_nozzle[bed_types[i]] = true;
+        }
+    } else {
+        if (bottom_texture_end_name.size() > 0) {
+            st_part2.update_file("bbl_bed_st_bottom_" + bottom_texture_end_name + ".svg");
+            pc_part2.update_file("bbl_bed_pc_bottom_" + bottom_texture_end_name + ".svg");
+            ep_part2.update_file("bbl_bed_ep_bottom_" + bottom_texture_end_name + ".svg");
+            pei_part2.update_file("bbl_bed_pei_bottom_" + bottom_texture_end_name + ".svg");
+            pte_part2.update_file("bbl_bed_pte_bottom_" + bottom_texture_end_name + ".svg");
+        }
     }
 
 	for (size_t i = 0; i < btCount; i++) {
@@ -6232,7 +6341,7 @@ void PartPlateList::init_bed_type_info()
 	int   bed_height  = bed_ext.size()(1);
     float base_width  = 256;//standard 256*256 for single_extruder
     float base_height = 256;
-    if (!is_single_extruder) {//standard 350*325 for double_extruder
+    if (use_double_extruder_texture) { // standard 350*325 for double_extruder
         base_width  = bed_width;
         base_height = bed_height;
     }
@@ -6321,9 +6430,13 @@ bool PartPlateList::init_extruder_only_area_info()
         extruder_only_area_info[i].parts.clear();
     }
     extruder_only_area_info[(unsigned char) ExtruderOnlyAreaType::Engilish].parts.push_back(left_part);
-    extruder_only_area_info[(unsigned char) ExtruderOnlyAreaType::Engilish].parts.push_back(right_part);
+    if (base_right[2]>5) {//width should >5
+        extruder_only_area_info[(unsigned char) ExtruderOnlyAreaType::Engilish].parts.push_back(right_part);
+    }
     extruder_only_area_info[(unsigned char) ExtruderOnlyAreaType::Chinese].parts.push_back(left_ch_part);
-    extruder_only_area_info[(unsigned char) ExtruderOnlyAreaType::Chinese].parts.push_back(right_ch_part);
+    if (base_right[2] > 5) { // width should >5
+        extruder_only_area_info[(unsigned char) ExtruderOnlyAreaType::Chinese].parts.push_back(right_ch_part);
+    }
 
     for (int i = 0; i < (unsigned char) ExtruderOnlyAreaType::btAreaCount; i++) {
         for (int j = 0; j < extruder_only_area_info[i].parts.size(); j++) {

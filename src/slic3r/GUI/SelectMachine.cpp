@@ -20,6 +20,7 @@
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevNozzleSystem.h"
+#include "DeviceCore/DevExtensionTool.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
@@ -74,9 +75,9 @@ void                SelectMachineDialog::init_machine_bed_types()
     if (MACHINE_BED_TYPE_STRING.size() == 0) {
         MACHINE_BED_TYPE_STRING = {//_L("Auto"),
                                    _L("Bambu Cool Plate") + " / " + _L("PLA Plate"),
-                                   _L("Bamabu Engineering Plate"),
-                                   _L("Bamabu Smooth PEI Plate") + "/" + _L("High temperature Plate"),
-                                   _L("Bamabu Textured PEI Plate"),
+                                   _L("Bambu Engineering Plate"),
+                                   _L("Bambu Smooth PEI Plate") + "/" + _L("High temperature Plate"),
+                                   _L("Bambu Textured PEI Plate"),
                                    _L("Bambu Cool Plate SuperTack")
         };
         MachineBedTypeString    = {//"auto",
@@ -127,11 +128,10 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     wxBoxSizer* m_scroll_sizer = new wxBoxSizer(wxVERTICAL);
     m_scroll_area              = new wxScrolledWindow(this);
-    m_scroll_area->SetScrollRate(20, 20);
+    m_scroll_area->SetScrollRate(0, 20);
     m_scroll_area->SetBackgroundColour(m_colour_def_color);
     m_scroll_area->SetMinSize(wxSize(FromDIP(700), FromDIP(600)));
     m_scroll_area->SetMaxSize(wxSize(FromDIP(700), FromDIP(600)));
-
 
     m_line_top = new wxPanel(m_scroll_area, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
@@ -538,7 +538,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         ops_auto, "nozzle_offset_cali"
     );
 
-    m_sizer_options = new wxGridSizer(0, 2, FromDIP(5), FromDIP(28));
+    m_sizer_options = new wxGridSizer(0, 2, FromDIP(5), FromDIP(10));
     m_sizer_options->Add(option_timelapse, 0, wxEXPAND);
     m_sizer_options->Add(option_auto_bed_level, 0, wxEXPAND);
     m_sizer_options->Add(option_flow_dynamics_cali, 0, wxEXPAND);
@@ -575,15 +575,8 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     wxBoxSizer *m_sizer_prepare = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *m_sizer_pcont   = new wxBoxSizer(wxVERTICAL);
 
-    m_btn_bg_enable = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
     m_button_ensure = new Button(m_panel_prepare, _L("Send"));
-    m_button_ensure->SetBackgroundColor(m_btn_bg_enable);
-    m_button_ensure->SetBorderColor(m_btn_bg_enable);
-    m_button_ensure->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE2);
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE2);
-    m_button_ensure->SetCornerRadius(FromDIP(4));
+    m_button_ensure->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_ensure->Bind(wxEVT_BUTTON, &SelectMachineDialog::on_ok_btn, this);
 
     m_sizer_pcont->Add(0, 0, 1, wxEXPAND, 0);
@@ -695,12 +688,9 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_extra_info->Add(st_title_extra_info_doc, 0, wxALL, 0);
     sizer_extra_info->Add(m_st_txt_extra_info, 0, wxALL, 0);
 
-
-    m_link_network_state = new wxHyperlinkCtrl(m_sw_print_failed_info, wxID_ANY,_L("Check the status of current system services"),"");
+    // ORCA standardized HyperLink
+    m_link_network_state = new HyperLink(m_sw_print_failed_info, _L("Check the status of current system services"), wxGetApp().link_to_network_check());
     m_link_network_state->SetFont(::Label::Body_12);
-    m_link_network_state->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_network_check();});
-    m_link_network_state->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {m_link_network_state->SetCursor(wxCURSOR_HAND);});
-    m_link_network_state->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {m_link_network_state->SetCursor(wxCURSOR_ARROW);});
 
     sizer_print_failed_info->Add(m_link_network_state, 0, wxLEFT, 5);
     sizer_print_failed_info->Add(sizer_error_code, 0, wxLEFT, 5);
@@ -709,11 +699,11 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_print_failed_info->Add(0, 0, 0, wxTOP, FromDIP(3));
     sizer_print_failed_info->Add(sizer_extra_info, 0, wxLEFT, 5);
 
-
     m_scroll_sizer->Add(m_line_top, 0, wxEXPAND, 0);
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(11));
     //m_sizer_main->Add(m_sizer_mode_switch, 0, wxALIGN_CENTER, 0);
-    m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    //m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    m_scroll_sizer->AddStretchSpacer();
     m_scroll_sizer->Add(m_basic_panel, 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
     m_scroll_sizer->Add(0, 0, 0, wxTOP, FromDIP(14));
     m_scroll_sizer->Add(sizer_split_filament, 1, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(15));
@@ -1368,7 +1358,7 @@ void SelectMachineDialog::auto_supply_with_ext(std::vector<DevAmsTray> slots) {
             if (slot.id.empty()) continue;
             m_ams_mapping_result[i].ams_id = slot.id;
             m_ams_mapping_result[i].color = slot.color;
-            m_ams_mapping_result[i].type = slot.type;
+            m_ams_mapping_result[i].type = slot.m_fila_type;
             m_ams_mapping_result[i].colors = slot.cols;
             m_ams_mapping_result[i].tray_id = atoi(slot.id.c_str());
             m_ams_mapping_result[i].slot_id = "0";
@@ -1474,6 +1464,7 @@ void SelectMachineDialog::update_print_status_msg()
     bool is_printer_update =  m_text_printer_msg->UpdateInfos(m_pre_print_checker.printerList);
     if (is_printer_update || is_ams_update) {
         Layout();
+        Fit();
     }
 
  }
@@ -1512,8 +1503,9 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         tips = params[1];
     }
 
-    if (m_print_status != status)
-        BOOST_LOG_TRIVIAL(info) << "select_machine_dialog: show_status = " << status << "(" << PrePrintChecker::get_print_status_info(status) << ")";
+    if (m_print_status != status) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": update_status: " << status << "(" << PrePrintChecker::get_print_status_info(status) << ")";
+    }
     m_print_status = status;
 
     // all message
@@ -1553,9 +1545,6 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintDialogStatus::PrintStatusAmsOnSettingup) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
-    } else if (status == PrintDialogStatus::PrintStatusInvalidMapping) {
-        Enable_Refresh_Button(true);
-        Enable_Send_Button(false);
     } else if (status == PrintDialogStatus::PrintStatusAmsMappingInvalid) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
@@ -1574,7 +1563,11 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintStatusNozzleTypeMismatch) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
+    } else if (status == PrintStatusColorQuantityExceed) {
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(false);
     }
+
     else if (status == PrintDialogStatus::PrintStatusAmsMappingU0Invalid) {
         wxString msg_text;
         if (params.size() > 1)
@@ -1674,6 +1667,9 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         msg = msg_text;
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
+    } else if (status == PrintStatusToolHeadCoolingFanWarning) {
+        Enable_Refresh_Button(true);
+        Enable_Send_Button(true);
     } else if (status == PrintStatusMixAmsAndVtSlotWarning) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
@@ -1689,10 +1685,7 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
     } else if (status == PrintStatusHasFilamentInBlackListWarning) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
-    } else if (status == PrintStatusWarningTpuRightColdPulling) {
-        Enable_Refresh_Button(true);
-        Enable_Send_Button(true);
-    } else if (status == PrintStatusFilamentWarningHighChamberTempCloseDoor) {
+    } else if (status == PrintStatusFilamentWarningHighChamberTempCloseDoor || status == PrintStatusFilamentWarningHighChamberTemp) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(true);
     } else if (status == PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempSoft || status == PrintDialogStatus::PrintStatusFilamentWarningUnknownHighChamberTempSoft) {
@@ -2516,14 +2509,14 @@ void SelectMachineDialog::on_send_print()
     if (build_nozzles_info(m_print_job->task_nozzles_info)) {
         BOOST_LOG_TRIVIAL(error) << "build_nozzle_info errors";
     }
-    
-    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state() ;    
+
+    m_print_job->sdcard_state = obj_->GetStorage()->get_sdcard_state();    
     m_print_job->has_sdcard =  wxGetApp().app_config->get("allow_abnormal_storage") == "true"
             ? (m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL
                || m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL)
-            : m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;        
-    
-    
+            : m_print_job->sdcard_state == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
+
+    m_print_job->could_emmc_print = obj_->is_support_print_with_emmc;
 
 
     bool timelapse_option = m_checkbox_list["timelapse"]->IsShown()?true:false;
@@ -2978,7 +2971,7 @@ void SelectMachineDialog::on_timer(wxTimerEvent &event)
     load_option_vals(obj_);
     update_show_status(obj_);
     update_print_status_msg();
-    update_scroll_area_size();
+    //update_scroll_area_size();/*STUDIO-12867 the page maybe blank in some platform. FIXME*/
 }
 
 void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
@@ -3035,7 +3028,6 @@ void SelectMachineDialog::on_selection_changed(wxCommandEvent &event)
         }
 
         // Has changed machine unrecoverably
-        GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
         m_check_flag = false;
     } else {
         BOOST_LOG_TRIVIAL(error) << "on_selection_changed dev_id not found";
@@ -3313,10 +3305,18 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         show_status(PrintDialogStatus::PrintStatusNoSdcard);
         return;
     }
+    if (wxGetApp().preset_bundle->filament_presets.size() > 16 && m_print_type != PrintFromType::FROM_SDCARD_VIEW) { 
+        if (!obj_->is_enable_ams_np && !obj_->is_enable_np)
+        {
+            show_status(PrintDialogStatus::PrintStatusColorQuantityExceed);
+            return;
+        }
+    }
 
     /*check sdcard when if lan mode printer*/
     if (obj_->is_lan_mode_printer()) {
-        if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD) {
+        if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD
+            && !obj_->is_support_print_with_emmc) {
             show_status(PrintDialogStatus::PrintStatusLanModeNoSdcard);
             return;
         } else if (obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_READONLY) {
@@ -3337,7 +3337,7 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
     if (obj_->GetExtderSystem()->GetTotalExtderCount() > 1) {
         for (auto mres : m_ams_mapping_result) {
             if (mres.ams_id.empty() && mres.slot_id.empty()) {
-                show_status(PrintDialogStatus::PrintStatusInvalidMapping);
+                show_status(PrintDialogStatus::PrintStatusAmsMappingInvalid);
                 return;
             }
         }
@@ -3411,12 +3411,12 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         }
     }
 
-    if (!m_mapping_popup.m_supporting_mix_print && nozzle_nums == 1) {
+    if (!DevPrinterConfigUtil::support_ams_ext_mix_print(obj_->printer_type)) {
         bool useAms = _HasAms(m_ams_mapping_result);
         bool useExt = _HasExt(m_ams_mapping_result);
         if (useAms && useExt) {
-            show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
-            return;
+             show_status(PrintDialogStatus::PrintStatusAmsMappingMixInvalid);
+             return;
         }
     }
 
@@ -3512,22 +3512,9 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
         }
     }
 
-    /*Check the tpu at right*/
-    if (obj_->GetExtderSystem()->GetTotalExtderCount() == 2) {
-        for (const FilamentInfo& item : m_ams_mapping_result) {
-            if (item.ams_id.empty()) continue;
-            if (item.type.compare("TPU") != 0 && item.type.compare("TPU-AMS") != 0) { continue; }
-
-            int extruder_id = obj_->get_extruder_id_by_ams_id(item.ams_id);
-            if (extruder_id == MAIN_EXTRUDER_ID) {
-                show_status(PrintDialogStatus::PrintStatusWarningTpuRightColdPulling);
-                break;
-            }
-        }
-    }
-
     /*Check high temperture slicing*/
     if (m_print_type == PrintFromType::FROM_NORMAL) {
+        std::set<string>  high_temp_filaments;
         std::unordered_set<int> known_fila_soften_extruders;
         std::unordered_set<int> unknown_fila_soften_extruders;
         auto preset_full_config = wxGetApp().preset_bundle->full_config();
@@ -3536,9 +3523,8 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             try
             {
                 int chamber_temp = chamber_temperatures->values[item.id];
-                if (chamber_temp >= obj_->GetConfig()->GetChamberTempSwitchHeat()) {// check close door
-                    show_status(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor);
-                    if (PrePrintChecker::is_error(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor)) { return; }
+                if (chamber_temp >= 40) {
+                    high_temp_filaments.insert(item.get_display_filament_type());// high printing chamber temperature
                 }
 
                 for (const auto& extder : obj_->GetExtderSystem()->GetExtruders()) { // check vitrification
@@ -3559,6 +3545,26 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             catch (std::exception&) { assert(0); }
         }
 
+        if (!high_temp_filaments.empty()) {
+            wxString filament_strs;/*join the filament strs*/
+            for (auto filament : high_temp_filaments) {
+                filament_strs += filament;
+                if (filament != *high_temp_filaments.rbegin()) {
+                    filament_strs += ", ";
+                }
+            }
+
+            if (obj_->GetConfig()->HasChamber()) {
+                const auto& msg = wxString::Format(_L("[ %s ] requires printing in a high-temperature environment.Please close the door."), filament_strs);
+                show_status(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor, { msg });
+                if (PrePrintChecker::is_error(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTempCloseDoor)) { return; }
+            } else {
+                const auto& msg = wxString::Format(_L("[ %s ] requires printing in a high-temperature environment."), filament_strs);
+                show_status(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTemp, { msg });
+                if (PrePrintChecker::is_error(PrintDialogStatus::PrintStatusFilamentWarningHighChamberTemp)) { return; }
+            }
+        }
+
         if (!known_fila_soften_extruders.empty()) {
             const wxString& msg = wxString::Format(_L("The filament on %s may soften. Please unload."),
                 _get_ext_loc_str(known_fila_soften_extruders, obj_->GetExtderSystem()->GetTotalExtderCount()));
@@ -3573,6 +3579,9 @@ void SelectMachineDialog::update_show_status(MachineObject* obj_)
             if (PrePrintChecker::is_error(PrintDialogStatus::PrintStatusFilamentWarningUnknownHighChamberTempSoft)) { return; }
         }
     }
+
+    // check extension tool warning
+    UpdateStatusCheckWarning_ExtensionTool(obj_);
 
     /** normal check **/
     show_status(PrintDialogStatus::PrintStatusReadyToGo);
@@ -3642,14 +3651,12 @@ void SelectMachineDialog::Enable_Send_Button(bool en)
     if (!en) {
         if (m_button_ensure->IsEnabled()) {
             m_button_ensure->Disable();
-            m_button_ensure->SetBackgroundColor(wxColour(200, 200, 200));
-            m_button_ensure->SetBorderColor(wxColour(200, 200, 200));
+            // ORCA no need to set colors again
         }
     } else {
         if (!m_button_ensure->IsEnabled()) {
             m_button_ensure->Enable();
-            m_button_ensure->SetBackgroundColor(m_btn_bg_enable);
-            m_button_ensure->SetBorderColor(m_btn_bg_enable);
+            // ORCA no need to set colors again
         }
     }
 }
@@ -3666,8 +3673,7 @@ void SelectMachineDialog::on_dpi_changed(const wxRect &suggested_rect)
         ams_mapping_help_icon->msw_rescale();
         if (img_amsmapping_tip)img_amsmapping_tip->SetBitmap(ams_mapping_help_icon->bmp());
     }
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE2);
-    m_button_ensure->SetCornerRadius(FromDIP(4));
+    m_button_ensure->Rescale(); // ORCA
     m_status_bar->msw_rescale();
 
     for (auto material1 : m_materialList) {
@@ -4520,6 +4526,13 @@ bool SelectMachineDialog::Show(bool show)
         EnableEditing(true);
         m_options_other->Show();
         m_refresh_timer->Start(LIST_REFRESH_INTERVAL);
+
+        //set a default machine when obj is null
+        if (DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager()) {
+            if (!dev->get_selected_machine()) {
+                dev->load_last_machine();
+            }
+        };
     } else {
         m_refresh_timer->Stop();
         return DPIDialog::Show(false);
@@ -4560,6 +4573,37 @@ void SelectMachineDialog::show_init() {
 SelectMachineDialog::~SelectMachineDialog()
 {
     delete m_refresh_timer;
+}
+
+void SelectMachineDialog::UpdateStatusCheckWarning_ExtensionTool(MachineObject* obj_)
+{
+    if (!obj_)
+    {
+        return;
+    }
+
+    if (!DevPrinterConfigUtil::support_print_check_extension_fan_f000_mounted(obj_->printer_type))
+    {
+        return;
+    }
+
+    if (auto extension_tool = obj_->GetExtensionTool().lock())
+    {
+        if (extension_tool->IsToolTypeFanF000() && !extension_tool->IsMounted() )
+        {
+            for (const FilamentInfo& item : m_ams_mapping_result)
+            {
+                auto filament_info = wxGetApp().preset_bundle->get_filament_by_filament_id(item.filament_id);
+                if (filament_info && (filament_info->temperature_vitrification <= 50))
+                {
+                    show_status(PrintDialogStatus::PrintStatusToolHeadCoolingFanWarning,
+                                { _L("Install toolhead enhanced cooling fan to prevent filament softening.")},
+                                "https://e.bambulab.com/t?c=l3T7caKGeNt3omA9");
+                    return;
+                }
+            }
+        }
+    }
 }
 
  ThumbnailPanel::ThumbnailPanel(wxWindow *parent, wxWindowID winid, const wxPoint &pos, const wxSize &size)
@@ -4633,6 +4677,7 @@ SelectMachineDialog::~SelectMachineDialog()
 
      m_ops = ops;
      m_param = param;
+     m_full_title = title;
 
      SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
      wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -4640,10 +4685,17 @@ SelectMachineDialog::~SelectMachineDialog()
      m_printoption_title = new Label(this, title);
      m_printoption_title->SetFont(Label::Body_13);
 
+     update_title_display();
+
+     m_printoption_tips = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
+     m_printoption_tips->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
+     m_printoption_tips->SetMaxSize(wxSize(FromDIP(18), FromDIP(18)));
+
      m_printoption_item = new PrintOptionItem(this, m_ops, param);
      m_printoption_item->SetFont(Label::Body_13);
 
      sizer->Add(m_printoption_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
+     sizer->Add(m_printoption_tips, 0, wxLEFT | wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, FromDIP(2));
      sizer->AddStretchSpacer();
      sizer->Add(m_printoption_item, 0, wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL, 0);
 
@@ -4722,19 +4774,21 @@ bool PrintOption::contain_opt(const std::string &opt) const
 
 void PrintOption::update_options(std::vector<POItem> ops, const wxString &tips)
 {
-    if (m_ops != ops)
-    {
+    if (m_ops != ops) {
         m_ops = ops;
         m_printoption_item->update_options(ops);
     }
 
-    if (m_printoption_title->GetToolTipText() != tips) { m_printoption_title->SetToolTip(tips); }
+    update_tooltip(tips);
 }
 
 void PrintOption::update_tooltip(const wxString &tips)
 {
-    if (m_printoption_title->GetToolTipText() != tips) { m_printoption_title->SetToolTip(tips); }
-    if (m_printoption_item->GetToolTipText() != tips) { m_printoption_item->SetToolTip(tips); }
+    if (m_printoption_tips->GetToolTipText() != tips) {
+        m_printoption_tips->SetToolTip(tips);
+    }
+
+    m_printoption_tips->Show(!m_printoption_tips->GetToolTipText().IsEmpty());
 }
 
 std::string PrintOption::getValue()
@@ -4753,6 +4807,34 @@ int PrintOption::getValueInt()
     } else {
         return 2;
     }
+}
+
+void PrintOption::update_title_display()
+{
+    if (!m_printoption_title || m_full_title.IsEmpty()) {
+        return;
+    }
+
+    wxGCDC dc;
+    wxSize titleSize = dc.GetTextExtent(m_full_title);
+    int maxTitleWidth = FromDIP(150);
+
+    wxString displayTitle = m_full_title;
+    if (titleSize.x > maxTitleWidth) {
+        displayTitle = wxControl::Ellipsize(m_full_title, dc, wxELLIPSIZE_END, maxTitleWidth);
+        m_printoption_title->SetToolTip(m_full_title);
+    } else {
+        m_printoption_title->SetToolTip(wxEmptyString);
+    }
+
+    m_printoption_title->SetLabel(displayTitle);
+}
+
+void PrintOption::msw_rescale()
+{
+    m_printoption_item->msw_rescale();
+    m_printoption_tips->msw_rescale();
+    update_title_display();
 }
 
 PrintOptionItem::PrintOptionItem(wxWindow* parent, std::vector<POItem> ops, std::string param)
@@ -5026,40 +5108,42 @@ void PrinterInfoBox::UpdatePlate(const std::string& plate_name)
 {
     if (plate_name.empty())
     {
-        m_text_bed_type->Hide();
+        //m_text_bed_type->Hide();
     }
     else
     {
         wxString name;
         if (plate_name == "Cool Plate") {
-            name = _L("Cool");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool", this, 32));
+            name = _L("Smooth Cool Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool", this, 40));
         }
         else if (plate_name == "Engineering Plate") {
-            name = _L("Engineering");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_engineering", this, 32));
+            name = _L("Engineering Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_engineering", this, 40));
         }
         else if (plate_name == "High Temp Plate") {
-            name = _L("High Temp");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_high_templ", this, 32));
+            name = _L("Smooth High Temp Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_high_templ", this, 40));
         }
         else if (plate_name == "Textured PEI Plate") {
-            name = "PEI";
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 32));
+            name = _L("Textured PEI Plate");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_pei", this, 40));
         }
         else if (plate_name == "Supertack Plate") {
-            name = _L("Cool(Supertack)");
-            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 32));
+            name = _L("Cool Plate (Supertack)");
+            m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 40));
         }
 
-        if (name.length() > 8) {
-            m_text_bed_type->SetFont(Label::Body_9);
-        }
-        else{
-            m_text_bed_type->SetFont(Label::Body_12);
-        }
-        m_text_bed_type->SetLabelText(name);
-        m_text_bed_type->Show();
+        m_bed_image->SetToolTip(name);
+
+        //if (name.length() > 8) {
+        //    m_text_bed_type->SetFont(Label::Body_9);
+        //}
+        //else{
+        //    m_text_bed_type->SetFont(Label::Body_12);
+        //}
+        //m_text_bed_type->SetLabelText(name);
+        //m_text_bed_type->Show();
     }
 }
 
@@ -5209,24 +5293,26 @@ void PrinterInfoBox::Create()
 
     /*bed area*/
     auto bed_staticbox = new StaticBox(this);
-    bed_staticbox->SetMinSize(wxSize(FromDIP(98), FromDIP(68)));
-    bed_staticbox->SetMaxSize(wxSize(FromDIP(98), FromDIP(68)));
+    bed_staticbox->SetMinSize(wxSize(FromDIP(68), FromDIP(68)));
+    bed_staticbox->SetMaxSize(wxSize(FromDIP(68), FromDIP(68)));
     bed_staticbox->SetBorderColor(wxColour("#EEEEEE"));
 
-    m_bed_image = new wxStaticBitmap(bed_staticbox, wxID_ANY, create_scaled_bitmap("bed_cool", this, 32));
+    m_bed_image = new wxStaticBitmap(bed_staticbox, wxID_ANY, create_scaled_bitmap("bed_cool", this, 40));
     m_bed_image->SetBackgroundColour(*wxWHITE);
-    m_bed_image->SetMinSize(wxSize(FromDIP(32), FromDIP(32)));
-    m_bed_image->SetMaxSize(wxSize(FromDIP(32), FromDIP(32)));
+    m_bed_image->SetMinSize(wxSize(FromDIP(40), FromDIP(40)));
+    m_bed_image->SetMaxSize(wxSize(FromDIP(40), FromDIP(40)));
 
-    m_text_bed_type = new Label(bed_staticbox);
-    m_text_bed_type->SetForegroundColour(wxColour(144, 144, 144));
-    m_text_bed_type->SetMaxSize(wxSize(FromDIP(80), FromDIP(24)));
-    m_text_bed_type->SetFont(Label::Body_13);
+    //m_text_bed_type = new Label(bed_staticbox);
+    //m_text_bed_type->SetForegroundColour(wxColour(144, 144, 144));
+    //m_text_bed_type->SetMaxSize(wxSize(FromDIP(80), FromDIP(24)));
+    //m_text_bed_type->SetFont(Label::Body_13);
 
-    sizer_bed_staticbox->Add(0, 0, 0, wxTOP, FromDIP(10));
+    //sizer_bed_staticbox->Add(0, 0, 0, wxTOP, FromDIP(10));
+    sizer_bed_staticbox->AddStretchSpacer();
     sizer_bed_staticbox->Add(m_bed_image, 0, wxALIGN_CENTER, 0);
-    sizer_bed_staticbox->AddSpacer(FromDIP(6));
-    sizer_bed_staticbox->Add(m_text_bed_type, 0, wxALIGN_CENTER, 0);
+    sizer_bed_staticbox->AddStretchSpacer();
+    //sizer_bed_staticbox->AddSpacer(FromDIP(6));
+    //sizer_bed_staticbox->Add(m_text_bed_type, 0, wxALIGN_CENTER, 0);
 
     bed_staticbox->SetSizer(sizer_bed_staticbox);
     bed_staticbox->Layout();
@@ -5238,7 +5324,7 @@ void PrinterInfoBox::Create()
 
 
     wxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
-    main_sizer->Add(m_text_bed_type, 0, wxTOP, 0);
+    //main_sizer->Add(m_text_bed_type, 0, wxTOP, 0);
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     main_sizer->Add(sizer_split_printer, 1, wxEXPAND, 0);
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(8));
@@ -5250,6 +5336,7 @@ void PrinterInfoBox::OnBtnQuestionClicked(wxCommandEvent& event)
 {
     wxLaunchDefaultBrowser(wxT("https://wiki.bambulab.com/en/software/bambu-studio/failed-to-connect-printer"));
 }
+
 
 }
 } // namespace Slic3r::GUI

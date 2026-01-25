@@ -269,7 +269,7 @@ void SelectMObjectPopup::Popup(wxWindow* WXUNUSED(focus))
         }
     }
 
-    wxPostEvent(this, wxTimerEvent());
+    wxPostEvent(this, wxTimerEvent(*m_refresh_timer));
     PopupWindow::Popup();
 }
 
@@ -505,7 +505,7 @@ void CalibrationPanel::init_timer()
     m_refresh_timer = new wxTimer();
     m_refresh_timer->SetOwner(this);
     m_refresh_timer->Start(REFRESH_INTERVAL);
-    wxPostEvent(this, wxTimerEvent());
+    wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
 }
 
 void CalibrationPanel::on_timer(wxTimerEvent& event) {
@@ -634,7 +634,7 @@ bool CalibrationPanel::Show(bool show) {
         m_refresh_timer->Stop();
         m_refresh_timer->SetOwner(this);
         m_refresh_timer->Start(REFRESH_INTERVAL);
-        wxPostEvent(this, wxTimerEvent());
+        wxPostEvent(this, wxCommandEvent(wxEVT_TIMER));
 
         DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
         if (dev) {
@@ -642,9 +642,6 @@ bool CalibrationPanel::Show(bool show) {
             obj = dev->get_selected_machine();
             if (obj == nullptr) {
                 dev->load_last_machine();
-                obj = dev->get_selected_machine();
-                if (obj)
-                    GUI::wxGetApp().sidebar().load_ams_list(obj->get_dev_id(), obj);
             }
             else {
                 obj->reset_update_time();
@@ -682,7 +679,6 @@ void CalibrationPanel::set_default()
 {
     obj = nullptr;
     last_conn_type = "undefined";
-    wxGetApp().sidebar().load_ams_list({}, {});
 }
 
 void CalibrationPanel::msw_rescale()

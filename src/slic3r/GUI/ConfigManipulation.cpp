@@ -305,6 +305,15 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
         is_msg_dlg_already_exist = false;
     }
 
+    if (config->option<ConfigOptionBool>("enable_wrapping_detection")->value) {
+        std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+        if (!DevPrinterConfigUtil::support_wrapping_detection(printer_type)) {
+            DynamicPrintConfig new_conf = *config;
+            new_conf.set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
+            apply(config, &new_conf);
+        }
+    }
+
     double sparse_infill_density = config->option<ConfigOptionPercent>("sparse_infill_density")->value;
     int    fill_multiline        = config->option<ConfigOptionInt>("fill_multiline")->value;
     auto timelapse_type = config->opt_enum<TimelapseType>("timelapse_type");
@@ -586,8 +595,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament uses the same logic as in Print::extruders()
-    for (auto el : { "sparse_infill_pattern", "infill_combination",
-        "minimum_sparse_infill_area", "sparse_infill_filament", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
+    for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
+        "minimum_sparse_infill_area", "sparse_infill_filament", "infill_anchor", "infill_anchor_max","infill_shift_step","sparse_infill_rotate_template","symmetric_infill_y_axis"})
         toggle_line(el, have_infill);
 
     bool have_combined_infill = config->opt_bool("infill_combination") && have_infill;
@@ -595,24 +604,27 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     // Infill patterns that support multiline infill.
     InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
-    bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb ||
-                                                  pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic;
-    toggle_line("fill_multiline", have_multiline_infill_pattern);
+    bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
+                                                  pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
-    // If the infill pattern does not support multiline infill, set fill_multiline to 1.
-    if (!have_multiline_infill_pattern) {
-        DynamicPrintConfig new_conf = *config;
-        new_conf.set_key_value("fill_multiline", new ConfigOptionInt(1));
-        apply(config, &new_conf);
+    // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
+    if (have_infill) {
+        toggle_field("fill_multiline", have_multiline_infill_pattern);
+        // If the infill pattern does not support multiline fill_multiline is changed to 1.
+        // Necessary when the pattern contains params.multiline (for example, triangles because they belong to the rectilinear class)
+        if (!have_multiline_infill_pattern) {
+            DynamicPrintConfig new_conf = *config;
+            new_conf.set_key_value("fill_multiline", new ConfigOptionInt(1));
+            apply(config, &new_conf);
+        }
+        // Hide infill anchor max if sparse_infill_pattern is not line or if sparse_infill_pattern is line but infill_anchor_max is 0.
+        bool infill_anchor = config->opt_enum<InfillPattern>("sparse_infill_pattern") != ipLine;
+        toggle_field("infill_anchor_max", infill_anchor);
+
+        // Only allow configuration of open anchors if the anchoring is enabled.
+        bool has_infill_anchors = infill_anchor && config->option<ConfigOptionFloatOrPercent>("infill_anchor_max")->value > 0;
+        toggle_field("infill_anchor", has_infill_anchors);
     }
-
-    // Hide infill anchor max if sparse_infill_pattern is not line or if sparse_infill_pattern is line but infill_anchor_max is 0.
-    bool infill_anchor = config->opt_enum<InfillPattern>("sparse_infill_pattern") != ipLine;
-    toggle_field("infill_anchor_max",infill_anchor);
-
-    // Only allow configuration of open anchors if the anchoring is enabled.
-    bool has_infill_anchors = have_infill && config->option<ConfigOptionFloatOrPercent>("infill_anchor_max")->value > 0 && infill_anchor;
-    toggle_field("infill_anchor", has_infill_anchors);
 
     //cross zag
     bool is_cross_zag = config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value == InfillPattern::ipCrossZag;
@@ -640,7 +652,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("top_surface_density", has_top_shell);
     toggle_field("bottom_surface_density", has_bottom_shell);
 
-    for (auto el : { "infill_direction", "sparse_infill_line_width", "fill_multiline","gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
+    for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
         "sparse_infill_speed", "bridge_speed", "internal_bridge_speed", "bridge_angle", "internal_bridge_angle",
         "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "solid_infill_filament",
         })
@@ -693,6 +705,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
     toggle_field("brim_object_gap", have_brim);
+    toggle_field("brim_use_efc_outline", have_brim);
     bool have_brim_width = (config->opt_enum<BrimType>("brim_type") != btNoBrim) && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
     toggle_field("brim_width", have_brim_width);
@@ -762,10 +775,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
 
-    bool have_skirt_height = have_skirt &&
-    (config->opt_int("skirt_height") > 1 || config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
-    toggle_line("support_speed", have_support_material || have_skirt_height);
-    toggle_line("support_interface_speed", have_support_material && have_support_interface);
+//    see issue #10915
+//    bool have_skirt_height = have_skirt &&
+//    (config->opt_int("skirt_height") > 1 || config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
+//    toggle_line("support_speed", have_support_material || have_skirt_height);
+//    toggle_line("support_interface_speed", have_support_material && have_support_interface);
 
     // BBS
     //toggle_field("support_material_synchronize_layers", have_support_soluble);
@@ -848,13 +862,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&!config->opt_int("support_filament"));
 
+    // Get the current fuzzy skin state
+    bool has_fuzzy_skin = config->opt_enum<FuzzySkinType>("fuzzy_skin") != FuzzySkinType::Disabled_fuzzy;
+    
+    // Show fuzzy skin options when fuzzy skin is not disabled
+    for (auto el : {"fuzzy_skin_mode", "fuzzy_skin_noise_type", "fuzzy_skin_point_distance", "fuzzy_skin_thickness", "fuzzy_skin_first_layer"})
+        toggle_line(el, has_fuzzy_skin);
+    
+    // Show noise type specific options with the same logic
     NoiseType fuzzy_skin_noise_type = config->opt_enum<NoiseType>("fuzzy_skin_noise_type");
-    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic);
-    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi);
-    toggle_line("fuzzy_skin_persistence", fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow);
+    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_persistence", (fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow) && has_fuzzy_skin);
 
     bool have_arachne = config->opt_enum<PerimeterGeneratorType>("wall_generator") == PerimeterGeneratorType::Arachne;
-    for (auto el : { "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
+    for (auto el : {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
         "min_feature_size", "min_length_factor", "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width"})
         toggle_line(el, have_arachne);
     toggle_field("detect_thin_wall", !have_arachne);
@@ -922,17 +944,19 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool lattice_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralLattice;
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options);
+        
+    // Adaptative Cubic and support cubic infill patterns do not support infill rotation.
+    bool FillAdaptive = (pattern == InfillPattern::ipAdaptiveCubic || pattern == InfillPattern::ipSupportCubic);
 
-    //Orca: disable infill_direction/solid_infill_direction if sparse_infill_rotate_template/solid_infill_rotate_template is not empty value
-    toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "");
+    //Orca: disable infill_direction/solid_infill_direction if sparse_infill_rotate_template/solid_infill_rotate_template is not empty value and adaptive cubic/support cubic infill pattern is not selected
+    toggle_field("sparse_infill_rotate_template", !FillAdaptive);
+    toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "" && !FillAdaptive);
     toggle_field("solid_infill_direction", config->opt_string("solid_infill_rotate_template") == "");
-
-
+    
     toggle_line("infill_overhang_angle", config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralHoneycomb);
 
-    ConfigOptionPoints *wrapping_exclude_area_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionPoints>("wrapping_exclude_area");
-    bool support_wrapping_detect = wrapping_exclude_area_opt &&wrapping_exclude_area_opt->values.size() > 3;
-    toggle_line("enable_wrapping_detection", support_wrapping_detect);
+    std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+    toggle_line("enable_wrapping_detection", DevPrinterConfigUtil::support_wrapping_detection(printer_type));
 }
 
 void ConfigManipulation::update_print_sla_config(DynamicPrintConfig* config, const bool is_global_config/* = false*/)

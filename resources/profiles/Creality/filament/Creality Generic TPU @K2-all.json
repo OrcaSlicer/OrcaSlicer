@@ -33,12 +33,16 @@
         "1"
     ],
     "filament_start_gcode": [
-        "; filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else}\nM104 S[first_layer_temperature]\n{endif}\n\n{if(initial_extruder != current_extruder || position[2] > first_layer_height)}\n{if (position[2] +0.4  < printable_height) }\nG2 Z{position[2]  + 0.4} I0.86 J0.86 P1 F10000 ; spiral lift a little from second lift\nG1 X205 Y345 F20000\nG1 Z{position[2] } F1200\n{else}\nG1 X205 Y345 F20000\n{endif}\n{endif}\n"
+        ";filament start gcode\n{if (position[2] > first_layer_height) }\nM104 S[nozzle_temperature]\n{else} \nM104 S[first_layer_temperature]\n{endif}"
     ],
     "compatible_printers": [
         "Creality K2 Plus 0.2 nozzle",
         "Creality K2 Plus 0.4 nozzle",
         "Creality K2 Plus 0.6 nozzle",
-        "Creality K2 Plus 0.8 nozzle"
+        "Creality K2 Plus 0.8 nozzle",
+        "Creality K2 Pro 0.2 nozzle",
+        "Creality K2 Pro 0.4 nozzle",
+        "Creality K2 Pro 0.6 nozzle",
+        "Creality K2 Pro 0.8 nozzle"
     ]
 }

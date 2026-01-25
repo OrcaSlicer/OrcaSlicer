@@ -9,11 +9,13 @@ StaticGroup::StaticGroup(wxWindow *parent, wxWindowID id, const wxString &label)
 
 void StaticGroup::ShowBadge(bool show)
 {
-    if (show)
+    if (show && badge.name() != "badge") {
         badge = ScalableBitmap(this, "badge", 18);
-    else
+        Refresh();
+    } else if (!show && !badge.name().empty()) {
         badge = ScalableBitmap{};
-    Refresh();
+        Refresh();
+    }
 }
 
 void StaticGroup::DrawBorderAndLabel(wxDC& dc)

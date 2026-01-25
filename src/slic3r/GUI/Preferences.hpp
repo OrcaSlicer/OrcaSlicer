@@ -13,6 +13,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
 #include "Widgets/TabCtrl.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -67,7 +68,9 @@ public:
     ::CheckBox * m_internal_developer_mode_ckeckbox = {nullptr};
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
-    ::CheckBox * m_legacy_networking_ckeckbox     = {nullptr};
+    ::ComboBox * m_network_version_combo     = {nullptr};
+    wxBoxSizer * m_network_version_sizer     = {nullptr};
+    std::vector<BBL::NetworkLibraryVersionInfo> m_available_versions;
 
     wxString m_developer_mode_def;
     wxString m_internal_developer_mode_def;
@@ -77,7 +80,7 @@ public:
     std::vector<wxFlexGridSizer*> f_sizers;
 
     wxBoxSizer *create_item_title(wxString title);
-    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist);
+    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::function<void(wxString)> onchange = {});
     wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index);
     wxBoxSizer *create_item_region_combobox(wxString title, wxString tooltip);
     wxBoxSizer *create_item_language_combobox(wxString title, wxString tooltip);
@@ -90,6 +93,7 @@ public:
     wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {});
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
     wxBoxSizer *create_item_backup(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
     wxBoxSizer *create_item_multiple_combobox(wxString title, wxString tooltip, std::string parama, std::vector<wxString> vlista, std::vector<wxString> vlistb);
 #ifdef WIN32
     wxBoxSizer *create_item_link_association(wxString url_prefix, wxString website_name);

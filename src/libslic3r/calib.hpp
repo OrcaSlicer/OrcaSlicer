@@ -81,6 +81,7 @@ public:
     int         tray_id;
     int         extruder_id;
     NozzleVolumeType nozzle_volume_type;
+    BedType     bed_type;
     float       nozzle_diameter;
     std::string filament_id;
     std::string setting_id;
