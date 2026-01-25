@@ -275,6 +275,8 @@ int MoonrakerPrinterAgent::connect_printer(std::string dev_id, std::string dev_i
         status_cache = nlohmann::json::object();
     }
     ws_last_emit_ms.store(0);
+    ws_last_dispatch_ms.store(0);
+    last_print_state.clear();
 
     store_host(dev_id, base_url, api_key);
 
@@ -1475,12 +1477,14 @@ void MoonrakerPrinterAgent::handle_ws_message(const std::string& dev_id, const s
     }
 
     bool updated = false;
+    bool is_critical = false;  // Track if this is a critical update that bypasses throttle
 
-    // Check for subscription response (has "result.status")
+    // Check for subscription response (has "result.status") - initial subscription is critical
     if (json.contains("result") && json["result"].contains("status") &&
         json["result"]["status"].is_object()) {
         update_status_cache(json["result"]["status"]);
         updated = true;
+        is_critical = true;  // Initial subscription response - dispatch immediately
     }
 
     // Check for status update notifications
@@ -1491,16 +1495,19 @@ void MoonrakerPrinterAgent::handle_ws_message(const std::string& dev_id, const s
             json["params"][0].is_object()) {
             update_status_cache(json["params"][0]);
             updated = true;
+            // Note: is_critical stays false for regular status updates (telemetry)
         } else if (method == "notify_klippy_ready") {
             nlohmann::json updates;
             updates["print_stats"]["state"] = "standby";
             update_status_cache(updates);
             updated = true;
+            is_critical = true;  // Klippy events are critical
         } else if (method == "notify_klippy_shutdown") {
             nlohmann::json updates;
             updates["print_stats"]["state"] = "error";
             update_status_cache(updates);
             updated = true;
+            is_critical = true;  // Klippy events are critical
         }
         // Handle Klippy disconnect - update status and trigger reconnection
         else if (method == "notify_klippy_disconnected") {
@@ -1509,26 +1516,56 @@ void MoonrakerPrinterAgent::handle_ws_message(const std::string& dev_id, const s
             updates["print_stats"]["state"] = "error";
             update_status_cache(updates);
             updated = true;
+            is_critical = true;  // Klippy events are critical
             // Set flag to trigger reconnection after dispatching the status update
             ws_reconnect_requested.store(true);
             BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: Klippy disconnected, triggering reconnection";
         }
     }
 
-    if (updated) {
-        nlohmann::json message;
+    // Check for print state changes (critical - always dispatch immediately)
+    if (updated && !is_critical) {
+        std::string current_state;
         {
             std::lock_guard<std::recursive_mutex> lock(payload_mutex);
-            message = build_print_payload_locked();
+            if (status_cache.contains("print_stats") &&
+                status_cache["print_stats"].contains("state") &&
+                status_cache["print_stats"]["state"].is_string()) {
+                current_state = status_cache["print_stats"]["state"].get<std::string>();
+            }
         }
 
-        BOOST_LOG_TRIVIAL(trace) << "MoonrakerPrinterAgent: Dispatching payload: " << message.dump();
-        dispatch_message(dev_id, message.dump());
+        if (!current_state.empty() && current_state != last_print_state) {
+            is_critical = true;
+            last_print_state = current_state;
+            BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: Print state changed to " << current_state << ", dispatching immediately";
+        }
+    }
 
+    if (updated) {
         const auto now_ms = static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now().time_since_epoch()).count());
-        ws_last_emit_ms.store(now_ms);
+        const auto last_dispatch_ms = ws_last_dispatch_ms.load();
+
+        // Dispatch if: critical change OR throttle interval elapsed
+        const bool should_dispatch = is_critical ||
+                                     last_dispatch_ms == 0 ||
+                                     now_ms - last_dispatch_ms >= STATUS_UPDATE_INTERVAL_MS;
+
+        if (should_dispatch) {
+            nlohmann::json message;
+            {
+                std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+                message = build_print_payload_locked();
+            }
+
+            BOOST_LOG_TRIVIAL(trace) << "MoonrakerPrinterAgent: Dispatching payload (critical=" << is_critical << "): " << message.dump();
+            dispatch_message(dev_id, message.dump());
+            ws_last_dispatch_ms.store(now_ms);
+            ws_last_emit_ms.store(now_ms);  // Also update heartbeat timer
+        }
+        // else: skip dispatch, cache is updated for next dispatch cycle
     }
 }
 

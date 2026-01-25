@@ -179,6 +179,12 @@ private:
     std::atomic<uint64_t> ws_last_emit_ms{0};
     std::thread         ws_thread;
 
+    // Throttling configuration for WebSocket updates
+    // Critical changes (state transitions) dispatch immediately; telemetry is throttled
+    static constexpr uint64_t STATUS_UPDATE_INTERVAL_MS = 1000;  // 1 update/sec for telemetry
+    std::atomic<uint64_t> ws_last_dispatch_ms{0};
+    std::string last_print_state;  // Track state for immediate dispatch on change
+
     // Connection thread management
     std::atomic<bool>   connect_in_progress{false};
     std::atomic<bool>   connect_stop_requested{false};
