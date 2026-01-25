@@ -703,16 +703,23 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         
         float start_y = ImGui::GetCursorPos().y;
 
-        // Title as simple text
-        m_imgui->text(title);
+        // ORCA: Title as simple text - Removed as per request (redundant with button)
+        // m_imgui->text(title);
 
         ImGui::BeginGroup();
         // ORCA: Reduce vertical spacing within this group
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(m_imgui->scaled(0.4f), m_imgui->scaled(0.2f)));
 
         render_filament_remap_ui(window_width, max_tooltip_width);
-        
-        // ORCA: Add Remap and Cancel buttons
+
+        ImGui::PopStyleVar();
+        ImGui::EndGroup();
+
+        // ORCA: Update height for next frame fill
+        remap_panel_high = ImGui::GetCursorPos().y - start_y;
+
+        // ORCA: Add Remap and Cancel buttons (outside the panel)
+        ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.2f));
         if (m_imgui->button(m_desc.at("remap"))) {
             this->remap_filament_assignments();
             // Reset mapping to identity after apply
@@ -723,12 +730,6 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             // Reset mapping to identity
             for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
         }
-
-        ImGui::PopStyleVar();
-        ImGui::EndGroup();
-
-        // ORCA: Update height for next frame fill
-        remap_panel_high = ImGui::GetCursorPos().y - start_y;
     }
 
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
@@ -1088,7 +1089,9 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     const ImVec2 max_label_size = ImGui::CalcTextSize("99", NULL, true);
     const ImVec2 button_size(max_label_size.x + m_imgui->scaled(0.5f), 0.f);
 
-    bool first = true;
+    int displayed_count = 0;
+    const int max_per_line = 8;
+
     // ORCA: Use m_used_filaments to show only relevant source filaments
     for (size_t src : m_used_filaments) {
         if (src >= n_extr) continue;
@@ -1100,9 +1103,9 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         // This keeps the UI stable until "Remap" is clicked.
         ImVec4 col_vec = ImGuiWrapper::to_ImVec4(src_col);
 
-        if (!first) ImGui::SameLine();
-        first = false;
-
+        if (displayed_count > 0 && (displayed_count % max_per_line != 0))
+            ImGui::SameLine();
+        
         std::string btn_id = "##remap_src_" + std::to_string(src);
         std::string pop_id = "popup_" + std::to_string(src);
         
@@ -1203,7 +1206,8 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
             for (int dst = 0; dst < (int)n_extr; ++dst) {
                 const ColorRGBA &dst_col_popup = m_extruders_colors[dst];
                 ImVec4 dst_vec = ImGuiWrapper::to_ImVec4(dst_col_popup);
-                if (dst) ImGui::SameLine();
+                if (dst > 0 && (dst % max_per_line != 0))
+                     ImGui::SameLine();
                 std::string dst_btn = "##dst_" + std::to_string(src) + "_" + std::to_string(dst);
                 
                 // Apply same styling to destination buttons
@@ -1258,6 +1262,8 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         // Clean up popup styling (always pop, whether popup was open or not)
         ImGui::PopStyleColor(2); // PopupBg and Border
         ImGui::PopStyleVar(2);   // PopupRounding and PopupBorderSize
+        
+        displayed_count++;
     }
 }
 
