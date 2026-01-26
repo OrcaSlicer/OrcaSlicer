@@ -24,18 +24,18 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
     return AgentInfo{.id = "qidi", .name = "Qidi Printer Agent", .version = QidiPrinterAgent_VERSION, .description = "Qidi printer agent"};
 }
 
-void QidiPrinterAgent::fetch_filament_info(std::string dev_id)
+bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
 {
     // Look up MachineObject via DeviceManager
     auto* dev_manager = GUI::wxGetApp().getDeviceManager();
     if (!dev_manager) {
         BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: DeviceManager is null";
-        return;
+        return false;
     }
     MachineObject* obj = dev_manager->get_my_machine(dev_id);
     if (!obj) {
         BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: MachineObject not found for dev_id=" << dev_id;
-        return;
+        return false;
     }
 
     std::vector<QidiSlotInfo> slots;
@@ -43,7 +43,7 @@ void QidiPrinterAgent::fetch_filament_info(std::string dev_id)
     std::string               error;
     if (!fetch_slot_info(device_info.base_url, device_info.api_key, slots, box_count, error)) {
         BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
-        return;
+        return false;
     }
 
     QidiFilamentDict dict;
@@ -141,6 +141,7 @@ void QidiPrinterAgent::fetch_filament_info(std::string dev_id)
 
     // Call the parser to populate DevFilaSystem
     DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
+    return true;
 }
 
 bool QidiPrinterAgent::fetch_slot_info(const std::string& base_url,
@@ -162,8 +163,8 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string& base_url,
     if (!api_key.empty()) {
         http.header("X-Api-Key", api_key);
     }
-    http.timeout_connect(10)
-        .timeout_max(30)
+    http.timeout_connect(5)
+        .timeout_max(10)
         .on_complete([&](std::string body, unsigned status) {
             if (status == 200) {
                 response_body = body;
@@ -246,8 +247,8 @@ bool QidiPrinterAgent::fetch_filament_dict(const std::string& base_url,
     if (!api_key.empty()) {
         http.header("X-Api-Key", api_key);
     }
-    http.timeout_connect(10)
-        .timeout_max(30)
+    http.timeout_connect(5)
+        .timeout_max(10)
         .on_complete([&](std::string body, unsigned status) {
             if (status == 200) {
                 response_body = body;

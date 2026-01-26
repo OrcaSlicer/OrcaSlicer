@@ -252,7 +252,7 @@ public:
      * Should only be called when get_filament_sync_mode() returns FilamentSyncMode::pull.
      * Populates the MachineObject's DevFilaSystem with fetched filament data.
      */
-    virtual void fetch_filament_info(std::string dev_id) {}
+    virtual bool fetch_filament_info(std::string dev_id) { return false; }
 };
 
 } // namespace Slic3r

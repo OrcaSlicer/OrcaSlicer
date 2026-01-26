@@ -597,11 +597,12 @@ FilamentSyncMode NetworkAgent::get_filament_sync_mode() const
     return FilamentSyncMode::none;  // Default when no agent
 }
 
-void NetworkAgent::fetch_filament_info(std::string dev_id)
+bool NetworkAgent::fetch_filament_info(std::string dev_id)
 {
     if (m_printer_agent) {
-        m_printer_agent->fetch_filament_info(dev_id);
+        return m_printer_agent->fetch_filament_info(dev_id);
     }
+    return false;
 }
 
 int NetworkAgent::get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets)

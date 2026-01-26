@@ -71,7 +71,7 @@ public:
 
     // Pull-mode agent (on-demand filament sync)
     virtual FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
-    virtual void fetch_filament_info(std::string dev_id) override;
+    virtual bool fetch_filament_info(std::string dev_id) override;
 
 protected:
     struct MoonrakerDeviceInfo
@@ -84,6 +84,7 @@ protected:
         std::string model_name;
         std::string dev_name;
         std::string version;
+        std::string klippy_state;
         bool        use_ssl = false;
     } device_info;
 
@@ -105,7 +106,6 @@ private:
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
-    bool fetch_server_info(const std::string& base_url, const std::string& api_key, std::string& version, std::string& error) const;
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
@@ -134,10 +134,6 @@ private:
     // JSON-RPC helper
     bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,
                               const nlohmann::json& request, std::string& response) const;
-
-    // Server info (returns JSON, not just version string)
-    bool fetch_server_info_json(const std::string& base_url, const std::string& api_key,
-                                 nlohmann::json& info, std::string& error) const;
 
     // Connection thread management
     void perform_connection_async(const std::string& dev_id,

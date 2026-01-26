@@ -19,7 +19,7 @@ public:
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
     // Override filament sync (Qidi-specific implementation)
-    void fetch_filament_info(std::string dev_id) override;
+    bool fetch_filament_info(std::string dev_id) override;
 
 private:
     // Qidi-specific device info (extends base MoonrakerDeviceInfo with model_id)
