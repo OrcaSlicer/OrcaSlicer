@@ -202,7 +202,7 @@ void PrintJob::process(Ctl &ctl)
     // local print access
     params.dev_ip = m_dev_ip;
     params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
-    params.use_ssl_for_mqtt  = m_local_use_ssl_for_mqtt;
+    params.use_ssl_for_mqtt  = m_local_use_ssl;
     params.username = "bblp";
     params.password = m_access_code;
 

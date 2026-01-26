@@ -3520,32 +3520,6 @@ void GUI_App::switch_printer_agent(const std::string& agent_id)
     // Swap the agent
     m_agent->set_printer_agent(new_printer_agent);
 
-    // Update dependent managers
-    if (m_device_manager) {
-        m_device_manager->set_agent(m_agent);
-
-        // If there's a selected machine that was deferred due to no printer agent,
-        // trigger a connection now that the agent is ready
-        MachineObject* selected = m_device_manager->get_selected_machine();
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": checking for deferred connection - selected="
-                               << (selected ? selected->get_dev_id() : "null");
-        if (selected) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": selected machine - is_lan_mode=" << selected->is_lan_mode_printer()
-                                   << " is_connected=" << selected->is_connected();
-        }
-        if (selected && selected->is_lan_mode_printer() && !selected->is_connected()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": connecting deferred LAN machine dev_id=" << selected->get_dev_id();
-#if !BBL_RELEASE_TO_PUBLIC
-            selected->connect(app_config->get("enable_ssl_for_mqtt") == "true" ? true : false);
-#else
-            selected->connect(selected->local_use_ssl_for_mqtt);
-#endif
-            selected->set_lan_mode_connection_state(true);
-        }
-    } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": m_device_manager is null, cannot check for deferred connection";
-    }
-
     // Auto-switch MachineObject
     select_machine(effective_agent_id);
 
@@ -3571,41 +3545,12 @@ void GUI_App::select_machine(const std::string& agent_id)
 
     std::string print_host = host_cfg->opt_string("print_host");
     if (print_host.empty()) {
-        if (auto* physical_cfg = preset_bundle->physical_printers.get_selected_printer_config()) {
-            if (!physical_cfg->opt_string("print_host").empty()) {
-                host_cfg = physical_cfg;
-                print_host = host_cfg->opt_string("print_host");
-            }
-        }
-    }
-    if (print_host.empty()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no print_host configured, skipping auto-switch";
         return;
     }
-
-    // Normalize host: strip protocol and path
-    std::string host = print_host;
-    if (host.find("http://") == 0) host = host.substr(7);
-    else if (host.find("https://") == 0) host = host.substr(8);
-    auto slash = host.find('/');
-    if (slash != std::string::npos) host = host.substr(0, slash);
-    // Strip inline port if present (port comes from printhost_port)
-    auto colon = host.find(':');
-    if (colon != std::string::npos) host = host.substr(0, colon);
-
-    // Get port from separate config
     std::string port = host_cfg->opt_string("printhost_port");
 
-    // Build full address (host:port) for dev_ip
-    std::string full_addr = host;
-    if (!port.empty()) {
-        full_addr += ":" + port;
-    }
-
-    // Generate dev_id (replace . and : with _)
-    std::string dev_id = full_addr;
-    std::replace(dev_id.begin(), dev_id.end(), '.', '_');
-    std::replace(dev_id.begin(), dev_id.end(), ':', '_');
+    // Generate dev_id from host and port
+    std::string dev_id = MachineObject::dev_id_from_address(print_host, port);
 
     // Check if already exists by dev_id
     MachineObject* existing = m_device_manager->get_local_machine(dev_id);
@@ -3614,9 +3559,8 @@ void GUI_App::select_machine(const std::string& agent_id)
     if (!existing) {
         auto local_machines = m_device_manager->get_local_machinelist();
         for (auto& [id, machine] : local_machines) {
-            if (machine && machine->get_dev_ip() == full_addr) {
+            if (machine && machine->get_dev_ip() == dev_id) {
                 existing = machine;
-                dev_id = existing->get_dev_id();  // Use existing dev_id
                 break;
             }
         }
@@ -3626,8 +3570,9 @@ void GUI_App::select_machine(const std::string& agent_id)
     if (!existing) {
         BBLocalMachine machine;
         machine.dev_id = dev_id;
-        machine.dev_ip = full_addr;
-        machine.dev_name = agent_id + " (" + full_addr + ")";
+        // We use dev_id as dev_ip to store the address (host:port)
+        machine.dev_ip = dev_id;
+        machine.dev_name = dev_id;
         machine.printer_type = preset.config.opt_string("printer_model");
 
         existing = m_device_manager->insert_local_device(
@@ -3639,6 +3584,7 @@ void GUI_App::select_machine(const std::string& agent_id)
         }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
     }
+    existing->local_use_ssl = boost::istarts_with(print_host, "https://");
 
     // Use MonitorPanel::select_machine() to trigger full selection flow
     // This reuses existing logic for machine switching (UI updates, callbacks, etc.)

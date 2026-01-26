@@ -1,15 +1,12 @@
 #include "OrcaPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
 
-#include <boost/log/trivial.hpp>
-
 namespace Slic3r {
 
 const std::string OrcaPrinterAgent_VERSION = "0.0.1";
 
 OrcaPrinterAgent::OrcaPrinterAgent(std::string log_dir) : log_dir(std::move(log_dir))
 {
-    BOOST_LOG_TRIVIAL(info) << "OrcaPrinterAgent: Constructor - log_dir=" << this->log_dir;
 }
 
 OrcaPrinterAgent::~OrcaPrinterAgent() = default;
@@ -18,7 +15,6 @@ void OrcaPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud
 {
     std::lock_guard<std::mutex> lock(state_mutex);
     m_cloud_agent = cloud;
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: Cloud agent set";
 }
 
 // ============================================================================
@@ -27,25 +23,21 @@ void OrcaPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud
 
 int OrcaPrinterAgent::send_message(std::string dev_id, std::string json_str, int qos, int flag)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: send_message (stub) - dev_id=" << dev_id;
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: connect_printer (stub) - dev_id=" << dev_id << ", dev_ip=" << dev_ip;
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::disconnect_printer()
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: disconnect_printer (stub)";
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: send_message_to_printer (stub) - dev_id=" << dev_id;
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -55,13 +47,11 @@ int OrcaPrinterAgent::send_message_to_printer(std::string dev_id, std::string js
 
 int OrcaPrinterAgent::check_cert()
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: check_cert (stub)";
     return BAMBU_NETWORK_SUCCESS;
 }
 
 void OrcaPrinterAgent::install_device_cert(std::string dev_id, bool lan_only)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: install_device_cert (stub) - dev_id=" << dev_id;
 }
 
 // ============================================================================
@@ -70,7 +60,6 @@ void OrcaPrinterAgent::install_device_cert(std::string dev_id, bool lan_only)
 
 bool OrcaPrinterAgent::start_discovery(bool start, bool sending)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: start_discovery (stub) - start=" << start << ", sending=" << sending;
     return true;
 }
 
@@ -80,32 +69,27 @@ bool OrcaPrinterAgent::start_discovery(bool start, bool sending)
 
 int OrcaPrinterAgent::ping_bind(std::string ping_code)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: ping_bind (stub) - ping_code=" << ping_code;
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link, detectResult& detect)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: bind_detect (stub) - dev_ip=" << dev_ip;
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::bind(
     std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: bind (stub) - dev_id=" << dev_id;
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::unbind(std::string dev_id)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: unbind (stub) - dev_id=" << dev_id;
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::request_bind_ticket(std::string* ticket)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: request_bind_ticket (stub)";
     if (ticket)
         *ticket = "";
     return BAMBU_NETWORK_SUCCESS;
@@ -152,7 +136,6 @@ AgentInfo OrcaPrinterAgent::get_agent_info_static()
 
 int OrcaPrinterAgent::start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: start_print (stub) - task_name=" << params.task_name;
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -161,25 +144,21 @@ int OrcaPrinterAgent::start_local_print_with_record(PrintParams      params,
                                                     WasCancelledFn   cancel_fn,
                                                     OnWaitFn         wait_fn)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: start_local_print_with_record (stub)";
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::start_send_gcode_to_sdcard(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: start_send_gcode_to_sdcard (stub)";
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: start_local_print (stub)";
     return BAMBU_NETWORK_SUCCESS;
 }
 
 int OrcaPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
-    BOOST_LOG_TRIVIAL(debug) << "OrcaPrinterAgent: start_sdcard_print (stub)";
     return BAMBU_NETWORK_SUCCESS;
 }
 

@@ -164,7 +164,11 @@ public:
     std::string get_dev_id() const { return dev_id; }
     void set_dev_id(std::string val) { dev_id = val; }
 
-    bool        local_use_ssl_for_mqtt { true };
+    // Generate consistent dev_id from host address and optional port
+    // Returns "host:port" or "host" if port is empty
+    static std::string dev_id_from_address(const std::string& host, const std::string& port = "");
+
+    bool        local_use_ssl { true };
     bool        local_use_ssl_for_ftp { true };
     std::string get_ftp_folder();
 

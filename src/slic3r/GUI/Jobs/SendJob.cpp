@@ -183,7 +183,7 @@ void SendJob::process(Ctl &ctl)
     params.username = "bblp";
     params.password = m_access_code;
     params.use_ssl_for_ftp = m_local_use_ssl_for_ftp;
-    params.use_ssl_for_mqtt = m_local_use_ssl_for_mqtt;
+    params.use_ssl_for_mqtt = m_local_use_ssl;
     wxString error_text;
     std::string msg_text;
 

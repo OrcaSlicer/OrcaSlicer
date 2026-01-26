@@ -1,7 +1,5 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
-#include "libslic3r/Preset.hpp"
-#include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
@@ -13,103 +11,12 @@
 #include <cctype>
 #include <sstream>
 
-namespace {
-
-bool is_numeric(const std::string& value)
-{
-    return !value.empty() && std::all_of(value.begin(), value.end(), [](unsigned char c) { return std::isdigit(c) != 0; });
-}
-
-std::string join_url(const std::string& base_url, const std::string& path)
-{
-    if (base_url.empty()) {
-        return "";
-    }
-    if (path.empty()) {
-        return base_url;
-    }
-    if (base_url.back() == '/' && path.front() == '/') {
-        return base_url.substr(0, base_url.size() - 1) + path;
-    }
-    if (base_url.back() != '/' && path.front() != '/') {
-        return base_url + "/" + path;
-    }
-    return base_url + path;
-}
-
-std::string normalize_model_key(std::string value)
-{
-    boost::algorithm::to_lower(value);
-    std::string normalized;
-    normalized.reserve(value.size());
-    for (unsigned char c : value) {
-        if (std::isalnum(c)) {
-            normalized.push_back(static_cast<char>(c));
-        }
-    }
-    return normalized;
-}
-
-std::string infer_series_id(const std::string& model_id, const std::string& dev_name)
-{
-    std::string source = model_id.empty() ? dev_name : model_id;
-    boost::trim(source);
-    if (source.empty()) {
-        return "";
-    }
-    if (is_numeric(source)) {
-        return source;
-    }
-
-    const std::string key = normalize_model_key(source);
-    if (key.find("q2") != std::string::npos) {
-        return "1";
-    }
-    if (key.find("xmax") != std::string::npos && key.find("4") != std::string::npos) {
-        return "3";
-    }
-    if ((key.find("xplus") != std::string::npos || key.find("plus") != std::string::npos) && key.find("4") != std::string::npos) {
-        return "0";
-    }
-    return "";
-}
-
-std::string normalize_filament_type(const std::string& filament_type)
-{
-    std::string trimmed = filament_type;
-    boost::trim(trimmed);
-    std::string upper = trimmed;
-    std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-
-    if (upper.find("PLA") != std::string::npos)
-        return "PLA";
-    if (upper.find("ABS") != std::string::npos)
-        return "ABS";
-    if (upper.find("PETG") != std::string::npos)
-        return "PETG";
-    if (upper.find("TPU") != std::string::npos)
-        return "TPU";
-    if (upper.find("ASA") != std::string::npos)
-        return "ASA";
-    if (upper.find("PA") != std::string::npos || upper.find("NYLON") != std::string::npos)
-        return "PA";
-    if (upper.find("PC") != std::string::npos)
-        return "PC";
-    if (upper.find("PVA") != std::string::npos)
-        return "PVA";
-
-    return trimmed;
-}
-
-} // namespace
-
 namespace Slic3r {
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
 
 QidiPrinterAgent::QidiPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir))
 {
-    BOOST_LOG_TRIVIAL(info) << "QidiPrinterAgent: Constructor";
 }
 
 AgentInfo QidiPrinterAgent::get_agent_info_static()
@@ -131,23 +38,16 @@ void QidiPrinterAgent::fetch_filament_info(std::string dev_id)
         return;
     }
 
-    const std::string base_url = resolve_host(dev_id);
-    if (base_url.empty()) {
-        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: Missing host for dev_id=" << dev_id;
-        return;
-    }
-    const std::string api_key = resolve_api_key(dev_id, "");
-
     std::vector<QidiSlotInfo> slots;
     int                       box_count = 0;
     std::string               error;
-    if (!fetch_slot_info(base_url, api_key, slots, box_count, error)) {
+    if (!fetch_slot_info(device_info.base_url, device_info.api_key, slots, box_count, error)) {
         BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
         return;
     }
 
     QidiFilamentDict dict;
-    if (!fetch_filament_dict(base_url, api_key, dict, error)) {
+    if (!fetch_filament_dict(device_info.base_url, device_info.api_key, dict, error)) {
         BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch filament dict: " << error;
     }
 
@@ -155,7 +55,7 @@ void QidiPrinterAgent::fetch_filament_info(std::string dev_id)
     {
         MoonrakerDeviceInfo info;
         std::string    device_error;
-        if (fetch_device_info(base_url, api_key, info, device_error)) {
+        if (fetch_device_info(device_info.base_url, device_info.api_key, info, device_error)) {
             series_id = infer_series_id(info.model_id, info.dev_name);
         }
     }
@@ -494,6 +394,70 @@ std::string QidiPrinterAgent::map_filament_type_to_setting_id(const std::string&
         return "QD_1_0_50";
     }
     return "";
+}
+
+std::string QidiPrinterAgent::normalize_model_key(std::string value)
+{
+    boost::algorithm::to_lower(value);
+    std::string normalized;
+    normalized.reserve(value.size());
+    for (unsigned char c : value) {
+        if (std::isalnum(c)) {
+            normalized.push_back(static_cast<char>(c));
+        }
+    }
+    return normalized;
+}
+
+std::string QidiPrinterAgent::infer_series_id(const std::string& model_id, const std::string& dev_name)
+{
+    std::string source = model_id.empty() ? dev_name : model_id;
+    boost::trim(source);
+    if (source.empty()) {
+        return "";
+    }
+    if (is_numeric(source)) {
+        return source;
+    }
+
+    const std::string key = normalize_model_key(source);
+    if (key.find("q2") != std::string::npos) {
+        return "1";
+    }
+    if (key.find("xmax") != std::string::npos && key.find("4") != std::string::npos) {
+        return "3";
+    }
+    if ((key.find("xplus") != std::string::npos || key.find("plus") != std::string::npos) && key.find("4") != std::string::npos) {
+        return "0";
+    }
+    return "";
+}
+
+std::string QidiPrinterAgent::normalize_filament_type(const std::string& filament_type)
+{
+    std::string trimmed = filament_type;
+    boost::trim(trimmed);
+    std::string upper = trimmed;
+    std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+
+    if (upper.find("PLA") != std::string::npos)
+        return "PLA";
+    if (upper.find("ABS") != std::string::npos)
+        return "ABS";
+    if (upper.find("PETG") != std::string::npos)
+        return "PETG";
+    if (upper.find("TPU") != std::string::npos)
+        return "TPU";
+    if (upper.find("ASA") != std::string::npos)
+        return "ASA";
+    if (upper.find("PA") != std::string::npos || upper.find("NYLON") != std::string::npos)
+        return "PA";
+    if (upper.find("PC") != std::string::npos)
+        return "PC";
+    if (upper.find("PVA") != std::string::npos)
+        return "PVA";
+
+    return trimmed;
 }
 
 } // namespace Slic3r

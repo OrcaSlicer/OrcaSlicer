@@ -39,8 +39,15 @@ private:
     };
 
     // Qidi-specific methods
-    bool fetch_slot_info(const std::string& base_url, const std::string& api_key, std::vector<QidiSlotInfo>& slots, int& box_count, std::string& error) const;
+    bool fetch_slot_info(const std::string&         base_url,
+                         const std::string&         api_key,
+                         std::vector<QidiSlotInfo>& slots,
+                         int&                       box_count,
+                         std::string&               error) const;
     bool fetch_filament_dict(const std::string& base_url, const std::string& api_key, QidiFilamentDict& dict, std::string& error) const;
+    std::string normalize_filament_type(const std::string& filament_type);
+    std::string infer_series_id(const std::string& model_id, const std::string& dev_name);
+    std::string normalize_model_key(std::string value);
 
     // Static helpers
     static void parse_ini_section(const std::string& content, const std::string& section_name, std::map<int, std::string>& result);

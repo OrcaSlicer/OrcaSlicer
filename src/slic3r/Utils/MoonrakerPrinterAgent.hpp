@@ -74,39 +74,31 @@ public:
     virtual void fetch_filament_info(std::string dev_id) override;
 
 protected:
-    // Types exposed for derived classes
-    struct PrinthostConfig
+    struct MoonrakerDeviceInfo
     {
-        std::string host;
-        std::string port;
+        std::string dev_id;
+        std::string dev_ip;
         std::string api_key;
         std::string base_url;
         std::string model_id;
         std::string model_name;
-    };
-
-    struct MoonrakerDeviceInfo
-    {
-        std::string dev_id;
         std::string dev_name;
-        std::string model_id;
         std::string version;
-    };
+        bool        use_ssl = false;
+    } device_info;
 
     // Methods that derived classes may need to override or access
-    virtual bool get_printhost_config(PrinthostConfig& config) const;
+    virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
-    virtual std::string get_dev_type() const { return "moonraker"; }
-
-    // Host resolution methods
-    std::string resolve_host(const std::string& dev_id) const;
-    std::string resolve_api_key(const std::string& dev_id, const std::string& fallback) const;
-    void        store_host(const std::string& dev_id, const std::string& host, const std::string& api_key);
 
     // State access for derived classes
     mutable std::recursive_mutex       state_mutex;
-    std::map<std::string, std::string> host_by_device;
-    std::map<std::string, std::string> api_key_by_device;
+
+    // Helpers
+    bool        is_numeric(const std::string& value);
+    std::string normalize_base_url(std::string host, const std::string& port);
+    std::string sanitize_filename(const std::string& filename);
+    std::string join_url(const std::string& base_url, const std::string& path) const;
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
