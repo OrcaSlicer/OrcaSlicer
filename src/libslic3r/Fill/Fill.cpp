@@ -1594,7 +1594,7 @@ void Layer::make_ironing()
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
 				ironing_params.just_infill 	= false;
-				// Get filament-specific overrides if configured, otherwise use default values
+				// ORCA: Get filament-specific overrides if configured, otherwise use process values
 				size_t extruder_idx = ironing_params.extruder - 1;
 				ironing_params.line_spacing = (!config.filament_ironing_spacing.is_nil(extruder_idx)
 					? config.filament_ironing_spacing.get_at(extruder_idx)
@@ -1608,7 +1608,12 @@ void Layer::make_ironing()
 				ironing_params.speed = (!config.filament_ironing_speed.is_nil(extruder_idx)
 					? config.filament_ironing_speed.get_at(extruder_idx)
 					: config.ironing_speed);
-                ironing_params.angle        = (config.ironing_angle_fixed ? 0 : calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value)) + config.ironing_angle * M_PI / 180.;
+                double ironing_angle = (config.ironing_angle_fixed ? 0 : calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value)) + config.ironing_angle * M_PI / 180.;
+                if (config.align_infill_direction_to_model) {
+                    auto m = this->object()->trafo().matrix();
+                    ironing_angle += atan2((double)m(1, 0), (double)m(0, 0));
+                }
+                ironing_params.angle       = ironing_angle;
                 ironing_params.fixed_angle = config.ironing_angle_fixed || !config.solid_infill_rotate_template.value.empty();
 				ironing_params.pattern      = config.ironing_pattern;
 				ironing_params.layerm 		= layerm;
