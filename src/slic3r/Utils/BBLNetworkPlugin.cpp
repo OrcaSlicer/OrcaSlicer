@@ -92,12 +92,8 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
         legacy_path = plugin_folder / (std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + ".so");
 #endif
         if (!boost::filesystem::exists(versioned_path) && boost::filesystem::exists(legacy_path)) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto-migrating unversioned legacy library to versioned format";
-
             try {
                 boost::filesystem::rename(legacy_path, versioned_path);
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": successfully renamed " << legacy_path.string() << " to "
-                                        << versioned_path.string();
             } catch (const std::exception& e) {
                 BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to rename legacy library: " << e.what();
             }
@@ -107,7 +103,6 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     // Load versioned library
 #if defined(_MSC_VER) || defined(_WIN32)
     library = plugin_folder.string() + "\\" + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll";
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": loading versioned library at " << library;
 #else
     #if defined(__WXMAC__)
     std::string lib_ext = ".dylib";
@@ -115,7 +110,6 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     std::string lib_ext = ".so";
     #endif
     library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + lib_ext;
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": loading versioned library at " << library;
 #endif
 
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -124,10 +118,8 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     ::MultiByteToWideChar(CP_UTF8, NULL, library.c_str(), strlen(library.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
     m_networking_module = LoadLibrary(lib_wstr);
     if (!m_networking_module) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": versioned library not found, trying current directory";
         std::string library_path = get_libpath_in_current_directory(std::string(BAMBU_NETWORK_LIBRARY));
         if (library_path.empty()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", can not get path in current directory for %1%") % BAMBU_NETWORK_LIBRARY;
             set_load_error(
                 "Network library not found",
                 "Could not locate versioned library: " + library,
@@ -135,7 +127,6 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
             );
             return -1;
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", current path %1%")%library_path;
         memset(lib_wstr, 0, sizeof(lib_wstr));
         ::MultiByteToWideChar(CP_UTF8, NULL, library_path.c_str(), strlen(library_path.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
         m_networking_module = LoadLibrary(lib_wstr);
@@ -151,11 +142,9 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
             library
         );
     }
-    printf("after dlopen, network_module is %p\n", m_networking_module);
 #endif
 
     if (!m_networking_module) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", can not Load Library for %1%")%library;
         if (!m_load_error.has_error) {
             set_load_error(
                 "Network library failed to load",
@@ -165,7 +154,6 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
         }
         return -1;
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", successfully loaded library %1%, module %2%")%library %m_networking_module;
 
     // Load file transfer interface
     InitFTModule(m_networking_module);
@@ -174,9 +162,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     load_all_function_pointers();
 
     if (m_get_version) {
-        std::string ver = m_get_version();
-        printf("network plugin version: %s\n", ver.c_str());
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": network plugin version = " << ver;
+        (void) m_get_version();
     }
 
     return 0;
@@ -184,8 +170,6 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
 
 int BBLNetworkPlugin::unload()
 {
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", network module %1%")%m_networking_module;
-
     UnloadFTModule();
 
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -247,16 +231,12 @@ std::string BBLNetworkPlugin::get_version() const
 void* BBLNetworkPlugin::create_agent(const std::string& log_dir)
 {
     if (m_agent) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": agent already exists";
         return m_agent;
     }
 
     if (m_create_agent) {
         m_agent = m_create_agent(log_dir);
     }
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", agent=%1%, create_agent=%2%, log_dir=%3%")
-        % m_agent % (m_create_agent ? "yes" : "no") % log_dir;
 
     return m_agent;
 }
@@ -267,8 +247,6 @@ int BBLNetworkPlugin::destroy_agent()
     if (m_agent && m_destroy_agent) {
         ret = m_destroy_agent(m_agent);
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", agent=%1%, destroy_agent=%2%, ret=%3%")
-        % m_agent % (m_destroy_agent ? "yes" : "no") % ret;
     m_agent = nullptr;
     return ret;
 }
@@ -299,13 +277,10 @@ void* BBLNetworkPlugin::get_source_module()
     ::MultiByteToWideChar(CP_UTF8, NULL, library.c_str(), strlen(library.c_str())+1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
     m_source_module = LoadLibrary(lib_wstr);
     if (!m_source_module) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", try load BambuSource directly from current directory");
         std::string library_path = get_libpath_in_current_directory(std::string(BAMBU_SOURCE_LIBRARY));
         if (library_path.empty()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", can not get path in current directory for %1%") % BAMBU_SOURCE_LIBRARY;
             return m_source_module;
         }
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", current path %1%")%library_path;
         memset(lib_wstr, 0, sizeof(lib_wstr));
         ::MultiByteToWideChar(CP_UTF8, NULL, library_path.c_str(), strlen(library_path.c_str()) + 1, lib_wstr, sizeof(lib_wstr) / sizeof(lib_wstr[0]));
         m_source_module = LoadLibrary(lib_wstr);
@@ -335,9 +310,6 @@ void* BBLNetworkPlugin::get_function(const char* name)
     function = dlsym(m_networking_module, name);
 #endif
 
-    if (!function) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find function %1%")%name;
-    }
     return function;
 }
 
@@ -352,7 +324,6 @@ std::string BBLNetworkPlugin::get_libpath_in_current_directory(const std::string
     wchar_t file_name[512];
     DWORD ret = GetModuleFileNameW(NULL, file_name, 512);
     if (!ret) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", GetModuleFileNameW return error, can not Load Library for %1%") % library_name;
         return lib_path;
     }
     int size_needed = ::WideCharToMultiByte(0, 0, file_name, wcslen(file_name), nullptr, 0, nullptr, nullptr);
@@ -430,12 +401,8 @@ void BBLNetworkPlugin::remove_legacy_library()
 #endif
 
     if (boost::filesystem::exists(legacy_path)) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": removing legacy library at " << legacy_path.string();
         boost::system::error_code ec;
         boost::filesystem::remove(legacy_path, ec);
-        if (ec) {
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to remove legacy library: " << ec.message();
-        }
     }
 }
 

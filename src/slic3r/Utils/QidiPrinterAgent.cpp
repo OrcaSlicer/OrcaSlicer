@@ -141,9 +141,6 @@ void QidiPrinterAgent::fetch_filament_info(std::string dev_id)
 
     // Call the parser to populate DevFilaSystem
     DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
-
-    BOOST_LOG_TRIVIAL(info) << "QidiPrinterAgent::fetch_filament_info: Populated DevFilaSystem with "
-                            << box_count << " AMS units";
 }
 
 bool QidiPrinterAgent::fetch_slot_info(const std::string& base_url,

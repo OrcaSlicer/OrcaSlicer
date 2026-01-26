@@ -6,10 +6,7 @@
 
 namespace Slic3r {
 
-BBLPrinterAgent::BBLPrinterAgent()
-{
-    BOOST_LOG_TRIVIAL(info) << "BBLPrinterAgent: Constructor - using BBLNetworkPlugin singleton";
-}
+BBLPrinterAgent::BBLPrinterAgent() = default;
 
 BBLPrinterAgent::~BBLPrinterAgent() = default;
 

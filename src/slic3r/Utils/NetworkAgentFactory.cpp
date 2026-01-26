@@ -34,16 +34,12 @@ bool NetworkAgentFactory::register_printer_agent(const std::string& id, const st
     auto result = agents.emplace(id, PrinterAgentInfo(id, display_name, std::move(factory)));
 
     if (result.second) {
-        BOOST_LOG_TRIVIAL(info) << "Registered printer agent: " << id << " (" << display_name << ")";
-
-        // Set as default if it's the first agent registered
         auto& default_id = get_default_agent_id();
         if (default_id.empty()) {
             default_id = id;
         }
         return true;
     } else {
-        BOOST_LOG_TRIVIAL(warning) << "Printer agent already registered: " << id;
         return false;
     }
 }
@@ -106,9 +102,6 @@ void NetworkAgentFactory::set_default_printer_agent_id(const std::string& id)
 
     if (agents.find(id) != agents.end()) {
         get_default_agent_id() = id;
-        BOOST_LOG_TRIVIAL(info) << "Default printer agent set to: " << id;
-    } else {
-        BOOST_LOG_TRIVIAL(warning) << "Cannot set default to unregistered agent: " << id;
     }
 }
 
@@ -170,7 +163,6 @@ void NetworkAgentFactory::register_all_agents()
                                });
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Registered " << get_printer_agents().size() << " printer agents";
 }
 
 std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_dir, AppConfig* app_config)
@@ -189,9 +181,7 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
     CloudAgentProvider provider    = use_orca_cloud ? CloudAgentProvider::Orca : CloudAgentProvider::BBL;
     auto               cloud_agent = NetworkAgentFactory::create_cloud_agent(provider, log_dir);
 
-    // Fall back to Orca if BBL plugin not available
     if (!cloud_agent && provider == CloudAgentProvider::BBL) {
-        BOOST_LOG_TRIVIAL(warning) << "BBL plugin not loaded, falling back to Orca cloud agent";
         cloud_agent = NetworkAgentFactory::create_cloud_agent(CloudAgentProvider::Orca, log_dir);
     }
 
@@ -206,7 +196,6 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
     // We will create the printer agent later when the printer is selected, so we pass nullptr for the printer agent here.
     auto agent = NetworkAgentFactory::create_from_agents(std::move(cloud_agent), nullptr);
 
-    // Configure URL overrides for Orca cloud
     if (agent && app_config && use_orca_cloud) {
         auto* orca_cloud = dynamic_cast<OrcaCloudServiceAgent*>(agent->get_cloud_agent().get());
         if (orca_cloud) {
@@ -214,7 +203,6 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
         }
     }
 
-    BOOST_LOG_TRIVIAL(info) << "Created NetworkAgent with cloud agent";
     return agent;
 }
 

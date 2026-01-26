@@ -5,10 +5,7 @@
 
 namespace Slic3r {
 
-BBLCloudServiceAgent::BBLCloudServiceAgent()
-{
-    BOOST_LOG_TRIVIAL(info) << "BBLCloudServiceAgent: Constructor - using BBLNetworkPlugin singleton";
-}
+BBLCloudServiceAgent::BBLCloudServiceAgent() = default;
 
 BBLCloudServiceAgent::~BBLCloudServiceAgent() = default;
 
