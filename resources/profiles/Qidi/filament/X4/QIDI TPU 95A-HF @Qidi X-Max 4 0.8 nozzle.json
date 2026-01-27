@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSR99",
+    "name": "QIDI TPU 95A-HF @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI TPU 95A-HF@X-Max 4-Series",
+    "nozzle_temperature": ["220"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}

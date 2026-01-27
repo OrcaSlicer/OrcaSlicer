@@ -2422,7 +2422,7 @@ std::map<std::string, std::vector<Preset const *>> PresetCollection::get_filamen
 }
 
 //BBS: add project embedded preset logic
-void PresetCollection::save_current_preset(const std::string &new_name, bool detach, bool save_to_project, Preset* _curr_preset, const Preset* _current_printer)
+void PresetCollection::save_current_preset(const std::string &new_name, bool detach, bool save_to_project, Preset* _curr_preset)
 {
     Preset curr_preset = _curr_preset ? *_curr_preset : m_edited_preset;
     //BBS: add lock logic for sync preset in background
@@ -2489,13 +2489,6 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": save preset %1% , with detach")%new_name;
         } else if (is_base_preset(preset)) {
             inherits = old_name;
-        }
-        // Orca: check if compatible_printers exists and is not empty, set it to the current printer if it is empty
-        if (nullptr != _current_printer && preset.is_system && m_type == Preset::TYPE_FILAMENT) {
-            ConfigOptionStrings* compatible_printers = preset.config.option<ConfigOptionStrings>("compatible_printers");
-            if (compatible_printers && compatible_printers->values.empty()) {
-                compatible_printers->values.push_back(_current_printer->name);
-            }
         }
 
         preset.is_default  = false;

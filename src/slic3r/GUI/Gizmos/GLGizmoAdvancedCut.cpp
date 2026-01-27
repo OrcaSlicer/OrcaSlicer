@@ -989,11 +989,19 @@ void GLGizmoAdvancedCut::render_cut_plane_and_grabbers()
         }
 
         glsafe(::glDisable(GL_DEPTH_TEST));
-        glsafe(::glLineWidth(m_hover_id != -1 ? 2.0f : 1.5f));
-        glLineStipple(1, 0x0FFF);
-        glEnable(GL_LINE_STIPPLE);
+        // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+        if (!OpenGLManager::get_gl_info().is_core_profile()) {
+            glsafe(::glLineWidth(m_hover_id != -1 ? 2.0f : 1.5f));
+            glLineStipple(1, 0x0FFF);
+            glEnable(GL_LINE_STIPPLE);
+        }
+#endif // !SLIC3R_OPENGL_ES
         m_grabber_connection.render();
-        glDisable(GL_LINE_STIPPLE);
+#if !SLIC3R_OPENGL_ES
+        if (!OpenGLManager::get_gl_info().is_core_profile())
+            glDisable(GL_LINE_STIPPLE);
+#endif // !SLIC3R_OPENGL_ES
 
         shader->stop_using();
     }
@@ -1147,10 +1155,18 @@ void GLGizmoAdvancedCut::render_cut_line()
         shader->set_uniform("view_model_matrix", camera.get_view_matrix());
         shader->set_uniform("projection_matrix", camera.get_projection_matrix());
 
-        glEnable(GL_LINE_STIPPLE);
-        glLineStipple(1, 0x0FFF);
+        // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+        if (!OpenGLManager::get_gl_info().is_core_profile()) {
+            glEnable(GL_LINE_STIPPLE);
+            glLineStipple(1, 0x0FFF);
+        }
+#endif // !SLIC3R_OPENGL_ES
         m_cut_line.render();
-        glDisable(GL_LINE_STIPPLE);
+#if !SLIC3R_OPENGL_ES
+        if (!OpenGLManager::get_gl_info().is_core_profile())
+            glDisable(GL_LINE_STIPPLE);
+#endif // !SLIC3R_OPENGL_ES
 
         shader->stop_using();
     }

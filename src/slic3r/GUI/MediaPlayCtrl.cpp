@@ -769,7 +769,7 @@ bool MediaPlayCtrl::start_stream_service(bool *need_install)
             auto file_dll  = tools_dir + dll;
             auto file_dll2 = plugins_dir + dll;
             if (!boost::filesystem::exists(file_dll) || boost::filesystem::last_write_time(file_dll) != boost::filesystem::last_write_time(file_dll2))
-                boost::filesystem::copy_file(file_dll2, file_dll, boost::filesystem::copy_option::overwrite_if_exists);
+                boost::filesystem::copy_file(file_dll2, file_dll, boost::filesystem::copy_options::overwrite_existing);
         }
         boost::process::child process_source(file_source, file_url2.ToStdWstring(), boost::process::start_dir(tools_dir), 
                                              boost::process::windows::create_no_window, 

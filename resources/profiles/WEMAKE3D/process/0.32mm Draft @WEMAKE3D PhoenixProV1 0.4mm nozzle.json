@@ -1,0 +1,27 @@
+{
+  "name": "0.32mm Draft @WEMAKE3D PhoenixProV1 0.4mm nozzle",
+  "inherits": "fdm_process_phoenixProV1_common",
+  "instantiation": "true",
+  "layer_height": "0.32",
+  "initial_layer_print_height": "0.32",
+
+
+  "initial_layer_line_width": "0.5",
+  "internal_solid_infill_line_width": "0.5",
+  "inner_wall_line_width": "0.5",
+  "sparse_infill_line_width": "0.5",
+  "line_width": "0.42",
+  "outer_wall_line_width": "0.42",
+  "top_surface_line_width": "0.42",
+  "support_line_width": "0.5",
+  "thick_bridges": "0",
+
+
+  "print_settings_id": "0.32mm Draft @WEMAKE3D PhoenixProV1 0.4mm nozzle",
+
+  "version": "2.3.1.10",
+  "wall_sequence": "inner-outer-inner wall",
+  "compatible_printers": [
+    "WEMAKE3D PhoenixProV1 0.4mm nozzle"
+  ]
+}

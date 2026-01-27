@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSN99",
+    "name": "QIDI PA12-CF @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI PA12-CF@X-Max 4-Series",
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}
