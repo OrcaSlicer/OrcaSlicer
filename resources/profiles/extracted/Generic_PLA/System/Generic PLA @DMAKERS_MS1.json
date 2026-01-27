@@ -1,0 +1,22 @@
+{
+    "compatible_printers": [
+        "MyMarlin 0.4 nozzle"
+    ],
+    "default_filament_colour": [
+        "#00FF00"
+    ],
+    "filament_settings_id": [
+        "Generic PLA @DMAKERS_MS1"
+    ],
+    "from": "User",
+    "hot_plate_temp": [
+        "60"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "60"
+    ],
+    "inherits": "Generic PLA @System",
+    "is_custom_defined": "0",
+    "name": "Generic PLA @DMAKERS_MS1",
+    "version": "2.3.1.10"
+}

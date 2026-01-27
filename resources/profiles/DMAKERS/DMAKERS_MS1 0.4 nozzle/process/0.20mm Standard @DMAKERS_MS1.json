@@ -1,0 +1,15 @@
+{
+    "enable_support": "1",
+    "exclude_object": "1",
+    "fill_multiline": "2",
+    "from": "User",
+    "inherits": "0.20mm Standard @MyMarlin",
+    "is_custom_defined": "0",
+    "name": "0.20mm Standard @DMAKERS_MS1",
+    "post_process": [
+        "\"C:\\Users\\user\\AppData\\Local\\Programs\\Python\\Launcher\\py.exe\"\"C:\\GcodePreview-PrusaSlicer-main\\GcodePreviewAdder.py\""
+    ],
+    "print_settings_id": "0.20mm Standard @DMAKERS_MS1",
+    "sparse_infill_pattern": "grid",
+    "version": "2.3.1.10"
+}
