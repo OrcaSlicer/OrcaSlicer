@@ -1,8 +1,5 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
-#include "slic3r/GUI/DeviceCore/DevManager.h"
 
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
@@ -26,129 +23,43 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
 {
-    // Look up MachineObject via DeviceManager
-    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
-    if (!dev_manager) {
-        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: DeviceManager is null";
-        return false;
-    }
-    MachineObject* obj = dev_manager->get_my_machine(dev_id);
-    if (!obj) {
-        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: MachineObject not found for dev_id=" << dev_id;
-        return false;
+    std::string error;
+
+    // 1. Fetch device info and infer series_id
+    std::string series_id;
+    {
+        MoonrakerDeviceInfo info;
+        if (fetch_device_info(device_info.base_url, device_info.api_key, info, error)) {
+            series_id = infer_series_id(info.model_id, info.dev_name);
+        }
     }
 
-    std::vector<QidiSlotInfo> slots;
-    int                       box_count = 0;
-    std::string               error;
-    if (!fetch_slot_info(device_info.base_url, device_info.api_key, slots, box_count, error)) {
-        BOOST_LOG_TRIVIAL(error) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
-        return false;
-    }
-
+    // 2. Fetch filament dictionary
     QidiFilamentDict dict;
     if (!fetch_filament_dict(device_info.base_url, device_info.api_key, dict, error)) {
         BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch filament dict: " << error;
     }
 
-    std::string series_id;
-    {
-        MoonrakerDeviceInfo info;
-        std::string    device_error;
-        if (fetch_device_info(device_info.base_url, device_info.api_key, info, device_error)) {
-            series_id = infer_series_id(info.model_id, info.dev_name);
-        }
+    // 3. Fetch slot info and build AmsTrayData directly
+    std::vector<AmsTrayData> trays;
+    int                      box_count = 0;
+    if (!fetch_slot_info(device_info.base_url, device_info.api_key, dict, series_id, trays, box_count, error)) {
+        BOOST_LOG_TRIVIAL(warning) << "QidiPrinterAgent::fetch_filament_info: Failed to fetch slot info: " << error;
+        return false;
     }
 
-    auto build_setting_id = [&](const QidiSlotInfo& slot, const std::string& tray_type) {
-        const int vendor = (slot.vendor_type == 1) ? 1 : 0;
-        if (is_numeric(series_id) && slot.filament_type > 0) {
-            return "QD_" + series_id + "_" + std::to_string(vendor) + "_" + std::to_string(slot.filament_type);
-        }
-        return map_filament_type_to_setting_id(tray_type);
-    };
-
-    // Build BBL-format JSON for DevFilaSystemParser::ParseV1_0
-    // The expected format matches BBL's print.push_status AMS subset
-    nlohmann::json ams_json = nlohmann::json::object();
-    nlohmann::json ams_array = nlohmann::json::array();
-
-    // Calculate ams_exist_bits and tray_exist_bits
-    unsigned long ams_exist_bits = 0;
-    unsigned long tray_exist_bits = 0;
-
-    for (int ams_id = 0; ams_id < box_count; ++ams_id) {
-        ams_exist_bits |= (1 << ams_id);
-
-        nlohmann::json ams_unit = nlohmann::json::object();
-        ams_unit["id"] = std::to_string(ams_id);
-        ams_unit["info"] = "2100";  // AMS_LITE type (2), main extruder (0)
-
-        nlohmann::json tray_array = nlohmann::json::array();
-        for (int slot_id = 0; slot_id < 4; ++slot_id) {
-            const int          slot_index = ams_id * 4 + slot_id;
-            const QidiSlotInfo slot       = slot_index < static_cast<int>(slots.size()) ? slots[slot_index] : QidiSlotInfo{};
-
-            nlohmann::json tray_json = nlohmann::json::object();
-            tray_json["id"] = std::to_string(slot_id);
-            tray_json["tag_uid"] = "0000000000000000";
-
-            if (slot.filament_exists) {
-                tray_exist_bits |= (1 << slot_index);
-
-                std::string filament_type = "PLA";
-                auto        filament_it   = dict.filaments.find(slot.filament_type);
-                if (filament_it != dict.filaments.end()) {
-                    filament_type = filament_it->second;
-                }
-                std::string tray_type = normalize_filament_type(filament_type);
-                std::string setting_id = build_setting_id(slot, tray_type);
-
-                std::string color    = "FFFFFFFF";
-                auto        color_it = dict.colors.find(slot.color_index);
-                if (color_it != dict.colors.end()) {
-                    color = normalize_color(color_it->second);
-                }
-
-                tray_json["tray_info_idx"] = setting_id;
-                tray_json["tray_type"] = tray_type;
-                tray_json["tray_color"] = color;
-            } else {
-                tray_json["tray_info_idx"] = "";
-                tray_json["tray_type"] = "";
-                tray_json["tray_color"] = "00000000";
-            }
-
-            tray_array.push_back(tray_json);
-        }
-        ams_unit["tray"] = tray_array;
-        ams_array.push_back(ams_unit);
-    }
-
-    // Format as hex strings (matching BBL protocol)
-    std::ostringstream ams_exist_ss;
-    ams_exist_ss << std::hex << std::uppercase << ams_exist_bits;
-    std::ostringstream tray_exist_ss;
-    tray_exist_ss << std::hex << std::uppercase << tray_exist_bits;
-
-    ams_json["ams"] = ams_array;
-    ams_json["ams_exist_bits"] = ams_exist_ss.str();
-    ams_json["tray_exist_bits"] = tray_exist_ss.str();
-
-    // Wrap in the expected structure for ParseV1_0
-    nlohmann::json print_json = nlohmann::json::object();
-    print_json["ams"] = ams_json;
-
-    // Call the parser to populate DevFilaSystem
-    DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
+    // 4. Build the AMS payload
+    build_ams_payload(box_count, trays);
     return true;
 }
 
-bool QidiPrinterAgent::fetch_slot_info(const std::string& base_url,
-                                       const std::string& api_key,
-                                       std::vector<QidiSlotInfo>& slots,
-                                       int&                       box_count,
-                                       std::string&               error) const
+bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
+                                       const std::string&        api_key,
+                                       const QidiFilamentDict&   dict,
+                                       const std::string&        series_id,
+                                       std::vector<AmsTrayData>& trays,
+                                       int&                      box_count,
+                                       std::string&              error)
 {
     std::string url = join_url(base_url, "/printer/objects/query?save_variables=variables");
     for (int i = 0; i < 16; ++i) {
@@ -207,26 +118,58 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string& base_url,
     }
 
     const int max_slots = box_count * 4;
-    slots.clear();
-    slots.reserve(max_slots);
+    trays.clear();
+    trays.reserve(max_slots);
+
+    // Lambda to build setting_id from slot data
+    auto build_setting_id = [&](int filament_type_idx, int vendor_type, const std::string& tray_type) {
+        const int vendor = (vendor_type == 1) ? 1 : 0;
+        if (is_numeric(series_id) && filament_type_idx > 0) {
+            return "QD_" + series_id + "_" + std::to_string(vendor) + "_" + std::to_string(filament_type_idx);
+        }
+        return map_filament_type_to_setting_id(tray_type);
+    };
 
     for (int i = 0; i < max_slots; ++i) {
-        QidiSlotInfo slot;
-        slot.slot_index    = i;
-        slot.color_index   = variables.value("color_slot" + std::to_string(i), 1);
-        slot.filament_type = variables.value("filament_slot" + std::to_string(i), 1);
-        slot.vendor_type   = variables.value("vendor_slot" + std::to_string(i), 0);
+        AmsTrayData tray;
+        tray.slot_index = i;
 
+        // Read slot variables
+        const int color_index     = variables.value("color_slot" + std::to_string(i), 1);
+        const int filament_type   = variables.value("filament_slot" + std::to_string(i), 1);
+        const int vendor_type     = variables.value("vendor_slot" + std::to_string(i), 0);
+
+        // Check filament presence via runout sensor
         std::string box_stepper_key = "box_stepper slot" + std::to_string(i);
-        slot.filament_exists        = false;
+        tray.has_filament = false;
         if (status.contains(box_stepper_key)) {
             auto& box_stepper = status[box_stepper_key];
             if (box_stepper.contains("runout_button") && !box_stepper["runout_button"].is_null()) {
-                int runout_button    = box_stepper["runout_button"].get<int>();
-                slot.filament_exists = (runout_button == 0);
+                int runout_button = box_stepper["runout_button"].template get<int>();
+                tray.has_filament = (runout_button == 0);
             }
         }
-        slots.push_back(slot);
+
+        if (tray.has_filament) {
+            // Look up filament type name from dictionary
+            std::string filament_name = "PLA";
+            auto filament_it = dict.filaments.find(filament_type);
+            if (filament_it != dict.filaments.end()) {
+                filament_name = filament_it->second;
+            }
+            tray.tray_type = normalize_filament_type(filament_name);
+            tray.tray_info_idx = build_setting_id(filament_type, vendor_type, tray.tray_type);
+
+            // Look up color from dictionary
+            auto color_it = dict.colors.find(color_index);
+            if (color_it != dict.colors.end()) {
+                tray.tray_color = color_it->second;
+            } else {
+                tray.tray_color = "FFFFFFFF";
+            }
+        }
+
+        trays.push_back(tray);
     }
 
     return true;
@@ -346,31 +289,6 @@ void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::
             }
         }
     }
-}
-
-std::string QidiPrinterAgent::normalize_color(const std::string& color)
-{
-    std::string value = color;
-    boost::trim(value);
-    if (value.rfind("0x", 0) == 0 || value.rfind("0X", 0) == 0) {
-        value = value.substr(2);
-    }
-    if (!value.empty() && value[0] == '#') {
-        value = value.substr(1);
-    }
-    std::string normalized;
-    for (char c : value) {
-        if (std::isxdigit(static_cast<unsigned char>(c))) {
-            normalized.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
-        }
-    }
-    if (normalized.size() == 6) {
-        normalized += "FF";
-    }
-    if (normalized.size() != 8) {
-        return "00000000";
-    }
-    return normalized;
 }
 
 std::string QidiPrinterAgent::map_filament_type_to_setting_id(const std::string& filament_type)

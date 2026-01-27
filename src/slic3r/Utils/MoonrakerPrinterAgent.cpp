@@ -3,6 +3,8 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/connect.hpp>
@@ -454,7 +456,239 @@ int MoonrakerPrinterAgent::set_queue_on_main_fn(QueueOnMainFn fn)
     return BAMBU_NETWORK_SUCCESS;
 }
 
-bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id) { return false; }
+void MoonrakerPrinterAgent::build_ams_payload(int ams_count, const std::vector<AmsTrayData>& trays)
+{
+
+    // Look up MachineObject via DeviceManager
+    auto* dev_manager = GUI::wxGetApp().getDeviceManager();
+    if (!dev_manager) {
+        return;
+    }
+    MachineObject* obj = dev_manager->get_my_machine(device_info.dev_id);
+    if (!obj) {
+        return;
+    }
+
+
+    // Color normalization helper (handles #RRGGBB, 0xRRGGBB -> RRGGBBAA)
+    auto normalize_color = [](const std::string& color) -> std::string {
+        std::string value = color;
+        boost::trim(value);
+
+        // Remove 0x or 0X prefix if present
+        if (value.size() >= 2 && (value.rfind("0x", 0) == 0 || value.rfind("0X", 0) == 0)) {
+            value = value.substr(2);
+        }
+        // Remove # prefix if present
+        if (!value.empty() && value[0] == '#') {
+            value = value.substr(1);
+        }
+
+        // Extract only hex digits
+        std::string normalized;
+        for (char c : value) {
+            if (std::isxdigit(static_cast<unsigned char>(c))) {
+                normalized.push_back(static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
+            }
+        }
+
+        // If 6 hex digits, add FF alpha
+        if (normalized.size() == 6) {
+            normalized += "FF";
+        }
+
+        // Validate length - return default if invalid
+        if (normalized.size() != 8) {
+            return "00000000";
+        }
+
+        return normalized;
+    };
+
+    // Build BBL-format JSON for DevFilaSystemParser::ParseV1_0
+    nlohmann::json ams_json = nlohmann::json::object();
+    nlohmann::json ams_array = nlohmann::json::array();
+
+    // Calculate ams_exist_bits and tray_exist_bits
+    unsigned long ams_exist_bits = 0;
+    unsigned long tray_exist_bits = 0;
+
+    for (int ams_id = 0; ams_id < ams_count; ++ams_id) {
+        ams_exist_bits |= (1 << ams_id);
+
+        nlohmann::json ams_unit = nlohmann::json::object();
+        ams_unit["id"] = std::to_string(ams_id);
+        ams_unit["info"] = "2100";  // AMS_LITE type (2), main extruder (0)
+
+        nlohmann::json tray_array = nlohmann::json::array();
+        for (int slot_id = 0; slot_id < 4; ++slot_id) {
+            int slot_index = ams_id * 4 + slot_id;
+
+            // Find tray with matching slot_index
+            const AmsTrayData* tray = nullptr;
+            for (const auto& t : trays) {
+                if (t.slot_index == slot_index) {
+                    tray = &t;
+                    break;
+                }
+            }
+
+            nlohmann::json tray_json = nlohmann::json::object();
+            tray_json["id"] = std::to_string(slot_id);
+            tray_json["tag_uid"] = "0000000000000000";
+
+            if (tray && tray->has_filament) {
+                tray_exist_bits |= (1 << slot_index);
+
+                tray_json["tray_info_idx"] = tray->tray_info_idx;
+                tray_json["tray_type"] = tray->tray_type;
+                tray_json["tray_color"] = normalize_color(tray->tray_color);
+
+                // Add temperature data if provided
+                if (tray->bed_temp > 0) {
+                    tray_json["bed_temp"] = std::to_string(tray->bed_temp);
+                }
+                if (tray->nozzle_temp > 0) {
+                    tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
+                }
+            } else {
+                tray_json["tray_info_idx"] = "";
+                tray_json["tray_type"] = "";
+                tray_json["tray_color"] = "00000000";
+            }
+
+            tray_array.push_back(tray_json);
+        }
+        ams_unit["tray"] = tray_array;
+        ams_array.push_back(ams_unit);
+    }
+
+    // Format as hex strings (matching BBL protocol)
+    std::ostringstream ams_exist_ss;
+    ams_exist_ss << std::hex << std::uppercase << ams_exist_bits;
+    std::ostringstream tray_exist_ss;
+    tray_exist_ss << std::hex << std::uppercase << tray_exist_bits;
+
+    ams_json["ams"] = ams_array;
+    ams_json["ams_exist_bits"] = ams_exist_ss.str();
+    ams_json["tray_exist_bits"] = tray_exist_ss.str();
+
+    // Wrap in the expected structure for ParseV1_0
+    nlohmann::json print_json = nlohmann::json::object();
+    print_json["ams"] = ams_json;
+
+    // Call the parser to populate DevFilaSystem
+    DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
+
+    // Set push counters so is_info_ready() returns true for pull-mode agents.
+    if (obj->m_push_count == 0) {
+        obj->m_push_count = 1;
+    }
+    if (obj->m_full_msg_count == 0) {
+        obj->m_full_msg_count = 1;
+    }
+    obj->last_push_time = std::chrono::system_clock::now();
+}
+
+bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
+{
+    // Fetch AFC lane data from Moonraker database (inline)
+    std::string url = join_url(device_info.base_url, "/server/database/item?namespace=lane_data");
+
+    std::string response_body;
+    bool success = false;
+    std::string http_error;
+
+    auto http = Http::get(url);
+    if (!device_info.api_key.empty()) {
+        http.header("X-Api-Key", device_info.api_key);
+    }
+    http.timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200) {
+                response_body = body;
+                success = true;
+            } else {
+                http_error = "HTTP error: " + std::to_string(status);
+            }
+        })
+        .on_error([&](std::string body, std::string err, unsigned status) {
+            http_error = err;
+            if (status > 0) {
+                http_error += " (HTTP " + std::to_string(status) + ")";
+            }
+        })
+        .perform_sync();
+
+    if (!success) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_filament_info: Failed to fetch lane data: " << http_error;
+        return false;
+    }
+
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_filament_info: Invalid JSON response";
+        return false;
+    }
+
+    // Expected structure: { "result": { "namespace": "lane_data", "value": { "lane1": {...}, ... } } }
+    if (!json.contains("result") || !json["result"].contains("value") || !json["result"]["value"].is_object()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_filament_info: Unexpected JSON structure or no lane_data found";
+        return false;
+    }
+
+    // Parse response into AmsTrayData
+    const auto& value = json["result"]["value"];
+    std::vector<AmsTrayData> trays;
+    int max_lane_index = 0;
+
+    for (const auto& [lane_key, lane_obj] : value.items()) {
+        if (!lane_obj.is_object()) {
+            continue;
+        }
+
+        // Extract lane index from the "lane" field (tool number, 1-based)
+        std::string lane_str = lane_obj.value("lane", "");
+        int lane_index = -1;
+        if (!lane_str.empty()) {
+            try {
+                lane_index = std::stoi(lane_str) - 1;  // Convert to 0-based
+            } catch (...) {
+                lane_index = -1;
+            }
+        }
+
+        if (lane_index < 0) {
+            continue;
+        }
+
+        AmsTrayData tray;
+        tray.slot_index = lane_index;
+        tray.tray_color = lane_obj.value("color", "");
+        tray.tray_type = lane_obj.value("material", "");
+        tray.bed_temp = lane_obj.value("bed_temp", 0);
+        tray.nozzle_temp = lane_obj.value("nozzle_temp", 0);
+        tray.has_filament = !tray.tray_type.empty();
+        tray.tray_info_idx = "";  // AFC doesn't provide setting IDs
+
+        max_lane_index = std::max(max_lane_index, lane_index);
+        trays.push_back(tray);
+    }
+
+    if (trays.empty()) {
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No AFC lanes found";
+        return false;
+    }
+
+    // Calculate AMS count from max lane index (4 trays per AMS unit)
+    int ams_count = (max_lane_index + 4) / 4;
+
+    // Build and parse the AMS payload
+    build_ams_payload(ams_count, trays);
+    return true;
+}
 
 int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::string& json_str)
 {

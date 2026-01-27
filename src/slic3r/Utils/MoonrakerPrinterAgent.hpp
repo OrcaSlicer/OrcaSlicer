@@ -88,6 +88,20 @@ protected:
         bool        use_ssl = false;
     } device_info;
 
+    // Shared tray data for AMS payload building (used by derived classes like QidiPrinterAgent)
+    struct AmsTrayData {
+        int         slot_index = 0;      // 0-based slot index
+        bool        has_filament = false;
+        std::string tray_type;           // Material type (e.g., "PLA", "ASA")
+        std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
+        std::string tray_info_idx;       // Setting ID (optional)
+        int         bed_temp = 0;        // Optional
+        int         nozzle_temp = 0;     // Optional
+    };
+
+    // Build ams JSON and call parser
+    void build_ams_payload(int ams_count, const std::vector<AmsTrayData>& trays);
+
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     virtual bool fetch_device_info(const std::string& base_url, const std::string& api_key, MoonrakerDeviceInfo& info, std::string& error) const;
