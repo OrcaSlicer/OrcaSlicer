@@ -462,10 +462,11 @@ public:
     std::vector<std::string> get_selected_options(Preset::Type type) const { return m_tree->options(type, true); }
 
     std::array<Preset::Type, 3>         types_list() const;
+    // ORCA: move to public to be called by MainFrame
+    void on_sys_color_changed() override;
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
-    void on_sys_color_changed() override;
 };
 
 }
