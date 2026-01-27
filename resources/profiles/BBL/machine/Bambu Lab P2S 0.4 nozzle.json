@@ -100,9 +100,9 @@
     ],
     "machine_max_acceleration_z": [
         "500",
-        "200",
-        "200",
-        "200"
+        "500",
+        "500",
+        "500"
     ],
     "machine_max_jerk_e": [
         "2.5",
