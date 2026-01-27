@@ -2615,6 +2615,9 @@ void PrintObject::bridge_over_infill()
     auto determine_bridging_angle = [](const Polygons &bridged_area, const Lines &anchors, InfillPattern dominant_pattern, double infill_direction) {
         AABBTreeLines::LinesDistancer<Line> lines_tree(anchors);
 
+        // Orca: since 3D Honeycomb was "fixed" by forcing coordf_t layerHeight = scale_(1.0), this is no longer needed.
+        // CorssHatch also does not need fixed angle.
+        //
         // Check it the infill that require a fixed infill angle.
         //switch (dominant_pattern) {
         //case ip3DHoneycomb:

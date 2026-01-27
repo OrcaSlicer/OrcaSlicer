@@ -224,6 +224,8 @@ void Fill3DHoneycomb::_fill_surface_single(
     // This means that the resultant infill won't be an ideal truncated octahedron,
     // but it should look better than the equivalent quantised version
 
+    //Orca: uses a fixed layer height to avoid inconsistent bridges and variable layer height artifacts.
+    //coordf_t layerHeight = scale_(thickness_layers);
     coordf_t layerHeight = scale_(1.0);
     // ceiling to an integer value of layers per Z
     // (with a little nudge in case it's close to perfect)
