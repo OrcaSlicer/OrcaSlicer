@@ -142,6 +142,55 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
     }
     catch (InfillFailedException&) {}
 
+    const bool is_internal_solid = surface->surface_type == stInternalSolid;
+    const bool is_concentric = params.pattern == ipConcentricInternal;
+    const bool can_fallback = is_internal_solid && !is_concentric;
+
+    // ORCA: Fallback to internal concentric for failed or unfilled internal-solid regions.
+    auto run_concentric_fallback = [&](ExPolygons fallback_area) -> bool {
+        if (fallback_area.empty())
+            return false;
+
+        // Filter out too-thin and too-small leftovers before falling back.
+        const double min_width = params.flow.scaled_spacing() * (1 - INSET_OVERLAP_TOLERANCE);
+        // Opening (erode + dilate) removes features thinner than ~min_width.
+        ExPolygons gaps_ex = opening_ex(fallback_area, float(min_width / 2.));
+        // Remove tiny islands/holes that survive the width filter.
+        if (!gaps_ex.empty())
+            remove_small_and_small_holes(gaps_ex, 2 * min_width * min_width); // Require a leftover at least ~2 widths long: area >= 2 * min_width^2.
+        if (gaps_ex.empty())
+            return false;
+
+        FillConcentricInternal fallback;
+        fallback.bounding_box = this->bounding_box;
+        fallback.layer_id = this->layer_id;
+        fallback.z = this->z;
+        fallback.spacing = this->spacing;
+        fallback.overlap = this->overlap;
+        fallback.angle = this->angle;
+        fallback.fixed_angle = this->fixed_angle;
+        fallback.link_max_length = this->link_max_length;
+        fallback.loop_clipping = this->loop_clipping;
+        fallback.adapt_fill_octree = this->adapt_fill_octree;
+        fallback.print_config = this->print_config;
+        fallback.print_object_config = this->print_object_config;
+        fallback.no_overlap_expolygons = std::move(gaps_ex);
+
+        FillParams fallback_params = params;
+        fallback_params.pattern = ipConcentricInternal;
+        fallback_params.use_arachne = true;
+        fallback.fill_surface_extrusion(surface, fallback_params, out);
+        return true;
+    };
+
+    // ORCA: If the selected pattern produced nothing, fill the whole region with internal concentric.
+    if (polylines.empty() && thick_polylines.empty()) {
+        if (can_fallback) {
+            run_concentric_fallback(this->no_overlap_expolygons);
+            return;
+        }
+    }
+
     if (!polylines.empty() || !thick_polylines.empty()) {
         // calculate actual flow from spacing (which might have been adjusted by the infill
         // pattern generator)
@@ -185,8 +234,18 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
                 eec->entities[i]->set_reverse();
         }
 
+        bool used_concentric_fallback = false;
+        // ORCA: If some area was left unfilled, fill just that remainder with internal concentric.
+        if (can_fallback && !this->no_overlap_expolygons.empty()) {
+            ExPolygons unextruded_areas = diff_ex(this->no_overlap_expolygons, union_ex(eec->polygons_covered_by_spacing(10)));
+            if (!unextruded_areas.empty()) {
+                used_concentric_fallback = run_concentric_fallback(std::move(unextruded_areas));
+            }
+        }
+
         // Orca: run gap fill
-        this->_create_gap_fill(surface, params, eec);
+        if (!used_concentric_fallback)
+            this->_create_gap_fill(surface, params, eec);
     }
 }
 
