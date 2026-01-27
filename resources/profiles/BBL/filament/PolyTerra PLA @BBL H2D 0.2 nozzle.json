@@ -1,0 +1,46 @@
+{
+    "type": "filament",
+    "name": "PolyTerra PLA @BBL H2D 0.2 nozzle",
+    "inherits": "PolyTerra PLA @base",
+    "from": "system",
+    "setting_id": "GFSL01_05",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.8",
+        "1.8"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "220",
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220",
+        "220"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

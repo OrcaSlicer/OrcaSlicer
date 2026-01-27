@@ -1,0 +1,40 @@
+{
+    "type": "filament",
+    "name": "PolyLite ASA @BBL X1E",
+    "inherits": "PolyLite ASA @base",
+    "from": "system",
+    "setting_id": "GFSB61_02",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "13",
+        "13"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "260",
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260",
+        "260"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1E 0.6 nozzle",
+        "Bambu Lab X1E 0.8 nozzle",
+        "Bambu Lab X1E 0.4 nozzle"
+    ]
+}

@@ -1,0 +1,36 @@
+{
+    "type": "filament",
+    "name": "PolyLite PETG @BBL H2D 0.2 nozzle",
+    "inherits": "PolyLite PETG @base",
+    "from": "system",
+    "setting_id": "GFSG60_09",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1",
+        "1"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "255",
+        "255"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "255",
+        "255"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

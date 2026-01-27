@@ -1,0 +1,39 @@
+{
+    "type": "filament",
+    "name": "PolyLite ABS @BBL H2D 0.2 nozzle",
+    "inherits": "PolyLite ABS @base",
+    "from": "system",
+    "setting_id": "GFSB60_09",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_max_volumetric_speed": [
+        "2",
+        "2"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "270",
+        "270"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260",
+        "260"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

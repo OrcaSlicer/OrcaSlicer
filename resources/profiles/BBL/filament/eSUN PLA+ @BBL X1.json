@@ -1,0 +1,47 @@
+{
+    "type": "filament",
+    "name": "eSUN PLA+ @BBL X1",
+    "inherits": "eSUN PLA+ @base",
+    "from": "system",
+    "setting_id": "GFSL03_02",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "16",
+        "16"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "220",
+        "220"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "220",
+        "220"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "slow_down_layer_time": [
+        "10"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 0.4 nozzle",
+        "Bambu Lab X1 0.6 nozzle",
+        "Bambu Lab X1 0.8 nozzle"
+    ]
+}

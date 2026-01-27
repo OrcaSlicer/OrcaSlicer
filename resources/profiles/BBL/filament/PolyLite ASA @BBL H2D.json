@@ -1,0 +1,41 @@
+{
+    "type": "filament",
+    "name": "PolyLite ASA @BBL H2D",
+    "inherits": "PolyLite ASA @base",
+    "from": "system",
+    "setting_id": "GFSB61_08",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_max_volumetric_speed": [
+        "13",
+        "13"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "260",
+        "260"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "260",
+        "260"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2D 0.4 nozzle",
+        "Bambu Lab H2D 0.6 nozzle",
+        "Bambu Lab H2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

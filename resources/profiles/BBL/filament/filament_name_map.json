@@ -1,0 +1,77 @@
+{
+    "Bambu Lab X1 Carbon 0.8 nozzle": {
+        "Bambu PA6-CF @BBL X1C": "Bambu PA6-CF @BBL X1C 0.6 nozzle",
+        "Bambu PAHT-CF @BBL X1C": "Bambu PAHT-CF @BBL X1C 0.6 nozzle",
+        "Bambu PPA-CF @BBL X1C": "Bambu PPA-CF @BBL X1C 0.6 nozzle"
+    },
+    "Bambu Lab X1 0.8 nozzle": {
+        "Generic PETG HF @BBL X1C": "Generic PETG HF @BBL X1 0.6 nozzle"
+    },
+    "Bambu Lab X1 0.4 nozzle": {
+        "Generic PETG HF @BBL X1C": "Generic PETG HF @BBL X1 0.6 nozzle"
+    },
+    "Bambu Lab X1 Carbon 0.6 nozzle": {
+        "Bambu ABS @BBL X1C": "Bambu ABS @BBL X1C 0.6 nozzle",
+        "Bambu PA6-CF @BBL X1C": "Bambu PA6-CF @BBL X1C 0.6 nozzle",
+        "Bambu PAHT-CF @BBL X1C": "Bambu PAHT-CF @BBL X1C 0.6 nozzle",
+        "Bambu PETG HF @BBL X1C 0.8 nozzle": "Bambu PETG HF @BBL X1C 0.6 nozzle",
+        "Bambu PETG Translucent @BBL X1C 0.8 nozzle": "Bambu PETG Translucent @BBL X1C 0.6 nozzle",
+        "Bambu PLA Basic @BBL X1C": "Bambu PLA Basic @BBL X1C 0.6 nozzle",
+        "Bambu PLA Dynamic @BBL X1C": "Bambu PLA Dynamic @BBL X1C 0.6 nozzle",
+        "Bambu PLA Galaxy @BBL X1C": "Bambu PLA Galaxy @BBL X1C 0.6 nozzle",
+        "Bambu PLA Glow @BBL X1C": "Bambu PLA Glow @BBL X1C 0.6 nozzle",
+        "Bambu PLA Lite @BBL X1C": "Bambu PLA Lite @BBL X1C 0.6 nozzle",
+        "Bambu PLA Marble @BBL X1C": "Bambu PLA Marble @BBL X1C 0.6 nozzle",
+        "Bambu PLA Matte @BBL X1C": "Bambu PLA Matte @BBL X1C 0.6 nozzle",
+        "Bambu PLA Metal @BBL X1C": "Bambu PLA Metal @BBL X1C 0.6 nozzle",
+        "Bambu PLA Silk+ @BBL X1C": "Bambu PLA Silk+ @BBL X1C 0.6 nozzle",
+        "Bambu PLA Sparkle @BBL X1C": "Bambu PLA Sparkle @BBL X1C 0.6 nozzle",
+        "Bambu PLA Tough+ @BBL X1C": "Bambu PLA Tough+ @BBL X1C 0.6 nozzle",
+        "Bambu PLA Wood @BBL X1C": "Bambu PLA Wood @BBL X1C 0.6 nozzle",
+        "Bambu PPA-CF @BBL X1C": "Bambu PPA-CF @BBL X1C 0.6 nozzle",
+        "Bambu TPU for AMS @BBL X1C": "Bambu TPU for AMS @BBL X1C 0.6 nozzle"
+    },
+    "Bambu Lab X1 0.6 nozzle": {
+        "Generic PETG HF @BBL X1C": "Generic PETG HF @BBL X1 0.6 nozzle"
+    },
+    "Bambu Lab P1S 0.4 nozzle": {
+        "Bambu ABS @BBL X1C": "Bambu ABS @BBL P1S 0.4 nozzle",
+        "Bambu PETG HF @BBL X1C": "Bambu PETG HF @BBL P1S 0.4 nozzle",
+        "Bambu PLA Basic @BBL X1C": "Bambu PLA Basic @BBL P1S 0.4 nozzle",
+        "Bambu PLA Matte @BBL X1C": "Bambu PLA Matte @BBL P1S 0.4 nozzle",
+        "Bambu PLA Silk+ @BBL X1C": "Bambu PLA Silk+ @BBL P1S 0.4 nozzle",
+        "Generic PETG HF @BBL X1C": "Generic PETG HF @BBL P1S 0.4 nozzle"
+    },
+    "Bambu Lab P1S 0.6 nozzle": {
+        "Bambu ABS @BBL X1C": "Bambu ABS @BBL P1S 0.6 nozzle",
+        "Bambu PLA Basic @BBL X1C": "Bambu PLA Basic @BBL P1S 0.6 nozzle",
+        "Bambu PLA Matte @BBL X1C": "Bambu PLA Matte @BBL P1S 0.6 nozzle",
+        "Bambu PLA Silk+ @BBL X1C": "Bambu PLA Silk+ @BBL P1S 0.6 nozzle",
+        "Generic PETG HF @BBL X1C": "Generic PETG HF @BBL P1S 0.6 nozzle"
+    },
+    "Bambu Lab P1P 0.8 nozzle": {
+        "Bambu PAHT-CF @BBL P1P": "Bambu PAHT-CF @BBL P1P 0.6 nozzle",
+        "Bambu PLA Marble @BBL P1P": "Bambu PLA Marble @BBL P1P 0.6 nozzle"
+    },
+    "Bambu Lab P1P 0.6 nozzle": {
+        "Bambu PLA Dynamic @BBL P1P": "Bambu PLA Dynamic @BBL P1P 0.6 nozzle",
+        "Bambu PLA Galaxy @BBL P1P": "Bambu PLA Galaxy @BBL P1P 0.6 nozzle",
+        "Bambu PLA Glow @BBL P1P": "Bambu PLA Glow @BBL P1P 0.6 nozzle",
+        "Bambu PLA Lite @BBL P1P": "Bambu PLA Lite @BBL P1P 0.6 nozzle",
+        "Bambu PLA Silk+ @BBL P1P": "Bambu PLA Silk+ @BBL P1P 0.6 nozzle",
+        "Bambu PLA Wood @BBL P1P": "Bambu PLA Wood @BBL P1P 0.6 nozzle",
+        "Bambu TPU for AMS @BBL P1P": "Bambu TPU for AMS @BBL P1P 0.6 nozzle",
+        "Bambu ABS @BBL P1P": "Bambu ABS @BBL P1P 0.6 nozzle",
+        "Bambu PAHT-CF @BBL P1P": "Bambu PAHT-CF @BBL P1P 0.6 nozzle",
+        "Bambu PC @BBL P1P": "Bambu PC @BBL P1P 0.6 nozzle",
+        "Bambu PLA Basic @BBL P1P": "Bambu PLA Basic @BBL P1P 0.6 nozzle",
+        "Bambu PLA Marble @BBL P1P": "Bambu PLA Marble @BBL P1P 0.6 nozzle",
+        "Bambu PLA Matte @BBL P1P": "Bambu PLA Matte @BBL P1P 0.6 nozzle",
+        "Bambu PLA Metal @BBL P1P": "Bambu PLA Metal @BBL P1P 0.6 nozzle",
+        "Bambu PLA Sparkle @BBL P1P": "Bambu PLA Sparkle @BBL P1P 0.6 nozzle",
+        "Bambu PLA Tough+ @BBL P1P": "Bambu PLA Tough+ @BBL P1P 0.6 nozzle"
+    },
+    "Bambu Lab P1P 0.4 nozzle": {
+        "Bambu PETG HF @BBL X1C": "Bambu PETG HF @BBL P1P 0.4 nozzle"
+    }
+}

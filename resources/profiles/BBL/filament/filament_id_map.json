@@ -1,0 +1,77 @@
+{
+    "GM004": {
+        "GFSN05_02": "GFSN05_13",
+        "GFSN04": "GFSN04_12",
+        "GFSN06_00": "GFSN06_10"
+    },
+    "GM007": {
+        "GFSG96_00": "GFSG96_27"
+    },
+    "GM003": {
+        "GFSG96_00": "GFSG96_27"
+    },
+    "GM005": {
+        "GFSB00": "GFSB00_40",
+        "GFSN05_02": "GFSN05_13",
+        "GFSN04": "GFSN04_12",
+        "GFSG02_02": "GFSG02_37",
+        "GFSG01_01": "GFSG01_30",
+        "GFSA00": "GFSA00_33",
+        "GFSA13_00": "GFSA13_28",
+        "GFSA15_00": "GFSA15_28",
+        "GFSA12_00": "GFSA12_30",
+        "GFSA18_00": "GFSA18_31",
+        "GFSA07_00": "GFSA07_15",
+        "GFSA01": "GFSA01_33",
+        "GFSA02": "GFSA02_28",
+        "GFSA06_00": "GFSA06_27",
+        "GFSA08_00": "GFSA08_16",
+        "GFSA10_32": "GFSA10_37",
+        "GFSA16_00": "GFSA16_20",
+        "GFSN06_00": "GFSN06_10",
+        "GFSU02_00": "GFSU02_13"
+    },
+    "GM006": {
+        "GFSG96_00": "GFSG96_27"
+    },
+    "GM014": {
+        "GFSB00": "GFSB00_38",
+        "GFSG02_00": "GFSG02_36",
+        "GFSA00": "GFSA00_34",
+        "GFSA01": "GFSA01_34",
+        "GFSA06_00": "GFSA06_29",
+        "GFSG96_00": "GFSG96_26"
+    },
+    "GM016": {
+        "GFSB00": "GFSB00_39",
+        "GFSA00": "GFSA00_35",
+        "GFSA01": "GFSA01_35",
+        "GFSA06_00": "GFSA06_28",
+        "GFSG96_00": "GFSG96_25"
+    },
+    "GM012": {
+        "GFSN04_10": "GFSN04_15",
+        "GFSA07_10": "GFSA07_18"
+    },
+    "GM011": {
+        "GFSA13_03": "GFSA13_31",
+        "GFSA15_03": "GFSA15_31",
+        "GFSA12_02": "GFSA12_33",
+        "GFSA18_03": "GFSA18_34",
+        "GFSA06_03": "GFSA06_30",
+        "GFSA16_03": "GFSA16_23",
+        "GFSU02_01": "GFSU02_16",
+        "GFSB00_03": "GFSB00_41",
+        "GFSN04_10": "GFSN04_15",
+        "GFSC00_04": "GFSC00_42",
+        "GFSA04_10": "GFSA04_11",
+        "GFSA07_10": "GFSA07_18",
+        "GFSA05_10": "GFSA05_28",
+        "GFSA02_10": "GFSA02_29",
+        "GFSA08_10": "GFSA08_19",
+        "GFSA10_34": "GFSA10_38"
+    },
+    "GM013": {
+        "GFSG02_00": "GFSG02_35"
+    }
+}
