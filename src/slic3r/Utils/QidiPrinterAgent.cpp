@@ -18,7 +18,7 @@ QidiPrinterAgent::QidiPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(
 
 AgentInfo QidiPrinterAgent::get_agent_info_static()
 {
-    return AgentInfo{.id = "qidi", .name = "Qidi Printer Agent", .version = QidiPrinterAgent_VERSION, .description = "Qidi printer agent"};
+    return AgentInfo{"qidi", "Qidi Printer Agent", QidiPrinterAgent_VERSION, "Qidi printer agent"};
 }
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
