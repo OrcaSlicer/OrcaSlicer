@@ -215,7 +215,7 @@ bool should_fuzzify(const FuzzySkinConfig& config, const int layer_id, const siz
 {
     const auto fuzziy_type = config.type;
 
-    if (fuzziy_type == FuzzySkinType::None) {
+    if (fuzziy_type == FuzzySkinType::None|| fuzziy_type == FuzzySkinType::Disabled_fuzzy) {
         return false;
     }
     if (!config.fuzzy_first_layer && layer_id <= 0) {
