@@ -1,0 +1,281 @@
+html{
+  padding-top: 28px !important;
+  padding-bottom: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body{
+  max-width: none !important;
+}
+/* -----------searchBlock----------- */
+.searchBlock{
+  height: 60px;
+  padding: 0 88px;
+  position: relative;
+}
+
+.searchBar{
+	display: flex;
+	align-items: center;
+	border-radius: 22px;
+	border: 1px solid #C2C2C2;	
+    flex-grow: 1;
+	background-color: #F7F7F7;
+	height: 40px;	
+}
+
+.searchBtn{
+	width: 60px;
+	height: 100%;
+	border-radius: 0px 22px 22px 0px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.searchInputArea{
+	display: flex;
+	align-items: center;
+	flex-grow: 1;
+	padding: 0px 22px 0px 0px;
+  border-radius: 22px 0px 0px 22px;
+}
+
+.searchInput{
+	height: 30px;
+	flex-grow: 1;
+	outline: none;
+	font-size: 16px;
+	background-color: #F7F7F7;
+}
+
+.searchResultArea{
+  width: calc(100% - 176px);
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: #FFFFFF;
+  position: absolute;
+  left: 88px;
+  right: 0;                /* 与输入框同宽 */
+  top: calc(100% - 6px);
+  z-index: 2;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.searchResult{
+  height: 30px;
+  border-bottom: #C2C2C2 1px solid;
+  line-height: 30px;
+  padding: 0px 16px;
+}
+
+.searchResult:hover{
+  background-color: #F0F0F0;
+  cursor: pointer;
+}
+
+/* -----------academyBlock----------- */
+.academyBlock{
+  position: relative;
+  padding-left: 48px;
+}
+
+.titleBlock{
+  display: flex;
+  padding-right: 48px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: bold;
+  flex-grow: 1;
+}
+.more {
+  font-size: 16px;
+  cursor: pointer;
+}
+.academyContent{
+  margin-top: 20px;
+  height: 268px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.cardContent{
+  display: flex;
+  height: 100%;
+  gap: 16px;
+  align-items:center;
+}
+.card {
+  width: 240px;
+  height: 100%;
+  border-radius: 12px;
+  background-color: #F8F8F8;
+  box-sizing: border-box;
+  padding: 36px 39px;
+  cursor: pointer;
+}
+
+.cardImg {
+  width: 162px;
+}
+
+.cardTitle {
+  font-weight: bold;
+  text-align: center;
+}
+
+.switchBlock{
+  position: absolute;
+  margin-top: 20px;
+  width: calc(100% - 48px);
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 268px;
+  pointer-events: none;
+}
+
+/*share*/
+.leftSwitch{
+  transform: rotate(180deg);
+}
+.leftSwitch:active { transform: rotate(180deg) translateY(-1px);  }
+.rightSwitch:active { transform: translateY(1px); }
+
+/*share*/
+.switchBtn{
+  width: 40px;
+  height: 40px;
+  background-image: url("../img/switch_page.svg");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-clip: content-box;
+  background-size: cover;
+  cursor: pointer;
+  opacity: 0.4;
+  pointer-events: auto;
+}
+.switchBtn:hover{
+  opacity: 1;
+}
+
+/* -----------tutorialBlock----------- */
+.tutorialBlock{
+  margin-top: 48px;
+  position: relative;
+  padding-left: 48px;
+}
+
+.tutorialContent{
+  margin-top: 20px;
+  height: 290px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.videoCard{
+  width: 352px;
+  height: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.videoThumbnail{
+  width: 352px;
+}
+
+.tutorialSwitchBlock{
+  position: absolute;
+  margin-top: 20px;
+  width: calc(100% - 48px);
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 290px;
+  pointer-events: none;
+}
+
+/* -----------topicBlock----------- */
+.topicBlock{
+  padding: 48px 48px;
+  background-color: #F8F8F8;
+  margin-top: 48px;
+}
+
+.topicContent{
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  gap: 12px;
+}
+
+.topicCard{
+  padding: 24px 24px;
+  flex: 1 1 300px;
+  min-width: 600px;
+  background-color: #FFFFFF;
+  box-sizing: border-box;;
+}
+
+.topicTitle{
+  font-size: 20px;
+  font-weight: bold;
+}
+
+ul{
+  margin-top: 18px;
+  padding-left: 18px;
+}
+
+li {
+  color: #00AE42;
+  cursor: pointer;
+}
+
+/* -----------footerBlock----------- */
+.footerBlock{
+  width: 100%;
+  aspect-ratio: 2536 / 416;
+  background-image: url("../img/wiki_bottom_banner.png");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-clip: content-box;
+  background-size: cover;
+  position: relative;
+}
+
+.rabbit{
+  width: 18%;
+  position: absolute;
+  bottom: 10%;
+  right: 20%;
+}
+
+.bannerContent{
+  height: 100%;
+  width: 50%;
+  padding: 32px 54px;
+  box-sizing: border-box;
+}
+
+.bannerTitle{
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.bannerBtn{
+  border: 1px solid #000000;
+  border-radius: 3px;
+  padding: 10px 45px;
+  display: inline-block;
+  cursor: pointer;
+  margin-top: 24px;
+}

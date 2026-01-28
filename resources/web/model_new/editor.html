@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="max-age=7200" />
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+  <title>Model Editor</title>
+  <link rel="stylesheet" type="text/css" href="css/editor.css" />
+  <link rel="stylesheet" type="text/css" href="css/tool.css" />
+  <link rel="stylesheet" type="text/css" href="css/accessory_dropdown.css" />
+  <link rel="stylesheet" href="../include/ckeditor5/ckeditor5.css">
+  <script type="text/javascript" src="../include/jquery-2.1.1.min.js"></script>
+  <script type="text/javascript" src="../include/purify.min.js"></script>
+  <script type="text/javascript" src="../model/test.js"></script>
+  <script type="text/javascript" src="../include/globalapi.js"></script>
+  <script type="text/javascript" src="../data/text.js"></script>
+</head>
+
+<body>
+  <div class="topTool">
+    <div class="returnBtn" onclick="returnBtn()"><img src="img/return.svg"><label class="trans" tid="t134">Return</label></div>
+    <div class="saveBtn trans" onclick="saveInfo()" tid="t135">Save</div>
+  </div>
+  <div class="container">
+    <div class="editorGroup">
+      <div class="editorTitle required trans" tid="t136">Project Name</div>
+      <input type="text" id="projectNameInput" class="editorInput" />
+    </div>
+    <div class="editorGroup">
+      <div class="editorTitle required trans" tid="t137">Pictures</div>
+      <div class="comment" tid="t143">JPG/GIF/PNG format ≤ 4MB, no more than 16 pictures, drag the picture to adjust the order; It
+        is best to scale your image to 4:3 for the best display.</div>
+      <div class="imageGroup">
+        <label class="uploadBox">
+          <input type="file" id="projectImageInput" accept=".jpg,.jpeg,.png,.gif,.webp">
+          <img src="img/upload.svg" class="uploadIcon" />
+          <div class="uploadText trans" tid="t138">Add Picture</div>
+        </label>
+        <div class="imageList" id="imageList">
+          <!-- <div class="imagePreview" style="background-image: url('../model/img/p1.png')">
+            <img src="img/img_del.svg" />
+            <div class="modelCover">Model cover</div>
+          </div>
+          <div class="imagePreview" style="background-image: url('../model/img/p1.png')">
+            <img src="img/img_del.svg" />
+            <div class="setModelCover">Set as cover</div>
+          </div> -->
+        </div>
+      </div>
+    </div>
+    <div class="editorGroup">
+      <div class="editorTitle required trans" tid="t132">Description</div>
+      <div class="editor-container editor-container_classic-editor" id="editor-container">
+        <div class="editor-container__editor">
+          <div id="editor"></div>
+        </div>
+      </div>
+    </div>
+    <div class="editorGroup">
+      <div class="editorTitle titleJustified"><span class="trans" tid="t130">Add Accessories</span>
+        <div class="accessoriesButton" id="accessories-btn">
+          +<span class="trans" tid="t139">Add accessories</span>
+          <div class="accessory-rule-wrapper" style="display: none;">
+            <div class="accessory-rule-list">
+              <label class="accessory-rule-card">
+                <input type="file" id="bom-input" accept=".xls,.xlsx,.pdf" />
+                <div class="accessory-rule-title trans" tid="t140">Bill of Materials</div>
+                <dl class="accessory-rule-meta">
+                  <dt>Format:</dt>
+                  <dd>xls, xlsx, pdf;</dd>
+                  <dt>Size:</dt>
+                  <dd>xls, xlsx &le; 10MB<br>PDF &le; 50MB/piece;</dd>
+                  <dt>Quantity:</dt>
+                  <dd>&le; 10</dd>
+                </dl>
+              </label>
+              <label class="accessory-rule-card">
+                <input type="file" id="assembly-guide-input" accept=".jpg,.png,.pdf" />
+                <div class="accessory-rule-title trans" tid="t141">Assembly Guide</div>
+                <dl class="accessory-rule-meta">
+                  <dt>Format:</dt>
+                  <dd>jpg, png, pdf;</dd>
+                  <dt>Size:</dt>
+                  <dd>png, jpg &le; 10MB<br>PDF &le; 50MB/piece;</dd>
+                  <dt>Quantity:</dt>
+                  <dd>&le; 25</dd>
+                </dl>
+              </label>
+              <label class="accessory-rule-card">
+                <input type="file" id="other-input" accept=".txt" />
+                <div class="accessory-rule-title trans" tid="t103">Other</div>
+                <dl class="accessory-rule-meta">
+                  <dt>Format:</dt>
+                  <dd>txt</dd>
+                  <dt>Size:</dt>
+                  <dd>&le; 10MB</dd>
+                  <dt>Quantity:</dt>
+                  <dd>&le; 10</dd>
+                </dl>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="editorSubGroup">
+        <div class="editorSubTitle trans" style="display: none;" tid="t140">Bill of Materials(<label>0</label>)</div>
+        <div class="accessory-list" id="bom-list">
+          <!-- <div class="attachment"><img class="attachment-icon"
+              src="img/icon_pdf.svg">31232asdfasdfasdfasdfasdfasdfasdfasdfasdf13.pdf<img class="attachment-delete"
+              src="img/del.svg"></div>
+          <div class="attachment"><img class="attachment-icon" src="img/icon_pdf.svg">3123213.pdf<img
+              class="attachment-delete" src="img/del.svg"></div>
+          <div class="attachment"><img class="attachment-icon" src="img/icon_pdf.svg">3123213.pdf<img
+              class="attachment-delete" src="img/del.svg"></div> -->
+        </div>
+        <div class="editorSubTitle trans" style="display: none;" tid="t141">Assembly Guide(<label>0</label>)</div>
+        <div class="accessory-list" id="assembly-list">
+          <!-- <div class="attachment"><img class="attachment-icon"
+              src="img/icon_pdf.svg">31232asdfasdfasdfasdfasdfasdfasdfasdfasdf13.pdf<img class="attachment-delete"
+              src="img/del.svg"></div>
+          <div class="attachment"><img class="attachment-icon" src="img/icon_pdf.svg">3123213.pdf<img
+              class="attachment-delete" src="img/del.svg"></div>
+          <div class="attachment"><img class="attachment-icon" src="img/icon_pdf.svg">3123213.pdf<img
+              class="attachment-delete" src="img/del.svg"></div> -->
+        </div>
+        <div class="editorSubTitle trans" style="display: none;" tid="t103">Other(<label>0</label>)</div>
+        <div class="accessory-list" id="other-list"></div>
+      </div>
+
+      <hr />
+
+      <div class="editorGroup">
+        <div class="editorTitle trans" tid="t133">Profile Name</div>
+        <input type="text" id="ProfileNameInput" class="editorInput" />
+      </div>
+      <div class="editorGroup">
+        <div class="editorTitle trans" tid="t142">Profile Pictures</div>
+        <div class="comment trans" tid="t143">JPG/GIF/PNG format ≤ 4MB, no more than 16 pictures, drag the picture to adjust the order;It is best to scale your image to 4:3 for the best display.</div>
+        <div class="imageGroup">
+          <label class="uploadBox">
+            <input type="file" id="ProfileImageInput" accept=".jpg,.jpeg,.png,.gif">
+            <img src="img/upload.svg" class="uploadIcon" />
+            <div class="uploadText trans" tid="t138">Add Picture</div>
+          </label>
+          <div class="imageList" id="profileImageList">
+            <!-- <div class="imagePreview" style="background-image: url('../model/img/p1.png')">
+              <img src="img/img_del.svg" />
+              <div class="modelCover">Model cover</div>
+            </div>
+            <div class="imagePreview" style="background-image: url('../model/img/p1.png')">
+              <img src="img/img_del.svg" />
+              <div class="setModelCover">Set as cover</div>
+            </div> -->
+          </div>
+        </div>
+      </div>
+      <div class="editorGroup">
+        <div class="editorTitle trans" tid="t132">Description</div>
+        <div class="editor-container editor-container_classic-editor" id="profile-editor-container">
+          <div class="editor-container__editor">
+            <div id="profile-editor"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script type="text/javascript" src="../include/ckeditor5/ckeditor5.umd.js"></script>
+  <script type="text/javascript" src="js/ckeditor_config.js"></script>
+  <script type="text/javascript" src="js/editor.js"></script>
+</body>
+
+</html>

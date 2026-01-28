@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>喷嘴选择表格</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background-color: #ffffff;
+        transition: background-color 0.3s ease;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 100%;
+        font-size: 14px;
+        table-layout: fixed;
+        margin: 0 auto;
+        color: #333333;
+        transition: color 0.3s ease;
+        border: 1px solid #ddd; /* 表格外边框 */
+      }
+
+      th, td {
+        padding: 10px;
+        vertical-align: middle;
+        transition: border-color 0.3s ease, background-color 0.3s ease;
+        border: 1px solid #ddd; /* 所有单元格边框 */
+      }
+
+      th {
+        text-align: center; /* 表头居中 */
+      }
+
+      td {
+        text-align: center; /* 数据单元格居中对齐 */
+        word-wrap: break-word;
+      }
+
+      thead th {
+        background-color: #f2f2f2;
+      }
+
+      input[type="radio"] {
+        position: relative;
+        width: 16px;
+        height: 16px;
+        margin-right: 8px;
+        appearance: none;
+        border: 1px solid #ccc;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: border-color 0.3s ease;
+      }
+
+      input[type="radio"]:checked {
+        background-color: #00ae42;
+        border-color: #00ae42;
+      }
+
+      input[type="radio"]:checked::after {
+        content: '';
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border-radius: 50%;
+        background-color: white;
+      }
+
+      label {
+        cursor: pointer;
+        transition: color 0.3s ease;
+      }
+
+      .recommended {
+        color: #28a745;
+        font-weight: bold;
+      }
+
+      /* 暗黑模式样式 */
+      html.darkmode {
+        background-color: #1a1a1a;
+      }
+
+      html.darkmode table {
+        color: #e0e0e0;
+        border-color: #555555; /* 表格外边框 */
+      }
+
+      html.darkmode th,
+      html.darkmode td {
+        border-color: #555555; /* 所有单元格边框 */
+      }
+
+      html.darkmode thead th {
+        background-color: #2d2d2d;
+      }
+
+      html.darkmode tbody tr {
+        background-color: #222222;
+      }
+      
+      html.darkmode tbody tr:nth-child(even) {
+        background-color: #282828;
+      }
+
+      html.darkmode input[type="radio"] {
+        border-color: #777777;
+      }
+
+      html.darkmode label {
+        color: #e0e0e0;
+      }
+    </style>
+  </head>
+  <body>
+    <table>
+      <thead>
+        <tr>
+          <th id="nozzle-selection" rowspan="2">选用的喷嘴直径</th>
+          <th id="available-nozzles"colspan="2">可用喷嘴</th>
+        </tr>
+        <tr>
+          <th id="left-extruder">左边</th>
+          <th id="right-extruder">右边</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr>
+          <td>
+            <input type="radio" name="nozzle" id="nozzle02" />
+            <label for="nozzle02">0.2 mm</label>
+          </td>
+          <td>不可用</td>
+          <td>2个</td>
+        </tr>
+        <tr>
+          <td>
+            <input type="radio" name="nozzle" id="nozzle04" checked />
+            <label for="nozzle04">0.4 mm（推荐）</label>
+          </td>
+          <td>✔️</td>
+          <td>3个</td>
+        </tr>
+        <tr>
+          <td>
+            <input type="radio" name="nozzle" id="nozzle06" />
+            <label for="nozzle06">0.6 mm</label>
+          </td>
+          <td>不可用</td>
+          <td>1个</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <script>
+      let highflow_label = 'high flow'
+      let standard_label = 'standard'
+      let language = 'en'
+
+      window.addEventListener("DOMContentLoaded",function(){
+        var data = JSON.stringify({
+          msg: 'init',
+        })
+        window.nozzleListTable.postMessage(data);
+      });
+
+      function sendLayoutMessage() {
+        const table = document.querySelector('table');
+        const tableWidth = table.offsetWidth;  // 表格可见宽度
+        const tableHeight = table.offsetHeight; // 表格可见高度
+
+        const layoutMsg = JSON.stringify({
+          msg: 'layout',
+          height:tableHeight,
+          width: tableWidth
+        });
+
+        console.log('发送layout消息:', layoutMsg);
+        window.nozzleListTable.postMessage(layoutMsg);
+      }
+
+      function initText(data){
+        document.getElementById("nozzle-selection").innerText = data.nozzle_selection_label
+        document.getElementById("available-nozzles").innerText = data.nozzle_list_label
+        document.getElementById("left-extruder").innerText = data.left_label
+        document.getElementById("right-extruder").innerText = data.right_label
+
+        highflow_label = data.highflow_label
+        standard_label = data.standard_label
+        language =data.language
+      }
+
+
+      // 初始化表格
+      function initTable(data) {
+        if(data.darkmode == true)
+          document.documentElement.classList.add('darkmode');
+        else
+          document.documentElement.classList.remove('darkmode');
+        updateTable(data);
+        // 监听单选按钮变化，通知C++
+        document.getElementById('tableBody').addEventListener('change', function(e) {
+          if (e.target.type === 'radio' && e.target.name === 'nozzle') {
+            const selectedIdx = e.target.getAttribute('data-index');
+            // 通过wxWebView的消息机制发送给C++
+            window.nozzleListTable.postMessage({
+              msg: 'onSelect',
+              index: parseInt(selectedIdx)
+            });
+          }
+        });
+      }
+
+      // 更新表格内容的方法
+      function updateTable(nozzleOptions) {
+        console.log('更新表格数据：', nozzleOptions);
+        const tableBody = document.getElementById('tableBody');
+        // 清空现有内容
+        tableBody.innerHTML = '';
+        tabledata = nozzleOptions.data
+
+        // 遍历所有喷嘴选项，生成表格行
+        tabledata.forEach((option, index) => {
+          const row = document.createElement('tr');
+
+          // 喷嘴直径单元格（带单选按钮）
+          const diameterCell = document.createElement('td');
+          const radioId = `nozzle${index}`;
+
+          // 构建单选按钮和标签
+          let labelText = option.diameter +' mm';
+          // 如果是推荐项，添加标识
+          const isRecommended = false
+
+          if (isRecommended) {
+            labelText += '（推荐）';
+          }
+
+        diameterCell.innerHTML = `
+        <input type="radio" name="nozzle" id="${radioId}" data-index="${index}" ${option.is_selected ? 'checked' : ''}>
+        <label for="${radioId}" class="${isRecommended ? 'recommended' : ''}">${labelText}</label>
+        `;
+
+      const leftCell = document.createElement('td');
+      const leftExtruder = option.extruders['0'] || { type: 'standard', count: 0 };
+      leftCell.textContent = `${leftExtruder.count}${language === "zh-cn" ? "个" : ""}`;
+      const rightCell = document.createElement('td');
+      const rightExtruder = option.extruders['1'] || { type: 'standard', count: 0 };
+      rightCell.textContent = `${rightExtruder.count}${language === "zh-cn" ? "个" : ""}`;
+
+      // 添加单元格到行
+      row.appendChild(diameterCell);
+      row.appendChild(leftCell);
+      row.appendChild(rightCell);
+      
+      // 添加行到表格
+      tableBody.appendChild(row);
+    });
+
+    sendLayoutMessage()
+  }
+  
+</script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="Cache-Control" content="max-age=7200" />
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+  <title>black</title>
+  <link rel="stylesheet" type="text/css" href="css/black.css" />
+  <script type="text/javascript" src="../include/jquery-2.1.1.min.js"></script>
+  <script type="text/javascript" src="../include/globalapi.js"></script>
+  <script type="text/javascript" src="../data/text.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <img src="img/empty.svg" />
+    <div class="content trans" tid='t127'>Please add the project information</div>
+    <div class="addBtn" onClick="addProject()">+ <label class="trans" tid='t148'>Add</label></div>
+  </div>
+</body>
+<script>
+  $(function() {
+    TranslatePage();
+  });
+  function addProject() {
+    window.location.href = "editor.html";
+  }
+  function HandleStudio(pVal) {
+    let strCmd = pVal['command'];
+
+    if (strCmd == 'show_3mf_info') {
+      const detail = pVal.model && pVal.model.model;
+      const name = detail ? decodeURIComponent(detail.name || '').trim() : '';
+      const description = detail ? decodeURIComponent(detail.description || '').trim() : '';
+
+      if (name || description) {
+        window.location.href = 'index.html';
+        return;
+      }
+    }
+  }
+  </script>
+</html>

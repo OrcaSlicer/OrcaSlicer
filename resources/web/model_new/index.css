@@ -1,0 +1,164 @@
+*{
+	padding: 0px;
+	border: 0px;
+	margin: 0px;
+  font-family: "system-ui", "Segoe UI", Roboto, Oxygen, Ubuntu, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-sans;
+	border-color: #D7D7D7;
+	user-select: none;
+}
+
+html, body {
+	line-height: 20px;
+  font-size: 14px;
+	padding: 0px;
+	border: 0px;
+	margin: 0px;
+	background-color: #FFF;
+}
+body {
+  display: flex;
+  justify-content: center;
+}
+.text {
+  font-size: 15px;
+  color: #5c5c5c;
+}
+.comment {
+  font-size: 12px;
+  color: #353535;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.topTool {
+  display: flex;
+  justify-content: right;
+  height: 60px;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: #FFF;
+  padding: 0px 18px;
+  align-items: center;
+  box-sizing: border-box;
+  z-index: 1000;
+  box-shadow: 0 2px 4px 0 rgba(55, 55, 55, 0.12);
+}
+
+.returnBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.returnBtn label {
+  cursor: pointer;
+}
+.saveBtn {
+  background-color: #00AE42;
+  padding: 9px 8px;
+  box-sizing: border-box;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #000000;
+}
+
+.container {
+  min-width: 1100px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin-top: 70px;
+}
+.Navigation{
+  align-self: start;
+  height: fit-content;
+  position: sticky;
+  top: 70px;
+}
+.content{
+  width: 890px;
+  padding: 28px 30px;
+  box-sizing: border-box;
+  min-height: 1000px;
+}
+
+#info, #steps, #bom, #acc, #profile {
+  scroll-margin-top: 60px;
+}
+#demoGallery {
+
+}
+
+hr {
+  margin-top: 18px;
+  margin-bottom: 18px;
+  border: none;
+  border-top: 1px solid #EBEBEB
+}
+
+#projectName {
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 14px;
+}
+.link {
+  cursor: pointer;
+  text-decoration: underline;
+  color: #B6F34F;
+}
+#projectAuthor {
+  margin-top: 8px;
+  font-size: 15px;
+}
+#projectDescription {
+  margin-top: 8px;
+}
+#projectDescription img {
+  max-width: 80%;
+}
+.subTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.accessory-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.attachment {
+  display: inline-block;
+  border-radius: 2px;
+  border: 1px solid #DDD;
+  width: 230px;
+  font-size: 14px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  cursor: pointer;
+}
+.attachment img {
+  width: 28px;
+  height: 28px;
+  margin-right: 12px;
+}
+
+.profileName {
+  font-size: 16px;
+  font-weight: 700;
+}
+#profileAuthor {
+  margin-top: 8px;
+  font-size: 15px;
+}
+#profileDescript {
+  margin-top: 8px;
+}
