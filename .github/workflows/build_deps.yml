@@ -74,18 +74,18 @@ jobs:
             cd ${{ github.workspace }}/deps/build
 
       - name: Build on Mac ${{ inputs.arch }}
-        if: inputs.os == 'macos-14'
+        if: inputs.os == 'orca-macos-arm64'
         working-directory: ${{ github.workspace }}
         run: |
-            brew install automake texinfo libtool
-            brew list
-            brew uninstall --ignore-dependencies zstd
-            ./build_release_macos.sh -dx -a universal -t 10.15 -1
+            # brew install automake texinfo libtool
+            # brew list
+            # brew uninstall --ignore-dependencies zstd
+            ./build_release_macos.sh -dx -a universal -t 10.15
             for arch in arm64 x86_64; do
                 (cd "${{ github.workspace }}/deps/build/${arch}" && \
                 find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
             done
-            brew install zstd
+            # brew install zstd
 
 
       - name: Apt-Install Dependencies
@@ -104,7 +104,7 @@ jobs:
 
       # Upload Artifacts
       # - name: Upload Mac ${{ inputs.arch }} artifacts
-      #   if: inputs.os == 'macos-14'
+      #   if: inputs.os == 'orca-macos-arm64'
       #   uses: actions/upload-artifact@v6
       #   with:
       #     name: OrcaSlicer_dep_mac_${{ env.date }}
