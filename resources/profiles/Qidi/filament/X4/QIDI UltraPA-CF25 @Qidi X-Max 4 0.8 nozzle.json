@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSN99",
+    "name": "QIDI UltraPA-CF25 @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI UltraPA-CF25@X-Max 4-Series",
+    "pressure_advance": ["0.02"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}

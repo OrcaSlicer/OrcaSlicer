@@ -4,7 +4,9 @@
 #include <string>
 #include <functional>
 #include <map>
+#include <vector>
 
+#include "libslic3r/AppConfig.hpp"
 extern std::string g_log_folder;
 extern std::string g_log_start_time;
 
@@ -97,8 +99,6 @@ namespace BBL {
 #define BAMBU_NETWORK_LIBRARY               "bambu_networking"
 #define BAMBU_NETWORK_AGENT_NAME            "bambu_network_agent"
 
-#define BAMBU_NETWORK_AGENT_VERSION_LEGACY  "01.10.01.01"
-#define BAMBU_NETWORK_AGENT_VERSION         "02.03.00.62"
 
 //iot preset type strings
 #define IOT_PRINTER_TYPE_STRING     "printer"
@@ -306,6 +306,79 @@ struct CertificateInformation {
     std::string     serial_number;
 };
 
+struct NetworkLibraryVersion {
+    const char* version;
+    const char* display_name;
+    const char* url_override;
+    bool is_latest;
+    const char* warning;
+};
+
+static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
+    {"02.03.00.62", "02.03.00.62", nullptr, true, nullptr},
+    {"02.01.01.52", "02.01.01.52", nullptr, false, nullptr},
+    {"02.00.02.50", "02.00.02.50", nullptr, false, "This version may crash on startup due to Bambu Lab's signature verification."},
+    {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, nullptr},
+};
+
+static const size_t AVAILABLE_NETWORK_VERSIONS_COUNT = sizeof(AVAILABLE_NETWORK_VERSIONS) / sizeof(AVAILABLE_NETWORK_VERSIONS[0]);
+
+inline const char* get_latest_network_version() {
+    for (size_t i = 0; i < AVAILABLE_NETWORK_VERSIONS_COUNT; ++i) {
+        if (AVAILABLE_NETWORK_VERSIONS[i].is_latest)
+            return AVAILABLE_NETWORK_VERSIONS[i].version;
+    }
+    return AVAILABLE_NETWORK_VERSIONS[0].version;
+}
+
+struct NetworkLibraryVersionInfo {
+    std::string version;
+    std::string base_version;
+    std::string suffix;
+    std::string display_name;
+    std::string url_override;
+    bool is_latest;
+    std::string warning;
+    bool is_discovered;
+
+    static NetworkLibraryVersionInfo from_static(const NetworkLibraryVersion& v) {
+        return {
+            v.version,
+            v.version,
+            "",
+            v.display_name,
+            v.url_override ? v.url_override : "",
+            v.is_latest,
+            v.warning ? v.warning : "",
+            false
+        };
+    }
+
+    static NetworkLibraryVersionInfo from_discovered(const std::string& full_version,
+                                                      const std::string& base,
+                                                      const std::string& sfx) {
+        return {full_version, base, sfx, full_version, "", false, "", true};
+    }
+};
+
+inline std::string extract_base_version(const std::string& full_version) {
+    auto pos = full_version.find('-');
+    return (pos == std::string::npos) ? full_version : full_version.substr(0, pos);
+}
+
+inline std::string extract_suffix(const std::string& full_version) {
+    auto pos = full_version.find('-');
+    return (pos == std::string::npos) ? "" : full_version.substr(pos + 1);
+}
+
+std::vector<NetworkLibraryVersionInfo> get_all_available_versions();
+
+struct NetworkLibraryLoadError {
+    bool has_error = false;
+    std::string message;
+    std::string technical_details;
+    std::string attempted_path;
+};
 
 enum class MessageFlag : int
 {

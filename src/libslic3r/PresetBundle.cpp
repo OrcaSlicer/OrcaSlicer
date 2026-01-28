@@ -3315,6 +3315,13 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             filament_self_indice[index] = index + 1;
     }
     std::vector<int> filament_self_indice = std::move(config.option<ConfigOptionInts>("filament_self_index")->values);
+    // ORCA: Initialize filament_extruder_variant for backward compatibility with old 3mf files
+    // that don't have this option saved or have it with default single-element value
+    ConfigOptionStrings* filament_extruder_variant_opt = config.option<ConfigOptionStrings>("filament_extruder_variant");
+    if (!filament_extruder_variant_opt || filament_extruder_variant_opt->size() < num_filaments) {
+        std::vector<std::string>& filament_extruder_variant = config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values;
+        filament_extruder_variant.resize(num_filaments, "Direct Drive Standard");
+    }
     if (config.option("extruder_variant_list")) {
         //3mf support multiple extruder logic
         size_t extruder_count = config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();

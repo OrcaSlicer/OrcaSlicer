@@ -17,6 +17,7 @@
 #include "Tab.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r_version.h"
+#include "Widgets/HyperLink.hpp" // ORCA
 
 #define NAME_OPTION_COMBOBOX_SIZE wxSize(FromDIP(200), FromDIP(24))
 #define FILAMENT_PRESET_COMBOBOX_SIZE wxSize(FromDIP(300), FromDIP(24))
@@ -125,7 +126,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
      {"Orca Arena Printer",{"Orca Arena X1 Carbon"}},
      {"Peopoly",           {"Peopoly Magneto X"}},
      {"Positron 3D",       {"The Positron"}},
-     {"Prusa",             {"Prusa CORE One", "Prusa CORE One HF", "MK4IS", "MK4S", "MK4S HF",
+     {"Prusa",             {"Prusa CORE One", "Prusa CORE One HF", "Prusa CORE One L", "Prusa CORE One L HF", "MK4IS", "MK4S", "MK4S HF",
                             "Prusa XL", "Prusa XL 5T", "MK3.5", "MK3S", "MINI", "MINIIS"}},
      {"Qidi",              {"Qidi X-Plus 4",  "Qidi Q1 Pro",    "Qidi X-Max 3",   "Qidi X-Plus 3",  "Qidi X-Smart 3",
                             "Qidi X-Plus",    "Qidi X-Max",     "Qidi X-CF Pro"}},
@@ -5027,8 +5028,8 @@ wxPanel *PresetTree::get_child_item(wxPanel *parent, std::shared_ptr<Preset> pre
     bool base_id_error = false;
     if (preset->inherits() == "" && preset->base_id != "") base_id_error = true;
     if (base_id_error) {
-        std::string      wiki_url             = "https://wiki.bambulab.com/en/software/bambu-studio/custom-filament-issue";
-        wxHyperlinkCtrl *m_download_hyperlink = new wxHyperlinkCtrl(panel, wxID_ANY, _L("[Delete Required]"), wiki_url, wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE);
+        // ORCA standardized HyperLink
+        HyperLink *m_download_hyperlink = new HyperLink(panel, _L("[Delete Required]"), "https://wiki.bambulab.com/en/software/bambu-studio/custom-filament-issue");
         m_download_hyperlink->SetFont(Label::Body_10);
         sizer->Add(m_download_hyperlink, 0, wxEXPAND | wxALL, 5);
     }

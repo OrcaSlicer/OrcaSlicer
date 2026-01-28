@@ -528,12 +528,9 @@ public:
 		m_extrusion_flow(0.f),
 		m_preview_suppressed(false),
 		m_elapsed_time(0.f),
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_default_analyzer_line_width(line_width),
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-        m_gcode_flavor(flavor),
-        m_filpar(filament_parameters)
-        {
+    m_gcode_flavor(flavor),
+    m_filpar(filament_parameters)
+    {
             // ORCA: This class is only used by BBL printers, so set the parameter appropriately.
             // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
             GCodeProcessor::s_IsBBLPrinter = true;
@@ -552,18 +549,6 @@ public:
         m_gcode += str.str();
         return *this;
     }
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    WipeTowerWriter& change_analyzer_mm3_per_mm(float len, float e) {
-        static const float area = float(M_PI) * 1.75f * 1.75f / 4.f;
-        float mm3_per_mm = (len == 0.f ? 0.f : area * e / len);
-        // adds tag for processor:
-        std::stringstream str;
-        str << ";" << GCodeProcessor::Mm3_Per_Mm_Tag << mm3_per_mm << "\n";
-        m_gcode += str.str();
-        return *this;
-    }
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
 	WipeTowerWriter& 			 set_initial_position(const Vec2f &pos, float width = 0.f, float depth = 0.f, float internal_angle = 0.f) {
         m_wipe_tower_width = width;
@@ -602,13 +587,8 @@ public:
 	// Suppress / resume G-code preview in Slic3r. Slic3r will have difficulty to differentiate the various
 	// filament loading and cooling moves from normal extrusion moves. Therefore the writer
 	// is asked to suppres output of some lines, which look like extrusions.
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    WipeTowerWriter& suppress_preview() { change_analyzer_line_width(0.f); m_preview_suppressed = true; return *this; }
-    WipeTowerWriter& resume_preview() { change_analyzer_line_width(m_default_analyzer_line_width); m_preview_suppressed = false; return *this; }
-#else
     WipeTowerWriter& 			 suppress_preview() { m_preview_suppressed = true; return *this; }
-	WipeTowerWriter& 			 resume_preview()   { m_preview_suppressed = false; return *this; }
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
+  	WipeTowerWriter& 			 resume_preview()   { m_preview_suppressed = false; return *this; }
 
 	WipeTowerWriter& 			 feedrate(float f)
 	{
@@ -647,12 +627,9 @@ public:
 		Vec2f rot(this->rotate(Vec2f(x,y)));                               // this is where we want to go
 
         if (! m_preview_suppressed && e > 0.f && len > 0.f) {
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-            change_analyzer_mm3_per_mm(len, e);
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
-            // Width of a squished extrusion, corrected for the roundings of the squished extrusions.
+      // Width of a squished extrusion, corrected for the roundings of the squished extrusions.
 			// This is left zero if it is a travel move.
-            float width = e * m_filpar[0].filament_area / (len * m_layer_height);
+      float width = e * m_filpar[0].filament_area / (len * m_layer_height);
 			// Correct for the roundings of a squished extrusion.
 			width += m_layer_height * float(1. - M_PI / 4.);
 			if (m_extrusions.empty() || m_extrusions.back().pos != rotated_current_pos)
@@ -1212,9 +1189,6 @@ private:
 	float		  m_wipe_tower_depth = 0.f;
     unsigned      m_last_fan_speed = 0;
     int           current_temp = -1;
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    const float   m_default_analyzer_line_width;
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
     float         m_used_filament_length = 0.f;
     GCodeFlavor   m_gcode_flavor;
     const std::vector<WipeTower::FilamentParameters>& m_filpar;
