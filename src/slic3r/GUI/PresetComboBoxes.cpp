@@ -202,20 +202,28 @@ void PresetComboBox::update_selection()
 
 // A workaround for a set of issues related to text fitting into gtk widgets:
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
-    GList* cells = gtk_cell_layout_get_cells(GTK_CELL_LAYOUT(m_widget));
-
-    // 'cells' contains the GtkCellRendererPixBuf for the icon,
-    // 'cells->next' contains GtkCellRendererText for the text we need to ellipsize
-    if (!cells || !cells->next) return;
-
-    auto cell = static_cast<GtkCellRendererText *>(cells->next->data);
-
-    if (!cell) return;
-
-    g_object_set(G_OBJECT(cell), "ellipsize", PANGO_ELLIPSIZE_END, (char*)NULL);
-
-    // Only the list of cells must be freed, the renderer isn't ours to free
-    g_list_free(cells);
+  GtkWidget* widget = m_widget;
+    if (GTK_IS_CONTAINER(widget)) {
+        GList* children = gtk_container_get_children(GTK_CONTAINER(widget));
+        if (children) {
+            widget = GTK_WIDGET(children->data);
+            g_list_free(children);
+        }
+    }
+    if (GTK_IS_ENTRY(widget)) {
+        // Set ellipsization for the entry
+        gtk_entry_set_width_chars(GTK_ENTRY(widget), 20);  // Adjust this value as needed
+        gtk_entry_set_max_width_chars(GTK_ENTRY(widget), 20);  // Adjust this value as needed
+        // Create a PangoLayout for the entry and set ellipsization
+        PangoLayout* layout = gtk_entry_get_layout(GTK_ENTRY(widget));
+        if (layout) { 
+            pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
+        } else {
+            g_warning("Unable to get PangoLayout from GtkEntry");
+        }
+    } else {
+        g_warning("Expected GtkEntry, but got %s", G_OBJECT_TYPE_NAME(widget));
+    }
 #endif
 }
 

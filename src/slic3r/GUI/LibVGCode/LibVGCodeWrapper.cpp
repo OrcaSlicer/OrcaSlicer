@@ -54,7 +54,11 @@ Slic3r::ColorRGBA convert(const Color& c)
 
 Color convert(const Slic3r::ColorRGBA& c)
 {
-    return { static_cast<uint8_t>(c.r() * 255.0f), static_cast<uint8_t>(c.g() * 255.0f), static_cast<uint8_t>(c.b() * 255.0f) };
+    // ORCA: Fix dark color rendering. Ensure minimal brightness.
+    auto safe_val = [](float v) -> uint8_t {
+        return std::max((uint8_t)(v * 255.0f), (uint8_t)48);
+    };
+    return { safe_val(c.r()), safe_val(c.g()), safe_val(c.b()) };
 }
 
 Color convert(const std::string& color_str)
