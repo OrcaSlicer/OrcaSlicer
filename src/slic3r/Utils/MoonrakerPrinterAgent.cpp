@@ -5,6 +5,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
+#include "../GUI/DeviceCore/DevStorage.h"
+#include "../GUI/DeviceCore/DevFirmware.h"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/connect.hpp>
@@ -586,6 +588,19 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, const std::vector<A
         obj->m_full_msg_count = 1;
     }
     obj->last_push_time = std::chrono::system_clock::now();
+
+    // Set storage state - Moonraker printers use virtual_sdcard, storage is always available.
+    // This is required for SelectMachineDialog to allow printing (otherwise it blocks with "No SD card").
+    obj->GetStorage()->set_sdcard_state(DevStorage::HAS_SDCARD_NORMAL);
+
+    // Populate module_vers so is_info_ready() passes the version check.
+    // Moonraker printers don't have BBL-style version info, but we need a non-empty map.
+    if (obj->module_vers.empty()) {
+        DevFirmwareVersionInfo ota_info;
+        ota_info.name = "ota";
+        ota_info.sw_ver = "1.0.0";  // Placeholder version for Moonraker printers
+        obj->module_vers.emplace("ota", ota_info);
+    }
 }
 
 bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
@@ -668,7 +683,7 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         tray.bed_temp = lane_obj.value("bed_temp", 0);
         tray.nozzle_temp = lane_obj.value("nozzle_temp", 0);
         tray.has_filament = !tray.tray_type.empty();
-        tray.tray_info_idx = "";  // AFC doesn't provide setting IDs
+        tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -685,6 +700,60 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     // Build and parse the AMS payload
     build_ams_payload(ams_count, trays);
     return true;
+}
+
+std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::string& filament_type)
+{
+    std::string upper = filament_type;
+    boost::trim(upper);
+    std::transform(upper.begin(), upper.end(), upper.begin(),
+        [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+
+    // Map to OrcaFilamentLibrary preset IDs (compatible with all printers)
+    // Source: resources/profiles/OrcaFilamentLibrary/filament/
+
+    // PLA variants
+    if (upper == "PLA")           return "OGFL99";
+    if (upper == "PLA-CF")        return "OGFL98";
+    if (upper == "PLA SILK" || upper == "PLA-SILK") return "OGFL96";
+    if (upper == "PLA HIGH SPEED" || upper == "PLA-HS" || upper == "PLA HS") return "OGFL95";
+
+    // ABS/ASA variants
+    if (upper == "ABS")           return "OGFB99";
+    if (upper == "ASA")           return "OGFB98";
+
+    // PETG/PET variants
+    if (upper == "PETG" || upper == "PET") return "OGFG99";
+    if (upper == "PCTG")          return "OGFG97";
+
+    // PA/Nylon variants
+    if (upper == "PA" || upper == "NYLON") return "OGFN99";
+    if (upper == "PA-CF")         return "OGFN98";
+    if (upper == "PPA" || upper == "PPA-CF") return "OGFN97";
+    if (upper == "PPA-GF")        return "OGFN96";
+
+    // PC variants
+    if (upper == "PC")            return "OGFC99";
+
+    // PP/PE variants
+    if (upper == "PE")            return "OGFP99";
+    if (upper == "PP")            return "OGFP97";
+
+    // Support materials
+    if (upper == "PVA")           return "OGFS99";
+    if (upper == "HIPS")          return "OGFS98";
+    if (upper == "BVOH")          return "OGFS97";
+
+    // TPU variants
+    if (upper == "TPU")           return "OGFU99";
+
+    // Other materials
+    if (upper == "EVA")           return "OGFR99";
+    if (upper == "PHA")           return "OGFR98";
+    if (upper == "COPE")          return "OGFLC99";
+    if (upper == "SBS")           return "OFLSBS99";
+
+    return "";  // Unknown material - will fall back to type-based name matching
 }
 
 int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::string& json_str)
@@ -1085,7 +1154,7 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     const std::string model_id = device_info.model_id;
 
     if (auto* app_config = GUI::wxGetApp().app_config) {
-        const std::string access_code = device_info.api_key;
+        const std::string access_code = device_info.api_key.empty() ? "88888888" : device_info.api_key;
         app_config->set_str("access_code", device_info.dev_id, access_code);
         app_config->set_str("user_access_code", device_info.dev_id, access_code);
     }

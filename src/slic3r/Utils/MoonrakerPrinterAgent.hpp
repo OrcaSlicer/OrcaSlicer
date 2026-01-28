@@ -115,6 +115,9 @@ protected:
     std::string sanitize_filename(const std::string& filename);
     std::string join_url(const std::string& base_url, const std::string& path) const;
 
+    // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
+    static std::string map_filament_type_to_generic_id(const std::string& filament_type);
+
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
     int send_version_info(const std::string& dev_id);

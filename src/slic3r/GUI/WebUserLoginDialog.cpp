@@ -43,9 +43,10 @@ int ZUserLogin::web_sequence_id = 20000;
 ZUserLogin::ZUserLogin() : wxDialog((wxWindow *) (wxGetApp().mainframe), wxID_ANY, "OrcaSlicer")
 {
     SetBackgroundColour(*wxWHITE);
+    const auto bblnetwork_enabled =wxGetApp().app_config->get_bool("installed_networking");
     // Url
     NetworkAgent* agent = wxGetApp().getAgent();
-    if (!agent) {
+    if (!agent && bblnetwork_enabled) {
 
         SetBackgroundColour(*wxWHITE);
 

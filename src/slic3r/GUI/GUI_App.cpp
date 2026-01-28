@@ -3304,131 +3304,127 @@ void GUI_App::copy_network_if_available()
 
 bool GUI_App::on_init_network(bool try_backup)
 {
-    bool create_network_agent = false;
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
 
     std::string config_version = app_config->get_network_plugin_version();
 
-    if(!should_load_networking_plugin) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Don't load plugin as installed_networking is false";
-    } else {
-    if (config_version.empty()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
-        m_networking_need_update = true;
+    if (should_load_networking_plugin) {
+        if (config_version.empty()) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
+            m_networking_need_update = true;
 
-        if (!m_device_manager)
-            m_device_manager = new Slic3r::DeviceManager();
-        if (!m_user_manager)
-            m_user_manager = new Slic3r::UserManager();
+            if (!m_device_manager)
+                m_device_manager = new Slic3r::DeviceManager();
+            if (!m_user_manager)
+                m_user_manager = new Slic3r::UserManager();
 
-        return false;
-    }
-    int load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
-__retry:
-    if (!load_agent_dll) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll ok";
-
-        std::string loaded_version = Slic3r::NetworkAgent::get_version();
-        if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
-            std::string config_version = app_config->get_network_plugin_version();
-            std::string config_base = extract_base_version(config_version);
-            if (config_base != loaded_version) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded " << loaded_version;
-                app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
-                app_config->save();
-            }
+            return false;
         }
 
-        if (check_networking_version()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, compatibility version";
-            auto bambu_source = Slic3r::NetworkAgent::get_bambu_source_entry();
-            if (!bambu_source) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": can not get bambu source module!";
-                m_networking_compatible = false;
+        int load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
+    __retry:
+        if (!load_agent_dll) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll ok";
+
+            std::string loaded_version = Slic3r::NetworkAgent::get_version();
+            if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
+                std::string config_version = app_config->get_network_plugin_version();
+                std::string config_base    = extract_base_version(config_version);
+                if (config_base != loaded_version) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
+                                            << loaded_version;
+                    app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
+                    app_config->save();
+                }
+            }
+
+            if (check_networking_version()) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, compatibility version";
+                auto bambu_source = Slic3r::NetworkAgent::get_bambu_source_entry();
+                if (!bambu_source) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": can not get bambu source module!";
+                    m_networking_compatible = false;
+                    if (should_load_networking_plugin) {
+                        m_networking_need_update = true;
+                    }
+                }
+            } else {
+                if (try_backup) {
+                    int result = Slic3r::NetworkAgent::unload_network_module();
+                    BOOST_LOG_TRIVIAL(info) << "on_init_network, version mismatch, unload_network_module, result = " << result;
+                    load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(true, config_version);
+                    try_backup     = false;
+                    goto __retry;
+                }
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, version dismatch, need upload network module";
                 if (should_load_networking_plugin) {
                     m_networking_need_update = true;
                 }
             }
-            else
-                create_network_agent = true;
         } else {
-            if (try_backup) {
-                int result = Slic3r::NetworkAgent::unload_network_module();
-                BOOST_LOG_TRIVIAL(info) << "on_init_network, version mismatch, unload_network_module, result = " << result;
-                load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(true, config_version);
-                try_backup = false;
-                goto __retry;
-            }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, version dismatch, need upload network module";
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
             if (should_load_networking_plugin) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
                 m_networking_need_update = true;
             }
         }
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", create network agent...");
+    //std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
+    std::string data_directory = data_dir();
+
+    // Register all printer agents before creating the network agent
+    Slic3r::NetworkAgentFactory::register_all_agents();
+
+    // m_agent = new Slic3r::NetworkAgent(data_directory);
+    std::unique_ptr<Slic3r::NetworkAgent> agent_ptr = Slic3r::create_agent_from_config(data_directory, app_config);
+    m_agent = agent_ptr.release();
+
+    if (!m_device_manager)
+        m_device_manager = new Slic3r::DeviceManager(m_agent);
+    else
+        m_device_manager->set_agent(m_agent);
+
+    if (!m_user_manager)
+        m_user_manager = new Slic3r::UserManager(m_agent);
+    else
+        m_user_manager->set_agent(m_agent);
+
+    if (this->is_enable_multi_machine()) {
+        if (!m_task_manager) {
+            m_task_manager = new Slic3r::TaskManager(m_agent);
+            m_task_manager->start();
+        }
+
+        m_device_manager->EnableMultiMachine(true);
     } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
-        if (should_load_networking_plugin) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
-            m_networking_need_update = true;
-        }
-    }
+        m_device_manager->EnableMultiMachine(false);
     }
 
-    if (create_network_agent) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", create network agent...");
-        //std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
-        std::string data_directory = data_dir();
-
-        // Register all printer agents before creating the network agent
-        Slic3r::NetworkAgentFactory::register_all_agents();
-
-        // m_agent = new Slic3r::NetworkAgent(data_directory);
-        std::unique_ptr<Slic3r::NetworkAgent> agent_ptr = Slic3r::create_agent_from_config(data_directory, app_config);
-        m_agent = agent_ptr.release();
-
-        if (!m_device_manager)
-            m_device_manager = new Slic3r::DeviceManager(m_agent);
-        else
-            m_device_manager->set_agent(m_agent);
-
-        if (!m_user_manager)
-            m_user_manager = new Slic3r::UserManager(m_agent);
-        else
-            m_user_manager->set_agent(m_agent);
-
-        if (this->is_enable_multi_machine()) {
-            if (!m_task_manager) {
-                m_task_manager = new Slic3r::TaskManager(m_agent);
-                m_task_manager->start();
-            }
-
-            m_device_manager->EnableMultiMachine(true);
-        } else {
-            m_device_manager->EnableMultiMachine(false);
-        }
-
-        //BBS set config dir
-        if (m_agent) {
-            m_agent->set_config_dir(data_directory);
-        }
-        //BBS start http log
-        if (m_agent) {
-            m_agent->init_log();
-        }
-
-        //BBS set cert dir
-        if (m_agent)
-            m_agent->set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
-
-        init_http_extra_header();
-
-        if (m_agent) {
-            init_networking_callbacks();
-            std::string country_code = app_config->get_country_code();
-            m_agent->set_country_code(country_code);
-            m_agent->start();
-        }
+    //BBS set config dir
+    if (m_agent) {
+        m_agent->set_config_dir(data_directory);
     }
-    else {
+    //BBS start http log
+    if (m_agent) {
+        m_agent->init_log();
+    }
+
+    //BBS set cert dir
+    if (m_agent)
+        m_agent->set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
+
+    init_http_extra_header();
+
+    if (m_agent) {
+        init_networking_callbacks();
+        std::string country_code = app_config->get_country_code();
+        m_agent->set_country_code(country_code);
+        m_agent->start();
+    }
+
+    if (!should_load_networking_plugin) {
         int result = Slic3r::NetworkAgent::unload_network_module();
         BOOST_LOG_TRIVIAL(info) << "on_init_network, unload_network_module, result = " << result;
 
@@ -3439,7 +3435,7 @@ __retry:
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (create_network_agent && m_networking_compatible && !NetworkAgent::use_legacy_network) {
+    if (should_load_networking_plugin && m_networking_compatible && !NetworkAgent::use_legacy_network) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
@@ -3495,31 +3491,22 @@ void GUI_App::switch_printer_agent(const std::string& agent_id)
     std::string current_agent_id;
     if (m_agent && m_agent->get_printer_agent())
         current_agent_id = m_agent->get_printer_agent()->get_agent_info().id;
-    
-    if (!current_agent_id.empty() && current_agent_id == effective_agent_id) {
-        return;
+
+    if (current_agent_id.empty() || current_agent_id != effective_agent_id) {
+        std::string                         log_dir     = data_dir();
+        std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent();
+        // Create new printer agent via registry
+        std::shared_ptr<IPrinterAgent> new_printer_agent = NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent,
+                                                                                                           log_dir);
+
+        if (!new_printer_agent) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id << "', keeping current agent";
+            return;
+        }
+
+        // Swap the agent
+        m_agent->set_printer_agent(new_printer_agent);
     }
-
-    std::string log_dir = data_dir();
-    std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent();
-    if (!cloud_agent) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no cloud agent available";
-        return;
-    }
-
-    // Create new printer agent via registry
-    std::shared_ptr<IPrinterAgent> new_printer_agent =
-        NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent, log_dir);
-
-    if (!new_printer_agent) {
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id
-                                   << "', keeping current agent";
-        return;
-    }
-
-    // Swap the agent
-    m_agent->set_printer_agent(new_printer_agent);
-
     // Auto-switch MachineObject
     select_machine(effective_agent_id);
 
@@ -3574,9 +3561,14 @@ void GUI_App::select_machine(const std::string& agent_id)
         machine.dev_ip = dev_id;
         machine.dev_name = dev_id;
         machine.printer_type = preset.config.opt_string("printer_model");
+        auto access_code = preset.config.opt_string("printhost_apikey");
+        // Orca expect non empty access code
+        if (access_code.empty()) {
+            access_code = "88888888";
+        }
 
         existing = m_device_manager->insert_local_device(
-            machine, "lan", "free", "", "");
+            machine, "lan", "free", "", access_code);
 
         if (!existing) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;

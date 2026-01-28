@@ -488,7 +488,10 @@ void WebViewPanel::SendLoginInfo()
 void WebViewPanel::ShowNetpluginTip()
 {
     // Install Network Plugin
-    //std::string NP_Installed = wxGetApp().app_config->get("installed_networking");
+    const auto bblnetwork_enabled =wxGetApp().app_config->get_bool("installed_networking");
+    if(!bblnetwork_enabled) {
+        return;
+    }
     bool        bValid       = wxGetApp().is_compatibility_version();
 
     int nShow = 0;

@@ -178,19 +178,14 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
     }
 
     // Create cloud agent
-    CloudAgentProvider provider    = use_orca_cloud ? CloudAgentProvider::Orca : CloudAgentProvider::BBL;
-    auto               cloud_agent = NetworkAgentFactory::create_cloud_agent(provider, log_dir);
-
-    if (!cloud_agent && provider == CloudAgentProvider::BBL) {
-        cloud_agent = NetworkAgentFactory::create_cloud_agent(CloudAgentProvider::Orca, log_dir);
+    std::shared_ptr<ICloudServiceAgent> cloud_agent = nullptr;
+    if (use_orca_cloud || app_config->get_bool("installed_networking")) {
+        CloudAgentProvider provider = use_orca_cloud ? CloudAgentProvider::Orca : CloudAgentProvider::BBL;
+        cloud_agent                 = NetworkAgentFactory::create_cloud_agent(provider, log_dir);
+        if (!cloud_agent) {
+            BOOST_LOG_TRIVIAL(error) << "Failed to create cloud agent";
+        }
     }
-
-    if (!cloud_agent) {
-        BOOST_LOG_TRIVIAL(error) << "Failed to create cloud agent";
-        return nullptr;
-    }
-
-    // auto bbl_printer_agent = NetworkAgentFactory::create_printer_agent_by_id("bbl", cloud_agent, log_dir);
 
     // Create NetworkAgent with cloud agent only (printer agent added later)
     // We will create the printer agent later when the printer is selected, so we pass nullptr for the printer agent here.
