@@ -2543,7 +2543,7 @@ msgid "Inner brim only"
 msgstr "Внутри"
 
 msgid "Outer and inner brim"
-msgstr "Снаружи и внутри"
+msgstr "Везде"
 
 msgid "No-brim"
 msgstr "Без каймы"
@@ -4013,9 +4013,9 @@ msgid ""
 msgstr ""
 "Для печати в режиме вазы необходимы следующие настройки:\n"
 "• Количество периметров: 1\n"
-"• Поддержка: выкл.\n"
-"• Сплошных слоёв сверху: 0\n"
+"• Количество сплошных слоёв сверху: 0\n"
 "• Плотность заполнения: 0%\n"
+"• Поддержки: выкл.\n"
 "• Обнаружение тонких стенок: выкл.\n"
 "• Обнаружение пластика на сопле: выкл.\n"
 "• Таймлапсы: по умолчанию"
@@ -8178,7 +8178,7 @@ msgid "Add/Remove materials"
 msgstr "Добавить/удалить материалы"
 
 msgid "Select/Remove printers (system presets)"
-msgstr "Выбрать системные профили"
+msgstr "Выбрать принтеры"
 
 msgid "Create printer"
 msgstr "Создать принтер"
@@ -8192,7 +8192,7 @@ msgstr "Несовместимы"
 msgid "The selected preset is null!"
 msgstr "Выбранный профиль пуст!"
 
-# ?????? В двух местах - в одном месте кнопка в другом Конечный слой. В V2.2.0beta2 пока не исправлено
+# ?????? не переводим, пока #6970 не исправят
 msgid "End"
 msgstr "End"
 
@@ -8236,10 +8236,10 @@ msgid "Same as Global Bed Type"
 msgstr "По умолчанию"
 
 msgid "By Layer"
-msgstr "Совместно"
+msgstr "Послойно"
 
 msgid "By Object"
-msgstr "По очереди"
+msgstr "Поштучно"
 
 msgid "Accept"
 msgstr "Принять"
@@ -9172,13 +9172,13 @@ msgstr "Древовидная поддержка"
 
 # ММ печать
 msgid "Multimaterial"
-msgstr "Материалы"
+msgstr "Многоцвет"
 
 msgid "Prime tower"
 msgstr "Черновая башня"
 
 msgid "Filament for Features"
-msgstr "Материал для элементов"
+msgstr "Материал для линий"
 
 msgid "Ooze prevention"
 msgstr "Предотвращение течи материала"
@@ -9414,7 +9414,7 @@ msgid "Accessory"
 msgstr "Аксессуары"
 
 msgid "Machine G-code"
-msgstr "Вставка G-кода"
+msgstr "Пользовательский G-код"
 
 msgid "Machine start G-code"
 msgstr "G-код перед началом печати"
@@ -9441,7 +9441,7 @@ msgid "Change filament G-code"
 msgstr "G-код смены материала"
 
 msgid "Change extrusion role G-code"
-msgstr "G-код перехода к другому элементу структуры"
+msgstr "G-код перехода к другому типу линии"
 
 msgid "Pause G-code"
 msgstr "G-код паузы печати"
@@ -10044,7 +10044,7 @@ msgstr ""
 "разных скоростей экструзии, чтобы получить хорошую форму. По этой причине "
 "скорость экструзии во время рэмминга регулируется.\n"
 "\n"
-"Эта настройка предназначена для опытных пользователей, неправильная настройка может привести к "
+"Эта настройка предназначена для опытных пользователей. Неправильная настройка может привести к "
 "замятию, протиранию прутка приводом экструдера и т.п."
 
 #, boost-format
@@ -11190,10 +11190,10 @@ msgstr ""
 
 msgid ""
 "Filament shrinkage will not be used because filament shrinkage for the used "
-"filaments differs significantly."
+"filaments does not match."
 msgstr ""
-"Компенсация усадки материала не будет использоваться, поскольку усадка "
-"используемых материалов существенно отличается."
+"Компенсация усадки материала не будет использоваться, поскольку усадка у "
+"используемых материалов не совпадает."
 
 msgid "Generating skirt & brim"
 msgstr "Генерация юбки и каймы"
@@ -11242,8 +11242,8 @@ msgid ""
 "Shrinks the initial layer on build plate to compensate for elephant foot "
 "effect."
 msgstr ""
-"Уменьшение первого слоя в плоскости XY на заданное значение, чтобы "
-"компенсировать эффект слоновьей ноги."
+"Сужает контур первого слоя на заданное значение для "
+"компенсации эффекта слоновьей ноги."
 
 msgid "Elephant foot compensation layers"
 msgstr "Компенсирующих слоёв «слоновьей ноги»"
@@ -11280,7 +11280,7 @@ msgstr "Высота печати экструдера"
 msgid ""
 "Maximum printable height of this extruder which is limited by mechanism of "
 "printer."
-msgstr ""
+msgstr "Максимальная высота печати этим экструдером, обусловленная особенностями механики."
 
 msgid "Preferred orientation"
 msgstr "Предпочтительная ориентация"
@@ -11804,7 +11804,7 @@ msgid "Set other flow ratios"
 msgstr "Другие настройки потока"
 
 msgid "Change flow ratios for other extrusion path types."
-msgstr "Изменить поток на отдельных элементах структуры модели."
+msgstr "Настроить поток для каждого типа линии."
 
 msgid "First layer flow ratio"
 msgstr "Первый слой модели"
@@ -12396,39 +12396,29 @@ msgid ""
 "4. Apply to all - generates second bridge layers for both internal and "
 "external-facing bridges\n"
 msgstr ""
-"Создание дополнительного моста над внутренними и/или "
-"внешними мостами.\n"
+"Создание второго слоя моста над внешниеми/внутренними мостами.\n"
 "\n"
-"Дополнительный слой улучшает внешний вид и надёжность мостов, что, в свою "
-"очередь, улучшает качество печати последующего сплошного заполнения. Это "
-"особенно полезно для быстрых принтеров, где скорости печати мостов и "
-"сплошного заполнения значительно различаются. Также это уменьшает "
-"вероятность возникновения такого дефекта, как эффект «дырявой подушки» на "
-"верхних поверхностях, и снижает риск отслоения внешнего моста от "
-"периметров.\n"
+"Дополнительный слой улучшает внешний вид и надёжность мостов, создавая прочную опору для последующего сплошного заполнения. Это "
+"особенно полезно для быстрой печати, когда скорости печати мостов и "
+"сплошного заполнения значительно отличаются. Дополнительный слой у у внешнего моста повышает прочность стыковки с периметрами, а у внутреннего – снижает риск проявления и заметность \"тени\" шаблона заполнения на верхних поверхностях.\n"
 "\n"
-"Рекомендуется установить значение хотя бы на «Для внешних мостов», если нет "
-"специфических проблем с моделью.\n"
+"Рекомендуется добавлять второй слой как минимум для внешних мостов, если это "
+"не создаёт особых проблем.\n"
 "\n"
 "Опции:\n"
-"1. Отключено - дополнительный слой не генерируется. Это значение установлено "
+"1. Отключено – не создавать дополнительный слой. Используется "
 "по умолчанию для обеспечения совместимости.\n"
-"2. Для внешних мостов - дополнительный слой добавляется только для внешних "
-"мостов. Обратите внимание, что небольшие мосты, которые короче или уже "
-"установленного вами количества периметров, будут пропущены, так как второй "
-"слой для них не принесёт пользы. Второй слой будет экструдирован параллельно "
-"первому слою моста для усиления прочности.\n"
-"3. Для внутренних мостов - дополнительный слой добавляется только для "
-"внутренних мостов над разреженным заполнением. Обратите внимание, что "
-"внутренние мосты учитываются в общем количестве верхних слоёв модели. Второй "
-"слой будет экструдирован максимально перпендикулярно первому. Если в "
-"изолированной области слоя есть мосты, направленные под разными углами, в "
-"качестве ориентира будет выбран угол последней области.\n"
-"4. Для всех мостов - дополнительный слой генерируется как для внутренних, "
+"2. Внешние мосты – создавать доп. слой параллельно внешним "
+"мостам для повышения их прочности. Внимание: мосты короче/уже толщины стенки игнорируются, так как второй "
+"слой для них не принесёт пользы.\n"
+"3. Внутренние мосты – создавать доп. слой перпендикулярно "
+"мостам над заполнением для лучшего формирования опорной плоскости. Внимание: "
+"внутренние мосты учитываются в общем количестве верхних слоёв модели.\n"
+"4. Везде – создавать доп. слой как для внутренних, "
 "так и для внешних мостов.\n"
 
 msgid "Disabled"
-msgstr "Отключены"
+msgstr "Отключено"
 
 msgid "External bridge only"
 msgstr "Внешние мосты"
@@ -13131,30 +13121,27 @@ msgid "Auto For Match"
 msgstr ""
 
 msgid "Flush temperature"
-msgstr ""
+msgstr "Температура прочистки"
 
 msgid ""
 "Temperature when flushing filament. 0 indicates the upper bound of the "
 "recommended nozzle temperature range."
-msgstr ""
+msgstr "Температура при прочистке. 0 – использовать верхний предел рекомендуемой температуры."
 
 msgid "Flush volumetric speed"
-msgstr ""
+msgstr "Расход при прочистке"
 
 msgid ""
 "Volumetric speed when flushing filament. 0 indicates the max volumetric "
 "speed."
-msgstr ""
+msgstr "Объёмный расход при прочистке материала. 0 – использовать максимальный расход из настроек материала."
 
 msgid ""
 "This setting stands for how much volume of filament can be melted and "
 "extruded per second. Printing speed is limited by max volumetric speed, in "
 "case of too high and unreasonable speed setting. Can't be zero."
 msgstr ""
-"Этот параметр определяет, какой объём материала может быть расплавлен и "
-"выдавлен в секунду. Скорость печати ограничена максимальным объёмным "
-"расходом в случае слишком высокой и необоснованной установки скорости. "
-"Параметр не может быть нулевым."
+"Ограничение объёма материала, проходящего через экструдер за секунду. Скорость движения головы при печати будет снижаться для соблюдения этого ограничения. Значение не может быть нулевым.\nВнимание: завышение этого значения приведёт к недогреву материала, недоэкструзии при печати и, в конечном итоге, к пропуску шагов подающего мотора."
 
 msgid "Filament load time"
 msgstr "Время загрузки прутка"
@@ -13185,19 +13172,19 @@ msgid ""
 msgstr "Время переключения между инструментами. Обычно применяется для принтеров со сменой инструментов или многоголовых принтеров. Для принтеров с комбинированной печатью через общий экструдер должно быть 0. Используется при подсчёте статистики."
 
 msgid "Bed temperature type"
-msgstr ""
+msgstr "Политика нагрева стола"
 
 msgid ""
 "This option determines how the bed temperature is set during slicing: based "
 "on the temperature of the first filament or the highest temperature of the "
 "printed filaments."
-msgstr ""
+msgstr "Определяет выбор температуры стола при нарезке: из свойств первого по хронологии печати материала или максимальную из всех используемых."
 
 msgid "By First filament"
-msgstr ""
+msgstr "По первому материалу"
 
 msgid "By Highest Temp"
-msgstr ""
+msgstr "Наибольшая температура"
 
 msgid ""
 "Filament diameter is used to calculate extrusion in G-code, so it is "
@@ -13233,10 +13220,10 @@ msgid ""
 "When enabled, the extrusion flow is limited by the smaller of the fitted "
 "value (calculated from line width and layer height) and the user-defined "
 "maximum flow. When disabled, only the user-defined maximum flow is applied."
-msgstr ""
+msgstr "Регулирует значение максимального расхода при печати тонких и узких линий для достижения оптимальной линейной скорости. По сути, ограничивает расход материала в случаях, когда завышенная скорость движения сопла не позволяет выходящему из него расплаву надёжно сплавляться с предыдущим слоем.\n\nВнимание: пока работает только у преднастроенных производителем профилей материалов."
 
 msgid "Max volumetric speed multinomial coefficients"
-msgstr ""
+msgstr "Коэффициенты расчёта максимального расхода"
 
 msgid "Shrinkage (XY)"
 msgstr "Усадка по XY"
@@ -13245,11 +13232,11 @@ msgstr "Усадка по XY"
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
 "if you measure 94mm instead of 100mm). The part will be scaled in XY to "
-"compensate. Only the filament used for the perimeter is taken into account.\n"
+"compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
-"Введите процент усадки материала после охлаждения (94%, если по замерам получилось 94 вместо 100 мм). Используется для автоматического масштабирования деталей по XY. Усадка учитывается только по материалу периметров.\n"
+"Введите процент усадки материала после охлаждения (94%, если по замерам получилось 94 вместо 100 мм). Используется для автоматического масштабирования деталей по XY. Усадка учитывается только при совпадении значения у всех используемых в печати материалов.\n"
 "Убедитесь, что между моделями достаточно места, так как эта коррекция выполняется после проверок столкновений."
 
 msgid "Shrinkage (Z)"
@@ -13263,10 +13250,10 @@ msgid ""
 msgstr "Введите процент усадки материала после охлаждения (94%, если по замерам получилось 94 вместо 100 мм). Используется для автоматического масштабирования деталей по Z."
 
 msgid "Adhesiveness Category"
-msgstr ""
+msgstr "Группа адгезивности"
 
 msgid "Filament category."
-msgstr ""
+msgstr "Группа материала."
 
 msgid "Loading speed"
 msgstr "Скорость загрузки"
@@ -13420,12 +13407,12 @@ msgstr ""
 "слоя."
 
 msgid "Filament ramming length"
-msgstr ""
+msgstr "Длина рэмминга"
 
 msgid ""
 "When changing the extruder, it is recommended to extrude a certain length of "
 "filament from the original extruder. This helps minimize nozzle oozing."
-msgstr ""
+msgstr "При смене экструдера рекомендуется выдавить из него небольшое количество материала для снижения подтёков."
 
 msgid "Support material"
 msgstr "Материал поддержки"
@@ -13436,11 +13423,12 @@ msgstr ""
 "Обычно используется для печати поддержки и "
 "связующего слоя (интерфейса)."
 
+# ??? Настройка в режиме разработчика. Должна отображаться где-то в настройках профиля, но поиском не ищется.
 msgid "Filament printable"
-msgstr ""
+msgstr "Пригодный для печати"
 
 msgid "The filament is printable in extruder."
-msgstr ""
+msgstr "Материалом можно печатать через экструдер."
 
 msgid "Softening temperature"
 msgstr "Температура размягчения"
@@ -13749,20 +13737,20 @@ msgstr ""
 "улучшить адгезию к столу."
 
 msgid "Enable accel_to_decel"
-msgstr "Вкл. ограничение ускорения зигзагов"
+msgstr "Заменять \"max_accel_to_decel\""
 
 msgid "Klipper's max_accel_to_decel will be adjusted automatically."
-msgstr "Настройка параметра \"max_accel_to_decel\" в прошивках Klipper"
+msgstr "Настройка параметра \"max_accel_to_decel\" в прошивках Klipper."
 
 # ??? Ускорение к замедлению, Ускорение торможения, Скорость торможения, Скорость торможения перед поворотом, Соотношение ускорения к замедлению
 msgid "accel_to_decel"
-msgstr "Снижение ускорения"
+msgstr "Значение"
 
 #, c-format, boost-format
 msgid ""
 "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration."
 msgstr ""
-"Процент снижения параметра \"max_accel_to_decel\" в прошивках Klipper, который ограничивает интенсивность движений на коротких перегруженных рывками участках.\n\nВнимание: параметр является устаревшим и в новых версиях Klipper был заменён на \"minimum_cruise_ratio\"."
+"Значение параметра \"max_accel_to_decel\" в прошивках Klipper, который призван обеспечить минимальный процент равномерного движения при печати перегруженных рывками участков (тем самым снизить нагрузку на механику).\n\nВнимание: параметр является устаревшим и в новых версиях Klipper был переименован в \"minimum_cruise_ratio\"."
 
 msgid "Default jerk."
 msgstr "Рывок по умолчанию."
@@ -14495,7 +14483,7 @@ msgstr ""
 "знака."
 
 msgid "Enable clumping detection"
-msgstr ""
+msgstr "Обнаружение налипания пластика на сопло"
 
 msgid "Clumping detection layers"
 msgstr ""
@@ -14718,13 +14706,13 @@ msgid "Ironing angle offset"
 msgstr "Относительный угол разглаживания"
 
 msgid "The angle of ironing lines offset from the top surface."
-msgstr ""
+msgstr "Угол разглаживания относительно линий заполнения слоя."
 
 msgid "Fixed ironing angle"
 msgstr "Фиксированный угол разглаживания"
 
 msgid "Use a fixed absolute angle for ironing."
-msgstr ""
+msgstr "Расчитывать угол относительно стола."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr ""
@@ -14732,7 +14720,7 @@ msgstr ""
 "после поднятия оси Z."
 
 msgid "Clumping detection G-code"
-msgstr ""
+msgstr "G-код при обнаружении налипшего пластика"
 
 msgid "Supports silent mode"
 msgstr "Поддержка тихого режима"
@@ -15238,7 +15226,7 @@ msgid "Number of walls of every layer."
 msgstr "Количество периметров на каждом слое модели."
 
 msgid "Alternate extra wall"
-msgstr "Чередующаяся дополнительная стенка"
+msgstr "Чередующийся доп. периметр"
 
 msgid ""
 "This setting adds an extra wall to every other layer. This way the infill "
@@ -15502,11 +15490,12 @@ msgid "Top and Bottom"
 msgstr "На верхней и нижней"
 
 msgid "Direct Drive"
-msgstr ""
+msgstr "Прямой (Direct)"
 
 msgid "Bowden"
-msgstr "Боуден"
+msgstr "Внешний (Bowden)"
 
+# ???  // internal use only, don't need translation
 msgid "Nozzle Volume Type"
 msgstr ""
 
@@ -16255,13 +16244,13 @@ msgstr ""
 "Материал для печати связующего слоя поддержки. «По умолчанию» – использовать материал модели."
 
 msgid "Top interface layers"
-msgstr "Связующих слоёв сверху"
+msgstr "Связующие слои сверху"
 
 msgid "Number of top interface layers."
 msgstr "Количество связующих слоёв сверху."
 
 msgid "Bottom interface layers"
-msgstr "Связующих слоёв снизу"
+msgstr "Связующие слои снизу"
 
 msgid "Number of bottom interface layers."
 msgstr "Количество связующих слоёв снизу."
@@ -16270,7 +16259,7 @@ msgid "Same as top"
 msgstr "Как и сверху"
 
 msgid "Top interface spacing"
-msgstr "Расстояние между линиями связующего слоя сверху"
+msgstr "Отступ между линиями связующего слоя сверху"
 
 msgid ""
 "Spacing of interface lines. Zero means solid interface.\n"
@@ -16280,7 +16269,7 @@ msgstr ""
 "При включении разглаживания поддержки используется сплошной слой (0 мм)."
 
 msgid "Bottom interface spacing"
-msgstr "Расстояние между линиями связующего слоя снизу"
+msgstr "Отступ между линиями связующего слоя снизу"
 
 msgid "Spacing of bottom interface lines. Zero means solid interface."
 msgstr ""
@@ -16507,7 +16496,7 @@ msgstr ""
 "поддержки."
 
 msgid "Support wall loops"
-msgstr "Периметров поддержки"
+msgstr "Периметры поддержки"
 
 msgid ""
 "This setting specifies the count of support walls in the range of [0,2]. 0 "
@@ -16649,8 +16638,7 @@ msgstr ""
 
 msgid "This G-code is inserted when the extrusion role is changed."
 msgstr ""
-"Команды в G-коде, которые выполняются между печатью разных элементов структуры (т.е. "
-"например, от печати периметра к заполнению)."
+"Команды в G-коде, которые выполняются между печатью разных элементов структуры (например, при переходе от периметра к заполнению)."
 
 msgid ""
 "Line width for top surfaces. If expressed as a %, it will be computed over "
@@ -16766,16 +16754,18 @@ msgstr ""
 "поверхности печатаемой модели."
 
 msgid "Internal ribs"
-msgstr ""
+msgstr "Внутренние рёбра"
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
-msgstr ""
+msgstr "Создавать внутренние рёбра жёсткости для повышения стабильности печати черновой башни."
 
+# ??? настройка отключена в коде
 msgid "Purging volumes"
-msgstr "Объём очистки"
+msgstr "Объём прочистки"
 
+# ??? настройка отключена в коде
 msgid "Flush multiplier"
-msgstr "Множитель очистки"
+msgstr "Множитель прочистки"
 
 msgid ""
 "The actual flushing volumes is equal to the flush multiplier multiplied by "
@@ -16806,7 +16796,7 @@ msgstr "Угол поворота черновой башни относител
 msgid ""
 "Brim width of prime tower, negative number means auto calculated width based "
 "on the height of prime tower."
-msgstr ""
+msgstr "Ширина каймы черновой башни. Авто (-1) – рассчитывать ширину на основе высоты башни."
 
 msgid "Stabilization cone apex angle"
 msgstr "Угол вершины стабилизирующего конуса"
@@ -16926,16 +16916,16 @@ msgstr ""
 "используются для упрощения создания полноты объёмов очистки указанной ниже."
 
 msgid "Skip points"
-msgstr ""
+msgstr "Защитные окна"
 
 msgid "The wall of prime tower will skip the start points of wipe path."
-msgstr ""
+msgstr "Создавать небольшие вырезы в местах потенциальных столкновений сопла со стенкой башни."
 
 msgid "Infill gap"
-msgstr ""
+msgstr "Плотность линий"
 
 msgid "Infill gap."
-msgstr ""
+msgstr "Плотность расположения линий сброса материала."
 
 msgid ""
 "Purging after filament change will be done inside objects' infills. This may "
@@ -18025,7 +18015,7 @@ msgid "Loading of a model file failed."
 msgstr "Не удалось загрузить файл модели."
 
 msgid "Meshing of a model file failed or no valid shape."
-msgstr ""
+msgstr "Не удалось обнаружить форму или создать по ней полигональную сетку."
 
 msgid "The supplied file couldn't be read because it's empty"
 msgstr "Невозможно прочитать файл, так как он пуст"
@@ -18162,7 +18152,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Could not find parameter: %s."
-msgstr ""
+msgstr "Не удалось найти параметр: %s."
 
 msgid ""
 "Are you sure to cancel the current calibration and return to the home page?"
@@ -18684,10 +18674,10 @@ msgid "PA Calibration"
 msgstr "Калибровка PA"
 
 msgid "Extruder type"
-msgstr "Тип экструдера"
+msgstr "Тип подающего механизма"
 
 msgid "DDE"
-msgstr "Директ"
+msgstr "Прямой (Direct)"
 
 msgid "PA Tower"
 msgstr "Башня"
@@ -20677,7 +20667,7 @@ msgid "Axes"
 msgstr "Оси координат"
 
 msgid "Feature type"
-msgstr "Элемент структуры"
+msgstr "Тип линии"
 
 msgid "Extrude"
 msgstr "Печать"
@@ -20750,6 +20740,12 @@ msgstr "Сборка по граням"
 
 msgid "Point and point assembly"
 msgstr "Сборка по точкам"
+
+msgid "NO RAMMING AT ALL"
+msgstr "Рэмминг отключён"
+
+msgid "Wiki Guide"
+msgstr "Руководство"
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
