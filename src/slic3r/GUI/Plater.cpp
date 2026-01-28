@@ -1717,7 +1717,9 @@ Sidebar::Sidebar(Plater *parent)
             // ORCA: FIX crash on wxGTK, directly modifying UI (self->Hide() / parent->Layout()) inside a button event can crash because callbacks are not re-entrant, leaving widgets in an inconsistent state
             wxGetApp().CallAfter([this, panel_color]() {
                 // ORCA clicking edit button not triggers wxEVT_KILL_FOCUS wxEVT_LEAVE_WINDOW make changes manually to prevent stucked colors when opening printer settings
-                p->panel_printer_preset->SetBorderColor(panel_color.bd_normal);
+                if (!p || !p->panel_printer_preset || !p->btn_edit_printer)
+                    return;
+				p->panel_printer_preset->SetBorderColor(panel_color.bd_normal);
                 p->btn_edit_printer->Hide();
                 p->panel_printer_preset->Layout();
             });
