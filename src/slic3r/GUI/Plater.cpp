@@ -12604,7 +12604,7 @@ void Plater::calib_temp(const Calib_Params& params) {
 
     // cut upper
     auto obj_bb = model().objects[0]->bounding_box_exact();
-    auto block_count = lround((350 - params.end) / 5 + 1);
+    auto block_count = lround((500 - params.end) / 5 + 1);
     if(block_count > 0){
         // subtract EPSILON offset to avoid cutting at the exact location where the flat surface is
         auto new_height = block_count * 10.0 - EPSILON;
@@ -12615,7 +12615,7 @@ void Plater::calib_temp(const Calib_Params& params) {
     
     // cut bottom
     obj_bb = model().objects[0]->bounding_box_exact();
-    block_count = lround((350 - params.start) / 5);
+    block_count = lround((500 - params.start) / 5);
     if(block_count > 0){
         auto new_height = block_count * 10.0 + EPSILON;
         if (new_height < obj_bb.size().z()) {
