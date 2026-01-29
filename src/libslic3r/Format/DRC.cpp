@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/nowide/cstdio.hpp>
 
 #include <draco/compression/encode.h>
 #include <draco/compression/decode.h>
