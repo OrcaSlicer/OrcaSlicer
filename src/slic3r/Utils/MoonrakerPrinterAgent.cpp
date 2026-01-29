@@ -517,7 +517,7 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, const std::vector<A
 
         nlohmann::json ams_unit = nlohmann::json::object();
         ams_unit["id"] = std::to_string(ams_id);
-        ams_unit["info"] = "2100";  // AMS_LITE type (2), main extruder (0)
+        ams_unit["info"] = "0002";  // treat as AMS_LITE 
 
         nlohmann::json tray_array = nlohmann::json::array();
         for (int slot_id = 0; slot_id < 4; ++slot_id) {
@@ -656,17 +656,32 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
 
+    // Null-safe JSON accessors: nlohmann::json::value() throws type_error
+    // when the key exists but the value is null (type mismatch).
+    auto safe_string = [](const nlohmann::json& obj, const char* key) -> std::string {
+        auto it = obj.find(key);
+        if (it != obj.end() && it->is_string())
+            return it->get<std::string>();
+        return "";
+    };
+    auto safe_int = [](const nlohmann::json& obj, const char* key) -> int {
+        auto it = obj.find(key);
+        if (it != obj.end() && it->is_number())
+            return it->get<int>();
+        return 0;
+    };
+
     for (const auto& [lane_key, lane_obj] : value.items()) {
         if (!lane_obj.is_object()) {
             continue;
         }
 
-        // Extract lane index from the "lane" field (tool number, 1-based)
-        std::string lane_str = lane_obj.value("lane", "");
+        // Extract lane index from the "lane" field (tool number, 0-based)
+        std::string lane_str = safe_string(lane_obj, "lane");
         int lane_index = -1;
         if (!lane_str.empty()) {
             try {
-                lane_index = std::stoi(lane_str) - 1;  // Convert to 0-based
+                lane_index = std::stoi(lane_str);
             } catch (...) {
                 lane_index = -1;
             }
@@ -678,10 +693,10 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
 
         AmsTrayData tray;
         tray.slot_index = lane_index;
-        tray.tray_color = lane_obj.value("color", "");
-        tray.tray_type = lane_obj.value("material", "");
-        tray.bed_temp = lane_obj.value("bed_temp", 0);
-        tray.nozzle_temp = lane_obj.value("nozzle_temp", 0);
+        tray.tray_color = safe_string(lane_obj, "color");
+        tray.tray_type = safe_string(lane_obj, "material");
+        tray.bed_temp = safe_int(lane_obj, "bed_temp");
+        tray.nozzle_temp = safe_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
         tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
 
@@ -753,7 +768,8 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     if (upper == "COPE")          return "OGFLC99";
     if (upper == "SBS")           return "OFLSBS99";
 
-    return "";  // Unknown material - will fall back to type-based name matching
+    // Unknown material 
+    return "__unknown__";
 }
 
 int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::string& json_str)
