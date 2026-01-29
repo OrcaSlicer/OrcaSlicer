@@ -2199,8 +2199,14 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     ConfigOptionStrings *filament_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
     ConfigOptionStrings* filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts* filament_map = project_config.option<ConfigOptionInts>("filament_map");
+
+
     filament_color->resize(n);
-    filament_multi_color->resize(n);
+    // Sync filament multi colour
+    filament_multi_color->values.resize(n);
+    for (size_t i = 0; i < n; i++) {
+        filament_multi_color->values[i] = filament_color->values[i];
+    }
     filament_color_type->resize(n);
     filament_map->values.resize(n, 1);
     ams_multi_color_filment.resize(n);
