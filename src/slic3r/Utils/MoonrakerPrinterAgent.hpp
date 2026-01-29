@@ -4,7 +4,7 @@
 #include "IPrinterAgent.hpp"
 #include "ICloudServiceAgent.hpp"
 
-#include <map>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <set>
