@@ -7,6 +7,7 @@
 #include <ctime>
 #include <cstdio>
 #include <cctype>
+#include <cstring>
 
 #ifdef _MSC_VER
 #include <map>
