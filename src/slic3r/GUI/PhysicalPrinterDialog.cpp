@@ -251,6 +251,10 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     host_line.append_widget(print_host_logout);
     m_optgroup->append_line(host_line);
 
+    option = m_optgroup->get_option("elegoo_printhost_websocket_port");
+    option.opt.width = Field::def_width_wider();
+    m_optgroup->append_single_option_line(option);
+
     option = m_optgroup->get_option("print_host_webui");
     option.opt.width = Field::def_width_wider();
     m_optgroup->append_single_option_line(option);
@@ -633,6 +637,14 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->hide_field("printhost_apikey");
                 m_optgroup->hide_field("printhost_authorization_type");
             }
+
+        if (opt->value == htElegooLink) {
+            m_optgroup->enable_field("elegoo_printhost_websocket_port");
+            m_optgroup->show_field("elegoo_printhost_websocket_port");
+        } else {
+            m_optgroup->disable_field("elegoo_printhost_websocket_port");
+            m_optgroup->hide_field("elegoo_printhost_websocket_port");
+        }
     }
     else {
         m_optgroup->set_value("host_type", int(PrintHostType::htOctoPrint), false);
