@@ -54,6 +54,14 @@ bool NetworkAgentFactory::is_printer_agent_registered(const std::string& id)
     return agents.find(id) != agents.end();
 }
 
+const PrinterAgentInfo* NetworkAgentFactory::get_printer_agent_info(const std::string& id)
+{
+    std::lock_guard<std::mutex> lock(s_registry_mutex);
+    auto&                       agents = get_printer_agents();
+    auto                        it     = agents.find(id);
+    return (it != agents.end()) ? &it->second : nullptr;
+}
+
 std::vector<PrinterAgentInfo> NetworkAgentFactory::get_registered_printer_agents()
 {
     std::lock_guard<std::mutex>   lock(s_registry_mutex);
@@ -106,18 +114,14 @@ void NetworkAgentFactory::register_all_agents()
 
 std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_dir, AppConfig* app_config)
 {
+    if (!app_config)
+        return std::make_unique<NetworkAgent>(nullptr, nullptr);
+
     // Determine cloud provider from config
-    bool use_orca_cloud = false;
-    if (app_config) {
-        try {
-            use_orca_cloud = app_config->get("use_orca_cloud") == "true" || app_config->get_bool("use_orca_cloud");
-        } catch (...) {
-            use_orca_cloud = false;
-        }
-    }
+    bool use_orca_cloud = app_config->get_bool("use_orca_cloud");
 
     // Create cloud agent
-    std::shared_ptr<ICloudServiceAgent> cloud_agent = nullptr;
+    std::shared_ptr<ICloudServiceAgent> cloud_agent;
     if (use_orca_cloud || app_config->get_bool("installed_networking")) {
         CloudAgentProvider provider = use_orca_cloud ? CloudAgentProvider::Orca : CloudAgentProvider::BBL;
         cloud_agent                 = NetworkAgentFactory::create_cloud_agent(provider, log_dir);
@@ -129,7 +133,7 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
     // Create NetworkAgent with cloud agent only (printer agent added later when printer is selected)
     auto agent = std::make_unique<NetworkAgent>(std::move(cloud_agent), nullptr);
 
-    if (agent && app_config && use_orca_cloud) {
+    if (agent && use_orca_cloud) {
         auto* orca_cloud = dynamic_cast<OrcaCloudServiceAgent*>(agent->get_cloud_agent().get());
         if (orca_cloud) {
             orca_cloud->configure_urls(app_config);

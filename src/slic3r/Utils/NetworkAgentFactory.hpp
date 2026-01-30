@@ -15,10 +15,6 @@
 
 namespace Slic3r {
 
-// Forward declarations
-class ICloudServiceAgent;
-class IPrinterAgent;
-
 /**
  * CloudAgentProvider - Specifies which implementation to use for each agent type.
  *
@@ -96,6 +92,11 @@ public:
      * Check if an agent ID is registered
      */
     static bool is_printer_agent_registered(const std::string& id);
+
+    /**
+     * Get info about a registered agent
+     */
+    static const PrinterAgentInfo* get_printer_agent_info(const std::string& id);
 
     /**
      * Get all registered printer agents (for UI population)

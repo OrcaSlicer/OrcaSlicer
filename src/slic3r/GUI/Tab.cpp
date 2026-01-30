@@ -2101,7 +2101,7 @@ void Tab::on_presets_changed()
 
     // Check if printer agent needs switching
     if (m_type == Preset::TYPE_PRINTER) {
-        update_printer_agent_if_needed();
+        wxGetApp().switch_printer_agent();
     }
 
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
@@ -2132,13 +2132,6 @@ void Tab::on_presets_changed()
     m_dependent_tabs.clear();
 
     wxGetApp().plater()->update_project_dirty_from_presets();
-}
-
-void Tab::update_printer_agent_if_needed()
-{
-
-    // Switch agent in GUI_App
-    wxGetApp().switch_printer_agent(agent_id);
 }
 
 void Tab::build_preset_description_line(ConfigOptionsGroup* optgroup)

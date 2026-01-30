@@ -3476,18 +3476,14 @@ void GUI_App::switch_printer_agent()
         return;
     }
 
-    std::string agent_id;
-
+    // Read printer_agent from config, falling back to default
     const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
+    std::string effective_agent_id = ORCA_PRINTER_AGENT_ID;
     if (config.has("printer_agent")) {
-        std::string value = config.option<ConfigOptionString>("printer_agent")->value;
-        if (!value.empty()) {
-            agent_id = value;
-        }
+        const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
+        if (!value.empty())
+            effective_agent_id = value;
     }
-    // Use registry to validate and create agent
-    // If empty, use default
-    std::string effective_agent_id = agent_id.empty() ? ORCA_PRINTER_AGENT_ID : agent_id;
 
     // Check if agent is registered
     if (!NetworkAgentFactory::is_printer_agent_registered(effective_agent_id)) {
@@ -3498,10 +3494,10 @@ void GUI_App::switch_printer_agent()
     }
 
     std::string current_agent_id;
-    if (m_agent && m_agent->get_printer_agent())
+    if (m_agent->get_printer_agent())
         current_agent_id = m_agent->get_printer_agent()->get_agent_info().id;
 
-    if (current_agent_id.empty() || current_agent_id != effective_agent_id) {
+    if (current_agent_id != effective_agent_id) {
         std::string                         log_dir     = data_dir();
         std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent();
         // Create new printer agent via registry
