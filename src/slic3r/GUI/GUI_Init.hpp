@@ -8,6 +8,11 @@ namespace Slic3r {
 
 namespace GUI {
 
+struct OpenGLVersions
+{
+    static const std::vector<std::pair<int, int>> core;
+};
+
 struct GUI_InitParams
 {
 	int		                    argc;
@@ -19,6 +24,10 @@ struct GUI_InitParams
     std::vector<std::string>    load_configs;
     DynamicPrintConfig          extra_config;
     std::vector<std::string>    input_files;
+
+    std::pair<int, int>         opengl_version                  { 0, 0 };
+    bool                        opengl_debug                    { false };
+    bool                        opengl_compatibility_profile    { false };
 
     //BBS: remove start_as_gcodeviewer logic
 	//bool	                    start_as_gcodeviewer;

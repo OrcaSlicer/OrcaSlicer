@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "Prusa CORE One L HF",
+    "bed_model": "coreonel_bed.stl",
+    "bed_texture": "coreonel.svg",
+    "default_materials": "Prusa Generic PLA @CORE One",
+    "family": "Prusa",
+    "hotend_model": "",
+    "machine_tech": "FFF",
+    "model_id": "Prusa_CORE_One_L_HF",
+    "nozzle_diameter": "0.4;0.5;0.6;0.8"
+}

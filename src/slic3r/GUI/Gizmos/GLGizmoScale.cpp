@@ -293,12 +293,19 @@ void GLGizmoScale3D::on_render()
 
     update_grabbers_data();
 
-    glsafe(::glLineWidth((m_hover_id != -1) ? 2.0f : 1.5f));
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile())
+        glsafe(::glLineWidth((m_hover_id != -1) ? 2.0f : 1.5f));
+#endif // !SLIC3R_OPENGL_ES
 
     const float grabber_mean_size = (float)((m_bounding_box.size().x() + m_bounding_box.size().y() + m_bounding_box.size().z()) / 3.0);
 
     //draw connections
-    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+#if SLIC3R_OPENGL_ES
+    GLShaderProgram* shader = wxGetApp().get_shader("dashed_lines");
+#else
+    GLShaderProgram* shader = OpenGLManager::get_gl_info().is_core_profile() ? wxGetApp().get_shader("dashed_thick_lines") : wxGetApp().get_shader("flat");
+#endif // SLIC3R_OPENGL_ES
     if (shader != nullptr) {
         shader->start_using();
         // BBS: when select multiple objects, uniform scale can be deselected, display the connection(4,5)
@@ -306,6 +313,16 @@ void GLGizmoScale3D::on_render()
         const Camera& camera = wxGetApp().plater()->get_camera();
         shader->set_uniform("view_model_matrix", camera.get_view_matrix() * m_grabbers_tran.get_matrix());
         shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+#if !SLIC3R_OPENGL_ES
+        if (OpenGLManager::get_gl_info().is_core_profile()) {
+#endif // !SLIC3R_OPENGL_ES
+            const std::array<int, 4>& viewport = camera.get_viewport();
+            shader->set_uniform("viewport_size", Vec2d(double(viewport[2]), double(viewport[3])));
+            shader->set_uniform("width", 0.25f);
+            shader->set_uniform("gap_size", 0.0f);
+#if !SLIC3R_OPENGL_ES
+        }
+#endif // !SLIC3R_OPENGL_ES
         if (m_grabbers[4].enabled && m_grabbers[5].enabled)
             render_grabbers_connection(4, 5, m_grabbers[4].color);
         render_grabbers_connection(6, 7, m_grabbers[2].color);
@@ -373,10 +390,18 @@ void GLGizmoScale3D::render_grabbers_connection(unsigned int id_1, unsigned int 
     }
 
     m_grabber_connections[id].model.set_color(color);
-    glLineStipple(1, 0x0FFF);
-    glEnable(GL_LINE_STIPPLE);
+    // ORCA: OpenGL Core Profile
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile()) {
+        glLineStipple(1, 0x0FFF);
+        glEnable(GL_LINE_STIPPLE);
+    }
+#endif // !SLIC3R_OPENGL_ES
     m_grabber_connections[id].model.render();
-    glDisable(GL_LINE_STIPPLE);
+#if !SLIC3R_OPENGL_ES
+    if (!OpenGLManager::get_gl_info().is_core_profile())
+        glDisable(GL_LINE_STIPPLE);
+#endif // !SLIC3R_OPENGL_ES
 }
 
 //BBS: add input window for move
