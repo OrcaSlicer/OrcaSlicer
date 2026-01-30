@@ -3230,6 +3230,7 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
         tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{std::to_string(tray.ctype)});
         tray_config.set_key_value("filament_exist", new ConfigOptionBools{tray.is_exists});
+        tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{tray.is_slot_placeholder});
         std::optional<FilamentBaseInfo> info;
         if (wxGetApp().preset_bundle) {
             info = wxGetApp().preset_bundle->get_filament_by_filament_id(tray.setting_id);
@@ -3520,8 +3521,15 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     { // badge ams filament
         clear_combos_filament_badge();
         if (sync_result.direct_sync) {
-            for (auto &c : p->combos_filament) {
-                badge_combox_filament(c);
+            auto& ams_list = wxGetApp().preset_bundle->filament_ams_list;
+            size_t tray_idx = 0;
+            for (auto& entry : ams_list) {
+                if (tray_idx >= p->combos_filament.size()) break;
+                auto filament_id = entry.second.opt_string("filament_id", 0u);
+                if (!filament_id.empty()) {
+                    badge_combox_filament(p->combos_filament[tray_idx]);
+                }
+                tray_idx++;
             }
         }
     }

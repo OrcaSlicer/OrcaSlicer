@@ -12,8 +12,6 @@
 #include <string>
 #include <functional>
 #include <vector>
-#include <map>
-#include <mutex>
 
 namespace Slic3r {
 
@@ -100,11 +98,6 @@ public:
     static bool is_printer_agent_registered(const std::string& id);
 
     /**
-     * Get info about a registered agent
-     */
-    static const PrinterAgentInfo* get_printer_agent_info(const std::string& id);
-
-    /**
      * Get all registered printer agents (for UI population)
      */
     static std::vector<PrinterAgentInfo> get_registered_printer_agents();
@@ -120,16 +113,6 @@ public:
     static std::shared_ptr<IPrinterAgent> create_printer_agent_by_id(const std::string&                  id,
                                                                      std::shared_ptr<ICloudServiceAgent> cloud_agent,
                                                                      const std::string&                  log_dir);
-
-    /**
-     * Get default printer agent ID
-     */
-    static std::string get_default_printer_agent_id();
-
-    /**
-     * Set a specific agent as the default
-     */
-    static void set_default_printer_agent_id(const std::string& id);
 
     // ========================================================================
     // Cloud Agent Factory
@@ -162,23 +145,6 @@ public:
         }
         default: return nullptr;
         }
-    }
-
-    // ========================================================================
-    // NetworkAgent Facade Creation
-    // ========================================================================
-
-    /**
-     * Create a NetworkAgent from pre-created sub-agents
-     *
-     * @param cloud_agent Cloud service agent (required, includes auth)
-     * @param printer_agent Printer agent (optional, can be nullptr)
-     * @return Unique pointer to NetworkAgent facade
-     */
-    static std::unique_ptr<NetworkAgent> create_from_agents(std::shared_ptr<ICloudServiceAgent> cloud_agent,
-                                                            std::shared_ptr<IPrinterAgent>      printer_agent)
-    {
-        return std::make_unique<NetworkAgent>(std::move(cloud_agent), std::move(printer_agent));
     }
 
 private:

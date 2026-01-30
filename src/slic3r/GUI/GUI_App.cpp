@@ -3469,16 +3469,25 @@ unsigned GUI_App::get_colour_approx_luma(const wxColour &colour)
         ));
 }
 
-void GUI_App::switch_printer_agent(const std::string& agent_id)
+void GUI_App::switch_printer_agent()
 {
     if (!m_agent) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no agent exists";
         return;
     }
 
+    std::string agent_id;
+
+    const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
+    if (config.has("printer_agent")) {
+        std::string value = config.option<ConfigOptionString>("printer_agent")->value;
+        if (!value.empty()) {
+            agent_id = value;
+        }
+    }
     // Use registry to validate and create agent
     // If empty, use default
-    std::string effective_agent_id = agent_id.empty() ? NetworkAgentFactory::get_default_printer_agent_id() : agent_id;
+    std::string effective_agent_id = agent_id.empty() ? ORCA_PRINTER_AGENT_ID : agent_id;
 
     // Check if agent is registered
     if (!NetworkAgentFactory::is_printer_agent_registered(effective_agent_id)) {

@@ -177,13 +177,13 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             std::string       selected_agent = current_agent;
 
             if (selected_agent.empty()) {
-                selected_agent = NetworkAgentFactory::get_default_printer_agent_id();
+                selected_agent = ORCA_PRINTER_AGENT_ID;
             }
 
             // Verify selected agent is valid
             auto it = std::find_if(agents.begin(), agents.end(), [&selected_agent](const auto& a) { return a.id == selected_agent; });
             if (it == agents.end()) {
-                selected_agent = NetworkAgentFactory::get_default_printer_agent_id();
+                selected_agent = ORCA_PRINTER_AGENT_ID;
             }
 
             // Set default value for the enum (using the index)

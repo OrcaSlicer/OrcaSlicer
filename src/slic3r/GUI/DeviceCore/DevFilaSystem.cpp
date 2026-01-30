@@ -612,6 +612,9 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             {
                                 curr_tray->remain = -1;
                             }
+                            if (tray_it->contains("tray_slot_placeholder")) {
+                                curr_tray->is_slot_placeholder = true;
+                            }
                             int ams_id_int = 0;
                             int tray_id_int = 0;
                             try

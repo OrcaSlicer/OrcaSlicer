@@ -2342,6 +2342,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     {
         bool valid{false};
         bool is_map{false};
+        bool is_placeholder{false};
         std::string filament_color  = "";
         std::string filament_color_type = "";
         std::string filament_preset = "";
@@ -2359,7 +2360,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         auto filament_multi_color = ams.opt<ConfigOptionStrings>("filament_multi_colour")->values;
         auto ams_id     = ams.opt_string("ams_id", 0u);
         auto slot_id    = ams.opt_string("slot_id", 0u);
-        ams_infos.push_back({filament_id.empty() ? false : true,false, filament_color});
+        auto is_placeholder = ams.has("filament_slot_placeholder") && ams.opt_bool("filament_slot_placeholder", 0u);
+        ams_infos.push_back({filament_id.empty() ? false : true, false, is_placeholder, filament_color});
         AMSMapInfo temp = {ams_id, slot_id};
         ams_array_maps.push_back(temp);
         index++;
@@ -2378,6 +2380,12 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     filament_multi_color.push_back(default_unknown_color);
                 }
                 ams_multi_color_filment.push_back(filament_multi_color);
+            } else if (is_placeholder) {
+                // Orca: push placeholders to keep index alignment with ams_infos
+                ams_filament_presets.push_back("");
+                ams_filament_colors.push_back("");
+                ams_filament_color_types.push_back("");
+                ams_multi_color_filment.push_back({});
             }
             continue;
         }
@@ -2556,18 +2564,68 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         filament_map->values.resize(exist_filament_presets.size(), 1);
     }
     else {//overwrite;
-        filament_color->values = ams_filament_colors;
-        filament_color_type->values = ams_filament_color_types;
-        this->filament_presets = ams_filament_presets;
-        filament_map->values.resize(ams_filament_colors.size(), 1);
+        bool has_placeholders = std::any_of(ams_infos.begin(), ams_infos.end(),
+                                             [](const AmsInfo& a) { return a.is_placeholder; });
+        if (has_placeholders) {
+            // Orca: merge — keep existing filaments for empty slots
+            auto exist_colors       = filament_color->values;
+            auto exist_color_types  = filament_color_type->values;
+            auto exist_presets      = this->filament_presets;
+
+            size_t tray_count = ams_filament_presets.size();
+            size_t total      = std::max(tray_count, exist_presets.size());
+
+            std::vector<std::string> result_colors;
+            std::vector<std::string> result_color_types;
+            std::vector<std::string> result_presets;
+            std::vector<std::vector<std::string>> result_multi_colors;
+
+            for (size_t i = 0; i < total; i++) {
+                bool is_loaded = (i < ams_infos.size() && ams_infos[i].valid);
+
+                if (is_loaded) {
+                    // Loaded tray: use tray's filament data
+                    result_colors.push_back(ams_filament_colors[i]);
+                    result_color_types.push_back(ams_filament_color_types[i]);
+                    result_presets.push_back(ams_filament_presets[i]);
+                    result_multi_colors.push_back(
+                        i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
+                                                           : std::vector<std::string>{ams_filament_colors[i]});
+                } else if (i < exist_presets.size()) {
+                    // Empty tray or beyond tray count: keep existing filament
+                    result_colors.push_back(exist_colors[i]);
+                    result_color_types.push_back(exist_color_types[i]);
+                    result_presets.push_back(exist_presets[i]);
+                    result_multi_colors.push_back({exist_colors[i]});
+                } else {
+                    // New slot beyond existing count: use first visible filament as fallback
+                    result_colors.push_back("#CECECE");
+                    result_color_types.push_back("1");
+                    result_presets.push_back(this->filaments.first_visible().name);
+                    result_multi_colors.push_back({"#CECECE"});
+                }
+            }
+
+            filament_color->values      = result_colors;
+            filament_color_type->values = result_color_types;
+            this->filament_presets      = result_presets;
+            ams_multi_color_filment     = result_multi_colors;
+            filament_map->values.resize(total, 1);
+        } else {
+            // BBL: existing wholesale replace
+            filament_color->values = ams_filament_colors;
+            filament_color_type->values = ams_filament_color_types;
+            this->filament_presets = ams_filament_presets;
+            filament_map->values.resize(ams_filament_colors.size(), 1);
+        }
 
         auto& print_config = this->prints.get_edited_preset().config;
         auto  support_filament_opt = print_config.option<ConfigOptionInt>("support_filament");
         auto support_interface_filament_opt = print_config.option<ConfigOptionInt>("support_interface_filament");
-        if (support_filament_opt->value > ams_filament_color_types.size())
+        if (support_filament_opt->value > filament_color_type->values.size())
             support_filament_opt->value = 0;
 
-        if (support_interface_filament_opt->value > ams_filament_color_types.size())
+        if (support_interface_filament_opt->value > filament_color_type->values.size())
             support_interface_filament_opt->value = 0;
     }
     // Update ams_multi_color_filment

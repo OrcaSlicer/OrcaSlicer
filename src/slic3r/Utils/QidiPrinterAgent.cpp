@@ -49,7 +49,7 @@ bool QidiPrinterAgent::fetch_filament_info(std::string dev_id)
     }
 
     // 4. Build the AMS payload
-    build_ams_payload(box_count, trays);
+    build_ams_payload(box_count, box_count * 4 - 1, trays);
     return true;
 }
 

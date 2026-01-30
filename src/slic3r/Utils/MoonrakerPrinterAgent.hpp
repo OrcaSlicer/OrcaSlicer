@@ -88,7 +88,7 @@ protected:
         bool        use_ssl = false;
     } device_info;
 
-    // Shared tray data for AMS payload building (used by derived classes like QidiPrinterAgent)
+    // Tray data for AMS payload building
     struct AmsTrayData {
         int         slot_index = 0;      // 0-based slot index
         bool        has_filament = false;
@@ -100,7 +100,7 @@ protected:
     };
 
     // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, const std::vector<AmsTrayData>& trays);
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
