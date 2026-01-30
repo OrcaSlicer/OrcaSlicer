@@ -190,7 +190,6 @@ public:
 
 protected:
     virtual void on_start(wxCommandEvent& event);
-    Calib_Params m_params;
 
     RadioGroup* m_rbType;
     // ORCA: use standard OrcaSlicer ComboBox instead of BitmapComboBox

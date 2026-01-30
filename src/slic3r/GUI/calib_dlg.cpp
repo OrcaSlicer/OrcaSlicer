@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
-#include "BitmapComboBox.hpp"
 #include "libslic3r/Utils.hpp"
 
 namespace Slic3r { namespace GUI {
