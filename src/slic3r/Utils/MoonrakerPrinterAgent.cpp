@@ -580,6 +580,10 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, const std::vector<A
     DevFilaSystemParser::ParseV1_0(print_json, obj, obj->GetFilaSystem(), false);
     BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::build_ams_payload: Parsed " << trays.size() << " trays";
 
+    // Set printer_type so update_sync_status() can match it against the preset's printer type.
+    // Without this, the comparison fails and all sync badges are cleared.
+    obj->printer_type = device_info.model_id;
+
     // Set push counters so is_info_ready() returns true for pull-mode agents.
     if (obj->m_push_count == 0) {
         obj->m_push_count = 1;
