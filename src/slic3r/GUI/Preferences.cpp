@@ -863,6 +863,15 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
              }
         }
 
+        if (param == "associate_drc") {
+            bool pbool = app_config->get("associate_drc") == "true" ? true : false;
+            if (pbool) {
+                wxGetApp().associate_files(L"drc");
+            } else {
+                wxGetApp().disassociate_files(L"drc");
+            }
+        }
+
         if (param == "associate_stl") {
             bool pbool = app_config->get("associate_stl") == "true" ? true : false;
             if (pbool) {
@@ -1541,6 +1550,9 @@ void PreferencesDialog::create_items()
 
     auto item_associate_3mf    = create_item_checkbox(_L("Associate 3MF files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open 3MF files.") , "associate_3mf");
     g_sizer->Add(item_associate_3mf);
+
+    auto item_associate_drc = create_item_checkbox(_L("Associate DRC files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open DRC files."), "associate_drc");
+    g_sizer->Add(item_associate_drc);
 
     auto item_associate_stl    = create_item_checkbox(_L("Associate STL files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open STL files.") , "associate_stl");
     g_sizer->Add(item_associate_stl);
