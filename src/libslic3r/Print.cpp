@@ -4827,6 +4827,25 @@ ExtrusionLayers FakeWipeTower::getTrueExtrusionLayersFromWipeTower() const
 {
     ExtrusionLayers wtels;
     wtels.type = ExtrusionLayersType::WIPE_TOWER;
+
+    //ORCA: Fallback for WipeTower2 if outer_wall is empty
+    if (outer_wall.empty()) {
+        auto fake_paths = getFakeExtrusionPathsFromWipeTower2();
+        float current_z = 0.f;
+        for (auto& layer_paths : fake_paths) {
+            if (layer_paths.empty()) continue;
+            ExtrusionLayer el;
+            float lh = layer_paths.front().height;
+            el.height = lh;
+            el.bottom_z = current_z;
+            el.layer = nullptr;
+            el.paths = std::move(layer_paths);
+            wtels.push_back(std::move(el));
+            current_z += lh;
+        }
+        return wtels;
+    }
+
     std::vector<float> layer_heights;
     layer_heights.reserve(outer_wall.size());
     auto pre = outer_wall.begin();
