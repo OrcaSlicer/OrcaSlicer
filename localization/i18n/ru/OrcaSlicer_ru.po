@@ -83,9 +83,10 @@ msgstr "PPS-CF – это хрупкий материал, который мож
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr "PPA-CF – это хрупкий материал, который может сломаться в изогнутом тефлоновом канале подачи."
 
+# подставляется tag_type и extruder_name
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
-msgstr ""
+msgstr "%s не подходит для печати через %s экструдер."
 
 msgid "Current AMS humidity"
 msgstr "Текущая влажность внутри AMS"
@@ -6781,16 +6782,18 @@ msgstr "Переместить стол в начало"
 msgid "Customize current plate"
 msgstr "Настроить стол"
 
+# обход строчной буквы в начале предложения через "внимание"
 #, c-format, boost-format
 msgid "The %s nozzle can not print %s."
-msgstr "Сопло из материала «%s» не может печатать %s."
+msgstr "Внимание: «%s» экструдер не может печатать %s."
 
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
 msgstr "Совмещение %1% с %2% при печати не рекомендуется.\n"
 
+# подстановка в составные уведомления. Часто речь идёт именно об экструдере, а не о сопле, плюс "экструдер" лучше согласуется.
 msgid " nozzle"
-msgstr " "
+msgstr " экструдер"
 
 #, boost-format
 msgid ""
@@ -7518,13 +7521,13 @@ msgstr "Оптимизация вращения"
 msgid ""
 "Printer not connected. Please go to the device page to connect %s before "
 "syncing."
-msgstr "Принтер не подключён. Перед запуском синхронизации необходимо подключить %s на вкладке «Принтер»."
+msgstr "Принтер не подключён. Перед запуском синхронизации необходимо подключить%s на вкладке «Принтер»."
 
 #, c-format, boost-format
 msgid ""
 "The currently connected printer on the device page is not %s. Please switch "
 "to %s before syncing."
-msgstr "Подключённый принтер на вкладке «Принтер» не является %s. Переключитесь на %s перед синхронизацией."
+msgstr "Подключённый принтер на вкладке «Принтер» не %s. Переключитесь на %s перед синхронизацией."
 
 msgid ""
 "There are no filaments on the printer. Please load the filaments on the "
@@ -8239,7 +8242,7 @@ msgid "By Layer"
 msgstr "Послойно"
 
 msgid "By Object"
-msgstr "Поштучно"
+msgstr "По очереди"
 
 msgid "Accept"
 msgstr "Принять"
@@ -9344,7 +9347,7 @@ msgstr ""
 "расчётное время печати слоя меньше установленного значения."
 
 msgid "Auxiliary part cooling fan"
-msgstr "Вспомогательный вентилятор модели"
+msgstr "Вспомогательный вентилятор"
 
 msgid "Exhaust fan"
 msgstr "Вытяжной вентилятор"
@@ -9405,10 +9408,10 @@ msgid "Fan speed-up time"
 msgstr "Смещение времени запуска вентилятора"
 
 msgid "Extruder Clearance"
-msgstr "Радиус безопасной зоны экструдера"
+msgstr "Безопасная зона печатающей головы"
 
 msgid "Adaptive bed mesh"
-msgstr "Адаптивная сетка стола"
+msgstr "Адаптивная карта высот стола"
 
 msgid "Accessory"
 msgstr "Аксессуары"
@@ -10674,10 +10677,11 @@ msgid "Flush volumes matrix do not match to the correct size!"
 msgstr ""
 
 msgid "Grouping error: "
-msgstr ""
+msgstr "Ошибка группировки: "
 
+# filament_type + <перевод> + extruder_name
 msgid " can not be placed in the "
-msgstr ""
+msgstr " нельзя заправить в "
 
 msgid "Inner wall"
 msgstr "Внутренние периметры"
@@ -11378,6 +11382,7 @@ msgstr "API-ключ"
 msgid "HTTP digest"
 msgstr "HTTP digest-авторизация"
 
+# Логическая ошибка; пересекаются не периметры, а траектория холостого перемещения со стенкой модели
 msgid "Avoid crossing walls"
 msgstr "Избегать пересечения периметров"
 
@@ -12743,8 +12748,7 @@ msgid ""
 "Distance of the nozzle tip to the lower rod. Used for collision avoidance in "
 "by-object printing."
 msgstr ""
-"Расстояние от кончика сопла до нижнего вала. Значение важно при печати "
-"моделей «По очереди» для предотвращения столкновений."
+"Расстояние от кончика сопла до нижнего вала. Значение важно для предотвращения столкновений при печати объектов по очереди."
 
 msgid "Height to lid"
 msgstr "Высота до крышки"
@@ -12753,8 +12757,7 @@ msgid ""
 "Distance of the nozzle tip to the lid. Used for collision avoidance in by-"
 "object printing."
 msgstr ""
-"Расстояние от кончика сопла до крышки. Значение важно при печати моделей «По "
-"очереди» для предотвращения столкновений."
+"Расстояние от кончика сопла до крышки. Значение важно для предотвращения столкновений при печати объектов по очереди."
 
 msgid ""
 "Clearance radius around extruder. Used for collision avoidance in by-object "
@@ -12770,7 +12773,7 @@ msgid "The height of nozzle tip."
 msgstr "Высота кончика сопла."
 
 msgid "Bed mesh min"
-msgstr "Мин. сетка стола"
+msgstr "Мин. координаты"
 
 msgid ""
 "This option sets the min point for the allowed bed mesh area. Due to the "
@@ -12782,19 +12785,15 @@ msgid ""
 "your printer manufacturer. The default setting is (-99999, -99999), which "
 "means there are no limits, thus allowing probing across the entire bed."
 msgstr ""
-"Этот параметр устанавливает минимальную точку для допустимой области сетки "
-"стола. Большинство принтеров из-за смещения датчика по оси XY не могут "
-"производить зондирование всей площади стола. Чтобы точка зондирования не "
-"выходила за пределы области стола, нужно правильно задать эти минимальные и "
-"максимальные точки. OrcaSlicer следит за тем, чтобы значения "
-"adaptive_bed_mesh_min/adaptive_bed_mesh_max не превышают эти минимальные/"
-"максимальные значения. Эту информацию можно получить у производителя "
-"принтера. По умолчанию установлено значение (-99999, -99999), которое "
-"означает отсутствие ограничений, что позволяет проводить зондирование по "
-"всему столу."
+"Наименьшие координаты для снятия карты высот "
+"стола (их можно получить у производителя или вычислить экспериментально).\n\n"
+"Принтеры с отдельным датчиком зачастую не могут "
+"производить измерение всей площади стола, поэтому нужно правильно ограничить область измерений. "
+"Ограничение используется для проверки при подстановке в команду снятия локальной карты высот (переменная adaptive_bed_mesh_min). Пример команды можно взять на Вики.\n\n"
+"Значения по умолчанию – -99999 (отсутствие ограничений)."
 
 msgid "Bed mesh max"
-msgstr "Макс. сетка стола"
+msgstr "Макс. координаты"
 
 msgid ""
 "This option sets the max point for the allowed bed mesh area. Due to the "
@@ -12806,36 +12805,31 @@ msgid ""
 "your printer manufacturer. The default setting is (99999, 99999), which "
 "means there are no limits, thus allowing probing across the entire bed."
 msgstr ""
-"Этот параметр устанавливает максимальную точку для допустимой области сетки "
-"стола. Большинство принтеров из-за смещения датчика по оси XY не могут "
-"производить зондирование всей площади стола. Чтобы точка зондирования не "
-"выходила за пределы области стола, нужно правильно задать эти минимальные и "
-"максимальные точки. OrcaSlicer следит за тем, чтобы значения "
-"adaptive_bed_mesh_min/adaptive_bed_mesh_max не превышают эти минимальные/"
-"максимальные значения. Эту информацию можно получить у производителя "
-"принтера. По умолчанию установлено значение (-99999, -99999), которое "
-"означает отсутствие ограничений, что позволяет проводить зондирование по "
-"всему столу."
+"Максимальные координаты для снятия карты высот "
+"стола (их можно получить у производителя или вычислить экспериментально).\n\n"
+"Принтеры с отдельным датчиком зачастую не могут "
+"производить измерение всей площади стола, поэтому нужно правильно ограничить область измерений. "
+"Ограничение используется для проверки при подстановке в команду снятия локальной карты высот (переменная adaptive_bed_mesh_max). Пример команды можно взять на Вики.\n\n"
+"Значения по умолчанию – 99999 (отсутствие ограничений)."
 
 msgid "Probe point distance"
-msgstr "Расстояние между точками зондирования"
+msgstr "Интервал точек измерения высот"
 
 msgid ""
 "This option sets the preferred distance between probe points (grid size) for "
 "the X and Y directions, with the default being 50mm for both X and Y."
 msgstr ""
-"Этот параметр задаёт расстояние между точками зондирования (размер сетки) в "
-"направлениях X и Y. По умолчанию оно равно 50 мм как для X, так и для Y."
+"Расстояние между точками снятия высоты (размер сетки) в "
+"направлениях X и Y. Значения по умолчанию – 50 мм."
 
 msgid "Mesh margin"
-msgstr "Граница сетки"
+msgstr "Расширение области измерения"
 
 msgid ""
 "This option determines the additional distance by which the adaptive bed "
 "mesh area should be expanded in the XY directions."
 msgstr ""
-"Этот параметр определяет дополнительное расстояние, на которое должна быть "
-"расширена адаптивная сетка стола в направлениях XY."
+"Расстояние, на которое дополнительно расширяется область снятия локальной карты высот."
 
 msgid "Grab length"
 msgstr ""
@@ -13499,8 +13493,8 @@ msgid ""
 "on the build plate. When enabled, fill directions rotate with the model to "
 "maintain optimal strength characteristics."
 msgstr ""
-"Задаёт поворот внутреннего и внешнего заполнения"
-"с учётом поворота модели на столе. При включении настройки"
+"Задаёт поворот внутреннего и внешнего заполнения "
+"с учётом поворота модели на столе. При включении настройки "
 "шаблон заполнения вращается вместе с моделью."
 
 msgid "Insert solid layers"
@@ -14132,8 +14126,7 @@ msgstr "Добавить номер строки"
 msgid ""
 "Enable this to add line number(Nx) at the beginning of each G-code line."
 msgstr ""
-"При включении, в начало каждой строки G-кода, будет добавляться номер строки "
-"(Nx)."
+"Добавлять в начало каждой строки G-кода её номер (Nx)."
 
 msgid "Scan first layer"
 msgstr "Проверка первого слоя"
@@ -14142,7 +14135,7 @@ msgid ""
 "Enable this to enable the camera on printer to check the quality of first "
 "layer."
 msgstr ""
-"При включении, камера принтера будет проверять качество печати первого слоя."
+"Проверять качество печати первого слоя при помощи камеры принтера."
 
 msgid "Nozzle type"
 msgstr "Тип сопла"
@@ -15149,8 +15142,9 @@ msgstr "Начальные и конечные точки"
 msgid "The start and end points which is from cutter area to garbage can."
 msgstr "Начальная и конечная точки от зоны обрезки до мусорного лотка."
 
+# Отключить откаты при печати заполнения – вариант проще и понятнее, хотя не совсем корректный. Отключение избыточных откатов затрагивает только шаблон заполнения и не влияет на переходы от периметра к периметру или между областями сплошного заполнения, однако даже при включении настройки откаты всё равно иногда происходят при выходе траектории движения за контур периметра. Уменьшить откаты при печати заполнения – корректно, но уже не так понятно, т.к. не раскрывает логики работы этого "уменьшения", да и в целом звучит кривовато.
 msgid "Reduce infill retraction"
-msgstr "Уменьшать откат при заполнении"
+msgstr "Откат только при пересечении периметров"
 
 msgid ""
 "Don't retract when the travel is in infill area absolutely. That means the "
@@ -15495,7 +15489,7 @@ msgstr "Прямой (Direct)"
 msgid "Bowden"
 msgstr "Внешний (Bowden)"
 
-# ???  // internal use only, don't need translation
+# // internal use only, don't need translation
 msgid "Nozzle Volume Type"
 msgstr ""
 
@@ -16016,7 +16010,7 @@ msgstr "Общий экструдер"
 
 msgid "Use single nozzle to print multi filament."
 msgstr ""
-"Использовать общий экструдер для комбинированной печати несколькими материалами."
+"Использовать общий экструдер для комбинированной печати несколькими цветами/материалами."
 
 msgid "Manual Filament Change"
 msgstr "Ручная смена прутка"
@@ -18184,6 +18178,7 @@ msgstr ""
 "можете продолжить калибровку, но результаты калибровки не будут сохранены.\n"
 "Хотите продолжить калибровку?"
 
+# Будет сохранён только один из одноимённых результатов (%s). Вы действительно хотите перезаписать остальные?
 #, c-format, boost-format
 msgid ""
 "Only one of the results with the same name: %s will be saved. Are you sure "
@@ -18506,16 +18501,17 @@ msgid "Synchronize nozzle and AMS information"
 msgstr "Синхронизировать данные сопла и материалов"
 
 msgid "Please connect the printer first before synchronizing."
-msgstr ""
+msgstr "Подключите принтер для синхронизации."
 
+# костыль с "внимание" для обхода косяка со строчной буквой в начале предложения 
 #, c-format, boost-format
 msgid ""
 "Printer %s nozzle information has not been set. Please configure it before "
 "proceeding with the calibration."
-msgstr ""
+msgstr "Внимание: %s экструдер не настроен. Укажите информацию о нём перед продолжением калибровки."
 
 msgid "AMS and nozzle information are synced"
-msgstr ""
+msgstr "Информация об экструдере и AMS синхронизирована"
 
 msgid "Nozzle Info"
 msgstr ""
@@ -18559,7 +18555,7 @@ msgid ""
 msgstr "Не допускается совместная печать несколькими материалами, имеющими большую разницу в температуре печати. Это может привести к засорению и повреждению сопла и экструдера."
 
 msgid "Sync AMS and nozzle information"
-msgstr ""
+msgstr "Синхронизировать информацию об экструдере и AMS"
 
 msgid "Connecting to printer"
 msgstr "Подключение к принтеру"
@@ -18567,7 +18563,7 @@ msgstr "Подключение к принтеру"
 msgid ""
 "Calibration only supports cases where the left and right nozzle diameters "
 "are identical."
-msgstr ""
+msgstr "Калибровка может проводиться только при совпадающих диаметрах сопел."
 
 msgid "From k Value"
 msgstr "Начальный коэф. K"
@@ -18712,9 +18708,11 @@ msgstr "Значения ускорений печати, вводимые че�
 msgid "Comma-separated list of printing speeds"
 msgstr "Значения скоростей печати, вводимые через запятую"
 
+# Устарело и не используется
 msgid "Pressure Advance Guide"
 msgstr ""
 
+# Устарело и не используется
 msgid "Adaptive Pressure Advance Guide"
 msgstr ""
 
@@ -18765,6 +18763,7 @@ msgstr "Конечная температура: "
 msgid "Temp step: "
 msgstr "Шаг температуры: "
 
+# Устарело и не используется
 msgid "Wiki Guide: Temperature Calibration"
 msgstr ""
 
@@ -18788,6 +18787,7 @@ msgstr "Начальный объёмный расход: "
 msgid "End volumetric speed: "
 msgstr "Конечный объёмный расход: "
 
+# Устарело и не используется
 msgid "Wiki Guide: Volumetric Speed Calibration"
 msgstr ""
 
@@ -18811,6 +18811,7 @@ msgstr "Начальная скорость: "
 msgid "End speed: "
 msgstr "Конечная скорость: "
 
+# Устарело и не используется
 msgid "Wiki Guide: VFA"
 msgstr ""
 
@@ -18831,6 +18832,7 @@ msgstr "Начальная длина отката: "
 msgid "End retraction length: "
 msgstr "Конечная длина отката: "
 
+# Устарело и не используется
 msgid "Wiki Guide: Retraction Calibration"
 msgstr ""
 
@@ -18848,7 +18850,7 @@ msgid "Fast Tower"
 msgstr "Быстрый тест (Fast Tower)"
 
 msgid "Input shaper type"
-msgstr ""
+msgstr "Тип шейпера"
 
 msgid "Frequency (Start / End): "
 msgstr ""
@@ -18860,7 +18862,7 @@ msgid "Frequency settings"
 msgstr "Задание частоты"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
-msgstr ""
+msgstr "Прошивка RepRap использует общий диапазон частот для обеих осей."
 
 msgid "Damp: "
 msgstr "Затухание (Damp): "
@@ -19684,17 +19686,18 @@ msgid ""
 "does not match."
 msgstr ""
 
+# подставляется "левый/правый"
 #, c-format, boost-format
 msgid ""
 "The currently selected nozzle diameter of %s extruder does not match the "
 "actual nozzle diameter.\n"
 "Please click the Sync button above and restart the calibration."
-msgstr ""
+msgstr "Внимание: %s экструдер требует синхронизации, так как фактический диаметр установленного сопла отличается от указанного."
 
 msgid ""
 "The nozzle diameter does not match the actual printer nozzle diameter.\n"
 "Please click the Sync button above and restart the calibration."
-msgstr ""
+msgstr "Диаметр сопла не совпадает с фактическим диаметром сопла в экструдере.\n Выполните синхронизацию при помощи кнопки выше и запустите калибровку заново."
 
 #, c-format, boost-format
 msgid ""
@@ -20791,7 +20794,7 @@ msgid ""
 "Auxiliary fan\n"
 "Did you know that OrcaSlicer supports Auxiliary part cooling fan?"
 msgstr ""
-"Вспомогательный вентилятор модели\n"
+"Вспомогательный вентилятор\n"
 "Знаете ли вы, что OrcaSlicer поддерживает управление вспомогательным "
 "вентилятором для охлаждения моделей?"
 
