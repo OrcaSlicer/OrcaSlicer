@@ -45,6 +45,10 @@
 #endif
 
 #include <GL/glew.h>
+#ifdef __linux__
+#include <GL/glx.h>
+#undef None // X11/Xlib.h defines None as 0L, conflicts with Sidebar::None
+#endif
 
 #include <wx/glcanvas.h>
 #include <wx/bitmap.h>
@@ -1935,6 +1939,26 @@ void GLCanvas3D::render(bool only_init)
     // ensures this canvas is current and initialized
     if (!_is_shown_on_screen() || !_set_current() || !wxGetApp().init_opengl())
         return;
+
+#ifdef __linux__
+    // Under XWayland on multi-monitor setups, glXSwapBuffers() can block
+    // indefinitely when the compositor stalls frame callbacks. Disable the
+    // swap interval so it never blocks — the compositor handles vsync.
+    // See https://github.com/OrcaSlicer/OrcaSlicer/issues/11849
+    //     https://github.com/wxWidgets/wxWidgets/pull/24165
+    if (!m_glx_swap_interval_set) {
+        typedef void (*SwapIntervalProc)(Display*, GLXDrawable, int);
+        auto swap_interval = (SwapIntervalProc)
+            glXGetProcAddressARB((const GLubyte*)"glXSwapIntervalEXT");
+        if (swap_interval) {
+            Display*    dpy      = glXGetCurrentDisplay();
+            GLXDrawable drawable = glXGetCurrentDrawable();
+            if (dpy && drawable)
+                swap_interval(dpy, drawable, 0);
+        }
+        m_glx_swap_interval_set = true;
+    }
+#endif
 
     if (!is_initialized() && !init())
         return;

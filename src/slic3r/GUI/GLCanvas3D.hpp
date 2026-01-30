@@ -580,6 +580,9 @@ private:
     bool m_moving_enabled;
     bool m_dynamic_background_enabled;
     bool m_multisample_allowed;
+#ifdef __linux__
+    bool m_glx_swap_interval_set{ false };
+#endif
     bool m_moving;
     bool m_tab_down;
     bool m_camera_movement;
