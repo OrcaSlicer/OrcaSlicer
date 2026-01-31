@@ -775,7 +775,7 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     if (upper == "SBS")           return "OFLSBS99";
 
     // Unknown material 
-    return "__unknown__";
+    return UNKNOWN_FILAMENT_ID;
 }
 
 int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::string& json_str)

@@ -52,6 +52,7 @@
 #define BBL_JSON_KEY_BASE_ID        "base_id"
 #define BBL_JSON_KEY_USER_ID        "user_id"
 #define BBL_JSON_KEY_FILAMENT_ID    "filament_id"
+#define UNKNOWN_FILAMENT_ID         "__unknown__"
 #define ORCA_JSON_KEY_UPDATE_TIME    "updated_time"
 #define ORCA_JSON_KEY_CREATED_TIME    "created_time"
 #define BBL_JSON_KEY_INHERITS       "inherits"

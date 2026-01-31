@@ -2404,11 +2404,41 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         if (iter == filaments.end()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": filament_id %1% not found or system or compatible") % filament_id;
             if (!filament_type.empty()) {
+                auto original_type = filament_type;
                 filament_type = "Generic " + filament_type;
                 iter = std::find_if(filaments.begin(), filaments.end(), [&filament_type](auto &f) {
                     return f.is_compatible && f.is_system
                         && boost::algorithm::starts_with(f.name, filament_type);
                 });
+                if (iter == filaments.end()) {
+                    // Similarity fallback: find a generic preset whose filament_type
+                    // appears as a whole word in the AMS type (e.g. "ASA" in "ASA Sparkle").
+                    auto upper_type = boost::to_upper_copy(original_type);
+                    auto contains_word = [](const std::string& haystack, const std::string& needle) {
+                        auto pos = haystack.find(needle);
+                        while (pos != std::string::npos) {
+                            bool start_ok = (pos == 0 || !std::isalnum(static_cast<unsigned char>(haystack[pos - 1])));
+                            bool end_ok   = (pos + needle.size() >= haystack.size() ||
+                                             !std::isalnum(static_cast<unsigned char>(haystack[pos + needle.size()])));
+                            if (start_ok && end_ok)
+                                return true;
+                            pos = haystack.find(needle, pos + 1);
+                        }
+                        return false;
+                    };
+                    // Find the longest-matching preset type to prefer e.g. "PA-CF" over "PA".
+                    size_t best_len = 0;
+                    for (auto it = filaments.begin(); it != filaments.end(); ++it) {
+                        if (!it->is_compatible || !it->is_system || !boost::algorithm::starts_with(it->name, "Generic "))
+                            continue;
+                        auto preset_type = boost::to_upper_copy(it->config.opt_string("filament_type", 0u));
+                        if (preset_type.size() > best_len && contains_word(upper_type, preset_type)) {
+                            iter = it;
+                            best_len = preset_type.size();
+                            filament_type = "Generic " + it->config.opt_string("filament_type", 0u);
+                        }
+                    }
+                }
             }
             if (iter == filaments.end()) {
                 // Prefer old selection
@@ -2422,8 +2452,13 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     continue;
                 }
                 iter = std::find_if(filaments.begin(), filaments.end(), [](auto &f) {
-                    return f.is_compatible && f.is_system;
+                    return f.is_compatible && f.is_system
+                        && boost::algorithm::starts_with(f.name, "Generic ");
                 });
+                if (iter == filaments.end())
+                    iter = std::find_if(filaments.begin(), filaments.end(), [](auto &f) {
+                        return f.is_compatible && f.is_system;
+                    });
                 if (iter == filaments.end())
                     continue;
             }
@@ -2598,10 +2633,15 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_presets.push_back(exist_presets[i]);
                     result_multi_colors.push_back({exist_colors[i]});
                 } else {
-                    // New slot beyond existing count: use first visible filament as fallback
+                    // New slot beyond existing count: prefer a generic filament preset
+                    auto it = std::find_if(filaments.begin(), filaments.end(), [](const Preset &f) {
+                        return f.is_compatible && f.is_system
+                            && boost::algorithm::starts_with(f.name, "Generic ");
+                    });
+                    std::string fallback_name = (it != filaments.end()) ? it->name : filaments.first_visible().name;
                     result_colors.push_back("#CECECE");
                     result_color_types.push_back("1");
-                    result_presets.push_back(this->filaments.first_visible().name);
+                    result_presets.push_back(fallback_name);
                     result_multi_colors.push_back({"#CECECE"});
                 }
             }

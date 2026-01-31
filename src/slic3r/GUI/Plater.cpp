@@ -3473,6 +3473,16 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
         dlg.ShowModal();
         return;
     }
+    // Replace unknown filament IDs with the resolved preset's filament_id
+    auto &filaments        = wxGetApp().preset_bundle->filaments;
+    auto &filament_presets = wxGetApp().preset_bundle->filament_presets;
+    for (size_t i = 0; i < list2.size() && i < filament_presets.size(); ++i) {
+        if (list2[i] == UNKNOWN_FILAMENT_ID) {
+            const Preset *resolved = filaments.find_preset(filament_presets[i]);
+            if (resolved)
+                list2[i] = resolved->filament_id;
+        }
+    }
     ams_filament_ids = boost::algorithm::join(list2, ",");
     wxGetApp().app_config ->set("ams_filament_ids", p->ams_list_device, ams_filament_ids);
     if (!unknowns.empty()) {
