@@ -6,6 +6,7 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/DRC.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
@@ -1313,6 +1314,16 @@ void PreferencesDialog::create_items()
     auto item_pop_up_filament_map_dialog = create_item_checkbox(_L("Pop up to select filament grouping mode"), _L("Pop up to select filament grouping mode"), 50, "pop_up_filament_map_dialog");
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
+
+    auto item_draco_position_bits = create_item_input(_L("Draco quantization bits\n(Note: Affects dimensional accuracy)"), _L("(0 for no quantization)"), _L("More bits results in better quality and dimensional accuracy but larger file size.\n0 disables quantization, producing a nearly lossless file. ~16 bits is visually lossless but can introduce small dimensional errors over longer distances."), "drc_bits", [=](wxString value) {
+            long drcBits = DRC_BITS_DEFAULT;
+            if (value.ToLong(&drcBits)) {
+                if (drcBits < DRC_BITS_MIN) drcBits = DRC_BITS_MIN;
+                if (drcBits > DRC_BITS_MAX) drcBits = DRC_BITS_MAX;
+                app_config->set("drc_bits", std::to_string(drcBits));
+            }
+    });
+    g_sizer->Add(item_draco_position_bits);
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);

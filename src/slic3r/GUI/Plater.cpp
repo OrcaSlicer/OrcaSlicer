@@ -14877,8 +14877,15 @@ void Plater::export_drc(bool extended, bool selection_only, bool multi_drcs)
     if (p->model.objects.empty()) { return; }
 
     wxString path;
-    int bits = 16;
+    int bits = 0;
     int speed = 0;
+
+    AppConfig* app_config = wxGetApp().app_config;
+    if (app_config) bits = stoi(app_config->get("drc_bits"));
+
+    if (bits < DRC_BITS_MIN) bits = DRC_BITS_MIN;
+    if (bits > DRC_BITS_MAX) bits = DRC_BITS_MAX;
+
     if (multi_drcs) {
         wxDirDialog dlg(this, _L("Choose a directory"), from_u8(wxGetApp().app_config->get_last_dir()),
                         wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
