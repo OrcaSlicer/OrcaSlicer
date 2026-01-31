@@ -307,6 +307,10 @@
             "sub_path": "process/0.28mm Extra Draft @Elegoo NeptuneX.json"
         },
         {
+            "name": "fdm_process_elegoo_02010",
+            "sub_path": "process/fdm_process_elegoo_02010.json"
+        },
+        {
             "name": "fdm_process_elegoo_04020",
             "sub_path": "process/fdm_process_elegoo_04020.json"
         },
@@ -1105,6 +1109,10 @@
             "sub_path": "filament/fdm_filament_pla.json"
         },
         {
+            "name": "fdm_filament_paht",
+            "sub_path": "filament/fdm_filament_paht.json"
+        },
+        {
             "name": "Elegoo ASA @base",
             "sub_path": "filament/ELEGOO/Elegoo ASA @base.json"
         },
@@ -1663,12 +1671,12 @@
             "sub_path": "machine/ECC/Elegoo Centauri Carbon 0.8 nozzle.json"
         },
         {
-            "name": "Elegoo Centauri Carbon 2 0.2 nozzle",
-            "sub_path": "machine/ECC2/Elegoo Centauri Carbon 2 0.2 nozzle.json"
-        },
-        {
             "name": "Elegoo Centauri Carbon 2 0.4 nozzle",
             "sub_path": "machine/ECC2/Elegoo Centauri Carbon 2 0.4 nozzle.json"
+        },
+        {
+            "name": "Elegoo Centauri Carbon 2 0.2 nozzle",
+            "sub_path": "machine/ECC2/Elegoo Centauri Carbon 2 0.2 nozzle.json"
         },
         {
             "name": "Elegoo Centauri Carbon 2 0.6 nozzle",
