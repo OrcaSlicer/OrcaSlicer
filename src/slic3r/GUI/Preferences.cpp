@@ -1318,9 +1318,9 @@ void PreferencesDialog::create_items()
     auto item_draco_position_bits = create_item_input(_L("Draco quantization bits\n(Note: Affects dimensional accuracy)"),
     _L("(0 = no quantization)"),
     _L("More bits results in better quality and dimensional accuracy but larger file size.\n"
-        "0 disables quantization producing a lossless but compressed file.\n"
+        "0 disables quantization producing a nearly lossless but compressed file.\n"
         "~16 bits may be recommended and within the tolerances of 3D printing.\n"
-        "<=11 bits can introduce visible dimensional discrepancies, especially over long distances."), "drc_bits", [=](wxString value) {
+        "<=14 bits can introduce visible facets and dimensional discrepencies, especially over long distances."), "drc_bits", [=](wxString value) {
             long drcBits = DRC_BITS_DEFAULT;
             if (value.ToLong(&drcBits)) {
                 if (drcBits < DRC_BITS_MIN) drcBits = DRC_BITS_MIN;
