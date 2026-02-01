@@ -874,6 +874,11 @@ void ObjectList::update_name_for_items()
     wxGetApp().plater()->update();
 }
 
+void ObjectList::update_sequential_print_order()
+{
+    m_objects_model->UpdateSequentialPrintOrder();
+}
+
 void ObjectList::object_config_options_changed(const ObjectVolumeID& ov_id)
 {
     if (ov_id.object == nullptr)
@@ -3997,6 +4002,9 @@ void ObjectList::add_object_to_list(size_t obj_idx, bool call_selection_changed,
         selection_changed();
     }
 #endif //__WXMSW__
+
+    // Update sequential print order for all objects after adding a new one
+    m_objects_model->UpdateSequentialPrintOrder();
 }
 
 static bool can_add_volumes_to_object(const ModelObject *object)

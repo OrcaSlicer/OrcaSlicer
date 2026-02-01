@@ -244,6 +244,7 @@ public:
     //BBS: update plate
     void                update_plate_values_for_items();
     void                update_name_for_items();
+    void                update_sequential_print_order();
 
     // Get obj_idx and vol_idx values for the selected (by default) or an adjusted item
     void                get_selected_item_indexes(int& obj_idx, int& vol_idx, const wxDataViewItem& item = wxDataViewItem(0));

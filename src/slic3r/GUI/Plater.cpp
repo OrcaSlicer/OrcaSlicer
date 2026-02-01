@@ -7619,6 +7619,9 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         return_state |= UPDATE_BACKGROUND_PROCESS_INVALID;
     }
 
+    // Update sequential print order display in object list after validation
+    sidebar->obj_list()->update_sequential_print_order();
+
     //actualizate warnings
     if (invalidated != Print::APPLY_STATUS_UNCHANGED || background_process.empty()) {
         if (background_process.empty())

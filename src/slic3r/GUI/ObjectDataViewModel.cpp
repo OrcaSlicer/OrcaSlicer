@@ -1538,6 +1538,78 @@ void ObjectDataViewModel::UpdateItemNames()
     }
 
     ItemsChanged(changed_items);
+
+    UpdateSequentialPrintOrder();
+}
+
+void ObjectDataViewModel::UpdateSequentialPrintOrder()
+{
+    auto* plater = wxGetApp().plater();
+    if (!plater) return;
+
+    auto& plate_list = plater->get_partplate_list();
+    auto* curr_plate = plate_list.get_curr_plate();
+    if (!curr_plate) return;
+
+    auto curr_print_seq = curr_plate->get_real_print_seq();
+    bool is_sequential = (curr_print_seq == PrintSequence::ByObject);
+
+    wxDataViewItemArray changed_items;
+
+    if (!is_sequential) {
+        // Clear all prefixes when not in sequential mode
+        for (auto* obj_node : m_objects) {
+            if (!obj_node->m_seq_prefix.empty()) {
+                obj_node->m_seq_prefix.clear();
+                changed_items.push_back(wxDataViewItem(obj_node));
+            }
+        }
+    } else {
+        // Collect objects on the current plate with their Y positions
+        struct ObjOrder {
+            ObjectDataViewModelNode* node;
+            double y_offset;
+        };
+        std::vector<ObjOrder> plate_objects;
+
+        int plate_idx = curr_plate->get_index();
+        for (auto* obj_node : m_objects) {
+            if (!obj_node->m_model_object) continue;
+            if (obj_node->GetPlateIdx() != plate_idx) continue;
+            if (obj_node->m_model_object->instances.empty()) continue;
+
+            auto* inst = obj_node->m_model_object->instances[0];
+            plate_objects.push_back({obj_node, inst->get_offset(Y)});
+        }
+
+        // Sort by Y position (lowest Y = front of bed = printed first)
+        std::sort(plate_objects.begin(), plate_objects.end(),
+            [](const ObjOrder& a, const ObjOrder& b) {
+                return a.y_offset < b.y_offset;
+            });
+
+        // Assign sequential prefixes
+        for (size_t i = 0; i < plate_objects.size(); ++i) {
+            wxString new_prefix = wxString::Format("[%d] ", (int)(i + 1));
+            if (plate_objects[i].node->m_seq_prefix != new_prefix) {
+                plate_objects[i].node->m_seq_prefix = new_prefix;
+                changed_items.push_back(wxDataViewItem(plate_objects[i].node));
+            }
+        }
+
+        // Clear prefix for objects not on the current plate
+        for (auto* obj_node : m_objects) {
+            if (!obj_node->m_model_object) continue;
+            if (obj_node->GetPlateIdx() == plate_idx) continue;
+            if (!obj_node->m_seq_prefix.empty()) {
+                obj_node->m_seq_prefix.clear();
+                changed_items.push_back(wxDataViewItem(obj_node));
+            }
+        }
+    }
+
+    if (!changed_items.empty())
+        ItemsChanged(changed_items);
 }
 
 void ObjectDataViewModel::assembly_name()
@@ -1775,7 +1847,7 @@ void ObjectDataViewModel::GetValue(wxVariant &variant, const wxDataViewItem &ite
         variant << node->m_variable_height_icon;
         break;
 	case colName:
-        variant << DataViewBitmapText(node->m_name, node->m_bmp);
+        variant << DataViewBitmapText(node->m_seq_prefix + node->m_name, node->m_bmp);
 		break;
 	case colFilament:
 		variant << DataViewBitmapText(node->m_extruder, node->m_extruder_bmp);
