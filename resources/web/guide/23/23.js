@@ -491,14 +491,14 @@ function ResponseFilamentResult()
 	let FilaArray=new Array();
 	for(let n=0;n<nAll;n++)
 	{
-		let sName=FilaSelectedList[n].getAttribute("name");
-		
-	    for( let key in m_ProfileItem['filament'] )
-	    {
-			let FName=GetFilamentShortname(key);
-			
-			if(FName==sName)
-				FilaArray.push(key);
+		let strFilalist=FilaSelectedList[n].getAttribute("filalist");
+		if(strFilalist) {
+			let filaNames = strFilalist.split(';');
+			for(let i=0; i<filaNames.length; i++) {
+				let fname = filaNames[i].trim();
+				if(fname !== '')
+					FilaArray.push(fname);
+			}
 		}
 	}
 	

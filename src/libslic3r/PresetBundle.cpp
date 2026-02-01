@@ -2115,6 +2115,15 @@ void PresetBundle::export_selections(AppConfig &config)
     auto printer_name = printers.get_selected_preset_name();
     config.set("presets", PRESET_PRINTER_NAME, printer_name);
 
+    // Don't persist settings for the built-in "Default Printer" placeholder —
+    // it's only the initial state before a real printer is loaded/selected.
+    // Also clean up any stale entry that other code paths (e.g. bed type change)
+    // may have created for "Default Printer".
+    if (printer_name == "Default Printer") {
+        config.clear_printer_settings("Default Printer");
+        return;
+    }
+
     config.clear_printer_settings(printer_name);
     config.set_printer_setting(printer_name, PRESET_PRINTER_NAME, printer_name);
     config.set_printer_setting(printer_name, PRESET_PRINT_NAME, prints.get_selected_preset_name());

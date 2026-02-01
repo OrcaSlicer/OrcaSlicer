@@ -71,6 +71,25 @@ build_release_vs2022.bat slicer
 ./build_linux.sh -r    # skip RAM/disk checks
 ./build_linux.sh -l    # use Clang instead of GCC
 ```
+### Build test:
+
+**Always use this command to build the project when testing build issues on Windows.**
+```bash
+cmake --build . --config %build_type% --target ALL_BUILD -- -m
+```
+
+### Building on macOS
+**Always use this command to build the project when testing build issues on macOS.**
+```bash
+cmake --build build/arm64 --config RelWithDebInfo --target all --
+```
+
+### Building on Linux
+ **Always use this command to build the project when testing build issues on Linux.**
+```bash
+cmake --build build/arm64 --config RelWithDebInfo --target all --
+
+```
 
 ### Build System
 - Uses CMake with minimum version 3.13 (maximum 3.31.x on Windows)
