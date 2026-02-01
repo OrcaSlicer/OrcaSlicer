@@ -723,12 +723,18 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
     return true;
 }
 
+std::string MoonrakerPrinterAgent::trim_and_upper(const std::string& input)
+{
+    std::string result = input;
+    boost::trim(result);
+    std::transform(result.begin(), result.end(), result.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    return result;
+}
+
 std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::string& filament_type)
 {
-    std::string upper = filament_type;
-    boost::trim(upper);
-    std::transform(upper.begin(), upper.end(), upper.begin(),
-        [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    const std::string upper = trim_and_upper(filament_type);
 
     // Map to OrcaFilamentLibrary preset IDs (compatible with all printers)
     // Source: resources/profiles/OrcaFilamentLibrary/filament/

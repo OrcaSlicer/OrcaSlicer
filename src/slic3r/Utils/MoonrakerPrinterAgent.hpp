@@ -70,8 +70,8 @@ public:
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
     // Pull-mode agent (on-demand filament sync)
-    virtual FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
-    virtual bool fetch_filament_info(std::string dev_id) override;
+    FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
+    bool fetch_filament_info(std::string dev_id) override;
 
 protected:
     struct MoonrakerDeviceInfo
@@ -114,6 +114,9 @@ protected:
     std::string normalize_base_url(std::string host, const std::string& port);
     std::string sanitize_filename(const std::string& filename);
     std::string join_url(const std::string& base_url, const std::string& path) const;
+
+    // Trim whitespace and convert to uppercase
+    static std::string trim_and_upper(const std::string& input);
 
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);

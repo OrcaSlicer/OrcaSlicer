@@ -4,7 +4,6 @@
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/log/trivial.hpp>
-#include <algorithm>
 #include <cctype>
 #include <sstream>
 
@@ -293,9 +292,7 @@ void QidiPrinterAgent::parse_filament_sections(const std::string& content, std::
 
 std::string QidiPrinterAgent::map_filament_type_to_setting_id(const std::string& filament_type)
 {
-    std::string upper = filament_type;
-    boost::trim(upper);
-    std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    const std::string upper = trim_and_upper(filament_type);
 
     if (upper == "PLA") {
         return "QD_1_0_1";
@@ -351,10 +348,7 @@ std::string QidiPrinterAgent::infer_series_id(const std::string& model_id, const
 
 std::string QidiPrinterAgent::normalize_filament_type(const std::string& filament_type)
 {
-    std::string trimmed = filament_type;
-    boost::trim(trimmed);
-    std::string upper = trimmed;
-    std::transform(upper.begin(), upper.end(), upper.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    const std::string upper = trim_and_upper(filament_type);
 
     if (upper.find("PLA") != std::string::npos)
         return "PLA";
@@ -373,7 +367,7 @@ std::string QidiPrinterAgent::normalize_filament_type(const std::string& filamen
     if (upper.find("PVA") != std::string::npos)
         return "PVA";
 
-    return trimmed;
+    return upper;
 }
 
 } // namespace Slic3r
