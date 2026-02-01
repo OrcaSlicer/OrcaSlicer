@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <functional>
 #include <mutex>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/property_tree/ptree_fwd.hpp>
 
@@ -74,6 +75,8 @@
 // Orca extension
 #define ORCA_JSON_KEY_RENAMED_FROM              "renamed_from"
 
+
+static constexpr const char* GENERIC_PREFIX = "Generic ";
 
 namespace Slic3r {
 
@@ -764,13 +767,39 @@ protected:
     void            set_custom_preset_alias(Preset &preset);
 
 private:
+    // Comparator that sorts "Generic " prefixed presets before others, then alphabetically within each group.
+    static bool filament_preset_less(const Preset &a, const Preset &b) {
+        bool a_generic = boost::starts_with(a.name, GENERIC_PREFIX);
+        bool b_generic = boost::starts_with(b.name, GENERIC_PREFIX);
+        if (a_generic != b_generic)
+            return a_generic; // generics first
+        return a.name < b.name;
+    }
+
+    // Sort presets: filament presets use generic-first ordering, others sort alphabetically.
+    void sort_presets() {
+        if (m_type == Preset::TYPE_FILAMENT)
+            std::sort(m_presets.begin() + m_num_default_presets, m_presets.end(), filament_preset_less);
+        else
+            std::sort(m_presets.begin() + m_num_default_presets, m_presets.end());
+    }
+
     // Find a preset position in the sorted list of presets.
     // The "-- default -- " preset is always the first, so it needs
     // to be handled differently.
     // If a preset does not exist, an iterator is returned indicating where to insert a preset with the same name.
     std::deque<Preset>::iterator find_preset_internal(const std::string &name, bool from_orca_lib_only = false)
     {
-        auto it = Slic3r::lower_bound_by_predicate(m_presets.begin() + m_num_default_presets, m_presets.end(), [&name](const auto& l) { return l.name < name;  });
+        auto it = Slic3r::lower_bound_by_predicate(m_presets.begin() + m_num_default_presets, m_presets.end(),
+            [&name, this](const auto& l) {
+                if (m_type == Preset::TYPE_FILAMENT) {
+                    bool l_generic = boost::starts_with(l.name, GENERIC_PREFIX);
+                    bool name_generic = boost::starts_with(name, GENERIC_PREFIX);
+                    if (l_generic && !name_generic) return true;
+                    if (!l_generic && name_generic) return false;
+                }
+                return l.name < name;
+            });
         if (it == m_presets.end() || it->name != name) {
             // Preset has not been not found in the sorted list of non-default presets. Try the defaults.
             for (size_t i = 0; i < m_num_default_presets; ++ i)

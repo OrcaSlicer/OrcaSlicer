@@ -72,6 +72,6 @@
     "wipe_tower_extra_rib_length": "0",
     "prime_tower_width": "35",
     "prime_volume": "30",
-    "wall_generator": "classic",
+    "wall_generator": "arachne",
     "compatible_printers": []
 }
