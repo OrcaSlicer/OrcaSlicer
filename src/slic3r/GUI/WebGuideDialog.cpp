@@ -848,12 +848,21 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     bool                     has_default_bundle_printer = it_default != enabled_vendors.end() && !it_default->second.empty();
     bool                     has_filament_profiles      = m_ProfileJson.contains("filament");
 
+    // Check if any non-default vendor has selected printers
+    bool has_vendor_printer = false;
+    for (const auto& [vendor, models] : enabled_vendors) {
+        if (vendor != PresetBundle::ORCA_DEFAULT_BUNDLE && !models.empty()) {
+            has_vendor_printer = true;
+            break;
+        }
+    }
+
     std::map<std::string, std::string> supplemented_filaments;
     for (const auto& [name, value] : enabled_filaments) {
         if (name.size() > system_suffix.size() &&
             name.compare(name.size() - system_suffix.size(), system_suffix.size(), system_suffix) == 0) {
             std::string short_name = name.substr(0, name.size() - system_suffix.size());
-            if (has_filament_profiles && m_ProfileJson["filament"].contains(short_name)) {
+            if (has_vendor_printer && has_filament_profiles && m_ProfileJson["filament"].contains(short_name)) {
                 supplemented_filaments[short_name] = value;
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Replacing @System filament: '" << name << "' -> '" << short_name << "'";
                 if (has_default_bundle_printer) {
