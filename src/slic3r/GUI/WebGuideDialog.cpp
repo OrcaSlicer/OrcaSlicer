@@ -846,6 +846,20 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
         preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::Enable,
                                     {preferred_model, preferred_variant, first_added_filament, std::string()});
 
+    // If the active filament is not in the wizard-selected filaments, switch to the first
+    // compatible wizard-selected filament. This handles the first-run case where load_presets
+    // falls back to "Generic PLA" even though the user selected a different filament.
+    if (!enabled_filaments.empty() && enabled_filaments.find(preset_bundle->filament_presets.front()) == enabled_filaments.end()) {
+        for (const auto& [filament_name, _] : enabled_filaments) {
+            const Preset* preset = preset_bundle->filaments.find_preset(filament_name);
+            if (preset && preset->is_visible && preset->is_compatible) {
+                preset_bundle->filaments.select_preset_by_name(filament_name, true);
+                preset_bundle->filament_presets.front() = preset_bundle->filaments.get_selected_preset_name();
+                break;
+            }
+        }
+    }
+
     // Update the selections from the compatibilty.
     preset_bundle->export_selections(*app_config);
 
