@@ -557,7 +557,7 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     return sizer_input;
 }
 
-wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString title2, wxString title3, wxString tooltip, std::string param, 
+wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, 
     int min, int max, std::function<void(int)> onchange)
 {
     wxBoxSizer *sizer_input = new wxBoxSizer(wxHORIZONTAL);
@@ -567,13 +567,13 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
     input_title->SetToolTip(tooltip);
     input_title->Wrap(DESIGN_TITLE_SIZE.x);
 
-    auto       input = new ::SpinInput(m_parent, wxEmptyString, title2, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS,
+    auto       input = new ::SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS,
                                         min, max, stoi(app_config->get(param)));
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     input->SetBackgroundColor(input_bg);
     input->SetToolTip(tooltip);
 
-    auto second_title = new wxStaticText(m_parent, wxID_ANY, title3, wxDefaultPosition, wxDefaultSize, 0);
+    auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
     second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
     second_title->SetFont(::Label::Body_14);
     second_title->SetToolTip(tooltip);
@@ -1361,8 +1361,8 @@ void PreferencesDialog::create_items()
 #endif
 
     auto item_draco_position_bits = create_item_spinctrl(_L("Draco dimensional accuracy on export"),
-        _L("bits"),
         wxEmptyString,
+        _L("bits"),
         _L("0 bits disables quantization producing an effectively lossless but compressed file.\n"
             "~16 bits may be recommended and within the tolerances of 3D printing.\n"
             "More bits results in better quality and dimensional accuracy but larger file size.\n"),
