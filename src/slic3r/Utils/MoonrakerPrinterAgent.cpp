@@ -704,7 +704,10 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
         tray.bed_temp = safe_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
-        tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
+        auto* bundle = GUI::wxGetApp().preset_bundle;
+        tray.tray_info_idx = bundle
+            ? bundle->filaments.filament_id_by_type(tray.tray_type)
+            : map_filament_type_to_generic_id(tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -780,7 +783,7 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     if (upper == "COPE")          return "OGFLC99";
     if (upper == "SBS")           return "OFLSBS99";
 
-    // Unknown material 
+    // Unknown material
     return UNKNOWN_FILAMENT_ID;
 }
 

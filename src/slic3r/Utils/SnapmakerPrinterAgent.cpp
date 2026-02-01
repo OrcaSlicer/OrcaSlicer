@@ -1,5 +1,7 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/log/trivial.hpp>
@@ -133,7 +135,10 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
         if (tray.has_filament) {
             tray.tray_type     = combine_filament_type(safe_at(filament_type, i, empty_str),
                                                        safe_at(filament_sub_type, i, empty_str));
-            tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
+            auto* bundle = GUI::wxGetApp().preset_bundle;
+            tray.tray_info_idx = bundle
+                ? bundle->filaments.filament_id_by_type(tray.tray_type)
+                : map_filament_type_to_generic_id(tray.tray_type);
             tray.tray_color    = safe_at(filament_color, i, default_color);
 
             // Extract NFC temperature data if available

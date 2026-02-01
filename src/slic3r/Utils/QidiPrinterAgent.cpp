@@ -1,5 +1,7 @@
 #include "QidiPrinterAgent.hpp"
 #include "Http.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
@@ -8,6 +10,22 @@
 #include <sstream>
 
 namespace Slic3r {
+
+namespace {
+
+// Check whether any visible, compatible base preset in the collection has the given filament_id.
+bool has_visible_base_preset(const PresetCollection& filaments, const std::string& filament_id)
+{
+    for (const auto& p : filaments.get_presets()) {
+        if (p.is_visible && p.is_compatible
+            && filaments.get_preset_base(p) == &p
+            && p.filament_id == filament_id)
+            return true;
+    }
+    return false;
+}
+
+} // anonymous namespace
 
 const std::string QidiPrinterAgent_VERSION = "0.0.1";
 
@@ -157,7 +175,17 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
                 filament_name = filament_it->second;
             }
             tray.tray_type = normalize_filament_type(filament_name);
-            tray.tray_info_idx = build_setting_id(filament_type, vendor_type, tray.tray_type);
+
+            // Try Qidi-specific setting ID first; fall back to visible preset by type
+            std::string setting_id = build_setting_id(filament_type, vendor_type, tray.tray_type);
+            auto* bundle = GUI::wxGetApp().preset_bundle;
+            if (!bundle) {
+                tray.tray_info_idx = setting_id;
+            } else if (!setting_id.empty() && has_visible_base_preset(bundle->filaments, setting_id)) {
+                tray.tray_info_idx = setting_id;
+            } else {
+                tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+            }
 
             // Look up color from dictionary
             auto color_it = dict.colors.find(color_index);

@@ -2764,7 +2764,7 @@ size_t PresetCollection::first_visible_idx() const
     size_t first_visible = -1;
     size_t idx = m_default_suppressed ? m_num_default_presets : 0;
     for (; idx < m_presets.size(); ++ idx)
-        if (m_presets[idx].is_visible && m_presets[idx].get_printer_id() == "BBL") {
+        if (m_presets[idx].is_visible && m_presets[idx].get_printer_id() == PresetBundle::ORCA_FILAMENT_LIBRARY) {
             if (first_visible == -1)
                 first_visible = idx;
             if (m_type != Preset::TYPE_FILAMENT)
@@ -2783,6 +2783,46 @@ size_t PresetCollection::first_visible_idx() const
             first_visible = 0;
     }
     return first_visible;
+}
+
+size_t PresetCollection::first_visible_idx_by_type(const std::string& filament_type) const
+{
+    size_t start = m_default_suppressed ? m_num_default_presets : 0;
+
+    // Find the first visible, compatible, system base preset whose filament_type matches target.
+    auto find_by_type = [&](const std::string& target) -> size_t {
+        for (size_t i = start; i < m_presets.size(); ++i) {
+            const auto& p = m_presets[i];
+            if (p.is_visible && p.is_compatible && p.is_system
+                && get_preset_base(p) == &p
+                && p.config.opt_string("filament_type", 0u) == target)
+                return i;
+        }
+        return size_t(-1);
+    };
+
+    // 1. Exact filament_type match
+    size_t idx = find_by_type(filament_type);
+    if (idx != size_t(-1))
+        return idx;
+
+    // 2. Base type fallback: strip modifier after first space
+    //    e.g. "PLA High Speed" -> "PLA"
+    //    Dash-separated types like "PA-CF", "PET-CF" are distinct materials, not modifiers.
+    auto sep = filament_type.find(' ');
+    if (sep != std::string::npos) {
+        idx = find_by_type(filament_type.substr(0, sep));
+        if (idx != size_t(-1))
+            return idx;
+    }
+
+    // 3. Any visible preset
+    return first_visible_idx();
+}
+
+std::string PresetCollection::filament_id_by_type(const std::string& filament_type) const
+{
+    return preset(first_visible_idx_by_type(filament_type)).filament_id;
 }
 
 std::vector<std::string> PresetCollection::diameters_of_selected_printer()

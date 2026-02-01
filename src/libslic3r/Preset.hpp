@@ -638,6 +638,11 @@ public:
         return const_cast<PresetCollection*>(this)->find_preset2(name, auto_match);
     }
     size_t first_visible_idx() const;
+    // Return the index of the first visible, compatible, system base preset
+    // matching the given filament_type.  Falls back to base type, then any visible.
+    size_t first_visible_idx_by_type(const std::string& filament_type) const;
+    // Return the filament_id of the best-matching visible preset for the given filament type.
+    std::string filament_id_by_type(const std::string& filament_type) const;
     // Return index of the first compatible preset. Certainly at least the '- default -' preset shall be compatible.
     // If one of the prefered_alternates is compatible, select it.
     template<typename PreferedCondition> size_t first_compatible_idx(PreferedCondition prefered_condition) const
