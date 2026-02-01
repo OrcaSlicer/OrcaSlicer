@@ -5895,8 +5895,24 @@ int PartPlateList::rebuild_plates_after_arrangement(bool recycle_plates, bool ex
 
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":before rebuild, plates count %1%, recycle_plates %2%") % m_plate_list.size() % recycle_plates;
 
-	// sort by arrange_order
-	std::sort(m_model->objects.begin(), m_model->objects.end(), [](auto a, auto b) {return a->instances[0]->arrange_order < b->instances[0]->arrange_order; });
+	// For sequential printing, sort by Y position (front-to-back) so print order
+	// matches spatial layout and avoids fan collisions with printed objects.
+	// Otherwise sort by arrange_order from the placement algorithm.
+	PartPlate* curr_plate = get_curr_plate();
+	bool is_sequential = curr_plate &&
+		(curr_plate->get_real_print_seq() == PrintSequence::ByObject);
+
+	if (is_sequential) {
+		std::sort(m_model->objects.begin(), m_model->objects.end(),
+			[](auto a, auto b) {
+				return a->instances[0]->get_offset(Y) < b->instances[0]->get_offset(Y);
+			});
+	} else {
+		std::sort(m_model->objects.begin(), m_model->objects.end(),
+			[](auto a, auto b) {
+				return a->instances[0]->arrange_order < b->instances[0]->arrange_order;
+			});
+	}
 	//for (auto object : m_model->objects)
 	//	std::sort(object->instances.begin(), object->instances.end(), [](auto a, auto b) {return a->arrange_order < b->arrange_order; });
 
