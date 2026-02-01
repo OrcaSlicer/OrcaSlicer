@@ -1360,13 +1360,13 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
-    auto item_draco_position_bits = create_item_spinctrl(_L("Draco dimensional accuracy on export"),
+    auto item_draco_position_bits = create_item_spinctrl(_L("Draco export dimensional accuracy"),
         wxEmptyString,
         _L("bits"),
-        _L("0 bits disables quantization producing an effectively lossless but compressed file.\n"
-            "~16 bits may be recommended and within the tolerances of 3D printing.\n"
-            "More bits results in better quality and dimensional accuracy but larger file size.\n"),
-        "drc_bits", DRC_BITS_MIN, DRC_BITS_MAX);
+        _L("Reducing the bits reduces the file precision and size.\n"
+           "~16 bits may be recommended and within the tolerances of 3D printing.\n"
+           "0 disables quantization producing an effectively lossless but compressed file."),
+           "drc_bits", DRC_BITS_MIN, DRC_BITS_MAX);
     g_sizer->Add(item_draco_position_bits);
 
     g_sizer->AddSpacer(FromDIP(10));
