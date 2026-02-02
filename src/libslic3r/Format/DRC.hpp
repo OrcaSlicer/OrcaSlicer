@@ -5,8 +5,8 @@ namespace Slic3r {
 
 #define DRC_BITS_MIN 0
 #define DRC_BITS_MAX 30
-#define DRC_BITS_DEFAULT 16
-#define DRC_BITS_DEFAULT_STR "16"
+#define DRC_BITS_DEFAULT 0
+#define DRC_BITS_DEFAULT_STR "0"
 
 class TriangleMesh;
 class ModelObject;

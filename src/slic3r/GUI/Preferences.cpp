@@ -1364,8 +1364,8 @@ void PreferencesDialog::create_items()
         wxEmptyString,
         _L("bits"),
         _L("Reducing the bits reduces the file precision and size.\n"
-           "~16 bits may be recommended and within the tolerances of 3D printing.\n"
            "0 disables quantization producing an effectively lossless but compressed file."),
+           "~16 bits may be recommended and within the tolerances of 3D printing.\n"
            "drc_bits", DRC_BITS_MIN, DRC_BITS_MAX);
     g_sizer->Add(item_draco_position_bits);
 
