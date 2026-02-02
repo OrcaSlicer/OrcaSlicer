@@ -475,6 +475,49 @@ bool empty(const CGALMesh &mesh)
     return mesh.m.is_empty();
 }
 
+bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string *error)
+{
+    if (mesh.empty())
+        return true;
+
+    try {
+        _EpicMesh cgal_mesh;
+        triangle_mesh_to_cgal(mesh.its.vertices, mesh.its.indices, cgal_mesh);
+
+        size_t stitched_edges = CGALProc::stitch_borders(cgal_mesh);
+        size_t removed_self_intersections = 0;
+
+        if (!CGAL::is_closed(cgal_mesh)) {
+            using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
+            using face_descriptor = boost::graph_traits<_EpicMesh>::face_descriptor;
+
+            std::vector<halfedge_descriptor> border_cycles;
+            CGALProc::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
+            for (halfedge_descriptor h : border_cycles) {
+                std::vector<face_descriptor> patch_facets;
+                CGALProc::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_facets));
+            }
+        }
+
+        RepairedMeshErrors errors;
+        errors.degenerate_facets = 0;
+        errors.facets_removed = int(removed_self_intersections);
+        errors.edges_fixed = int(stitched_edges);
+
+        indexed_triangle_set its = cgal_to_indexed_triangle_set(cgal_mesh);
+        mesh = TriangleMesh(std::move(its), errors);
+
+        if (repaired_errors)
+            *repaired_errors = errors;
+
+        return true;
+    } catch (const std::exception &ex) {
+        if (error)
+            *error = ex.what();
+        return false;
+    }
+}
+
 CGALMeshPtr clone(const CGALMesh &m)
 {
     return CGALMeshPtr{new CGALMesh{m}};

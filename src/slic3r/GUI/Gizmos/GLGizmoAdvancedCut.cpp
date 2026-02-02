@@ -659,8 +659,7 @@ void GLGizmoAdvancedCut::perform_cut(const Selection& selection)
                                              cut_with_groove ? cut.perform_with_groove(m_groove, m_rotate_matrix) :
                                                                cut.perform_with_plane();
         // fix_non_manifold_edges
-#ifdef HAS_WIN10SDK
-        if (is_windows10()) {
+        {
             bool is_showed_dialog = false;
             bool user_fix_model   = false;
             for (size_t i = 0; i < new_objects.size(); i++) {
@@ -700,7 +699,6 @@ void GLGizmoAdvancedCut::perform_cut(const Selection& selection)
                 }
             }
         }
- #endif
         // set offset for new_objects
 
         // save cut_id to post update synchronization

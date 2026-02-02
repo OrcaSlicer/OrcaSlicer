@@ -882,9 +882,6 @@ void MenuFactory::append_menu_item_rename(wxMenu* menu)
 
 wxMenuItem* MenuFactory::append_menu_item_fix_through_netfabb(wxMenu* menu)
 {
-    if (!is_windows10())
-        return nullptr;
-
     wxMenuItem* menu_item = append_menu_item(menu, wxID_ANY, _L("Fix model"), "",
         [](wxCommandEvent&) { obj_list()->fix_through_netfabb(); }, "", menu,
         []() {return plater()->can_fix_through_netfabb(); }, plater());
