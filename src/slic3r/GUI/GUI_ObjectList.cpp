@@ -5942,8 +5942,25 @@ void GUI::ObjectList::smooth_mesh()
     get_selection_indexes(obj_idxs, vol_idxs);
     auto object_idx = obj_idxs.front();
     ModelObject *obj{nullptr};
+    auto show_warning_dlg = [this](int cur_face_count,std::string name,bool is_part) {
+        int limit_face_count = 1000000;
+        if (cur_face_count > limit_face_count) {
+            auto name_str = wxString::FromUTF8(name);
+            auto content = wxString::Format(_L("\"%s\" will exceed 1 million faces after this subdivision, which may increase slicing time. Do you want to continue?"), name_str);
+            WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), (is_part ? _L("Part") : _L("Object")) + " " + content, _L("BambuStudio warning"), wxYES_NO);
+            if (dlg.ShowModal() == wxID_NO) {
+                return true;
+            }
+            return false;
+        }
+        return false;
+    };
     if (vol_idxs.empty()) {
         obj        = object(object_idx);
+        auto             future_face_count = static_cast<int>(obj->facets_count()) * 4;
+        if (show_warning_dlg(future_face_count, obj->name,false)) {
+            return;
+        }
         for (auto mv : obj->volumes) {
             auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh());
             mv->set_mesh(result_mesh);
@@ -5959,6 +5976,10 @@ void GUI::ObjectList::smooth_mesh()
         obj = object(obj_idxs.front());
         for (int vol_idx : vol_idxs) {
             auto mv = obj->volumes[vol_idx];
+            auto future_face_count = static_cast<int>(mv->mesh().facets_count()) * 4;
+            if (show_warning_dlg(future_face_count, mv->name,true)) {
+                return;
+            }
             auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh());
             mv->set_mesh(result_mesh);
             mv->reset_extra_facets(); // reset paint color
