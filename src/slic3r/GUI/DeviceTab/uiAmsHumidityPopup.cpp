@@ -147,7 +147,7 @@ void uiAmsPercentHumidityDryPopup::UpdateContents()
     // table grid
     const wxString& humidity_str = wxString::Format("%d%%", m_humidity_percent);
     m_humidity_label->SetLabel(humidity_str);
-    const wxString& temp_str = wxString::Format(u8"%d\u2103" /* °C */, (int)std::round(m_current_temperature));
+    const wxString& temp_str = wxString::Format(wxString::FromUTF8(u8"%d\u2103" /* °C */), (int)std::round(m_current_temperature));
     m_temperature_label->SetLabel(temp_str);
 
     if (m_left_dry_time > 0)

@@ -26,6 +26,25 @@ cmake --build build/arm64 --config RelWithDebInfo --target all --
 cmake --build build/arm64 --config RelWithDebInfo --target all --
 
 ```
+### Build test:
+
+**Always use this command to build the project when testing build issues on Windows.**
+```bash
+cmake --build . --config %build_type% --target ALL_BUILD -- -m
+```
+
+### Building on macOS
+**Always use this command to build the project when testing build issues on macOS.**
+```bash
+cmake --build build/arm64 --config RelWithDebInfo --target all --
+```
+
+### Building on Linux
+ **Always use this command to build the project when testing build issues on Linux.**
+```bash
+cmake --build build/arm64 --config RelWithDebInfo --target all --
+
+```
 
 
 ### Build System
