@@ -5955,6 +5955,13 @@ void GUI::ObjectList::smooth_mesh()
         }
         return false;
     };
+    auto show_smooth_mesh_error_dlg = [this](std::string name) {
+        auto name_str = wxString::FromUTF8(name);
+        auto content  = wxString::Format(_L("\"%s\" part's mesh contains errors. Please repair it first."), name_str);
+        WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, _L("BambuStudio warning"), wxOK);
+        dlg.ShowModal();
+    };
+    bool has_show_smooth_mesh_error_dlg = false;
     if (vol_idxs.empty()) {
         obj        = object(object_idx);
         auto             future_face_count = static_cast<int>(obj->facets_count()) * 4;
@@ -5962,12 +5969,20 @@ void GUI::ObjectList::smooth_mesh()
             return;
         }
         for (auto mv : obj->volumes) {
-            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh());
-            mv->set_mesh(result_mesh);
-            mv->reset_extra_facets();//reset paint color
-            mv->calculate_convex_hull();
-            mv->invalidate_convex_hull_2d();
-            mv->set_new_unique_id();
+            bool ok;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok);
+            if (ok) {
+                mv->set_mesh(result_mesh);
+                mv->reset_extra_facets(); // reset paint color
+                mv->calculate_convex_hull();
+                mv->invalidate_convex_hull_2d();
+                mv->set_new_unique_id();
+            } else {
+                if (!has_show_smooth_mesh_error_dlg) {
+                    show_smooth_mesh_error_dlg(mv->name);
+                    has_show_smooth_mesh_error_dlg = true;
+                }
+            }
         }
         obj->invalidate_bounding_box();
         obj->ensure_on_bed();
@@ -5980,12 +5995,20 @@ void GUI::ObjectList::smooth_mesh()
             if (show_warning_dlg(future_face_count, mv->name,true)) {
                 return;
             }
-            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh());
-            mv->set_mesh(result_mesh);
-            mv->reset_extra_facets(); // reset paint color
-            mv->calculate_convex_hull();
-            mv->invalidate_convex_hull_2d();
-            mv->set_new_unique_id();
+            bool ok;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(),ok);
+            if (ok) {
+                mv->set_mesh(result_mesh);
+                mv->reset_extra_facets(); // reset paint color
+                mv->calculate_convex_hull();
+                mv->invalidate_convex_hull_2d();
+                mv->set_new_unique_id();
+            } else {
+                if (!has_show_smooth_mesh_error_dlg) {
+                    show_smooth_mesh_error_dlg(mv->name);
+                    has_show_smooth_mesh_error_dlg = true;
+                }
+            }
         }
     }
     if (obj) {
