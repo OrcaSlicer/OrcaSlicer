@@ -498,9 +498,11 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
 
             std::vector<halfedge_descriptor> border_cycles;
             CGALProc::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
-            for (halfedge_descriptor h : border_cycles) {
-                std::vector<face_descriptor> patch_facets;
-                CGALProc::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_facets));
+            if (!border_cycles.empty()) {
+                for (halfedge_descriptor h : border_cycles) {
+                    std::vector<face_descriptor> patch_facets;
+                    CGALProc::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_facets));
+                }
             }
         }
 
