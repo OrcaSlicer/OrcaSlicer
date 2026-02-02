@@ -44,6 +44,7 @@
 #endif /* __WXMSW__ */
 #include "Gizmos/GLGizmoScale.hpp"
 
+#include "libslic3r/TriangleMeshDeal.hpp"
 namespace Slic3r
 {
 namespace GUI
@@ -5929,6 +5930,48 @@ void ObjectList::simplify()
         gizmos_mgr.open_gizmo(GLGizmosManager::EType::Simplify);
     }
     gizmos_mgr.open_gizmo(GLGizmosManager::EType::Simplify);
+}
+
+void GUI::ObjectList::smooth_mesh()
+{
+    wxBusyCursor cursor;
+    auto plater = wxGetApp().plater();
+    if (!plater) { return; }
+    plater->take_snapshot("smooth_mesh");
+    std::vector<int> obj_idxs, vol_idxs;
+    get_selection_indexes(obj_idxs, vol_idxs);
+    auto object_idx = obj_idxs.front();
+    ModelObject *obj{nullptr};
+    if (vol_idxs.empty()) {
+        obj        = object(object_idx);
+        for (auto mv : obj->volumes) {
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh());
+            mv->set_mesh(result_mesh);
+            mv->reset_extra_facets();//reset paint color
+            mv->calculate_convex_hull();
+            mv->invalidate_convex_hull_2d();
+            mv->set_new_unique_id();
+        }
+        obj->invalidate_bounding_box();
+        obj->ensure_on_bed();
+        plater->changed_mesh(object_idx);
+    } else {
+        obj = object(obj_idxs.front());
+        for (int vol_idx : vol_idxs) {
+            auto mv = obj->volumes[vol_idx];
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh());
+            mv->set_mesh(result_mesh);
+            mv->reset_extra_facets(); // reset paint color
+            mv->calculate_convex_hull();
+            mv->invalidate_convex_hull_2d();
+            mv->set_new_unique_id();
+        }
+    }
+    if (obj) {
+        obj->invalidate_bounding_box();
+        obj->ensure_on_bed();
+        plater->changed_mesh(object_idx);
+    }
 }
 
 void ObjectList::update_item_error_icon(const int obj_idx, const int vol_idx) const
