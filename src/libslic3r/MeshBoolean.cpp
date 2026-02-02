@@ -480,6 +480,12 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
     if (mesh.empty())
         return true;
 
+    if (its_num_open_edges(mesh.its) == 0) {
+        if (repaired_errors)
+            *repaired_errors = RepairedMeshErrors{};
+        return true;
+    }
+
     try {
         _EpicMesh cgal_mesh;
         triangle_mesh_to_cgal(mesh.its.vertices, mesh.its.indices, cgal_mesh);
