@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "Generic PC @Qidi X-Max 4 0.2 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Generic PC@X-Max 4-Series",
+    "filament_flow_ratio": ["0.94"],
+    "filament_max_volumetric_speed": ["1"],
+    "pressure_advance": ["0.04"],
+    "chamber_temperature": ["0"],
+	"compatible_printers": ["Qidi X-Max 4 0.2 nozzle"]
+}

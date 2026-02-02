@@ -137,40 +137,6 @@
         display: inline-block;
       }
 
-      .btn {
-        display: inline-block;
-        padding: 6px 9px;
-        border: 2px solid transparent;
-        border-radius: 12px;
-        font-size: 12px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s;
-      }
-
-      .btn-ok {
-        color: #fff;
-        background-color: #009688;
-      }
-      .btn-ok:hover {
-        background-color: #26A69A;
-      }
-
-      .btn-cancel {
-        color: black;
-        background-color: white;
-        border: 1px solid black;
-      }
-      .btn-cancel:hover {
-        background-color: #eeeeee;
-      }
-
-      body.dark-mode button.btn-cancel {
-          background-color: #2d2d31;
-          color: #e0e0e0;
-          border: 1px solid #e0e0e0;
-      }
-
       select {
         padding: 6px 9px;
         border: 1px solid #dbdbdb;
@@ -197,7 +163,7 @@
       .button-container {
         display: flex;
         justify-content: center;
-        gap: 10px;
+        gap: 0px;
         margin: 10px;
       }
 
@@ -266,15 +232,6 @@
         position: sticky;
         z-index: 11;
       }
-
-      body.dark-mode .btn-ok {
-        background-color: #009688;
-      }
-
-      body.dark-mode .btn-dark {
-        background-color: #34495e;
-      }
-
       body.dark-mode select {
         background-color: #2d2d31;
         color: white;
@@ -295,6 +252,8 @@
     </style>
   </head>
 
+  <link rel="stylesheet" type="text/css" href="../include/global.css" /> <!-- ORCA One for all-->
+
   <body>
     <div class="container">
       <div class="tip-panel" id="auto_flush_tip">
@@ -303,14 +262,14 @@
         in Orca Slicer &gt; Preferences.
       </div>
 
-      <div style="margin-bottom: 10px; ">
-        <button
-          class="btn btn-ok"
+      <div style="margin-bottom: 10px; display: flex; align-items: center;">
+        <div
+          class="ButtonStyleConfirm ButtonTypeWindow"
           onclick="calcFlushingVolumes()"
           id="calc_btn"
         >
           Re-Calculate
-        </button>
+      </div>
         <select
           id="extruders"
           onchange="handleExtruderSelect(document.getElementById('extruders').value)"
@@ -366,12 +325,12 @@
         </div>
       </div>
       <div class="button-container" style="padding: 0px; margin: 0px;">
-        <button class="btn btn-ok" id="ok_btn" style="width: 60px; height: 30px; font-size: 12px; text-align: center;" onclick="storeData()">
+        <div class="ButtonStyleConfirm ButtonTypeChoice" id="ok_btn" onclick="storeData()">
           Save
-        </button>
-        <button class="btn btn-cancel" id="cancel_btn" style="width: 60px; height: 30px; font-size: 12px; text-align: center;" onclick="quit()">
+        </div>
+        <div class="ButtonStyleRegular ButtonTypeChoice" id="cancel_btn" onclick="quit()">
           Cancel
-        </button>
+        </div>
       </div>
     </div>
 
@@ -473,10 +432,11 @@
         return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
       }
 
-
       function updateVolumeRange(min_volume,max_volume){
+        // Orca: "Typical" guidance only unlinked from upper bound in the slicer.
+        const TYPICAL_MAX_FLUSH_VOLUME = 900;
         const panel = document.getElementById('volume_range_panel');
-        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_volume}, ${max_volume}]`);
+        panel.innerText = panel.innerText.replace(/\[.*\]/, `[${min_volume}, ${TYPICAL_MAX_FLUSH_VOLUME}]`);
       }
 
       function updateMultiplierRange(min_multiplier,max_multiplier){

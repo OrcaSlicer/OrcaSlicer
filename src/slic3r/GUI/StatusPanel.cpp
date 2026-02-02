@@ -356,28 +356,13 @@ ExtruderSwithingStatus::ExtruderSwithingStatus(wxWindow *parent)
     { m_switching_status_label->SetBackgroundColour(parent->GetBackgroundColour());
     }
 
-    StateColor e_ctrl_bg(std::pair<wxColour, int>(BUTTON_PRESS_COL, StateColor::Pressed), std::pair<wxColour, int>(BUTTON_NORMAL1_COL, StateColor::Normal));
-    StateColor e_ctrl_bd(std::pair<wxColour, int>(BUTTON_HOVER_COL, StateColor::Hovered), std::pair<wxColour, int>(BUTTON_NORMAL1_COL, StateColor::Normal));
-
     m_button_quit = new Button(this, _CTX(L_CONTEXT("Quit", "Quit_Switching"), "Quit_Switching"), "", 0, FromDIP(22));
-    m_button_quit->SetFont(::Label::Body_13);
+    m_button_quit->SetStyle(ButtonStyle::Regular, ButtonType::Window);
     m_button_quit->Bind(wxEVT_BUTTON, &ExtruderSwithingStatus::on_quit, this);
-    m_button_quit->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_quit->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_quit->SetBackgroundColor(e_ctrl_bg);
-    m_button_quit->SetBorderColor(e_ctrl_bd);
-    m_button_quit->SetBorderWidth(2);
-    if (parent) { m_button_quit->SetBackgroundColour(parent->GetBackgroundColour()); }
 
     m_button_retry = new Button(this, _L("Retry"), "", 0, FromDIP(22));
-    m_button_retry->SetFont(::Label::Body_13);
+    m_button_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_retry->Bind(wxEVT_BUTTON, &ExtruderSwithingStatus::on_retry, this);
-    m_button_retry->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetBackgroundColor(e_ctrl_bg);
-    m_button_retry->SetBorderColor(e_ctrl_bd);
-    m_button_retry->SetBorderWidth(2);
-    if (parent) { m_button_retry->SetBackgroundColour(parent->GetBackgroundColour()); }
 
     wxBoxSizer *btn_sizer  = new wxBoxSizer(wxHORIZONTAL);
     btn_sizer->Add(m_button_quit, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
@@ -476,10 +461,8 @@ bool ExtruderSwithingStatus::has_content_shown() const
 
 void ExtruderSwithingStatus::msw_rescale()
 {
-    m_button_quit->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_quit->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
+    m_button_quit->Rescale(); // ORCA
+    m_button_retry->Rescale(); // ORCA
     Layout();
 }
 
@@ -870,18 +853,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     static_text_sizer->Add(m_error_text, 1, wxEXPAND | wxLEFT, FromDIP(17));
 
     m_button_clean = new Button(m_panel_error_txt, _L("Clear"));
-    StateColor clean_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-                        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
-                        std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
-    StateColor clean_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor clean_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-
-
-    m_button_clean->SetBackgroundColor(clean_bg);
-    m_button_clean->SetBorderColor(clean_bd);
-    m_button_clean->SetTextColor(clean_text);
-    m_button_clean->SetFont(Label::Body_10);
-    m_button_clean->SetMinSize(TASK_BUTTON_SIZE2);
+    m_button_clean->SetStyle(ButtonStyle::Regular, ButtonType::Window);
 
     static_text_sizer->Add( FromDIP(10), 0, 0, 0, 0 );
     static_text_sizer->Add(m_button_clean, 0, wxALIGN_CENTRE_VERTICAL|wxRIGHT, FromDIP(5));
@@ -911,16 +883,10 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_request_failed_info->SetForegroundColour(*wxRED);
     m_request_failed_info->SetFont(::Label::Body_10);
     static_request_failed_panel_sizer->Add(m_request_failed_info, 0, wxEXPAND | wxALL, FromDIP(10));
-    StateColor btn_bg_green(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                            std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-    StateColor btn_bd_green(std::pair<wxColour, int>(AMS_CONTROL_WHITE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Enabled));
+
     m_button_market_retry = new Button(m_request_failed_panel, _L("Retry"));
-    m_button_market_retry->SetBackgroundColor(btn_bg_green);
-    m_button_market_retry->SetBorderColor(btn_bd_green);
-    m_button_market_retry->SetTextColor(wxColour("#FFFFFE"));
-    m_button_market_retry->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_button_market_retry->SetMinSize(wxSize(-1, FromDIP(26)));
-    m_button_market_retry->SetCornerRadius(FromDIP(13));
+    m_button_market_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+
     static_request_failed_panel_sizer->Add(0, 0, 1, wxEXPAND, 0);
     static_request_failed_panel_sizer->Add(m_button_market_retry, 0, wxEXPAND | wxALL, FromDIP(10));
     m_request_failed_panel->SetSizer(static_request_failed_panel_sizer);
@@ -969,12 +935,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     }
 
     m_button_market_scoring = new Button(m_score_subtask_info, _L("Rate"));
-    m_button_market_scoring->SetBackgroundColor(btn_bg_green);
-    m_button_market_scoring->SetBorderColor(btn_bd_green);
-    m_button_market_scoring->SetTextColor(wxColour("#FFFFFE"));
-    m_button_market_scoring->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_button_market_scoring->SetMinSize(wxSize(-1, FromDIP(26)));
-    m_button_market_scoring->SetCornerRadius(FromDIP(13));
+    m_button_market_scoring->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_market_scoring->Enable(false);
 
     static_score_star_sizer->Add(0, 0, 1, wxEXPAND, 0);
@@ -1619,39 +1580,19 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     //m_staticText_control->SetFont(PAGE_TITLE_FONT);
     m_staticText_control->SetForegroundColour(PAGE_TITLE_FONT_COL);
 
-    StateColor btn_bg_green(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-    StateColor btn_bd_green(std::pair<wxColour, int>(AMS_CONTROL_WHITE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Enabled));
-
     m_parts_btn = new Button(m_panel_control_title, _L("Printer Parts"));
-    m_parts_btn->SetBackgroundColor(btn_bg_green);
-    m_parts_btn->SetBorderColor(btn_bd_green);
-    m_parts_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_parts_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_parts_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_parts_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     m_options_btn = new Button(m_panel_control_title, _L("Print Options"));
-    m_options_btn->SetBackgroundColor(btn_bg_green);
-    m_options_btn->SetBorderColor(btn_bd_green);
-    m_options_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_options_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_options_btn->SetMinSize(wxSize(-1, FromDIP(26)));
-
+    m_options_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+  
     m_safety_btn = new Button(m_panel_control_title, _L("Safety Options"));
-    m_safety_btn->SetBackgroundColor(btn_bg_green);
-    m_safety_btn->SetBorderColor(btn_bd_green);
-    m_safety_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_safety_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_safety_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_safety_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     m_calibration_btn = new Button(m_panel_control_title, _L("Calibration"));
-    m_calibration_btn->SetBackgroundColor(btn_bg_green);
-    m_calibration_btn->SetBorderColor(btn_bd_green);
-    m_calibration_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_calibration_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_calibration_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_calibration_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_calibration_btn->EnableTooltipEvenDisabled();
-
+  
     m_options_btn->Hide();
     m_safety_btn->Hide();
 
@@ -2171,18 +2112,8 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
     steps_sizer->Add(m_filament_load_img, 0, wxALIGN_TOP, FromDIP(30));
     steps_sizer->AddStretchSpacer();
 
-    StateColor btn_bd_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor btn_text_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor btn_bg_white(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Pressed),
-                            std::pair<wxColour, int>(AMS_CONTROL_DEF_BLOCK_BK_COLOUR, StateColor::Hovered),
-                            std::pair<wxColour, int>(AMS_CONTROL_WHITE_COLOUR, StateColor::Normal));
-
     m_button_retry = new Button(m_filament_load_box, _L("Retry"));
-    m_button_retry->SetFont(Label::Body_13);
-    m_button_retry->SetBorderColor(btn_bd_white);
-    m_button_retry->SetTextColor(btn_text_white);
-    m_button_retry->SetMinSize(wxSize(FromDIP(80), FromDIP(31)));
-    m_button_retry->SetBackgroundColor(btn_bg_white);
+    m_button_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     //m_button_retry->Hide();
 
     m_button_retry->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
@@ -2572,6 +2503,8 @@ StatusPanel::~StatusPanel()
 
 void StatusPanel::init_scaled_buttons()
 {
+    if (!m_project_task_panel) return;
+
     m_project_task_panel->init_scaled_buttons();
     m_bpButton_z_10->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_10->SetCornerRadius(0);
@@ -4052,7 +3985,7 @@ void StatusPanel::on_axis_ctrl_z_down_10(wxCommandEvent &event)
 void StatusPanel::axis_ctrl_e_hint(bool up_down)
 {
     if (ctrl_e_hint_dlg == nullptr) {
-        /* ctrl_e_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::ButtonStyle::CONFIRM_AND_CANCEL, wxDefaultPosition,
+        /* ctrl_e_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::VisibleButtons::CONFIRM_AND_CANCEL, wxDefaultPosition,
          ctrl_e_hint_dlg->update_text(_L("Please heat the nozzle to above 170°C before loading or unloading filament."));
          ctrl_e_hint_dlg->m_show_again_checkbox->Hide();
          ctrl_e_hint_dlg->m_button_cancel->Hide();
@@ -4898,7 +4831,7 @@ void StatusPanel::on_camera_enter(wxMouseEvent& event)
         m_camera_popup->Bind(EVT_VCAMERA_SWITCH, &StatusPanel::on_switch_vcamera, this);
         m_camera_popup->Bind(EVT_SDCARD_ABSENT_HINT, [this](wxCommandEvent &e) {
             if (sdcard_hint_dlg == nullptr) {
-                sdcard_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::ButtonStyle::ONLY_CONFIRM);
+                sdcard_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
                 sdcard_hint_dlg->update_text(_L("Can't start this without storage."));
             }
             sdcard_hint_dlg->on_show();
@@ -5851,18 +5784,9 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
     wxBoxSizer *bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->Add(0, 0, 1, wxEXPAND, 0);
 
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-
     m_button_ok = new Button(this, _L("Submit"));
-    m_button_ok->SetBackgroundColor(btn_bg_green);
-    m_button_ok->SetBorderColor(*wxWHITE);
-    m_button_ok->SetTextColor(wxColour("#FFFFFE"));
-    m_button_ok->SetFont(Label::Body_12);
-    m_button_ok->SetSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_ok->SetMinSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_ok->SetCornerRadius(FromDIP(12));
-    bSizer_button->Add(m_button_ok, 0, wxRIGHT, FromDIP(24));
+    m_button_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+    bSizer_button->Add(m_button_ok, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 
     m_button_ok->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
         m_upload_status_code = StatusCode::UPLOAD_PROGRESS;
@@ -5997,17 +5921,9 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
         }
     });
 
-    StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                            std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
     m_button_cancel = new Button(this, _L("Cancel"));
-    m_button_cancel->SetBackgroundColor(btn_bg_white);
-    m_button_cancel->SetBorderColor(wxColour(38, 46, 48));
-    m_button_cancel->SetFont(Label::Body_12);
-    m_button_cancel->SetSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_cancel->SetMinSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_cancel->SetCornerRadius(FromDIP(12));
-    bSizer_button->Add(m_button_cancel, 0, wxRIGHT, FromDIP(24));
+    m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    bSizer_button->Add(m_button_cancel, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 
     m_button_cancel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) { EndModal(wxID_CANCEL); });
 

@@ -644,8 +644,12 @@ bool GizmoObjectManipulation::reset_button(ImGuiWrapper *imgui_wrapper, float ca
     ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET);
     ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_HOVER);
 
-    float font_size = ImGui::GetFontSize();
-    ImVec2 button_size = ImVec2(font_size, font_size);
+    float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+    ImVec2 button_size = ImVec2(16 * scale, 16 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
@@ -661,8 +665,12 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper, flo
     ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_ZERO);
     ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_ZERO_HOVER);
 
-    float  font_size   = ImGui::GetFontSize() * 1.1;
-    ImVec2 button_size = ImVec2(font_size, font_size);
+    float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+    ImVec2 button_size = ImVec2(16 * scale, 16 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
@@ -719,6 +727,10 @@ void GizmoObjectManipulation::show_move_tooltip_information(ImGuiWrapper *imgui_
     caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
 
     float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
@@ -747,6 +759,10 @@ void GizmoObjectManipulation::show_rotate_tooltip_information(ImGuiWrapper *imgu
     caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
 
     float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
@@ -775,6 +791,10 @@ void GizmoObjectManipulation::show_scale_tooltip_information(ImGuiWrapper *imgui
     caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
 
     float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
     ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});

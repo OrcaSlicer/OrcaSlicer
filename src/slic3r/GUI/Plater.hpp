@@ -121,7 +121,8 @@ public:
     static int TitlebarMargin(){ return 8 ;} // Use as side margins on titlebar. Has less margin on sides to create separation with its content
     static int ContentMargin() { return 12;} // Use as side margins contents of title
     static int ContentMarginV(){ return 9 ;} // Use as vertical margins contents of title
-    static int IconSpacing()   { return 10;} // Use on main elements
+    static int IconSpacing()   { return 10;} // Use on main elements in same group of controls
+    static int WideSpacing()   { return 18;} // Use between main elements / control groups for separation or preventing accidental clicks important
     static int ElementSpacing(){ return 5 ;} // Use if elements has relation between them like edit button for combo box etc.
 };
 
@@ -325,7 +326,7 @@ public:
     void load_gcode();
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
-    void refresh_print();
+    void reload_print();
 
     // SoftFever
     void calib_pa(const Calib_Params& params);

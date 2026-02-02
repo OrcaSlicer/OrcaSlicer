@@ -14,6 +14,8 @@
 #include "NetworkTestDialog.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
+#include "DownloadProgressDialog.hpp"
 
 #ifdef __WINDOWS__
 #ifdef _MSW_DARK_MODE
@@ -78,7 +80,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
     return {m_sizer_combox, combobox};
 }
 
-wxBoxSizer* PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist)
+wxBoxSizer* PreferencesDialog::create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::function<void(wxString)> onchange)
 {
     unsigned int current_index = 0;
 
@@ -90,8 +92,10 @@ wxBoxSizer* PreferencesDialog::create_item_combobox(wxString title, wxString too
     auto [sizer, combobox] = create_item_combobox_base(title, tooltip, param, vlist, current_index);
 
     //// save config
-    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param](wxCommandEvent& e) {
+    combobox->GetDropDown().Bind(wxEVT_COMBOBOX, [this, param, onchange](wxCommandEvent& e) {
         app_config->set(param, std::to_string(e.GetSelection()));
+        if (onchange)
+            onchange(std::to_string(e.GetSelection()));
         e.Skip();
     });
 
@@ -677,6 +681,74 @@ wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString toolt
     return m_sizer_input;
 }
 
+wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip)
+{
+    wxBoxSizer *sizer_row = new wxBoxSizer(wxHORIZONTAL);
+
+    sizer_row->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+    auto checkbox_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    checkbox_title->SetFont(::Label::Body_14);
+    checkbox_title->Wrap(DESIGN_TITLE_SIZE.x);
+    checkbox_title->SetToolTip(checkbox_tooltip);
+
+    auto checkbox = new ::CheckBox(m_parent);
+    checkbox->SetValue(app_config->get_bool("auto_slice_after_change"));
+    checkbox->SetToolTip(checkbox_tooltip);
+
+    wxString delay_value = app_config->get("auto_slice_change_delay_seconds");
+    if (delay_value.empty())
+        delay_value = "0";
+
+    auto input = new ::TextInput(m_parent, wxEmptyString, _L("sec"), wxEmptyString, wxDefaultPosition, wxSize(FromDIP(97), -1), wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(delay_value);
+    wxTextValidator validator(wxFILTER_DIGITS);
+    input->SetToolTip(delay_tooltip);
+    input->GetTextCtrl()->SetValidator(validator);
+
+    sizer_row->Add(checkbox_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
+    sizer_row->Add(checkbox, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(5));
+    sizer_row->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    auto commit_delay = [this, input]() {
+        wxString value = input->GetTextCtrl()->GetValue();
+        long seconds = 0;
+        if (!value.ToLong(&seconds) || seconds < 0)
+            seconds = 0;
+        wxString sanitized = wxString::Format("%ld", seconds);
+        input->GetTextCtrl()->SetValue(sanitized);
+        app_config->set("auto_slice_change_delay_seconds", std::string(sanitized.mb_str()));
+        app_config->save();
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [commit_delay](wxCommandEvent &e) {
+        commit_delay();
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [commit_delay](wxFocusEvent &e) {
+        commit_delay();
+        e.Skip();
+    });
+
+    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, input](wxCommandEvent &e) {
+        const bool enabled = checkbox->GetValue();
+        app_config->set_bool("auto_slice_after_change", enabled);
+        app_config->save();
+        input->Enable(enabled);
+        input->Refresh();
+        e.Skip();
+    });
+
+    input->Enable(checkbox->GetValue());
+    input->Refresh();
+
+    return sizer_row;
+}
+
 wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
 {
     wxBoxSizer* m_sizer_checkbox = new wxBoxSizer(wxHORIZONTAL);
@@ -814,7 +886,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             if (pbool) {
                 GUI::wxGetApp().CallAfter([] { GUI::wxGetApp().ShowDownNetPluginDlg(); });
             }
-            if (m_legacy_networking_ckeckbox != nullptr) { m_legacy_networking_ckeckbox->Enable(pbool); }
         }
 
 #endif // __WXMSW__
@@ -842,7 +913,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         if (param == "enable_high_low_temp_mixed_printing") {
             if (checkbox->GetValue()) {
                 const wxString warning_title = _L("Bed Temperature Difference Warning");
-                const wxString warning_message = 
+                const wxString warning_message =
                     _L("Using filaments with significantly different temperatures may cause:\n"
                         "• Extruder clogging\n"
                         "• Nozzle damage\n"
@@ -882,11 +953,6 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
     //// for debug mode
     if (param == "developer_mode") { m_developer_mode_ckeckbox = checkbox; }
     if (param == "internal_developer_mode") { m_internal_developer_mode_ckeckbox = checkbox; }
-    if (param == "legacy_networking") { 
-        m_legacy_networking_ckeckbox = checkbox;
-        bool pbool = app_config->get_bool("installed_networking");
-        checkbox->Enable(pbool);
-    }
 
     return m_sizer_checkbox;
 }
@@ -1221,6 +1287,10 @@ void PreferencesDialog::create_items()
     auto item_remember_printer = create_item_checkbox(_L("Remember printer configuration"), _L("If enabled, Orca will remember and switch filament/process configuration for each printer automatically."), "remember_printer_config");
     g_sizer->Add(item_remember_printer);
 
+    auto item_filament_preset_grouping = create_item_combobox(_L("Group user filament presets"), _L("Group user filament presets based on selection"),
+        "group_filament_presets", {_L("All"), _L("None"), _L("By type"), _L("By vendor")}, [](wxString value) {wxGetApp().plater()->sidebar().update_presets(Preset::TYPE_FILAMENT);});
+    g_sizer->Add(item_filament_preset_grouping);
+
     //// GENERAL > Features
     g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
 
@@ -1256,6 +1326,12 @@ void PreferencesDialog::create_items()
 
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
+
+    auto item_auto_reslice = create_item_auto_reslice(
+        _L("Auto slice after changes"),
+        _L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."),
+        _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
+    g_sizer->Add(item_auto_reslice);
  
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
@@ -1340,9 +1416,113 @@ void PreferencesDialog::create_items()
 
     auto item_enable_plugin    = create_item_checkbox(_L("Enable network plugin"), "", "installed_networking");
     g_sizer->Add(item_enable_plugin);
-    
-    auto item_legacy_network   = create_item_checkbox(_L("Use legacy network plugin"), _L("Disable to use latest network plugin that supports new BambuLab firmwares."), "legacy_networking", _L("(Requires restart)"));
-    g_sizer->Add(item_legacy_network);
+
+    m_network_version_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_network_version_sizer->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+    auto version_title = new wxStaticText(m_parent, wxID_ANY, _L("Network plugin version"), wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    version_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    version_title->SetFont(::Label::Body_14);
+    version_title->SetToolTip(_L("Select the network plugin version to use"));
+    version_title->Wrap(DESIGN_TITLE_SIZE.x);
+    m_network_version_sizer->Add(version_title, 0, wxALIGN_CENTER);
+
+    m_network_version_combo = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(180), -1), 0, nullptr, wxCB_READONLY);
+    m_network_version_combo->SetFont(::Label::Body_14);
+    m_network_version_combo->GetDropDown().SetFont(::Label::Body_14);
+
+    std::string current_version = app_config->get_network_plugin_version();
+    if (current_version.empty()) {
+        current_version = BBL::get_latest_network_version();
+    }
+    int current_selection = 0;
+
+    m_available_versions = BBL::get_all_available_versions();
+
+    for (size_t i = 0; i < m_available_versions.size(); i++) {
+        const auto& ver = m_available_versions[i];
+        wxString label;
+
+        if (!ver.suffix.empty()) {
+            label = wxString::FromUTF8("\xE2\x94\x94 ") + wxString::FromUTF8(ver.display_name);
+        } else {
+            label = wxString::FromUTF8(ver.display_name);
+        }
+
+        if (ver.is_latest) {
+            label += " " + _L("(Latest)");
+        }
+        m_network_version_combo->Append(label);
+        if (current_version == ver.version) {
+            current_selection = i;
+        }
+    }
+
+    m_network_version_combo->SetSelection(current_selection);
+    m_network_version_sizer->Add(m_network_version_combo, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
+
+    m_network_version_combo->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        int selection = e.GetSelection();
+        if (selection >= 0 && selection < (int)m_available_versions.size()) {
+            const auto& selected_ver = m_available_versions[selection];
+            std::string new_version = selected_ver.version;
+            std::string old_version = app_config->get_network_plugin_version();
+            if (old_version.empty()) {
+                old_version = BBL::get_latest_network_version();
+            }
+
+            app_config->set(SETTING_NETWORK_PLUGIN_VERSION, new_version);
+            app_config->save();
+
+            if (new_version != old_version) {
+                BOOST_LOG_TRIVIAL(info) << "Network plugin version changed from " << old_version << " to " << new_version;
+
+                // Update the use_legacy_network flag immediately
+                bool is_legacy = (new_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+                bool was_legacy = (old_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+                if (is_legacy != was_legacy) {
+                    Slic3r::NetworkAgent::use_legacy_network = is_legacy;
+                    BOOST_LOG_TRIVIAL(info) << "Updated use_legacy_network flag to " << is_legacy;
+                }
+
+                if (!selected_ver.warning.empty()) {
+                    MessageDialog warn_dlg(this, wxString::FromUTF8(selected_ver.warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
+                    if (warn_dlg.ShowModal() != wxID_OK) {
+                        app_config->set(SETTING_NETWORK_PLUGIN_VERSION, old_version);
+                        app_config->save();
+                        Slic3r::NetworkAgent::use_legacy_network = was_legacy;
+                        e.Skip();
+                        return;
+                    }
+                }
+
+                // Check if the selected version already exists on disk
+                if (Slic3r::NetworkAgent::versioned_library_exists(new_version)) {
+                    BOOST_LOG_TRIVIAL(info) << "Version " << new_version << " already exists on disk, triggering hot reload";
+                    if (wxGetApp().hot_reload_network_plugin()) {
+                        MessageDialog dlg(this, _L("Network plugin switched successfully."), _L("Success"), wxOK | wxICON_INFORMATION);
+                        dlg.ShowModal();
+                    } else {
+                        MessageDialog dlg(this, _L("Failed to load network plugin. Please restart the application."), _L("Restart Required"), wxOK | wxICON_WARNING);
+                        dlg.ShowModal();
+                    }
+                } else {
+                    wxString msg = wxString::Format(
+                        _L("You've selected network plugin version %s.\n\nWould you like to download and install this version now?\n\nNote: The application may need to restart after installation."),
+                        wxString::FromUTF8(new_version));
+
+                    MessageDialog dlg(this, msg, _L("Download Network Plugin"), wxYES_NO | wxICON_QUESTION);
+                    if (dlg.ShowModal() == wxID_YES) {
+                        DownloadProgressDialog progress_dlg(_L("Downloading Network Plugin"));
+                        progress_dlg.ShowModal();
+                    }
+                }
+            }
+        }
+        e.Skip();
+    });
+
+    g_sizer->Add(m_network_version_sizer);
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
@@ -1412,6 +1592,18 @@ void PreferencesDialog::create_items()
     auto log_level_list  = std::vector<wxString>{_L("fatal"), _L("error"), _L("warning"), _L("info"), _L("debug"), _L("trace")};
     auto loglevel_combox = create_item_loglevel_combobox(_L("Log Level"), _L("Log Level"), log_level_list);
     g_sizer->Add(loglevel_combox);
+
+    g_sizer->Add(create_item_title(_L("Network Plugin")), 1, wxEXPAND);
+    auto item_reload_plugin = create_item_button(_L("Network plugin"), _L("Reload"), _L("Reload the network plugin without restarting the application"), "", [this]() {
+        if (wxGetApp().hot_reload_network_plugin()) {
+            MessageDialog dlg(this, _L("Network plugin reloaded successfully."), _L("Reload"), wxOK | wxICON_INFORMATION);
+            dlg.ShowModal();
+        } else {
+            MessageDialog dlg(this, _L("Failed to reload network plugin. Please restart the application."), _L("Reload Failed"), wxOK | wxICON_ERROR);
+            dlg.ShowModal();
+        }
+    });
+    g_sizer->Add(item_reload_plugin);
 
     //// DEVELOPER > Debug
 #if !BBL_RELEASE_TO_PUBLIC
@@ -1594,7 +1786,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
                     wxGetApp().request_user_logout();
                     agent->set_country_code(country_code);
                 }
-                ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::ButtonStyle::ONLY_CONFIRM);
+                ConfirmBeforeSendDialog confirm_dlg(this, wxID_ANY, _L("Warning"), ConfirmBeforeSendDialog::VisibleButtons::ONLY_CONFIRM);  // ORCA VisibleButtons instead ButtonStyle 
                 confirm_dlg.update_text(_L("Cloud environment switched, please login again!"));
                 confirm_dlg.on_show();
             }
@@ -1613,7 +1805,7 @@ wxBoxSizer* PreferencesDialog::create_debug_page()
     bSizer->Add(enable_ssl_for_mqtt, 0, wxTOP, FromDIP(3));
     bSizer->Add(enable_ssl_for_ftp, 0, wxTOP, FromDIP(3));
     bSizer->Add(item_internal_developer, 0, wxTOP, FromDIP(3));
-    bSizer->Add(title_host, 0, wxEXPAND);
+    bSizer->Add(title_host, 0, wxEXPAND | wxTOP, FromDIP(10));
     bSizer->Add(radio_group, 0, wxEXPAND | wxLEFT, FromDIP(DESIGN_LEFT_MARGIN));
     bSizer->Add(debug_button, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, FromDIP(15));
 

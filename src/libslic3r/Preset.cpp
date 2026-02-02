@@ -161,11 +161,18 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
     int process_variant_length = default_param_length;
     int machine_variant_length = default_param_length;
 
+    // Orca: use nozzle/extruder count as the default printer variant length
+    // because non-BBL multi-extruder printers currently do not support extruder variant.
+    if (config.has("nozzle_diameter")) {
+        auto* nozzle_diameter = dynamic_cast<const ConfigOptionFloats*>(config.option("nozzle_diameter"));
+        machine_variant_length = nozzle_diameter->values.size();
+    }
+
     if(config.has("filament_extruder_variant"))
         filament_variant_length = config.option<ConfigOptionStrings>("filament_extruder_variant")->size();
     if(config.has("print_extruder_variant"))
         process_variant_length = config.option<ConfigOptionStrings>("print_extruder_variant")->size();
-    if(config.has("printer_extruder_variant"))
+    if(config.has("printer_extruder_variant"))  // Use existing variant list if specified, so BBL's multi-variant profiles still works
         machine_variant_length = config.option<ConfigOptionStrings>("printer_extruder_variant")->size();
 
     auto replace_nil_and_resize = [&](const std::string & key, int length){
@@ -897,7 +904,7 @@ static std::vector<std::string> s_Preset_print_options {
     "top_surface_speed", "support_speed", "support_object_xy_distance", "support_object_first_layer_gap", "support_interface_speed",
     "bridge_speed", "internal_bridge_speed", "gap_infill_speed", "travel_speed", "travel_speed_z", "initial_layer_speed",
     "outer_wall_acceleration", "initial_layer_acceleration", "top_surface_acceleration", "default_acceleration", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_height","single_loop_draft_shield", "draft_shield",
-    "brim_width", "brim_object_gap", "brim_type", "brim_ears_max_angle", "brim_ears_detection_length", "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap","enforce_support_layers",
+    "brim_width", "brim_object_gap", "brim_use_efc_outline", "brim_type", "brim_ears_max_angle", "brim_ears_detection_length", "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap","enforce_support_layers",
     "raft_layers", "raft_first_layer_density", "raft_first_layer_expansion", "raft_contact_distance", "raft_expansion",
     "support_base_pattern", "support_base_pattern_spacing", "support_expansion", "support_style",
     // BBS
@@ -1381,7 +1388,7 @@ void PresetCollection::load_presets(
     }
     if (presets_loaded.size() > 0)
         m_presets.insert(m_presets.end(), std::make_move_iterator(presets_loaded.begin()), std::make_move_iterator(presets_loaded.end()));
-    std::sort(m_presets.begin() + m_num_default_presets, m_presets.end());
+    sort_presets();
     //BBS: add config related logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": loaded %1% presets from %2%, type %3%")%presets_loaded.size() %dir %Preset::get_type_string(m_type);
     //this->select_preset(first_visible_idx());
@@ -1576,7 +1583,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
     }
 
     m_presets.insert(m_presets.end(), std::make_move_iterator(presets_loaded.begin()), std::make_move_iterator(presets_loaded.end()));
-    std::sort(m_presets.begin() + m_num_default_presets, m_presets.end());
+    sort_presets();
     //don't select it here
     //this->select_preset(first_visible_idx());
     unlock();
@@ -1969,7 +1976,7 @@ void PresetCollection::update_after_user_presets_loaded()
     lock();
     std::string     selected_name = get_selected_preset_name();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", before sort, type %1%, selected_idx %2%, selected_name %3%") %m_type %m_idx_selected %selected_name;
-    std::sort(m_presets.begin() + m_num_default_presets, m_presets.end());
+    sort_presets();
     this->select_preset_by_name(selected_name, false);
     unlock();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", after sort, type %1%, selected_idx %2%") %m_type %m_idx_selected;
@@ -2415,7 +2422,7 @@ std::map<std::string, std::vector<Preset const *>> PresetCollection::get_filamen
 }
 
 //BBS: add project embedded preset logic
-void PresetCollection::save_current_preset(const std::string &new_name, bool detach, bool save_to_project, Preset* _curr_preset, const Preset* _current_printer)
+void PresetCollection::save_current_preset(const std::string &new_name, bool detach, bool save_to_project, Preset* _curr_preset)
 {
     Preset curr_preset = _curr_preset ? *_curr_preset : m_edited_preset;
     //BBS: add lock logic for sync preset in background
@@ -2482,13 +2489,6 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(": save preset %1% , with detach")%new_name;
         } else if (is_base_preset(preset)) {
             inherits = old_name;
-        }
-        // Orca: check if compatible_printers exists and is not empty, set it to the current printer if it is empty
-        if (nullptr != _current_printer && preset.is_system && m_type == Preset::TYPE_FILAMENT) {
-            ConfigOptionStrings* compatible_printers = preset.config.option<ConfigOptionStrings>("compatible_printers");
-            if (compatible_printers && compatible_printers->values.empty()) {
-                compatible_printers->values.push_back(_current_printer->name);
-            }
         }
 
         preset.is_default  = false;
@@ -3129,7 +3129,9 @@ std::vector<std::string> PresetCollection::merge_presets(PresetCollection &&othe
         if (preset.is_default || preset.is_external)
             continue;
         Preset key(m_type, preset.name);
-        auto it = std::lower_bound(m_presets.begin() + m_num_default_presets, m_presets.end(), key);
+        auto it = (m_type == Preset::TYPE_FILAMENT)
+            ? std::lower_bound(m_presets.begin() + m_num_default_presets, m_presets.end(), key, filament_preset_less)
+            : std::lower_bound(m_presets.begin() + m_num_default_presets, m_presets.end(), key);
         if (it == m_presets.end() || it->name != preset.name) {
             if (preset.vendor != nullptr) {
                 // Re-assign a pointer to the vendor structure in the new PresetBundle.

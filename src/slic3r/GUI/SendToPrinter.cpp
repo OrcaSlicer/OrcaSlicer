@@ -285,16 +285,9 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_comboBox_printer->Bind(wxEVT_COMBOBOX, &SendToPrinterDialog::on_selection_changed, this);
 
     m_sizer_printer->Add(m_comboBox_printer, 1, wxEXPAND | wxRIGHT, FromDIP(5));
-    btn_bg_enable = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                               std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
 
     m_button_refresh = new Button(this, _L("Refresh"));
-    m_button_refresh->SetBackgroundColor(btn_bg_enable);
-    m_button_refresh->SetBorderColor(btn_bg_enable);
-    m_button_refresh->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
-    m_button_refresh->SetSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_refresh->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_refresh->SetCornerRadius(FromDIP(10));
+    m_button_refresh->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_refresh->Bind(wxEVT_BUTTON, &SendToPrinterDialog::on_refresh, this);
 
     m_sizer_printer->Add(m_button_refresh, 0, wxALL | wxLEFT, FromDIP(5));
@@ -347,12 +340,7 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     m_sizer_prepare->Add(0, 0, 1, wxTOP, FromDIP(22));
     m_sizer_pcont->Add(0, 0, 1, wxEXPAND, 0);
     m_button_ensure = new Button(m_panel_prepare, _L("Send"));
-    m_button_ensure->SetBackgroundColor(btn_bg_enable);
-    m_button_ensure->SetBorderColor(btn_bg_enable);
-    m_button_ensure->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
-    m_button_ensure->SetSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_ensure->SetCornerRadius(6);
+    m_button_ensure->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
     m_button_ensure->Bind(wxEVT_BUTTON, &SendToPrinterDialog::on_ok, this);
     m_sizer_pcont->Add(m_button_ensure, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
@@ -458,11 +446,9 @@ SendToPrinterDialog::SendToPrinterDialog(Plater *plater)
     sizer_extra_info->Add(st_title_extra_info_doc, 0, wxALL, 0);
     sizer_extra_info->Add(m_st_txt_extra_info, 0, wxALL, 0);
 
-    m_link_network_state = new wxHyperlinkCtrl(m_sw_print_failed_info, wxID_ANY,_L("Check the status of current system services"),"");
+    // ORCA standardized HyperLink
+    m_link_network_state = new HyperLink(m_sw_print_failed_info, _L("Check the status of current system services"), wxGetApp().link_to_network_check());
     m_link_network_state->SetFont(::Label::Body_12);
-    m_link_network_state->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_network_check(); });
-    m_link_network_state->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {m_link_network_state->SetCursor(wxCURSOR_HAND); });
-    m_link_network_state->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {m_link_network_state->SetCursor(wxCURSOR_ARROW); });
 
     sizer_print_failed_info->Add(m_link_network_state, 0, wxLEFT, 5);
     sizer_print_failed_info->Add(sizer_error_code, 0, wxLEFT, 5);
@@ -1363,15 +1349,11 @@ void SendToPrinterDialog::Enable_Refresh_Button(bool en)
 {
     if (!en) {
         if (m_button_refresh->IsEnabled()) {
-            m_button_refresh->Disable();
-            m_button_refresh->SetBackgroundColor(wxColour(0x90, 0x90, 0x90));
-            m_button_refresh->SetBorderColor(wxColour(0x90, 0x90, 0x90));
+            m_button_refresh->Disable(); // ORCA no need to set colors again
         }
     } else {
         if (!m_button_refresh->IsEnabled()) {
-            m_button_refresh->Enable();
-            m_button_refresh->SetBackgroundColor(btn_bg_enable);
-            m_button_refresh->SetBorderColor(btn_bg_enable);
+            m_button_refresh->Enable(); // ORCA no need to set colors again
         }
     }
 }
@@ -1523,15 +1505,11 @@ void SendToPrinterDialog::Enable_Send_Button(bool en)
     if (!en) {
         if (m_button_ensure->IsEnabled()) {
             m_button_ensure->Disable();
-            m_button_ensure->SetBackgroundColor(wxColour(0x90, 0x90, 0x90));
-            m_button_ensure->SetBorderColor(wxColour(0x90, 0x90, 0x90));
             m_storage_panel->Hide();
         }
     } else {
         if (!m_button_ensure->IsEnabled()) {
             m_button_ensure->Enable();
-            m_button_ensure->SetBackgroundColor(btn_bg_enable);
-            m_button_ensure->SetBorderColor(btn_bg_enable);
             m_storage_panel->Show();
         }
     }
@@ -1539,10 +1517,8 @@ void SendToPrinterDialog::Enable_Send_Button(bool en)
 
 void SendToPrinterDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    m_button_refresh->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_refresh->SetCornerRadius(FromDIP(12));
-    m_button_ensure->SetMinSize(SELECT_MACHINE_DIALOG_BUTTON_SIZE);
-    m_button_ensure->SetCornerRadius(FromDIP(12));
+    m_button_refresh->Rescale(); // ORCA
+    m_button_ensure->Rescale(); // ORCA
     m_status_bar->msw_rescale();
     Fit();
     Refresh();

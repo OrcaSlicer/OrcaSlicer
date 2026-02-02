@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 #include <stdexcept>
+#include <sstream>
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -111,6 +112,11 @@ void AppConfig::set_defaults()
         if (get("background_processing").empty())
             set_bool("background_processing", false);
 #endif
+        if (get("auto_slice_after_change").empty())
+            set_bool("auto_slice_after_change", false);
+
+        if (get("auto_slice_change_delay_seconds").empty())
+            set("auto_slice_change_delay_seconds", "1");
 
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);
@@ -128,6 +134,25 @@ void AppConfig::set_defaults()
         // remove old 'use_legacy_opengl' parameter from this config, if present
         if (!get("use_legacy_opengl").empty())
             erase("app", "use_legacy_opengl");
+
+        // Migrate legacy_networking boolean to network_plugin_version string
+        std::string legacy_networking = get("legacy_networking");
+        std::string network_version = get("network_plugin_version");
+
+        if (!legacy_networking.empty()) {
+            // Old legacy_networking setting exists - migrate it
+            bool was_legacy = (legacy_networking == "true" || legacy_networking == "1");
+
+            if (was_legacy && network_version.empty()) {
+                // User had legacy mode enabled - set to legacy version number
+                BOOST_LOG_TRIVIAL(info) << "Migrating legacy_networking=true to network_plugin_version=01.10.01.01";
+                set_network_plugin_version(BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+            }
+            // Note: If was_legacy=false, we leave the version empty and let the GUI layer set it to the latest version
+
+            // Remove the old setting
+            erase("app", "legacy_networking");
+        }
 
 #ifdef __APPLE__
         if (get("use_retina_opengl").empty())
@@ -164,6 +189,9 @@ void AppConfig::set_defaults()
             set_bool("associate_gcode", false);
 #endif // _WIN32
     }
+
+    if (get("seq_top_layer_only").empty())
+        set("seq_top_layer_only", "1");
 
     if (get("use_perspective_camera").empty())
         set_bool("use_perspective_camera", true);
@@ -272,9 +300,6 @@ void AppConfig::set_defaults()
     if (get("allow_abnormal_storage").empty()) {
         set_bool("allow_abnormal_storage", false);
     }
-    if (get("legacy_networking").empty()) {
-        set_bool("legacy_networking", false);
-    }
 
     if(get("check_stable_update_only").empty()) {
         set_bool("check_stable_update_only", false);
@@ -309,8 +334,16 @@ void AppConfig::set_defaults()
         set("auto_calculate_flush","all");
     }
 
+    if (get("show_canvas_zoom_button").empty()) {
+        set_bool("show_canvas_zoom_button", true);
+    }
+
     if (get("remember_printer_config").empty()) {
         set_bool("remember_printer_config", true);
+    }
+
+    if (get("group_filament_presets").empty()) {
+        set("group_filament_presets", "1"); // All "0" / None "1" / By Type "2" / By Vendor "3"
     }
 
     if (get("enable_high_low_temp_mixed_printing").empty()){
@@ -1425,6 +1458,82 @@ std::string AppConfig::get_nozzle_volume_types_from_config(const std::string& pr
     }
 
     return nozzle_volume_types;
+}
+
+std::string AppConfig::get_network_plugin_version() const
+{
+    return get(SETTING_NETWORK_PLUGIN_VERSION);
+}
+
+void AppConfig::set_network_plugin_version(const std::string& version)
+{
+    set(SETTING_NETWORK_PLUGIN_VERSION, version);
+}
+
+std::vector<std::string> AppConfig::get_skipped_network_versions() const
+{
+    std::vector<std::string> result;
+    std::string skipped = get(SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS);
+    if (skipped.empty())
+        return result;
+
+    std::stringstream ss(skipped);
+    std::string version;
+    while (std::getline(ss, version, ';')) {
+        if (!version.empty())
+            result.push_back(version);
+    }
+    return result;
+}
+
+void AppConfig::add_skipped_network_version(const std::string& version)
+{
+    auto skipped = get_skipped_network_versions();
+    if (std::find(skipped.begin(), skipped.end(), version) == skipped.end()) {
+        skipped.push_back(version);
+        std::string joined;
+        for (size_t i = 0; i < skipped.size(); ++i) {
+            if (i > 0) joined += ";";
+            joined += skipped[i];
+        }
+        set(SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS, joined);
+    }
+}
+
+bool AppConfig::is_network_version_skipped(const std::string& version) const
+{
+    auto skipped = get_skipped_network_versions();
+    return std::find(skipped.begin(), skipped.end(), version) != skipped.end();
+}
+
+void AppConfig::clear_skipped_network_versions()
+{
+    set(SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS, "");
+}
+
+bool AppConfig::is_network_update_prompt_disabled() const
+{
+    return get_bool(SETTING_NETWORK_PLUGIN_UPDATE_DISABLED);
+}
+
+void AppConfig::set_network_update_prompt_disabled(bool disabled)
+{
+    set_bool(SETTING_NETWORK_PLUGIN_UPDATE_DISABLED, disabled);
+}
+
+bool AppConfig::should_remind_network_update_later() const
+{
+    return get_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER);
+}
+
+void AppConfig::set_remind_network_update_later(bool remind)
+{
+    set_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER, remind);
+}
+
+void AppConfig::clear_remind_network_update_later()
+{
+    set_bool(SETTING_NETWORK_PLUGIN_REMIND_LATER, false);
 }
 
 void AppConfig::reset_selections()

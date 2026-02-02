@@ -2115,6 +2115,15 @@ void PresetBundle::export_selections(AppConfig &config)
     auto printer_name = printers.get_selected_preset_name();
     config.set("presets", PRESET_PRINTER_NAME, printer_name);
 
+    // Don't persist settings for the built-in "Default Printer" placeholder —
+    // it's only the initial state before a real printer is loaded/selected.
+    // Also clean up any stale entry that other code paths (e.g. bed type change)
+    // may have created for "Default Printer".
+    if (printer_name == "Default Printer") {
+        config.clear_printer_settings("Default Printer");
+        return;
+    }
+
     config.clear_printer_settings(printer_name);
     config.set_printer_setting(printer_name, PRESET_PRINTER_NAME, printer_name);
     config.set_printer_setting(printer_name, PRESET_PRINT_NAME, prints.get_selected_preset_name());
@@ -2751,6 +2760,8 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
 {
     if (printer_model.empty())
         printer_model = printers.get_selected_preset().config.opt_string("printer_model");
+    if (printer_model.empty()) // ORCA ensure a compatible model exist. fixes switches to blank preset if preset has no inherited value
+        return nullptr;
     auto printer_variant_old = printers.get_selected_preset().config.opt_string("printer_variant");
     std::map<std::string, Preset*> printer_presets;
     for (auto &preset : printers.m_presets) {
@@ -2761,7 +2772,8 @@ Preset *PresetBundle::get_similar_printer_preset(std::string printer_model, std:
     }
     if (printer_presets.empty())
         return nullptr;
-    auto prefer_printer = printers.get_selected_preset().name;
+    auto prefer_printer = printers.get_selected_preset().alias; //.name ORCA use alias instead "name" for calling system presets. otherwise nozzle combo will not change printer presets if they custom named
+
     if (!printer_variant.empty())
         boost::replace_all(prefer_printer, printer_variant_old, printer_variant);
     else if (auto n = prefer_printer.find(printer_variant_old); n != std::string::npos)
@@ -3312,6 +3324,13 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             filament_self_indice[index] = index + 1;
     }
     std::vector<int> filament_self_indice = std::move(config.option<ConfigOptionInts>("filament_self_index")->values);
+    // ORCA: Initialize filament_extruder_variant for backward compatibility with old 3mf files
+    // that don't have this option saved or have it with default single-element value
+    ConfigOptionStrings* filament_extruder_variant_opt = config.option<ConfigOptionStrings>("filament_extruder_variant");
+    if (!filament_extruder_variant_opt || filament_extruder_variant_opt->size() < num_filaments) {
+        std::vector<std::string>& filament_extruder_variant = config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values;
+        filament_extruder_variant.resize(num_filaments, "Direct Drive Standard");
+    }
     if (config.option("extruder_variant_list")) {
         //3mf support multiple extruder logic
         size_t extruder_count = config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();

@@ -141,7 +141,7 @@ protected:
 
 	//BBS: GUI refactor
 	wxPanel*			m_top_panel;
-	wxStaticText* m_static_title;
+	ScalableButton* m_mode_icon; // ORCA m_static_title replacement
 	wxBoxSizer* m_main_sizer;
 	wxBoxSizer* m_top_sizer;
 	wxBoxSizer* m_top_left_sizer;
