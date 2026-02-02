@@ -12,6 +12,7 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/TextInput.hpp"
+#include "Widgets/SpinInput.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 
@@ -68,6 +69,7 @@ public:
     ::CheckBox * m_internal_developer_mode_ckeckbox = {nullptr};
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
+    ::TextInput *m_draco_bits_textinput      = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
     wxBoxSizer * m_network_version_sizer     = {nullptr};
     std::vector<BBL::NetworkLibraryVersionInfo> m_available_versions;
@@ -95,6 +97,7 @@ public:
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
     wxBoxSizer *create_item_backup(wxString title, wxString tooltip);
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
+    wxBoxSizer* create_item_draco(wxString title, wxString side_label, wxString tooltip);
     wxBoxSizer *create_item_multiple_combobox(wxString title, wxString tooltip, std::string parama, std::vector<wxString> vlista, std::vector<wxString> vlistb);
 #ifdef WIN32
     wxBoxSizer *create_item_link_association(wxString url_prefix, wxString website_name);

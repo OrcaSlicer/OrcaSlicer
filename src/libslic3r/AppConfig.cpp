@@ -237,6 +237,9 @@ void AppConfig::set_defaults()
     if (get("enable_multi_machine").empty())
         set_bool("enable_multi_machine", false);
 
+    if (get("drc_lossy_switch").empty())
+        set_bool("drc_lossy_switch", false);
+
     if (get("drc_bits").empty())
         set("drc_bits", DRC_BITS_DEFAULT_STR);
 
