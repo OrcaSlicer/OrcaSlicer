@@ -21,6 +21,12 @@ std::map<std::string, PrinterAgentInfo>& get_printer_agents()
     return agents;
 }
 
+std::map<std::string, std::shared_ptr<IPrinterAgent>>& get_printer_agent_cache()
+{
+    static std::map<std::string, std::shared_ptr<IPrinterAgent>> cache;
+    return cache;
+}
+
 // Helper to register a printer agent type with the standard factory pattern.
 // AgentTypes that take a log_dir constructor arg use the default; BBLPrinterAgent
 // (no log_dir) is registered separately.
@@ -82,15 +88,44 @@ std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_printer_agent_by_id(c
                                                                                const std::string&                  log_dir)
 {
     std::lock_guard<std::mutex> lock(s_registry_mutex);
-    auto&                       agents = get_printer_agents();
-    auto                        it     = agents.find(id);
+
+    // Check cache first
+    auto& cache    = get_printer_agent_cache();
+    auto  cache_it = cache.find(id);
+    if (cache_it != cache.end()) {
+        BOOST_LOG_TRIVIAL(info) << "Reusing cached printer agent: " << id;
+        if (cloud_agent)
+            cache_it->second->set_cloud_agent(cloud_agent);
+        return cache_it->second;
+    }
+
+    // Not cached — create via factory
+    auto& agents = get_printer_agents();
+    auto  it     = agents.find(id);
 
     if (it == agents.end()) {
         BOOST_LOG_TRIVIAL(warning) << "Unknown printer agent ID: " << id;
         return nullptr;
     }
 
-    return it->second.factory(cloud_agent, log_dir);
+    auto agent = it->second.factory(cloud_agent, log_dir);
+    if (agent) {
+        BOOST_LOG_TRIVIAL(info) << "Created and cached printer agent: " << id;
+        cache[id] = agent;
+    }
+    return agent;
+}
+
+void NetworkAgentFactory::clear_printer_agent_cache()
+{
+    std::lock_guard<std::mutex> lock(s_registry_mutex);
+    auto&                       cache = get_printer_agent_cache();
+    for (auto& pair : cache) {
+        if (pair.second)
+            pair.second->disconnect_printer();
+    }
+    cache.clear();
+    BOOST_LOG_TRIVIAL(info) << "Printer agent cache cleared";
 }
 
 void NetworkAgentFactory::register_all_agents()

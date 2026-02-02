@@ -2591,6 +2591,11 @@ int GUI_App::OnExit()
         m_user_manager = nullptr;
     }
 
+    // Clear the printer agent cache before destroying the NetworkAgent.
+    // This disconnects all cached agents and releases their shared_ptrs,
+    // ensuring clean thread shutdown before the agent is deleted.
+    NetworkAgentFactory::clear_printer_agent_cache();
+
     if (m_agent) {
         // BBS avoid a crash on mac platform
 #ifdef __WINDOWS__
@@ -3515,10 +3520,10 @@ void GUI_App::switch_printer_agent()
         sidebar().update_all_preset_comboboxes();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
-    }
 
-    // Auto-switch MachineObject (runs even if agent IDs match)
-    select_machine(effective_agent_id);
+        // Auto-switch MachineObject
+        select_machine(effective_agent_id);
+    }
 }
 
 void GUI_App::select_machine(const std::string& agent_id)

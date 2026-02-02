@@ -858,7 +858,10 @@ namespace Slic3r
     {
         if (MachineObject* obj_ = get_selected_machine()) {
             GUI::wxGetApp().sidebar().update_sync_status(obj_);
-            GUI::wxGetApp().sidebar().load_ams_list(obj_);
+            if(m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription)
+            {
+                GUI::wxGetApp().sidebar().load_ams_list(obj_);
+            }
         };
     }
 

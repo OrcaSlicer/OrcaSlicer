@@ -4,7 +4,6 @@
 #include "IPrinterAgent.hpp"
 #include "ICloudServiceAgent.hpp"
 
-#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -158,8 +157,8 @@ private:
     // Connection thread management
     void perform_connection_async(const std::string& dev_id,
                                    const std::string& base_url,
-                                   const std::string& api_key);
-    void finish_connection();
+                                   const std::string& api_key,
+                                   uint64_t generation);
 
     std::string                        ssdp_announced_host;
     std::string                        ssdp_announced_id;
@@ -194,11 +193,9 @@ private:
     std::string last_print_state;  // Track state for immediate dispatch on change
 
     // Connection thread management
-    std::atomic<bool>   connect_in_progress{false};
-    std::atomic<bool>   connect_stop_requested{false};
-    std::thread         connect_thread;
-    std::recursive_mutex connect_mutex;
-    std::condition_variable connect_cv;
+    std::atomic<uint64_t>  connect_generation{0};
+    std::thread            connect_thread;
+    std::recursive_mutex   connect_mutex;
 };
 
 } // namespace Slic3r

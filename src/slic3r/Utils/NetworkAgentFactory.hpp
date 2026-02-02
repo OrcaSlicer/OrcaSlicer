@@ -106,6 +106,9 @@ public:
     /**
      * Create a printer agent by ID (using registry)
      *
+     * Returns a cached instance if one exists for the given ID, otherwise
+     * creates a new agent via the registered factory and caches it.
+     *
      * @param id Agent ID to create
      * @param cloud_agent Cloud agent for token access
      * @param log_dir Directory for log files
@@ -114,6 +117,13 @@ public:
     static std::shared_ptr<IPrinterAgent> create_printer_agent_by_id(const std::string&                  id,
                                                                      std::shared_ptr<ICloudServiceAgent> cloud_agent,
                                                                      const std::string&                  log_dir);
+
+    /**
+     * Clear the printer agent cache.
+     * Calls disconnect_printer() on each cached agent and releases all shared_ptrs.
+     * Should be called during application shutdown before destroying the NetworkAgent.
+     */
+    static void clear_printer_agent_cache();
 
     // ========================================================================
     // Cloud Agent Factory
