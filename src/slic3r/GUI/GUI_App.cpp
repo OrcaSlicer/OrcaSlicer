@@ -3482,12 +3482,16 @@ void GUI_App::switch_printer_agent()
     }
 
     // Read printer_agent from config, falling back to default
-    const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
     std::string effective_agent_id = ORCA_PRINTER_AGENT_ID;
-    if (config.has("printer_agent")) {
-        const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
-        if (!value.empty())
-            effective_agent_id = value;
+    if (preset_bundle->is_bbl_vendor()) {
+        effective_agent_id = BBL_PRINTER_AGENT_ID;
+    } else {
+        const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
+        if (config.has("printer_agent")) {
+            const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
+            if (!value.empty())
+                effective_agent_id = value;
+        }
     }
 
     // Check if agent is registered
