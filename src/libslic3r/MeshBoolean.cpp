@@ -480,6 +480,7 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
     if (mesh.empty())
         return true;
 
+    // ORCA: Fast path - skip CGAL conversion when mesh is already manifold.
     if (its_num_open_edges(mesh.its) == 0) {
         if (repaired_errors)
             *repaired_errors = RepairedMeshErrors{};
@@ -499,6 +500,7 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
             std::vector<halfedge_descriptor> border_cycles;
             CGALProc::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
             if (!border_cycles.empty()) {
+                // ORCA: Only triangulate when there are actual boundary cycles.
                 for (halfedge_descriptor h : border_cycles) {
                     std::vector<face_descriptor> patch_facets;
                     CGALProc::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_facets));
