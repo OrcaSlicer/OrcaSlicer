@@ -46,7 +46,7 @@ TriangleMesh TriangleMeshDeal::smooth_triangle_mesh(const TriangleMesh &mesh, bo
             its.indices.resize(indice_count);
             for (int i = 0; i < indice_count; i++) {
                 auto cur                   = F.row(i);
-                its.indices[i] = Slic3r::Vec3i(cur[0], cur[1], cur[2]);
+                its.indices[i] = Slic3r::Vec3i32(cur[0], cur[1], cur[2]);
             }
             TriangleMesh result_mesh(its);
             return result_mesh;
