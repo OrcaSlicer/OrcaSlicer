@@ -484,8 +484,7 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
         _EpicMesh cgal_mesh;
         triangle_mesh_to_cgal(mesh.its.vertices, mesh.its.indices, cgal_mesh);
 
-        size_t stitched_edges = CGALProc::stitch_borders(cgal_mesh);
-        size_t removed_self_intersections = 0;
+        const size_t stitched_edges = CGALProc::stitch_borders(cgal_mesh);
 
         if (!CGAL::is_closed(cgal_mesh)) {
             using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
@@ -500,8 +499,7 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
         }
 
         RepairedMeshErrors errors;
-        errors.degenerate_facets = 0;
-        errors.facets_removed = int(removed_self_intersections);
+        errors.facets_removed = 0;
         errors.edges_fixed = int(stitched_edges);
 
         indexed_triangle_set its = cgal_to_indexed_triangle_set(cgal_mesh);
