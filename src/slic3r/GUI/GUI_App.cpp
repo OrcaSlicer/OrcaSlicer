@@ -3498,11 +3498,12 @@ void GUI_App::switch_printer_agent()
         current_agent_id = m_agent->get_printer_agent()->get_agent_info().id;
 
     if (current_agent_id != effective_agent_id) {
-        std::string                         log_dir     = data_dir();
+        std::string log_dir = data_dir();
         std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent();
+
         // Create new printer agent via registry
-        std::shared_ptr<IPrinterAgent> new_printer_agent = NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent,
-                                                                                                           log_dir);
+        std::shared_ptr<IPrinterAgent> new_printer_agent =
+            NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent, log_dir);
 
         if (!new_printer_agent) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id << "', keeping current agent";
@@ -3511,11 +3512,13 @@ void GUI_App::switch_printer_agent()
 
         // Swap the agent
         m_agent->set_printer_agent(new_printer_agent);
-    }
-    // Auto-switch MachineObject
-    select_machine(effective_agent_id);
+        sidebar().update_all_preset_comboboxes();
 
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
+    }
+
+    // Auto-switch MachineObject (runs even if agent IDs match)
+    select_machine(effective_agent_id);
 }
 
 void GUI_App::select_machine(const std::string& agent_id)

@@ -820,8 +820,13 @@ void PhysicalPrinterDialog::check_host_key_valid()
 
 void PhysicalPrinterDialog::OnOK(wxEvent& event)
 {
-    wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name );
+    wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name);
     event.Skip();
+
+    // Defer printer agent switch to ensure preset save completes first
+    wxGetApp().CallAfter([] {
+        wxGetApp().switch_printer_agent();
+    });
 }
 
 }}    // namespace Slic3r::GUI
