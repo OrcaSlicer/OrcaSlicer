@@ -811,57 +811,35 @@ wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_l
     checkbox->SetValue(app_config->get_bool("drc_lossy_switch"));
     checkbox->SetToolTip(tooltip);
 
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent& e) {
+    auto input = new ::SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, wxSize(FromDIP(97), -1), wxSP_ARROW_KEYS,
+                                 DRC_BITS_MIN, DRC_BITS_MAX);
+    input->SetValue(app_config->get("drc_bits"));
+    input->SetToolTip(tooltip);
+    input->Enable(app_config->get_bool("drc_lossy_switch"));
+
+    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, input](wxCommandEvent& e) {
         app_config->set_bool("drc_lossy_switch", checkbox->GetValue());
         app_config->save();
-        if (m_draco_bits_textinput != nullptr) {
-            m_draco_bits_textinput->Enable(checkbox->GetValue());
-        }
+        input->Enable(checkbox->GetValue());
         e.Skip();
     });
 
-    auto input = new ::TextInput(m_parent, wxEmptyString, side_label, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(97), -1), wxTE_PROCESS_ENTER);
-    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
-                        std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
-    input->SetBackgroundColor(input_bg);
-    input->GetTextCtrl()->SetValue(app_config->get("drc_bits"));
-    wxTextValidator validator(wxFILTER_DIGITS);
-    input->SetToolTip(tooltip);
-    input->GetTextCtrl()->SetValidator(validator);
+    input->Bind(wxEVT_SPINCTRL, [this, input](wxCommandEvent& e) {
+        app_config->set("drc_bits", std::to_string(input->GetValue()));
+        app_config->save();
+        e.Skip();
+    });
+
+    input->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
+        e.SetId(GetId());
+        ProcessEventLocally(e);
+        e.Skip();
+    });
 
     m_sizer_input->Add(checkbox_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
     m_sizer_input->Add(checkbox, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(5));
     m_sizer_input->Add(input, 0, wxALIGN_CENTER_VERTICAL);
 
-    std::function<void()> set_draco_bits = [this, input]() {
-        long drc_bits = DRC_BITS_DEFAULT;
-        input->GetTextCtrl()->GetValue().ToLong(&drc_bits);
-        if (drc_bits > DRC_BITS_MAX) {
-            drc_bits = DRC_BITS_MAX;
-            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
-        } else if (drc_bits < DRC_BITS_MIN) {
-            drc_bits = DRC_BITS_MIN;
-            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
-        }
-
-        app_config->set("drc_bits", std::to_string(drc_bits));
-        app_config->save();
-    };
-
-    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [set_draco_bits](wxCommandEvent& e) {
-        set_draco_bits();
-        e.Skip();
-    });
-
-    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [set_draco_bits](wxFocusEvent& e) {
-        set_draco_bits();
-        e.Skip();
-    });
-
-    input->Enable(app_config->get("drc_lossy_switch") == "true");
-    input->Refresh();
-
-    m_draco_bits_textinput = input;
     return m_sizer_input;
 }
 
