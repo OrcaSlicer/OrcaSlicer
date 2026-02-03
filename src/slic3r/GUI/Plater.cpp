@@ -5304,11 +5304,11 @@ void Plater::priv::update(unsigned int flags)
         update_status = this->update_background_process(false, flags & (unsigned int)UpdateParams::POSTPONE_VALIDATION_ERROR_MESSAGE);
     //BBS TODO reload_scene
     this->view3D->reload_scene(false, flags & (unsigned int)UpdateParams::FORCE_FULL_SCREEN_REFRESH);
-    this->preview->reload_print();
+    if (is_preview_shown()) this->preview->reload_print();
     //BBS assemble view
     this->assemble_view->reload_scene(false, flags);
 
-    if (current_panel && q->is_preview_shown()) {
+    if (current_panel && is_preview_shown()) {
         q->force_update_all_plate_thumbnails();
         //update_fff_scene_only_shells(true);
     }
