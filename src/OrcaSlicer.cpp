@@ -1186,6 +1186,11 @@ int CLI::run(int argc, char **argv)
     // instruct the window manager to fall back to X server mode.
     ::setenv("GDK_BACKEND", "x11", /* replace */ true);
 
+    // WebKit2GTK's compositing mode can fail under XWayland, causing WebViews
+    // (like the Setup Wizard) to render blank or freeze. Disabling compositing
+    // mode forces software rendering, which works reliably on all backends.
+    ::setenv("WEBKIT_DISABLE_COMPOSITING_MODE", "1", /* replace */ false);
+
     // Also on Linux, we need to tell Xlib that we will be using threads,
     // lest we crash when we fire up GStreamer.
     XInitThreads();
