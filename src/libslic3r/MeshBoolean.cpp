@@ -491,26 +491,58 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
         _EpicMesh cgal_mesh;
         triangle_mesh_to_cgal(mesh.its.vertices, mesh.its.indices, cgal_mesh);
 
-        const size_t stitched_edges = CGALProc::stitch_borders(cgal_mesh);
+        RepairedMeshErrors errors;
+        errors.facets_removed = 0;
+        errors.edges_fixed = 0;
 
+        // Phase 1: Combinatorial Repair - Stitch borders
+        const size_t stitched_edges = CGALProc::stitch_borders(cgal_mesh);
+        errors.edges_fixed = int(stitched_edges);
+
+        // Phase 2: Geometric Repair - Remove degenerate faces
+        const size_t degenerate_faces_removed = CGALProc::remove_degenerate_faces(cgal_mesh);
+        errors.facets_removed += int(degenerate_faces_removed);
+
+        // Phase 3: Clean up isolated vertices
+        CGALProc::remove_isolated_vertices(cgal_mesh);
+
+        // Phase 4: Fill remaining holes with refined triangulation
         if (!CGAL::is_closed(cgal_mesh)) {
             using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
             using face_descriptor = boost::graph_traits<_EpicMesh>::face_descriptor;
+            using vertex_descriptor = boost::graph_traits<_EpicMesh>::vertex_descriptor;
 
             std::vector<halfedge_descriptor> border_cycles;
             CGALProc::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
+            
             if (!border_cycles.empty()) {
-                // ORCA: Only triangulate when there are actual boundary cycles.
+                // Use refined hole-filling with density control for better quality patches
                 for (halfedge_descriptor h : border_cycles) {
                     std::vector<face_descriptor> patch_facets;
-                    CGALProc::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_facets));
+                    std::vector<vertex_descriptor> patch_vertices;
+                    
+                    // triangulate_and_refine_hole provides better quality than triangulate_hole
+                    // Parameters: mesh, halfedge, output facets, output vertices
+                    CGALProc::triangulate_and_refine_hole(
+                        cgal_mesh, h,
+                        std::back_inserter(patch_facets),
+                        std::back_inserter(patch_vertices),
+                        CGALParams::density_control_factor(10.0));
                 }
             }
         }
 
-        RepairedMeshErrors errors;
-        errors.facets_removed = 0;
-        errors.edges_fixed = int(stitched_edges);
+        // Phase 5: Final validation - ensure volume-bounding property
+        if (!CGAL::is_closed(cgal_mesh)) {
+            if (error)
+                *error = "Mesh remains non-closed after repair attempts";
+            return false;
+        }
+
+        // Ensure proper orientation for volume bounding
+        if (!CGALProc::does_bound_a_volume(cgal_mesh)) {
+            CGALProc::orient_to_bound_a_volume(cgal_mesh);
+        }
 
         indexed_triangle_set its = cgal_to_indexed_triangle_set(cgal_mesh);
         mesh = TriangleMesh(std::move(its), errors);
