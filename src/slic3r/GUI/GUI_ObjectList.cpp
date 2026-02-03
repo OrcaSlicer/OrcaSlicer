@@ -35,7 +35,7 @@
 #include <wx/utils.h>
 #include <wx/headerctrl.h>
 
-#include "slic3r/Utils/FixModelByWin10.hpp"
+#include "slic3r/Utils/FixModelByCgal.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
@@ -6014,7 +6014,7 @@ void ObjectList::fix_through_netfabb()
 
         plater->clear_before_change_mesh(obj_idx);
         std::string res;
-        if (!fix_model_by_win10_sdk_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res))
+        if (!fix_model_with_cgal_gui(*(object(obj_idx)), vol_idx, progress_dlg, msg, res))
             return false;
         //wxGetApp().plater()->changed_mesh(obj_idx);
         object(obj_idx)->ensure_on_bed();

@@ -21,7 +21,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include "slic3r/GUI/Tab.hpp"
-#include "slic3r/Utils/FixModelByWin10.hpp"
 #include "ParamsPanel.hpp"
 #include "MsgDialog.hpp"
 #include "wx/utils.h"

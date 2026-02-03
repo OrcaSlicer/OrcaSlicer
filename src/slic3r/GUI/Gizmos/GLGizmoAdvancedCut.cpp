@@ -686,7 +686,7 @@ void GLGizmoAdvancedCut::perform_cut(const Selection& selection)
                             wxString msg = _L("Repairing model object");
                             msg += ": " + from_u8(model_name) + "\n";
                             std::string res;
-                            if (!fix_model_by_win10_sdk_gui(*model_object, vol_idx, progress_dlg, msg, res)) return false;
+                            if (!fix_model_with_cgal_gui(*model_object, vol_idx, progress_dlg, msg, res)) return false;
                             return true;
                         };
                         ProgressDialog progress_dlg(_L("Repairing model object"), "", 100, find_toplevel_parent(plater), wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT, true);
