@@ -2099,6 +2099,11 @@ void Tab::on_presets_changed()
     // Instead of PostEvent (EVT_TAB_PRESETS_CHANGED) just call update_presets
     wxGetApp().plater()->sidebar().update_presets(m_type);
 
+    // Check if printer agent needs switching
+    if (m_type == Preset::TYPE_PRINTER) {
+        wxGetApp().switch_printer_agent();
+    }
+
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
     if (is_bbl_vendor_preset) {
         wxGetApp().plater()->get_partplate_list().set_render_option(true, true);

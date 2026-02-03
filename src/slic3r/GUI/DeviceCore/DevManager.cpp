@@ -518,7 +518,7 @@ namespace Slic3r
 #if !BBL_RELEASE_TO_PUBLIC
                         it->second->connect(Slic3r::GUI::wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false);
 #else
-                        it->second->connect(it->second->local_use_ssl_for_mqtt);
+                        it->second->connect(it->second->local_use_ssl);
 #endif
                         it->second->set_lan_mode_connection_state(true);
                     }
@@ -542,7 +542,7 @@ namespace Slic3r
 #if !BBL_RELEASE_TO_PUBLIC
                         it->second->connect(Slic3r::GUI::wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false);
 #else
-                        it->second->connect(it->second->local_use_ssl_for_mqtt);
+                        it->second->connect(it->second->local_use_ssl);
 #endif
                         it->second->set_lan_mode_connection_state(true);
                     }
@@ -858,7 +858,10 @@ namespace Slic3r
     {
         if (MachineObject* obj_ = get_selected_machine()) {
             GUI::wxGetApp().sidebar().update_sync_status(obj_);
-            GUI::wxGetApp().sidebar().load_ams_list(obj_);
+            if(m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription)
+            {
+                GUI::wxGetApp().sidebar().load_ams_list(obj_);
+            }
         };
     }
 

@@ -110,6 +110,9 @@ struct Http::priv
 	::curl_httppost *form_end;
 	::curl_mime* mime;
 	::curl_slist *headerlist;
+	// For debug printing
+	std::string url;
+	std::string method;
 	// Used for reading the body
 	std::string buffer;
 	// Used for storing file streams added as multipart form parts
@@ -170,6 +173,8 @@ Http::priv::priv(const std::string &url)
 	, form_end(nullptr)
 	, mime(nullptr)
 	, headerlist(nullptr)
+	, url(url)
+	, method("GET")
 	, error_buffer(CURL_ERROR_SIZE + 1, '\0')
 	, limit(0)
 	, cancel(false)
@@ -757,6 +762,74 @@ void Http::cancel()
 	if (p) { p->cancel = true; }
 }
 
+void Http::print() const
+{
+	if (!p) {
+		BOOST_LOG_TRIVIAL(info) << "Http::print() - no request data";
+		return;
+	}
+
+	std::ostringstream cmd;
+	cmd << "curl";
+
+	// Method
+	if (p->method != "GET") {
+		cmd << " -X " << p->method;
+	}
+
+	// URL
+	cmd << " '" << p->url << "'";
+
+	// Headers (iterate through curl_slist)
+	::curl_slist *header = p->headerlist;
+	while (header) {
+		// Skip empty "Expect:" header we add by default
+		if (header->data && std::string(header->data) != "Expect:") {
+			cmd << " \\\n  -H '" << header->data << "'";
+		}
+		header = header->next;
+	}
+
+	// Form fields (multipart) - iterate through curl_httppost
+	::curl_httppost *formpost = p->form;
+	while (formpost) {
+		if (formpost->showfilename) {
+			// File upload (showfilename is set when CURLFORM_FILENAME is used)
+			cmd << " \\\n  -F '" << formpost->name << "=@" << formpost->showfilename << "'";
+		} else if (formpost->contents) {
+			// Regular form field with contents
+			cmd << " \\\n  -F '" << formpost->name << "=" << formpost->contents << "'";
+		} else {
+			// Stream or other type without direct contents
+			cmd << " \\\n  -F '" << formpost->name << "=<data>'";
+		}
+		formpost = formpost->next;
+	}
+
+	// Post body
+	if (!p->postfields.empty()) {
+		// Escape single quotes in the body for shell safety
+		std::string escaped_body = p->postfields;
+		size_t pos = 0;
+		while ((pos = escaped_body.find('\'', pos)) != std::string::npos) {
+			escaped_body.replace(pos, 1, "'\\''");
+			pos += 4;
+		}
+		// Truncate if too long for display
+		if (escaped_body.length() > 1000) {
+			escaped_body = escaped_body.substr(0, 1000) + "...<truncated>";
+		}
+		cmd << " \\\n  -d '" << escaped_body << "'";
+	}
+
+	// Put file
+	if (p->putFile) {
+		cmd << " \\\n  --upload-file <file-stream>";
+	}
+
+	BOOST_LOG_TRIVIAL(info) << "Http request:\n" << cmd.str();
+}
+
 Http Http::get(std::string url)
 {
     return Http{std::move(url)};
@@ -765,6 +838,7 @@ Http Http::get(std::string url)
 Http Http::post(std::string url)
 {
 	Http http{std::move(url)};
+	http.p->method = "POST";
 	curl_easy_setopt(http.p->curl, CURLOPT_POST, 1L);
 	return http;
 }
@@ -772,6 +846,7 @@ Http Http::post(std::string url)
 Http Http::put(std::string url)
 {
 	Http http{std::move(url)};
+	http.p->method = "PUT";
 	curl_easy_setopt(http.p->curl, CURLOPT_UPLOAD, 1L);
 	return http;
 }
@@ -779,6 +854,7 @@ Http Http::put(std::string url)
 Http Http::put2(std::string url)
 {
 	Http http{ std::move(url) };
+	http.p->method = "PUT";
 	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "PUT");
 	return http;
 }
@@ -786,6 +862,7 @@ Http Http::put2(std::string url)
 Http Http::patch(std::string url)
 {
 	Http http{ std::move(url) };
+	http.p->method = "PATCH";
 	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "PATCH");
 	return http;
 }
@@ -793,6 +870,7 @@ Http Http::patch(std::string url)
 Http Http::del(std::string url)
 {
 	Http http{ std::move(url) };
+	http.p->method = "DELETE";
 	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "DELETE");
 	return http;
 }

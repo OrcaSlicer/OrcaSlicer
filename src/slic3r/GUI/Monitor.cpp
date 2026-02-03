@@ -3,6 +3,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 
 #include <wx/app.h>
 #include <wx/button.h>
@@ -532,8 +533,8 @@ void MonitorPanel::update_network_version_footer()
         return;
 
     std::string configured_version = wxGetApp().app_config->get_network_plugin_version();
-    std::string suffix = BBL::extract_suffix(configured_version);
-    std::string configured_base = BBL::extract_base_version(configured_version);
+    std::string suffix = extract_suffix(configured_version);
+    std::string configured_base = extract_base_version(configured_version);
 
     wxString footer_text;
     if (!suffix.empty() && configured_base == binary_version) {

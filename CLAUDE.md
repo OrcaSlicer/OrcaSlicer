@@ -9,67 +9,22 @@ OrcaSlicer is an open-source 3D slicer application forked from Bambu Studio, bui
 ## Build Commands
 
 ### Building on Windows
+**Always use this command to build the project when testing build issues on Windows.**
 ```bash
-# Build everything
-build_release_vs2022.bat
-
-# Build with debug symbols
-build_release_vs2022.bat debug
-
-# Build only dependencies
-build_release_vs2022.bat deps
-
-# Build only slicer (after deps are built)
-build_release_vs2022.bat slicer
-
-
+cmake --build . --config %build_type% --target ALL_BUILD -- -m
 ```
 
 ### Building on macOS
+**Always use this command to build the project when testing build issues on macOS.**
 ```bash
-# Build everything (dependencies and slicer)
-./build_release_macos.sh
-
-# Build only dependencies
-./build_release_macos.sh -d
-
-# Build only slicer (after deps are built)
-./build_release_macos.sh -s
-
-# Use Ninja generator for faster builds
-./build_release_macos.sh -x
-
-# Build for specific architecture
-./build_release_macos.sh -a arm64    # or x86_64 or universal
-
-# Build for specific macOS version target
-./build_release_macos.sh -t 11.3
+cmake --build build/arm64 --config RelWithDebInfo --target all --
 ```
 
 ### Building on Linux
+ **Always use this command to build the project when testing build issues on Linux.**
 ```bash
-# First time setup - install system dependencies
-./build_linux.sh -u
+cmake --build build/arm64 --config RelWithDebInfo --target all --
 
-# Build dependencies and slicer
-./build_linux.sh -dsi
-
-# Build everything (alternative)
-./build_linux.sh -dsi
-
-# Individual options:
-./build_linux.sh -d    # dependencies only
-./build_linux.sh -s    # slicer only  
-./build_linux.sh -i    # build AppImage
-
-# Performance and debug options:
-./build_linux.sh -j N  # limit to N cores
-./build_linux.sh -1    # single core build
-./build_linux.sh -b    # Debug build
-./build_linux.sh -e    # RelWithDebInfo build
-./build_linux.sh -c    # clean build
-./build_linux.sh -r    # skip RAM/disk checks
-./build_linux.sh -l    # use Clang instead of GCC
 ```
 ### Build test:
 
@@ -90,6 +45,7 @@ cmake --build build/arm64 --config RelWithDebInfo --target all --
 cmake --build build/arm64 --config RelWithDebInfo --target all --
 
 ```
+
 
 ### Build System
 - Uses CMake with minimum version 3.13 (maximum 3.31.x on Windows)

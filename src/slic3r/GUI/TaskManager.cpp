@@ -62,7 +62,7 @@ TaskState parse_task_status(int status)
 
 int TaskStateInfo::g_task_info_id = 0;
 
-TaskStateInfo::TaskStateInfo(BBL::PrintParams param)
+TaskStateInfo::TaskStateInfo(PrintParams param)
     : m_state(TaskState::TS_PENDING)
     , m_params(param)
     , m_sending_percent(0)
@@ -103,8 +103,8 @@ TaskStateInfo::TaskStateInfo(BBL::PrintParams param)
         int curr_percent = 0;
         if (stage >= 0 && stage <= (int)PrintingStageFinished) {
             curr_percent = StagePercentPoint[stage];
-            if ((stage == BBL::SendingPrintJobStage::PrintingStageUpload
-                || stage == BBL::SendingPrintJobStage::PrintingStageRecord)
+            if ((stage == SendingPrintJobStage::PrintingStageUpload
+                || stage == SendingPrintJobStage::PrintingStageRecord)
                 && (code > 0 && code <= 100)) {
                 curr_percent = (StagePercentPoint[stage + 1] - StagePercentPoint[stage]) * code / 100 + StagePercentPoint[stage];
                 BOOST_LOG_TRIVIAL(trace) << "task_manager: percent = " << curr_percent;
@@ -156,7 +156,7 @@ TaskManager::TaskManager(NetworkAgent* agent)
 }
 
 
-int TaskManager::start_print(const std::vector<BBL::PrintParams>& params, TaskSettings* settings)
+int TaskManager::start_print(const std::vector<PrintParams>& params, TaskSettings* settings)
 {
     BOOST_LOG_TRIVIAL(info) << "task_manager: start_print size = " << params.size();
     TaskManager::MaxSendingAtSameTime = settings->max_sending_at_same_time;
@@ -173,7 +173,7 @@ int TaskManager::start_print(const std::vector<BBL::PrintParams>& params, TaskSe
     return 0;
 }
 
-static int start_print_test(BBL::PrintParams& params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
+static int start_print_test(PrintParams& params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn)
 {
     int tick = 2;
     for (int i = 0; i < 100 * tick; i++) {
@@ -321,7 +321,7 @@ std::map<std::string, TaskStateInfo> TaskManager::get_task_list(int curr_page, i
 {
     std::map<std::string, TaskStateInfo> out;
     if (m_agent) {
-        BBL::TaskQueryParams task_query_params;
+        TaskQueryParams task_query_params;
         task_query_params.limit = page_count;
         task_query_params.offset = curr_page * page_count;
         std::string task_info;

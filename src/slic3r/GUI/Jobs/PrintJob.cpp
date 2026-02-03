@@ -197,12 +197,12 @@ void PrintJob::process(Ctl &ctl)
         this->task_bed_type = bed_type_to_gcode_string(plate_data.is_valid ? plate_data.bed_type : curr_plate->get_bed_type(true));
     }
 
-    BBL::PrintParams params;
+    PrintParams params;
 
     // local print access
     params.dev_ip = m_dev_ip;
     params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
-    params.use_ssl_for_mqtt  = m_local_use_ssl_for_mqtt;
+    params.use_ssl_for_mqtt  = m_local_use_ssl;
     params.username = "bblp";
     params.password = m_access_code;
 
@@ -382,14 +382,14 @@ void PrintJob::process(Ctl &ctl)
         StagePercentPoint
     ](int stage, int code, std::string info) {
 
-                        if (stage == BBL::SendingPrintJobStage::PrintingStageCreate && !is_try_lan_mode_failed) {
+                        if (stage == SendingPrintJobStage::PrintingStageCreate && !is_try_lan_mode_failed) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageUpload && !is_try_lan_mode_failed) {
+                        else if (stage == SendingPrintJobStage::PrintingStageUpload && !is_try_lan_mode_failed) {
                             if (code >= 0 && code <= 100 && !info.empty()) {
                                 if (this->connection_type == "lan") {
                                     msg = _u8L("Sending print job over LAN");
@@ -399,24 +399,24 @@ void PrintJob::process(Ctl &ctl)
                                 msg += format("(%s)", info);
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageWaiting) {
+                        else if (stage == SendingPrintJobStage::PrintingStageWaiting) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else  if (stage == BBL::SendingPrintJobStage::PrintingStageRecord && !is_try_lan_mode) {
+                        else  if (stage == SendingPrintJobStage::PrintingStageRecord && !is_try_lan_mode) {
                             msg = _u8L("Sending print configuration");
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageSending && !is_try_lan_mode) {
+                        else if (stage == SendingPrintJobStage::PrintingStageSending && !is_try_lan_mode) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageFinished) {
+                        else if (stage == SendingPrintJobStage::PrintingStageFinished) {
                             msg = format(_u8L("Successfully sent. Will automatically jump to the device page in %ss"), info);
                             if (m_print_job_completed_id == wxGetApp().plater()->get_send_calibration_finished_event()) {
                                 msg = format(_u8L("Successfully sent. Will automatically jump to the next page in %ss"), info);
@@ -433,15 +433,15 @@ void PrintJob::process(Ctl &ctl)
                         // update current percnet
                         if (stage >= 0 && stage <= (int) PrintingStageFinished) {
                             curr_percent = StagePercentPoint[stage];
-                            if ((stage == BBL::SendingPrintJobStage::PrintingStageUpload
-                                || stage == BBL::SendingPrintJobStage::PrintingStageRecord)
+                            if ((stage == SendingPrintJobStage::PrintingStageUpload
+                                || stage == SendingPrintJobStage::PrintingStageRecord)
                                 && (code > 0 && code <= 100)) {
                                 curr_percent = (StagePercentPoint[stage + 1] - StagePercentPoint[stage]) * code / 100 + StagePercentPoint[stage];
                             }
                         }
 
                         //get errors
-                        if (code > 100 || code < 0 || stage == BBL::SendingPrintJobStage::PrintingStageERROR) {
+                        if (code > 100 || code < 0 || stage == SendingPrintJobStage::PrintingStageERROR) {
                             if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE) {
                                 m_plater->update_print_error_info(code, desc_file_too_large, info);
                             }else if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST){
