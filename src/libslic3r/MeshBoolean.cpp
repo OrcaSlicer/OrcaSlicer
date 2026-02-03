@@ -488,25 +488,29 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
     }
 
     try {
+        std::vector<_EpicMesh::Point> points;
+        std::vector<std::vector<size_t>> polygons;
+
+        points.reserve(mesh.its.vertices.size());
+        polygons.reserve(mesh.its.indices.size());
+
+        for (auto& v : mesh.its.vertices)
+            points.emplace_back(v.x(), v.y(), v.z());
+
+        for (auto& f : mesh.its.indices) {
+            polygons.emplace_back(std::vector<size_t>{size_t(f[0]), size_t(f[1]), size_t(f[2])});
+        }
+
+        size_t original_face_count = polygons.size();
+
+        // Repair the polygon soup
+        CGALProc::orient_polygon_soup(points, polygons);
+
+        // Create the mesh from the repaired soup
         _EpicMesh cgal_mesh;
-        triangle_mesh_to_cgal(mesh.its.vertices, mesh.its.indices, cgal_mesh);
+        CGALProc::polygon_soup_to_polygon_mesh(points, polygons, cgal_mesh);
 
-        RepairedMeshErrors errors;
-        errors.facets_removed = 0;
-        errors.edges_fixed = 0;
-
-        // Phase 1: Combinatorial Repair - Stitch borders
-        const size_t stitched_edges = CGALProc::stitch_borders(cgal_mesh);
-        errors.edges_fixed = int(stitched_edges);
-
-        // Phase 2: Geometric Repair - Remove degenerate faces
-        const size_t degenerate_faces_removed = CGALProc::remove_degenerate_faces(cgal_mesh);
-        errors.facets_removed += int(degenerate_faces_removed);
-
-        // Phase 3: Clean up isolated vertices
-        CGALProc::remove_isolated_vertices(cgal_mesh);
-
-        // Phase 4: Fill remaining holes with refined triangulation
+        // Fill holes if not closed
         if (!CGAL::is_closed(cgal_mesh)) {
             using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
             using face_descriptor = boost::graph_traits<_EpicMesh>::face_descriptor;
@@ -514,37 +518,33 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
 
             std::vector<halfedge_descriptor> border_cycles;
             CGALProc::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
-            
+
             if (!border_cycles.empty()) {
-                // Use refined hole-filling with density control for better quality patches
                 for (halfedge_descriptor h : border_cycles) {
                     std::vector<face_descriptor> patch_facets;
                     std::vector<vertex_descriptor> patch_vertices;
-                    
-                    // triangulate_and_refine_hole provides better quality than triangulate_hole
-                    // Parameters: mesh, halfedge, output facets, output vertices
-                    CGALProc::triangulate_and_refine_hole(
-                        cgal_mesh, h,
-                        std::back_inserter(patch_facets),
-                        std::back_inserter(patch_vertices),
-                        CGALParams::density_control_factor(10.0));
+                    CGALProc::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_facets));
                 }
             }
         }
 
-        // Phase 5: Final validation - ensure volume-bounding property
+        // Ensure closed and oriented
         if (!CGAL::is_closed(cgal_mesh)) {
             if (error)
-                *error = "Mesh remains non-closed after repair attempts";
+                *error = "Mesh remains non-closed after repair";
             return false;
         }
 
-        // Ensure proper orientation for volume bounding
         if (!CGALProc::does_bound_a_volume(cgal_mesh)) {
             CGALProc::orient_to_bound_a_volume(cgal_mesh);
         }
 
         indexed_triangle_set its = cgal_to_indexed_triangle_set(cgal_mesh);
+
+        RepairedMeshErrors errors;
+        errors.facets_removed = 0; // orient_polygon_soup doesn't remove facets
+        errors.edges_fixed = 0;
+
         mesh = TriangleMesh(std::move(its), errors);
 
         if (repaired_errors)
