@@ -25,7 +25,7 @@ SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPri
 
 AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
 {
-    return AgentInfo{"snapmaker", "Snapmaker Printer Agent", SNAPMAKER_AGENT_VERSION, "Snapmaker printer agent"};
+    return AgentInfo{"snapmaker", "Snapmaker", SNAPMAKER_AGENT_VERSION, "Snapmaker printer agent"};
 }
 
 std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type, const std::string& sub_type)

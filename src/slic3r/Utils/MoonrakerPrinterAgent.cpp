@@ -111,7 +111,7 @@ MoonrakerPrinterAgent::~MoonrakerPrinterAgent()
 
 AgentInfo MoonrakerPrinterAgent::get_agent_info_static()
 {
-    return AgentInfo{"moonraker", "Moonraker Printer Agent", MoonrakerPrinterAgent_VERSION, "Klipper/Moonraker printer agent"};
+    return AgentInfo{"moonraker", "Moonraker", MoonrakerPrinterAgent_VERSION, "Klipper/Moonraker printer agent"};
 }
 
 void MoonrakerPrinterAgent::set_cloud_agent(std::shared_ptr<ICloudServiceAgent> cloud)
