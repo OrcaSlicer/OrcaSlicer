@@ -286,7 +286,7 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
                 // ptr1 is now wipe tower, ptr2 is PrintInstance*
                 const PrintInstance *inst2 = reinterpret_cast<const PrintInstance *>(ptr2);
                 const PrintObject *obj2 = inst2->print_object;
-                return std::make_optional<ConflictResult>("WipeTower", obj2->model_object()->name, conflictPrintZ, nullptr, obj2);
+                return std::make_optional<ConflictResult>("WipeTower", obj2->model_object()->name, conflictPrintZ, nullptr, inst2);
             }
         }
         
@@ -294,7 +294,7 @@ ConflictResultOpt ConflictChecker::find_inter_of_lines_in_diff_objs(PrintObjectP
         const PrintInstance *inst2 = reinterpret_cast<const PrintInstance *>(ptr2);
         const PrintObject *obj1 = inst1->print_object;
         const PrintObject *obj2 = inst2->print_object;
-        return std::make_optional<ConflictResult>(obj1->model_object()->name, obj2->model_object()->name, conflictPrintZ, obj1, obj2);
+        return std::make_optional<ConflictResult>(obj1->model_object()->name, obj2->model_object()->name, conflictPrintZ, inst1, inst2);
     } else
         return {};
 }

@@ -1835,6 +1835,8 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 {
     auto po = dynamic_cast<PrintObjectBase const *>(error.object);
     auto mo = po ? po->model_object() : dynamic_cast<ModelObject const *>(error.object);
+    //ORCA: Update to handle ModelInstance selection for validation errors with fallback
+    /*
 	std::function<bool(wxEvtHandler*)> callback;
 	if (mo || !error.opt_key.empty()) {
 		callback =
@@ -1856,6 +1858,71 @@ void NotificationManager::push_validate_error_notification(StringObjectException
 	}
     auto link = (mo || !error.opt_key.empty()) ? _u8L("Jump to") : "";
     if (mo) link += std::string(" [") + mo->name + "]";
+    */
+    auto mi = dynamic_cast<ModelInstance const *>(error.object);
+	std::function<bool(wxEvtHandler*)> callback;
+	if (mo || mi || !error.opt_key.empty()) {
+		callback =
+			[id = mo ? mo->id() : (mi ? mi->id() : 0),
+             parent_id = mi ? mi->get_object()->id() : 0,
+             is_inst = (mi != nullptr),
+             opt = error.opt_key](wxEvtHandler*) {
+			auto& objects = wxGetApp().model().objects;
+
+            if (is_inst) {
+                 bool selected = false;
+                 auto iter = std::find_if(objects.begin(), objects.end(), [parent_id](auto o) { return o->id() == parent_id; });
+                 if (iter != objects.end()) {
+                      ModelObject* obj = *iter;
+                      int inst_idx = -1;
+                      for(size_t i=0; i<obj->instances.size(); ++i) {
+                          if (obj->instances[i]->id() == id) {
+                              inst_idx = i;
+                              break;
+                          }
+                      }
+                      if (inst_idx != -1) {
+                         auto* model = wxGetApp().obj_list()->GetModel();
+                         wxDataViewItem item;
+                         wxDataViewItem objItem = model->GetObjectItem(obj);
+                         if (objItem.IsOk()) {
+                             int vm_obj_idx = model->GetIdByItem(objItem);
+                             if (vm_obj_idx != -1) {
+                                 item = model->GetItemByInstanceId(vm_obj_idx, inst_idx);
+                             }
+                         }
+                         if (item.IsOk()) {
+                             wxDataViewItemArray sel_items;
+                             sel_items.Add(item);
+                             wxGetApp().obj_list()->select_items(sel_items);
+                             selected = true;
+                         }
+                      }
+                      
+                      if (!selected) {
+                           wxGetApp().obj_list()->select_items({ {obj, nullptr} });
+                      }
+                 }
+            } else {
+			    auto iter = id.id ? std::find_if(objects.begin(), objects.end(), [id](auto o) { return o->id() == id; }) : objects.end();
+			    if (iter != objects.end())
+				    wxGetApp().obj_list()->select_items({ {*iter, nullptr} });
+            }
+
+			if (!opt.empty()) {
+				if ((!is_inst && id.id) || (is_inst && parent_id.id)) // if object found
+					wxGetApp().params_panel()->switch_to_object();
+				wxGetApp().sidebar().jump_to_option(opt, Preset::TYPE_PRINT, L"");
+			}
+			else {
+				wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+			}
+			return false;
+		};
+	}
+    auto link = (mo || mi || !error.opt_key.empty()) ? _u8L("Jump to") : "";
+    if (mo) link += std::string(" [") + mo->name + "]";
+    if (mi) link += std::string(" [") + mi->get_object()->name + "]";
     if (!error.opt_key.empty()) link += std::string(" (") + error.opt_key + ")";
     push_notification_data({NotificationType::ValidateError, NotificationLevel::ErrorNotificationLevel, 0, _u8L("Error:") + "\n" + error.string, link, callback}, 0);
 	set_slicing_progress_hidden();
@@ -2285,7 +2352,7 @@ void NotificationManager::upload_job_notification_show_error(int id, const std::
 	}
 }
 
-void NotificationManager::push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelObject const *> objs) 
+void NotificationManager::push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelObject const *> objs)
 {
     std::vector<ObjectID> ids;
     for (auto optr : objs) {
@@ -2314,6 +2381,91 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
             if (obj) link += obj->name + ", ";
         }
         if (!objs.empty()) {
+            link.pop_back();
+            link.pop_back();
+        }
+        link += "] ";
+    }
+    set_all_slicing_warnings_gray(false);
+    push_notification_data({NotificationType::SlicingSeriousWarning, NotificationLevel::SeriousWarningNotificationLevel, 0, _u8L("Serious warning:") + "\n" + text, link,
+                            callback},
+                           0);
+    set_slicing_progress_hidden();
+}
+
+void NotificationManager::push_slicing_serious_warning_notification(const std::string &text, std::vector<ModelInstance const *> insts)
+{
+    std::vector<std::pair<ObjectID, ObjectID>> ids;
+    for (auto iptr : insts) {
+        if (iptr && iptr->get_object()) {
+            ids.push_back({iptr->get_object()->id(), iptr->id()});
+        }
+    }
+    std::function<bool(wxEvtHandler*)> callback;
+    if (!insts.empty()) {
+        callback = [ids](wxEvtHandler*) {
+            auto& objects = wxGetApp().model().objects;
+            wxDataViewItemArray sel_items;
+            std::vector<ObjectVolumeID> fallback_ovs;
+            auto* obj_list = wxGetApp().obj_list();
+            if (!obj_list) return false;
+            auto* model = obj_list->GetModel();
+            if (!model) return false;
+
+            for (const auto& pair : ids) {
+                ObjectID obj_id = pair.first;
+                ObjectID inst_id = pair.second;
+                
+                auto iter = std::find_if(objects.begin(), objects.end(), [obj_id](auto o) { return o->id() == obj_id; });
+                if (iter != objects.end()) {
+                    ModelObject* obj = *iter;
+                    int inst_idx = -1;
+                    for (int i=0; i<obj->instances.size(); ++i) {
+                        if (obj->instances[i]->id() == inst_id) {
+                            inst_idx = i;
+                            break;
+                        }
+                    }
+                    
+                    if (inst_idx != -1) {
+                        wxDataViewItem item;
+                        wxDataViewItem objItem = model->GetObjectItem(obj);
+                        if (objItem.IsOk()) {
+                             int vm_obj_idx = model->GetIdByItem(objItem);
+                             if (vm_obj_idx != -1) {
+                                 item = model->GetItemByInstanceId(vm_obj_idx, inst_idx);
+                             }
+                        }
+
+                        if (item.IsOk()) {
+                            sel_items.Add(item);
+                        } else {
+                            fallback_ovs.push_back({obj, nullptr});
+                        }
+                    } else {
+                         fallback_ovs.push_back({obj, nullptr});
+                    }
+                }
+            }
+            
+            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
+            
+            if (!sel_items.empty()) {
+                obj_list->select_items(sel_items);
+            } else if (!fallback_ovs.empty()) {
+                obj_list->select_items(fallback_ovs);
+            }
+            
+            return false;
+        };
+    }
+    auto link     = callback ? _u8L("Jump to") : "";
+    if (!insts.empty()) {
+        link += " [";
+        for (auto inst : insts) {
+            if (inst) link += inst->get_object()->name + ", ";
+        }
+        if (!insts.empty()) {
             link.pop_back();
             link.pop_back();
         }
