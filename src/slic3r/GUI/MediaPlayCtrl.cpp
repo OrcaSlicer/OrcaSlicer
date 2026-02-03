@@ -7,6 +7,8 @@
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
 #include "DownloadProgressDialog.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+
 
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>

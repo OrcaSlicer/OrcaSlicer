@@ -42,7 +42,7 @@ public:
 	std::string connection_type;
 
     bool        m_local_use_ssl_for_ftp{true};
-    bool        m_local_use_ssl_for_mqtt{true};
+    bool        m_local_use_ssl{true};
     bool        cloud_print_only { false };
     bool        has_sdcard { false };
     bool        task_use_ams { true };
