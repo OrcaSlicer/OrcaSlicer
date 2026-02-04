@@ -12349,17 +12349,6 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     double internal_solid_speed = std::floor(std::min(print_config->opt_float("internal_solid_infill_speed"), max_infill_speed));
     double top_surface_speed = std::floor(std::min(print_config->opt_float("top_surface_speed"), max_infill_speed));
 
-    // disable z-hop and retract wipe
-    filament_config->set_key_value("filament_z_hop", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
-    filament_config->set_key_value("filament_wipe_distance", new ConfigOptionFloatsNullable{ConfigOptionFloatsNullable::nil_value()});
-    filament_config->set_key_value("filament_retract_lift_enforce", new ConfigOptionEnumsGenericNullable{ConfigOptionEnumsGenericNullable::nil_value()});
-    filament_config->set_key_value("filament_z_hop_types", new ConfigOptionEnumsGenericNullable{ConfigOptionEnumsGenericNullable::nil_value()});
-
-    printerConfig->set_key_value("z_hop", new ConfigOptionFloats{0.0f});
-    printerConfig->set_key_value("wipe_distance", new ConfigOptionFloats{0.0f});
-    printerConfig->set_key_value("retract_lift_enforce", new ConfigOptionEnumsGeneric{RetractLiftEnforceType::rletAllSurfaces});
-    printerConfig->set_key_value("z_hop_types", new ConfigOptionEnumsGeneric{ZHopType::zhtNormal});
-
     // adjust parameters
     for (auto _obj : objects) {
         _obj->ensure_on_bed();
