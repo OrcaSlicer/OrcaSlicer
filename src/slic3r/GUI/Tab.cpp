@@ -389,6 +389,7 @@ void Tab::create_preset_tab()
         m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
         m_mode_icon->SetToolTip(_L("Show/Hide advanced parameters"));
         m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
+            if(wxGetApp().get_mode() == comDevelop) return; // prevent change on dev mode
             m_mode_view->SetValue(!m_mode_view->GetValue());
             wxCommandEvent evt(wxEVT_TOGGLEBUTTON, m_mode_view->GetId()); // ParamsPanel::OnToggled(evt)
             evt.SetEventObject(m_mode_view);
@@ -7142,7 +7143,7 @@ void Page::activate(ConfigOptionMode mode, std::function<void()> throw_if_cancel
     for (auto group : m_optgroups) {
         if (!group->activate(throw_if_canceled))
             continue;
-        m_vsizer->Add(group->sizer, 0, wxEXPAND | (group->is_legend_line() ? (wxLEFT|wxTOP) : wxALL), 10);
+        m_vsizer->Add(group->sizer, 0, wxEXPAND | (group->is_legend_line() ? (wxLEFT|wxTOP) : wxALL), m_parent->FromDIP(5)); // ORCA use less margin on parameters section
         group->update_visibility(mode);
 #if HIDE_FIRST_SPLIT_LINE
         if (first) group->stb->Hide();
