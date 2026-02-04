@@ -2,6 +2,19 @@
 @echo off
 set WP=%CD%
 
+@REM Check for Ninja Multi-Config option (-x)
+set USE_NINJA=0
+for %%a in (%*) do (
+    if "%%a"=="-x" set USE_NINJA=1
+)
+
+if "%USE_NINJA%"=="1" (
+    echo Using Ninja Multi-Config generator
+    set CMAKE_GENERATOR="Ninja Multi-Config"
+    set VS_VERSION=Ninja
+    goto :generator_ready
+)
+
 @REM Detect Visual Studio version using msbuild
 echo Detecting Visual Studio version using msbuild...
 
@@ -50,6 +63,8 @@ if "%VS_MAJOR%"=="16" (
 echo Detected Visual Studio %VS_VERSION% (version %VS_MAJOR%)
 echo Using CMake generator: %CMAKE_GENERATOR%
 
+:generator_ready
+
 @REM Pack deps
 if "%1"=="pack" (
     setlocal ENABLEDELAYEDEXPANSION 
@@ -96,8 +111,13 @@ echo "building deps.."
 echo on
 REM Set minimum CMake policy to avoid <3.5 errors
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake ../ -G %CMAKE_GENERATOR% -A x64 -DCMAKE_BUILD_TYPE=%build_type%
-cmake --build . --config %build_type% --target deps -- -m
+if "%USE_NINJA%"=="1" (
+    cmake ../ -G %CMAKE_GENERATOR% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target deps
+) else (
+    cmake ../ -G %CMAKE_GENERATOR% -A x64 -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target deps -- -m
+)
 @echo off
 
 if "%1"=="deps" exit /b 0
@@ -110,8 +130,13 @@ cd %build_dir%
 
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake .. -G %CMAKE_GENERATOR% -A x64 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
+if "%USE_NINJA%"=="1" (
+    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target ALL_BUILD
+) else (
+    cmake .. -G %CMAKE_GENERATOR% -A x64 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target ALL_BUILD -- -m
+)
 @echo off
 cd ..
 call scripts/run_gettext.bat
