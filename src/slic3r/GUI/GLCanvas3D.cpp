@@ -2166,7 +2166,7 @@ void GLCanvas3D::render(bool only_init)
     if (m_canvas_type != ECanvasType::CanvasAssembleView) {
         float right_margin = SLIDER_DEFAULT_RIGHT_MARGIN;
         float bottom_margin = SLIDER_DEFAULT_BOTTOM_MARGIN;
-        if (m_canvas_type == ECanvasType::CanvasPreview) {
+        if (m_canvas_type == ECanvasType::CanvasPreview && m_gcode_viewer.has_data()) { // ORCA only shift position of notifiations when sliders / gcode_viewer exist
             float scale_factor = get_scale();
 #ifdef WIN32
             int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());

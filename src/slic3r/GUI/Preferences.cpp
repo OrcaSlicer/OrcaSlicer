@@ -1328,11 +1328,17 @@ void PreferencesDialog::create_items()
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
 
+    //// CONTROL > Slicing
+    g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);
+
     auto item_auto_reslice = create_item_auto_reslice(
         _L("Auto slice after changes"),
         _L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."),
         _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
     g_sizer->Add(item_auto_reslice);
+
+    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
+    g_sizer->Add(item_mix_print_high_low_temperature);
  
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
@@ -1586,9 +1592,6 @@ void PreferencesDialog::create_items()
 
     auto item_ams_blacklist    = create_item_checkbox(_L("Skip AMS blacklist check"), "", "skip_ams_blacklist_check");
     g_sizer->Add(item_ams_blacklist);
-
-    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
-    g_sizer->Add(item_mix_print_high_low_temperature);
 
     g_sizer->Add(create_item_title(_L("Storage")), 1, wxEXPAND);
     auto item_allow_abnormal_storage = create_item_checkbox(_L("Allow Abnormal Storage"), _L("This allows the use of Storage that is marked as abnormal by the Printer.\nUse at your own risk, can cause issues!"), "allow_abnormal_storage");

@@ -494,7 +494,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_main_panel->SetSizer(m_main_sizer);
     m_main_panel->Layout();
     page_sizer = new wxBoxSizer(wxVERTICAL);
-    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(25));
+    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(10)); // ORCA match margin with other tabs
 
     SetSizer(page_sizer);
     Layout();

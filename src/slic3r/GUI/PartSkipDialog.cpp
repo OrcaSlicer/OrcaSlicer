@@ -50,18 +50,6 @@ static StateColor zoom_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), Stat
 static StateColor zoom_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
 static StateColor zoom_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
 
-static StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-                               std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                               std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-static StateColor btn_bg_gray(std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Pressed),
-                              std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Hovered),
-                              std::pair<wxColour, int>(wxColour(194, 194, 194), StateColor::Normal));
-
-static StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                               std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                               std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
 PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
     std::time_t       t = std::time(0);
@@ -69,8 +57,6 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     buf << put_time(std::localtime(&t), "%a_%b_%d_%H_%M_%S/");
     m_timestamp = buf.str();
 
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % Slic3r::resources_dir()).str();
-    SetIcon(wxIcon(Slic3r::encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
     SetBackgroundColour(*wxWHITE);
 
     m_sizer = new wxBoxSizer(wxVERTICAL);
@@ -187,13 +173,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_tot_label->SetMinSize(wxSize(FromDIP(200), FromDIP(20)));
 
     m_apply_btn = new Button(m_book_third_panel, _L("Skip"));
-    m_apply_btn->SetBackgroundColor(btn_bg_gray);
-    m_apply_btn->SetTextColor(wxColour("#FFFFFE"));
-    // m_apply_btn->SetBorderColor(wxColour(38, 46, 48));
-    m_apply_btn->SetFont(Label::Body_14);
-    m_apply_btn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_btn->SetCornerRadius(FromDIP(16));
+    m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_apply_btn->SetToolTip(wxEmptyString);
 
     m_canvas_sizer->Add(m_canvas, 0, wxLEFT | wxTOP | wxEXPAND, FromDIP(17));
@@ -251,13 +231,7 @@ PartSkipDialog::PartSkipDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _
     m_book_second_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
     m_second_retry_btn = new Button(m_book_second_panel, _L("Retry"));
-    m_second_retry_btn->SetBackgroundColor(btn_bg_green);
-    // m_second_retry_btn->SetBorderColor(wxColour(38, 46, 48));
-    m_second_retry_btn->SetTextColor(*wxWHITE);
-    m_second_retry_btn->SetFont(Label::Body_14);
-    m_second_retry_btn->SetSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_second_retry_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_second_retry_btn->SetCornerRadius(FromDIP(16));
+    m_second_retry_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_second_retry_btn->Bind(wxEVT_BUTTON, &PartSkipDialog::OnRetryButton, this);
     m_book_second_btn_sizer->Add(m_second_retry_btn, 0, wxALL, FromDIP(24));
 
@@ -343,17 +317,12 @@ void PartSkipDialog::on_dpi_changed(const wxRect &suggested_rect)
     m_line->SetMinSize(wxSize(FromDIP(267), 1));
     m_line->SetMaxSize(wxSize(FromDIP(267), 1));
 
-    m_apply_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_btn->SetCornerRadius(FromDIP(16));
-    m_apply_btn->Rescale();
+    m_apply_btn->Rescale(); // ORCA no need to set size again with SetStyle
 
     m_dlg_placeholder->SetMinSize(wxSize(-1, FromDIP(15)));
     m_dlg_placeholder->SetMaxSize(wxSize(-1, FromDIP(15)));
 
-    // m_second_retry_btn->SetSize(wxSize(-1, FromDIP(32)));
-    m_second_retry_btn->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_second_retry_btn->SetCornerRadius(FromDIP(16));
-    m_second_retry_btn->Rescale();
+    m_second_retry_btn->Rescale(); // ORCA no need to set size again with SetStyle
 
     m_all_checkbox->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
     m_all_checkbox->Rescale();
@@ -883,19 +852,19 @@ void PartSkipDialog::OnAllCheckbox(wxCommandEvent &event)
 void PartSkipDialog::UpdateApplyButtonStatus()
 {
     if (IsAllCancled()) {
-        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("Nothing selected"));
         m_enable_apply_btn = false;
     } else if (m_parts_state.size() > 64) {
-        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("Over 64 objects in single plate"));
         m_enable_apply_btn = false;
     } else if (!is_model_support_partskip) {
-        m_apply_btn->SetBackgroundColor(btn_bg_gray);
+        m_apply_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         m_apply_btn->SetToolTip(_L("The current print job cannot be skipped"));
         m_enable_apply_btn = false;
     } else {
-        m_apply_btn->SetBackgroundColor(btn_bg_green);
+        m_apply_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
         m_apply_btn->SetToolTip(wxEmptyString);
         m_enable_apply_btn = true;
     }
@@ -955,8 +924,6 @@ int PartSkipDialog::GetAllSkippedPartsNum()
 
 PartSkipConfirmDialog::PartSkipConfirmDialog(wxWindow *parent) : DPIDialog(parent, wxID_ANY, _L("Skip Objects"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
 {
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % Slic3r::resources_dir()).str();
-    SetIcon(wxIcon(Slic3r::encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
     SetBackgroundColour(*wxWHITE);
     SetMinSize(wxSize(FromDIP(480), FromDIP(215)));
     SetSizeHints(wxDefaultSize, wxDefaultSize);
@@ -989,20 +956,8 @@ PartSkipConfirmDialog::PartSkipConfirmDialog(wxWindow *parent) : DPIDialog(paren
     m_button_sizer->SetMinSize(wxSize(FromDIP(480), FromDIP(54)));
     m_button_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
-    StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                            std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed), std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 177, 66), StateColor::Normal));
-
     m_apply_button = new Button(this, _L("Continue"));
-    m_apply_button->SetBackgroundColor(btn_bg_green);
-    m_apply_button->SetTextColor(*wxWHITE);
-    // m_apply_button->SetBorderColor(wxColour(38, 46, 48));
-    m_apply_button->SetFont(Label::Body_14);
-    m_apply_button->SetSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_button->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_button->SetCornerRadius(FromDIP(16));
+    m_apply_button->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_apply_button->Bind(wxEVT_BUTTON, [this](auto &e) {
         EndModal(wxID_OK);
         e.Skip();
@@ -1033,9 +988,7 @@ bool PartSkipConfirmDialog::Show(bool show)
 
 void PartSkipConfirmDialog::on_dpi_changed(const wxRect &suggested_rect)
 {
-    m_apply_button->SetMinSize(wxSize(FromDIP(80), FromDIP(32)));
-    m_apply_button->SetCornerRadius(FromDIP(16));
-    m_apply_button->Rescale();
+    m_apply_button->Rescale(); // ORCA no need to set size again with SetStyle
     Layout();
     Fit();
 }
