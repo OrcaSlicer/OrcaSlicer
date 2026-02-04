@@ -20,6 +20,7 @@
 #include <CGAL/Polygon_mesh_processing/repair.h>
 #include <CGAL/Polygon_mesh_processing/remesh.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/repair_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/orientation.h>
 // BBS: for segment
 #include <CGAL/mesh_segmentation.h>
@@ -505,6 +506,7 @@ bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string
 
         // Repair the polygon soup
         CGALProc::orient_polygon_soup(points, polygons);
+        CGALProc::repair_polygon_soup(points, polygons);
 
         // Create the mesh from the repaired soup
         _EpicMesh cgal_mesh;
