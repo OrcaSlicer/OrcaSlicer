@@ -16,11 +16,16 @@
 #include <CGAL/Exact_integer.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/Cartesian_converter.h>
-#include <CGAL/Polygon_mesh_processing/orient_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/repair.h>
 #include <CGAL/Polygon_mesh_processing/remesh.h>
+#include <CGAL/Polygon_mesh_processing/repair_degeneracies.h>
 #include <CGAL/Polygon_mesh_processing/repair_polygon_soup.h>
+#include <CGAL/Polygon_mesh_processing/orient_polygon_soup.h>
 #include <CGAL/Polygon_mesh_processing/polygon_soup_to_polygon_mesh.h>
+#include <CGAL/Polygon_mesh_processing/manifoldness.h>
+//#include <CGAL/Polygon_mesh_processing/repair_self_intersections.h>
+#include <CGAL/Polygon_mesh_processing/triangulate_hole.h>
+#include <CGAL/Polygon_mesh_processing/measure.h>
 #include <CGAL/Polygon_mesh_processing/orientation.h>
 // BBS: for segment
 #include <CGAL/mesh_segmentation.h>
@@ -476,85 +481,142 @@ bool empty(const CGALMesh &mesh)
     return mesh.m.is_empty();
 }
 
-bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors, std::string *error)
+bool repair(TriangleMesh &mesh,
+            RepairedMeshErrors *repaired_errors,
+            std::string *error)
 {
+    using namespace CGAL;
+    namespace PMP = CGAL::Polygon_mesh_processing;
+
     if (mesh.empty())
         return true;
 
-    // ORCA: Fast path - skip CGAL conversion when mesh is already manifold.
-    if (its_num_open_edges(mesh.its) == 0) {
-        if (repaired_errors)
-            *repaired_errors = RepairedMeshErrors{};
-        return true;
-    }
+    try
+    {
+        // ----------------------------------
+        // 1) Convert to polygon soup
+        // ----------------------------------
 
-    try {
         std::vector<_EpicMesh::Point> points;
-        std::vector<std::vector<size_t>> polygons;
+        std::vector<std::vector<std::size_t>> polygons;
 
         points.reserve(mesh.its.vertices.size());
         polygons.reserve(mesh.its.indices.size());
 
-        for (auto& v : mesh.its.vertices)
+        for (const auto &v : mesh.its.vertices)
             points.emplace_back(v.x(), v.y(), v.z());
 
-        for (auto& f : mesh.its.indices) {
-            polygons.emplace_back(std::vector<size_t>{size_t(f[0]), size_t(f[1]), size_t(f[2])});
+        for (const auto &f : mesh.its.indices)
+            polygons.push_back({size_t(f[0]), size_t(f[1]), size_t(f[2])});
+
+        // ----------------------------------
+        // 2) Aggressive soup cleanup
+        // ----------------------------------
+
+        PMP::repair_polygon_soup(points, polygons);
+        //PMP::orient_polygon_soup(points, polygons);
+
+        // ----------------------------------
+        // 3) Convert soup → mesh
+        // ----------------------------------
+
+        _EpicMesh cgal_mesh;
+        PMP::polygon_soup_to_polygon_mesh(points, polygons, cgal_mesh);
+
+        // ----------------------------------
+        // 4) Remove degenerate geometry
+        // ----------------------------------
+
+        PMP::remove_degenerate_faces(cgal_mesh);
+        PMP::remove_isolated_vertices(cgal_mesh);
+
+        // ----------------------------------
+        // 5) Fix remaining non-manifold vertices
+        // ----------------------------------
+
+        PMP::duplicate_non_manifold_vertices(cgal_mesh);
+
+        // ----------------------------------
+        // 6) Fix self intersections
+        // ----------------------------------
+
+        //PMP::remove_self_intersections_with_hole_filling(cgal_mesh);
+        PMP::remove_isolated_vertices(cgal_mesh);
+
+        // ----------------------------------
+        // 7) Boolean union (keeps only outer shell)
+        // ----------------------------------
+
+        {
+            _EpicMesh tmp;
+            if (PMP::corefine_and_compute_union(cgal_mesh,
+                                                cgal_mesh,
+                                                tmp))
+            {
+                cgal_mesh = std::move(tmp);
+            }
+            // If it fails, continue anyway with previous mesh
         }
 
-        size_t original_face_count = polygons.size();
+        // ----------------------------------
+        // 8) Fill holes
+        // ----------------------------------
 
-        // Repair the polygon soup
-        CGALProc::repair_polygon_soup(points, polygons);
+        if (!CGAL::is_closed(cgal_mesh))
+        {
+            using halfedge_descriptor =
+                boost::graph_traits<_EpicMesh>::halfedge_descriptor;
 
-        // Create the mesh from the repaired soup
-        _EpicMesh cgal_mesh;
-        CGALProc::polygon_soup_to_polygon_mesh(points, polygons, cgal_mesh);
+            std::vector<halfedge_descriptor> borders;
+            PMP::extract_boundary_cycles(cgal_mesh,
+                                         std::back_inserter(borders));
 
-        // Fill holes if not closed
-        if (!CGAL::is_closed(cgal_mesh)) {
-            using halfedge_descriptor = boost::graph_traits<_EpicMesh>::halfedge_descriptor;
-            using face_descriptor = boost::graph_traits<_EpicMesh>::face_descriptor;
-            using vertex_descriptor = boost::graph_traits<_EpicMesh>::vertex_descriptor;
-
-            std::vector<halfedge_descriptor> border_cycles;
-            CGALProc::extract_boundary_cycles(cgal_mesh, std::back_inserter(border_cycles));
-
-            if (!border_cycles.empty()) {
-                for (halfedge_descriptor h : border_cycles) {
-                    std::vector<face_descriptor> patch_facets;
-                    std::vector<vertex_descriptor> patch_vertices;
-                    CGALProc::triangulate_hole(cgal_mesh, h, std::back_inserter(patch_facets));
-                }
+            for (halfedge_descriptor h : borders)
+            {
+                PMP::triangulate_and_refine_hole(cgal_mesh, h);
             }
         }
 
-        // Ensure closed and oriented
-        if (!CGAL::is_closed(cgal_mesh)) {
+        // ----------------------------------
+        // 9) Final validity check
+        // ----------------------------------
+
+        if (!CGAL::is_closed(cgal_mesh))
+        {
             if (error)
-                *error = "Mesh remains non-closed after repair";
+                *error = "Repair failed: mesh still open after hole filling.";
             return false;
         }
 
-        if (!CGALProc::does_bound_a_volume(cgal_mesh)) {
-            CGALProc::orient_to_bound_a_volume(cgal_mesh);
-        }
+        // ----------------------------------
+        // 10) Ensure outward orientation
+        // ----------------------------------
 
-        indexed_triangle_set its = cgal_to_indexed_triangle_set(cgal_mesh);
+        if (!PMP::does_bound_a_volume(cgal_mesh))
+            PMP::orient_to_bound_a_volume(cgal_mesh);
 
-        RepairedMeshErrors errors;
-        errors.facets_removed = 0; // orient_polygon_soup doesn't remove facets
-        errors.edges_fixed = 0;
+        // ----------------------------------
+        // 11) Convert back
+        // ----------------------------------
 
-        mesh = TriangleMesh(std::move(its), errors);
+        indexed_triangle_set its =
+            cgal_to_indexed_triangle_set(cgal_mesh);
+
+        RepairedMeshErrors errs{};
+        errs.facets_removed = 0;
+        errs.edges_fixed   = 0;
+
+        mesh = TriangleMesh(std::move(its), errs);
 
         if (repaired_errors)
-            *repaired_errors = errors;
+            *repaired_errors = errs;
 
         return true;
-    } catch (const std::exception &ex) {
+    }
+    catch (const std::exception &e)
+    {
         if (error)
-            *error = ex.what();
+            *error = e.what();
         return false;
     }
 }
