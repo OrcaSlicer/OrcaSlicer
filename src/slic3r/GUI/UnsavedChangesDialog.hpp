@@ -463,7 +463,6 @@ public:
 
     std::array<Preset::Type, 3>         types_list() const;
 
-protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
     void on_sys_color_changed() override;
 };
