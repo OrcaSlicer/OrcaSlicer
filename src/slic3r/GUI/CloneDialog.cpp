@@ -21,6 +21,11 @@ CloneDialog::CloneDialog(wxWindow *parent)
     auto count_label = new wxStaticText(this, wxID_ANY, _L("Number of copies:"), wxDefaultPosition, wxDefaultSize, 0);
     m_count_spin = new SpinInput(this, wxEmptyString, "", wxDefaultPosition, wxSize(FromDIP(120), -1), wxSP_ARROW_KEYS, 1, 1000, 1);
     m_count_spin->GetTextCtrl()->SetFocus();
+    m_count_spin->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &e) {
+        e.SetId(GetId());
+        ProcessEventLocally(e);
+        e.Skip();
+    });
     f_sizer->Add(count_label  , 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
     f_sizer->Add(m_count_spin, 0, wxALIGN_CENTER_VERTICAL);
 

@@ -598,6 +598,26 @@ set(SLIC3R_GUI_SOURCES
     Utils/MKS.hpp
     Utils/NetworkAgent.cpp
     Utils/NetworkAgent.hpp
+    Utils/NetworkAgentFactory.hpp
+    Utils/NetworkAgentFactory.cpp
+    Utils/ICloudServiceAgent.hpp
+    Utils/IPrinterAgent.hpp
+    Utils/OrcaCloudServiceAgent.cpp
+    Utils/OrcaCloudServiceAgent.hpp
+    Utils/OrcaPrinterAgent.cpp
+    Utils/OrcaPrinterAgent.hpp
+    Utils/QidiPrinterAgent.cpp
+    Utils/QidiPrinterAgent.hpp
+    Utils/SnapmakerPrinterAgent.cpp
+    Utils/SnapmakerPrinterAgent.hpp
+    Utils/MoonrakerPrinterAgent.cpp
+    Utils/MoonrakerPrinterAgent.hpp
+    Utils/BBLCloudServiceAgent.cpp
+    Utils/BBLCloudServiceAgent.hpp
+    Utils/BBLPrinterAgent.cpp
+    Utils/BBLPrinterAgent.hpp
+    Utils/BBLNetworkPlugin.cpp
+    Utils/BBLNetworkPlugin.hpp
     Utils/Obico.cpp
     Utils/Obico.hpp
     Utils/OctoPrint.cpp

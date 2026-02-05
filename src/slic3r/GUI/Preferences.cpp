@@ -15,6 +15,7 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
 
 #ifdef __WINDOWS__
@@ -1327,11 +1328,17 @@ void PreferencesDialog::create_items()
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
 
+    //// CONTROL > Slicing
+    g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);
+
     auto item_auto_reslice = create_item_auto_reslice(
         _L("Auto slice after changes"),
         _L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."),
         _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
     g_sizer->Add(item_auto_reslice);
+
+    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
+    g_sizer->Add(item_mix_print_high_low_temperature);
  
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
@@ -1411,6 +1418,11 @@ void PreferencesDialog::create_items()
     auto item_system_sync      = create_item_checkbox(_L("Update built-in Presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
 
+    auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),
+                                                      _L("Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"),
+                                                      SETTING_USE_ENCRYPTED_TOKEN_FILE);
+    g_sizer->Add(item_token_storage);
+
     //// ONLINE > Network plugin
     g_sizer->Add(create_item_title(_L("Network plugin")), 1, wxEXPAND);
 
@@ -1433,11 +1445,11 @@ void PreferencesDialog::create_items()
 
     std::string current_version = app_config->get_network_plugin_version();
     if (current_version.empty()) {
-        current_version = BBL::get_latest_network_version();
+        current_version = get_latest_network_version();
     }
     int current_selection = 0;
 
-    m_available_versions = BBL::get_all_available_versions();
+    m_available_versions = get_all_available_versions();
 
     for (size_t i = 0; i < m_available_versions.size(); i++) {
         const auto& ver = m_available_versions[i];
@@ -1468,7 +1480,7 @@ void PreferencesDialog::create_items()
             std::string new_version = selected_ver.version;
             std::string old_version = app_config->get_network_plugin_version();
             if (old_version.empty()) {
-                old_version = BBL::get_latest_network_version();
+                old_version = get_latest_network_version();
             }
 
             app_config->set(SETTING_NETWORK_PLUGIN_VERSION, new_version);
@@ -1580,9 +1592,6 @@ void PreferencesDialog::create_items()
 
     auto item_ams_blacklist    = create_item_checkbox(_L("Skip AMS blacklist check"), "", "skip_ams_blacklist_check");
     g_sizer->Add(item_ams_blacklist);
-
-    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
-    g_sizer->Add(item_mix_print_high_low_temperature);
 
     g_sizer->Add(create_item_title(_L("Storage")), 1, wxEXPAND);
     auto item_allow_abnormal_storage = create_item_checkbox(_L("Allow Abnormal Storage"), _L("This allows the use of Storage that is marked as abnormal by the Printer.\nUse at your own risk, can cause issues!"), "allow_abnormal_storage");

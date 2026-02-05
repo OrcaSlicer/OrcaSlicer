@@ -119,6 +119,10 @@
 #include "ModelMall.hpp"
 #include "HintNotification.hpp"
 
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "slic3r/Utils/bambu_networking.hpp"
+
 //#ifdef WIN32
 //#include "BaseException.h"
 //#endif
@@ -1176,9 +1180,9 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
         curr_version = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (name == "plugins" && app_config) {
         std::string user_version = app_config->get_network_plugin_version();
-        curr_version = user_version.empty() ? BBL::get_latest_network_version() : user_version;
+        curr_version = user_version.empty() ? get_latest_network_version() : user_version;
     } else {
-        curr_version = BBL::get_latest_network_version();
+        curr_version = get_latest_network_version();
     }
 
     std::string using_version = curr_version.substr(0, 9) + "00";
@@ -1519,7 +1523,7 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
     if (name == "plugins") {
         std::string config_version = app_config->get_network_plugin_version();
         if (config_version.empty()) {
-            config_version = BBL::get_latest_network_version();
+            config_version = get_latest_network_version();
             BOOST_LOG_TRIVIAL(info) << "[install_plugin] config_version was empty, using latest: " << config_version;
             app_config->set_network_plugin_version(config_version);
             GUI::wxGetApp().CallAfter([this] {
@@ -1814,7 +1818,7 @@ bool GUI_App::hot_reload_network_plugin()
 
 std::string GUI_App::get_latest_network_version() const
 {
-    return BBL::get_latest_network_version();
+    return Slic3r::get_latest_network_version();
 }
 
 bool GUI_App::has_network_update_available() const
@@ -1919,9 +1923,9 @@ bool GUI_App::check_networking_version()
         studio_ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (app_config) {
         std::string user_version = app_config->get_network_plugin_version();
-        studio_ver = user_version.empty() ? BBL::get_latest_network_version() : user_version;
+        studio_ver = user_version.empty() ? get_latest_network_version() : user_version;
     } else {
-        studio_ver = BBL::get_latest_network_version();
+        studio_ver = get_latest_network_version();
     }
 
     BOOST_LOG_TRIVIAL(info) << "check_networking_version: network_ver=" << network_ver << ", expected=" << studio_ver;
@@ -2197,7 +2201,9 @@ void GUI_App::init_networking_callbacks()
 
                 if (MachineObject* obj = m_device_manager->get_my_machine(dev_id)) {
                     obj->parse_json("lan", msg);
-                    if (this->m_device_manager->get_selected_machine() == obj) {
+                    // Orca: skip it if it doesn't support subscription based filament sync
+                    if (this->m_device_manager->get_selected_machine() == obj &&
+                        m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription) {
                         GUI::wxGetApp().sidebar().load_ams_list(obj);
                     }
                 }
@@ -2233,6 +2239,8 @@ GUI_App::~GUI_App()
     }
 
     StaticBambuLib::release();
+    BBLNetworkPlugin::shutdown();
+
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": exit");
 }
@@ -2582,6 +2590,11 @@ int GUI_App::OnExit()
         delete m_user_manager;
         m_user_manager = nullptr;
     }
+
+    // Clear the printer agent cache before destroying the NetworkAgent.
+    // This disconnects all cached agents and releases their shared_ptrs,
+    // ensuring clean thread shutdown before the agent is deleted.
+    NetworkAgentFactory::clear_printer_agent_cache();
 
     if (m_agent) {
         // BBS avoid a crash on mac platform
@@ -3296,126 +3309,127 @@ void GUI_App::copy_network_if_available()
 
 bool GUI_App::on_init_network(bool try_backup)
 {
-    bool create_network_agent = false;
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
 
     std::string config_version = app_config->get_network_plugin_version();
 
-    if(!should_load_networking_plugin) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "Don't load plugin as installed_networking is false";
-    } else {
-    if (config_version.empty()) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
-        m_networking_need_update = true;
+    if (should_load_networking_plugin) {
+        if (config_version.empty()) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
+            m_networking_need_update = true;
 
-        if (!m_device_manager)
-            m_device_manager = new Slic3r::DeviceManager();
-        if (!m_user_manager)
-            m_user_manager = new Slic3r::UserManager();
+            if (!m_device_manager)
+                m_device_manager = new Slic3r::DeviceManager();
+            if (!m_user_manager)
+                m_user_manager = new Slic3r::UserManager();
 
-        return false;
-    }
-    int load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
-__retry:
-    if (!load_agent_dll) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll ok";
-
-        std::string loaded_version = Slic3r::NetworkAgent::get_version();
-        if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
-            std::string config_version = app_config->get_network_plugin_version();
-            std::string config_base = BBL::extract_base_version(config_version);
-            if (config_base != loaded_version) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded " << loaded_version;
-                app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
-                app_config->save();
-            }
+            return false;
         }
 
-        if (check_networking_version()) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, compatibility version";
-            auto bambu_source = Slic3r::NetworkAgent::get_bambu_source_entry();
-            if (!bambu_source) {
-                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": can not get bambu source module!";
-                m_networking_compatible = false;
+        int load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
+    __retry:
+        if (!load_agent_dll) {
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll ok";
+
+            std::string loaded_version = Slic3r::NetworkAgent::get_version();
+            if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
+                std::string config_version = app_config->get_network_plugin_version();
+                std::string config_base    = extract_base_version(config_version);
+                if (config_base != loaded_version) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
+                                            << loaded_version;
+                    app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
+                    app_config->save();
+                }
+            }
+
+            if (check_networking_version()) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, compatibility version";
+                auto bambu_source = Slic3r::NetworkAgent::get_bambu_source_entry();
+                if (!bambu_source) {
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": can not get bambu source module!";
+                    m_networking_compatible = false;
+                    if (should_load_networking_plugin) {
+                        m_networking_need_update = true;
+                    }
+                }
+            } else {
+                if (try_backup) {
+                    int result = Slic3r::NetworkAgent::unload_network_module();
+                    BOOST_LOG_TRIVIAL(info) << "on_init_network, version mismatch, unload_network_module, result = " << result;
+                    load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(true, config_version);
+                    try_backup     = false;
+                    goto __retry;
+                }
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, version dismatch, need upload network module";
                 if (should_load_networking_plugin) {
                     m_networking_need_update = true;
                 }
             }
-            else
-                create_network_agent = true;
         } else {
-            if (try_backup) {
-                int result = Slic3r::NetworkAgent::unload_network_module();
-                BOOST_LOG_TRIVIAL(info) << "on_init_network, version mismatch, unload_network_module, result = " << result;
-                load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(true, config_version);
-                try_backup = false;
-                goto __retry;
-            }
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, version dismatch, need upload network module";
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
             if (should_load_networking_plugin) {
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
                 m_networking_need_update = true;
             }
         }
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", create network agent...");
+    //std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
+    std::string data_directory = data_dir();
+
+    // Register all printer agents before creating the network agent
+    Slic3r::NetworkAgentFactory::register_all_agents();
+
+    // m_agent = new Slic3r::NetworkAgent(data_directory);
+    std::unique_ptr<Slic3r::NetworkAgent> agent_ptr = Slic3r::create_agent_from_config(data_directory, app_config);
+    m_agent = agent_ptr.release();
+
+    if (!m_device_manager)
+        m_device_manager = new Slic3r::DeviceManager(m_agent);
+    else
+        m_device_manager->set_agent(m_agent);
+
+    if (!m_user_manager)
+        m_user_manager = new Slic3r::UserManager(m_agent);
+    else
+        m_user_manager->set_agent(m_agent);
+
+    if (this->is_enable_multi_machine()) {
+        if (!m_task_manager) {
+            m_task_manager = new Slic3r::TaskManager(m_agent);
+            m_task_manager->start();
+        }
+
+        m_device_manager->EnableMultiMachine(true);
     } else {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
-        if (should_load_networking_plugin) {
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
-            m_networking_need_update = true;
-        }
-    }
+        m_device_manager->EnableMultiMachine(false);
     }
 
-    if (create_network_agent) {
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", create network agent...");
-        //std::string data_dir = wxStandardPaths::Get().GetUserDataDir().ToUTF8().data();
-        std::string data_directory = data_dir();
-
-        m_agent = new Slic3r::NetworkAgent(data_directory);
-
-        if (!m_device_manager)
-            m_device_manager = new Slic3r::DeviceManager(m_agent);
-        else
-            m_device_manager->set_agent(m_agent);
-
-        if (!m_user_manager)
-            m_user_manager = new Slic3r::UserManager(m_agent);
-        else
-            m_user_manager->set_agent(m_agent);
-
-        if (this->is_enable_multi_machine()) {
-            if (!m_task_manager) {
-                m_task_manager = new Slic3r::TaskManager(m_agent);
-                m_task_manager->start();
-            }
-
-            m_device_manager->EnableMultiMachine(true);
-        } else {
-            m_device_manager->EnableMultiMachine(false);
-        }
-
-        //BBS set config dir
-        if (m_agent) {
-            m_agent->set_config_dir(data_directory);
-        }
-        //BBS start http log
-        if (m_agent) {
-            m_agent->init_log();
-        }
-
-        //BBS set cert dir
-        if (m_agent)
-            m_agent->set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
-
-        init_http_extra_header();
-
-        if (m_agent) {
-            init_networking_callbacks();
-            std::string country_code = app_config->get_country_code();
-            m_agent->set_country_code(country_code);
-            m_agent->start();
-        }
+    //BBS set config dir
+    if (m_agent) {
+        m_agent->set_config_dir(data_directory);
     }
-    else {
+    //BBS start http log
+    if (m_agent) {
+        m_agent->init_log();
+    }
+
+    //BBS set cert dir
+    if (m_agent)
+        m_agent->set_cert_file(resources_dir() + "/cert", "slicer_base64.cer");
+
+    init_http_extra_header();
+
+    if (m_agent) {
+        init_networking_callbacks();
+        std::string country_code = app_config->get_country_code();
+        m_agent->set_country_code(country_code);
+        m_agent->start();
+    }
+
+    if (!should_load_networking_plugin) {
         int result = Slic3r::NetworkAgent::unload_network_module();
         BOOST_LOG_TRIVIAL(info) << "on_init_network, unload_network_module, result = " << result;
 
@@ -3426,7 +3440,7 @@ __retry:
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (create_network_agent && m_networking_compatible && !NetworkAgent::use_legacy_network) {
+    if (should_load_networking_plugin && m_networking_compatible && !NetworkAgent::use_legacy_network) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
@@ -3458,6 +3472,139 @@ unsigned GUI_App::get_colour_approx_luma(const wxColour &colour)
         g * g * .691 +
         b * b * .068
         ));
+}
+
+void GUI_App::switch_printer_agent()
+{
+    if (!m_agent) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no agent exists";
+        return;
+    }
+
+    // Read printer_agent from config, falling back to default
+    std::string effective_agent_id = ORCA_PRINTER_AGENT_ID;
+    if (preset_bundle->is_bbl_vendor()) {
+        effective_agent_id = BBL_PRINTER_AGENT_ID;
+    } else {
+        const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
+        if (config.has("printer_agent")) {
+            const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
+            if (!value.empty())
+                effective_agent_id = value;
+        }
+    }
+
+    // Check if agent is registered
+    if (!NetworkAgentFactory::is_printer_agent_registered(effective_agent_id)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": unregistered agent ID '" << effective_agent_id
+                                   << "', keeping current agent";
+        // Keep current agent, don't switch
+        return;
+    }
+
+    std::string current_agent_id;
+    if (m_agent->get_printer_agent())
+        current_agent_id = m_agent->get_printer_agent()->get_agent_info().id;
+
+    if (current_agent_id != effective_agent_id) {
+        std::string log_dir = data_dir();
+        std::shared_ptr<ICloudServiceAgent> cloud_agent = m_agent->get_cloud_agent();
+
+        // Create new printer agent via registry
+        std::shared_ptr<IPrinterAgent> new_printer_agent =
+            NetworkAgentFactory::create_printer_agent_by_id(effective_agent_id, cloud_agent, log_dir);
+
+        if (!new_printer_agent) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to create agent '" << effective_agent_id << "', keeping current agent";
+            return;
+        }
+
+        // Swap the agent
+        m_agent->set_printer_agent(new_printer_agent);
+        sidebar().update_all_preset_comboboxes();
+
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
+
+        // Auto-switch MachineObject
+        select_machine(effective_agent_id);
+    }
+}
+
+void GUI_App::select_machine(const std::string& agent_id)
+{
+    // Skip for BBL agent for now - uses its own device discovery/selection
+    // Orca todo: revisit in future if we want to support auto-switching for BBL printers
+    if (agent_id == BBL_PRINTER_AGENT_ID) {
+        return;
+    }
+
+    if (!m_device_manager || !preset_bundle) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no device manager or preset bundle";
+        return;
+    }
+
+    // Get config source (preset or physical printer)
+    const auto& preset = preset_bundle->printers.get_edited_preset();
+    const DynamicPrintConfig* host_cfg = &preset.config;
+
+    std::string print_host = host_cfg->opt_string("print_host");
+    if (print_host.empty()) {
+        return;
+    }
+    std::string port = host_cfg->opt_string("printhost_port");
+
+    // Generate dev_id from host and port
+    std::string dev_id = MachineObject::dev_id_from_address(print_host, port);
+
+    // Check if already exists by dev_id
+    MachineObject* existing = m_device_manager->get_local_machine(dev_id);
+
+    // If not found by dev_id, search by full_addr
+    if (!existing) {
+        auto local_machines = m_device_manager->get_local_machinelist();
+        for (auto& [id, machine] : local_machines) {
+            if (machine && machine->get_dev_ip() == dev_id) {
+                existing = machine;
+                break;
+            }
+        }
+    }
+
+    // If machine doesn't exist, create it first
+    if (!existing) {
+        BBLocalMachine machine;
+        machine.dev_id = dev_id;
+        // We use dev_id as dev_ip to store the address (host:port)
+        machine.dev_ip = dev_id;
+        machine.dev_name = dev_id;
+        machine.printer_type = preset.config.opt_string("printer_model");
+        auto access_code = preset.config.opt_string("printhost_apikey");
+        // Orca expect non empty access code
+        if (access_code.empty()) {
+            access_code = "88888888";
+        }
+
+        existing = m_device_manager->insert_local_device(
+            machine, "lan", "free", "", access_code);
+
+        if (!existing) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to create machine dev_id=" << dev_id;
+            return;
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created new machine dev_id=" << dev_id;
+    }
+    existing->local_use_ssl = boost::istarts_with(print_host, "https://");
+
+    // Use MonitorPanel::select_machine() to trigger full selection flow
+    // This reuses existing logic for machine switching (UI updates, callbacks, etc.)
+    if (mainframe && mainframe->m_monitor) {
+        mainframe->m_monitor->select_machine(dev_id);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": triggered select_machine for dev_id=" << dev_id;
+    } else {
+        // Fallback if MonitorPanel not available
+        m_device_manager->set_selected_machine(dev_id);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": fallback set_selected_machine dev_id=" << dev_id;
+    }
 }
 
 bool GUI_App::dark_mode()
@@ -4283,10 +4430,14 @@ void GUI_App::get_login_info()
             GUI::wxGetApp().run_script(strJS);
         }
         else {
-            m_agent->user_logout();
-            std::string logout_cmd = m_agent->build_logout_cmd();
-            wxString strJS = wxString::Format("window.postMessage(%s)", logout_cmd);
-            GUI::wxGetApp().run_script(strJS);
+            // OrcaNetwork performs async refresh on startup; avoid clearing
+            // persisted tokens when the UI polls before refresh completes.
+            if (m_agent->get_version() != "orca_network") {
+                m_agent->user_logout();
+                std::string logout_cmd = m_agent->build_logout_cmd();
+                wxString    strJS      = wxString::Format("window.postMessage(%s)", logout_cmd);
+                GUI::wxGetApp().run_script(strJS);
+            }
         }
         mainframe->m_webview->SetLoginPanelVisibility(true);
     }
@@ -5635,7 +5786,7 @@ void GUI_App::sync_preset(Preset* preset)
             if (!new_setting_id.empty()) {
                 setting_id = new_setting_id;
                 result = 0;
-                auto update_time_str = values_map[BBL_JSON_KEY_UPDATE_TIME];
+                auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
                 if (!update_time_str.empty())
                     update_time = std::atoll(update_time_str.c_str());
             }
@@ -5664,7 +5815,7 @@ void GUI_App::sync_preset(Preset* preset)
             if (!new_setting_id.empty()) {
                 setting_id = new_setting_id;
                 result = 0;
-                auto update_time_str = values_map[BBL_JSON_KEY_UPDATE_TIME];
+                auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
                 if (!update_time_str.empty())
                     update_time = std::atoll(update_time_str.c_str());
             } else {
@@ -5690,16 +5841,16 @@ void GUI_App::sync_preset(Preset* preset)
                     result = 0;
                 }
                 else {
-                    result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
-                    if (http_code >= 400) {
-                        result = 0;
-                        updated_info = "hold";
-                        BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
-                    } else {
-                        auto update_time_str = values_map[BBL_JSON_KEY_UPDATE_TIME];
+                result = m_agent->put_setting(setting_id, preset->name, &values_map, &http_code);
+                if (http_code >= 400) {
+                    result = 0;
+                    updated_info = "hold";
+                    BOOST_LOG_TRIVIAL(error) << "[sync_preset] put setting_id = " << setting_id << " failed, http_code = " << http_code;
+                } else {
+                        auto update_time_str = values_map[ORCA_JSON_KEY_UPDATE_TIME];
                         if (!update_time_str.empty())
                             update_time = std::atoll(update_time_str.c_str());
-                    }
+                }
                 }
 
             }
@@ -5752,6 +5903,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
         return;
 
     if (!m_agent || !m_agent->is_user_login()) return;
+    if(!m_agent->get_cloud_agent())
+        return;
 
     // has already start sync
     if (m_user_sync_token) return;
@@ -5801,7 +5954,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                 auto type = info[BBL_JSON_KEY_TYPE];
                 auto name = info[BBL_JSON_KEY_NAME];
                 auto setting_id = info[BBL_JSON_KEY_SETTING_ID];
-                auto update_time_str = info[BBL_JSON_KEY_UPDATE_TIME];
+                auto update_time_str = info[ORCA_JSON_KEY_UPDATE_TIME];
                 long long update_time = 0;
                 if (!update_time_str.empty())
                     update_time = std::atoll(update_time_str.c_str());
@@ -5911,6 +6064,25 @@ void GUI_App::start_http_server()
     if (!m_http_server.is_started())
         m_http_server.start();
 }
+
+void GUI_App::start_http_server(int port)
+{
+    if (port <= 0) {
+        start_http_server();
+        return;
+    }
+
+    if (m_http_server.is_started()) {
+        if (m_http_server.get_port() == static_cast<boost::asio::ip::port_type>(port)) {
+            return;
+        }
+        m_http_server.stop();
+    }
+
+    m_http_server.set_port(static_cast<boost::asio::ip::port_type>(port));
+    m_http_server.start();
+}
+
 void GUI_App::stop_http_server()
 {
     m_http_server.stop();
