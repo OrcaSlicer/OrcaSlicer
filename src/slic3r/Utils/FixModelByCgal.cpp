@@ -24,8 +24,11 @@ public:
 
 // Return false if fixing was canceled.
 // fix_result is empty if fixing finished successfully; otherwise contains a message.
+// Orca: Main function to repair model objects using CGAL, with progress dialog and cancellation support.
+// Returns false if fixing was canceled. fix_result contains error message if failed.
 bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result)
 {
+    // Orca: Synchronization primitives for progress updates between worker thread and GUI.
     std::mutex mtx;
     std::condition_variable condition;
     struct Progress {
@@ -40,6 +43,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     bool   success = false;
     size_t ivolume = 0;
 
+    // Orca: Lambda for updating progress from worker thread.
     auto on_progress = [&mtx, &condition, &ivolume, &model_object, &progress](const char *msg, unsigned prcnt) {
         std::unique_lock<std::mutex> lock(mtx);
         progress.message = msg;
@@ -49,6 +53,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
         condition.notify_all();
     };
 
+    // Orca: Worker thread that performs the actual model repair operations.
     auto worker_thread = std::thread([&model_object, volume_idx, &ivolume, on_progress, &success, &canceled, &finished, &fix_result]() {
         try {
             size_t start_volume = volume_idx == -1 ? 0 : size_t(volume_idx);
@@ -64,6 +69,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
 
                 ModelVolume *volume = model_object.volumes[ivolume];
 
+                // Orca: Split splittable volumes into parts for individual processing.
                 size_t parts_count = 1;
                 if (volume->is_splittable()) {
                     parts_count = volume->split(1);
@@ -116,6 +122,7 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
         }
     });
 
+    // Orca: Main GUI loop to update progress dialog and handle cancellation.
     while (!finished) {
         std::unique_lock<std::mutex> lock(mtx);
         condition.wait_for(lock, std::chrono::milliseconds(250), [&progress]{ return progress.updated; });
