@@ -15,8 +15,50 @@
 #include "libslic3r/format.hpp"
 #include "../GUI/I18N.hpp"
 
+// Orca: This file provides utilities for repairing 3D model meshes using the CGAL library, handling mesh splitting, merging, and boolean operations.
+
 namespace Slic3r {
 
+namespace {
+
+// Orca: Helper functions for analyzing mesh properties and transformations.
+
+bool is_not_3dimensional_part(const TriangleMesh &mesh)
+{
+    // Orca: Determines if a mesh is degenerate or represents a one-dimensional part by checking volume and bounding box dimensions.
+    if (mesh.its.indices.empty())
+        return true;
+
+    indexed_triangle_set tmp = mesh.its;
+    its_remove_degenerate_faces(tmp, true);
+    if (tmp.indices.empty())
+        return true;
+
+    const BoundingBoxf3 bbox = mesh.bounding_box();
+    const Vec3d size = bbox.size();
+    const double min_dim = std::min(size.x(), std::min(size.y(), size.z()));
+    const double max_dim = std::max(size.x(), std::max(size.y(), size.z()));
+    if (min_dim <= EPSILON || max_dim <= EPSILON)
+        return true;
+
+    const double volume = std::abs(its_volume(mesh.its));
+    const double bbox_volume = size.x() * size.y() * size.z();
+    if (volume <= EPSILON)
+        return true;
+
+    const double min_relative_thickness = 1e-6;
+    const double min_volume_ratio = 1e-6;
+    if (min_dim / max_dim <= min_relative_thickness)
+        return true;
+    if (bbox_volume > 0.0 && volume / bbox_volume <= min_volume_ratio)
+        return true;
+
+    return false;
+}
+
+} // namespace
+
+// Orca: Exception class for handling user-initiated cancellation of model repair operations.
 class RepairCanceledException : public std::exception {
 public:
     const char* what() const noexcept override { return "Model repair has been canceled"; }
@@ -80,6 +122,29 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
                 size_t part_end = std::min(ivolume + parts_count - 1, model_object.volumes.size() - 1);
                 if (volume_idx != -1)
                     end_volume = part_end;
+
+                size_t removed_parts = 0;
+                for (size_t idx = part_end + 1; idx > ivolume; --idx) {
+                    const size_t part_idx = idx - 1;
+                    const ModelVolume *part_volume = model_object.volumes[part_idx];
+                    if (!is_not_3dimensional_part(part_volume->mesh()))
+                        continue;
+
+                    model_object.delete_volume(part_idx);
+                    ++removed_parts;
+                    if (part_end > 0)
+                        --part_end;
+                    else
+                        part_end = 0;
+                    if (volume_idx != -1)
+                        end_volume = part_end;
+                }
+
+                if (removed_parts >= parts_count) {
+                    ivolume = part_end;
+                    on_progress(L("Repair finished"), 100);
+                    continue;
+                }
 
                 for (size_t part_idx = ivolume; part_idx <= part_end && part_idx < model_object.volumes.size(); ++part_idx) {
                     ModelVolume *part_volume = model_object.volumes[part_idx];
