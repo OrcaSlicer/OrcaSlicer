@@ -985,6 +985,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_load_model = false;
         bool m_load_aux = false;
         bool m_load_config = false;
+        bool m_skip_painting = false;        // Skip mmu_segmentation, custom_supports, seam, fuzzy_skin
+        bool m_skip_printer_config = false;  // Skip loading printer presets
+        bool m_skip_filament_config = false; // Skip loading filament presets
+        // Filament remapping: project_extruder_id (1-based) -> user_slot_id (1-based)
+        const std::map<int, int>* m_filament_remap = nullptr;
         // backup & restore
         bool m_load_restore = false;
         std::string m_backup_path;
@@ -1062,7 +1067,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         //BBS: add plate data related logic
         // add backup & restore logic
         bool load_model_from_file(const std::string& filename, Model& model, PlateDataPtrs& plate_data_list, std::vector<Preset*>& project_presets, DynamicPrintConfig& config,
-            ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, Semver& file_version, Import3mfProgressFn proFn = nullptr, BBLProject *project = nullptr, int plate_id = 0);
+            ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, Semver& file_version, Import3mfProgressFn proFn = nullptr, BBLProject *project = nullptr, int plate_id = 0,
+            const std::map<int, int>* filament_remap = nullptr);
         bool get_thumbnail(const std::string &filename, std::string &data);
         bool load_gcode_3mf_from_stream(std::istream & data, Model& model, PlateDataPtrs& plate_data_list, DynamicPrintConfig& config, Semver& file_version);
         unsigned int version() const { return m_version; }
@@ -1218,6 +1224,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _generate_volumes_new(ModelObject& object, const std::vector<Component> &sub_objects, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
         //bool _generate_volumes(ModelObject& object, const Geometry& geometry, const ObjectMetadata::VolumeMetadataList& volumes, ConfigSubstitutionContext& config_substitutions);
 
+        // Helper to apply user filament remapping if provided
+        int _apply_filament_remap(int extruder_id) const;
+
         // callbacks to parse the .model file
         static void XMLCALL _handle_start_model_xml_element(void* userData, const char* name, const char** attributes);
         static void XMLCALL _handle_end_model_xml_element(void* userData, const char* name);
@@ -1270,7 +1279,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
     //BBS: add plate data related logic
         // add backup & restore logic
     bool _BBS_3MF_Importer::load_model_from_file(const std::string& filename, Model& model, PlateDataPtrs& plate_data_list, std::vector<Preset*>& project_presets, DynamicPrintConfig& config,
-        ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, Semver& file_version, Import3mfProgressFn proFn, BBLProject *project, int plate_id)
+        ConfigSubstitutionContext& config_substitutions, LoadStrategy strategy, bool* is_bbl_3mf, Semver& file_version, Import3mfProgressFn proFn, BBLProject *project, int plate_id,
+        const std::map<int, int>* filament_remap)
     {
         m_version = 0;
         m_fdm_supports_painting_version = 0;
@@ -1282,6 +1292,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_load_aux = strategy & LoadStrategy::LoadAuxiliary;
         m_load_restore = strategy & LoadStrategy::Restore;
         m_load_config = strategy & LoadStrategy::LoadConfig;
+        m_skip_painting = strategy & LoadStrategy::SkipPainting;
+        m_skip_printer_config = strategy & LoadStrategy::SkipPrinterConfig;
+        m_skip_filament_config = strategy & LoadStrategy::SkipFilamentConfig;
+        m_filament_remap = filament_remap;  // Store filament remapping for use during loading
         m_model = &model;
         m_unit_factor = 1.0f;
         m_curr_object = nullptr;
@@ -1335,6 +1349,20 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         if (m_load_restore && !result) // not clear failed backup data for later analyze
             model.set_backup_path("detach");
         return result;
+    }
+
+    // Helper function to apply user filament remapping during import
+    // Input extruder_id is 1-based, returns remapped 1-based extruder_id
+    int _BBS_3MF_Importer::_apply_filament_remap(int extruder_id) const
+    {
+        if (!m_filament_remap || m_filament_remap->empty())
+            return extruder_id;
+
+        auto it = m_filament_remap->find(extruder_id);
+        if (it != m_filament_remap->end())
+            return it->second;
+
+        return extruder_id;
     }
 
     bool _BBS_3MF_Importer::get_thumbnail(const std::string &filename, std::string &data)
@@ -1823,12 +1851,12 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     // extract slic3r layer config ranges file
                     _extract_project_embedded_presets_from_archive(archive, stat, project_presets, model, Preset::TYPE_PRINT);
                 }
-                else if (!dont_load_config && boost::algorithm::istarts_with(name, PROJECT_EMBEDDED_FILAMENT_PRESETS_FILE)) {
-                    // extract slic3r layer config ranges file
+                else if (!dont_load_config && !m_skip_filament_config && boost::algorithm::istarts_with(name, PROJECT_EMBEDDED_FILAMENT_PRESETS_FILE)) {
+                    // extract filament presets - skip if user chose not to import filament settings
                     _extract_project_embedded_presets_from_archive(archive, stat, project_presets, model, Preset::TYPE_FILAMENT);
                 }
-                else if (!dont_load_config && boost::algorithm::istarts_with(name, PROJECT_EMBEDDED_PRINTER_PRESETS_FILE)) {
-                    // extract slic3r layer config ranges file
+                else if (!dont_load_config && !m_skip_printer_config && boost::algorithm::istarts_with(name, PROJECT_EMBEDDED_PRINTER_PRESETS_FILE)) {
+                    // extract printer presets - skip if user chose not to import printer settings
                     _extract_project_embedded_presets_from_archive(archive, stat, project_presets, model, Preset::TYPE_PRINTER);
                 }
                 else if (!dont_load_config && boost::algorithm::iequals(name, CUSTOM_GCODE_PER_PRINT_Z_FILE)) {
@@ -2010,6 +2038,15 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     //BBS: add module name
                     else if (metadata.key == "module")
                         model_object->module_name = metadata.value;
+                    // Skip extruder config when loading geometry only (not loading config)
+                    else if (!m_load_config && metadata.key == "extruder")
+                        continue;
+                    // Apply filament remapping when setting extruder
+                    else if (metadata.key == "extruder") {
+                        int extruder_id = ::atoi(metadata.value.c_str());
+                        int remapped_extruder = _apply_filament_remap(extruder_id);
+                        model_object->config.set_key_value("extruder", new ConfigOptionInt(remapped_extruder));
+                    }
                     else
                         model_object->config.set_deserialize(metadata.key, metadata.value, config_substitutions);
                 }
@@ -2036,10 +2073,13 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     else
                         model_object->name = "Object_"+std::to_string(object.second+1);
 
-                    // get color
-                    auto extruder_itor = color_group_id_to_extruder_id_map.find(current_object->second.pid);
-                    if (extruder_itor != color_group_id_to_extruder_id_map.end()) {
-                        model_object->config.set_key_value("extruder", new ConfigOptionInt(extruder_itor->second));
+                    // get color - only set extruder when loading config (not geometry-only mode)
+                    if (m_load_config) {
+                        auto extruder_itor = color_group_id_to_extruder_id_map.find(current_object->second.pid);
+                        if (extruder_itor != color_group_id_to_extruder_id_map.end()) {
+                            int remapped_extruder = _apply_filament_remap(extruder_itor->second);
+                            model_object->config.set_key_value("extruder", new ConfigOptionInt(remapped_extruder));
+                        }
                     }
                 }
 
@@ -4823,7 +4863,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             // recreate custom supports, seam and mmu segmentation from previously loaded attribute
-            {
+            // Only load painting data when loading config (not geometry-only mode)
+            if (m_load_config) {
                 volume->supported_facets.reserve(triangles_count);
                 volume->seam_facets.reserve(triangles_count);
                 volume->mmu_segmentation_facets.reserve(triangles_count);
@@ -4884,6 +4925,15 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     volume->source.is_converted_from_meters = metadata.value == "1";
                 else if ((metadata.key == MATRIX_KEY) || (metadata.key == MESH_SHARED_KEY))
                     continue;
+                // Skip extruder config when loading geometry only (not loading config)
+                else if (!m_load_config && metadata.key == "extruder")
+                    continue;
+                // Apply filament remapping when setting extruder
+                else if (metadata.key == "extruder") {
+                    int extruder_id = ::atoi(metadata.value.c_str());
+                    int remapped_extruder = _apply_filament_remap(extruder_id);
+                    volume->config.set_key_value("extruder", new ConfigOptionInt(remapped_extruder));
+                }
                 else
                     volume->config.set_deserialize(metadata.key, metadata.value, config_substitutions);
             }
@@ -4986,24 +5036,27 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             volume->calculate_convex_hull();
 
             // recreate custom supports, seam and mmu segmentation from previously loaded attribute
-            volume->supported_facets.reserve(triangles_count);
-            volume->seam_facets.reserve(triangles_count);
-            volume->mmu_segmentation_facets.reserve(triangles_count);
-            for (size_t i=0; i<triangles_count; ++i) {
-                size_t index = volume_data.first_triangle_id + i;
-                assert(index < geometry.custom_supports.size());
-                assert(index < geometry.custom_seam.size());
-                assert(index < geometry.mmu_segmentation.size());
-                if (! geometry.custom_supports[index].empty())
-                    volume->supported_facets.set_triangle_from_string(i, geometry.custom_supports[index]);
-                if (! geometry.custom_seam[index].empty())
-                    volume->seam_facets.set_triangle_from_string(i, geometry.custom_seam[index]);
-                if (! geometry.mmu_segmentation[index].empty())
-                    volume->mmu_segmentation_facets.set_triangle_from_string(i, geometry.mmu_segmentation[index]);
+            // Only load painting data when loading config (not geometry-only mode)
+            if (m_load_config) {
+                volume->supported_facets.reserve(triangles_count);
+                volume->seam_facets.reserve(triangles_count);
+                volume->mmu_segmentation_facets.reserve(triangles_count);
+                for (size_t i=0; i<triangles_count; ++i) {
+                    size_t index = volume_data.first_triangle_id + i;
+                    assert(index < geometry.custom_supports.size());
+                    assert(index < geometry.custom_seam.size());
+                    assert(index < geometry.mmu_segmentation.size());
+                    if (! geometry.custom_supports[index].empty())
+                        volume->supported_facets.set_triangle_from_string(i, geometry.custom_supports[index]);
+                    if (! geometry.custom_seam[index].empty())
+                        volume->seam_facets.set_triangle_from_string(i, geometry.custom_seam[index]);
+                    if (! geometry.mmu_segmentation[index].empty())
+                        volume->mmu_segmentation_facets.set_triangle_from_string(i, geometry.mmu_segmentation[index]);
+                }
+                volume->supported_facets.shrink_to_fit();
+                volume->seam_facets.shrink_to_fit();
+                volume->mmu_segmentation_facets.shrink_to_fit();
             }
-            volume->supported_facets.shrink_to_fit();
-            volume->seam_facets.shrink_to_fit();
-            volume->mmu_segmentation_facets.shrink_to_fit();
 
             volume->set_type(volume_data.part_type);
 
@@ -8572,7 +8625,8 @@ private:
 
 //BBS: add plate data list related logic
 bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, PlateDataPtrs* plate_data_list, std::vector<Preset*>* project_presets,
-                    bool* is_bbl_3mf, Semver* file_version, Import3mfProgressFn proFn, LoadStrategy strategy, BBLProject *project, int plate_id)
+                    bool* is_bbl_3mf, Semver* file_version, Import3mfProgressFn proFn, LoadStrategy strategy, BBLProject *project, int plate_id,
+                    const std::map<int, int>* filament_remap)
 {
     if (path == nullptr || config == nullptr || model == nullptr)
         return false;
@@ -8580,7 +8634,7 @@ bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstituti
     // All import should use "C" locales for number formatting.
     CNumericLocalesSetter locales_setter;
     _BBS_3MF_Importer importer;
-    bool res = importer.load_model_from_file(path, *model, *plate_data_list, *project_presets, *config, *config_substitutions, strategy, is_bbl_3mf, *file_version, proFn, project, plate_id);
+    bool res = importer.load_model_from_file(path, *model, *plate_data_list, *project_presets, *config, *config_substitutions, strategy, is_bbl_3mf, *file_version, proFn, project, plate_id, filament_remap);
     importer.log_errors();
     //BBS: remove legacy project logic currently
     //handle_legacy_project_loaded(importer.version(), *config);
@@ -8594,6 +8648,113 @@ std::string bbs_3mf_get_thumbnail(const char *path)
     bool res = importer.get_thumbnail(path, data);
     if (!res) importer.log_errors();
     return data;
+}
+
+// Pre-parse 3MF to extract basic project info without full model loading
+bool bbs_3mf_preparse_project_info(const char* path, Bbs3mfProjectInfo& info)
+{
+    mz_zip_archive archive;
+    memset(&archive, 0, sizeof(archive));
+    
+    if (!open_zip_reader(&archive, path)) {
+        BOOST_LOG_TRIVIAL(error) << "bbs_3mf_preparse_project_info: failed to open " << path;
+        return false;
+    }
+    
+    bool is_bbs_3mf = false;
+    
+    // Check if it's a BBS 3MF by looking for characteristic files
+    int num_files = mz_zip_reader_get_num_files(&archive);
+    for (int i = 0; i < num_files; ++i) {
+        mz_zip_archive_file_stat stat;
+        if (mz_zip_reader_file_stat(&archive, i, &stat)) {
+            std::string name(stat.m_filename);
+            if (name.find("Metadata/project_settings.config") != std::string::npos ||
+                name.find("Metadata/model_settings.config") != std::string::npos) {
+                is_bbs_3mf = true;
+                break;
+            }
+        }
+    }
+    info.is_bbs_3mf = is_bbs_3mf;
+    
+    // Try to extract project_settings.config for filament info
+    mz_uint file_index;
+    if (mz_zip_reader_locate_file_v2(&archive, "Metadata/project_settings.config", nullptr, 0, &file_index) != MZ_FALSE) {
+        mz_zip_archive_file_stat stat;
+        if (mz_zip_reader_file_stat(&archive, file_index, &stat) && stat.m_uncomp_size > 0) {
+            std::string buffer(stat.m_uncomp_size, '\0');
+            if (mz_zip_reader_extract_to_mem(&archive, file_index, buffer.data(), stat.m_uncomp_size, 0)) {
+                // Parse JSON to extract filament info
+                try {
+                    nlohmann::json j = nlohmann::json::parse(buffer);
+                    
+                    // Extract filament colors
+                    if (j.contains("filament_colour") && j["filament_colour"].is_array()) {
+                        for (const auto& color : j["filament_colour"]) {
+                            if (color.is_string()) {
+                                info.filament_colors.push_back(color.get<std::string>());
+                            }
+                        }
+                        info.filament_count = info.filament_colors.size();
+                        info.has_filament_settings = true;
+                    }
+                    
+                    // Extract filament preset names  
+                    if (j.contains("filament_settings_id") && j["filament_settings_id"].is_array()) {
+                        for (const auto& name : j["filament_settings_id"]) {
+                            if (name.is_string()) {
+                                info.filament_preset_names.push_back(name.get<std::string>());
+                            }
+                        }
+                    }
+                    
+                    // Extract printer preset name
+                    if (j.contains("printer_settings_id") && j["printer_settings_id"].is_string()) {
+                        info.printer_preset_name = j["printer_settings_id"].get<std::string>();
+                        info.has_printer_settings = true;
+                    }
+                } catch (const std::exception& e) {
+                    BOOST_LOG_TRIVIAL(warning) << "bbs_3mf_preparse_project_info: failed to parse JSON: " << e.what();
+                }
+            }
+        }
+    }
+    
+    // If no filament colors found from project_settings.config, try model_settings.config as fallback.
+    // Older 3MF files or non-BBS exports may store filament info in model_settings instead.
+    if (info.filament_count == 0) {
+        if (mz_zip_reader_locate_file_v2(&archive, "Metadata/model_settings.config", nullptr, 0, &file_index) != MZ_FALSE) {
+            mz_zip_archive_file_stat stat;
+            if (mz_zip_reader_file_stat(&archive, file_index, &stat) && stat.m_uncomp_size > 0) {
+                std::string buffer(stat.m_uncomp_size, '\0');
+                if (mz_zip_reader_extract_to_mem(&archive, file_index, buffer.data(), stat.m_uncomp_size, 0)) {
+                    try {
+                        nlohmann::json j = nlohmann::json::parse(buffer);
+                        if (j.contains("filament_colour") && j["filament_colour"].is_array()) {
+                            for (const auto& color : j["filament_colour"]) {
+                                if (color.is_string()) {
+                                    info.filament_colors.push_back(color.get<std::string>());
+                                }
+                            }
+                            info.filament_count = info.filament_colors.size();
+                        }
+                    } catch (const std::exception& e) {
+                        BOOST_LOG_TRIVIAL(warning) << "bbs_3mf_preparse_project_info: failed to parse model_settings: " << e.what();
+                    }
+                }
+            }
+        }
+    }
+    
+    close_zip_reader(&archive);
+    
+    BOOST_LOG_TRIVIAL(info) << "bbs_3mf_preparse_project_info: " << path 
+                           << " is_bbs=" << info.is_bbs_3mf
+                           << " filament_count=" << info.filament_count
+                           << " has_printer=" << info.has_printer_settings
+                           << " has_filament=" << info.has_filament_settings;
+    return true;
 }
 
 bool load_gcode_3mf_from_stream(std::istream &data, DynamicPrintConfig *config, Model *model, PlateDataPtrs *plate_data_list, Semver *file_version)

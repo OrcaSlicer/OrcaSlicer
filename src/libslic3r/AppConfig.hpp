@@ -23,6 +23,8 @@ using namespace nlohmann;
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT "ask_when_relevant"
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK "always_ask"
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY "load_geometry_only"
+#define SETTING_PROJECT_SKIP_PRINTER "project_skip_printer"
+#define SETTING_PROJECT_SKIP_FILAMENT "project_skip_filament"
 
 #define SETTING_NETWORK_PLUGIN_VERSION "network_plugin_version"
 #define SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS "network_plugin_skipped_versions"

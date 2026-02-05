@@ -264,6 +264,11 @@ public:
     void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version = Semver())
         { this->load_config_file_config(name, true, std::move(config), file_version); }
 
+    // Load configuration from model file with options to skip printer/filament settings
+    void                        load_config_model(const std::string &name, DynamicPrintConfig config, Semver file_version,
+                                                  bool skip_printer, bool skip_filament)
+        { this->load_config_file_config(name, true, std::move(config), file_version, false, skip_printer, skip_filament); }
+
     // Load an external config file containing the print, filament and printer presets.
     // Instead of a config file, a G-code may be loaded containing the full set of parameters.
     // In the future the configuration will likely be read from an AMF file as well.
@@ -378,6 +383,8 @@ private:
     // and the external config is just referenced, not stored into user profile directory.
     // If it is not an external config, then the config will be stored into the user profile directory.
     void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version = Semver(), bool selected = false);
+    void                        load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected,
+                                                        bool skip_printer, bool skip_filament);
     /*ConfigSubstitutions         load_config_file_config_bundle(
         const std::string &path, const boost::property_tree::ptree &tree, ForwardCompatibilitySubstitutionRule compatibility_rule);*/
 

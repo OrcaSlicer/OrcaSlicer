@@ -370,7 +370,8 @@ Model Model::read_from_file(const std::string&                                  
 // BBS: backup & restore
 // Loading model from a file (3MF or AMF), not from a simple geometry file (STL or OBJ).
 Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, En3mfType& out_file_type, LoadStrategy options,
-        PlateDataPtrs* plate_data, std::vector<Preset*>* project_presets, Semver* file_version, Import3mfProgressFn proFn, BBLProject *project)
+        PlateDataPtrs* plate_data, std::vector<Preset*>* project_presets, Semver* file_version, Import3mfProgressFn proFn, BBLProject *project,
+        const std::map<int, int>* filament_remap)
 {
     assert(config != nullptr);
     assert(config_substitutions != nullptr);
@@ -388,7 +389,7 @@ Model Model::read_from_archive(const std::string& input_file, DynamicPrintConfig
         } else {
             // BBS: add part plate related logic
             // BBS: backup & restore
-            result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, &is_bbl_3mf, file_version, proFn, options, project);
+            result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, &is_bbl_3mf, file_version, proFn, options, project, 0, filament_remap);
         }
     }
     else if (boost::algorithm::iends_with(input_file, ".zip.amf"))

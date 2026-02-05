@@ -3358,6 +3358,13 @@ static void convert_filament_preset_name(std::string& machine_name, std::string&
 // is_external == false on if called from ConfigWizard
 void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected)
 {
+    // Call the overload with skip flags set to false (default behavior)
+    load_config_file_config(name_or_path, is_external, std::move(config), file_version, selected, false, false);
+}
+
+void PresetBundle::load_config_file_config(const std::string &name_or_path, bool is_external, DynamicPrintConfig &&config, Semver file_version, bool selected,
+                                           bool skip_printer, bool skip_filament)
+{
     PrinterTechnology printer_technology = Preset::printer_technology(config);
 
     auto clear_compatible_printers = [](DynamicPrintConfig& config){
@@ -3512,7 +3519,12 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             compatible_printers->values = print_compatible_printers;
         }
 
-        load_preset(this->prints, 0, "print_settings_id", print_different_keys_set, std::string());
+        // Skip print/process preset when skipping printer - print settings are designed for specific printers
+        if (!skip_printer) {
+            load_preset(this->prints, 0, "print_settings_id", print_different_keys_set, std::string());
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "[3MF Import] Skipping print preset loading (user chose to keep current printer)";
+        }
 
         //clear compatible printers
         clear_compatible_printers(config);
@@ -3528,7 +3540,11 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
             printer_different_keys_set.insert(ignore_settings_list.begin(), ignore_settings_list.end());
         //BBS: add config related logs
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": load printer preset from printer_settings_id");
-        load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
+        if (!skip_printer) {
+            load_preset(this->printers, num_filaments + 1, "printer_settings_id", printer_different_keys_set, std::string());
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "[3MF Import] Skipping printer preset loading (user chose to keep current printer)";
+        }
 
         // 3) Now load the filaments. If there are multiple filament presets, split them and load them.
         auto old_filament_profile_names = config.option<ConfigOptionStrings>("filament_settings_id", true);
@@ -3536,6 +3552,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
         auto old_machine_profile_name = config.option<ConfigOptionString>("printer_settings_id", true);
 
+        if (!skip_filament) {
         if (num_filaments <= 1) {
             // Split the "compatible_printers_condition" and "inherits" values from the cummulative vectors to separate filament presets.
             inherits                      = inherits_values[1];
@@ -3647,6 +3664,9 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                 any_modified |= modified;
                 this->filament_presets[i] = loaded->name;
             }
+        }
+        } else {
+            BOOST_LOG_TRIVIAL(warning) << "[3MF Import] Skipping filament preset loading (user chose to keep current filaments)";
         }
 
         // 4) Load the project config values (the per extruder wipe matrix etc).

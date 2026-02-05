@@ -370,6 +370,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Plater.cpp
     GUI/Plater.hpp
     GUI/PlateSettingsDialog.cpp
+    GUI/Import3mfDialog.cpp
+    GUI/Import3mfDialog.hpp
     GUI/PlateSettingsDialog.hpp
     GUI/Preferences.cpp
     GUI/Preferences.hpp

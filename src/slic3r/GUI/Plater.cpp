@@ -134,6 +134,7 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/StaticGroup.hpp"
+#include "Widgets/ComboBox.hpp"
 
 #include "GUI_ObjectTable.hpp"
 #include "libslic3r/Thread.hpp"
@@ -155,6 +156,7 @@
 #include "PhysicalPrinterDialog.hpp"
 #include "PrintHostDialogs.hpp"
 #include "PlateSettingsDialog.hpp"
+#include "Import3mfDialog.hpp"
 #include "DailyTips.hpp"
 #include "CreatePresetsDialog.hpp"
 #include "FileArchiveDialog.hpp"
@@ -280,15 +282,6 @@ enum class LoadFilesType {
     MultipleOther,
     Multiple3MFOther,
 };
-
-enum class LoadType : unsigned char
-{
-    Unknown,
-    OpenProject,
-    LoadGeometry,
-    LoadConfig
-};
-
 class SlicedInfo : public wxStaticBoxSizer
 {
 public:
@@ -5685,6 +5678,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     if (input_files.empty())
         return std::vector<size_t>();
 
+    // Log the incoming strategy flags
+    BOOST_LOG_TRIVIAL(info) << "[3MF Import] load_files strategy=" << (int)strategy
+                           << " (SkipPrinter=" << ((strategy & LoadStrategy::SkipPrinterConfig) ? "YES" : "NO")
+                           << ", SkipFilament=" << ((strategy & LoadStrategy::SkipFilamentConfig) ? "YES" : "NO") << ")";
+
     if (!input_files.empty())
        q->m_3mf_path = input_files[0].string();
     
@@ -5803,6 +5801,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     std::vector<Preset *>     project_presets;
                     // BBS: backup & restore
                     q->skip_thumbnail_invalid = true;
+                    // Get filament remapping from import settings if available
+                    const std::map<int, int>* filament_remap = get_pending_3mf_filament_remap();
                     model = Slic3r::Model::read_from_archive(path.string(), &config_loaded, &config_substitutions, en_3mf_file_type, strategy, &plate_data, &project_presets,
                                                              &file_version,
                                                              [this, &dlg, real_filename, &progress_percent, &file_percent, stage_percent, INPUT_FILES_RATIO, total_files, i,
@@ -5816,7 +5816,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                                                                  cancel        = !cont;
                                                                  if (cancel)
                                                                      is_user_cancel = cancel;
-                                                             });
+                                                             },
+                                                             nullptr,  // project
+                                                             filament_remap);
+                    
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__
                                             << boost::format(", plate_data.size %1%, project_preset.size %2%, is_bbs_3mf %3%, file_version %4% \n") % plate_data.size() %
                                                    project_presets.size() % (en_3mf_file_type == En3mfType::From_BBS) % file_version.to_string();
@@ -6006,12 +6009,38 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     }
 
                     // BBS:: project embedded presets
+                    // Filter out printer/filament presets if user chose to skip them
                     if ((project_presets.size() > 0) && load_config) {
-                        // load project embedded presets
-                        PresetsConfigSubstitutions preset_substitutions;
-                        PresetBundle &             preset_bundle = *wxGetApp().preset_bundle;
-                        preset_substitutions                     = preset_bundle.load_project_embedded_presets(project_presets, ForwardCompatibilitySubstitutionRule::Enable);
-                        if (!preset_substitutions.empty()) show_substitutions_info(preset_substitutions);
+                        BOOST_LOG_TRIVIAL(info) << "[3MF Import] Loading " << project_presets.size() << " embedded presets from project";
+                        
+                        // Remove presets that user chose not to import
+                        // When skipping printer, also skip print/process presets (they're designed for that printer)
+                        if (strategy & LoadStrategy::SkipPrinterConfig) {
+                            auto it = std::remove_if(project_presets.begin(), project_presets.end(), 
+                                [](Preset* p) { 
+                                    bool remove = (p && (p->type == Preset::TYPE_PRINTER || p->type == Preset::TYPE_PRINT));
+                                    if (remove) delete p;
+                                    return remove;
+                                });
+                            project_presets.erase(it, project_presets.end());
+                        }
+                        if (strategy & LoadStrategy::SkipFilamentConfig) {
+                            auto it = std::remove_if(project_presets.begin(), project_presets.end(), 
+                                [](Preset* p) { 
+                                    bool remove = (p && p->type == Preset::TYPE_FILAMENT);
+                                    if (remove) delete p;
+                                    return remove;
+                                });
+                            project_presets.erase(it, project_presets.end());
+                        }
+                        
+                        // load remaining project embedded presets
+                        if (!project_presets.empty()) {
+                            PresetsConfigSubstitutions preset_substitutions;
+                            PresetBundle &             preset_bundle = *wxGetApp().preset_bundle;
+                            preset_substitutions                     = preset_bundle.load_project_embedded_presets(project_presets, ForwardCompatibilitySubstitutionRule::Enable);
+                            if (!preset_substitutions.empty()) show_substitutions_info(preset_substitutions);
+                        }
                     }
                     if (project_presets.size() > 0) {
                         for (unsigned int i = 0; i < project_presets.size(); i++) { delete project_presets[i]; }
@@ -6119,8 +6148,16 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                         }
 
+                        // =========================================================
+                        // Determine skip flags early for validation checks
+                        // =========================================================
+                        bool skip_printer = (strategy & LoadStrategy::SkipPrinterConfig) != 0;
+                        bool skip_filament = (strategy & LoadStrategy::SkipFilamentConfig) != 0;
+
+                        // Only validate presets if we're actually loading them
+                        // Skip validation if user chose to skip both printer and filament presets
                         auto choise = wxGetApp().app_config->get("no_warn_when_modified_gcodes");
-                        if (choise.empty() || choise != "true") {
+                        if ((choise.empty() || choise != "true") && !(skip_printer && skip_filament)) {
                             // BBS: first validate the printer
                             // validate the system profiles
                             std::set<std::string> modified_gcodes;
@@ -6165,7 +6202,33 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wipe_tower_y_opt)
                                 file_wipe_tower_y = *wipe_tower_y_opt;
 
-                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version);
+                            // =========================================================
+                            // User's Import Choices Processing
+                            // =========================================================
+                            // Skip flags determined earlier (before validation)
+                            // If skipping, we save current presets before loading and restore after.
+                            
+                            // Get the user's import settings from the dialog (if any)
+                            Import3mfSettings import_settings;
+                            if (has_pending_3mf_import_settings()) {
+                                import_settings = get_pending_3mf_import_settings();
+                            }
+                            
+                            // Save current presets BEFORE loading if we're skipping them
+                            // We'll restore them after load_current_presets() is called
+                            std::string saved_printer_preset;
+                            std::string saved_print_preset;
+                            std::vector<std::string> saved_filament_presets;
+                            if (skip_printer) {
+                                saved_printer_preset = preset_bundle->printers.get_selected_preset_name();
+                                // Also save print/process preset - it's tied to the printer
+                                saved_print_preset = preset_bundle->prints.get_selected_preset_name();
+                            }
+                            if (skip_filament) {
+                                saved_filament_presets = preset_bundle->filament_presets;
+                            }
+                            
+                            preset_bundle->load_config_model(filename.string(), std::move(config), file_version, skip_printer, skip_filament);
 
                             ConfigOption* bed_type_opt = preset_bundle->project_config.option("curr_bed_type");
                             if (bed_type_opt != nullptr) {
@@ -6235,10 +6298,79 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             // BBS: add preset combo box re-active logic
                             // currently found only needs re-active here
                             wxGetApp().load_current_presets(false, false);
-                            // Update filament colors for the MM-printer profile in the full config
-                            // to avoid black (default) colors for Extruders in the ObjectList,
-                            // when for extruder colors are used filament colors
-                            q->on_filament_count_change(preset_bundle->filament_presets.size());
+                            
+                            // Track if we need to re-center objects due to printer change
+                            bool printer_changed = false;
+                            
+                            // Apply user's choices from import dialog
+                            if (skip_printer) {
+                                // Check if user specified a different printer to use
+                                if (!import_settings.reassign_printer.empty()) {
+                                    preset_bundle->printers.select_preset_by_name(import_settings.reassign_printer, false);
+                                    wxGetApp().get_tab(Preset::TYPE_PRINTER)->load_current_preset();
+                                    printer_changed = true;
+                                } else if (!saved_printer_preset.empty()) {
+                                    // No reassignment specified, restore original
+                                    preset_bundle->printers.select_preset_by_name(saved_printer_preset, false);
+                                    wxGetApp().get_tab(Preset::TYPE_PRINTER)->load_current_preset();
+                                    printer_changed = true;
+                                }
+                                
+                                // Also restore print/process preset - it's tied to the printer
+                                if (!saved_print_preset.empty()) {
+                                    preset_bundle->prints.select_preset_by_name(saved_print_preset, false);
+                                    wxGetApp().get_tab(Preset::TYPE_PRINT)->load_current_preset();
+                                }
+                            }
+                            
+                            if (skip_filament) {
+                                // Check if user specified filament mappings
+                                if (!import_settings.filament_color_remapping.empty()) {
+                                    // Resize filament_presets to match project's filament count
+                                    size_t project_filament_count = import_settings.filament_color_remapping.size();
+                                    
+                                    // First ensure we have the right number of filament slots
+                                    q->on_filament_count_change(project_filament_count);
+                                    preset_bundle->filament_presets.resize(project_filament_count);
+                                    
+                                    // Apply the mapping: project filament index (1-based) -> preset name
+                                    for (const auto& [filament_idx, preset_name] : import_settings.filament_color_remapping) {
+                                        if (filament_idx >= 1 && filament_idx <= (int)project_filament_count) {
+                                            preset_bundle->filament_presets[filament_idx - 1] = preset_name;
+                                        }
+                                    }
+                                    
+                                    // Select the first filament in the collection for the editor
+                                    if (!preset_bundle->filament_presets.empty()) {
+                                        preset_bundle->filaments.select_preset_by_name(preset_bundle->filament_presets[0], false);
+                                    }
+                                    
+                                    // Force update all filament combos to read from filament_presets
+                                    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->load_current_preset();
+                                    q->sidebar().update_presets(Preset::TYPE_FILAMENT);
+                                    
+                                } else if (!saved_filament_presets.empty()) {
+                                    // No mapping specified, restore original presets
+                                    preset_bundle->filament_presets = saved_filament_presets;
+                                    if (!saved_filament_presets.empty()) {
+                                        preset_bundle->filaments.select_preset_by_name(saved_filament_presets[0], false);
+                                    }
+                                    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->load_current_preset();
+                                    q->sidebar().update_presets(Preset::TYPE_FILAMENT);
+                                }
+                            } else {
+                                // Not skipping filament - update filament count normally
+                                q->on_filament_count_change(preset_bundle->filament_presets.size());
+                            }
+                            
+                            // If printer was changed, update bed shape and re-center objects
+                            if (printer_changed) {
+                                // Update the bed shape and configuration for the new printer
+                                q->on_config_change(preset_bundle->full_config());
+                                // Center all model instances on the new bed
+                                model.center_instances_around_point(this->bed.build_volume().bed_center());
+                            }
+                            
                             is_project_file = true;
 
                             DynamicConfig& proj_cfg = preset_bundle->project_config;
@@ -6403,11 +6535,36 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
                 // BBS:: project embedded presets
                 if (project_presets.size() > 0) {
-                    // load project embedded presets
-                    PresetsConfigSubstitutions preset_substitutions;
-                    PresetBundle &             preset_bundle = *wxGetApp().preset_bundle;
-                    preset_substitutions                     = preset_bundle.load_project_embedded_presets(project_presets, ForwardCompatibilitySubstitutionRule::Enable);
-                    if (!preset_substitutions.empty()) show_substitutions_info(preset_substitutions);
+                    BOOST_LOG_TRIVIAL(info) << "[3MF Import] (non-3mf path) About to load " << project_presets.size() << " embedded presets from project";
+                    
+                    // Remove presets that user chose not to import (same as 3mf path)
+                    // When skipping printer, also skip print/process presets (they're designed for that printer)
+                    if (strategy & LoadStrategy::SkipPrinterConfig) {
+                        auto it = std::remove_if(project_presets.begin(), project_presets.end(), 
+                            [](Preset* p) { 
+                                bool remove = (p && (p->type == Preset::TYPE_PRINTER || p->type == Preset::TYPE_PRINT));
+                                if (remove) delete p;
+                                return remove;
+                            });
+                        project_presets.erase(it, project_presets.end());
+                    }
+                    if (strategy & LoadStrategy::SkipFilamentConfig) {
+                        auto it = std::remove_if(project_presets.begin(), project_presets.end(), 
+                            [](Preset* p) { 
+                                bool remove = (p && p->type == Preset::TYPE_FILAMENT);
+                                if (remove) delete p;
+                                return remove;
+                            });
+                        project_presets.erase(it, project_presets.end());
+                    }
+                    
+                    // load remaining project embedded presets
+                    if (!project_presets.empty()) {
+                        PresetsConfigSubstitutions preset_substitutions;
+                        PresetBundle &             preset_bundle = *wxGetApp().preset_bundle;
+                        preset_substitutions                     = preset_bundle.load_project_embedded_presets(project_presets, ForwardCompatibilitySubstitutionRule::Enable);
+                        if (!preset_substitutions.empty()) show_substitutions_info(preset_substitutions);
+                    }
 
                     for (unsigned int i = 0; i < project_presets.size(); i++) { delete project_presets[i]; }
                     project_presets.clear();
@@ -11628,8 +11785,6 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     return wxID_YES;
 }
 
-LoadType determine_load_type(std::string filename, std::string override_setting = "");
-
 // BBS: FIXME, missing resotre logic
 void Plater::load_project(wxString const& filename2,
     wxString const& originfile)
@@ -11688,13 +11843,58 @@ void Plater::load_project(wxString const& filename2,
     } else if (originfile != "-") {
         strategy = strategy | LoadStrategy::Restore;
     } else {
-        switch (determine_load_type(filename.ToStdString())) {
-            case LoadType::OpenProject: break; // Do nothing
-            case LoadType::LoadGeometry:; strategy = LoadStrategy::LoadModel; break;
-            default: return; // User cancelled
+        switch (determine_3mf_load_type(filename.ToStdString())) {
+            case LoadType::OpenProject: 
+                break; // Do nothing - keep LoadModel | LoadConfig
+            case LoadType::LoadGeometry:
+                strategy = LoadStrategy::LoadModel; 
+                break;
+            default: 
+                m_loading_project = false;  // Reset flag on cancel
+                return; // User cancelled
         }
     }
     bool load_restore = strategy & LoadStrategy::Restore;
+
+    // CRITICAL: Prepare filament slots BEFORE loading if we have pre-parsed project info
+    // This ensures the loader has the right number of slots to assign extruder IDs
+    Import3mfSettings import_settings;
+    bool has_import_settings = has_pending_3mf_import_settings();
+    if (has_import_settings) {
+        import_settings = get_pending_3mf_import_settings();
+        
+        // Expand filament slots BEFORE loading to match project requirements
+        if (import_settings.project_filament_count > 0) {
+            unsigned int current_count = wxGetApp().preset_bundle->filament_presets.size();
+            if (import_settings.project_filament_count > (int)current_count) {
+                BOOST_LOG_TRIVIAL(info) << "[3MF Import] Expanding filament slots from " << current_count 
+                                       << " to " << import_settings.project_filament_count;
+                
+                // Get colors from pre-parsed project info for the new slots
+                std::vector<std::string> new_colors;
+                for (int i = current_count; i < import_settings.project_filament_count; ++i) {
+                    if (i < import_settings.project_filament_colors.size()) {
+                        new_colors.push_back(import_settings.project_filament_colors[i]);
+                    } else {
+                        new_colors.push_back("#FFFFFF");  // Default white
+                    }
+                }
+                
+                wxGetApp().preset_bundle->set_num_filaments(import_settings.project_filament_count, new_colors);
+                on_filament_count_change(import_settings.project_filament_count);
+            }
+        }
+        
+        // Apply skip flags based on user's import choices
+        // We keep LoadConfig so we can read project settings (print profiles, colors, etc.)
+        // but skip applying printer/filament presets if user doesn't want them
+        if (!import_settings.import_printer_settings) {
+            strategy = strategy | LoadStrategy::SkipPrinterConfig;
+        }
+        if (!import_settings.import_filament_settings) {
+            strategy = strategy | LoadStrategy::SkipFilamentConfig;
+        }
+    }
 
     // Take the Undo / Redo snapshot.
     reset();
@@ -11707,6 +11907,11 @@ void Plater::load_project(wxString const& filename2,
         input_paths.push_back(into_u8(originfile));
 
     std::vector<size_t> res = load_files(input_paths, strategy);
+
+    // Clear pending import settings after loading
+    if (has_import_settings) {
+        clear_pending_3mf_import_settings();
+    }
 
     reset_project_dirty_initial_presets();
     update_project_dirty_from_presets();
@@ -13275,6 +13480,157 @@ void Plater::force_update_all_plate_thumbnails()
     get_preview_canvas3D()->update_plate_thumbnails();
 }
 
+//BBS: remove GCodeViewer as seperate APP logic
+bool Plater::load_files(const wxArrayString& filenames)
+{
+    const std::regex pattern_drop(".*[.](stp|step|stl|oltp|obj|amf|3mf|svg|zip)", std::regex::icase);
+    const std::regex pattern_gcode_drop(".*[.](gcode|g)", std::regex::icase);
+
+    std::vector<fs::path> normal_paths;
+    std::vector<fs::path> gcode_paths;
+
+    for (const auto& filename : filenames) {
+        fs::path path(into_path(filename));
+        if (std::regex_match(path.string(), pattern_drop))
+            normal_paths.push_back(std::move(path));
+        else if (std::regex_match(path.string(), pattern_gcode_drop))
+            gcode_paths.push_back(std::move(path));
+        else
+            continue;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": normal_paths %1%, gcode_paths %2%")%normal_paths.size() %gcode_paths.size();
+    if (normal_paths.empty() && gcode_paths.empty()) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": can not find valid path, return directly");
+        // Likely no supported files
+        return false;
+    }
+    else if (normal_paths.empty()){
+        //only gcode files
+        if (gcode_paths.size() > 1) {
+            show_info(this, _L("Only one G-code file can be opened at the same time."), _L("G-code loading"));
+            return false;
+        }
+        load_gcode(from_path(gcode_paths.front()));
+        return true;
+    }
+
+    if (!gcode_paths.empty()) {
+        show_info(this, _L("G-code files cannot be loaded with models together!"), _L("G-code loading"));
+        return false;
+    }
+
+    std::string snapshot_label;
+    assert(!normal_paths.empty());
+    if (normal_paths.size() == 1) {
+        snapshot_label = "Load File";
+        snapshot_label += ": ";
+        snapshot_label += encode_path(normal_paths.front().filename().string().c_str());
+    } else {
+        snapshot_label = "Load Files";
+        snapshot_label += ": ";
+        snapshot_label += encode_path(normal_paths.front().filename().string().c_str());
+        for (size_t i = 1; i < normal_paths.size(); ++i) {
+            snapshot_label += ", ";
+            snapshot_label += encode_path(normal_paths[i].filename().string().c_str());
+        }
+    }
+
+    // BBS: check file types
+    std::sort(normal_paths.begin(), normal_paths.end(), [](fs::path obj1, fs::path obj2) { return obj1.filename().string() < obj2.filename().string(); });
+
+    auto loadfiles_type  = LoadFilesType::NoFile;
+    auto amf_files_count = get_3mf_file_count(normal_paths);
+
+    if (normal_paths.size() > 1 && amf_files_count < normal_paths.size()) { loadfiles_type = LoadFilesType::Multiple3MFOther; }
+    if (normal_paths.size() > 1 && amf_files_count == normal_paths.size()) { loadfiles_type = LoadFilesType::Multiple3MF; }
+    if (normal_paths.size() > 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::MultipleOther; }
+    if (normal_paths.size() == 1 && amf_files_count == 1) { loadfiles_type = LoadFilesType::Single3MF; };
+    if (normal_paths.size() == 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::SingleOther; };
+
+    auto first_file = std::vector<fs::path>{};
+    auto tmf_file   = std::vector<fs::path>{};
+    auto other_file = std::vector<fs::path>{};
+    auto res        = true;
+
+    if (this->m_only_gcode || this->m_exported_file) {
+        if ((loadfiles_type == LoadFilesType::SingleOther)
+            || (loadfiles_type == LoadFilesType::MultipleOther)) {
+            show_info(this, _L("Cannot add models when in preview mode!"), _L("Add Models"));
+            return false;
+        }
+    }
+
+    // Orca: Iters through given paths and imports files from zip then remove zip from paths
+    // returns true if zip files were found
+    auto handle_zips = [this](vector<fs::path>& paths) { // NOLINT(*-no-recursion) - Recursion is intended and should be managed properly
+        bool res = false;
+        for (auto it = paths.begin(); it != paths.end();) {
+            if (boost::algorithm::iends_with(it->string(), ".zip")) {
+                res = true;
+                preview_zip_archive(*it);
+                it = paths.erase(it);
+            } else
+                it++;
+        }
+        return res;
+    };
+
+    switch (loadfiles_type) {
+    case LoadFilesType::Single3MF:
+        open_3mf_file(normal_paths[0]);
+        break;
+
+    case LoadFilesType::SingleOther: {
+        Plater::TakeSnapshot snapshot(this, snapshot_label);
+        if (handle_zips(normal_paths)) return true;
+        if (load_files(normal_paths, LoadStrategy::LoadModel, false).empty()) { res = false; }
+        break;
+    }
+    case LoadFilesType::Multiple3MF:
+        first_file = std::vector<fs::path>{normal_paths[0]};
+        for (auto i = 0; i < normal_paths.size(); i++) {
+            if (i > 0) { other_file.push_back(normal_paths[i]); }
+        };
+
+        open_3mf_file(first_file[0]);
+        if (load_files(other_file, LoadStrategy::LoadModel).empty()) {  res = false;  }
+        break;
+
+    case LoadFilesType::MultipleOther: {
+        Plater::TakeSnapshot snapshot(this, snapshot_label);
+        if (handle_zips(normal_paths)) {
+            if (normal_paths.empty()) return true;
+        }
+        if (load_files(normal_paths, LoadStrategy::LoadModel, true).empty()) { res = false; }
+        break;
+    }
+
+    case LoadFilesType::Multiple3MFOther:
+        for (const auto &path : normal_paths) {
+            if (boost::iends_with(path.filename().string(), ".3mf")){
+                if (first_file.size() <= 0)
+                    first_file.push_back(path);
+                else
+                    tmf_file.push_back(path);
+            } else {
+                other_file.push_back(path);
+            }
+        }
+
+        open_3mf_file(first_file[0]);
+        if (load_files(tmf_file, LoadStrategy::LoadModel).empty()) {  res = false;  }
+        if (res && handle_zips(other_file)) {
+            if (normal_paths.empty()) return true;
+        }
+        if (load_files(other_file, LoadStrategy::LoadModel, false).empty()) {  res = false;  }
+        break;
+    default: break;
+    }
+
+    return res;
+}
+
 // BBS: backup
 std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi) {
     //BBS: wish to reset state when load a new file
@@ -13474,402 +13830,6 @@ bool Plater::preview_zip_archive(const boost::filesystem::path& archive_path)
     return true;
 }
 
-#define PROJECT_DROP_DIALOG_SELECT_PLANE_SIZE wxSize(FromDIP(350), FromDIP(120))
-
-class ProjectDropDialog : public DPIDialog
-{
-private:
-    wxColour          m_def_color = wxColour(255, 255, 255);
-    int               m_action{1};
-    bool              m_remember_choice{false};
-
-public:
-    ProjectDropDialog(const std::string &filename);
-
-    wxPanel *     m_top_line;
-    wxStaticText *m_fname_title;
-    wxStaticText *m_fname_f;
-    wxStaticText *m_fname_s;
-    StaticBox * m_panel_select;
-
-    void      on_select_ok(wxCommandEvent &event);
-    void      on_select_cancel(wxCommandEvent &event);
-
-    int       get_action() const { return m_action; }
-    void      set_action(int index) { m_action = index; }
-
-    wxBoxSizer *create_remember_checkbox(wxString title, wxWindow* parent, wxString tooltip);
-    wxBoxSizer *create_item_radiobox(wxString title, wxWindow *parent, int select_id, int groupid);
-
-protected:
-    void on_dpi_changed(const wxRect &suggested_rect) override;
-};
-
-ProjectDropDialog::ProjectDropDialog(const std::string &filename)
-    : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
-                wxID_ANY,
-                from_u8((boost::format(_utf8(L("Drop project file")))).str()),
-                wxDefaultPosition,
-                wxDefaultSize,
-                wxCAPTION | wxCLOSE_BOX)
-    , m_action(2)
-{
-    // def setting
-    SetBackgroundColour(m_def_color);
-
-    // icon
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
-    SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
-
-    wxBoxSizer *m_sizer_main = new wxBoxSizer(wxVERTICAL);
-
-    m_top_line = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    m_top_line->SetBackgroundColour(wxColour(166, 169, 170));
-
-    m_sizer_main->Add(m_top_line, 0, wxEXPAND, 0);
-
-    m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, 20);
-
-    wxBoxSizer *m_sizer_name = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer *m_sizer_fline = new wxBoxSizer(wxHORIZONTAL);
-
-    m_fname_title = new wxStaticText(this, wxID_ANY, _L("Please select an action"), wxDefaultPosition, wxDefaultSize, 0);
-    m_fname_title->Wrap(-1);
-    m_fname_title->SetFont(::Label::Body_14);
-    m_fname_title->SetForegroundColour(wxColour(107, 107, 107));
-    m_fname_title->SetBackgroundColour(wxColour(255, 255, 255));
-
-    m_sizer_fline->Add(m_fname_title, 0, wxALL, 0);
-    m_sizer_fline->Add(0, 0, 0, wxEXPAND | wxLEFT, 5);
-
-    m_fname_f = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0);
-    m_fname_f->SetFont(::Label::Head_14);
-    m_fname_f->Wrap(-1);
-    m_fname_f->SetForegroundColour(wxColour(38, 46, 48));
-
-    m_sizer_fline->Add(m_fname_f, 1, wxALL, 0);
-
-    m_sizer_name->Add(m_sizer_fline, 1, wxEXPAND, 0);
-
-    m_fname_s = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0);
-    m_fname_s->SetFont(::Label::Head_14);
-    m_fname_s->Wrap(-1);
-    m_fname_s->SetForegroundColour(wxColour(38, 46, 48));
-
-    m_sizer_name->Add(m_fname_s, 1, wxALL, 0);
-
-    m_sizer_main->Add(m_sizer_name, 1, wxEXPAND | wxLEFT | wxRIGHT, 20);
-
-    auto radio_group = new RadioGroup(this, {
-        _L("Open as project"),     // 0
-        _L("Import geometry only") // 1
-    }, wxVERTICAL);
-    radio_group->SetMinSize(wxSize(FromDIP(300),-1));
-    radio_group->SetSelection(get_action() - 1);
-    radio_group->Bind(wxEVT_COMMAND_RADIOBOX_SELECTED, [this, radio_group](wxCommandEvent &e) {
-        set_action(radio_group->GetSelection() + 1);
-    });
-
-    m_sizer_main->Add(radio_group, 0, wxEXPAND | wxLEFT | wxRIGHT, 20);
-
-    m_sizer_main->Add(0, 0, 0, wxEXPAND | wxTOP, 10);
-
-    // wxBoxSizer *m_sizer_bottom = new wxBoxSizer(wxHORIZONTAL);
-    // Orca: hide the "Don't show again" checkbox, people keeps accidentally checked this then forgot
-    // wxBoxSizer *m_sizer_left = new wxBoxSizer(wxHORIZONTAL);
-    //
-    // auto dont_show_again = create_remember_checkbox(_L("Remember my choice."), this, _L("This option can be changed later in preferences, under 'Load Behaviour'."));
-    // m_sizer_left->Add(dont_show_again, 0, wxALL, 5);
-    //
-    // m_sizer_bottom->Add(m_sizer_left, 0, wxEXPAND, 5);
-
-    auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
-
-    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &ProjectDropDialog::on_select_ok, this);
-
-    dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, &ProjectDropDialog::on_select_cancel, this);
-
-    m_sizer_main->Add(dlg_btns, 0, wxEXPAND);
-
-    SetSizer(m_sizer_main);
-    Layout();
-    Fit();
-    Centre(wxBOTH);
-
-
-    auto limit_width   = m_fname_f->GetSize().GetWidth() - 2;
-    auto current_width = 0;
-    auto cut_index     = 0;
-    auto fstring       = wxString("");
-    auto bstring       = wxString("");
-
-    //auto file_name = from_u8(filename.c_str());
-    auto file_name = wxString(filename);
-    for (int x = 0; x < file_name.length(); x++) {
-        current_width += m_fname_s->GetTextExtent(file_name[x]).GetWidth();
-        cut_index = x;
-
-        if (current_width > limit_width) {
-            bstring += file_name[x];
-        } else {
-            fstring += file_name[x];
-        }
-    }
-
-    m_fname_f->SetLabel(fstring);
-    m_fname_s->SetLabel(bstring);
-
-    wxGetApp().UpdateDlgDarkUI(this);
-}
-
-wxBoxSizer *ProjectDropDialog::create_remember_checkbox(wxString title, wxWindow *parent, wxString tooltip)
-{
-    wxBoxSizer *m_sizer_checkbox = new wxBoxSizer(wxHORIZONTAL);
-    m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 5);
-
-    auto checkbox = new ::CheckBox(parent);
-    checkbox->SetValue(m_remember_choice);
-    checkbox->SetToolTip(tooltip);
-    m_sizer_checkbox->Add(checkbox, 0, wxALIGN_CENTER, 0);
-    m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 8);
-
-    auto checkbox_title = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxSize(-1, -1), 0);
-    checkbox_title->SetForegroundColour(wxColour(144,144,144));
-    checkbox_title->SetFont(::Label::Body_13);
-    checkbox_title->Wrap(-1);
-    checkbox_title->SetToolTip(tooltip);
-    m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxALL, 3);
-
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {
-        m_remember_choice = checkbox->GetValue();
-        e.Skip();
-    });
-
-    return m_sizer_checkbox;
-}
-
-void ProjectDropDialog::on_select_ok(wxCommandEvent &event)
-{
-    if (m_remember_choice) {
-        LoadType load_type = static_cast<LoadType>(get_action());
-        switch (load_type)
-        {
-            case LoadType::OpenProject:
-                wxGetApp().app_config->set(SETTING_PROJECT_LOAD_BEHAVIOUR, OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_ALL);
-                break;
-            case LoadType::LoadGeometry:
-                wxGetApp().app_config->set(SETTING_PROJECT_LOAD_BEHAVIOUR, OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY);
-                break;
-        }
-    }
-
-    EndModal(wxID_OK);
-}
-
-void ProjectDropDialog::on_select_cancel(wxCommandEvent &event)
-{
-    EndModal(wxID_CANCEL);
-}
-
-void ProjectDropDialog::on_dpi_changed(const wxRect& suggested_rect)
-{
-    Fit();
-    Refresh();
-}
-
-//BBS: remove GCodeViewer as seperate APP logic
-bool Plater::load_files(const wxArrayString& filenames)
-{
-    const std::regex pattern_drop(".*[.](stp|step|stl|oltp|obj|amf|3mf|svg|zip)", std::regex::icase);
-    const std::regex pattern_gcode_drop(".*[.](gcode|g)", std::regex::icase);
-
-    std::vector<fs::path> normal_paths;
-    std::vector<fs::path> gcode_paths;
-
-    for (const auto& filename : filenames) {
-        fs::path path(into_path(filename));
-        if (std::regex_match(path.string(), pattern_drop))
-            normal_paths.push_back(std::move(path));
-        else if (std::regex_match(path.string(), pattern_gcode_drop))
-            gcode_paths.push_back(std::move(path));
-        else
-            continue;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": normal_paths %1%, gcode_paths %2%")%normal_paths.size() %gcode_paths.size();
-    if (normal_paths.empty() && gcode_paths.empty()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": can not find valid path, return directly");
-        // Likely no supported files
-        return false;
-    }
-    else if (normal_paths.empty()){
-        //only gcode files
-        if (gcode_paths.size() > 1) {
-            show_info(this, _L("Only one G-code file can be opened at the same time."), _L("G-code loading"));
-            return false;
-        }
-        load_gcode(from_path(gcode_paths.front()));
-        return true;
-    }
-
-    if (!gcode_paths.empty()) {
-        show_info(this, _L("G-code files cannot be loaded with models together!"), _L("G-code loading"));
-        return false;
-    }
-
-    //// searches for project files
-    //for (std::vector<fs::path>::const_reverse_iterator it = normal_paths.rbegin(); it != normal_paths.rend(); ++it) {
-    //    std::string filename = (*it).filename().string();
-    //    ////BBS: only 3mf will be treated as project file
-    //    if (open_3mf_file((*it)))
-    //        return true;
-    //}
-
-    //// other files
-    std::string snapshot_label;
-    assert(!normal_paths.empty());
-    if (normal_paths.size() == 1) {
-        snapshot_label = "Load File";
-        snapshot_label += ": ";
-        snapshot_label += encode_path(normal_paths.front().filename().string().c_str());
-    } else {
-        snapshot_label = "Load Files";
-        snapshot_label += ": ";
-        snapshot_label += encode_path(normal_paths.front().filename().string().c_str());
-        for (size_t i = 1; i < normal_paths.size(); ++i) {
-            snapshot_label += ", ";
-            snapshot_label += encode_path(normal_paths[i].filename().string().c_str());
-        }
-    }
-
-    //Plater::TakeSnapshot snapshot(this, snapshot_label);
-    //load_files(normal_paths, LoadStrategy::LoadModel);
-
-    // BBS: check file types
-    std::sort(normal_paths.begin(), normal_paths.end(), [](fs::path obj1, fs::path obj2) { return obj1.filename().string() < obj2.filename().string(); });
-
-    auto loadfiles_type  = LoadFilesType::NoFile;
-    auto amf_files_count = get_3mf_file_count(normal_paths);
-
-    if (normal_paths.size() > 1 && amf_files_count < normal_paths.size()) { loadfiles_type = LoadFilesType::Multiple3MFOther; }
-    if (normal_paths.size() > 1 && amf_files_count == normal_paths.size()) { loadfiles_type = LoadFilesType::Multiple3MF; }
-    if (normal_paths.size() > 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::MultipleOther; }
-    if (normal_paths.size() == 1 && amf_files_count == 1) { loadfiles_type = LoadFilesType::Single3MF; };
-    if (normal_paths.size() == 1 && amf_files_count == 0) { loadfiles_type = LoadFilesType::SingleOther; };
-
-    auto first_file = std::vector<fs::path>{};
-    auto tmf_file   = std::vector<fs::path>{};
-    auto other_file = std::vector<fs::path>{};
-    auto res        = true;
-
-    if (this->m_only_gcode || this->m_exported_file) {
-        if ((loadfiles_type == LoadFilesType::SingleOther)
-            || (loadfiles_type == LoadFilesType::MultipleOther)) {
-            show_info(this, _L("Cannot add models when in preview mode!"), _L("Add Models"));
-            return false;
-        }
-    }
-
-    // Orca: Iters through given paths and imports files from zip then remove zip from paths
-    // returns true if zip files were found
-    auto handle_zips = [this](vector<fs::path>& paths) { // NOLINT(*-no-recursion) - Recursion is intended and should be managed properly
-        bool res = false;
-        for (auto it = paths.begin(); it != paths.end();) {
-            if (boost::algorithm::iends_with(it->string(), ".zip")) {
-                res = true;
-                preview_zip_archive(*it);
-                it = paths.erase(it);
-            } else
-                it++;
-        }
-        return res;
-    };
-
-    switch (loadfiles_type) {
-    case LoadFilesType::Single3MF:
-        open_3mf_file(normal_paths[0]);
-        break;
-
-    case LoadFilesType::SingleOther: {
-        Plater::TakeSnapshot snapshot(this, snapshot_label);
-        if (handle_zips(normal_paths)) return true;
-        if (load_files(normal_paths, LoadStrategy::LoadModel, false).empty()) { res = false; }
-        break;
-    }
-    case LoadFilesType::Multiple3MF:
-        first_file = std::vector<fs::path>{normal_paths[0]};
-        for (auto i = 0; i < normal_paths.size(); i++) {
-            if (i > 0) { other_file.push_back(normal_paths[i]); }
-        };
-
-        open_3mf_file(first_file[0]);
-        if (load_files(other_file, LoadStrategy::LoadModel).empty()) {  res = false;  }
-        break;
-
-    case LoadFilesType::MultipleOther: {
-        Plater::TakeSnapshot snapshot(this, snapshot_label);
-        if (handle_zips(normal_paths)) {
-            if (normal_paths.empty()) return true;
-        }
-        if (load_files(normal_paths, LoadStrategy::LoadModel, true).empty()) { res = false; }
-        break;
-    }
-
-    case LoadFilesType::Multiple3MFOther:
-        for (const auto &path : normal_paths) {
-            if (boost::iends_with(path.filename().string(), ".3mf")){
-                if (first_file.size() <= 0)
-                    first_file.push_back(path);
-                else
-                    tmf_file.push_back(path);
-            } else {
-                other_file.push_back(path);
-            }
-        }
-
-        open_3mf_file(first_file[0]);
-        if (load_files(tmf_file, LoadStrategy::LoadModel).empty()) {  res = false;  }
-        if (res && handle_zips(other_file)) {
-            if (normal_paths.empty()) return true;
-        }
-        if (load_files(other_file, LoadStrategy::LoadModel, false).empty()) {  res = false;  }
-        break;
-    default: break;
-    }
-
-    return res;
-}
-
-LoadType determine_load_type(std::string filename, std::string override_setting)
-{
-    std::string setting;
-
-    if (override_setting != "") {
-        setting = override_setting;
-    } else {
-        setting = wxGetApp().app_config->get(SETTING_PROJECT_LOAD_BEHAVIOUR);
-    }
-
-    if (setting == OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY) {
-        return LoadType::LoadGeometry;
-    } else if (setting == OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK) {
-        ProjectDropDialog dlg(filename);
-        if (dlg.ShowModal() == wxID_OK) {
-            int      choice    = dlg.get_action();
-            LoadType load_type = static_cast<LoadType>(choice);
-            wxGetApp().app_config->set("import_project_action", std::to_string(choice));
-
-            // BBS: jump to plater panel
-            wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
-            return load_type;
-        }
-
-        return LoadType::Unknown; // Cancel
-    } else {
-        return LoadType::OpenProject;
-    }
-}
-
 bool Plater::open_3mf_file(const fs::path &file_path)
 {
     std::string filename = encode_path(file_path.filename().string().c_str());
@@ -13879,7 +13839,7 @@ bool Plater::open_3mf_file(const fs::path &file_path)
 
     bool not_empty_plate = !model().objects.empty();
     bool load_setting_ask_when_relevant = wxGetApp().app_config->get(SETTING_PROJECT_LOAD_BEHAVIOUR) == OPTION_PROJECT_LOAD_BEHAVIOUR_ASK_WHEN_RELEVANT;
-    LoadType load_type = determine_load_type(filename, (not_empty_plate && load_setting_ask_when_relevant) ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
+    LoadType load_type = determine_3mf_load_type(filename, (not_empty_plate && load_setting_ask_when_relevant) ? OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK : "");
 
     if (load_type == LoadType::Unknown) return false;
 
@@ -13891,6 +13851,34 @@ bool Plater::open_3mf_file(const fs::path &file_path)
         }
         case LoadType::LoadGeometry: {
             Plater::TakeSnapshot snapshot(this, "Import Object");
+            
+            // For geometry-only import, we still need to expand filament slots
+            // to accommodate the model's extruder references
+            if (has_pending_3mf_import_settings()) {
+                Import3mfSettings import_settings = get_pending_3mf_import_settings();
+                clear_pending_3mf_import_settings();
+                
+                if (import_settings.project_filament_count > 0) {
+                    unsigned int current_count = wxGetApp().preset_bundle->filament_presets.size();
+                    if (import_settings.project_filament_count > (int)current_count) {
+                        BOOST_LOG_TRIVIAL(info) << "LoadGeometry: Expanding filament slots from " << current_count 
+                                               << " to " << import_settings.project_filament_count;
+                        
+                        std::vector<std::string> new_colors;
+                        for (int i = current_count; i < import_settings.project_filament_count; ++i) {
+                            if (i < import_settings.project_filament_colors.size()) {
+                                new_colors.push_back(import_settings.project_filament_colors[i]);
+                            } else {
+                                new_colors.push_back("#FFFFFF");
+                            }
+                        }
+                        
+                        wxGetApp().preset_bundle->set_num_filaments(import_settings.project_filament_count, new_colors);
+                        on_filament_count_change(import_settings.project_filament_count);
+                    }
+                }
+            }
+            
             load_files({file_path}, LoadStrategy::LoadModel);
             break;
         }

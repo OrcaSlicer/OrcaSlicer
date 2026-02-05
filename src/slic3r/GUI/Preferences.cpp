@@ -1263,6 +1263,12 @@ void PreferencesDialog::create_items()
     auto item_project_load     = create_item_combobox(_L("Load behaviour"), _L("Should printer/filament/process settings be loaded when opening a 3MF file?"), SETTING_PROJECT_LOAD_BEHAVIOUR, projectLoadSettingsBehaviourOptions, projectLoadSettingsConfigOptions);
     g_sizer->Add(item_project_load);
 
+    auto item_skip_printer     = create_item_checkbox(_L("Skip loading project printer profiles"), _L("When 'Load All' is selected, skip loading printer presets from 3MF files"), SETTING_PROJECT_SKIP_PRINTER);
+    g_sizer->Add(item_skip_printer);
+
+    auto item_skip_filament    = create_item_checkbox(_L("Skip loading project filament settings"), _L("When 'Load All' is selected, skip loading filament presets from 3MF files"), SETTING_PROJECT_SKIP_FILAMENT);
+    g_sizer->Add(item_skip_filament);
+
     auto item_max_recent_count = create_item_input(_L("Maximum recent files"), "", _L("Maximum count of recent files"), "max_recent_count", [](wxString value) {
         long max = 0;
         if (value.ToLong(&max))

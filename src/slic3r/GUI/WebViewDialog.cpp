@@ -558,7 +558,11 @@ void WebViewPanel::OnNavigationRequest(wxWebViewEvent& evt)
             else
                 file = "//" + file; // When file from network location
 #endif
-            wxGetApp().plater()->load_files(wxArrayString{1, &file});
+            // Use CallAfter to avoid WebView2 reentrancy issue when showing modal dialogs
+            wxString file_copy = file;
+            CallAfter([file_copy]() {
+                wxGetApp().plater()->load_files(wxArrayString{1, &file_copy});
+            });
             evt.Veto();
             return;
         }

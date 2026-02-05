@@ -5,6 +5,7 @@
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include <functional>
+#include <map>
 
 namespace Slic3r {
 class Model;
@@ -166,6 +167,9 @@ enum class LoadStrategy
     LoadAuxiliary = 16,
     Silence = 32,
     ImperialUnits = 64,
+    SkipPainting = 128,       // Skip loading mmu_segmentation, custom_supports, seam, fuzzy_skin data
+    SkipPrinterConfig = 256,  // Skip loading printer preset (keep user's current printer)
+    SkipFilamentConfig = 512, // Skip loading filament presets (keep user's current filaments)
 
     Restore = 0x10000 | LoadModel | LoadConfig | LoadAuxiliary | Silence,
 };
@@ -247,10 +251,27 @@ struct StoreParams
 //BBS: add plate data list related logic
 // add restore logic
 // Load the content of a 3mf file into the given model and preset bundle.
+// filament_remap: optional map of project_extruder_id (1-based) -> user_slot_id (1-based)
+//                 When provided, extruder assignments will be remapped during loading
 extern bool load_bbs_3mf(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, PlateDataPtrs* plate_data_list, std::vector<Preset*>* project_presets,
-        bool* is_bbl_3mf, Semver* file_version, Import3mfProgressFn proFn = nullptr, LoadStrategy strategy = LoadStrategy::Default, BBLProject *project = nullptr, int plate_id = 0);
+        bool* is_bbl_3mf, Semver* file_version, Import3mfProgressFn proFn = nullptr, LoadStrategy strategy = LoadStrategy::Default, BBLProject *project = nullptr, int plate_id = 0,
+        const std::map<int, int>* filament_remap = nullptr);
 
 extern std::string bbs_3mf_get_thumbnail(const char * path);
+
+// Pre-parse 3MF project info without fully loading the model
+// Returns basic project metadata for import dialog decision making
+struct Bbs3mfProjectInfo {
+    int filament_count{0};
+    std::vector<std::string> filament_colors;   // Hex color strings like "#RRGGBB"
+    std::string printer_preset_name;
+    std::vector<std::string> filament_preset_names;
+    bool has_printer_settings{false};
+    bool has_filament_settings{false};
+    bool is_bbs_3mf{false};
+};
+
+extern bool bbs_3mf_preparse_project_info(const char* path, Bbs3mfProjectInfo& info);
 
 extern bool load_gcode_3mf_from_stream(std::istream & data, DynamicPrintConfig* config, Model* model, PlateDataPtrs* plate_data_list,
        Semver* file_version);
