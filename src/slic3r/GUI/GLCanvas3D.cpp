@@ -4532,7 +4532,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                 Vec3d orig = _mouse_to_3d(m_mouse.drag.start_position_2D, &z);
                 Camera& camera = wxGetApp().plater()->get_camera();
                 if (this->m_canvas_type != ECanvasType::CanvasAssembleView) {
-                    if (wxGetApp().app_config->get_bool("use_free_camera"))
+                    // Orca: Use a constrained camera when navigating the 3D scene with a regular mouse, if the free camera is not selected
+                    if (!wxGetApp().app_config->get_bool("use_free_camera"))
                         // Forces camera right vector to be parallel to XY plane in case it has been misaligned using the 3D mouse free rotation.
                         // It is cheaper to call this function right away instead of testing wxGetApp().plater()->get_mouse3d_controller().connected(),
                         // which checks an atomics (flushes CPU caches).
