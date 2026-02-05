@@ -3,7 +3,7 @@
     "auxiliary_fan": "0",
     "bbl_use_printhost": "0",
     "bed_custom_model": "",
-    "bed_custom_texture": "C:\\\\Users\\\\user\\\\Desktop\\\\VENDORS\\\\DMAKERS_txt.png",
+    "bed_custom_texture":"DMAKERS_bed.png",
     "bed_exclude_area": [
         "0x0"
     ],
