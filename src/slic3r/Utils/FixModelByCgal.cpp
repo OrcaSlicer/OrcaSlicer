@@ -22,8 +22,6 @@ public:
     const char* what() const noexcept override { return "Model repair has been canceled"; }
 };
 
-// Return false if fixing was canceled.
-// fix_result is empty if fixing finished successfully; otherwise contains a message.
 // Orca: Main function to repair model objects using CGAL, with progress dialog and cancellation support.
 // Returns false if fixing was canceled. fix_result contains error message if failed.
 bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::ProgressDialog &progress_dialog, const wxString &msg_header, std::string &fix_result)
