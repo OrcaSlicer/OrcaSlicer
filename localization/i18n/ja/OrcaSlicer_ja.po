@@ -13846,9 +13846,10 @@ msgid "Reduce infill retraction"
 msgstr "ｲﾝﾌｨﾙのﾘﾄﾗｸｼｮﾝ低減"
 
 msgid ""
-"Don't retract when the travel is in infill area absolutely. That means the "
+"Don't retract when the travel is entirely within an infill area. That means the "
 "oozing can't been seen. This can reduce times of retraction for complex "
-"model and save printing time, but make slicing and G-code generating slower."
+"model and save printing time, but make slicing and G-code generating slower. "
+"Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 "インフィル領域内の移動はリトラクションしません。造形時間を節約できます。"
 
