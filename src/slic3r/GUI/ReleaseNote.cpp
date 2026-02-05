@@ -1510,7 +1510,8 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_tip4->SetMinSize(wxSize(FromDIP(355), -1));
     m_tip4->SetMaxSize(wxSize(FromDIP(355), -1));
 
-    m_trouble_shoot = new wxHyperlinkCtrl(this, wxID_ANY, "How to trouble shooting", "");
+    // ORCA standardized HyperLink
+    m_trouble_shoot = new HyperLink(this, "How to trouble shooting");
 
     m_img_help = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("input_access_code_x1_en", this, 198), wxDefaultPosition, wxSize(FromDIP(355), -1), 0);
 
@@ -1843,10 +1844,10 @@ void InputIpAddressDialog::on_send_retry()
     m_send_job->m_access_code = str_access_code.ToStdString();
 
 #if !BBL_RELEASE_TO_PUBLIC
-    m_send_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+    m_send_job->m_local_use_ssl = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
     m_send_job->m_local_use_ssl_for_ftp  = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
 #else
-    m_send_job->m_local_use_ssl_for_mqtt = m_obj->local_use_ssl_for_mqtt;
+    m_send_job->m_local_use_ssl = m_obj->local_use_ssl;
     m_send_job->m_local_use_ssl_for_ftp  = m_obj->local_use_ssl_for_ftp;
 #endif
 

@@ -1468,6 +1468,8 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
         return;
     }
 
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+
     float wheel = 0.0f;
     wheel = evt.GetWheelRotation() > 0 ? 1.0f : -1.0f;
     if (wheel == 0.0f)
@@ -1492,6 +1494,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
             const int new_pos = GetHigherValue() + wheel;
             SetHigherValue(new_pos);
             set_as_dirty();
+            imgui.set_requires_extra_frame();
         }
     }
     else {
@@ -1509,6 +1512,7 @@ void IMSlider::on_mouse_wheel(wxMouseEvent& evt) {
                 m_selection == ssLower ? SetLowerValue(new_pos) : SetHigherValue(new_pos);
             }
             set_as_dirty();
+            imgui.set_requires_extra_frame();
         }
     }
 }

@@ -444,22 +444,27 @@ std::string GCodeWriter::reset_e(bool force)
     }
 }
 
-std::string GCodeWriter::enable_power_loss_recovery(bool enable)
+std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
 {
     std::ostringstream gcode;
-    
+
+    if (mode == PowerLossRecoveryMode::PrinterConfiguration)
+        return std::string();
+
+    const bool enable = mode == PowerLossRecoveryMode::Enable;
+
     if (m_is_bbl_printers) {
-        gcode << "; start tracking Power Loss Recovery https://wiki.bambulab.com/en/knowledge-sharing/power-loss-recovery\n";
-        gcode << "M1003 S" << (enable ? "1" : "0") << "\n";
+        gcode << "M1003 S" << (enable ? "1" : "0");
     }
     else if (FLAVOR_IS(gcfMarlinFirmware)) {
-        gcode << "; start tracking Power-loss Recovery https://marlinfw.org/docs/gcode/M413.html\n";
-        gcode << "M413 S" << (enable ? "1" : "0") << "\n";
+        gcode << "M413 S" << (enable ? "1" : "0");
+    } else {
+        return std::string();
     }
-    
+    if (GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
+    gcode << "\n";
     return gcode.str();
 }
-
 
 std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, bool allow_100) const
 {
@@ -560,7 +565,7 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
     // BBS
@@ -588,7 +593,7 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
         int filament_id = filament()->id();
         double above = this->config.retract_lift_above.get_at(extruder_id);
         double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos.z() >= above && m_pos.z() <= below)
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
             target_lift = this->config.z_hop.get_at(filament_id);
     }
 

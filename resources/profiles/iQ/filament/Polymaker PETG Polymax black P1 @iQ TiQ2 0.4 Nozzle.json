@@ -30,9 +30,6 @@
     "chamber_temperature": [
         "0"
     ],
-    "close_fan_the_first_x_layers": [
-        "3"
-    ],
     "compatible_printers": [
         "iQ TiQ2 0.4 Nozzle"
     ],
@@ -88,6 +85,9 @@
     ],
     "filament_cooling_moves": [
         "4"
+    ],
+    "close_fan_the_first_x_layers": [
+        "1000"
     ],
     "filament_cost": [
         "29.99"
@@ -162,7 +162,7 @@
         "nil"
     ],
     "filament_retraction_length": [
-        "0.2"
+        "0.4"
     ],
     "filament_retraction_minimum_travel": [
         "nil"
@@ -222,7 +222,7 @@
         "0"
     ],
     "hot_plate_temp": [
-        "80"
+        "70"
     ],
     "hot_plate_temp_initial_layer": [
         "80"
@@ -237,7 +237,7 @@
         "-1"
     ],
     "nozzle_temperature": [
-        "250"
+        "240"
     ],
     "nozzle_temperature_initial_layer": [
         "250"
@@ -261,7 +261,7 @@
         "0.02"
     ],
     "reduce_fan_stop_start_freq": [
-        "1"
+        "0"
     ],
     "required_nozzle_HRC": [
         "3"

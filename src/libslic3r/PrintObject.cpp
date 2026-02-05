@@ -1006,6 +1006,7 @@ bool PrintObject::invalidate_state_by_config_options(
     for (const t_config_option_key &opt_key : opt_keys) {
         if (   opt_key == "brim_width"
             || opt_key == "brim_object_gap"
+            || opt_key == "brim_use_efc_outline"
             || opt_key == "brim_type"
             || opt_key == "brim_ears_max_angle"
             || opt_key == "brim_ears_detection_length"
@@ -2614,13 +2615,16 @@ void PrintObject::bridge_over_infill()
     auto determine_bridging_angle = [](const Polygons &bridged_area, const Lines &anchors, InfillPattern dominant_pattern, double infill_direction) {
         AABBTreeLines::LinesDistancer<Line> lines_tree(anchors);
 
+        // Orca: since 3D Honeycomb was "fixed" by forcing coordf_t layerHeight = scale_(1.0), this is no longer needed.
+        // CorssHatch also does not need fixed angle.
+        //
         // Check it the infill that require a fixed infill angle.
-        switch (dominant_pattern) {
-        case ip3DHoneycomb:
-        case ipCrossHatch:
-            return (infill_direction + 45.0) * 2.0 * M_PI / 360.;
-        default: break;
-        }
+        //switch (dominant_pattern) {
+        //case ip3DHoneycomb:
+        //case ipCrossHatch:
+        //    return (infill_direction + 45.0) * 2.0 * M_PI / 360.;
+        //default: break;
+        //}
 
         std::map<double, int> counted_directions;
         for (const Polygon &p : bridged_area) {

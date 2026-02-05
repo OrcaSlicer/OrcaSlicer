@@ -295,6 +295,11 @@ std::string custom_shapes_dir()
     return (boost::filesystem::path(g_data_dir) / "shapes").string();
 }
 
+std::string handy_models_dir()
+{
+    return (boost::filesystem::path(resources_dir()) / "handy_models").string();
+}
+
 static std::atomic<bool> debug_out_path_called(false);
 
 std::string debug_out_path(const char *name, ...)
@@ -1028,7 +1033,7 @@ bool is_gallery_file(const std::string &path, char const* type)
 
 bool is_shapes_dir(const std::string& dir)
 {
-	return dir == sys_shapes_dir() || dir == custom_shapes_dir();
+	return dir == sys_shapes_dir() || dir == custom_shapes_dir() || dir == handy_models_dir();
 }
 
 } // namespace Slic3r
@@ -1376,6 +1381,42 @@ std::string format_memsize_MB(size_t n)
         out += buf;
     }
     return out + "MB";
+}
+
+std::string format_memsize(size_t bytes, unsigned int decimals)
+{
+		static constexpr const float kb = 1024.0f;
+		static constexpr const float mb = 1024.0f * kb;
+		static constexpr const float gb = 1024.0f * mb;
+		static constexpr const float tb = 1024.0f * gb;
+
+		const float f_bytes = static_cast<float>(bytes);
+		if (f_bytes < kb)
+				return std::to_string(bytes) + " bytes";
+		else if (f_bytes < mb) {
+				const float f_kb = f_bytes / kb;
+				char buf[64];
+				sprintf(buf, "%.*f", decimals, f_kb);
+				return std::to_string(bytes) + " bytes (" + std::string(buf) + "KB)";
+		}
+		else if (f_bytes < gb) {
+				const float f_mb = f_bytes / mb;
+				char buf[64];
+				sprintf(buf, "%.*f", decimals, f_mb);
+				return std::to_string(bytes) + " bytes (" + std::string(buf) + "MB)";
+		}
+		else if (f_bytes < tb) {
+				const float f_gb = f_bytes / gb;
+				char buf[64];
+				sprintf(buf, "%.*f", decimals, f_gb);
+				return std::to_string(bytes) + " bytes (" + std::string(buf) + "GB)";
+		}
+		else {
+				const float f_tb = f_bytes / tb;
+				char buf[64];
+				sprintf(buf, "%.*f", decimals, f_tb);
+				return std::to_string(bytes) + " bytes (" + std::string(buf) + "TB)";
+		}
 }
 
 // Returns platform-specific string to be used as log output or parsed in SysInfoDialog.

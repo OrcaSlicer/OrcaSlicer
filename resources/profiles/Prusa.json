@@ -1,6 +1,6 @@
 {
     "name": "Prusa",
-    "version": "02.03.01.10",
+    "version": "02.03.01.11",
     "force_update": "0",
     "description": "Prusa configurations",
     "machine_model_list": [
@@ -11,6 +11,14 @@
         {
             "name": "Prusa CORE One HF",
             "sub_path": "machine/Prusa CORE One HF.json"
+        },
+        {
+            "name": "Prusa CORE One L",
+            "sub_path": "machine/Prusa CORE One L.json"
+        },
+        {
+            "name": "Prusa CORE One L HF",
+            "sub_path": "machine/Prusa CORE One L HF.json"
         },
         {
             "name": "Prusa MINI",
@@ -1169,6 +1177,222 @@
         {
             "name": "0.32mm SPEED @CORE One HF 0.5",
             "sub_path": "process/0.32mm SPEED @CORE One HF 0.5.json"
+        },
+        {
+            "name": "0.05mm DETAIL @CORE One L 0.25",
+            "sub_path": "process/0.05mm DETAIL @CORE One L 0.25.json"
+        },
+        {
+            "name": "0.07mm DETAIL @CORE One L 0.25",
+            "sub_path": "process/0.07mm DETAIL @CORE One L 0.25.json"
+        },
+        {
+            "name": "0.10mm FAST DETAIL @CORE One L 0.4",
+            "sub_path": "process/0.10mm FAST DETAIL @CORE One L 0.4.json"
+        },
+        {
+            "name": "0.10mm STRUCTURAL @CORE One L 0.5",
+            "sub_path": "process/0.10mm STRUCTURAL @CORE One L 0.5.json"
+        },
+        {
+            "name": "0.12mm SPEED @CORE One L 0.25",
+            "sub_path": "process/0.12mm SPEED @CORE One L 0.25.json"
+        },
+        {
+            "name": "0.12mm STRUCTURAL @CORE One L 0.25",
+            "sub_path": "process/0.12mm STRUCTURAL @CORE One L 0.25.json"
+        },
+        {
+            "name": "0.12mm STRUCTURAL @CORE One L 0.3",
+            "sub_path": "process/0.12mm STRUCTURAL @CORE One L 0.3.json"
+        },
+        {
+            "name": "0.15mm SPEED @CORE One L 0.25",
+            "sub_path": "process/0.15mm SPEED @CORE One L 0.25.json"
+        },
+        {
+            "name": "0.15mm SPEED @CORE One L 0.4",
+            "sub_path": "process/0.15mm SPEED @CORE One L 0.4.json"
+        },
+        {
+            "name": "0.15mm SPEED @CORE One L HF 0.4",
+            "sub_path": "process/0.15mm SPEED @CORE One L HF 0.4.json"
+        },
+        {
+            "name": "0.15mm STRUCTURAL @CORE One L 0.25",
+            "sub_path": "process/0.15mm STRUCTURAL @CORE One L 0.25.json"
+        },
+        {
+            "name": "0.15mm STRUCTURAL @CORE One L 0.4",
+            "sub_path": "process/0.15mm STRUCTURAL @CORE One L 0.4.json"
+        },
+        {
+            "name": "0.15mm STRUCTURAL @CORE One L 0.5",
+            "sub_path": "process/0.15mm STRUCTURAL @CORE One L 0.5.json"
+        },
+        {
+            "name": "0.15mm STRUCTURAL @CORE One L 0.6",
+            "sub_path": "process/0.15mm STRUCTURAL @CORE One L 0.6.json"
+        },
+        {
+            "name": "0.16mm SPEED @CORE One L 0.3",
+            "sub_path": "process/0.16mm SPEED @CORE One L 0.3.json"
+        },
+        {
+            "name": "0.16mm STRUCTURAL @CORE One L 0.3",
+            "sub_path": "process/0.16mm STRUCTURAL @CORE One L 0.3.json"
+        },
+        {
+            "name": "0.20mm SOLUBLE FULL @CORE One L 0.4",
+            "sub_path": "process/0.20mm SOLUBLE FULL @CORE One L 0.4.json"
+        },
+        {
+            "name": "0.20mm SOLUBLE INTERFACE @CORE One L 0.4",
+            "sub_path": "process/0.20mm SOLUBLE INTERFACE @CORE One L 0.4.json"
+        },
+        {
+            "name": "0.20mm SPEED @CORE One L 0.3",
+            "sub_path": "process/0.20mm SPEED @CORE One L 0.3.json"
+        },
+        {
+            "name": "0.20mm SPEED @CORE One L 0.4",
+            "sub_path": "process/0.20mm SPEED @CORE One L 0.4.json"
+        },
+        {
+            "name": "0.20mm SPEED @CORE One L 0.5",
+            "sub_path": "process/0.20mm SPEED @CORE One L 0.5.json"
+        },
+        {
+            "name": "0.20mm SPEED @CORE One L 0.6",
+            "sub_path": "process/0.20mm SPEED @CORE One L 0.6.json"
+        },
+        {
+            "name": "0.20mm SPEED @CORE One L HF 0.4",
+            "sub_path": "process/0.20mm SPEED @CORE One L HF 0.4.json"
+        },
+        {
+            "name": "0.20mm SPEED @CORE One L HF 0.5",
+            "sub_path": "process/0.20mm SPEED @CORE One L HF 0.5.json"
+        },
+        {
+            "name": "0.20mm SPEED @CORE One L HF 0.6",
+            "sub_path": "process/0.20mm SPEED @CORE One L HF 0.6.json"
+        },
+        {
+            "name": "0.20mm STRUCTURAL @CORE One L 0.3",
+            "sub_path": "process/0.20mm STRUCTURAL @CORE One L 0.3.json"
+        },
+        {
+            "name": "0.20mm STRUCTURAL @CORE One L 0.4",
+            "sub_path": "process/0.20mm STRUCTURAL @CORE One L 0.4.json"
+        },
+        {
+            "name": "0.20mm STRUCTURAL @CORE One L 0.5",
+            "sub_path": "process/0.20mm STRUCTURAL @CORE One L 0.5.json"
+        },
+        {
+            "name": "0.20mm STRUCTURAL @CORE One L 0.6",
+            "sub_path": "process/0.20mm STRUCTURAL @CORE One L 0.6.json"
+        },
+        {
+            "name": "0.25mm SPEED @CORE One L 0.5",
+            "sub_path": "process/0.25mm SPEED @CORE One L 0.5.json"
+        },
+        {
+            "name": "0.25mm SPEED @CORE One L 0.6",
+            "sub_path": "process/0.25mm SPEED @CORE One L 0.6.json"
+        },
+        {
+            "name": "0.25mm SPEED @CORE One L HF 0.4",
+            "sub_path": "process/0.25mm SPEED @CORE One L HF 0.4.json"
+        },
+        {
+            "name": "0.25mm SPEED @CORE One L HF 0.5",
+            "sub_path": "process/0.25mm SPEED @CORE One L HF 0.5.json"
+        },
+        {
+            "name": "0.25mm SPEED @CORE One L HF 0.6",
+            "sub_path": "process/0.25mm SPEED @CORE One L HF 0.6.json"
+        },
+        {
+            "name": "0.25mm STRUCTURAL @CORE One L 0.5",
+            "sub_path": "process/0.25mm STRUCTURAL @CORE One L 0.5.json"
+        },
+        {
+            "name": "0.25mm STRUCTURAL @CORE One L 0.6",
+            "sub_path": "process/0.25mm STRUCTURAL @CORE One L 0.6.json"
+        },
+        {
+            "name": "0.25mm STRUCTURAL @CORE One L HF 0.4",
+            "sub_path": "process/0.25mm STRUCTURAL @CORE One L HF 0.4.json"
+        },
+        {
+            "name": "0.28mm DRAFT @CORE One L HF 0.4",
+            "sub_path": "process/0.28mm DRAFT @CORE One L HF 0.4.json"
+        },
+        {
+            "name": "0.30mm DETAIL @CORE One L 0.8",
+            "sub_path": "process/0.30mm DETAIL @CORE One L 0.8.json"
+        },
+        {
+            "name": "0.30mm SPEED @CORE One L HF 0.8",
+            "sub_path": "process/0.30mm SPEED @CORE One L HF 0.8.json"
+        },
+        {
+            "name": "0.30mm STRUCTURAL @CORE One L HF 0.8",
+            "sub_path": "process/0.30mm STRUCTURAL @CORE One L HF 0.8.json"
+        },
+        {
+            "name": "0.32mm SPEED @CORE One L 0.6",
+            "sub_path": "process/0.32mm SPEED @CORE One L 0.6.json"
+        },
+        {
+            "name": "0.32mm SPEED @CORE One L HF 0.5",
+            "sub_path": "process/0.32mm SPEED @CORE One L HF 0.5.json"
+        },
+        {
+            "name": "0.32mm SPEED @CORE One L HF 0.6",
+            "sub_path": "process/0.32mm SPEED @CORE One L HF 0.6.json"
+        },
+        {
+            "name": "0.32mm STRUCTURAL @CORE One L 0.6",
+            "sub_path": "process/0.32mm STRUCTURAL @CORE One L 0.6.json"
+        },
+        {
+            "name": "0.32mm STRUCTURAL @CORE One L HF 0.5",
+            "sub_path": "process/0.32mm STRUCTURAL @CORE One L HF 0.5.json"
+        },
+        {
+            "name": "0.32mm STRUCTURAL @CORE One L HF 0.6",
+            "sub_path": "process/0.32mm STRUCTURAL @CORE One L HF 0.6.json"
+        },
+        {
+            "name": "0.40mm QUALITY @CORE One L 0.8",
+            "sub_path": "process/0.40mm QUALITY @CORE One L 0.8.json"
+        },
+        {
+            "name": "0.40mm SPEED @CORE One L HF 0.6",
+            "sub_path": "process/0.40mm SPEED @CORE One L HF 0.6.json"
+        },
+        {
+            "name": "0.40mm SPEED @CORE One L HF 0.8",
+            "sub_path": "process/0.40mm SPEED @CORE One L HF 0.8.json"
+        },
+        {
+            "name": "0.40mm STRUCTURAL @CORE One L HF 0.6",
+            "sub_path": "process/0.40mm STRUCTURAL @CORE One L HF 0.6.json"
+        },
+        {
+            "name": "0.40mm STRUCTURAL @CORE One L HF 0.8",
+            "sub_path": "process/0.40mm STRUCTURAL @CORE One L HF 0.8.json"
+        },
+        {
+            "name": "0.55mm DRAFT @CORE One L 0.8",
+            "sub_path": "process/0.55mm DRAFT @CORE One L 0.8.json"
+        },
+        {
+            "name": "0.55mm SPEED @CORE One L HF 0.8",
+            "sub_path": "process/0.55mm SPEED @CORE One L HF 0.8.json"
         }
     ],
     "filament_list": [
@@ -2357,6 +2581,14 @@
         {
             "name": "Prusa CORE One HF 0.8 nozzle",
             "sub_path": "machine/Prusa CORE One HF 0.8 nozzle.json"
+        },
+        {
+            "name": "Prusa CORE One L HF 0.4 nozzle",
+            "sub_path": "machine/Prusa CORE One L HF 0.4 nozzle.json"
+        },
+        {
+            "name": "Prusa CORE One L 0.4 nozzle",
+            "sub_path": "machine/Prusa CORE One L 0.4 nozzle.json"
         },
         {
             "name": "Prusa MINIIS 0.25 nozzle",

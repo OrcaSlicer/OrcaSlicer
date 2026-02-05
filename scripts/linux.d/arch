@@ -1,7 +1,7 @@
 #!/bin/bash
 # these are the Arch Linux specific build functions
 
-# Addtional Dev packages for OrcaSlicer
+# Additional Dev packages for OrcaSlicer
 export REQUIRED_DEV_PACKAGES=(
     cmake
     curl

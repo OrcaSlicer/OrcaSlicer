@@ -7,10 +7,14 @@
         {
             "name": "Cubicon xCeler-I",
             "sub_path": "machine/Cubicon xCeler-I.json"
+        },
+        {
+            "name": "Cubicon xCeler-Plus",
+            "sub_path": "machine/Cubicon xCeler-Plus.json"
         }
     ],
     "process_list": [
-        {
+		{
             "name": "fdm_process_common",
             "sub_path": "process/fdm_process_common.json"
         },
@@ -19,88 +23,171 @@
             "sub_path": "process/fdm_process_common_klipper.json"
         },
         {
-            "name": "cubicon common @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "process/cubicon common @Cubicon xCeler-I 0.4 nozzle.json"
+            "name": "process template @base",
+            "sub_path": "process/process template @base.json"
         },
         {
-            "name": "process template @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "process/process template @Cubicon xCeler-I 0.4 nozzle.json"
+            "name": "cubicon common @base",
+            "sub_path": "process/cubicon common @base.json"
         },
         {
             "name": "cubicon default @Cubicon xCeler-I 0.4 nozzle",
             "sub_path": "process/cubicon default @Cubicon xCeler-I 0.4 nozzle.json"
-        }
+        },
+        {
+            "name": "cubicon default @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "process/cubicon default @Cubicon xCeler-Plus 0.4 nozzle.json"
+        }        
     ],
     "filament_list": [
-        {
+		{
             "name": "fdm_filament_common",
             "sub_path": "filament/fdm_filament_common.json"
         },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
+		{
             "name": "fdm_filament_pla",
             "sub_path": "filament/fdm_filament_pla.json"
         },
-        {
-            "name": "Cubicon ABS @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "filament/Cubicon ABS @Cubicon xCeler-I 0.4 nozzle.json"
+		{
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
         },
-        {
-            "name": "Cubicon PA-CF @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "filament/Cubicon PA-CF @Cubicon xCeler-I 0.4 nozzle.json"
+		{
+            "name": "fdm_filament_pc",
+            "sub_path": "filament/fdm_filament_pc.json"
         },
-        {
-            "name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "filament/Cubicon PC @Cubicon xCeler-I 0.4 nozzle.json"
+		{
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
         },
+		{
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },        
         {
-            "name": "Cubicon PETG @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "filament/Cubicon PETG @Cubicon xCeler-I 0.4 nozzle.json"
+            "name": "Cubicon PLA @base",
+            "sub_path": "filament/Cubicon PLA @base.json"
         },
         {
             "name": "Cubicon PLA @Cubicon xCeler-I 0.4 nozzle",
             "sub_path": "filament/Cubicon PLA @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PLA @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon PLA @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PLA+ @base",
+            "sub_path": "filament/Cubicon PLA+ @base.json"
+        },        
+        {
+            "name": "Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle",
+            "sub_path": "filament/Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PLA+ @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon PLA+ @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+
+        {
+            "name": "Cubicon PLAi21 @base",
+            "sub_path": "filament/Cubicon PLAi21 @base.json"
+        },       
+        {
+            "name": "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle",
+            "sub_path": "filament/Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PLAi21 @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon PLAi21 @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon ABS @base",
+            "sub_path": "filament/Cubicon ABS @base.json"
+        },
+        {
+            "name": "Cubicon ABS @Cubicon xCeler-I 0.4 nozzle",
+            "sub_path": "filament/Cubicon ABS @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon ABS @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon ABS @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon ABSk @base",
+            "sub_path": "filament/Cubicon ABSk @base.json"
+        },        
+        {
+            "name": "Cubicon ABSk @Cubicon xCeler-I 0.4 nozzle",
+            "sub_path": "filament/Cubicon ABSk @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon ABSk @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon ABSk @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon ABS-A100 @base",
+            "sub_path": "filament/Cubicon ABS-A100 @base.json"
         },
         {
             "name": "Cubicon ABS-A100 @Cubicon xCeler-I 0.4 nozzle",
             "sub_path": "filament/Cubicon ABS-A100 @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon ABS-A100 @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon ABS-A100 @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PETG @base",
+            "sub_path": "filament/Cubicon PETG @base.json"
         },
         {
-            "name": "Cubicon ABSk @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "filament/Cubicon ABSk @Cubicon xCeler-I 0.4 nozzle.json"
+            "name": "Cubicon PETG @Cubicon xCeler-I 0.4 nozzle",
+            "sub_path": "filament/Cubicon PETG @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PETG @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon PETG @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+
+        {
+            "name": "Cubicon PC @base",
+            "sub_path": "filament/Cubicon PC @base.json"
         },
         {
-            "name": "Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "filament/Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle.json"
+            "name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
+            "sub_path": "filament/Cubicon PC @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PC @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon PC @Cubicon xCeler-Plus 0.4 nozzle.json"
+        },        
+
+        {
+            "name": "Cubicon PA-CF @base",
+            "sub_path": "filament/Cubicon PA-CF @base.json"
         },
         {
-            "name": "Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle",
-            "sub_path": "filament/Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle.json"
+            "name": "Cubicon PA-CF @Cubicon xCeler-I 0.4 nozzle",
+            "sub_path": "filament/Cubicon PA-CF @Cubicon xCeler-I 0.4 nozzle.json"
+        },        
+        {
+            "name": "Cubicon PA-CF @Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "filament/Cubicon PA-CF @Cubicon xCeler-Plus 0.4 nozzle.json"
         }
     ],
     "machine_list": [
-        {
+		{
             "name": "fdm_machine_common",
             "sub_path": "machine/fdm_machine_common.json"
         },
         {
             "name": "Cubicon xCeler-I 0.4 nozzle",
             "sub_path": "machine/Cubicon xCeler-I 0.4 nozzle.json"
-        }
+        },
+        {
+            "name": "Cubicon xCeler-Plus 0.4 nozzle",
+            "sub_path": "machine/Cubicon xCeler-Plus 0.4 nozzle.json"
+        }        
     ]
 }

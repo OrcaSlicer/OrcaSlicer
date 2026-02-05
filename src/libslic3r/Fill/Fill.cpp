@@ -599,16 +599,34 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
 {
     assert(fill.surface.surface_type == stInternalSolid);
 
-	switch (fill.params.pattern) {
-    case ipRectilinear:
-    case ipMonotonic:
-    case ipMonotonicLine:
-    case ipAlignedRectilinear:
-        // Only support straight line based infill
-        break;
+    const bool line_based_pattern =
+        fill.params.pattern == ipRectilinear || fill.params.pattern == ipMonotonic ||
+        fill.params.pattern == ipMonotonicLine || fill.params.pattern == ipAlignedRectilinear;
 
-    default:
-        // For all other types, don't split
+    // ORCA: For non-line patterns, split by a geometric "core" so only thin areas get rerouted.
+    if (!line_based_pattern) {
+        const coord_t scaled_spacing = scaled<coord_t>(fill.params.spacing);
+
+        for (const ExPolygon &expolygon : fill.expolygons) {
+            Polygons filled_area = to_polygons(expolygon);
+
+            // "Core" area: open (erode+dilate) to drop thin features, then clamp back to the original polygon.
+            Polygons inner_area  = intersection(filled_area, opening(filled_area, scaled_spacing, scaled_spacing));
+
+            if (inner_area.empty()) {
+                narrow_infill.emplace_back(expolygon);
+                continue;
+            }
+
+            ExPolygons inner_ex = union_ex(inner_area);
+            ExPolygons expolys{expolygon};
+            ExPolygons narrow_ex = diff_ex(expolys, inner_ex);
+            ExPolygons normal_ex = intersection_ex(expolys, inner_ex);
+
+            append(normal_infill, normal_ex); // normal infill area
+            append(narrow_infill, narrow_ex); // narrow infill area
+        }
+
         return;
     }
 
@@ -1271,6 +1289,9 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
                 params.horiz_move += scale_(region_config.infill_shift_step) * (f->layer_id / 2);
             }
 
+            params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
+
+        } else if (surface_fill.params.pattern == ipZigZag) {
             params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
 
         }
