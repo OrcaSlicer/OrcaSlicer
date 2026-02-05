@@ -277,7 +277,7 @@ void Fill3DHoneycomb::_fill_surface_single(
     multiline_fill(polylines, params, spacing);
 
     // clip pattern to boundaries, chain the clipped polylines
-    polylines = intersection_pl(polylines, to_polygons(expolygon));
+    polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
 
     if (! polylines.empty()) {
     // Remove very small bits, but be careful to not remove infill lines connecting thin walls!
