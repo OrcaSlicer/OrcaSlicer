@@ -866,7 +866,7 @@ void MenuFactory::append_menu_item_export_stl(wxMenu* menu, bool is_mulity_menu)
 void MenuFactory::append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu)
 {
     append_menu_item(menu, wxID_ANY, _L("Export as one DRC") + dots, "",
-        [](wxCommandEvent&) { plater()->export_drc(false, true); }, "", nullptr,
+        [](wxCommandEvent&) { plater()->export_stl(false, true, false, FT_DRC); }, "", nullptr,
         [is_mulity_menu]() {
             const Selection& selection = plater()->canvas3D()->get_selection();
             if (is_mulity_menu)
@@ -877,7 +877,7 @@ void MenuFactory::append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu)
     if (!is_mulity_menu)
         return;
     append_menu_item(menu, wxID_ANY, _L("Export as DRCs") + dots, "",
-        [](wxCommandEvent&) { plater()->export_drc(false, true, true); }, "", nullptr,
+        [](wxCommandEvent&) { plater()->export_stl(false, true, true, FT_DRC); }, "", nullptr,
         []() {
             const Selection& selection = plater()->canvas3D()->get_selection();
             return selection.is_multiple_full_instance() || selection.is_multiple_full_object();

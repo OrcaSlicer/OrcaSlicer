@@ -2517,10 +2517,10 @@ void MainFrame::init_menubar_as_editor()
             [this](wxCommandEvent&) { if (m_plater) m_plater->export_stl(false, false, true); }, "menu_export_stl", nullptr,
             [this](){return can_export_model(); }, this);
         append_menu_item(export_menu, wxID_ANY, _L("Export all objects as one DRC") + dots, _L("Export all objects as one DRC"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->export_drc(); }, "menu_export_stl", nullptr,
+            [this](wxCommandEvent&) { if (m_plater) m_plater->export_stl(false, false, false, FT_DRC); }, "menu_export_stl", nullptr,
             [this](){return can_export_model(); }, this);
         append_menu_item(export_menu, wxID_ANY, _L("Export all objects as DRCs") + dots, _L("Export all objects as DRCs"),
-            [this](wxCommandEvent&) { if (m_plater) m_plater->export_drc(false, false, true); }, "menu_export_stl", nullptr,
+            [this](wxCommandEvent&) { if (m_plater) m_plater->export_stl(false, false, true, FT_DRC); }, "menu_export_stl", nullptr,
             [this](){return can_export_model(); }, this);
         append_menu_item(export_menu, wxID_ANY, _L("Export Generic 3MF") + dots/* + "\t" + ctrl + "G"*/, _L("Export 3MF file without using some 3mf-extensions"),
             [this](wxCommandEvent&) { if (m_plater) m_plater->export_core_3mf(); }, "menu_export_sliced_file", nullptr,
