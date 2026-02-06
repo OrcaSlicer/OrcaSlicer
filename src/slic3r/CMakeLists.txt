@@ -299,6 +299,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Jobs/Worker.hpp
     GUI/KBShortcutsDialog.cpp
     GUI/KBShortcutsDialog.hpp
+    GUI/LibVGCode/LibVGCodeWrapper.hpp
+    GUI/LibVGCode/LibVGCodeWrapper.cpp
     GUI/MainFrame.cpp
     GUI/MainFrame.hpp
     GUI/MarkdownTip.cpp
@@ -596,6 +598,26 @@ set(SLIC3R_GUI_SOURCES
     Utils/MKS.hpp
     Utils/NetworkAgent.cpp
     Utils/NetworkAgent.hpp
+    Utils/NetworkAgentFactory.hpp
+    Utils/NetworkAgentFactory.cpp
+    Utils/ICloudServiceAgent.hpp
+    Utils/IPrinterAgent.hpp
+    Utils/OrcaCloudServiceAgent.cpp
+    Utils/OrcaCloudServiceAgent.hpp
+    Utils/OrcaPrinterAgent.cpp
+    Utils/OrcaPrinterAgent.hpp
+    Utils/QidiPrinterAgent.cpp
+    Utils/QidiPrinterAgent.hpp
+    Utils/SnapmakerPrinterAgent.cpp
+    Utils/SnapmakerPrinterAgent.hpp
+    Utils/MoonrakerPrinterAgent.cpp
+    Utils/MoonrakerPrinterAgent.hpp
+    Utils/BBLCloudServiceAgent.cpp
+    Utils/BBLCloudServiceAgent.hpp
+    Utils/BBLPrinterAgent.cpp
+    Utils/BBLPrinterAgent.hpp
+    Utils/BBLNetworkPlugin.cpp
+    Utils/BBLNetworkPlugin.hpp
     Utils/Obico.cpp
     Utils/Obico.hpp
     Utils/OctoPrint.cpp
@@ -707,13 +729,15 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SLIC3R_GUI_SOURCES})
 
 encoding_check(libslic3r_gui)
 
+
 if(APPLE AND CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
     set(_opengl_link_lib "")
 else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo GLEW::GLEW ${_opengl_link_lib} hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode GLEW::GLEW OpenGL::GL hidapi ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+
 
 if (MSVC)
     target_link_libraries(libslic3r_gui Setupapi.lib)

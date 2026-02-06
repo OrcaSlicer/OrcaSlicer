@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSL99",
+    "name": "Overture PLA @Qidi X-Max 4 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Overture PLA@X-Max 4-Series",
+    "pressure_advance": ["0.019"],
+	"compatible_printers": ["Qidi X-Max 4 0.6 nozzle"]
+}

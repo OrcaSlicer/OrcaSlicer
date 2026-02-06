@@ -74,7 +74,7 @@ public:
 
     int         m_print_from_sdc_plate_idx = 0;
 
-    bool        m_local_use_ssl_for_mqtt { true };
+    bool        m_local_use_ssl { true };
     bool        m_local_use_ssl_for_ftp { true };
     bool        task_bed_leveling;
     bool        task_flow_cali;

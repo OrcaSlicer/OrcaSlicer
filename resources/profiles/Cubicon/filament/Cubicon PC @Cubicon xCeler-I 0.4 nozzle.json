@@ -1,20 +1,13 @@
 {
     "type": "filament",
-    "name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "fdm_filament_pc",
-    "filament_id": "P510cfd0",
-    "instantiation": "true",
+	"instantiation": "true",
+    "version": "1.0.0.0",
+
     "compatible_printers": [
         "Cubicon xCeler-I 0.4 nozzle"
     ],
-    "default_filament_colour": "",
-    "filament_settings_id": [
-        "Cubicon PC @Cubicon xCeler-I 0.4 nozzle"
-    ],
-    "filament_type": [
-        "PC"
-    ],
-    "filament_vendor": [
-        "Cubicon"
-    ]
+    
+    "inherits": "Cubicon PC @base",
+    "name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
+    "filament_settings_id": ["Cubicon PC @Cubicon xCeler-I 0.4 nozzle"]
 }

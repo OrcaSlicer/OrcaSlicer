@@ -7,7 +7,8 @@
     "filament_id": "Prusament PLA @CORE One HF 0.4",
     "instantiation": "true",
     "compatible_printers": [
-        "Prusa CORE One HF 0.4 nozzle"
+        "Prusa CORE One HF 0.4 nozzle",
+        "Prusa CORE One L HF 0.4 nozzle"
     ],
     "filament_max_volumetric_speed": [
         "24"

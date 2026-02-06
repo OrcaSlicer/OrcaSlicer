@@ -869,7 +869,7 @@ void BindMachineDialog::on_show(wxShowEvent &event)
         m_printer_name->SetLabelText(from_u8(m_machine_info->get_dev_name()));
 
         if (wxGetApp().is_user_login()) {
-            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_nickanme());
+            wxString username_text = from_u8(wxGetApp().getAgent()->get_user_nickname());
             m_user_name->SetLabelText(username_text);
 
             std::string avatar_url = wxGetApp().getAgent()->get_user_avatar();

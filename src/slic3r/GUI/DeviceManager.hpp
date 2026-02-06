@@ -164,7 +164,11 @@ public:
     std::string get_dev_id() const { return dev_id; }
     void set_dev_id(std::string val) { dev_id = val; }
 
-    bool        local_use_ssl_for_mqtt { true };
+    // Generate consistent dev_id from host address and optional port
+    // Returns "host:port" or "host" if port is empty
+    static std::string dev_id_from_address(const std::string& host, const std::string& port = "");
+
+    bool        local_use_ssl { true };
     bool        local_use_ssl_for_ftp { true };
     std::string get_ftp_folder();
 
@@ -255,6 +259,8 @@ public:
     long  tray_read_done_bits = 0;
     long  tray_reading_bits = 0;
     bool  ams_air_print_status { false };
+    /** Whether this printer supports virtual trays (external/manual filament loading).
+     *  When true, vt_slot data is used by build_filament_ams_list() to include external filaments. */
     bool  ams_support_virtual_tray { true };
     time_t ams_user_setting_start = 0;
     time_t ams_switch_filament_start = 0;
@@ -856,7 +862,16 @@ public:
     bool                        is_enable_np{ false };
     bool                        is_enable_ams_np{ false };
 
-    /*vi slot data*/
+    /**
+     * Virtual Tray (vt_slot) - External/manual filament loading slots.
+     *
+     * Data Flow: Populated from printer JSON via parse_vt_tray() during MachineObject::parse_json().
+     * Used by: Sidebar::build_filament_ams_list() when ams_support_virtual_tray is true.
+     *
+     * Virtual trays represent filament that is manually loaded into the extruder
+     * rather than fed through an AMS unit. This supports printers without AMS
+     * or scenarios where users want to bypass the AMS.
+     */
     std::vector<DevAmsTray> vt_slot;
     DevAmsTray parse_vt_tray(json vtray);
 
