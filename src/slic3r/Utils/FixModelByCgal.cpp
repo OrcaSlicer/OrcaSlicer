@@ -25,7 +25,7 @@ namespace {
 
 bool is_not_3dimensional_part(const TriangleMesh &mesh)
 {
-    // Orca: Determines if a mesh is degenerate or represents a one-dimensional part by checking volume and bounding box dimensions.
+    // Orca: Determines if a mesh is degenerate or represents a non-3dimensional part by checking volume and bounding box dimensions.
     if (mesh.its.indices.empty())
         return true;
 
