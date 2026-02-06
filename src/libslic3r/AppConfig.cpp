@@ -499,6 +499,10 @@ void AppConfig::set_defaults()
         set_bool("is_split_compound", false);
     }
 
+    if(get("installed_networking").empty()) {
+        set_bool("installed_networking", false);
+    }
+
     // Remove legacy window positions/sizes
     erase("app", "main_frame_maximized");
     erase("app", "main_frame_pos");
