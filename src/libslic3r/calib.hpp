@@ -280,9 +280,7 @@ private:
 
 struct SuggestedConfigCalibPAPattern
 {
-    const std::vector<std::pair<std::string, double>> float_pairs{{"initial_layer_print_height", 0.25},
-                                                                  {"layer_height", 0.2},
-                                                                  {"initial_layer_speed", 30}};
+    const std::vector<std::pair<std::string, double>> float_pairs{{"initial_layer_speed", 30}};
 
     const std::vector<std::pair<std::string, double>> nozzle_ratio_pairs{{"line_width", 112.5}, {"initial_layer_line_width", 140}};
 
