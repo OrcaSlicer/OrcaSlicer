@@ -796,76 +796,6 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
     return sizer_row;
 }
 
-wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_label, wxString tooltip)
-{
-    wxBoxSizer* m_sizer_input = new wxBoxSizer(wxHORIZONTAL);
-
-    m_sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
-
-    auto checkbox_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
-    checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
-    checkbox_title->SetFont(::Label::Body_14);
-    checkbox_title->Wrap(DESIGN_TITLE_SIZE.x);
-    checkbox_title->SetToolTip(tooltip);
-
-    auto checkbox = new ::CheckBox(m_parent);
-    checkbox->SetValue(app_config->get_bool("drc_lossy_switch"));
-    checkbox->SetToolTip(tooltip);
-
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent& e) {
-        app_config->set_bool("drc_lossy_switch", checkbox->GetValue());
-        app_config->save();
-        if (m_draco_bits_textinput != nullptr) {
-            m_draco_bits_textinput->Enable(checkbox->GetValue());
-        }
-        e.Skip();
-    });
-
-    auto input = new ::TextInput(m_parent, wxEmptyString, side_label, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(97), -1), wxTE_PROCESS_ENTER);
-    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
-                        std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
-    input->SetBackgroundColor(input_bg);
-    input->GetTextCtrl()->SetValue(app_config->get("drc_bits"));
-    wxTextValidator validator(wxFILTER_DIGITS);
-    input->SetToolTip(tooltip);
-    input->GetTextCtrl()->SetValidator(validator);
-
-    m_sizer_input->Add(checkbox_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
-    m_sizer_input->Add(checkbox, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(5));
-    m_sizer_input->Add(input, 0, wxALIGN_CENTER_VERTICAL);
-
-    std::function<void()> set_draco_bits = [this, input]() {
-        long drc_bits = DRC_BITS_DEFAULT;
-        input->GetTextCtrl()->GetValue().ToLong(&drc_bits);
-        if (drc_bits > DRC_BITS_MAX) {
-            drc_bits = DRC_BITS_MAX;
-            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
-        } else if (drc_bits < DRC_BITS_MIN) {
-            drc_bits = DRC_BITS_MIN;
-            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
-        }
-
-        app_config->set("drc_bits", std::to_string(drc_bits));
-        app_config->save();
-    };
-
-    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [set_draco_bits](wxCommandEvent& e) {
-        set_draco_bits();
-        e.Skip();
-    });
-
-    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [set_draco_bits](wxFocusEvent& e) {
-        set_draco_bits();
-        e.Skip();
-    });
-
-    input->Enable(app_config->get("drc_lossy_switch") == "true");
-    input->Refresh();
-
-    m_draco_bits_textinput = input;
-    return m_sizer_input;
-}
-
 wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
 {
     wxBoxSizer* m_sizer_checkbox = new wxBoxSizer(wxHORIZONTAL);
@@ -1431,10 +1361,13 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
-    auto item_draco_position_bits = create_item_draco(_L("Use lossy compression on Draco export"),
+    auto item_draco_position_bits = create_item_spinctrl(_L("Draco export dimensional accuracy"),
+        wxEmptyString,
         _L("bits"),
         _L("Reducing the bits reduces the file precision and size.\n"
-           "~16 bits may be recommended and within the tolerances of 3D printing."));
+           "0 disables quantization producing an effectively lossless but compressed file."),
+           "~16 bits may be recommended and within the tolerances of 3D printing.\n"
+           "drc_bits", DRC_BITS_MIN, DRC_BITS_MAX);
     g_sizer->Add(item_draco_position_bits);
 
     g_sizer->AddSpacer(FromDIP(10));
