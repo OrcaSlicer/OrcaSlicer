@@ -336,6 +336,8 @@ include(CGAL/CGAL.cmake)
 include(NLopt/NLopt.cmake)
 include(libnoise/libnoise.cmake)
 
+include(Draco/Draco.cmake)
+
 
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
@@ -399,6 +401,7 @@ set(_dep_list
     ${CURL_PKG}
     ${WXWIDGETS_PKG}
     dep_Cereal
+    dep_Draco
     dep_NLopt
     dep_OpenVDB
     dep_OpenCSG

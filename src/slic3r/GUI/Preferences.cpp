@@ -6,6 +6,7 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/DRC.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
@@ -750,6 +751,58 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
     return sizer_row;
 }
 
+wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_label, wxString tooltip)
+{
+    wxBoxSizer* sizer_input = new wxBoxSizer(wxHORIZONTAL);
+
+    auto input_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetFont(::Label::Body_14);
+    input_title->SetToolTip(tooltip);
+    input_title->Wrap(DESIGN_TITLE_SIZE.x);
+    input_title->SetToolTip(tooltip);
+
+    auto input = new ::TextInput(m_parent, wxEmptyString, side_label, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
+                        std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(app_config->get("drc_bits"));
+    wxTextValidator validator(wxFILTER_DIGITS);
+    input->SetToolTip(tooltip);
+    input->GetTextCtrl()->SetValidator(validator);
+
+    sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    sizer_input->Add(input_title, 0, wxALIGN_CENTER_VERTICAL);
+    sizer_input->Add(input      , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+
+    std::function<void()> set_draco_bits = [this, input]() {
+        long drc_bits = DRC_BITS_DEFAULT;
+        input->GetTextCtrl()->GetValue().ToLong(&drc_bits);
+        if (drc_bits > DRC_BITS_MAX) {
+            drc_bits = DRC_BITS_MAX;
+            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
+        } else if (drc_bits < DRC_BITS_MIN && drc_bits != 0) {
+            drc_bits = DRC_BITS_MIN;
+            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
+        }
+
+        app_config->set("drc_bits", std::to_string(drc_bits));
+        app_config->save();
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [set_draco_bits](wxCommandEvent& e) {
+        set_draco_bits();
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [set_draco_bits](wxFocusEvent& e) {
+        set_draco_bits();
+        e.Skip();
+    });
+
+    return sizer_input;
+}
+
 wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
 {
     wxBoxSizer* m_sizer_checkbox = new wxBoxSizer(wxHORIZONTAL);
@@ -862,6 +915,15 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
              } else {
                  wxGetApp().disassociate_files(L"3mf");
              }
+        }
+
+        if (param == "associate_drc") {
+            bool pbool = app_config->get("associate_drc") == "true" ? true : false;
+            if (pbool) {
+                wxGetApp().associate_files(L"drc");
+            } else {
+                wxGetApp().disassociate_files(L"drc");
+            }
         }
 
         if (param == "associate_stl") {
@@ -1306,6 +1368,13 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
+    auto item_draco_bits = create_item_draco(_L("Quality level for Draco export"),
+        _L("bits"),
+        _L("Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+           "0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+           "Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."));
+    g_sizer->Add(item_draco_bits);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
@@ -1553,6 +1622,9 @@ void PreferencesDialog::create_items()
 
     auto item_associate_3mf    = create_item_checkbox(_L("Associate 3MF files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open 3MF files.") , "associate_3mf");
     g_sizer->Add(item_associate_3mf);
+
+    auto item_associate_drc = create_item_checkbox(_L("Associate DRC files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open DRC files."), "associate_drc");
+    g_sizer->Add(item_associate_drc);
 
     auto item_associate_stl    = create_item_checkbox(_L("Associate STL files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open STL files.") , "associate_stl");
     g_sizer->Add(item_associate_stl);

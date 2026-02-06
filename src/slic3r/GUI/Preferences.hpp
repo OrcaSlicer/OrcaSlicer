@@ -91,9 +91,11 @@ public:
     wxBoxSizer *create_item_button(wxString title, wxString title2, wxString tooltip, wxString tooltip2, std::function<void()> onclick);
     wxBoxSizer *create_item_downloads(wxString title, wxString tooltip);
     wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {});
+    wxBoxSizer *create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange = nullptr);
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
     wxBoxSizer *create_item_backup(wxString title, wxString tooltip);
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
+    wxBoxSizer *create_item_draco(wxString title, wxString side_label, wxString tooltip);
     wxBoxSizer *create_item_multiple_combobox(wxString title, wxString tooltip, std::string parama, std::vector<wxString> vlista, std::vector<wxString> vlistb);
 #ifdef WIN32
     wxBoxSizer *create_item_link_association(wxString url_prefix, wxString website_name);
