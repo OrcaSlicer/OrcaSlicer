@@ -1370,8 +1370,9 @@ void PreferencesDialog::create_items()
 
     auto item_draco_bits = create_item_draco(_L("Quality level for Draco export"),
         _L("bits"),
-        _L("This setting controls how much detail is removed when compressing the Draco file.\n"
-           "0 means no loss of quality (lossless). Other values are lossy, with higher values producing larger files but less loss of detail."));
+        _L("Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+           "0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+           "Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."));
     g_sizer->Add(item_draco_bits);
 
     g_sizer->AddSpacer(FromDIP(10));
