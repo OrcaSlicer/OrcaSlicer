@@ -69,6 +69,7 @@ public:
     ::CheckBox * m_internal_developer_mode_ckeckbox = {nullptr};
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
+    ::TextInput *m_draco_bits_textinput      = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
     wxBoxSizer * m_network_version_sizer     = {nullptr};
     std::vector<NetworkLibraryVersionInfo> m_available_versions;
