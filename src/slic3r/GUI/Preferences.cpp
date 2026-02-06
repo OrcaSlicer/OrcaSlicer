@@ -558,51 +558,6 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     return sizer_input;
 }
 
-wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, 
-    int min, int max, std::function<void(int)> onchange)
-{
-    wxBoxSizer *sizer_input = new wxBoxSizer(wxHORIZONTAL);
-    auto        input_title   = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
-    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
-    input_title->SetFont(::Label::Body_14);
-    input_title->SetToolTip(tooltip);
-    input_title->Wrap(DESIGN_TITLE_SIZE.x);
-
-    auto       input = new ::SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS,
-                                        min, max, stoi(app_config->get(param)));
-    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
-    input->SetBackgroundColor(input_bg);
-    input->SetToolTip(tooltip);
-
-    auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
-    second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
-    second_title->SetFont(::Label::Body_14);
-    second_title->SetToolTip(tooltip);
-    second_title->Wrap(-1);
-
-    sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
-    sizer_input->Add(input_title , 0, wxALIGN_CENTER_VERTICAL);
-    sizer_input->Add(input       , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
-    sizer_input->Add(second_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
-
-    input->Bind(wxEVT_TEXT_ENTER, [this, param, input, onchange](wxCommandEvent& e) {
-        auto value = input->GetValue();
-        app_config->set(param, std::to_string(value));
-        app_config->save();
-        if (onchange != nullptr) onchange(value);
-        e.Skip();
-    });
-
-    input->Bind(wxEVT_KILL_FOCUS, [this, param, input, onchange](wxFocusEvent &e) {
-        auto value = input->GetValue();
-        app_config->set(param, std::to_string(value));
-        if (onchange != nullptr) onchange(value);
-        e.Skip();
-    });
-
-    return sizer_input;
-}
-
 wxBoxSizer *PreferencesDialog::create_camera_orbit_mult_input(wxString title, wxString tooltip)
 {
     wxBoxSizer *sizer_input = new wxBoxSizer(wxHORIZONTAL);
@@ -794,6 +749,58 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
     input->Refresh();
 
     return sizer_row;
+}
+
+wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_label, wxString tooltip)
+{
+    wxBoxSizer* m_sizer_input = new wxBoxSizer(wxHORIZONTAL);
+
+    m_sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+
+    auto input_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetFont(::Label::Body_14);
+    input_title->Wrap(DESIGN_TITLE_SIZE.x);
+    input_title->SetToolTip(tooltip);
+
+    auto input = new ::TextInput(m_parent, wxEmptyString, side_label, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
+                        std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(app_config->get("drc_bits"));
+    wxTextValidator validator(wxFILTER_DIGITS);
+    input->SetToolTip(tooltip);
+    input->GetTextCtrl()->SetValidator(validator);
+
+    m_sizer_input->Add(input_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
+    m_sizer_input->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    std::function<void()> set_draco_bits = [this, input]() {
+        long drc_bits = DRC_BITS_DEFAULT;
+        input->GetTextCtrl()->GetValue().ToLong(&drc_bits);
+        if (drc_bits > DRC_BITS_MAX) {
+            drc_bits = DRC_BITS_MAX;
+            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
+        } else if (drc_bits < DRC_BITS_MIN && drc_bits != 0) {
+            drc_bits = DRC_BITS_MIN;
+            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
+        }
+
+        app_config->set("drc_bits", std::to_string(drc_bits));
+        app_config->save();
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [set_draco_bits](wxCommandEvent& e) {
+        set_draco_bits();
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [set_draco_bits](wxFocusEvent& e) {
+        set_draco_bits();
+        e.Skip();
+    });
+
+    return m_sizer_input;
 }
 
 wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
@@ -1361,14 +1368,11 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
-    auto item_draco_position_bits = create_item_spinctrl(_L("Draco export dimensional accuracy"),
-        wxEmptyString,
+    auto item_draco_bits = create_item_draco(_L("Quality level for Draco export"),
         _L("bits"),
-        _L("Reducing the bits reduces the file precision and size.\n"
-           "0 disables quantization producing an effectively lossless but compressed file."),
-           "~16 bits may be recommended and within the tolerances of 3D printing.\n"
-           "drc_bits", DRC_BITS_MIN, DRC_BITS_MAX);
-    g_sizer->Add(item_draco_position_bits);
+        _L("This setting controls how much detail is removed when compressing the Draco file.\n"
+           "0 means no loss of quality (lossless). Other values are lossy, with higher values producing larger files but less loss of detail."));
+    g_sizer->Add(item_draco_bits);
 
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
