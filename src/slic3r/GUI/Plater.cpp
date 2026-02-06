@@ -12731,7 +12731,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
-    add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step");
+    add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc");
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;

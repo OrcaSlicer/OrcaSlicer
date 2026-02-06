@@ -1139,7 +1139,7 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
         return;
 
     Model       model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step";
+    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
