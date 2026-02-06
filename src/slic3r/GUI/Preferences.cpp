@@ -753,13 +753,12 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
 
 wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_label, wxString tooltip)
 {
-    wxBoxSizer* m_sizer_input = new wxBoxSizer(wxHORIZONTAL);
-
-    m_sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    wxBoxSizer* sizer_input = new wxBoxSizer(wxHORIZONTAL);
 
     auto input_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
     input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
     input_title->SetFont(::Label::Body_14);
+    input_title->SetToolTip(tooltip);
     input_title->Wrap(DESIGN_TITLE_SIZE.x);
     input_title->SetToolTip(tooltip);
 
@@ -772,8 +771,9 @@ wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_l
     input->SetToolTip(tooltip);
     input->GetTextCtrl()->SetValidator(validator);
 
-    m_sizer_input->Add(input_title, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
-    m_sizer_input->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+    sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    sizer_input->Add(input_title, 0, wxALIGN_CENTER_VERTICAL);
+    sizer_input->Add(input      , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
 
     std::function<void()> set_draco_bits = [this, input]() {
         long drc_bits = DRC_BITS_DEFAULT;
@@ -800,7 +800,7 @@ wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_l
         e.Skip();
     });
 
-    return m_sizer_input;
+    return sizer_input;
 }
 
 wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
