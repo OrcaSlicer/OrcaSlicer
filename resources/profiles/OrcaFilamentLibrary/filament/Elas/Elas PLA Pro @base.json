@@ -57,19 +57,19 @@
         "1"
     ],
     "eng_plate_temp": [
-        "55"
+        "60"
     ],
     "eng_plate_temp_initial_layer": [
-        "55"
+        "60"
     ],
     "fan_cooling_layer_time": [
         "100"
     ],
     "fan_max_speed": [
-        "80"
+        "100"
     ],
     "fan_min_speed": [
-        "60"
+        "100"
     ],
     "filament_cooling_final_speed": [
         "0"
@@ -81,7 +81,7 @@
         "0"
     ],
     "filament_cost": [
-        "449.5"
+        "500"
     ],
     "filament_density": [
         "1.24"
@@ -93,7 +93,7 @@
         "1.75"
     ],
     "filament_flow_ratio": [
-        "0.98"
+        "1.025"
     ],
     "filament_is_support": [
         "0"
@@ -108,7 +108,7 @@
         "nil"
     ],
     "filament_max_volumetric_speed": [
-        "25"
+        "18"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "0"
@@ -198,10 +198,10 @@
         "0"
     ],
     "hot_plate_temp": [
-        "55"
+        "60"
     ],
     "hot_plate_temp_initial_layer": [
-        "55"
+        "60"
     ],
     "idle_temperature": [
         "0"
@@ -213,10 +213,10 @@
         "-1"
     ],
     "nozzle_temperature": [
-        "220"
+        "230"
     ],
     "nozzle_temperature_initial_layer": [
-        "220"
+        "230"
     ],
     "nozzle_temperature_range_high": [
         "240"
@@ -234,7 +234,7 @@
         "0.4157"
     ],
     "pressure_advance": [
-        "0.025"
+        "0.06"
     ],
     "reduce_fan_stop_start_freq": [
         "1"
@@ -249,7 +249,7 @@
         "4"
     ],
     "slow_down_min_speed": [
-        "20"
+        "10"
     ],
     "supertack_plate_temp": [
         "45"
@@ -270,9 +270,9 @@
         "40"
     ],
     "textured_plate_temp": [
-        "55"
+        "60"
     ],
     "textured_plate_temp_initial_layer": [
-        "55"
+        "60"
     ]
 }

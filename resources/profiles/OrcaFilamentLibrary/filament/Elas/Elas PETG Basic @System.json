@@ -6,7 +6,7 @@
     "setting_id": "OGFSG00_01",
     "instantiation": "true",
     "filament_max_volumetric_speed": [
-        "18"
+        "13"
     ],
     "filament_long_retractions_when_cut": [
         "1"
