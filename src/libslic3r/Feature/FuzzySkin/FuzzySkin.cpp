@@ -266,11 +266,11 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             BoundingBox bbox = get_extents(perimeter_generator.slices->surfaces);
             bbox.offset(scale_(1.));
             ::Slic3r::SVG svg(debug_out_path("fuzzy_traverse_loops_%d_%d_%d_region_%d.svg", perimeter_generator.layer_id,
-                                             loop.is_contour ? 0 : 1, loop.depth, i)
+                                             is_contour ? 0 : 1, loop_idx, i)
                                   .c_str(),
                               bbox);
             svg.draw_outline(perimeter_generator.slices->surfaces);
-            svg.draw_outline(loop.polygon, "green");
+            svg.draw_outline(polygon, "green");
             svg.draw(r.second, "red", 0.5);
             svg.draw_outline(r.second, "red");
             svg.Close();
@@ -348,6 +348,35 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
             }
         }
         if (!fuzzified_regions.empty()) {
+ 
+#ifdef DEBUG_FUZZY
+            {
+                int i = 0;
+                for (const auto& r : fuzzified_regions) {
+                    BoundingBox bbox = get_extents(perimeter_generator.slices->surfaces);
+                    bbox.offset(scale_(1.));
+                    ::Slic3r::SVG svg(debug_out_path("fuzzy_traverse_loops_%d_%d_%d_region_%d.svg", perimeter_generator.layer_id,
+                                                     is_contour ? 0 : 1, extrusion->inset_idx, i)
+                                          .c_str(),
+                                      bbox);
+
+                    // Convert extrusion line to polygon for visualization
+                    Polygon extrusion_polygon;
+                    extrusion_polygon.points.reserve(extrusion->junctions.size());
+                    for (const auto& junction : extrusion->junctions) {
+                        extrusion_polygon.points.push_back(junction.p);
+                    }
+
+                    svg.draw_outline(perimeter_generator.slices->surfaces);
+                    svg.draw_outline(extrusion_polygon, "green");
+                    svg.draw(r.second, "red", 0.5);
+                    svg.draw_outline(r.second, "red");
+                    svg.Close();
+                    i++;
+                }
+            }
+#endif
+
             // Split the loops into lines with different config, and fuzzy them separately
             for (const auto& r : fuzzified_regions) {
                 const auto splitted = Algorithm::split_line(*extrusion, r.second, false);
