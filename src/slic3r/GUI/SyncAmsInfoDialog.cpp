@@ -222,8 +222,27 @@ bool SyncAmsInfoDialog::get_is_double_extruder()
 {
     const auto &full_config = wxGetApp().preset_bundle->full_config();
     size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-    bool use_double_extruder = nozzle_nums > 1 ? true : false;
-    return use_double_extruder;
+    // This dialog has dedicated left/right layout logic only for true 2-nozzle printers.
+    // For toolchangers with 3+ tools (or any filament_map beyond {1,2}),
+    // fall back to the generic list flow so all tools are shown.
+    if (nozzle_nums != 2)
+        return false;
+
+    auto *plater = wxGetApp().plater();
+    if (!plater)
+        return true;
+    auto *plate = plater->get_partplate_list().get_curr_plate();
+    if (!plate)
+        return true;
+
+    const auto &project_config = wxGetApp().preset_bundle->project_config;
+    auto         filament_maps = plate->get_real_filament_maps(project_config);
+    for (int map_id : filament_maps) {
+        if (map_id != 1 && map_id != 2) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool SyncAmsInfoDialog::is_dirty_filament() {
@@ -2386,7 +2405,7 @@ void SyncAmsInfoDialog::update_show_status()
     size_t      nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
 
     // the nozzle type of preset and machine are different
-    if (nozzle_nums > 1) {
+    if (get_is_double_extruder()) {
          wxString error_message;
         if (!is_nozzle_type_match(*obj_->GetExtderSystem(), error_message)) {
             std::vector<wxString> params{error_message};
@@ -2721,9 +2740,7 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
             DeviceManager *dev_manager = Slic3r::GUI::wxGetApp().getDeviceManager();
             if (!dev_manager) return;
             MachineObject *obj_        = dev_manager->get_selected_machine();
-            const auto &   full_config = wxGetApp().preset_bundle->full_config();
-            size_t         nozzle_nums = full_config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
-            if (nozzle_nums > 1) {
+            if (get_is_double_extruder()) {
                 m_mapping_popup.set_show_type(ShowType::LEFT_AND_RIGHT);//special
             }
             // m_mapping_popup.set_show_type(ShowType::RIGHT);

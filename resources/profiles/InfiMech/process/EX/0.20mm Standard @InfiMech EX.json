@@ -1,0 +1,28 @@
+{
+    "type": "process",
+    "name": "0.20mm Standard @InfiMech EX",
+    "inherits": "fdm_process_common_EX",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "bottom_shell_layers": "3",
+    "overhang_1_4_speed": "0",
+    "overhang_2_4_speed": "40",
+    "overhang_3_4_speed": "30",
+    "top_shell_layers": "5",
+    "top_shell_thickness": "1",
+    "tree_support_wall_count": "1",
+    "brim_width": "5",
+    "gap_infill_speed": "250",
+    "inner_wall_speed": "300",
+    "internal_solid_infill_speed": "250",
+    "layer_height": "0.2",
+    "print_settings_id": "0.20mm Standard @InfiMech EX",
+    "sparse_infill_speed": "270",
+    "exclude_object": "0",
+    "internal_bridge_speed": "50",
+    "top_solid_infill_flow_ratio": "1",
+    "compatible_printers": [
+        "InfiMech EX 0.4 nozzle"
+    ]
+}
