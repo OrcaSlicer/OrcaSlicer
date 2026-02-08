@@ -157,7 +157,6 @@ struct Bridge {
     ExPolygon expolygon;
     uint32_t group_id;
     std::vector<Algorithm::RegionExpansionEx>::const_iterator bridge_expansion_begin;
-    std::optional<double> angle{std::nullopt};
 };
 
 // Group the bridge surfaces by overlaps.
@@ -241,54 +240,6 @@ std::vector<Bridge> get_grouped_bridges(
     return result;
 }
 
-void detect_bridge_directions(
-    const Algorithm::WaveSeeds& bridge_anchors,
-    std::vector<Bridge>& bridges,
-    const std::vector<ExpansionZone>& expansion_zones
-) {
-    if (expansion_zones.empty()) {
-        throw std::runtime_error("At least one expansion zone must exist!");
-    }
-    auto it_bridge_anchor = bridge_anchors.begin();
-    for (uint32_t bridge_id = 0; bridge_id < uint32_t(bridges.size()); ++ bridge_id) {
-        Bridge &bridge = bridges[bridge_id];
-        Polygons anchor_areas;
-        int32_t last_anchor_id = -1;
-        for (; it_bridge_anchor != bridge_anchors.end() && it_bridge_anchor->src == bridge_id; ++ it_bridge_anchor) {
-            if (last_anchor_id != int(it_bridge_anchor->boundary)) {
-                last_anchor_id = int(it_bridge_anchor->boundary);
-
-                unsigned start_index{};
-                unsigned end_index{};
-                for (const ExpansionZone& expansion_zone: expansion_zones) {
-                    end_index += expansion_zone.expolygons.size();
-                    if (last_anchor_id < static_cast<int64_t>(end_index)) {
-                        append(anchor_areas, to_polygons(expansion_zone.expolygons[last_anchor_id - start_index]));
-                        break;
-                    }
-                    start_index += expansion_zone.expolygons.size();
-                }
-            }
-        }
-        Lines lines{to_lines(diff_pl(to_polylines(bridge.expolygon), expand(anchor_areas, float(SCALED_EPSILON))))};
-        auto [bridging_dir, unsupported_dist] = detect_bridging_direction(lines, to_polygons(bridge.expolygon));
-        bridge.angle = M_PI + std::atan2(bridging_dir.y(), bridging_dir.x());
-
-        if constexpr (false) {
-            coordf_t    stroke_width = scale_(0.06);
-            BoundingBox bbox         = get_extents(anchor_areas);
-            bbox.merge(get_extents(bridge.expolygon));
-            bbox.offset(scale_(1.));
-            ::Slic3r::SVG
-                svg(debug_out_path(("bridge" + std::to_string(*bridge.angle) + "_" /* + std::to_string(this->layer()->bottom_z())*/).c_str()),
-                bbox);
-            svg.draw(bridge.expolygon, "cyan");
-            svg.draw(lines, "green", stroke_width);
-            svg.draw(anchor_areas, "red");
-        }
-    }
-}
-
 Surfaces merge_bridges(
     std::vector<Bridge>& bridges,
     const std::vector<Algorithm::RegionExpansionEx>& bridge_expansions,
@@ -304,29 +255,32 @@ Surfaces merge_bridges(
     for (uint32_t bridge_id = 0; bridge_id < uint32_t(bridges.size()); ++ bridge_id) {
         if (group_id(bridges, bridge_id) == bridge_id) {
             // Head of the group.
-            Polygons acc;
-            for (uint32_t bridge_id2 = bridge_id; bridge_id2 < uint32_t(bridges.size()); ++ bridge_id2)
+			Polygons bridge_group;
+            Polygons expansions;
+            for (uint32_t bridge_id2 = bridge_id; bridge_id2 < uint32_t(bridges.size()); ++ bridge_id2) {
                 if (group_id(bridges, bridge_id2) == bridge_id) {
-                    append(acc, to_polygons(std::move(bridges[bridge_id2].expolygon)));
+                    append(bridge_group, to_polygons(std::move(bridges[bridge_id2].expolygon)));
                     auto it_bridge_expansion = bridges[bridge_id2].bridge_expansion_begin;
                     assert(it_bridge_expansion == bridge_expansions.end() || it_bridge_expansion->src_id == bridge_id2);
                     for (; it_bridge_expansion != bridge_expansions.end() && it_bridge_expansion->src_id == bridge_id2; ++ it_bridge_expansion)
-                        append(acc, to_polygons(it_bridge_expansion->expolygon));
+                        append(expansions, to_polygons(it_bridge_expansion->expolygon));
                 }
-            //FIXME try to be smart and pick the best bridging angle for all?
-            if (!bridges[bridge_id].angle) {
-                assert(false && "Bridge angle must be pre-calculated!");
-            }
-            Surface templ{ stBottomBridge, {} };
-            templ.bridge_angle = bridges[bridge_id].angle ? *bridges[bridge_id].angle : -1;
+            append(bridge_group, expansions);
+
             //NOTE: The current regularization of the shells can create small unasigned regions in the object (E.G. benchy)
             // without the following closing operation, those regions will stay unfilled and cause small holes in the expanded surface.
             // look for narrow_ensure_vertical_wall_thickness_region_radius filter.
-            ExPolygons final = closing_ex(acc, closing_radius);
+            ExPolygons merged_bridges = closing_ex(bridge_group, closing_radius);
             // without safety offset, artifacts are generated (GH #2494)
             // union_safety_offset_ex(acc)
-            for (ExPolygon &ex : final)
-                result.emplace_back(templ, std::move(ex));
+
+			for (ExPolygon &bridge_expolygon : merged_bridges) {
+                const Lines lines{to_lines(diff_pl(to_polylines(bridge_expolygon), expand(expansions, float(SCALED_EPSILON))))};
+                auto [bridging_dir, unsupported_dist] = detect_bridging_direction(lines, to_polygons(bridge_expolygon));
+                Surface surface{ stBottomBridge, std::move(bridge_expolygon) };
+                surface.bridge_angle = M_PI + std::atan2(bridging_dir.y(), bridging_dir.x());
+                result.push_back(std::move(surface));
+            }
         }
     }
     return result;
@@ -403,7 +357,6 @@ Surfaces expand_bridges_detect_orientations(
     bridge_expolygons.clear();
 
     std::sort(expansion_result.anchors.begin(), expansion_result.anchors.end(), Algorithm::lower_by_src_and_boundary);
-    detect_bridge_directions(expansion_result.anchors, bridges, expansion_zones);
 
     // Merge the groups with the same group id, produce surfaces by merging source overhangs with their newly expanded anchors.
     std::sort(expansion_result.expansions.begin(), expansion_result.expansions.end(), [](auto &l, auto &r) {
