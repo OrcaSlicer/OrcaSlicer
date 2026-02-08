@@ -3690,35 +3690,17 @@ int GCode::get_bed_temperature(const int extruder_id, const bool is_first_layer,
     return bed_temp_opt->get_at(extruder_id);
 }
 
-int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print &print) const
-{ 
-    // Preserve original behavior: for the first layer use first-layer filaments, 
-    // for other layers use filaments of the corresponding layer. 
-    return get_highest_bed_temperature(is_first_layer, print, is_first_layer);
-}
-
-int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print &print, const bool use_first_layer_filaments) const
+int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print &print) const 
 {
-    const auto bed_type = m_config.curr_bed_type;
-    int bed_temp = 0;
-
-    // Select the correct set of filaments:
-    // - If use_first_layer_filaments is true, use only filaments that touched the bed.
-    // - Otherwise, use filaments relevant to the current layer.
-	const auto filaments =
-        use_first_layer_filaments
-            ? print.get_slice_used_filaments(true)          // filaments touching the bed
-            : print.get_slice_used_filaments(is_first_layer);
-
-    // Compute the highest bed temperature among the selected filaments.
-    for (auto fidx : filaments) {
-        bed_temp = std::max(
-            bed_temp,
-            get_bed_temperature(fidx, is_first_layer, bed_type)
-        );
-    }
-
-    return bed_temp;
+	const auto bed_type = m_config.curr_bed_type; int bed_temp = 0; 
+	// Always use first-layer filaments (only these touch the bed) 
+	for (auto fidx : print.get_slice_used_filaments(true)) {
+		bed_temp = std::max(
+			bed_temp,
+			get_bed_temperature(fidx, is_first_layer, bed_type)
+		);
+	}
+	return bed_temp;
 }
 
 // Write 1st layer bed temperatures into the G-code.
