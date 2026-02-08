@@ -65,10 +65,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
     combo_title->Wrap(DESIGN_TITLE_SIZE.x);
     m_sizer_combox->Add(combo_title, 0, wxALIGN_CENTER);
 
-    wxSize combo_size = DESIGN_LARGE_COMBOBOX_SIZE;
-    if (param == "sync_ams_filament_mode")
-        combo_size = wxSize(FromDIP(180), -1);
-    auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, combo_size, 0, nullptr, wxCB_READONLY);
+    auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->SetFont(::Label::Body_14);
     combobox->GetDropDown().SetFont(::Label::Body_14);
 
@@ -1427,7 +1424,7 @@ void PreferencesDialog::create_items()
         _L("Filament sync mode"),
         _L("Choose whether sync updates both filament preset and color, or only color."),
         "sync_ams_filament_mode",
-        {_L("Sync filament + color"), _L("Sync color only")});
+        {_L("Filament & Color"), _L("Color only")});
     g_sizer->Add(item_filament_sync_mode);
 
     //// ONLINE > Network plugin
