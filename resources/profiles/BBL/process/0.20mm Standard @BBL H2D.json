@@ -20,15 +20,21 @@
     ],
     "internal_solid_infill_speed": [
         "250",
-        "300",
+        "600",
         "250",
-        "300"
+        "600"
+    ],
+    "inner_wall_speed": [
+        "300",
+        "600",
+        "300",
+        "600"
     ],
     "outer_wall_speed": [
         "200",
+        "500",
         "200",
-        "200",
-        "200"
+        "500"
     ],
     "prime_tower_brim_width": "-1",
     "prime_tower_width": "60",

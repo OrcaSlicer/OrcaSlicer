@@ -928,6 +928,22 @@ void ToolOrdering::cal_most_used_extruder(const PrintConfig &config)
     }
 }
 
+float ToolOrdering::cal_max_additional_fan(const PrintConfig &config)
+{
+    // record
+    float max_fan = 0;
+    for (LayerTools &layer_tools : m_layer_tools) {
+        std::vector<unsigned int> filaments = layer_tools.extruders;
+        std::set<int>             layer_extruder_count;
+        // count once only
+        for (unsigned int &filament : filaments)
+            if (max_fan < config.additional_cooling_fan_speed.get_at(filament))
+                max_fan = config.additional_cooling_fan_speed.get_at(filament);
+    }
+    return max_fan;
+}
+
+
 //BBS: find first non support filament
 bool ToolOrdering::cal_non_support_filaments(const PrintConfig &config,
                                                          unsigned int &     first_non_support_filament,

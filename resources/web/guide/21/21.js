@@ -91,8 +91,8 @@ function HandleModelList( pVal )
 '<div class="BlockBanner">'+
 '	<a>'+sVV+'</a>'+				
 '	<div class="BannerBtns">'+
-'		<div class="SmallBtn_Green trans" tid="t11" onClick="SelectPrinterAll('+"\'"+strVendor+"\'"+')">all</div>'+
-'		<div class="SmallBtn trans" tid="t12" onClick="SelectPrinterNone('+"\'"+strVendor+"\'"+')">none</div>'+
+'		<div class="ButtonStyleConfirm ButtonTypeWindow trans" tid="t11" onClick="SelectPrinterAll('+"\'"+strVendor+"\'"+')">all</div>'+
+'		<div class="ButtonStyleRegular ButtonTypeWindow trans" tid="t12" onClick="SelectPrinterNone('+"\'"+strVendor+"\'"+')">none</div>'+
 '	</div>'+
 '</div>'+
 '<div class="PrinterArea">	'+
@@ -108,14 +108,7 @@ function HandleModelList( pVal )
 		if( !ModelHtml.hasOwnProperty(strVendor))
 			ModelHtml[strVendor]='';
 			
-		let CoverImage=OneModel['cover'];
-		ModelHtml[strVendor]+='<div class="PrinterBlock" onClick="ChooseModel(\''+strVendor+'\',\''+OneModel['model']+'\')">'+
-        '<div class="PImg">'+
-		    '<img class="ModelThumbnail" src="'+CoverImage+'" />'+
-			'<div class="ModelCheckBox" vendor="' +strVendor+ '" model="'+OneModel['model']+'"></div>'+
-		'</div>'+
-        '    <div class="PName">'+OneModel['name']+'</div>'+ 
-		'</div>';
+		ModelHtml[strVendor]+=CreatePrinterBlock(OneModel); // ORCA
 	}
 	
 	//Update Nozzel Html Append
@@ -217,8 +210,8 @@ function FilterModelList(keyword) {
 				'<div class="BlockBanner">' +
 				'	<a>' + sVV + '</a>' +
 				'	<div class="BannerBtns">' +
-				'		<div class="SmallBtn_Green trans" tid="t11" onClick="SelectPrinterAll(' + "\'" + strVendor + "\'" + ')">all</div>' +
-				'		<div class="SmallBtn trans" tid="t12" onClick="SelectPrinterNone(' + "\'" + strVendor + "\'" + ')">none</div>' +
+				'		<div class="ButtonStyleConfirm ButtonTypeWindow trans" tid="t11" onClick="SelectPrinterAll(' + "\'" + strVendor + "\'" + ')">all</div>' +
+				'		<div class="ButtonStyleRegular ButtonTypeWindow trans" tid="t12" onClick="SelectPrinterNone(' + "\'" + strVendor + "\'" + ')">none</div>' +
 				'	</div>' +
 				'</div>' +
 				'<div class="PrinterArea">	' +
@@ -232,14 +225,7 @@ function FilterModelList(keyword) {
 		if (!ModelHtml.hasOwnProperty(strVendor))
 			ModelHtml[strVendor] = '';
 
-		let CoverImage = OneModel['cover'];
-		ModelHtml[strVendor] += '<div class="PrinterBlock" onClick="ChooseModel(\''+strVendor+'\',\''+OneModel['model']+'\')">'+
-        '<div class="PImg">'+
-		    '<img class="ModelThumbnail" src="'+CoverImage+'" />'+
-			'<div class="ModelCheckBox" vendor="' +strVendor+ '" model="'+OneModel['model']+'"></div>'+
-		'</div>'+
-        '    <div class="PName">'+OneModel['name']+'</div>'+ 
-		'</div>';
+		ModelHtml[strVendor]+=CreatePrinterBlock(OneModel); // ORCA
 	}
 
 	//Update Nozzel Html Append
@@ -274,6 +260,38 @@ function FilterModelList(keyword) {
 	// }
 
 	TranslatePage();
+}
+
+function CreatePrinterBlock(OneModel)
+{
+	// ORCA use single functuon to create blocks to simplify code
+	let vendor = OneModel['vendor']
+	vendorName = vendor=="BBL" ? "Bambu Lab" : vendor=="Custom" ? "Generic Printer" : vendor;
+
+	let modelName = OneModel['name'];
+	// Most of it unneeded. this can be applied in profiles
+	if( vendor=="Custom")					
+	modelName = modelName.split(" ")[1];
+	// these uses different case in name; seckit, ratrig, blocks
+	else if (modelName.toLowerCase().startsWith(vendorName.toLowerCase()))  
+	modelName = modelName.slice(vendorName.length);
+	// these not matches. have to fix in profiles to reduce conditions in here;
+	else if (vendor == "MagicMaker" && modelName.startsWith("MM"))
+	modelName = modelName.slice(("MM").length);
+	else if (vendor == "OrcaArena")
+	modelName = modelName.slice(("Orca Arena").length);
+	else if (vendor == "RolohaunDesign" && modelName.startsWith("Rolohaun"))
+	modelName = modelName.slice(("Rolohaun").length);
+
+	return '<div class="PrinterBlock" onClick="ChooseModel(\''+vendor+'\',\''+OneModel['model']+'\')">'+
+	'<div class="PImg">'+
+	'<img class="ModelThumbnail" src="' + OneModel['cover'] + '" />'+
+	'</div>'+
+	'<div style="display: flex;">'+
+	'	<div class="ModelCheckBox" vendor="' +vendor+ '" model="'+OneModel['model']+'"></div>'+
+	'	<div class="PName"><p>'+ vendorName +'</p><p>' + modelName +'</p></div>'+
+	'</div>'+
+	'</div>';
 }
 
 function SelectPrinterAll( sVendor )

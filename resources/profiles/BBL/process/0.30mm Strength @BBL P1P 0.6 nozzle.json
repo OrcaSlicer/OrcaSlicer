@@ -6,10 +6,166 @@
     "setting_id": "GP067",
     "instantiation": "true",
     "description": "Compared with the default profile of a 0.6 mm nozzle, it has more wall loops and a higher sparse infill density. So, it results in higher strength of the prints, but more filament consumption and longer printing time.",
+    "bridge_speed": [
+        "30",
+        "30"
+    ],
+    "default_acceleration": [
+        "10000",
+        "10000"
+    ],
     "elefant_foot_compensation": "0.15",
+    "enable_overhang_speed": [
+        "1",
+        "1"
+    ],
+    "enable_height_slowdown": [
+        "0",
+        "0"
+    ],
+    "gap_infill_speed": [
+        "50",
+        "50"
+    ],
+    "initial_layer_infill_speed": [
+        "55",
+        "55"
+    ],
+    "initial_layer_speed": [
+        "35",
+        "35"
+    ],
+    "initial_layer_acceleration": [
+        "500",
+        "500"
+    ],
+    "inner_wall_acceleration": [
+        "0",
+        "0"
+    ],
+    "inner_wall_speed": [
+        "150",
+        "150"
+    ],
+    "internal_solid_infill_speed": [
+        "150",
+        "150"
+    ],
+    "initial_layer_travel_acceleration": [
+        "6000",
+        "6000"
+    ],
+    "overhang_3_4_speed": [
+        "15",
+        "15"
+    ],
+    "outer_wall_acceleration": [
+        "5000",
+        "5000"
+    ],
+    "overhang_1_4_speed": [
+        "0",
+        "0"
+    ],
+    "overhang_2_4_speed": [
+        "50",
+        "50"
+    ],
+    "overhang_4_4_speed": [
+        "10",
+        "10"
+    ],
+    "outer_wall_speed": [
+        "120",
+        "120"
+    ],
+    "overhang_totally_speed": [
+        "10",
+        "10"
+    ],
+    "print_extruder_id": [
+        "1",
+        "1"
+    ],
+    "print_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
     "sparse_infill_density": "25%",
     "skeleton_infill_density": "25%",
     "skin_infill_density": "25%",
+    "sparse_infill_speed": [
+        "100",
+        "100"
+    ],
+    "slowdown_start_height": [
+        "0",
+        "0"
+    ],
+    "slowdown_start_speed": [
+        "1000",
+        "1000"
+    ],
+    "slowdown_start_acc": [
+        "100000",
+        "100000"
+    ],
+    "slowdown_end_height": [
+        "400",
+        "400"
+    ],
+    "slowdown_end_speed": [
+        "1000",
+        "1000"
+    ],
+    "slowdown_end_acc": [
+        "100000",
+        "100000"
+    ],
+    "small_perimeter_speed": [
+        "50%",
+        "50%"
+    ],
+    "small_perimeter_threshold": [
+        "0",
+        "0"
+    ],
+    "sparse_infill_acceleration": [
+        "100%",
+        "100%"
+    ],
+    "support_speed": [
+        "150",
+        "150"
+    ],
+    "support_interface_speed": [
+        "80",
+        "80"
+    ],
+    "top_surface_speed": [
+        "150",
+        "150"
+    ],
+    "top_surface_acceleration": [
+        "2000",
+        "2000"
+    ],
+    "travel_speed": [
+        "500",
+        "500"
+    ],
+    "travel_speed_z": [
+        "0",
+        "0"
+    ],
+    "travel_acceleration": [
+        "10000",
+        "10000"
+    ],
+    "vertical_shell_speed": [
+        "80%",
+        "80%"
+    ],
     "wall_loops": "4",
     "compatible_printers": [
         "Bambu Lab P1P 0.6 nozzle"

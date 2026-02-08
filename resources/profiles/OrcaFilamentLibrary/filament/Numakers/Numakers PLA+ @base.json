@@ -1,0 +1,56 @@
+{
+    "type": "filament",
+    "name": "Numakers PLA+ @base",
+    "inherits": "fdm_filament_pla",
+    "from": "system",
+    "filament_id": "OGFNMK00",
+    "instantiation": "false",
+    "filament_cost": [
+        "20.99"
+    ],
+    "filament_density": [
+        "1.24"
+    ],
+    "filament_flow_ratio": [
+        "0.99"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_vendor": [
+        "Numakers"
+    ],
+    "nozzle_temperature": [
+        "225"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225"
+    ],
+    "nozzle_temperature_range_high": [
+        "255"
+    ],
+    "nozzle_temperature_range_low": [
+        "200"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "filament_scarf_height": [
+        "10%"
+    ],
+    "filament_scarf_gap": [
+        "0%"
+    ],
+    "filament_scarf_length": [
+        "10"
+    ],
+    "temperature_vitrification": [
+        "55"
+    ]
+}

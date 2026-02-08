@@ -12,13 +12,92 @@
         "50"
     ],
     "filament_long_retractions_when_cut": [
+        "1",
         "1"
     ],
     "filament_max_volumetric_speed": [
+        "18",
         "18"
     ],
     "filament_retraction_distances_when_cut": [
+        "18",
         "18"
+    ],
+    "filament_flow_ratio": [
+        "0.98",
+        "0.98"
+    ],
+    "filament_deretraction_speed": [
+        "nil",
+        "nil"
+    ],
+    "filament_flush_temp": [
+        "0",
+        "0"
+    ],
+    "filament_flush_volumetric_speed": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_volumetric_speed": [
+        "-1",
+        "-1"
+    ],
+    "filament_retract_before_wipe": [
+        "nil",
+        "nil"
+    ],
+    "filament_retract_restart_extra": [
+        "nil",
+        "nil"
+    ],
+    "filament_retract_when_changing_layer": [
+        "nil",
+        "nil"
+    ],
+    "filament_retraction_length": [
+        "nil",
+        "nil"
+    ],
+    "filament_retraction_minimum_travel": [
+        "nil",
+        "nil"
+    ],
+    "filament_retraction_speed": [
+        "nil",
+        "nil"
+    ],
+    "filament_wipe": [
+        "nil",
+        "nil"
+    ],
+    "filament_wipe_distance": [
+        "nil",
+        "nil"
+    ],
+    "filament_z_hop": [
+        "nil",
+        "nil"
+    ],
+    "filament_z_hop_types": [
+        "nil",
+        "nil"
+    ],
+    "filament_extruder_variant": [
+        "Direct Drive Standard",
+        "Direct Drive High Flow"
+    ],
+    "filament_pre_cooling_temperature": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_adaptive_volumetric_speed": [
+        "0",
+        "0"
     ],
     "hot_plate_temp": [
         "65"
@@ -26,11 +105,21 @@
     "hot_plate_temp_initial_layer": [
         "65"
     ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
     "nozzle_temperature": [
+        "230",
         "230"
     ],
     "nozzle_temperature_initial_layer": [
+        "230",
         "230"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
     ],
     "textured_plate_temp": [
         "65"
@@ -38,11 +127,12 @@
     "textured_plate_temp_initial_layer": [
         "65"
     ],
+    "volumetric_speed_coefficients": [
+        "0 0 0 0 0 0",
+        "0 0 0 0 0 0"
+    ],
     "compatible_printers": [
         "Bambu Lab P1P 0.6 nozzle",
         "Bambu Lab P1P 0.8 nozzle"
-    ],
-    "filament_end_gcode": [
-        "; filament end gcode \n\n"
     ]
 }

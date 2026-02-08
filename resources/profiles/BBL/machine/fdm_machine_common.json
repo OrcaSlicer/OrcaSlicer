@@ -136,10 +136,12 @@
         "60"
     ],
     "scan_first_layer": "0",
+    "enable_power_loss_recovery": "printer_configuration",
     "silent_mode": "0",
     "single_extruder_multi_material": "1",
     "support_air_filtration": "0",
     "support_chamber_temp_control": "0",
+    "support_object_skip_flush": "0",
     "wipe": [
         "1"
     ],

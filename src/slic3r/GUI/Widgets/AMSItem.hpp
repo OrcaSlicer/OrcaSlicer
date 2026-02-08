@@ -759,7 +759,6 @@ Description:AmsItem
 class AmsItem : public wxWindow
 {
 public:
-    AmsItem();
     AmsItem(wxWindow *parent, AMSinfo info, AMSModel model, AMSPanelPos pos);
     ~AmsItem();
 

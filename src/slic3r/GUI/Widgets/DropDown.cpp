@@ -1,6 +1,7 @@
 #include "DropDown.hpp"
 #include "Label.hpp"
 
+#include <cstdio>
 #include <wx/display.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
@@ -423,7 +424,7 @@ int DropDown::hoverIndex()
         return hover_item;
     int index = -1;
     std::set<wxString> groups;
-    for (size_t i = 0; i < items.size(); ++i) {
+    for (int i = 0; i < items.size(); ++i) {
         auto &item = items[i];
         // Skip by group
         if (group.IsEmpty()) {
@@ -533,7 +534,7 @@ void DropDown::messureSize()
     if (count > 15) szContent.x += 6;
     if (GetParent() && group.IsEmpty()) {
         auto x = GetParent()->GetSize().x;
-        if (!use_content_width || x > szContent.x)
+        if (x > 0 && (!use_content_width || x > szContent.x))
             szContent.x = x;
     }
     rowSize = szContent;
@@ -544,7 +545,7 @@ void DropDown::messureSize()
             szContent = rowSize;
         }
     }
-    szContent.y *= std::min((size_t) 15, count);
+    szContent.y *= std::min((size_t) 15, std::max(count, (size_t) 1));
     szContent.y += items.size() > 15 ? rowSize.y / 2 : 0;
     wxWindow::SetSize(szContent);
 #ifdef __WXGTK__

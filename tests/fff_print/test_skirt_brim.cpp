@@ -1,4 +1,4 @@
-#include <catch2/catch.hpp>
+#include <catch2/catch_all.hpp>
 
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Config.hpp"
@@ -29,7 +29,7 @@ static int get_brim_tool(const std::string &gcode)
     return brim_tool;
 }
 
-TEST_CASE("Skirt height is honored", "[Skirt]") {
+TEST_CASE("Skirt height is honored", "[Skirt][.]") {
     DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
     	{ "skirts",					1 },
@@ -53,14 +53,14 @@ TEST_CASE("Skirt height is honored", "[Skirt]") {
     double support_speed = config.opt<Slic3r::ConfigOptionFloat>("support_material_speed")->value * MM_PER_MIN;
 	GCodeReader parser;
     parser.parse_buffer(gcode, [&layers_with_skirt, &support_speed] (Slic3r::GCodeReader &self, const Slic3r::GCodeReader::GCodeLine &line) {
-        if (line.extruding(self) && self.f() == Approx(support_speed)) {
+        if (line.extruding(self) && self.f() == Catch::Approx(support_speed)) {
             layers_with_skirt[self.z()] = 1;
         }
     });
     REQUIRE(layers_with_skirt.size() == (size_t)config.opt_int("skirt_height"));
 }
 
-SCENARIO("Original Slic3r Skirt/Brim tests", "[SkirtBrim]") {
+SCENARIO("Original Slic3r Skirt/Brim tests", "[SkirtBrim][.]") {
     GIVEN("A default configuration") {
 	    DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
 		config.set_num_extruders(4);
@@ -89,8 +89,8 @@ SCENARIO("Original Slic3r Skirt/Brim tests", "[SkirtBrim]") {
                 double support_speed = config.opt<Slic3r::ConfigOptionFloat>("support_material_speed")->value * MM_PER_MIN;
 			    Slic3r::GCodeReader parser;
                 parser.parse_buffer(gcode, [&brim_generated, support_speed] (Slic3r::GCodeReader& self, const Slic3r::GCodeReader::GCodeLine& line) {
-                    if (self.z() == Approx(0.3) || line.new_Z(self) == Approx(0.3)) {
-                        if (line.extruding(self) && self.f() == Approx(support_speed)) {
+                    if (self.z() == Catch::Approx(0.3) || line.new_Z(self) == Catch::Approx(0.3)) {
+                        if (line.extruding(self) && self.f() == Catch::Approx(support_speed)) {
                             brim_generated = true;
                         }
                     }
@@ -237,20 +237,20 @@ SCENARIO("Original Slic3r Skirt/Brim tests", "[SkirtBrim]") {
                     // std::cerr << line.cmd() << "\n";
 					if (boost::starts_with(line.cmd(), "T")) {
 						tool = atoi(line.cmd().data() + 1);
-					} else if (self.z() == Approx(config.opt<ConfigOptionFloat>("first_layer_height")->value)) {
+					} else if (self.z() == Catch::Approx(config.opt<ConfigOptionFloat>("first_layer_height")->value)) {
                         // on first layer
 						if (line.extruding(self) && line.dist_XY(self) > 0) {
                             float speed = ( self.f() > 0 ?  self.f() : line.new_F(self));
                             // std::cerr << "Tool " << tool << "\n";
-                            if (speed == Approx(support_speed) && tool == config.opt_int("perimeter_extruder") - 1) {
+                            if (speed == Catch::Approx(support_speed) && tool == config.opt_int("perimeter_extruder") - 1) {
                                 // Skirt uses first material extruder, support material speed.
                                 skirt_length += line.dist_XY(self);
                             } else
                                 extrusion_points.push_back(Slic3r::Point::new_scale(line.new_X(self), line.new_Y(self)));
                         }
                     }
-                    if (self.z() == Approx(0.3) || line.new_Z(self) == Approx(0.3)) {
-                        if (line.extruding(self) && self.f() == Approx(support_speed)) {
+                    if (self.z() == Catch::Approx(0.3) || line.new_Z(self) == Catch::Approx(0.3)) {
+                        if (line.extruding(self) && self.f() == Catch::Approx(support_speed)) {
                         }
                     }
                 });

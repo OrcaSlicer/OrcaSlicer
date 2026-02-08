@@ -338,7 +338,7 @@ void CaliPresetCustomRangePanel::create_panel(wxWindow* parent)
         m_title_texts[i]->Wrap(-1);
         m_title_texts[i]->SetFont(::Label::Body_14);
         item_sizer->Add(m_title_texts[i], 0, wxALL, 0);
-        m_value_inputs[i] = new TextInput(parent, wxEmptyString, wxString::FromUTF8("\u2103" /* °C */), "", wxDefaultPosition, CALIBRATION_FROM_TO_INPUT_SIZE, 0);
+        m_value_inputs[i] = new TextInput(parent, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, CALIBRATION_FROM_TO_INPUT_SIZE, 0);
         m_value_inputs[i]->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
         m_value_inputs[i]->GetTextCtrl()->Bind(wxEVT_TEXT, [this, i](wxCommandEvent& event) {
             std::string number = m_value_inputs[i]->GetTextCtrl()->GetValue().ToStdString();
@@ -417,7 +417,7 @@ void CaliPresetTipsPanel::create_panel(wxWindow* parent)
     auto nozzle_temp_sizer = new wxBoxSizer(wxVERTICAL);
     auto nozzle_temp_text = new Label(parent, _L("Nozzle temperature"));
     nozzle_temp_text->SetFont(Label::Body_12);
-    m_nozzle_temp = new TextInput(parent, wxEmptyString, wxString::FromUTF8("\u2103" /* °C */), "", wxDefaultPosition, CALIBRATION_FROM_TO_INPUT_SIZE, wxTE_READONLY);
+    m_nozzle_temp = new TextInput(parent, wxEmptyString, _L("\u2103" /* °C */), "", wxDefaultPosition, CALIBRATION_FROM_TO_INPUT_SIZE, wxTE_READONLY);
     m_nozzle_temp->SetBorderWidth(0);
     nozzle_temp_sizer->Add(nozzle_temp_text, 0, wxALIGN_LEFT);
     nozzle_temp_sizer->Add(m_nozzle_temp, 0, wxEXPAND);
@@ -432,7 +432,7 @@ void CaliPresetTipsPanel::create_panel(wxWindow* parent)
     auto bed_temp_text = new Label(parent, _L("Bed temperature"));
     bed_temp_text->SetFont(Label::Body_12);
 
-    m_bed_temp = new Label(parent, wxString::FromUTF8("- °C"));
+    m_bed_temp = new Label(parent, _L("- \u2103" /* °C */));
     m_bed_temp->SetFont(Label::Body_12);
     bed_temp_sizer->Add(bed_temp_text, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
     bed_temp_sizer->Add(m_bed_temp, 0, wxALIGN_CENTER);
@@ -440,7 +440,7 @@ void CaliPresetTipsPanel::create_panel(wxWindow* parent)
     auto max_flow_sizer = new wxBoxSizer(wxVERTICAL);
     auto max_flow_text = new Label(parent, _L("Max volumetric speed"));
     max_flow_text->SetFont(Label::Body_12);
-    m_max_volumetric_speed = new TextInput(parent, wxEmptyString, wxString::FromUTF8("mm³"), "", wxDefaultPosition, CALIBRATION_FROM_TO_INPUT_SIZE, wxTE_READONLY);
+    m_max_volumetric_speed = new TextInput(parent, wxEmptyString, _L("mm³"), "", wxDefaultPosition, CALIBRATION_FROM_TO_INPUT_SIZE, wxTE_READONLY);
     m_max_volumetric_speed->SetBorderWidth(0);
     max_flow_sizer->Add(max_flow_text, 0, wxALIGN_LEFT);
     max_flow_sizer->Add(m_max_volumetric_speed, 0, wxEXPAND);
@@ -897,7 +897,7 @@ void CalibrationPresetPage::create_filament_list_panel(wxWindow* parent)
 {
     auto panel_sizer = new wxBoxSizer(wxVERTICAL);
 
-    m_filament_list_tips = new Label(parent, _L("Tips for calibration material: \n- Materials that can share same hot bed temperature\n- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"));
+    m_filament_list_tips = new Label(parent, _L("Tips for calibration material:\n- Materials that can share same hot bed temperature\n- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"));
     m_filament_list_tips->Hide();
     m_filament_list_tips->SetFont(Label::Body_13);
     m_filament_list_tips->SetForegroundColour(wxColour(145, 145, 145));
@@ -1037,7 +1037,7 @@ void CalibrationPresetPage::create_multi_extruder_filament_list_panel(wxWindow *
 
     m_filament_list_tips = new Label(
         parent,
-        _L("Tips for calibration material: \n- Materials that can share same hot bed temperature\n- Different filament brand and family(Brand = Bambu, Family = Basic, Matte)"));
+        _L("Tips for calibration material:\n- Materials that can share same hot bed temperature\n- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"));
     m_filament_list_tips->Hide();
     m_filament_list_tips->SetFont(Label::Body_13);
     m_filament_list_tips->SetForegroundColour(wxColour(145, 145, 145));
@@ -1206,6 +1206,7 @@ void CalibrationPresetPage::create_page(wxWindow* parent)
     m_sending_panel->get_sending_progress_bar()->set_cancel_callback_fina([this]() {
         on_cali_cancel_job();
         });
+    m_sending_panel->Bind(EVT_SHOW_ERROR_FAIL_SEND, [this](auto &event){on_cali_cancel_job();});
     m_sending_panel->Hide();
 
     m_custom_range_panel = new CaliPresetCustomRangePanel(parent);
@@ -1832,7 +1833,7 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Fit();
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNoUserLogin) {
-        wxString msg_text = _L("No login account, only printers in LAN mode are displayed");
+        wxString msg_text = _L("No login account, only printers in LAN mode are displayed.");
         update_print_status_msg(msg_text, false);
         Enable_Send_Button(false);
     }
@@ -1841,22 +1842,22 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusConnectingServer) {
-        wxString msg_text = _L("Connecting to server");
+        wxString msg_text = _L("Connecting to server...");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInUpgrading) {
-        wxString msg_text = _L("Cannot send the print job when the printer is updating firmware");
+        wxString msg_text = _L("Cannot send a print job while the printer is updating firmware.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInSystemPrinting) {
-        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends");
+        wxString msg_text = _L("The printer is executing instructions. Please restart printing after it ends.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInPrinting) {
-        wxString msg_text = _L("The printer is busy on other print job");
+        wxString msg_text = _L("The printer is busy with another print job.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
@@ -1890,7 +1891,7 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusInConnecting) {
-        wxString msg_text = _L("Connecting to printer");
+        wxString msg_text = _L("Connecting to printer...");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
@@ -2773,7 +2774,7 @@ MaxVolumetricSpeedPresetPage::MaxVolumetricSpeedPresetPage(
         titles.push_back(_L("Step"));
         m_custom_range_panel->set_titles(titles);
 
-        m_custom_range_panel->set_unit(wxString::FromUTF8("mm³/s"));
+        m_custom_range_panel->set_unit(_L("mm³/s"));
     }
 }
 }}

@@ -436,7 +436,8 @@ bool reset_button(const IconManager::VIcons &icons)
     //btn_label += ImGui::RevertButton;
     //return ImGui::Button((btn_label + "##" + label_id).c_str());
 
-    return draw_clickable(icons, IconType::reset_value);
+    auto icon = get_icon(icons, IconType::reset_value, IconState::hovered);
+    return clickable(icon, icon); // ORCA use orange color for both states
 }
 
 } // namespace 
@@ -1504,7 +1505,7 @@ void GLGizmoSVG::draw_filename(){
                 m_volume_shape.svg_file = svg_file_new; // clear data
             }
         } else if (ImGui::IsItemHovered()) {
-            tooltip = _u8L("Change to another .svg file");
+            tooltip = _u8L("Change to another SVG file.");
         }
 
         std::string forget_path = _u8L("Forget the file path");
@@ -1586,7 +1587,7 @@ void GLGizmoSVG::draw_filename(){
 
             }
         } else if (ImGui::IsItemHovered()) {
-            tooltip = _u8L("Save as '.svg' file");
+            tooltip = _u8L("Save as SVG file.");
         }
 
         //draw(get_icon(m_icons, IconType::save));
@@ -1666,7 +1667,9 @@ void GLGizmoSVG::draw_depth()
 void GLGizmoSVG::draw_size() 
 {
     ImGui::AlignTextToFramePadding();
-    ImGuiWrapper::text(m_gui_cfg->translations.size);
+    bool can_reset = m_scale_width.has_value() || m_scale_height.has_value();
+    ImVec4 text_color = can_reset ? ImGuiWrapper::COL_MODIFIED : ImGui::GetStyleColorVec4(ImGuiCol_Text); // ORCA use modified color on text
+    ImGuiWrapper::text_colored(text_color, m_gui_cfg->translations.size);
     if (ImGui::IsItemHovered()){
         size_t count_points = 0;
         for (const auto &s : m_volume_shape.shapes_with_ids)
@@ -1770,7 +1773,7 @@ void GLGizmoSVG::draw_size()
     
 
     // reset button
-    bool can_reset = m_scale_width.has_value() || m_scale_height.has_value();
+    //bool can_reset = m_scale_width.has_value() || m_scale_height.has_value(); // ORCA update variable above if condition change
     if (can_reset) {
         if (reset_button(m_icons)) {
             new_relative_scale = Vec3d(1./m_scale_width.value_or(1.f), 1./m_scale_height.value_or(1.f), 1.);
@@ -1838,7 +1841,8 @@ void GLGizmoSVG::draw_distance()
     ScopeGuard sg([imgui = m_imgui]() { imgui->disabled_end(); });
 
     ImGui::AlignTextToFramePadding();
-    ImGuiWrapper::text(m_gui_cfg->translations.distance);
+    ImVec4 text_color = m_distance.has_value() ? ImGuiWrapper::COL_MODIFIED : ImGui::GetStyleColorVec4(ImGuiCol_Text); // ORCA use modified color on text
+    ImGuiWrapper::text_colored(text_color, m_gui_cfg->translations.distance);
     ImGui::SameLine(m_gui_cfg->input_offset);
     ImGui::SetNextItemWidth(m_gui_cfg->input_width);
 
@@ -1881,17 +1885,18 @@ void GLGizmoSVG::draw_distance()
 void GLGizmoSVG::draw_rotation()
 {
     ImGui::AlignTextToFramePadding();
-    ImGuiWrapper::text(m_gui_cfg->translations.rotation);
+    ImVec4 text_color = m_angle.has_value() ? ImGuiWrapper::COL_MODIFIED : ImGui::GetStyleColorVec4(ImGuiCol_Text); // ORCA use modified color on text
+    ImGuiWrapper::text_colored(text_color, m_gui_cfg->translations.rotation);
     ImGui::SameLine(m_gui_cfg->input_offset);
     ImGui::SetNextItemWidth(m_gui_cfg->input_width);
 
-    // slider for Clock-wise angle in degress
+    // slider for Clockwise angle in degress
     // stored angle is optional CCW and in radians
     // Convert stored value to degress
-    // minus create clock-wise roation from CCW
+    // minus create clockwise roation from CCW
     float angle = m_angle.value_or(0.f);
     float angle_deg = static_cast<float>(-angle * 180 / M_PI);
-    if (m_imgui->slider_float("##angle", &angle_deg, limits.angle.min, limits.angle.max, u8"%.2f °", 1.f, false, _L("Rotate text Clock-wise."))){
+    if (m_imgui->slider_float("##angle", &angle_deg, limits.angle.min, limits.angle.max, u8"%.2f °", 1.f, false, _L("Rotate text Clockwise."))){
         // convert back to radians and CCW
         double angle_rad = -angle_deg * M_PI / 180.0;
         Geometry::to_range_pi_pi(angle_rad);                
@@ -2001,7 +2006,7 @@ void GLGizmoSVG::draw_model_type()
     ModelVolumeType type = m_volume->type();
 
     //TRN EmbossOperation
-    ImGuiWrapper::push_radio_style();
+    ImGuiWrapper::push_radio_style(m_parent.get_scale()); //ORCA
     if (ImGui::RadioButton(_u8L("Join").c_str(), type == part))
         new_type = part;
     else if (ImGui::IsItemHovered())

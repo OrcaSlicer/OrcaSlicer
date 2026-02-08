@@ -8,7 +8,7 @@ body:
         Thanks for taking the time to fill out this feature request!
 
         If your idea is still at the formulation stage, or you're not sure it would
-        be useful to many users, you can raise it as a discussion topic under [Ideas](https://github.com/SoftFever/OrcaSlicer/discussions/categories/ideas)
+        be useful to many users, you can raise it as a discussion topic under [Ideas](https://github.com/OrcaSlicer/OrcaSlicer/discussions/categories/ideas)
         or you can raise it on the [Discord server](https://discord.gg/P4VE9UY9gJ).
   - type: checkboxes
     attributes:

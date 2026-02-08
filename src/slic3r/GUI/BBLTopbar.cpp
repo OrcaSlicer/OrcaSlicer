@@ -486,15 +486,15 @@ void BBLTopbar::Rescale() {
 
     item = this->FindTool(wxID_UNDO);
     item->SetBitmap(create_scaled_bitmap("topbar_undo", this, TOPBAR_ICON_SIZE));
-    item->SetDisabledBitmap(create_scaled_bitmap("topbar_undo_inactive", nullptr, TOPBAR_ICON_SIZE));
+    item->SetDisabledBitmap(create_scaled_bitmap("topbar_undo_inactive", this, TOPBAR_ICON_SIZE));
 
     item = this->FindTool(wxID_REDO);
     item->SetBitmap(create_scaled_bitmap("topbar_redo", this, TOPBAR_ICON_SIZE));
-    item->SetDisabledBitmap(create_scaled_bitmap("topbar_redo_inactive", nullptr, TOPBAR_ICON_SIZE));
+    item->SetDisabledBitmap(create_scaled_bitmap("topbar_redo_inactive", this, TOPBAR_ICON_SIZE));
 
     item = this->FindTool(ID_CALIB);
-    item->SetBitmap(create_scaled_bitmap("calib_sf", nullptr, TOPBAR_ICON_SIZE));
-    item->SetDisabledBitmap(create_scaled_bitmap("calib_sf_inactive", nullptr, TOPBAR_ICON_SIZE));
+    item->SetBitmap(create_scaled_bitmap("calib_sf", this, TOPBAR_ICON_SIZE));
+    item->SetDisabledBitmap(create_scaled_bitmap("calib_sf_inactive", this, TOPBAR_ICON_SIZE));
 
     item = this->FindTool(ID_TITLE);
 

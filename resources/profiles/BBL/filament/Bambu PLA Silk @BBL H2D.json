@@ -20,6 +20,12 @@
     "counter_limit_max": [
         "0.05"
     ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"

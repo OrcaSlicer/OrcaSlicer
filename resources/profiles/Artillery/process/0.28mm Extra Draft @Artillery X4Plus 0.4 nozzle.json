@@ -7,5 +7,6 @@
     "initial_layer_print_height": "0.2",
     "layer_height": "0.28",
     "outer_wall_speed": "120",
-    "print_settings_id": "0.28mm Extra Draft @Artillery X4Plus 0.4 nozzle"
+    "print_settings_id": "0.28mm Extra Draft @Artillery X4Plus 0.4 nozzle",
+    "version": "2.0.2.0"
 }

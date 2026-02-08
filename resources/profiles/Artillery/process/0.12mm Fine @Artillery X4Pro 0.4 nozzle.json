@@ -10,5 +10,6 @@
     "outer_wall_line_width": "0.42",
     "print_settings_id": "0.12mm Fine @Artillery X4Pro 0.4 nozzle",
     "support_line_width": "0.42",
-    "top_surface_line_width": "0.42"
+    "top_surface_line_width": "0.42",
+    "version": "2.0.2.0"
 }

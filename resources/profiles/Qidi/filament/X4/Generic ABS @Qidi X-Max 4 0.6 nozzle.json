@@ -1,0 +1,11 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "Generic ABS @Qidi X-Max 4 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Generic ABS@X-Max 4-Series",
+    "filament_max_volumetric_speed": ["24.5"],
+    "pressure_advance": ["0.014"],
+	"compatible_printers": ["Qidi X-Max 4 0.6 nozzle"]
+}

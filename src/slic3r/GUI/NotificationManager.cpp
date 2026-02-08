@@ -2002,6 +2002,19 @@ void NotificationManager::close_plater_warning_notification(const std::string& t
 	}
 }
 
+void NotificationManager::push_flushing_volume_error_notification(NotificationType type, NotificationLevel level, const std::string &text, const std::string &hypertext, std::function<bool(wxEvtHandler *)> callback)
+{
+    set_all_slicing_errors_gray(false);
+    std::string prefix_msg = level == NotificationLevel::WarningNotificationLevel ? _u8L("Warning:") : _u8L("Error:");
+    push_notification_data({type, level, 0, prefix_msg + "\n" + text, hypertext, callback}, 0);
+}
+
+void NotificationManager::close_flushing_volume_error_notification(NotificationType type, NotificationLevel level)
+{
+    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
+        if (notification->get_type() == type && notification->get_data().level == level) { notification->close(); }
+    }
+}
 
 void NotificationManager::set_all_slicing_errors_gray(bool g)
 {

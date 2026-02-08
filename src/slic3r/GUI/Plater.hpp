@@ -118,16 +118,18 @@ const wxString DEFAULT_PROJECT_NAME = "Untitled";
 class SidebarProps
 {
 public:
-    static int TitlebarMargin();
-    static int ContentMargin();
-    static int IconSpacing();
-    static int ElementSpacing();
+    static int TitlebarMargin(){ return 8 ;} // Use as side margins on titlebar. Has less margin on sides to create separation with its content
+    static int ContentMargin() { return 12;} // Use as side margins contents of title
+    static int ContentMarginV(){ return 9 ;} // Use as vertical margins contents of title
+    static int IconSpacing()   { return 10;} // Use on main elements in same group of controls
+    static int WideSpacing()   { return 18;} // Use between main elements / control groups for separation or preventing accidental clicks important
+    static int ElementSpacing(){ return 5 ;} // Use if elements has relation between them like edit button for combo box etc.
 };
 
 class Sidebar : public wxPanel
 {
     ConfigOptionMode    m_mode;
-    Button *         btn_sync{nullptr};
+    //Button *         btn_sync{nullptr};
     ScalableButton *  ams_btn{nullptr};
     bool                                    m_last_slice_state = false;
     SyncNozzleAndAmsDialog*                 m_sna_dialog{nullptr};
@@ -163,6 +165,7 @@ public:
     //void update_partplate(PartPlateList& list);
     void update_presets(Slic3r::Preset::Type preset_type);
     //BBS
+    const std::vector<BedType>& get_cur_combox_bed_types() { return m_cur_combox_bed_types; }
     void update_presets_from_to(Slic3r::Preset::Type preset_type, std::string from, std::string to);
     BedType get_cur_select_bed_type();
     std::string get_cur_select_bed_image();
@@ -186,7 +189,7 @@ public:
     bool is_new_project_in_gcode3mf();
     // BBS
     void on_bed_type_change(BedType bed_type);
-    void load_ams_list(std::string const & device, MachineObject* obj);
+    void load_ams_list(MachineObject* obj);
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
     void sync_ams_list(bool is_from_big_sync_btn = false);
     bool sync_extruder_list();
@@ -212,6 +215,7 @@ public:
 
     ConfigOptionsGroup*     og_freq_chng_params(const bool is_fff);
     wxButton*               get_wiping_dialog_button();
+    void                    set_flushing_volume_warning(const bool flushing_volume_modify);
 
     // BBS
     void                    enable_buttons(bool enable);
@@ -322,7 +326,7 @@ public:
     void load_gcode();
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
-    void refresh_print();
+    void reload_print();
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
@@ -348,8 +352,10 @@ public:
         m_exported_file = exported_file;
     }
 
+    bool is_empty_project();
     bool is_multi_extruder_ams_empty();
     // BBS
+    bool is_new_project_and_check_state() { return m_new_project_and_check_state; }
     wxString get_project_name();
     void update_all_plate_thumbnails(bool force_update = false);
     void update_obj_preview_thumbnail(ModelObject *, int obj_idx, int vol_idx, std::vector<Slic3r::ColorRGBA> colors, int camera_view_angle_type);
@@ -479,7 +485,7 @@ public:
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false);
+    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -924,6 +930,7 @@ private:
     bool m_exported_file { false };
     bool skip_thumbnail_invalid { false };
     bool m_loading_project { false };
+    bool m_new_project_and_check_state{false};
     std::string m_preview_only_filename;
     int m_valid_plates_count { 0 };
     int m_check_status = 0; // 0 not check, 1 check success, 2 check failed

@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "setting_id": "GFSR98",
+    "name": "QIDI TPU-Aero @Qidi X-Max 4 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI TPU-Aero@X-Max 4-Series",
+	"compatible_printers": ["Qidi X-Max 4 0.4 nozzle"]
+}

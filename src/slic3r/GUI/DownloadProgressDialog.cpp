@@ -19,9 +19,12 @@
 //#include "ConfigWizard.hpp"
 #include "wxExtensions.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
 #include "GUI_App.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
+
+#include "Widgets/HyperLink.hpp" // ORCA
 
 #define DESIGN_INPUT_SIZE wxSize(FromDIP(100), -1)
 
@@ -72,7 +75,8 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
 
     sizer_download_failed->Add(m_statictext_download_failed, 0, wxALIGN_CENTER | wxALL, 5);
 
-    auto m_download_hyperlink = new wxHyperlinkCtrl(m_panel_download_failed, wxID_ANY, _L("click here to see more info"), download_failed_url, wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE);
+    // ORCA standardized HyperLink
+    auto m_download_hyperlink = new HyperLink(m_panel_download_failed, _L("click here to see more info"), download_failed_url);
     sizer_download_failed->Add(m_download_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
 
@@ -93,7 +97,8 @@ DownloadProgressDialog::DownloadProgressDialog(wxString title)
 
     sizer_install_failed->Add(m_statictext_install_failed, 0, wxALIGN_CENTER | wxALL, 5);
 
-    auto m_install_hyperlink = new wxHyperlinkCtrl(m_panel_install_failed, wxID_ANY, _L("click here to see more info"), install_failed_url, wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE);
+    // ORCA standardized HyperLink
+    auto m_install_hyperlink = new HyperLink(m_panel_install_failed, _L("click here to see more info"), install_failed_url);
     sizer_install_failed->Add(m_install_hyperlink, 0, wxALIGN_CENTER | wxALL, 5);
 
 
@@ -203,6 +208,16 @@ void DownloadProgressDialog::update_release_note(std::string release_note, std::
 
 std::unique_ptr<UpgradeNetworkJob> DownloadProgressDialog::make_job() { return std::make_unique<UpgradeNetworkJob>(); }
 
-void DownloadProgressDialog::on_finish() { wxGetApp().restart_networking(); }
+void DownloadProgressDialog::on_finish()
+{
+    if (wxGetApp().hot_reload_network_plugin()) {
+        return;
+    }
+
+    MessageDialog dlg(nullptr,
+        _L("The network plugin was installed but could not be loaded. Please restart the application."),
+        _L("Restart Required"), wxOK | wxICON_INFORMATION);
+    dlg.ShowModal();
+}
 
 }} // namespace Slic3r::GUI

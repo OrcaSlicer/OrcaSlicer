@@ -1,7 +1,7 @@
 #!/bin/bash
 # these are the Clear Linux specific build functions
 
-# Addtional bundles for OrcaSlicer
+# Additional bundles for OrcaSlicer
 export REQUIRED_BUNDLES=(
     c-basic
     dev-utils

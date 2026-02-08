@@ -23,11 +23,18 @@ namespace Slic3r
        friend class DevNozzleSystemParser;
    public:
        DevNozzleSystem(MachineObject* owner) : m_owner(owner) {}
+   private:
+       enum Status : int
+       {
+           NOZZLE_SYSTEM_IDLE = 0,
+           NOZZLE_SYSTEM_REFRESHING = 1,
+       };
 
    public:
        bool                            ContainsNozzle(int id) const { return m_nozzles.find(id) != m_nozzles.end(); }
        DevNozzle                       GetNozzle(int id) const;
        const std::map<int, DevNozzle>& GetNozzles() const { return m_nozzles;}
+       bool                            IsRefreshing() const { return m_state == 1; }
 
    private:
        void Reset();
@@ -44,7 +51,7 @@ namespace Slic3r
    class DevNozzleSystemParser
    {
    public:
-       static void  ParseV1_0(const nlohmann::json& nozzletype_json, const nlohmann::json& diameter_json, const int& nozzle_flow_type, DevNozzleSystem* system);
+       static void  ParseV1_0(const nlohmann::json& nozzletype_json, const nlohmann::json& diameter_json, DevNozzleSystem* system, std::optional<int> flag_e3d);
        static void  ParseV2_0(const json& nozzle_json, DevNozzleSystem* system);
    };
 };

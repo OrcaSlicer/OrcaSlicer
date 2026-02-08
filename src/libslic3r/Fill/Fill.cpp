@@ -227,8 +227,8 @@ struct SurfaceFillParams
     coordf_t    	overlap = 0.;
     // Angle as provided by the region config, in radians.
     float       	angle = 0.f;
-    // Orca: is_using_template_angle
-    bool        is_using_template_angle = false;
+    // Orca: fixed_angle
+    bool        fixed_angle = false;
     // Is bridging used for this fill? Bridging parameters may be used even if this->flow.bridge() is not set.
     bool 			bridge;
     // Non-negative for a bridge.
@@ -284,7 +284,7 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(spacing);
 		RETURN_COMPARE_NON_EQUAL(overlap);
 		RETURN_COMPARE_NON_EQUAL(angle);
-		RETURN_COMPARE_NON_EQUAL(is_using_template_angle);
+		RETURN_COMPARE_NON_EQUAL(fixed_angle);
 		RETURN_COMPARE_NON_EQUAL(density);
 		RETURN_COMPARE_NON_EQUAL(multiline);
 //		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, dont_adjust);
@@ -313,7 +313,7 @@ struct SurfaceFillParams
 				this->spacing 			== rhs.spacing 			&&
 				this->overlap 			== rhs.overlap 			&&
 				this->angle   			== rhs.angle   			&&
-				this->is_using_template_angle == rhs.is_using_template_angle &&
+				this->fixed_angle == rhs.fixed_angle &&
 				this->bridge   			== rhs.bridge   		&&
 				this->bridge_angle 		== rhs.bridge_angle		&&
 				this->density   		== rhs.density   		&&
@@ -599,16 +599,34 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
 {
     assert(fill.surface.surface_type == stInternalSolid);
 
-	switch (fill.params.pattern) {
-    case ipRectilinear:
-    case ipMonotonic:
-    case ipMonotonicLine:
-    case ipAlignedRectilinear:
-        // Only support straight line based infill
-        break;
+    const bool line_based_pattern =
+        fill.params.pattern == ipRectilinear || fill.params.pattern == ipMonotonic ||
+        fill.params.pattern == ipMonotonicLine || fill.params.pattern == ipAlignedRectilinear;
 
-    default:
-        // For all other types, don't split
+    // ORCA: For non-line patterns, split by a geometric "core" so only thin areas get rerouted.
+    if (!line_based_pattern) {
+        const coord_t scaled_spacing = scaled<coord_t>(fill.params.spacing);
+
+        for (const ExPolygon &expolygon : fill.expolygons) {
+            Polygons filled_area = to_polygons(expolygon);
+
+            // "Core" area: open (erode+dilate) to drop thin features, then clamp back to the original polygon.
+            Polygons inner_area  = intersection(filled_area, opening(filled_area, scaled_spacing, scaled_spacing));
+
+            if (inner_area.empty()) {
+                narrow_infill.emplace_back(expolygon);
+                continue;
+            }
+
+            ExPolygons inner_ex = union_ex(inner_area);
+            ExPolygons expolys{expolygon};
+            ExPolygons narrow_ex = diff_ex(expolys, inner_ex);
+            ExPolygons normal_ex = intersection_ex(expolys, inner_ex);
+
+            append(normal_infill, normal_ex); // normal infill area
+            append(narrow_infill, narrow_ex); // narrow infill area
+        }
+
         return;
     }
 
@@ -902,11 +920,11 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 if (params.extrusion_role == erInternalInfill) {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.infill_direction.value,
                                                                    region_config.sparse_infill_rotate_template.value);
-                    params.is_using_template_angle = !region_config.sparse_infill_rotate_template.value.empty();
+                    params.fixed_angle = !region_config.sparse_infill_rotate_template.value.empty();
                 } else {
                     params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.solid_infill_direction.value,
                                                                    region_config.solid_infill_rotate_template.value);
-                    params.is_using_template_angle = !region_config.solid_infill_rotate_template.value.empty();
+                    params.fixed_angle = !region_config.solid_infill_rotate_template.value.empty();
                 }
                 params.bridge_angle = float(surface.bridge_angle);
                 
@@ -1094,7 +1112,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 		        const PrintRegionConfig &region_config = layerm.region().config();
                 params.angle = calculate_infill_rotation_angle(layer.object(), layer.id(), region_config.solid_infill_direction.value,
                                                                region_config.solid_infill_rotate_template.value);
-                params.is_using_template_angle = !region_config.solid_infill_rotate_template.value.empty();
+                params.fixed_angle = !region_config.solid_infill_rotate_template.value.empty();
 
                 // calculate the actual flow we'll be using for this infill
 				params.flow = layerm.flow(frSolidInfill);
@@ -1199,7 +1217,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         f->layer_id = this->id();
         f->z 		= this->print_z;
         f->angle 	= surface_fill.params.angle;
-        f->is_using_template_angle = surface_fill.params.is_using_template_angle;
+        f->fixed_angle = surface_fill.params.fixed_angle;
         f->adapt_fill_octree   = (surface_fill.params.pattern == ipSupportCubic) ? support_fill_octree : adaptive_fill_octree;
         f->print_config        = &this->object()->print()->config();
         f->print_object_config = &this->object()->config();
@@ -1271,6 +1289,9 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
                 params.horiz_move += scale_(region_config.infill_shift_step) * (f->layer_id / 2);
             }
 
+            params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
+
+        } else if (surface_fill.params.pattern == ipZigZag) {
             params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
 
         }
@@ -1389,7 +1410,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
         f->layer_id = this->id() - this->object()->get_layer(0)->id(); // We need to subtract raft layers.
         f->z        = this->print_z;
         f->angle    = surface_fill.params.angle;
-        f->is_using_template_angle = surface_fill.params.is_using_template_angle;
+        f->fixed_angle = surface_fill.params.fixed_angle;
         f->adapt_fill_octree   = (surface_fill.params.pattern == ipSupportCubic) ? support_fill_octree : adaptive_fill_octree;
         f->print_config        = &this->object()->print()->config();
         f->print_object_config = &this->object()->config();
@@ -1462,7 +1483,7 @@ void Layer::make_ironing()
 		double 		height;
 		double 		speed;
 		double 		angle;
-        bool        is_using_template_angle;
+        bool        fixed_angle;
         double 		inset;
 
 		bool operator<(const IroningParams &rhs) const {
@@ -1472,7 +1493,7 @@ void Layer::make_ironing()
             RETURN_COMPARE_NON_EQUAL(height);
             RETURN_COMPARE_NON_EQUAL(speed);
             RETURN_COMPARE_NON_EQUAL(angle);
-            RETURN_COMPARE_NON_EQUAL(is_using_template_angle);
+            RETURN_COMPARE_NON_EQUAL(fixed_angle);
             RETURN_COMPARE_NON_EQUAL(inset);
 			return false;
 		}
@@ -1484,7 +1505,7 @@ void Layer::make_ironing()
                     this->height == rhs.height && 
                     this->speed == rhs.speed && 
                     this->angle == rhs.angle && 
-                    this->is_using_template_angle == rhs.is_using_template_angle && 
+                    this->fixed_angle == rhs.fixed_angle && 
                     this->pattern == rhs.pattern && 
                     this->inset == rhs.inset;
 		}
@@ -1529,12 +1550,22 @@ void Layer::make_ironing()
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
 				ironing_params.just_infill 	= false;
-				ironing_params.line_spacing = config.ironing_spacing;
-                ironing_params.inset 		= config.ironing_inset;
-				ironing_params.height 		= default_layer_height * 0.01 * config.ironing_flow;
-				ironing_params.speed 		= config.ironing_speed;
-                ironing_params.angle        = calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value) + config.ironing_angle * M_PI / 180.;
-                ironing_params.is_using_template_angle = !config.solid_infill_rotate_template.value.empty(); 
+				// Get filament-specific overrides if configured, otherwise use default values
+				size_t extruder_idx = ironing_params.extruder - 1;
+				ironing_params.line_spacing = (!config.filament_ironing_spacing.is_nil(extruder_idx)
+					? config.filament_ironing_spacing.get_at(extruder_idx)
+					: config.ironing_spacing);
+                ironing_params.inset = (!config.filament_ironing_inset.is_nil(extruder_idx)
+					? config.filament_ironing_inset.get_at(extruder_idx)
+					: config.ironing_inset);
+				ironing_params.height = default_layer_height * 0.01 * (!config.filament_ironing_flow.is_nil(extruder_idx)
+					? config.filament_ironing_flow.get_at(extruder_idx)
+					: config.ironing_flow);
+				ironing_params.speed = (!config.filament_ironing_speed.is_nil(extruder_idx)
+					? config.filament_ironing_speed.get_at(extruder_idx)
+					: config.ironing_speed);
+                ironing_params.angle        = (config.ironing_angle_fixed ? 0 : calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value)) + config.ironing_angle * M_PI / 180.;
+                ironing_params.fixed_angle = config.ironing_angle_fixed || !config.solid_infill_rotate_template.value.empty();
 				ironing_params.pattern      = config.ironing_pattern;
 				ironing_params.layerm 		= layerm;
 				by_extruder.emplace_back(ironing_params);
@@ -1630,7 +1661,7 @@ void Layer::make_ironing()
         // Create the filler object.
         f->spacing = ironing_params.line_spacing;
         f->angle = float(ironing_params.angle);
-        f->is_using_template_angle = ironing_params.is_using_template_angle;
+        f->fixed_angle = ironing_params.fixed_angle;
         f->link_max_length = (coord_t) scale_(3. * f->spacing);
 		double  extrusion_height = ironing_params.height * f->spacing / nozzle_dmr;
 		float  extrusion_width  = Flow::rounded_rectangle_extrusion_width_from_spacing(float(nozzle_dmr), float(extrusion_height));

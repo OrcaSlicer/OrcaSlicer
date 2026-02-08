@@ -718,7 +718,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
     m_main_panel->Layout();
 
     page_sizer = new wxBoxSizer(wxVERTICAL);
-    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(25));
+    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(10)); // ORCA match margin with other tabs
 
     wxGetApp().UpdateDarkUIWin(this);
 
@@ -1184,7 +1184,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     m_main_panel->Layout();
 
     page_sizer = new wxBoxSizer(wxVERTICAL);
-    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(25));
+    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(10)); // ORCA match margin with other tabs
     Bind(wxEVT_TIMER, &CloudTaskManagerPage::on_timer, this);
 
     wxGetApp().UpdateDarkUIWin(this);
@@ -1402,7 +1402,7 @@ void CloudTaskManagerPage::start_timer()
 
     m_flipping_timer->SetOwner(this);
     m_flipping_timer->Start(1000);
-    wxPostEvent(this, wxTimerEvent());
+    wxPostEvent(this, wxTimerEvent(*m_flipping_timer));
 }
 
 void CloudTaskManagerPage::on_timer(wxTimerEvent& event)

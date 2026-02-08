@@ -246,6 +246,7 @@ public:
     // should be called after doing reorder
     FilamentChangeStats get_filament_change_stats(FilamentChangeMode mode);
     void                cal_most_used_extruder(const PrintConfig &config);
+    float               cal_max_additional_fan(const PrintConfig &config);
     bool                cal_non_support_filaments(const PrintConfig &config,
                                                   unsigned int &     first_non_support_filament,
                                                   std::vector<int> & initial_non_support_filaments,

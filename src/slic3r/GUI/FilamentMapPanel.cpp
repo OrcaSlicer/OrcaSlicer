@@ -6,7 +6,7 @@
 namespace Slic3r { namespace GUI {
 
 static const wxColour BgNormalColor  = wxColour("#FFFFFF");
-static const wxColour BgSelectColor  = wxColour("#EBF9F0");
+static const wxColour BgSelectColor  = wxColour("#E5F0EE"); // ORCA
 static const wxColour BgDisableColor = wxColour("#CECECE");
 
 static const wxColour BorderNormalColor   = wxColour("#CECECE");
@@ -63,7 +63,7 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
 
     top_sizer->Add(drag_sizer, 0, wxALIGN_CENTER | wxEXPAND);
 
-    m_tips = new Label(this, _L("Tips: You can drag the filaments to reassign them to different nozzles."));
+    m_tips = new Label(this, _L("Tip: You can drag the filaments to reassign them to different nozzles."));
     m_tips->SetFont(Label::Body_14);
     m_tips->SetForegroundColour(TextNormalGreyColor);
     top_sizer->AddSpacer(FromDIP(20));
@@ -288,9 +288,9 @@ void GUI::FilamentMapBtnPanel::Show()
 
 FilamentMapAutoPanel::FilamentMapAutoPanel(wxWindow *parent, FilamentMapMode mode, bool machine_synced) : wxPanel(parent)
 {
-    const wxString AutoForFlushDetail = _L("Generates filament grouping for the left and right nozzles based on the most filament-saving principles to minimize waste");
+    const wxString AutoForFlushDetail = _L("Generates filament grouping for the left and right nozzles based on the most filament-saving principles to minimize waste.");
 
-    const wxString AutoForMatchDetail = _L("Generates filament grouping for the left and right nozzles based on the printer's actual filament status, reducing the need for manual filament adjustment");
+    const wxString AutoForMatchDetail = _L("Generates filament grouping for the left and right nozzles based on the printer's actual filament status, reducing the need for manual filament adjustment.");
 
     auto                  sizer              = new wxBoxSizer(wxHORIZONTAL);
     m_flush_panel                            = new FilamentMapBtnPanel(this, _L("Filament-Saving Mode"), AutoForFlushDetail, "flush_mode_panel_icon");

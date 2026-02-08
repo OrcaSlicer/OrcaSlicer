@@ -34,6 +34,7 @@
     "filament_type": [
         "PLA Basic+"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
         "210"
     ],
@@ -43,6 +44,7 @@
     "slow_down_layer_time": [
         "6"
     ],
+    "version": "2.1.1.0",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],

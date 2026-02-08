@@ -315,7 +315,7 @@ static bool is_printable_filament_changed(const DynamicPrintConfig& new_full_con
         }
 
         Polygons split_polys;
-        for (const Polygon poly : extruder_polys) {
+        for (const Polygon& poly : extruder_polys) {
             Polygons res = diff(printable_poly, poly);
             if (!res.empty()) { split_polys.emplace_back(res[0]); }
         }
@@ -839,7 +839,7 @@ bool verify_update_print_object_regions(
         for (const PrintObjectRegions::FuzzySkinPaintedRegion &region : layer_range.fuzzy_skin_painted_regions) {
             const PrintRegion &parent_print_region = *region.parent_print_object_region(layer_range);
             PrintRegionConfig  cfg                 = parent_print_region.config();
-            cfg.fuzzy_skin.value                   = FuzzySkinType::All;
+            if (cfg.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy) cfg.fuzzy_skin.value = FuzzySkinType::All;
             if (cfg != region.region->config()) {
                 // Region configuration changed.
                 if (print_region_ref_cnt(*region.region) == 0) {
@@ -1081,7 +1081,7 @@ static PrintObjectRegions* generate_print_object_regions(
             for (int parent_volume_region_id = 0; parent_volume_region_id < int(layer_range.volume_regions.size()); ++parent_volume_region_id) {
                 if (const PrintObjectRegions::VolumeRegion &parent_volume_region = layer_range.volume_regions[parent_volume_region_id]; parent_volume_region.model_volume->is_model_part() || parent_volume_region.model_volume->is_modifier()) {
                     PrintRegionConfig cfg = parent_volume_region.region->config();
-                    cfg.fuzzy_skin.value  = FuzzySkinType::All;
+                    if (cfg.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy) cfg.fuzzy_skin.value = FuzzySkinType::All;
                     layer_range.fuzzy_skin_painted_regions.push_back({FuzzySkinParentType::VolumeRegion, parent_volume_region_id, get_create_region(std::move(cfg))});
                 }
             }
@@ -1090,7 +1090,7 @@ static PrintObjectRegions* generate_print_object_regions(
                 const PrintObjectRegions::PaintedRegion &parent_painted_region = layer_range.painted_regions[parent_painted_regions_id];
 
                 PrintRegionConfig cfg = parent_painted_region.region->config();
-                cfg.fuzzy_skin.value  = FuzzySkinType::All;
+                if (cfg.fuzzy_skin.value != FuzzySkinType::Disabled_fuzzy) cfg.fuzzy_skin.value = FuzzySkinType::All;
                 layer_range.fuzzy_skin_painted_regions.push_back({FuzzySkinParentType::PaintedRegion, parent_painted_regions_id, get_create_region(std::move(cfg))});
             }
 

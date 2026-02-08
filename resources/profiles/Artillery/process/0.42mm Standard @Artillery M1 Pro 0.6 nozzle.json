@@ -5,5 +5,7 @@
     "from": "system",
     "instantiation": "true",
     "layer_height": "0.42",
-    "print_settings_id": "0.42mm Standard @Artillery M1 Pro 0.6 nozzle"
+    "print_settings_id": "0.42mm Standard @Artillery M1 Pro 0.6 nozzle",
+    "is_custom_defined": "0",
+    "version": "2.1.1.0"
 }

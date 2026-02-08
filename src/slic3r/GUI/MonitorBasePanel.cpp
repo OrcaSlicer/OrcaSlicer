@@ -21,7 +21,6 @@ MonitorBasePanel::MonitorBasePanel(wxWindow* parent, wxWindowID id, const wxPoin
 
 	m_splitter = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_3D | wxSP_BORDER);
 	m_splitter->SetSashGravity(0);
-	m_splitter->SetSashSize(0);
 	m_splitter->Connect(wxEVT_IDLE, wxIdleEventHandler(MonitorBasePanel::m_splitterOnIdle), NULL, this);
 	m_splitter->SetMinimumPaneSize(182);
 

@@ -159,14 +159,14 @@ TEST_CASE("FloorSupportsDoNotPierceModel", "[SLASupportGeneration]") {
 
 TEST_CASE("InitializedRasterShouldBeNONEmpty", "[SLARasterOutput]") {
     // Default SL1 display parameters
-    sla::RasterBase::Resolution res{2560, 1440};
-    sla::RasterBase::PixelDim   pixdim{120. / res.width_px, 68. / res.height_px};
+    sla::Resolution res{2560, 1440};
+    sla::PixelDim   pixdim{120. / res.width_px, 68. / res.height_px};
     
     sla::RasterGrayscaleAAGammaPower raster(res, pixdim, {}, 1.);
     REQUIRE(raster.resolution().width_px == res.width_px);
     REQUIRE(raster.resolution().height_px == res.height_px);
-    REQUIRE(raster.pixel_dimensions().w_mm == Approx(pixdim.w_mm));
-    REQUIRE(raster.pixel_dimensions().h_mm == Approx(pixdim.h_mm));
+    REQUIRE(raster.pixel_dimensions().w_mm == Catch::Approx(pixdim.w_mm));
+    REQUIRE(raster.pixel_dimensions().h_mm == Catch::Approx(pixdim.h_mm));
 }
 
 TEST_CASE("MirroringShouldBeCorrect", "[SLARasterOutput]") {
@@ -186,8 +186,8 @@ TEST_CASE("MirroringShouldBeCorrect", "[SLARasterOutput]") {
 
 TEST_CASE("RasterizedPolygonAreaShouldMatch", "[SLARasterOutput]") {
     double disp_w = 120., disp_h = 68.;
-    sla::RasterBase::Resolution res{2560, 1440};
-    sla::RasterBase::PixelDim pixdim{disp_w / res.width_px, disp_h / res.height_px};
+    sla::Resolution res{2560, 1440};
+    sla::PixelDim pixdim{disp_w / res.width_px, disp_h / res.height_px};
     
     double gamma = 1.;
     sla::RasterGrayscaleAAGammaPower raster(res, pixdim, {}, gamma);
@@ -240,5 +240,5 @@ TEST_CASE("Test concurrency")
 
     double s = execution::accumulate(ex_tbb, vals.begin(), vals.end(), 0.);
 
-    REQUIRE(s == Approx(ref));
+    REQUIRE(s == Catch::Approx(ref));
 }
