@@ -73,7 +73,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     "_DURING_PRINT_EXHAUST_FAN",
     " WIPE_TOWER_START",
     " WIPE_TOWER_END",
-    " PA_CHANGE:"
+    " PA_CHANGE:",
+    "@PRINT_TIME_SEC@",
+    "@USED_FILAMENT_LENGTH@"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -94,7 +96,9 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     "_DURING_PRINT_EXHAUST_FAN",
     " WIPE_TOWER_START",
     " WIPE_TOWER_END",
-    " PA_CHANGE:"
+    " PA_CHANGE:",
+    "@PRINT_TIME_SEC@",
+    "@USED_FILAMENT_LENGTH@"
 };
 
 
@@ -1101,6 +1105,42 @@ void GCodeProcessor::run_post_process()
         return ret;
     };
 
+    // Process inline placeholders (print_time_sec and used_filament_length)
+    auto process_inline_placeholders = [&](std::string& gcode_line) {
+        bool processed = false;
+
+        const std::string& print_time_placeholder = reserved_tag(ETags::Print_Time_Sec_Placeholder);
+        const std::string& used_filament_placeholder = reserved_tag(ETags::Used_Filament_Length_Placeholder);
+
+        // Replace print_time_sec
+        size_t pos = gcode_line.find(print_time_placeholder);
+        while (pos != std::string::npos) {
+            double print_time_sec = m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].time;
+            char buf[64];
+            sprintf(buf, "%.2f", print_time_sec);
+            gcode_line.replace(pos, print_time_placeholder.length(), buf);
+            processed = true;
+            pos = gcode_line.find(print_time_placeholder, pos + strlen(buf));
+        }
+
+        // Replace used_filament_length
+        pos = gcode_line.find(used_filament_placeholder);
+        while (pos != std::string::npos) {
+            double total_filament_mm = 0.0;
+            for (const auto& mm : filament_mm) {
+                total_filament_mm += mm;
+            }
+            double used_filament_length = total_filament_mm / 1000.0; // Convert mm to m
+            char buf[64];
+            sprintf(buf, "%.2f", used_filament_length);
+            gcode_line.replace(pos, used_filament_placeholder.length(), buf);
+            processed = true;
+            pos = gcode_line.find(used_filament_placeholder, pos + strlen(buf));
+        }
+
+        return processed;
+    };
+
     // check for temporary lines
     auto is_temporary_decoration = [](const std::string_view gcode_line) {
         // remove trailing '\n'
@@ -1317,6 +1357,8 @@ void GCodeProcessor::run_post_process()
                         gcode_line.clear();
                     if (!processed)
                         processed = process_used_filament(gcode_line);
+                    if (!gcode_line.empty())
+                        process_inline_placeholders(gcode_line);
                     if (!processed && !is_temporary_decoration(gcode_line)) {
                         if (GCodeReader::GCodeLine::cmd_is(gcode_line, "G0") || GCodeReader::GCodeLine::cmd_is(gcode_line, "G1")) {
                             export_line.append_line(gcode_line);

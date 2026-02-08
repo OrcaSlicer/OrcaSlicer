@@ -5398,6 +5398,18 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionInt(1));
 
 
+    def = this->add("file_start_gcode", coString);
+    def->label = L("File header G-code");
+    def->tooltip = L("G-code written at the very top of the output file, before any other content. "
+                     "Useful for adding metadata that printer firmware reads from the first lines of the file "
+                     "(e.g. estimated print time, filament usage). "
+                     "Supports placeholders like {print_time_sec} and {used_filament_length}.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 8;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
+
     def = this->add("machine_start_gcode", coString);
     def->label = L("Start G-code");
     def->tooltip = L("Start G-code when starting the entire print.");
@@ -10299,6 +10311,14 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def = this->add("used_filament", coFloat);
     def->label = L("Used filament");
     def->tooltip = L("Total length of filament used in the print.");
+
+    def = this->add("print_time_sec", coString);
+    def->label = L("Print time (seconds)");
+    def->tooltip = L("Total estimated print time in seconds. Replaced with actual value during post-processing.");
+
+    def = this->add("used_filament_length", coString);
+    def->label = L("Filament length (meters)");
+    def->tooltip = L("Total filament length used in meters. Replaced with actual value during post-processing.");
 }
 
 ObjectsInfoConfigDef::ObjectsInfoConfigDef()
@@ -10433,6 +10453,7 @@ OtherPresetsConfigDef::OtherPresetsConfigDef()
 
 static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificPlaceholders{
     // Machine G-code
+    {"file_start_gcode",           {}},
     {"machine_start_gcode",         {}},
     {"machine_end_gcode",           {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id"}},
     {"before_layer_change_gcode",   {"layer_num", "layer_z", "max_layer_z"}},

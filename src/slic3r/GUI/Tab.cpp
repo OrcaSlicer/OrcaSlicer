@@ -4434,6 +4434,17 @@ void TabPrinter::build_fff()
     const int gcode_field_height = 15; // 150
     const int notes_field_height = 25; // 250
     page = add_options_page(L("Machine G-code"), "custom-gcode_gcode"); // ORCA: icon only visible on placeholders
+        optgroup = page->new_optgroup(L("File header G-code"), L"param_gcode", 0);
+        optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
+            validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
+        };
+        optgroup->edit_custom_gcode = edit_custom_gcode_fn;
+        option = optgroup->get_option("file_start_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = 8;
+        optgroup->append_single_option_line(option);
+
         optgroup = page->new_optgroup(L("Machine start G-code"), L"param_gcode", 0);
         optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
             validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
