@@ -3692,14 +3692,17 @@ int GCode::get_bed_temperature(const int extruder_id, const bool is_first_layer,
 
 int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print &print) const 
 {
-	const auto bed_type = m_config.curr_bed_type; int bed_temp = 0; 
-	// Always use first-layer filaments (only these touch the bed) 
+	const auto bed_type = m_config.curr_bed_type;
+	int bed_temp = 0;
+
+	// Always use first-layer filaments (only these touch the bed)
 	for (auto fidx : print.get_slice_used_filaments(true)) {
 		bed_temp = std::max(
 			bed_temp,
 			get_bed_temperature(fidx, is_first_layer, bed_type)
 		);
 	}
+
 	return bed_temp;
 }
 
