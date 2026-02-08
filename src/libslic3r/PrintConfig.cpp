@@ -740,6 +740,13 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("printer_agent", coString);
+    def->label = L("Printer Agent");
+    def->tooltip = L("Select the network agent implementation for printer communication.");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionString(""));
+
     def = this->add("print_host", coString);
     def->label = L("Hostname, IP or URL");
     def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field should contain "
@@ -2466,7 +2473,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Shrinkage (XY)");
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). "
-        "The part will be scaled in XY to compensate. Only the filament used for the perimeter is taken into account.\n"
+        "The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
         "Be sure to allow enough space between objects, as this compensation is done after the checks.");
     def->sidetext = "%";
     def->ratio_over = "";
@@ -4457,9 +4464,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
-    def->tooltip = L("Don't retract when the travel is in infill area absolutely. That means the oozing can't been seen. "
+    def->tooltip = L("Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. "
                      "This can reduce times of retraction for complex model and save printing time, but make slicing and "
-                     "G-code generating slower.");
+                     "G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

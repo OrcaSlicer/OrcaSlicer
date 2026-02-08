@@ -204,7 +204,7 @@ void TabButtonsListCtrl::SetFooterText(const wxString& text)
         m_footer_text->SetForegroundColour(wxColour(128, 128, 128));
         m_footer_text->SetFont(Label::Body_10);
         int em = em_unit(this);
-        m_sizer->Add(m_footer_text, 0, wxALIGN_CENTER_HORIZONTAL | wxBOTTOM, em / 2);
+        m_sizer->Add(m_footer_text, 0, wxALL, FromDIP(18)); // ORCA reduce / match left margin buttons on sidebars
     } else {
         m_footer_text->SetLabel(text);
     }

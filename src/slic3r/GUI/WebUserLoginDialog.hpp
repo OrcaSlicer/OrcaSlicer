@@ -71,6 +71,7 @@ private:
     wxWebView *m_browser;
 
     std::string m_AutotestToken;
+    int m_loopback_port { 0 };
 
 #if wxUSE_WEBVIEW_IE
     wxMenuItem *m_script_object_el;

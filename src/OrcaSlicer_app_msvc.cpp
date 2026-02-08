@@ -276,7 +276,7 @@ int wmain(int argc, wchar_t **argv)
         if (hInstance_OpenGL == nullptr) {
             printf("MESA OpenGL library was not loaded\n");
         } else
-            printf("MESA OpenGL library was loaded sucessfully\n");
+            printf("MESA OpenGL library was loaded successfully\n");
     }
 #endif /* SLIC3R_GUI */
 

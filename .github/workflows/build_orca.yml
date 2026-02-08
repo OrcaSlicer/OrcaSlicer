@@ -86,29 +86,29 @@ jobs:
 
 #   Mac
       - name: Install tools mac
-        if: inputs.os == 'macos-14'
+        if: inputs.os == 'orca-macos-arm64'
         run: |
-          brew install libtool
-          brew list
+          # brew install libtool
+          # brew list
           mkdir -p ${{ github.workspace }}/deps/build
 
-      - name: Free disk space
-        if: inputs.os == 'macos-14'
-        run: |
-          df -hI /dev/disk3s1s1
-          sudo find /Applications -maxdepth 1 -type d -name "Xcode_*.app" ! -name "Xcode_15.4.app" -exec rm -rf {} +
-          sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
-          df -hI /dev/disk3s1s1
+      # - name: Free disk space
+      #   if: inputs.os == 'orca-macos-arm64'
+      #   run: |
+      #     df -hI /dev/disk3s1s1
+      #     sudo find /Applications -maxdepth 1 -type d -name "Xcode_*.app" ! -name "Xcode_15.4.app" -exec rm -rf {} +
+      #     sudo rm -rf ~/Library/Developer/CoreSimulator/Caches/*
+      #     df -hI /dev/disk3s1s1
 
       - name: Build slicer mac
-        if: inputs.os == 'macos-14'
+        if: inputs.os == 'orca-macos-arm64'
         working-directory: ${{ github.workspace }}
         run: |
-          ./build_release_macos.sh -s -n -x -a universal -t 10.15 -1
+          ./build_release_macos.sh -s -n -x -a universal -t 10.15
 
  # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && inputs.os == 'macos-14'
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && inputs.os == 'orca-macos-arm64'
         working-directory: ${{ github.workspace }}
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -122,6 +122,8 @@ jobs:
           security create-keychain -p $KEYCHAIN_PASSWORD $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p $KEYCHAIN_PASSWORD $KEYCHAIN_PATH
+          # Set the temporary keychain as the default to prevent codesign from accessing the locked login keychain
+          security default-keychain -s "$KEYCHAIN_PATH"
           security import $CERTIFICATE_PATH -P $P12_PASSWORD -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $P12_PASSWORD $KEYCHAIN_PATH
@@ -150,18 +152,17 @@ jobs:
           fi
           
           # Notarize main DMG
-          xcrun notarytool store-credentials "notarytool-profile" --apple-id "${{ secrets.APPLE_DEV_ACCOUNT }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_PWD }}"
-          xcrun notarytool submit "OrcaSlicer_Mac_universal_${{ env.ver }}.dmg" --keychain-profile "notarytool-profile" --wait
+          xcrun notarytool submit "OrcaSlicer_Mac_universal_${{ env.ver }}.dmg" --apple-id "${{ secrets.APPLE_DEV_ACCOUNT }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_PWD }}" --wait
           xcrun stapler staple OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
-          
+
           # Notarize profile validator DMG if it exists
           if [ -f "OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg" ]; then
-            xcrun notarytool submit "OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg" --keychain-profile "notarytool-profile" --wait
+            xcrun notarytool submit "OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg" --apple-id "${{ secrets.APPLE_DEV_ACCOUNT }}" --team-id "${{ secrets.TEAM_ID }}" --password "${{ secrets.APP_PWD }}" --wait
             xcrun stapler staple OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
           fi
 
       - name: Create DMG without notary
-        if: github.ref != 'refs/heads/main' && inputs.os == 'macos-14'
+        if: github.ref != 'refs/heads/main' && inputs.os == 'orca-macos-arm64'
         working-directory: ${{ github.workspace }}
         run: |
           mkdir -p ${{ github.workspace }}/build/universal/OrcaSlicer_dmg
@@ -180,14 +181,14 @@ jobs:
           fi
 
       - name: Upload artifacts mac
-        if: inputs.os == 'macos-14'
+        if: inputs.os == 'orca-macos-arm64'
         uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_Mac_universal_${{ env.ver }}
           path: ${{ github.workspace }}/OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
 
       - name: Upload OrcaSlicer_profile_validator DMG mac
-        if: inputs.os == 'macos-14'
+        if: inputs.os == 'orca-macos-arm64'
         uses: actions/upload-artifact@v6
         with:
           name: OrcaSlicer_profile_validator_Mac_universal_DMG_${{ env.ver }}
@@ -195,7 +196,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Deploy Mac release
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && inputs.os == 'macos-14'
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && inputs.os == 'orca-macos-arm64'
         uses: WebFreak001/deploy-nightly@v3.2.0
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}
@@ -206,7 +207,7 @@ jobs:
           max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
 
       - name: Deploy Mac OrcaSlicer_profile_validator DMG release
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && inputs.os == 'macos-14'
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && inputs.os == 'orca-macos-arm64'
         uses: WebFreak001/deploy-nightly@v3.2.0
         with:
           upload_url: https://uploads.github.com/repos/OrcaSlicer/OrcaSlicer/releases/137995723/assets{?name,label}

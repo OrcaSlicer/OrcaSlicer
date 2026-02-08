@@ -20,8 +20,8 @@ endif()
 # On Windows, architecture (64 vs 32 bits) is judged based on the compiler variant.
 # To build dependencies for either 64 or 32 bit OS, use the respective compiler command line.
 #
-# WARNING: On UNIX platforms wxWidgets hardcode the destdir path into its `wx-conffig` utility,
-# therefore, unfortunatelly, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
+# WARNING: On UNIX platforms wxWidgets hardcode the destdir path into its `wx-config` utility,
+# therefore, unfortunately, the installation cannot be copied/moved elsewhere without re-installing wxWidgets.
 #
 
 cmake_minimum_required(VERSION 3.2)
@@ -336,6 +336,8 @@ include(CGAL/CGAL.cmake)
 include(NLopt/NLopt.cmake)
 include(libnoise/libnoise.cmake)
 
+include(Draco/Draco.cmake)
+
 
 # I *think* 1.1 is used for *just* md5 hashing?
 # 3.1 has everything in the right place, but the md5 funcs used are deprecated
@@ -399,6 +401,7 @@ set(_dep_list
     ${CURL_PKG}
     ${WXWIDGETS_PKG}
     dep_Cereal
+    dep_Draco
     dep_NLopt
     dep_OpenVDB
     dep_OpenCSG

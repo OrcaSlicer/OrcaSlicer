@@ -1194,7 +1194,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         }
     }
 
-    if (m_config.print_sequence == PrintSequence::ByObject && m_objects.size() > 1) {
+    if (m_config.print_sequence == PrintSequence::ByObject && (m_objects.size() > 1 || m_objects[0]->instances().size() > 1)) {
         if (m_config.timelapse_type == TimelapseType::tlSmooth)
             return {L("Smooth mode of timelapse is not supported when \"by object\" sequence is enabled.")};
 
@@ -1758,7 +1758,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         }
     }
     if (!this->has_same_shrinkage_compensations()){
-        warning->string = L("Filament shrinkage will not be used because filament shrinkage for the used filaments differs significantly.");
+        warning->string = L("Filament shrinkage will not be used because filament shrinkage for the used filaments does not match.");
         warning->opt_key = "";
     }
     return {};
