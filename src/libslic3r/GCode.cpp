@@ -3690,7 +3690,7 @@ int GCode::get_bed_temperature(const int extruder_id, const bool is_first_layer,
     return bed_temp_opt->get_at(extruder_id);
 }
 
-int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print &print) const 
+int GCode::get_highest_bed_temperature(const bool is_first_layer, const Print &print) const
 {
 	const auto bed_type = m_config.curr_bed_type;
 	int bed_temp = 0;
