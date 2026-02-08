@@ -958,10 +958,10 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
 
 #if !BBL_RELEASE_TO_PUBLIC
         m_send_job->m_local_use_ssl_for_ftp  = wxGetApp().app_config->get("enable_ssl_for_ftp") == "true" ? true : false;
-        m_send_job->m_local_use_ssl_for_mqtt = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
+        m_send_job->m_local_use_ssl = wxGetApp().app_config->get("enable_ssl_for_mqtt") == "true" ? true : false;
 #else
         m_send_job->m_local_use_ssl_for_ftp  = obj_->local_use_ssl_for_ftp;
-        m_send_job->m_local_use_ssl_for_mqtt = obj_->local_use_ssl_for_mqtt;
+        m_send_job->m_local_use_ssl = obj_->local_use_ssl;
 
 #endif
         m_send_job->connection_type     = obj_->connection_type();
