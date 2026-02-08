@@ -1,0 +1,30 @@
+{
+    "type": "process",
+    "name": "0.12mm Fine @InfiMech EX+APS",
+    "inherits": "fdm_process_common_EX+APS",
+    "from": "system",
+    "setting_id": "GP004",
+    "instantiation": "true",
+    "inner_wall_acceleration": "3000",
+    "bottom_shell_layers": "5",
+    "overhang_1_4_speed": "30",
+    "overhang_2_4_speed": "30",
+    "overhang_3_4_speed": "10",
+    "top_shell_layers": "5",
+    "top_shell_thickness": "0.6",
+    "tree_support_wall_count": "0",
+    "brim_width": "5",
+    "gap_infill_speed": "180",
+    "outer_wall_speed": "80",
+    "inner_wall_speed": "150",
+    "internal_solid_infill_speed": "180",
+    "top_surface_speed": "150",
+    "layer_height": "0.12",
+    "print_settings_id": "0.12mm Fine @InfiMech EX+APS",
+    "sparse_infill_speed": "180",
+    "exclude_object": "1",
+    "internal_bridge_speed": "50",
+    "compatible_printers": [
+        "InfiMech EX+APS 0.4 nozzle"
+    ]
+}

@@ -1,0 +1,204 @@
+{
+    "type": "machine",
+    "name": "InfiMech EX 0.4 nozzle",
+    "inherits": "fdm_klipper_common",
+    "from": "system",
+    "setting_id": "GM001",
+    "instantiation": "true",
+    "printer_model": "InfiMech EX",
+    "auxiliary_fan": "1",
+    "bed_exclude_area": [
+        "242x0",
+        "250x0",
+        "250x30",
+        "242x30"
+    ],
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\nSET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}",
+    "change_filament_gcode": "",
+    "cooling_tube_length": "5",
+    "cooling_tube_retraction": "91.5",
+    "default_filament_profile": [
+        "InfiMech PLA Basic @EX" 
+    ],
+    "default_print_profile": "0.20mm Standard @InfiMech EX",
+    "deretraction_speed": [
+        "30"
+    ],
+    "enable_filament_ramming": "1",
+    "extra_loading_move": "-2",
+    "extruder_clearance_height_to_lid": "69",
+    "extruder_clearance_height_to_rod": "69",
+    "extruder_clearance_radius": "55",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "fan_kickstart": "0",
+    "fan_speedup_overhangs": "1",
+    "fan_speedup_time": "0",
+    "high_current_on_filament_swap": "0",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\nM117 Layer {layer_num+1}/[total_layer_count] : {filament_settings_id[0]}",
+    "machine_end_gcode": "PRINT_END",
+    "machine_load_filament_time": "0",
+    "machine_max_acceleration_e": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_extruding": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_retracting": [
+        "5000",
+        "5000"
+    ],
+    "machine_max_acceleration_travel": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_x": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_y": [
+        "20000",
+        "20000"
+    ],
+    "machine_max_acceleration_z": [
+        "500",
+        "200"
+    ],
+    "machine_max_jerk_e": [
+        "2.5",
+        "2.5"
+    ],
+    "machine_max_jerk_x": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_y": [
+        "9",
+        "9"
+    ],
+    "machine_max_jerk_z": [
+        "3",
+        "0.4"
+    ],
+    "machine_max_speed_e": [
+        "30",
+        "25"
+    ],
+    "machine_max_speed_x": [
+        "600",
+        "200"
+    ],
+    "machine_max_speed_y": [
+        "600",
+        "200"
+    ],
+    "machine_max_speed_z": [
+        "20",
+        "12"
+    ],
+    "machine_min_extruding_rate": [
+        "0",
+        "0"
+    ],
+    "machine_min_travel_rate": [
+        "0",
+        "0"
+    ],
+    "machine_pause_gcode": "PAUSE",
+    "machine_start_gcode": ";v1.0.1-20250822;\n;*****************************\nBED_MESH_CLEAR\nM140 S[bed_temperature_initial_layer_single]\nPRINT_START\n;*************PRINT START*************\nG1 X{first_layer_print_min[0]-1.5} Y{min(first_layer_print_min[1] + 80,print_bed_max[0])} F6000 ;move head to drawing line position\nG1 Z0 F100\nM109 S[nozzle_temperature_initial_layer] ;heat nozzle temp set by user and wait \nM190 S[bed_temperature_initial_layer_single];heat bed temp set by user and wait \nM106 S0 ;close head_nozzle fan\n;BED_MESH_CLEAR                                  \n;BED_MESH_PROFILE LOAD=default   # bedmesh load\nG1 Z2.0 F200 ;Move Z Axis up\n ; ; ; ; ; ; ; ; ; draw line along model\n;G92 E0 ;reset extruder\nG1 E8 F300 ;extrude filament\nG90\nG1 X{first_layer_print_min[0]-1.5} Y{min(first_layer_print_min[1] + 80,print_bed_max[0])} F6000 \nG1 Z0.22 F600\nG1 X{first_layer_print_min[0]-1.5} Y{max(0, first_layer_print_min[1]-1.5)}  F1500 E15\nG1 Z0.22 F600\nG1 X{min(first_layer_print_min[0] + 60,print_bed_max[0])} F1200 E18\n ; ; ; ; ; ; ; ; ;draw line along model end \nG4 P200\nG1 Z2\nG92 E0 ;Reset Extruder\nCLEAR_PAUSE\n\nSET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count] ; display layers begin\n;***********model start************\n",
+    "machine_unload_filament_time": "0",
+    "max_layer_height": [
+        "0.28"
+    ],
+    "min_layer_height": [
+        "0.08"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_hrc": "0",
+    "nozzle_type": "brass",
+    "nozzle_volume": "151.32",
+    "parking_pos_retraction": "92",
+    "print_host_webui": "",
+    "printable_area": [
+        "0x0",
+        "250x0",
+        "250x250",
+        "0x250"
+    ],
+    "printable_height": "205",
+    "printer_notes": "",
+    "printer_settings_id": "InfiMech EX 0.4 nozzle",
+    "printer_technology": "FFF",
+    "printer_variant": "0.4",
+    "printhost_apikey": "",
+    "printhost_authorization_type": "key",
+    "printhost_cafile": "",
+    "printhost_password": "",
+    "printhost_port": "",
+    "printhost_ssl_ignore_revoke": "0",
+    "printhost_user": "",
+    "purge_in_prime_tower": "1",
+    "retract_before_wipe": [
+        "0%"
+    ],
+    "retract_length_toolchange": [
+        "0"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "249"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_length": [
+        "0.8"
+    ],
+    "retraction_minimum_travel": [
+        "1"
+    ],
+    "retraction_speed": [
+        "30"
+    ],
+    "scan_first_layer": "0",
+    "silent_mode": "0",
+    "single_extruder_multi_material": "1",
+    "template_custom_gcode": "",
+    "thumbnails": [
+        "430x344"
+    ],
+    "upward_compatible_machine": [],
+    "use_firmware_retraction": "0",
+    "use_relative_e_distances": "1",
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "z_hop": [
+        "0.4"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ]
+}
