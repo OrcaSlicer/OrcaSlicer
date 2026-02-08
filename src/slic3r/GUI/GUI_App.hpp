@@ -106,6 +106,8 @@ enum FileType
 
     FT_SL1,
 
+    FT_DRC,
+
     FT_SIZE,
 };
 
@@ -312,6 +314,7 @@ private:
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
     bool             m_show_http_errpr_msgdlg{false};
+    bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     HttpServer       m_http_server;
     bool             m_show_gcode_window{true};
@@ -339,6 +342,10 @@ public:
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }
+
+    // Dynamic printer agent switching
+    void switch_printer_agent();
+
     FilamentColorCodeQuery* get_filament_color_code_query();
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
     bool is_gcode_viewer() const { return m_app_mode == EAppMode::GCodeViewer; }
@@ -354,6 +361,9 @@ public:
 
     bool show_3d_navigator() const { return app_config->get_bool("show_3d_navigator"); }
     void toggle_show_3d_navigator() const { app_config->set_bool("show_3d_navigator", !show_3d_navigator()); }
+
+    bool show_canvas_zoom_button() const { return app_config->get_bool("show_canvas_zoom_button"); }
+    void toggle_canvas_zoom_button() const { app_config->set_bool("show_canvas_zoom_button", !show_canvas_zoom_button()); }
 
     bool show_outline() const { return app_config->get_bool("show_outline"); }
     void toggle_show_outline() const { app_config->set_bool("show_outline", !show_outline()); }
@@ -403,8 +413,8 @@ public:
     //update side popup status
     bool            get_side_menu_popup_status();
     void            set_side_menu_popup_status(bool status);
-    void            link_to_network_check();
-    void            link_to_lan_only_wiki();
+    std::string     link_to_network_check(); // ORCA
+    std::string     link_to_lan_only_wiki(); // ORCA
 
     const wxColour& get_label_clr_modified() { return m_color_label_modified; }
     const wxColour& get_label_clr_sys()     { return m_color_label_sys; }
@@ -497,6 +507,7 @@ public:
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
     void            start_http_server();
+    void            start_http_server(int port);
     void            stop_http_server();
     void            switch_staff_pick(bool on);
 
@@ -686,6 +697,11 @@ public:
     void            restart_networking();
     void            check_config_updates_from_updater() { check_updates(false); }
 
+    void            show_network_plugin_download_dialog(bool is_update = false);
+    bool            hot_reload_network_plugin();
+    std::string     get_latest_network_version() const;
+    bool            has_network_update_available() const;
+
 private:
     int             updating_bambu_networking();
     bool            on_init_inner();
@@ -694,6 +710,8 @@ private:
     void            init_networking_callbacks();
     void            init_app_config();
     void            remove_old_networking_plugins();
+    void            drain_pending_events(int timeout_ms);
+    bool            wait_for_network_idle(int timeout_ms);
     //BBS set extra header for http request
     std::map<std::string, std::string> get_extra_header();
     void            init_http_extra_header();
@@ -709,9 +727,13 @@ private:
     bool            config_wizard_startup();
 	void            check_updates(const bool verbose);
 
+    // select or add MachineObject
+    void            select_machine(const std::string& agent_id);
+
     bool                    m_init_app_config_from_older { false };
     bool                    m_datadir_redefined { false };
     std::string             m_older_data_dir_path;
+    bool                    m_unsigned_plugin_warning_shown { false };
     boost::optional<Semver> m_last_config_version;
     bool                    m_config_corrupted { false };
     std::string             m_open_method;

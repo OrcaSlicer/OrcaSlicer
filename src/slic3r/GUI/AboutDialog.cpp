@@ -90,6 +90,7 @@ void CopyrightsDialog::fill_entries()
         { "CGAL",                                           "",      "https://www.cgal.org" },
         { "Clipper",                                        "",      "http://www.angusj.co" },
         { "libcurl",                                        "",      "https://curl.se/libcurl" },
+        { "Draco",                                          "",      "https://google.github.io/draco/" },
         { "Eigen3",                                         "",      "http://eigen.tuxfamily.org" },
         { "Expat",                                          "",      "http://www.libexpat.org" },
         { "fast_float",                                     "",      "https://github.com/fastfloat/fast_float" },

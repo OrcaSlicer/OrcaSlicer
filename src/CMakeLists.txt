@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include dev-utils for encoding check and other utilities
 add_subdirectory(dev-utils)
-# Clipper2 math utils
-add_subdirectory(clipper2)
 # add_subdirectory(avrdude)
 # Note: semver and hints are now included from deps_src/CMakeLists.txt
 
@@ -17,6 +15,7 @@ add_subdirectory(libslic3r)
 
 if (SLIC3R_GUI)
     # imgui, imguizmo, and hidapi are now included from deps_src
+    add_subdirectory(libvgcode)
 
     if(WIN32)
         message(STATUS "WXWIN environment set to: $ENV{WXWIN}")
@@ -104,7 +103,7 @@ if(ORCA_TOOLS)
 endif()
 
 # Create a slic3r executable
-# Process mainfests for various platforms.
+# Process manifests for various platforms.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/msw/OrcaSlicer.rc.in ${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.rc @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/msw/OrcaSlicer.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.manifest @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/osx/Info.plist.in ${CMAKE_CURRENT_BINARY_DIR}/Info.plist @ONLY)
@@ -137,7 +136,7 @@ elseif (MSVC)
     # Manifest is provided through OrcaSlicer.rc, don't generate your own.
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /MANIFEST:NO")
 else ()
-    # Boost on Raspberry-Pi does not link to pthreads explicitely.
+    # Boost on Raspberry-Pi does not link to pthreads explicitly.
     target_link_libraries(OrcaSlicer ${CMAKE_DL_LIBS} -lstdc++ Threads::Threads pangoft2-1.0)
 endif ()
 
@@ -185,7 +184,7 @@ set(output_dlls_Release "")
 set(output_dlls_Debug "")
 set(output_dlls_RelWithDebInfo "")
 if (WIN32)
-    # This has to be a separate target due to the windows command line lenght limits
+    # This has to be a separate target due to the windows command line length limits
     add_custom_target(COPY_DLLS ALL DEPENDS OrcaSlicer)
 
     if (CMAKE_CONFIGURATION_TYPES)

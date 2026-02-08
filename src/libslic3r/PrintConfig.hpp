@@ -41,6 +41,7 @@ enum class FuzzySkinType {
     External,
     All,
     AllWalls,
+    Disabled_fuzzy,
 };
 
 enum class FuzzySkinMode {
@@ -100,6 +101,13 @@ enum class BedTempFormula {
     btfFirstFilament,
     btfHighestTemp,
     count,
+};
+
+// Orca
+enum class PowerLossRecoveryMode {
+    PrinterConfiguration,
+    Enable,
+    Disable,
 };
 
 // BBS
@@ -507,12 +515,13 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrintHostType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AuthorizationType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
 class DynamicPrintConfig;
 
-// Defines each and every confiuration option of Slic3r, including the properties of the GUI dialogs.
+// Defines each and every configuration option of Slic3r, including the properties of the GUI dialogs.
 // Does not store the actual values, but defines default values.
 class PrintConfigDef : public ConfigDef
 {
@@ -563,7 +572,6 @@ double min_object_distance(const ConfigBase &cfg);
 // The dynamic configuration is also used to store user modifications of the print global parameters,
 // so the modified configuration values may be diffed against the active configuration
 // to invalidate the proper slicing resp. g-code generation processing steps.
-// This object is mapped to Perl as Slic3r::Config.
 class DynamicPrintConfig : public DynamicConfig
 {
 public:
@@ -875,6 +883,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     PrintObjectConfig,
 
     ((ConfigOptionFloat,               brim_object_gap))
+    ((ConfigOptionBool,                brim_use_efc_outline))
     ((ConfigOptionEnum<BrimType>,      brim_type))
     ((ConfigOptionFloat,               brim_width))
     ((ConfigOptionFloat,               brim_ears_detection_length))
@@ -927,6 +936,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloat,               support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
+
+    // Orca: a flag enabling the ability to override flow ratios
+    ((ConfigOptionBool,     set_other_flow_ratios))
+    // Orca: support-related flow ratios (available for overriding, if set_other_flow_ratios is enabled)
+    ((ConfigOptionFloat,    support_flow_ratio))
+    ((ConfigOptionFloat,    support_interface_flow_ratio))
+
     // BBS
     //((ConfigOptionBool,                independent_support_layer_height))
     // Orca internal thick bridge
@@ -1013,8 +1029,6 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
-
-
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
@@ -1154,8 +1168,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                small_area_infill_flow_compensation))
     ((ConfigOptionEnum<WallDirection>,  wall_direction))
 
-    // Orca: flow ratios
-    ((ConfigOptionBool,                 set_other_flow_ratios))
+    // Orca: other flow ratios (available for overriding, if set_other_flow_ratios is enabled)
     ((ConfigOptionFloat,                first_layer_flow_ratio))
     ((ConfigOptionFloat,                outer_wall_flow_ratio))
     ((ConfigOptionFloat,                inner_wall_flow_ratio))
@@ -1163,8 +1176,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                sparse_infill_flow_ratio))
     ((ConfigOptionFloat,                internal_solid_infill_flow_ratio))
     ((ConfigOptionFloat,                gap_fill_flow_ratio))
-    ((ConfigOptionFloat,                support_flow_ratio))
-    ((ConfigOptionFloat,                support_interface_flow_ratio))
 
     // Orca: seam slopes
     ((ConfigOptionEnum<SeamScarfType>,  seam_slope_type))
@@ -1272,6 +1283,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionIntsNullable,        filament_flush_temp))
     // BBS
     ((ConfigOptionBool,                scan_first_layer))
+    ((ConfigOptionEnum<PowerLossRecoveryMode>, enable_power_loss_recovery))
     ((ConfigOptionBool,                enable_wrapping_detection))
     ((ConfigOptionInt,                 wrapping_detection_layers))
     ((ConfigOptionPoints,              wrapping_exclude_area))

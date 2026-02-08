@@ -183,6 +183,9 @@ public:
 	// Cancels a request in progress
 	void cancel();
 
+	// Print the request as a curl command for debugging
+	void print() const;
+
 	// Tells whether current backend supports seting up a CA file using ca_file()
 	static bool ca_file_supported();
 

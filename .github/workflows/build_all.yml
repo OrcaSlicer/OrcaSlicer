@@ -30,7 +30,6 @@ on:
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
-     - 'resources/**'
 
 
   schedule:
@@ -67,7 +66,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          - os: macos-14
+          - os: orca-macos-arm64
             arch: arm64
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -85,15 +84,16 @@ jobs:
     if: ${{ !cancelled() && success() }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           sparse-checkout: |
             .github
             scripts
+            tests
       - name: Apt-Install Dependencies
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: ${{ github.sha }}-tests
       - uses: lukka/get-cmake@latest
@@ -105,7 +105,7 @@ jobs:
           tar -xvf build_tests.tar
           scripts/run_unit_tests.sh
       - name: Upload Test Logs
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         if: ${{ failure() }}
         with:
           name: unit-test-logs
@@ -145,7 +145,7 @@ jobs:
     - name: "Remove unneeded stuff to free disk space"
       run:
         rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Get the version and date
       run: |
         ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
@@ -169,7 +169,7 @@ jobs:
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         path: '/__w/OrcaSlicer/OrcaSlicer/OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak'

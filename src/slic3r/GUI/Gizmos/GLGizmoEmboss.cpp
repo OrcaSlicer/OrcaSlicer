@@ -1535,7 +1535,7 @@ void GLGizmoEmboss::draw_text_input()
         float width = ImGui::GetContentRegionAvailWidth();
         const ImVec2& padding = style.FramePadding;
         ImVec2 icon_pos(width - m_gui_cfg->icon_width - scrollbar_width + padding.x, 
-                        cursor.y - m_gui_cfg->icon_width - scrollbar_height - 2*padding.y);
+                        cursor.y - 2 * m_gui_cfg->icon_width - scrollbar_height - 2*padding.y);  // ORCA fix vertical position
         
         ImGui::SetCursorPos(icon_pos);
         draw(get_icon(m_icons, IconType::exclamation, IconState::hovered));
@@ -1646,7 +1646,7 @@ void GLGizmoEmboss::draw_font_list_line()
     bool exist_change_in_font = m_style_manager.is_font_changed();
     const std::string& font_text = m_gui_cfg->translations.font;
     if (exist_change_in_font || !exist_stored_style)
-        ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, font_text);
+        ImGuiWrapper::text_colored(ImGuiWrapper::COL_MODIFIED, font_text); // ORCA match color
     else
         ImGuiWrapper::text(font_text);
 
@@ -1673,7 +1673,8 @@ void GLGizmoEmboss::draw_font_list_line()
     EmbossStyle &style = m_style_manager.get_style();
     if (exist_change_in_font) {
         ImGui::SameLine(ImGui::GetStyle().WindowPadding.x);
-        if (draw_button(m_icons, IconType::undo)) {
+        auto r_icon = get_icon(m_icons, IconType::undo, IconState::hovered);
+        if (Slic3r::GUI::button(r_icon, r_icon, r_icon)) { // ORCA draw bottom with same orange color
             const EmbossStyle *stored_style = m_style_manager.get_stored_style();
 
             style.path          = stored_style->path;
@@ -1848,7 +1849,7 @@ void GLGizmoEmboss::draw_model_type()
     ModelVolumeType type = m_volume->type();
 
     //TRN EmbossOperation
-    ImGuiWrapper::push_radio_style();
+    ImGuiWrapper::push_radio_style(m_parent.get_scale()); // ORCA
     if (ImGui::RadioButton(_u8L("Join").c_str(), type == part))
         new_type = part;
     else if (ImGui::IsItemHovered())
@@ -2405,7 +2406,7 @@ bool GLGizmoEmboss::revertible(const std::string &name,
     ImGui::AlignTextToFramePadding();
     bool changed = exist_change(value, default_value);
     if (changed || default_value == nullptr)
-        ImGuiWrapper::text_colored(ImGuiWrapper::COL_ORCA, name);
+        ImGuiWrapper::text_colored(ImGuiWrapper::COL_MODIFIED, name); // ORCA Match color
     else
         ImGuiWrapper::text(name);
 
@@ -2414,7 +2415,8 @@ bool GLGizmoEmboss::revertible(const std::string &name,
         ImGuiWindow *window = ImGui::GetCurrentWindow();
         float prev_x = window->DC.CursorPosPrevLine.x;
         ImGui::SameLine(undo_offset); // change cursor postion
-        if (draw_button(m_icons, IconType::undo)) {
+        auto r_icon = get_icon(m_icons, IconType::undo, IconState::hovered);
+        if (Slic3r::GUI::button(r_icon, r_icon, r_icon)) { // ORCA draw bottom with same orange color
             value = *default_value;
 
             // !! Fix to detect change of value after revert of float-slider
@@ -2717,7 +2719,8 @@ void GLGizmoEmboss::draw_advanced()
         else if (draw_button(icons, IconType::align_horizontal_right)) { align.first=FontProp::HorizontalAlign::right; is_change = true; }
         else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Right", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);
 
-        ImGui::SameLine();
+        ImGui::SameLine(0, ImGui::GetStyle().ItemSpacing.x * 2.f); // ORCA use wider spacing for separation between horizontal / vertical alignment
+
         if (align.second==FontProp::VerticalAlign::top) draw(get_icon(icons, IconType::align_vertical_top, IconState::hovered));
         else if (draw_button(icons, IconType::align_vertical_top)) { align.second=FontProp::VerticalAlign::top; is_change = true; }
         else if (ImGui::IsItemHovered()) m_imgui->tooltip(_CTX_utf8(L_CONTEXT("Top", "Alignment"), "Alignment"), m_gui_cfg->max_tooltip_width);

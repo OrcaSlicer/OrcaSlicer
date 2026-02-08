@@ -604,8 +604,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     // Infill patterns that support multiline infill.
     InfillPattern pattern = config->opt_enum<InfillPattern>("sparse_infill_pattern");
-    bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb ||
-                                                  pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic;
+    bool          have_multiline_infill_pattern = pattern == ipGyroid || pattern == ipGrid || pattern == ipRectilinear || pattern == ipTpmsD || pattern == ipTpmsFK || pattern == ipCrossHatch || pattern == ipHoneycomb || pattern == ipLateralLattice || pattern == ipLateralHoneycomb || pattern == ipConcentric ||
+                                                  pattern == ipCubic || pattern == ipStars || pattern == ipAlignedRectilinear || pattern == ipLightning || pattern == ip3DHoneycomb || pattern == ipAdaptiveCubic || pattern == ipSupportCubic|| pattern == ipTriangles || pattern == ipQuarterCubic|| pattern == ipArchimedeanChords || pattern == ipHilbertCurve || pattern == ipOctagramSpiral;
 
     // If there is infill, enable/disable fill_multiline according to whether the pattern supports multiline infill.
     if (have_infill) {
@@ -705,6 +705,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
     toggle_field("brim_object_gap", have_brim);
+    toggle_field("brim_use_efc_outline", have_brim);
     bool have_brim_width = (config->opt_enum<BrimType>("brim_type") != btNoBrim) && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
     toggle_field("brim_width", have_brim_width);
@@ -774,10 +775,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
 
-    bool have_skirt_height = have_skirt &&
-    (config->opt_int("skirt_height") > 1 || config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
-    toggle_line("support_speed", have_support_material || have_skirt_height);
-    toggle_line("support_interface_speed", have_support_material && have_support_interface);
+//    see issue #10915
+//    bool have_skirt_height = have_skirt &&
+//    (config->opt_int("skirt_height") > 1 || config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
+//    toggle_line("support_speed", have_support_material || have_skirt_height);
+//    toggle_line("support_interface_speed", have_support_material && have_support_interface);
 
     // BBS
     //toggle_field("support_material_synchronize_layers", have_support_soluble);
@@ -860,13 +862,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&!config->opt_int("support_filament"));
 
+    // Get the current fuzzy skin state
+    bool has_fuzzy_skin = config->opt_enum<FuzzySkinType>("fuzzy_skin") != FuzzySkinType::Disabled_fuzzy;
+    
+    // Show fuzzy skin options when fuzzy skin is not disabled
+    for (auto el : {"fuzzy_skin_mode", "fuzzy_skin_noise_type", "fuzzy_skin_point_distance", "fuzzy_skin_thickness", "fuzzy_skin_first_layer"})
+        toggle_line(el, has_fuzzy_skin);
+    
+    // Show noise type specific options with the same logic
     NoiseType fuzzy_skin_noise_type = config->opt_enum<NoiseType>("fuzzy_skin_noise_type");
-    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic);
-    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi);
-    toggle_line("fuzzy_skin_persistence", fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow);
+    toggle_line("fuzzy_skin_scale", fuzzy_skin_noise_type != NoiseType::Classic && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_octaves", fuzzy_skin_noise_type != NoiseType::Classic && fuzzy_skin_noise_type != NoiseType::Voronoi && has_fuzzy_skin);
+    toggle_line("fuzzy_skin_persistence", (fuzzy_skin_noise_type == NoiseType::Perlin || fuzzy_skin_noise_type == NoiseType::Billow) && has_fuzzy_skin);
 
     bool have_arachne = config->opt_enum<PerimeterGeneratorType>("wall_generator") == PerimeterGeneratorType::Arachne;
-    for (auto el : { "wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
+    for (auto el : {"wall_transition_length", "wall_transition_filter_deviation", "wall_transition_angle",
         "min_feature_size", "min_length_factor", "min_bead_width", "wall_distribution_count", "initial_layer_min_bead_width"})
         toggle_line(el, have_arachne);
     toggle_field("detect_thin_wall", !have_arachne);
@@ -934,12 +944,15 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     bool lattice_options = config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralLattice;
     for (auto el : { "lateral_lattice_angle_1", "lateral_lattice_angle_2"})
         toggle_line(el, lattice_options);
+        
+    // Adaptative Cubic and support cubic infill patterns do not support infill rotation.
+    bool FillAdaptive = (pattern == InfillPattern::ipAdaptiveCubic || pattern == InfillPattern::ipSupportCubic);
 
-    //Orca: disable infill_direction/solid_infill_direction if sparse_infill_rotate_template/solid_infill_rotate_template is not empty value
-    toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "");
+    //Orca: disable infill_direction/solid_infill_direction if sparse_infill_rotate_template/solid_infill_rotate_template is not empty value and adaptive cubic/support cubic infill pattern is not selected
+    toggle_field("sparse_infill_rotate_template", !FillAdaptive);
+    toggle_field("infill_direction", config->opt_string("sparse_infill_rotate_template") == "" && !FillAdaptive);
     toggle_field("solid_infill_direction", config->opt_string("solid_infill_rotate_template") == "");
-
-
+    
     toggle_line("infill_overhang_angle", config->opt_enum<InfillPattern>("sparse_infill_pattern") == InfillPattern::ipLateralHoneycomb);
 
     std::string printer_type = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);

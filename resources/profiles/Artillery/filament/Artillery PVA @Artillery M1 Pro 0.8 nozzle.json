@@ -226,6 +226,7 @@
     "idle_temperature": [
         "0"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
         "240"
     ],
@@ -282,5 +283,6 @@
     ],
     "textured_plate_temp_initial_layer": [
         "45"
-    ]
+    ],
+    "version": "2.1.1.0"
 }
