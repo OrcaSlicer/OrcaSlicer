@@ -209,6 +209,7 @@
         "18"
     ],
     "support_chamber_temp_control": "1",
+    "support_object_skip_flush": "1",
     "wipe_distance": [
         "2",
         "2"

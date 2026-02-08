@@ -230,7 +230,7 @@ int AMSinfo::get_humidity_display_idx() const
         }
     }
 
-    assert(false && "Invalid AMS type for humidity display");
+    //assert(false && "Invalid AMS type for humidity display");
     return 1;
 }
 
@@ -364,11 +364,11 @@ void AMSrefresh::create(wxWindow *parent, wxWindowID id, const wxPoint &pos, con
 
     m_playing_timer = new wxTimer();
     m_playing_timer->SetOwner(this);
-    wxPostEvent(this, wxTimerEvent());
 
     SetSize(AMS_REFRESH_SIZE);
     SetMinSize(AMS_REFRESH_SIZE);
     SetMaxSize(AMS_REFRESH_SIZE);
+    Refresh();
 }
 
 void AMSrefresh::on_timer(wxTimerEvent &event)
@@ -2731,10 +2731,11 @@ void AMSPreview::doRender(wxDC &dc)
     //single slot
     else if (m_amsinfo.cans.size() == 1) {
         auto iter = m_amsinfo.cans[0];
-        dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
-        dc.SetBrush(StateColor::darkModeColorFor(AMS_CONTROL_DEF_BLOCK_BK_COLOUR));
-        wxSize rec_size = wxSize(FromDIP(16), FromDIP(24));
-        dc.DrawRoundedRectangle((size.x - rec_size.x) / 2, (size.y - rec_size.y) / 2, rec_size.x, rec_size.y, FromDIP(2));
+        // ORCA dont add additional background. four tray already doesnt use one
+        //dc.SetPen(wxPen(*wxTRANSPARENT_PEN));
+        //dc.SetBrush(StateColor::darkModeColorFor(AMS_CONTROL_DEF_BLOCK_BK_COLOUR));
+        //wxSize rec_size = wxSize(FromDIP(16), FromDIP(24));
+        //dc.DrawRoundedRectangle((size.x - rec_size.x) / 2, (size.y - rec_size.y) / 2, rec_size.x, rec_size.y, FromDIP(2));
         if (iter.material_cols.size() > 1)
         {
             int fleft = (size.x - AMS_ITEM_CUBE_SIZE.x) / 2;
@@ -3041,10 +3042,7 @@ void AMSHumidity::msw_rescale() {
 /*************************************************
 Description:AmsItem
 **************************************************/
-
-AmsItem::AmsItem() {}
-
-AmsItem::AmsItem(wxWindow *parent,AMSinfo info,  AMSModel model, AMSPanelPos pos) : AmsItem()
+AmsItem::AmsItem(wxWindow *parent,AMSinfo info,  AMSModel model, AMSPanelPos pos)
 {
     m_bitmap_extra_framework = ScalableBitmap(this, "ams_extra_framework_mid_new", 134);
 
@@ -3589,6 +3587,15 @@ void AmsItem::RenderLiteRoad(wxDC& dc, wxSize size) {
     auto a2_top = m_panel_pos == AMSPanelPos::RIGHT_PANEL ? size.y / 2 : size.y / 2 - FromDIP(4);
     auto a3_top = m_panel_pos == AMSPanelPos::RIGHT_PANEL ? size.y / 2 + FromDIP(8) : size.y / 2 + FromDIP(4);
     auto a4_top = m_panel_pos == AMSPanelPos::RIGHT_PANEL ? size.y / 2 + FromDIP(4) : size.y / 2 + FromDIP(8);
+
+    if (m_can_lib_list.empty()) {
+        //to Extruder
+        dc.SetPen(wxPen(AMS_CONTROL_GRAY500, 2, wxPENSTYLE_SOLID));
+        dc.SetBrush(wxBrush(*wxTRANSPARENT_BRUSH));
+        auto top = std::min(a1_top, a2_top);
+        dc.DrawLine(end_top, top, end_top, size.y);
+        return;
+    }
 
     try
     {

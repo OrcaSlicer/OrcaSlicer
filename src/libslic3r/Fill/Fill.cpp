@@ -599,16 +599,34 @@ void split_solid_surface(size_t layer_id, const SurfaceFill &fill, ExPolygons &n
 {
     assert(fill.surface.surface_type == stInternalSolid);
 
-	switch (fill.params.pattern) {
-    case ipRectilinear:
-    case ipMonotonic:
-    case ipMonotonicLine:
-    case ipAlignedRectilinear:
-        // Only support straight line based infill
-        break;
+    const bool line_based_pattern =
+        fill.params.pattern == ipRectilinear || fill.params.pattern == ipMonotonic ||
+        fill.params.pattern == ipMonotonicLine || fill.params.pattern == ipAlignedRectilinear;
 
-    default:
-        // For all other types, don't split
+    // ORCA: For non-line patterns, split by a geometric "core" so only thin areas get rerouted.
+    if (!line_based_pattern) {
+        const coord_t scaled_spacing = scaled<coord_t>(fill.params.spacing);
+
+        for (const ExPolygon &expolygon : fill.expolygons) {
+            Polygons filled_area = to_polygons(expolygon);
+
+            // "Core" area: open (erode+dilate) to drop thin features, then clamp back to the original polygon.
+            Polygons inner_area  = intersection(filled_area, opening(filled_area, scaled_spacing, scaled_spacing));
+
+            if (inner_area.empty()) {
+                narrow_infill.emplace_back(expolygon);
+                continue;
+            }
+
+            ExPolygons inner_ex = union_ex(inner_area);
+            ExPolygons expolys{expolygon};
+            ExPolygons narrow_ex = diff_ex(expolys, inner_ex);
+            ExPolygons normal_ex = intersection_ex(expolys, inner_ex);
+
+            append(normal_infill, normal_ex); // normal infill area
+            append(narrow_infill, narrow_ex); // narrow infill area
+        }
+
         return;
     }
 
@@ -1273,6 +1291,9 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 
             params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
 
+        } else if (surface_fill.params.pattern == ipZigZag) {
+            params.symmetric_infill_y_axis = surface_fill.params.symmetric_infill_y_axis;
+
         }
 		if (surface_fill.params.pattern == ipGrid)
 			params.can_reverse = false;
@@ -1529,12 +1550,22 @@ void Layer::make_ironing()
 			if (ironing_params.extruder != -1) {
 				//TODO just_infill is currently not used.
 				ironing_params.just_infill 	= false;
-				ironing_params.line_spacing = config.ironing_spacing;
-                ironing_params.inset 		= config.ironing_inset;
-				ironing_params.height 		= default_layer_height * 0.01 * config.ironing_flow;
-				ironing_params.speed 		= config.ironing_speed;
+				// Get filament-specific overrides if configured, otherwise use default values
+				size_t extruder_idx = ironing_params.extruder - 1;
+				ironing_params.line_spacing = (!config.filament_ironing_spacing.is_nil(extruder_idx)
+					? config.filament_ironing_spacing.get_at(extruder_idx)
+					: config.ironing_spacing);
+                ironing_params.inset = (!config.filament_ironing_inset.is_nil(extruder_idx)
+					? config.filament_ironing_inset.get_at(extruder_idx)
+					: config.ironing_inset);
+				ironing_params.height = default_layer_height * 0.01 * (!config.filament_ironing_flow.is_nil(extruder_idx)
+					? config.filament_ironing_flow.get_at(extruder_idx)
+					: config.ironing_flow);
+				ironing_params.speed = (!config.filament_ironing_speed.is_nil(extruder_idx)
+					? config.filament_ironing_speed.get_at(extruder_idx)
+					: config.ironing_speed);
                 ironing_params.angle        = (config.ironing_angle_fixed ? 0 : calculate_infill_rotation_angle(this->object(), this->id(), config.solid_infill_direction.value, config.solid_infill_rotate_template.value)) + config.ironing_angle * M_PI / 180.;
-                ironing_params.fixed_angle = config.ironing_angle_fixed || !config.solid_infill_rotate_template.value.empty(); 
+                ironing_params.fixed_angle = config.ironing_angle_fixed || !config.solid_infill_rotate_template.value.empty();
 				ironing_params.pattern      = config.ironing_pattern;
 				ironing_params.layerm 		= layerm;
 				by_extruder.emplace_back(ironing_params);

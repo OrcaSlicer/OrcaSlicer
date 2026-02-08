@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSL99",
+    "name": "QIDI PLA Rapido @Qidi X-Max 4 0.6 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI PLA Rapido@X-Max 4-Series",
+    "pressure_advance": ["0.016"],
+	"compatible_printers": ["Qidi X-Max 4 0.6 nozzle"]
+}

@@ -218,11 +218,11 @@ void DownPluginFrame::OnScriptMessage(wxWebViewEvent &evt)
             wxGetApp().restart_networking();
             this->EndModal(wxID_OK);
             this->Close();
-        } 
+        }
         else if (strCmd == "close_download_dialog") {
             this->EndModal(wxID_OK);
             this->Close();
-        } 
+        }
         else if (strCmd == "open_plugin_folder") {
             auto plugin_folder = (boost::filesystem::path(wxStandardPaths::Get().GetUserDataDir().ToUTF8().data()) / "plugins").make_preferred().string();
             desktop_open_any_folder(plugin_folder);
@@ -322,7 +322,7 @@ int DownPluginFrame::InstallPlugin()
 int DownPluginFrame::ShowPluginStatus(int status, int percent, bool &cancel)
 {
     static int nPercent = 0;
-    if (nPercent == percent) 
+    if (nPercent == percent)
         return 0;
 
     nPercent = percent;

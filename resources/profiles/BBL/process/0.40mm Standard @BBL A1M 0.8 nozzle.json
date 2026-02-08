@@ -1,7 +1,7 @@
 {
     "type": "process",
     "name": "0.40mm Standard @BBL A1M 0.8 nozzle",
-    "inherits": "0.40mm Standard @BBL P1P 0.8 nozzle",
+    "inherits": "fdm_process_single_0.40_nozzle_0.8",
     "from": "system",
     "setting_id": "GP037",
     "instantiation": "true",
@@ -9,7 +9,6 @@
     "default_acceleration": [
         "6000"
     ],
-    "elefant_foot_compensation": "0",
     "travel_speed": [
         "700"
     ],

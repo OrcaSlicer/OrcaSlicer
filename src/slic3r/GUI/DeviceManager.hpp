@@ -20,7 +20,7 @@
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevFirmware.h"
-
+#include "DeviceErrorDialog.hpp"
 
 #include <wx/object.h>
 #include <wx/timer.h>
@@ -79,6 +79,7 @@ class DevAmsTray;
 class DevBed;
 class DevConfig;
 class DevCtrl;
+class DevExtensionTool;
 class DevExtderSystem;
 class DevFan;
 class DevFilaSystem;
@@ -110,6 +111,7 @@ private:
 
     /*parts*/
     DevLamp*          m_lamp;
+    std::shared_ptr<DevExtensionTool> m_extension_tool;
     DevExtderSystem*  m_extder_system;
     DevNozzleSystem*  m_nozzle_system;
     DevFilaSystem*    m_fila_system;
@@ -132,6 +134,8 @@ private:
 public:
     MachineObject(DeviceManager* manager, NetworkAgent* agent, std::string name, std::string id, std::string ip);
     ~MachineObject();
+
+    void set_agent(NetworkAgent* agent) { m_agent = agent; }
 
 public:
     enum ActiveState {
@@ -160,7 +164,11 @@ public:
     std::string get_dev_id() const { return dev_id; }
     void set_dev_id(std::string val) { dev_id = val; }
 
-    bool        local_use_ssl_for_mqtt { true };
+    // Generate consistent dev_id from host address and optional port
+    // Returns "host:port" or "host" if port is empty
+    static std::string dev_id_from_address(const std::string& host, const std::string& port = "");
+
+    bool        local_use_ssl { true };
     bool        local_use_ssl_for_ftp { true };
     std::string get_ftp_folder();
 
@@ -251,6 +259,8 @@ public:
     long  tray_read_done_bits = 0;
     long  tray_reading_bits = 0;
     bool  ams_air_print_status { false };
+    /** Whether this printer supports virtual trays (external/manual filament loading).
+     *  When true, vt_slot data is used by build_filament_ams_list() to include external filaments. */
     bool  ams_support_virtual_tray { true };
     time_t ams_user_setting_start = 0;
     time_t ams_switch_filament_start = 0;
@@ -274,11 +284,12 @@ public:
 
     std::string  get_filament_id(std::string ams_id, std::string tray_id) const;
     std::string  get_filament_type(const std::string& ams_id, const std::string& tray_id) const;
+    std::string  get_filament_display_type(const std::string& ams_id, const std::string& tray_id) const;
 
     // parse amsStatusMain and ams_status_sub
     void _parse_ams_status(int ams_status);
 
-    bool is_ams_unload();
+    bool is_target_slot_unload() const;
     bool can_unload_filament();
     bool is_support_amx_ext_mix_mapping() const { return true;}
 
@@ -289,13 +300,10 @@ public:
     bool is_multi_extruders() const;
     int  get_extruder_id_by_ams_id(const std::string& ams_id);
 
-    /* ams settings*/
-    bool IsDetectOnInsertEnabled() const;;
-    //bool IsDetectOnPowerupEnabled() const { return m_enable_detect_on_powerup; }
-    //bool IsDetectRemainEnabled() const { return m_enable_detect_remain; }
-    //bool IsAutoRefillEnabled() const { return m_enable_auto_refill; }
+    /* E3D has extra nozzle flow type info */
+    bool has_extra_flow_type{false};
 
-    [[nodiscard]] bool is_nozzle_flow_type_supported() const { return is_enable_np; };
+    [[nodiscard]] bool is_nozzle_flow_type_supported() const { return is_enable_np | has_extra_flow_type; };
     [[nodiscard]] wxString get_nozzle_replace_url() const;
 
     /*online*/
@@ -317,6 +325,8 @@ public:
 
     /* parts */
     DevExtderSystem* GetExtderSystem() const { return m_extder_system; }
+    std::weak_ptr<DevExtensionTool> GetExtensionTool() const { return m_extension_tool; }
+
     DevNozzleSystem* GetNozzleSystem() const { return m_nozzle_system;}
 
     DevFilaSystem*   GetFilaSystem() const { return m_fila_system;}
@@ -363,9 +373,9 @@ public:
 
     std::string get_firmware_type_str();
     std::string get_lifecycle_type_str();
-    bool is_in_upgrading();
+    bool is_in_upgrading() const;
     bool is_upgrading_avalable();
-    int get_upgrade_percent();
+    int get_upgrade_percent() const;
     std::string get_ota_version();
     bool check_version_valid();
     wxString get_upgrade_result_str(int upgrade_err_code);
@@ -396,7 +406,7 @@ public:
     std::string get_print_error_str() const { return MachineObject::get_error_code_str(this->print_error); }
 
     std::unordered_set<GUI::DeviceErrorDialog*> m_command_error_code_dlgs;
-    void  add_command_error_code_dlg(int command_err);
+    void  add_command_error_code_dlg(int command_err, json action_json=json{});
 
     int     curr_layer = 0;
     int     total_layers = 0;
@@ -444,6 +454,7 @@ public:
 
     std::vector<int> stage_list_info;
     int stage_curr = 0;
+    int stage_remaining_seconds = 0; 
     int m_push_count = 0;
     int m_full_msg_count = 0; /*the full message count, there are full or diff messages from network*/
     bool calibration_done { false };
@@ -454,6 +465,7 @@ public:
 
     wxString get_curr_stage();
     int get_curr_stage_idx();
+    int get_stage_remaining_seconds() const { return stage_remaining_seconds; }
 
     bool is_in_calibration();
     bool is_calibration_running();
@@ -597,12 +609,17 @@ public:
     bool is_support_brtc{false};                 // fun[31], support tcp and upload protocol
     bool is_support_ext_change_assist{false};
     bool is_support_partskip{false};
+    bool is_support_refresh_nozzle{false};
 
       // refine printer function options
     bool is_support_spaghetti_detection{false};
     bool is_support_purgechutepileup_detection{false};
     bool is_support_nozzleclumping_detection{false};
     bool is_support_airprinting_detection{false};
+    bool is_support_idelheadingprotect_detection{false};
+
+    // fun2
+    bool is_support_print_with_emmc{false};
 
     bool installed_upgrade_kit{false};
     int  bed_temperature_limit = -1;
@@ -679,6 +696,7 @@ public:
     int command_set_printer_nozzle(std::string nozzle_type, float diameter);
     int command_set_printer_nozzle2(int id, std::string nozzle_type, float diameter);
     int command_get_access_code();
+    int command_ack_proceed(json& proceed);
 
     /* command upgrade */
     int command_upgrade_confirm();
@@ -710,12 +728,13 @@ public:
 
     int command_set_nozzle(int temp);
     int command_set_nozzle_new(int nozzle_id, int temp);
+    int command_refresh_nozzle();
     int command_set_chamber(int temp);
     int check_resume_condition();
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);
     int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210);
-    int command_ams_user_settings(int ams_id, bool start_read_opt, bool tray_read_opt, bool remain_flag = false);
+    int command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag = false);
     int command_ams_switch_filament(bool switch_filament);
     int command_ams_air_print_detect(bool air_print_detect);
     int command_ams_calibrate(int ams_id);
@@ -751,7 +770,7 @@ public:
     int command_extruder_control(int nozzle_id, double val);
     // calibration printer
     bool is_support_command_calibration();
-    int command_start_calibration(bool vibration, bool bed_leveling, bool xcam_cali, bool motor_noise, bool nozzle_cali, bool bed_cali);
+    int command_start_calibration(bool vibration, bool bed_leveling, bool xcam_cali, bool motor_noise, bool nozzle_cali, bool bed_cali, bool clumppos_cali);
 
     // PA calibration
     int command_start_pa_calibration(const X1CCalibInfos& pa_data, int mode = 0);  // 0: automatic mode; 1: manual mode. default: automatic mode
@@ -843,7 +862,16 @@ public:
     bool                        is_enable_np{ false };
     bool                        is_enable_ams_np{ false };
 
-    /*vi slot data*/
+    /**
+     * Virtual Tray (vt_slot) - External/manual filament loading slots.
+     *
+     * Data Flow: Populated from printer JSON via parse_vt_tray() during MachineObject::parse_json().
+     * Used by: Sidebar::build_filament_ams_list() when ams_support_virtual_tray is true.
+     *
+     * Virtual trays represent filament that is manually loaded into the extruder
+     * rather than fed through an AMS unit. This supports printers without AMS
+     * or scenarios where users want to bypass the AMS.
+     */
     std::vector<DevAmsTray> vt_slot;
     DevAmsTray parse_vt_tray(json vtray);
 
@@ -855,6 +883,7 @@ public:
     bool check_enable_np(const json& print) const;
     void parse_new_info(json print);
     int  get_flag_bits(std::string str, int start, int count = 1) const;
+    uint32_t get_flag_bits_no_border(std::string str, int start_idx, int count = 1) const;
     int get_flag_bits(int num, int start, int count = 1, int base = 10) const;
 
     /* Device Filament Check */

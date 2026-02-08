@@ -80,6 +80,10 @@
         {
             "name": "0.20mm Standard @iQ TiQ2 P2 - PACF Pro Fiberthree + VXL90 Xioneer (0.4 Nozzle)",
             "sub_path": "process/0.20mm Standard @iQ TiQ2 P2 - PACF Pro Fiberthree + VXL90 Xioneer (0.4 Nozzle).json"
+        },
+        {
+            "name": "0.20mm Standard @iQ TiQ2 P1 - HPP4GF25 Grauts (0.4 Nozzle)",
+            "sub_path": "process/0.20mm Standard @iQ TiQ2 P1 - HPP4GF25 Grauts (0.4 Nozzle).json"
         }
     ],
     "filament_list": [
@@ -106,6 +110,10 @@
         {
             "name": "VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle",
             "sub_path": "filament/VXL90 TiQ2 P2 @iQ TiQ2 0.4 Nozzle.json"
+        },
+        {
+            "name": "Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle",
+            "sub_path": "filament/Grauts HPP4GF25 P1 @iQ TiQ2 0.4 Nozzle.json"
         }
     ]
 }

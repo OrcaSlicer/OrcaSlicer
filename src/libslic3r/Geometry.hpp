@@ -4,6 +4,7 @@
 #include "libslic3r.h"
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
+#include "Point.hpp"
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 
@@ -123,8 +124,8 @@ inline bool segments_intersect(
 	const Slic3r::Point &ip1, const Slic3r::Point &ip2, 
 	const Slic3r::Point &jp1, const Slic3r::Point &jp2)
 {    
-    assert(ip1 != ip2);
-    assert(jp1 != jp2);
+    //assert(ip1 != ip2);
+    //assert(jp1 != jp2);
 
     auto segments_could_intersect = [](
         const Slic3r::Point &ip1, const Slic3r::Point &ip2,

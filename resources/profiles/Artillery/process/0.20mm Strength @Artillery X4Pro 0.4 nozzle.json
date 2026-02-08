@@ -6,5 +6,6 @@
     "instantiation": "true",
     "outer_wall_speed": "60",
     "print_settings_id": "0.20mm Strength @Artillery X4Pro 0.4 nozzle",
+    "version": "2.0.2.0",
     "wall_loops": "6"
 }

@@ -98,6 +98,7 @@
         "10"
     ],
     "support_chamber_temp_control": "1",
+    "support_object_skip_flush": "1",
     "wrapping_exclude_area": [
         "145x310",
         "256x310",

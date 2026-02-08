@@ -23,8 +23,9 @@
         "60"
     ],
     "additional_cooling_fan_speed": [
-        "100"
+        "50"
     ],
+    "is_custom_defined": "0",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
@@ -108,5 +109,6 @@
     ],
     "cool_plate_temp_initial_layer": [
         "60"
-    ]
+    ],
+    "version": "2.1.2.2"
 }

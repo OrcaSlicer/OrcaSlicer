@@ -54,13 +54,17 @@
 			"support_ai_monitoring": true,
 			"support_first_layer_inspect": false,
 			"support_save_remote_print_file_to_storage": true,
+			"support_chamber": true,
 			"support_chamber_temp_edit": true,
 			"support_chamber_temp_edit_range": [ 0, 65 ],
 			"support_chamber_temp_switch_heating": 40,
 			"support_extrusion_cali": false,
-			"support_user_preset": false
+			"support_user_preset": false,
+			"support_refresh_nozzle": true,
+			"support_ams_ext_mix_print": true
 		},
 		"model_id": "O1E",
+		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_multi_extruders",
 		"support_wrapping_detection": true,
 		"printer_modes": [ "fdm", "laser", "cut" ],
 		"compatible_machine": ["O1D"],
@@ -74,6 +78,7 @@
 		"printer_series": "series_o",
 		"has_cali_line": true,
 		"printer_is_enclosed": true,
-		"enable_set_nozzle_info": false
+		"enable_set_nozzle_info": false,
+		"support_safety_options": false
 	}
 }

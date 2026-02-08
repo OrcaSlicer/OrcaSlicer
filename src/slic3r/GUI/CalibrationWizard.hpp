@@ -69,7 +69,7 @@ public:
     bool save_preset(const std::string &old_preset_name, const std::string &new_preset_name, const std::map<std::string, ConfigOption *> &key_values, wxString& message);
     bool save_preset_with_index(const std::string &old_preset_name, const std::string &new_preset_name, const std::map<std::string, ConfigIndexValue> &key_values, wxString &message);
 
-    virtual void cache_preset_info(MachineObject* obj, float nozzle_dia);
+    virtual void cache_preset_info(MachineObject *obj, float nozzle_dia, BedType bed_type);
     virtual void recover_preset_info(MachineObject *obj);
     virtual void back_preset_info(MachineObject *obj, bool cali_finish, bool back_cali_flag = true);
 

@@ -1,7 +1,7 @@
 {
     "type": "filament",
     "name": "Bambu ASA @BBL H2DP 0.4 nozzle",
-    "inherits": "Bambu ASA @BBL X1C 0.4 nozzle",
+    "inherits": "Bambu ASA @base",
     "from": "system",
     "setting_id": "GFSB01_19",
     "instantiation": "true",
