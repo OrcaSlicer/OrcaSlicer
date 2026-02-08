@@ -63,9 +63,11 @@ bool Button::Create(wxWindow* parent, wxString text, wxString icon, long style, 
 
 void Button::SetLabel(const wxString& label)
 {
-    wxWindow::SetLabel(label);
-    messureSize();
-    Refresh();
+    if (label != wxWindow::GetLabel()) {
+        wxWindow::SetLabel(label);
+        messureSize();
+        Refresh();
+    }
 }
 
 bool Button::SetFont(const wxFont& font)
@@ -172,7 +174,7 @@ void Button::SetVertical(bool vertical)
 //                           Background                                             Foreground                       Border on focus
 // Button Colors             0-Disabled 1-Pressed  2-Hover    3-Normal   4-Enabled  5-Disabled 6-Normal   7-Hover    8-Dark     9-Light
 wxString btn_regular[10]  = {"#DFDFDF", "#DFDFDF", "#D4D4D4", "#DFDFDF", "#DFDFDF", "#6B6A6A", "#262E30", "#262E30", "#009688", "#009688"};
-wxString btn_confirm[10]  = {"#DFDFDF", "#009688", "#26A69A", "#009688", "#009688", "#6B6A6A", "#FEFEFE", "#FEFEFE", "#26A69A", "#00FFD4"};
+wxString btn_confirm[10]  = {"#DFDFDF", "#009688", "#26A69A", "#009688", "#009688", "#6B6A6A", "#FEFEFE", "#FEFEFE", "#22bfb0", "#00FFD4"};
 wxString btn_alert[10]    = {"#DFDFDF", "#DFDFDF", "#E14747", "#DFDFDF", "#DFDFDF", "#6B6A6A", "#262E30", "#FFFFFD", "#009688", "#009688"};
 wxString btn_disabled[10] = {"#DFDFDF", "#DFDFDF", "#DFDFDF", "#DFDFDF", "#DFDFDF", "#6B6A6A", "#6B6A6A", "#262E30", "#DFDFDF", "#DFDFDF"};
 
@@ -218,19 +220,24 @@ void Button::SetStyle(const ButtonStyle style, const ButtonType type)
                    style == ButtonStyle::Disabled ? btn_disabled :
                                                     btn_regular  ;
 
-    this->SetBackgroundColor(StateColor(
-        std::pair(wxColour(clr_arr[3]), (int)StateColor::NotHovered),
+    auto bg_color = StateColor(
         std::pair(wxColour(clr_arr[0]), (int)StateColor::Disabled),
         std::pair(wxColour(clr_arr[1]), (int)StateColor::Pressed),
         std::pair(wxColour(clr_arr[2]), (int)StateColor::Hovered),
         std::pair(wxColour(clr_arr[3]), (int)StateColor::Normal),
         std::pair(wxColour(clr_arr[4]), (int)StateColor::Enabled)
-    ));
-    this->SetBorderColor(StateColor(
-        std::pair(wxColour(clr_arr[3]), (int)StateColor::NotFocused),
+    );
+    bg_color.setTakeFocusedAsHovered(false);
+    this->SetBackgroundColor(bg_color);
+    wxColour focus_clr = clr_arr[is_dark ? 8 : 9];
+    auto border_color = StateColor(
         std::pair(wxColour(clr_arr[0]), (int)StateColor::Disabled),
-        std::pair(wxColour(clr_arr[is_dark ? 8 : 9]), (int)StateColor::Focused)
-    ));
+        std::pair(wxColour(clr_arr[2]), (int)(StateColor::Hovered | ~StateColor::Focused)),
+        std::pair(wxColour(focus_clr ), (int)StateColor::Focused),
+        std::pair(wxColour(clr_arr[3]), (int)StateColor::Normal)
+    );
+    border_color.setTakeFocusedAsHovered(false);
+    this->SetBorderColor(border_color);
     this->SetTextColor(StateColor(
         std::pair(wxColour(clr_arr[5]), (int)StateColor::Disabled),
         std::pair(wxColour(clr_arr[7]), (int)StateColor::Hovered),

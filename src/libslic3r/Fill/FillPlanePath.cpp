@@ -81,6 +81,9 @@ void FillPlanePath::_fill_surface_single(
 
     BoundingBox snug_bounding_box = get_extents(expolygon).inflated(SCALED_EPSILON);
 
+    // Expand the bounding box to avoid artifacts at the edges
+    snug_bounding_box.offset(scale_(this->spacing)*params.multiline); 
+
     // Rotated bounding box of the area to fill in with the pattern.
     BoundingBox bounding_box = align ?
         // Sparse infill needs to be aligned across layers. Align infill across layers using the object's bounding box.
@@ -97,7 +100,7 @@ void FillPlanePath::_fill_surface_single(
 
     Polyline polyline;
     {
-        auto distance_between_lines = scaled<double>(this->spacing) / params.density;
+        auto distance_between_lines = scaled<double>(this->spacing) * params.multiline / params.density;
         auto min_x = coord_t(ceil(coordf_t(bounding_box.min.x()) / distance_between_lines));
         auto min_y = coord_t(ceil(coordf_t(bounding_box.min.y()) / distance_between_lines));
         auto max_x = coord_t(ceil(coordf_t(bounding_box.max.x()) / distance_between_lines));
@@ -117,8 +120,13 @@ void FillPlanePath::_fill_surface_single(
         }
     }
 
+    Polylines polylines = {polyline};
+
+    // Apply multiline offset if needed
+    multiline_fill(polylines, params, spacing);
+
     if (polyline.size() >= 2) {
-        Polylines polylines = intersection_pl(polyline, expolygon);
+        polylines = intersection_pl(std::move(polylines), expolygon);
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {

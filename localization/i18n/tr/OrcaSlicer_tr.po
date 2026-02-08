@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
-"PO-Revision-Date: 2025-09-14 23:43+0300\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
+"PO-Revision-Date: 2025-09-30 09:12+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
 "Language: tr\n"
@@ -1130,7 +1130,7 @@ msgstr "Metnin merkezinin model yüzeyine uzaklığı."
 msgid "Undo rotation"
 msgstr "Döndürmeyi geri al"
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr "Metni Saat yönünde döndürün."
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -1317,7 +1317,8 @@ msgstr "SVG dosyasını diskten yeniden yükleyin."
 msgid "Change file"
 msgstr "Dosyayı değiştir"
 
-msgid "Change to another .svg file"
+#, fuzzy
+msgid "Change to another SVG file."
 msgstr "Başka bir .svg dosyasına geçin"
 
 msgid "Forget the file path"
@@ -1344,7 +1345,8 @@ msgstr "Farklı kaydet"
 msgid "Save SVG file"
 msgstr "SVG dosyasını kaydet"
 
-msgid "Save as '.svg' file"
+#, fuzzy
+msgid "Save as SVG file."
 msgstr "'.svg' dosyası olarak kaydet"
 
 msgid "Size in emboss direction."
@@ -1703,21 +1705,21 @@ msgstr "Mevcut ön ayarlar yükleniyor"
 msgid "Loading a mode view"
 msgstr "Mod görünümü yükleniyor"
 
-msgid "Choose one file (3mf):"
-msgstr "Dosya seçin (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "Dosya seçin (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 msgstr ""
-"Bir veya daha fazla dosya seçin (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+"Bir veya daha fazla dosya seçin (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Bir veya daha fazla dosya seçin (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Bir veya daha fazla dosya seçin (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr "ZIP dosyasını seçin"
 
-msgid "Choose one file (gcode/3mf):"
-msgstr "Bir dosya seçin (gcode/3mf):"
+msgid "Choose one file (GCODE/3MF):"
+msgstr "Bir dosya seçin (GCODE/3MF):"
 
 msgid "Some presets are modified."
 msgstr "Bazı ön ayarlar değiştirildi."
@@ -2163,7 +2165,7 @@ msgstr "Seçilen nesneyi böl"
 msgid "Auto orientation"
 msgstr "Otomatik yönlendirme"
 
-msgid "Auto orient the object to improve print quality."
+msgid "Auto orient the object to improve print quality"
 msgstr "Baskı kalitesini artırmak için nesneyi otomatik olarak yönlendirin."
 
 msgid "Edit"
@@ -2716,7 +2718,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -4107,10 +4109,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4119,7 +4121,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4223,13 +4225,13 @@ msgstr ""
 
 msgid ""
 "The current chamber temperature or the target chamber temperature exceeds "
-"45℃. In order to avoid extruder clogging,low temperature filament(PLA/PETG/"
+"45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/"
 "TPU) is not allowed to be loaded."
 msgstr ""
 
 msgid ""
-"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder.In order to "
-"avoid extruder clogging,it is not allowed to set the chamber temperature."
+"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to "
+"avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr ""
 
 msgid ""
@@ -4312,9 +4314,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4912,6 +4911,9 @@ msgstr "Montaj İptali"
 msgid "Return"
 msgstr "Geri dön"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Boyama Araç Çubuğu"
 
@@ -4941,10 +4943,10 @@ msgstr "Boyut:"
 
 #, c-format, boost-format
 msgid ""
-"Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
+"Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
-"%d katmanında gcode yollarında çakışmalar bulundu, z = %.2lf mm. Lütfen "
+"%d katmanında gcode yollarında çakışmalar bulundu, Z = %.2lfmm. Lütfen "
 "çakışan nesneleri daha uzağa ayırın (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
@@ -4967,7 +4969,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -4979,7 +4981,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -5275,8 +5277,8 @@ msgstr "Tüm nesneleri STLs olarak dışa aktarın"
 msgid "Export Generic 3MF"
 msgstr "Genel 3MF olarak dışa aktar"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "3mf dosyasını bazı 3mf uzantılarını kullanmadan dışa aktarın"
+msgid "Export 3MF file without using some 3mf-extensions"
+msgstr "3mf dosyasını bazı 3MF uzantılarını kullanmadan dışa aktarın"
 
 msgid "Export current sliced file"
 msgstr "Geçerli dilimlenmiş dosyayı dışa aktar"
@@ -5731,7 +5733,8 @@ msgstr "Video"
 msgid "Switch to video files."
 msgstr "Video dosyalarına geç."
 
-msgid "Switch to 3mf model files."
+#, fuzzy
+msgid "Switch to 3MF model files."
 msgstr "3mf model dosyalarına geçin."
 
 msgid "Delete selected files from printer."
@@ -5994,7 +5997,7 @@ msgstr "Adın boşluk karakteriyle başlamasına izin verilmez."
 msgid "The name is not allowed to end with space character."
 msgstr "Adın boşluk karakteriyle bitmesine izin verilmez."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -6093,13 +6096,13 @@ msgstr "Yazdırmayı iptal et"
 msgid "Are you sure you want to stop this print?"
 msgstr ""
 
-msgid "The printer is busy on other print job"
-msgstr "Yazıcı başka bir yazdırma işiyle meşgul"
+msgid "The printer is busy with another print job."
+msgstr "Yazıcı başka bir yazdırma işiyle meşgul."
 
-msgid "Current extruder is busy changing filament"
+msgid "Current extruder is busy changing filament."
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded."
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -6123,10 +6126,6 @@ msgstr "Katman: %s"
 msgid "Layer: %d/%d"
 msgstr "Katman: %d/%d"
 
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
-
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
 msgstr ""
@@ -6139,7 +6138,7 @@ msgid ""
 msgstr ""
 
 msgid "Please select an AMS slot before calibration"
-msgstr ""
+msgstr "Lütfen kalibrasyondan önce bir AMS yuvası seçin"
 
 msgid ""
 "Cannot read filament info: the filament is loaded to the tool head,please "
@@ -6326,11 +6325,13 @@ msgstr "%s bilgisi"
 msgid "Skip"
 msgstr "Atla"
 
-msgid "Newer 3mf version"
-msgstr "Daha yeni 3mf sürümü"
+#, fuzzy
+msgid "Newer 3MF version"
+msgstr "Daha yeni 3MF sürümü"
 
+#, fuzzy
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
 "3mf dosya sürümü Beta’dadır ve mevcut OrcaSlicer sürümünden daha yenidir."
@@ -6341,12 +6342,14 @@ msgstr "Orca Slicer Beta’yı denemek isterseniz tıklayabilirsiniz"
 msgid "Download Beta Version"
 msgstr "Beta Sürümünü İndirin"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+#, fuzzy
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "3mf dosya sürümü mevcut Orca Slicer sürümünden daha yenidir."
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+#, fuzzy
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
-"Orca Dilimleyicinizi güncellemek, 3mf dosyasındaki tüm işlevleri "
+"Orca Dilimleyicinizi güncellemek, 3MF dosyasındaki tüm işlevleri "
 "etkinleştirebilir."
 
 msgid "Current Version: "
@@ -6696,6 +6699,9 @@ msgstr "Mevcut plakanın kilidini aç"
 msgid "Lock current plate"
 msgstr "Mevcut plakayı kilitle"
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr "Mevcut plaka adını düzenle"
 
@@ -6771,7 +6777,7 @@ msgid "Not installed"
 msgstr ""
 
 msgid ""
-"The software does not support using different diameter of nozzles for one  "
+"The software does not support using different diameter of nozzles for one "
 "print. If the left and right nozzles are inconsistent, we can only proceed "
 "with single-head printing. Please confirm which nozzle you would like to use "
 "for this project."
@@ -6854,7 +6860,7 @@ msgid "Sync filaments with AMS"
 msgstr "Filamentleri AMS ile senkronize et"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -6929,28 +6935,35 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Dosya yükleniyor: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr ""
-"OrcaSlicer, 3mf formatını desteklememektedir. Sadece geometri verilerini "
+"OrcaSlicer, 3MF formatını desteklememektedir. Sadece geometri verilerini "
 "yükle."
 
-msgid "Load 3mf"
-msgstr "3mf yükle"
+msgid "Load 3MF"
+msgstr "3MF yükle"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
 "rotation template settings that may not work properly with your current "
 "infill pattern. This could result in weak support or print quality issues."
 msgstr ""
+"Bu proje OrcaSlicer 2.3.1-alpha ile oluşturulmuştur ve geçerli dolgu "
+"(infill) deseninizle doğru çalışmayabilecek dolgu döndürme şablon ayarlarını "
+"kullanmaktadır. Bu durum, zayıf destek veya baskı kalitesi sorunlarına yol "
+"açabilir."
 
 msgid ""
 "Would you like OrcaSlicer to automatically fix this by clearing the rotation "
 "template settings?"
 msgstr ""
+"OrcaSlicer’ın, döndürme şablonu ayarlarını temizleyerek otomatik olarak "
+"düzeltmesini ister misiniz?"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
 "3mf'nin %s sürümü, %s'in %s sürümünden daha yeni, Aşağıdaki anahtarlar "
@@ -6959,25 +6972,30 @@ msgstr ""
 msgid "You'd better upgrade your software.\n"
 msgstr "Yazılımınızı yükseltseniz iyi olur.\n"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
 "3mf'nin %s sürümü, %s'in %s sürümünden daha yeni, Yazılımınızı yükseltmenizi "
 "öneririz."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+#, fuzzy
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
+"3MF, eski OrcaSlicer tarafından oluşturulmuştur, yalnızca geometri "
+"verilerini yükleyin."
 
-msgid "Invalid values found in the 3mf:"
+msgid "Invalid values found in the 3MF:"
 msgstr "3mf'de geçersiz değerler bulundu:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Lütfen bunları parametre sekmelerinde düzeltin"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
 "3mf dosyasında filament veya yazıcı ön ayarlarında şu değiştirilmiş G-"
 "kodları bulunmaktadır:"
@@ -6992,7 +7010,7 @@ msgstr ""
 msgid "Modified G-code"
 msgstr "G-kodları Değişti"
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3mf dosyasında şu özel filament veya yazıcı ayarları bulunmaktadır:"
 
 msgid ""
@@ -7005,7 +7023,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Özel Ayar"
 
-msgid "Name of components inside step file is not UTF8 format!"
+#, fuzzy
+msgid "Name of components inside STEP file is not UTF8 format!"
 msgstr "Step dosyasındaki bileşenlerin adı UTF8 formatında değil!"
 
 msgid "The name may show garbage characters!"
@@ -7244,7 +7263,7 @@ msgstr "Projeyi kaydet"
 msgid "Importing Model"
 msgstr "Model İçe aktarılıyor"
 
-msgid "prepare 3mf file..."
+msgid "prepare 3MF file..."
 msgstr "3mf dosyasını hazırla..."
 
 msgid "Download failed, unknown file format."
@@ -7635,13 +7654,13 @@ msgid "Home"
 msgstr "Ana Sayfa"
 
 msgid "Default page"
-msgstr ""
+msgstr "Varsayılan sayfa"
 
 msgid "Set the page opened on startup."
 msgstr "Açılışta açılacak sayfayı ayarlayın."
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Karanlık modu etkinleştir"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr "Yalnızca bir OrcaSlicer örneğine izin ver"
@@ -7672,7 +7691,7 @@ msgid "Show the splash screen during startup."
 msgstr "Açılış sırasında açılış ekranını göster."
 
 msgid "Downloads folder"
-msgstr ""
+msgstr "İndirilenler klasörü"
 
 msgid "Target folder for downloaded items"
 msgstr ""
@@ -7690,9 +7709,9 @@ msgid "Load Geometry Only"
 msgstr "Yalnızca Geometriyi Yükle"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "Yükleme davranışı"
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "Bir .3mf açılırken yazıcı/filament/işlem ayarları yüklenmeli mi?"
 
 msgid "Maximum recent files"
@@ -7702,22 +7721,22 @@ msgid "Maximum count of recent files"
 msgstr "Son dosyaların maksimum sayısı"
 
 msgid "Add STL/STEP files to recent files list"
-msgstr ""
+msgstr "STL/STEP dosyalarını son dosyalar listesine ekle"
 
 msgid "Don't warn when loading 3MF with modified G-code"
-msgstr ""
+msgstr "Değiştirilmiş G-kodları içeren 3MF dosyalarını yüklerken uyarma"
 
 msgid "Show options when importing STEP file"
-msgstr ""
+msgstr "STEP dosyasını içe aktarırken seçenekleri göster"
 
 msgid ""
-"If enabled,a parameter settings dialog will appear during STEP file import."
+"If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr ""
 "Etkinleştirilirse, STEP dosyası içe aktarılırken bir parametre ayarları "
 "iletişim kutusu görüntülenir."
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Otomatik yedekleme"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7742,7 +7761,7 @@ msgid "Features"
 msgstr ""
 
 msgid "Multi device management"
-msgstr ""
+msgstr "Çoklu Cihaz Yönetimi"
 
 msgid ""
 "With this option enabled, you can send a task to multiple devices at the "
@@ -7752,18 +7771,18 @@ msgstr ""
 "gönderebilir ve birden fazla cihazı yönetebilirsiniz."
 
 msgid "(Requires restart)"
-msgstr ""
+msgstr "(Yeniden başlatma gerektirir)"
 
 msgid "Pop up to select filament grouping mode"
 msgstr ""
 
 msgid "Behaviour"
-msgstr ""
+msgstr "Davranış"
 
 msgid "All"
 msgstr "Tümü"
 
-msgid "Auto flush after changing ..."
+msgid "Auto flush after changing..."
 msgstr ""
 
 msgid "Auto calculate flushing volumes when selected values changed"
@@ -7827,7 +7846,7 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr ""
 "Etkinleştirilirse, mouse tekerleğiyle yakınlaştırmanın yönü tersine çevrilir."
 
-msgid "Clear my choice on ..."
+msgid "Clear my choice on..."
 msgstr ""
 
 msgid "Unsaved projects"
@@ -7850,10 +7869,10 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Giriş bölgesi"
 
 msgid "Stealth mode"
-msgstr ""
+msgstr "Gizli mod"
 
 msgid ""
 "This stops the transmission of data to Bambu's cloud services. Users who "
@@ -7864,7 +7883,7 @@ msgstr ""
 "açabilir."
 
 msgid "Network test"
-msgstr ""
+msgstr "Ağ testi"
 
 msgid "Test"
 msgstr "Test"
@@ -7882,13 +7901,13 @@ msgid "Update built-in Presets automatically."
 msgstr "Yerleşik Ön Ayarları otomatik olarak güncelleyin."
 
 msgid "Network plugin"
-msgstr ""
+msgstr "Ağ eklentisi"
 
 msgid "Enable network plugin"
 msgstr "Ağ eklentisini etkinleştir"
 
 msgid "Use legacy network plugin"
-msgstr ""
+msgstr "Eski ağ eklentisini kullan"
 
 msgid ""
 "Disable to use latest network plugin that supports new BambuLab firmwares."
@@ -7899,26 +7918,32 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Dosyaları OrcaSlicer ile ilişkilendirin"
 
-msgid "Associate .3mf files to OrcaSlicer"
+#, fuzzy
+msgid "Associate 3MF files to OrcaSlicer"
 msgstr ".3mf dosyalarını OrcaSlicer ile ilişkilendirin"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Etkinleştirilirse, OrcaSlicer'ı .3mf dosyalarını açacak varsayılan uygulama "
 "olarak ayarlar"
 
-msgid "Associate .stl files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STL files to OrcaSlicer"
 msgstr ".stl dosyalarını OrcaSlicer ile ilişkilendirin"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
 msgstr ""
 "Etkinleştirilirse OrcaSlicer'ı .stl dosyalarını açmak için varsayılan "
 "uygulama olarak ayarlar"
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr ".step/.stp dosyalarını OrcaSlicer ile ilişkilendirin"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
 msgstr ""
 "Etkinleştirilirse, OrcaSlicer'ı .step dosyalarını açmak için varsayılan "
 "uygulama olarak ayarlar"
@@ -8158,10 +8183,10 @@ msgstr "Çıkış"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Zaman ve filament tahminini elde etmek için tüm plakayı dilimleyin"
 
-msgid "Packing project data into 3mf file"
-msgstr "Proje verilerini 3mf dosyasına paketleme"
+msgid "Packing project data into 3MF file"
+msgstr "Proje verilerini 3MF dosyasına paketleme"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "3mf yükleniyor"
 
 msgid "Jump to model publish web page"
@@ -8173,13 +8198,13 @@ msgstr "Not: Hazırlık birkaç dakika sürebilir. Lütfen sabırlı olun."
 msgid "Publish"
 msgstr "Yayınla"
 
-msgid "Publish was cancelled"
+msgid "Publish was canceled"
 msgstr "Yayınlama iptal edildi"
 
 msgid "Slicing Plate 1"
 msgstr "Dilimleme Plakası 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Verileri 3mf'ye paketle"
 
 msgid "Jump to webpage"
@@ -8252,16 +8277,16 @@ msgstr "Bambu Cool Plate"
 msgid "PLA Plate"
 msgstr "PLA Plaka"
 
-msgid "Bamabu Engineering Plate"
+msgid "Bambu Engineering Plate"
 msgstr ""
 
-msgid "Bamabu Smooth PEI Plate"
+msgid "Bambu Smooth PEI Plate"
 msgstr ""
 
 msgid "High temperature Plate"
 msgstr "Bambu Smooth PEI Plate"
 
-msgid "Bamabu Textured PEI Plate"
+msgid "Bambu Textured PEI Plate"
 msgstr ""
 
 msgid "Bambu Cool Plate SuperTack"
@@ -8483,27 +8508,27 @@ msgstr ""
 msgid "Click here if you can't connect to the printer"
 msgstr "Yazıcıya bağlanamıyorsanız burayı tıklayın"
 
-msgid "No login account, only printers in LAN mode are displayed"
+msgid "No login account, only printers in LAN mode are displayed."
 msgstr ""
 "Oturum açma hesabı yok, yalnızca LAN modundaki yazıcılar görüntüleniyor"
 
-msgid "Connecting to server"
+msgid "Connecting to server..."
 msgstr "Sunucuya baglanıyor"
 
-msgid "Synchronizing device information"
+msgid "Synchronizing device information..."
 msgstr "Cihaz bilgileri senkronize ediliyor"
 
-msgid "Synchronizing device information time out"
+msgid "Synchronizing device information timed out."
 msgstr "Cihaz bilgilerinin senkronize edilmesi zaman aşımı"
 
-msgid "Cannot send the print job when the printer is not at FDM mode"
+msgid "Cannot send a print job when the printer is not at FDM mode."
 msgstr ""
 
-msgid "Cannot send the print job when the printer is updating firmware"
+msgid "Cannot send a print job while the printer is updating firmware."
 msgstr "Yazıcı ürün yazılımını güncellerken yazdırma işi gönderilemiyor"
 
 msgid ""
-"The printer is executing instructions. Please restart printing after it ends"
+"The printer is executing instructions. Please restart printing after it ends."
 msgstr ""
 "Yazıcı talimatları yürütüyor. Lütfen bittikten sonra yazdırmayı yeniden "
 "başlatın"
@@ -8511,7 +8536,7 @@ msgstr ""
 msgid "AMS is setting up. Please try again later."
 msgstr ""
 
-msgid "Please do not mix-use the Ext with AMS"
+msgid "Please do not mix-use the Ext with AMS."
 msgstr ""
 
 msgid ""
@@ -8535,7 +8560,7 @@ msgstr ""
 "Yazdırma işi, ürün yazılımının güncellenmesi gereken bir yazıcıya "
 "gönderilemiyor."
 
-msgid "Cannot send the print job for empty plate"
+msgid "Cannot send a print job for an empty plate."
 msgstr "Boş kalıp için yazdırma işi gönderilemiyor"
 
 msgid "Storage needs to be inserted to record timelapse."
@@ -8555,7 +8580,7 @@ msgid ""
 "Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value."
 msgstr ""
 
-msgid "This printer does not support printing all plates"
+msgid "This printer does not support printing all plates."
 msgstr "Bu yazıcı tüm kalıpların yazdırılmasını desteklemiyor"
 
 msgid ""
@@ -8821,20 +8846,20 @@ msgid "Still print by object?"
 msgstr "Hala nesneye göre yazdırıyor musunuz?"
 
 msgid ""
-"Non-soluble support materials are not recommended for support base. \n"
-"Are you sure to use them for support base? \n"
+"Non-soluble support materials are not recommended for support base.\n"
+"Are you sure to use them for support base?\n"
 msgstr ""
 
 msgid ""
 "When using support material for the support interface, we recommend the "
 "following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and "
-"disable independent support layer height"
+"disable independent support layer height."
 msgstr ""
 "Destek arayüzü için destek malzemesi kullanırken aşağıdaki ayarları "
 "öneririz:\n"
 "0 üst Z mesafesi, 0 arayüz aralığı, iç içe geçmiş doğrusal desen ve bağımsız "
-"destek katmanı yüksekliğini devre dışı bırak"
+"destek katmanı yüksekliğini devre dışı bırak."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -8846,17 +8871,11 @@ msgstr ""
 "Hayır - Bu ayarları benim için değiştirme"
 
 msgid ""
-"When using soluble material for the support interface, We recommend the "
+"When using soluble material for the support interface, we recommend the "
 "following settings:\n"
-"0 top z distance, 0 interface spacing, interlaced rectilinear pattern, "
-"disable independent support layer height \n"
-"and use soluble materials for both support interface and support base"
-msgstr ""
-
-msgid ""
-"Change these settings automatically? \n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
+"disable independent support layer height\n"
+"and use soluble materials for both support interface and support base."
 msgstr ""
 
 msgid ""
@@ -9397,7 +9416,7 @@ msgid "Number of extruders of the printer."
 msgstr "Yazıcının ekstruder sayısı."
 
 msgid ""
-"Single Extruder Multi Material is selected, \n"
+"Single Extruder Multi Material is selected,\n"
 "and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder "
 "nozzle diameter value?"
@@ -9480,15 +9499,6 @@ msgid "Following preset will be deleted too."
 msgid_plural "Following presets will be deleted too."
 msgstr[0] "Aşağıdaki ön ayar da silinecektir."
 msgstr[1] "Aşağıdaki ön ayarlar da silinecektir."
-
-msgid ""
-"Are you sure to delete the selected preset? \n"
-"If the preset corresponds to a filament currently in use on your printer, "
-"please reset the filament information for that slot."
-msgstr ""
-"Seçili ön ayarı silmek istediğinizden emin misiniz?\n"
-"Ön ayar, yazıcınızda şu anda kullanımda olan bir filamente karşılık "
-"geliyorsa, lütfen o yuva için filament bilgilerini sıfırlayın."
 
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
@@ -9735,16 +9745,16 @@ msgstr "Yapılandırma güncel."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr "Obj dosyası renkli olarak içe aktar"
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -9789,9 +9799,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -10479,7 +10486,7 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Uzatma Kartı"
 
-msgid "Saving objects into the 3mf failed."
+msgid "Saving objects into the 3MF failed."
 msgstr "Nesneleri 3mf'ye kaydetme işlemi başarısız oldu."
 
 msgid "Only Windows 10 is supported."
@@ -10503,23 +10510,23 @@ msgstr "Onarım başarısız oldu."
 msgid "Loading repaired objects"
 msgstr "Onarılan nesnelerin yüklenmesi"
 
-msgid "Exporting 3mf file failed"
+msgid "Exporting 3MF file failed"
 msgstr "3mf dosyasını dışa aktarma işlemi başarısız oldu"
 
-msgid "Import 3mf file failed"
+msgid "Import 3MF file failed"
 msgstr "3mf dosyasını içe aktarma başarısız oldu"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "Onarılan 3mf dosyası herhangi bir nesne içermiyor"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "Onarılan 3MF dosyası herhangi bir nesne içermiyor"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "Onarılan 3mf dosyası birden fazla nesne içeriyor"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "Onarılan 3MF dosyası birden fazla nesne içeriyor"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "Onarılan 3mf dosyası herhangi bir birim içermiyor"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "Onarılan 3MF dosyası herhangi bir birim içermiyor"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "Onarılan 3mf dosyası birden fazla birim içeriyor"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "Onarılan 3MF dosyası birden fazla birim içeriyor"
 
 msgid "Repair finished"
 msgstr "Onarım tamamlandı"
@@ -11100,7 +11107,7 @@ msgstr ""
 
 msgid ""
 "Filament shrinkage will not be used because filament shrinkage for the used "
-"filaments differs significantly."
+"filaments does not match."
 msgstr ""
 "Filament büzülmesi kullanılmayacaktır çünkü kullanılan filamentlerin "
 "filament büzülmesi önemli ölçüde farklılık göstermektedir."
@@ -11195,9 +11202,9 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr "Tercih edilen yönlendirme"
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr ""
-"İlk içe aktarma sonrasında stl'leri Z ekseninde otomatik olarak yönlendirin."
+"İlk içe aktarma sonrasında STL'leri Z ekseninde otomatik olarak yönlendirin."
 
 msgid "Printer preset names"
 msgstr "Yazıcı ön ayar adları"
@@ -11598,7 +11605,7 @@ msgstr "Dış köprü dolgu yönü"
 msgid ""
 "Bridging angle override. If left to zero, the bridging angle will be "
 "calculated automatically. Otherwise the provided angle will be used for "
-"external bridges. Use 180°for zero angle."
+"external bridges. Use 180° for zero angle."
 msgstr ""
 "Köprüleme açısı geçersiz kılma. Sıfıra bırakılırsa köprüleme açısı otomatik "
 "olarak hesaplanacaktır. Aksi halde dış köprüler için sağlanan açı "
@@ -11610,7 +11617,7 @@ msgstr "İç köprü dolgu yönü"
 msgid ""
 "Internal bridging angle override. If left to zero, the bridging angle will "
 "be calculated automatically. Otherwise the provided angle will be used for "
-"internal bridges. Use 180°for zero angle.\n"
+"internal bridges. Use 180° for zero angle.\n"
 "\n"
 "It is recommended to leave it at 0 unless there is a specific model need not "
 "to."
@@ -12090,6 +12097,26 @@ msgstr ""
 "En içteki kenar çizgisi ile nesne arasındaki boşluk, kenarlığın daha kolay "
 "çıkarılmasını sağlayabilir."
 
+msgid "Brim follows compensated outline"
+msgstr "Kenar telafi edilen taslağı takip ediyor"
+
+msgid ""
+"When enabled, the brim is aligned with the first-layer perimeter geometry "
+"after Elephant Foot Compensation is applied.\n"
+"This option is intended for cases where Elephant Foot Compensation "
+"significantly alters the first-layer footprint.\n"
+"\n"
+"If your current setup already works well, enabling it may be unnecessary and "
+"can cause the brim to fuse with upper layers."
+msgstr ""
+"Etkinleştirildiğinde, kenar birinci katmanın çevre geometrisiyle hizalanır "
+"Fil Ayağı Telafisi uygulandıktan sonra.\n"
+"Bu seçenek Fil Ayağı Telafisinin geçerli olmadığı durumlar için tasarlanmıştır "
+"ilk katmanın ayak izini önemli ölçüde değiştirir.\n"
+"\n"
+"Mevcut kurulumunuz zaten iyi çalışıyorsa, bunu etkinleştirmek gereksiz olabilir ve "
+"kenar'in üst katmanlarla kaynaşmasına neden olabilir."
+
 msgid "Brim ears"
 msgstr "Kenar  kulakları"
 
@@ -12544,6 +12571,7 @@ msgstr ""
 msgid "Walls printing order"
 msgstr "Duvar baskı sırası"
 
+#, fuzzy
 msgid ""
 "Print sequence of the internal (inner) and external (outer) walls.\n"
 "\n"
@@ -12562,11 +12590,9 @@ msgid ""
 "option in most cases.\n"
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
-"benefits of Inner/Outer/Inner option. However, the z seams will appear less "
+"benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
 "consistent as the first extrusion of a new layer starts on a visible "
-"surface.\n"
-"\n"
-" "
+"surface."
 msgstr ""
 "İç (iç) ve dış (dış) duvarların baskı sırası.\n"
 "\n"
@@ -12585,10 +12611,8 @@ msgstr ""
 "\n"
 "İç/Dış/İç seçeneğinin aynı dış duvar kalitesi ve boyutsal doğruluk "
 "avantajları için Dış/İç seçeneğini kullanın. Bununla birlikte, yeni bir "
-"katmanın ilk ekstrüzyonu görünür bir yüzey üzerinde başladığından z "
-"dikişleri daha az tutarlı görünecektir.\n"
-"\n"
-" "
+"katmanın ilk ekstrüzyonu görünür bir yüzey üzerinde başladığından Z "
+"dikişleri daha az tutarlı görünecektir."
 
 msgid "Inner/Outer"
 msgstr "İç/Dış"
@@ -13161,8 +13185,8 @@ msgstr "Büzülme (XY)"
 #, no-c-format, no-boost-format
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
-"if you measure 94mm instead of 100mm). The part will be scaled in xy to "
-"compensate. Only the filament used for the perimeter is taken into account.\n"
+"if you measure 94mm instead of 100mm). The part will be scaled in XY to "
+"compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
@@ -14015,7 +14039,7 @@ msgid "Precise Z height"
 msgstr "Hassas z yüksekliği"
 
 msgid ""
-"Enable this to get precise z height of object after slicing. It will get the "
+"Enable this to get precise Z height of object after slicing. It will get the "
 "precise object height by fine-tuning the layer heights of the last few "
 "layers. Note that this is an experimental parameter."
 msgstr ""
@@ -14383,7 +14407,7 @@ msgid "Adjust the line width of the selected skeleton paths."
 msgstr "Seçili iskelet yollarının çizgi genişliğini ayarlayın."
 
 msgid "Symmetric infill Y axis"
-msgstr "Simetrik dolgu y ekseni"
+msgstr "Simetrik dolgu Y ekseni"
 
 msgid ""
 "If the model has two parts that are symmetric about the Y axis, and you want "
@@ -14641,6 +14665,12 @@ msgid "Ironing angle offset"
 msgstr ""
 
 msgid "The angle of ironing lines offset from the top surface."
+msgstr ""
+
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
 msgstr ""
 
 msgid "This G-code is inserted at every layer change after the Z lift."
@@ -15075,9 +15105,10 @@ msgid "Reduce infill retraction"
 msgstr "Dolguda geri çekmeyi azalt"
 
 msgid ""
-"Don't retract when the travel is in infill area absolutely. That means the "
+"Don't retract when the travel is entirely within an infill area. That means the "
 "oozing can't been seen. This can reduce times of retraction for complex "
-"model and save printing time, but make slicing and G-code generating slower."
+"model and save printing time, but make slicing and G-code generating slower. "
+"Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 "Hareket kesinlikle dolgu alanına girdiğinde geri çekilmeyin. Bu, sızıntının "
 "görülemeyeceği anlamına gelir. Bu, karmaşık model için geri çekme sürelerini "
@@ -15852,7 +15883,7 @@ msgid "Speed of internal solid infill, not the top and bottom surface."
 msgstr "Üst ve alt yüzeyin değil, iç katı dolgunun hızı."
 
 msgid ""
-"Spiralize smooths out the z moves of the outer contour. And turns a solid "
+"Spiralize smooths out the Z moves of the outer contour. And turns a solid "
 "model into a single walled print with solid bottom layers. The final "
 "generated model has no seam."
 msgstr ""
@@ -15871,7 +15902,7 @@ msgstr ""
 "duvarlarda XY yönlerinde bile hiçbir görünür ek yeri oluşmamasını sağlar."
 
 msgid "Max XY Smoothing"
-msgstr "Maksimum xy yumuşatma"
+msgstr "Maksimum XY yumuşatma"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -16105,8 +16136,8 @@ msgstr "Normal (Manuel)"
 msgid "Tree (manual)"
 msgstr "Ağaç (Manuel)"
 
-msgid "Support/object xy distance"
-msgstr "Destek/nesne xy mesafesi"
+msgid "Support/object XY distance"
+msgstr "Destek/nesne XY mesafesi"
 
 msgid "XY separation between an object and its support."
 msgstr "Bir nesne ile desteği arasındaki XY ayrımı."
@@ -16321,7 +16352,7 @@ msgstr "Bağımsız destek katmanı yüksekliği"
 
 msgid ""
 "Support layer uses layer height independent with object layer. This is to "
-"support customizing z-gap and save print time. This option will be invalid "
+"support customizing Z-gap and save print time. This option will be invalid "
 "when the prime tower is enabled."
 msgstr ""
 "Destek katmanı, nesne katmanından bağımsız olarak katman yüksekliğini "
@@ -17237,7 +17268,7 @@ msgstr "Komut yardımını göster."
 msgid "UpToDate"
 msgstr "Güncel"
 
-msgid "Update the configs values of 3mf to latest."
+msgid "Update the config values of 3MF to latest."
 msgstr "3mf'nin yapılandırma değerlerini en son sürüme güncelleyin."
 
 msgid "downward machines check"
@@ -17258,7 +17289,7 @@ msgstr "Yüklenmeyenler için ilk filamenti varsayılan olarak yükleyin."
 msgid "Minimum save"
 msgstr "Minimum tasarruf"
 
-msgid "export 3mf with minimum size."
+msgid "Export 3MF with minimum size."
 msgstr "3mf'yi minimum boyutta dışa aktarın."
 
 msgid "mtcpp"
@@ -17508,10 +17539,12 @@ msgstr ""
 "Etkinleştirilirse, nesne yerleştirildiğinde düzenleme ekstrüzyon kalibrasyon "
 "bölgesini önleyecektir."
 
-msgid "Skip modified G-code in 3mf"
+#, fuzzy
+msgid "Skip modified G-code in 3MF"
 msgstr "3mf’de değiştirilmiş gcode’ları atla"
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+#, fuzzy
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
 "Yazıcı veya filament Ön Ayarlarından 3mf’deki değiştirilmiş gcode’ları "
 "atlayın."
@@ -17519,31 +17552,37 @@ msgstr ""
 msgid "MakerLab name"
 msgstr "MakerLab adı"
 
-msgid "MakerLab name to generate this 3mf."
+#, fuzzy
+msgid "MakerLab name to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab adı."
 
 msgid "MakerLab version"
 msgstr "MakerLab version"
 
-msgid "MakerLab version to generate this 3mf."
+#, fuzzy
+msgid "MakerLab version to generate this 3MF."
 msgstr "Bu 3mf’yi oluşturmak için MakerLab sürümü."
 
-msgid "metadata name list"
+msgid "Metadata name list"
 msgstr "meta veri adı listesi"
 
-msgid "metadata name list added into 3mf."
+#, fuzzy
+msgid "Metadata name list added into 3MF."
 msgstr "3mf’ye meta veri adı listesi eklendi."
 
-msgid "metadata value list"
+msgid "Metadata value list"
 msgstr "meta veri değer listesi"
 
-msgid "metadata value list added into 3mf."
+#, fuzzy
+msgid "Metadata value list added into 3MF."
 msgstr "3mf’ye meta veri değeri listesi eklendi."
 
-msgid "Allow 3mf with newer version to be sliced"
+#, fuzzy
+msgid "Allow 3MF with newer version to be sliced"
 msgstr "Daha yeni sürümle 3mf'nin dilimlenmesine izin verin"
 
-msgid "Allow 3mf with newer version to be sliced."
+#, fuzzy
+msgid "Allow 3MF with newer version to be sliced."
 msgstr "Daha yeni sürüme sahip 3mf’nin dilimlenmesine izin ver."
 
 msgid "Current Z-hop"
@@ -17710,12 +17749,12 @@ msgid ""
 "Contains a string with the information about what scaling was applied to the "
 "individual objects. Indexing of the objects is zero-based (first object has "
 "index 0).\n"
-"Example: 'x:100% y:50% z:100'."
+"Example: 'x:100% y:50% z:100%'."
 msgstr ""
 "Bireysel nesnelere hangi ölçeklendirmenin uygulandığına ilişkin bilgileri "
 "içeren bir dize içerir. Nesnelerin indekslenmesi sıfır tabanlıdır (ilk "
 "nesnenin indeksi 0'dır).\n"
-"Örnek: 'x:100% y:50% z:100'."
+"Örnek: 'x:100% y:50% z:100%'."
 
 msgid "Input filename without extension"
 msgstr "Uzantı olmadan dosya adını girin"
@@ -17723,14 +17762,16 @@ msgstr "Uzantı olmadan dosya adını girin"
 msgid "Source filename of the first object, without extension."
 msgstr "İlk nesnenin kaynak dosya adı, uzantısız."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y coordinate of the point. Values in mm."
+"The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr ""
 "Vektörün iki öğesi vardır: noktanın x ve y koordinatı. Değerler mm "
 "cinsindendir."
 
+#, fuzzy
 msgid ""
-"The vector has two elements: x and y dimension of the bounding box. Values "
+"The vector has two elements: X and Y dimension of the bounding box. Values "
 "in mm."
 msgstr ""
 "Vektörün iki öğesi vardır: sınırlayıcı kutunun x ve y boyutu. Değerler mm "
@@ -18439,19 +18480,13 @@ msgid "Filament For Calibration"
 msgstr "Kalibrasyon İçin Filament"
 
 msgid ""
-"Tips for calibration material: \n"
+"Tips for calibration material:\n"
 "- Materials that can share same hot bed temperature\n"
 "- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"
 msgstr ""
 "Kalibrasyon malzemesi için ipuçları:\n"
 "- Aynı baskı yatağı sıcaklığını paylaşabilen malzemeler\n"
 "- Farklı filament markası ve türü(Marka = Bambu, Tür = Basic, Matte)"
-
-msgid ""
-"Tips for calibration material: \n"
-"- Materials that can share same hot bed temperature\n"
-"- Different filament brand and family(Brand = Bambu, Family = Basic, Matte)"
-msgstr ""
 
 msgid "Pattern"
 msgstr "Desen"
@@ -18993,7 +19028,7 @@ msgid "Delete input"
 msgstr "Girişi sil"
 
 msgid "Network Test"
-msgstr "Ağ testi"
+msgstr "Ağ Testi"
 
 msgid "Start Test Multi-Thread"
 msgstr "Çoklu İş Parçacığı Testini Başlat"
@@ -19565,8 +19600,8 @@ msgid "nozzle size memorized: %d"
 msgstr ""
 
 msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle."
-"Did you change your nozzle lately ? "
+"The size of nozzle type in preset is not consistent with memorized nozzle. "
+"Did you change your nozzle lately?"
 msgstr ""
 
 #, c-format, boost-format
@@ -19578,8 +19613,8 @@ msgid "nozzle[%d] memorized: %.1f"
 msgstr ""
 
 msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle.Did you "
-"change your nozzle lately ? "
+"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
+"change your nozzle lately?"
 msgstr ""
 
 #, c-format, boost-format
@@ -20226,8 +20261,8 @@ msgstr "Cihaz Adı"
 msgid "Device Status"
 msgstr "Cihaz Durumu"
 
-msgid "Ams Status"
-msgstr ""
+msgid "AMS Status"
+msgstr "AMS Durumu"
 
 msgid ""
 "Please select the devices you would like to manage here (up to 6 devices)"
@@ -20347,9 +20382,6 @@ msgstr "Yazdırma Başarısız"
 msgid "Removed"
 msgstr "Kaldırıldı"
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -20367,13 +20399,13 @@ msgstr ""
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the most "
-"filament-saving principles to minimize waste"
+"filament-saving principles to minimize waste."
 msgstr ""
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the "
 "printer's actual filament status, reducing the need for manual filament "
-"adjustment"
+"adjustment."
 msgstr ""
 
 msgid "Manually assign filament to the left or right nozzle"
@@ -20391,7 +20423,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -20437,7 +20469,7 @@ msgid "Something unexpected happened when trying to log in, please try again."
 msgstr ""
 "Giriş yapmaya çalışırken beklenmeyen bir şey oldu, lütfen tekrar deneyin."
 
-msgid "User cancelled."
+msgid "User canceled."
 msgstr "Kullanıcı iptal edildi."
 
 msgid "Head diameter"
@@ -20492,24 +20524,10 @@ msgstr "Lütfen tek bir nesne seçin."
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
 msgid "Load skipping objects information failed. Please try again."
-msgstr ""
-
-msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format
@@ -20947,6 +20965,56 @@ msgstr ""
 "sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını "
 "azaltabileceğini biliyor muydunuz?"
 
+#~ msgid "Junction Deviation calibration"
+#~ msgstr "Köşe sapması kalibrasyonu"
+
+#, c-format, boost-format
+#~ msgid "Extruder %d"
+#~ msgstr "Ekstruder %d"
+
+#~ msgid ""
+#~ "Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
+#~ "Firmware)"
+#~ msgstr ""
+#~ "Maksimum köşe sapması (M205 J, yalnızca Marlin Firmware için JD > 0 ise "
+#~ "geçerlidir)"
+
+#~ msgid "Adaptive layer height"
+#~ msgstr "Uyarlanabilir katman yüksekliği"
+
+#~ msgid ""
+#~ "Enabling this option means the height of tree support layer except the "
+#~ "first will be automatically calculated."
+#~ msgstr ""
+#~ "Bu seçeneğin etkinleştirilmesi, ilki hariç ağaç destek katmanının "
+#~ "yüksekliğinin otomatik olarak hesaplanacağı anlamına gelir."
+
+#~ msgid "Junction Deviation test"
+#~ msgstr "Köşe sapma testi"
+
+#~ msgid "Start junction deviation: "
+#~ msgstr "Başlangıç köşe sapması: "
+
+#~ msgid "End junction deviation: "
+#~ msgstr "Bitiş köşe sapması: "
+
+#~ msgid "Junction Deviation settings"
+#~ msgstr "Köşe sapma ayarları"
+
+#~ msgid "Note: Lower values = sharper corners but slower speeds"
+#~ msgstr ""
+#~ "Not: Daha düşük değerler = daha keskin köşeler ancak daha yavaş hızlar"
+
+#~ msgid ""
+#~ "Please input valid values:\n"
+#~ "(0 <= Junction Deviation < 1)"
+#~ msgstr ""
+#~ "Lütfen geçerli değerler girin:\n"
+#~ "(0 <= Köşe Sapması < 1)"
+
+#~ msgid "NOTE: High values may cause Layer shift"
+#~ msgstr "Not: Yüksek değerler katman kaymasına neden olabilir"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS bağlı değil"
 
@@ -21002,9 +21070,6 @@ msgstr ""
 #~ "AMS, filament bilgisi güncellendikten sonra Bambu filamentin kalan "
 #~ "kapasitesini tahmin edecek. Yazdırma sırasında kalan kapasite otomatik "
 #~ "olarak güncellenecektir."
-
-#~ msgid "AMS Status"
-#~ msgstr "AMS Durumu"
 
 #~ msgid ""
 #~ "The recommended minimum temperature is less than 190°C or the recommended "
@@ -21125,9 +21190,6 @@ msgstr ""
 #~ "Bunu \"Ayarlar > Ağ > Bağlantı kodu\" bölümünde bulabilirsiniz.\n"
 #~ "şekilde gösterildiği gibi yazıcıda:"
 
-#~ msgid "Junction Deviation calibration"
-#~ msgstr "Köşe sapması kalibrasyonu"
-
 #~ msgid ""
 #~ "Browsing file in SD card is not supported in current firmware. Please "
 #~ "update the printer firmware."
@@ -21156,9 +21218,6 @@ msgstr ""
 
 #~ msgid "Still load"
 #~ msgstr "Daha Fazla Yükle"
-
-#~ msgid "Please select an AMS slot before calibration."
-#~ msgstr "Lütfen kalibrasyondan önce bir AMS yuvası seçin."
 
 #~ msgid "Can't start this without SD card."
 #~ msgstr "SD kart olmadan başlatılamıyor."
@@ -21224,20 +21283,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Genel Ayarlar"
 
-#~ msgid "Login Region"
-#~ msgstr "Giriş Bölgesi"
-
-#~ msgid "Stealth Mode"
-#~ msgstr "Gizli mod"
-
-#~ msgid "Use legacy network plugin (Takes effect after restarting Orca)"
-#~ msgstr ""
-#~ "Eski ağ eklentisini kullan (Orca'yı yeniden başlattıktan sonra etkili "
-#~ "olur)"
-
-#~ msgid "Default Page"
-#~ msgstr "Varsayılan Sayfa"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Başlangıçtan sonra \"Günün ipucu\" bildirimini göster"
 
@@ -21259,13 +21304,6 @@ msgstr ""
 #~ msgid "If enabled, auto-calculate every time when filament is changed"
 #~ msgstr "Etkinleştirilirse filaman her değiştirildiğinde otomatik hesaplama"
 
-#~ msgid "Show the step mesh parameter setting dialog."
-#~ msgstr "Step ağ parametresi ayar iletişim kutusunu göster."
-
-#~ msgid "Multi-device Management (Take effect after restarting Orca Slicer)."
-#~ msgstr ""
-#~ "Çoklu Cihaz Yönetimi(Studio yeniden başlatıldıktan sonra geçerli olur)."
-
 #~ msgid "Auto arrange plate after object cloning"
 #~ msgstr "Nesne klonlamadan sonra plakayı otomatik düzenleme"
 
@@ -21281,19 +21319,6 @@ msgstr ""
 #~ msgid "Associate URLs to OrcaSlicer"
 #~ msgstr "URL’leri OrcaSlicer ile ilişkilendirin"
 
-#~ msgid "Load Behaviour"
-#~ msgstr "Yükleme Davranışı"
-
-#~ msgid "Add model files (stl/step) to recent file list."
-#~ msgstr "Model dosyalarını (STL/STEP) son dosyalar listesine ekle."
-
-#~ msgid "No warnings when loading 3MF with modified G-code"
-#~ msgstr ""
-#~ "Değiştirilmiş G-kodları içeren 3MF dosyalarını yüklerken uyarı verme"
-
-#~ msgid "Auto-Backup"
-#~ msgstr "Otomatik yedekleme"
-
 #~ msgid "every"
 #~ msgstr "her"
 
@@ -21303,9 +21328,6 @@ msgstr ""
 #~ msgid "Dark Mode"
 #~ msgstr "Karanlık Mod"
 
-#~ msgid "Enable Dark mode"
-#~ msgstr "Karanlık modu etkinleştir"
-
 #~ msgid "Home page and daily tips"
 #~ msgstr "Ana sayfa ve günlük ipuçları"
 
@@ -21314,15 +21336,6 @@ msgstr ""
 
 #~ msgid "Please choose the filament color"
 #~ msgstr "Lütfen filament rengini seçin"
-
-#~ msgid "Bambu Engineering Plate"
-#~ msgstr "Bambu Engineering Plate"
-
-#~ msgid "Bambu Smooth PEI Plate"
-#~ msgstr "Bambu Smooth PEI Plate"
-
-#~ msgid "Bambu Textured PEI Plate"
-#~ msgstr "Bambu Textured PEI Plate"
 
 #~ msgid "Send print job to"
 #~ msgstr "Yazdırma işini şuraya gönder"
@@ -21419,10 +21432,6 @@ msgstr ""
 
 #~ msgid "The printer does not support sending to printer SD card."
 #~ msgstr "Yazıcı, yazıcı SD kartına gönderimi desteklemiyor."
-
-#, c-format, boost-format
-#~ msgid "Extruder %d"
-#~ msgstr "Ekstruder %d"
 
 #, c-format, boost-format
 #~ msgid "The color count should be in range [%d, %d]."
@@ -21540,28 +21549,11 @@ msgstr ""
 #~ "Köşebent ütüleme işlemi yapılır. Negatif bir sayı bu işlevi devre dışı "
 #~ "bırakır ve varsayılan yöntemi kullanır."
 
-#~ msgid ""
-#~ "Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin "
-#~ "Firmware)"
-#~ msgstr ""
-#~ "Maksimum köşe sapması (M205 J, yalnızca Marlin Firmware için JD > 0 ise "
-#~ "geçerlidir)"
-
 #~ msgid "Remove small overhangs"
 #~ msgstr "Küçük çıkıntıları kaldır"
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "Muhtemelen desteğe ihtiyaç duymayan küçük çıkıntıları kaldırın."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Uyarlanabilir katman yüksekliği"
-
-#~ msgid ""
-#~ "Enabling this option means the height of tree support layer except the "
-#~ "first will be automatically calculated."
-#~ msgstr ""
-#~ "Bu seçeneğin etkinleştirilmesi, ilki hariç ağaç destek katmanının "
-#~ "yüksekliğinin otomatik olarak hesaplanacağı anlamına gelir."
 
 #~ msgid "Width of the brim."
 #~ msgstr "Kenar genişliği."
@@ -21594,32 +21586,6 @@ msgstr ""
 #~ "Öneri: Nemlendirme değerini 0 olarak ayarlayın.\n"
 #~ "Bu, yazıcının varsayılan değerini veya son kaydedilen değeri "
 #~ "kullanacaktır."
-
-#~ msgid "Junction Deviation test"
-#~ msgstr "Köşe sapma testi"
-
-#~ msgid "Start junction deviation: "
-#~ msgstr "Başlangıç köşe sapması: "
-
-#~ msgid "End junction deviation: "
-#~ msgstr "Bitiş köşe sapması: "
-
-#~ msgid "Junction Deviation settings"
-#~ msgstr "Köşe sapma ayarları"
-
-#~ msgid "Note: Lower values = sharper corners but slower speeds"
-#~ msgstr ""
-#~ "Not: Daha düşük değerler = daha keskin köşeler ancak daha yavaş hızlar"
-
-#~ msgid ""
-#~ "Please input valid values:\n"
-#~ "(0 <= Junction Deviation < 1)"
-#~ msgstr ""
-#~ "Lütfen geçerli değerler girin:\n"
-#~ "(0 <= Köşe Sapması < 1)"
-
-#~ msgid "NOTE: High values may cause Layer shift"
-#~ msgstr "Not: Yüksek değerler katman kaymasına neden olabilir"
 
 #~ msgid "The custom printer or model is not entered, please enter it."
 #~ msgstr "Özel yazıcı veya model girilmedi lütfen giriş yapın."
@@ -21866,22 +21832,8 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Geçersiz numara"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "Yayınlama iptal edildi"
-
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "hafızaya alınan nozul: %.2f %s"
-
-#~ msgid ""
-#~ "When using support material for the support interface, we recommend the "
-#~ "following settings:\n"
-#~ "0 top z distance, 0 interface spacing, interlaced rectilinear pattern and "
-#~ "disable independent support layer height"
-#~ msgstr ""
-#~ "Destek arayüzü için destek malzemesi kullanırken, aşağıdaki ayarları "
-#~ "öneririz:\n"
-#~ "0 üst z mesafesi, 0 arayüz aralığı, geçmeli doğrusal desen ve bağımsız "
-#~ "destek katmanı yüksekliğini devre dışı bırakma"
 
 #~ msgid ""
 #~ "Bed temperature when the Cool Plate Supertack is installed. A value of 0 "
@@ -22077,8 +22029,8 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
-#~ msgstr "Stl'i yükle"
+#~ msgid "Load STL"
+#~ msgstr "STL'i yükle"
 
 #~ msgid "Load svg"
 #~ msgstr "Svg'yi yükle"
@@ -22152,9 +22104,6 @@ msgstr ""
 
 #~ msgid "Could not connect to Flashforge"
 #~ msgstr "Flashforge'a bağlanılamadı"
-
-#~ msgid "User canceled."
-#~ msgstr "Kullanıcı iptal edildi."
 
 #~ msgid "Set the brim type to \"painted\""
 #~ msgstr "Kenar tipini \"boyalı\" olarak ayarlayın"
@@ -23057,18 +23006,6 @@ msgstr ""
 #~ "4’ten fazla stüdyo/kullanışlı uzaktan erişim kullanıyor, bazılarını "
 #~ "kapatıp tekrar deneyebilirsiniz."
 
-#~ msgid "If you would like to try Bambu Studio Beta, you may click to"
-#~ msgstr "Bambu Studio Beta’yı denemek isterseniz tıklayabilirsiniz."
-
-#~ msgid "The 3mf file version is newer than the current Bambu Studio version."
-#~ msgstr "3mf dosya sürümü mevcut Bambu Studio sürümünden daha yenidir."
-
-#~ msgid ""
-#~ "Update your Bambu Studio could enable all functionality in the 3mf file."
-#~ msgstr ""
-#~ "Bambu Studio’nuzu güncellemek, 3mf dosyasındaki tüm işlevleri "
-#~ "etkinleştirebilir."
-
 #~ msgid "active"
 #~ msgstr "aktif"
 
@@ -23321,14 +23258,6 @@ msgstr ""
 #~ msgid "The Config cannot be loaded."
 #~ msgstr "Yapılandırma yüklenemiyor."
 
-#~ msgid "The 3mf is generated by old Orca Slicer, load geometry data only."
-#~ msgstr ""
-#~ "3mf, eski Orca Slicer tarafından oluşturulmuştur, yalnızca geometri "
-#~ "verilerini yükleyin."
-
-#~ msgid "wiki"
-#~ msgstr "wiki"
-
 #~ msgid "Movement:"
 #~ msgstr "Hareket:"
 
@@ -23509,7 +23438,7 @@ msgstr ""
 #~ msgid "Export all objects as STL"
 #~ msgstr "Tüm nesneleri STL olarak dışa aktar"
 
-#~ msgid "The 3mf is not compatible, load geometry data only!"
+#~ msgid "The 3MF is not compatible, load geometry data only!"
 #~ msgstr "3mf uyumlu değil, yalnızca geometri verilerini yükleyin!"
 
 #~ msgid "Incompatible 3mf"
@@ -23674,9 +23603,6 @@ msgstr ""
 
 #~ msgid "Total Time Estimation"
 #~ msgstr "Toplam Süre Tahmini"
-
-#~ msgid "The 3mf is not from Bambu Lab, load geometry data only."
-#~ msgstr "3mf, Bambu Lab'den değildir, yalnızca geometri verilerini yükleyin."
 
 #~ msgid "High Temp Plate"
 #~ msgstr "Tabla"

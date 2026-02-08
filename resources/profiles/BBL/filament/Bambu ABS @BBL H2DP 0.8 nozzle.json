@@ -1,12 +1,15 @@
 {
     "type": "filament",
     "name": "Bambu ABS @BBL H2DP 0.8 nozzle",
-    "inherits": "Bambu ABS @BBL X1C 0.8 nozzle",
+    "inherits": "Bambu ABS @base",
     "from": "system",
     "setting_id": "GFSB00_18",
     "instantiation": "true",
     "chamber_temperatures": [
         "65"
+    ],
+    "fan_max_speed": [
+        "60"
     ],
     "filament_deretraction_speed": [
         "nil",
@@ -112,8 +115,8 @@
         "10",
         "10"
     ],
-    "slow_down_min_speed": [
-        "20"
+    "slow_down_layer_time": [
+        "12"
     ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",

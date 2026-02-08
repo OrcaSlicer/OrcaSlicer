@@ -1,5 +1,6 @@
 #include "GCodeWriter.hpp"
 #include "CustomGCode.hpp"
+#include "PrintConfig.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -41,6 +42,7 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     };
     m_max_jerk_z = print_config.machine_max_jerk_z.values.front();
     m_max_jerk_e = print_config.machine_max_jerk_e.values.front();
+    m_resolution = print_config.resolution.value;
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
@@ -442,6 +444,28 @@ std::string GCodeWriter::reset_e(bool force)
     }
 }
 
+std::string GCodeWriter::enable_power_loss_recovery(PowerLossRecoveryMode mode)
+{
+    std::ostringstream gcode;
+
+    if (mode == PowerLossRecoveryMode::PrinterConfiguration)
+        return std::string();
+
+    const bool enable = mode == PowerLossRecoveryMode::Enable;
+
+    if (m_is_bbl_printers) {
+        gcode << "M1003 S" << (enable ? "1" : "0");
+    }
+    else if (FLAVOR_IS(gcfMarlinFirmware)) {
+        gcode << "M413 S" << (enable ? "1" : "0");
+    } else {
+        return std::string();
+    }
+    if (GCodeWriter::full_gcode_comment) gcode << " ; set Power-loss Recovery";
+    gcode << "\n";
+    return gcode.str();
+}
+
 std::string GCodeWriter::update_progress(unsigned int num, unsigned int tot, bool allow_100) const
 {
     if (FLAVOR_IS_NOT(gcfMakerWare) && FLAVOR_IS_NOT(gcfSailfish))
@@ -528,6 +552,71 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     return w.string();
 }
 
+/*  If this method is called more than once before calling unlift(),
+it will not perform subsequent lifts, even if Z was raised manually
+(i.e. with travel_to_z()) and thus _lifted was reduced. */
+std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
+{
+    // check whether the above/below conditions are met
+    double target_lift = 0;
+    {
+        //BBS
+        int extruder_id = filament()->extruder_id();
+        int filament_id = filament()->id();
+        double above = this->config.retract_lift_above.get_at(extruder_id);
+        double below = this->config.retract_lift_below.get_at(extruder_id);
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
+            target_lift = this->config.z_hop.get_at(filament_id);
+    }
+    // BBS
+    if (m_lifted == 0 && m_to_lift == 0 && target_lift > 0) {
+        if (spiral_vase) {
+            m_lifted = target_lift;
+            return this->_travel_to_z(m_pos(2) + target_lift, "lift Z");
+        }
+        else {
+            m_to_lift = target_lift;
+            m_to_lift_type = lift_type;
+        }
+    }
+    return "";
+}
+
+// BBS: immediately execute an undelayed lift move with a spiral lift pattern
+// designed specifically for subsequent gcode injection (e.g. timelapse) 
+std::string GCodeWriter::eager_lift(const LiftType type) {
+    std::string lift_move;
+    double target_lift = 0;
+    {
+        //BBS
+        int extruder_id = filament()->extruder_id();
+        int filament_id = filament()->id();
+        double above = this->config.retract_lift_above.get_at(extruder_id);
+        double below = this->config.retract_lift_below.get_at(extruder_id);
+        if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
+            target_lift = this->config.z_hop.get_at(filament_id);
+    }
+
+    // BBS: spiral lift only safe with known position
+    // TODO: check the arc will move within bed area
+    if (type == LiftType::SpiralLift && this->is_current_position_clear()) {
+        double radius = target_lift / (2 * PI * atan(filament()->travel_slope()));
+        // static spiral alignment when no move in x,y plane.
+        // spiral centra is a radius distance to the right (y=0) 
+        Vec2d ij_offset = { radius, 0 };
+        if (target_lift > 0) {
+            lift_move = this->_spiral_travel_to_z(m_pos(2) + target_lift, ij_offset, "spiral lift Z");
+        }
+    }
+    //BBS: if position is unknown use normal lift
+    else if (target_lift > 0) {
+        lift_move = _travel_to_z(m_pos(2) + target_lift, "normal lift Z");
+    }
+    m_lifted = target_lift;
+    m_to_lift = 0;
+    return lift_move;
+}
+
 std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &comment, bool force_z)
 {
     // FIXME: This function was not being used when travel_speed_z was separated (bd6badf).
@@ -573,8 +662,8 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
                 ij_offset = { -ij_offset(1), ij_offset(0) };
                 slop_move = this->_spiral_travel_to_z(target(2), ij_offset, "spiral lift Z");
             }
-            //BBS: LazyLift
-            else if (m_to_lift_type == LiftType::LazyLift &&
+            //BBS: SlopeLift
+            else if (m_to_lift_type == LiftType::SlopeLift &&
                 this->is_current_position_clear() &&
                 atan2(delta(2), delta_no_z.norm()) < this->filament()->travel_slope()) {
                 //BBS: check whether we can make a travel like
@@ -694,22 +783,69 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 
 std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment)
 {
-    m_pos(2) = z;
-
+    std::string output;
     double speed = this->config.travel_speed_z.value;
+
     if (speed == 0.) {
         speed = m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed")
                                  : this->config.travel_speed.value;
     }
 
-    std::string output = "G17\n";
-    GCodeG2G3Formatter w(true);
-    w.emit_z(z);
-    w.emit_ij(ij_offset);
-    w.emit_string(" P1 ");
-    w.emit_f(speed * 60.0);
-    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
-    return output + w.string();
+    if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments
+        std::ostringstream oss;
+        const double z_start = m_pos(2); // starting Z height
+
+        // --------------------------------------------------------------------
+        // Determine number of segments based on Resolution
+        // --------------------------------------------------------------------
+        const double ref_resolution = 0.01; // reference resolution in mm
+        const double ref_segments  = 16.0;  // reference number of segments at reference resolution
+        
+        // number of linear segments to use for approximating the arc, clamp between 4 and 24
+        const int segments = std::clamp(int(std::round(ref_segments * (ref_resolution / m_resolution))), 4, 24);
+        // --------------------------------------------------------------------
+
+        const double px = m_pos(0) - m_x_offset;        // take plate offset into consideration
+        const double py = m_pos(1) - m_y_offset;        // take plate offset into consideration
+        const double cx = px + ij_offset(0);            // center x
+        const double cy = py + ij_offset(1);            // center y
+        const double radius = ij_offset.norm();         // radius
+        const double a0 = std::atan2(py - cy, px - cx); // start angle
+        const double delta = 2.0 * M_PI;                // CCW full circle
+
+        if (full_gcode_comment)
+            oss << ";" << comment << "\n";
+
+        oss << "G1 F" << (speed * 60.0) << "\n";  // set feedrate
+
+        // approximate the arc with small linear segments (without the last point which is added later to ensure exactness)
+        for (int i = 1; i < segments; ++i) {
+            double t = double(i) / segments;            // parametric position along arc
+            double a = a0 + delta * t;                  // CCW arc param
+            double x = cx + radius * std::cos(a);       // point on circle
+            double y = cy + radius * std::sin(a);       // point on circle
+            double zz = z_start + (z - z_start) * t;    // interpolated Z height
+
+            oss << "G1 X" << x << " Y" << y << " Z" << zz << "\n";
+        }
+
+        oss << "G1 X" << px << " Y" << py << " Z" << z << "\n";  // final point to ensure exactness
+        output = oss.str();
+    } else { // Orca: if arc fitting is enabled emit a G2/G3 command for the spiral lift
+        output = std::string("G17") + (full_gcode_comment ? " ; XY plane for arc\n" : "\n");
+
+        GCodeG2G3Formatter w(true);
+        w.emit_z(z);
+        w.emit_ij(ij_offset);
+        w.emit_string(" P1 ");
+        w.emit_f(speed * 60.0);
+        w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+
+        output += w.string();
+    }
+
+    m_pos(2) = z;
+    return output;
 }
 
 bool GCodeWriter::will_move_z(double z) const
@@ -871,34 +1007,6 @@ std::string GCodeWriter::unretract()
     return gcode;
 }
 
-/*  If this method is called more than once before calling unlift(),
-    it will not perform subsequent lifts, even if Z was raised manually
-    (i.e. with travel_to_z()) and thus _lifted was reduced. */
-std::string GCodeWriter::lift(LiftType lift_type, bool spiral_vase)
-{
-    // check whether the above/below conditions are met
-    double target_lift = 0;
-    {
-        int extruder_id = filament()->extruder_id();
-        int filament_id = filament()->id();
-        double above = this->config.retract_lift_above.get_at(extruder_id);
-        double below = this->config.retract_lift_below.get_at(extruder_id);
-        if (m_pos(2) >= above && (below == 0 || m_pos(2) <= below))
-            target_lift = this->config.z_hop.get_at(filament_id);
-    }
-    // BBS
-    if (m_lifted == 0 && m_to_lift == 0 && target_lift > 0) {
-        if (spiral_vase) {
-            m_lifted = target_lift;
-            return this->_travel_to_z(m_pos(2) + target_lift, "lift Z");
-        }
-        else {
-            m_to_lift = target_lift;
-            m_to_lift_type = lift_type;
-        }
-    }
-    return "";
-}
 
 std::string GCodeWriter::unlift()
 {
@@ -992,7 +1100,7 @@ void GCodeWriter::add_object_end_labels(std::string& gcode)
         m_gcode_label_objects_end = "";
 
         // Orca: reset E so that e value remain correct after skipping the object
-        // ref to: https://github.com/SoftFever/OrcaSlicer/pull/205/commits/7f1fe0bd544077626080aa1a9a0576aa735da1a4#r1083470162
+        // ref to: https://github.com/OrcaSlicer/OrcaSlicer/pull/205/commits/7f1fe0bd544077626080aa1a9a0576aa735da1a4#r1083470162
         if (!this->config.use_relative_e_distances)
             gcode += reset_e(true);
     }

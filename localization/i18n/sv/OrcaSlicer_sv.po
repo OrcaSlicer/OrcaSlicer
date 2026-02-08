@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-10-29 11:23+0100\n"
+"POT-Creation-Date: 2025-11-05 17:33+0800\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1108,7 +1108,7 @@ msgstr ""
 msgid "Undo rotation"
 msgstr ""
 
-msgid "Rotate text Clock-wise."
+msgid "Rotate text Clockwise."
 msgstr ""
 
 msgid "Unlock the text's rotation when moving text along the object's surface."
@@ -1288,7 +1288,7 @@ msgstr ""
 msgid "Change file"
 msgstr ""
 
-msgid "Change to another .svg file"
+msgid "Change to another SVG file."
 msgstr ""
 
 msgid "Forget the file path"
@@ -1313,7 +1313,7 @@ msgstr ""
 msgid "Save SVG file"
 msgstr ""
 
-msgid "Save as '.svg' file"
+msgid "Save as SVG file."
 msgstr ""
 
 msgid "Size in emboss direction."
@@ -1653,19 +1653,19 @@ msgstr "Laddar nuvarande inställningar"
 msgid "Loading a mode view"
 msgstr "Laddar modell vy"
 
-msgid "Choose one file (3mf):"
-msgstr "Välj en fil (3mf):"
+msgid "Choose one file (3MF):"
+msgstr "Välj en fil (3MF):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
-msgstr "Välj en eller flera filer (3mf/step/stl/svg/obj/amf/usd*/abc/ply):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
+msgstr "Välj en eller flera filer (3MF/STEP/STL/SVG/OBJ/AMF/USD*/ABC/PLY):"
 
-msgid "Choose one or more files (3mf/step/stl/svg/obj/amf):"
-msgstr "Välj en eller flera filer (3mf/step/stl/svg/obj/amf):"
+msgid "Choose one or more files (3MF/STEP/STL/SVG/OBJ/AMF):"
+msgstr "Välj en eller flera filer (3MF/STEP/STL/SVG/OBJ/AMF):"
 
 msgid "Choose ZIP file"
 msgstr ""
 
-msgid "Choose one file (gcode/3mf):"
+msgid "Choose one file (GCODE/3MF):"
 msgstr ""
 
 msgid "Some presets are modified."
@@ -2105,7 +2105,7 @@ msgstr "Dela det valda objektet"
 msgid "Auto orientation"
 msgstr "Auto placera"
 
-msgid "Auto orient the object to improve print quality."
+msgid "Auto orient the object to improve print quality"
 msgstr "Auto placera objektet för att förbättra utskriftskvaliteten."
 
 msgid "Edit"
@@ -2666,7 +2666,7 @@ msgstr ""
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
-"qulity. Please choose carefully"
+"quality. Please choose carefully."
 msgstr ""
 
 msgid ""
@@ -4013,10 +4013,10 @@ msgstr ""
 msgid "Pause (nozzle clog)"
 msgstr ""
 
-msgid "Measuring motion percision"
+msgid "Measuring motion precision"
 msgstr ""
 
-msgid "Enhancing motion percision"
+msgid "Enhancing motion precision"
 msgstr ""
 
 msgid "Measure motion accuracy"
@@ -4025,7 +4025,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed levelling"
+msgid "high temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4129,13 +4129,13 @@ msgstr ""
 
 msgid ""
 "The current chamber temperature or the target chamber temperature exceeds "
-"45℃. In order to avoid extruder clogging,low temperature filament(PLA/PETG/"
+"45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/"
 "TPU) is not allowed to be loaded."
 msgstr ""
 
 msgid ""
-"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder.In order to "
-"avoid extruder clogging,it is not allowed to set the chamber temperature."
+"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to "
+"avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr ""
 
 msgid ""
@@ -4216,9 +4216,6 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
-msgstr ""
-
-msgid "Cancle"
 msgstr ""
 
 msgid "Done"
@@ -4810,6 +4807,9 @@ msgstr "Monterings retur"
 msgid "Return"
 msgstr "Tillbaka"
 
+msgid "Toggle Axis"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr "Färgläggningsverktyg"
 
@@ -4839,7 +4839,7 @@ msgstr "Storlek:"
 
 #, c-format, boost-format
 msgid ""
-"Conflicts of G-code paths have been found at layer %d, z = %.2lf mm. Please "
+"Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
 msgstr ""
 
@@ -4863,7 +4863,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
 msgstr ""
 
@@ -4875,7 +4875,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"Filaments %s is placed in the %s, but the generated G-code path exceeds the "
+"Filaments %s are placed in the %s, but the generated G-code path exceeds the "
 "printable height of the %s."
 msgstr ""
 
@@ -5170,8 +5170,8 @@ msgstr "Exportera alla objekt som STL"
 msgid "Export Generic 3MF"
 msgstr "Exportera generisk 3mf"
 
-msgid "Export 3mf file without using some 3mf-extensions"
-msgstr "Exportera 3mf fil utan några 3mf-tillägg"
+msgid "Export 3MF file without using some 3mf-extensions"
+msgstr "Exportera 3MF fil utan några 3mf-tillägg"
 
 msgid "Export current sliced file"
 msgstr "Exportera aktuell beredd fil"
@@ -5613,8 +5613,9 @@ msgstr "Video"
 msgid "Switch to video files."
 msgstr "Växla till video filer."
 
-msgid "Switch to 3mf model files."
-msgstr "Byt till 3mf modell filer."
+#, fuzzy
+msgid "Switch to 3MF model files."
+msgstr "Byt till 3MF modell filer."
 
 msgid "Delete selected files from printer."
 msgstr "Ta bort valda filer från skrivaren."
@@ -5868,7 +5869,7 @@ msgstr "Namnet får inte börja med mellanrum."
 msgid "The name is not allowed to end with space character."
 msgstr "Namnet får inte avslutas med mellanrum."
 
-msgid "The name is not allowed to exceeds 32 characters."
+msgid "The name is not allowed to exceed 32 characters."
 msgstr ""
 
 msgid "Bind with Pin Code"
@@ -5965,13 +5966,13 @@ msgstr "Avbryt utskrift"
 msgid "Are you sure you want to stop this print?"
 msgstr ""
 
-msgid "The printer is busy on other print job"
+msgid "The printer is busy with another print job."
 msgstr "Skrivaren är upptagen med ett annat utskriftsjobb."
 
-msgid "Current extruder is busy changing filament"
+msgid "Current extruder is busy changing filament."
 msgstr ""
 
-msgid "Current slot has alread been loaded"
+msgid "Current slot has already been loaded."
 msgstr ""
 
 msgid "The selected slot is empty."
@@ -5995,10 +5996,6 @@ msgstr "Lager: %s"
 msgid "Layer: %d/%d"
 msgstr "Lager: %d/%d"
 
-#, c-format, boost-format
-msgid "(%d)"
-msgstr ""
-
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
 msgstr "Värm nozzeln till över 170°C innan du laddar eller matar ut filament."
@@ -6009,7 +6006,7 @@ msgid ""
 msgstr ""
 
 msgid "Please select an AMS slot before calibration"
-msgstr ""
+msgstr "Välj ett AMS-fack innan kalibrering"
 
 msgid ""
 "Cannot read filament info: the filament is loaded to the tool head,please "
@@ -6188,11 +6185,12 @@ msgstr "%s information"
 msgid "Skip"
 msgstr "Hoppa över"
 
-msgid "Newer 3mf version"
-msgstr "Nyare 3mf version"
+#, fuzzy
+msgid "Newer 3MF version"
+msgstr "Nyare 3MF version"
 
 msgid ""
-"The 3mf file version is in Beta and it is newer than the current OrcaSlicer "
+"The 3MF file version is in Beta and it is newer than the current OrcaSlicer "
 "version."
 msgstr ""
 
@@ -6202,10 +6200,10 @@ msgstr ""
 msgid "Download Beta Version"
 msgstr "Ladda ner betaversion"
 
-msgid "The 3mf file version is newer than the current Orca Slicer version."
+msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr ""
 
-msgid "Update your Orca Slicer could enable all functionality in the 3mf file."
+msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 
 msgid "Current Version: "
@@ -6548,6 +6546,9 @@ msgstr ""
 msgid "Lock current plate"
 msgstr ""
 
+msgid "Filament grouping"
+msgstr ""
+
 msgid "Edit current plate name"
 msgstr ""
 
@@ -6623,7 +6624,7 @@ msgid "Not installed"
 msgstr ""
 
 msgid ""
-"The software does not support using different diameter of nozzles for one  "
+"The software does not support using different diameter of nozzles for one "
 "print. If the left and right nozzles are inconsistent, we can only proceed "
 "with single-head printing. Please confirm which nozzle you would like to use "
 "for this project."
@@ -6706,7 +6707,7 @@ msgid "Sync filaments with AMS"
 msgstr "Synkronisera filament med AMS"
 
 msgid ""
-"There are some unknown or uncompatible filaments mapped to generic preset.\n"
+"There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
 msgstr ""
@@ -6781,11 +6782,12 @@ msgstr ""
 msgid "Loading file: %s"
 msgstr "Laddar fil: %s"
 
-msgid "The 3mf is not supported by OrcaSlicer, load geometry data only."
-msgstr "3mf kommer inte från Orca Slicer, laddar endast geometri data."
+#, fuzzy
+msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
+msgstr "3MF kommer inte från Orca Slicer, laddar endast geometri data."
 
-msgid "Load 3mf"
-msgstr "Ladda 3mf"
+msgid "Load 3MF"
+msgstr "Ladda 3MF"
 
 msgid ""
 "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill "
@@ -6798,9 +6800,9 @@ msgid ""
 "template settings?"
 msgstr ""
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, found following "
+"The 3MF file version %s is newer than %s's version %s, found the following "
 "unrecognized keys:"
 msgstr ""
 "3mf:s version %s är nyare än %s version %s, Följande nycklar har hittats som "
@@ -6809,25 +6811,27 @@ msgstr ""
 msgid "You'd better upgrade your software.\n"
 msgstr "Uppdatera mjukvaran.\n"
 
-#, c-format, boost-format
+#, fuzzy, c-format, boost-format
 msgid ""
-"The 3mf's version %s is newer than %s's version %s, Suggest to upgrade your "
-"software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to "
+"upgrade your software."
 msgstr ""
 "3mf:s version %s är nyare än %s version %s, Föreslår att du uppdaterar din "
 "programvara."
 
-msgid "The 3mf is generated by old OrcaSlicer, load geometry data only."
+msgid ""
+"The 3MF file was generated by an old OrcaSlicer version, loading geometry "
+"data only."
 msgstr ""
 
-msgid "Invalid values found in the 3mf:"
-msgstr "Ogiltiga värden hittades i 3mf:"
+msgid "Invalid values found in the 3MF:"
+msgstr "Ogiltiga värden hittades i 3MF:"
 
 msgid "Please correct them in the param tabs"
 msgstr "Vänligen korrigera dem i Parameter flikarna"
 
 msgid ""
-"The 3mf has the following modified G-code in filament or printer presets:"
+"The 3MF has the following modified G-code in filament or printer presets:"
 msgstr ""
 
 msgid ""
@@ -6840,7 +6844,7 @@ msgstr ""
 msgid "Modified G-code"
 msgstr ""
 
-msgid "The 3mf has the following customized filament or printer presets:"
+msgid "The 3MF has the following customized filament or printer presets:"
 msgstr "3mf har följande anpassade filament eller inställningar för printern:"
 
 msgid ""
@@ -6853,8 +6857,8 @@ msgstr ""
 msgid "Customized Preset"
 msgstr "Anpassad inställning"
 
-msgid "Name of components inside step file is not UTF8 format!"
-msgstr "Komponent namnet i step filen är inte UTF8 format!"
+msgid "Name of components inside STEP file is not UTF8 format!"
+msgstr "Komponent namnet i STEP filen är inte UTF8 format!"
 
 msgid "The name may show garbage characters!"
 msgstr "På grund av textkodning som inte stöds så kan skräptecken visas!"
@@ -7096,7 +7100,7 @@ msgstr "Spara projekt"
 msgid "Importing Model"
 msgstr "Importerar Modell"
 
-msgid "prepare 3mf file..."
+msgid "prepare 3MF file..."
 msgstr "förbereder 3mf-filen..."
 
 msgid "Download failed, unknown file format."
@@ -7482,7 +7486,7 @@ msgid "Set the page opened on startup."
 msgstr ""
 
 msgid "Enable dark mode"
-msgstr ""
+msgstr "Aktivera mörkt läge"
 
 msgid "Allow only one OrcaSlicer instance"
 msgstr ""
@@ -7529,7 +7533,7 @@ msgstr ""
 msgid "Load behaviour"
 msgstr ""
 
-msgid "Should printer/filament/process settings be loaded when opening a .3mf?"
+msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 
 msgid "Maximum recent files"
@@ -7548,11 +7552,11 @@ msgid "Show options when importing STEP file"
 msgstr ""
 
 msgid ""
-"If enabled,a parameter settings dialog will appear during STEP file import."
+"If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr ""
 
 msgid "Auto backup"
-msgstr ""
+msgstr "Auto säkerhetskopiera"
 
 msgid ""
 "Backup your project periodically for restoring from the occasional crash."
@@ -7594,7 +7598,7 @@ msgstr ""
 msgid "All"
 msgstr "Allt"
 
-msgid "Auto flush after changing ..."
+msgid "Auto flush after changing..."
 msgstr ""
 
 msgid "Auto calculate flushing volumes when selected values changed"
@@ -7653,7 +7657,7 @@ msgstr "Omvänd muszoomning"
 msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Om aktiverad, vänder zoomriktningen med mushjulet."
 
-msgid "Clear my choice on ..."
+msgid "Clear my choice on..."
 msgstr ""
 
 msgid "Unsaved projects"
@@ -7676,7 +7680,7 @@ msgid ""
 msgstr ""
 
 msgid "Login region"
-msgstr ""
+msgstr "Logga in region"
 
 msgid "Stealth mode"
 msgstr ""
@@ -7687,7 +7691,7 @@ msgid ""
 msgstr ""
 
 msgid "Network test"
-msgstr ""
+msgstr "Nätverkstest"
 
 msgid "Test"
 msgstr "Test"
@@ -7722,23 +7726,25 @@ msgstr ""
 msgid "Associate files to OrcaSlicer"
 msgstr "Associerade filer till Orca Slicer"
 
-msgid "Associate .3mf files to OrcaSlicer"
-msgstr "Associerade .3mf files till Orca Slicer"
+msgid "Associate 3MF files to OrcaSlicer"
+msgstr "Associerade 3MF filer till Orca Slicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .3mf files"
-msgstr "Om aktiverad, väljs Orca Slicer som standard att öppna .3mf filer"
+msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
+msgstr "Om aktiverad, väljs Orca Slicer som standard att öppna 3MF filer."
 
-msgid "Associate .stl files to OrcaSlicer"
-msgstr "Associerade .stl filer till Orca Slicer"
+msgid "Associate STL files to OrcaSlicer"
+msgstr "Associerade STL filer till Orca Slicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .stl files"
-msgstr "Om aktiverad, väljs Orca Slicer som standard att öppna .stl filer"
+msgid "If enabled, sets OrcaSlicer as default application to open STL files."
+msgstr "Om aktiverad, väljs Orca Slicer som standard att öppna STL filer."
 
-msgid "Associate .step/.stp files to OrcaSlicer"
+#, fuzzy
+msgid "Associate STEP files to OrcaSlicer"
 msgstr "Associera .step/.stp-filer till OrcaSlicer"
 
-msgid "If enabled, sets OrcaSlicer as default application to open .step files"
-msgstr "Om aktiverad, väljs Orca Slicer som standard att öppna .step filer"
+#, fuzzy
+msgid "If enabled, sets OrcaSlicer as default application to open STEP files."
+msgstr "Om aktiverad, väljs Orca Slicer som standard att öppna STEP filer."
 
 msgid "Associate web links to OrcaSlicer"
 msgstr ""
@@ -7975,10 +7981,10 @@ msgstr "Logga ut"
 msgid "Slice all plate to obtain time and filament estimation"
 msgstr "Bered alla plattor för att mottaga tid och filament uppskattning"
 
-msgid "Packing project data into 3mf file"
-msgstr "Packa projekt data till 3mf fil"
+msgid "Packing project data into 3MF file"
+msgstr "Packa projekt data till 3MF fil"
 
-msgid "Uploading 3mf"
+msgid "Uploading 3MF"
 msgstr "Laddar upp 3mf"
 
 msgid "Jump to model publish web page"
@@ -7990,13 +7996,13 @@ msgstr "Notera: Förberedelserna kan ta flera minuter. Vänligen vänta."
 msgid "Publish"
 msgstr "Publicera"
 
-msgid "Publish was cancelled"
-msgstr ""
+msgid "Publish was canceled"
+msgstr "Publiceringen avbröts"
 
 msgid "Slicing Plate 1"
 msgstr "Beredningsplatta 1"
 
-msgid "Packing data to 3mf"
+msgid "Packing data to 3MF"
 msgstr "Packar data till 3mf"
 
 msgid "Jump to webpage"
@@ -8073,16 +8079,16 @@ msgstr ""
 msgid "PLA Plate"
 msgstr "PLA platta"
 
-msgid "Bamabu Engineering Plate"
+msgid "Bambu Engineering Plate"
 msgstr ""
 
-msgid "Bamabu Smooth PEI Plate"
+msgid "Bambu Smooth PEI Plate"
 msgstr ""
 
 msgid "High temperature Plate"
 msgstr "Högtemperatur platta"
 
-msgid "Bamabu Textured PEI Plate"
+msgid "Bambu Textured PEI Plate"
 msgstr ""
 
 msgid "Bambu Cool Plate SuperTack"
@@ -8301,27 +8307,27 @@ msgstr ""
 msgid "Click here if you can't connect to the printer"
 msgstr "Klicka här om du inte kan ansluta till printern"
 
-msgid "No login account, only printers in LAN mode are displayed"
+msgid "No login account, only printers in LAN mode are displayed."
 msgstr "Inget inloggningskonto, bara skrivare i LAN-läge visas"
 
-msgid "Connecting to server"
+msgid "Connecting to server..."
 msgstr "Ansluter till server"
 
-msgid "Synchronizing device information"
+msgid "Synchronizing device information..."
 msgstr "Synkroniserar enhetsinformation"
 
-msgid "Synchronizing device information time out"
+msgid "Synchronizing device information timed out."
 msgstr "Time-out för synkronisering av enhetsinformation"
 
-msgid "Cannot send the print job when the printer is not at FDM mode"
+msgid "Cannot send a print job when the printer is not at FDM mode."
 msgstr ""
 
-msgid "Cannot send the print job when the printer is updating firmware"
+msgid "Cannot send a print job while the printer is updating firmware."
 msgstr ""
 "Det går inte att skicka ett utskriftsjobb medan skrivaren uppdaterar firmware"
 
 msgid ""
-"The printer is executing instructions. Please restart printing after it ends"
+"The printer is executing instructions. Please restart printing after it ends."
 msgstr ""
 "Skrivaren utför instruktioner. Vänligen starta utskriften igen när den är "
 "avslutad."
@@ -8329,7 +8335,7 @@ msgstr ""
 msgid "AMS is setting up. Please try again later."
 msgstr ""
 
-msgid "Please do not mix-use the Ext with AMS"
+msgid "Please do not mix-use the Ext with AMS."
 msgstr ""
 
 msgid ""
@@ -8353,7 +8359,7 @@ msgstr ""
 "Det går inte att skicka utskriftsjobbet till en skrivare vars fasta "
 "programvara måste uppdateras."
 
-msgid "Cannot send the print job for empty plate"
+msgid "Cannot send a print job for an empty plate."
 msgstr "Det går inte att skicka ett utskriftsjobb för en tom platta."
 
 msgid "Storage needs to be inserted to record timelapse."
@@ -8373,7 +8379,7 @@ msgid ""
 "Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value."
 msgstr ""
 
-msgid "This printer does not support printing all plates"
+msgid "This printer does not support printing all plates."
 msgstr "Den här skrivaren stöder inte utskrift av alla byggplattor"
 
 msgid ""
@@ -8635,16 +8641,21 @@ msgid "Still print by object?"
 msgstr "Fortfarande utskrift per objekt?"
 
 msgid ""
-"Non-soluble support materials are not recommended for support base. \n"
-"Are you sure to use them for support base? \n"
+"Non-soluble support materials are not recommended for support base.\n"
+"Are you sure to use them for support base?\n"
 msgstr ""
 
+#, fuzzy
 msgid ""
 "When using support material for the support interface, we recommend the "
 "following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and "
-"disable independent support layer height"
+"disable independent support layer height."
 msgstr ""
+"Vid användning av stödmaterial för stödgränssnittet rekommenderar vi "
+"följande inställningar:\n"
+"0 top z-avstånd, 0 gränssnittsavstånd, koncentriskt mönster och "
+"inaktivera oberoende stödskiktshöjd."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -8656,17 +8667,11 @@ msgstr ""
 "Nej - Ändra inte dessa inställningar för mig."
 
 msgid ""
-"When using soluble material for the support interface, We recommend the "
+"When using soluble material for the support interface, we recommend the "
 "following settings:\n"
-"0 top z distance, 0 interface spacing, interlaced rectilinear pattern, "
-"disable independent support layer height \n"
-"and use soluble materials for both support interface and support base"
-msgstr ""
-
-msgid ""
-"Change these settings automatically? \n"
-"Yes - Change these settings automatically\n"
-"No  - Do not change these settings for me"
+"0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, "
+"disable independent support layer height\n"
+"and use soluble materials for both support interface and support base."
 msgstr ""
 
 msgid ""
@@ -9176,7 +9181,7 @@ msgid "Number of extruders of the printer."
 msgstr ""
 
 msgid ""
-"Single Extruder Multi Material is selected, \n"
+"Single Extruder Multi Material is selected,\n"
 "and all extruders must have the same diameter.\n"
 "Do you want to change the diameter for all extruders to first extruder "
 "nozzle diameter value?"
@@ -9257,12 +9262,6 @@ msgstr[0] ""
 msgstr[1] ""
 "Följande förinställning raderas också.@Följande förinställningar raderas "
 "också."
-
-msgid ""
-"Are you sure to delete the selected preset? \n"
-"If the preset corresponds to a filament currently in use on your printer, "
-"please reset the filament information for that slot."
-msgstr ""
 
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
@@ -9497,16 +9496,16 @@ msgstr "Konfigurationen är aktuell."
 msgid "Open Wiki for more information >"
 msgstr ""
 
-msgid "Obj file Import color"
+msgid "OBJ file import color"
 msgstr ""
 
 msgid "Some faces don't have color defined."
 msgstr ""
 
-msgid "mtl file exist error,could not find the material:"
+msgid "MTL file exist error, could not find the material:"
 msgstr ""
 
-msgid "Please check obj or mtl file."
+msgid "Please check OBJ or MTL file."
 msgstr ""
 
 msgid "Specify number of colors:"
@@ -9551,9 +9550,6 @@ msgstr ""
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
-
-msgid "—> "
 msgstr ""
 
 msgid ""
@@ -10216,8 +10212,8 @@ msgstr ""
 msgid "Extension Board"
 msgstr "Utöknings enhet"
 
-msgid "Saving objects into the 3mf failed."
-msgstr "Sparande av objektet till 3mf misslyckades."
+msgid "Saving objects into the 3MF failed."
+msgstr "Sparande av objektet till 3MF misslyckades."
 
 msgid "Only Windows 10 is supported."
 msgstr "Endast Windows 10 stöds."
@@ -10240,23 +10236,23 @@ msgstr "Reparation misslyckades."
 msgid "Loading repaired objects"
 msgstr "Laddar de reparerade objekten"
 
-msgid "Exporting 3mf file failed"
-msgstr "Exporterar av 3mf filen misslyckades"
+msgid "Exporting 3MF file failed"
+msgstr "Exporterar av 3MF filen misslyckades"
 
-msgid "Import 3mf file failed"
-msgstr "Importen av 3mf filen misslyckades"
+msgid "Import 3MF file failed"
+msgstr "Importen av 3MF filen misslyckades"
 
-msgid "Repaired 3mf file does not contain any object"
-msgstr "Den reparerade 3mf filen innehåller inga objekt"
+msgid "Repaired 3MF file does not contain any object"
+msgstr "Den reparerade 3MF filen innehåller inga objekt"
 
-msgid "Repaired 3mf file contains more than one object"
-msgstr "Den reparerade 3mf filen innehåller mer än ett objekt"
+msgid "Repaired 3MF file contains more than one object"
+msgstr "Den reparerade 3MF filen innehåller mer än ett objekt"
 
-msgid "Repaired 3mf file does not contain any volume"
-msgstr "Den reparerade 3mf filen innehåller ingen volym"
+msgid "Repaired 3MF file does not contain any volume"
+msgstr "Den reparerade 3MF filen innehåller ingen volym"
 
-msgid "Repaired 3mf file contains more than one volume"
-msgstr "Den reparerade 3mf filen innehåller mer än en volym"
+msgid "Repaired 3MF file contains more than one volume"
+msgstr "Den reparerade 3MF filen innehåller mer än en volym"
 
 msgid "Repair finished"
 msgstr "Reparation klar"
@@ -10766,7 +10762,7 @@ msgstr ""
 
 msgid ""
 "Filament shrinkage will not be used because filament shrinkage for the used "
-"filaments differs significantly."
+"filaments does not match."
 msgstr ""
 
 msgid "Generating skirt & brim"
@@ -10855,7 +10851,7 @@ msgstr ""
 msgid "Preferred orientation"
 msgstr ""
 
-msgid "Automatically orient stls on the Z axis upon initial import."
+msgid "Automatically orient STL files on the Z axis upon initial import."
 msgstr ""
 
 msgid "Printer preset names"
@@ -11198,7 +11194,7 @@ msgstr ""
 msgid ""
 "Bridging angle override. If left to zero, the bridging angle will be "
 "calculated automatically. Otherwise the provided angle will be used for "
-"external bridges. Use 180°for zero angle."
+"external bridges. Use 180° for zero angle."
 msgstr ""
 "Bridging vinkel åsidosättning. 0 betyder att bridging vinkeln beräknas "
 "automatiskt. Annars kommer den medföljande vinkeln att användas för extern "
@@ -11210,7 +11206,7 @@ msgstr ""
 msgid ""
 "Internal bridging angle override. If left to zero, the bridging angle will "
 "be calculated automatically. Otherwise the provided angle will be used for "
-"internal bridges. Use 180°for zero angle.\n"
+"internal bridges. Use 180° for zero angle.\n"
 "\n"
 "It is recommended to leave it at 0 unless there is a specific model need not "
 "to."
@@ -11577,6 +11573,26 @@ msgid ""
 msgstr ""
 "Mellanrum mellan innersta brim linjen och objektet kan underlätta vid "
 "borttagande av brim"
+
+msgid "Brim follows compensated outline"
+msgstr "Brim följer kompenserad disposition"
+
+msgid ""
+"When enabled, the brim is aligned with the first-layer perimeter geometry "
+"after Elephant Foot Compensation is applied.\n"
+"This option is intended for cases where Elephant Foot Compensation "
+"significantly alters the first-layer footprint.\n"
+"\n"
+"If your current setup already works well, enabling it may be unnecessary and "
+"can cause the brim to fuse with upper layers."
+msgstr ""
+"När den är aktiverad, är brim justerad med det första lagrets omkretsgeometri "
+"efter att elefantfotskompensation tillämpas.\n"
+"Detta alternativ är avsett för fall där elefantfotskompensation "
+"förändrar det första skiktets fotavtryck avsevärt.\n"
+"\n"
+"Om din nuvarande inställning redan fungerar bra kan det vara onödigt att aktivera det och "
+"kan få brim att smälta samman med de övre lagren."
 
 msgid "Brim ears"
 msgstr "Brätte öron"
@@ -11970,11 +11986,9 @@ msgid ""
 "option in most cases.\n"
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
-"benefits of Inner/Outer/Inner option. However, the z seams will appear less "
+"benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
 "consistent as the first extrusion of a new layer starts on a visible "
-"surface.\n"
-"\n"
-" "
+"surface."
 msgstr ""
 
 msgid "Inner/Outer"
@@ -12414,8 +12428,8 @@ msgstr ""
 #, no-c-format, no-boost-format
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
-"if you measure 94mm instead of 100mm). The part will be scaled in xy to "
-"compensate. Only the filament used for the perimeter is taken into account.\n"
+"if you measure 94mm instead of 100mm). The part will be scaled in XY to "
+"compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
@@ -13134,7 +13148,7 @@ msgid "Precise Z height"
 msgstr ""
 
 msgid ""
-"Enable this to get precise z height of object after slicing. It will get the "
+"Enable this to get precise Z height of object after slicing. It will get the "
 "precise object height by fine-tuning the layer heights of the last few "
 "layers. Note that this is an experimental parameter."
 msgstr ""
@@ -13649,6 +13663,12 @@ msgstr ""
 msgid "The angle of ironing lines offset from the top surface."
 msgstr ""
 
+msgid "Fixed ironing angle"
+msgstr ""
+
+msgid "Use a fixed absolute angle for ironing."
+msgstr ""
+
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "Denna G-kod infogas vid varje lagerbyte efter lyft av Z axis"
 
@@ -14003,9 +14023,10 @@ msgid "Reduce infill retraction"
 msgstr "Minska ifyllnads retraktionen"
 
 msgid ""
-"Don't retract when the travel is in infill area absolutely. That means the "
+"Don't retract when the travel is entirely within an infill area. That means the "
 "oozing can't been seen. This can reduce times of retraction for complex "
-"model and save printing time, but make slicing and G-code generating slower."
+"model and save printing time, but make slicing and G-code generating slower. "
+"Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 "Dra inte tillbaka när förflyttningen är helt i ett utfyllnadsområde. Det "
 "betyder att läckage av filament inte kan ses. Detta kan minska tiderna för "
@@ -14653,7 +14674,7 @@ msgid "Speed of internal solid infill, not the top and bottom surface."
 msgstr "Hastighet för inre solid ifyllnad, förrutom topp och botten ytorna"
 
 msgid ""
-"Spiralize smooths out the z moves of the outer contour. And turns a solid "
+"Spiralize smooths out the Z moves of the outer contour. And turns a solid "
 "model into a single walled print with solid bottom layers. The final "
 "generated model has no seam."
 msgstr ""
@@ -14870,8 +14891,8 @@ msgstr "normal (manuell)"
 msgid "Tree (manual)"
 msgstr "tree (manuell)"
 
-msgid "Support/object xy distance"
-msgstr "Support/objekt xy distans"
+msgid "Support/object XY distance"
+msgstr "Support/objekt XY distans"
 
 msgid "XY separation between an object and its support."
 msgstr "XY avstånd mellan objektet och support"
@@ -15078,7 +15099,7 @@ msgstr "Oberoende support lagerhöjd"
 
 msgid ""
 "Support layer uses layer height independent with object layer. This is to "
-"support customizing z-gap and save print time. This option will be invalid "
+"support customizing Z-gap and save print time. This option will be invalid "
 "when the prime tower is enabled."
 msgstr ""
 "Support lager använder lagerhöjd oberoende av objekt lager. Detta för att "
@@ -15809,7 +15830,7 @@ msgstr "Exportera 3mf"
 
 #, fuzzy
 msgid "Export project as 3MF."
-msgstr "Exportera projekt som 3mf."
+msgstr "Exportera projekt som 3MF."
 
 msgid "Export slicing data"
 msgstr "Exportera beredningsdata"
@@ -15847,8 +15868,8 @@ msgstr "Visa kommandohjälp."
 msgid "UpToDate"
 msgstr "Aktuell"
 
-msgid "Update the configs values of 3mf to latest."
-msgstr "Uppdatera konfigurations värdena i 3mf till det senaste."
+msgid "Update the config values of 3MF to latest."
+msgstr "Uppdatera konfigurations värdena i 3MF till det senaste."
 
 msgid "downward machines check"
 msgstr ""
@@ -15867,7 +15888,7 @@ msgstr "Ladda första filamentet som standard för de som inte laddats"
 msgid "Minimum save"
 msgstr ""
 
-msgid "export 3mf with minimum size."
+msgid "Export 3MF with minimum size."
 msgstr ""
 
 msgid "mtcpp"
@@ -16093,40 +16114,40 @@ msgid ""
 "objects."
 msgstr ""
 
-msgid "Skip modified G-code in 3mf"
+msgid "Skip modified G-code in 3MF"
 msgstr ""
 
-msgid "Skip the modified G-code in 3mf from Printer or filament Presets."
+msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr ""
 
 msgid "MakerLab name"
 msgstr ""
 
-msgid "MakerLab name to generate this 3mf."
+msgid "MakerLab name to generate this 3MF."
 msgstr ""
 
 msgid "MakerLab version"
 msgstr ""
 
-msgid "MakerLab version to generate this 3mf."
+msgid "MakerLab version to generate this 3MF."
 msgstr ""
 
-msgid "metadata name list"
+msgid "Metadata name list"
 msgstr ""
 
-msgid "metadata name list added into 3mf."
+msgid "Metadata name list added into 3MF."
 msgstr ""
 
-msgid "metadata value list"
+msgid "Metadata value list"
 msgstr ""
 
-msgid "metadata value list added into 3mf."
+msgid "Metadata value list added into 3MF."
 msgstr ""
 
-msgid "Allow 3mf with newer version to be sliced"
+msgid "Allow 3MF with newer version to be sliced"
 msgstr ""
 
-msgid "Allow 3mf with newer version to be sliced."
+msgid "Allow 3MF with newer version to be sliced."
 msgstr ""
 
 msgid "Current Z-hop"
@@ -16269,7 +16290,7 @@ msgid ""
 "Contains a string with the information about what scaling was applied to the "
 "individual objects. Indexing of the objects is zero-based (first object has "
 "index 0).\n"
-"Example: 'x:100% y:50% z:100'."
+"Example: 'x:100% y:50% z:100%'."
 msgstr ""
 
 msgid "Input filename without extension"
@@ -16279,11 +16300,11 @@ msgid "Source filename of the first object, without extension."
 msgstr ""
 
 msgid ""
-"The vector has two elements: x and y coordinate of the point. Values in mm."
+"The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr ""
 
 msgid ""
-"The vector has two elements: x and y dimension of the bounding box. Values "
+"The vector has two elements: X and Y dimension of the bounding box. Values "
 "in mm."
 msgstr ""
 
@@ -16920,7 +16941,7 @@ msgid "Filament For Calibration"
 msgstr "Filament för kalibrering"
 
 msgid ""
-"Tips for calibration material: \n"
+"Tips for calibration material:\n"
 "- Materials that can share same hot bed temperature\n"
 "- Different filament brand and family (Brand = Bambu, Family = Basic, Matte)"
 msgstr ""
@@ -16928,12 +16949,6 @@ msgstr ""
 "- Material som kan ha samma temperatur på den varma bädden\n"
 "- Olika filament märken och -familjer (märke = Bambu, familj = Basic, Matte, "
 "etc.)"
-
-msgid ""
-"Tips for calibration material: \n"
-"- Materials that can share same hot bed temperature\n"
-"- Different filament brand and family(Brand = Bambu, Family = Basic, Matte)"
-msgstr ""
 
 msgid "Pattern"
 msgstr "Mönster"
@@ -18009,8 +18024,8 @@ msgid "nozzle size memorized: %d"
 msgstr ""
 
 msgid ""
-"The size of nozzle type in preset is not consistent with memorized nozzle."
-"Did you change your nozzle lately ? "
+"The size of nozzle type in preset is not consistent with memorized nozzle. "
+"Did you change your nozzle lately?"
 msgstr ""
 
 #, c-format, boost-format
@@ -18022,8 +18037,8 @@ msgid "nozzle[%d] memorized: %.1f"
 msgstr ""
 
 msgid ""
-"Your nozzle type in preset is not consistent with memorized nozzle.Did you "
-"change your nozzle lately ? "
+"Your nozzle type in preset is not consistent with memorized nozzle. Did you "
+"change your nozzle lately?"
 msgstr ""
 
 #, c-format, boost-format
@@ -18567,7 +18582,7 @@ msgstr ""
 msgid "Device Status"
 msgstr ""
 
-msgid "Ams Status"
+msgid "AMS Status"
 msgstr ""
 
 msgid ""
@@ -18684,9 +18699,6 @@ msgstr ""
 msgid "Removed"
 msgstr ""
 
-msgid "Filament grouping"
-msgstr ""
-
 msgid "Don't remind me again"
 msgstr ""
 
@@ -18704,13 +18716,13 @@ msgstr ""
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the most "
-"filament-saving principles to minimize waste"
+"filament-saving principles to minimize waste."
 msgstr ""
 
 msgid ""
 "Generates filament grouping for the left and right nozzles based on the "
 "printer's actual filament status, reducing the need for manual filament "
-"adjustment"
+"adjustment."
 msgstr ""
 
 msgid "Manually assign filament to the left or right nozzle"
@@ -18728,7 +18740,7 @@ msgstr ""
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
-msgid "Tips: You can drag the filaments to reassign them to different nozzles."
+msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr ""
 
 msgid ""
@@ -18772,7 +18784,7 @@ msgstr ""
 msgid "Something unexpected happened when trying to log in, please try again."
 msgstr ""
 
-msgid "User cancelled."
+msgid "User canceled."
 msgstr ""
 
 msgid "Head diameter"
@@ -18825,24 +18837,10 @@ msgstr ""
 msgid "Zoom Out"
 msgstr ""
 
-msgid "100 %"
-msgstr ""
-
 msgid "Zoom In"
 msgstr ""
 
 msgid "Load skipping objects information failed. Please try again."
-msgstr ""
-
-msgid "Loading ..."
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d%%"
-msgstr ""
-
-#, c-format, boost-format
-msgid "%d"
 msgstr ""
 
 #, c-format, boost-format
@@ -19234,6 +19232,9 @@ msgstr ""
 "ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten "
 "för vridning?"
 
+#~ msgid "Adaptive layer height"
+#~ msgstr "Adaptiv lagerhöjd"
+
 #~ msgid "AMS not connected"
 #~ msgstr "AMS ej ansluten"
 
@@ -19400,9 +19401,6 @@ msgstr ""
 #~ msgid "Still load"
 #~ msgstr "Laddar fortfarande"
 
-#~ msgid "Please select an AMS slot before calibration."
-#~ msgstr "Välj ett AMS-fack innan kalibrering."
-
 #~ msgid "Can't start this without SD card."
 #~ msgstr "Kan inte starta utan MicroSD-kort."
 
@@ -19446,9 +19444,6 @@ msgstr ""
 #~ msgid "General Settings"
 #~ msgstr "Allmänna inställningar"
 
-#~ msgid "Login Region"
-#~ msgstr "Logga in Region"
-
 #~ msgid "Show \"Tip of the day\" notification after start"
 #~ msgstr "Visa \"Dagens tips\" efter start"
 
@@ -19475,9 +19470,6 @@ msgstr ""
 #~ msgid "System Sync"
 #~ msgstr "Synkronisering av system"
 
-#~ msgid "Auto-Backup"
-#~ msgstr "Auto Säkerhetskopiera"
-
 #~ msgid "every"
 #~ msgstr "varje"
 
@@ -19486,9 +19478,6 @@ msgstr ""
 
 #~ msgid "Dark Mode"
 #~ msgstr "Mörkt Läge"
-
-#~ msgid "Enable Dark mode"
-#~ msgstr "Aktivera mörkt läge"
 
 #~ msgid "Home page and daily tips"
 #~ msgstr "Hemsida och dagliga förslag"
@@ -19606,9 +19595,6 @@ msgstr ""
 
 #~ msgid "Remove small overhangs that possibly need no supports."
 #~ msgstr "Ta bort små överhäng som eventuellt inte behöver stöd."
-
-#~ msgid "Adaptive layer height"
-#~ msgstr "Adaptiv lagerhöjd"
 
 #~ msgid ""
 #~ "Only one of the results with the same name will be saved. Are you sure "
@@ -19802,9 +19788,6 @@ msgstr ""
 #~ msgid "Invalid number"
 #~ msgstr "Ogiltligt nummer"
 
-#~ msgid "Publish was canceled"
-#~ msgstr "Publiceringen avbröts"
-
 #, c-format, boost-format
 #~ msgid "nozzle memorized: %.2f %s"
 #~ msgstr "nozzel memorerat: %.2f %s"
@@ -19915,8 +19898,8 @@ msgstr ""
 #~ msgid "mm/mm"
 #~ msgstr "mm/mm"
 
-#~ msgid "Load stl"
-#~ msgstr "Ladda stl"
+#~ msgid "Load STL"
+#~ msgstr "Ladda STL"
 
 #~ msgid "Load svg"
 #~ msgstr "Ladda svg"
@@ -19948,17 +19931,6 @@ msgstr ""
 #~ "För ”Tree Strong” och ”Tree Hybrid” stilar rekommenderar vi följande "
 #~ "inställningar: minst 2 anläggnings lager, minst 0,1 mm topp z-avstånd "
 #~ "eller med support material på anläggningsytan."
-
-#~ msgid ""
-#~ "When using support material for the support interface, we recommend the "
-#~ "following settings:\n"
-#~ "0 top z distance, 0 interface spacing, concentric pattern and disable "
-#~ "independent support layer height"
-#~ msgstr ""
-#~ "Vid användning av stödmaterial för stödgränssnittet rekommenderar vi "
-#~ "följande inställningar:\n"
-#~ "0 top z-avstånd, 0 gränssnittsavstånd, koncentriskt mönster och "
-#~ "inaktivera oberoende stödskiktshöjd"
 
 #~ msgid "This setting specify the count of walls around support"
 #~ msgstr "Denna inställning anger antalet väggar runt supporten"
@@ -20472,7 +20444,7 @@ msgstr ""
 #~ msgid "Export all objects as STL"
 #~ msgstr "Exportera Alla Objekt som STL"
 
-#~ msgid "The 3mf is not compatible, load geometry data only!"
+#~ msgid "The 3MF is not compatible, load geometry data only!"
 #~ msgstr "3mf ej kompatibel, laddar endast geometrin !"
 
 #~ msgid "Incompatible 3mf"

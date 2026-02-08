@@ -66,9 +66,11 @@ void StaticBox::SetBorderWidth(int width)
 
 void StaticBox::SetBorderColor(StateColor const &color)
 {
-    border_color = color;
-    state_handler.update_binds();
-    Refresh();
+    if (border_color != color) {
+        border_color = color;
+        state_handler.update_binds();
+        Refresh();
+    }
 }
 
 void StaticBox::SetBorderColorNormal(wxColor const &color)
@@ -118,11 +120,13 @@ wxColor StaticBox::GetParentBackgroundColor(wxWindow* parent)
 
 void StaticBox::ShowBadge(bool show)
 {
-    if (show)
+    if (show && badge.name() != "badge") {
         badge = ScalableBitmap(this, "badge", 18);
-    else
+        Refresh();
+    } else if (!show && !badge.name().empty()) {
         badge = ScalableBitmap {};
-    Refresh();
+        Refresh();
+    }
 }
 
 void StaticBox::eraseEvent(wxEraseEvent& evt)

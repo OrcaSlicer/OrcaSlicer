@@ -10,5 +10,7 @@
     "support_style": "default",
     "support_type": "tree(auto)",
     "tree_support_branch_diameter_angle": "15",
-    "tree_support_branch_diameter_double_wall": "1"
+    "tree_support_branch_diameter_double_wall": "1",
+    "is_custom_defined": "0",
+    "version": "2.1.1.0"
 }

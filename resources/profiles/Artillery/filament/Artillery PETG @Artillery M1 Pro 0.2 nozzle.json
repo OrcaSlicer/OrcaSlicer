@@ -232,6 +232,7 @@
     "idle_temperature": [
         "0"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
         "250"
     ],

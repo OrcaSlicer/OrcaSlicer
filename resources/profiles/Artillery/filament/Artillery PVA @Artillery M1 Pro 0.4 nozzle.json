@@ -37,6 +37,7 @@
     "hot_plate_temp_initial_layer": [
         "60"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
         "220"
     ],
@@ -90,5 +91,6 @@
     ],
     "pressure_advance": [
         "0.05"
-    ]
+    ],
+    "version": "2.1.2.2"
 }

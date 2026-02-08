@@ -85,6 +85,7 @@ struct PlateData
     std::string     pattern_bbox_file;
     std::string     gcode_prediction;
     std::string     gcode_weight;
+    std::string     first_layer_time;
     std::string     plate_name;
     std::vector<FilamentInfo> slice_filaments_info;
     std::vector<size_t> skipped_objects;

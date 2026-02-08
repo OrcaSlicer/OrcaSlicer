@@ -14,7 +14,7 @@ html
 
 body
 {
-	min-width: 1280px;
+	/* min-width: 1280px; ORCA fixes scrollbar appear on welcome screen */
 	height: 100%;
 	display:flex;
 	flex-direction: column;
@@ -28,7 +28,7 @@ body
 
 #EmptyArea
 {
-	min-width: 1280px;
+	/* min-width: 1280px; ORCA fixes scrollbar appear on welcome screen */
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -39,6 +39,7 @@ body
 
 #WholeArea
 {
+	min-width: 1280px; /* ORCA fix scrollbar appears on welcome screen */
 	height:  100%;
 	position: relative;
 	overflow-y: hidden;
@@ -378,17 +379,5 @@ body
 
 #AddModelInfoBtn
 {
-	border-width: 1px;
-	border-style: solid;
-	padding: 0px 10px;
-	border-radius: 6px;
-	line-height: 26px;
-	height: 26px;
 	margin-top: 20px;
-	cursor: pointer;
-}
-
-#AddModelInfoBtn:hover
-{
-	background-color:#CDCECE;
 }

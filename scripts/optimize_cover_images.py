@@ -476,8 +476,8 @@ def main():
     parser.add_argument(
         '--ratio',
         type=float,
-        default=0.64,
-        help='Target content to image ratio (default: 0.64 = 64%%)'
+        default=1,
+        help='Target content to image ratio (default: 1 = 100%%)'
     )
     parser.add_argument(
         '--dry-run',

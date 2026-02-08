@@ -150,6 +150,7 @@ enum class NotificationType
 	BBLSeqPrintInfo,
 	//BBL: plugin install hint
 	BBLPluginInstallHint,
+    BBLFlushingVolumeZero,
 	BBLPluginUpdateAvailable,
 	BBLPreviewOnlyMode,
     BBLPrinterConfigUpdateAvailable,
@@ -243,6 +244,9 @@ public:
 	// Closes error or warning of the same text
 	void close_plater_error_notification(const std::string& text);
 	void close_plater_warning_notification(const std::string& text);
+	//The flushing volume matrix has zero values in its off-diagonal elements
+    void push_flushing_volume_error_notification(NotificationType type, NotificationLevel level, const std::string &text, const std::string &hypertext = "", std::function<bool(wxEvtHandler *)> callback  = std::function<bool(wxEvtHandler *)>());
+    void close_flushing_volume_error_notification(NotificationType type, NotificationLevel level);
 	// GCode exceeds the printing range of the extruder
     void push_slicing_customize_error_notification(NotificationType type, NotificationLevel level, const std::string &text, const std::string &hypertext = "", std::function<bool(wxEvtHandler*)> callback = std::function<bool(wxEvtHandler*)>());
     void close_slicing_customize_error_notification(NotificationType type, NotificationLevel level);
@@ -976,7 +980,7 @@ private:
 
         NotificationData{NotificationType::BBLUserPresetExceedLimit, NotificationLevel::WarningNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
 			_u8L("The number of user presets cached in the cloud has exceeded the upper limit, newly created user presets can only be used locally."), 
-			_u8L("Wiki"),
+			_u8L("Wiki Guide"),
                          [](wxEvtHandler* evnthndlr) {
 				wxLaunchDefaultBrowser("https://wiki.bambulab.com/en/software/bambu-studio/3rd-party-printer-profile#cloud-user-presets-limit");
 				return false;

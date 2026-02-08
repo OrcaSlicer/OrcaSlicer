@@ -27,6 +27,7 @@ public:
     int command_xcam_control_auto_recovery_step_loss(bool on_off);
     int command_xcam_control_allow_prompt_sound(bool on_off);
     int command_xcam_control_filament_tangle_detect(bool on_off);
+    int command_xcam_control_idelheatingprotect_detector(bool on_off);
 
 
     int command_xcam_control(std::string module_name, bool on_off,  MachineObject *obj ,std::string lvl = "");
@@ -37,19 +38,20 @@ public:
     // set fliament tangle detect
     int command_set_filament_tangle_detect(bool fliament_tangle_detect, MachineObject *obj);
 
+    int command_set_against_continued_heating_mode(bool on_off);
 
     void parse_auto_recovery_step_loss_status(int flag);
     void parse_allow_prompt_sound_status(int flag);
     void parse_filament_tangle_detect_status(int flag);
 
-    bool GetAiMonitoring() const { return xcam_ai_monitoring; };
-    bool GetFirstLayerInspector() const{ return xcam_first_layer_inspector; };
-    bool GetBuildplateMarkerDetector() const { return xcam_buildplate_marker_detector; };
-    bool GetAutoRecoveryStepLoss() const { return xcam_auto_recovery_step_loss; };
-    bool GetAllowPromptSound() const { return xcam_allow_prompt_sound; };
-    bool GetFilamentTangleDetect() const { return xcam_filament_tangle_detect; };
-
-    string GetAiMonitoringSensitivity() const { return xcam_ai_monitoring_sensitivity; };
+    bool GetAiMonitoring() const { return xcam_ai_monitoring; }
+    bool GetFirstLayerInspector() const{ return xcam_first_layer_inspector; }
+    bool GetBuildplateMarkerDetector() const { return xcam_buildplate_marker_detector; }
+    bool GetAutoRecoveryStepLoss() const { return xcam_auto_recovery_step_loss; }
+    bool GetAllowPromptSound() const { return xcam_allow_prompt_sound; }
+    bool GetFilamentTangleDetect() const { return xcam_filament_tangle_detect; }
+    int  GetIdelHeatingProtectEenabled() const { return idel_heating_protect_enabled; }
+    string GetAiMonitoringSensitivity() const { return xcam_ai_monitoring_sensitivity; }
 
 
 private:
@@ -65,12 +67,14 @@ private:
     bool        xcam_auto_recovery_step_loss{false};
     bool        xcam_allow_prompt_sound{false};
     bool        xcam_filament_tangle_detect{false};
+    int         idel_heating_protect_enabled           = -1;
     time_t      xcam_ai_monitoring_hold_start          = 0;
     time_t      xcam_buildplate_marker_hold_start      = 0;
     time_t      xcam_first_layer_hold_start            = 0;
     time_t      xcam_auto_recovery_hold_start          = 0;
     time_t      xcam_prompt_sound_hold_start           = 0;
     time_t      xcam_filament_tangle_detect_hold_start = 0;
+    time_t      idel_heating_protect_hold_strat        = 0;
 
     MachineObject* m_obj;/*owner*/
 };
@@ -85,7 +89,8 @@ public:
     static void ParseDetectionV1_1(DevPrintOptions *opts, MachineObject *obj, const nlohmann::json &print_json, bool enable);
     static void ParseDetectionV1_2(DevPrintOptions *opts, MachineObject *obj, const nlohmann::json &print_json);
 
-     static void ParseDetectionV2_0(DevPrintOptions *opts, std::string print_json);
+    static void ParseDetectionV2_0(DevPrintOptions *opts, std::string cfg);
+    static void ParseDetectionV2_1(DevPrintOptions *opts, std::string cfg);
 };
 
 } // namespace Slic3r

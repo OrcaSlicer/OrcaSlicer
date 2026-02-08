@@ -1,10 +1,16 @@
 {
     "type": "filament",
     "name": "Generic PLA High Speed @BBL H2DP 0.2 nozzle",
-    "inherits": "Generic PLA High Speed @BBL X1C",
+    "inherits": "Generic PLA High Speed @base",
     "from": "system",
     "setting_id": "GFSL95_15",
     "instantiation": "true",
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
     "filament_deretraction_speed": [
         "nil",
         "nil"
@@ -108,9 +114,6 @@
     "retraction_distances_when_ec": [
         "10",
         "10"
-    ],
-    "slow_down_layer_time": [
-        "8"
     ],
     "volumetric_speed_coefficients": [
         "0 0 0 0 0 0",
