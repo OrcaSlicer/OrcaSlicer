@@ -1,0 +1,34 @@
+{
+    "type": "filament",
+    "name": "Elegoo RAPID PETG @ECC2",
+    "inherits": "Elegoo RAPID PETG @base",
+    "from": "system",
+    "setting_id": "ERPETGECC2",
+    "instantiation": "true",
+    "pressure_advance": [
+        "0.024"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "filament_density": [
+        "1.26"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "nozzle_temperature": [
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "compatible_printers": [
+        "Elegoo Centauri Carbon 2 0.4 nozzle",
+        "Elegoo Centauri Carbon 2 0.6 nozzle",
+        "Elegoo Centauri Carbon 2 0.8 nozzle"
+    ]
+}

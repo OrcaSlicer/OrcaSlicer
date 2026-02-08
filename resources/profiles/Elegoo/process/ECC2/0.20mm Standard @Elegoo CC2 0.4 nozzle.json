@@ -1,0 +1,34 @@
+
+{
+  "type": "process",
+  "name": "0.20mm Standard @Elegoo CC2 0.4 nozzle",
+  "inherits": "fdm_process_ecc_04020",
+  "from": "system",
+  "setting_id": "PECC204020",
+  "instantiation": "true",
+  "bottom_shell_layers": "3",
+  "bottom_shell_thickness": "0.6",
+  "filename_format": "ECC2_{nozzle_diameter[0]}_{input_filename_base}_{filament_type[0]}{layer_height}_{print_time}.gcode",
+  "min_width_top_surface": "50%",
+  "enable_prime_tower": "1",
+  "compatible_printers": [
+    "Elegoo Centauri Carbon 2 0.4 nozzle"
+  ],
+  "enable_arc_fitting": "0",
+  "exclude_object": "0",
+  "independent_support_layer_height": "0",
+  "infill_anchor": "1000",
+  "initial_layer_acceleration": "2000",
+  "outer_wall_speed": "200",
+  "skirt_height": "4",
+  "sparse_infill_pattern": "honeycomb",
+  "support_base_pattern": "honeycomb",
+  "support_base_pattern_spacing": "1",
+  "support_bottom_z_distance": "0.1",
+  "support_top_z_distance": "0.08",
+  "support_type": "tree(auto)",
+  "top_surface_acceleration": "5000",
+  "tree_support_branch_distance_organic": "2",
+  "tree_support_tip_diameter": "0.8",
+  "wall_sequence": "inner-outer-inner wall"
+}

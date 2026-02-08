@@ -1,0 +1,83 @@
+{
+  "type": "machine",
+  "name": "Elegoo Centauri Carbon 2 0.4 nozzle",
+    "inherits": "fdm_machine_ecc",
+  "from": "system",
+  "setting_id": "ECC204",
+  "instantiation": "true",
+  "nozzle_diameter": [
+    "0.4"
+  ],
+  "host_type": "elegoolink",
+  "printer_model": "Elegoo Centauri Carbon 2",
+  "printer_variant": "0.4",
+  "auxiliary_fan": "1",
+  "printable_area": [
+    "0x0",
+    "256x0",
+    "256x256",
+    "0x256"
+  ],
+  "printable_height": "256",
+  "retract_lift_below": [
+    "255"
+  ],
+  "bed_exclude_area": [
+    "246x0",
+    "256x0",
+    "256x20",
+    "246x20"
+  ],
+  "bed_texture_area": [
+    "0x-10",
+    "256x-10",
+    "256x256",
+    "0x256"
+  ],
+  "thumbnails": [
+    "144x144"
+  ],
+  "machine_max_acceleration_travel": [
+    "20000",
+    "20000"
+  ],
+  "default_filament_profile": [
+    "Elegoo PLA @ECC2"
+  ],
+  "default_print_profile": "0.20mm Standard @Elegoo CC2 0.4 nozzle",
+  "extruder_offset": [
+    "0x1.5"
+  ],
+  "default_bed_type": "4",
+  "fan_speedup_time": "0.5",
+  "machine_load_filament_time": "29",
+  "machine_unload_filament_time": "28",
+  "nozzle_type": "hardened_steel",
+  "scan_first_layer": "1",
+  "upward_compatible_machine": [],
+  "manual_filament_change": "0",
+  "auto_toolchange_command": "0",
+  "purge_in_prime_tower": "0",
+  "gcode_flavor": "klipper",
+  "machine_pause_gcode": "M600",
+  "support_multi_filament": "1",
+  "bed_mesh_max": "243,245",
+  "bed_mesh_min": "10,10",
+  "bed_mesh_probe_distance": "22,22",
+  "disable_m73": "0",
+  "machine_max_jerk_x": [
+    "20",
+    "9"
+  ],
+  "machine_max_jerk_y": [
+    "20",
+    "9"
+  ],
+  "change_filament_gcode": "\n;==========CC2==========\n;===== date: 2025-10-16-001 =====================\nM106 S0\nM106 P2 S0\nG1 Z{min(max_layer_z+3, printable_height+0.5)} F1200\nT[next_extruder]\nM6211 T[next_extruder] L[flush_length] M{old_filament_e_feedrate} N{new_filament_e_feedrate} Q[old_filament_temp] R[nozzle_temperature_range_high] S[new_filament_temp]\n",
+  "layer_change_gcode": "M73 L{layer_num+1}\n;LAYER:{layer_num+1}\n",
+  "machine_end_gcode": ";===== CC&CC2 - END Gcode ================\n;===== date: 2025-10-16-001 =====================\n\nM104 S0\nM140 S0 ;Turn-off bed\nM83\nG92 E0 ; zero the extruder\nG1 E-1.5 F1800\nG2 I0 J1 Z{max_layer_z+0.5} F3000 ; lower z a little\nM106 S0\nM106 P2 S0\nG90\n{if max_layer_z > 75}G1 Z{min(max_layer_z+5, printable_height+0.5)} F20000{else}G1 Z80 F20000 {endif}; Move print head up \nG180 S9\nM84\n",
+  "machine_start_gcode": ";===== CC2 - Start Gcode ================\n;===== date: 2025-10-29-001 =====================\n\nG90\nM104 S140\nM140 S[bed_temperature_initial_layer_single]\nM190 S[bed_temperature_initial_layer_single] A\nM106 S0\nBED_MESH_CALIBRATE mesh_min={adaptive_bed_mesh_min[0]},{adaptive_bed_mesh_min[1]} mesh_max={adaptive_bed_mesh_max[0]},{adaptive_bed_mesh_max[1]} ALGORITHM=[bed_mesh_algo] PROBE_COUNT={bed_mesh_probe_count[0]},{bed_mesh_probe_count[1]} ADAPTIVE=0 ADAPTIVE_MARGIN=0 FROM_SLICER=1\nM204 S{min(20000,max(1000,outer_wall_acceleration))} ;Call exterior wall print acceleration\nG28\nM109 S[nozzle_temperature_initial_layer]\nT[initial_no_support_extruder]\nM6211 A1 T[initial_no_support_extruder] Q[nozzle_temperature_initial_layer] R[nozzle_temperature_initial_layer] S[nozzle_temperature_initial_layer]\n\n{if first_layer_print_min[1] > 0.5}\nG180 S7\nG1 X{print_bed_max[0]*0.5-1} Y-1.2 F20000\nG1 Z0.5 F900\nM109 S[nozzle_temperature_initial_layer]\nM83\nG92 E0 ;Reset Extruder\nG1 E6 F{min(1200, max(120, filament_max_volumetric_speed[initial_no_support_extruder]*60/2/2.5043))} \nM106 S200\nG1 X{print_bed_max[0]*0.5-41} E20 F{min(12000, max(1200, filament_max_volumetric_speed[initial_no_support_extruder]*60/2/2.5043))} \nG1 F6000\nG1 X{print_bed_max[0]*0.5-46} E0.8\n{else}\nG1 E30 F{min(1200, max(120, filament_max_volumetric_speed[initial_no_support_extruder]*60/2/2.5043))}\n{endif}\nM106 S0\nG180 S8\nG1 F20000\nG92 E0 ;Reset Extruder\n;LAYER_COUNT:[total_layer_count]\n;LAYER:0",
+  "retract_restart_extra_toolchange": [
+    "0.5"
+  ]
+}
