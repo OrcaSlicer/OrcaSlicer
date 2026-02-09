@@ -42,9 +42,11 @@ class ArcFitter {
 public:
     //BBS: this function is used to check the point list and return which part can fit as arc, which part should be line
     static void do_arc_fitting(const Points& points, std::vector<PathFittingData> &result, double tolerance);
+    static void do_arc_fitting(const Points3& points, std::vector<PathFittingData> &result, double tolerance);
     //BBS: this function is used to check the point list and return which part can fit as arc, which part should be line.
     //By the way, it also use DP simplify to reduce point of straight part and only keep the start and end point of arc.
     static void do_arc_fitting_and_simplify(Points& points, std::vector<PathFittingData>& result, double tolerance);
+    static void do_arc_fitting_and_simplify(Points3& points, std::vector<PathFittingData>& result, double tolerance);
 };
 
 }

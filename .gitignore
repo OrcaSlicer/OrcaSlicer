@@ -46,3 +46,4 @@ test.js
 internal_docs/
 *.flatpak
 /flatpak-repo/
+resources/nonplanar/

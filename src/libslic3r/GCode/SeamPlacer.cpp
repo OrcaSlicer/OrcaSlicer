@@ -1514,7 +1514,8 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
       current.path_idx = next_idx_modulo(current.path_idx, loop.paths.size());
       current.segment_idx = 0;
     }
-    current.foot_pt = loop.paths[current.path_idx].polyline.points[current.segment_idx];
+    const Point3 &p3 = loop.paths[current.path_idx].polyline.points[current.segment_idx];
+    current.foot_pt = Point(p3.x(), p3.y());
     return current;
   };
 
@@ -1527,7 +1528,8 @@ void SeamPlacer::place_seam(const Layer *layer, ExtrusionLoop &loop,
   size_t closest_perimeter_point_index = 0;
   { // local space for the closest_perimeter_point_index
     Perimeter *closest_perimeter = nullptr;
-    ExtrusionLoop::ClosestPathPoint closest_point{0,0,loop.paths[0].polyline.points[0]};
+    const Point3 &init_p3 = loop.paths[0].polyline.points[0];
+    ExtrusionLoop::ClosestPathPoint closest_point{0,0,Point(init_p3.x(), init_p3.y())};
     size_t points_count = std::accumulate(loop.paths.begin(), loop.paths.end(), 0, [](size_t acc,const ExtrusionPath& p) {
       return acc + p.polyline.points.size();
     });
