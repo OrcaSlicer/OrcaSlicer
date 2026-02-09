@@ -740,6 +740,13 @@ void PrintConfigDef::init_common_params()
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("printer_agent", coString);
+    def->label = L("Printer Agent");
+    def->tooltip = L("Select the network agent implementation for printer communication.");
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionString(""));
+
     def = this->add("print_host", coString);
     def->label = L("Hostname, IP or URL");
     def->tooltip = L("Orca Slicer can upload G-code files to a printer host. This field should contain "
@@ -4457,9 +4464,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("reduce_infill_retraction", coBool);
     def->label = L("Reduce infill retraction");
-    def->tooltip = L("Don't retract when the travel is in infill area absolutely. That means the oozing can't been seen. "
+    def->tooltip = L("Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. "
                      "This can reduce times of retraction for complex model and save printing time, but make slicing and "
-                     "G-code generating slower.");
+                     "G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5390,6 +5397,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionInt(1));
 
+
+    def = this->add("file_start_gcode", coString);
+    def->label = L("File header G-code");
+    def->tooltip = L("G-code written at the very top of the output file, before any other content. "
+                     "Useful for adding metadata that printer firmware reads from the first lines of the file "
+                     "(e.g. estimated print time, filament usage). "
+                     "Supports placeholders like {print_time_sec} and {used_filament_length}.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 8;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("machine_start_gcode", coString);
     def->label = L("Start G-code");
@@ -10292,6 +10311,14 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def = this->add("used_filament", coFloat);
     def->label = L("Used filament");
     def->tooltip = L("Total length of filament used in the print.");
+
+    def = this->add("print_time_sec", coString);
+    def->label = L("Print time (seconds)");
+    def->tooltip = L("Total estimated print time in seconds. Replaced with actual value during post-processing.");
+
+    def = this->add("used_filament_length", coString);
+    def->label = L("Filament length (meters)");
+    def->tooltip = L("Total filament length used in meters. Replaced with actual value during post-processing.");
 }
 
 ObjectsInfoConfigDef::ObjectsInfoConfigDef()
@@ -10426,6 +10453,7 @@ OtherPresetsConfigDef::OtherPresetsConfigDef()
 
 static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificPlaceholders{
     // Machine G-code
+    {"file_start_gcode",           {}},
     {"machine_start_gcode",         {}},
     {"machine_end_gcode",           {"layer_num", "layer_z", "max_layer_z", "filament_extruder_id"}},
     {"before_layer_change_gcode",   {"layer_num", "layer_z", "max_layer_z"}},
