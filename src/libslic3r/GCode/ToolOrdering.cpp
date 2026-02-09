@@ -317,9 +317,10 @@ bool ToolOrdering::insert_wipe_tower_extruder()
     const unsigned int wipe_extruder = (unsigned int)(m_print_config_ptr->wipe_tower_filament - 1);
     for (LayerTools &lt : m_layer_tools) {
         if (lt.wipe_tower_partitions > 0) {
-            lt.extruders.emplace_back(wipe_extruder);
-            sort_remove_duplicates(lt.extruders);
-            changed = true;
+            if (std::find(lt.extruders.begin(), lt.extruders.end(), wipe_extruder) == lt.extruders.end()) {
+                lt.extruders.emplace_back(wipe_extruder);
+                changed = true;
+            }
         }
     }
     return changed;
