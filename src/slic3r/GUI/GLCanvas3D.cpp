@@ -1250,6 +1250,11 @@ bool GLCanvas3D::init()
     on_change_color_mode(wxGetApp().app_config->get("dark_color_mode") == "1", false);
 
     m_show_world_axes = wxGetApp().app_config->get("show_axes") == "true";
+    
+    // Controls the display of object names directly over the object
+    m_labels.show(wxGetApp().app_config->get_bool("show_labels"));
+    // Controls the color coding of overhang surfaces
+    m_slope.globalUse(wxGetApp().app_config->get_bool("show_labels"));
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< " enter";
     glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
