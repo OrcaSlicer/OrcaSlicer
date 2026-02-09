@@ -7,15 +7,15 @@
 #endif
 
 AnimaIcon::AnimaIcon(wxWindow *parent, wxWindowID id, std::vector<std::string> img_list, std::string img_enable, int ivt)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize), m_ivt(ivt)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize), m_ivt(ivt), m_img_enable(img_enable), m_img_list(img_list)
 {
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     SetBackgroundColour((wxColour(255, 255, 255)));
     m_size = 25;
 
     //add ScalableBitmap
-    for (const auto &filename : img_list) m_images.emplace_back(create_scaled_bitmap(filename, this, m_size));
-    m_image_enable = create_scaled_bitmap(img_enable, this, m_size-8);
+    for (const auto &filename : m_img_list) m_images.emplace_back(create_scaled_bitmap(filename, this, m_size));
+    m_image_enable = create_scaled_bitmap(m_img_enable, this, m_size-8);
 
     // show first wxStaticBitmap
     if (!m_images.empty()) m_bitmap = new wxStaticBitmap(this, wxID_ANY, m_images[0], wxDefaultPosition, wxSize(FromDIP(m_size), FromDIP(m_size)));
@@ -68,9 +68,8 @@ AnimaIcon::~AnimaIcon()
 
 void AnimaIcon::Play()
 {
-    if (true)
+    if (m_timer)
         m_timer->Start(m_ivt);
-
 }
 
 void AnimaIcon::Stop()
@@ -78,12 +77,40 @@ void AnimaIcon::Stop()
     m_timer->Stop();
 }
 
+bool AnimaIcon::IsPlaying()
+{
+    return m_timer->IsRunning();
+}
+
 void AnimaIcon::Enable()
 {
+    m_enable = true;
     if (m_bitmap) { m_bitmap->SetBitmap(m_image_enable); }
 }
+
 
 bool AnimaIcon::IsRunning() const
 {
     return m_timer ? m_timer->IsRunning() : false;
+}
+
+void AnimaIcon::Rescale()
+{
+    m_images.clear();
+    for (const auto& filename : m_img_list) m_images.emplace_back(create_scaled_bitmap(filename, this, m_size));
+    m_image_enable = create_scaled_bitmap(m_img_enable, this, m_size - 8);
+
+    if (m_img_list.empty()) {
+        return;
+    }
+
+    if (IsPlaying()) {
+        m_bitmap->SetBitmap(m_images[m_current_frame]);
+    } else {
+        if(m_enable) {
+            m_bitmap->SetBitmap(m_image_enable);
+        } else {
+            m_bitmap->SetBitmap(m_images[0]);
+        }
+    }
 }

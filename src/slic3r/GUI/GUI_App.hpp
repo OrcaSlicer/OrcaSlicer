@@ -50,7 +50,6 @@ class wxBookCtrlBase;
 class Notebook;
 struct wxLanguageInfo;
 
-
 namespace Slic3r {
 
 class AppConfig;

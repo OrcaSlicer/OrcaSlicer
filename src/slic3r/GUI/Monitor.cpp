@@ -182,6 +182,27 @@ void MonitorPanel::init_tabpanel()
         }
         page->SetFocus();
         update_all();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << " select :" << get_string_from_tab(PrinterTab(m_tabpanel->GetSelection()))
+            << " wxString:" << m_tabpanel->GetPageText(m_tabpanel->GetSelection()).ToStdString();
+        NetworkAgent* agent = GUI::wxGetApp().getAgent();
+        if (agent) {
+            std::string name = get_string_from_tab(PrinterTab(m_tabpanel->GetSelection()));
+            if (name != "") {
+                std::string value = "";
+                agent->track_get_property(name, value);
+                int count = 0;
+                if (value != "") {
+                    try {
+                        count = std::stoi(value);
+                    }
+                    catch (...) {
+                        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << __LINE__ << " String to integer error!";
+                        count = 0;
+                    }
+                }
+                agent->track_update_property(name, std::to_string(++count));
+            }
+        }
         }, m_tabpanel->GetId());
 
     //m_status_add_machine_panel = new AddMachinePanel(m_tabpanel);
@@ -343,7 +364,6 @@ void MonitorPanel::update_all()
         show_status((int)MONITOR_NO_PRINTER);
         m_hms_panel->clear_hms_tag();
         m_tabpanel->GetBtnsListCtrl()->showNewTag(3, false);
-        if (m_status_info_panel->IsShown()) {
             m_status_info_panel->m_media_play_ctrl->SetMachineObject(obj);
             m_status_info_panel->update(obj);
         }
