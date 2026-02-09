@@ -1,14 +1,18 @@
 #pragma once
 
 #include <string>
+#define calib_pressure_advance_dd
+
 #include "GCodeWriter.hpp"
 #include "PrintConfig.hpp"
 #include "BoundingBox.hpp"
+#include "CustomGCode.hpp"
 
 namespace Slic3r {
 
 class GCode;
 class Model;
+class ModelObject;
 
 enum class CalibMode : int {
     Calib_None = 0,
@@ -20,7 +24,10 @@ enum class CalibMode : int {
     Calib_Temp_Tower,
     Calib_Vol_speed_Tower,
     Calib_VFA_Tower,
-    Calib_Retraction_tower
+    Calib_Retraction_tower,
+    Calib_Input_shaping_freq,
+    Calib_Input_shaping_damp,
+    Calib_Cornering
 };
 
 enum class CalibState {
@@ -129,8 +136,8 @@ public:
     std::string filament_id;
     std::string setting_id;
     std::string name;
-    float       k_value = 0.0;
-    float       n_coef = 0.0;
+    float       k_value    = 0.0;
+    float       n_coef     = 0.0;
     int         confidence = -1; // 0: success  1: uncertain  2: failed
 };
 
@@ -228,12 +235,13 @@ protected:
     const double                 m_digit_segment_len{2};
     const double                 m_digit_gap_len{1};
     const std::string::size_type m_max_number_len{5};
+    std::string::size_type       m_number_len{m_max_number_len}; /* Current length of number labels */
 };
 
 class CalibPressureAdvanceLine : public CalibPressureAdvance
 {
 public:
-    CalibPressureAdvanceLine(GCode *gcodegen);
+    CalibPressureAdvanceLine(GCode* gcodegen);
     ~CalibPressureAdvanceLine(){};
 
     std::string generate_test(double start_pa = 0, double step_pa = 0.002, int count = 50);
@@ -247,7 +255,7 @@ public:
     const double &line_width() { return m_line_width; };
     const double &height_layer() { return m_height_layer; };
     bool          is_delta() const;
-    bool &        draw_numbers() { return m_draw_numbers; }
+    bool         &draw_numbers() { return m_draw_numbers; }
 
 private:
     std::string print_pa_lines(double start_x, double start_y, double start_pa, double step_pa, int num);
@@ -313,6 +321,7 @@ private:
     void _refresh_writer(bool is_bbl_machine, const Model &model, const Vec3d &origin);
 
     double    height_first_layer() const { return m_config.option<ConfigOptionFloat>("initial_layer_print_height")->value; };
+    double    height_z_offset() const { return m_config.option<ConfigOptionFloat>("z_offset")->value; };
     double    height_layer() const { return m_config.option<ConfigOptionFloat>("layer_height")->value; };
     const int get_num_patterns() const { return std::ceil((m_params.end - m_params.start) / m_params.step + 1); }
 
@@ -334,6 +343,7 @@ private:
     double glyph_length_x() const;
     double glyph_tab_max_x() const;
     double max_numbering_height() const;
+    size_t max_numbering_length() const;
 
     double pattern_shift() const;
 
