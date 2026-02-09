@@ -1250,8 +1250,10 @@ bool GLCanvas3D::init()
 
     m_show_world_axes = wxGetApp().app_config->get("show_axes") == "true";
     
-    m_labels.show(wxGetApp().app_config->get("show_labels") == "true");
-    m_slope.globalUse(wxGetApp().app_config->get("show_overhang") == "true");
+    // Controls the display of object names directly over the object
+    m_labels.show(wxGetApp().app_config->get_bool("show_labels"));
+    // Controls the color coding of overhang surfaces
+    m_slope.globalUse(wxGetApp().app_config->get_bool("show_labels"));
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< " enter";
     glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
