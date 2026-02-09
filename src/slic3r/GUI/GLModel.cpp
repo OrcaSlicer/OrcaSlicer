@@ -9,7 +9,6 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/BuildVolume.hpp"
-#include "libslic3r/CLIManager.hpp"
 #include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include <boost/filesystem/operations.hpp>
@@ -597,23 +596,22 @@ static GLenum get_index_type(const GLModel::Geometry& data)
     }
 }
 
-void GLModel::render()
+void GLModel::render(GLShaderProgram* shader)
 {
-    render(std::make_pair<size_t, size_t>(0, indices_count()));
+    render(std::make_pair<size_t, size_t>(0, indices_count()), shader);
 }
 
-void GLModel::render(const std::pair<size_t, size_t>& range)
+void GLModel::render(const std::pair<size_t, size_t>& range, GLShaderProgram* shader)
 {
     if (m_render_disabled)
         return;
 
     if (range.second == range.first)
         return;
-    GLShaderProgram* shader;
-    if (CLIManager::is_cli_mode)
-        shader = CLIManager::m_opengl_mgr->get_current_shader();
-    else
+
+    if (shader == nullptr && wxApp::GetInstance() != nullptr)
         shader = wxGetApp().get_current_shader();
+
     if (shader == nullptr)
         return;
 
