@@ -51,6 +51,7 @@ private:
     int m_front_buffer_fan_speed = 0;
     int m_back_buffer_fan_speed = 0;
     BufferData m_current_kickstart{"",-1,0};
+    bool m_is_overhang_hint = false;
 
     //buffer
     std::list<BufferData> m_buffer;
