@@ -27,9 +27,10 @@ To verify it worked:
 
 ```bash
 xcode-select -p
+git --version
 ```
 
-You should see something like `/Library/Developer/CommandLineTools` or `/Applications/Xcode.app/Contents/Developer`.
+You should see a path like `/Library/Developer/CommandLineTools` and a git version. Both git and the C++ compiler are included in the Command Line Tools.
 
 ## Step 3: Install Homebrew
 
@@ -68,21 +69,7 @@ cmake --version
 
 You need version 3.13 or later (anything recent from Homebrew will work).
 
-## Step 5: Install Git (if needed)
-
-Git usually comes with the Xcode Command Line Tools. Check:
-
-```bash
-git --version
-```
-
-If it's not found:
-
-```bash
-brew install git
-```
-
-## Step 6: Clone the Repository
+## Step 5: Clone the Repository
 
 Choose where you want the source code. For example, in your home directory:
 
@@ -98,7 +85,7 @@ If you want the ZAA feature branch:
 git checkout feature/zaa-contouring
 ```
 
-## Step 7: Build
+## Step 6: Build
 
 The `build.sh` script handles everything. For a first-time build:
 
@@ -133,7 +120,7 @@ This does an incremental build — only recompiles what changed. Usually takes 1
 ./build.sh --configure  # Reconfigure CMake only
 ```
 
-## Step 8: Run OrcaSlicer
+## Step 7: Run OrcaSlicer
 
 After a successful build, the script prints the app location. You can run it with:
 
