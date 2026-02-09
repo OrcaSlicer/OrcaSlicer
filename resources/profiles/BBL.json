@@ -998,10 +998,6 @@
             "sub_path": "filament/COEX/COEX PLA @BBL X1C.json"
         },
         {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
             "name": "COEX PCTG PRIME @BBL A1M 0.4 nozzle",
             "sub_path": "filament/COEX/COEX PCTG PRIME @BBL A1M.json"
         },
@@ -1040,78 +1036,6 @@
         {
             "name": "FusRock ABS-GF @base",
             "sub_path": "filament/FusRock/FusRock ABS-GF @base.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_bvoh",
-            "sub_path": "filament/fdm_filament_bvoh.json"
-        },
-        {
-            "name": "fdm_filament_eva",
-            "sub_path": "filament/fdm_filament_eva.json"
-        },
-        {
-            "name": "fdm_filament_hips",
-            "sub_path": "filament/fdm_filament_hips.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_pctg",
-            "sub_path": "filament/fdm_filament_pctg.json"
-        },
-        {
-            "name": "fdm_filament_pe",
-            "sub_path": "filament/fdm_filament_pe.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_pha",
-            "sub_path": "filament/fdm_filament_pha.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_pp",
-            "sub_path": "filament/fdm_filament_pp.json"
-        },
-        {
-            "name": "fdm_filament_ppa",
-            "sub_path": "filament/fdm_filament_ppa.json"
-        },
-        {
-            "name": "fdm_filament_pps",
-            "sub_path": "filament/fdm_filament_pps.json"
-        },
-        {
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
-            "name": "fdm_filament_sbs",
-            "sub_path": "filament/fdm_filament_sbs.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
         },
         {
             "name": "FusRock ABS-GF @BBL A1",
@@ -7700,10 +7624,6 @@
         {
             "name": "Overture TPU @BBL X1C 0.2 nozzle",
             "sub_path": "filament/Overture/Overture TPU @BBL X1C 0.2 nozzle.json"
-        },
-        {
-            "name": "fdm_filament_dual_common",
-            "sub_path": "filament/fdm_filament_dual_common.json"
         }
     ],
     "machine_list": [

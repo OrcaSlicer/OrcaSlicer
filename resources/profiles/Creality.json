@@ -1114,7 +1114,7 @@
             "name": "0.36mm Draft @Creality K2 Plus 0.6 nozzle",
             "sub_path": "process/0.36mm Draft @Creality K2 Plus 0.6 nozzle.json"
         },
-       {
+        {
             "name": "0.36mm Draft @Creality K2 Pro 0.6 nozzle",
             "sub_path": "process/0.36mm Draft @Creality K2 Pro 0.6 nozzle.json"
         },
@@ -1305,10 +1305,6 @@
     ],
     "filament_list": [
         {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
             "name": "Creality Generic ABS @Ender-5Max-all",
             "sub_path": "filament/Creality Generic ABS @Ender-5Max-all.json"
         },
@@ -1347,34 +1343,6 @@
         {
             "name": "Creality Silk PLA @Ender-5Max-all",
             "sub_path": "filament/Creality Silk PLA @Ender-5Max-all.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
         },
         {
             "name": "Creality Generic ABS",

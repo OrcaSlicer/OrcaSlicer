@@ -1397,58 +1397,6 @@
     ],
     "filament_list": [
         {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_abs",
-            "sub_path": "filament/fdm_filament_abs.json"
-        },
-        {
-            "name": "fdm_filament_asa",
-            "sub_path": "filament/fdm_filament_asa.json"
-        },
-        {
-            "name": "fdm_filament_flex",
-            "sub_path": "filament/fdm_filament_flex.json"
-        },
-        {
-            "name": "fdm_filament_pa",
-            "sub_path": "filament/fdm_filament_pa.json"
-        },
-        {
-            "name": "fdm_filament_pa11cf",
-            "sub_path": "filament/fdm_filament_pa11cf.json"
-        },
-        {
-            "name": "fdm_filament_pc",
-            "sub_path": "filament/fdm_filament_pc.json"
-        },
-        {
-            "name": "fdm_filament_pccf",
-            "sub_path": "filament/fdm_filament_pccf.json"
-        },
-        {
-            "name": "fdm_filament_pet",
-            "sub_path": "filament/fdm_filament_pet.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
-            "name": "fdm_filament_pva",
-            "sub_path": "filament/fdm_filament_pva.json"
-        },
-        {
-            "name": "fdm_filament_pvb",
-            "sub_path": "filament/fdm_filament_pvb.json"
-        },
-        {
-            "name": "fdm_filament_tpu",
-            "sub_path": "filament/fdm_filament_tpu.json"
-        },
-        {
             "name": "Prusa Generic ABS",
             "sub_path": "filament/Prusa Generic ABS.json"
         },

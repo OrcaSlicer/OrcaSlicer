@@ -29,14 +29,6 @@
     ],
     "filament_list": [
         {
-            "name": "fdm_filament_common",
-            "sub_path": "filament/fdm_filament_common.json"
-        },
-        {
-            "name": "fdm_filament_pla",
-            "sub_path": "filament/fdm_filament_pla.json"
-        },
-        {
             "name": "CoPrint Generic PLA",
             "sub_path": "filament/CoPrint Generic PLA.json"
         },
