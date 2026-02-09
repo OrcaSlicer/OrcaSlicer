@@ -1037,7 +1037,7 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
     Model model;
     std::string input_file;
     if (params.mode == CalibMode::Calib_PA_Line)
-        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.stl";
+        input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.drc";
     else if (params.mode == CalibMode::Calib_PA_Pattern)
         input_file = Slic3r::resources_dir() + "/calib/pressure_advance/pa_pattern.3mf";
 
@@ -1139,7 +1139,7 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
         return;
 
     Model       model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step";
+    std::string input_file = Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1217,7 +1217,7 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
         return;
 
     Model model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/vfa/VFA.stl";
+    std::string input_file = Slic3r::resources_dir() + "/calib/vfa/vfa.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
@@ -1276,7 +1276,7 @@ void CalibUtils::calib_retraction(const CalibInfo &calib_info, wxString &error_m
         return;
 
     Model model;
-    std::string input_file = Slic3r::resources_dir() + "/calib/retraction/retraction_tower.stl";
+    std::string input_file = Slic3r::resources_dir() + "/calib/retraction/retraction_tower.drc";
     read_model_from_file(input_file, model);
 
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
