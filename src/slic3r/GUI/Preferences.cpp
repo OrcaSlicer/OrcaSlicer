@@ -15,6 +15,7 @@
 #include "NetworkTestDialog.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
+#include "Widgets/StateColor.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
@@ -50,6 +51,41 @@ wxBoxSizer *PreferencesDialog::create_item_title(wxString title)
     m_sizer_title->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN - 10));
 
     return m_sizer_title;
+}
+
+void PreferencesDialog::bind_label_link(wxWindow* label, const std::string& path_end)
+{
+    if (!label || path_end.empty())
+        return;
+
+    const wxString base_tooltip = label->GetToolTipText();
+    auto base_font = std::make_shared<wxFont>(label->GetFont());
+    auto base_color = std::make_shared<wxColour>(label->GetForegroundColour());
+
+    label->Bind(wxEVT_LEFT_UP, [path_end](wxMouseEvent& e) {
+        OptionsGroup::launch_browser(path_end);
+        e.Skip();
+    });
+
+    label->Bind(wxEVT_ENTER_WINDOW, [label, path_end, base_font, base_color](wxMouseEvent& e) {
+        *base_font = label->GetFont();
+        *base_color = label->GetForegroundColour();
+        label->SetFont(base_font->Underlined());
+        label->SetForegroundColour(StateColor::darkModeColorFor("#009688"));
+        label->SetCursor(wxCURSOR_HAND);
+        label->SetToolTip(OptionsGroup::get_url(path_end));
+        label->Refresh();
+        e.Skip();
+    });
+
+    label->Bind(wxEVT_LEAVE_WINDOW, [label, base_font, base_color, base_tooltip](wxMouseEvent& e) {
+        label->SetFont(*base_font);
+        label->SetForegroundColour(*base_color);
+        label->SetCursor(wxNullCursor);
+        label->SetToolTip(base_tooltip);
+        label->Refresh();
+        e.Skip();
+    });
 }
 
 std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, unsigned int current_index)

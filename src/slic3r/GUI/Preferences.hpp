@@ -114,6 +114,7 @@ public:
 
 private:
     std::tuple<wxBoxSizer*, ComboBox*> create_item_combobox_base(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, unsigned int current_index);
+    void bind_label_link(wxWindow* label, const std::string& path_end);
 };
 
 }} // namespace Slic3r::GUI
