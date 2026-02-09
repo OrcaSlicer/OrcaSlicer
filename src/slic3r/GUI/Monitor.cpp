@@ -343,7 +343,10 @@ void MonitorPanel::update_all()
         show_status((int)MONITOR_NO_PRINTER);
         m_hms_panel->clear_hms_tag();
         m_tabpanel->GetBtnsListCtrl()->showNewTag(3, false);
-        m_status_info_panel->update(obj);
+        if (m_status_info_panel->IsShown()) {
+            m_status_info_panel->m_media_play_ctrl->SetMachineObject(obj);
+            m_status_info_panel->update(obj);
+        }
         return;
     }
 
@@ -370,9 +373,11 @@ void MonitorPanel::update_all()
 
     auto current_page = m_tabpanel->GetCurrentPage();
     if (current_page == m_status_info_panel) {
-        m_status_info_panel->obj = obj;
-        m_status_info_panel->m_media_play_ctrl->SetMachineObject(obj);
-        m_status_info_panel->update(obj);
+        if (m_status_info_panel->IsShown()) {
+            m_status_info_panel->obj = obj;
+            m_status_info_panel->m_media_play_ctrl->SetMachineObject(obj);
+            m_status_info_panel->update(obj);
+        }
     } else if (current_page == m_upgrade_panel) {
         m_upgrade_panel->update(obj);
     } else if (current_page == m_media_file_panel) {

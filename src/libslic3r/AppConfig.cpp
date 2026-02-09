@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Format/DRC.hpp"
 #include "AppConfig.hpp"
 //BBS
 #include "Preset.hpp"
@@ -124,6 +125,8 @@ void AppConfig::set_defaults()
 #ifdef _WIN32
         if (get("associate_3mf").empty())
             set_bool("associate_3mf", false);
+        if (get("associate_drc").empty())
+            set_bool("associate_drc", false);
         if (get("associate_stl").empty())
             set_bool("associate_stl", false);
         if (get("associate_step").empty())
@@ -236,6 +239,9 @@ void AppConfig::set_defaults()
     if (get("enable_multi_machine").empty())
         set_bool("enable_multi_machine", false);
 
+    if (get("drc_bits").empty())
+        set("drc_bits", DRC_BITS_DEFAULT_STR);
+
     if (get("show_gcode_window").empty())
         set_bool("show_gcode_window", true);
 
@@ -247,6 +253,12 @@ void AppConfig::set_defaults()
     
     if (get("show_axes").empty())
         set_bool("show_axes", true);
+
+    if (get("show_labels").empty())
+        set_bool("show_labels", false);
+
+    if (get("show_overhang").empty())
+        set_bool("show_overhang", false);
 
 #ifdef _WIN32
 
@@ -499,6 +511,10 @@ void AppConfig::set_defaults()
     }
     if (get("is_split_compound").empty()) {
         set_bool("is_split_compound", false);
+    }
+
+    if(get("installed_networking").empty()) {
+        set_bool("installed_networking", false);
     }
 
     // Remove legacy window positions/sizes
