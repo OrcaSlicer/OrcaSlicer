@@ -9515,7 +9515,7 @@ msgstr ""
 "Firmware-Version dies unterstützt."
 
 msgid "Connection timed out, please check your network."
-msgstr ""
+msgstr "Verbindung zeitüberschritten, bitte überprüfen Sie Ihr Netzwerk."
 
 msgid "Connection failed. Click the icon to retry"
 msgstr ""
