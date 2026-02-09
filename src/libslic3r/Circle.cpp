@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cassert>
 #include "Geometry.hpp"
+#include "Polygon.hpp"
 
 
 //BBS: Refer to ArcWelderLib for the arc fitting functions
@@ -93,6 +94,12 @@ bool Circle::try_create_circle(const Points& points, const double max_radius, co
     }
     return found_circle;
 }
+
+bool Circle::try_create_circle(const Points3& points, const double max_radius, const double tolerance, Circle& new_circle)
+{
+    return Circle::try_create_circle(to_points(points), max_radius, tolerance, new_circle);
+}
+
 
 double Circle::get_polar_radians(const Point& p1) const
 {
@@ -292,6 +299,31 @@ bool ArcSegment::try_create_arc(
 }
 
 bool ArcSegment::try_create_arc(
+    const Points3& points,
+    ArcSegment& target_arc,
+    double approximate_length,
+    double max_radius,
+    double tolerance,
+    double path_tolerance_percent)
+{
+    Circle test_circle = (Circle)target_arc;
+    if (!Circle::try_create_circle(points, max_radius, tolerance, test_circle))
+        return false;
+
+    int mid_point_index = ((points.size() - 2) / 2) + 1;
+    ArcSegment test_arc;
+    if (!ArcSegment::try_create_arc(test_circle, points[0].to_point(), points[mid_point_index].to_point(), points[points.size() - 1].to_point(), test_arc, approximate_length, path_tolerance_percent))
+        return false;
+
+    if (ArcSegment::are_points_within_slice(test_arc, points))
+    {
+        target_arc = test_arc;
+        return true;
+    }
+    return false;
+}
+
+bool ArcSegment::try_create_arc(
     const Circle& c,
     const Point& start_point,
     const Point& mid_point,
@@ -444,6 +476,87 @@ bool ArcSegment::are_points_within_slice(const ArcSegment& test_arc, const Point
 
         // BBS: check if the segment intersects either of the vector from the center of the circle to the endpoints of the arc
         Line segmemt(points[index - 1], points[index]);
+        if ((index != 1 && ray_intersects_segment(test_arc.center, start_norm, segmemt)) ||
+            (index != point_count - 1 && ray_intersects_segment(test_arc.center, end_norm, segmemt)))
+            return false;
+        previous_polar = polar_test;
+    }
+    //BBS: Ensure that all arcs that cross zero
+    if (will_cross_zero != crossed_zero)
+        return false;
+    return true;
+}
+
+bool ArcSegment::are_points_within_slice(const ArcSegment& test_arc, const Points3& points)
+{
+    //BBS: Check all the points and see if they fit inside of the angles
+    double previous_polar = test_arc.polar_start_theta;
+    bool will_cross_zero = false;
+    bool crossed_zero = false;
+    const int point_count = points.size();
+
+    Vec2d start_norm(((double)test_arc.start_point.x() - (double)test_arc.center.x()) / test_arc.radius,
+                     ((double)test_arc.start_point.y() - (double)test_arc.center.y()) / test_arc.radius);
+    Vec2d end_norm(((double)test_arc.end_point.x() - (double)test_arc.center.x()) / test_arc.radius,
+                   ((double)test_arc.end_point.y() - (double)test_arc.center.y()) / test_arc.radius);
+
+    if (test_arc.direction == ArcDirection::Arc_Dir_CCW)
+        will_cross_zero = test_arc.polar_start_theta > test_arc.polar_end_theta;
+    else
+        will_cross_zero = test_arc.polar_start_theta < test_arc.polar_end_theta;
+
+    //BBS: check if point 1 to point 2 cross zero
+    double polar_test;
+    for (int index = point_count - 2; index < point_count; index++)
+    {
+        if (index < point_count - 1)
+          polar_test = test_arc.get_polar_radians(points[index].to_point());
+        else
+          polar_test = test_arc.polar_end_theta;
+
+        //BBS: First ensure the test point is within the arc
+        if (test_arc.direction == ArcDirection::Arc_Dir_CCW)
+        {
+            //BBS: Only check to see if we are within the arc if this isn't the endpoint
+            if (index < point_count - 1) {
+                if (will_cross_zero) {
+                    if (!(polar_test > test_arc.polar_start_theta || polar_test < test_arc.polar_end_theta))
+                        return false;
+                } else if (!(test_arc.polar_start_theta < polar_test && polar_test < test_arc.polar_end_theta))
+                    return false;
+            }
+            //BBS: check the angles are increasing
+            if (previous_polar > polar_test) {
+                if (!will_cross_zero)
+                    return false;
+
+                //BBS: Allow the angle to cross zero once
+                if (crossed_zero)
+                    return false;
+                crossed_zero = true;
+            }
+        } else {
+            if (index < point_count - 1) {
+                if (will_cross_zero) {
+                    if (!(polar_test < test_arc.polar_start_theta || polar_test > test_arc.polar_end_theta))
+                        return false;
+                } else if (!(test_arc.polar_start_theta > polar_test && polar_test > test_arc.polar_end_theta))
+                    return false;
+            }
+            //BBS: Now make sure the angles are decreasing
+            if (previous_polar < polar_test)
+            {
+                if (!will_cross_zero)
+                    return false;
+                //BBS: Allow the angle to cross zero once
+                if (crossed_zero)
+                    return false;
+                crossed_zero = true;
+            }
+        }
+
+        // BBS: check if the segment intersects either of the vector from the center of the circle to the endpoints of the arc
+        Line segmemt(points[index - 1].to_point(), points[index].to_point());
         if ((index != 1 && ray_intersects_segment(test_arc.center, start_norm, segmemt)) ||
             (index != point_count - 1 && ray_intersects_segment(test_arc.center, end_norm, segmemt)))
             return false;

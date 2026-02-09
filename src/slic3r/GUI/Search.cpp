@@ -70,6 +70,7 @@ static std::string get_key(const std::string &opt_key, Preset::Type type) { retu
 
 void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode)
 {
+    if (!config) return;
     auto emplace = [this, type](const std::string key, const wxString &label) {
         const GroupAndCategory &gc = groups_and_categories[key];
         if (gc.group.IsEmpty() || gc.category.IsEmpty()) return;
@@ -89,13 +90,19 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
     };
 
     for (std::string opt_key : config->keys()) {
-        const ConfigOptionDef &opt = config->def()->options.at(opt_key);
+        auto def_it = config->def()->options.find(opt_key);
+        if (def_it == config->def()->options.end()) {
+            continue;
+        }
+        const ConfigOptionDef &opt = def_it->second;
         if (opt.mode > mode) continue;
 
         int cnt = 0;
 
-        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER) && opt_key != "printable_area")
-            switch (config->option(opt_key)->type()) {
+        if ((type == Preset::TYPE_SLA_MATERIAL || type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT) && opt_key != "printable_area") {
+            const ConfigOption *opt_ptr = config->option(opt_key);
+            if (!opt_ptr) continue;
+            switch (opt_ptr->type()) {
             case coInts: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             case coBools: change_opt_key<ConfigOptionBools>(opt_key, config, cnt); break;
             case coFloats: change_opt_key<ConfigOptionFloats>(opt_key, config, cnt); break;
@@ -106,6 +113,7 @@ void OptionsSearcher::append_options(DynamicPrintConfig *config, Preset::Type ty
             case coEnums: change_opt_key<ConfigOptionInts>(opt_key, config, cnt); break;
             default: break;
             }
+        }
 
         wxString label = opt.full_label.empty() ? opt.label : opt.full_label;
 
@@ -222,7 +230,7 @@ bool OptionsSearcher::search(const std::string &search, bool force /* = false*/,
         if (full_list) {
             std::string label = into_u8(get_label(opt));
             //all
-            if (type == Preset::TYPE_INVALID) { 
+            if (type == Preset::TYPE_INVALID) {
                 found.emplace_back(FoundOption{label, label, into_u8(get_tooltip(opt)), i, 0});
             } else if (type == opt.type){
                 found.emplace_back(FoundOption{label, label, into_u8(get_tooltip(opt)), i, 0});
@@ -289,7 +297,9 @@ OptionsSearcher::~OptionsSearcher() {}
 void OptionsSearcher::init(std::vector<InputInfo> input_values)
 {
     options.clear();
-    for (auto i : input_values) append_options(i.config, i.type, i.mode);
+    for (size_t idx = 0; idx < input_values.size(); ++idx) {
+        append_options(input_values[idx].config, input_values[idx].type, input_values[idx].mode);
+    }
     sort_options();
 
     search(search_line, true, search_type);

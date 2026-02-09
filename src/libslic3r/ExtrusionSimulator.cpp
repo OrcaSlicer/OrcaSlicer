@@ -962,7 +962,7 @@ void ExtrusionSimulator::extrude_to_accumulator(const ExtrusionPath &path, const
 	w = scale_(path.mm3_per_mm / path.height) * scalex;
 	// printf("scalex: %f, scaley: %f\n", scalex, scaley);
 	// printf("bbox: %d,%d %d,%d\n", bbox.min.x(), bbox.min.y, bbox.max.x(), bbox.max.y);
-	for (Points::const_iterator it = path.polyline.points.begin(); it != path.polyline.points.end(); ++ it) {
+	for (Points3::const_iterator it = path.polyline.points.begin(); it != path.polyline.points.end(); ++ it) {
 		// printf("point %d,%d\n", it->x+shift.x(), it->y+shift.y);
 		ExtrusionPoint ept;
 		ept.center = V2f(float((*it)(0)+shift.x()-bbox.min.x()) * scalex, float((*it)(1)+shift.y()-bbox.min.y()) * scaley);

@@ -81,7 +81,19 @@ std::vector<ExtendedPoint> estimate_points_properties(const POINTS              
     if (input_points.empty())
         return {};
     float boundary_offset = PREV_LAYER_BOUNDARY_OFFSET ? 0.5 * flow_width : 0.0f;
-    auto  maybe_unscale   = [](const P &p) { return SCALED_INPUT ? unscaled(p) : p.template cast<double>(); };
+    auto  maybe_unscale   = [](const P &p) -> Vec2d {
+        if constexpr (P::RowsAtCompileTime == 3) {
+            // 3D point - extract XY only
+            if constexpr (SCALED_INPUT) {
+                return unscaled(p).template head<2>();
+            } else {
+                return p.template head<2>().template cast<double>();
+            }
+        } else {
+            // 2D point - use as is
+            return SCALED_INPUT ? unscaled(p) : p.template cast<double>();
+        }
+    };
 
     std::vector<ExtendedPoint> points;
     points.reserve(input_points.size() * (ADD_INTERSECTIONS ? 1.5 : 1));

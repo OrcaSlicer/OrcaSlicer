@@ -3816,7 +3816,7 @@ static std::vector<Search::InputInfo> get_search_inputs(ConfigOptionMode mode)
     auto& tabs_list = wxGetApp().tabs_list;
     auto print_tech = wxGetApp().preset_bundle->printers.get_selected_preset().printer_technology();
     for (auto tab : tabs_list)
-        if (tab->supports_printer_technology(print_tech))
+        if (tab && tab->supports_printer_technology(print_tech) && tab->get_config())
             ret.emplace_back(Search::InputInfo {tab->get_config(), tab->type(), mode});
 
     return ret;
@@ -3840,7 +3840,9 @@ void Sidebar::update_mode()
     //obj_list()->get_sizer()->Show(m_mode > comSimple);
 
     obj_list()->unselect_objects();
-    obj_list()->update_selections();
+    // Guard: during startup the 3D canvas selection may not be fully initialized
+    if (wxGetApp().initialized())
+        obj_list()->update_selections();
 //    obj_list()->update_object_menu();
 
     Layout();
@@ -10384,12 +10386,13 @@ void Plater::priv::set_project_name(const wxString& project_name)
 {
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " project is:" << project_name;
     m_project_name = project_name;
+    wxString name = project_name + " - OrcaSlicer-ZAA";
     //update topbar title
 #ifdef __WINDOWS__
-    wxGetApp().mainframe->SetTitle(m_project_name + " - OrcaSlicer");
-    wxGetApp().mainframe->topbar()->SetTitle(m_project_name);
+    wxGetApp().mainframe->SetTitle(name);
+    wxGetApp().mainframe->topbar()->SetTitle(name);
 #else
-    wxGetApp().mainframe->SetTitle(m_project_name);
+    wxGetApp().mainframe->SetTitle(name);
     if (!m_project_name.IsEmpty())
         wxGetApp().mainframe->update_title_colour_after_set_title();
 #endif

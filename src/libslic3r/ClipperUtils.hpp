@@ -334,6 +334,7 @@ Slic3r::Polygons offset(const Slic3r::Polygon &polygon, const float delta, Clipp
 // Wherever applicable, please use the expand() / shrink() variants instead, they convey their purpose better.
 // Input polygons for negative offset shall be "normalized": There must be no overlap / intersections between the input polygons.
 Slic3r::Polygons   offset(const Slic3r::Polyline &polyline, const float delta, ClipperLib::JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, ClipperLib::EndType end_type = DefaultEndType);
+Slic3r::Polygons   offset(const Slic3r::Polyline3 &polyline, const float delta, ClipperLib::JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, ClipperLib::EndType end_type = DefaultEndType);
 Slic3r::Polygons   offset(const Slic3r::Polylines &polylines, const float delta, ClipperLib::JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, ClipperLib::EndType end_type = DefaultEndType);
 Slic3r::Polygons   offset(const Slic3r::Polygons &polygons, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 Slic3r::Polygons   offset(const Slic3r::ExPolygon &expolygon, const float delta, ClipperLib::JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
@@ -524,6 +525,8 @@ Slic3r::Polylines  intersection_pl(const Slic3r::Polyline &subject, const Slic3r
 Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3r::Polygons &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polylines &subject, const Slic3r::ExPolygons &clip);
 Slic3r::Polylines  intersection_pl(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip);
+Slic3r::Polylines3 intersection_pl(const Slic3r::Polylines3 &subject, const Slic3r::Polygon &clip);
+Slic3r::Polylines3 intersection_pl(const Slic3r::Polylines3 &subject, const Slic3r::ExPolygon &clip);
 
 inline Slic3r::Lines intersection_ln(const Slic3r::Lines &subject, const Slic3r::Polygons &clip)
 {

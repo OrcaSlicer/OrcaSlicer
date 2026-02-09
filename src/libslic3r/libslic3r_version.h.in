@@ -5,6 +5,7 @@
 #define SLIC3R_APP_KEY "@SLIC3R_APP_KEY@"
 #define SLIC3R_VERSION "@SLIC3R_VERSION@"
 #define SoftFever_VERSION "@SoftFever_VERSION@"
+#define ZAA_VERSION "@ZAA_VERSION@"
 #ifndef GIT_COMMIT_HASH
     #define GIT_COMMIT_HASH "0000000" // 0000000 means uninitialized
 #endif

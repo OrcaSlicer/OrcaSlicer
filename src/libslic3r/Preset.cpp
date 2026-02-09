@@ -953,6 +953,8 @@ static std::vector<std::string> s_Preset_print_options {
      "enable_wrapping_detection",
      "seam_slope_type", "seam_slope_conditional", "scarf_angle_threshold", "scarf_joint_speed", "scarf_joint_flow_ratio", "seam_slope_start_height", "seam_slope_entire_loop", "seam_slope_min_length", "seam_slope_steps", "seam_slope_inner_walls", "scarf_overhang_threshold",
      "interlocking_beam", "interlocking_orientation", "interlocking_beam_layer_count", "interlocking_depth", "interlocking_boundary_avoidance", "interlocking_beam_width","calib_flowrate_topinfill_special_order",
+     // Z Anti-Aliasing (ZAA)
+     "zaa_enabled", "zaa_minimize_perimeter_height", "zaa_dont_alternate_fill_direction", "zaa_min_z", "zaa_region_disable", "ironing_expansion",
 };
 
 static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",

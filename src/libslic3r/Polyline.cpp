@@ -612,6 +612,28 @@ std::pair<int, Point> foot_pt(const Points &polyline, const Point &pt)
     return std::make_pair(int(it_proj - polyline.begin()) - 1, foot_pt_min);
 }
 
+std::pair<int, Point3> foot_pt(const Points3 &polyline, const Point3 &pt)
+{
+    if (polyline.size() < 2) return std::make_pair(-1, Point3(0, 0, 0));
+
+    auto   d2_min = std::numeric_limits<double>::max();
+    Point3 foot_pt_min;
+    Point3 prev    = polyline.front();
+    auto   it      = polyline.begin();
+    auto   it_proj = polyline.begin();
+    for (++it; it != polyline.end(); ++it) {
+        Point3 foot_pt = pt.projection_onto(Line3(prev, *it));
+        double d2      = (foot_pt - pt).cast<double>().squaredNorm();
+        if (d2 < d2_min) {
+            d2_min      = d2;
+            foot_pt_min = foot_pt;
+            it_proj     = it;
+        }
+        prev = *it;
+    }
+    return std::make_pair(int(it_proj - polyline.begin()) - 1, foot_pt_min);
+}
+
 ThickLines ThickPolyline::thicklines() const
 {
     ThickLines lines;
@@ -648,6 +670,219 @@ Lines3 Polyline3::lines() const
         }
     }
     return lines;
+}
+
+// Polyline3 ZAA methods implementation
+Polyline Polyline3::to_polyline() const {
+    Polyline out;
+    out.points.reserve(this->points.size());
+    for (const Point3 &point : this->points) {
+        out.points.emplace_back(point.x(), point.y());
+    }
+    return out;
+}
+
+void Polyline3::clip_end(double distance) {
+    size_t remove_after_index = this->size();
+    while (distance > 0) {
+        Vec3d last_point = this->last_point().cast<double>();
+        this->points.pop_back();
+        remove_after_index--;
+        if (this->points.empty()) {
+            this->fitting_result.clear();
+            return;
+        }
+        Vec3d v = this->last_point().cast<double>() - last_point;
+        double lsqr = v.squaredNorm();
+        if (lsqr > distance * distance) {
+            Vec3d result = last_point + v * (distance / sqrt(lsqr));
+            this->points.emplace_back(Point3(coord_t(result.x()), coord_t(result.y()), coord_t(result.z())));
+            break;
+        }
+        distance -= sqrt(lsqr);
+    }
+
+    // Clear fitting result if it's affected
+    if (!fitting_result.empty()) {
+        while (!fitting_result.empty() && fitting_result.back().start_point_index >= remove_after_index)
+            fitting_result.pop_back();
+        if (!fitting_result.empty()) {
+            fitting_result.back().end_point_index = this->points.size() - 1;
+        }
+    }
+}
+
+void Polyline3::simplify(double tolerance) {
+    this->points = MultiPoint3::_douglas_peucker(this->points, tolerance);
+    this->fitting_result.clear();
+}
+
+void Polyline3::simplify_by_fitting_arc(double tolerance) {
+    // For now, just use regular simplify
+    // Full ZAA implementation would use ArcFitter::do_arc_fitting_and_simplify
+    this->simplify(tolerance);
+}
+
+bool Polyline3::split_at_index(const size_t index, Polyline3 *p1, Polyline3 *p2) const
+{
+    if (index > this->size() - 1)
+        return false;
+
+    if (index == 0) {
+        p1->clear();
+        p1->append(this->first_point());
+        *p2 = *this;
+    } else if (index == this->size() - 1) {
+        p2->clear();
+        p2->append(this->last_point());
+        *p1 = *this;
+    } else {
+        // Split first part
+        p1->clear();
+        p1->points.reserve(index + 1);
+        p1->points.insert(p1->begin(), this->begin(), this->begin() + index + 1);
+        Point3 new_endpoint;
+        if (this->split_fitting_result_before_index(index, new_endpoint, p1->fitting_result))
+            p1->points.back() = new_endpoint;
+
+        // Split second part
+        p2->clear();
+        p2->points.reserve(this->size() - index);
+        p2->points.insert(p2->begin(), this->begin() + index, this->end());
+        Point3 new_startpoint;
+        if (this->split_fitting_result_after_index(index, new_startpoint, p2->fitting_result))
+            p2->points.front() = new_startpoint;
+    }
+    return true;
+}
+
+void Polyline3::append(const Point3& point) {
+    // Don't append if same as last point
+    if (!this->empty() && this->last_point() == point)
+        return;
+
+    this->points.push_back(point);
+    // Clear fitting result as structure changed
+    this->fitting_result.clear();
+}
+
+void Polyline3::append(const Polyline3 &src) {
+    if (!src.is_valid()) return;
+
+    if (this->points.empty()) {
+        this->points = src.points;
+        this->fitting_result = src.fitting_result;
+    } else {
+        // Append points
+        if (!src.points.empty() && !this->points.empty() && this->last_point() == src.points.front()) {
+            // Skip first point if it's the same as our last point
+            this->points.insert(this->points.end(), src.points.begin() + 1, src.points.end());
+        } else {
+            this->points.insert(this->points.end(), src.points.begin(), src.points.end());
+        }
+        // Note: Full arc fitting integration would merge fitting_result here
+        this->fitting_result.clear();
+    }
+}
+
+void Polyline3::append_before(const Point3& point) {
+    // Don't append if same as first point
+    if (!this->empty() && this->first_point() == point)
+        return;
+
+    this->points.insert(this->points.begin(), point);
+    // Clear fitting result as structure changed
+    this->fitting_result.clear();
+}
+
+void Polyline3::split_at(Point &point, Polyline3* p1, Polyline3* p2) const {
+    if (this->points.empty()) return;
+
+    // Check if the point is on the polyline
+    int index = this->find_point(point);
+    if (index != -1) {
+        // The split point is on the polyline
+        split_at_index(index, p1, p2);
+        point = p1->is_valid() ? p1->last_point().to_point() : p2->first_point().to_point();
+        return;
+    }
+
+    // Find the line to split at
+    size_t line_idx = 0;
+    Point p = this->first_point().to_point();
+    double min = (p - point).cast<double>().norm();
+    Lines3 lines = this->lines();
+    for (Lines3::const_iterator line = lines.begin(); line != lines.end(); ++line) {
+        Point p_tmp = point.projection_onto(line->to_line());
+        if ((p_tmp - point).cast<double>().norm() < min) {
+            p = p_tmp;
+            min = (p - point).cast<double>().norm();
+            line_idx = line - lines.begin();
+        }
+    }
+
+    // Judge whether the closest point is one vertex of polyline
+    index = this->find_point(p);
+    if (index != -1) {
+        this->split_at_index(index, p1, p2);
+    } else {
+        Polyline3 temp;
+        this->split_at_index(line_idx, p1, &temp);
+        p1->append_before(Point3(point, p1->last_point().z()));
+        this->split_at_index(line_idx + 1, &temp, p2);
+        p2->append_before(Point3(point, p2->first_point().z()));
+    }
+    point = p;
+}
+
+void Polyline3::split_at(Point3 &point, Polyline3* p1, Polyline3* p2) const {
+    Point p = point.to_point();
+    this->split_at(p, p1, p2);
+    point = Point3(p, point.z());
+}
+
+bool Polyline3::split_at_length(const double length, Polyline3 *p1, Polyline3 *p2) const {
+    if (this->points.empty()) return false;
+    if (length < 0 || length > this->length()) { return false; }
+
+    if (length < SCALED_EPSILON) {
+        p1->clear();
+        p1->append_before(this->first_point());
+        *p2 = *this;
+    } else if (is_approx(length, this->length(), SCALED_EPSILON)) {
+        p2->clear();
+        p2->append_before(this->last_point());
+        *p1 = *this;
+    } else {
+        // Find the line to split at
+        size_t line_idx = 0;
+        double acc_length = 0;
+        Point p = this->first_point().to_point();
+        for (const auto &l : this->lines()) {
+            p = l.b.to_point();
+
+            const double current_length = l.length();
+            if (acc_length + current_length >= length) {
+                p = lerp(l.a.to_point(), l.b.to_point(), (length - acc_length) / current_length);
+                break;
+            }
+            acc_length += current_length;
+            line_idx++;
+        }
+
+        // Judge whether the closest point is one vertex of polyline
+        int index = this->find_point(p);
+        if (index != -1) {
+            this->split_at_index(index, p1, p2);
+        } else {
+            Polyline3 temp;
+            this->split_at_index(line_idx, p1, &temp);
+            p1->append_before(Point3(p, p1->last_point().z()));
+            this->split_at_index(line_idx + 1, &temp, p2);
+            p2->append_before(Point3(p, p2->first_point().z()));
+        }
+    }
+    return true;
 }
 
 }
