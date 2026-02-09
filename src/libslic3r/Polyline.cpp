@@ -825,10 +825,12 @@ void Polyline3::split_at(Point &point, Polyline3* p1, Polyline3* p2) const {
     index = this->find_point(p);
     if (index != -1) {
         this->split_at_index(index, p1, p2);
+        p1->append(Point3(point, p1->last_point().z()));
+        p2->append_before(Point3(point, p2->first_point().z()));
     } else {
         Polyline3 temp;
         this->split_at_index(line_idx, p1, &temp);
-        p1->append_before(Point3(point, p1->last_point().z()));
+        p1->append(Point3(point, p1->last_point().z()));
         this->split_at_index(line_idx + 1, &temp, p2);
         p2->append_before(Point3(point, p2->first_point().z()));
     }
