@@ -797,6 +797,7 @@ wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_l
     input_title->SetToolTip(tooltip);
     input_title->Wrap(DESIGN_TITLE_SIZE.x);
     input_title->SetToolTip(tooltip);
+    bind_label_link(input_title, "import_export#draco-quantization-bits");
 
     auto input = new ::TextInput(m_parent, wxEmptyString, side_label, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
