@@ -252,6 +252,12 @@ void AppConfig::set_defaults()
     if (get("show_axes").empty())
         set_bool("show_axes", true);
 
+    if (get("show_labels").empty())
+        set_bool("show_labels", false);
+
+    if (get("show_overhang").empty())
+        set_bool("show_overhang", false);
+
 #ifdef _WIN32
 
 //#ifdef SUPPORT_3D_CONNEXION
