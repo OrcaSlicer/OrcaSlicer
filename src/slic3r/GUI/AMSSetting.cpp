@@ -4,10 +4,13 @@
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevUpgrade.h"
+
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
 #include "slic3r/GUI/MsgDialog.hpp"
 
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
 #include "slic3r/GUI/Widgets/AnimaController.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
@@ -40,8 +43,8 @@ void AMSSetting::create()
     m_ams_type = new AMSSettingTypePanel(m_panel_body, this);
     m_ams_type->Show(false);
 
-    //m_ams_arrange_order = new AMSSettingArrangeAMSOrder(m_panel_body);
-    //m_ams_arrange_order->Show(false);
+    m_ams_arrange_order = new AMSSettingArrangeAMSOrder(m_panel_body);
+    m_ams_arrange_order->Show(false);
 
     m_panel_Insert_material = new wxPanel(m_panel_body, wxID_ANY, wxDefaultPosition, wxSize(-1, -1), wxTAB_TRAVERSAL);
     m_panel_Insert_material->SetBackgroundColour(*wxWHITE);
@@ -80,7 +83,7 @@ void AMSSetting::create()
 
     // tip line2
     m_tip_Insert_material_line2 = new Label(m_panel_Insert_material,
-        _L("Note: if a new filament is inserted during printing, the AMS will not automatically read any information until printing is completed.")
+        _L("Note: if a new filament is inserted during  printing, the AMS will not automatically read any information until printing is completed.")
     );
     m_tip_Insert_material_line2->SetFont(::Label::Body_13);
     m_tip_Insert_material_line2->SetForegroundColour(AMS_SETTING_GREY700);
@@ -125,7 +128,7 @@ void AMSSetting::create()
     m_sizer_starting_tip_inline = new wxBoxSizer(wxVERTICAL);
 
     m_tip_starting_line1 = new Label(m_panel_body,
-        _L("The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools.")
+        _L("The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute.The reading process will roll filament spools.")
     );
     m_tip_starting_line1->SetFont(::Label::Body_13);
     m_tip_starting_line1->SetForegroundColour(AMS_SETTING_GREY700);
@@ -192,7 +195,7 @@ void AMSSetting::create()
     m_sizer_switch_filament_inline = new wxBoxSizer(wxVERTICAL);
 
     m_tip_switch_filament_line1 = new Label(m_panel_body,
-        _L("AMS will continue to another spool with matching filament properties automatically when current filament runs out.")
+        _L("AMS will continue to another spool with the same properties of filament automatically when current filament runs out")
     );
     m_tip_switch_filament_line1->SetFont(::Label::Body_13);
     m_tip_switch_filament_line1->SetForegroundColour(AMS_SETTING_GREY700);

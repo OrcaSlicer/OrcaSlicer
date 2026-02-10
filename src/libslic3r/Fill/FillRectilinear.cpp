@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <random>
+#include <stack>
 
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
@@ -125,6 +126,8 @@ struct SegmentIntersection
     // y position of the intersection, rational number.
     int64_t     pos_p { 0 };
     uint32_t    pos_q { 1 };
+    // the index fo the prev point in the contour
+    size_t      prev_idx{0};
 
     coord_t     pos() const {
         // Division rounds both positive and negative down to zero.
@@ -363,6 +366,66 @@ struct SegmentedIntersectionLine
     // List of intersection points with polygons, sorted increasingly by the y axis.
     std::vector<SegmentIntersection>    intersections;
 };
+
+static void adjust_sort_for_segment_intersections(std::vector<SegmentIntersection> &intersections)
+{
+    using IntersectionType = SegmentIntersection::SegmentIntersectionType;
+    std::stack<IntersectionType> stack;
+    bool                         has_out_low   = false;
+    auto                         is_valid_type = [&stack, &has_out_low](IntersectionType type) {
+        if (stack.empty()) {
+            return type == IntersectionType::OUTER_LOW;
+        } else {
+            auto top_type = stack.top();
+            switch (type) {
+            case SegmentIntersection::OUTER_LOW: return false;
+            case SegmentIntersection::OUTER_HIGH: return top_type == IntersectionType::OUTER_LOW;
+            case SegmentIntersection::INNER_LOW: return top_type == IntersectionType::OUTER_LOW || top_type == IntersectionType::INNER_HIGH;
+            case SegmentIntersection::INNER_HIGH: return top_type == IntersectionType::INNER_LOW;
+            default: break;
+            }
+            return true;
+        }
+    };
+
+    std::vector<bool> visited(intersections.size(), false);
+    std::vector<int>  index_group;
+    for (size_t i = 0; i < intersections.size();) {
+        if (is_valid_type(intersections[i].type)) {
+            index_group.clear();
+            // std::fill()
+            if (intersections[i].type == SegmentIntersection::OUTER_LOW || intersections[i].type == SegmentIntersection::INNER_LOW) {
+                stack.push(intersections[i].type);
+            } else if (intersections[i].type == SegmentIntersection::OUTER_HIGH || intersections[i].type == SegmentIntersection::INNER_HIGH) {
+                stack.pop();
+            }
+            ++i;
+        } else {
+            visited[i] = true;
+            for (size_t j = i + 1; j < intersections.size(); ++j) {
+                if (!visited[j] && abs(intersections[j].pos() - intersections[i].pos()) < scale_(EPSILON)) { index_group.push_back(j); }
+            }
+
+            if (!index_group.empty()) {
+                int swap_index = -1;
+                for (auto index : index_group) {
+                    if (!visited[index]) {
+                        swap_index     = index;
+                        visited[index] = true;
+                        break;
+                    }
+                }
+
+                if (swap_index != -1) {
+                    std::swap(intersections[i], intersections[swap_index]);
+                    continue;
+                }
+            }
+
+            ++i;
+        }
+    }
+}
 
 static SegmentIntersection phony_outer_intersection(SegmentIntersection::SegmentIntersectionType type, coord_t pos)
 {
@@ -2121,6 +2184,8 @@ static void connect_monotonic_regions(std::vector<MonotonicRegion> &regions, con
 			    for (;;) {
 				    MapType key(rbegin, nullptr);
 				    auto it = std::lower_bound(map_intersection_to_region_start.begin(), map_intersection_to_region_start.end(), key);
+                    if (it == map_intersection_to_region_start.end() || it->first != key.first)
+                        break;
 				    assert(it != map_intersection_to_region_start.end() && it->first == key.first);
 				    it->second->left_neighbors.emplace_back(&region);
 				    SegmentIntersection *rnext = &vertical_run_top(vline_right, *rbegin);

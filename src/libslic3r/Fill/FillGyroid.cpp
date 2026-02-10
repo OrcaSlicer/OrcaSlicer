@@ -4,7 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
-#include "FillBase.hpp"
+
 #include "FillGyroid.hpp"
 
 namespace Slic3r {
@@ -149,10 +149,10 @@ static Polylines make_gyroid_waves(double gridZ, double density_adjusted, double
 constexpr double FillGyroid::PatternTolerance;
 
 void FillGyroid::_fill_surface_single(
-    const FillParams                &params,
+    const FillParams                &params, 
     unsigned int                     thickness_layers,
-    const std::pair<float, Point>   &direction,
-    ExPolygon                        expolygon,
+    const std::pair<float, Point>   &direction, 
+    ExPolygon                        expolygon, 
     Polylines                       &polylines_out)
 {
     auto infill_angle = float(this->angle + (CorrectionAngle * 2*M_PI) / 360.);
@@ -168,10 +168,6 @@ void FillGyroid::_fill_surface_single(
     // align bounding box to a multiple of our grid module
     bb.merge(align_to_grid(bb.min, Point(2*M_PI*distance, 2*M_PI*distance)));
 
-    // Expand the bounding box to avoid artifacts at the edges
-    coord_t expand = 10 * (scale_(this->spacing));
-    bb.offset(expand); 
-
     // generate pattern
     Polylines polylines = make_gyroid_waves(
         scale_(this->z),
@@ -183,11 +179,10 @@ void FillGyroid::_fill_surface_single(
 	// shift the polyline to the grid origin
 	for (Polyline &pl : polylines)
 		pl.translate(bb.min);
-
     // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);
-
-	polylines = intersection_pl(std::move(polylines), expolygon);
+	
+    polylines = intersection_pl(polylines, expolygon);
 
     if (! polylines.empty()) {
 		// Remove very small bits, but be careful to not remove infill lines connecting thin walls!
@@ -201,7 +196,10 @@ void FillGyroid::_fill_surface_single(
 	if (! polylines.empty()) {
 		// connect lines
 		size_t polylines_out_first_idx = polylines_out.size();
-        chain_or_connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
+		if (params.dont_connect())
+        	append(polylines_out, chain_polylines(polylines));
+        else
+            this->connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
 
 	    // new paths must be rotated back
         if (std::abs(infill_angle) >= EPSILON) {
