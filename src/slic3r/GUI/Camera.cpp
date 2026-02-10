@@ -55,7 +55,10 @@ void Camera::select_next_type()
 
 void Camera::auto_type(EType preferred_type)
 {
-    if (!wxGetApp().app_config->get_bool("auto_perspective")) return;
+    if (wxApp::GetInstance() == nullptr || wxGetApp().app_config == nullptr)
+        return;
+    if (!wxGetApp().app_config->get_bool("auto_perspective"))
+        return;
     if (preferred_type == EType::Perspective) {
         if (!m_prevent_auto_type) {
             set_type(preferred_type);
@@ -758,4 +761,3 @@ void Camera::update_target() {
 }
 } // GUI
 } // Slic3r
-
