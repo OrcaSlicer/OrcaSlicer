@@ -3110,8 +3110,11 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
         calc_vertex_for_icons(3, m_lock_icon);
         calc_vertex_for_icons(4, m_plate_settings_icon);
         // ORCA also change bed_icon_count number in calc_vertex_for_icons() after adding or removing icons for circular shaped beds that uses vertical alingment for icons
-        PresetBundle* preset = wxGetApp().preset_bundle;
-        bool dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
+	    bool dual_bbl = false;
+	    if (m_plater) {
+	        PresetBundle* preset = wxGetApp().preset_bundle;
+	        dual_bbl = (preset->is_bbl_vendor() && preset->get_printer_extruder_count() == 2);
+	    }
         calc_vertex_for_icons(dual_bbl ? 5 : 6, m_plate_filament_map_icon);
         calc_vertex_for_icons(dual_bbl ? 6 : 5, m_move_front_icon);
 

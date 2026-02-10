@@ -1546,56 +1546,14 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         auto timelapse_type = m_config->option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
         bool timelapse_enabled = timelapse_type->value == TimelapseType::tlSmooth;
         if (!boost::any_cast<bool>(value) && timelapse_enabled) {
+            bool set_enable_prime_tower = false;
             MessageDialog dlg(wxGetApp().plater(), _L("A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"),
                               _L("Warning"), wxICON_WARNING | wxYES | wxNO);
             if (dlg.ShowModal() == wxID_NO) {
                 DynamicPrintConfig new_conf = *m_config;
                 new_conf.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
                 m_config_manipulation.apply(m_config, &new_conf);
-            }
-            wxGetApp().plater()->update();
-        }
-        bool is_precise_z_height = m_config->option<ConfigOptionBool>("precise_z_height")->value;
-        if (boost::any_cast<bool>(value) && is_precise_z_height) {
-            MessageDialog dlg(wxGetApp().plater(), _L("Enabling both precise Z height and the prime tower may cause the size of prime tower to increase. Do you still want to enable?"),
-                _L("Warning"), wxICON_WARNING | wxYES | wxNO);
-            if (dlg.ShowModal() == wxID_NO) {
-                DynamicPrintConfig new_conf = *m_config;
-                new_conf.set_key_value("enable_prime_tower", new ConfigOptionBool(false));
-                m_config_manipulation.apply(m_config, &new_conf);
-            }
-            wxGetApp().plater()->update();
-        }
-        update_wiping_button_visibility();
-    }
-
-
-    if (opt_key == "single_extruder_multi_material"  ){
-        const auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
-        wxGetApp().sidebar().show_SEMM_buttons(bSEMM);
-        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
-    }
-
-    if(opt_key == "purge_in_prime_tower")
-        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
-
-
-    if (opt_key == "enable_prime_tower") {
-        auto timelapse_type = m_config->option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-        bool timelapse_enabled = timelapse_type->value == TimelapseType::tlSmooth;
-        if (!boost::any_cast<bool>(value)) {
-            bool set_enable_prime_tower = false;
-            if (timelapse_enabled) {
-                MessageDialog
-                    dlg(wxGetApp().plater(),
-                        _L("A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"),
-                        _L("Warning"), wxICON_WARNING | wxYES | wxNO);
-                if (dlg.ShowModal() == wxID_NO) {
-                    DynamicPrintConfig new_conf = *m_config;
-                    new_conf.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
-                    m_config_manipulation.apply(m_config, &new_conf);
-                    set_enable_prime_tower = true;
-                }
+                set_enable_prime_tower = true;
             }
             bool enable_wrapping = m_config->option<ConfigOptionBool>("enable_wrapping_detection")->value;
             if (enable_wrapping && !set_enable_prime_tower) {
@@ -1624,6 +1582,16 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         }
         update_wiping_button_visibility();
     }
+
+
+    if (opt_key == "single_extruder_multi_material"  ){
+        const auto bSEMM = m_config->opt_bool("single_extruder_multi_material");
+        wxGetApp().sidebar().show_SEMM_buttons(bSEMM);
+        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
+    }
+
+    if(opt_key == "purge_in_prime_tower")
+        wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
 
     if (opt_key == "enable_wrapping_detection") {
         bool wipe_tower_enabled = m_config->option<ConfigOptionBool>("enable_prime_tower")->value;
@@ -4466,6 +4434,17 @@ void TabPrinter::build_fff()
     const int gcode_field_height = 15; // 150
     const int notes_field_height = 25; // 250
     page = add_options_page(L("Machine G-code"), "custom-gcode_gcode"); // ORCA: icon only visible on placeholders
+        optgroup = page->new_optgroup(L("File header G-code"), L"param_gcode", 0);
+        optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
+            validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
+        };
+        optgroup->edit_custom_gcode = edit_custom_gcode_fn;
+        option = optgroup->get_option("file_start_gcode");
+        option.opt.full_width = true;
+        option.opt.is_code = true;
+        option.opt.height = 8;
+        optgroup->append_single_option_line(option);
+
         optgroup = page->new_optgroup(L("Machine start G-code"), L"param_gcode", 0);
         optgroup->m_on_change = [this, &optgroup_title = optgroup->title](const t_config_option_key& opt_key, const boost::any& value) {
             validate_custom_gcode_cb(this, optgroup_title, opt_key, value);
@@ -6372,17 +6351,18 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     // focus currently.is there anything better than this ?
 //!	m_tabctrl->OnSetFocus();
     if (from_input) {
-        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "");
+        SavePresetDialog dlg(m_parent, m_type, m_mode, detach ? _u8L("Detached") : "");
         dlg.Show(false);
         dlg.input_name_from_other(input_name);
         wxCommandEvent evt(wxEVT_TEXT, GetId());
         dlg.GetEventHandler()->ProcessEvent(evt);
         dlg.confirm_from_other();
         name = input_name;
+        detach = dlg.get_detach_value(m_type);
     }
 
     if (name.empty()) {
-        SavePresetDialog dlg(m_parent, m_type, detach ? _u8L("Detached") : "");
+        SavePresetDialog dlg(m_parent, m_type, m_mode, detach ? _u8L("Detached") : "");
         if (!m_just_edit) {
             if (dlg.ShowModal() != wxID_OK)
                 return;
@@ -6390,6 +6370,7 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         name = dlg.get_name();
         //BBS: add project embedded preset relate logic
         save_to_project = dlg.get_save_to_project_selection(m_type);
+        detach          = dlg.get_detach_value(m_type);
     }
 
     //BBS record current preset name

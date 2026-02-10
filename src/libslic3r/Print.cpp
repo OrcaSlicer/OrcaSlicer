@@ -520,6 +520,12 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
         }
     }
 
+    // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
+    if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
+        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament < int(config().nozzle_diameter.size()));
+        extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
+    }
+
     sort_remove_duplicates(extruders);
     return extruders;
 }
