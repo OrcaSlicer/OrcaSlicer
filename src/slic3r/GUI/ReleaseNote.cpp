@@ -27,6 +27,7 @@
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
+#include "md4c/src/md4c-html.h"
 
 namespace Slic3r { namespace GUI {
 
@@ -268,32 +269,31 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     //webview
     m_vebview_release_note = CreateTipView(m_simplebook_release_note);
-    m_vebview_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
     m_vebview_release_note->SetSize(wxSize(FromDIP(560), FromDIP(430)));
     m_vebview_release_note->SetMinSize(wxSize(FromDIP(560), FromDIP(430)));
     //m_vebview_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
-    m_vebview_release_note->Bind(wxEVT_WEBVIEW_NAVIGATING,[=](wxWebViewEvent& event){
-        static bool load_url_first = false;
-        if(load_url_first){
-            // Orca: not used in Orca Slicer
-            // wxLaunchDefaultBrowser(url_line);
+
+    m_vebview_release_note->Bind(wxEVT_WEBVIEW_NAVIGATING,[=, count = 0](wxWebViewEvent& event) mutable {
+        count++;
+        if (count == 1) {
+            m_vebview_release_note->SetPage(wxString::FromUTF8(html_source), "");
+        } else if (count >= 3) {
+            // Launch the default browser for links clicked by the user
+            wxLaunchDefaultBrowser(event.GetURL());
             event.Veto();
-        }else{
-            load_url_first = true;
         }
-        
     });
 
-	fs::path ph(data_dir());
-	ph /= "resources/tooltip/releasenote.html";
-	if (!fs::exists(ph)) {
-		ph = resources_dir();
-		ph /= "tooltip/releasenote.html";
-	}
-	auto url = ph.string();
-	std::replace(url.begin(), url.end(), '\\', '/');
-	url = "file:///" + url;
-    m_vebview_release_note->LoadURL(from_u8(url));
+	// fs::path ph(data_dir());
+	// ph /= "resources/tooltip/releasenote.html";
+	// if (!fs::exists(ph)) {
+	// 	ph = resources_dir();
+	// 	ph /= "tooltip/releasenote.html";
+	// }
+	// auto url = ph.string();
+	// std::replace(url.begin(), url.end(), '\\', '/');
+	// url = "file:///" + url;
+ //    m_vebview_release_note->LoadURL(from_u8(url));
 
     m_simplebook_release_note->AddPage(m_scrollwindows_release_note, wxEmptyString, false);
     m_simplebook_release_note->AddPage(m_vebview_release_note, wxEmptyString, false);
@@ -470,27 +470,31 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
     //     }
     // }
 
-    if (use_web_link) {
-        m_brand->Hide();
-        m_text_up_info->Hide();
-        m_simplebook_release_note->SetSelection(1);
-        m_vebview_release_note->LoadURL(from_u8(url_line));
-    }
-    else {
-        m_simplebook_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
-        m_simplebook_release_note->SetSelection(0);
-        m_text_up_info->SetLabel(wxString::Format(_L("Click to download new version in default browser: %s"), version));
-        wxBoxSizer* sizer_text_release_note = new wxBoxSizer(wxVERTICAL);
-        auto        m_staticText_release_note = new ::Label(m_scrollwindows_release_note, release_note, LB_AUTO_WRAP);
-        m_staticText_release_note->SetMinSize(wxSize(FromDIP(560), -1));
-        m_staticText_release_note->SetMaxSize(wxSize(FromDIP(560), -1));
-        sizer_text_release_note->Add(m_staticText_release_note, 0, wxALL, 5);
-        m_scrollwindows_release_note->SetSizer(sizer_text_release_note);
-        m_scrollwindows_release_note->Layout();
-        m_scrollwindows_release_note->Fit();
-        SetMinSize(GetSize());
-        SetMaxSize(GetSize());
-    }
+    // if (use_web_link) {
+    //     m_brand->Hide();
+    //     m_text_up_info->Hide();
+    //     m_simplebook_release_note->SetSelection(1);
+    //     m_vebview_release_note->LoadURL(from_u8(url_line));
+    // }
+    // else {
+    m_simplebook_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
+    m_simplebook_release_note->SetSelection(1);
+    m_text_up_info->SetLabel(wxString::Format(_L("Click to download new version in default browser: %s"), version));
+    auto data_buf_in = release_note.utf8_str();
+    auto bg_color = StateColor::darkModeColorFor(*wxWHITE).GetAsString();
+    auto fg_color = StateColor::darkModeColorFor(*wxBLACK).GetAsString();
+    html_source = (boost::format("<html><head><style>body { color: %1%; background-color: %2%; } a { color: #1E90FF }</style></head><body>")
+        % fg_color % bg_color).str();
+    md_html(data_buf_in.data(), data_buf_in.length(), [](const MD_CHAR* text, MD_SIZE size, void* userdata) {
+        std::string* out_buf = (std::string*)userdata;
+        out_buf->append(text, size);
+    }, (void*) &html_source, MD_DIALECT_GITHUB | MD_FLAG_STRIKETHROUGH | MD_FLAG_WIKILINKS, 0);
+    html_source.append("</body></html>");
+    m_vebview_release_note->LoadURL("file://" + (boost::filesystem::path (resources_dir()) / "web/guide/0/index.html").string());
+
+    SetMinSize(GetSize());
+    SetMaxSize(GetSize());
+    // }
 
     wxGetApp().UpdateDlgDarkUI(this);
     Layout();

@@ -2338,7 +2338,7 @@ void PresetBundle::get_ams_cobox_infos(AMSComboInfo& combox_info)
     }
 }
 
-unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps,bool enable_append, MergeFilamentInfo &merge_info)
+unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfig *,std::string>> &unknowns, bool use_map, std::map<int, AMSMapInfo> &maps, bool enable_append, MergeFilamentInfo &merge_info, bool color_only)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "use_map:" << use_map << " enable_append:" << enable_append;
     std::vector<std::string> ams_filament_presets;
@@ -2489,7 +2489,71 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
     ConfigOptionInts *   filament_map = project_config.option<ConfigOptionInts>("filament_map");
-    if (use_map) {
+    if (color_only) {
+        auto get_map_index = [&ams_infos](const std::vector<AMSMapInfo> &infos, const AMSMapInfo &temp) {
+            for (int i = 0; i < infos.size(); i++) {
+                if (infos[i].slot_id == temp.slot_id && infos[i].ams_id == temp.ams_id) {
+                    ams_infos[i].is_map = true;
+                    return i;
+                }
+            }
+            return -1;
+        };
+
+        auto exist_colors = filament_color->values;
+        std::vector<std::vector<std::string>> exist_multi_color_filment(exist_colors.size());
+        for (size_t i = 0; i < exist_colors.size(); i++) {
+            exist_multi_color_filment[i] = {exist_colors[i]};
+        }
+
+        ConfigOptionStrings *project_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+        if (project_multi_color) {
+            for (size_t i = 0; i < std::min(exist_multi_color_filment.size(), project_multi_color->values.size()); i++) {
+                std::vector<std::string> colors = split_string(project_multi_color->values[i], ' ');
+                if (!colors.empty()) {
+                    exist_multi_color_filment[i] = colors;
+                }
+            }
+        }
+
+        bool mapped_any = false;
+        if (use_map && !maps.empty()) {
+            for (size_t i = 0; i < exist_colors.size(); i++) {
+                if (maps.find(i) == maps.end()) {
+                    continue;
+                }
+                int valid_index = get_map_index(ams_array_maps, maps[i]);
+                if (valid_index >= 0 && valid_index < int(ams_filament_colors.size()) && !ams_filament_colors[valid_index].empty()) {
+                    exist_colors[i] = ams_filament_colors[valid_index];
+                    mapped_any = true;
+                    if (valid_index < int(ams_multi_color_filment.size()) && !ams_multi_color_filment[valid_index].empty()) {
+                        exist_multi_color_filment[i] = ams_multi_color_filment[valid_index];
+                    } else {
+                        exist_multi_color_filment[i] = {ams_filament_colors[valid_index]};
+                    }
+                }
+            }
+        }
+        // Fallback to index-based color sync if no mapping was applied.
+        if (!use_map || maps.empty() || !mapped_any) {
+            size_t sync_count = std::min(exist_colors.size(), ams_filament_colors.size());
+            for (size_t i = 0; i < sync_count; i++) {
+                if (ams_filament_colors[i].empty()) {
+                    continue;
+                }
+                exist_colors[i] = ams_filament_colors[i];
+                if (i < ams_multi_color_filment.size() && !ams_multi_color_filment[i].empty()) {
+                    exist_multi_color_filment[i] = ams_multi_color_filment[i];
+                } else {
+                    exist_multi_color_filment[i] = {ams_filament_colors[i]};
+                }
+            }
+        }
+
+        filament_color->values = exist_colors;
+        ams_multi_color_filment = exist_multi_color_filment;
+        merge_info.merges.clear();
+    } else if (use_map) {
         auto check_has_merge_info = [](std::map<int, AMSMapInfo> &maps, MergeFilamentInfo &merge_info, int exist_colors_size) {
             std::set<int> done;
             for (auto it_i = maps.begin(); it_i != maps.end(); ++it_i) {

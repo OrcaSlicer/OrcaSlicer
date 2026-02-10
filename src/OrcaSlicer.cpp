@@ -1316,14 +1316,14 @@ int CLI::run(int argc, char **argv)
         return (argc == 0) ? 0 : 1;
 #endif // SLIC3R_GUI
     }
+
+    // Setup logging for CLI
+    const ConfigOptionInt* opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
+    if (opt_loglevel) {
+        set_logging_level(opt_loglevel->value);
+    }
     else {
-        const ConfigOptionInt *opt_loglevel = m_config.opt<ConfigOptionInt>("debug");
-        if (opt_loglevel) {
-            set_logging_level(opt_loglevel->value);
-        }
-        else {
-            set_logging_level(2);
-        }
+        set_logging_level(2);
     }
 
     global_begin_time = (long long)Slic3r::Utils::get_current_time_utc();
@@ -6401,8 +6401,9 @@ int CLI::run(int argc, char **argv)
             glfwSetErrorCallback(glfw_callback);
             int ret = glfwInit();
             if (ret == GLFW_FALSE) {
-                int code = glfwGetError(NULL);
-                BOOST_LOG_TRIVIAL(error) << "glfwInit return error, code " <<code<< std::endl;
+                const char* error_msg;
+                int code = glfwGetError(&error_msg);
+                BOOST_LOG_TRIVIAL(error) << "glfwInit return error, Error code: " << code << ", Error: " << error_msg << std::endl;
             }
             else {
                 BOOST_LOG_TRIVIAL(info) << "glfwInit Success."<< std::endl;
@@ -6422,10 +6423,6 @@ int CLI::run(int argc, char **argv)
                 glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 #endif
 
-#ifdef __linux__
-                glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_OSMESA_CONTEXT_API);
-#endif
-
                 GLFWwindow* window = glfwCreateWindow(640, 480, "base_window", NULL, NULL);
                 if (window == NULL)
                 {
@@ -6437,7 +6434,7 @@ int CLI::run(int argc, char **argv)
 
             //opengl manager related logic
             {
-                Slic3r::GUI::OpenGLManager opengl_mgr;
+                GUI::OpenGLManager opengl_mgr;
                 bool opengl_valid = opengl_mgr.init_gl(false);
                 if (!opengl_valid) {
                     BOOST_LOG_TRIVIAL(error) << "init opengl failed! skip thumbnail generating" << std::endl;

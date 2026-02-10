@@ -1227,6 +1227,7 @@ WipeTower::ToolChangeResult WipeTower2::construct_tcr(WipeTowerWriter2& writer,
 WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& default_region_config,int plate_idx, Vec3d plate_origin, const std::vector<std::vector<float>>& wiping_matrix, size_t initial_tool) :
     m_semm(config.single_extruder_multi_material.value),
     m_enable_filament_ramming(config.enable_filament_ramming.value),
+    m_wipe_tower_filament(config.wipe_tower_filament.value),
     m_wipe_tower_pos(config.wipe_tower_x.get_at(plate_idx), config.wipe_tower_y.get_at(plate_idx)),
     m_wipe_tower_width(float(config.prime_tower_width)),
     m_wipe_tower_rotation_angle(float(config.wipe_tower_rotation_angle)),
@@ -1309,7 +1310,10 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar.push_back(FilamentParameters());
 
     m_filpar[idx].material = config.filament_type.get_at(idx);
-    m_filpar[idx].is_soluble = config.filament_soluble.get_at(idx);
+    if (m_wipe_tower_filament > 0)
+        m_filpar[idx].is_soluble = (idx != size_t(m_wipe_tower_filament - 1));
+    else
+        m_filpar[idx].is_soluble = config.filament_soluble.get_at(idx);
     m_filpar[idx].temperature = config.nozzle_temperature.get_at(idx);
     m_filpar[idx].first_layer_temperature = config.nozzle_temperature_initial_layer.get_at(idx);
     m_filpar[idx].filament_minimal_purge_on_wipe_tower = config.filament_minimal_purge_on_wipe_tower.get_at(idx);
@@ -2224,14 +2228,16 @@ void WipeTower2::save_on_last_wipe()
 int WipeTower2::first_toolchange_to_nonsoluble(
         const std::vector<WipeTowerInfo::ToolChange>& tool_changes) const
 {
-    // Orca: allow calculation of the required depth and wipe volume for soluable toolchanges as well
-    // NOTE: it's not clear if this is the right way, technically we should disable wipe tower if soluble filament is used as it
-    // will will make the wipe tower unstable. Need to revist this in the future.
+    // If a specific wipe tower filament is forced, use it to decide where to finish the layer.
+    if (m_wipe_tower_filament > 0) {
+        for (size_t idx = 0; idx < tool_changes.size(); ++idx) {
+            if (!m_filpar[tool_changes[idx].new_tool].is_soluble)
+                return idx;
+        }
+        return -1;
+    }
+    // Orca: allow calculation of the required depth and wipe volume for soluble toolchanges as well.
     return tool_changes.empty() ? -1 : 0;
-    //for (size_t idx=0; idx<tool_changes.size(); ++idx)
-    //    if (! m_filpar[tool_changes[idx].new_tool].is_soluble)
-    //        return idx;
-    //return -1;
 }
 
 static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
