@@ -600,6 +600,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 case libvgcode::EViewType::ActualVolumetricFlowRate: {
                     // Don't display the actual flow, since it only gives data for the end of a segment
                     // sprintf(buf, "%s %s%.2f", buf, _u8L("Actual Flow: ").c_str(), vertex.actual_volumetric_rate());
+                    sprintf(buf, "%s %s", buf, " ");
                     break;
                 }
                 case libvgcode::EViewType::ActualSpeed: {

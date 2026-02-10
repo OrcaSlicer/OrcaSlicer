@@ -462,9 +462,9 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     }
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render();
+        model.render(shader);
     else
-        model.render(this->tverts_range);
+        model.render(this->tverts_range, shader);
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
 
     // 2nd. render pass, just a normal render with the depth buffer passed as a texture
@@ -576,15 +576,15 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
                 }
             }
             if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-                m.render();
+                m.render(shader);
             else
-                m.render(this->tverts_range);
+                m.render(this->tverts_range, shader);
         }
     } else {
         if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-            model.render();
+            model.render(shader);
         else
-            model.render(this->tverts_range);
+            model.render(this->tverts_range, shader);
     }
     if (this->is_left_handed())
         glFrontFace(GL_CCW);
