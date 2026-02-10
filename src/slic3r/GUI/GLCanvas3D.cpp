@@ -1254,7 +1254,7 @@ bool GLCanvas3D::init()
     // Controls the display of object names directly over the object
     m_labels.show(wxGetApp().app_config->get_bool("show_labels"));
     // Controls the color coding of overhang surfaces
-    m_slope.globalUse(wxGetApp().app_config->get_bool("show_labels"));
+    m_slope.globalUse(wxGetApp().app_config->get_bool("show_overhang"));
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< " enter";
     glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
