@@ -2495,7 +2495,7 @@ msgid "Repairing was canceled"
 msgstr "Ремонт был отменён"
 
 msgid "Additional process preset"
-msgstr "Доп. настройки профиля процесса"
+msgstr "Доп. профиль настроек"
 
 msgid "Remove parameter"
 msgstr "Удалить параметр"
@@ -3441,7 +3441,7 @@ msgstr ""
 "Пожалуйста, замените влагопоглотитель, если он слишком влажный. Индикатор "
 "может показывать неточно в следующих случаях: при открытой крышке или замене "
 "влагопоглотителя. Для поглощения влаги требуется несколько часов. Низкая "
-"температура окружающей среды также замедляют этот процесс."
+"температура окружающей среды также замедляет этот процесс."
 
 msgid ""
 "Configure which AMS slot should be used for a filament used in the print job."
@@ -6653,7 +6653,7 @@ msgstr ""
 
 # ??? Оптический контроль процесса печати
 msgid "Enable AI monitoring of printing"
-msgstr "Контроль процесса печати с помощью ИИ"
+msgstr "Контроль печати с помощью ИИ"
 
 msgid "Pausing Sensitivity:"
 msgstr "Чувствительность:"
@@ -7203,7 +7203,7 @@ msgstr ""
 "После этого согласованность модели не может быть гарантирована."
 
 msgid "The selected object couldn't be split."
-msgstr "Выбранная модель не может быть разделена."
+msgstr "Невозможно разделить выбранную модель."
 
 msgid "Another export job is running."
 msgstr "Уже идёт другой процесс экспорта."
@@ -8611,7 +8611,7 @@ msgstr ""
 msgid ""
 "The printer is executing instructions. Please restart printing after it ends."
 msgstr ""
-"Принтер выполняет команды. После их выполнения перезапустите процесс печати"
+"Принтер выполняет команды. Перезапустите печать после их завершения."
 
 msgid "AMS is setting up. Please try again later."
 msgstr ""
@@ -9593,7 +9593,7 @@ msgid "Click to drop current modify and reset to saved value."
 msgstr "Сбросить изменение к сохранённому значению"
 
 msgid "Process Settings"
-msgstr "Настройки процесса"
+msgstr "Настройки"
 
 msgid "Undef"
 msgstr "Не задано"
@@ -9670,7 +9670,7 @@ msgid ""
 "Preset \"%1%\" is not compatible with the new process profile and it "
 "contains the following unsaved changes:"
 msgstr ""
-"Профиль \"%1%\" несовместим с новым профилем процесса, и имеет следующие "
+"Профиль \"%1%\" несовместим с новым профилем настроек и имеет следующие "
 "несохранённые изменения:"
 
 #, boost-format
@@ -11090,7 +11090,7 @@ msgid ""
 "Organic support branch diameter must not be smaller than support tree tip "
 "diameter."
 msgstr ""
-"Диаметр ветвей органической поддержки должен быть больше диаметра их кончиков."
+"Диаметр ветвей органической поддержки не может быть меньше диаметра их кончиков."
 
 msgid ""
 "Support enforcers are used but support is not enabled. Please enable support."
@@ -16304,7 +16304,7 @@ msgid "Rectilinear Interlaced"
 msgstr "Чередующийся зигзаг"
 
 msgid "Base pattern spacing"
-msgstr "Плотность поддержки"
+msgstr "Плотность шаблона"
 
 msgid "Spacing between support lines."
 msgstr "Расстояние между линиями поддержки."
@@ -16340,7 +16340,7 @@ msgstr ""
 "обычную поддержкой при больших плоских нависаниях."
 
 msgid "Default (Grid/Organic)"
-msgstr "Обычные"
+msgstr "По умолчанию"
 
 msgid "Snug"
 msgstr "Аккуратные"
@@ -16397,22 +16397,19 @@ msgstr ""
 "Например, при значении 15% поддержка добавится, если верхний периметр лежит "
 "на нижнем меньше чем на 15% своей ширины, что при ширине линии 0.4 мм "
 "составляет 0.06 мм."
-
+# Angle=Наклон в данном случае, т.к. именно здесь угол расчитывается от вертикали, а не от горизонтали.
 msgid "Tree support branch angle"
-msgstr "Макс. угол наклона ветвей"
+msgstr "Макс. наклон ветвей"
 
 msgid ""
 "This setting determines the maximum overhang angle that the branches of tree "
 "support are allowed to make. If the angle is increased, the branches can be "
 "printed more horizontally, allowing them to reach farther."
 msgstr ""
-"Этот параметр определяет максимальный угол нависания ветвей древовидной "
-"поддержки. При увеличении угла, ветви печатаются более горизонтально, что "
-"позволяет им достигать большего охвата. При указании меньшего угла, "
-"поддержка будет более вертикальной и устойчивой."
+"Ограничение угла наклона ветвей. Чем больше угол, тем сильнее ветви могут наклоняться и лучше охватывать поверхность модели. С уменьшением наклона повышается вертикальность и устойчивость."
 
 msgid "Preferred Branch Angle"
-msgstr "Предпочтительный угол наклона ветвей"
+msgstr "Основной наклон ветвей"
 
 #. TRN PrintSettings: "Organic supports" > "Preferred Branch Angle"
 msgid ""
@@ -16420,9 +16417,7 @@ msgid ""
 "model. Use a lower angle to make them more vertical and more stable. Use a "
 "higher angle for branches to merge faster."
 msgstr ""
-"Предпочтительный угол роста ветвей, когда им не нужно огибать модель. "
-"Чем меньше угол, тем более вертикальным и устойчивым получится дерево. "
-"Используйте больший угол, чтобы ветки сливались быстрее."
+"Угол свободного распространения ветвей, когда им не нужно огибать модель. Чем больше угол, тем дальше распространяются ветви. С уменьшением наклона повышается вертикальность и устойчивость."
 
 msgid "Tree support branch distance"
 msgstr "Расстояние между ветвями"
@@ -16468,7 +16463,7 @@ msgstr "Диаметр кончиков ветвей"
 
 #. TRN PrintSettings: "Organic supports" > "Tip Diameter"
 msgid "Branch tip diameter for organic supports."
-msgstr "Диаметр кончиков ветвей органической поддержки."
+msgstr "Диаметр ветвей в месте их контакта с моделью. Уменьшение диаметра улучшает прилегание к поверхности и позволяет чаще обходиться без печати связующего слоя."
 
 msgid "Tree support branch diameter"
 msgstr "Диаметр ветвей"
@@ -16480,7 +16475,7 @@ msgstr ""
 
 #. TRN PrintSettings: #lmFIXME
 msgid "Branch Diameter Angle"
-msgstr "Угол изменения диаметра ветвей"
+msgstr "Конусность поддержки"
 
 #. TRN PrintSettings: "Organic supports" > "Branch Diameter Angle"
 msgid ""
@@ -16489,10 +16484,7 @@ msgid ""
 "over their length. A bit of an angle can increase stability of the organic "
 "support."
 msgstr ""
-"Угол изменения диаметра ветвей по мере их постепенного утолщения к "
-"основанию. Если значение угла равно 0, ветви будут иметь одинаковую толщину "
-"по всей своей длине. Небольшой угол может повысить устойчивость органической "
-"поддержки."
+"Угол расширения тела поддержки от кончиков к основанию. Небольшой угол добавляет устойчивости ценой дополнительного расхода материала. 0 – отсутствие расширения (постоянный диаметр ветвей)."
 
 msgid "Support wall loops"
 msgstr "Периметры поддержки"
@@ -17436,7 +17428,7 @@ msgid "Load General Settings"
 msgstr "Загрузка общих настроек"
 
 msgid "Load process/machine settings from the specified file."
-msgstr "Загрузка настроек процесса/принтера из указанного файла."
+msgstr "Загрузка профиля настроек/принтера из указанного файла."
 
 msgid "Load Filament Settings"
 msgstr "Загрузка настроек материала"
@@ -17446,12 +17438,12 @@ msgstr "Загрузка настроек материала из указанн
 
 # Исключить модели
 msgid "Skip Objects"
-msgstr "Пропустить объекты"
+msgstr "Исключить объекты"
 
 # ??? это относится к командной строке
 # Пропустить некоторые\выбранные модели в этой печати, Пропуск, Отменить
 msgid "Skip some objects in this print."
-msgstr "Пропустите некоторые объекты при этой печати."
+msgstr "Исключить из текущей печати выбранные объекты."
 
 # Сделать копию модели
 # командная строка? нужен ли пеевод?
@@ -17464,13 +17456,13 @@ msgstr "Клонировать объекты в списке загрузки."
 
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr ""
-"Загрузить параметры печати/принтера при использовании обновления"
+"Загрузить настройки печати/принтера при использовании обновления"
 
 msgid ""
 "Load uptodate process/machine settings from the specified file when using "
 "uptodate."
 msgstr ""
-"Загрузить параметры процесса обновления/принтера при использовании "
+"Загрузить настройки печати/принтера при использовании "
 "обновления из указанного файла."
 
 msgid "Load uptodate filament settings when using uptodate"
@@ -17484,7 +17476,7 @@ msgstr ""
 
 # Что за downward machines?
 msgid "Downward machines check"
-msgstr "Проверка текущего принтера"
+msgstr "Проверка совместимости принтера"
 
 # ???
 msgid ""
@@ -18484,7 +18476,7 @@ msgid "Calibration Type"
 msgstr "Тип калибровки"
 
 msgid "Complete Calibration"
-msgstr "Калибровка завершена"
+msgstr "Полная калибровка"
 
 msgid "Fine Calibration based on flow ratio"
 msgstr "Точная калибровка на основе коэффициента потока"
@@ -18502,7 +18494,7 @@ msgid "Printing Parameters"
 msgstr "Параметры печати"
 
 msgid "Synchronize nozzle and AMS information"
-msgstr "Синхронизировать данные сопла и материалов"
+msgstr "Синхронизировать данные сопел и AMS"
 
 msgid "Please connect the printer first before synchronizing."
 msgstr "Подключите принтер для синхронизации."
@@ -18887,10 +18879,10 @@ msgid ""
 "(0 < FreqStart < FreqEnd < 500)"
 msgstr ""
 "Введите допустимые значения:\n"
-"(0 < FreqStart < FreqEnd < 500)"
+"(0 < Нач. частота < Конеч. частота < 500)"
 
 msgid "Please input a valid damping factor (0 < Damping/zeta factor <= 1)"
-msgstr "Введите допустимый коэффициент затухания (0 < Damping/zeta factor <= 1)"
+msgstr "Введите допустимый коэффициент затухания (0 < Затухание/коэффициент затухания <= 1)"
 
 msgid "Input shaping Damp test"
 msgstr "Тест затухания Input shaping"
@@ -18945,18 +18937,18 @@ msgid ""
 "Marlin 2 Junction Deviation detected:\n"
 "To test Classic Jerk, set 'Maximum Junction Deviation' in Motion ability to "
 "0."
-msgstr "\nВнимание: тестируется работа Junction Deviation.\nДля тестирования рывков необходимо обнулить его значение (профиль принтера → ограничения → рывки → Макс. значение Junction Deviation)."
+msgstr " \nВнимание: тестируется работа Junction Deviation.\nДля тестирования рывков необходимо обнулить его значение (профиль принтера → ограничения → рывки → Макс. значение Junction Deviation)."
 
 msgid ""
 "Marlin 2 Classic Jerk detected:\n"
 "To test Junction Deviation, set 'Maximum Junction Deviation' in Motion "
 "ability to a value > 0."
-msgstr "\nВнимание: тестируется работа рывков.\nДля тестирования Junction Deviation ему необходимо установить ненулевое значение (профиль принтера → ограничения → рывки → Макс. значение Junction Deviation)."
+msgstr " \nВнимание: тестируется работа рывков.\nДля тестирования Junction Deviation ему необходимо установить ненулевое значение (профиль принтера → ограничения → рывки → Макс. значение Junction Deviation)."
 
 msgid ""
 "RepRap detected: Jerk in mm/s.\n"
 "OrcaSlicer will convert the values to mm/min when necessary."
-msgstr "\nВнимание: рывки для RepRap заданы в мм/с и будут пересчитаны в мм/мин по необходимости."
+msgstr " \nВнимание: рывки для RepRap заданы в мм/с и будут пересчитаны в мм/мин по необходимости."
 
 # Устарело и не используется
 msgid "Wiki Guide: Cornering Calibration"
@@ -19645,7 +19637,7 @@ msgid "Edit Preset"
 msgstr "Изменить профиль"
 
 msgid "For more information, please check out Wiki"
-msgstr "Для получения более подробной информации посетите Wiki"
+msgstr "Подробности читайте на сайте"
 
 msgid "Collapse"
 msgstr "Свернуть"
@@ -20510,7 +20502,7 @@ msgstr ""
 "настройки."
 
 msgid "Serial connection to Flashforge is working correctly."
-msgstr "Подключение к Flashforge через послеовательный порт работает корректно."
+msgstr "Подключение к Flashforge через послеовательный порт успешно установлено."
 
 msgid "Could not connect to Flashforge via serial"
 msgstr "Не удалось подключиться к Flashforge через последовательный порт"
@@ -20775,6 +20767,33 @@ msgstr "мм³/с²"
 
 msgid "g/cm³"
 msgstr "г/см³"
+
+msgid "Step file import parameters"
+msgstr "Параметры импорта STEP"
+
+msgid "Smaller linear and angular deflections result in higher-quality transformations but increase the processing time."
+msgstr "Уменьшение линейного и углового отклонений повышает качество поверхности и время обработки."
+
+msgid "Linear Deflection"
+msgstr "Линейное отклонение"
+
+msgid "Angle Deflection"
+msgstr "Угловое отклонение"
+
+msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
+msgstr "Укажите допустимое значение (от 0.001 до 0.1)"
+
+msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
+msgstr "Укажите допустимое значение (от 0.01 до 1.0)"
+
+msgid "Split compound and compsolid into multiple objects"
+msgstr "Разделять модель из нескольких тел на части"
+
+msgid "Number of triangular facets"
+msgstr "Количество треугольников"
+
+msgid "Calculating, please wait..."
+msgstr "Расчёт, подождите..."
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
