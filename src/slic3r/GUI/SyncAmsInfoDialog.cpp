@@ -3337,7 +3337,9 @@ FinishSyncAmsDialog::FinishSyncAmsDialog(InputInfo &input_info)
                               310,
                               input_info.dialog_pos,
                               68,
-                              _L("Successfully synchronized color and type of filament from printer."),
+                              wxGetApp().app_config->get("sync_ams_filament_mode") == "1" ?
+                                  _L("Successfully synchronized filament color from printer.") :
+                                  _L("Successfully synchronized color and type of filament from printer."),
                               _CTX(L_CONTEXT("OK", "FinishSyncAms"), "FinishSyncAms"),
                               "",
                               DisappearanceMode::TimedDisappearance)
