@@ -8,6 +8,7 @@
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/ProfileTranslator.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "libslic3r_version.h"
@@ -1207,7 +1208,7 @@ int GuideFrame::LoadProfileFamily(std::string strVendor, std::string strFilePath
             json pm = json::parse(contents);
             // wxLogMessage("GUIDE: json_path2  loaded");
 
-            OneModel["name"]      = pm["name"];
+            OneModel["name"]      = Slic3r::ProfileTranslator::instance().translate(pm["name"]);
             OneModel["vendor"]    = strVendor;
             std::string NozzleOpt = pm["nozzle_diameter"];
             StringReplace(NozzleOpt, " ", "");
