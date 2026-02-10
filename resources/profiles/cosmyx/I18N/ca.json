@@ -1,0 +1,96 @@
+[
+    {"source": "Cosmyx SuperNova Double Tete", "translation": "Cosmyx SuperNova Doble Cap"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique", "translation": "Cosmyx SuperNova Doble Cap Metall Ceràmic"},
+    {"source": "Cosmyx Nova Metal Ceramique", "translation": "Cosmyx Nova Metall Ceràmic"},
+    {"source": "Cosmyx Nova Haute Temperature", "translation": "Cosmyx Nova Alta Temperatura"},
+    {"source": "Cosmyx Nova Double Tete", "translation": "Cosmyx Nova Doble Cap"},
+
+    {"source": "Cosmyx SuperNova Double Tete 0.2 nozzle", "translation": "Cosmyx SuperNova Doble Cap 0.2 broquet"},
+    {"source": "Cosmyx SuperNova Double Tete 0.4 nozzle", "translation": "Cosmyx SuperNova Doble Cap 0.4 broquet"},
+    {"source": "Cosmyx SuperNova Double Tete 0.6 nozzle", "translation": "Cosmyx SuperNova Doble Cap 0.6 broquet"},
+    {"source": "Cosmyx SuperNova Double Tete 0.8 nozzle", "translation": "Cosmyx SuperNova Doble Cap 0.8 broquet"},
+
+    {"source": "Cosmyx Nova Metal Ceramique 0.2 nozzle", "translation": "Cosmyx Nova Metall Ceràmic 0.2 broquet"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.4 nozzle", "translation": "Cosmyx Nova Metall Ceràmic 0.4 broquet"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.6 nozzle", "translation": "Cosmyx Nova Metall Ceràmic 0.6 broquet"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.8 nozzle", "translation": "Cosmyx Nova Metall Ceràmic 0.8 broquet"},
+
+    {"source": "Cosmyx Nova Haute Temperature 0.2 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.2 broquet"},
+    {"source": "Cosmyx Nova Haute Temperature 0.4 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.4 broquet"},
+    {"source": "Cosmyx Nova Haute Temperature 0.6 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.6 broquet"},
+    {"source": "Cosmyx Nova Haute Temperature 0.8 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.8 broquet"},
+
+    {"source": "Cosmyx Nova Double Tete 0.2 nozzle", "translation": "Cosmyx Nova Doble Cap 0.2 broquet"},
+    {"source": "Cosmyx Nova Double Tete 0.4 nozzle", "translation": "Cosmyx Nova Doble Cap 0.4 broquet"},
+    {"source": "Cosmyx Nova Double Tete 0.6 nozzle", "translation": "Cosmyx Nova Doble Cap 0.6 broquet"},
+    {"source": "Cosmyx Nova Double Tete 0.8 nozzle", "translation": "Cosmyx Nova Doble Cap 0.8 broquet"},
+
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle", "translation": "Cosmyx SuperNova Doble Cap Metall Ceràmic 0.2 broquet"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle", "translation": "Cosmyx SuperNova Doble Cap Metall Ceràmic 0.4 broquet"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle", "translation": "Cosmyx SuperNova Doble Cap Metall Ceràmic 0.6 broquet"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle", "translation": "Cosmyx SuperNova Doble Cap Metall Ceràmic 0.8 broquet"},
+
+    {"source": "Cosmyx Nova 0.2 nozzle", "translation": "Cosmyx Nova 0.2 broquet"},
+    {"source": "Cosmyx Nova 0.4 nozzle", "translation": "Cosmyx Nova 0.4 broquet"},
+    {"source": "Cosmyx Nova 0.6 nozzle", "translation": "Cosmyx Nova 0.6 broquet"},
+    {"source": "Cosmyx Nova 0.8 nozzle", "translation": "Cosmyx Nova 0.8 broquet"},
+
+    {"source": "Cosmyx SuperNova 0.2 nozzle", "translation": "Cosmyx SuperNova 0.2 broquet"},
+    {"source": "Cosmyx SuperNova 0.4 nozzle", "translation": "Cosmyx SuperNova 0.4 broquet"},
+    {"source": "Cosmyx SuperNova 0.6 nozzle", "translation": "Cosmyx SuperNova 0.6 broquet"},
+    {"source": "Cosmyx SuperNova 0.8 nozzle", "translation": "Cosmyx SuperNova 0.8 broquet"},
+
+    {"source": "0.08mm Extra Fine @Cosmyx Nova", "translation": "0.08mm Extra Fi @Cosmyx Nova"},
+    {"source": "0.12mm Fine @Cosmyx Nova", "translation": "0.12mm Fi @Cosmyx Nova"},
+    {"source": "0.16mm Optimal @Cosmyx Nova", "translation": "0.16mm Òptim @Cosmyx Nova"},
+    {"source": "0.20mm Standard @Cosmyx Nova", "translation": "0.20mm Estàndard @Cosmyx Nova"},
+    {"source": "0.20mm Strength @Cosmyx Nova", "translation": "0.20mm Resistència @Cosmyx Nova"},
+    {"source": "0.24mm Draft @Cosmyx Nova", "translation": "0.24mm Esborrany @Cosmyx Nova"},
+    {"source": "0.28mm Extra Draft @Cosmyx Nova", "translation": "0.28mm Extra Esborrany @Cosmyx Nova"},
+
+    {"source": "0.10mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.10mm Estàndard @Cosmyx Nova 0.2 broquet"},
+    {"source": "0.06mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.06mm Estàndard @Cosmyx Nova 0.2 broquet"},
+    {"source": "0.08mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.08mm Estàndard @Cosmyx Nova 0.2 broquet"},
+    {"source": "0.12mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.12mm Estàndard @Cosmyx Nova 0.2 broquet"},
+    {"source": "0.14mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.14mm Estàndard @Cosmyx Nova 0.2 broquet"},
+
+    {"source": "0.18mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.18mm Estàndard @Cosmyx Nova 0.6 broquet"},
+    {"source": "0.24mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.24mm Estàndard @Cosmyx Nova 0.6 broquet"},
+    {"source": "0.30mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Estàndard @Cosmyx Nova 0.6 broquet"},
+    {"source": "0.36mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.36mm Estàndard @Cosmyx Nova 0.6 broquet"},
+    {"source": "0.42mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.42mm Estàndard @Cosmyx Nova 0.6 broquet"},
+    {"source": "0.30mm Strength @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Resistència @Cosmyx Nova 0.6 broquet"},
+
+    {"source": "0.24mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.24mm Estàndard @Cosmyx Nova 0.8 broquet"},
+    {"source": "0.32mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.32mm Estàndard @Cosmyx Nova 0.8 broquet"},
+    {"source": "0.40mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.40mm Estàndard @Cosmyx Nova 0.8 broquet"},
+    {"source": "0.48mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.48mm Estàndard @Cosmyx Nova 0.8 broquet"},
+    {"source": "0.56mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.56mm Estàndard @Cosmyx Nova 0.8 broquet"},
+
+    {"source": "0.08mm Extra Fine @Metal and Ceramics", "translation": "0.08mm Extra Fi @Metall i Ceràmica"},
+    {"source": "0.12mm Fine @Metal and Ceramics", "translation": "0.12mm Fi @Metall i Ceràmica"},
+    {"source": "0.16mm Optimal @Metal and Ceramics", "translation": "0.16mm Òptim @Metall i Ceràmica"},
+    {"source": "0.20mm Standard @Metal and Ceramics", "translation": "0.20mm Estàndard @Metall i Ceràmica"},
+    {"source": "0.20mm Strength @Metal and Ceramics", "translation": "0.20mm Resistència @Metall i Ceràmica"},
+    {"source": "0.24mm Draft @Metal and Ceramics", "translation": "0.24mm Esborrany @Metall i Ceràmica"},
+    {"source": "0.28mm Extra Draft @Metal and Ceramics", "translation": "0.28mm Extra Esborrany @Metall i Ceràmica"},
+
+    {"source": "0.10mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.10mm Estàndard @Metall i Ceràmica 0.2 broquet"},
+    {"source": "0.06mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.06mm Estàndard @Metall i Ceràmica 0.2 broquet"},
+    {"source": "0.08mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.08mm Estàndard @Metall i Ceràmica 0.2 broquet"},
+    {"source": "0.12mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.12mm Estàndard @Metall i Ceràmica 0.2 broquet"},
+    {"source": "0.14mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.14mm Estàndard @Metall i Ceràmica 0.2 broquet"},
+
+    {"source": "0.18mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.18mm Estàndard @Metall i Ceràmica 0.6 broquet"},
+    {"source": "0.24mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.24mm Estàndard @Metall i Ceràmica 0.6 broquet"},
+    {"source": "0.30mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Estàndard @Metall i Ceràmica 0.6 broquet"},
+    {"source": "0.36mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.36mm Estàndard @Metall i Ceràmica 0.6 broquet"},
+    {"source": "0.42mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.42mm Estàndard @Metall i Ceràmica 0.6 broquet"},
+    {"source": "0.30mm Strength @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Resistència @Metall i Ceràmica 0.6 broquet"},
+
+    {"source": "0.24mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.24mm Estàndard @Metall i Ceràmica 0.8 broquet"},
+    {"source": "0.32mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.32mm Estàndard @Metall i Ceràmica 0.8 broquet"},
+    {"source": "0.48mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.48mm Estàndard @Metall i Ceràmica 0.8 broquet"},
+    {"source": "0.56mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.56mm Estàndard @Metall i Ceràmica 0.8 broquet"},
+    {"source": "0.40mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.40mm Estàndard @Metall i Ceràmica 0.8 broquet"}
+]

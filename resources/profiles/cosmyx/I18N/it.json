@@ -1,0 +1,102 @@
+[
+    {"source": "Cosmyx SuperNova Double Tete", "translation": "Cosmyx SuperNova Doppia Testina"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique", "translation": "Cosmyx SuperNova Doppia Testina Metallo Ceramica"},
+    {"source": "Cosmyx Nova Metal Ceramique", "translation": "Cosmyx Nova Metallo Ceramica"},
+    {"source": "Cosmyx Nova Haute Temperature", "translation": "Cosmyx Nova Alta Temperatura"},
+    {"source": "Cosmyx Nova Double Tete", "translation": "Cosmyx Nova Doppia Testina"},
+
+    {"source": "Cosmyx SuperNova Double Tete 0.2 nozzle", "translation": "Cosmyx SuperNova Doppia Testina 0.2 ugello"},
+    {"source": "Cosmyx SuperNova Double Tete 0.4 nozzle", "translation": "Cosmyx SuperNova Doppia Testina 0.4 ugello"},
+    {"source": "Cosmyx SuperNova Double Tete 0.6 nozzle", "translation": "Cosmyx SuperNova Doppia Testina 0.6 ugello"},
+    {"source": "Cosmyx SuperNova Double Tete 0.8 nozzle", "translation": "Cosmyx SuperNova Doppia Testina 0.8 ugello"},
+
+    {"source": "Cosmyx Nova Metal Ceramique 0.2 nozzle", "translation": "Cosmyx Nova Metallo Ceramica 0.2 ugello"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.4 nozzle", "translation": "Cosmyx Nova Metallo Ceramica 0.4 ugello"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.6 nozzle", "translation": "Cosmyx Nova Metallo Ceramica 0.6 ugello"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.8 nozzle", "translation": "Cosmyx Nova Metallo Ceramica 0.8 ugello"},
+
+    {"source": "Cosmyx Nova Haute Temperature 0.2 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.2 ugello"},
+    {"source": "Cosmyx Nova Haute Temperature 0.4 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.4 ugello"},
+    {"source": "Cosmyx Nova Haute Temperature 0.6 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.6 ugello"},
+    {"source": "Cosmyx Nova Haute Temperature 0.8 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.8 ugello"},
+
+    {"source": "Cosmyx Nova Double Tete 0.2 nozzle", "translation": "Cosmyx Nova Doppia Testina 0.2 ugello"},
+    {"source": "Cosmyx Nova Double Tete 0.4 nozzle", "translation": "Cosmyx Nova Doppia Testina 0.4 ugello"},
+    {"source": "Cosmyx Nova Double Tete 0.6 nozzle", "translation": "Cosmyx Nova Doppia Testina 0.6 ugello"},
+    {"source": "Cosmyx Nova Double Tete 0.8 nozzle", "translation": "Cosmyx Nova Doppia Testina 0.8 ugello"},
+
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle", "translation": "Cosmyx SuperNova Doppia Testina Metallo Ceramica 0.2 ugello"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle", "translation": "Cosmyx SuperNova Doppia Testina Metallo Ceramica 0.4 ugello"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle", "translation": "Cosmyx SuperNova Doppia Testina Metallo Ceramica 0.6 ugello"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle", "translation": "Cosmyx SuperNova Doppia Testina Metallo Ceramica 0.8 ugello"},
+
+    {"source": "Cosmyx Nova 0.2 nozzle", "translation": "Cosmyx Nova 0.2 ugello"},
+    {"source": "Cosmyx Nova 0.4 nozzle", "translation": "Cosmyx Nova 0.4 ugello"},
+    {"source": "Cosmyx Nova 0.6 nozzle", "translation": "Cosmyx Nova 0.6 ugello"},
+    {"source": "Cosmyx Nova 0.8 nozzle", "translation": "Cosmyx Nova 0.8 ugello"},
+
+    {"source": "Cosmyx SuperNova 0.2 nozzle", "translation": "Cosmyx SuperNova 0.2 ugello"},
+    {"source": "Cosmyx SuperNova 0.4 nozzle", "translation": "Cosmyx SuperNova 0.4 ugello"},
+    {"source": "Cosmyx SuperNova 0.6 nozzle", "translation": "Cosmyx SuperNova 0.6 ugello"},
+    {"source": "Cosmyx SuperNova 0.8 nozzle", "translation": "Cosmyx SuperNova 0.8 ugello"},
+
+    {"source": "0.08mm Extra Fine @Cosmyx Nova", "translation": "0.08mm Extra Fine @Cosmyx Nova"},
+    {"source": "0.12mm Fine @Cosmyx Nova", "translation": "0.12mm Fine @Cosmyx Nova"},
+    {"source": "0.16mm Optimal @Cosmyx Nova", "translation": "0.16mm Ottimale @Cosmyx Nova"},
+    {"source": "0.20mm Standard @Cosmyx Nova", "translation": "0.20mm Standard @Cosmyx Nova"},
+    {"source": "0.20mm Strength @Cosmyx Nova", "translation": "0.20mm Resistenza @Cosmyx Nova"},
+    {"source": "0.24mm Draft @Cosmyx Nova", "translation": "0.24mm Bozza @Cosmyx Nova"},
+    {"source": "0.28mm Extra Draft @Cosmyx Nova", "translation": "0.28mm Extra Bozza @Cosmyx Nova"},
+
+    {"source": "0.10mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.10mm Standard @Cosmyx Nova 0.2 ugello"},
+    {"source": "0.06mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.06mm Standard @Cosmyx Nova 0.2 ugello"},
+    {"source": "0.08mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.08mm Standard @Cosmyx Nova 0.2 ugello"},
+    {"source": "0.12mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.12mm Standard @Cosmyx Nova 0.2 ugello"},
+    {"source": "0.14mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.14mm Standard @Cosmyx Nova 0.2 ugello"},
+
+    {"source": "0.18mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.18mm Standard @Cosmyx Nova 0.6 ugello"},
+    {"source": "0.24mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.24mm Standard @Cosmyx Nova 0.6 ugello"},
+    {"source": "0.30mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Standard @Cosmyx Nova 0.6 ugello"},
+    {"source": "0.36mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.36mm Standard @Cosmyx Nova 0.6 ugello"},
+    {"source": "0.42mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.42mm Standard @Cosmyx Nova 0.6 ugello"},
+    {"source": "0.30mm Strength @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Resistenza @Cosmyx Nova 0.6 ugello"},
+
+    {"source": "0.24mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.24mm Standard @Cosmyx Nova 0.8 ugello"},
+    {"source": "0.32mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.32mm Standard @Cosmyx Nova 0.8 ugello"},
+    {"source": "0.40mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.40mm Standard @Cosmyx Nova 0.8 ugello"},
+    {"source": "0.48mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.48mm Standard @Cosmyx Nova 0.8 ugello"},
+    {"source": "0.56mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.56mm Standard @Cosmyx Nova 0.8 ugello"},
+
+    {"source": "0.08mm Extra Fine @Metal and Ceramics", "translation": "0.08mm Extra Fine @Metallo e Ceramica"},
+    {"source": "0.12mm Fine @Metal and Ceramics", "translation": "0.12mm Fine @Metallo e Ceramica"},
+    {"source": "0.16mm Optimal @Metal and Ceramics", "translation": "0.16mm Ottimale @Metallo e Ceramica"},
+    {"source": "0.20mm Standard @Metal and Ceramics", "translation": "0.20mm Standard @Metallo e Ceramica"},
+    {"source": "0.20mm Strength @Metal and Ceramics", "translation": "0.20mm Resistenza @Metallo e Ceramica"},
+    {"source": "0.24mm Draft @Metal and Ceramics", "translation": "0.24mm Bozza @Metallo e Ceramica"},
+    {"source": "0.28mm Extra Draft @Metal and Ceramics", "translation": "0.28mm Extra Bozza @Metallo e Ceramica"},
+
+    {"source": "0.10mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.10mm Standard @Metallo e Ceramica 0.2 ugello"},
+    {"source": "0.06mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.06mm Standard @Metallo e Ceramica 0.2 ugello"},
+    {"source": "0.08mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.08mm Standard @Metallo e Ceramica 0.2 ugello"},
+    {"source": "0.12mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.12mm Standard @Metallo e Ceramica 0.2 ugello"},
+    {"source": "0.14mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.14mm Standard @Metallo e Ceramica 0.2 ugello"},
+
+    {"source": "0.18mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.18mm Standard @Metallo e Ceramica 0.6 ugello"},
+    {"source": "0.24mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.24mm Standard @Metallo e Ceramica 0.6 ugello"},
+    {"source": "0.30mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Standard @Metallo e Ceramica 0.6 ugello"},
+    {"source": "0.36mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.36mm Standard @Metallo e Ceramica 0.6 ugello"},
+    {"source": "0.42mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.42mm Standard @Metallo e Ceramica 0.6 ugello"},
+    {"source": "0.30mm Strength @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Resistenza @Metallo e Ceramica 0.6 ugello"},
+
+    {"source": "0.24mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.24mm Standard @Metallo e Ceramica 0.8 ugello"},
+    {"source": "0.32mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.32mm Standard @Metallo e Ceramica 0.8 ugello"},
+    {"source": "0.48mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.48mm Standard @Metallo e Ceramica 0.8 ugello"},
+    {"source": "0.56mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.56mm Standard @Metallo e Ceramica 0.8 ugello"},
+    {"source": "0.40mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.40mm Standard @Metallo e Ceramica 0.8 ugello"},
+
+    {"source": "CAPIFIL PLA BLANC @Cosmyx Nova", "translation": "CAPIFIL PLA BIANCO @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA BLEU @Cosmyx Nova", "translation": "CAPIFIL PLA BLU @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA NOIR @Cosmyx Nova", "translation": "CAPIFIL PLA NERO @Cosmyx Nova"},
+    {"source": "TECTONIC CPE JAUNE @Cosmyx Nova", "translation": "TECTONIC CPE GIALLO @Cosmyx Nova"},
+    {"source": "TECTONIC CPE ROUGE @Cosmyx Nova", "translation": "TECTONIC CPE ROSSO @Cosmyx Nova"}
+]

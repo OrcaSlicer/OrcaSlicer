@@ -1,0 +1,96 @@
+[
+    {"source": "Cosmyx SuperNova Double Tete", "translation": "Cosmyx SuperNova Dubbelt Huvud"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique", "translation": "Cosmyx SuperNova Dubbelt Huvud Metall Keramik"},
+    {"source": "Cosmyx Nova Metal Ceramique", "translation": "Cosmyx Nova Metall Keramik"},
+    {"source": "Cosmyx Nova Haute Temperature", "translation": "Cosmyx Nova Hög Temperatur"},
+    {"source": "Cosmyx Nova Double Tete", "translation": "Cosmyx Nova Dubbelt Huvud"},
+
+    {"source": "Cosmyx SuperNova Double Tete 0.2 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud 0.2 munstycke"},
+    {"source": "Cosmyx SuperNova Double Tete 0.4 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud 0.4 munstycke"},
+    {"source": "Cosmyx SuperNova Double Tete 0.6 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud 0.6 munstycke"},
+    {"source": "Cosmyx SuperNova Double Tete 0.8 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud 0.8 munstycke"},
+
+    {"source": "Cosmyx Nova Metal Ceramique 0.2 nozzle", "translation": "Cosmyx Nova Metall Keramik 0.2 munstycke"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.4 nozzle", "translation": "Cosmyx Nova Metall Keramik 0.4 munstycke"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.6 nozzle", "translation": "Cosmyx Nova Metall Keramik 0.6 munstycke"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.8 nozzle", "translation": "Cosmyx Nova Metall Keramik 0.8 munstycke"},
+
+    {"source": "Cosmyx Nova Haute Temperature 0.2 nozzle", "translation": "Cosmyx Nova Hög Temperatur 0.2 munstycke"},
+    {"source": "Cosmyx Nova Haute Temperature 0.4 nozzle", "translation": "Cosmyx Nova Hög Temperatur 0.4 munstycke"},
+    {"source": "Cosmyx Nova Haute Temperature 0.6 nozzle", "translation": "Cosmyx Nova Hög Temperatur 0.6 munstycke"},
+    {"source": "Cosmyx Nova Haute Temperature 0.8 nozzle", "translation": "Cosmyx Nova Hög Temperatur 0.8 munstycke"},
+
+    {"source": "Cosmyx Nova Double Tete 0.2 nozzle", "translation": "Cosmyx Nova Dubbelt Huvud 0.2 munstycke"},
+    {"source": "Cosmyx Nova Double Tete 0.4 nozzle", "translation": "Cosmyx Nova Dubbelt Huvud 0.4 munstycke"},
+    {"source": "Cosmyx Nova Double Tete 0.6 nozzle", "translation": "Cosmyx Nova Dubbelt Huvud 0.6 munstycke"},
+    {"source": "Cosmyx Nova Double Tete 0.8 nozzle", "translation": "Cosmyx Nova Dubbelt Huvud 0.8 munstycke"},
+
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud Metall Keramik 0.2 munstycke"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud Metall Keramik 0.4 munstycke"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud Metall Keramik 0.6 munstycke"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle", "translation": "Cosmyx SuperNova Dubbelt Huvud Metall Keramik 0.8 munstycke"},
+
+    {"source": "Cosmyx Nova 0.2 nozzle", "translation": "Cosmyx Nova 0.2 munstycke"},
+    {"source": "Cosmyx Nova 0.4 nozzle", "translation": "Cosmyx Nova 0.4 munstycke"},
+    {"source": "Cosmyx Nova 0.6 nozzle", "translation": "Cosmyx Nova 0.6 munstycke"},
+    {"source": "Cosmyx Nova 0.8 nozzle", "translation": "Cosmyx Nova 0.8 munstycke"},
+
+    {"source": "Cosmyx SuperNova 0.2 nozzle", "translation": "Cosmyx SuperNova 0.2 munstycke"},
+    {"source": "Cosmyx SuperNova 0.4 nozzle", "translation": "Cosmyx SuperNova 0.4 munstycke"},
+    {"source": "Cosmyx SuperNova 0.6 nozzle", "translation": "Cosmyx SuperNova 0.6 munstycke"},
+    {"source": "Cosmyx SuperNova 0.8 nozzle", "translation": "Cosmyx SuperNova 0.8 munstycke"},
+
+    {"source": "0.08mm Extra Fine @Cosmyx Nova", "translation": "0.08mm Extra Fin @Cosmyx Nova"},
+    {"source": "0.12mm Fine @Cosmyx Nova", "translation": "0.12mm Fin @Cosmyx Nova"},
+    {"source": "0.16mm Optimal @Cosmyx Nova", "translation": "0.16mm Optimal @Cosmyx Nova"},
+    {"source": "0.20mm Standard @Cosmyx Nova", "translation": "0.20mm Standard @Cosmyx Nova"},
+    {"source": "0.20mm Strength @Cosmyx Nova", "translation": "0.20mm Styrka @Cosmyx Nova"},
+    {"source": "0.24mm Draft @Cosmyx Nova", "translation": "0.24mm Utkast @Cosmyx Nova"},
+    {"source": "0.28mm Extra Draft @Cosmyx Nova", "translation": "0.28mm Extra Utkast @Cosmyx Nova"},
+
+    {"source": "0.10mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.10mm Standard @Cosmyx Nova 0.2 munstycke"},
+    {"source": "0.06mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.06mm Standard @Cosmyx Nova 0.2 munstycke"},
+    {"source": "0.08mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.08mm Standard @Cosmyx Nova 0.2 munstycke"},
+    {"source": "0.12mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.12mm Standard @Cosmyx Nova 0.2 munstycke"},
+    {"source": "0.14mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.14mm Standard @Cosmyx Nova 0.2 munstycke"},
+
+    {"source": "0.18mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.18mm Standard @Cosmyx Nova 0.6 munstycke"},
+    {"source": "0.24mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.24mm Standard @Cosmyx Nova 0.6 munstycke"},
+    {"source": "0.30mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Standard @Cosmyx Nova 0.6 munstycke"},
+    {"source": "0.36mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.36mm Standard @Cosmyx Nova 0.6 munstycke"},
+    {"source": "0.42mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.42mm Standard @Cosmyx Nova 0.6 munstycke"},
+    {"source": "0.30mm Strength @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Styrka @Cosmyx Nova 0.6 munstycke"},
+
+    {"source": "0.24mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.24mm Standard @Cosmyx Nova 0.8 munstycke"},
+    {"source": "0.32mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.32mm Standard @Cosmyx Nova 0.8 munstycke"},
+    {"source": "0.40mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.40mm Standard @Cosmyx Nova 0.8 munstycke"},
+    {"source": "0.48mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.48mm Standard @Cosmyx Nova 0.8 munstycke"},
+    {"source": "0.56mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.56mm Standard @Cosmyx Nova 0.8 munstycke"},
+
+    {"source": "0.08mm Extra Fine @Metal and Ceramics", "translation": "0.08mm Extra Fin @Metall och Keramik"},
+    {"source": "0.12mm Fine @Metal and Ceramics", "translation": "0.12mm Fin @Metall och Keramik"},
+    {"source": "0.16mm Optimal @Metal and Ceramics", "translation": "0.16mm Optimal @Metall och Keramik"},
+    {"source": "0.20mm Standard @Metal and Ceramics", "translation": "0.20mm Standard @Metall och Keramik"},
+    {"source": "0.20mm Strength @Metal and Ceramics", "translation": "0.20mm Styrka @Metall och Keramik"},
+    {"source": "0.24mm Draft @Metal and Ceramics", "translation": "0.24mm Utkast @Metall och Keramik"},
+    {"source": "0.28mm Extra Draft @Metal and Ceramics", "translation": "0.28mm Extra Utkast @Metall och Keramik"},
+
+    {"source": "0.10mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.10mm Standard @Metall och Keramik 0.2 munstycke"},
+    {"source": "0.06mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.06mm Standard @Metall och Keramik 0.2 munstycke"},
+    {"source": "0.08mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.08mm Standard @Metall och Keramik 0.2 munstycke"},
+    {"source": "0.12mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.12mm Standard @Metall och Keramik 0.2 munstycke"},
+    {"source": "0.14mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.14mm Standard @Metall och Keramik 0.2 munstycke"},
+
+    {"source": "0.18mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.18mm Standard @Metall och Keramik 0.6 munstycke"},
+    {"source": "0.24mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.24mm Standard @Metall och Keramik 0.6 munstycke"},
+    {"source": "0.30mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Standard @Metall och Keramik 0.6 munstycke"},
+    {"source": "0.36mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.36mm Standard @Metall och Keramik 0.6 munstycke"},
+    {"source": "0.42mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.42mm Standard @Metall och Keramik 0.6 munstycke"},
+    {"source": "0.30mm Strength @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Styrka @Metall och Keramik 0.6 munstycke"},
+
+    {"source": "0.24mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.24mm Standard @Metall och Keramik 0.8 munstycke"},
+    {"source": "0.32mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.32mm Standard @Metall och Keramik 0.8 munstycke"},
+    {"source": "0.48mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.48mm Standard @Metall och Keramik 0.8 munstycke"},
+    {"source": "0.56mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.56mm Standard @Metall och Keramik 0.8 munstycke"},
+    {"source": "0.40mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.40mm Standard @Metall och Keramik 0.8 munstycke"}
+]

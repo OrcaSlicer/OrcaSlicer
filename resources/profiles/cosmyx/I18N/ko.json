@@ -1,0 +1,102 @@
+[
+    {"source": "Cosmyx SuperNova Double Tete", "translation": "Cosmyx SuperNova 듀얼 헤드"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique", "translation": "Cosmyx SuperNova 듀얼 헤드 금속 세라믹"},
+    {"source": "Cosmyx Nova Metal Ceramique", "translation": "Cosmyx Nova 금속 세라믹"},
+    {"source": "Cosmyx Nova Haute Temperature", "translation": "Cosmyx Nova 고온"},
+    {"source": "Cosmyx Nova Double Tete", "translation": "Cosmyx Nova 듀얼 헤드"},
+
+    {"source": "Cosmyx SuperNova Double Tete 0.2 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 0.2 노즐"},
+    {"source": "Cosmyx SuperNova Double Tete 0.4 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 0.4 노즐"},
+    {"source": "Cosmyx SuperNova Double Tete 0.6 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 0.6 노즐"},
+    {"source": "Cosmyx SuperNova Double Tete 0.8 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 0.8 노즐"},
+
+    {"source": "Cosmyx Nova Metal Ceramique 0.2 nozzle", "translation": "Cosmyx Nova 금속 세라믹 0.2 노즐"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.4 nozzle", "translation": "Cosmyx Nova 금속 세라믹 0.4 노즐"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.6 nozzle", "translation": "Cosmyx Nova 금속 세라믹 0.6 노즐"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.8 nozzle", "translation": "Cosmyx Nova 금속 세라믹 0.8 노즐"},
+
+    {"source": "Cosmyx Nova Haute Temperature 0.2 nozzle", "translation": "Cosmyx Nova 고온 0.2 노즐"},
+    {"source": "Cosmyx Nova Haute Temperature 0.4 nozzle", "translation": "Cosmyx Nova 고온 0.4 노즐"},
+    {"source": "Cosmyx Nova Haute Temperature 0.6 nozzle", "translation": "Cosmyx Nova 고온 0.6 노즐"},
+    {"source": "Cosmyx Nova Haute Temperature 0.8 nozzle", "translation": "Cosmyx Nova 고온 0.8 노즐"},
+
+    {"source": "Cosmyx Nova Double Tete 0.2 nozzle", "translation": "Cosmyx Nova 듀얼 헤드 0.2 노즐"},
+    {"source": "Cosmyx Nova Double Tete 0.4 nozzle", "translation": "Cosmyx Nova 듀얼 헤드 0.4 노즐"},
+    {"source": "Cosmyx Nova Double Tete 0.6 nozzle", "translation": "Cosmyx Nova 듀얼 헤드 0.6 노즐"},
+    {"source": "Cosmyx Nova Double Tete 0.8 nozzle", "translation": "Cosmyx Nova 듀얼 헤드 0.8 노즐"},
+
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 금속 세라믹 0.2 노즐"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 금속 세라믹 0.4 노즐"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 금속 세라믹 0.6 노즐"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle", "translation": "Cosmyx SuperNova 듀얼 헤드 금속 세라믹 0.8 노즐"},
+
+    {"source": "Cosmyx Nova 0.2 nozzle", "translation": "Cosmyx Nova 0.2 노즐"},
+    {"source": "Cosmyx Nova 0.4 nozzle", "translation": "Cosmyx Nova 0.4 노즐"},
+    {"source": "Cosmyx Nova 0.6 nozzle", "translation": "Cosmyx Nova 0.6 노즐"},
+    {"source": "Cosmyx Nova 0.8 nozzle", "translation": "Cosmyx Nova 0.8 노즐"},
+
+    {"source": "Cosmyx SuperNova 0.2 nozzle", "translation": "Cosmyx SuperNova 0.2 노즐"},
+    {"source": "Cosmyx SuperNova 0.4 nozzle", "translation": "Cosmyx SuperNova 0.4 노즐"},
+    {"source": "Cosmyx SuperNova 0.6 nozzle", "translation": "Cosmyx SuperNova 0.6 노즐"},
+    {"source": "Cosmyx SuperNova 0.8 nozzle", "translation": "Cosmyx SuperNova 0.8 노즐"},
+
+    {"source": "0.08mm Extra Fine @Cosmyx Nova", "translation": "0.08mm 초미세 @Cosmyx Nova"},
+    {"source": "0.12mm Fine @Cosmyx Nova", "translation": "0.12mm 미세 @Cosmyx Nova"},
+    {"source": "0.16mm Optimal @Cosmyx Nova", "translation": "0.16mm 최적 @Cosmyx Nova"},
+    {"source": "0.20mm Standard @Cosmyx Nova", "translation": "0.20mm 표준 @Cosmyx Nova"},
+    {"source": "0.20mm Strength @Cosmyx Nova", "translation": "0.20mm 강도 @Cosmyx Nova"},
+    {"source": "0.24mm Draft @Cosmyx Nova", "translation": "0.24mm 드래프트 @Cosmyx Nova"},
+    {"source": "0.28mm Extra Draft @Cosmyx Nova", "translation": "0.28mm 특별 드래프트 @Cosmyx Nova"},
+
+    {"source": "0.10mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.10mm 표준 @Cosmyx Nova 0.2 노즐"},
+    {"source": "0.06mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.06mm 표준 @Cosmyx Nova 0.2 노즐"},
+    {"source": "0.08mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.08mm 표준 @Cosmyx Nova 0.2 노즐"},
+    {"source": "0.12mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.12mm 표준 @Cosmyx Nova 0.2 노즐"},
+    {"source": "0.14mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.14mm 표준 @Cosmyx Nova 0.2 노즐"},
+
+    {"source": "0.18mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.18mm 표준 @Cosmyx Nova 0.6 노즐"},
+    {"source": "0.24mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.24mm 표준 @Cosmyx Nova 0.6 노즐"},
+    {"source": "0.30mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm 표준 @Cosmyx Nova 0.6 노즐"},
+    {"source": "0.36mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.36mm 표준 @Cosmyx Nova 0.6 노즐"},
+    {"source": "0.42mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.42mm 표준 @Cosmyx Nova 0.6 노즐"},
+    {"source": "0.30mm Strength @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm 강도 @Cosmyx Nova 0.6 노즐"},
+
+    {"source": "0.24mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.24mm 표준 @Cosmyx Nova 0.8 노즐"},
+    {"source": "0.32mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.32mm 표준 @Cosmyx Nova 0.8 노즐"},
+    {"source": "0.40mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.40mm 표준 @Cosmyx Nova 0.8 노즐"},
+    {"source": "0.48mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.48mm 표준 @Cosmyx Nova 0.8 노즐"},
+    {"source": "0.56mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.56mm 표준 @Cosmyx Nova 0.8 노즐"},
+
+    {"source": "0.08mm Extra Fine @Metal and Ceramics", "translation": "0.08mm 초미세 @금속 및 세라믹"},
+    {"source": "0.12mm Fine @Metal and Ceramics", "translation": "0.12mm 미세 @금속 및 세라믹"},
+    {"source": "0.16mm Optimal @Metal and Ceramics", "translation": "0.16mm 최적 @금속 및 세라믹"},
+    {"source": "0.20mm Standard @Metal and Ceramics", "translation": "0.20mm 표준 @금속 및 세라믹"},
+    {"source": "0.20mm Strength @Metal and Ceramics", "translation": "0.20mm 강도 @금속 및 세라믹"},
+    {"source": "0.24mm Draft @Metal and Ceramics", "translation": "0.24mm 드래프트 @금속 및 세라믹"},
+    {"source": "0.28mm Extra Draft @Metal and Ceramics", "translation": "0.28mm 특별 드래프트 @금속 및 세라믹"},
+
+    {"source": "0.10mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.10mm 표준 @금속 및 세라믹 0.2 노즐"},
+    {"source": "0.06mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.06mm 표준 @금속 및 세라믹 0.2 노즐"},
+    {"source": "0.08mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.08mm 표준 @금속 및 세라믹 0.2 노즐"},
+    {"source": "0.12mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.12mm 표준 @금속 및 세라믹 0.2 노즐"},
+    {"source": "0.14mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.14mm 표준 @금속 및 세라믹 0.2 노즐"},
+
+    {"source": "0.18mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.18mm 표준 @금속 및 세라믹 0.6 노즐"},
+    {"source": "0.24mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.24mm 표준 @금속 및 세라믹 0.6 노즐"},
+    {"source": "0.30mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm 표준 @금속 및 세라믹 0.6 노즐"},
+    {"source": "0.36mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.36mm 표준 @금속 및 세라믹 0.6 노즐"},
+    {"source": "0.42mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.42mm 표준 @금속 및 세라믹 0.6 노즐"},
+    {"source": "0.30mm Strength @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm 강도 @금속 및 세라믹 0.6 노즐"},
+
+    {"source": "0.24mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.24mm 표준 @금속 및 세라믹 0.8 노즐"},
+    {"source": "0.32mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.32mm 표준 @금속 및 세라믹 0.8 노즐"},
+    {"source": "0.48mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.48mm 표준 @금속 및 세라믹 0.8 노즐"},
+    {"source": "0.56mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.56mm 표준 @금속 및 세라믹 0.8 노즐"},
+    {"source": "0.40mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.40mm 표준 @금속 및 세라믹 0.8 노즐"},
+
+    {"source": "CAPIFIL PLA BLANC @Cosmyx Nova", "translation": "CAPIFIL PLA 화이트 @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA BLEU @Cosmyx Nova", "translation": "CAPIFIL PLA 블루 @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA NOIR @Cosmyx Nova", "translation": "CAPIFIL PLA 블랙 @Cosmyx Nova"},
+    {"source": "TECTONIC CPE JAUNE @Cosmyx Nova", "translation": "TECTONIC CPE 옐로우 @Cosmyx Nova"},
+    {"source": "TECTONIC CPE ROUGE @Cosmyx Nova", "translation": "TECTONIC CPE 레드 @Cosmyx Nova"}
+]

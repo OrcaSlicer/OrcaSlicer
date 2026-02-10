@@ -1,0 +1,102 @@
+[
+    {"source": "Cosmyx SuperNova Double Tete", "translation": "Cosmyx SuperNova 雙噴頭"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique", "translation": "Cosmyx SuperNova 雙噴頭 金屬陶瓷"},
+    {"source": "Cosmyx Nova Metal Ceramique", "translation": "Cosmyx Nova 金屬陶瓷"},
+    {"source": "Cosmyx Nova Haute Temperature", "translation": "Cosmyx Nova 高溫"},
+    {"source": "Cosmyx Nova Double Tete", "translation": "Cosmyx Nova 雙噴頭"},
+
+    {"source": "Cosmyx SuperNova Double Tete 0.2 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 0.2 噴嘴"},
+    {"source": "Cosmyx SuperNova Double Tete 0.4 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 0.4 噴嘴"},
+    {"source": "Cosmyx SuperNova Double Tete 0.6 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 0.6 噴嘴"},
+    {"source": "Cosmyx SuperNova Double Tete 0.8 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 0.8 噴嘴"},
+
+    {"source": "Cosmyx Nova Metal Ceramique 0.2 nozzle", "translation": "Cosmyx Nova 金屬陶瓷 0.2 噴嘴"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.4 nozzle", "translation": "Cosmyx Nova 金屬陶瓷 0.4 噴嘴"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.6 nozzle", "translation": "Cosmyx Nova 金屬陶瓷 0.6 噴嘴"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.8 nozzle", "translation": "Cosmyx Nova 金屬陶瓷 0.8 噴嘴"},
+
+    {"source": "Cosmyx Nova Haute Temperature 0.2 nozzle", "translation": "Cosmyx Nova 高溫 0.2 噴嘴"},
+    {"source": "Cosmyx Nova Haute Temperature 0.4 nozzle", "translation": "Cosmyx Nova 高溫 0.4 噴嘴"},
+    {"source": "Cosmyx Nova Haute Temperature 0.6 nozzle", "translation": "Cosmyx Nova 高溫 0.6 噴嘴"},
+    {"source": "Cosmyx Nova Haute Temperature 0.8 nozzle", "translation": "Cosmyx Nova 高溫 0.8 噴嘴"},
+
+    {"source": "Cosmyx Nova Double Tete 0.2 nozzle", "translation": "Cosmyx Nova 雙噴頭 0.2 噴嘴"},
+    {"source": "Cosmyx Nova Double Tete 0.4 nozzle", "translation": "Cosmyx Nova 雙噴頭 0.4 噴嘴"},
+    {"source": "Cosmyx Nova Double Tete 0.6 nozzle", "translation": "Cosmyx Nova 雙噴頭 0.6 噴嘴"},
+    {"source": "Cosmyx Nova Double Tete 0.8 nozzle", "translation": "Cosmyx Nova 雙噴頭 0.8 噴嘴"},
+
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 金屬陶瓷 0.2 噴嘴"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 金屬陶瓷 0.4 噴嘴"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 金屬陶瓷 0.6 噴嘴"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle", "translation": "Cosmyx SuperNova 雙噴頭 金屬陶瓷 0.8 噴嘴"},
+
+    {"source": "Cosmyx Nova 0.2 nozzle", "translation": "Cosmyx Nova 0.2 噴嘴"},
+    {"source": "Cosmyx Nova 0.4 nozzle", "translation": "Cosmyx Nova 0.4 噴嘴"},
+    {"source": "Cosmyx Nova 0.6 nozzle", "translation": "Cosmyx Nova 0.6 噴嘴"},
+    {"source": "Cosmyx Nova 0.8 nozzle", "translation": "Cosmyx Nova 0.8 噴嘴"},
+
+    {"source": "Cosmyx SuperNova 0.2 nozzle", "translation": "Cosmyx SuperNova 0.2 噴嘴"},
+    {"source": "Cosmyx SuperNova 0.4 nozzle", "translation": "Cosmyx SuperNova 0.4 噴嘴"},
+    {"source": "Cosmyx SuperNova 0.6 nozzle", "translation": "Cosmyx SuperNova 0.6 噴嘴"},
+    {"source": "Cosmyx SuperNova 0.8 nozzle", "translation": "Cosmyx SuperNova 0.8 噴嘴"},
+
+    {"source": "0.08mm Extra Fine @Cosmyx Nova", "translation": "0.08mm 超精細 @Cosmyx Nova"},
+    {"source": "0.12mm Fine @Cosmyx Nova", "translation": "0.12mm 精細 @Cosmyx Nova"},
+    {"source": "0.16mm Optimal @Cosmyx Nova", "translation": "0.16mm 最佳 @Cosmyx Nova"},
+    {"source": "0.20mm Standard @Cosmyx Nova", "translation": "0.20mm 標準 @Cosmyx Nova"},
+    {"source": "0.20mm Strength @Cosmyx Nova", "translation": "0.20mm 強度 @Cosmyx Nova"},
+    {"source": "0.24mm Draft @Cosmyx Nova", "translation": "0.24mm 草稿 @Cosmyx Nova"},
+    {"source": "0.28mm Extra Draft @Cosmyx Nova", "translation": "0.28mm 超級草稿 @Cosmyx Nova"},
+
+    {"source": "0.10mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.10mm 標準 @Cosmyx Nova 0.2 噴嘴"},
+    {"source": "0.06mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.06mm 標準 @Cosmyx Nova 0.2 噴嘴"},
+    {"source": "0.08mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.08mm 標準 @Cosmyx Nova 0.2 噴嘴"},
+    {"source": "0.12mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.12mm 標準 @Cosmyx Nova 0.2 噴嘴"},
+    {"source": "0.14mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.14mm 標準 @Cosmyx Nova 0.2 噴嘴"},
+
+    {"source": "0.18mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.18mm 標準 @Cosmyx Nova 0.6 噴嘴"},
+    {"source": "0.24mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.24mm 標準 @Cosmyx Nova 0.6 噴嘴"},
+    {"source": "0.30mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm 標準 @Cosmyx Nova 0.6 噴嘴"},
+    {"source": "0.36mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.36mm 標準 @Cosmyx Nova 0.6 噴嘴"},
+    {"source": "0.42mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.42mm 標準 @Cosmyx Nova 0.6 噴嘴"},
+    {"source": "0.30mm Strength @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm 強度 @Cosmyx Nova 0.6 噴嘴"},
+
+    {"source": "0.24mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.24mm 標準 @Cosmyx Nova 0.8 噴嘴"},
+    {"source": "0.32mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.32mm 標準 @Cosmyx Nova 0.8 噴嘴"},
+    {"source": "0.40mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.40mm 標準 @Cosmyx Nova 0.8 噴嘴"},
+    {"source": "0.48mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.48mm 標準 @Cosmyx Nova 0.8 噴嘴"},
+    {"source": "0.56mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.56mm 標準 @Cosmyx Nova 0.8 噴嘴"},
+
+    {"source": "0.08mm Extra Fine @Metal and Ceramics", "translation": "0.08mm 超精細 @金屬和陶瓷"},
+    {"source": "0.12mm Fine @Metal and Ceramics", "translation": "0.12mm 精細 @金屬和陶瓷"},
+    {"source": "0.16mm Optimal @Metal and Ceramics", "translation": "0.16mm 最佳 @金屬和陶瓷"},
+    {"source": "0.20mm Standard @Metal and Ceramics", "translation": "0.20mm 標準 @金屬和陶瓷"},
+    {"source": "0.20mm Strength @Metal and Ceramics", "translation": "0.20mm 強度 @金屬和陶瓷"},
+    {"source": "0.24mm Draft @Metal and Ceramics", "translation": "0.24mm 草稿 @金屬和陶瓷"},
+    {"source": "0.28mm Extra Draft @Metal and Ceramics", "translation": "0.28mm 超級草稿 @金屬和陶瓷"},
+
+    {"source": "0.10mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.10mm 標準 @金屬和陶瓷 0.2 噴嘴"},
+    {"source": "0.06mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.06mm 標準 @金屬和陶瓷 0.2 噴嘴"},
+    {"source": "0.08mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.08mm 標準 @金屬和陶瓷 0.2 噴嘴"},
+    {"source": "0.12mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.12mm 標準 @金屬和陶瓷 0.2 噴嘴"},
+    {"source": "0.14mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.14mm 標準 @金屬和陶瓷 0.2 噴嘴"},
+
+    {"source": "0.18mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.18mm 標準 @金屬和陶瓷 0.6 噴嘴"},
+    {"source": "0.24mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.24mm 標準 @金屬和陶瓷 0.6 噴嘴"},
+    {"source": "0.30mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm 標準 @金屬和陶瓷 0.6 噴嘴"},
+    {"source": "0.36mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.36mm 標準 @金屬和陶瓷 0.6 噴嘴"},
+    {"source": "0.42mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.42mm 標準 @金屬和陶瓷 0.6 噴嘴"},
+    {"source": "0.30mm Strength @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm 強度 @金屬和陶瓷 0.6 噴嘴"},
+
+    {"source": "0.24mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.24mm 標準 @金屬和陶瓷 0.8 噴嘴"},
+    {"source": "0.32mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.32mm 標準 @金屬和陶瓷 0.8 噴嘴"},
+    {"source": "0.48mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.48mm 標準 @金屬和陶瓷 0.8 噴嘴"},
+    {"source": "0.56mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.56mm 標準 @金屬和陶瓷 0.8 噴嘴"},
+    {"source": "0.40mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.40mm 標準 @金屬和陶瓷 0.8 噴嘴"},
+
+    {"source": "CAPIFIL PLA BLANC @Cosmyx Nova", "translation": "CAPIFIL PLA 白色 @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA BLEU @Cosmyx Nova", "translation": "CAPIFIL PLA 藍色 @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA NOIR @Cosmyx Nova", "translation": "CAPIFIL PLA 黑色 @Cosmyx Nova"},
+    {"source": "TECTONIC CPE JAUNE @Cosmyx Nova", "translation": "TECTONIC CPE 黃色 @Cosmyx Nova"},
+    {"source": "TECTONIC CPE ROUGE @Cosmyx Nova", "translation": "TECTONIC CPE 紅色 @Cosmyx Nova"}
+]
