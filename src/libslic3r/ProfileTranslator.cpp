@@ -89,8 +89,7 @@ void ProfileTranslator::load_translations(const std::string& profiles_dir, const
 {
     m_current_language = language_code;
 
-    // Skip loading for English (source language)
-    if (language_code.empty() || language_code == "en" || language_code == "en_US")
+    if (language_code.empty())
         return;
 
     if (!fs::exists(profiles_dir) || !fs::is_directory(profiles_dir))
