@@ -1,0 +1,11 @@
+{
+    "name": "PLA @DMAKERS_MS1@",
+    "vendor": "Generic",
+    "material": "PLA",
+    "default_temperature": 200,
+    "bed_temperature": 60,
+    "cooling_fan_speed": 100,
+    "retraction_length": 0.9,
+    "retraction_speed": 45,
+    "compatible_machines": ["DMAKERS_MS1 0.4 nozzle"]
+}

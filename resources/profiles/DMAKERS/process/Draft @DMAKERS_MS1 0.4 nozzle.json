@@ -1,0 +1,11 @@
+{
+    "name": "Draft @DMAKERS_MS1 0.4 nozzle",
+    "layer_height": 0.32,
+    "first_layer_height": 0.3,
+    "perimeters": 1,
+    "infill_density": 10,
+    "infill_pattern": "lines",
+    "print_speed": 70,
+    "travel_speed": 150,
+    "compatible_machines": ["DMAKERS_MS1 0.4 nozzle"]
+}

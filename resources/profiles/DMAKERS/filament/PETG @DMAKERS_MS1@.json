@@ -1,0 +1,11 @@
+{
+    "name": "PETG @DMAKERS_MS1@",
+    "vendor": "Generic",
+    "material": "PETG",
+    "default_temperature": 240,
+    "bed_temperature": 70,
+    "cooling_fan_speed": 60,
+    "retraction_length": 1.2,
+    "retraction_speed": 35,
+    "compatible_machines": ["DMAKERS_MS1 0.4 nozzle"]
+}

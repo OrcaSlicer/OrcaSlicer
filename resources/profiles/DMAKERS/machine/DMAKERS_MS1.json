@@ -1,0 +1,11 @@
+{
+    "machine_name": "DMAKERS_MS1",
+    "printer_model": "Generic Marlin Printer",
+    "printer_technology": "FFF",
+    "printer_structure": "undefine",
+    "nozzle_types": ["0.4"],
+    "printable_area": ["0x0", "220x0", "220x220", "0x220"],
+    "printable_height": 250,
+    "default_filament_profile": [],
+    "default_print_profile": ""
+}

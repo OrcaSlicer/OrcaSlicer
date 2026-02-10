@@ -1,0 +1,11 @@
+{
+    "name": "ABS @DMAKERS_MS1@",
+    "vendor": "Generic",
+    "material": "ABS",
+    "default_temperature": 250,
+    "bed_temperature": 100,
+    "cooling_fan_speed": 0,
+    "retraction_length": 1.5,
+    "retraction_speed": 30,
+    "compatible_machines": ["DMAKERS_MS1 0.4 nozzle"]
+}
