@@ -1,9 +1,9 @@
 {
     "type": "machine",
     "name": "fdm_U1",
+    "inherits": "fdm_toolchanger",
     "from": "system",
     "instantiation": "false",
-    "inherits": "fdm_toolchanger",
     "gcode_flavor": "klipper",
     "single_extruder_multi_material": "0",
     "bed_model": "Snapmaker U1_bed.stl",
@@ -148,7 +148,6 @@
         "3",
         "3"
     ],
-    "version": "2.1.1.1",
     "wipe": [
         "1",
         "1",
@@ -177,6 +176,8 @@
         "Normal Lift",
         "Normal Lift"
     ],
+    "bed_mesh_max": "267,267",
+    "bed_mesh_min": "3,3",
     "purge_in_prime_tower": "0",
     "machine_pause_gcode": "M601",
     "change_filament_gcode": "",    
