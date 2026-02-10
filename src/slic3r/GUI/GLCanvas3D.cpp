@@ -38,6 +38,7 @@
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "slic3r/Utils/MacDarkMode.hpp"
 
+#include <libslic3r/BoundingBox.hpp>
 #include <slic3r/GUI/GUI_Utils.hpp>
 
 #if ENABLE_RETINA_GL
@@ -1249,6 +1250,11 @@ bool GLCanvas3D::init()
     on_change_color_mode(wxGetApp().app_config->get("dark_color_mode") == "1", false);
 
     m_show_world_axes = wxGetApp().app_config->get("show_axes") == "true";
+    
+    // Controls the display of object names directly over the object
+    m_labels.show(wxGetApp().app_config->get_bool("show_labels"));
+    // Controls the color coding of overhang surfaces
+    m_slope.globalUse(wxGetApp().app_config->get_bool("show_labels"));
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< " enter";
     glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
@@ -2831,6 +2837,7 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 float y = dynamic_cast<const ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->get_at(plate_id);
                 float w = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_tower_width"))->value;
                 float a = dynamic_cast<const ConfigOptionFloat*>(proj_cfg.option("wipe_tower_rotation_angle"))->value;
+
                 // BBS
                 float v = dynamic_cast<const ConfigOptionFloat*>(m_config->option("prime_volume"))->value;
                 Vec3d plate_origin = ppl.get_plate(plate_id)->get_origin();
@@ -2857,8 +2864,28 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                     }
 
                     coordf_t plate_bbox_x_min_local_coord = plate_bbox_2d.min(0) - plate_origin(0);
+                    coordf_t plate_bbox_y_min_local_coord = plate_bbox_2d.min(1) - plate_origin(1);
                     coordf_t plate_bbox_x_max_local_coord = plate_bbox_2d.max(0) - plate_origin(0);
                     coordf_t plate_bbox_y_max_local_coord = plate_bbox_2d.max(1) - plate_origin(1);
+
+                    const float tower_w = (float) wipe_tower_size(0);    
+                    const float tower_h = (float) wipe_tower_size(1);
+                    const float min_x   = (float) plate_bbox_x_min_local_coord + margin;
+                    const float max_x   = (float) plate_bbox_x_max_local_coord - margin;
+                    const float min_y   = (float) plate_bbox_y_min_local_coord + margin;
+                    const float max_y   = (float) plate_bbox_y_max_local_coord - margin;
+
+                    // snap wipe tower back to nearest edge if it was initially loaded outside the plate boundary
+                    float new_x = (x < min_x) ? min_x : ((x + tower_w > max_x) ? (max_x - tower_w) : x);
+                    float new_y = (y < min_y) ? min_y : ((y + tower_h > max_y) ? (max_y - tower_h) : y);
+
+                    if (new_x != x || new_y != y) {
+                        // do notification
+                        _set_warning_notification(EWarning::PreviewPrimeTowerOutside, true);
+                        x = new_x;
+                        y = new_y;
+                    }
+
 
                     if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {
                         // update for wipe tower position
@@ -9624,6 +9651,9 @@ void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
         break;
     case EWarning::PrimeTowerOutside:
         text  = _u8L("The prime tower extends beyond the plate boundary.");
+        break;
+    case EWarning::PreviewPrimeTowerOutside:
+        text = _u8L("Prime tower position exceeded build plate boundaries and was repositioned to the nearest valid edge."); 
         break;
     case EWarning::NozzleFilamentIncompatible: {
         text = _u8L(get_nozzle_filament_incompatible_text());
