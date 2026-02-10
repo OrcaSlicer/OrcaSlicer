@@ -7308,6 +7308,7 @@ void GLCanvas3D::_rectangular_selection_picking_pass()
                 rect_near_top = rect_near_bottom + ratio_y;
 
             framebuffer_camera.look_at(camera->get_position(), camera->get_target(), camera->get_dir_up());
+            framebuffer_camera.set_type(camera->get_type());
             framebuffer_camera.apply_projection(rect_near_left, rect_near_right, rect_near_bottom, rect_near_top, camera->get_near_z(), camera->get_far_z());
             framebuffer_camera.set_viewport(0, 0, width, height);
             framebuffer_camera.apply_viewport();
