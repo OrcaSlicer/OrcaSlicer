@@ -3464,8 +3464,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     }
     MergeFilamentInfo merge_info;
     std::vector<std::pair<DynamicPrintConfig *,std::string>> unknowns;
-    auto enable_append = wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams");
-    auto n             = wxGetApp().preset_bundle->sync_ams_list(unknowns, !sync_result.direct_sync, sync_result.sync_maps, enable_append, merge_info);
+    auto enable_append  = wxGetApp().app_config->get_bool("enable_append_color_by_sync_ams");
+    auto sync_color_only = wxGetApp().app_config->get("sync_ams_filament_mode") == "1";
+    auto n              = wxGetApp().preset_bundle->sync_ams_list(unknowns, !sync_result.direct_sync, sync_result.sync_maps, enable_append, merge_info, sync_color_only);
     wxString detail;
     for (auto & uk : unknowns) {
         auto tray_name     = uk.first->opt_string("tray_name", 0u);
@@ -3497,9 +3498,11 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             _L("Sync filaments with AMS"), wxOK);
         dlg.ShowModal();
     }
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "on_filament_count_change";
-    wxGetApp().plater()->on_filament_count_change(n);
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish on_filament_count_change";
+    if (!sync_color_only) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "on_filament_count_change";
+        wxGetApp().plater()->on_filament_count_change(n);
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "finish on_filament_count_change";
+    }
     for (auto& c : p->combos_filament)
         c->update();
     // Expand filament list
@@ -3523,14 +3526,23 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     }
     Layout();
 
-    // Perform preset selection and list update first — these may rebuild combo widgets,
-    // which clears any badge state. Badges must be set AFTER these calls to persist.
-    wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0]);
-    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-    update_dynamic_filament_list();
+    // For full sync, preset selection/list update may rebuild combo widgets.
+    // For color-only, keep current presets untouched and refresh colors only.
+    if (!sync_color_only) {
+        wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0]);
+        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+        update_dynamic_filament_list();
+    } else {
+        wxGetApp().plater()->update_filament_colors_in_full_config();
+        for (auto &c : p->combos_filament)
+            c->update();
+        obj_list()->update_filament_colors();
+        update_dynamic_filament_list();
+    }
 
-    auto badge_combox_filament = [](PlaterPresetComboBox *c) {
-        auto tip     = _L("Filament type and color information have been synchronized, but slot information is not included.");
+    auto badge_combox_filament = [sync_color_only](PlaterPresetComboBox *c) {
+        auto tip     = sync_color_only ? _L("Only filament color information has been synchronized from printer.") :
+                                         _L("Filament type and color information have been synchronized, but slot information is not included.");
         c->SetToolTip(tip);
         c->ShowBadge(true);
     };
@@ -4341,12 +4353,21 @@ struct Plater::priv
     bool is_assemble_view_show() const { return current_panel == assemble_view; }
 
     bool are_view3D_labels_shown() const { return (current_panel == view3D) && view3D->get_canvas3d()->are_labels_shown(); }
-    void show_view3D_labels(bool show) { if (current_panel == view3D) view3D->get_canvas3d()->show_labels(show); }
+    void show_view3D_labels(bool show)
+    {
+        if (current_panel == view3D) { 
+            view3D->get_canvas3d()->show_labels(show);
+            wxGetApp().app_config->set_bool("show_labels", show);
+        }
+    }
 
     bool is_view3D_overhang_shown() const { return (current_panel == view3D) && view3D->get_canvas3d()->is_overhang_shown(); }
     void show_view3D_overhang(bool show)
     {
-        if (current_panel == view3D) view3D->get_canvas3d()->show_overhang(show);
+        if (current_panel == view3D) { 
+            view3D->get_canvas3d()->show_overhang(show);
+            wxGetApp().app_config->set_bool("show_overhang", show);
+        }
     }
 
     void enable_sidebar(bool enabled);
@@ -12170,7 +12191,7 @@ void Plater::calib_pa(const Calib_Params& params)
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     switch (params.mode) {
         case CalibMode::Calib_PA_Line:
-            add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.stl");
+            add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/pressure_advance_test.drc");
             break;
         case CalibMode::Calib_PA_Pattern:
             _calib_pa_pattern(params);
@@ -12444,7 +12465,7 @@ void Plater::cut_horizontal(size_t obj_idx, size_t instance_idx, double z, Model
 }
 
 void Plater::_calib_pa_tower(const Calib_Params& params) {
-    add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/tower_with_seam.stl");
+    add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/tower_with_seam.drc");
 
     auto& print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -12677,7 +12698,7 @@ void Plater::calib_temp(const Calib_Params& params) {
     if (params.mode != CalibMode::Calib_Temp_Tower)
         return;
     
-    add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.stl");
+    add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.drc");
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto start_temp = lround(params.start);
@@ -12702,7 +12723,7 @@ void Plater::calib_temp(const Calib_Params& params) {
 
     // cut upper
     auto obj_bb = model().objects[0]->bounding_box_exact();
-    auto block_count = lround((350 - params.end) / 5 + 1);
+    auto block_count = lround((500 - params.end) / 5 + 1);
     if(block_count > 0){
         // subtract EPSILON offset to avoid cutting at the exact location where the flat surface is
         auto new_height = block_count * 10.0 - EPSILON;
@@ -12713,7 +12734,7 @@ void Plater::calib_temp(const Calib_Params& params) {
     
     // cut bottom
     obj_bb = model().objects[0]->bounding_box_exact();
-    block_count = lround((350 - params.start) / 5);
+    block_count = lround((500 - params.start) / 5);
     if(block_count > 0){
         auto new_height = block_count * 10.0 + EPSILON;
         if (new_height < obj_bb.size().z()) {
@@ -12731,7 +12752,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
-    add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.step");
+    add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc");
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
@@ -12806,7 +12827,7 @@ void Plater::calib_retraction(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_Retraction_tower)
         return;
 
-    add_model(false, Slic3r::resources_dir() + "/calib/retraction/retraction_tower.stl");
+    add_model(false, Slic3r::resources_dir() + "/calib/retraction/retraction_tower.drc");
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
@@ -12863,7 +12884,7 @@ void Plater::calib_VFA(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_VFA_Tower)
         return;
 
-    add_model(false, Slic3r::resources_dir() + "/calib/vfa/VFA.stl");
+    add_model(false, Slic3r::resources_dir() + "/calib/vfa/vfa.drc");
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -12907,7 +12928,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_Input_shaping_freq)
         return;
 
-    add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.stl" : "/calib/input_shaping/fast_tower_test.stl"));
+    add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc"));
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -12967,7 +12988,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_Input_shaping_damp)
         return;
 
-    add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.stl" : "/calib/input_shaping/fast_tower_test.stl"));
+    add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc"));
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -13028,8 +13049,8 @@ void Plater::Calib_Cornering(const Calib_Params& params)
         return;
 
     const std::string cornering_model_path = params.test_model == 0
-        ? "/calib/input_shaping/ringing_tower.stl"
-        : (params.test_model == 1 ? "/calib/input_shaping/fast_tower_test.stl" : "/calib/cornering/SCV-V2.stl");
+        ? "/calib/input_shaping/ringing_tower.drc"
+        : (params.test_model == 1 ? "/calib/input_shaping/fast_tower_test.drc" : "/calib/cornering/SCV-V2.drc");
     add_model(false, Slic3r::resources_dir() + cornering_model_path);
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
