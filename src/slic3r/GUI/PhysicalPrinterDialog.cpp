@@ -681,6 +681,8 @@ void PhysicalPrinterDialog::update(bool printer_change)
         
         if (opt->value == htUltimaker) {
                 m_optgroup->show_field("printhost_apikey");
+                m_optgroup->show_field("printhost_user");
+                m_optgroup->show_field("printhost_password");
                 m_optgroup->hide_field("printhost_authorization_type");
                 m_optgroup->enable_field("print_host");
                 m_optgroup->show_field("print_host_webui");
