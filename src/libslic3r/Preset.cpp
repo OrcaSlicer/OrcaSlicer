@@ -686,10 +686,31 @@ bool is_compatible_with_parent_printer(const PresetWithVendorProfile& preset, co
 {
     auto *compatible_printers     = dynamic_cast<const ConfigOptionStrings*>(preset.preset.config.option("compatible_printers"));
     bool  has_compatible_printers = compatible_printers != nullptr && ! compatible_printers->values.empty();
-    //BBS: FIXME only check the parent now, but should check grand-parent as well.
-    return has_compatible_printers &&
-           std::find(compatible_printers->values.begin(), compatible_printers->values.end(), active_printer.preset.inherits()) !=
-               compatible_printers->values.end();
+    if (!has_compatible_printers)
+        return false;
+
+    auto is_compatible_with_name = [&compatible_printers](const std::string& printer_name) {
+        return !printer_name.empty() &&
+               std::find(compatible_printers->values.begin(), compatible_printers->values.end(), printer_name) !=
+                   compatible_printers->values.end();
+    };
+
+    // Keep backward-compatible behavior if collection context is unavailable.
+    if (active_printer.collection == nullptr)
+        return is_compatible_with_name(active_printer.preset.inherits());
+
+    // Walk the whole inheritance chain (parent, grand-parent, ...).
+    const Preset* current = &active_printer.preset;
+    while (current != nullptr && !current->is_system && !current->inherits().empty()) {
+        const Preset* parent = active_printer.collection->get_preset_parent(*current);
+        if (parent == nullptr)
+            break;
+        if (is_compatible_with_name(parent->name))
+            return true;
+        current = parent;
+    }
+
+    return false;
 }
 
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config)
@@ -2666,7 +2687,7 @@ PresetWithVendorProfile PresetCollection::get_preset_with_vendor_profile(const P
 		}
 		p = this->get_preset_parent(*p);
 	} while (p != nullptr);
-	return PresetWithVendorProfile(preset, v);
+	return PresetWithVendorProfile(preset, v, this);
 }
 
 const std::string& PresetCollection::get_preset_name_by_alias(const std::string& alias) const
