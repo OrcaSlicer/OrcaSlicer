@@ -106,6 +106,8 @@ enum FileType
 
     FT_SL1,
 
+    FT_DRC,
+
     FT_SIZE,
 };
 
