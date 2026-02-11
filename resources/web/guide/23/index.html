@@ -23,36 +23,85 @@
 <div id="Content" class="ZScrol">
 	
 <div id="SystemFilamentsArea">
-<div id="MachineList" class="ChooseBlock">
-	<div class="CName"><span class="trans" tid="t15">printer</span>：</div>
-	<div class="CValues">
-	<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()"  /><span class="trans" tid="t11">all</span></label>
+
+<!-- ORCA column browser -->
+<div class="cbr-browser-container">
+	<div class="cbr-column">
+		<div class="cbr-column-title-container">
+			<div class="search-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="1"/>
+			<span class="cbr-search-placeholder trans" tid="t15">printer</span>
+			<div class="clear-icon"></div>
+		</div>
+		<div class="cbr-content thin-scroll" id="MachineList">
+			<div class="CValues">
+				<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()"  /><span class="trans" tid="t11">all</span></label>
+			</div>
+			<div class="cbr-no-items">No items</div>
+		</div>
 	</div>
-</div>	
-	
-<div id="FilatypeList" class="ChooseBlock">
-	<div class="CName"><span class="trans" tid="t16">filament type</span>：</div>
-	<div class="CValues">
-	<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllFilament()" /><span class="trans" tid="t11">all</span></label>	
+
+	<div class="cbr-column">
+		<div class="cbr-column-title-container">
+			<div class="search-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="2"/>
+			<span class="cbr-search-placeholder trans" tid="t16">filament type</span>
+			<div class="clear-icon"></div>
+		</div>
+		<div class="cbr-content thin-scroll" id="FilatypeList">
+			<div class="CValues">
+				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllFilament()" /><span class="trans" tid="t11">all</span></label>	
+			</div>
+			<div class="cbr-no-items">No items</div>
+		</div>
 	</div>
-</div>
-	
-<div id="VendorList" class="ChooseBlock">
-	<div class="CName"><span class="trans" tid="t17">vendor</span>：</div>
-	<div class="CValues">
-	<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllVendor()" /><span class="trans" tid="t11">all</span></label>
-    </div>
+
+	<div class="cbr-column">
+		<div class="cbr-column-title-container">
+			<div class="search-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="3"/>
+			<span class="cbr-search-placeholder trans" tid="t17">vendor</span>
+			<div class="clear-icon"></div>
+		</div>
+		<div class="cbr-content thin-scroll" id="VendorList">
+			<div class="CValues">
+				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllVendor()" /><span class="trans" tid="t11">all</span></label>
+			</div>
+			<div class="cbr-no-items">No items</div>
+		</div>
+	</div>
+
+	<div class="cbr-column">
+		<div class="cbr-column-title-container">
+			<div class="cbr-filter-box">
+				<div class="filter-icon"></div>
+				<input type="text" class="cbr-filter-bar" placeholder=" " tabindex="4"/>
+				<span class="cbr-filter-placeholder trans">Filter items</span>
+				<div class="clear-icon"></div>
+			</div>
+			<div class="ComboBox NoLabel">
+				<div class="arrow-icon"></div>
+				<select id="filter-tags">
+					<option value="0" disabled selected hidden></option>
+					<option value="1">Checked</option>
+					<option value="2">Unchecked</option>
+				</select>
+			</div>
+			<div class="cbr-filter-btns">
+				<span class="cbr-filter-mode-filter  trans">Select filtered</span>
+				<span class="cbr-filter-mode-visible trans">Select visible</span>
+				<div class="ButtonStyleConfirm ButtonTypeWindow  trans" tid="t11" onClick="SelectAllFilament(1)">all</div>
+				<div class="ButtonStyleRegular ButtonTypeWindow  trans" tid="t12" onClick="SelectAllFilament(0)">Clear all</div>
+			</div>	
+		</div>
+		<div class="cbr-content thin-scroll" id="ItemBlockArea">
+			<!-- <label class="MItem"><input type="checkbox" class="trans" tid="t11" onClick="SelectAllFilament()" /><span class="trans" tid="t11">all</span></label> -->
+			<div class="cbr-no-items">No items</div>
+		</div>
+	</div>
 </div>
 
-<div id="ItemSelectArea">
-	<div class="ButtonStyleConfirm ButtonTypeWindow  trans" tid="t11" onClick="SelectAllFilament(1)">all</div>
-	<div class="ButtonStyleRegular ButtonTypeWindow  trans" tid="t12" onClick="SelectAllFilament(0)">Clear all</div>
-</div>	
-	
-<div id="ItemBlockArea" class="ZScrol">	
 </div>
-</div>
-	
 	
 <div id="CustomFilamentsArea">
 	<div id="CFilament_Btn_Area">
@@ -89,15 +138,106 @@
 		if (e.keyCode == 27)
 			ClosePage();
 
-		if (window.event) {
-			try { e.keyCode = 0; } catch (e) { }
-			e.returnValue = false;
-		}
+		//if (window.event) {
+		//	try { e.keyCode = 0; } catch (e) { }
+		//	e.returnValue = false;
+		//}
 	};
     window.addEventListener('wheel', function (event) {
         if (event.ctrlKey === true || event.metaKey) {
             event.preventDefault();
         }
     }, { passive: false });
+
+	function addClearBtnEvents(el){
+		el.addEventListener('click', e => {
+			if (el.getAttribute("onclear") == "1") {
+				el.value = '';
+				el.dispatchEvent(new Event('input', {bubbles: true}));
+			}
+		});
+		el.addEventListener('mousemove', e => {
+			const rc = el.getBoundingClientRect();
+			const onRight = el.value && (e.clientX - rc.left > rc.width - 32);
+			el.setAttribute("onclear", onRight ? "1" : "0");
+		});
+		el.addEventListener('mouseleave', e => {
+			el.setAttribute("onclear", "0");
+		});
+	}
+
+	document.querySelectorAll('.cbr-search-bar').forEach(searchBar => {
+        searchBar.addEventListener('input', function() {
+            const search = this.value.trim().toLowerCase(),
+            	  list   = this.closest('.cbr-column').querySelector('.cbr-content'),
+            	  items  = list.querySelectorAll('label');
+            let   hidden = 0;
+
+            items.forEach((item, i) => {
+				if(i == 0){
+					item.style.display ="block";
+					return;
+				};
+                const text = item.querySelector("span").textContent.toLowerCase();
+                const hide = search && !text.includes(search);
+                item.style.display = hide ? "none" : "block";
+                if(hide) hidden++;
+            });
+
+			if(items.length - hidden == 1){
+				items[0].style.display = "none";
+				hidden++;
+			}
+
+            list.querySelector('.cbr-no-items').style.display = (hidden === items.length) ? "block" : "none";
+        });
+		addClearBtnEvents(searchBar);
+	});
+
+	const filterBar         = document.querySelector('.cbr-filter-bar');
+	const filterModeFilter  = document.querySelector('.cbr-filter-mode-filter' );
+	const filterModeVisible = document.querySelector('.cbr-filter-mode-visible');
+	
+	filterBar.addEventListener('input', function() {
+        const search = this.value.trim().toLowerCase();
+        const list   = this.closest('.cbr-column').querySelector('.cbr-content');
+        const items  = list.querySelectorAll('label');
+        let   hidden = 0;
+		
+		filterModeFilter.style.display  = search ? "block" : "none";
+		filterModeVisible.style.display = search ? "none" : "block";
+
+		const showSel   = search == "::checked";
+		const showUnsel = search == "::unchecked";
+		
+		if(showSel || showUnsel){
+			items.forEach(item => {
+				const cb   = item.querySelector("input");
+				const hide = showSel ? !cb.checked : cb.checked;
+				item.style.position = hide ? "absolute" : "unset";
+				if(hide) hidden++;
+			});
+		}
+		else {
+			items.forEach(item => {
+				const text = item.querySelector("span").textContent.toLowerCase();
+				const hide = search && !text.includes(search);
+				item.style.position = hide ? "absolute" : "unset";
+				if(hide) hidden++;
+			});
+		}
+	
+        list.querySelector('.cbr-no-items').style.display = (hidden === items.length) ? "block" : "none";
+	});
+	addClearBtnEvents(filterBar);
+
+	document.querySelector('#filter-tags').addEventListener('change', e => {
+		let v = e.target.value;
+		filterBar.value = v == "1" ? "::checked" : "::unchecked";
+		filterBar.dispatchEvent(new Event('input', {bubbles: true}));
+		filterBar.focus();
+		e.target.value = 0; // reset back to make dropdown items always selectable
+    });
+
 </script>
 </html>

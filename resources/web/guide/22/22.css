@@ -15,49 +15,29 @@
 	flex-shrink: 0;
 }
 
-.CValues
-{
-	display:flex;
-	justify-content: flex-start;
-	align-content: flex-start;
-	flex-wrap: wrap;
-}
-
-input
-{
-	margin-left: 20px;
-	margin-right: 6px;
-	vertical-align: middle;
-}
-
-#ItemSelectArea
-{
-	flex: 0 0 40px;
-	height:40px;
-	border-top: 1px solid #009688;
-	display: flex;
-	align-items: center;
-}
-
 #ItemBlockArea
 {
-	flex: 1 0 236px;
 	display:flex;
-	overflow-x:auto;
+	overflow-y:scroll;
 	flex-wrap:wrap;
-	flex-direction: column;
-	justify-content:flex-start;
-	align-items: flex-start;
-	align-content:flex-start;
-	line-height: 32px;
+	flex-direction: row;
+	padding: 0 0 0 8px;
 }
 
 .MItem
 {
-	min-width: 180px; /* ORCA Filtered items > slightly reduce min width to fit more items*/
-	height: 32px;
+	width:33%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	margin-right: 4px !important;
+	top: -100px; /* ORCA this will be activated when item filtered with position:absolute */
 }
 
+.MItem label
+{
+	margin-right: 0px !important;
+}
 
 #NoticeMask
 {
@@ -87,7 +67,7 @@ input
 
 #NoticeBar
 {
-	background-color:#00f0d8;
+	background-color: var(--main-color);
 	height: 40px;
 	line-height: 40px;
 	color: #fff;
@@ -109,5 +89,176 @@ input
 
 #GotoNetPluginBtn
 {
+	display: none;
+}
+
+
+/* ORCA column browser */
+
+#Content {
+	padding: 10px 15px 5px;
+	height: 100%;
+}
+
+.cbr-browser-container {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: 210px auto;
+	width: 100%;
+	height: 100%;
+	border: 1px solid var(--border-color);
+	box-sizing: border-box;
+}
+
+.cbr-column:last-child {
+	grid-column: 1 / -1;
+	border-top: 1px solid var(--border-color);
+}
+
+.cbr-column {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.cbr-column:nth-child(-n+2) {
+	border-right: 1px solid var(--border-color);
+}
+
+.cbr-column .CValues {
+	display: grid;
+}
+
+.CValues label {
+	margin-right: 0 !important;
+}
+
+.cbr-column-title-container {
+	position: sticky;
+	background: var(--bg-color-secondary);
+	display: flex;
+	align-items: center;
+	border-bottom: 1px solid var(--border-color);
+}
+
+.cbr-search-bar,
+.cbr-filter-bar {
+	font-size: 16px;
+	background: var(--bg-color-secondary);
+	border: 1px solid transparent;
+	padding: 2px 27px 2px 27px;
+	line-height: 24px;
+}
+
+.cbr-search-bar {
+	width: calc(100% - 18px);
+}
+
+.cbr-filter-bar {
+	border-color: var(--border-color);
+	width: 160px;
+	height:24px;
+}
+
+.cbr-column-title-container .ComboBox > select {
+	margin: 3px 0;
+	height: 30px;
+}
+
+.cbr-column-title-container input:is(:hover,:focus) {
+	border-color: var(--main-color);
+	outline: none;
+}
+
+.cbr-column-title-container input:is(:focus) {
+	background: var(--focus-bg-box);
+}
+
+.cbr-filter-box {
+	position: relative;
+	margin: 3px;
+}
+
+.cbr-filter-btns {
+	display: flex;
+	margin: 5px 5px 5px auto;
+}
+
+.cbr-filter-btns div:first-of-type {
+	margin-left: 10px;
+}
+
+.cbr-filter-mode-filter {
+	display: none;
+}
+
+.clear-icon,
+.search-icon,
+.filter-icon {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	-webkit-mask-image: var(--url);
+	mask-image: var(--url);
+	width:  16px;
+  	height: 16px;
+	background-color: var(--icon-color);
+	pointer-events:none;
+}
+
+.filter-icon {--url: var(--icon-filter)}
+.search-icon {--url: var(--icon-search)}
+.clear-icon  {--url: var(--icon-input-clear)}
+
+.search-icon,
+.filter-icon {
+	left:  6px;
+}
+
+.clear-icon  {
+	right: 6px;
+	display: none;
+}
+
+.cbr-search-bar:not(:placeholder-shown) ~ .clear-icon,
+.cbr-filter-bar:not(:placeholder-shown) ~ .clear-icon  {
+	display: block;
+}
+
+input[onclear="1"]{
+	cursor:default
+}
+
+.cbr-search-placeholder,
+.cbr-filter-placeholder {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	font-size: 16px;
+	color: var(--fg-color-label);
+	pointer-events: none;
+	line-height: 24px;
+	left: 27px;
+}
+
+.cbr-search-bar:not(:placeholder-shown) + .cbr-search-placeholder,
+.cbr-filter-bar:not(:placeholder-shown) + .cbr-filter-placeholder {
+	opacity: 0;
+}
+
+.cbr-content {
+	overflow-y: auto;
+}
+
+.cbr-content div {
+	padding-left: 8px;
+}
+
+.cbr-content label {
+	margin-right: 0 !important;
+	padding: 1px 0 !important;
+}
+
+.cbr-content div.cbr-no-items {
 	display: none;
 }
