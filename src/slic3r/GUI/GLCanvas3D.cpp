@@ -3273,7 +3273,7 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
         case WXK_CONTROL_A:
 #endif /* __APPLE__ */
             if (!is_in_painting_mode && !m_layers_editing.is_enabled())
-                post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
+                post_event(SimpleEvent(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL));
         break;
 #ifdef __APPLE__
         case 'c':
