@@ -37,20 +37,13 @@ public:
 	const std::string& get_api_user() const { return m_api_username; }
 	const std::string& get_api_username() const { return m_api_username; }
 	const std::string& get_api_password() const { return m_api_password; }
-    // const std::string& get_cafile() const { return m_cafile; }
 
 protected:
-	// Host authorization type.
-	// AuthorizationType m_authorization_type;
-	
 	std::string m_host;
 	
     // username and password for HTTP Digest Authentization (RFC RFC2617)
 	std::string m_api_username;
     std::string m_api_password;
-    // std::string m_cafile;
-
-	// bool m_ssl_revoke_best_effort;
    
 private:
 	enum class ConnectionType { rrf, dsf, error };

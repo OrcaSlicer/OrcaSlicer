@@ -31,27 +31,9 @@ Ultimaker::Ultimaker(DynamicPrintConfig *config) :
 	
 	m_host(config->opt_string("print_host")),
 	host(config->opt_string("print_host")),
-	// password(config->opt_string("printhost_apikey")),
-	// m_host(config->opt_string("print_host")),
+
     m_api_username(config->opt_string("printhost_user")),
-    // m_cafile(config->opt_string("printhost_cafile")),
 	m_api_password(config->opt_string("printhost_password"))
-	// m_authorization_type(config->opt_string("printhost_authorization_type"))
-	// m_authorization_type(config->option<ConfigOptionEnum<AuthorizationType>>("printhost_authorization_type")->value)
-    // m_username(config->opt_string("printhost_user")),
-    // m_password(config->opt_string("printhost_password")),
-    // m_ssl_revoke_best_effort(config->opt_bool("printhost_ssl_ignore_revoke"))
-
-	/*
-	m_host(config->opt_string("print_host")),
-    m_apikey(config->opt_string("printhost_apikey")),
-    m_cafile(config->opt_string("printhost_cafile")),
-    m_ssl_revoke_best_effort(config->opt_bool("printhost_ssl_ignore_revoke")),
-
-	m_authorization_type(config->option<ConfigOptionEnum<AuthorizationType>>("printhost_authorization_type")->value),
-    m_username(config->opt_string("printhost_user")),
-    m_password(config->opt_string("printhost_password"))
-	*/
 {}
 
 const char* Ultimaker::get_name() const { return "Ultimaker"; }
@@ -66,11 +48,6 @@ bool Ultimaker::test(wxString &msg) const
 		this->generate_auth_creds();
 		return true;
 	}
-
-	// auto connectionType = connect(msg);
-	// disconnect(connectionType);
-
-	// return connectionType != ConnectionType::error;
 
 	// Since the request is performed synchronously here,
     // it is ok to refer to `msg` from within the closure
@@ -97,17 +74,6 @@ bool Ultimaker::test(wxString &msg) const
             BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: res=%2%") % name % res; // DEBUG
 
             try {
-                /*std::stringstream ss(body);
-                pt::ptree ptree;
-                pt::read_json(ss, ptree);
-
-                if (!ptree.get_optional<std::string>("api")) {
-                    res = false;
-                    return;
-                }
-
-				const auto text = ptree.get_optional<std::string>("text");*/
-
 				// Validate that response is correct ("Ultimaker 3", "Ultimaker 3 extended" or "Ultimaker S5")
 				res = (boost::starts_with(body, "\"Ultimaker 3") || body == "\"Ultimaker S5\"");
             }
@@ -169,8 +135,6 @@ bool Ultimaker::has_auth_creds() const{
 
 
 bool Ultimaker::is_authorized() const{
-	// auto url = get_connect_url(false);
-	// auto http = Http::get(std::move(url));
 
 	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: is_authorized() attempting to see if creds are valid.");
 
@@ -245,10 +209,6 @@ std::string Ultimaker::auth_status() const{
 				if (body == "{\"message\": \"unknown\"}") { rtn = "waiting";}
 				if (body == "{\"message\": \"authorized\"}"  ) {rtn = "authorized";}
 				if (body == "{\"message\": \"unauthorized\"}") {rtn = "unauthorized";}
-				// else {
-				// 	BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: [auth][auth_status] Unknown value encountered inn api/v1/auth/check") % name;
-				// 	return "ERROR: unknown value";
-				// }
 
             }
             catch (const std::exception &) {
