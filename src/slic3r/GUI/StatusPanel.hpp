@@ -16,6 +16,7 @@
 #include <wx/webrequest.h>
 #include "wxMediaCtrl2.h"
 #include "MediaPlayCtrl.h"
+#include "NativeMediaCtrl.h"
 #include "AMSSetting.hpp"
 #include "Calibration.hpp"
 #include "CalibrationWizardPage.hpp"
@@ -460,7 +461,8 @@ protected:
     ScalableButton *m_button_pause_resume;
     ScalableButton *m_button_abort;
     Button *        m_button_clean;
-    wxWebView *     m_custom_camera_view{nullptr};
+    wxWebView*       m_custom_camera_view{nullptr};
+    NativeMediaCtrl* m_native_camera_ctrl{nullptr};
     wxSimplebook*   m_extruder_book;
     std::vector<ExtruderImage *> m_extruderImage;
 
@@ -572,11 +574,14 @@ protected:
     virtual void on_nozzle_selected(wxCommandEvent &event) { event.Skip(); }
     void on_camera_source_change(wxCommandEvent& event);
     void handle_camera_source_change();
-    void remove_controls();
-    void on_webview_navigating(wxWebViewEvent& evt);
     void on_camera_switch_toggled(wxMouseEvent& event);
     void toggle_custom_camera();
     void toggle_builtin_camera();
+    void on_native_camera_state_changed(wxCommandEvent& event);
+    void on_native_camera_error(wxCommandEvent& event);
+    void on_native_camera_size_changed(wxCommandEvent& event);
+    void on_webview_navigating(wxWebViewEvent& evt);
+    void remove_webview_controls();
 
 public:
     StatusBasePanel(wxWindow *      parent,
@@ -651,6 +656,7 @@ protected:
     int          m_last_timelapse = -1;
     int          m_last_extrusion = -1;
     int          m_last_vcamera   = -1;
+    std::string  m_last_dev_id;
     int          m_model_mall_request_count = 0;
     bool         m_is_load_with_temp = false;
     json         m_rating_result;

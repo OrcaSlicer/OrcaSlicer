@@ -27,7 +27,6 @@ RUN apt-get update && apt-get install  -y \
     libglu1-mesa-dev \
     libglu1-mesa-dev \
     libgstreamer1.0-dev \
-    libgstreamerd-3-dev \ 
     libgstreamer-plugins-base1.0-dev \
     libgstreamer-plugins-good1.0-dev \
     libgtk-3-dev \

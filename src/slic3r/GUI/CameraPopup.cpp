@@ -3,11 +3,14 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "BitmapCache.hpp"
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
 #include "GUI_App.hpp"
+#include "MainFrame.hpp"
+#include "CameraManagementDialog.hpp"
 #include <slic3r/GUI/StatusPanel.hpp>
 
 #include "DeviceCore/DevManager.h"
@@ -16,33 +19,23 @@
 namespace Slic3r {
 namespace GUI {
 
-wxIMPLEMENT_CLASS(CameraPopup, PopupWindow);
-
-wxBEGIN_EVENT_TABLE(CameraPopup, PopupWindow)
-    EVT_MOUSE_EVENTS(CameraPopup::OnMouse )
-    EVT_SIZE(CameraPopup::OnSize)
-    EVT_SET_FOCUS(CameraPopup::OnSetFocus )
-    EVT_KILL_FOCUS(CameraPopup::OnKillFocus )
-wxEND_EVENT_TABLE()
-
 wxDEFINE_EVENT(EVT_VCAMERA_SWITCH, wxMouseEvent);
 wxDEFINE_EVENT(EVT_SDCARD_ABSENT_HINT, wxCommandEvent);
 wxDEFINE_EVENT(EVT_CAM_SOURCE_CHANGE, wxCommandEvent);
 
-#define CAMERAPOPUP_CLICK_INTERVAL 20
-
 const wxColour TEXT_COL = wxColour(43, 52, 54);
 
 CameraPopup::CameraPopup(wxWindow *parent)
-   : PopupWindow(parent, wxBORDER_NONE | wxPU_CONTAINS_CONTROLS)
+   : DPIDialog(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+               wxBORDER_SIMPLE | wxFRAME_NO_TASKBAR | wxFRAME_FLOAT_ON_PARENT | wxSTAY_ON_TOP)
 {
+    SetBackgroundColour(*wxWHITE);
 #ifdef __WINDOWS__
     SetDoubleBuffered(true);
 #endif
     m_panel = new wxScrolledWindow(this, wxID_ANY);
     m_panel->SetBackgroundColour(*wxWHITE);
     m_panel->SetMinSize(wxSize(FromDIP(180),-1));
-    m_panel->Bind(wxEVT_MOTION, &CameraPopup::OnMouse, this);
 
     main_sizer = new wxBoxSizer(wxVERTICAL);
     wxFlexGridSizer* top_sizer = new wxFlexGridSizer(0, 2, 0, FromDIP(50));
@@ -101,34 +94,24 @@ CameraPopup::CameraPopup(wxWindow *parent)
         top_sizer->Add(0, 0, wxALL, 0);
     }
 
-    // custom IP camera
-    m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
-    m_custom_camera_input_confirm->SetBackgroundColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetBorderColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
-    m_custom_camera_input_confirm->SetFont(Label::Body_14);
-    m_custom_camera_input_confirm->SetMinSize(wxSize(FromDIP(90), FromDIP(30)));
-    m_custom_camera_input_confirm->SetPosition(wxDefaultPosition);
-    m_custom_camera_input_confirm->SetCornerRadius(FromDIP(12));
-    m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
-    m_custom_camera_input->GetTextCtrl()->SetHint(_L("Hostname or IP"));
-    m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
-    m_custom_camera_hint = new wxStaticText(m_panel, wxID_ANY, _L("Custom camera source"));
+    m_custom_camera_hint = new wxStaticText(m_panel, wxID_ANY, _L("Custom camera"));
     m_custom_camera_hint->Wrap(-1);
     m_custom_camera_hint->SetFont(Label::Head_14);
     m_custom_camera_hint->SetForegroundColour(TEXT_COL);
-
-    m_custom_camera_input_confirm->Bind(wxEVT_BUTTON, &CameraPopup::on_camera_source_changed, this);
-
-    if (!wxGetApp().app_config->get("camera", "custom_source").empty()) {
-        m_custom_camera_input->GetTextCtrl()->SetValue(wxGetApp().app_config->get("camera", "custom_source"));
-        set_custom_cam_button_state(wxGetApp().app_config->get("camera", "enable_custom_source") == "true");
-    }
+    m_switch_custom_camera = new SwitchButton(m_panel);
+    m_switch_custom_camera->Bind(wxEVT_TOGGLEBUTTON, &CameraPopup::on_custom_camera_switch_toggled, this);
 
     top_sizer->Add(m_custom_camera_hint, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
+    top_sizer->Add(m_switch_custom_camera, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
+
+    m_manage_cameras_link = new Label(m_panel, _L("Manage all camera overrides..."));
+    m_manage_cameras_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
+    m_manage_cameras_link->SetFont(Label::Body_12);
+    m_manage_cameras_link->SetCursor(wxCursor(wxCURSOR_HAND));
+    m_manage_cameras_link->Bind(wxEVT_LEFT_DOWN, &CameraPopup::on_manage_cameras_clicked, this);
+    top_sizer->Add(m_manage_cameras_link, 0, wxALIGN_LEFT | wxALL, FromDIP(5));
     top_sizer->Add(0, 0, wxALL, 0);
-    top_sizer->Add(m_custom_camera_input, 2, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxEXPAND | wxALL, FromDIP(5));
-    top_sizer->Add(m_custom_camera_input_confirm, 1, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
+
     main_sizer->Add(top_sizer, 0, wxALL, FromDIP(10));
 
     auto url = wxString::Format(L"https://wiki.bambulab.com/%s/software/bambu-studio/virtual-camera", L"en");
@@ -165,13 +148,13 @@ CameraPopup::CameraPopup(wxWindow *parent)
         evt.SetEventObject(this);
         GetEventHandler()->ProcessEvent(evt);
         });
-    #ifdef __APPLE__
-    m_panel->Bind(wxEVT_LEFT_UP, &CameraPopup::OnLeftUp, this);
-    #endif //APPLE
 
-    this->Bind(wxEVT_TIMER, &CameraPopup::stop_interval, this);
-    m_interval_timer = new wxTimer();
-    m_interval_timer->SetOwner(this);
+    Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
+        if (!e.GetActive()) {
+            Hide();
+        }
+        e.Skip();
+    });
 
     wxGetApp().UpdateDarkUIWin(this);
 }
@@ -183,35 +166,55 @@ void CameraPopup::sdcard_absent_hint()
     GetEventHandler()->ProcessEvent(evt);
 }
 
-void CameraPopup::on_camera_source_changed(wxCommandEvent &event)
+void CameraPopup::on_custom_camera_switch_toggled(wxCommandEvent& event)
 {
-    if (m_obj && !m_custom_camera_input->GetTextCtrl()->IsEmpty()) {
-        handle_camera_source_change();
-    }
-}
+    if (!m_obj) return;
 
-void CameraPopup::handle_camera_source_change()
-{
-    m_custom_camera_enabled = !m_custom_camera_enabled;
+    std::string dev_id = m_obj->get_dev_id();
+    if (!wxGetApp().app_config->has_printer_camera(dev_id))
+        return;
 
-    set_custom_cam_button_state(m_custom_camera_enabled);
-
-    wxGetApp().app_config->set("camera", "custom_source", m_custom_camera_input->GetTextCtrl()->GetValue().ToStdString());
-    wxGetApp().app_config->set("camera", "enable_custom_source", m_custom_camera_enabled);
+    auto config = wxGetApp().app_config->get_printer_camera(dev_id);
+    config.enabled = m_switch_custom_camera->GetValue();
+    wxGetApp().app_config->set_printer_camera(config);
 
     wxCommandEvent evt(EVT_CAM_SOURCE_CHANGE);
     evt.SetEventObject(this);
     GetEventHandler()->ProcessEvent(evt);
 }
 
-void CameraPopup::set_custom_cam_button_state(bool state)
+void CameraPopup::update_custom_camera_switch()
 {
-    m_custom_camera_enabled = state;
-    auto stateColour = state ? wxColour(170, 0, 0) : wxColour(38, 166, 154);
-    auto stateText = state ? "Disable" : "Enable";
-    m_custom_camera_input_confirm->SetBackgroundColor(stateColour);
-    m_custom_camera_input_confirm->SetBorderColor(stateColour);
-    m_custom_camera_input_confirm->SetLabel(_L(stateText));
+    if (!m_obj) {
+        m_switch_custom_camera->SetValue(false);
+        m_switch_custom_camera->Enable(false);
+        return;
+    }
+
+    std::string dev_id = m_obj->get_dev_id();
+    if (wxGetApp().app_config->has_printer_camera(dev_id)) {
+        auto config = wxGetApp().app_config->get_printer_camera(dev_id);
+        bool has_url = !config.custom_source.empty();
+        m_switch_custom_camera->Enable(has_url);
+        m_switch_custom_camera->SetValue(has_url && config.enabled);
+    } else {
+        m_switch_custom_camera->SetValue(false);
+        m_switch_custom_camera->Enable(false);
+    }
+}
+
+void CameraPopup::on_manage_cameras_clicked(wxMouseEvent& event)
+{
+    Hide();
+
+    CameraManagementDialog dlg(wxGetApp().mainframe);
+    dlg.ShowModal();
+
+    update_custom_camera_switch();
+
+    wxCommandEvent evt(EVT_CAM_SOURCE_CHANGE);
+    evt.SetEventObject(this);
+    GetEventHandler()->ProcessEvent(evt);
 }
 
 void CameraPopup::on_switch_recording(wxCommandEvent& event)
@@ -231,17 +234,6 @@ void CameraPopup::on_set_resolution()
     if (!m_obj) return;
 
     m_obj->command_ipcam_resolution_set(to_resolution_msg_string(curr_sel_resolution));
-}
-
-void CameraPopup::Popup(wxWindow *WXUNUSED(focus))
-{
-    wxPoint curr_position = this->GetPosition();
-    wxSize win_size = this->GetSize();
-    curr_position.x -= win_size.x;
-    this->SetPosition(curr_position);
-
-    if (!m_is_in_interval)
-        PopupWindow::Popup();
 }
 
 wxWindow* CameraPopup::create_item_radiobox(wxString title, wxWindow* parent, wxString tooltip, int padding_left)
@@ -341,6 +333,9 @@ void CameraPopup::check_func_supported(MachineObject *obj2)
     m_obj = obj2;
     if (m_obj == nullptr)
         return;
+
+    update_custom_camera_switch();
+
     // function supported
     if (m_obj->has_ipcam) {
         m_text_recording->Show();
@@ -435,100 +430,15 @@ void CameraPopup::rescale()
     m_panel->Layout();
     main_sizer->Fit(m_panel);
     SetClientSize(m_panel->GetSize());
-    PopupWindow::Update();
+    Layout();
 }
 
-void CameraPopup::OnLeftUp(wxMouseEvent &event)
+void CameraPopup::on_dpi_changed(const wxRect& suggested_rect)
 {
-    auto mouse_pos = ClientToScreen(event.GetPosition());
-    auto wxscroll_win_pos = m_panel->ClientToScreen(wxPoint(0, 0));
-
-    if (mouse_pos.x > wxscroll_win_pos.x && mouse_pos.y > wxscroll_win_pos.y && mouse_pos.x < (wxscroll_win_pos.x + m_panel->GetSize().x) && mouse_pos.y < (wxscroll_win_pos.y + m_panel->GetSize().y)) {
-        //recording
-        auto recording_rect = m_switch_recording->ClientToScreen(wxPoint(0, 0));
-        if (mouse_pos.x > recording_rect.x && mouse_pos.y > recording_rect.y && mouse_pos.x < (recording_rect.x + m_switch_recording->GetSize().x) && mouse_pos.y < (recording_rect.y + m_switch_recording->GetSize().y)) {
-            wxMouseEvent recording_evt(wxEVT_LEFT_DOWN);
-            m_switch_recording->GetEventHandler()->ProcessEvent(recording_evt);
-            return;
-        }
-        //vcamera
-        auto vcamera_rect = m_switch_vcamera->ClientToScreen(wxPoint(0, 0));
-        if (mouse_pos.x > vcamera_rect.x && mouse_pos.y > vcamera_rect.y && mouse_pos.x < (vcamera_rect.x + m_switch_vcamera->GetSize().x) && mouse_pos.y < (vcamera_rect.y + m_switch_vcamera->GetSize().y)) {
-            wxMouseEvent vcamera_evt(wxEVT_LEFT_DOWN);
-            m_switch_vcamera->GetEventHandler()->ProcessEvent(vcamera_evt);
-            return;
-        }
-        //resolution
-        for (int i = 0; i < (int)RESOLUTION_OPTIONS_NUM; ++i){
-            auto resolution_rbtn = resolution_rbtns[i];
-            auto rbtn_rect = resolution_rbtn->ClientToScreen(wxPoint(0, 0));
-            if (mouse_pos.x > rbtn_rect.x && mouse_pos.y > rbtn_rect.y && mouse_pos.x < (rbtn_rect.x + resolution_rbtn->GetSize().x) && mouse_pos.y < (rbtn_rect.y + resolution_rbtn->GetSize().y)) {
-                wxMouseEvent resolution_evt(wxEVT_LEFT_DOWN);
-                resolution_rbtn->GetEventHandler()->ProcessEvent(resolution_evt);
-                return;
-            }
-            auto resolution_txt = resolution_texts[i];
-            auto txt_rect = resolution_txt->ClientToScreen(wxPoint(0, 0));
-            if (mouse_pos.x > txt_rect.x && mouse_pos.y > txt_rect.y && mouse_pos.x < (txt_rect.x + resolution_txt->GetSize().x) && mouse_pos.y < (txt_rect.y + resolution_txt->GetSize().y)) {
-                wxMouseEvent resolution_evt(wxEVT_LEFT_DOWN);
-                resolution_txt->GetEventHandler()->ProcessEvent(resolution_evt);
-                return;
-            }
-        }
-        //hyper link
-        auto h_rect = vcamera_guide_link->ClientToScreen(wxPoint(0, 0));
-        if (mouse_pos.x > h_rect.x && mouse_pos.y > h_rect.y && mouse_pos.x < (h_rect.x + vcamera_guide_link->GetSize().x) && mouse_pos.y < (h_rect.y + vcamera_guide_link->GetSize().y)) {
-            auto url = wxString::Format(L"https://wiki.bambulab.com/%s/software/bambu-studio/virtual-camera", L"en");
-            wxLaunchDefaultBrowser(url);
-        }
-    }
-}
-
-void CameraPopup::start_interval()
-{
-    m_interval_timer->Start(CAMERAPOPUP_CLICK_INTERVAL);
-    m_is_in_interval = true;
-}
-
-void CameraPopup::stop_interval(wxTimerEvent& event)
-{
-    m_is_in_interval = false;
-    m_interval_timer->Stop();
-}
-
-void CameraPopup::OnDismiss() {
-    PopupWindow::OnDismiss();
-    this->start_interval();
-}
-
-bool CameraPopup::ProcessLeftDown(wxMouseEvent &event)
-{
-    return PopupWindow::ProcessLeftDown(event);
-}
-
-bool CameraPopup::Show(bool show)
-{
-    return PopupWindow::Show(show);
-}
-
-void CameraPopup::OnSize(wxSizeEvent &event)
-{
-    event.Skip();
-}
-
-void CameraPopup::OnSetFocus(wxFocusEvent &event)
-{
-    event.Skip();
-}
-
-void CameraPopup::OnKillFocus(wxFocusEvent &event)
-{
-    event.Skip();
-}
-
-void CameraPopup::OnMouse(wxMouseEvent &event)
-{
-    event.Skip();
+    m_panel->Layout();
+    main_sizer->Fit(m_panel);
+    SetClientSize(m_panel->GetSize());
+    Layout();
 }
 
 CameraItem::CameraItem(wxWindow *parent, std::string normal, std::string hover)
