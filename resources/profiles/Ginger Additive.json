@@ -63,6 +63,10 @@
     ],
     "filament_list": [
         {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
             "name": "Ginger Generic PETG",
             "sub_path": "filament/Ginger Generic PETG.json"
         },

@@ -1069,6 +1069,10 @@
             "sub_path": "filament/ELEGOO/fdm_elegoo_filament_common.json"
         },
         {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
             "name": "fdm_elegoo_filament_asa",
             "sub_path": "filament/ELEGOO/fdm_elegoo_filament_asa.json"
         },
@@ -1083,6 +1087,22 @@
         {
             "name": "fdm_elegoo_filament_tpu",
             "sub_path": "filament/ELEGOO/fdm_elegoo_filament_tpu.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
         },
         {
             "name": "Elegoo ASA @base",

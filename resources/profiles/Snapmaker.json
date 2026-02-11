@@ -477,6 +477,10 @@
             "sub_path": "filament/Snapmaker TPU 95A @U1 base.json"
         },
         {
+            "name": "fdm_filament_common",
+            "sub_path": "filament/fdm_filament_common.json"
+        },
+        {
             "name": "PolyTerra Dual PLA @0.2 nozzle",
             "sub_path": "filament/Polymaker/PolyTerra Dual PLA @0.2 nozzle.json"
         },
@@ -495,6 +499,42 @@
         {
             "name": "Snapmaker TPU 95A @U1",
             "sub_path": "filament/Snapmaker TPU 95A @U1.json"
+        },
+        {
+            "name": "fdm_filament_abs",
+            "sub_path": "filament/fdm_filament_abs.json"
+        },
+        {
+            "name": "fdm_filament_asa",
+            "sub_path": "filament/fdm_filament_asa.json"
+        },
+        {
+            "name": "fdm_filament_breakaway",
+            "sub_path": "filament/fdm_filament_breakaway.json"
+        },
+        {
+            "name": "fdm_filament_pa",
+            "sub_path": "filament/fdm_filament_pa.json"
+        },
+        {
+            "name": "fdm_filament_pet",
+            "sub_path": "filament/fdm_filament_pet.json"
+        },
+        {
+            "name": "fdm_filament_petg",
+            "sub_path": "filament/fdm_filament_petg.json"
+        },
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "fdm_filament_pva",
+            "sub_path": "filament/fdm_filament_pva.json"
+        },
+        {
+            "name": "fdm_filament_tpu",
+            "sub_path": "filament/fdm_filament_tpu.json"
         },
         {
             "name": "Snapmaker ABS @U1 base",
@@ -775,6 +815,10 @@
         {
             "name": "Snapmaker PLA-CF @base",
             "sub_path": "filament/Snapmaker PLA-CF @base.json"
+        },
+        {
+            "name": "fdm_filament_pla_eco",
+            "sub_path": "filament/fdm_filament_pla_eco.json"
         },
         {
             "name": "Snapmaker Dual PVA @base",

@@ -137,6 +137,10 @@
     ],
     "filament_list": [
         {
+            "name": "fdm_filament_peek",
+            "sub_path": "filament/fdm_filament_peek.json"
+        },
+        {
             "name": "MM Generic PEEK",
             "sub_path": "filament/MM Generic PEEK.json"
         }

@@ -1,0 +1,82 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_tpu",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "instantiation": "false",
+    "filament_type": [
+        "TPU"
+    ],
+    "filament_flow_ratio": [
+        "1.03"
+    ],
+    "filament_density": [
+        "1.21"
+    ],
+    "filament_cost": [
+        "25"
+    ],
+    "temperature_vitrification": [
+        "30"
+    ],
+    "nozzle_temperature_range_low": [
+        "200"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "25"
+    ],
+    "hot_plate_temp": [
+        "25"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.8"
+    ],
+    "close_fan_the_first_x_layers": [
+        "3"
+    ],
+    "full_fan_speed_layer": [
+        "3"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "fan_cooling_layer_time": [
+        "100"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "slow_down_layer_time": [
+        "4"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "1"
+    ],
+    "slow_down_for_layer_cooling": [
+        "1"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "enable_overhang_bridge_fan": [
+        "1"
+    ],
+    "overhang_fan_threshold": [
+        "50%"
+    ],
+    "overhang_fan_speed": [
+        "50"
+    ],
+    "support_material_interface_fan_speed": [
+        "-1"
+    ]
+}
