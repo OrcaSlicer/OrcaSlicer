@@ -10624,7 +10624,7 @@ msgid ""
 "Internal bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for internal bridges. Use 180° for zero angle.\n"
 "\n"
 "It is recommended to leave it at 0 unless there is a specific model need not to."
-msgstr ""
+msgstr "Anulación del ángulo de puente interno. Si se deja a cero, el ángulo de puente se calculará automáticamente. De lo contrario, se utilizará el ángulo proporcionado para los puentes internos. Use 180° para indicar ángulo cero.\n\nSe recomienda dejarlo en 0 salvo que el modelo requiera explícitamente otro valor."
 
 msgid "External bridge density"
 msgstr "Densidad de puente externo"
@@ -10636,10 +10636,10 @@ msgid ""
 "\n"
 "Higher densities can produce smoother bridge surfaces, as overlapping lines provide additional support during printing. Maximum is 120%.\n"
 "Note: Bridge density that is too high can cause warping or overextrusion."
-msgstr ""
+msgstr "Controla la densidad (espaciado) de las líneas de puente externas. El valor por defecto es 100%.\n\nLos puentes externos con menor densidad pueden mejorar la fiabilidad, ya que hay más espacio para que el aire circule alrededor del puente extruido, acelerando su enfriamiento. El mínimo es 10%.\n\nDensidades más altas pueden producir superficies de puente más lisas, ya que las líneas superpuestas proporcionan soporte adicional durante la impresión. El máximo es 120%.\nNota: una densidad de puente demasiado alta puede causar deformaciones o sobreextrusión."
 
 msgid "Internal bridge density"
-msgstr ""
+msgstr "Densidad de puente interno"
 
 msgid ""
 "Controls the density (spacing) of internal bridge lines. 100% means solid bridge. Default is 100%.\n"
@@ -10647,7 +10647,7 @@ msgid ""
 "Lower density internal bridges can help reduce top surface pillowing and improve internal bridge reliability as there is more space for air to circulate around the extruded bridge, improving its cooling speed.\n"
 "\n"
 "This option works particularly well when combined with the second internal bridge over infill option, further improving internal bridging structure before solid infill is extruded."
-msgstr ""
+msgstr "Controla la densidad (espaciado) de las líneas de puente internas. 100% significa puente sólido. El valor por defecto es 100%.\n\nUna menor densidad en puentes internos puede ayudar a reducir el acolchonamiento de la superficie superior y mejorar la fiabilidad del puente interno, al permitir mejor circulación de aire y enfriamiento.\n\nEsta opción funciona especialmente bien cuando se combina con la segunda opción de puente interno sobre el relleno, mejorando la estructura del puente interno antes de extruir el relleno sólido."
 
 msgid "Bridge flow ratio"
 msgstr "Ratio de flujo en puentes"
@@ -10698,97 +10698,97 @@ msgstr ""
 "El valor final de flujo es el producto de este valor, el factor de flujo del filamente y, si procede, el factor de flujo del objeto."
 
 msgid "Set other flow ratios"
-msgstr ""
+msgstr "Establecer otros ratios de flujo"
 
 msgid "Change flow ratios for other extrusion path types."
-msgstr ""
+msgstr "Cambiar los ratios de flujo para otros tipos de extrusión."
 
 msgid "First layer flow ratio"
-msgstr ""
+msgstr "Ratio de flujo en primera capa"
 
 msgid ""
 "This factor affects the amount of material on the first layer for the extrusion path roles listed in this section.\n"
 "\n"
 "For the first layer, the actual flow ratio for each path role (does not affect brims and skirts) will be multiplied by this value."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material en la primera capa para los roles de trayectoria de extrusión descritos en esta sección.\n\nPara la primera capa, el ratio de flujo real para cada rol de trayectoria (no afecta a bordes ni faldones) se multiplicará por este valor."
 
 msgid "Outer wall flow ratio"
-msgstr ""
+msgstr "Ratio de flujo en perímetro exterior"
 
 msgid ""
 "This factor affects the amount of material for outer walls.\n"
 "\n"
 "The actual outer wall flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para las paredes exteriores.\n\nEl flujo real utilizado para la pared exterior se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Inner wall flow ratio"
-msgstr ""
+msgstr "Ratio de flujo en perímetro interior"
 
 msgid ""
 "This factor affects the amount of material for inner walls.\n"
 "\n"
 "The actual inner wall flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para las paredes interiores.\n\nEl flujo real utilizado para la pared interior se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Overhang flow ratio"
-msgstr ""
+msgstr "Ratio de flujo en voladizos"
 
 msgid ""
 "This factor affects the amount of material for overhangs.\n"
 "\n"
 "The actual overhang flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para los voladizos.\n\nEl flujo real utilizado para voladizos se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Sparse infill flow ratio"
-msgstr ""
+msgstr "Ratio de flujo en relleno disperso"
 
 msgid ""
 "This factor affects the amount of material for sparse infill.\n"
 "\n"
 "The actual sparse infill flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para el relleno disperso.\n\nEl flujo real utilizado para el relleno disperso se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Internal solid infill flow ratio"
-msgstr ""
+msgstr "Ratio de flujo en relleno sólido interno"
 
 msgid ""
 "This factor affects the amount of material for internal solid infill.\n"
 "\n"
 "The actual internal solid infill flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para el relleno sólido interno.\n\nEl flujo real utilizado para el relleno sólido interno se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Gap fill flow ratio"
-msgstr ""
+msgstr "Ratio de flujo para relleno de huecos"
 
 msgid ""
 "This factor affects the amount of material for filling the gaps.\n"
 "\n"
 "The actual gap filling flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para rellenar los huecos.\n\nEl flujo real utilizado para el relleno de huecos se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Support flow ratio"
-msgstr ""
+msgstr "Ratio de flujo para soportes"
 
 msgid ""
 "This factor affects the amount of material for support.\n"
 "\n"
 "The actual support flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para los soportes.\n\nEl flujo real utilizado para el soporte se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Support interface flow ratio"
-msgstr ""
+msgstr "Ratio de flujo de la interfaz de soporte"
 
 msgid ""
 "This factor affects the amount of material for the support interface.\n"
 "\n"
 "The actual support interface flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
-msgstr ""
+msgstr "Este factor afecta la cantidad de material para la interfaz de soporte.\n\nEl flujo real utilizado para la interfaz de soporte se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Precise wall"
 msgstr "Perímetro preciso"
 
 msgid "Improve shell precision by adjusting outer wall spacing. This also improves layer consistency. NOTE: This option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr ""
+msgstr "Mejore la precisión de la carcasa ajustando el espaciado del perímetro externo. Esto también mejora la consistencia de las capas. NOTA: Esta opción se ignorará para secuencias de perímetros externo-interno o interno-externo-interno."
 
 msgid "Only one wall on top surfaces"
 msgstr "Sólo un perímetro en las capas superiores"
@@ -10989,19 +10989,19 @@ msgstr ""
 "0 para desactivar"
 
 msgid "Select printers"
-msgstr ""
+msgstr "Seleccionar impresoras"
 
 msgid "upward compatible machine"
 msgstr "máquina compatible ascendente"
 
 msgid "Condition"
-msgstr ""
+msgstr "Condición"
 
 msgid "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Una expresión booleana utilizando valores de configuración de un perfil existente. Si esta expresión es verdadera, el perfil será considerado compatible con el perfil de impresión activo."
 
 msgid "Select profiles"
-msgstr ""
+msgstr "Seleccionar perfiles"
 
 msgid "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Una expresión booleana que utiliza los valores de configuración de un perfil de impresión activo. Si esta expresión se evalúa como verdadera, este perfil se considera compatible con el perfil de impresión activo."
@@ -11073,7 +11073,7 @@ msgid "Don't support the whole bridge area which make support very large. Bridge
 msgstr "No crear soportes en toda el área de los puentes. Los puentes normalmente pueden imprimirse directamente sin soporte si no son muy largos"
 
 msgid "Thick external bridges"
-msgstr ""
+msgstr "Puentes externos gruesos"
 
 msgid "If enabled, bridges are more reliable, can bridge longer distances, but may look worse. If disabled, bridges look better but are reliable just for shorter bridged distances."
 msgstr "Si se activa, los puentes son más fiables, pueden salvar distancias más largas, pero pueden tener peor acabado. Si se desactiva, los puentes se ven mejor pero son fiables sólo para distancias más cortas."
@@ -11085,7 +11085,7 @@ msgid "If enabled, thick internal bridges will be used. It's usually recommended
 msgstr "Si se activa, se utilizarán puentes internos gruesos. Normalmente se recomienda tener esta función activada. Sin embargo, considere desactivarla si utilizas boquillas de diámetros elevados."
 
 msgid "Extra bridge layers (beta)"
-msgstr ""
+msgstr "Capas extra de puente (beta)"
 
 msgid ""
 "This option enables the generation of an extra bridge layer over internal and/or external bridges.\n"
@@ -11106,16 +11106,16 @@ msgid "Disabled"
 msgstr "Desactivado"
 
 msgid "External bridge only"
-msgstr ""
+msgstr "Solo puente externo"
 
 msgid "Internal bridge only"
-msgstr ""
+msgstr "Solo puente interno"
 
 msgid "Apply to all"
-msgstr ""
+msgstr "Aplicar a todos"
 
 msgid "Filter out small internal bridges"
-msgstr ""
+msgstr "Filtrar puentes internos pequeños"
 
 msgid ""
 "This option can help reduce pillowing on top surfaces in heavily slanted or curved models.\n"
