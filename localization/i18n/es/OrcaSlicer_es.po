@@ -2678,7 +2678,7 @@ msgid "Mouse ear"
 msgstr "Oreja de ratón"
 
 msgid "Painted"
-msgstr ""
+msgstr "Pintado"
 
 msgid "Outer brim only"
 msgstr "Solo borde de adherencia exterior"
@@ -2964,7 +2964,7 @@ msgid "Left(Aux)"
 msgstr "Izquierda (Auxiliar)"
 
 msgid "Hotend"
-msgstr ""
+msgstr "Hotend"
 
 msgid "Parts"
 msgstr "Partes"
@@ -2973,10 +2973,10 @@ msgid "Aux"
 msgstr "Aux"
 
 msgid "Nozzle1"
-msgstr ""
+msgstr "Boquilla1"
 
 msgid "MC Board"
-msgstr ""
+msgstr "Placa MC"
 
 msgid "Heat"
 msgstr "Calor"
@@ -4340,7 +4340,7 @@ msgid "Paused (filament ran out)"
 msgstr "Pausado (se acabó el filamento)"
 
 msgid "Heating nozzle"
-msgstr ""
+msgstr "Calentando la boquilla"
 
 msgid "Calibrating dynamic flow"
 msgstr "Calibrando flujo dinámico"
@@ -4439,31 +4439,31 @@ msgid "Nozzle offset calibration"
 msgstr "Calibración del desplazamiento de la boquilla"
 
 msgid "high temperature auto bed leveling"
-msgstr ""
+msgstr "Nivelación automática de la cama a alta temperatura"
 
 msgid "Auto Check: Quick Release Lever"
-msgstr ""
+msgstr "Comprobación automática: Palanca de liberación rápida"
 
 msgid "Auto Check: Door and Upper Cover"
-msgstr ""
+msgstr "Comprobación automática: Puerta y cubierta superior"
 
 msgid "Laser Calibration"
-msgstr ""
+msgstr "Calibración láser"
 
 msgid "Auto Check: Platform"
 msgstr "Comprobación automática: Plataforma"
 
 msgid "Confirming BirdsEye Camera location"
-msgstr ""
+msgstr "Confirmando la ubicación de la cámara BirdsEye"
 
 msgid "Calibrating BirdsEye Camera"
 msgstr "Calibrando cámara BirdsEye"
 
 msgid "Auto bed leveling -phase 1"
-msgstr ""
+msgstr "Nivelación automática de la cama - fase 1"
 
 msgid "Auto bed leveling -phase 2"
-msgstr ""
+msgstr "Nivelación automática de la cama - fase 2"
 
 msgid "Heating chamber"
 msgstr "Recámara calefaccionada"
@@ -4478,7 +4478,7 @@ msgid "Auto Check: Material"
 msgstr "Comprobación automática: Material"
 
 msgid "Live View Camera Calibration"
-msgstr ""
+msgstr "Calibración de la cámara en vivo"
 
 msgid "Waiting for heatbed to reach target temperature"
 msgstr "Esperando a que la cama caliente alcance la temperatura deseada."
@@ -4487,13 +4487,13 @@ msgid "Auto Check: Material Position"
 msgstr "Comprobación automática: Posición del material"
 
 msgid "Cutting Module Offset Calibration"
-msgstr ""
+msgstr "Calibración del desplazamiento del módulo de corte"
 
 msgid "Measuring Surface"
 msgstr "Midiendo la superficie"
 
 msgid "Calibrating the detection position of nozzle clumping"
-msgstr ""
+msgstr "Calibrando la posición de detección de acumulación en la boquilla"
 
 msgid "Unknown"
 msgstr "Desconocido"
@@ -4514,42 +4514,42 @@ msgid "Timelapse is not supported on this printer."
 msgstr "Esta impresora no admite la función Timelapse."
 
 msgid "Timelapse is not supported while the storage does not exist."
-msgstr ""
+msgstr "Timelapse no es compatible cuando el almacenamiento no existe."
 
 msgid "Timelapse is not supported while the storage is unavailable."
-msgstr ""
+msgstr "Timelapse no es compatible mientras el almacenamiento no esté disponible."
 
 msgid "Timelapse is not supported while the storage is readonly."
-msgstr ""
+msgstr "Timelapse no es compatible mientras el almacenamiento sea de solo lectura."
 
 msgid ""
 "To ensure your safety, certain processing tasks (such as laser) can only be "
 "resumed on printer."
-msgstr ""
+msgstr "Para garantizar su seguridad, ciertas tareas de procesamiento (como el láser) solo se pueden reanudar en la impresora."
 
 #, c-format, boost-format
 msgid ""
 "The chamber temperature is too high, which may cause the filament to soften. "
 "Please wait until the chamber temperature drops below %d℃. You may open the "
 "front door or enable fans to cool down."
-msgstr ""
+msgstr "La temperatura de la cámara es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura de la cámara baje por debajo de %d℃. Puede abrir la puerta frontal o activar los ventiladores para enfriar."
 
 #, c-format, boost-format
 msgid ""
 "AMS temperature is too high, which may cause the filament to soften. Please "
 "wait until the AMS temperature drops below %d℃."
-msgstr ""
+msgstr "La temperatura del AMS es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura del AMS baje por debajo de %d℃."
 
 msgid ""
 "The current chamber temperature or the target chamber temperature exceeds "
 "45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/"
 "TPU) is not allowed to be loaded."
-msgstr ""
+msgstr "La temperatura actual de la cámara o la temperatura objetivo de la cámara supera los 45℃. Para evitar atascos del extrusor, no está permitido cargar filamento de baja temperatura (PLA/PETG/TPU)."
 
 msgid ""
 "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order "
 "to avoid extruder clogging, it is not allowed to set the chamber temperature."
-msgstr ""
+msgstr "Se ha cargado filamento de baja temperatura (PLA/PETG/TPU) en el extrusor. Para evitar atascos del extrusor, no está permitido ajustar la temperatura de la cámara."
 
 msgid ""
 "When you set the chamber temperature below 40℃, the chamber temperature "
@@ -4585,7 +4585,7 @@ msgid "Resume Printing"
 msgstr "Continuar Imprimiendo"
 
 msgid "Resume (defects acceptable)"
-msgstr ""
+msgstr "Reanudar (defectos aceptables)"
 
 msgid "Resume (problem solved)"
 msgstr "Reanudar (problema resuelto)"
@@ -4618,16 +4618,16 @@ msgid "No Reminder Next Time"
 msgstr "No recordar la próxima vez"
 
 msgid "Ignore. Don't Remind Next Time"
-msgstr ""
+msgstr "Ignorar. No recordar la próxima vez"
 
 msgid "Ignore this and Resume"
-msgstr ""
+msgstr "Ignorar esto y reanudar"
 
 msgid "Problem Solved and Resume"
 msgstr "Problema resuelto y reanudado"
 
 msgid "Got it, Turn off the Fire Alarm."
-msgstr ""
+msgstr "Entendido. Apague la alarma de incendios."
 
 msgid "Retry (problem solved)"
 msgstr "Reintentar (problema resuelto)"
@@ -4636,7 +4636,7 @@ msgid "Stop Drying"
 msgstr "Deja de secar"
 
 msgid "Proceed"
-msgstr ""
+msgstr "Continuar"
 
 msgid "Done"
 msgstr "Hecho"
@@ -4778,10 +4778,10 @@ msgid "N/A"
 msgstr "N/A"
 
 msgid "Pick"
-msgstr ""
+msgstr "Seleccionar"
 
 msgid "Summary"
-msgstr ""
+msgstr "Resumen"
 
 msgid "Layer Height"
 msgstr "Altura de la capa"
@@ -4811,7 +4811,7 @@ msgid "Layer Time (log)"
 msgstr "Tiempo de capa (log)"
 
 msgid "Noop"
-msgstr ""
+msgstr "Sin operación"
 
 msgid "Retract"
 msgstr "Retracciones"
@@ -4838,7 +4838,7 @@ msgid "Wipe"
 msgstr "Purgas"
 
 msgid "Extrude"
-msgstr ""
+msgstr "Extruir"
 
 msgid "Inner wall"
 msgstr "Perímetro interno"
@@ -4877,13 +4877,13 @@ msgid "Bottom surface"
 msgstr "Relleno sólido inferior"
 
 msgid "Internal bridge"
-msgstr ""
+msgstr "Puente interno"
 
 msgid "Support transition"
 msgstr "Transición de soporte"
 
 msgid "Mixed"
-msgstr ""
+msgstr "Mixto"
 
 msgid "mm/s"
 msgstr "mm/s"
@@ -4892,7 +4892,7 @@ msgid "Flow rate"
 msgstr "Test de Flujo"
 
 msgid "mm³/s"
-msgstr ""
+msgstr "mm³/s"
 
 msgid "Fan speed"
 msgstr "Velocidad del ventilador"
@@ -4904,7 +4904,7 @@ msgid "Time"
 msgstr "Tiempo"
 
 msgid "Actual speed profile"
-msgstr ""
+msgstr "Perfil de velocidad actual"
 
 msgid "Speed: "
 msgstr "Velocidad: "
@@ -4928,13 +4928,13 @@ msgid "Layer Time: "
 msgstr "Tiempo de Capa: "
 
 msgid "Tool: "
-msgstr ""
+msgstr "Herramienta: "
 
 msgid "Color: "
-msgstr ""
+msgstr "Color: "
 
 msgid "Actual Speed: "
-msgstr ""
+msgstr "Velocidad real: "
 
 msgid "Statistics of All Plates"
 msgstr "Estadísticas de todas las Bandejas"
@@ -4963,37 +4963,37 @@ msgstr "Costo total"
 msgid ""
 "Automatically re-slice according to the optimal filament grouping, and the "
 "grouping results will be displayed after slicing."
-msgstr ""
+msgstr "Volver a laminar automáticamente según la agrupación óptima de filamentos, y los resultados de la agrupación se mostrarán después del laminado."
 
 msgid "Filament Grouping"
-msgstr ""
+msgstr "Agrupación de filamentos"
 
 msgid "Why this grouping"
-msgstr ""
+msgstr "Por qué esta agrupación"
 
 msgid "Left nozzle"
-msgstr ""
+msgstr "Boquilla izquierda"
 
 msgid "Right nozzle"
-msgstr ""
+msgstr "Boquilla derecha"
 
 msgid "Please place filaments on the printer based on grouping result."
-msgstr ""
+msgstr "Por favor, coloque los filamentos en la impresora según el resultado de la agrupación."
 
 msgid "Tips:"
 msgstr "Consejos:"
 
 msgid "Current grouping of slice result is not optimal."
-msgstr ""
+msgstr "La agrupación actual del resultado del laminado no es óptima."
 
 #, boost-format
 msgid "Increase %1%g filament and %2% changes compared to optimal grouping."
-msgstr ""
+msgstr "Aumenta %1%g de filamento y %2% cambios en comparación con la agrupación óptima."
 
 #, boost-format
 msgid ""
 "Increase %1%g filament and save %2% changes compared to optimal grouping."
-msgstr ""
+msgstr "Aumenta %1%g de filamento y ahorra %2% cambios en comparación con la agrupación óptima."
 
 #, boost-format
 msgid ""
@@ -5009,19 +5009,19 @@ msgstr ""
 msgid ""
 "Save %1%g filament and increase %2% changes compared to a printer with one "
 "nozzle."
-msgstr ""
+msgstr "Ahorra %1%g de filamento y aumenta %2% cambios en comparación con una impresora con una boquilla."
 
 #, boost-format
 msgid ""
 "Increase %1%g filament and save %2% changes compared to a printer with one "
 "nozzle."
-msgstr ""
+msgstr "Aumenta %1%g de filamento y ahorra %2% cambios en comparación con una impresora con una boquilla."
 
 msgid "Set to Optimal"
-msgstr ""
+msgstr "Ajustar a óptimo"
 
 msgid "Regroup filament"
-msgstr ""
+msgstr "Reagrupar filamentos"
 
 msgid "Tips"
 msgstr "Consejos"
@@ -5036,7 +5036,7 @@ msgid "from"
 msgstr "desde"
 
 msgid "Usage"
-msgstr ""
+msgstr "Uso"
 
 msgid "Layer Height (mm)"
 msgstr "Altura de la capa (mm)"
@@ -5048,7 +5048,7 @@ msgid "Speed (mm/s)"
 msgstr "Velocidad (mm/s)"
 
 msgid "Actual Speed (mm/s)"
-msgstr ""
+msgstr "Velocidad real (mm/s)"
 
 msgid "Fan Speed (%)"
 msgstr "Velocidad Ventilador (%)"
@@ -5060,7 +5060,7 @@ msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tasa de flujo volumétrico (mm³/seg)"
 
 msgid "Actual volumetric flow rate (mm³/s)"
-msgstr ""
+msgstr "Tasa de flujo volumétrico real (mm³/s)"
 
 msgid "Seams"
 msgstr "Costuras"
@@ -5111,23 +5111,23 @@ msgid "Model printing time"
 msgstr "Tiempo de impresión del modelo"
 
 msgid "Show stealth mode"
-msgstr ""
+msgstr "Mostrar modo sigiloso"
 
 msgid "Show normal mode"
-msgstr ""
+msgstr "Mostrar modo normal"
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the "
 "printable height of the left nozzle.\n"
 "Please ensure the filaments used by this object are not arranged to other "
 "nozzles."
-msgstr ""
+msgstr "Un objeto está colocado en el área exclusiva de la boquilla izquierda/derecha o excede la altura imprimible de la boquilla izquierda.\nPor favor, asegúrese de que los filamentos usados por este objeto no estén asignados a otras boquillas."
 
 msgid ""
 "An object is laid over the boundary of plate or exceeds the height limit.\n"
 "Please solve the problem by moving it totally on or off the plate, and "
 "confirming that the height is within the build volume."
-msgstr ""
+msgstr "Un objeto está colocado sobre el límite de la bandeja o excede el límite de altura.\nResuelva el problema moviéndolo totalmente dentro o fuera de la bandeja, y confirme que la altura esté dentro del volumen de construcción."
 
 msgid "Variable layer height"
 msgstr "Altura de capa variable"
@@ -5169,16 +5169,16 @@ msgid "Sequence"
 msgstr "Secuencia"
 
 msgid "object selection"
-msgstr ""
+msgstr "Selección de objetos"
 
 msgid "part selection"
-msgstr ""
+msgstr "Selección de piezas"
 
 msgid "number keys"
-msgstr ""
+msgstr "Teclas numéricas"
 
 msgid "number keys can quickly change the color of objects"
-msgstr ""
+msgstr "Las teclas numéricas pueden cambiar rápidamente el color de los objetos"
 
 msgid ""
 "Following objects are laid over the boundary of plate or exceeds the height "
@@ -5191,31 +5191,31 @@ msgid ""
 msgstr ""
 
 msgid "left nozzle"
-msgstr ""
+msgstr "boquilla izquierda"
 
 msgid "right nozzle"
-msgstr ""
+msgstr "boquilla derecha"
 
 #, c-format, boost-format
 msgid "The position or size of some models exceeds the %s's printable range."
-msgstr ""
+msgstr "La posición o el tamaño de algunos modelos excede el rango imprimible de %s."
 
 #, c-format, boost-format
 msgid "The position or size of the model %s exceeds the %s's printable range."
-msgstr ""
+msgstr "La posición o el tamaño del modelo %s excede el rango imprimible de %s."
 
 msgid ""
 " Please check and adjust the part's position or size to fit the printable "
 "range:\n"
-msgstr ""
+msgstr "Por favor, compruebe y ajuste la posición o el tamaño de la pieza para que se ajuste al rango imprimible:\n"
 
 #, boost-format
 msgid "Left nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
-msgstr ""
+msgstr "Boquilla izquierda: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 
 #, boost-format
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
-msgstr ""
+msgstr "Boquilla derecha: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
 msgid "Mirror Object"
 msgstr "Reflejar Objeto"
@@ -5310,10 +5310,10 @@ msgid "Failed"
 msgstr "Error"
 
 msgid "All Plates"
-msgstr ""
+msgstr "Todas las bandejas"
 
 msgid "Stats"
-msgstr ""
+msgstr "Estadísticas"
 
 msgid "Assembly Return"
 msgstr "Volver a agrupar"
@@ -5322,10 +5322,10 @@ msgid "Return"
 msgstr "Volver"
 
 msgid "Canvas Toolbar"
-msgstr ""
+msgstr "Barra de herramientas del lienzo"
 
 msgid "Fit camera to scene or selected object."
-msgstr ""
+msgstr "Ajustar la cámara a la escena o al objeto seleccionado."
 
 msgid "Paint Toolbar"
 msgstr "Barra de herramientas de pintura"
