@@ -4241,7 +4241,7 @@ msgid "This parameter expects a valid template."
 msgstr "Este parámetro espera una plantilla válida."
 
 msgid "Invalid pattern. Use N, N#K, or a comma-separated list with optional #K per entry. Examples: 5, 5#2, 1,7,9, 5,9#2,18."
-msgstr ""
+msgstr "Patrón inválido. Use N, N#K, o una lista separada por comas con #K opcional por entrada. Ejemplos: 5, 5#2, 1,7,9, 5,9#2,18."
 
 #, boost-format
 msgid "Invalid format. Expected vector format: \"%1%\""
@@ -4646,10 +4646,10 @@ msgid "number keys can quickly change the color of objects"
 msgstr "Las teclas numéricas pueden cambiar rápidamente el color de los objetos"
 
 msgid "Following objects are laid over the boundary of plate or exceeds the height limit:\n"
-msgstr ""
+msgstr "Los siguientes objetos están colocados sobre el límite de la bandeja o exceden el límite de altura:\n"
 
 msgid "Please solve the problem by moving it totally on or off the plate, and confirming that the height is within the build volume.\n"
-msgstr ""
+msgstr "Resuelva el problema moviéndolos totalmente dentro o fuera de la bandeja y confirme que la altura esté dentro del volumen de construcción.\n"
 
 msgid "left nozzle"
 msgstr "boquilla izquierda"
@@ -4860,16 +4860,16 @@ msgid "filaments %s cannot be printed directly on the surface of this plate."
 msgstr "Los filamentos %s no pueden imprimirse directamente en la superficie de esta bandeja."
 
 msgid "PLA and PETG filaments detected in the mixture. Adjust parameters according to the Wiki to ensure print quality."
-msgstr ""
+msgstr "Se han detectado filamentos PLA y PETG mezclados. Ajuste los parámetros según la Wiki para garantizar la calidad de impresión."
 
 msgid "The prime tower extends beyond the plate boundary."
 msgstr "La torre de purga se extiende más allá del límite de la bandeja."
 
 msgid "Prime tower position exceeded build plate boundaries and was repositioned to the nearest valid edge."
-msgstr ""
+msgstr "La posición de la torre de purga excedía los límites de la placa y se recolocó en el borde válido más cercano."
 
 msgid "Partial flushing volume set to 0. Multi-color printing may cause color mixing in models. Please redjust flushing settings."
-msgstr ""
+msgstr "El volumen de purga parcial se ha establecido en 0. La impresión multicolor puede provocar mezcla de colores en los modelos. Ajuste nuevamente los parámetros de purga."
 
 msgid "Click Wiki for help."
 msgstr "Haga clic en la wiki para obtener ayuda."
@@ -4954,11 +4954,15 @@ msgid ""
 "You can find it in \"Settings > Network > Access code\"\n"
 "on the printer, as shown in the figure:"
 msgstr ""
+"Puede encontrarlo en \"Ajustes > Red > Código de acceso\"\n"
+"en la impresora, como se muestra en la figura:"
 
 msgid ""
 "You can find it in \"Setting > Setting > LAN only > Access Code\"\n"
 "on the printer, as shown in the figure:"
 msgstr ""
+"Puede encontrarlo en \"Ajustes > Ajustes > Solo LAN > Código de acceso\"\n"
+"en la impresora, como se muestra en la figura:"
 
 msgid "Invalid input."
 msgstr "Entrada inválida."
@@ -5251,7 +5255,7 @@ msgid "Auto Perspective"
 msgstr "Perspectiva automática"
 
 msgid "Automatically switch between orthographic and perspective when changing from top/bottom/side views."
-msgstr ""
+msgstr "Cambiar automáticamente entre vista ortográfica y perspectiva al cambiar entre las vistas superior/inferior/lateral."
 
 msgid "Show &G-code Window"
 msgstr "Mostrar Ventana &G-Code"
@@ -5618,7 +5622,7 @@ msgid "Load failed"
 msgstr "Carga fallida"
 
 msgid "Browsing file in storage is not supported in current firmware. Please update the printer firmware."
-msgstr ""
+msgstr "No se admite navegar por archivos en el almacenamiento con la versión actual del firmware. Por favor, actualice el firmware de la impresora."
 
 msgid "LAN Connection Failed (Failed to view sdcard)"
 msgstr "Conexión LAN fallida (no se encuentra la tarjeta SD)"
@@ -5701,10 +5705,11 @@ msgstr "No soportado en la actual versión de la impresora."
 msgid ""
 "Please check if the storage is inserted into the printer.\n"
 "If it still cannot be read, you can try formatting the storage."
-msgstr ""
+msgstr "Por favor, compruebe si el almacenamiento está insertado en la impresora.\n"
+"Si aún no se puede leer, puede intentar formatear el almacenamiento."
 
 msgid "The firmware version of the printer is too low. Please update the firmware and try again."
-msgstr ""
+msgstr "La versión de firmware de la impresora es demasiado antigua. Actualice el firmware e inténtelo de nuevo."
 
 msgid "The file already exists, do you want to replace it?"
 msgstr "El archivo ya existe, ¿desea reemplazarlo?"
@@ -5932,7 +5937,7 @@ msgid "The printer is busy with another print job."
 msgstr "La impresora está ocupada con otro trabajo de impresión."
 
 msgid "When printing is paused, filament loading and unloading are only supported for external slots."
-msgstr ""
+msgstr "Cuando la impresión está en pausa, la carga y descarga de filamento solo son compatibles para ranuras externas."
 
 msgid "Current extruder is busy changing filament."
 msgstr "El extrusor actual está ocupado cambiando el filamento."
@@ -5971,7 +5976,7 @@ msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "No se puede cambiar la temperatura de la cámara en modo de refrigeración mientras se imprime."
 
 msgid "If the chamber temperature exceeds 40℃, the system will automatically switch to heating mode. Please confirm whether to switch."
-msgstr ""
+msgstr "Si la temperatura de la cámara excede los 40℃, el sistema cambiará automáticamente al modo de calefacción. Confirme si desea cambiar."
 
 msgid "Please select an AMS slot before calibration"
 msgstr "Seleccione una ranura AMS antes de la calibración"
@@ -5995,7 +6000,7 @@ msgid "Ludicrous"
 msgstr "Rídiculamente rápido"
 
 msgid "Turning off the lights during the task will cause the failure of AI monitoring, like spaghetti detection. Please choose carefully."
-msgstr ""
+msgstr "Apagar las luces durante la tarea provocará fallos en la monitorización por IA, como la detección de hilos (spaghetti). Elija con cuidado."
 
 msgid "Keep it On"
 msgstr "Mantener encendido"
@@ -6364,13 +6369,13 @@ msgid "Build Plate Detection"
 msgstr "Detección de la placa de construcción"
 
 msgid "Identifies the type and position of the build plate on the heatbed. Pausing printing if a mismatch is detected."
-msgstr ""
+msgstr "Identifica el tipo y la posición de la placa de construcción sobre la cama calefactada. Pausa la impresión si se detecta una discrepancia."
 
 msgid "AI Detections"
 msgstr "Detecciones de IA"
 
 msgid "Printer will send assistant message or pause printing if any of the following problem is detected."
-msgstr ""
+msgstr "La impresora enviará un mensaje de asistencia o pausará la impresión si se detecta alguno de los siguientes problemas."
 
 msgid "Enable AI monitoring of printing"
 msgstr "Activar monitorización por IA de la impresión"
@@ -6409,7 +6414,7 @@ msgid "Store Sent Files on External Storage"
 msgstr "Guardar archivos enviados en almacenamiento externo"
 
 msgid "Save the printing files initiated from Bambu Studio, Bambu Handy and MakerWorld on External Storage"
-msgstr ""
+msgstr "Guardar los archivos de impresión iniciados desde Bambu Studio, Bambu Handy y MakerWorld en el almacenamiento externo"
 
 msgid "Allow Prompt Sound"
 msgstr "Permitir Sonido de Aviso"
@@ -6532,10 +6537,10 @@ msgstr " boquilla"
 
 #, boost-format
 msgid "It is not recommended to print the following filament(s) with %1%: %2%\n"
-msgstr ""
+msgstr "No se recomienda imprimir los siguientes filamentos con %1%: %2%\n"
 
 msgid "It is not recommended to use the following nozzle and filament combinations:\n"
-msgstr ""
+msgstr "No se recomienda usar las siguientes combinaciones de boquilla y filamento:\n"
 
 #, boost-format
 msgid "%1% with %2%\n"
@@ -6583,7 +6588,7 @@ msgstr "No instalado"
 
 msgid ""
 "The software does not support using different diameter of nozzles for one print. If the left and right nozzles are inconsistent, we can only proceed with single-head printing. Please confirm which nozzle you would like to use for this project."
-msgstr ""
+msgstr "El software no admite usar boquillas de diámetros diferentes en una sola impresión. Si las boquillas izquierda y derecha son inconsistentes, solo podremos continuar con impresión de un solo cabezal. Confirme qué boquilla desea usar para este proyecto."
 
 msgid "Switch diameter"
 msgstr "Cambiar diámetro"
@@ -6605,7 +6610,7 @@ msgstr "Sincronizar información de la impresora"
 msgid ""
 "The currently selected machine preset is inconsistent with the connected printer type.\n"
 "Are you sure to continue syncing?"
-msgstr ""
+msgstr "El preajuste de máquina seleccionado actualmente es inconsistente con el tipo de impresora conectada.\n¿Está seguro de que desea continuar con la sincronización?"
 
 msgid "There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."
 msgstr ""
@@ -6648,7 +6653,7 @@ msgstr "Pellets"
 
 #, c-format, boost-format
 msgid "After completing your operation, %s project will be closed and create a new project."
-msgstr ""
+msgstr "Al completar la operación, el proyecto %s se cerrará y se creará un nuevo proyecto."
 
 msgid "There are no compatible filaments, and sync is not performed."
 msgstr "No hay filamentos compatibles, y no se ha realizado la sincronización."
@@ -6659,13 +6664,13 @@ msgstr "Sincronizar filamentos con AMS"
 msgid ""
 "There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an update to system presets."
-msgstr ""
+msgstr "Hay algunos filamentos desconocidos o incompatibles asignados al perfil genérico.\nActualice Orca Slicer o reinícielo para comprobar si hay actualizaciones de los perfiles del sistema."
 
 msgid "Only filament color information has been synchronized from printer."
 msgstr "Solo la información del color del filamento se ha sincronizado desde la impresora."
 
 msgid "Filament type and color information have been synchronized, but slot information is not included."
-msgstr ""
+msgstr "Se han sincronizado el tipo y el color del filamento, pero la información de las ranuras no está incluida."
 
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
@@ -6677,7 +6682,7 @@ msgstr "Desmontado correctamente. El dispositivo %s(%s) ahora puede ser extraíd
 
 #, c-format, boost-format
 msgid "Ejecting of device %s (%s) has failed."
-msgstr ""
+msgstr "La expulsión del dispositivo %s (%s) ha fallado."
 
 msgid "Previous unsaved project detected, do you want to restore it?"
 msgstr "Se ha detectado un proyecto anterior no guardado, ¿quieres restaurarlo?"
@@ -6695,7 +6700,7 @@ msgid "Enabling traditional timelapse photography may cause surface imperfection
 msgstr "Activar la fotografía timelapse tradicional puede causar imperfecciones en la superficie. Se recomienda cambiar al modo suave."
 
 msgid "Smooth mode for timelapse is enabled, but the prime tower is off, which may cause print defects. Please enable the prime tower, re-slice and print again."
-msgstr ""
+msgstr "El modo suave para timelapse está activado, pero la torre de cebado está desactivada, lo que puede causar defectos de impresión. Habilite la torre de cebado, vuelva a laminar e imprima de nuevo."
 
 msgid "Expand sidebar"
 msgstr "Expandir barra lateral"
@@ -6704,7 +6709,7 @@ msgid "Collapse sidebar"
 msgstr "Colapsar barra lateral"
 
 msgid "Tab"
-msgstr ""
+msgstr "Pestaña"
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -6717,10 +6722,10 @@ msgid "Load 3MF"
 msgstr "Cargar 3MF"
 
 msgid "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill rotation template settings that may not work properly with your current infill pattern. This could result in weak support or print quality issues."
-msgstr ""
+msgstr "Este proyecto fue creado con OrcaSlicer 2.3.1-alpha y usa ajustes de plantilla de rotación de relleno que pueden no funcionar correctamente con su patrón de relleno actual. Esto podría resultar en soportes débiles o problemas de calidad de impresión."
 
 msgid "Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"
-msgstr ""
+msgstr "¿Desea que OrcaSlicer lo corrija automáticamente borrando los ajustes de la plantilla de rotación?"
 
 #, c-format, boost-format
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
@@ -6814,10 +6819,10 @@ msgstr "Se ha detectado un objeto con varias piezas"
 
 #, c-format, boost-format
 msgid "Connected printer is %s. It must match the project preset for printing.\n"
-msgstr ""
+msgstr "La impresora conectada es %s. Debe coincidir con el preajuste del proyecto para imprimir.\n"
 
 msgid "Do you want to sync the printer information and automatically switch the preset?"
-msgstr ""
+msgstr "¿Desea sincronizar la información de la impresora y cambiar automáticamente el preajuste?"
 
 msgid "The file does not contain any geometry data."
 msgstr "El archivo no contiene ninguna información geométrica."
@@ -6889,32 +6894,32 @@ msgid "File for the replace wasn't selected"
 msgstr "El archivo de reemplazo no ha sido seleccionado"
 
 msgid "Select folder to replace from"
-msgstr ""
+msgstr "Seleccionar carpeta desde la que reemplazar"
 
 msgid "Directory for the replace wasn't selected"
-msgstr ""
+msgstr "No se seleccionó el directorio para el reemplazo"
 
 msgid "Replaced with 3D files from directory:\n"
-msgstr ""
+msgstr "Reemplazado con archivos 3D desde el directorio:\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: same file.\n"
-msgstr ""
+msgstr "✖ Omitido %1%: mismo archivo.\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr ""
+msgstr "✖ Omitido %1%: el archivo no existe.\n"
 
 #, boost-format
 msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr ""
+msgstr "✖ Omitido %1%: fallo al reemplazar.\n"
 
 #, boost-format
 msgid "✔ Replaced %1%.\n"
-msgstr ""
+msgstr "✔ Reemplazado %1%.\n"
 
 msgid "Replaced volumes"
-msgstr ""
+msgstr "Volúmenes reemplazados"
 
 msgid "Please select a file"
 msgstr "Por favor, seleccione un archivo"
@@ -6967,10 +6972,12 @@ msgid ""
 "The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when slicing.\n"
 "Would you like to sync now ?"
-msgstr ""
+msgstr "La información del tipo de boquilla y la cantidad de AMS no se ha sincronizado desde la impresora conectada.\n"
+"Después de sincronizar, el software podrá optimizar el tiempo de impresión y el uso de filamento al laminar.\n"
+"¿Desea sincronizar ahora?"
 
 msgid "Sync now"
-msgstr ""
+msgstr "Sincronizar ahora"
 
 msgid "You can keep the modified presets to the new project or discard them"
 msgstr "Puedes mantener los perfiles modificados en el nuevo proyecto o descartarlos"
@@ -7017,13 +7024,13 @@ msgid "INFO:"
 msgstr ""
 
 msgid "No accelerations provided for calibration. Use default acceleration value "
-msgstr ""
+msgstr "No se proporcionaron aceleraciones para la calibración. Usar valor de aceleración por defecto "
 
 msgid "mm/s²"
 msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
-msgstr ""
+msgstr "No se proporcionaron velocidades para la calibración. Usar velocidad óptima por defecto "
 
 msgid "Import SLA archive"
 msgstr "Importar archivo SLA"
@@ -7107,10 +7114,10 @@ msgid "The file %s has been sent to the printer's storage space and can be viewe
 msgstr "El archivo %s ha sido mandado al almacenamiento de la impresora y puede ser visualizado en la impresora."
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
-msgstr ""
+msgstr "El tipo de boquilla no está establecido. Configure la boquilla e inténtelo de nuevo."
 
 msgid "The nozzle type is not set. Please check."
-msgstr ""
+msgstr "El tipo de boquilla no está establecido. Por favor, revise."
 
 msgid "Unable to perform boolean operation on model meshes. Only positive parts will be kept. You may fix the meshes and try again."
 msgstr "No se pueden realizar operaciones booleanas en las mallas del modelo. Sólo se conservarán las partes positivas. Puede arreglar las mallas e intentarlo de nuevo."
@@ -7132,7 +7139,7 @@ msgid "Reason: \"%1%\" and another part have no intersection."
 msgstr "Razón: \"%1%\" y otra parte no tienen intersección."
 
 msgid "Unable to perform boolean operation on model meshes. Only positive parts will be exported."
-msgstr ""
+msgstr "No se pueden realizar operaciones booleanas en las mallas del modelo. Solo se exportarán las partes positivas."
 
 msgid "Is the printer ready? Is the print sheet in place, empty and clean?"
 msgstr "¿Está la impresora preparada? ¿Está la hoja en el sitio. limpia y vacía?"
@@ -7164,24 +7171,24 @@ msgstr "Optimizar Rotación"
 
 #, c-format, boost-format
 msgid "Printer not connected. Please go to the device page to connect %s before syncing."
-msgstr ""
+msgstr "Impresora no conectada. Vaya a la página del dispositivo para conectar %s antes de sincronizar."
 
 #, c-format, boost-format
 msgid "OrcaSlicer can't connect to %s. Please check if the printer is powered on and connected to the network."
-msgstr ""
+msgstr "OrcaSlicer no puede conectarse a %s. Compruebe si la impresora está encendida y conectada a la red."
 
 #, c-format, boost-format
 msgid "The currently connected printer on the device page is not %s. Please switch to %s before syncing."
-msgstr ""
+msgstr "La impresora conectada actualmente en la página del dispositivo no es %s. Cambie a %s antes de sincronizar."
 
 msgid "There are no filaments on the printer. Please load the filaments on the printer first."
-msgstr ""
+msgstr "No hay filamentos en la impresora. Cargue primero los filamentos en la impresora."
 
 msgid "The filaments on the printer are all unknown types. Please go to the printer screen or software device page to set the filament type."
-msgstr ""
+msgstr "Los filamentos en la impresora son de tipos desconocidos. Vaya a la pantalla de la impresora o a la página del dispositivo en el software para establecer el tipo de filamento."
 
 msgid "Device Page"
-msgstr ""
+msgstr "Página del dispositivo"
 
 msgid "Synchronize AMS Filament Information"
 msgstr ""
