@@ -1,0 +1,16 @@
+{
+    "vendor_name": "DMAKERS",
+    "machines": [
+        "DMAKERS_MS1"
+    ],
+    "filaments": [
+        "PLA",
+        "PETG",
+        "ABS"
+    ],
+    "processes": [
+        "Draft",
+        "Standard",
+        "Fine"
+    ]
+}
