@@ -5335,10 +5335,10 @@ msgid "Retraction test"
 msgstr "Test de Retracciones"
 
 msgid "Cornering"
-msgstr ""
+msgstr "Esquinado"
 
 msgid "Cornering calibration"
-msgstr ""
+msgstr "Calibración de esquinado"
 
 msgid "Input Shaping Frequency"
 msgstr "Frecuencia de Input Shaping"
