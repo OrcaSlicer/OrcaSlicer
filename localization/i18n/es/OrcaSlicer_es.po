@@ -10344,7 +10344,7 @@ msgid "Printable area"
 msgstr "Área imprimible"
 
 msgid "Extruder printable area"
-msgstr ""
+msgstr "Área imprimible del extrusor"
 
 msgid "Bed exclude area"
 msgstr "Área excluida de la cama"
@@ -10388,10 +10388,10 @@ msgid "Maximum printable height which is limited by mechanism of printer."
 msgstr "Altura máxima imprimible limitada por el mecanismo de la impresora"
 
 msgid "Extruder printable height"
-msgstr ""
+msgstr "Altura imprimible del extrusor"
 
 msgid "Maximum printable height of this extruder which is limited by mechanism of printer."
-msgstr ""
+msgstr "Altura máxima imprimible de este extrusor, limitada por el mecanismo de la impresora."
 
 msgid "Preferred orientation"
 msgstr "Orientación preferida"
@@ -10409,10 +10409,10 @@ msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "Permitir el control de la impresora de BambuLab a través de hosts de impresión de terceros"
 
 msgid "Printer Agent"
-msgstr ""
+msgstr "Agente de impresora"
 
 msgid "Select the network agent implementation for printer communication."
-msgstr ""
+msgstr "Seleccione la implementación del agente de red para la comunicación con la impresora."
 
 msgid "Hostname, IP or URL"
 msgstr "Nombre de host, IP o URL"
@@ -10492,7 +10492,7 @@ msgid "Other layers"
 msgstr "Otras capas"
 
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
-msgstr ""
+msgstr "Temperatura de la cama para las capas, excepto la inicial. Un valor de 0 significa que el filamento no es compatible con la Bandeja Fría SuperTack."
 
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Esta es la temperatura de la cama para las capas excepto la inicial. Un valor de 0 significa que el filamento no admite la impresión en la Bandeja Fría."
@@ -10537,10 +10537,10 @@ msgid "Bed types supported by the printer."
 msgstr "Tipos de cama que admite la impresora"
 
 msgid "Default bed type"
-msgstr ""
+msgstr "Tipo de cama predeterminado"
 
 msgid "Default bed type for the printer (supports both numeric and string format)."
-msgstr ""
+msgstr "Tipo de cama predeterminado para la impresora (soporta formatos numérico y de texto)."
 
 msgid "First layer print sequence"
 msgstr "Secuencia de impresión de primera capa"
@@ -10617,39 +10617,41 @@ msgid "Nowhere"
 msgstr "En ninguna parte"
 
 msgid "Force cooling for overhangs and bridges"
-msgstr ""
+msgstr "Forzar refrigeración para salientes y puentes"
 
 msgid "Enable this option to allow adjustment of the part cooling fan speed for specifically for overhangs, internal and external bridges. Setting the fan speed specifically for these features can improve overall print quality and reduce warping."
-msgstr ""
+msgstr "Habilite esta opción para permitir ajustar la velocidad del ventilador de enfriamiento específicamente para salientes, puentes internos y externos. Ajustar la velocidad para estas características puede mejorar la calidad de impresión y reducir el warping."
 
 msgid "Overhangs and external bridges fan speed"
-msgstr ""
+msgstr "Velocidad del ventilador para salientes y puentes externos"
 
 msgid ""
 "Use this part cooling fan speed when printing bridges or overhang walls with an overhang threshold that exceeds the value set in the 'Overhangs cooling threshold' parameter above. Increasing the cooling specifically for overhangs and bridges "
 "can improve the overall print quality of these features.\n"
 "\n"
 "Please note, this fan speed is clamped on the lower end by the minimum fan speed threshold set above. It is also adjusted upwards up to the maximum fan speed threshold when the minimum layer time threshold is not met."
-msgstr ""
+msgstr "Utilice esta velocidad del ventilador de refrigeración de piezas cuando imprima puentes o paredes salientes con un umbral de saliente que supere el valor establecido en el parámetro 'Umbral de refrigeración de salientes' anterior. Aumentar la refrigeración específicamente para salientes y puentes puede mejorar la calidad general de impresión de estas características.\n"
+"\n"
+"Tenga en cuenta que esta velocidad del ventilador está limitada en el extremo inferior por el umbral mínimo de velocidad del ventilador establecido anteriormente. También se ajusta al alza hasta el umbral máximo de velocidad del ventilador cuando no se alcanza el umbral mínimo de tiempo de capa."
 
 msgid "Overhang cooling activation threshold"
-msgstr ""
+msgstr "Umbral de activación de enfriamiento para voladizos"
 
 #, no-c-format, no-boost-format
 msgid ""
 "When the overhang exceeds this specified threshold, force the cooling fan to run at the 'Overhang Fan Speed' set below. This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer "
 "beneath it. Setting this value to 0% forces the cooling fan to run for all outer walls, regardless of the overhang degree."
-msgstr ""
+msgstr "Cuando el voladizo excede este umbral especificado, fuerza al ventilador de enfriamiento a funcionar a la 'Velocidad de ventilador para voladizos' establecida más abajo. Este umbral se expresa como un porcentaje, indicando la porción del ancho de cada línea que no está soportada por la capa inferior. Ajustar este valor a 0% fuerza al ventilador a funcionar para todas las paredes externas, independientemente del grado de voladizo."
 
 msgid "External bridge infill direction"
-msgstr ""
+msgstr "Dirección de relleno de puentes externos"
 
 #, no-c-format, no-boost-format
 msgid "Bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for external bridges. Use 180° for zero angle."
 msgstr "Control del ángulo de puentes. Si se deja a cero, el ángulo de puente se calculará automáticamente. De lo contrario, se utilizará el ángulo proporcionado para los puentes externos. Utilice 180° para el ángulo cero."
 
 msgid "Internal bridge infill direction"
-msgstr ""
+msgstr "Dirección de relleno de puentes internos"
 
 msgid ""
 "Internal bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for internal bridges. Use 180° for zero angle.\n"
@@ -10658,7 +10660,7 @@ msgid ""
 msgstr ""
 
 msgid "External bridge density"
-msgstr ""
+msgstr "Densidad de puente externo"
 
 msgid ""
 "Controls the density (spacing) of external bridge lines. Default is 100%.\n"
