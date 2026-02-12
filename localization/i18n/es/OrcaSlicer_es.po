@@ -80,12 +80,12 @@ msgstr ""
 "asegurese de secarlo antes de usarlo."
 
 msgid "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
-msgstr ""
+msgstr "El PVA húmedo es flexible y puede atascarse en el extrusor. Séquelo antes de usarlo."
 
 msgid ""
 "The rough surface of PLA Glow can accelerate wear on the AMS system, "
 "particularly on the internal components of the AMS Lite."
-msgstr ""
+msgstr "La superficie rugosa del PLA Glow puede acelerar el desgaste del sistema AMS, especialmente en los componentes internos del AMS Lite."
 
 msgid ""
 "CF/GF filaments are hard and brittle, it's easy to break or get stuck in "
@@ -95,17 +95,17 @@ msgstr ""
 "atascos en el AMS, por favor úselos con precaución."
 
 msgid "PPS-CF is brittle and could break in bended PTFE tube above Toolhead."
-msgstr ""
+msgstr "PPS-CF es quebradizo y podría romperse en el tubo PTFE doblado por encima del cabezal de la herramienta."
 
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
-msgstr ""
+msgstr "PPA-CF es quebradizo y podría romperse en el tubo PTFE doblado por encima del cabezal de la herramienta."
 
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
-msgstr ""
+msgstr "%s no es compatible con el extrusor %s."
 
 msgid "Current AMS humidity"
-msgstr ""
+msgstr "Humedad actual del AMS"
 
 msgid "Humidity"
 msgstr "Humedad"
@@ -840,7 +840,7 @@ msgid "Horizontal text"
 msgstr "Texto horizontal"
 
 msgid "Mouse move up or down"
-msgstr ""
+msgstr "Mover el ratón hacia arriba o abajo"
 
 msgid "Rotate text"
 msgstr "Rotar texto"
