@@ -375,7 +375,7 @@ FanControlNew::FanControlNew(wxWindow *parent, const AirDuctData &fan_data, int 
     sizer_control->Add(sizer_control_top, 0, wxEXPAND, 0);
 
     m_static_status_name = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END | wxALIGN_CENTER_HORIZONTAL);
-    m_static_status_name->SetForegroundColour(wxColour("#00AE42"));
+    m_static_status_name->SetForegroundColour(wxColour("#009688"));
     m_static_status_name->SetBackgroundColour(wxColour(248, 248, 248));
     m_static_status_name->SetFont(Label::Head_16);
     m_static_status_name->SetMinSize(wxSize(FromDIP(100), -1));
@@ -783,8 +783,8 @@ void FanControlPopupNew::UpdatePartSubMode()
             m_cooling_filter_switch_panel = new FanControlNewSwitchPanel(m_sub_mode_panel, _L("Filter"), _L("Enabling filtration redirects the right fan to filter gas, which may reduce cooling performance."));
             m_cooling_filter_switch_panel->Bind(EVT_FANCTRL_SWITCH, [this] (wxCommandEvent& evt)
                 {
-                  if (m_obj && m_obj->is_in_printing() && m_cooling_filter_switch_panel->IsSwitchOn()) {
-                      MessageDialog msg_wingow(nullptr, _L("Enabling filtration during printing may reduce cooling and affect print qulity. Please choose carefully"), "", wxICON_WARNING | wxCANCEL | wxOK);
+                  if (m_obj && m_obj->is_in_printing()) {
+                      MessageDialog msg_wingow(nullptr, _L("Enabling filtration during printing may reduce cooling and affect print quality. Please choose carefully."), "", wxICON_WARNING | wxCANCEL | wxOK);
                       msg_wingow.SetButtonLabel(wxID_OK, _L("Change Anyway"));
                       if (msg_wingow.ShowModal() != wxID_OK) { return; }
                   }
@@ -917,7 +917,7 @@ void FanControlPopupNew::post_event(int fan_type, wxString speed)
 
 void FanControlPopupNew::on_show(wxShowEvent& evt)
 {
-    wxGetApp().UpdateDarkUIWin(this);
+    wxGetApp().UpdateDlgDarkUI(this);
 }
 
 void FanControlPopupNew::command_control_air_duct(int mode_id, int submode)
@@ -1099,7 +1099,8 @@ FanControlNewSwitchPanel::FanControlNewSwitchPanel(wxWindow* parent, const wxStr
 
     wxSizer* m_label_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_label_sizer->Add(label, 0, wxALIGN_LEFT, 0);
-    m_label_sizer->AddStretchSpacer(1);
+    m_label_sizer->AddSpacer(FromDIP(10));
+    m_label_sizer->Add(0, 1, wxEXPAND, FromDIP(10));
     m_label_sizer->Add(m_switch_btn, 0, wxALIGN_RIGHT, 0);
 
     Label* tips_label = new Label(this);
@@ -1108,7 +1109,7 @@ FanControlNewSwitchPanel::FanControlNewSwitchPanel(wxWindow* parent, const wxStr
     tips_label->Wrap(FromDIP(400));
 
     wxSizer* m_sizer_main = new wxBoxSizer(wxVERTICAL);
-    m_sizer_main->Add(m_label_sizer, 0, wxALL | wxEXPAND, FromDIP(5));
+    m_sizer_main->Add(m_label_sizer, 0, wxALL | wxALIGN_LEFT, FromDIP(5));
     m_sizer_main->Add(tips_label, 0, wxALL | wxALIGN_LEFT, FromDIP(5));
     SetSizer(m_sizer_main);
 

@@ -23,6 +23,12 @@
 #include <wx/arrstr.h>
 #include <wx/tglbtn.h>
 
+#include <boost/log/trivial.hpp>
+#include <boost/system/error_code.hpp>
+
+#include <wx/base64.h>
+#include <wx/msgdlg.h>
+
 #include "wxExtensions.hpp"
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"

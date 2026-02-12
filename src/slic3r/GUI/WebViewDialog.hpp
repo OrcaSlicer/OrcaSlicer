@@ -99,7 +99,10 @@ public:
 
 public:
     void ResetWholePage();
-
+    void SendRecentList(int images);
+    void SetLoginPanelVisibility(bool bshow);
+    void SendDesignStaffpick(bool on);
+    void OpenModelDetail(std::string id, NetworkAgent *agent);
     // Login
     void SendLoginInfo();
     void ShowNetpluginTip();
@@ -133,6 +136,8 @@ public:
 
     void SendDesignStaffpick(bool on);
     void get_design_staffpick(int offset, int limit, std::function<void(std::string)> callback);
+    int  get_model_mall_detail_url(std::string *url, std::string id);
+
     void get_user_mw_4u_config(std::function<void(std::string)> callback);
     void get_4u_staffpick(int seed, int limit, std::function<void(std::string)> callback);
     void OpenModelDetail(std::string id, NetworkAgent *agent);
@@ -174,6 +179,10 @@ public:
 
     void update_mode();
 private:
+
+    wxWebView* m_browser;
+    wxBoxSizer *bSizer_toolbar;
+
     std::string m_Region;
 
     wxBoxSizer *topsizer { nullptr };
