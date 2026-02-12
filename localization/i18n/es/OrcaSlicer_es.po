@@ -11842,22 +11842,22 @@ msgid "Density of internal sparse infill, 100% turns all sparse infill into soli
 msgstr "Densidad del relleno de baja densidad interno, el 100% convierte el relleno de baja densidad en relleno sólido y se utilizará el patrón de relleno sólido interno"
 
 msgid "Align infill direction to model"
-msgstr ""
+msgstr "Alinear la dirección de relleno al modelo"
 
 msgid "Aligns infill and surface fill directions to follow the model's orientation on the build plate. When enabled, fill directions rotate with the model to maintain optimal strength characteristics."
-msgstr ""
+msgstr "Alinea las direcciones de relleno y de relleno de superficie para seguir la orientación del modelo en la placa de construcción. Cuando está habilitado, las direcciones de relleno rotan con el modelo para mantener características de resistencia óptimas."
 
 msgid "Insert solid layers"
-msgstr ""
+msgstr "Insertar capas sólidas"
 
 msgid "Insert solid infill at specific layers. Use N to insert every Nth layer, N#K to insert K consecutive solid layers every N layers (K is optional, e.g. '5#' equals '5#1'), or a comma-separated list (e.g. 1,7,9) to insert at explicit layers. Layers are 1-based."
-msgstr ""
+msgstr "Inserta infill sólido en capas específicas. Use N para insertar cada N-ésima capa, N#K para insertar K capas sólidas consecutivas cada N capas (K es opcional, p. ej. '5#' equivale a '5#1'), o una lista separada por comas (p. ej. 1,7,9) para insertar en capas específicas. Las capas se numeran desde 1."
 
 msgid "Fill Multiline"
-msgstr ""
+msgstr "Relleno multilínea"
 
 msgid "Using multiple lines for the infill pattern, if supported by infill pattern."
-msgstr ""
+msgstr "Usar múltiples líneas para el patrón de relleno, si el patrón de relleno lo soporta."
 
 msgid "Sparse infill pattern"
 msgstr "Patrón de relleno de baja densidad"
@@ -11911,7 +11911,7 @@ msgid "Lateral Lattice"
 msgstr ""
 
 msgid "Cross Hatch"
-msgstr "Rayado Cruzado"
+msgstr ""
 
 msgid "TPMS-D"
 msgstr ""
@@ -11923,22 +11923,22 @@ msgid "Gyroid"
 msgstr "Giroide"
 
 msgid "Lateral lattice angle 1"
-msgstr ""
+msgstr "Ángulo de lateral lattice 1"
 
 msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr ""
+msgstr "El ángulo del primer conjunto de elementos del lateral lattice en la dirección Z. Cero es vertical."
 
 msgid "Lateral lattice angle 2"
-msgstr ""
+msgstr "Ángulo de lateral lattice 2"
 
 msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr ""
+msgstr "El ángulo del segundo conjunto de elementos del lateral lattice en la dirección Z. Cero es vertical."
 
 msgid "Infill overhang angle"
-msgstr ""
+msgstr "Ángulo de voladizo del relleno"
 
 msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr ""
+msgstr "El ángulo de las líneas inclinadas del relleno. 60° dará como resultado un panal puro."
 
 msgid "Sparse infill anchor length"
 msgstr "Longitud del anclaje de relleno de baja densidad"
