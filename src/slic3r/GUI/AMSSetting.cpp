@@ -267,6 +267,7 @@ void AMSSetting::create()
     m_sizerl_body->Add(m_sizer_switch_filament_tip, 0, wxEXPAND | wxTOP, FromDIP(12));
     m_sizerl_body->Add(m_sizer_air_print, 0, wxEXPAND | wxTOP, FromDIP(12));
     m_sizerl_body->Add(m_sizer_air_print_tip, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_ams_arrange_order, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(12));
     m_sizerl_body->Add(m_panel_img, 1, wxEXPAND | wxALL, FromDIP(5));
 
     m_panel_body->SetSizer(m_sizerl_body);
@@ -296,7 +297,7 @@ void AMSSetting::UpdateByObj(MachineObject* obj)
     update_ams_img(obj);
 
     m_ams_type->Update(obj);
-    //m_ams_arrange_order->Update(obj);
+    m_ams_arrange_order->Update(obj);
     update_insert_material_read_mode(obj);
     m_sizer_remain_block->Show(obj->is_support_update_remain);
     update_starting_read_mode(obj->GetFilaSystem()->IsDetectOnPowerupEnabled());
@@ -305,6 +306,8 @@ void AMSSetting::UpdateByObj(MachineObject* obj)
     update_air_printing_detection(obj);
 
     update_firmware_switching_status();// on fila_firmware_switch
+
+    Layout();
 }
 
 void AMSSetting::update_firmware_switching_status()
@@ -414,6 +417,12 @@ void AMSSetting::update_ams_img(MachineObject* obj_)
         return;
     }
 
+    const auto& print_jj = DevPrinterConfigUtil::get_json_from_config(obj_->printer_type, "print");
+    if (print_jj.contains("support_ams_settings_hide_image") && DevJsonValParser::GetVal<bool>(print_jj, "support_ams_settings_hide_image", false)) {
+        m_am_img->Hide();
+        return;
+    }
+
     std::string ams_icon_str = DevPrinterConfigUtil::get_printer_ams_img(obj_->printer_type);
     if (auto ams_switch = obj_->GetFilaSystem()->GetAmsFirmwareSwitch().lock();
         ams_switch->GetCurrentFirmwareIdxSel() == 1) {
@@ -426,9 +435,12 @@ void AMSSetting::update_ams_img(MachineObject* obj_)
     }
 
     if (ams_icon_str != m_ams_img_name) {
+        m_ams_img_name = ams_icon_str;
         m_am_img->SetBitmap(create_scaled_bitmap(ams_icon_str, nullptr, 126));
         m_am_img->Refresh();
     }
+
+    m_am_img->Show();
 }
 
 void AMSSetting::update_starting_read_mode(bool selected)
@@ -486,7 +498,8 @@ void AMSSetting::update_air_printing_detection(MachineObject* obj)
         return;
     }
 
-    if (obj->is_support_air_print_detection) {
+    //For A1 and A1 Min,air_print_detection in the AMS settings; for other printer, air_print_detection in the Print Options.
+    if (obj->is_support_air_print_detection && (DevPrinterConfigUtil::air_print_detection_position(obj->printer_type) == "ams_setting")) {
         m_checkbox_air_print->Show();
         m_title_air_print->Show();
         m_tip_air_print_line->Show();

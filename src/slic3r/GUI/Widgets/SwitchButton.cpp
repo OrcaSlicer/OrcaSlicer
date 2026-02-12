@@ -41,25 +41,25 @@ void SwitchButton::SetLabels(wxString const& lbl_on, wxString const& lbl_off)
 
 void SwitchButton::SetTextColor(StateColor const& color)
 {
-    text_color = color;
+	text_color = color;
     Rescale();
 }
 
 void SwitchButton::SetTextColor2(StateColor const &color)
 {
-    text_color2 = color;
+	text_color2 = color;
     Rescale();
 }
 
 void SwitchButton::SetTrackColor(StateColor const& color)
 {
-    track_color = color;
+	track_color = color;
     Rescale();
 }
 
 void SwitchButton::SetThumbColor(StateColor const& color)
 {
-    thumb_color = color;
+	thumb_color = color;
     Rescale();
 }
 

@@ -35,6 +35,7 @@ struct StringObjectException
     StringExceptionType         type;   // warning type for tips
     bool is_warning = false;
     std::vector<std::string>    params; // warning params for tips
+    std::string                         hypetext;
 };
 
 class CanceledException : public std::exception
@@ -508,6 +509,8 @@ public:
     const PlaceholderParser&   placeholder_parser() const { return m_placeholder_parser; }
     const DynamicPrintConfig&  full_print_config() const { return m_full_print_config; }
 
+    const DynamicPrintConfig& ori_full_print_config() const { return m_ori_full_print_config; }
+
     virtual std::string        output_filename(const std::string &filename_base = std::string()) const = 0;
     // If the filename_base is set, it is used as the input for the template processing. In that case the path is expected to be the directory (may be empty).
     // If filename_set is empty, than the path may be a file or directory. If it is a file, then the macro will not be processed.
@@ -616,6 +619,16 @@ protected:
 	bool            is_step_started_unguarded(PrintStepEnum step) const { return m_state.is_started_unguarded(step); }
 	bool            is_step_done_unguarded(PrintStepEnum step) const { return m_state.is_done_unguarded(step); }
 
+    // Add a slicing warning to the active Print step and send a status notification.
+    // This method could be called multiple times between this->set_started() and this->set_done().
+    void            active_step_add_warning(PrintStateBase::WarningLevel warning_level, const std::string &message,
+                            PrintStateBase::SlicingNotificationType message_id = PrintStateBase::SlicingDefaultNotification)
+    {
+        std::pair<PrintStepEnum, bool> active_step = m_state.active_step_add_warning(warning_level, message, (int)message_id, this->state_mutex());
+        if (active_step.second)
+            // Update UI.
+            this->status_update_warnings(static_cast<int>(active_step.first), warning_level, message, nullptr, message_id);
+    }
 
 private:
     PrintState<PrintStepEnum, COUNT> m_state;

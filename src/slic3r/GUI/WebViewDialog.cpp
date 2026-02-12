@@ -7,6 +7,14 @@
 #include "libslic3r_version.h"
 #include "../Utils/Http.hpp"
 
+#include <regex>
+#include <utility>
+#include <boost/chrono.hpp>
+#include <boost/beast/core/detail/base64.hpp>
+#include <boost/chrono.hpp>
+#include <boost/beast/core/detail/base64.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 

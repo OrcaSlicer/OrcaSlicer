@@ -8,7 +8,7 @@
 
 wxDEFINE_EVENT(wxCUSTOMEVT_SET_TEMP_FINISH, wxCommandEvent);
 
-BEGIN_EVENT_TABLE(TempInput, StaticBox)
+BEGIN_EVENT_TABLE(TempInput, wxPanel)
 EVT_MOTION(TempInput::mouseMoved)
 EVT_ENTER_WINDOW(TempInput::mouseEnterWindow)
 EVT_LEAVE_WINDOW(TempInput::mouseLeaveWindow)
@@ -25,7 +25,7 @@ TempInput::TempInput()
 {
     hover  = false;
     radius = 0;
-    border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Focused), std::make_pair(0x009688, (int) StateColor::Hovered),
+    border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0x00AE42, (int) StateColor::Focused), std::make_pair(0x00AE42, (int) StateColor::Hovered),
                  std::make_pair(*wxWHITE, (int) StateColor::Normal));
     background_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(*wxWHITE, (int) StateColor::Normal));
     SetFont(Label::Body_12);
@@ -291,14 +291,18 @@ void TempInput::Warning(bool warn, WarningType type)
 
 void TempInput::SetIconActive()
 {
-    actice = true;
-    Refresh();
+    if (!actice) {
+        actice = true;
+        Refresh();
+    }
 }
 
 void TempInput::SetIconNormal()
 {
-    actice = false;
-    Refresh();
+    if (actice) {
+        actice = false;
+        Refresh();
+    }
 }
 
 void TempInput::SetMaxTemp(int temp) { max_temp = temp; }
@@ -427,8 +431,8 @@ void TempInput::render(wxDC &dc)
     if (warning_mode) {
         border_color = wxColour(255, 111, 0);
     } else {
-        border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Focused),
-                                  std::make_pair(0x009688, (int) StateColor::Hovered), std::make_pair(*wxWHITE, (int) StateColor::Normal));
+        border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0x00AE42, (int) StateColor::Focused),
+                                  std::make_pair(0x00AE42, (int) StateColor::Hovered), std::make_pair(*wxWHITE, (int) StateColor::Normal));
     }
 
     dc.SetBrush(*wxTRANSPARENT_BRUSH);

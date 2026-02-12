@@ -17,8 +17,8 @@ class PlaterWorker: public Worker {
     WorkerSubclass m_w;
     wxWindow *m_plater;
 
-    class PlaterJob : public Job {
-        std::shared_ptr<Job> m_job;
+    class PlaterJob : public JobNew {
+        std::unique_ptr<JobNew> m_job;
         wxWindow *m_plater;
         long long m_process_duration; // [ms]
 
@@ -62,8 +62,10 @@ class PlaterWorker: public Worker {
 
             } wctl{c};
 
-            CursorSetterRAII busycursor{wctl};
-            
+            if (m_job->show_busy_cursor()) {
+                CursorSetterRAII busycursor{ wctl };
+            }
+
             using namespace std::chrono;
             steady_clock::time_point process_start = steady_clock::now();
             m_job->process(wctl);
@@ -88,12 +90,12 @@ class PlaterWorker: public Worker {
             if (eptr) try {
                 std::rethrow_exception(eptr);
             }  catch (std::exception &e) {
-                show_error(m_plater, _L("An unexpected error occurred") + ": " + e.what());
+                show_error(m_plater, _L("An unexpected error occured") + ": " + e.what());
                 eptr = nullptr;
             }
         }
 
-        PlaterJob(wxWindow *p, std::shared_ptr<Job> j)
+        PlaterJob(wxWindow *p, std::unique_ptr<JobNew> j)
             : m_job{std::move(j)}, m_plater{p}
         {
             // TODO: decide if disabling slice button during UI job is what we
@@ -131,9 +133,9 @@ public:
     }
 
     // Always package the job argument into a PlaterJob
-    bool push(std::shared_ptr<Job> job) override
+    bool push(std::unique_ptr<JobNew> job) override
     {
-        return m_w.push(std::make_shared<PlaterJob>(m_plater, std::move(job)));
+        return m_w.push(std::make_unique<PlaterJob>(m_plater, std::move(job)));
     }
 
     bool is_idle() const override { return m_w.is_idle(); }

@@ -5,7 +5,15 @@
 
 #include <wx/sizer.h>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/log/trivial.hpp>
+
+/* mac need the macro while including <boost/stacktrace.hpp>*/
+#ifdef  __APPLE__
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#endif
+
+#include <boost/stacktrace.hpp>
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -427,6 +435,8 @@ wxBitmap create_menu_bitmap(const std::string& bmp_name)
     return create_scaled_bitmap(bmp_name, nullptr, 16, false, "", true);
 }
 
+static std::unordered_set<std::string> s_bmps_not_found;
+
 // win is used to get a correct em_unit value
 // It's important for bitmaps of dialogs.
 // if win == nullptr, em_unit value of MainFrame will be used
@@ -456,15 +466,21 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
 #endif
     Slic3r::GUI::wxGetApp().dark_mode();
 
-    // Try loading an SVG first, then PNG if SVG was not found:
+    // Try loading an SVG first, then PNG if SVG is not found:
     wxBitmap *bmp = cache.load_svg(bmp_name, width, height, grayscale, dark_mode, new_color, resize ? em_unit(win) * 0.1f : 0.f);
     if (bmp == nullptr) {
         bmp = cache.load_png(bmp_name, width, height, grayscale, resize ? win->FromDIP(10) * 0.1f : 0.f);
     }
 
     if (bmp == nullptr) {
+
+        /*stacktrace is time-consuming, optimize it*/
+        if (s_bmps_not_found.count(bmp_name) == 0) {
+            BOOST_LOG_TRIVIAL(error) << "Could not load bitmap: " << boost::stacktrace::stacktrace();
+            s_bmps_not_found.emplace(bmp_name);
+        }
+
         // Neither SVG nor PNG has been found, raise error
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Could not load bitmap: " << bmp_name;
         throw Slic3r::RuntimeError("Could not load bitmap: " + bmp_name);
     }
 
@@ -483,8 +499,12 @@ wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::Bitm
 
     wxBitmap* bmp = cache.load_svg2(bmp_name, width, height, grayscale, false, array_new_color, resize ? em_unit(win) * 0.1f : 0.f);
     if (bmp == nullptr) {
-        // No SVG found
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Could not load bitmap: " << bmp_name;
+        /*stacktrace is time-consuming, optimize it*/
+        if (s_bmps_not_found.count(bmp_name) == 0) {
+            BOOST_LOG_TRIVIAL(error) << "Could not load bitmap: " << boost::stacktrace::stacktrace();
+            s_bmps_not_found.emplace(bmp_name);
+        }
+
         throw Slic3r::RuntimeError("Could not load bitmap: " + bmp_name);
     }
     return *bmp;
@@ -536,7 +556,9 @@ std::vector<wxBitmap*> get_extruder_color_icons(bool thin_icon/* = false*/)
     std::vector<std::string> filaments_color_info = Slic3r::GUI::wxGetApp().plater()->get_filament_colors_render_info();
     std::vector<std::string> ctype = Slic3r::GUI::wxGetApp().plater()->get_filament_color_render_type();
 
-    if (!filaments_color_info.empty() && !ctype.empty() && ctype.size() == filaments_color_info.size()) {
+    bool multi_color_valid = Slic3r::GUI::wxGetApp().plater()->is_color_size_equal();
+
+    if (multi_color_valid && !filaments_color_info.empty() && !ctype.empty() && ctype.size() == filaments_color_info.size()) {
         std::vector<std::vector<std::string>> readable_color_info = read_color_pack(filaments_color_info);
         /* It's supposed that standard size of an icon is 36px*16px for 100% scaled display.
          * So set sizes for solid_colored icons used for filament preset
