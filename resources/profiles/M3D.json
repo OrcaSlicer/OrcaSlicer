@@ -1,12 +1,16 @@
 {
     "name": "M3D",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "force_update": "0",
     "description": "Configuration for M3D printers",
     "machine_model_list": [
         {
-            "name": "M3D Enabler D8500 MM Model",
-            "sub_path": "machine/M3D Enabler D8500 MM Model.json"
+            "name": "M3D Enabler D8500",
+            "sub_path": "machine/M3D Enabler D8500.json"
+        },
+        {
+            "name": "M3D Enabler D7500",
+            "sub_path": "machine/M3D Enabler D7500.json"
         }
     ],
     "machine_list": [
@@ -15,8 +19,12 @@
             "sub_path": "machine/fdm_machine_common.json"
         },
         {
-            "name": "M3D Enabler D8500 MM",
-            "sub_path": "machine/M3D Enabler D8500 MM.json"
+            "name": "M3D Enabler D8500 0.4 nozzle",
+            "sub_path": "machine/M3D Enabler D8500 0.4 nozzle.json"
+        },
+        {
+            "name": "M3D Enabler D7500 0.4 nozzle",
+            "sub_path": "machine/M3D Enabler D7500 0.4 nozzle.json"
         }
     ],
     "process_list": [
@@ -25,13 +33,55 @@
             "sub_path": "process/fdm_process_common.json"
         },
         {
-            "name": "0.15mm MM @D8500",
-            "sub_path": "process/0.15mm MM @D8500.json"
+            "name": "0.15mm Standard @M3D Enabler D8500",
+            "sub_path": "process/0.15mm Standard @M3D Enabler D8500.json"
         },
         {
-            "name": "0.20mm MM @D8500",
-            "sub_path": "process/0.20mm MM @D8500.json"
+            "name": "0.20mm Standard @M3D Enabler D8500",
+            "sub_path": "process/0.20mm Standard @M3D Enabler D8500.json"
+        },
+        {
+            "name": "Vase Mode @M3D Enabler D8500",
+            "sub_path": "process/Vase Mode @M3D Enabler D8500.json"
+        },
+        {
+            "name": "High Detail (0.12mm) @M3D Enabler D8500",
+            "sub_path": "process/High Detail (0.12mm) @M3D Enabler D8500.json"
+        },
+        {
+            "name": "Rapid Draft (0.28mm) @M3D Enabler D8500",
+            "sub_path": "process/Rapid Draft (0.28mm) @M3D Enabler D8500.json"
+        },
+        {
+            "name": "Mesh Design @M3D Enabler D8500",
+            "sub_path": "process/Mesh Design @M3D Enabler D8500.json"
+        },
+        {
+            "name": "High Strength @M3D Enabler D8500",
+            "sub_path": "process/High Strength @M3D Enabler D8500.json"
+        },
+        {
+            "name": "Fuzzy Skin @M3D Enabler D8500",
+            "sub_path": "process/Fuzzy Skin @M3D Enabler D8500.json"
+        },
+        {
+            "name": "0.15mm Standard @M3D Enabler D7500",
+            "sub_path": "process/0.15mm Standard @M3D Enabler D7500.json"
+        },
+        {
+            "name": "0.20mm Standard @M3D Enabler D7500",
+            "sub_path": "process/0.20mm Standard @M3D Enabler D7500.json"
         }
     ],
-    "filament_list": []
+    "filament_list": [
+
+        {
+            "name": "fdm_filament_pla",
+            "sub_path": "filament/fdm_filament_pla.json"
+        },
+        {
+            "name": "Enabler PLA @M3D",
+            "sub_path": "filament/Enabler PLA @M3D.json"
+        }
+    ]
 }

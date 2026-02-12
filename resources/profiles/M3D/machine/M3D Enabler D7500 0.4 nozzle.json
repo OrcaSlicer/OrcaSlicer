@@ -1,0 +1,134 @@
+{
+    "type": "machine",
+    "name": "M3D Enabler D7500 0.4 nozzle",
+    "printer_model": "M3D Enabler D7500",
+    "printer_variant": "0.4",
+    "inherits": "fdm_machine_common",
+    "from": "system",
+    "instantiation": "true",
+    "is_custom_defined": "0",
+    "setting_id": "M3D_D7500_04",
+    "version": "1.0.0",
+    "auxiliary_fan": "0",
+    "change_filament_gcode": "M18 E",
+    "deretraction_speed": [
+        "50"
+    ],
+    "extruder_clearance_height_to_rod": "19",
+    "extruder_clearance_radius": "100",
+    "extruder_colour": [
+        "#FCE94F"
+    ],
+    "extruder_offset": [
+        "0x0"
+    ],
+    "fan_speedup_time": "1",
+    "host_type": "esp3d",
+    "long_retractions_when_cut": [
+        "0"
+    ],
+    "machine_end_gcode": "M104 S0\n;Retract the filament\nG92 E1\nG1 E-1 F300\nG1 X0 Y140\nG1 Y150 F4000\nM18 X Y E\nM18 S36000",
+    "machine_load_filament_time": "0.5",
+    "machine_max_acceleration_e": [
+        "10000"
+    ],
+    "machine_max_acceleration_x": [
+        "2000"
+    ],
+    "machine_max_acceleration_y": [
+        "2000"
+    ],
+    "machine_max_acceleration_z": [
+        "400"
+    ],
+    "machine_max_speed_e": [
+        "30"
+    ],
+    "machine_max_speed_x": [
+        "60"
+    ],
+    "machine_max_speed_y": [
+        "60"
+    ],
+    "machine_max_speed_z": [
+        "12"
+    ],
+    "machine_start_gcode": "M104 S{first_layer_temperature[0]} ; Begin Heating\n\nG91 ; Relative coordinates\nG1 Z10 ; Lift the head abit\nG90 ; Back to absolute coordinates\nG28 ; Home All\nG1 Z10 F500 ; Dont want to burn the bed while heating\nM109 S{first_layer_temperature[0]} ; Wait for pre-heat\n; Prime the extruder\nG92 E0 ; Set Extruder position to be 0\nG1 E5 F100 ; Extrude a bit in the air\nG1 X0 Y5 Z0.1 F500 ; Touch Down\nG92 E0 ; Set Extruder position to be 0\nG1 X100 Z0.3 E10 F500 ; Nozzle wipe\nG92 E0 ; Set Extruder position to be 0",
+    "machine_tool_change_time": "0.5",
+    "machine_unload_filament_time": "0.5",
+    "before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0",
+    "layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+    "machine_pause_gcode": "M601",
+    "max_layer_height": [
+        "0.32"
+    ],
+    "min_layer_height": [
+        "0.1"
+    ],
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "nozzle_type": "brass",
+    "print_host": "m3d-enabler.local",
+    "printable_area": [
+        "0x0",
+        "150x0",
+        "150x150",
+        "0x150"
+    ],
+    "printable_height": "150",
+    "printer_settings_id": "M3D Enabler D7500 0.4 nozzle",
+    "retract_before_wipe": [
+        "100%"
+    ],
+    "retract_length_toolchange": [
+        "17"
+    ],
+    "retract_lift_above": [
+        "0"
+    ],
+    "retract_lift_below": [
+        "0"
+    ],
+    "retract_lift_enforce": [
+        "All Surfaces"
+    ],
+    "retract_restart_extra": [
+        "0"
+    ],
+    "retract_restart_extra_toolchange": [
+        "0"
+    ],
+    "retract_when_changing_layer": [
+        "1"
+    ],
+    "retraction_distances_when_cut": [
+        "18"
+    ],
+    "retraction_length": [
+        "4.5"
+    ],
+    "retraction_minimum_travel": [
+        "2.5"
+    ],
+    "retraction_speed": [
+        "60"
+    ],
+    "single_extruder_multi_material": "0",
+    "thumbnails": "120x60/PNG",
+    "travel_slope": [
+        "45"
+    ],
+    "wipe": [
+        "1"
+    ],
+    "wipe_distance": [
+        "2"
+    ],
+    "z_hop": [
+        "0"
+    ],
+    "z_hop_types": [
+        "Normal Lift"
+    ]
+}
