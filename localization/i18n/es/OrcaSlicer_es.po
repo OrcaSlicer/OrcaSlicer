@@ -6104,7 +6104,7 @@ msgid "The printer has been logged out and cannot connect."
 msgstr "La impresora se ha desconectado y no puede conectarse."
 
 msgid "Video Stopped."
-msgstr "Vídeo detenido."
+msgstr "Video Detenido."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "Fallo de Conexión de Red Local (Fallo al iniciar vista en directo)"
