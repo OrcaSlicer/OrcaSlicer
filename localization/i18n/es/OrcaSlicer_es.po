@@ -8161,7 +8161,7 @@ msgid "Please click the confirm button if you still want to proceed with printin
 msgstr "Por favor, presione el botón de confirmar si desea proceder con la impresión."
 
 msgid "This checks the flatness of heatbed. Leveling makes extruded height uniform."
-msgstr ""
+msgstr "Esto comprueba la planitud de la cama caliente. La nivelación hace que la altura extruida sea uniforme."
 
 msgid "This process determines the dynamic flow values to improve overall print quality."
 msgstr "Este proceso determina los valores dinámicos de flujo para mejorar la calidad de impresión en general."
@@ -8187,23 +8187,23 @@ msgstr "Consejo: Si ha cambiado recientemente la boquilla de su impresora, vaya 
 
 #, c-format, boost-format
 msgid "The %s diameter(%.1fmm) of current printer doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
-msgstr ""
+msgstr "El diámetro %s (%.1f mm) de la impresora actual no coincide con el del archivo de laminado (%.1f mm). Asegúrese de que la boquilla instalada coincide con la configuración de la impresora y seleccione el preset de impresora correspondiente al laminar."
 
 #, c-format, boost-format
 msgid "The current nozzle diameter (%.1fmm) doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
-msgstr ""
+msgstr "El diámetro actual de la boquilla (%.1f mm) no coincide con el del archivo de laminado (%.1f mm). Asegúrese de que la boquilla instalada coincide con la configuración de la impresora y seleccione el preset de impresora correspondiente al laminar."
 
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
-msgstr ""
+msgstr "La dureza del material actual (%s) supera la dureza de %s(%s). Verifique la boquilla o la configuración del material e inténtelo de nuevo."
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment.Please close the door."
-msgstr ""
+msgstr "[ %s ] requiere impresión en un entorno de alta temperatura. Por favor, cierre la puerta."
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment."
-msgstr ""
+msgstr "[ %s ] requiere impresión en un entorno de alta temperatura."
 
 #, c-format, boost-format
 msgid "The filament on %s may soften. Please unload."
@@ -8232,7 +8232,7 @@ msgid "Textured PEI Plate"
 msgstr "Bandeja PEI Texturizada"
 
 msgid "Cool Plate (Supertack)"
-msgstr ""
+msgstr "Bandeja fría (Supertack)"
 
 msgid "Click here if you can't connect to the printer"
 msgstr "Presione aquí si no puede conectar a la impresora"
@@ -9474,7 +9474,7 @@ msgid "Ramming line"
 msgstr "Línea de moldeado"
 
 msgid "Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences"
-msgstr ""
+msgstr "Orca volverá a calcular sus volúmenes de purga cada vez que cambie el color del filamento o se cambien los filamentos. Puede desactivar el cálculo automático en Orca Slicer > Preferencias"
 
 msgid "Flushing volume (mm³) for each filament pair."
 msgstr "Volumen de purgado (mm³) para cada par de filamentos."
@@ -11554,10 +11554,10 @@ msgid "Filament map to extruder."
 msgstr "Mapa de filamentos para extrusora."
 
 msgid "Auto For Flush"
-msgstr ""
+msgstr "Auto para Descarga"
 
 msgid "Auto For Match"
-msgstr ""
+msgstr "Auto para Coincidencia"
 
 msgid "Flush temperature"
 msgstr "Temperatura de descarga"
@@ -11630,7 +11630,7 @@ msgid "When enabled, the extrusion flow is limited by the smaller of the fitted 
 msgstr "Cuando está habilitado, el flujo de extrusión se limita al menor de los valores ajustados (calculado a partir del ancho de la línea y la altura de la capa) y el flujo máximo definido por el usuario. Cuando está deshabilitado, solo se aplica el flujo máximo definido por el usuario."
 
 msgid "Max volumetric speed multinomial coefficients"
-msgstr ""
+msgstr "Coeficientes multinomiales de la velocidad volumétrica máxima"
 
 msgid "Shrinkage (XY)"
 msgstr "Contracción (XY)"
@@ -11777,10 +11777,10 @@ msgid "Support material is commonly used to print supports and support interface
 msgstr "El material de soporte se utiliza habitualmente para imprimir soportes y la interfaz de los soportes"
 
 msgid "Filament printable"
-msgstr ""
+msgstr "Filamento imprimible"
 
 msgid "The filament is printable in extruder."
-msgstr ""
+msgstr "El filamento es imprimible en el extrusor."
 
 msgid "Softening temperature"
 msgstr "Temperatura de ablandado"
