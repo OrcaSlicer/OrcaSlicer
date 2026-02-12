@@ -12478,34 +12478,34 @@ msgid "The portion of the model's outer surface within a certain depth range is 
 msgstr ""
 
 msgid "Skin infill depth"
-msgstr ""
+msgstr "Profundidad de la capa superficial"
 
 msgid "The parameter sets the depth of skin."
-msgstr ""
+msgstr "Este parámetro establece la profundidad de la capa superficial."
 
 msgid "Infill lock depth"
-msgstr ""
+msgstr "Profundidad de agarre del relleno"
 
 msgid "The parameter sets the overlapping depth between the interior and skin."
-msgstr ""
+msgstr "Este parámetro establece la profundidad de solapamiento entre el interior y la capa superficial."
 
 msgid "Skin line width"
-msgstr ""
+msgstr "Ancho de línea de la piel"
 
 msgid "Adjust the line width of the selected skin paths."
-msgstr ""
+msgstr "Ajusta el ancho de línea de las trayectorias de la capa superficial seleccionadas."
 
 msgid "Skeleton line width"
-msgstr ""
+msgstr "Ancho de línea del esqueleto"
 
 msgid "Adjust the line width of the selected skeleton paths."
-msgstr ""
+msgstr "Ajusta el ancho de línea de las trayectorias del esqueleto seleccionadas."
 
 msgid "Symmetric infill Y axis"
-msgstr ""
+msgstr "Relleno simétrico respecto al eje Y"
 
 msgid "If the model has two parts that are symmetric about the Y axis, and you want these parts to have symmetric textures, please click this option on one of the parts."
-msgstr ""
+msgstr "Si el modelo tiene dos piezas simétricas respecto al eje Y y desea que tengan texturas simétricas, active esta opción en una de las piezas."
 
 msgid "Infill combination - Max layer height"
 msgstr "Combinación de relleno - Altura máxima de la capa"
@@ -12528,19 +12528,19 @@ msgstr ""
 "Utilice valores absolutos en mm (p. ej., 0,32 mm para una boquilla de 0,4 mm) o valores en % (p. ej., 80%). Este valor no debe ser mayor que el diámetro de la boquilla."
 
 msgid "Enable clumping detection"
-msgstr ""
+msgstr "Activar detección de aglomeraciones"
 
 msgid "Clumping detection layers"
-msgstr ""
+msgstr "Capas de detección de aglomeraciones"
 
 msgid "Clumping detection layers."
-msgstr ""
+msgstr "Capas para la detección de aglomeraciones."
 
 msgid "Probing exclude area of clumping"
-msgstr ""
+msgstr "Excluir área de sondeo para aglomeraciones"
 
 msgid "Probing exclude area of clumping."
-msgstr ""
+msgstr "Área excluida del sondeo para la detección de aglomeraciones."
 
 msgid "Filament to print internal sparse infill."
 msgstr "Filamento para imprimir el relleno interno de baja densidad."
