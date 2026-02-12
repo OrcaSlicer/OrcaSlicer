@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 01:29+0800\n"
+"POT-Creation-Date: 2026-02-12 08:42+0800\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -2319,6 +2319,12 @@ msgstr "Klonuoti"
 msgid "Simplify Model"
 msgstr "Supaprastinti modelį"
 
+msgid "Subdivision mesh"
+msgstr ""
+
+msgid "(Lost color)"
+msgstr ""
+
 msgid "Center"
 msgstr "Centras"
 
@@ -2570,6 +2576,19 @@ msgstr[2] "Nepavyko pataisyti šio modelio objektų"
 
 msgid "Repairing was canceled"
 msgstr "Taisymas buvo atšauktas"
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" will exceed 1 million faces after this subdivision, which may "
+"increase slicing time. Do you want to continue?"
+msgstr ""
+
+msgid "BambuStudio warning"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" part's mesh contains errors. Please repair it first."
+msgstr ""
 
 msgid "Additional process preset"
 msgstr "Papildomas apdorojimo nustatymas"
