@@ -1791,7 +1791,7 @@ msgid "User logged out"
 msgstr "Usuario desconectado"
 
 msgid "new or open project file is not allowed during the slicing process!"
-msgstr ""
+msgstr "¡crear o abrir un archivo de proyecto nuevo no está permitido durante el proceso de laminado!"
 "¡crear o abrir un archivo de proyecto nuevo no está permitido durante el "
 "proceso de laminado!"
 
@@ -5172,7 +5172,7 @@ msgid "object selection"
 msgstr "Selección de objetos"
 
 msgid "part selection"
-msgstr "Selección de piezas"
+msgstr "Selección de partes"
 
 msgid "number keys"
 msgstr "Teclas numéricas"
@@ -5264,11 +5264,11 @@ msgstr "Alinear con el eje Y"
 
 msgctxt "Camera"
 msgid "Left"
-msgstr ""
+msgstr "Izquierda"
 
 msgctxt "Camera"
 msgid "Right"
-msgstr ""
+msgstr "Derecha"
 
 msgid "Add"
 msgstr "Añadir"
@@ -5340,7 +5340,7 @@ msgid "Assemble Control"
 msgstr "Control de Ensamblado"
 
 msgid "Selection Mode"
-msgstr ""
+msgstr "Modo de selección"
 
 msgid "Total Volume:"
 msgstr "Volumen total:"
@@ -5372,11 +5372,11 @@ msgid "A G-code path goes beyond the plate boundaries."
 msgstr "Una ruta de G-Code supera el límite de la bandeja."
 
 msgid "Not support printing 2 or more TPU filaments."
-msgstr ""
+msgstr "No se admite la impresión con 2 o más filamentos TPU."
 
 #, c-format, boost-format
 msgid "Tool %d"
-msgstr ""
+msgstr "Herramienta %d"
 
 #, c-format, boost-format
 msgid ""
@@ -5403,14 +5403,14 @@ msgid ""
 msgstr ""
 
 msgid "Open wiki for more information."
-msgstr ""
+msgstr "Abrir wiki para más información."
 
 msgid "Only the object being edited is visible."
 msgstr "Sólo es visible el objeto que se está editando."
 
 #, c-format, boost-format
 msgid "filaments %s cannot be printed directly on the surface of this plate."
-msgstr ""
+msgstr "Los filamentos %s no pueden imprimirse directamente en la superficie de esta bandeja."
 
 msgid ""
 "PLA and PETG filaments detected in the mixture. Adjust parameters according "
@@ -5418,7 +5418,7 @@ msgid ""
 msgstr ""
 
 msgid "The prime tower extends beyond the plate boundary."
-msgstr ""
+msgstr "La torre de purga se extiende más allá del límite de la bandeja."
 
 msgid ""
 "Prime tower position exceeded build plate boundaries and was repositioned to "
@@ -5431,13 +5431,13 @@ msgid ""
 msgstr ""
 
 msgid "Click Wiki for help."
-msgstr ""
+msgstr "Haga clic en la wiki para obtener ayuda."
 
 msgid "Click here to regroup"
-msgstr ""
+msgstr "Haga clic aquí para reagrupar"
 
 msgid "Flushing Volume"
-msgstr ""
+msgstr "Volumen de purga"
 
 msgid "Calibration step selection"
 msgstr "Seleccionar paso de calibración"
@@ -5449,10 +5449,10 @@ msgid "Bed leveling"
 msgstr "Nivelación de Cama"
 
 msgid "High-temperature Heatbed Calibration"
-msgstr ""
+msgstr "Calibración de la cama caliente a alta temperatura"
 
 msgid "Nozzle clumping detection Calibration"
-msgstr ""
+msgstr "Calibración de detección de atascos en la boquilla"
 
 msgid "Calibration program"
 msgstr "Programa de calibración"
@@ -5665,7 +5665,7 @@ msgid "Open a project file"
 msgstr "Abrir un archivo de proyecto"
 
 msgid "Recent files"
-msgstr ""
+msgstr "Archivos recientes"
 
 msgid "Save Project"
 msgstr "Guardar proyecto"
@@ -5707,10 +5707,10 @@ msgid "Export all objects as STLs"
 msgstr "Exportar todos los objetos como varios STL"
 
 msgid "Export all objects as one DRC"
-msgstr ""
+msgstr "Exportar todos los objetos como un DRC"
 
 msgid "Export all objects as DRCs"
-msgstr ""
+msgstr "Exportar todos los objetos como DRCs"
 
 msgid "Export Generic 3MF"
 msgstr "Exportar 3MF genérico"
@@ -5809,7 +5809,7 @@ msgid "Use Orthogonal View"
 msgstr "Utilizar Vista Octogonal"
 
 msgid "Auto Perspective"
-msgstr ""
+msgstr "Perspectiva automática"
 
 msgid ""
 "Automatically switch between orthographic and perspective when changing from "
@@ -5904,13 +5904,13 @@ msgid "Cornering calibration"
 msgstr ""
 
 msgid "Input Shaping Frequency"
-msgstr ""
+msgstr "Frecuencia de Input Shaping"
 
 msgid "Input Shaping Damping/zeta factor"
-msgstr ""
+msgstr "Factor de amortiguamiento/zeta de Input Shaping"
 
 msgid "Input Shaping"
-msgstr ""
+msgstr "Input Shaping"
 
 msgid "VFA"
 msgstr "VFA"
@@ -5964,7 +5964,7 @@ msgstr "Existe un archivo con el mismo nombre: %s, ¿desea sobreescribirlo?."
 
 #, c-format, boost-format
 msgid "A config exists with the same name: %s, do you want to overwrite it?"
-msgstr ""
+msgstr "Existe una configuración con el mismo nombre: %s, ¿desea sobrescribirla?"
 "Existe una configuración con el mismo nombre: %s, ¿desea sobreescribirla?."
 
 msgid "Overwrite file"
@@ -6047,16 +6047,16 @@ msgid "Synchronization"
 msgstr "Sincronización"
 
 msgid "The device cannot handle more conversations. Please retry later."
-msgstr ""
+msgstr "El dispositivo no puede manejar más conversaciones. Por favor, inténtelo de nuevo más tarde."
 "El dispositivo no puede gestionar más conversaciones. Inténtelo más tarde."
 
 msgid "Player is malfunctioning. Please reinstall the system player."
-msgstr ""
+msgstr "El reproductor no funciona correctamente. Por favor, reinstale el reproductor del sistema."
 "El reproductor no funciona correctamente. Vuelva a instalar el reproductor "
 "del sistema."
 
 msgid "The player is not loaded, please click \"play\" button to retry."
-msgstr ""
+msgstr "El reproductor no está cargado, por favor haga clic en el botón \"play\" para volver a intentarlo."
 "El reproductor no se carga; haga clic en el botón \"reproducir\" para volver "
 "a intentarlo."
 
@@ -6074,7 +6074,7 @@ msgid "Printer camera is malfunctioning."
 msgstr "La cámara de la impresora funciona mal."
 
 msgid "A problem occurred. Please update the printer firmware and try again."
-msgstr ""
+msgstr "Ha ocurrido un problema. Por favor, actualice el firmware de la impresora e inténtelo de nuevo."
 "Se ha producido un problema. Actualice el firmware de la impresora e "
 "inténtelo de nuevo."
 
@@ -6104,7 +6104,7 @@ msgid "The printer has been logged out and cannot connect."
 msgstr "La impresora se ha desconectado y no puede conectarse."
 
 msgid "Video Stopped."
-msgstr ""
+msgstr "Vídeo detenido."
 
 msgid "LAN Connection Failed (Failed to start liveview)"
 msgstr "Fallo de Conexión de Red Local (Fallo al iniciar vista en directo)"
@@ -6219,7 +6219,7 @@ msgid "LAN Connection Failed (Failed to view sdcard)"
 msgstr "Conexión LAN fallida (no se encuentra la tarjeta SD)"
 
 msgid "Browsing file in storage is not supported in LAN Only Mode."
-msgstr ""
+msgstr "No se admite navegar por archivos en el almacenamiento en el modo solo LAN."
 
 #, c-format, boost-format
 msgid "You are going to delete %u file from printer. Are you sure to continue?"
@@ -6281,7 +6281,7 @@ msgid "Downloading %d%%..."
 msgstr "Descargando %d%%..."
 
 msgid "Air Condition"
-msgstr ""
+msgstr "Aire acondicionado"
 
 msgid ""
 "Reconnecting the printer, the operation cannot be completed immediately, "
@@ -6291,7 +6291,7 @@ msgstr ""
 "inmediatamente, inténtelo de nuevo más tarde."
 
 msgid "Timeout, please try again."
-msgstr ""
+msgstr "Tiempo de espera agotado, por favor inténtelo de nuevo."
 
 msgid "File does not exist."
 msgstr "El archivo no existe."
@@ -6313,35 +6313,35 @@ msgid ""
 msgstr ""
 
 msgid "The file already exists, do you want to replace it?"
-msgstr ""
+msgstr "El archivo ya existe, ¿desea reemplazarlo?"
 
 msgid "Insufficient storage space, please clear the space and try again."
-msgstr ""
+msgstr "Espacio de almacenamiento insuficiente, por favor libere espacio e inténtelo de nuevo."
 
 msgid "File creation failed, please try again."
-msgstr ""
+msgstr "Fallo al crear el archivo, por favor inténtelo de nuevo."
 
 msgid "File write failed, please try again."
-msgstr ""
+msgstr "Fallo al escribir el archivo, por favor inténtelo de nuevo."
 
 msgid "MD5 verification failed, please try again."
-msgstr ""
+msgstr "La verificación MD5 falló, por favor inténtelo de nuevo."
 
 msgid "File renaming failed, please try again."
-msgstr ""
+msgstr "Fallo al renombrar el archivo, por favor inténtelo de nuevo."
 
 msgid "File upload failed, please try again."
-msgstr ""
+msgstr "Fallo al subir el archivo, por favor inténtelo de nuevo."
 
 #, c-format, boost-format
 msgid "Error code: %d"
 msgstr "Código de error: %d"
 
 msgid "User cancels task."
-msgstr ""
+msgstr "El usuario canceló la tarea."
 
 msgid "Failed to read file, please try again."
-msgstr ""
+msgstr "Fallo al leer el archivo, por favor inténtelo de nuevo."
 
 msgid "Speed:"
 msgstr "Velocidad:"
@@ -6434,29 +6434,29 @@ msgid "The name is not allowed to end with space character."
 msgstr "No se permite que el nombre termine con un espacio."
 
 msgid "The name is not allowed to exceed 32 characters."
-msgstr ""
+msgstr "El nombre no puede tener más de 32 caracteres."
 
 msgid "Bind with Pin Code"
 msgstr "Vincular con código PIN"
 
 msgid "Bind with Access Code"
-msgstr ""
+msgstr "Vincular con código de acceso"
 
 msgctxt "Quit_Switching"
 msgid "Quit"
-msgstr ""
+msgstr "Salir"
 
 msgid "Switching..."
-msgstr ""
+msgstr "Cambiando..."
 
 msgid "Switching failed"
-msgstr ""
+msgstr "Error al cambiar"
 
 msgid "Printing Progress"
 msgstr "Progreso de impresión"
 
 msgid "Parts Skip"
-msgstr ""
+msgstr "Omitir piezas"
 
 msgid "Stop"
 msgstr "Detener"
@@ -6465,7 +6465,7 @@ msgid "Layer: N/A"
 msgstr "Capa: N/A"
 
 msgid "Click to view thermal preconditioning explanation"
-msgstr ""
+msgstr "Haga clic para ver la explicación del preacondicionamiento térmico"
 
 msgid "Clear"
 msgstr "Vaciar"
@@ -6494,7 +6494,7 @@ msgid "Camera"
 msgstr "Cámara"
 
 msgid "Storage"
-msgstr ""
+msgstr "Almacenamiento"
 
 msgid "Camera Setting"
 msgstr "Ajuste de Cámara"
@@ -6512,7 +6512,7 @@ msgid "Print Options"
 msgstr "Opciones de Impresora"
 
 msgid "Safety Options"
-msgstr ""
+msgstr "Opciones de seguridad"
 
 msgid "Lamp"
 msgstr "Luz"
@@ -6524,19 +6524,19 @@ msgid "Debug Info"
 msgstr "Información de Depuración"
 
 msgid "Filament loading..."
-msgstr ""
+msgstr "Cargando filamento..."
 
 msgid "No Storage"
-msgstr ""
+msgstr "Sin almacenamiento"
 
 msgid "Storage Abnormal"
-msgstr ""
+msgstr "Almacenamiento anormal"
 
 msgid "Cancel print"
 msgstr "Cancelar Impresión"
 
 msgid "Are you sure you want to stop this print?"
-msgstr ""
+msgstr "¿Está seguro de que desea detener esta impresión?"
 
 msgid "The printer is busy with another print job."
 msgstr "La impresora está ocupada con otro trabajo de impresión."
@@ -6547,16 +6547,16 @@ msgid ""
 msgstr ""
 
 msgid "Current extruder is busy changing filament."
-msgstr ""
+msgstr "El extrusor actual está ocupado cambiando el filamento."
 
 msgid "Current slot has already been loaded."
-msgstr ""
+msgstr "La ranura actual ya está cargada."
 
 msgid "The selected slot is empty."
-msgstr ""
+msgstr "La ranura seleccionada está vacía."
 
 msgid "Printer 2D mode does not support 3D calibration"
-msgstr ""
+msgstr "El modo 2D de la impresora no admite calibración 3D"
 
 msgid "Downloading..."
 msgstr "Descargando…"
@@ -6583,7 +6583,7 @@ msgstr ""
 "descargar filamento."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
-msgstr ""
+msgstr "No se puede cambiar la temperatura de la cámara en modo de refrigeración mientras se imprime."
 
 msgid ""
 "If the chamber temperature exceeds 40℃, the system will automatically switch "
@@ -6621,13 +6621,13 @@ msgid ""
 msgstr ""
 
 msgid "Keep it On"
-msgstr ""
+msgstr "Mantener encendido"
 
 msgid "Turn it Off"
-msgstr ""
+msgstr "Apagar"
 
 msgid "Can't start this without storage."
-msgstr ""
+msgstr "No se puede iniciar sin almacenamiento."
 
 msgid "Rate the Print Profile"
 msgstr "Valorar el Perfil de Impresión"
@@ -6740,19 +6740,19 @@ msgstr "Estado"
 
 msgctxt "Firmware"
 msgid "Update"
-msgstr ""
+msgstr "Actualizar"
 
 msgid "Assistant(HMS)"
-msgstr ""
+msgstr "Asistente (HMS)"
 
 msgid "Don't show again"
 msgstr "No mostrar de nuevo"
 
 msgid "Go to"
-msgstr ""
+msgstr "Ir a"
 
 msgid "Later"
-msgstr ""
+msgstr "Más tarde"
 
 #, c-format, boost-format
 msgid "%s error"
@@ -6798,9 +6798,7 @@ msgid "Download Beta Version"
 msgstr "Descargar la versión beta"
 
 msgid "The 3MF file version is newer than the current OrcaSlicer version."
-msgstr ""
-"La versión del archivo 3MF es más reciente que la versión actual de Orca "
-"Slicer."
+msgstr "La versión del archivo 3MF es más reciente que la versión actual de OrcaSlicer."
 
 msgid ""
 "Updating your OrcaSlicer could enable all functionality in the 3MF file."
@@ -6816,13 +6814,13 @@ msgstr "Ultima versión: "
 
 msgctxt "Software"
 msgid "Update"
-msgstr ""
+msgstr "Actualizar"
 
 msgid "Not for now"
 msgstr "No por ahora"
 
 msgid "Server Exception"
-msgstr ""
+msgstr "Excepción del servidor"
 
 msgid ""
 "The server is unable to respond. Please click the link below to check the "
@@ -6835,10 +6833,10 @@ msgid ""
 msgstr ""
 
 msgid "How to use LAN only mode"
-msgstr ""
+msgstr "Cómo usar el modo solo LAN"
 
 msgid "Don't show this dialog again"
-msgstr ""
+msgstr "No mostrar este mensaje de nuevo"
 
 msgid "3D Mouse disconnected."
 msgstr "Ratón 3D desconectado."
@@ -6868,7 +6866,7 @@ msgid "New printer config available."
 msgstr "Nueva configuración de impresora disponible."
 
 msgid "Wiki Guide"
-msgstr ""
+msgstr "Guía en Wiki"
 
 msgid "Undo integration failed."
 msgstr "La operación de deshacer ha fallado."
@@ -6952,9 +6950,7 @@ msgid "WARNING:"
 msgstr "AVISO:"
 
 msgid "Your model needs support! Please enable support material."
-msgstr ""
-"¡Su modelo necesita soporte! Por favor, haga que el material de apoyo esté "
-"habilitado."
+msgstr "¡Su modelo necesita soportes! Por favor, habilite el material de soporte."
 
 msgid "G-code path overlap"
 msgstr "Superposición de la ruta del G-Code"
@@ -7015,7 +7011,7 @@ msgstr ""
 "impresión si la etiqueta no se encuentra dentro del rango predefinido."
 
 msgid "Build Plate Detection"
-msgstr ""
+msgstr "Detección de la placa de construcción"
 
 msgid ""
 "Identifies the type and position of the build plate on the heatbed. Pausing "
@@ -7023,7 +7019,7 @@ msgid ""
 msgstr ""
 
 msgid "AI Detections"
-msgstr ""
+msgstr "Detecciones de IA"
 
 msgid ""
 "Printer will send assistant message or pause printing if any of the "
@@ -7034,28 +7030,28 @@ msgid "Enable AI monitoring of printing"
 msgstr "Activar monitorización por IA de la impresión"
 
 msgid "Pausing Sensitivity:"
-msgstr ""
+msgstr "Sensibilidad de pausa:"
 
 msgid "Spaghetti Detection"
 msgstr "Detección de hilos"
 
 msgid "Detect spaghetti failure(scattered lose filament)."
-msgstr ""
+msgstr "Detectar fallo 'spaghetti' (filamento suelto y disperso)."
 
 msgid "Purge Chute Pile-Up Detection"
-msgstr ""
+msgstr "Detección de acumulación en la rampa de purga"
 
 msgid "Monitor if the waste is piled up in the purge chute."
-msgstr ""
+msgstr "Monitorear si los residuos se acumulan en la rampa de purga."
 
 msgid "Nozzle Clumping Detection"
 msgstr "Detección de Atascos de Boquilla"
 
 msgid "Check if the nozzle is clumping by filaments or other foreign objects."
-msgstr ""
+msgstr "Comprobar si la boquilla está obstruida por filamentos u otros objetos extraños."
 
 msgid "Detects air printing caused by nozzle clogging or filament grinding."
-msgstr ""
+msgstr "Detecta impresión en el aire causada por obstrucción de la boquilla o desgaste del filamento."
 
 msgid "First Layer Inspection"
 msgstr "Inspección de Primera Capa"
@@ -7064,7 +7060,7 @@ msgid "Auto-recovery from step loss"
 msgstr "Autorecuperar desde pérdida de paso"
 
 msgid "Store Sent Files on External Storage"
-msgstr ""
+msgstr "Guardar archivos enviados en almacenamiento externo"
 
 msgid ""
 "Save the printing files initiated from Bambu Studio, Bambu Handy and "
@@ -7078,33 +7074,33 @@ msgid "Filament Tangle Detect"
 msgstr "Detección de Enredos de Filamentos"
 
 msgid "Check if the nozzle is clumping by filament or other foreign objects."
-msgstr ""
+msgstr "Comprobar si la boquilla está obstruida por filamento u otros objetos extraños."
 "Compruebe si la boquilla está atascada por el filamento u otros objetos "
 "extraños."
 
 msgid "Open Door Detection"
-msgstr ""
+msgstr "Detección de apertura de puerta"
 
 msgid "Notification"
-msgstr ""
+msgstr "Notificación"
 
 msgid "Pause printing"
-msgstr ""
+msgstr "Pausar impresión"
 
 msgctxt "Nozzle Type"
 msgid "Type"
-msgstr ""
+msgstr "Tipo"
 
 msgctxt "Nozzle Diameter"
 msgid "Diameter"
-msgstr ""
+msgstr "Diámetro"
 
 msgctxt "Nozzle Flow"
 msgid "Flow"
-msgstr ""
+msgstr "Flujo"
 
 msgid "Please change the nozzle settings on the printer."
-msgstr ""
+msgstr "Por favor, cambie los ajustes de la boquilla en la impresora."
 
 msgid "Hardened Steel"
 msgstr "Acero endurecido"
@@ -7113,28 +7109,28 @@ msgid "Stainless Steel"
 msgstr "Acero Inoxidable"
 
 msgid "Tungsten Carbide"
-msgstr ""
+msgstr "Carburo de tungsteno"
 
 msgid "Brass"
 msgstr "Latón"
 
 msgid "High flow"
-msgstr ""
+msgstr "Alto flujo"
 
 msgid "No wiki link available for this printer."
-msgstr ""
+msgstr "No hay enlace a la wiki disponible para esta impresora."
 
 msgid "Refreshing"
-msgstr ""
+msgstr "Actualizando"
 
 msgid "Unavailable while heating maintenance function is on."
-msgstr ""
+msgstr "No disponible mientras la función de mantenimiento de calentamiento esté activa."
 
 msgid "Idel Heating Protection"
-msgstr ""
+msgstr "Protección de calentamiento en reposo"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."
-msgstr ""
+msgstr "Detiene el calentamiento automáticamente tras 5 minutos de inactividad para garantizar la seguridad."
 
 msgid "Global"
 msgstr "Global"
@@ -7143,7 +7139,7 @@ msgid "Objects"
 msgstr "Objetos"
 
 msgid "Show/Hide advanced parameters"
-msgstr ""
+msgstr "Mostrar/Ocultar parámetros avanzados"
 
 msgid "Compare presets"
 msgstr "Comparar perfiles"
@@ -7170,7 +7166,7 @@ msgid "Lock current plate"
 msgstr "Bloquear bandeja actual"
 
 msgid "Filament grouping"
-msgstr ""
+msgstr "Agrupación de filamentos"
 
 msgid "Edit current plate name"
 msgstr "Editar el nombre de la bandeja actual"
@@ -7183,14 +7179,14 @@ msgstr "Personalizar bandeja actual"
 
 #, c-format, boost-format
 msgid "The %s nozzle can not print %s."
-msgstr ""
+msgstr "La boquilla %s no puede imprimir %s."
 
 #, boost-format
 msgid "Mixing %1% with %2% in printing is not recommended.\n"
-msgstr ""
+msgstr "No se recomienda mezclar %1% con %2% en la impresión.\n"
 
 msgid " nozzle"
-msgstr ""
+msgstr " boquilla"
 
 #, boost-format
 msgid ""
@@ -7204,7 +7200,7 @@ msgstr ""
 
 #, boost-format
 msgid "%1% with %2%\n"
-msgstr ""
+msgstr "%1% con %2%\n"
 
 #, boost-format
 msgid " plate %1%:"
@@ -7235,16 +7231,16 @@ msgid "Filament changes"
 msgstr "Cambios de filamento"
 
 msgid "Set the number of AMS installed on the nozzle."
-msgstr ""
+msgstr "Configure el número de AMS instalados en la boquilla."
 
 msgid "AMS(4 slots)"
-msgstr ""
+msgstr "AMS (4 ranuras)"
 
 msgid "AMS(1 slot)"
-msgstr ""
+msgstr "AMS (1 ranura)"
 
 msgid "Not installed"
-msgstr ""
+msgstr "No instalado"
 
 msgid ""
 "The software does not support using different diameter of nozzles for one "
@@ -7254,21 +7250,21 @@ msgid ""
 msgstr ""
 
 msgid "Switch diameter"
-msgstr ""
+msgstr "Cambiar diámetro"
 
 #, c-format, boost-format
 msgid "Left nozzle: %smm"
-msgstr ""
+msgstr "Boquilla izquierda: %s mm"
 
 #, c-format, boost-format
 msgid "Right nozzle: %smm"
-msgstr ""
+msgstr "Boquilla derecha: %s mm"
 
 msgid "Configuration incompatible"
 msgstr "Configuración incompatible"
 
 msgid "Sync printer information"
-msgstr ""
+msgstr "Sincronizar información de la impresora"
 
 msgid ""
 "The currently selected machine preset is inconsistent with the connected "
@@ -7282,19 +7278,19 @@ msgid ""
 msgstr ""
 
 msgid "Sync extruder infomation"
-msgstr ""
+msgstr "Sincronizar información del extrusor"
 
 msgid "Connection"
 msgstr "Conexión"
 
 msgid "Synchronize nozzle information and the number of AMS"
-msgstr ""
+msgstr "Sincronizar información de la boquilla y el número de AMS"
 
 msgid "Click to edit preset"
 msgstr "Click para cambiar el ajuste inicial"
 
 msgid "Project Filaments"
-msgstr ""
+msgstr "Filamentos del proyecto"
 
 msgid "Flushing volumes"
 msgstr "Volúmenes de limpieza"
@@ -7336,7 +7332,7 @@ msgid ""
 msgstr ""
 
 msgid "Only filament color information has been synchronized from printer."
-msgstr ""
+msgstr "Solo la información del color del filamento se ha sincronizado desde la impresora."
 
 msgid ""
 "Filament type and color information have been synchronized, but slot "
