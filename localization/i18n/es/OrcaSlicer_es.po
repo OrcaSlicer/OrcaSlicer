@@ -10011,13 +10011,13 @@ msgid "Generating G-code: layer %1%"
 msgstr "Generando G-Code: capa %1%"
 
 msgid "Flush volumes matrix do not match to the correct size!"
-msgstr ""
+msgstr "La matriz de volúmenes de purga no coincide con el tamaño correcto."
 
 msgid "Grouping error: "
-msgstr ""
+msgstr "Error de agrupación: "
 
 msgid " can not be placed in the "
-msgstr ""
+msgstr " no se puede colocar en el "
 
 msgid "Internal Bridge"
 msgstr "Puente Interior"
@@ -10141,7 +10141,7 @@ msgid " is too close to exclusion area, there may be collisions when printing."
 msgstr " está muy cerca del área de exclusión, puede conllevar colisiones cuando se imprime."
 
 msgid " is too close to clumping detection area, there may be collisions when printing."
-msgstr ""
+msgstr " está demasiado cerca del área de detección de aglomeraciones, puede haber colisiones durante la impresión."
 
 msgid "Prime Tower"
 msgstr "Torre de Purga"
@@ -10153,22 +10153,22 @@ msgid " is too close to exclusion area, and collisions will be caused.\n"
 msgstr " está demasiado cerca del área de exclusión, y se producirán colisiones.\n"
 
 msgid " is too close to clumping detection area, and collisions will be caused.\n"
-msgstr ""
+msgstr " está demasiado cerca del área de detección de aglomeraciones, y se producirán colisiones.\n"
 
 msgid "Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage."
-msgstr ""
+msgstr "Imprimir filamentos de alta y baja temperatura juntos puede causar atascos de boquilla o daños en la impresora."
 
 msgid "Printing high-temp and low-temp filaments together may cause nozzle clogging or printer damage. If you still want to print, you can enable the option in Preferences."
-msgstr ""
+msgstr "Imprimir filamentos de alta y baja temperatura juntos puede causar atascos de boquilla o daños en la impresora. Si aun así desea imprimir, puede habilitar la opción en Preferencias."
 
 msgid "Printing different-temp filaments together may cause nozzle clogging or printer damage."
-msgstr ""
+msgstr "Imprimir filamentos de diferentes temperaturas juntos puede causar atascos de boquilla o daños en la impresora."
 
 msgid "Printing high-temp and mid-temp filaments together may cause nozzle clogging or printer damage."
-msgstr ""
+msgstr "Imprimir filamentos de alta y temperatura media juntos puede causar atascos de boquilla o daños en la impresora."
 
 msgid "Printing mid-temp and low-temp filaments together may cause nozzle clogging or printer damage."
-msgstr ""
+msgstr "Imprimir filamentos de temperatura media y baja juntos puede causar atascos de boquilla o daños en la impresora."
 
 msgid "No extrusions under current settings."
 msgstr "No hay extrusiones con los ajustes actuales."
@@ -10177,10 +10177,10 @@ msgid "Smooth mode of timelapse is not supported when \"by object\" sequence is 
 msgstr "Modo de timelapse suave no está soportado cuando la secuencia \"por objeto\" está activada."
 
 msgid "Clumping detection is not supported when \"by object\" sequence is enabled."
-msgstr ""
+msgstr "La detección de aglomeraciones no es compatible cuando la secuencia \"Por objeto\" está activada."
 
 msgid "Prime tower is required for clumping detection; otherwise, there may be flaws on the model."
-msgstr ""
+msgstr "Se requiere torre de purga para la detección de aglomeraciones; de lo contrario, puede haber defectos en el modelo."
 
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Seleccione la secuencia de impresión \"Por objeto\" para imprimir varios objetos en el modo de jarrón espiral."
@@ -10234,7 +10234,7 @@ msgid "The prime tower requires that all objects are printed over the same numbe
 msgstr "La torre de purga requiere que todos los objetos se impriman sobre el mismo número de capas de balsa (base de impresión)"
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr ""
+msgstr "La torre de purga solo es compatible para múltiples objetos si se imprimen con el mismo support_top_z_distance."
 
 msgid "The prime tower requires that all objects are sliced with the same layer heights."
 msgstr "La torre de purga requiere que todos los objetos se laminen con la misma altura de capa."
@@ -10243,7 +10243,7 @@ msgid "The prime tower is only supported if all objects have the same variable l
 msgstr "La torre de purga sólo se admite si todos los objetos tienen la misma altura de capa adaptativa"
 
 msgid "One or more object were assigned an extruder that the printer does not have."
-msgstr ""
+msgstr "A uno o más objetos se les asignó un extrusor que la impresora no tiene."
 
 msgid "Too small line width"
 msgstr "Ancho de línea demasiado pequeño"
@@ -10252,7 +10252,7 @@ msgid "Too large line width"
 msgstr "Ancho de línea demasiado grande"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
-msgstr ""
+msgstr "Impresión con múltiples extrusores de diámetros de boquilla diferentes. Si el soporte se va a imprimir con el filamento actual (support_filament == 0 o support_interface_filament == 0), todas las boquillas deben tener el mismo diámetro."
 
 msgid "The prime tower requires that support has the same layer height with object."
 msgstr "La torre de purga requiere que el soporte tenga la misma altura de capa que el objeto."
@@ -10320,7 +10320,7 @@ msgstr ""
 "Puede ajustar el valor de machine_max_acceleration_travel en la configuración de la impresora para usar velocidades más altas."
 
 msgid "The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
-msgstr ""
+msgstr "La opción de pared precisa se ignorará para secuencias de paredes externo-interno o interno-externo-interno."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "La contracción del filamento no se utilizará porque la contracción del filamento para los filamentos utilizados difiere significativamente."
