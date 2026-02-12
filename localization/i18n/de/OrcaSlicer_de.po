@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-02-12 01:29+0800\n"
+"POT-Creation-Date: 2026-02-12 08:42+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -2366,6 +2366,12 @@ msgstr "Duplizieren"
 msgid "Simplify Model"
 msgstr "Modell vereinfachen"
 
+msgid "Subdivision mesh"
+msgstr ""
+
+msgid "(Lost color)"
+msgstr ""
+
 msgid "Center"
 msgstr "Zur Mitte"
 
@@ -2617,6 +2623,19 @@ msgstr[1] "Reparatur der folgenden Modellobjekte fehlgeschlagen"
 
 msgid "Repairing was canceled"
 msgstr "Reparieren wurde abgebrochen"
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" will exceed 1 million faces after this subdivision, which may "
+"increase slicing time. Do you want to continue?"
+msgstr ""
+
+msgid "BambuStudio warning"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" part's mesh contains errors. Please repair it first."
+msgstr ""
 
 msgid "Additional process preset"
 msgstr "Zusätzliche Prozesseinstellung"
