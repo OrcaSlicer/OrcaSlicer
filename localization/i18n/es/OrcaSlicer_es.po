@@ -9792,19 +9792,19 @@ msgid "Confirm and Update Nozzle"
 msgstr "Confirmar y Actualizar la Boquilla"
 
 msgid "Connect the printer using IP and access code"
-msgstr ""
+msgstr "Conecte la impresora usando la IP y el Código de Acceso"
 
 msgid "Try the following methods to update the connection parameters and reconnect to the printer."
-msgstr ""
+msgstr "Pruebe los siguientes métodos para actualizar los parámetros de conexión y reconectar a la impresora."
 
 msgid "1. Please confirm Orca Slicer and your printer are in the same LAN."
-msgstr ""
+msgstr "1. Por favor, confirme que Orca Slicer y su impresora están en la misma LAN."
 
 msgid "2. If the IP and Access Code below are different from the actual values on your printer, please correct them."
-msgstr ""
+msgstr "2. Si la IP y el Código de Acceso que aparecen a continuación son diferentes a los valores reales en su impresora, corríjalos."
 
 msgid "3. Please obtain the device SN from the printer side; it is usually found in the device information on the printer screen."
-msgstr ""
+msgstr "3. Obtenga el SN del dispositivo desde la impresora; normalmente se encuentra en la información del dispositivo en la pantalla de la impresora."
 
 msgid "IP"
 msgstr "IP"
@@ -9813,40 +9813,40 @@ msgid "Access Code"
 msgstr "Código de Acceso"
 
 msgid "Printer model"
-msgstr ""
+msgstr "Modelo de impresora"
 
 msgid "Printer name"
-msgstr ""
+msgstr "Nombre de la impresora"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "¿Dónde encontrar la IP de su impresora y el Código de Acceso?"
 
 msgid "Connect"
-msgstr ""
+msgstr "Conectar"
 
 msgid "Manual Setup"
-msgstr ""
+msgstr "Configuración manual"
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "¡Ip y Código de Acceso Verificadas! Puede cerrar esta ventana"
 
 msgid "connecting..."
-msgstr ""
+msgstr "conectando..."
 
 msgid "Failed to connect to printer."
-msgstr ""
+msgstr "Fallo al conectar con la impresora."
 
 msgid "Failed to publish login request."
-msgstr ""
+msgstr "Error al publicar la solicitud de inicio de sesión."
 
 msgid "The printer has already been bound."
-msgstr ""
+msgstr "La impresora ya está vinculada."
 
 msgid "The printer mode is incorrect, please switch to LAN Only."
-msgstr ""
+msgstr "El modo de la impresora es incorrecto, por favor cambie a solo LAN."
 
 msgid "Connecting to printer... The dialog will close later"
-msgstr ""
+msgstr "Conectando a la impresora... El cuadro de diálogo se cerrará después"
 
 msgid "Connection failed, please double check IP and Access Code"
 msgstr "Conexión fallida, por favor, compruebe la dirección IP y el Código de Acceso"
@@ -9859,31 +9859,31 @@ msgstr ""
 "por favor, pase al paso 3 para corregir problemas de red"
 
 msgid "Connection failed! Please refer to the wiki page."
-msgstr ""
+msgstr "¡Conexión fallida! Por favor, consulte la página de la wiki."
 
 msgid "sending failed"
-msgstr ""
+msgstr "envío fallido"
 
 msgid "Failed to send. Click Retry to attempt sending again. If retrying does not work, please check the reason."
-msgstr ""
+msgstr "Fallo al enviar. Haga clic en Reintentar para intentar enviar de nuevo. Si reintentar no funciona, compruebe el motivo."
 
 msgid "reconnect"
-msgstr ""
+msgstr "reconectar"
 
 msgid "Air Pump"
-msgstr ""
+msgstr "Bomba de aire"
 
 msgid "Laser 10W"
-msgstr ""
+msgstr "Láser 10W"
 
 msgid "Laser 40W"
-msgstr ""
+msgstr "Láser 40W"
 
 msgid "Cutting Module"
-msgstr ""
+msgstr "Módulo de corte"
 
 msgid "Auto Fire Extinguishing System"
-msgstr ""
+msgstr "Sistema de extinción automática de incendios"
 
 msgid "Update firmware"
 msgstr "Actualizar firmware"
