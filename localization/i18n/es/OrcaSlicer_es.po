@@ -4467,11 +4467,11 @@ msgstr "Aumenta %1%g de filamento y ahorra %2% cambios en comparación con la ag
 
 #, boost-format
 msgid "Save %1%g filament and increase %2% changes compared to optimal grouping."
-msgstr ""
+msgstr "Ahorra %1%g de filamento y aumenta %2% cambios en comparación con la agrupación óptima."
 
 #, boost-format
 msgid "Save %1%g filament and %2% changes compared to a printer with one nozzle."
-msgstr ""
+msgstr "Ahorra %1%g de filamento y %2% cambios en comparación con una impresora con una boquilla."
 
 #, boost-format
 msgid "Save %1%g filament and increase %2% changes compared to a printer with one nozzle."
@@ -4835,19 +4835,19 @@ msgstr "Herramienta %d"
 
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr ""
+msgstr "El filamento %s está colocado en el %s, pero la ruta de G-code generada excede el rango imprimible del %s."
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr ""
+msgstr "Los filamentos %s están colocados en el %s, pero la ruta de G-code generada excede el rango imprimible del %s."
 
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr ""
+msgstr "El filamento %s está colocado en el %s, pero la ruta de G-code generada excede la altura imprimible del %s."
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr ""
+msgstr "Los filamentos %s están colocados en el %s, pero la ruta de G-code generada excede la altura imprimible del %s."
 
 msgid "Open wiki for more information."
 msgstr "Abrir wiki para más información."
@@ -5401,7 +5401,7 @@ msgstr "Existe un archivo con el mismo nombre: %s, ¿desea sobreescribirlo?."
 
 #, c-format, boost-format
 msgid "A config exists with the same name: %s, do you want to overwrite it?"
-msgstr "Existe una configuración con el mismo nombre: %s, ¿desea sobrescribirla?Existe una configuración con el mismo nombre: %s, ¿desea sobreescribirla?."
+msgstr "Existe una configuración con el mismo nombre: %s, ¿desea sobrescribirla?"
 
 msgid "Overwrite file"
 msgstr "Sobrescribir archivo"
@@ -6265,8 +6265,8 @@ msgstr[1] "%1$d Los objetos se han cargado como partes del objeto de corte."
 #, c-format, boost-format
 msgid "%1$d object was loaded with fuzzy skin painting."
 msgid_plural "%1$d objects were loaded with fuzzy skin painting."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%1$d objeto se cargó con pintura de piel difusa."
+msgstr[1] "%1$d objetos se cargaron con pintura de piel difusa."
 
 msgid "ERROR"
 msgstr "ERROR"
