@@ -7191,7 +7191,7 @@ msgid "Device Page"
 msgstr "Página del dispositivo"
 
 msgid "Synchronize AMS Filament Information"
-msgstr ""
+msgstr "Sincronizar información de filamentos AMS"
 
 msgid "Plate Settings"
 msgstr "Configuración de Bandeja"
@@ -7242,28 +7242,28 @@ msgid "Plate %d: %s is not suggested to be used to print filament %s (%s). If yo
 msgstr "Bandeja %d: %s no es recomendable ser usada para imprimir el filamento %s(%s). Si desea imprimir de todos modos, por favor, indique una temperatura de bandeja distinta a 0 en la configuración del filamento."
 
 msgid "Currently, the object configuration form cannot be used with a multiple-extruder printer."
-msgstr ""
+msgstr "Actualmente, el formulario de configuración del objeto no se puede usar con una impresora de múltiples extrusores."
 
 msgid "Not available"
-msgstr ""
+msgstr "No disponible"
 
 msgid "isometric"
-msgstr ""
+msgstr "Isométrico"
 
 msgid "top_front"
-msgstr ""
+msgstr "Superior frontal"
 
 msgid "top"
-msgstr ""
+msgstr "Superior"
 
 msgid "bottom"
-msgstr ""
+msgstr "Inferior"
 
 msgid "front"
-msgstr ""
+msgstr "Frontal"
 
 msgid "rear"
-msgstr ""
+msgstr "Posterior"
 
 msgid "Switching the language requires application restart.\n"
 msgstr "El cambio de idioma requiere el reinicio de la aplicación.\n"
@@ -7308,7 +7308,7 @@ msgid "The period of backup in seconds."
 msgstr "El periodo de copia de seguridad en segundos."
 
 msgid "Bed Temperature Difference Warning"
-msgstr ""
+msgstr "Advertencia de diferencia de temperatura en la cama"
 
 msgid ""
 "Using filaments with significantly different temperatures may cause:\n"
@@ -7317,13 +7317,18 @@ msgid ""
 "• Layer adhesion issues\n"
 "\n"
 "Continue with enabling this feature?"
-msgstr ""
+msgstr "Usar filamentos con temperaturas significativamente diferentes puede causar:\n"
+"• Obstrucción del extrusor\n"
+"• Daño en la boquilla\n"
+"• Problemas de adhesión entre capas\n"
+"\n"
+"¿Continuar habilitando esta función?"
 
 msgid "Browse"
 msgstr "Explorar"
 
 msgid "Choose folder for downloaded items"
-msgstr ""
+msgstr "Elegir carpeta para elementos descargados"
 
 msgid "Choose Download Directory"
 msgstr "Elegir Directorio de Descarga"
@@ -7385,46 +7390,46 @@ msgid "Show the splash screen during startup."
 msgstr "Muestra la página de bienvenida al iniciar."
 
 msgid "Downloads folder"
-msgstr ""
+msgstr "Carpeta de descargas"
 
 msgid "Target folder for downloaded items"
-msgstr ""
+msgstr "Carpeta de destino para elementos descargados"
 
 msgid "Load All"
-msgstr ""
+msgstr "Cargar todo"
 
 msgid "Ask When Relevant"
-msgstr ""
+msgstr "Pregunte cuando sea pertinente"
 
 msgid "Always Ask"
-msgstr ""
+msgstr "Preguntar siempre"
 
 msgid "Load Geometry Only"
-msgstr ""
+msgstr "Cargar solo geometría"
 
 msgid "Load behaviour"
-msgstr ""
+msgstr "Comportamiento de carga"
 
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
-msgstr ""
+msgstr "¿Deben cargarse los ajustes de impresora/filamento/proceso al abrir un archivo 3MF?"
 
 msgid "Maximum recent files"
-msgstr ""
+msgstr "Máximo de archivos recientes"
 
 msgid "Maximum count of recent files"
-msgstr ""
+msgstr "Número máximo de archivos recientes"
 
 msgid "Add STL/STEP files to recent files list"
-msgstr ""
+msgstr "Añadir archivos STL/STEP a la lista de archivos recientes"
 
 msgid "Don't warn when loading 3MF with modified G-code"
 msgstr "No avisar cuando cargue archivos 3MF con G-Codes modificados"
 
 msgid "Show options when importing STEP file"
-msgstr ""
+msgstr "Mostrar opciones al importar archivos STEP"
 
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
-msgstr ""
+msgstr "Si está activado, aparecerá un diálogo de configuración de parámetros durante la importación de archivos STEP."
 
 msgid "Auto backup"
 msgstr "Copia de seguridad automática"
@@ -7442,22 +7447,22 @@ msgid "If enabled, Orca will remember and switch filament/process configuration 
 msgstr "Si está activada, Orca recordará y cambiará la configuración de archivos/procesos para cada impresora automáticamente."
 
 msgid "Group user filament presets"
-msgstr ""
+msgstr "Agrupar perfiles de filamento del usuario"
 
 msgid "Group user filament presets based on selection"
-msgstr ""
+msgstr "Agrupar perfiles de filamento del usuario según la selección"
 
 msgid "All"
 msgstr "Todas"
 
 msgid "By type"
-msgstr ""
+msgstr "Por tipo"
 
 msgid "By vendor"
-msgstr ""
+msgstr "Por fabricante"
 
 msgid "Features"
-msgstr ""
+msgstr "Características"
 
 msgid "Multi device management"
 msgstr "Gestión multidispositivo"
@@ -7466,49 +7471,51 @@ msgid "With this option enabled, you can send a task to multiple devices at the 
 msgstr "Con esta opción activada, puede enviar una tarea a varios dispositivos al mismo tiempo y gestionar varios dispositivos."
 
 msgid "(Requires restart)"
-msgstr ""
+msgstr "(Requiere reinicio)"
 
 msgid "Pop up to select filament grouping mode"
-msgstr ""
+msgstr "Ventana emergente para seleccionar el modo de agrupación de filamentos"
 
 msgid "Quality level for Draco export"
-msgstr ""
+msgstr "Nivel de calidad para exportación Draco"
 
 msgid "bits"
 msgstr ""
 
 msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
-"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+"0 = lossless compressaion (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
 "Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
-msgstr ""
+msgstr "Controla la profundidad de bits usada al comprimir la malla al formato Draco.\n"
+"0 = compresión sin pérdida (la geometría se conserva la precisión completa). Los valores con pérdida válidos van de 8 a 30.\n"
+"Valores más bajos producen archivos más pequeños pero pierden más detalle geométrico; valores más altos preservan más detalle a costa de archivos más grandes."
 
 msgid "Behaviour"
-msgstr ""
+msgstr "Comportamiento"
 
 msgid "Auto flush after changing..."
-msgstr ""
+msgstr "Purgado automático tras cambios..."
 
 msgid "Auto calculate flushing volumes when selected values changed"
-msgstr ""
+msgstr "Calcular automáticamente los volúmenes de purga cuando cambien los valores seleccionados"
 
 msgid "Auto arrange plate after cloning"
 msgstr "Disposición automática de la placa tras la clonación"
 
 msgid "Auto slice after changes"
-msgstr ""
+msgstr "Laminar automáticamente tras cambios"
 
 msgid "If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."
-msgstr ""
+msgstr "Si está activado, OrcaSlicer volverá a laminar automáticamente siempre que cambien los ajustes relacionados con el laminado."
 
 msgid "Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."
-msgstr ""
+msgstr "Retraso en segundos antes de que comience el laminado automático, permitiendo agrupar varias ediciones. Use 0 para laminar inmediatamente."
 
 msgid "Remove mixed temperature restriction"
-msgstr ""
+msgstr "Eliminar restricción de temperatura mixta"
 
 msgid "With this option enabled, you can print materials with a large temperature difference together."
-msgstr ""
+msgstr "Con esta opción activada, puede imprimir materiales con una gran diferencia de temperatura juntos."
 
 msgid "Touchpad"
 msgstr "Panel táctil"
@@ -7526,10 +7533,10 @@ msgstr ""
 "Panel táctil: Alt+mover para rotación, Shift+mover para desplazar."
 
 msgid "Orbit speed multiplier"
-msgstr ""
+msgstr "Multiplicador de velocidad de órbita"
 
 msgid "Multiplies the orbit speed for finer or coarser camera movement."
-msgstr ""
+msgstr "Multiplica la velocidad de órbita para un movimiento de cámara más fino o más grueso."
 
 msgid "Zoom to mouse position"
 msgstr "Hacer zoom en la posición del ratón"
@@ -7556,25 +7563,25 @@ msgid "If enabled, reverses the direction of zoom with mouse wheel."
 msgstr "Si se activa, invierte la dirección del zoom con la rueda del ratón."
 
 msgid "Clear my choice on..."
-msgstr ""
+msgstr "Limpiar mi elección en..."
 
 msgid "Unsaved projects"
-msgstr ""
+msgstr "Proyectos no guardados"
 
 msgid "Clear my choice on the unsaved projects."
 msgstr "Limpiar mi elección de proyectos no guardados."
 
 msgid "Unsaved presets"
-msgstr ""
+msgstr "Perfiles no guardados"
 
 msgid "Clear my choice on the unsaved presets."
 msgstr "Limpiar mi selección de perfiles no guardados."
 
 msgid "Synchronizing printer preset"
-msgstr ""
+msgstr "Sincronizando el preajuste de la impresora"
 
 msgid "Clear my choice for synchronizing printer preset after loading the file."
-msgstr ""
+msgstr "Limpiar mi elección para sincronizar el preajuste de la impresora después de cargar el archivo."
 
 msgid "Login region"
 msgstr "Región de inicio de sesión"
@@ -7592,7 +7599,7 @@ msgid "Test"
 msgstr "Test"
 
 msgid "Update & sync"
-msgstr ""
+msgstr "Actualizar y sincronizar"
 
 msgid "Check for stable updates only"
 msgstr "Buscar sólo actualizaciones estables"
@@ -7604,49 +7611,49 @@ msgid "Update built-in Presets automatically."
 msgstr "Actualizar perfiles integrados automáticamente."
 
 msgid "Use encrypted file for token storage"
-msgstr ""
+msgstr "Usar archivo cifrado para almacenar tokens"
 
 msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
-msgstr ""
+msgstr "Almacenar tokens de autenticación en un archivo cifrado en lugar del llavero del sistema. (Requiere reinicio)"
 
 msgid "Filament Sync Options"
-msgstr ""
+msgstr "Opciones de sincronización de filamento"
 
 msgid "Filament sync mode"
-msgstr ""
+msgstr "Modo de sincronización de filamento"
 
 msgid "Choose whether sync updates both filament preset and color, or only color."
-msgstr ""
+msgstr "Elija si la sincronización actualiza tanto el perfil de filamento como el color, o solo el color."
 
 msgid "Filament & Color"
-msgstr ""
+msgstr "Filamento y color"
 
 msgid "Color only"
-msgstr ""
+msgstr "Solo color"
 
 msgid "Network plugin"
-msgstr ""
+msgstr "Plugin de red"
 
 msgid "Enable network plugin"
 msgstr "Activar el plugin de red"
 
 msgid "Network plugin version"
-msgstr ""
+msgstr "Versión del plugin de red"
 
 msgid "Select the network plugin version to use"
-msgstr ""
+msgstr "Seleccione la versión del plugin de red a usar"
 
 msgid "(Latest)"
-msgstr ""
+msgstr "(Última)"
 
 msgid "Network plugin switched successfully."
-msgstr ""
+msgstr "Plugin de red cambiado con éxito."
 
 msgid "Success"
-msgstr ""
+msgstr "Éxito"
 
 msgid "Failed to load network plugin. Please restart the application."
-msgstr ""
+msgstr "Error al cargar el plugin de red. Por favor, reinicie la aplicación."
 
 #, c-format, boost-format
 msgid ""
@@ -7655,10 +7662,10 @@ msgid ""
 "Would you like to download and install this version now?\n"
 "\n"
 "Note: The application may need to restart after installation."
-msgstr ""
+msgstr "Ha seleccionado la versión %s del plugin de red.\n\n¿Desea descargar e instalar esta versión ahora?\n\nNota: La aplicación puede necesitar reiniciarse después de la instalación."
 
 msgid "Download Network Plugin"
-msgstr ""
+msgstr "Descargar plugin de red"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Asociar archivos a OrcaSlicer"
@@ -7823,16 +7830,16 @@ msgid "Incompatible presets"
 msgstr "Perfiles incompatibles"
 
 msgid "My Printer"
-msgstr ""
+msgstr "Mi impresora"
 
 msgid "Left filaments"
-msgstr ""
+msgstr "Filamentos del lado izquierdo"
 
 msgid "AMS filaments"
 msgstr "Filamentos AMS"
 
 msgid "Right filaments"
-msgstr ""
+msgstr "Filamentos del lado derecho"
 
 msgid "Click to select filament color"
 msgstr "Haga clic para elegir el color del filamento"
@@ -7844,19 +7851,19 @@ msgid "Edit preset"
 msgstr "Editar ajuste"
 
 msgid "Unspecified"
-msgstr ""
+msgstr "No especificado"
 
 msgid "Project-inside presets"
 msgstr "Perfiles internos del proyecto"
 
 msgid "System"
-msgstr ""
+msgstr "Sistema"
 
 msgid "Unsupported presets"
-msgstr ""
+msgstr "Perfiles no compatibles"
 
 msgid "Unsupported"
-msgstr ""
+msgstr "No compatible"
 
 msgid "Add/Remove filaments"
 msgstr "Añadir/Borrar filamentos"
