@@ -5421,8 +5421,10 @@ msgstr "Elegir un directorio"
 #, c-format, boost-format
 msgid "There is %d config exported. (Only non-system configs)"
 msgid_plural "There are %d configs exported. (Only non-system configs)"
-msgstr[0] "Hay %d configuración exportada. (solo configuraciones que no sean del sistema)"
-msgstr[1] "Hay %d configuraciones exportadas. (solo configuraciones que no sean del sistema)"
+msgstr[0] ""
+"Hay (%d) configuración exportada. (solo configuraciones que no sean del sistema)"
+msgstr[1] ""
+"Hay %d configuraciones exportadas. (solo configuraciones que no sean del sistema)"
 
 msgid "Export result"
 msgstr "Exportar resultado"
