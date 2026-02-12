@@ -8332,19 +8332,19 @@ msgid "The selected printer is incompatible with the chosen printer presets."
 msgstr "La impresora seleccionada es incompatible con los perfiles seleccionados."
 
 msgid "Storage needs to be inserted before send to printer."
-msgstr ""
+msgstr "Es necesario insertar el almacenamiento antes de enviarlo a la impresora."
 
 msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgstr "Es necesaria que la impresora esté en la misma red local que Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
-msgstr ""
+msgstr "La impresora no admite enviar al almacenamiento de la impresora."
 
 msgid "Sending..."
-msgstr ""
+msgstr "Enviando..."
 
 msgid "File upload timed out. Please check if the firmware version supports this operation or verify if the printer is functioning properly."
-msgstr ""
+msgstr "Tiempo de espera de la carga de archivo agotado. Por favor, compruebe si la versión del firmware admite esta operación o verifique si la impresora funciona correctamente."
 
 msgid "Slice ok."
 msgstr "Laminado correcto."
