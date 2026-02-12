@@ -6608,7 +6608,7 @@ msgstr ""
 "¿Está seguro de que desea continuar con la sincronización?"
 
 msgid "There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."
-msgstr ""
+msgstr "Hay tipos de boquilla no configurados. Configure los tipos de boquilla de todos los extrusores antes de sincronizar."
 
 msgid "Sync extruder infomation"
 msgstr "Sincronizar información del extrusor"
@@ -6835,7 +6835,7 @@ msgid "Export STL file:"
 msgstr "Exportar archivo STL:"
 
 msgid "Export Draco file:"
-msgstr ""
+msgstr "Exportar archivo Draco:"
 
 msgid "Export AMF file:"
 msgstr "Exportar archivo AMF:"
@@ -7300,7 +7300,7 @@ msgid "Region selection"
 msgstr "Selección de región"
 
 msgid "sec"
-msgstr ""
+msgstr "seg"
 
 msgid "The period of backup in seconds."
 msgstr "El periodo de copia de seguridad en segundos."
@@ -8059,6 +8059,7 @@ msgstr "Bandeja Texturizada PEI Bambú"
 
 msgid "Bambu Cool Plate SuperTack"
 msgstr ""
+msgstr "Bandeja Fria SuperTack"
 
 msgid "Send print job"
 msgstr "Enviar trabajo de impresión"
