@@ -7791,7 +7791,7 @@ msgid "Enable SSL(FTP)"
 msgstr "Habilitar SSL (FTP)"
 
 msgid "Internal developer mode"
-msgstr "Modo interno de desarrollador"
+msgstr "Modo desarrollador interno"
 
 msgid "Host Setting"
 msgstr "Ajuste de cliente"
@@ -8157,7 +8157,7 @@ msgid "This checks the flatness of heatbed. Leveling makes extruded height unifo
 msgstr ""
 
 msgid "This process determines the dynamic flow values to improve overall print quality."
-msgstr ""
+msgstr "Este proceso determina los valores dinámicos de flujo para mejorar la calidad de impresión en general."
 
 msgid "Preparing print job"
 msgstr "Preparando el trabajo de impresión"
@@ -8167,16 +8167,16 @@ msgstr "La longitud del nombre supera el límite."
 
 #, c-format, boost-format
 msgid "Cost %dg filament and %d changes more than optimal grouping."
-msgstr ""
+msgstr "Costo %dg de filamento y %d cambios más que la agrupación óptima."
 
 msgid "nozzle"
-msgstr ""
+msgstr "boquilla"
 
 msgid "both extruders"
-msgstr ""
+msgstr "ambos extrusores"
 
 msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
-msgstr ""
+msgstr "Consejo: Si ha cambiado recientemente la boquilla de su impresora, vaya a 'Dispositivo -> Piezas de la impresora' para actualizar la configuración de la boquilla."
 
 #, c-format, boost-format
 msgid "The %s diameter(%.1fmm) of current printer doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
