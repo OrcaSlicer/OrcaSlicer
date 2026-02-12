@@ -7480,7 +7480,7 @@ msgid "Quality level for Draco export"
 msgstr "Nivel de calidad para exportación Draco"
 
 msgid "bits"
-msgstr ""
+msgstr "bits"
 
 msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
@@ -7677,10 +7677,10 @@ msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr "Si se activa, ajusta OrcaSlicer como aplicación por defecto para abrir archivos 3MF."
 
 msgid "Associate DRC files to OrcaSlicer"
-msgstr ""
+msgstr "Asociar archivos DRC a OrcaSlicer"
 
 msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
-msgstr ""
+msgstr "Si se activa, ajusta OrcaSlicer como aplicación por defecto para abrir archivos DRC."
 
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Asociar archivos STL a OrcaSlicer"
@@ -7699,7 +7699,7 @@ msgid "Associate web links to OrcaSlicer"
 msgstr "Asociar enlaces web a OrcaSlicer"
 
 msgid "Developer"
-msgstr ""
+msgstr "Desarrollador"
 
 msgid "Develop mode"
 msgstr "Modo de desarrollador"
@@ -7708,12 +7708,12 @@ msgid "Skip AMS blacklist check"
 msgstr "Evitar la comprobación de lista negra de AMS"
 
 msgid "Allow Abnormal Storage"
-msgstr ""
+msgstr "Permitir almacenamiento anómalo"
 
 msgid ""
 "This allows the use of Storage that is marked as abnormal by the Printer.\n"
 "Use at your own risk, can cause issues!"
-msgstr ""
+msgstr "Esto permite el uso de almacenamiento marcado como anómalo por la impresora.\nÚselo bajo su propia responsabilidad, ¡puede causar problemas!"
 
 msgid "Log Level"
 msgstr "Nivel de registro"
@@ -7734,22 +7734,22 @@ msgid "trace"
 msgstr "traza"
 
 msgid "Network Plugin"
-msgstr ""
+msgstr "Plugin de red"
 
 msgid "Reload"
-msgstr ""
+msgstr "Recargar"
 
 msgid "Reload the network plugin without restarting the application"
-msgstr ""
+msgstr "Recargar el plugin de red sin reiniciar la aplicación"
 
 msgid "Network plugin reloaded successfully."
-msgstr ""
+msgstr "Plugin de red recargado con éxito."
 
 msgid "Failed to reload network plugin. Please restart the application."
-msgstr ""
+msgstr "Error al recargar el plugin de red. Por favor, reinicie la aplicación."
 
 msgid "Reload Failed"
-msgstr ""
+msgstr "Error al recargar"
 
 msgid "Debug"
 msgstr "Depurar"
@@ -7785,13 +7785,13 @@ msgid "Mouse wheel reverses when zooming"
 msgstr "La rueda del ratón se invierte al hacer zoom"
 
 msgid "Enable SSL(MQTT)"
-msgstr ""
+msgstr "Habilitar SSL (MQTT)"
 
 msgid "Enable SSL(FTP)"
-msgstr ""
+msgstr "Habilitar SSL (FTP)"
 
 msgid "Internal developer mode"
-msgstr ""
+msgstr "Modo interno de desarrollador"
 
 msgid "Host Setting"
 msgstr "Ajuste de cliente"
