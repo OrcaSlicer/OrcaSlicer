@@ -8702,7 +8702,7 @@ msgid "Support filament"
 msgstr "Filamento de soporte"
 
 msgid "Support ironing"
-msgstr ""
+msgstr "Alisado de soportes"
 
 msgid "Tree supports"
 msgstr "Soportes de árbol"
@@ -8852,7 +8852,7 @@ msgid "Wipe tower parameters"
 msgstr "Parámetros de torre de purga"
 
 msgid "Multi Filament"
-msgstr ""
+msgstr "Múltiples filamentos"
 
 msgid "Tool change parameters with single extruder MM printers"
 msgstr "Parámetros de cambio de cabezal para impresoras de 1 extrusor MM"
@@ -8867,7 +8867,7 @@ msgid "Dependencies"
 msgstr "Dependencias"
 
 msgid "Compatible printers"
-msgstr ""
+msgstr "Impresoras compatibles"
 
 msgid "Compatible process profiles"
 msgstr "Perfiles de proceso compatibles"
@@ -8902,7 +8902,7 @@ msgid "Machine G-code"
 msgstr "G-Code de la máquina"
 
 msgid "File header G-code"
-msgstr ""
+msgstr "G-Code de cabecera de archivo"
 
 msgid "Machine start G-code"
 msgstr "G-Code de inicio"
@@ -8923,7 +8923,7 @@ msgid "Timelapse G-code"
 msgstr "G-Code de timelapse"
 
 msgid "Clumping Detection G-code"
-msgstr ""
+msgstr "G-Code de detección de aglomeraciones"
 
 msgid "Change filament G-code"
 msgstr "G-Code para el cambio de filamento"
@@ -8944,10 +8944,10 @@ msgid "Normal"
 msgstr "Normal"
 
 msgid "Resonance Avoidance"
-msgstr ""
+msgstr "Prevención de resonancia"
 
 msgid "Resonance Avoidance Speed"
-msgstr ""
+msgstr "Velocidad de prevención de resonancia"
 
 msgid "Speed limitation"
 msgstr "Limitación de velocidad"
@@ -9007,10 +9007,10 @@ msgid "Firmware Retraction"
 msgstr "Retracción de firmware"
 
 msgid "Switching to a printer with different extruder types or numbers will discard or reset changes to extruder or multi-nozzle-related parameters."
-msgstr ""
+msgstr "Cambiar a una impresora con diferentes tipos o números de extrusores descartará o restablecerá los cambios en parámetros relacionados con el extrusor o multi-boquilla."
 
 msgid "Use Modified Value"
-msgstr ""
+msgstr "Usar valor modificado"
 
 msgid "Detached"
 msgstr "Separado"
@@ -9050,11 +9050,11 @@ msgstr "¿Está seguro de %1% el perfil seleccionado?"
 
 #, c-format, boost-format
 msgid "Left: %s"
-msgstr ""
+msgstr "Izquierda: %s"
 
 #, c-format, boost-format
 msgid "Right: %s"
-msgstr ""
+msgstr "Derecha: %s"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Haga clic para restablecer el valor actual y adjuntarlo al valor global."
@@ -9266,34 +9266,34 @@ msgid "OBJ file import color"
 msgstr "Importar color de archivo OBJ"
 
 msgid "Some faces don't have color defined."
-msgstr ""
+msgstr "Algunas caras no tienen color definido."
 
 msgid "MTL file exist error, could not find the material:"
-msgstr ""
+msgstr "Error: el archivo MTL existe pero no se pudo encontrar el material:"
 
 msgid "Please check OBJ or MTL file."
-msgstr ""
+msgstr "Por favor, compruebe el archivo OBJ o MTL."
 
 msgid "Specify number of colors:"
 msgstr "Especifique el número de colores:"
 
 msgid "Enter or click the adjustment button to modify number again"
-msgstr ""
+msgstr "Presione Enter o haga clic en el botón de ajuste para modificar el número nuevamente"
 
 msgid "Recommended "
 msgstr "Recomendado "
 
 msgid "view"
-msgstr ""
+msgstr "vista"
 
 msgid "Current filament colors"
-msgstr ""
+msgstr "Colores de filamento actuales"
 
 msgid "Matching"
-msgstr ""
+msgstr "Emparejamiento"
 
 msgid "Quick set"
-msgstr ""
+msgstr "Ajuste rápido"
 
 msgid "Color match"
 msgstr "Coincidencia de colores"
@@ -9305,119 +9305,119 @@ msgid "Append"
 msgstr "Añadir"
 
 msgid "Append to existing filaments"
-msgstr ""
+msgstr "Añadir a los filamentos existentes"
 
 msgid "Reset mapped extruders."
 msgstr "Restablecer extrusoras mapeadas."
 
 msgid "Note"
-msgstr ""
+msgstr "Nota"
 
 msgid ""
 "The color has been selected, you can choose OK \n"
 " to continue or manually adjust it."
-msgstr ""
+msgstr "Se ha seleccionado el color, puede elegir Aceptar \npara continuar o ajustarlo manualmente."
 
 msgid ""
 "Synchronizing AMS filaments will discard your modified but unsaved filament presets.\n"
 "Are you sure you want to continue?"
-msgstr ""
+msgstr "Sincronizar los filamentos AMS descartará sus perfiles de filamento modificados pero no guardados.\n¿Está seguro de que desea continuar?"
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr ""
+msgstr "Original"
 
 msgid "After mapping"
-msgstr ""
+msgstr "Después del mapeo"
 
 msgid "After overwriting"
-msgstr ""
+msgstr "Después de sobrescribir"
 
 msgctxt "Sync_AMS"
 msgid "Plate"
-msgstr ""
+msgstr "Bandeja"
 
 msgid "The connected printer does not match the currently selected printer. Please change the selected printer."
-msgstr ""
+msgstr "La impresora conectada no coincide con la impresora seleccionada actualmente. Por favor, cambie la impresora seleccionada."
 
 msgid "Mapping"
-msgstr ""
+msgstr "Mapeo"
 
 msgid "Overwriting"
-msgstr ""
+msgstr "Sobrescribiendo"
 
 msgid "Reset all filament mapping"
-msgstr ""
+msgstr "Restablecer todo el mapeo de filamentos"
 
 msgid "Left Extruder"
-msgstr ""
+msgstr "Extrusor izquierdo"
 
 msgid "(Recommended filament)"
-msgstr ""
+msgstr "(Filamento recomendado)"
 
 msgid "Right Extruder"
-msgstr ""
+msgstr "Extrusor derecho"
 
 msgid "Advanced Options"
-msgstr ""
+msgstr "Opciones avanzadas"
 
 msgid ""
 "Check heatbed flatness. Leveling makes extruded height uniform.\n"
 "*Automatic mode: Level first (about 10 seconds). Skip if surface is fine."
-msgstr ""
+msgstr "Compruebe la planitud de la cama calefactada. El nivelado hace que la altura extruida sea uniforme.\n*Modo automático: Nivelar primero (aprox. 10 segundos). Omitir si la superficie está bien."
 
 msgid ""
 "Calibrate nozzle offsets to enhance print quality.\n"
 "*Automatic mode: Check for calibration before printing; skip if unnecessary."
-msgstr ""
+msgstr "Calibre los offsets de la boquilla para mejorar la calidad de impresión.\n*Modo automático: Compruebe la calibración antes de imprimir; omita si no es necesario."
 
 msgid "Use AMS"
 msgstr "Usar AMS"
 
 msgid "Tip"
-msgstr ""
+msgstr "Consejo"
 
 msgid "Only synchronize filament type and color, not including AMS slot information."
-msgstr ""
+msgstr "Solo sincronizar el tipo de filamento y el color, sin incluir la información de la ranura AMS."
 
 msgid "Replace the project filaments list sequentially based on printer filaments. And unused printer filaments will be automatically added to the end of the list."
-msgstr ""
+msgstr "Reemplace la lista de filamentos del proyecto secuencialmente según los filamentos de la impresora. Los filamentos de impresora no utilizados se añadirán automáticamente al final de la lista."
 
 msgid "Advanced settings"
-msgstr ""
+msgstr "Ajustes avanzados"
 
 msgid "Add unused AMS filaments to filaments list."
-msgstr ""
+msgstr "Agregar filamentos AMS sin usar a la lista de filamentos."
 
 msgid "Automatically merge the same colors in the model after mapping."
-msgstr ""
+msgstr "Fusionar automáticamente los mismos colores en el modelo después del mapeo."
 
 msgid "After being synced, this action cannot be undone."
-msgstr ""
+msgstr "Después de sincronizar, esta acción no se puede deshacer."
 
 msgid "After being synced, the project's filament presets and colors will be replaced with the mapped filament types and colors. This action cannot be undone."
-msgstr ""
+msgstr "Tras la sincronización, los preajustes y colores de filamento del proyecto se reemplazarán por los tipos y colores mapeados. Esta acción no se puede deshacer."
 
 msgid "Are you sure to synchronize the filaments?"
-msgstr ""
+msgstr "¿Está seguro de sincronizar los filamentos?"
 
 msgid "Synchronize now"
-msgstr ""
+msgstr "Sincronizar ahora"
 
 msgid "Synchronize Filament Information"
-msgstr ""
+msgstr "Sincronizar información de filamento"
 
 msgid "Add unused filaments to filaments list."
-msgstr ""
+msgstr "Agregar filamentos no usados a la lista de filamentos."
 
 msgid "Only synchronize filament type and color, not including slot information."
-msgstr ""
+msgstr "Solo sincronizar tipo de filamento y color, sin incluir la información de ranura."
 
 msgid "Ext spool"
-msgstr ""
+msgstr "Carrete externo"
 
 msgid "Please check whether the nozzle type of the device is the same as the preset nozzle type."
-msgstr ""
+msgstr "Compruebe si el tipo de boquilla del dispositivo es el mismo que el tipo de boquilla del preajuste."
 
 msgid "Storage is not available or is in read-only mode."
 msgstr ""
@@ -12907,7 +12907,7 @@ msgid "Maximum acceleration for travel (M204 T), it only applies to Marlin 2."
 msgstr "Aceleración máxima para el desplazamiento (M204 T), sólo se aplica en Marlin 2"
 
 msgid "Resonance avoidance"
-msgstr ""
+msgstr "Prevención de resonancia"
 
 msgid ""
 "By reducing the speed of the outer wall to avoid the resonance zone of the printer, ringing on the surface of the model are avoided.\n"
