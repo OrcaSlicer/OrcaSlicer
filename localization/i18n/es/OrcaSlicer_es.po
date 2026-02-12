@@ -12090,41 +12090,49 @@ msgid ""
 "Set to -1 to disable it.\n"
 "This setting is overridden by disable_fan_first_layers."
 msgstr ""
+"Esta velocidad del ventilador de refrigeración se aplica al imprimir las interfaces de soporte. Establecer este parámetro a una velocidad superior a la habitual reduce la adhesión entre las capas del soporte y la pieza soportada, facilitando su separación.\n"
+"Establecer a -1 para desactivarlo.\n"
+"Este ajuste es sobrescrito por 'disable_fan_first_layers'."
 
 msgid "Internal bridges fan speed"
-msgstr ""
+msgstr "Velocidad del ventilador para puentes internos"
 
 msgid ""
 "The part cooling fan speed used for all internal bridges. Set to -1 to use the overhang fan speed settings instead.\n"
 "\n"
 "Reducing the internal bridges fan speed, compared to your regular fan speed, can help reduce part warping due to excessive cooling applied over a large surface for a prolonged period of time."
 msgstr ""
+"La velocidad del ventilador de refrigeración aplicada a todos los puentes internos. Establecer a -1 para usar en su lugar la configuración de velocidad de ventilador para voladizos.\n"
+"\n"
+"Reducir la velocidad del ventilador para puentes internos, respecto a la velocidad regular, puede ayudar a disminuir la deformación de la pieza causada por un enfriamiento excesivo aplicado sobre una gran superficie durante un periodo prolongado."
 
 msgid "Ironing fan speed"
-msgstr ""
+msgstr "Velocidad del ventilador para alisado"
 
 msgid ""
 "This part cooling fan speed is applied when ironing. Setting this parameter to a lower than regular speed reduces possible nozzle clogging due to the low volumetric flow rate, making the interface smoother.\n"
 "Set to -1 to disable it."
 msgstr ""
+"Esta velocidad del ventilador de refrigeración se aplica al alisar. Establecer este parámetro a una velocidad inferior a la habitual reduce la posible obstrucción de la boquilla debido al bajo caudal volumétrico, haciendo que la interfaz sea más suave.\n"
+"Establecer a -1 para desactivarlo."
 
 msgid "Ironing flow"
 msgstr "Flujo de alisado"
 
 msgid "Filament-specific override for ironing flow. This allows you to customize the ironing flow for each filament type. Too high value results in overextrusion on the surface."
-msgstr ""
+msgstr "Anulación específica por filamento para el flujo de alisado. Esto permite personalizar el flujo de alisado para cada tipo de filamento. Un valor demasiado alto resulta en sobreextrusión en la superficie."
 
 msgid "Ironing line spacing"
 msgstr "Espaciado entre líneas de alisado"
 
 msgid "Filament-specific override for ironing line spacing. This allows you to customize the spacing between ironing lines for each filament type."
-msgstr ""
+msgstr "Anulación específica por filamento para el espaciado entre líneas de alisado. Esto permite personalizar el espaciado entre líneas de alisado para cada tipo de filamento."
 
 msgid "Ironing inset"
-msgstr ""
+msgstr "Margen de alisado"
 
 msgid "Filament-specific override for ironing inset. This allows you to customize the distance to keep from the edges when ironing for each filament type."
-msgstr ""
+msgstr "Anulación específica por filamento para el margen de alisado. Esto permite personalizar la distancia respecto a los bordes al alisar para cada tipo de filamento."
 
 msgid "Ironing speed"
 msgstr "Velocidad de alisado"
