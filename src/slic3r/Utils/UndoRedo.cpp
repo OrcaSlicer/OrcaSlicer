@@ -21,6 +21,7 @@
 #include <libslic3r/ObjectID.hpp>
 #include <libslic3r/Utils.hpp>
 
+#include "slic3r/GUI/3DScene.hpp"
 #include <boost/foreach.hpp>
 
 #ifndef NDEBUG
@@ -990,6 +991,7 @@ void StackImpl::reduce_noisy_snapshots(const std::string& new_name)
 					it_last = this->release_snapshots(it + 1, it_last + 1);
 				}
 			}
+			assert(it_last != m_snapshots.begin());
 		}
 	}
 }
@@ -1338,12 +1340,12 @@ bool StackImpl::has_real_change_from(size_t time) const
                                       Snapshot(m_active_snapshot_time));
     if (it_active == m_snapshots.end()) return true;
     if (it_active > it_time) {
-        for (it_time; it_time < it_active; ++it_time) {
+        for (; it_time < it_active; ++it_time) {
             if (snapshot_modifies_project(*it_time))
                 return true;
 		}
     } else {
-        for (it_active; it_active < it_time; ++it_active) {
+        for (; it_active < it_time; ++it_active) {
             if (snapshot_modifies_project(*it_active))
                 return true;
         }

@@ -103,7 +103,7 @@ void uiDeviceUpdateVersion::CreateWidgets()
 
     grid_sizer->Add(version_hsizer, 0, wxEXPAND, 0);
     grid_sizer->Add(m_dev_version, 0, wxEXPAND | wxALL, FromDIP(5));
-   
+
     // Updating
     wxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
     main_sizer->AddSpacer(FromDIP(40));
