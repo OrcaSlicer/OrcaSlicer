@@ -2222,10 +2222,10 @@ msgid "Simplify Model"
 msgstr "Simplificar Modelo"
 
 msgid "Subdivision mesh"
-msgstr ""
+msgstr "Subdivisión de malla"
 
 msgid "(Lost color)"
-msgstr ""
+msgstr "(Color perdido)"
 
 msgid "Center"
 msgstr "Centrar"
@@ -2453,14 +2453,14 @@ msgstr "La reparación fue cancelada"
 msgid ""
 "\"%s\" will exceed 1 million faces after this subdivision, which may "
 "increase slicing time. Do you want to continue?"
-msgstr ""
+msgstr "\"%s\" tendrá más de 1 millón de caras tras esta subdivisión, lo que puede aumentar el tiempo de laminado. ¿Desea continuar?"
 
 msgid "BambuStudio warning"
-msgstr ""
+msgstr "Advertencia de BambuStudio"
 
 #, c-format, boost-format
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
-msgstr ""
+msgstr "La malla de la pieza \"%s\" contiene errores. Por favor, repárela primero."
 
 msgid "Additional process preset"
 msgstr "Perfil de proceso adicional"
