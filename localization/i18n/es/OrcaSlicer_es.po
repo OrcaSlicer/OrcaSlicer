@@ -8486,13 +8486,13 @@ msgid "A prime tower is required for smooth timelapse. There may be flaws on the
 msgstr "Se requiere una torre de purga para un timelapse suave. Puede haber defectos en los modelos si no se usa una torre de purga. ¿Está seguro de que quiere deshabilitar la torre de purgado?"
 
 msgid "A prime tower is required for clumping detection. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
-msgstr ""
+msgstr "Se requiere una torre de purga para la detección de aglomeraciones. Puede haber defectos en el modelo sin torre de purga. ¿Está seguro de que desea desactivar la torre de purga?"
 
 msgid "Enabling both precise Z height and the prime tower may cause the size of prime tower to increase. Do you still want to enable?"
-msgstr ""
+msgstr "Habilitar tanto la altura Z precisa como la torre de purga puede aumentar el tamaño de la torre de purga. ¿Desea continuar con la activación?"
 
 msgid "Prime tower is required for clumping detection. There may be flaws on the model without prime tower. Do you still want to enable clumping detection?"
-msgstr ""
+msgstr "La torre de purga es necesaria para la detección de aglomeraciones. Puede haber defectos en el modelo sin torre de purga. ¿Desea habilitar la detección de aglomeraciones?"
 
 msgid "A prime tower is required for smooth timelapse. There may be flaws on the model without prime tower. Do you want to enable prime tower?"
 msgstr "La torre de purga es necesaria para que el timelapse sea suave. Puede haber defectos en el modelo sin torre de purga. ¿Desea activar la torre de purga?"
@@ -8503,7 +8503,7 @@ msgstr "¿Seguir imprimiendo por objeto?"
 msgid ""
 "Non-soluble support materials are not recommended for support base.\n"
 "Are you sure to use them for support base?\n"
-msgstr ""
+msgstr "No se recomienda usar materiales de soporte no solubles para la base de soporte.\n¿Está seguro de que desea usarlos para la base de soporte?\n"
 
 #, fuzzy
 msgid ""
@@ -8526,7 +8526,7 @@ msgid ""
 "When using soluble material for the support interface, we recommend the following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern, disable independent support layer height\n"
 "and use soluble materials for both support interface and support base."
-msgstr ""
+msgstr "Al usar material soluble para la interfaz de soporte, recomendamos los siguientes ajustes:\n0 distancia Z superior, 0 separación de interfaz, patrón rectilíneo entrelazado, desactivar la altura de capa de soporte independiente\ny usar materiales solubles tanto para la interfaz de soporte como para la base de soporte."
 
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "Al activar esta opción se modificará la forma del modelo. Si la impresión requiere dimensiones precisas o forma parte de un ensamblaje, es importante comprobar si este cambio en la geometría afecta a la funcionalidad de la impresión."
@@ -8537,7 +8537,7 @@ msgstr "¿Está seguro de que desea activar esta opción?"
 msgid ""
 "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please "
 "proceed with caution and thoroughly check for any potential printing issues.Are you sure you want to enable this option?"
-msgstr ""
+msgstr "Los patrones de relleno suelen diseñarse para gestionar la rotación automáticamente y asegurar una impresión adecuada y lograr sus efectos previstos (p. ej., Gyroid, Cubic). Rotar el patrón de relleno actual puede provocar soporte insuficiente. Proceda con precaución y compruebe detenidamente posibles problemas de impresión. ¿Está seguro de que desea activar esta opción?"
 
 msgid ""
 "Layer height is too small.\n"
@@ -8560,7 +8560,7 @@ msgstr "Ignorar"
 
 msgid ""
 "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
-msgstr ""
+msgstr "Función experimental: retraer y cortar el filamento a una mayor distancia durante los cambios de filamento para minimizar el purgado. Aunque puede reducir notablemente el purgado, también puede aumentar el riesgo de atascos de boquilla u otras complicaciones de impresión."
 "Característica experimental: Retraer y cortar el filamento a mayor distancia durante los cambios de filamento para minimizar el descarte. Aunque puede reducir notablemente el descarte, también puede elevar el riesgo de atascos de boquillas u "
 "otros problemas en la impresión."
 
