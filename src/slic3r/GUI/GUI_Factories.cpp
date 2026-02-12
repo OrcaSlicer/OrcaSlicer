@@ -1581,6 +1581,14 @@ void MenuFactory::create_plate_menu()
             return !plate->get_objects().empty();
         }, m_parent);
 
+    // select objects on all plates
+    append_menu_item(menu, wxID_ANY, _L("Select All Plates"), _L("select all objects on all plates"),
+        [](wxCommandEvent&) {
+            plater()->select_all();
+        }, "", nullptr, []() {
+            return !plater()->model().objects.empty();
+        }, m_parent);
+
     // delete objects on current plate
     append_menu_item(menu, wxID_ANY, _L("Delete All"), _L("delete all objects on current plate"),
         [](wxCommandEvent&) {
