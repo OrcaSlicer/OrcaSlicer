@@ -8285,10 +8285,10 @@ msgid "You have selected both external and AMS filaments for an extruder. You wi
 msgstr ""
 
 msgid "TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration."
-msgstr ""
+msgstr "TPU 90A/TPU 85A es demasiado blando y no admite la calibración automática de Dinámica de Flujo."
 
 msgid "Set dynamic flow calibration to 'OFF' to enable custom dynamic flow value."
-msgstr ""
+msgstr "Configure la calibración dinámica de flujo en 'OFF' para habilitar un valor dinámico de flujo personalizado."
 
 msgid "This printer does not support printing all plates."
 msgstr "Esta impresora no soporta la impresión de todas las bandejas."
@@ -8296,28 +8296,28 @@ msgstr "Esta impresora no soporta la impresión de todas las bandejas."
 msgid ""
 "The current firmware supports a maximum of 16 materials. You can either reduce the number of materials to 16 or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for "
 "subsequent firmware support."
-msgstr ""
+msgstr "El firmware actual admite un máximo de 16 materiales. Puede reducir el número de materiales a 16 o menos en la página de Preparación, o intentar actualizar el firmware. Si sigue estando limitado después de la actualización, espere a futuras versiones del firmware que añadan soporte."
 
 msgid "Please refer to Wiki before use->"
-msgstr ""
+msgstr "Consulte la Wiki antes de usar->"
 
 msgid "Current firmware does not support file transfer to internal storage."
-msgstr ""
+msgstr "El firmware actual no admite la transferencia de archivos al almacenamiento interno."
 
 msgid "Send to Printer storage"
-msgstr ""
+msgstr "Enviar al almacenamiento de la impresora"
 
 msgid "Try to connect"
-msgstr ""
+msgstr "Intentar conectar"
 
 msgid "Internal Storage"
-msgstr ""
+msgstr "Almacenamiento interno"
 
 msgid "External Storage"
-msgstr ""
+msgstr "Almacenamiento externo"
 
 msgid "Upload file timeout, please check if the firmware version supports it."
-msgstr ""
+msgstr "Tiempo de espera de carga de archivo agotado, por favor compruebe si la versión del firmware lo admite."
 
 msgid "Connection timed out, please check your network."
 msgstr ""
