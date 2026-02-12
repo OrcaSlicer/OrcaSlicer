@@ -8208,17 +8208,17 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "The filament on %s may soften. Please unload."
-msgstr ""
+msgstr "El filamento en %s puede ablandarse. Por favor, descargue el filamento."
 
 #, c-format, boost-format
 msgid "The filament on %s is unknown and may soften. Please set filament."
-msgstr ""
+msgstr "El filamento en %s es desconocido y puede ablandarse. Por favor, configure el filamento."
 
 msgid "Unable to automatically match to suitable filament. Please click to manually match."
-msgstr ""
+msgstr "No se pudo emparejar automáticamente con un filamento adecuado. Haga clic para emparejar manualmente."
 
 msgid "Install toolhead enhanced cooling fan to prevent filament softening."
-msgstr ""
+msgstr "Instale el ventilador de refrigeración mejorado del cabezal para evitar que el filamento se ablande."
 
 msgid "Smooth Cool Plate"
 msgstr "Bandeja Fría Lisa"
@@ -8251,7 +8251,7 @@ msgid "Synchronizing device information timed out."
 msgstr "Error de tiempo de espera de sincronización de la información del dispositivo."
 
 msgid "Cannot send a print job when the printer is not at FDM mode."
-msgstr ""
+msgstr "No es posible enviar un trabajo de impresión cuando la impresora no está en modo FDM."
 
 msgid "Cannot send a print job while the printer is updating firmware."
 msgstr "No es posible enviar el trabajo cuando la impresora está actualizando el firmware"
@@ -8260,25 +8260,25 @@ msgid "The printer is executing instructions. Please restart printing after it e
 msgstr "La impresora está ejecutando instrucciones. Por favor, reinicie la impresión cuando termine."
 
 msgid "AMS is setting up. Please try again later."
-msgstr ""
+msgstr "El AMS se está configurando. Por favor, inténtelo de nuevo más tarde."
 
 msgid "Not all filaments used in slicing are mapped to the printer. Please check the mapping of filaments."
-msgstr ""
+msgstr "No todos los filamentos utilizados en el archivo laminado están asignados a la impresora. Por favor, compruebe la asignación de filamentos."
 
 msgid "Please do not mix-use the Ext with AMS."
-msgstr ""
+msgstr "Por favor, no utilice el Ext junto con AMS."
 
 msgid "Invalid nozzle information, please refresh or manually set nozzle information."
-msgstr ""
+msgstr "Información de boquilla no válida; por favor, actualice o configure manualmente la información de la boquilla."
 
 msgid "Storage needs to be inserted before printing via LAN."
-msgstr ""
+msgstr "Es necesario insertar un dispositivo de almacenamiento antes de imprimir por LAN."
 
 msgid "Storage is in abnormal state or is in read-only mode."
-msgstr ""
+msgstr "El almacenamiento está en un estado anómalo o en modo solo lectura."
 
 msgid "Storage needs to be inserted before printing."
-msgstr ""
+msgstr "Es necesario insertar un dispositivo de almacenamiento antes de imprimir."
 
 msgid "Cannot send the print job to a printer whose firmware is required to get updated."
 msgstr "No es posible enviar el trabajo de impresión a una impresora la cual necesita una actualización de firmware."
@@ -8287,10 +8287,10 @@ msgid "Cannot send a print job for an empty plate."
 msgstr "No es posible enviar un trabajo de impresión con una bandeja vacía"
 
 msgid "Storage needs to be inserted to record timelapse."
-msgstr ""
+msgstr "Es necesario insertar un dispositivo de almacenamiento para registrar timelapse."
 
 msgid "You have selected both external and AMS filaments for an extruder. You will need to manually switch the external filament during printing."
-msgstr ""
+msgstr "Ha seleccionado filamento externo y AMS al mismo tiempo en un extrusor; deberá cambiar manualmente el filamento externo."
 
 msgid "TPU 90A/TPU 85A is too soft and does not support automatic Flow Dynamics calibration."
 msgstr "TPU 90A/TPU 85A es demasiado blando y no admite la calibración automática de Dinámica de Flujo."
