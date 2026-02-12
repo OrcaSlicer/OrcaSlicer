@@ -97,7 +97,8 @@ public:
         m_enable_timelapse_print(print_config.timelapse_type.value == TimelapseType::tlSmooth),
         m_enable_wrapping_detection(print_config.enable_wrapping_detection && (print_config.wrapping_exclude_area.values.size() > 2) && (slice_used_filaments.size() <= 1)),
         m_is_first_print(true),
-        m_print_config(&print_config)
+        m_print_config(&print_config),
+        m_last_wipe_tower_print_z(print_config.z_offset.value)
     {
         // initialize with the extruder offset of master extruder id
         m_extruder_offsets.resize(print_config.filament_map.size(), print_config.extruder_offset.get_at(print_config.master_extruder_id.value - 1));
@@ -143,7 +144,7 @@ private:
     // Current layer index.
     int                                                          m_layer_idx;
     int                                                          m_tool_change_idx;
-    double                                                       m_last_wipe_tower_print_z = 0.f;
+    double                                                       m_last_wipe_tower_print_z;
 
     // BBS
     Vec3d                                                        m_plate_origin;
@@ -571,9 +572,6 @@ private:
     float                               m_last_layer_z{ 0.0f };
     float                               m_max_layer_z{ 0.0f };
     float                               m_last_width{ 0.0f };
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    double                              m_last_mm3_per_mm;
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
     // Always check gcode placeholders when building in debug mode.
 #if !defined(NDEBUG)

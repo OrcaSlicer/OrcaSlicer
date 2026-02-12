@@ -33,7 +33,13 @@ std::pair<bool, std::string> GLShadersManager::init()
 
     bool valid = true;
 
+#if SLIC3R_OPENGL_ES
+    const std::string prefix = "ES/";
+    // used to render wireframed triangles
+    valid &= append_shader("wireframe", { prefix + "wireframe.vs", prefix + "wireframe.fs" });
+#else
     const std::string prefix = GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 1) ? "140/" : "110/";
+#endif // SLIC3R_OPENGL_ES
     // imgui shader
     valid &= append_shader("imgui", { prefix + "imgui.vs", prefix + "imgui.fs" });
     // basic shader, used to render all what was previously rendered using the immediate mode
@@ -44,13 +50,21 @@ std::pair<bool, std::string> GLShadersManager::init()
     valid &= append_shader("flat_texture", { prefix + "flat_texture.vs", prefix + "flat_texture.fs" });
     // used to render 3D scene background
     valid &= append_shader("background", { prefix + "background.vs", prefix + "background.fs" });
+#if SLIC3R_OPENGL_ES
+    // used to render dashed lines
+    valid &= append_shader("dashed_lines", { prefix + "dashed_lines.vs", prefix + "dashed_lines.fs" });
+#else
+    if (GUI::OpenGLManager::get_gl_info().is_core_profile())
+        // used to render thick and/or dashed lines
+        valid &= append_shader("dashed_thick_lines", { prefix + "dashed_thick_lines.vs", prefix + "dashed_thick_lines.fs", prefix + "dashed_thick_lines.gs" });
+#endif // SLIC3R_OPENGL_ES
     // used to render bed axes and model, selection hints, gcode sequential view marker model, preview shells, options in gcode preview
     valid &= append_shader("gouraud_light", { prefix + "gouraud_light.vs", prefix + "gouraud_light.fs" });
     //used to render thumbnail
     valid &= append_shader("thumbnail", { prefix + "thumbnail.vs", prefix + "thumbnail.fs"});
     // used to render printbed
     valid &= append_shader("printbed", { prefix + "printbed.vs", prefix + "printbed.fs" });
-    valid &= append_shader("hotbed", {"110/hotbed.vs", "110/hotbed.fs"});
+    valid &= append_shader("hotbed", {prefix + "hotbed.vs", prefix + "hotbed.fs"});
     // used to render options in gcode preview
     if (GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 3)) {
         valid &= append_shader("gouraud_light_instanced", { prefix + "gouraud_light_instanced.vs", prefix + "gouraud_light_instanced.fs" });

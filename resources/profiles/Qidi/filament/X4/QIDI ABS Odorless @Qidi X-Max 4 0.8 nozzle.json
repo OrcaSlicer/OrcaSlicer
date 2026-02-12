@@ -1,0 +1,13 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "QIDI ABS Odorless @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI ABS Odorless@X-Max 4-Series",
+    "filament_max_volumetric_speed": ["24.5"],
+    "nozzle_temperature": ["250"],
+    "pressure_advance": ["0.011"],
+    "slow_down_min_speed": ["10"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}

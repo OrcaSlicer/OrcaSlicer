@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSL99",
+    "name": "Bambu PLA @Qidi X-Max 4 0.4 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "Bambu PLA@X-Max 4-Series",
+    "pressure_advance": ["0.034"],
+	"compatible_printers": ["Qidi X-Max 4 0.4 nozzle"]
+}

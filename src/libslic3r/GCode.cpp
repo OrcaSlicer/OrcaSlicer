@@ -2006,6 +2006,7 @@ namespace DoExport {
         silent_time_estimator_enabled = (config.gcode_flavor == gcfMarlinLegacy || config.gcode_flavor == gcfMarlinFirmware)
                                         && config.silent_mode;
         processor.reset();
+        processor.initialize_result_moves();
         processor.apply_config(config);
         processor.enable_stealth_time_estimator(silent_time_estimator_enabled);
     }
@@ -2241,9 +2242,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_max_layer_z  = 0.f;
     m_last_width = 0.f;
     m_is_role_based_fan_on.fill(false);
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    m_last_mm3_per_mm = 0.;
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
     m_fan_mover.release();
     
@@ -2315,6 +2313,19 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     if (!print.config().small_area_infill_flow_compensation_model.empty())
         m_small_area_infill_flow_compensator = make_unique<SmallAreaInfillFlowCompensator>(print.config());
     
+    // Process file_start_gcode - written at the very top of the file, before any header
+    {
+        std::string top_gcode_template = print.config().file_start_gcode.value;
+        if (!top_gcode_template.empty()) {
+            DynamicConfig top_config;
+            top_config.set_key_value("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
+            top_config.set_key_value("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
+            std::string top_gcode = print.placeholder_parser().process(top_gcode_template, 0, &top_config);
+            if (!top_gcode.empty())
+                file.writeln(top_gcode);
+        }
+    }
+
     // Orca: Don't output Header block if BTT thumbnail is identified in the list
     // Get the thumbnails value as a string
     std::string thumbnails_value = print.config().option<ConfigOptionString>("thumbnails")->value;
@@ -2856,6 +2867,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         this->placeholder_parser().set("hold_chamber_temp_for_flat_print", new ConfigOptionBool(hold_chamber_temp_for_flat_print));
     }
 
+    this->placeholder_parser().set("print_time_sec", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Print_Time_Sec_Placeholder)));
+    this->placeholder_parser().set("used_filament_length", new ConfigOptionString(GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Used_Filament_Length_Placeholder)));
 
     std::string machine_start_gcode = this->placeholder_parser_process("machine_start_gcode", print.config().machine_start_gcode.value, initial_extruder_id);
     if (print.config().gcode_flavor != gcfKlipper) {
@@ -3084,10 +3097,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                         m_sorted_layer_filaments.emplace_back(lt.extruders);
                 }
 
-                // Orca: finish tracking power lost recovery
+                // Orca: disable power loss recovery if it was enabled earlier
                 {
-                    if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
-                        file.write(m_writer.enable_power_loss_recovery(false));
+                    const auto plr_mode = print.config().enable_power_loss_recovery.value;
+                    if (m_second_layer_things_done && plr_mode == PowerLossRecoveryMode::Enable) {
+                        file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
                     }
                 }
                 ++ finished_objects;
@@ -3165,9 +3179,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                     m_sorted_layer_filaments.emplace_back(lt.extruders);
             }
 
-            // Orca: finish tracking power lost recovery
-            if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == true) {
-                file.write(m_writer.enable_power_loss_recovery(false));
+            // Orca: disable power loss recovery
+            if (m_second_layer_things_done && print.config().enable_power_loss_recovery.value == PowerLossRecoveryMode::Enable) {
+                file.write(m_writer.enable_power_loss_recovery(PowerLossRecoveryMode::Disable));
             }
             if (m_wipe_tower)
                 // Purge the extruder, pull out the active filament.
@@ -4381,10 +4395,9 @@ LayerResult GCode::process_layer(
     }
 
     if (!first_layer && !m_second_layer_things_done) {
-        // Orca: start tracking power lost recovery
-        if (print.config().enable_power_loss_recovery.value == true) {
-            gcode += m_writer.enable_power_loss_recovery(true);
-        }
+        // Orca: set power loss recovery
+        const auto plr_mode = print.config().enable_power_loss_recovery.value;
+        gcode += m_writer.enable_power_loss_recovery(plr_mode);
 
         if (print.is_BBL_printer()) {
             // BBS: open first layer inspection at second layer
@@ -5902,9 +5915,9 @@ bool GCode::_needSAFC(const ExtrusionPath &path)
     };
 
     return std::any_of(std::begin(supported_patterns), std::end(supported_patterns), [&](const InfillPattern pattern) {
-        return this->on_first_layer() && this->config().bottom_surface_pattern == pattern ||
-               path.role() == erSolidInfill && this->config().internal_solid_infill_pattern == pattern ||
-               path.role() == erTopSolidInfill && this->config().top_surface_pattern == pattern;
+        return (this->on_first_layer() && this->config().bottom_surface_pattern == pattern) ||
+               (path.role() == erSolidInfill && this->config().internal_solid_infill_pattern == pattern) ||
+               (path.role() == erTopSolidInfill && this->config().top_surface_pattern == pattern);
     });
 }
 
@@ -6334,14 +6347,6 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width).c_str(), m_last_width);
         gcode += buf;
     }
-
-#if ENABLE_GCODE_VIEWER_DATA_CHECKING
-    if (last_was_wipe_tower || (m_last_mm3_per_mm != path.mm3_per_mm)) {
-        m_last_mm3_per_mm = path.mm3_per_mm;
-        sprintf(buf, ";%s%f\n", GCodeProcessor::Mm3_Per_Mm_Tag.c_str(), m_last_mm3_per_mm);
-        gcode += buf;
-    }
-#endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
     if (last_was_wipe_tower || std::abs(m_last_height - path.height) > EPSILON) {
         m_last_height = path.height;

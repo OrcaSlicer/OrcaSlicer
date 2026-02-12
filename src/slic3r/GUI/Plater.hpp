@@ -326,7 +326,7 @@ public:
     void load_gcode();
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
-    void refresh_print();
+    void reload_print();
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
@@ -485,7 +485,7 @@ public:
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false);
+    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -662,6 +662,7 @@ public:
     bool can_set_instance_to_object() const;
     bool can_fix_through_netfabb() const;
     bool can_simplify() const;
+    bool can_smooth_mesh() const;
     bool can_split_to_objects() const;
     bool can_split_to_volumes() const;
     bool can_arrange() const;
