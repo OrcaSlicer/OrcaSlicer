@@ -8779,7 +8779,7 @@ msgid "Cool Plate (SuperTack)"
 msgstr "Bandeja Fría (SuperTack)"
 
 msgid "Bed temperature when the Cool Plate SuperTack is installed. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
-msgstr ""
+msgstr "Temperatura de la cama cuando la Bandeja Fría SuperTack está instalada. Un valor de 0 significa que el filamento no admite la impresión en la Bandeja Fría SuperTack."
 
 msgid "Cool Plate"
 msgstr "Bandeja Fría"
