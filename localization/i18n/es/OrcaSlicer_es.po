@@ -12011,13 +12011,13 @@ msgid "Klipper's max_accel_to_decel will be adjusted to this %% of acceleration.
 msgstr "El max_accel_to_decel de Klipper se ajustará a este %% de aceleración"
 
 msgid "Default jerk."
-msgstr ""
+msgstr "Jerk por defecto."
 
 msgid "Junction Deviation"
 msgstr ""
 
 msgid "Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting)."
-msgstr ""
+msgstr "Junction Deviation de Marlin Firmware (reemplaza el ajuste tradicional XY Jerk)."
 
 msgid "Jerk of outer walls."
 msgstr "Jerk de los perímetros externos"
@@ -12794,7 +12794,8 @@ msgstr "Junction Deviation Maximo"
 msgid ""
 "Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware\n"
 "If your Marlin 2 printer uses Classic Jerk set this value to 0.)"
-msgstr ""
+msgstr "Junction Deviation máximo (M205 J, solo se aplica si JD > 0 para Marlin Firmware).\n"
+"Si su impresora Marlin 2 utiliza Classic Jerk, ajuste este valor a 0."
 
 msgid "Minimum speed for extruding"
 msgstr "Velocidad mínima de extrusión"
@@ -12838,19 +12839,19 @@ msgid "Min"
 msgstr "Min"
 
 msgid "Minimum speed of resonance avoidance."
-msgstr ""
+msgstr "Velocidad mínima para la prevención de resonancia."
 
 msgid "Max"
 msgstr "Max"
 
 msgid "Maximum speed of resonance avoidance."
-msgstr ""
+msgstr "Velocidad máxima para la prevención de resonancia."
 
 msgid "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "La velocidad del ventilador de refrigeración de pieza puede aumentarse cuando la refrigeración automática está activada. Esta es la limitación de velocidad máxima del ventilador de refrigeración de pieza."
 
 msgid "The highest printable layer height for the extruder. Used to limit the maximum layer height when enable adaptive layer height."
-msgstr ""
+msgstr "La altura máxima de capa imprimible para el extrusor. Se usa para limitar la altura máxima de capa cuando se habilita la altura de capa adaptable."
 
 msgid "Extrusion rate smoothing"
 msgstr "Suavizado de la tasa de extrusión"
@@ -12915,13 +12916,13 @@ msgstr ""
 "Por favor, active auxiliary_fan en la configuración de la impresora para utilizar esta función. Comando G-Code: M106 P2 S(0-255)"
 
 msgid "The lowest printable layer height for the extruder. Used to limit the minimum layer height when enable adaptive layer height."
-msgstr ""
+msgstr "La altura mínima de capa imprimible para el extrusor. Se usa para limitar la altura mínima de capa cuando se habilita la altura de capa adaptable."
 
 msgid "Min print speed"
 msgstr "Velocidad de impresión mínima"
 
 msgid "The minimum print speed to which the printer slows down to maintain the minimum layer time defined above when the slowdown for better layer cooling is enabled."
-msgstr ""
+msgstr "La velocidad mínima de impresión a la que la impresora se reduce para mantener el tiempo mínimo de capa definido anteriormente cuando se habilita la ralentización para mejorar la refrigeración de capas."
 
 msgid "The diameter of nozzle."
 msgstr "Diámetro de boquilla"
@@ -13124,7 +13125,7 @@ msgid "Retraction Length"
 msgstr "Longitud de retracción"
 
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
-msgstr ""
+msgstr "Se retrae cierta cantidad de material en el extrusor para evitar el rezumado durante desplazamientos largos. Ajuste a cero para desactivar la retracción."
 
 msgid "Long retraction when cut (beta)"
 msgstr "Retracción larga al cortar (beta)"
@@ -13139,10 +13140,10 @@ msgid "Experimental feature: Retraction length before cutting off during filamen
 msgstr "Función experimental: Longitud de retracción antes del corte durante el cambio de filamento"
 
 msgid "Long retraction when extruder change"
-msgstr ""
+msgstr "Retracción larga al cambiar de extrusor"
 
 msgid "Retraction distance when extruder change"
-msgstr ""
+msgstr "Distancia de retracción al cambiar de extrusor"
 
 msgid "Z-hop height"
 msgstr "Altura de Salto en Z"
@@ -13229,13 +13230,13 @@ msgid "Retraction Speed"
 msgstr "Velocidad de retracción"
 
 msgid "Speed for retracting filament from the nozzle."
-msgstr ""
+msgstr "Velocidad para retraer el filamento de la boquilla."
 
 msgid "De-retraction Speed"
 msgstr "Velocidad de De-retracción"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
-msgstr ""
+msgstr "Velocidad para recargar el filamento en la boquilla. Cero significa la misma velocidad que la retracción."
 
 msgid "Use firmware retraction"
 msgstr "Usar retracción de firmware (beta)"
