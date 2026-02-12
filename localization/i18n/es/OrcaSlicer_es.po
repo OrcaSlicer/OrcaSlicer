@@ -9325,7 +9325,7 @@ msgstr "Sincronizar los filamentos AMS descartará sus perfiles de filamento mod
 
 msgctxt "Sync_AMS"
 msgid "Original"
-msgstr "Original"
+msgstr ""
 
 msgid "After mapping"
 msgstr "Después del mapeo"
@@ -9375,7 +9375,7 @@ msgid "Use AMS"
 msgstr "Usar AMS"
 
 msgid "Tip"
-msgstr "Consejo"
+msgstr ""
 
 msgid "Only synchronize filament type and color, not including AMS slot information."
 msgstr "Solo sincronizar el tipo de filamento y el color, sin incluir la información de la ranura AMS."
@@ -9387,7 +9387,7 @@ msgid "Advanced settings"
 msgstr "Ajustes avanzados"
 
 msgid "Add unused AMS filaments to filaments list."
-msgstr "Agregar filamentos AMS sin usar a la lista de filamentos."
+msgstr "Añadir filamentos AMS sin usar a la lista de filamentos."
 
 msgid "Automatically merge the same colors in the model after mapping."
 msgstr "Fusionar automáticamente los mismos colores en el modelo después del mapeo."
@@ -9420,7 +9420,7 @@ msgid "Please check whether the nozzle type of the device is the same as the pre
 msgstr "Compruebe si el tipo de boquilla del dispositivo es el mismo que el tipo de boquilla del preajuste."
 
 msgid "Storage is not available or is in read-only mode."
-msgstr ""
+msgstr "El almacenamiento no está disponible o está en modo solo lectura."
 
 #, c-format, boost-format
 msgid "The selected printer (%s) is incompatible with the chosen printer profile in the slicer (%s)."
@@ -9430,30 +9430,30 @@ msgid "Timelapse is not supported because Print sequence is set to \"By object\"
 msgstr "El timelapse no está soportado porque la secuencia de impresión está configurada \"Por objeto\"."
 
 msgid "You selected external and AMS filament at the same time in an extruder, you will need manually change external filament."
-msgstr ""
+msgstr "Ha seleccionado filamento externo y AMS al mismo tiempo en un extrusor; deberá cambiar manualmente el filamento externo."
 
 msgid "Successfully synchronized nozzle information."
-msgstr ""
+msgstr "Información de boquilla sincronizada con éxito."
 
 msgid "Successfully synchronized nozzle and AMS number information."
-msgstr ""
+msgstr "Información de boquilla y número AMS sincronizada con éxito."
 
 msgid "Continue to sync filaments"
-msgstr ""
+msgstr "Continuar sincronizando filamentos"
 
 msgctxt "Sync_Nozzle_AMS"
 msgid "Cancel"
-msgstr ""
+msgstr "Cancelar"
 
 msgid "Successfully synchronized filament color from printer."
-msgstr ""
+msgstr "Color de filamento sincronizado desde la impresora con éxito."
 
 msgid "Successfully synchronized color and type of filament from printer."
-msgstr ""
+msgstr "Color y tipo de filamento sincronizados desde la impresora con éxito."
 
 msgctxt "FinishSyncAms"
 msgid "OK"
-msgstr ""
+msgstr "Aceptar"
 
 msgid "Ramming customization"
 msgstr "Personalización de Moldeado de Extremo"
@@ -9475,13 +9475,13 @@ msgid "ms"
 msgstr ""
 
 msgid "Total ramming"
-msgstr ""
+msgstr "Moldeado total"
 
 msgid "Volume"
-msgstr ""
+msgstr "Volumen"
 
 msgid "Ramming line"
-msgstr ""
+msgstr "Línea de moldeado"
 
 msgid "Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences"
 msgstr ""
@@ -9501,10 +9501,10 @@ msgid "Re-calculate"
 msgstr "Recalcular"
 
 msgid "Left extruder"
-msgstr ""
+msgstr "Extrusor izquierdo"
 
 msgid "Right extruder"
-msgstr ""
+msgstr "Extrusor derecho"
 
 msgid "Multiplier"
 msgstr "Multiplo"
@@ -9513,7 +9513,7 @@ msgid "Flushing volumes for filament change"
 msgstr "Volúmenes de purgado para el cambio de filamentos"
 
 msgid "Please choose the filament colour"
-msgstr ""
+msgstr "Por favor, elija el color del filamento"
 
 msgid "Windows Media Player is required for this task! Do you want to enable 'Windows Media Player' for your operation system?"
 msgstr "Para esta tarea se necesita el Reproductor de Windows Media. ¿Desea activar el \"Reproductor de Windows Media\" en su sistema operativo?"
@@ -9676,7 +9676,7 @@ msgid "Gizmo mesh boolean"
 msgstr "Gizmo buleana de malla"
 
 msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr ""
+msgstr "Herramienta FDM para pintar piel difusa"
 
 msgid "Gizmo SLA support points"
 msgstr "Herramienta de puntos de soporte SLA"
