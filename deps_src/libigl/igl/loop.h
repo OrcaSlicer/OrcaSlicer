@@ -29,7 +29,7 @@ namespace igl
     typename DerivedF,
     typename SType,
     typename DerivedNF>
-  IGL_INLINE void loop(
+  IGL_INLINE bool loop(
     const int n_verts,
     const Eigen::PlainObjectBase<DerivedF> & F,
     Eigen::SparseMatrix<SType>& S,
@@ -44,11 +44,11 @@ namespace igl
   //  NV a matrix containing the new vertices
   //  NF a matrix containing the new faces
   template <
-    typename DerivedV, 
+    typename DerivedV,
     typename DerivedF,
     typename DerivedNV,
     typename DerivedNF>
-  IGL_INLINE void loop(
+  IGL_INLINE bool loop(
     const Eigen::PlainObjectBase<DerivedV>& V,
     const Eigen::PlainObjectBase<DerivedF>& F,
     Eigen::PlainObjectBase<DerivedNV>& NV,

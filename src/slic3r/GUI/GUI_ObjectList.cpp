@@ -44,6 +44,7 @@
 #endif /* __WXMSW__ */
 #include "Gizmos/GLGizmoScale.hpp"
 
+#include "libslic3r/TriangleMeshDeal.hpp"
 namespace Slic3r
 {
 namespace GUI
@@ -5929,6 +5930,92 @@ void ObjectList::simplify()
         gizmos_mgr.open_gizmo(GLGizmosManager::EType::Simplify);
     }
     gizmos_mgr.open_gizmo(GLGizmosManager::EType::Simplify);
+}
+
+void GUI::ObjectList::smooth_mesh()
+{
+    wxBusyCursor cursor;
+    auto plater = wxGetApp().plater();
+    if (!plater) { return; }
+    plater->take_snapshot("smooth_mesh");
+    std::vector<int> obj_idxs, vol_idxs;
+    get_selection_indexes(obj_idxs, vol_idxs);
+    auto object_idx = obj_idxs.front();
+    ModelObject *obj{nullptr};
+    auto show_warning_dlg = [this](int cur_face_count,std::string name,bool is_part) {
+        int limit_face_count = 1000000;
+        if (cur_face_count > limit_face_count) {
+            auto name_str = wxString::FromUTF8(name);
+            auto content = wxString::Format(_L("\"%s\" will exceed 1 million faces after this subdivision, which may increase slicing time. Do you want to continue?"), name_str);
+            WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), (is_part ? _L("Part") : _L("Object")) + " " + content, _L("BambuStudio warning"), wxYES_NO);
+            if (dlg.ShowModal() == wxID_NO) {
+                return true;
+            }
+            return false;
+        }
+        return false;
+    };
+    auto show_smooth_mesh_error_dlg = [this](std::string name) {
+        auto name_str = wxString::FromUTF8(name);
+        auto content  = wxString::Format(_L("\"%s\" part's mesh contains errors. Please repair it first."), name_str);
+        WarningDialog dlg(static_cast<wxWindow *>(wxGetApp().mainframe), content, _L("BambuStudio warning"), wxOK);
+        dlg.ShowModal();
+    };
+    bool has_show_smooth_mesh_error_dlg = false;
+    if (vol_idxs.empty()) {
+        obj        = object(object_idx);
+        auto             future_face_count = static_cast<int>(obj->facets_count()) * 4;
+        if (show_warning_dlg(future_face_count, obj->name,false)) {
+            return;
+        }
+        for (auto mv : obj->volumes) {
+            bool ok;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(), ok);
+            if (ok) {
+                mv->set_mesh(result_mesh);
+                mv->reset_extra_facets(); // reset paint color
+                mv->calculate_convex_hull();
+                mv->invalidate_convex_hull_2d();
+                mv->set_new_unique_id();
+            } else {
+                if (!has_show_smooth_mesh_error_dlg) {
+                    show_smooth_mesh_error_dlg(mv->name);
+                    has_show_smooth_mesh_error_dlg = true;
+                }
+            }
+        }
+        obj->invalidate_bounding_box();
+        obj->ensure_on_bed();
+        plater->changed_mesh(object_idx);
+    } else {
+        obj = object(obj_idxs.front());
+        for (int vol_idx : vol_idxs) {
+            auto mv = obj->volumes[vol_idx];
+            auto future_face_count = static_cast<int>(mv->mesh().facets_count()) * 4;
+            if (show_warning_dlg(future_face_count, mv->name,true)) {
+                return;
+            }
+            bool ok;
+            auto result_mesh = TriangleMeshDeal::smooth_triangle_mesh(mv->mesh(),ok);
+            if (ok) {
+                mv->set_mesh(result_mesh);
+                mv->reset_extra_facets(); // reset paint color
+                mv->calculate_convex_hull();
+                mv->invalidate_convex_hull_2d();
+                mv->set_new_unique_id();
+            } else {
+                if (!has_show_smooth_mesh_error_dlg) {
+                    show_smooth_mesh_error_dlg(mv->name);
+                    has_show_smooth_mesh_error_dlg = true;
+                }
+            }
+        }
+    }
+    if (obj) {
+        obj->invalidate_bounding_box();
+        obj->ensure_on_bed();
+        plater->changed_mesh(object_idx);
+    }
 }
 
 void ObjectList::update_item_error_icon(const int obj_idx, const int vol_idx) const

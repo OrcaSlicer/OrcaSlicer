@@ -428,6 +428,7 @@ public:
     void rename_item();
     void fix_through_netfabb();
     void simplify();
+    void smooth_mesh();
     void update_item_error_icon(const int obj_idx, int vol_idx) const ;
 
     void copy_layers_to_clipboard();
