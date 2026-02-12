@@ -1,0 +1,96 @@
+[
+    {"source": "Cosmyx SuperNova Double Tete", "translation": "Cosmyx SuperNova Dupla Fej"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique", "translation": "Cosmyx SuperNova Dupla Fej Fém Kerámia"},
+    {"source": "Cosmyx Nova Metal Ceramique", "translation": "Cosmyx Nova Fém Kerámia"},
+    {"source": "Cosmyx Nova Haute Temperature", "translation": "Cosmyx Nova Magas Hőmérséklet"},
+    {"source": "Cosmyx Nova Double Tete", "translation": "Cosmyx Nova Dupla Fej"},
+
+    {"source": "Cosmyx SuperNova Double Tete 0.2 nozzle", "translation": "Cosmyx SuperNova Dupla Fej 0.2 fúvóka"},
+    {"source": "Cosmyx SuperNova Double Tete 0.4 nozzle", "translation": "Cosmyx SuperNova Dupla Fej 0.4 fúvóka"},
+    {"source": "Cosmyx SuperNova Double Tete 0.6 nozzle", "translation": "Cosmyx SuperNova Dupla Fej 0.6 fúvóka"},
+    {"source": "Cosmyx SuperNova Double Tete 0.8 nozzle", "translation": "Cosmyx SuperNova Dupla Fej 0.8 fúvóka"},
+
+    {"source": "Cosmyx Nova Metal Ceramique 0.2 nozzle", "translation": "Cosmyx Nova Fém Kerámia 0.2 fúvóka"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.4 nozzle", "translation": "Cosmyx Nova Fém Kerámia 0.4 fúvóka"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.6 nozzle", "translation": "Cosmyx Nova Fém Kerámia 0.6 fúvóka"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.8 nozzle", "translation": "Cosmyx Nova Fém Kerámia 0.8 fúvóka"},
+
+    {"source": "Cosmyx Nova Haute Temperature 0.2 nozzle", "translation": "Cosmyx Nova Magas Hőmérséklet 0.2 fúvóka"},
+    {"source": "Cosmyx Nova Haute Temperature 0.4 nozzle", "translation": "Cosmyx Nova Magas Hőmérséklet 0.4 fúvóka"},
+    {"source": "Cosmyx Nova Haute Temperature 0.6 nozzle", "translation": "Cosmyx Nova Magas Hőmérséklet 0.6 fúvóka"},
+    {"source": "Cosmyx Nova Haute Temperature 0.8 nozzle", "translation": "Cosmyx Nova Magas Hőmérséklet 0.8 fúvóka"},
+
+    {"source": "Cosmyx Nova Double Tete 0.2 nozzle", "translation": "Cosmyx Nova Dupla Fej 0.2 fúvóka"},
+    {"source": "Cosmyx Nova Double Tete 0.4 nozzle", "translation": "Cosmyx Nova Dupla Fej 0.4 fúvóka"},
+    {"source": "Cosmyx Nova Double Tete 0.6 nozzle", "translation": "Cosmyx Nova Dupla Fej 0.6 fúvóka"},
+    {"source": "Cosmyx Nova Double Tete 0.8 nozzle", "translation": "Cosmyx Nova Dupla Fej 0.8 fúvóka"},
+
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle", "translation": "Cosmyx SuperNova Dupla Fej Fém Kerámia 0.2 fúvóka"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle", "translation": "Cosmyx SuperNova Dupla Fej Fém Kerámia 0.4 fúvóka"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle", "translation": "Cosmyx SuperNova Dupla Fej Fém Kerámia 0.6 fúvóka"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle", "translation": "Cosmyx SuperNova Dupla Fej Fém Kerámia 0.8 fúvóka"},
+
+    {"source": "Cosmyx Nova 0.2 nozzle", "translation": "Cosmyx Nova 0.2 fúvóka"},
+    {"source": "Cosmyx Nova 0.4 nozzle", "translation": "Cosmyx Nova 0.4 fúvóka"},
+    {"source": "Cosmyx Nova 0.6 nozzle", "translation": "Cosmyx Nova 0.6 fúvóka"},
+    {"source": "Cosmyx Nova 0.8 nozzle", "translation": "Cosmyx Nova 0.8 fúvóka"},
+
+    {"source": "Cosmyx SuperNova 0.2 nozzle", "translation": "Cosmyx SuperNova 0.2 fúvóka"},
+    {"source": "Cosmyx SuperNova 0.4 nozzle", "translation": "Cosmyx SuperNova 0.4 fúvóka"},
+    {"source": "Cosmyx SuperNova 0.6 nozzle", "translation": "Cosmyx SuperNova 0.6 fúvóka"},
+    {"source": "Cosmyx SuperNova 0.8 nozzle", "translation": "Cosmyx SuperNova 0.8 fúvóka"},
+
+    {"source": "0.08mm Extra Fine @Cosmyx Nova", "translation": "0.08mm Extra Finom @Cosmyx Nova"},
+    {"source": "0.12mm Fine @Cosmyx Nova", "translation": "0.12mm Finom @Cosmyx Nova"},
+    {"source": "0.16mm Optimal @Cosmyx Nova", "translation": "0.16mm Optimális @Cosmyx Nova"},
+    {"source": "0.20mm Standard @Cosmyx Nova", "translation": "0.20mm Szabványos @Cosmyx Nova"},
+    {"source": "0.20mm Strength @Cosmyx Nova", "translation": "0.20mm Erősség @Cosmyx Nova"},
+    {"source": "0.24mm Draft @Cosmyx Nova", "translation": "0.24mm Vázlat @Cosmyx Nova"},
+    {"source": "0.28mm Extra Draft @Cosmyx Nova", "translation": "0.28mm Extra Vázlat @Cosmyx Nova"},
+
+    {"source": "0.10mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.10mm Szabványos @Cosmyx Nova 0.2 fúvóka"},
+    {"source": "0.06mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.06mm Szabványos @Cosmyx Nova 0.2 fúvóka"},
+    {"source": "0.08mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.08mm Szabványos @Cosmyx Nova 0.2 fúvóka"},
+    {"source": "0.12mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.12mm Szabványos @Cosmyx Nova 0.2 fúvóka"},
+    {"source": "0.14mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.14mm Szabványos @Cosmyx Nova 0.2 fúvóka"},
+
+    {"source": "0.18mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.18mm Szabványos @Cosmyx Nova 0.6 fúvóka"},
+    {"source": "0.24mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.24mm Szabványos @Cosmyx Nova 0.6 fúvóka"},
+    {"source": "0.30mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Szabványos @Cosmyx Nova 0.6 fúvóka"},
+    {"source": "0.36mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.36mm Szabványos @Cosmyx Nova 0.6 fúvóka"},
+    {"source": "0.42mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.42mm Szabványos @Cosmyx Nova 0.6 fúvóka"},
+    {"source": "0.30mm Strength @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Erősség @Cosmyx Nova 0.6 fúvóka"},
+
+    {"source": "0.24mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.24mm Szabványos @Cosmyx Nova 0.8 fúvóka"},
+    {"source": "0.32mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.32mm Szabványos @Cosmyx Nova 0.8 fúvóka"},
+    {"source": "0.40mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.40mm Szabványos @Cosmyx Nova 0.8 fúvóka"},
+    {"source": "0.48mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.48mm Szabványos @Cosmyx Nova 0.8 fúvóka"},
+    {"source": "0.56mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.56mm Szabványos @Cosmyx Nova 0.8 fúvóka"},
+
+    {"source": "0.08mm Extra Fine @Metal and Ceramics", "translation": "0.08mm Extra Finom @Fém és Kerámia"},
+    {"source": "0.12mm Fine @Metal and Ceramics", "translation": "0.12mm Finom @Fém és Kerámia"},
+    {"source": "0.16mm Optimal @Metal and Ceramics", "translation": "0.16mm Optimális @Fém és Kerámia"},
+    {"source": "0.20mm Standard @Metal and Ceramics", "translation": "0.20mm Szabványos @Fém és Kerámia"},
+    {"source": "0.20mm Strength @Metal and Ceramics", "translation": "0.20mm Erősség @Fém és Kerámia"},
+    {"source": "0.24mm Draft @Metal and Ceramics", "translation": "0.24mm Vázlat @Fém és Kerámia"},
+    {"source": "0.28mm Extra Draft @Metal and Ceramics", "translation": "0.28mm Extra Vázlat @Fém és Kerámia"},
+
+    {"source": "0.10mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.10mm Szabványos @Fém és Kerámia 0.2 fúvóka"},
+    {"source": "0.06mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.06mm Szabványos @Fém és Kerámia 0.2 fúvóka"},
+    {"source": "0.08mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.08mm Szabványos @Fém és Kerámia 0.2 fúvóka"},
+    {"source": "0.12mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.12mm Szabványos @Fém és Kerámia 0.2 fúvóka"},
+    {"source": "0.14mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.14mm Szabványos @Fém és Kerámia 0.2 fúvóka"},
+
+    {"source": "0.18mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.18mm Szabványos @Fém és Kerámia 0.6 fúvóka"},
+    {"source": "0.24mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.24mm Szabványos @Fém és Kerámia 0.6 fúvóka"},
+    {"source": "0.30mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Szabványos @Fém és Kerámia 0.6 fúvóka"},
+    {"source": "0.36mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.36mm Szabványos @Fém és Kerámia 0.6 fúvóka"},
+    {"source": "0.42mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.42mm Szabványos @Fém és Kerámia 0.6 fúvóka"},
+    {"source": "0.30mm Strength @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Erősség @Fém és Kerámia 0.6 fúvóka"},
+
+    {"source": "0.24mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.24mm Szabványos @Fém és Kerámia 0.8 fúvóka"},
+    {"source": "0.32mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.32mm Szabványos @Fém és Kerámia 0.8 fúvóka"},
+    {"source": "0.48mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.48mm Szabványos @Fém és Kerámia 0.8 fúvóka"},
+    {"source": "0.56mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.56mm Szabványos @Fém és Kerámia 0.8 fúvóka"},
+    {"source": "0.40mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.40mm Szabványos @Fém és Kerámia 0.8 fúvóka"}
+]

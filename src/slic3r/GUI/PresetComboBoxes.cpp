@@ -23,6 +23,7 @@
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/ProfileTranslator.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
 
@@ -307,7 +308,7 @@ wxString PresetComboBox::get_tooltip(const Preset &preset)
 
 wxString PresetComboBox::get_preset_name(const Preset & preset)
 {
-    return from_u8(preset.name/* + suffix(preset)*/);
+    return from_u8(Slic3r::ProfileTranslator::instance().translate(preset.name));
 }
 
 void PresetComboBox::update(std::string select_preset_name)

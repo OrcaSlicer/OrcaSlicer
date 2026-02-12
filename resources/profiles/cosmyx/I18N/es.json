@@ -1,0 +1,102 @@
+[
+    {"source": "Cosmyx SuperNova Double Tete", "translation": "Cosmyx SuperNova Doble Cabezal"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique", "translation": "Cosmyx SuperNova Doble Cabezal Metal Cer\u00e1mica"},
+    {"source": "Cosmyx Nova Metal Ceramique", "translation": "Cosmyx Nova Metal Cer\u00e1mica"},
+    {"source": "Cosmyx Nova Haute Temperature", "translation": "Cosmyx Nova Alta Temperatura"},
+    {"source": "Cosmyx Nova Double Tete", "translation": "Cosmyx Nova Doble Cabezal"},
+
+    {"source": "Cosmyx SuperNova Double Tete 0.2 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal 0.2 boquilla"},
+    {"source": "Cosmyx SuperNova Double Tete 0.4 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal 0.4 boquilla"},
+    {"source": "Cosmyx SuperNova Double Tete 0.6 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal 0.6 boquilla"},
+    {"source": "Cosmyx SuperNova Double Tete 0.8 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal 0.8 boquilla"},
+
+    {"source": "Cosmyx Nova Metal Ceramique 0.2 nozzle", "translation": "Cosmyx Nova Metal Cer\u00e1mica 0.2 boquilla"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.4 nozzle", "translation": "Cosmyx Nova Metal Cer\u00e1mica 0.4 boquilla"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.6 nozzle", "translation": "Cosmyx Nova Metal Cer\u00e1mica 0.6 boquilla"},
+    {"source": "Cosmyx Nova Metal Ceramique 0.8 nozzle", "translation": "Cosmyx Nova Metal Cer\u00e1mica 0.8 boquilla"},
+
+    {"source": "Cosmyx Nova Haute Temperature 0.2 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.2 boquilla"},
+    {"source": "Cosmyx Nova Haute Temperature 0.4 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.4 boquilla"},
+    {"source": "Cosmyx Nova Haute Temperature 0.6 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.6 boquilla"},
+    {"source": "Cosmyx Nova Haute Temperature 0.8 nozzle", "translation": "Cosmyx Nova Alta Temperatura 0.8 boquilla"},
+
+    {"source": "Cosmyx Nova Double Tete 0.2 nozzle", "translation": "Cosmyx Nova Doble Cabezal 0.2 boquilla"},
+    {"source": "Cosmyx Nova Double Tete 0.4 nozzle", "translation": "Cosmyx Nova Doble Cabezal 0.4 boquilla"},
+    {"source": "Cosmyx Nova Double Tete 0.6 nozzle", "translation": "Cosmyx Nova Doble Cabezal 0.6 boquilla"},
+    {"source": "Cosmyx Nova Double Tete 0.8 nozzle", "translation": "Cosmyx Nova Doble Cabezal 0.8 boquilla"},
+
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.2 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal Metal Cer\u00e1mica 0.2 boquilla"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.4 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal Metal Cer\u00e1mica 0.4 boquilla"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.6 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal Metal Cer\u00e1mica 0.6 boquilla"},
+    {"source": "Cosmyx SuperNova Double Tete Metal Ceramique 0.8 nozzle", "translation": "Cosmyx SuperNova Doble Cabezal Metal Cer\u00e1mica 0.8 boquilla"},
+
+    {"source": "Cosmyx Nova 0.2 nozzle", "translation": "Cosmyx Nova 0.2 boquilla"},
+    {"source": "Cosmyx Nova 0.4 nozzle", "translation": "Cosmyx Nova 0.4 boquilla"},
+    {"source": "Cosmyx Nova 0.6 nozzle", "translation": "Cosmyx Nova 0.6 boquilla"},
+    {"source": "Cosmyx Nova 0.8 nozzle", "translation": "Cosmyx Nova 0.8 boquilla"},
+
+    {"source": "Cosmyx SuperNova 0.2 nozzle", "translation": "Cosmyx SuperNova 0.2 boquilla"},
+    {"source": "Cosmyx SuperNova 0.4 nozzle", "translation": "Cosmyx SuperNova 0.4 boquilla"},
+    {"source": "Cosmyx SuperNova 0.6 nozzle", "translation": "Cosmyx SuperNova 0.6 boquilla"},
+    {"source": "Cosmyx SuperNova 0.8 nozzle", "translation": "Cosmyx SuperNova 0.8 boquilla"},
+
+    {"source": "0.08mm Extra Fine @Cosmyx Nova", "translation": "0.08mm Extra Fino @Cosmyx Nova"},
+    {"source": "0.12mm Fine @Cosmyx Nova", "translation": "0.12mm Fino @Cosmyx Nova"},
+    {"source": "0.16mm Optimal @Cosmyx Nova", "translation": "0.16mm \u00d3ptimo @Cosmyx Nova"},
+    {"source": "0.20mm Standard @Cosmyx Nova", "translation": "0.20mm Est\u00e1ndar @Cosmyx Nova"},
+    {"source": "0.20mm Strength @Cosmyx Nova", "translation": "0.20mm Resistencia @Cosmyx Nova"},
+    {"source": "0.24mm Draft @Cosmyx Nova", "translation": "0.24mm Borrador @Cosmyx Nova"},
+    {"source": "0.28mm Extra Draft @Cosmyx Nova", "translation": "0.28mm Extra Borrador @Cosmyx Nova"},
+
+    {"source": "0.10mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.10mm Est\u00e1ndar @Cosmyx Nova 0.2 boquilla"},
+    {"source": "0.06mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.06mm Est\u00e1ndar @Cosmyx Nova 0.2 boquilla"},
+    {"source": "0.08mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.08mm Est\u00e1ndar @Cosmyx Nova 0.2 boquilla"},
+    {"source": "0.12mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.12mm Est\u00e1ndar @Cosmyx Nova 0.2 boquilla"},
+    {"source": "0.14mm Standard @Cosmyx Nova 0.2 nozzle", "translation": "0.14mm Est\u00e1ndar @Cosmyx Nova 0.2 boquilla"},
+
+    {"source": "0.18mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.18mm Est\u00e1ndar @Cosmyx Nova 0.6 boquilla"},
+    {"source": "0.24mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.24mm Est\u00e1ndar @Cosmyx Nova 0.6 boquilla"},
+    {"source": "0.30mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Est\u00e1ndar @Cosmyx Nova 0.6 boquilla"},
+    {"source": "0.36mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.36mm Est\u00e1ndar @Cosmyx Nova 0.6 boquilla"},
+    {"source": "0.42mm Standard @Cosmyx Nova 0.6 nozzle", "translation": "0.42mm Est\u00e1ndar @Cosmyx Nova 0.6 boquilla"},
+    {"source": "0.30mm Strength @Cosmyx Nova 0.6 nozzle", "translation": "0.30mm Resistencia @Cosmyx Nova 0.6 boquilla"},
+
+    {"source": "0.24mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.24mm Est\u00e1ndar @Cosmyx Nova 0.8 boquilla"},
+    {"source": "0.32mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.32mm Est\u00e1ndar @Cosmyx Nova 0.8 boquilla"},
+    {"source": "0.40mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.40mm Est\u00e1ndar @Cosmyx Nova 0.8 boquilla"},
+    {"source": "0.48mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.48mm Est\u00e1ndar @Cosmyx Nova 0.8 boquilla"},
+    {"source": "0.56mm Standard @Cosmyx Nova 0.8 nozzle", "translation": "0.56mm Est\u00e1ndar @Cosmyx Nova 0.8 boquilla"},
+
+    {"source": "0.08mm Extra Fine @Metal and Ceramics", "translation": "0.08mm Extra Fino @Metal y Cer\u00e1mica"},
+    {"source": "0.12mm Fine @Metal and Ceramics", "translation": "0.12mm Fino @Metal y Cer\u00e1mica"},
+    {"source": "0.16mm Optimal @Metal and Ceramics", "translation": "0.16mm \u00d3ptimo @Metal y Cer\u00e1mica"},
+    {"source": "0.20mm Standard @Metal and Ceramics", "translation": "0.20mm Est\u00e1ndar @Metal y Cer\u00e1mica"},
+    {"source": "0.20mm Strength @Metal and Ceramics", "translation": "0.20mm Resistencia @Metal y Cer\u00e1mica"},
+    {"source": "0.24mm Draft @Metal and Ceramics", "translation": "0.24mm Borrador @Metal y Cer\u00e1mica"},
+    {"source": "0.28mm Extra Draft @Metal and Ceramics", "translation": "0.28mm Extra Borrador @Metal y Cer\u00e1mica"},
+
+    {"source": "0.10mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.10mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.2 boquilla"},
+    {"source": "0.06mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.06mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.2 boquilla"},
+    {"source": "0.08mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.08mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.2 boquilla"},
+    {"source": "0.12mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.12mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.2 boquilla"},
+    {"source": "0.14mm Standard @Metal and Ceramics 0.2 nozzle", "translation": "0.14mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.2 boquilla"},
+
+    {"source": "0.18mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.18mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.6 boquilla"},
+    {"source": "0.24mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.24mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.6 boquilla"},
+    {"source": "0.30mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.6 boquilla"},
+    {"source": "0.36mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.36mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.6 boquilla"},
+    {"source": "0.42mm Standard @Metal and Ceramics 0.6 nozzle", "translation": "0.42mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.6 boquilla"},
+    {"source": "0.30mm Strength @Metal and Ceramics 0.6 nozzle", "translation": "0.30mm Resistencia @Metal y Cer\u00e1mica 0.6 boquilla"},
+
+    {"source": "0.24mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.24mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.8 boquilla"},
+    {"source": "0.32mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.32mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.8 boquilla"},
+    {"source": "0.48mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.48mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.8 boquilla"},
+    {"source": "0.56mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.56mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.8 boquilla"},
+    {"source": "0.40mm Standard @Metal and Ceramics 0.8 nozzle", "translation": "0.40mm Est\u00e1ndar @Metal y Cer\u00e1mica 0.8 boquilla"},
+
+    {"source": "CAPIFIL PLA BLANC @Cosmyx Nova", "translation": "CAPIFIL PLA BLANCO @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA BLEU @Cosmyx Nova", "translation": "CAPIFIL PLA AZUL @Cosmyx Nova"},
+    {"source": "CAPIFIL PLA NOIR @Cosmyx Nova", "translation": "CAPIFIL PLA NEGRO @Cosmyx Nova"},
+    {"source": "TECTONIC CPE JAUNE @Cosmyx Nova", "translation": "TECTONIC CPE AMARILLO @Cosmyx Nova"},
+    {"source": "TECTONIC CPE ROUGE @Cosmyx Nova", "translation": "TECTONIC CPE ROJO @Cosmyx Nova"}
+]

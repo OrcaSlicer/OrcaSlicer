@@ -5,6 +5,7 @@
 #include "Preset.hpp"
 #include "PresetBundle.hpp"
 #include "AppConfig.hpp"
+#include "ProfileTranslator.hpp"
 
 #ifdef _MSC_VER
     #define WIN32_LEAN_AND_MEAN
@@ -567,10 +568,12 @@ void Preset::reload(Preset const &parent)
 }
 
 // Return a label of this preset, consisting of a name and a "(modified)" suffix, if this preset is dirty.
+// Profile names are translated at display time via ProfileTranslator.
 std::string Preset::label(bool no_alias) const
 {
+    const std::string& base = (no_alias || this->alias.empty()) ? this->name : this->alias;
     return (this->is_dirty ? g_suffix_modified : "")
-        + ((no_alias || this->alias.empty()) ? this->name : this->alias);
+        + ProfileTranslator::instance().translate(base);
 }
 
 bool is_compatible_with_print(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_print, const PresetWithVendorProfile &active_printer)

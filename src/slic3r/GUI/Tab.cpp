@@ -4,6 +4,7 @@
 #include "PresetHints.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/ProfileTranslator.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -2064,8 +2065,8 @@ void Tab::update_preset_description_line()
         }
         else if (!preset.alias.empty())
         {
-            description_line += "\n\n\t" + _(L("full profile name"))     + ": \n\t\t" + preset.name;
-            description_line += "\n\t"   + _(L("symbolic profile name")) + ": \n\t\t" + preset.alias;
+            description_line += "\n\n\t" + _(L("full profile name"))     + ": \n\t\t" + Slic3r::ProfileTranslator::instance().translate(preset.name);
+            description_line += "\n\t"   + _(L("symbolic profile name")) + ": \n\t\t" + Slic3r::ProfileTranslator::instance().translate(preset.alias);
         }
     }
 
