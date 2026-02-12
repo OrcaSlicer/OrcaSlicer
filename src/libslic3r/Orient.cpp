@@ -464,7 +464,7 @@ public:
         }
         cost += (costs.bottom < params.BOTTOM_MIN) * 100;// +(costs.height_to_bottom_hull_ratio > params.height_to_bottom_hull_ratio_MIN) * 110;
 
-        costs.unprintability = costs.unprintability = cost;
+        costs.unprintability = cost;
 
         return cost;
     }

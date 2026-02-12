@@ -2085,11 +2085,11 @@ class ConfigOptionEnumsGenericTempl : public ConfigOptionInts
 public:
     ConfigOptionEnumsGenericTempl(const t_config_enum_values *keys_map = nullptr) : keys_map(keys_map) {}
     explicit ConfigOptionEnumsGenericTempl(const t_config_enum_values *keys_map, size_t size, int value) : ConfigOptionInts(size, value), keys_map(keys_map) {}
-    explicit ConfigOptionEnumsGenericTempl(std::initializer_list<int> il) : ConfigOptionInts(std::move(il)), keys_map(keys_map) {}
+    explicit ConfigOptionEnumsGenericTempl(std::initializer_list<int> il) : ConfigOptionInts(std::move(il)) {}
     explicit ConfigOptionEnumsGenericTempl(const std::vector<int> &vec) : ConfigOptionInts(vec) {}
     explicit ConfigOptionEnumsGenericTempl(std::vector<int> &&vec) : ConfigOptionInts(std::move(vec)) {}
 
-    const t_config_enum_values* keys_map = nullptr;
+    const t_config_enum_values* keys_map { nullptr };
 
     static ConfigOptionType     static_type() { return coEnums; }
     ConfigOptionType            type()  const override { return static_type(); }
