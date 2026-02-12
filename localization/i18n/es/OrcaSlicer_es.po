@@ -7965,7 +7965,7 @@ msgid "Slicing Plate 1"
 msgstr "Bandeja de Laminado 1"
 
 msgid "Packing data to 3mf"
-msgstr ""
+msgstr "Empaquetando datos en 3MF"
 
 msgid "Jump to webpage"
 msgstr "Ir a la página web"
@@ -7981,7 +7981,7 @@ msgid "Preset Inside Project"
 msgstr "Perfil interno del proyecto"
 
 msgid "Detach from parent"
-msgstr ""
+msgstr "Separar del elemento padre"
 
 msgid "Name is unavailable."
 msgstr "El nombre no está disponible."
@@ -8056,30 +8056,31 @@ msgid "Bambu Cool Plate SuperTack"
 msgstr ""
 
 msgid "Send print job"
-msgstr ""
+msgstr "Enviar trabajo de impresión"
 
 msgid "On"
-msgstr ""
+msgstr "Activado"
 
 msgid "Not satisfied with the grouping of filaments? Regroup and slice ->"
-msgstr ""
+msgstr "¿No está satisfecho con la agrupación de filamentos? Reagrupar y laminar ->"
 
 msgid "Manually change external spool during printing for multi-color printing"
-msgstr ""
+msgstr "Cambiar manualmente el carrete externo durante la impresión para impresión multicolor"
 
 msgid "Multi-color with external"
-msgstr ""
+msgstr "Multicolor con externo"
 
 msgid "Your filament grouping method in the sliced file is not optimal."
-msgstr ""
+msgstr "Su método de agrupación de filamentos en el archivo laminado no es óptimo."
 
 msgid "Auto Bed Leveling"
-msgstr ""
+msgstr "Nivelado automático de cama"
 
 msgid ""
 "This checks the flatness of heatbed. Leveling makes extruded height uniform.\n"
 "*Automatic mode: Run a leveling check(about 10 seconds). Skip if surface is fine."
-msgstr ""
+msgstr "Esto comprueba la planitud de la cama calefactada. El nivelado hace que la altura extruida sea uniforme.\n"
+"*Modo automático: Ejecuta una verificación de nivelado (aprox. 10 segundos). Omitir si la superficie está bien."
 
 msgid "Flow Dynamics Calibration"
 msgstr "Calibración de Dinámica de Flujo"
@@ -8090,12 +8091,13 @@ msgid ""
 msgstr ""
 
 msgid "Nozzle Offset Calibration"
-msgstr ""
+msgstr "Calibración de offset de boquilla"
 
 msgid ""
 "Calibrate nozzle offsets to enhance print quality.\n"
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
-msgstr ""
+msgstr "Calibre los offsets de la boquilla para mejorar la calidad de impresión.\n"
+"*Modo automático: Compruebe la calibración antes de imprimir. Omitir si no es necesario."
 
 msgid "send completed"
 msgstr "Envío completo"
@@ -8104,11 +8106,11 @@ msgid "Error code"
 msgstr "Código de error"
 
 msgid "High Flow"
-msgstr ""
+msgstr "Flujo alto"
 
 #, c-format, boost-format
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
-msgstr ""
+msgstr "La configuración de flujo de la boquilla de %s(%s) no coincide con el archivo de laminado (%s). Asegúrese de que la boquilla instalada coincide con los ajustes de la impresora y, al laminar, seleccione el preajuste de impresora correspondiente."
 
 #, c-format, boost-format
 msgid "Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."
@@ -8119,22 +8121,22 @@ msgstr "El filamento excede el número de ranuras AMS. Por favor actualice el fi
 
 #, c-format, boost-format
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
-msgstr ""
+msgstr "La impresora seleccionada (%s) es incompatible con la configuración del archivo de impresión (%s). Ajuste el preajuste de impresora en la página de Preparar o elija una impresora compatible en esta página."
 
 msgid "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 msgstr "Cuando active el modo vaso en espiral, las máquinas con estructura I3 no generará videos timelapse."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
-msgstr ""
+msgstr "La impresora actual no admite timelapse en Modo Tradicional al imprimir Por Objeto."
 
 msgid "Errors"
 msgstr "Errores"
 
 msgid "More than one filament types have been mapped to the same external spool, which may cause printing issues. The printer won't pause during printing."
-msgstr ""
+msgstr "Más de un tipo de filamento ha sido asignado al mismo carrete externo, lo que puede causar problemas de impresión. La impresora no se pausará durante la impresión."
 
 msgid "The filament type setting of external spool is different from the filament in the slicing file."
-msgstr ""
+msgstr "La configuración del tipo de filamento del carrete externo es diferente del filamento en el archivo de laminado."
 
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "El tipo de impresora seleccionado cuando se genera el G-Code no tiene consistencia con la impresora seleccionada actualmente. Es recomendable que use el mismo tipo de impresora para laminar."
