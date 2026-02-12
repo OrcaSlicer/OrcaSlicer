@@ -5418,7 +5418,7 @@ msgstr "No a todo"
 msgid "Choose a directory"
 msgstr "Elegir un directorio"
 
-#, c-format, boost-format
+#, possible-c-format, possible-boost-format
 msgid "There is %d config exported. (Only non-system configs)"
 msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] ""
