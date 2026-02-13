@@ -15335,23 +15335,23 @@ msgid "- ℃"
 msgstr ""
 
 msgid "Synchronize nozzle and AMS information"
-msgstr ""
+msgstr "Sincronizar la información de la boquilla y AMS"
 
 msgid "Please connect the printer first before synchronizing."
-msgstr ""
+msgstr "Por favor, conecte la impresora antes de sincronizar."
 
 #, c-format, boost-format
 msgid "Printer %s nozzle information has not been set. Please configure it before proceeding with the calibration."
-msgstr ""
+msgstr "La información de la boquilla de la impresora %s no ha sido configurada. Por favor, configúrela antes de proceder con la calibración."
 
 msgid "AMS and nozzle information are synced"
-msgstr ""
+msgstr "La información de AMS y de la boquilla está sincronizada"
 
 msgid "Nozzle Flow"
-msgstr ""
+msgstr "Flujo de boquilla"
 
 msgid "Nozzle Info"
-msgstr ""
+msgstr "Información de boquilla"
 
 msgid "Plate Type"
 msgstr "Tipo de Bandeja"
