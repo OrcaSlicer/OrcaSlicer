@@ -16053,10 +16053,10 @@ msgid "Can't find my printer model"
 msgstr "No se puede encontrar el modelo de la impresora"
 
 msgid "Input Custom Nozzle Diameter"
-msgstr ""
+msgstr "Introducir diámetro de boquilla personalizado"
 
 msgid "Can't find my nozzle diameter"
-msgstr ""
+msgstr "No encuentro mi diámetro de boquilla"
 
 msgid "Rectangle"
 msgstr "Rectángulo"
@@ -16155,12 +16155,14 @@ msgid "You have not yet selected the printer to replace the nozzle, please choos
 msgstr "Todavía no ha seleccionado impresora para sustituir la boquilla, por favor, selecciónela."
 
 msgid "The entered nozzle diameter is invalid, please re-enter:\n"
-msgstr ""
+msgstr "El diámetro de la boquilla introducido no es válido, por favor vuelva a introducirlo:\n"
 
 msgid ""
 "The system preset does not allow creation. \n"
 "Please re-enter the printer model or nozzle diameter."
 msgstr ""
+"El perfil del sistema no permite la creación. \n"
+"Por favor, vuelva a introducir el modelo de la impresora o el diámetro de la boquilla."
 
 msgid "Printer Created Successfully"
 msgstr "Éxito Creando la Impresora"
