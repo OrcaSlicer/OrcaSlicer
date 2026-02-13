@@ -188,6 +188,58 @@ void GLVolume::load_render_colors()
     RenderColor::colors[RenderCol_Model_Unprintable] = GUI::ImGuiWrapper::to_ImVec4(GLVolume::UNPRINTABLE_COLOR);
 }
 
+ColorRGBA GLVolume::brighten_color(const ColorRGBA& color, float multiplier)
+{
+    // Convert RGB to HSL, increase lightness, convert back
+
+    float r = color.r(), g = color.g(), b = color.b();
+
+    // RGB to HSL conversion
+    float max_val = std::max({r, g, b});
+    float min_val = std::min({r, g, b});
+    float l = (max_val + min_val) / 2.0f;
+    float h = 0.0f, s = 0.0f;
+
+    if (max_val != min_val) {
+        float delta = max_val - min_val;
+        s = l > 0.5f ? delta / (2.0f - max_val - min_val) : delta / (max_val + min_val);
+
+        if (max_val == r)
+            h = (g - b) / delta + (g < b ? 6.0f : 0.0f);
+        else if (max_val == g)
+            h = (b - r) / delta + 2.0f;
+        else
+            h = (r - g) / delta + 4.0f;
+        h /= 6.0f;
+    }
+
+    // Increase lightness by a fixed amount (0.25)
+    // Ensures even saturated colors become visibly brighter
+    l = std::min(l + 0.25f, 1.0f);
+
+    // HSL to RGB conversion
+    auto hue_to_rgb = [](float p, float q, float t) {
+        if (t < 0.0f) t += 1.0f;
+        if (t > 1.0f) t -= 1.0f;
+        if (t < 1.0f / 6.0f) return p + (q - p) * 6.0f * t;
+        if (t < 1.0f / 2.0f) return q;
+        if (t < 2.0f / 3.0f) return p + (q - p) * (2.0f / 3.0f - t) * 6.0f;
+        return p;
+    };
+
+    if (s == 0.0f) {
+        r = g = b = l; // achromatic (gray)
+    } else {
+        float q = l < 0.5f ? l * (1.0f + s) : l + s - l * s;
+        float p = 2.0f * l - q;
+        r = hue_to_rgb(p, q, h + 1.0f / 3.0f);
+        g = hue_to_rgb(p, q, h);
+        b = hue_to_rgb(p, q, h - 1.0f / 3.0f);
+    }
+
+    return ColorRGBA(r, g, b, color.a());
+}
+
 GLVolume::GLVolume(float r, float g, float b, float a)
     : m_sla_shift_z(0.0)
     , m_sinking_contours(*this)
@@ -253,16 +305,28 @@ void GLVolume::set_render_color()
             set_render_color(outside ? SELECTED_OUTSIDE_COLOR : SELECTED_COLOR);
         else if (disabled)
         */
-        if (disabled)
-            set_render_color(DISABLED_COLOR);
+        // Determine base color first
+        ColorRGBA base_color;
+
+        if (disabled) {
+            base_color = DISABLED_COLOR;
+        }
 #ifdef ENABLE_OUTSIDE_COLOR
-        else if (is_outside && shader_outside_printer_detection_enabled)
-            set_render_color(OUTSIDE_COLOR);
+        else if (is_outside && shader_outside_printer_detection_enabled) {
+            base_color = OUTSIDE_COLOR;
+        }
 #endif
         else {
-            //to make black not too hard too see
-            ColorRGBA new_color = adjust_color_for_rendering(color);
-            set_render_color(new_color);
+            // to make black not too hard too see
+            base_color = adjust_color_for_rendering(color);
+        }
+
+        // Apply selection brightening AFTER determining base color
+        if (selected && !disabled) {
+            set_render_color(brighten_color(base_color, 1.25f));
+        }
+        else {
+            set_render_color(base_color);
         }
     }
 
@@ -276,7 +340,11 @@ void GLVolume::set_render_color()
 
     //BBS set unprintable color
     if (!printable) {
-        render_color = UNPRINTABLE_COLOR;
+        if (selected) {
+            render_color = brighten_color(UNPRINTABLE_COLOR, 1.25f);
+        } else {
+            render_color = UNPRINTABLE_COLOR;
+        }
     }
 
     //BBS set invisible color

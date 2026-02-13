@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-05 17:33+0800\n"
+"POT-Creation-Date: 2026-02-12 08:42+0800\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -51,6 +51,14 @@ msgstr ""
 
 msgid "TPU is not supported by AMS."
 msgstr "TPU không được hỗ trợ bởi AMS."
+
+msgid "AMS does not support 'Bambu Lab PET-CF'."
+msgstr ""
+
+msgid ""
+"Please cold pull before printing TPU to avoid clogging. You may use cold "
+"pull maintenance on the printer."
+msgstr ""
 
 msgid ""
 "Damp PVA will become flexible and get stuck inside AMS, please take care to "
@@ -102,9 +110,8 @@ msgstr "Đang sấy"
 msgid "Idle"
 msgstr "Rảnh"
 
-#, c-format, boost-format
-msgid "%d ℃"
-msgstr ""
+msgid "Model:"
+msgstr "Model:"
 
 msgid "Serial:"
 msgstr "Số serial:"
@@ -293,8 +300,8 @@ msgstr "Xóa màu đã vẽ"
 msgid "Painted using: Filament %1%"
 msgstr "Vẽ bằng: Filament %1%"
 
-msgid "Filament remapping finished."
-msgstr "Ánh xạ lại filament hoàn tất."
+msgid "To:"
+msgstr ""
 
 msgid "Paint-on fuzzy skin"
 msgstr "Tô fuzzy skin"
@@ -312,6 +319,13 @@ msgid "Remove fuzzy skin"
 msgstr ""
 
 msgid "Reset selection"
+msgstr ""
+
+msgid ""
+"Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
+msgstr ""
+
+msgid "Enable painted fuzzy skin for this object"
 msgstr ""
 
 msgid "Move"
@@ -498,6 +512,12 @@ msgstr "Góc cánh"
 msgid "Groove Angle"
 msgstr "Góc rãnh"
 
+msgid "Cut position"
+msgstr "Vị trí cắt"
+
+msgid "Build Volume"
+msgstr "Thể tích in"
+
 msgid "Part"
 msgstr "Phần"
 
@@ -586,9 +606,6 @@ msgstr "Tỷ lệ khoảng cách liên quan đến bán kính"
 msgid "Confirm connectors"
 msgstr "Xác nhận connector"
 
-msgid "Build Volume"
-msgstr "Thể tích in"
-
 msgid "Flip cut plane"
 msgstr "Lật mặt cắt"
 
@@ -601,9 +618,6 @@ msgstr "Đặt lại"
 #. TRN: This is an entry in the Undo/Redo stack. The whole line will be 'Edited: (name of whatever was edited)'.
 msgid "Edited"
 msgstr "Đã chỉnh sửa"
-
-msgid "Cut position"
-msgstr "Vị trí cắt"
 
 msgid "Reset cutting plane"
 msgstr "Đặt lại mặt cắt"
@@ -900,6 +914,8 @@ msgstr "Font \"%1%\" không thể chọn."
 msgid "Operation"
 msgstr "Thao tác"
 
+#. TRN EmbossOperation
+#. ORCA
 msgid "Join"
 msgstr "Nối"
 
@@ -1612,6 +1628,12 @@ msgstr "OrcaSlicer gặp ngoại lệ không xử lý được: %1%"
 msgid "Untitled"
 msgstr "Không tiêu đề"
 
+msgid "Reloading network plugin..."
+msgstr ""
+
+msgid "Downloading Network Plugin"
+msgstr ""
+
 msgid "Downloading Bambu Network Plug-in"
 msgstr "Đang tải Bambu Network Plug-in"
 
@@ -1727,6 +1749,42 @@ msgid ""
 msgstr ""
 "Phiên bản Orca Slicer quá cũ và cần được cập nhật lên phiên bản mới nhất "
 "trước khi có thể sử dụng bình thường."
+
+msgid "Retrieving printer information, please try again later."
+msgstr ""
+
+msgid "Please try updating OrcaSlicer and then try again."
+msgstr ""
+
+msgid ""
+"The certificate has expired. Please check the time settings or update "
+"OrcaSlicer and try again."
+msgstr ""
+
+msgid ""
+"The certificate is no longer valid and the printing functions are "
+"unavailable."
+msgstr ""
+
+msgid ""
+"Internal error. Please try upgrading the firmware and OrcaSlicer version. If "
+"the issue persists, contact support."
+msgstr ""
+
+msgid ""
+"To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and "
+"Developer mode on your printer.\n"
+"\n"
+"Please go to your printer's settings and:\n"
+"1. Turn on LAN mode\n"
+"2. Enable Developer mode\n"
+"\n"
+"Developer mode allows the printer to work exclusively through local network "
+"access, enabling full functionality with OrcaSlicer."
+msgstr ""
+
+msgid "Network Plugin Restriction"
+msgstr ""
 
 msgid "Privacy Policy Update"
 msgstr "Cập nhật chính sách bảo mật"
@@ -1932,6 +1990,9 @@ msgstr "Orca Tolerance Test"
 msgid "3DBenchy"
 msgstr "3DBenchy"
 
+msgid "Cali Cat"
+msgstr ""
+
 msgid "Autodesk FDM Test"
 msgstr "Autodesk FDM Test"
 
@@ -1993,22 +2054,28 @@ msgstr "Xuất thành một STL"
 msgid "Export as STLs"
 msgstr "Xuất thành các STL"
 
+msgid "Export as one DRC"
+msgstr ""
+
+msgid "Export as DRCs"
+msgstr ""
+
 msgid "Reload from disk"
 msgstr "Tải lại từ ổ đĩa"
 
 msgid "Reload the selected parts from disk"
 msgstr "Tải lại các phần đã chọn từ ổ đĩa"
 
-msgid "Replace with STL"
-msgstr "Thay thế bằng STL"
-
-msgid "Replace the selected part with new STL"
-msgstr "Thay thế phần đã chọn bằng STL mới"
-
-msgid "Replace all with STL"
+msgid "Replace 3D file"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace the selected part with a new 3D file"
+msgstr ""
+
+msgid "Replace all with 3D files"
+msgstr ""
+
+msgid "Replace all selected parts with 3D files from folder"
 msgstr ""
 
 msgid "Change filament"
@@ -2221,6 +2288,12 @@ msgstr "Nhân bản"
 
 msgid "Simplify Model"
 msgstr "Đơn giản hóa model"
+
+msgid "Subdivision mesh"
+msgstr ""
+
+msgid "(Lost color)"
+msgstr ""
 
 msgid "Center"
 msgstr "Căn giữa"
@@ -2454,6 +2527,19 @@ msgstr[0] "Không thể sửa vật thể model sau"
 
 msgid "Repairing was canceled"
 msgstr "Đã hủy sửa chữa"
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" will exceed 1 million faces after this subdivision, which may "
+"increase slicing time. Do you want to continue?"
+msgstr ""
+
+msgid "BambuStudio warning"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" part's mesh contains errors. Please repair it first."
+msgstr ""
 
 msgid "Additional process preset"
 msgstr "Preset process bổ sung"
@@ -2726,9 +2812,9 @@ msgid "Top"
 msgstr "Trên"
 
 msgid ""
-"The fan controls the temperature during printing to improve print quality."
-"The system automatically adjusts the fan's switch and speed according to "
-"different printing materials."
+"The fan controls the temperature during printing to improve print "
+"quality.The system automatically adjusts the fan's switch and speed "
+"according to different printing materials."
 msgstr ""
 
 msgid ""
@@ -2755,6 +2841,10 @@ msgstr ""
 
 msgctxt "air_duct"
 msgid "Right(Filter)"
+msgstr ""
+
+msgctxt "air_duct"
+msgid "Left(Aux)"
 msgstr ""
 
 msgid "Hotend"
@@ -3036,6 +3126,21 @@ msgid ""
 "Storage before sending to printer."
 msgstr ""
 
+msgid "Thermal Preconditioning for first layer optimization"
+msgstr ""
+
+msgid "Remaining time: Calculating..."
+msgstr ""
+
+msgid ""
+"The heated bed's thermal preconditioning helps optimize the first layer "
+"print quality. Printing will start once preconditioning is complete."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Remaining time: %dmin%ds"
+msgstr ""
+
 msgid "Importing SLA archive"
 msgstr "Đang nhập lưu trữ SLA"
 
@@ -3240,8 +3345,14 @@ msgstr "Nhiệt độ đế"
 msgid "Max volumetric speed"
 msgstr "Tốc độ thể tích tối đa"
 
+msgid "℃"
+msgstr ""
+
 msgid "Bed temperature"
 msgstr "Nhiệt độ đế"
+
+msgid "mm³"
+msgstr ""
 
 msgid "Start calibration"
 msgstr "Bắt đầu hiệu chỉnh"
@@ -3526,6 +3637,30 @@ msgstr ""
 "Phát hiện tắc nghẽn và mài filament, dừng in ngay lập tức để tiết kiệm thời "
 "gian và filament."
 
+msgid "AMS Type"
+msgstr ""
+
+msgid "Switching"
+msgstr ""
+
+msgid "The printer is busy and cannot switch AMS type."
+msgstr ""
+
+msgid "Please unload all filament before switching."
+msgstr ""
+
+msgid ""
+"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgstr ""
+
+msgid "Arrange AMS Order"
+msgstr ""
+
+msgid ""
+"AMS ID will be reset. If you want a specific ID sequence, disconnect all AMS "
+"before resetting and connect them in the desired order after resetting."
+msgstr ""
+
 msgid "File"
 msgstr "File"
 
@@ -3548,6 +3683,14 @@ msgstr ""
 
 msgid "click here to see more info"
 msgstr "nhấn vào đây để xem thêm thông tin"
+
+msgid ""
+"The network plugin was installed but could not be loaded. Please restart the "
+"application."
+msgstr ""
+
+msgid "Restart Required"
+msgstr ""
 
 msgid "Please home all axes (click "
 msgstr "Vui lòng về gốc tất cả các trục (nhấn "
@@ -3908,7 +4051,7 @@ msgstr ""
 "seam_slope_start_height cần nhỏ hơn layer_height.\n"
 "Đặt lại về 0."
 
-#, fuzzy, c-format, boost-format
+#, fuzzy
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4125,7 +4268,7 @@ msgstr ""
 msgid "Measuring Surface"
 msgstr ""
 
-msgid "Thermal Preconditioning for first layer optimization"
+msgid "Calibrating the detection position of nozzle clumping"
 msgstr ""
 
 msgid "Unknown"
@@ -4180,8 +4323,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to "
-"avoid extruder clogging, it is not allowed to set the chamber temperature."
+"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order "
+"to avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr ""
 
 msgid ""
@@ -4263,6 +4406,9 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
+msgstr ""
+
+msgid "Proceed"
 msgstr ""
 
 msgid "Done"
@@ -4416,11 +4562,17 @@ msgstr "Chiều cao lớp"
 msgid "Line Width"
 msgstr "Độ rộng đường"
 
+msgid "Actual Speed"
+msgstr ""
+
 msgid "Fan Speed"
 msgstr "Tốc độ quạt"
 
 msgid "Flow"
 msgstr "Flow"
+
+msgid "Actual Flow"
+msgstr ""
 
 msgid "Tool"
 msgstr "Công cụ"
@@ -4431,20 +4583,113 @@ msgstr "Thời gian lớp"
 msgid "Layer Time (log)"
 msgstr "Thời gian lớp (log)"
 
+msgid "Noop"
+msgstr ""
+
+msgid "Retract"
+msgstr "Rút"
+
+msgid "Unretract"
+msgstr "Đẩy lại"
+
+msgid "Seam"
+msgstr "Đường nối"
+
+msgid "Tool Change"
+msgstr "Đổi công cụ"
+
+msgid "Color Change"
+msgstr ""
+
+msgid "Pause Print"
+msgstr ""
+
+msgid "Travel"
+msgstr "Di chuyển"
+
+msgid "Wipe"
+msgstr "Wipe"
+
+msgid "Extrude"
+msgstr ""
+
+msgid "Inner wall"
+msgstr "Thành trong"
+
+msgid "Outer wall"
+msgstr "Thành ngoài"
+
+msgid "Overhang wall"
+msgstr "Thành nhô"
+
+msgid "Sparse infill"
+msgstr "Infill thưa"
+
+msgid "Internal solid infill"
+msgstr "Infill đặc bên trong"
+
+msgid "Top surface"
+msgstr "Bề mặt trên"
+
+msgid "Bridge"
+msgstr "Cầu"
+
+msgid "Gap infill"
+msgstr "Infill khe"
+
+msgid "Skirt"
+msgstr "Viền"
+
+msgid "Support interface"
+msgstr "Giao diện support"
+
+msgid "Prime tower"
+msgstr "Prime tower"
+
+msgid "Bottom surface"
+msgstr "Bề mặt dưới"
+
+msgid "Internal bridge"
+msgstr ""
+
+msgid "Support transition"
+msgstr "Chuyển tiếp support"
+
+msgid "Mixed"
+msgstr ""
+
+msgid "mm/s"
+msgstr ""
+
+msgid "Flow rate"
+msgstr "Flow rate"
+
+msgid "mm³/s"
+msgstr ""
+
+msgid "Fan speed"
+msgstr "Tốc độ quạt"
+
+msgid "°C"
+msgstr ""
+
+msgid "Time"
+msgstr "Thời gian"
+
+msgid "Actual speed profile"
+msgstr ""
+
+msgid "Speed: "
+msgstr "Tốc độ: "
+
 msgid "Height: "
 msgstr "Chiều cao: "
 
 msgid "Width: "
 msgstr "Độ rộng: "
 
-msgid "Speed: "
-msgstr "Tốc độ: "
-
 msgid "Flow: "
 msgstr "Flow: "
-
-msgid "Layer Time: "
-msgstr "Thời gian lớp: "
 
 msgid "Fan: "
 msgstr "Quạt: "
@@ -4452,14 +4697,17 @@ msgstr "Quạt: "
 msgid "Temperature: "
 msgstr "Nhiệt độ: "
 
-msgid "Loading G-code"
-msgstr "Đang tải G-code"
+msgid "Layer Time: "
+msgstr "Thời gian lớp: "
 
-msgid "Generating geometry vertex data"
-msgstr "Đang tạo dữ liệu đỉnh hình học"
+msgid "Tool: "
+msgstr ""
 
-msgid "Generating geometry index data"
-msgstr "Đang tạo dữ liệu chỉ số hình học"
+msgid "Color: "
+msgstr ""
+
+msgid "Actual Speed: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "Thống kê tất cả các plate"
@@ -4560,9 +4808,6 @@ msgstr "trên"
 msgid "from"
 msgstr "từ"
 
-msgid "Time"
-msgstr "Thời gian"
-
 msgid "Usage"
 msgstr "Sử dụng"
 
@@ -4575,6 +4820,9 @@ msgstr "Độ rộng đường (mm)"
 msgid "Speed (mm/s)"
 msgstr "Tốc độ (mm/s)"
 
+msgid "Actual Speed (mm/s)"
+msgstr ""
+
 msgid "Fan Speed (%)"
 msgstr "Tốc độ quạt (%)"
 
@@ -4584,23 +4832,14 @@ msgstr "Nhiệt độ (°C)"
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tốc độ flow thể tích (mm³/s)"
 
-msgid "Travel"
-msgstr "Di chuyển"
+msgid "Actual volumetric flow rate (mm³/s)"
+msgstr ""
 
 msgid "Seams"
 msgstr "Seam"
 
-msgid "Retract"
-msgstr "Rút"
-
-msgid "Unretract"
-msgstr "Đẩy lại"
-
 msgid "Filament Changes"
 msgstr "Đổi filament"
-
-msgid "Wipe"
-msgstr "Wipe"
 
 msgid "Options"
 msgstr "Tùy chọn"
@@ -4626,9 +4865,6 @@ msgstr "In"
 msgid "Printer"
 msgstr "Máy in"
 
-msgid "Tool Change"
-msgstr "Đổi công cụ"
-
 msgid "Time Estimation"
 msgstr "Ước tính thời gian"
 
@@ -4647,11 +4883,11 @@ msgstr "Thời gian chuẩn bị"
 msgid "Model printing time"
 msgstr "Thời gian in model"
 
-msgid "Switch to silent mode"
-msgstr "Chuyển sang chế độ im lặng"
+msgid "Show stealth mode"
+msgstr ""
 
-msgid "Switch to normal mode"
-msgstr "Chuyển sang chế độ bình thường"
+msgid "Show normal mode"
+msgstr ""
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the "
@@ -4861,7 +5097,10 @@ msgstr "Trở về lắp ráp"
 msgid "Return"
 msgstr "Trở về"
 
-msgid "Toggle Axis"
+msgid "Canvas Toolbar"
+msgstr ""
+
+msgid "Fit camera to scene or selected object."
 msgstr ""
 
 msgid "Paint Toolbar"
@@ -4891,7 +5130,7 @@ msgstr "Thể tích:"
 msgid "Size:"
 msgstr "Kích thước:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -4909,6 +5148,10 @@ msgid "A G-code path goes beyond the plate boundaries."
 msgstr "Đường đi G-code vượt ra ngoài ranh giới plate."
 
 msgid "Not support printing 2 or more TPU filaments."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Tool %d"
 msgstr ""
 
 #, c-format, boost-format
@@ -4953,10 +5196,23 @@ msgstr ""
 msgid "The prime tower extends beyond the plate boundary."
 msgstr ""
 
+msgid ""
+"Prime tower position exceeded build plate boundaries and was repositioned to "
+"the nearest valid edge."
+msgstr ""
+
+msgid ""
+"Partial flushing volume set to 0. Multi-color printing may cause color "
+"mixing in models. Please redjust flushing settings."
+msgstr ""
+
 msgid "Click Wiki for help."
 msgstr ""
 
 msgid "Click here to regroup"
+msgstr ""
+
+msgid "Flushing Volume"
 msgstr ""
 
 msgid "Calibration step selection"
@@ -4969,6 +5225,9 @@ msgid "Bed leveling"
 msgstr "San bằng đế"
 
 msgid "High-temperature Heatbed Calibration"
+msgstr ""
+
+msgid "Nozzle clumping detection Calibration"
 msgstr ""
 
 msgid "Calibration program"
@@ -5223,6 +5482,12 @@ msgstr "Xuất tất cả vật thể thành một STL"
 msgid "Export all objects as STLs"
 msgstr "Xuất tất cả vật thể thành các STL"
 
+msgid "Export all objects as one DRC"
+msgstr ""
+
+msgid "Export all objects as DRCs"
+msgstr ""
+
 msgid "Export Generic 3MF"
 msgstr "Xuất 3MF chung"
 
@@ -5377,6 +5642,12 @@ msgstr "Trợ giúp"
 msgid "Temperature Calibration"
 msgstr "Hiệu chỉnh nhiệt độ"
 
+msgid "Max flowrate"
+msgstr "Flowrate tối đa"
+
+msgid "Pressure advance"
+msgstr "Pressure advance"
+
 msgid "Pass 1"
 msgstr "Lần 1"
 
@@ -5401,17 +5672,8 @@ msgstr "YOLO (phiên bản cầu toàn)"
 msgid "Orca YOLO flowrate calibration, 0.005 step"
 msgstr "Hiệu chỉnh flowrate Orca YOLO, bước 0.005"
 
-msgid "Flow rate"
-msgstr "Flow rate"
-
-msgid "Pressure advance"
-msgstr "Pressure advance"
-
 msgid "Retraction test"
 msgstr "Kiểm tra retraction"
-
-msgid "Max flowrate"
-msgstr "Flowrate tối đa"
 
 msgid "Cornering"
 msgstr "Vào góc"
@@ -5962,6 +6224,9 @@ msgstr "Dừng"
 msgid "Layer: N/A"
 msgstr "Lớp: N/A"
 
+msgid "Click to view thermal preconditioning explanation"
+msgstr ""
+
 msgid "Clear"
 msgstr "Xóa"
 
@@ -6005,6 +6270,9 @@ msgstr "Phụ kiện máy in"
 msgid "Print Options"
 msgstr "Tùy chọn in"
 
+msgid "Safety Options"
+msgstr ""
+
 msgid "Lamp"
 msgstr "Đèn"
 
@@ -6032,6 +6300,11 @@ msgstr ""
 msgid "The printer is busy with another print job."
 msgstr "Máy in đang bận với công việc in khác."
 
+msgid ""
+"When printing is paused, filament loading and unloading are only supported "
+"for external slots."
+msgstr ""
+
 msgid "Current extruder is busy changing filament."
 msgstr ""
 
@@ -6039,6 +6312,9 @@ msgid "Current slot has already been loaded."
 msgstr ""
 
 msgid "The selected slot is empty."
+msgstr ""
+
+msgid "Printer 2D mode does not support 3D calibration"
 msgstr ""
 
 msgid "Downloading..."
@@ -6063,6 +6339,9 @@ msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
 msgstr ""
 "Vui lòng làm nóng đầu phun lên trên 170°C trước khi nạp hoặc tháo filament."
+
+msgid "Chamber temperature cannot be changed in cooling mode while printing."
+msgstr ""
 
 msgid ""
 "If the chamber temperature exceeds 40℃, the system will automatically switch "
@@ -6278,7 +6557,8 @@ msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "Phiên bản file 3MF mới hơn phiên bản Orca Slicer hiện tại."
 
 #, fuzzy
-msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
+msgid ""
+"Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 "Cập nhật Orca Slicer của bạn có thể kích hoạt tất cả chức năng trong file "
 "3MF."
@@ -6346,8 +6626,8 @@ msgstr "Chi tiết"
 msgid "New printer config available."
 msgstr "Có cấu hình máy in mới."
 
-msgid "Wiki"
-msgstr "Wiki"
+msgid "Wiki Guide"
+msgstr ""
 
 msgid "Undo integration failed."
 msgstr "Hoàn tác tích hợp thất bại."
@@ -6449,9 +6729,8 @@ msgstr "Phạm vi"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
-"2.0.\n"
+"3.2.\n"
 msgstr ""
-"Ứng dụng không thể chạy bình thường vì phiên bản OpenGL thấp hơn 2.0.\n"
 
 msgid "Please upgrade your graphics card driver."
 msgstr "Vui lòng nâng cấp driver card đồ họa của bạn."
@@ -6537,15 +6816,6 @@ msgstr "Kiểm tra lớp đầu tiên"
 msgid "Auto-recovery from step loss"
 msgstr "Tự động phục hồi từ mất bước"
 
-msgid "Open Door Detection"
-msgstr ""
-
-msgid "Notification"
-msgstr ""
-
-msgid "Pause printing"
-msgstr ""
-
 msgid "Store Sent Files on External Storage"
 msgstr ""
 
@@ -6563,16 +6833,28 @@ msgstr "Phát hiện filament rối"
 msgid "Check if the nozzle is clumping by filament or other foreign objects."
 msgstr "Kiểm tra xem đầu phun có bị vón cục bởi filament hoặc vật lạ khác."
 
-msgid "Nozzle Type"
-msgstr "Loại đầu phun"
+msgid "Open Door Detection"
+msgstr ""
 
-msgid "Nozzle Flow"
+msgid "Notification"
+msgstr ""
+
+msgid "Pause printing"
+msgstr ""
+
+msgctxt "Nozzle Type"
+msgid "Type"
+msgstr ""
+
+msgctxt "Nozzle Diameter"
+msgid "Diameter"
+msgstr ""
+
+msgctxt "Nozzle Flow"
+msgid "Flow"
 msgstr ""
 
 msgid "Please change the nozzle settings on the printer."
-msgstr ""
-
-msgid "View wiki"
 msgstr ""
 
 msgid "Hardened Steel"
@@ -6584,10 +6866,25 @@ msgstr "Thép không gỉ"
 msgid "Tungsten Carbide"
 msgstr ""
 
+msgid "Brass"
+msgstr "Đồng thau"
+
 msgid "High flow"
 msgstr ""
 
 msgid "No wiki link available for this printer."
+msgstr ""
+
+msgid "Refreshing"
+msgstr ""
+
+msgid "Unavailable while heating maintenance function is on."
+msgstr ""
+
+msgid "Idel Heating Protection"
+msgstr ""
+
+msgid "Stops heating automatically after 5 mins of idle to ensure safety."
 msgstr ""
 
 msgid "Global"
@@ -6596,8 +6893,8 @@ msgstr "Toàn cục"
 msgid "Objects"
 msgstr "Đối tượng"
 
-msgid "Advance"
-msgstr "Nâng cao"
+msgid "Show/Hide advanced parameters"
+msgstr ""
 
 msgid "Compare presets"
 msgstr "So sánh preset"
@@ -6718,6 +7015,9 @@ msgstr ""
 msgid "Right nozzle: %smm"
 msgstr ""
 
+msgid "Configuration incompatible"
+msgstr "Cấu hình không tương thích"
+
 msgid "Sync printer information"
 msgstr ""
 
@@ -6735,17 +7035,14 @@ msgstr ""
 msgid "Sync extruder infomation"
 msgstr ""
 
-msgid "Click to edit preset"
-msgstr "Nhấp để chỉnh sửa preset"
-
 msgid "Connection"
 msgstr "Kết nối"
 
-msgid "Sync info"
-msgstr ""
-
 msgid "Synchronize nozzle information and the number of AMS"
 msgstr ""
+
+msgid "Click to edit preset"
+msgstr "Nhấp để chỉnh sửa preset"
 
 msgid "Project Filaments"
 msgstr ""
@@ -6787,6 +7084,9 @@ msgid ""
 "There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
+msgstr ""
+
+msgid "Only filament color information has been synchronized from printer."
 msgstr ""
 
 msgid ""
@@ -6895,8 +7195,8 @@ msgstr "Bạn nên nâng cấp phần mềm của mình.\n"
 
 #, fuzzy, c-format, boost-format
 msgid ""
-"The 3MF file version %s is newer than %s's version %s, we suggest to "
-"upgrade your software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to upgrade "
+"your software."
 msgstr ""
 "Phiên bản 3MF %s mới hơn phiên bản %s của %s, khuyến nghị nâng cấp phần mềm "
 "của bạn."
@@ -7013,6 +7313,9 @@ msgstr "Đối tượng quá lớn"
 msgid "Export STL file:"
 msgstr "Xuất file STL:"
 
+msgid "Export Draco file:"
+msgstr ""
+
 msgid "Export AMF file:"
 msgstr "Xuất file AMF:"
 
@@ -7072,7 +7375,7 @@ msgstr ""
 msgid "Directory for the replace wasn't selected"
 msgstr ""
 
-msgid "Replaced with STLs from directory:\n"
+msgid "Replaced with 3D files from directory:\n"
 msgstr ""
 
 #, boost-format
@@ -7210,6 +7513,9 @@ msgid ""
 msgstr ""
 "Không có gia tốc được cung cấp để hiệu chỉnh. Sử dụng giá trị gia tốc mặc "
 "định "
+
+msgid "mm/s²"
+msgstr ""
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr ""
@@ -7368,6 +7674,12 @@ msgstr "Tối ưu hóa xoay"
 msgid ""
 "Printer not connected. Please go to the device page to connect %s before "
 "syncing."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"OrcaSlicer can't connect to %s. Please check if the printer is powered on "
+"and connected to the network."
 msgstr ""
 
 #, c-format, boost-format
@@ -7624,7 +7936,8 @@ msgstr "Chỉ tải hình học"
 msgid "Load behaviour"
 msgstr ""
 
-msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
+msgid ""
+"Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "Có nên tải cài đặt máy in/filament/quy trình khi mở file 3MF?"
 
 msgid "Maximum recent files"
@@ -7668,6 +7981,21 @@ msgstr ""
 "Nếu được bật, Orca sẽ nhớ và chuyển cấu hình filament/quy trình cho mỗi máy "
 "in tự động."
 
+msgid "Group user filament presets"
+msgstr ""
+
+msgid "Group user filament presets based on selection"
+msgstr ""
+
+msgid "All"
+msgstr "Tất cả"
+
+msgid "By type"
+msgstr ""
+
+msgid "By vendor"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7687,11 +8015,23 @@ msgstr ""
 msgid "Pop up to select filament grouping mode"
 msgstr ""
 
-msgid "Behaviour"
+msgid "Quality level for Draco export"
 msgstr ""
 
-msgid "All"
-msgstr "Tất cả"
+msgid "bits"
+msgstr ""
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco "
+"format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid "
+"lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher "
+"values preserve more detail at the cost of larger files."
+msgstr ""
+
+msgid "Behaviour"
+msgstr ""
 
 msgid "Auto flush after changing..."
 msgstr ""
@@ -7701,6 +8041,27 @@ msgstr ""
 
 msgid "Auto arrange plate after cloning"
 msgstr "Tự động sắp xếp bản sau khi nhân bản"
+
+msgid "Auto slice after changes"
+msgstr ""
+
+msgid ""
+"If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
+"settings change."
+msgstr ""
+
+msgid ""
+"Delay in seconds before auto slicing starts, allowing multiple edits to be "
+"grouped. Use 0 to slice immediately."
+msgstr ""
+
+msgid "Remove mixed temperature restriction"
+msgstr ""
+
+msgid ""
+"With this option enabled, you can print materials with a large temperature "
+"difference together."
+msgstr ""
 
 msgid "Touchpad"
 msgstr "Bàn di chuột cảm ứng"
@@ -7809,18 +8170,65 @@ msgstr "Tự động đồng bộ preset người dùng (Máy in/Filament/Quy tr
 msgid "Update built-in Presets automatically."
 msgstr "Cập nhật preset tích hợp tự động."
 
+msgid "Use encrypted file for token storage"
+msgstr ""
+
+msgid ""
+"Store authentication tokens in an encrypted file instead of the system "
+"keychain. (Requires restart)"
+msgstr ""
+
+msgid "Filament Sync Options"
+msgstr ""
+
+msgid "Filament sync mode"
+msgstr ""
+
+msgid ""
+"Choose whether sync updates both filament preset and color, or only color."
+msgstr ""
+
+msgid "Filament & Color"
+msgstr ""
+
+msgid "Color only"
+msgstr ""
+
 msgid "Network plugin"
 msgstr ""
 
 msgid "Enable network plugin"
 msgstr "Bật plugin mạng"
 
-msgid "Use legacy network plugin"
+msgid "Network plugin version"
 msgstr ""
 
+msgid "Select the network plugin version to use"
+msgstr ""
+
+msgid "(Latest)"
+msgstr ""
+
+msgid "Network plugin switched successfully."
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Failed to load network plugin. Please restart the application."
+msgstr ""
+
+#, c-format, boost-format
 msgid ""
-"Disable to use latest network plugin that supports new BambuLab firmwares."
-msgstr "Tắt để sử dụng plugin mạng mới nhất hỗ trợ firmware BambuLab mới."
+"You've selected network plugin version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr ""
+
+msgid "Download Network Plugin"
+msgstr ""
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Liên kết file với OrcaSlicer"
@@ -7830,6 +8238,12 @@ msgstr "Liên kết file 3MF với OrcaSlicer"
 
 msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file 3MF."
+
+msgid "Associate DRC files to OrcaSlicer"
+msgstr ""
+
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr ""
 
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Liên kết file STL với OrcaSlicer"
@@ -7856,14 +8270,6 @@ msgstr "Chế độ phát triển"
 msgid "Skip AMS blacklist check"
 msgstr "Bỏ qua kiểm tra danh sách đen AMS"
 
-msgid "Remove mixed temperature restriction"
-msgstr ""
-
-msgid ""
-"With this option enabled, you can print materials with a large temperature "
-"difference together."
-msgstr ""
-
 msgid "Allow Abnormal Storage"
 msgstr ""
 
@@ -7889,6 +8295,24 @@ msgstr "gỡ lỗi"
 
 msgid "trace"
 msgstr "theo dõi"
+
+msgid "Network Plugin"
+msgstr ""
+
+msgid "Reload"
+msgstr ""
+
+msgid "Reload the network plugin without restarting the application"
+msgstr ""
+
+msgid "Network plugin reloaded successfully."
+msgstr ""
+
+msgid "Failed to reload network plugin. Please restart the application."
+msgstr ""
+
+msgid "Reload Failed"
+msgstr ""
 
 msgid "Debug"
 msgstr ""
@@ -7988,6 +8412,9 @@ msgstr "Thêm/Xóa preset"
 
 msgid "Edit preset"
 msgstr "Chỉnh sửa preset"
+
+msgid "Unspecified"
+msgstr ""
 
 msgid "Project-inside presets"
 msgstr "Preset bên trong dự án"
@@ -8100,8 +8527,8 @@ msgstr "Xuất bản đã bị hủy"
 msgid "Slicing Plate 1"
 msgstr "Đang slice bản 1"
 
-msgid "Packing data to 3MF"
-msgstr "Đang đóng gói dữ liệu vào 3mf"
+msgid "Packing data to 3mf"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "Chuyển đến trang web"
@@ -8115,6 +8542,9 @@ msgstr "Preset người dùng"
 
 msgid "Preset Inside Project"
 msgstr "Preset bên trong dự án"
+
+msgid "Detach from parent"
+msgstr ""
 
 msgid "Name is unavailable."
 msgstr "Tên không khả dụng."
@@ -8373,6 +8803,16 @@ msgid ""
 msgstr ""
 
 #, c-format, boost-format
+msgid ""
+"[ %s ] requires printing in a high-temperature environment.Please close the "
+"door."
+msgstr ""
+
+#, c-format, boost-format
+msgid "[ %s ] requires printing in a high-temperature environment."
+msgstr ""
+
+#, c-format, boost-format
 msgid "The filament on %s may soften. Please unload."
 msgstr ""
 
@@ -8385,16 +8825,22 @@ msgid ""
 "match."
 msgstr ""
 
-msgid "Cool"
+msgid "Install toolhead enhanced cooling fan to prevent filament softening."
 msgstr ""
 
-msgid "Engineering"
-msgstr ""
+msgid "Smooth Cool Plate"
+msgstr "Bản Smooth Cool"
 
-msgid "High Temp"
-msgstr ""
+msgid "Engineering Plate"
+msgstr "Bản Engineering"
 
-msgid "Cool(Supertack)"
+msgid "Smooth High Temp Plate"
+msgstr "Bản Smooth nhiệt độ cao"
+
+msgid "Textured PEI Plate"
+msgstr "Bản Textured PEI"
+
+msgid "Cool Plate (Supertack)"
 msgstr ""
 
 msgid "Click here if you can't connect to the printer"
@@ -8423,6 +8869,11 @@ msgid ""
 msgstr "Máy in đang thực thi lệnh. Vui lòng khởi động lại in sau khi kết thúc"
 
 msgid "AMS is setting up. Please try again later."
+msgstr ""
+
+msgid ""
+"Not all filaments used in slicing are mapped to the printer. Please check "
+"the mapping of filaments."
 msgstr ""
 
 msgid "Please do not mix-use the Ext with AMS."
@@ -8471,14 +8922,16 @@ msgid "This printer does not support printing all plates."
 msgstr "Máy in này không hỗ trợ in tất cả các bản"
 
 msgid ""
-"Please cold pull before printing TPU to avoid clogging. You may use cold "
-"pull maintenance on the printer."
-msgstr ""
-
-msgid "High chamber temperature is required. Please close the door."
+"The current firmware supports a maximum of 16 materials. You can either "
+"reduce the number of materials to 16 or fewer on the Preparation Page, or "
+"try updating the firmware. If you are still restricted after the update, "
+"please wait for subsequent firmware support."
 msgstr ""
 
 msgid "Please refer to Wiki before use->"
+msgstr ""
+
+msgid "Current firmware does not support file transfer to internal storage."
 msgstr ""
 
 msgid "Send to Printer storage"
@@ -8487,35 +8940,16 @@ msgstr ""
 msgid "Try to connect"
 msgstr ""
 
-msgid "click to retry"
+msgid "Internal Storage"
+msgstr ""
+
+msgid "External Storage"
 msgstr ""
 
 msgid "Upload file timeout, please check if the firmware version supports it."
 msgstr ""
 
-msgid ""
-"No available external storage was obtained. Please confirm and try again."
-msgstr ""
-
-msgid ""
-"Media capability acquisition timeout, please check if the firmware version "
-"supports it."
-msgstr ""
-
-msgid ""
-"Please check the network and try again, You can restart or update the "
-"printer if the issue persists."
-msgstr ""
-
-msgid "Sending..."
-msgstr ""
-
-msgid ""
-"File upload timed out. Please check if the firmware version supports this "
-"operation or verify if the printer is functioning properly."
-msgstr ""
-
-msgid "Sending failed, please try again!"
+msgid "Connection timed out, please check your network."
 msgstr ""
 
 msgid "Connection failed. Click the icon to retry"
@@ -8534,6 +8968,14 @@ msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgstr "Máy in cần phải ở cùng LAN với Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
+msgstr ""
+
+msgid "Sending..."
+msgstr ""
+
+msgid ""
+"File upload timed out. Please check if the firmware version supports this "
+"operation or verify if the printer is functioning properly."
 msgstr ""
 
 msgid "Slice ok."
@@ -8701,16 +9143,16 @@ msgstr ""
 "không có prime tower. Bạn có chắc chắn muốn tắt prime tower?"
 
 msgid ""
+"A prime tower is required for clumping detection. There may be flaws on the "
+"model without prime tower. Are you sure you want to disable prime tower?"
+msgstr ""
+
+msgid ""
 "Enabling both precise Z height and the prime tower may cause the size of "
 "prime tower to increase. Do you still want to enable?"
 msgstr ""
 "Bật cả chiều cao Z chính xác và prime tower có thể khiến kích thước prime "
 "tower tăng lên. Bạn vẫn muốn bật?"
-
-msgid ""
-"A prime tower is required for clumping detection. There may be flaws on the "
-"model without prime tower. Are you sure you want to disable prime tower?"
-msgstr ""
 
 msgid ""
 "Prime tower is required for clumping detection. There may be flaws on the "
@@ -8833,8 +9275,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "Khi ghi timelapse không có đầu công cụ, khuyến nghị thêm \"Timelapse Wipe "
 "Tower\" \n"
@@ -8918,9 +9360,6 @@ msgstr "tên hồ sơ tượng trưng"
 msgid "Line width"
 msgstr "Độ rộng đường"
 
-msgid "Seam"
-msgstr "Đường nối"
-
 msgid "Precision"
 msgstr "Độ chính xác"
 
@@ -8960,9 +9399,6 @@ msgstr ""
 "dạng phần trăm độ rộng đường. Tốc độ 0 có nghĩa là không giảm tốc độ cho "
 "phạm vi mức độ nhô và tốc độ thành được sử dụng"
 
-msgid "Bridge"
-msgstr "Cầu"
-
 msgid "Set speed for external and internal bridges"
 msgstr "Đặt tốc độ cho cầu bên ngoài và bên trong"
 
@@ -8990,17 +9426,11 @@ msgstr "Support dạng cây"
 msgid "Multimaterial"
 msgstr "Đa vật liệu"
 
-msgid "Prime tower"
-msgstr "Prime tower"
-
 msgid "Filament for Features"
 msgstr "Filament cho tính năng"
 
 msgid "Ooze prevention"
 msgstr "Ngăn chảy nhựa"
-
-msgid "Skirt"
-msgstr "Viền"
 
 msgid "Special mode"
 msgstr "Chế độ đặc biệt"
@@ -9093,9 +9523,6 @@ msgstr ""
 "Nhiệt độ bàn khi bản Textured Cool được lắp. Giá trị 0 có nghĩa là filament "
 "không hỗ trợ in trên bản Textured Cool."
 
-msgid "Engineering Plate"
-msgstr "Bản Engineering"
-
 msgid ""
 "Bed temperature when the Engineering Plate is installed. A value of 0 means "
 "the filament does not support printing on the Engineering Plate."
@@ -9113,9 +9540,6 @@ msgid ""
 msgstr ""
 "Nhiệt độ bàn khi bản Smooth PEI/Bản nhiệt độ cao được lắp. Giá trị 0 có "
 "nghĩa là filament không hỗ trợ in trên bản Smooth PEI/Bản nhiệt độ cao."
-
-msgid "Textured PEI Plate"
-msgstr "Bản Textured PEI"
 
 msgid ""
 "Bed temperature when the Textured PEI Plate is installed. A value of 0 means "
@@ -9227,6 +9651,9 @@ msgstr "Phụ kiện"
 
 msgid "Machine G-code"
 msgstr "G-code máy"
+
+msgid "File header G-code"
+msgstr ""
 
 msgid "Machine start G-code"
 msgstr "G-code bắt đầu máy"
@@ -9370,6 +9797,15 @@ msgstr "Preset %1%"
 msgid "Following preset will be deleted too."
 msgid_plural "Following presets will be deleted too."
 msgstr[0] "Các preset sau cũng sẽ bị xóa."
+
+msgid ""
+"Are you sure to delete the selected preset?\n"
+"If the preset corresponds to a filament currently in use on your printer, "
+"please reset the filament information for that slot."
+msgstr ""
+"Bạn có chắc chắn xóa cài đặt sẵn đã chọn không?\n"
+"Nếu cài đặt sẵn tương ứng với filament hiện đang được sử dụng trên máy in "
+"của bạn, vui lòng đặt lại thông tin filament cho vị trí đó."
 
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
@@ -9585,9 +10021,6 @@ msgstr "Cập nhật cấu hình"
 msgid "A new configuration package is available. Do you want to install it?"
 msgstr "Có gói cấu hình mới. Bạn có muốn cài đặt nó?"
 
-msgid "Configuration incompatible"
-msgstr "Cấu hình không tương thích"
-
 msgid "the configuration package is incompatible with the current application."
 msgstr "gói cấu hình không tương thích với ứng dụng hiện tại."
 
@@ -9611,9 +10044,6 @@ msgstr "Không có cập nhật nào."
 
 msgid "The configuration is up to date."
 msgstr "Cấu hình đã được cập nhật."
-
-msgid "Open Wiki for more information >"
-msgstr ""
 
 msgid "OBJ file import color"
 msgstr "Màu nhập file Obj"
@@ -9819,6 +10249,9 @@ msgctxt "Sync_Nozzle_AMS"
 msgid "Cancel"
 msgstr ""
 
+msgid "Successfully synchronized filament color from printer."
+msgstr ""
+
 msgid "Successfully synchronized color and type of filament from printer."
 msgstr ""
 
@@ -9853,6 +10286,9 @@ msgstr ""
 #, boost-format
 msgid "For constant flow rate, hold %1% while dragging."
 msgstr "Để có tốc độ dòng chảy không đổi, giữ %1% trong khi kéo."
+
+msgid "ms"
+msgstr ""
 
 msgid "Total ramming"
 msgstr "Tổng ramming"
@@ -10304,9 +10740,6 @@ msgstr "Module cắt"
 msgid "Auto Fire Extinguishing System"
 msgstr ""
 
-msgid "Model:"
-msgstr "Model:"
-
 msgid "Update firmware"
 msgstr "Cập nhật firmware"
 
@@ -10469,38 +10902,8 @@ msgstr ""
 msgid " can not be placed in the "
 msgstr ""
 
-msgid "Inner wall"
-msgstr "Thành trong"
-
-msgid "Outer wall"
-msgstr "Thành ngoài"
-
-msgid "Overhang wall"
-msgstr "Thành nhô"
-
-msgid "Sparse infill"
-msgstr "Infill thưa"
-
-msgid "Internal solid infill"
-msgstr "Infill đặc bên trong"
-
-msgid "Top surface"
-msgstr "Bề mặt trên"
-
-msgid "Bottom surface"
-msgstr "Bề mặt dưới"
-
 msgid "Internal Bridge"
 msgstr "Cầu bên trong"
-
-msgid "Gap infill"
-msgstr "Infill khe"
-
-msgid "Support interface"
-msgstr "Giao diện support"
-
-msgid "Support transition"
-msgstr "Chuyển tiếp support"
 
 msgid "Multiple"
 msgstr "Nhiều"
@@ -11063,6 +11466,12 @@ msgstr "Sử dụng máy chủ in bên thứ ba"
 msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "Cho phép điều khiển máy in BambuLab thông qua máy chủ in bên thứ ba."
 
+msgid "Printer Agent"
+msgstr ""
+
+msgid "Select the network agent implementation for printer communication."
+msgstr ""
+
 msgid "Hostname, IP or URL"
 msgstr "Tên máy chủ, IP hoặc URL"
 
@@ -11076,8 +11485,8 @@ msgstr ""
 "Orca Slicer có thể tải file G-code lên máy chủ máy in. Trường này nên chứa "
 "tên máy chủ, địa chỉ IP hoặc URL của phiên bản máy chủ máy in. Máy chủ in "
 "đằng sau HAProxy với xác thực cơ bản được bật có thể được truy cập bằng cách "
-"đặt tên người dùng và mật khẩu vào URL theo định dạng sau: https://username:"
-"password@your-octopi-address/"
+"đặt tên người dùng và mật khẩu vào URL theo định dạng sau: https://"
+"username:password@your-octopi-address/"
 
 msgid "Device UI"
 msgstr "Giao diện thiết bị"
@@ -11263,12 +11672,6 @@ msgstr ""
 msgid "Bed types supported by the printer."
 msgstr "Loại bàn in được hỗ trợ bởi máy in."
 
-msgid "Smooth Cool Plate"
-msgstr "Bản Smooth Cool"
-
-msgid "Smooth High Temp Plate"
-msgstr "Bản Smooth nhiệt độ cao"
-
 msgid "Default bed type"
 msgstr "Loại bàn in mặc định"
 
@@ -11442,9 +11845,9 @@ msgid ""
 "calculated automatically. Otherwise the provided angle will be used for "
 "external bridges. Use 180° for zero angle."
 msgstr ""
-"Ghi đè góc bắc cầu. Nếu để là không, góc bắc cầu sẽ được tính tự động. "
-"Nếu không, góc được cung cấp sẽ được sử dụng cho cầu bên ngoài. Sử dụng "
-"180° cho góc không."
+"Ghi đè góc bắc cầu. Nếu để là không, góc bắc cầu sẽ được tính tự động. Nếu "
+"không, góc được cung cấp sẽ được sử dụng cho cầu bên ngoài. Sử dụng 180° cho "
+"góc không."
 
 msgid "Internal bridge infill direction"
 msgstr "Hướng infill cầu bên trong"
@@ -11458,9 +11861,9 @@ msgid ""
 "It is recommended to leave it at 0 unless there is a specific model need not "
 "to."
 msgstr ""
-"Ghi đè góc bắc cầu bên trong. Nếu để là không, góc bắc cầu sẽ được tính "
-"tự động. Nếu không, góc được cung cấp sẽ được sử dụng cho cầu bên trong. "
-"Sử dụng 180° cho góc không.\n"
+"Ghi đè góc bắc cầu bên trong. Nếu để là không, góc bắc cầu sẽ được tính tự "
+"động. Nếu không, góc được cung cấp sẽ được sử dụng cho cầu bên trong. Sử "
+"dụng 180° cho góc không.\n"
 "\n"
 "Khuyến nghị để ở 0 trừ khi có nhu cầu model cụ thể không cần."
 
@@ -11468,19 +11871,16 @@ msgid "External bridge density"
 msgstr "Mật độ cầu bên ngoài"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. 100% means solid "
-"bridge. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
 "\n"
 "Lower density external bridges can help improve reliability as there is more "
 "space for air to circulate around the extruded bridge, improving its cooling "
-"speed."
-msgstr ""
-"Điều khiển mật độ (khoảng cách) của các đường cầu bên ngoài. 100% có nghĩa "
-"là cầu đặc. Mặc định là 100%.\n"
+"speed. Minimum is 10%.\n"
 "\n"
-"Cầu bên ngoài mật độ thấp hơn có thể giúp cải thiện độ tin cậy vì có nhiều "
-"không gian hơn để không khí lưu thông xung quanh cầu được đùn, cải thiện tốc "
-"độ làm mát của nó."
+"Higher densities can produce smoother bridge surfaces, as overlapping lines "
+"provide additional support during printing. Maximum is 120%.\n"
+"Note: Bridge density that is too high can cause warping or overextrusion."
+msgstr ""
 
 msgid "Internal bridge density"
 msgstr "Mật độ cầu bên trong"
@@ -11938,13 +12338,13 @@ msgid ""
 "If your current setup already works well, enabling it may be unnecessary and "
 "can cause the brim to fuse with upper layers."
 msgstr ""
-"Khi được bật, brim sẽ được căn chỉnh theo hình học chu vi lớp đầu tiên "
-"sau khi áp dụng Bồi thường bàn chân voi.\n"
-"Tùy chọn này dành cho các trường hợp Bồi thường chân voi "
-"làm thay đổi đáng kể dấu chân lớp đầu tiên.\n"
+"Khi được bật, brim sẽ được căn chỉnh theo hình học chu vi lớp đầu tiên sau "
+"khi áp dụng Bồi thường bàn chân voi.\n"
+"Tùy chọn này dành cho các trường hợp Bồi thường chân voi làm thay đổi đáng "
+"kể dấu chân lớp đầu tiên.\n"
 "\n"
-"Nếu thiết lập hiện tại của bạn đã hoạt động tốt, việc bật nó có thể không cần thiết và "
-"có thể khiến brim kết hợp với các lớp trên."
+"Nếu thiết lập hiện tại của bạn đã hoạt động tốt, việc bật nó có thể không "
+"cần thiết và có thể khiến brim kết hợp với các lớp trên."
 
 msgid "Brim ears"
 msgstr "Tai brim"
@@ -12064,9 +12464,6 @@ msgstr "Kích hoạt lọc khí"
 
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
 msgstr "Kích hoạt để lọc khí tốt hơn. Lệnh G-code: M106 P3 S(0-255)"
-
-msgid "Fan speed"
-msgstr "Tốc độ quạt"
 
 msgid ""
 "Speed of exhaust fan during printing. This speed will override the speed in "
@@ -12408,8 +12805,7 @@ msgid ""
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
 "benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
-"consistent as the first extrusion of a new layer starts on a visible "
-"surface."
+"consistent as the first extrusion of a new layer starts on a visible surface."
 msgstr ""
 "Trình tự in của thành bên trong (trong) và bên ngoài (ngoài).\n"
 "\n"
@@ -12825,6 +13221,9 @@ msgstr ""
 "trị này. Tốc độ quạt được nội suy giữa tốc độ quạt tối thiểu và tối đa theo "
 "thời gian in lớp."
 
+msgid "s"
+msgstr ""
+
 msgid "Default color"
 msgstr "Màu mặc định"
 
@@ -12855,9 +13254,6 @@ msgid "Filament map to extruder"
 msgstr ""
 
 msgid "Filament map to extruder."
-msgstr ""
-
-msgid "filament mapping mode"
 msgstr ""
 
 msgid "Auto For Flush"
@@ -12988,7 +13384,8 @@ msgstr "Co ngót (XY)"
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
 "if you measure 94mm instead of 100mm). The part will be scaled in XY to "
-"compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"compensate. For multi-material prints, ensure filament shrinkage matches "
+"across all used filaments\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
@@ -13154,6 +13551,9 @@ msgstr "Mật độ"
 
 msgid "Filament density. For statistics only."
 msgstr "Mật độ filament. Chỉ cho thống kê."
+
+msgid "g/cm³"
+msgstr ""
 
 msgid "The material type of filament."
 msgstr "Loại vật liệu của filament."
@@ -13424,9 +13824,6 @@ msgstr ""
 msgid "0 (Simple connect)"
 msgstr "0 (Kết nối đơn giản)"
 
-msgid "Acceleration of outer walls."
-msgstr "Gia tốc của thành ngoài."
-
 msgid "Acceleration of inner walls."
 msgstr "Gia tốc của thành trong."
 
@@ -13456,8 +13853,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² hoặc %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Gia tốc của infill thưa. Nếu giá trị được biểu thị dưới dạng phần trăm (ví "
 "dụ 100%), nó sẽ được tính dựa trên gia tốc mặc định."
@@ -13575,14 +13972,14 @@ msgstr "Tốc độ quạt đầy tại lớp"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Tốc độ quạt sẽ được tăng tuyến tính từ không tại lớp "
-"\"close_fan_the_first_x_layers\" đến tối đa tại lớp \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" sẽ bị bỏ qua nếu thấp hơn "
+"\"close_fan_the_first_x_layers\" đến tối đa tại lớp "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" sẽ bị bỏ qua nếu thấp hơn "
 "\"close_fan_the_first_x_layers\", trong trường hợp đó quạt sẽ chạy ở tốc độ "
 "tối đa được phép tại lớp \"close_fan_the_first_x_layers\" + 1."
 
@@ -13638,12 +14035,48 @@ msgstr ""
 "tích thấp, làm cho giao diện mịn hơn.\n"
 "Đặt thành -1 để tắt."
 
+msgid "Ironing flow"
+msgstr "Lưu lượng ủi"
+
+msgid ""
+"Filament-specific override for ironing flow. This allows you to customize "
+"the ironing flow for each filament type. Too high value results in "
+"overextrusion on the surface."
+msgstr ""
+
+msgid "Ironing line spacing"
+msgstr "Khoảng cách đường ủi"
+
+msgid ""
+"Filament-specific override for ironing line spacing. This allows you to "
+"customize the spacing between ironing lines for each filament type."
+msgstr ""
+
+msgid "Ironing inset"
+msgstr "Lùi vào ủi"
+
+msgid ""
+"Filament-specific override for ironing inset. This allows you to customize "
+"the distance to keep from the edges when ironing for each filament type."
+msgstr ""
+
+msgid "Ironing speed"
+msgstr "Tốc độ ủi"
+
+msgid ""
+"Filament-specific override for ironing speed. This allows you to customize "
+"the print speed of ironing lines for each filament type."
+msgstr ""
+
 msgid ""
 "Randomly jitter while printing the wall, so that the surface has a rough "
 "look. This setting controls the fuzzy position."
 msgstr ""
 "Rung ngẫu nhiên trong khi in thành, để bề mặt có vẻ thô. Cài đặt này điều "
 "khiển vị trí fuzzy."
+
+msgid "None (allow paint)"
+msgstr ""
 
 msgid "Contour"
 msgstr "Đường viền"
@@ -13871,6 +14304,19 @@ msgid ""
 msgstr ""
 "Bật điều này để bật camera trên máy in để kiểm tra chất lượng lớp đầu tiên."
 
+msgid "Power Loss Recovery"
+msgstr ""
+
+msgid ""
+"Choose how to control power loss recovery. When set to Printer "
+"configuration, the slicer will not emit power loss recovery G-code and will "
+"leave the printer's configuration unchanged. Applicable to Bambu Lab or "
+"Marlin 2 firmware based printers."
+msgstr ""
+
+msgid "Printer configuration"
+msgstr ""
+
 msgid "Nozzle type"
 msgstr "Loại đầu phun"
 
@@ -13892,9 +14338,6 @@ msgstr "Thép không gỉ"
 
 msgid "Tungsten carbide"
 msgstr ""
-
-msgid "Brass"
-msgstr "Đồng thau"
 
 msgid "Nozzle HRC"
 msgstr "HRC đầu phun"
@@ -14104,9 +14547,6 @@ msgstr ""
 "+5° mỗi lớp; '+5#5' xoay +5° mỗi 5 lớp. Xem Wiki để biết chi tiết. Khi mẫu "
 "được đặt, cài đặt hướng infill tiêu chuẩn bị bỏ qua. Lưu ý: một số mẫu "
 "infill (ví dụ: Gyroid) tự điều khiển xoay; sử dụng cẩn thận."
-
-msgid "°"
-msgstr "°"
 
 msgid "Solid infill rotation template"
 msgstr "Mẫu xoay infill đặc"
@@ -14395,9 +14835,6 @@ msgstr "Mẫu ủi"
 msgid "The pattern that will be used when ironing."
 msgstr "Mẫu sẽ được sử dụng khi ủi."
 
-msgid "Ironing flow"
-msgstr "Lưu lượng ủi"
-
 msgid ""
 "The amount of material to extrude during ironing. Relative to flow of normal "
 "layer height. Too high value results in overextrusion on the surface."
@@ -14405,14 +14842,8 @@ msgstr ""
 "Lượng vật liệu để đùn trong khi ủi. Tương đối với lưu lượng của chiều cao "
 "lớp bình thường. Giá trị quá cao dẫn đến đùn dư trên bề mặt."
 
-msgid "Ironing line spacing"
-msgstr "Khoảng cách đường ủi"
-
 msgid "The distance between the lines of ironing."
 msgstr "Khoảng cách giữa các đường ủi."
-
-msgid "Ironing inset"
-msgstr "Lùi vào ủi"
 
 msgid ""
 "The distance to keep from the edges. A value of 0 sets this to half of the "
@@ -14420,9 +14851,6 @@ msgid ""
 msgstr ""
 "Khoảng cách để giữ từ các cạnh. Giá trị 0 đặt điều này thành một nửa đường "
 "kính đầu phun."
-
-msgid "Ironing speed"
-msgstr "Tốc độ ủi"
 
 msgid "Print speed of ironing lines."
 msgstr "Tốc độ in của các đường ủi."
@@ -14704,6 +15132,9 @@ msgstr ""
 "\n"
 "Lưu ý: tham số này vô hiệu hóa khớp cung."
 
+msgid "mm³/s²"
+msgstr ""
+
 msgid "Smoothing segment length"
 msgstr "Độ dài đoạn làm mịn"
 
@@ -14861,8 +15292,8 @@ msgid "Reduce infill retraction"
 msgstr "Giảm rút infill"
 
 msgid ""
-"Don't retract when the travel is entirely within an infill area. That means the "
-"oozing can't been seen. This can reduce times of retraction for complex "
+"Don't retract when the travel is entirely within an infill area. That means "
+"the oozing can't been seen. This can reduce times of retraction for complex "
 "model and save printing time, but make slicing and G-code generating slower. "
 "Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
@@ -14910,6 +15341,9 @@ msgid ""
 msgstr ""
 "Diện tích tối đa của lỗ ở đáy model trước khi nó được lấp bởi vật liệu hình "
 "nón. Giá trị 0 sẽ lấp tất cả các lỗ ở đáy model."
+
+msgid "mm²"
+msgstr ""
 
 msgid "Detect overhang wall"
 msgstr "Phát hiện thành nhô"
@@ -15192,12 +15626,6 @@ msgstr ""
 msgid "Bowden"
 msgstr "Bowden"
 
-msgid "Nozzle Volume Type"
-msgstr ""
-
-msgid "Default Nozzle Volume Type."
-msgstr ""
-
 msgid "Extra length on restart"
 msgstr "Độ dài bổ sung khi khởi động lại"
 
@@ -15413,8 +15841,8 @@ msgid "Role base wipe speed"
 msgstr "Tốc độ lau dựa trên vai trò"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -15703,6 +16131,9 @@ msgstr ""
 "được sử dụng khi 'idle_temperature' trong cài đặt filament được đặt thành "
 "giá trị khác không."
 
+msgid "∆℃"
+msgstr ""
+
 msgid "Preheat time"
 msgstr "Thời gian làm nóng trước"
 
@@ -15726,6 +16157,13 @@ msgid ""
 msgstr ""
 "Chèn nhiều lệnh làm nóng trước (ví dụ M104.1). Chỉ hữu ích cho Prusa XL. Đối "
 "với các máy in khác, vui lòng đặt nó thành 1."
+
+msgid ""
+"G-code written at the very top of the output file, before any other content. "
+"Useful for adding metadata that printer firmware reads from the first lines "
+"of the file (e.g. estimated print time, filament usage). Supports "
+"placeholders like {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "G-code bắt đầu"
@@ -16245,8 +16683,8 @@ msgstr "Kích hoạt điều khiển nhiệt độ"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -16559,8 +16997,8 @@ msgstr ""
 msgid "Rib width"
 msgstr "Độ rộng gân"
 
-msgid "Rib width."
-msgstr "Độ rộng gân."
+msgid "Rib width is always less than half the prime tower side length."
+msgstr ""
 
 msgid "Fillet wall"
 msgstr "Thành bo tròn"
@@ -16962,16 +17400,6 @@ msgstr "Cập nhật"
 msgid "Update the config values of 3MF to latest."
 msgstr "Cập nhật giá trị cấu hình của 3MF lên mới nhất."
 
-msgid "downward machines check"
-msgstr "kiểm tra máy tương thích ngược"
-
-msgid ""
-"check whether current machine downward compatible with the machines in the "
-"list."
-msgstr ""
-"kiểm tra máy hiện tại có tương thích ngược với các máy trong danh sách hay "
-"không."
-
 msgid "Load default filaments"
 msgstr "Nạp filament mặc định"
 
@@ -17171,11 +17599,11 @@ msgid "Debug level"
 msgstr "Mức gỡ lỗi"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"Đặt mức ghi log gỡ lỗi. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Đặt mức ghi log gỡ lỗi. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 
 msgid "Enable timelapse for print"
 msgstr "Bật timelapse cho in"
@@ -17349,6 +17777,16 @@ msgstr ""
 "Vector của các boolean cho biết extruder đã cho có được sử dụng trong bản in "
 "hay không."
 
+msgid "Number of extruders"
+msgstr "Số lượng extruder"
+
+msgid ""
+"Total number of extruders, regardless of whether they are used in the "
+"current print."
+msgstr ""
+"Tổng số extruder, bất kể chúng có được sử dụng trong bản in hiện tại hay "
+"không."
+
 msgid "Has single extruder MM priming"
 msgstr "Có nạp MM extruder đơn"
 
@@ -17400,6 +17838,66 @@ msgstr "Tổng số lớp"
 
 msgid "Number of layers in the entire print."
 msgstr "Số lượng lớp trong toàn bộ bản in."
+
+msgid "Print time (normal mode)"
+msgstr ""
+
+msgid ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as print_time."
+msgstr ""
+
+msgid ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as normal_print_time."
+msgstr ""
+
+msgid "Print time (silent mode)"
+msgstr ""
+
+msgid "Estimated print time when printed in silent mode."
+msgstr ""
+
+msgid ""
+"Total cost of all material used in the print. Calculated from filament_cost "
+"value in Filament Settings."
+msgstr ""
+
+msgid "Total wipe tower cost"
+msgstr ""
+
+msgid ""
+"Total cost of the material wasted on the wipe tower. Calculated from "
+"filament_cost value in Filament Settings."
+msgstr ""
+
+msgid "Wipe tower volume"
+msgstr ""
+
+msgid "Total filament volume extruded on the wipe tower."
+msgstr ""
+
+msgid "Used filament"
+msgstr ""
+
+msgid "Total length of filament used in the print."
+msgstr ""
+
+msgid "Print time (seconds)"
+msgstr ""
+
+msgid ""
+"Total estimated print time in seconds. Replaced with actual value during "
+"post-processing."
+msgstr ""
+
+msgid "Filament length (meters)"
+msgstr ""
+
+msgid ""
+"Total filament length used in meters. Replaced with actual value during post-"
+"processing."
+msgstr ""
 
 msgid "Number of objects"
 msgstr "Số lượng đối tượng"
@@ -17521,16 +18019,6 @@ msgstr "Tên máy in vật lý"
 msgid "Name of the physical printer used for slicing."
 msgstr "Tên của máy in vật lý được sử dụng để slice."
 
-msgid "Number of extruders"
-msgstr "Số lượng extruder"
-
-msgid ""
-"Total number of extruders, regardless of whether they are used in the "
-"current print."
-msgstr ""
-"Tổng số extruder, bất kể chúng có được sử dụng trong bản in hiện tại hay "
-"không."
-
 msgid "Layer number"
 msgstr "Số lớp"
 
@@ -17644,13 +18132,13 @@ msgstr "File được cung cấp không thể đọc được vì nó trống"
 msgid ""
 "Unknown file format. Input file must have .stl, .obj, .amf(.xml) extension."
 msgstr ""
-"Định dạng file không xác định. File đầu vào phải có phần mở rộng .stl, ."
-"obj, .amf(.xml)."
+"Định dạng file không xác định. File đầu vào phải có phần mở "
+"rộng .stl, .obj, .amf(.xml)."
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Định dạng file không xác định. File đầu vào phải có phần mở rộng .3mf hoặc ."
-"zip.amf."
+"Định dạng file không xác định. File đầu vào phải có phần mở rộng .3mf "
+"hoặc .zip.amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: phân tích thất bại"
@@ -18114,6 +18602,9 @@ msgstr ""
 msgid "Printing Parameters"
 msgstr "Tham số in"
 
+msgid "- ℃"
+msgstr ""
+
 msgid "Synchronize nozzle and AMS information"
 msgstr ""
 
@@ -18127,6 +18618,9 @@ msgid ""
 msgstr ""
 
 msgid "AMS and nozzle information are synced"
+msgstr ""
+
+msgid "Nozzle Flow"
 msgstr ""
 
 msgid "Nozzle Info"
@@ -18173,9 +18667,6 @@ msgstr ""
 
 msgid "Sync AMS and nozzle information"
 msgstr ""
-
-msgid "Connecting to printer"
-msgstr "Đang kết nối với máy in"
 
 msgid ""
 "Calibration only supports cases where the left and right nozzle diameters "
@@ -18237,9 +18728,6 @@ msgstr ""
 
 msgid "New Flow Dynamic Calibration"
 msgstr "Hiệu chỉnh động lực lưu lượng mới"
-
-msgid "Ok"
-msgstr "Ok"
 
 msgid "The filament must be selected."
 msgstr "Filament phải được chọn."
@@ -18324,12 +18812,6 @@ msgstr "Danh sách gia tốc in ngăn cách bằng dấu phẩy"
 msgid "Comma-separated list of printing speeds"
 msgstr "Danh sách tốc độ in ngăn cách bằng dấu phẩy"
 
-msgid "Pressure Advance Guide"
-msgstr ""
-
-msgid "Adaptive Pressure Advance Guide"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
 "Start PA: >= 0.0\n"
@@ -18340,6 +18822,11 @@ msgstr ""
 "PA bắt đầu: >= 0.0\n"
 "PA kết thúc: > PA bắt đầu\n"
 "Bước PA: >= 0.001"
+
+msgid ""
+"Acceleration values must be greater than speed values.\n"
+"Please verify the inputs."
+msgstr ""
 
 msgid "Temperature calibration"
 msgstr "Hiệu chỉnh nhiệt độ"
@@ -18377,13 +18864,10 @@ msgstr "Nhiệt độ kết thúc: "
 msgid "Temp step: "
 msgstr "Bước nhiệt độ: "
 
-msgid "Wiki Guide: Temperature Calibration"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
-"Start temp: <= 350\n"
-"End temp: >= 170\n"
+"Start temp: <= 500\n"
+"End temp: >= 155\n"
 "Start temp >= End temp + 5"
 msgstr ""
 
@@ -18395,9 +18879,6 @@ msgstr "Tốc độ thể tích bắt đầu: "
 
 msgid "End volumetric speed: "
 msgstr "Tốc độ thể tích kết thúc: "
-
-msgid "Wiki Guide: Volumetric Speed Calibration"
-msgstr ""
 
 msgid ""
 "Please input valid values:\n"
@@ -18419,9 +18900,6 @@ msgstr "Tốc độ bắt đầu: "
 msgid "End speed: "
 msgstr "Tốc độ kết thúc: "
 
-msgid "Wiki Guide: VFA"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18438,9 +18916,6 @@ msgstr "Độ dài rút bắt đầu: "
 
 msgid "End retraction length: "
 msgstr "Độ dài rút kết thúc: "
-
-msgid "Wiki Guide: Retraction Calibration"
-msgstr ""
 
 msgid "Input shaping Frequency test"
 msgstr "Kiểm tra tần số input shaping"
@@ -18466,6 +18941,9 @@ msgstr "Bắt đầu / Kết thúc"
 msgid "Frequency settings"
 msgstr "Cài đặt tần số"
 
+msgid "Hz"
+msgstr ""
+
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr ""
 
@@ -18475,9 +18953,6 @@ msgstr "Giảm chấn: "
 msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
-msgstr ""
-
-msgid "Wiki Guide: Input Shaping Calibration"
 msgstr ""
 
 msgid ""
@@ -18554,9 +19029,6 @@ msgstr ""
 msgid ""
 "RepRap detected: Jerk in mm/s.\n"
 "OrcaSlicer will convert the values to mm/min when necessary."
-msgstr ""
-
-msgid "Wiki Guide: Cornering Calibration"
 msgstr ""
 
 #, c-format, boost-format
@@ -18829,8 +19301,8 @@ msgstr ""
 "Bạn có muốn viết lại nó không?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Chúng tôi sẽ đổi tên cài đặt sẵn thành \"Nhà cung cấp Loại Serial @máy in "
@@ -19188,15 +19660,6 @@ msgstr[0] "Các cài đặt sẵn sau kế thừa cài đặt sẵn này."
 msgid "Delete Preset"
 msgstr "Xóa cài đặt sẵn"
 
-msgid ""
-"Are you sure to delete the selected preset?\n"
-"If the preset corresponds to a filament currently in use on your printer, "
-"please reset the filament information for that slot."
-msgstr ""
-"Bạn có chắc chắn xóa cài đặt sẵn đã chọn không?\n"
-"Nếu cài đặt sẵn tương ứng với filament hiện đang được sử dụng trên máy in "
-"của bạn, vui lòng đặt lại thông tin filament cho vị trí đó."
-
 msgid "Are you sure to delete the selected preset?"
 msgstr "Bạn có chắc chắn xóa cài đặt sẵn đã chọn không?"
 
@@ -19240,11 +19703,24 @@ msgstr "Chỉnh sửa cài đặt sẵn"
 msgid "For more information, please check out Wiki"
 msgstr "Để biết thêm thông tin, vui lòng xem Wiki"
 
+msgid "Wiki"
+msgstr "Wiki"
+
 msgid "Collapse"
 msgstr "Thu gọn"
 
 msgid "Daily Tips"
 msgstr "Mẹo hàng ngày"
+
+msgid ""
+"The printer nozzle information has not been set.\n"
+"Please configure it before proceeding with the calibration."
+msgstr ""
+
+msgid ""
+"The nozzle type does not match the actual printer nozzle type.\n"
+"Please click the Sync button above and restart the calibration."
+msgstr ""
 
 #, c-format, boost-format
 msgid "nozzle size in preset: %d"
@@ -19289,6 +19765,12 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
+"The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
+"Flow Dynamics calibration."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
 "The currently selected nozzle diameter of %s extruder does not match the "
 "actual nozzle diameter.\n"
 "Please click the Sync button above and restart the calibration."
@@ -19307,11 +19789,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Automatic calibration only supports cases where the left and right nozzle "
-"diameters are identical."
-msgstr ""
-
-msgid ""
 "Unable to calibrate: maybe because the set calibration value range is too "
 "large, or the step is too small"
 msgstr ""
@@ -19323,6 +19800,11 @@ msgstr "Máy in vật lý"
 
 msgid "Print Host upload"
 msgstr "Tải lên máy chủ in"
+
+msgid ""
+"Select the network agent implementation for printer communication. Available "
+"agents are registered at startup."
+msgstr ""
 
 msgid "Could not get a valid Printer Host reference"
 msgstr "Không thể có tham chiếu máy chủ máy in hợp lệ"
@@ -20046,9 +20528,6 @@ msgstr ""
 msgid "Global settings"
 msgstr ""
 
-msgid "Learn more"
-msgstr ""
-
 msgid "(Sync with printer)"
 msgstr ""
 
@@ -20593,6 +21072,89 @@ msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn "
 "nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Filament remapping finished."
+#~ msgstr "Ánh xạ lại filament hoàn tất."
+
+#~ msgid "Replace with STL"
+#~ msgstr "Thay thế bằng STL"
+
+#~ msgid "Replace the selected part with new STL"
+#~ msgstr "Thay thế phần đã chọn bằng STL mới"
+
+#~ msgid "Loading G-code"
+#~ msgstr "Đang tải G-code"
+
+#~ msgid "Generating geometry vertex data"
+#~ msgstr "Đang tạo dữ liệu đỉnh hình học"
+
+#~ msgid "Generating geometry index data"
+#~ msgstr "Đang tạo dữ liệu chỉ số hình học"
+
+#~ msgid "Switch to silent mode"
+#~ msgstr "Chuyển sang chế độ im lặng"
+
+#~ msgid "Switch to normal mode"
+#~ msgstr "Chuyển sang chế độ bình thường"
+
+#~ msgid ""
+#~ "The application cannot run normally because OpenGL version is lower than "
+#~ "2.0.\n"
+#~ msgstr ""
+#~ "Ứng dụng không thể chạy bình thường vì phiên bản OpenGL thấp hơn 2.0.\n"
+
+#~ msgid "Nozzle Type"
+#~ msgstr "Loại đầu phun"
+
+#~ msgid "Advance"
+#~ msgstr "Nâng cao"
+
+#~ msgid ""
+#~ "Disable to use latest network plugin that supports new BambuLab firmwares."
+#~ msgstr "Tắt để sử dụng plugin mạng mới nhất hỗ trợ firmware BambuLab mới."
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Đang đóng gói dữ liệu vào 3mf"
+
+#~ msgid ""
+#~ "Controls the density (spacing) of external bridge lines. 100% means solid "
+#~ "bridge. Default is 100%.\n"
+#~ "\n"
+#~ "Lower density external bridges can help improve reliability as there is "
+#~ "more space for air to circulate around the extruded bridge, improving its "
+#~ "cooling speed."
+#~ msgstr ""
+#~ "Điều khiển mật độ (khoảng cách) của các đường cầu bên ngoài. 100% có "
+#~ "nghĩa là cầu đặc. Mặc định là 100%.\n"
+#~ "\n"
+#~ "Cầu bên ngoài mật độ thấp hơn có thể giúp cải thiện độ tin cậy vì có "
+#~ "nhiều không gian hơn để không khí lưu thông xung quanh cầu được đùn, cải "
+#~ "thiện tốc độ làm mát của nó."
+
+#~ msgid "Acceleration of outer walls."
+#~ msgstr "Gia tốc của thành ngoài."
+
+#~ msgid "°"
+#~ msgstr "°"
+
+#~ msgid "Rib width."
+#~ msgstr "Độ rộng gân."
+
+#~ msgid "downward machines check"
+#~ msgstr "kiểm tra máy tương thích ngược"
+
+#~ msgid ""
+#~ "check whether current machine downward compatible with the machines in "
+#~ "the list."
+#~ msgstr ""
+#~ "kiểm tra máy hiện tại có tương thích ngược với các máy trong danh sách "
+#~ "hay không."
+
+#~ msgid "Connecting to printer"
+#~ msgstr "Đang kết nối với máy in"
+
+#~ msgid "Ok"
+#~ msgstr "Ok"
 
 #~ msgid "Junction Deviation calibration"
 #~ msgstr "Hiệu chỉnh Junction Deviation"
