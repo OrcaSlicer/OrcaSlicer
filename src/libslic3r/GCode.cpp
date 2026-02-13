@@ -4478,22 +4478,37 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_Temp_Tower: {
-            constexpr double base_temp_tower_nozzle_diameter = 0.4;
-            constexpr double base_temp_tower_step_height = 10.001;
-            constexpr int base_temp_tower_temp_step = 5;
-
-            double nozzle_diameter = base_temp_tower_nozzle_diameter;
-            if (writer().filament() && !m_config.nozzle_diameter.values.empty()) {
-                const size_t nozzle_id = std::min<size_t>(writer().filament()->extruder_id(), m_config.nozzle_diameter.values.size() - 1);
-                nozzle_diameter = m_config.nozzle_diameter.values[nozzle_id];
+            // Adapt the temperature steps to current tower height (including any additional resize):
+            // split the full height into equal segments, one for each 5C step.
+            coordf_t max_print_z = 0.0;
+            for (ObjectID print_object_id : print.print_object_ids()) {
+                const PrintObject* print_object = print.get_object(print_object_id);
+                if (print_object != nullptr && !print_object->layers().empty())
+                    max_print_z = std::max(max_print_z, print_object->layers().back()->print_z);
             }
-            if (nozzle_diameter <= 0.0)
-                nozzle_diameter = base_temp_tower_nozzle_diameter;
 
-            const double nozzle_scale = nozzle_diameter / base_temp_tower_nozzle_diameter;
-            const double step_height = base_temp_tower_step_height * nozzle_scale;
-            auto offset = static_cast<unsigned int>(print_z / step_height) * base_temp_tower_temp_step;
-            gcode += writer().set_temperature(print.calib_params().start - offset);
+            const double start_temp = print.calib_params().start;
+            const double end_temp = print.calib_params().end;
+            constexpr int temp_step_celsius = 5;
+            const int temp_low = static_cast<int>(std::floor(std::min(start_temp, end_temp)));
+            const int temp_high = static_cast<int>(std::ceil(std::max(start_temp, end_temp)));
+
+            const int start_temp_int = static_cast<int>(std::lround(start_temp));
+            const int end_temp_int = static_cast<int>(std::lround(end_temp));
+            const int direction = (end_temp_int >= start_temp_int) ? 1 : -1;
+            const unsigned int total_temp_steps = static_cast<unsigned int>(std::max(1, std::abs(end_temp_int - start_temp_int) / temp_step_celsius));
+            const unsigned int total_temp_levels = total_temp_steps + 1;
+
+            const double step_height = max_print_z > EPSILON ? (static_cast<double>(max_print_z) / static_cast<double>(total_temp_levels)) : 1.0;
+            const unsigned int level_index = std::min(total_temp_steps, static_cast<unsigned int>(std::floor(print_z / step_height)));
+
+            int target_temp = start_temp_int + direction * static_cast<int>(level_index * temp_step_celsius);
+            if (level_index >= total_temp_steps)
+                target_temp = end_temp_int;
+
+            const int bounded_temp = std::clamp(target_temp, temp_low, temp_high);
+
+            gcode += writer().set_temperature(bounded_temp);
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
