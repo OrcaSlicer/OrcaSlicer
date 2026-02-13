@@ -4478,7 +4478,21 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_Temp_Tower: {
-            auto offset = static_cast<unsigned int>(print_z / 10.001) * 5;
+            constexpr double base_temp_tower_nozzle_diameter = 0.4;
+            constexpr double base_temp_tower_step_height = 10.001;
+            constexpr int base_temp_tower_temp_step = 5;
+
+            double nozzle_diameter = base_temp_tower_nozzle_diameter;
+            if (writer().filament() && !m_config.nozzle_diameter.values.empty()) {
+                const size_t nozzle_id = std::min<size_t>(writer().filament()->extruder_id(), m_config.nozzle_diameter.values.size() - 1);
+                nozzle_diameter = m_config.nozzle_diameter.values[nozzle_id];
+            }
+            if (nozzle_diameter <= 0.0)
+                nozzle_diameter = base_temp_tower_nozzle_diameter;
+
+            const double nozzle_scale = nozzle_diameter / base_temp_tower_nozzle_diameter;
+            const double step_height = base_temp_tower_step_height * nozzle_scale;
+            auto offset = static_cast<unsigned int>(print_z / step_height) * base_temp_tower_temp_step;
             gcode += writer().set_temperature(print.calib_params().start - offset);
             break;
         }

@@ -1072,6 +1072,10 @@ bool CalibUtils::calib_generic_PA(const CalibInfo &calib_info, wxString &error_m
 
 void CalibUtils::calib_temptue(const CalibInfo &calib_info, wxString &error_message)
 {
+    constexpr double base_temp_tower_nozzle_diameter = 0.4;
+    constexpr double base_temp_tower_block_height = 10.0;
+    constexpr int base_temp_tower_temp_step = 5;
+
     const Calib_Params &params = calib_info.params;
     if (params.mode != CalibMode::Calib_Temp_Tower)
         return;
@@ -1080,12 +1084,27 @@ void CalibUtils::calib_temptue(const CalibInfo &calib_info, wxString &error_mess
     std::string               input_file = Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.stl";
     read_model_from_file(input_file, model);
 
+    const ConfigOptionFloats* nozzle_diameter_config = calib_info.printer_prest->config.option<ConfigOptionFloats>("nozzle_diameter");
+    size_t nozzle_id = static_cast<size_t>(std::max(params.extruder_id, 0));
+    double nozzle_diameter = base_temp_tower_nozzle_diameter;
+    if (nozzle_diameter_config && !nozzle_diameter_config->values.empty()) {
+        nozzle_id = std::min(nozzle_id, nozzle_diameter_config->values.size() - 1);
+        nozzle_diameter = nozzle_diameter_config->values[nozzle_id];
+    }
+    if (nozzle_diameter <= 0.0)
+        nozzle_diameter = base_temp_tower_nozzle_diameter;
+
+    const double nozzle_scale = nozzle_diameter / base_temp_tower_nozzle_diameter;
+    const double block_height = base_temp_tower_block_height * nozzle_scale;
+    if (std::abs(nozzle_scale - 1.0) > EPSILON)
+        model.objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+
     // cut upper
     auto obj_bb      = model.objects[0]->bounding_box_exact();
-    auto block_count = lround((350 - params.start) / 5 + 1);
+    auto block_count = lround((350 - params.start) / base_temp_tower_temp_step + 1);
     if (block_count > 0) {
         // add EPSILON offset to avoid cutting at the exact location where the flat surface is
-        auto new_height = block_count * 10.0 + EPSILON;
+        auto new_height = block_count * block_height + EPSILON;
         if (new_height < obj_bb.size().z()) {
             cut_model(model, new_height, ModelObjectCutAttribute::KeepLower);
         }
@@ -1093,9 +1112,9 @@ void CalibUtils::calib_temptue(const CalibInfo &calib_info, wxString &error_mess
 
     // cut bottom
     obj_bb      = model.objects[0]->bounding_box_exact();
-    block_count = lround((350 - params.end) / 5);
+    block_count = lround((350 - params.end) / base_temp_tower_temp_step);
     if (block_count > 0) {
-        auto new_height = block_count * 10.0 + EPSILON;
+        auto new_height = block_count * block_height + EPSILON;
         if (new_height < obj_bb.size().z()) {
             cut_model(model, new_height, ModelObjectCutAttribute::KeepUpper);
         }
