@@ -95,7 +95,6 @@
     "retract_lift_below": [
         "249"
     ],
-    "extruder_clearance_radius": "57",
     "extruder_clearance_max_radius": "68",
     "extruder_clearance_height_to_lid": "90",
     "nozzle_volume": "107",

@@ -170,6 +170,11 @@ bool load_obj(const char *path, TriangleMesh *meshptr, ObjInfo& obj_info, std::s
                         }
                         obj_info.face_colors.emplace_back(face_color);
                     }
+                    else {
+                        if (obj_info.lost_material_name.empty()) {
+                            obj_info.lost_material_name = mtl_name;
+                        }
+                    }
                 };
                 auto set_face_color_by_mtl = [&data, &set_face_color](int face_index) {
                     if (data.usemtls.size() == 1) {

@@ -23,14 +23,23 @@
     "filament_scarf_seam_type": [
         "none"
     ],
-    "filament_scarf_height":[
+    "filament_scarf_height": [
         "10%"
     ],
-    "filament_scarf_gap":[
+    "filament_scarf_gap": [
         "0%"
     ],
-    "filament_scarf_length":[
+    "filament_scarf_length": [
         "10"
+    ],
+    "filament_change_length": [
+        "5"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "impact_strength_z": [
+        "13.8"
     ],
     "compatible_printers": [],
     "filament_start_gcode": [

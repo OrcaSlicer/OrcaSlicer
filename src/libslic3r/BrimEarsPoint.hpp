@@ -42,6 +42,11 @@ struct BrimPoint
         return result.cast<float>();
     }
 
+    void set_transform(const Transform3d& trsf)
+    {
+        pos = transform(trsf);
+    }
+
     bool operator==(const BrimPoint &sp) const
     {
         float rdiff = std::abs(head_front_radius - sp.head_front_radius);

@@ -24,7 +24,7 @@
 namespace Slic3r
 {
 
-    float                   flat_iron_area                 = 4.f;
+static constexpr float      flat_iron_area                 = 4.f;
 constexpr float         flat_iron_speed                = 10.f * 60.f;
 static const double     wipe_tower_wall_infill_overlap = 0.0;
 static constexpr double WIPE_TOWER_RESOLUTION          = 0.1;
@@ -69,7 +69,7 @@ static bool is_valid_gcode(const std::string& gcode)
     return is_valid;
 }
 
-Polygon chamfer_polygon(Polygon& polygon, double chamfer_dis = 2., double angle_tol = 30. / 180. * PI)
+static Polygon chamfer_polygon(Polygon& polygon, double chamfer_dis = 2., double angle_tol = 30. / 180. * PI)
 {
     if (polygon.points.size() < 3)
         return polygon;
@@ -104,7 +104,7 @@ Polygon chamfer_polygon(Polygon& polygon, double chamfer_dis = 2., double angle_
     return res;
 }
 
-Polygon rounding_polygon(Polygon& polygon, double rounding = 2., double angle_tol  = 30. / 180. * PI)
+static Polygon rounding_polygon(Polygon& polygon, double rounding = 2., double angle_tol  = 30. / 180. * PI)
 {
     if (polygon.points.size() < 3)
         return polygon;
@@ -174,7 +174,7 @@ Polygon rounding_polygon(Polygon& polygon, double rounding = 2., double angle_to
     return res;
 }
 
-Polygon rounding_rectangle(Polygon& polygon, double rounding = 2., double angle_tol = 30. / 180. * PI)
+static Polygon rounding_rectangle(Polygon& polygon, double rounding = 2., double angle_tol = 30. / 180. * PI)
 {
     if (polygon.points.size() < 3)
         return polygon;
@@ -234,7 +234,7 @@ Polygon rounding_rectangle(Polygon& polygon, double rounding = 2., double angle_
     return res;
 }
 
-std::pair<bool, Vec2f> ray_intersetion_line(const Vec2f& a, const Vec2f& v1, const Vec2f& b, const Vec2f& c)
+static std::pair<bool, Vec2f> ray_intersetion_line(const Vec2f& a, const Vec2f& v1, const Vec2f& b, const Vec2f& c)
 {
     const Vec2f v2    = c - b;
     double      denom = cross2(v1, v2);
@@ -252,14 +252,14 @@ std::pair<bool, Vec2f> ray_intersetion_line(const Vec2f& a, const Vec2f& v1, con
     }
     return std::pair<bool, Vec2f>(false, Vec2f{0, 0});
 }
-Polygon scale_polygon(const std::vector<Vec2f>& points)
+static Polygon scale_polygon(const std::vector<Vec2f>& points)
 {
     Polygon res;
     for (const auto& p : points)
         res.points.push_back(scaled(p));
     return res;
 }
-std::vector<Vec2f> unscale_polygon(const Polygon& polygon)
+static std::vector<Vec2f> unscale_polygon(const Polygon& polygon)
 {
     std::vector<Vec2f> res;
     for (const auto& p : polygon.points)
@@ -267,7 +267,7 @@ std::vector<Vec2f> unscale_polygon(const Polygon& polygon)
     return res;
 }
 
-Polygon generate_rectange(const Line& line, coord_t offset)
+static Polygon generate_rectange(const Line& line, coord_t offset)
 {
     Point p1 = line.a;
     Point p2 = line.b;
@@ -306,7 +306,7 @@ struct Segment
     bool is_valid() const { return start.y() < end.y(); }
 };
 
-std::vector<Segment> remove_points_from_segment(const Segment& segment, const std::vector<Vec2f>& skip_points, double range)
+static std::vector<Segment> remove_points_from_segment(const Segment& segment, const std::vector<Vec2f>& skip_points, double range)
 {
     std::vector<Segment> result;
     result.push_back(segment);
@@ -349,7 +349,7 @@ struct PointWithFlag
     int   pair_idx; // gap_pair idx
     bool  is_forward;
 };
-IntersectionInfo move_point_along_polygon(
+static IntersectionInfo move_point_along_polygon(
     const std::vector<Vec2f>& points, const Vec2f& startPoint, int startIdx, float offset, bool forward, int pair_idx)
 {
     float            remainingDistance = offset;
@@ -412,7 +412,7 @@ IntersectionInfo move_point_along_polygon(
     return res;
 };
 
-void insert_points(std::vector<PointWithFlag>& pl, int idx, Vec2f pos, int pair_idx, bool is_forward)
+static void insert_points(std::vector<PointWithFlag>& pl, int idx, Vec2f pos, int pair_idx, bool is_forward)
 {
     int   next = (idx + 1) % pl.size();
     Vec2f pos1 = pl[idx].pos;
@@ -428,7 +428,7 @@ void insert_points(std::vector<PointWithFlag>& pl, int idx, Vec2f pos, int pair_
     }
 }
 
-Polylines remove_points_from_polygon(
+static Polylines remove_points_from_polygon(
     const Polygon& polygon, const std::vector<Vec2f>& skip_points, double range, bool is_left, Polygon& insert_skip_pg)
 {
     assert(polygon.size() > 2);
@@ -519,7 +519,7 @@ Polylines remove_points_from_polygon(
     return result;
 }
 
-Polylines contrust_gap_for_skip_points(
+static Polylines contrust_gap_for_skip_points(
     const Polygon& polygon, const std::vector<Vec2f>& skip_points, float wt_width, float gap_length, Polygon& insert_skip_polygon)
 {
     if (skip_points.empty()) {
@@ -534,7 +534,7 @@ Polylines contrust_gap_for_skip_points(
     return remove_points_from_polygon(polygon, skip_points, gap_length, is_left, insert_skip_polygon);
 };
 
-Polygon generate_rectange_polygon(const Vec2f& wt_box_min, const Vec2f& wt_box_max)
+static Polygon generate_rectange_polygon(const Vec2f& wt_box_min, const Vec2f& wt_box_max)
 {
     Polygon res;
     res.points.push_back(scaled(wt_box_min));
@@ -1215,6 +1215,10 @@ WipeTower::ToolChangeResult WipeTower2::construct_tcr(WipeTowerWriter2& writer,
     result.extrusions   = std::move(writer.extrusions());
     result.wipe_path    = std::move(writer.wipe_path());
     result.is_finish_first = is_finish;
+    // ORCA: Always initialize the tool_change_start_pos with a valid position
+    // to avoid undefined variable travel on X in Gcode.cpp function std::string WipeTowerIntegration::post_process_wipe_tower_moves
+    result.tool_change_start_pos = result.start_pos;  // always valid fallback
+
     return result;
 }
 
@@ -1223,6 +1227,7 @@ WipeTower::ToolChangeResult WipeTower2::construct_tcr(WipeTowerWriter2& writer,
 WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& default_region_config,int plate_idx, Vec3d plate_origin, const std::vector<std::vector<float>>& wiping_matrix, size_t initial_tool) :
     m_semm(config.single_extruder_multi_material.value),
     m_enable_filament_ramming(config.enable_filament_ramming.value),
+    m_wipe_tower_filament(config.wipe_tower_filament.value),
     m_wipe_tower_pos(config.wipe_tower_x.get_at(plate_idx), config.wipe_tower_y.get_at(plate_idx)),
     m_wipe_tower_width(float(config.prime_tower_width)),
     m_wipe_tower_rotation_angle(float(config.wipe_tower_rotation_angle)),
@@ -1305,7 +1310,10 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar.push_back(FilamentParameters());
 
     m_filpar[idx].material = config.filament_type.get_at(idx);
-    m_filpar[idx].is_soluble = config.filament_soluble.get_at(idx);
+    if (m_wipe_tower_filament > 0)
+        m_filpar[idx].is_soluble = (idx != size_t(m_wipe_tower_filament - 1));
+    else
+        m_filpar[idx].is_soluble = config.filament_soluble.get_at(idx);
     m_filpar[idx].temperature = config.nozzle_temperature.get_at(idx);
     m_filpar[idx].first_layer_temperature = config.nozzle_temperature_initial_layer.get_at(idx);
     m_filpar[idx].filament_minimal_purge_on_wipe_tower = config.filament_minimal_purge_on_wipe_tower.get_at(idx);
@@ -2032,7 +2040,11 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     // brim (first layer only)
     if (first_layer) {
         writer.append("; WIPE_TOWER_BRIM_START\n");
-        size_t loops_num = (m_wipe_tower_brim_width + spacing/2.f) / spacing;
+            float brim_width = m_wipe_tower_brim_width;
+        if (brim_width < 0.f)
+            brim_width = WipeTower::get_auto_brim_by_height(m_wipe_tower_height);
+
+        size_t loops_num = (brim_width + spacing / 2.f) / spacing;
         
         for (size_t i = 0; i < loops_num; ++ i) {
             poly = offset(poly, scale_(spacing)).front();
@@ -2090,7 +2102,7 @@ std::vector<std::vector<float>> WipeTower2::extract_wipe_volumes(const PrintConf
 {
     // Get wiping matrix to get number of extruders and convert vector<double> to vector<float>:
     std::vector<float> wiping_matrix(cast<float>(config.flush_volumes_matrix.values));
-    auto scale = config.flush_multiplier;
+    auto scale = config.flush_multiplier.get_at(0);
 
     // The values shall only be used when SEMM is enabled. The purging for other printers
     // is determined by filament_minimal_purge_on_wipe_tower.
@@ -2216,14 +2228,16 @@ void WipeTower2::save_on_last_wipe()
 int WipeTower2::first_toolchange_to_nonsoluble(
         const std::vector<WipeTowerInfo::ToolChange>& tool_changes) const
 {
-    // Orca: allow calculation of the required depth and wipe volume for soluable toolchanges as well
-    // NOTE: it's not clear if this is the right way, technically we should disable wipe tower if soluble filament is used as it
-    // will will make the wipe tower unstable. Need to revist this in the future.
+    // If a specific wipe tower filament is forced, use it to decide where to finish the layer.
+    if (m_wipe_tower_filament > 0) {
+        for (size_t idx = 0; idx < tool_changes.size(); ++idx) {
+            if (!m_filpar[tool_changes[idx].new_tool].is_soluble)
+                return idx;
+        }
+        return -1;
+    }
+    // Orca: allow calculation of the required depth and wipe volume for soluble toolchanges as well.
     return tool_changes.empty() ? -1 : 0;
-    //for (size_t idx=0; idx<tool_changes.size(); ++idx)
-    //    if (! m_filpar[tool_changes[idx].new_tool].is_soluble)
-    //        return idx;
-    //return -1;
 }
 
 static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,

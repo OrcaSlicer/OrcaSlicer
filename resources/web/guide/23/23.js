@@ -452,13 +452,14 @@ function ChooseDefaultFilament()
 
 function SelectAllFilament( nShow )
 {
-	if( nShow==0 )
-	{
-		$('#ItemBlockArea .MItem:visible input').prop("checked",false);
+	// ORCA add ability to only select / unselect filted items
+	if (document.querySelector('.cbr-filter-bar').value) {
+		$('#ItemBlockArea .MItem:visible input')
+		.filter(function() {return $(this).closest('.MItem').css('position') !== 'absolute'})
+		.prop("checked", nShow != 0);
 	}
-	else
-	{
-		$('#ItemBlockArea .MItem:visible input').prop("checked",true);
+	else {
+		$('#ItemBlockArea .MItem:visible input').prop("checked",nShow!=0);
 	}
 }
 
@@ -491,14 +492,14 @@ function ResponseFilamentResult()
 	let FilaArray=new Array();
 	for(let n=0;n<nAll;n++)
 	{
-		let sName=FilaSelectedList[n].getAttribute("name");
-		
-	    for( let key in m_ProfileItem['filament'] )
-	    {
-			let FName=GetFilamentShortname(key);
-			
-			if(FName==sName)
-				FilaArray.push(key);
+		let strFilalist=FilaSelectedList[n].getAttribute("filalist");
+		if(strFilalist) {
+			let filaNames = strFilalist.split(';');
+			for(let i=0; i<filaNames.length; i++) {
+				let fname = filaNames[i].trim();
+				if(fname !== '')
+					FilaArray.push(fname);
+			}
 		}
 	}
 	

@@ -56,6 +56,11 @@ public:
 
     void ShowCalibrationButton(bool show = true);
 
+protected:
+#ifdef __WIN32__
+    WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
+#endif
+
 private:
     wxFrame* m_frame;
     wxAuiToolBarItem* m_file_menu_item;

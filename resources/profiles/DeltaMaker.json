@@ -1,7 +1,7 @@
 {
     "name": "DeltaMaker",
     "url": "",
-    "version": "02.03.01.10",
+    "version": "02.03.01.11",
     "force_update": "0",
     "description": "DeltaMaker configurations",
     "machine_model_list": [

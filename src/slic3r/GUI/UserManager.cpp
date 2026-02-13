@@ -6,6 +6,8 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 
+#include "DeviceCore/DevManager.h"
+
 
 namespace Slic3r {
 

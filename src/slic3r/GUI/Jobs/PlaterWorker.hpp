@@ -18,7 +18,7 @@ class PlaterWorker: public Worker {
     wxWindow *m_plater;
 
     class PlaterJob : public Job {
-        std::unique_ptr<Job> m_job;
+        std::shared_ptr<Job> m_job;
         wxWindow *m_plater;
         long long m_process_duration; // [ms]
 
@@ -93,7 +93,7 @@ class PlaterWorker: public Worker {
             }
         }
 
-        PlaterJob(wxWindow *p, std::unique_ptr<Job> j)
+        PlaterJob(wxWindow *p, std::shared_ptr<Job> j)
             : m_job{std::move(j)}, m_plater{p}
         {
             // TODO: decide if disabling slice button during UI job is what we
@@ -131,9 +131,9 @@ public:
     }
 
     // Always package the job argument into a PlaterJob
-    bool push(std::unique_ptr<Job> job) override
+    bool push(std::shared_ptr<Job> job) override
     {
-        return m_w.push(std::make_unique<PlaterJob>(m_plater, std::move(job)));
+        return m_w.push(std::make_shared<PlaterJob>(m_plater, std::move(job)));
     }
 
     bool is_idle() const override { return m_w.is_idle(); }

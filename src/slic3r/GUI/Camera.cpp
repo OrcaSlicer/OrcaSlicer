@@ -55,7 +55,10 @@ void Camera::select_next_type()
 
 void Camera::auto_type(EType preferred_type)
 {
-    if (!wxGetApp().app_config->get_bool("auto_perspective")) return;
+    if (wxApp::GetInstance() == nullptr || wxGetApp().app_config == nullptr)
+        return;
+    if (!wxGetApp().app_config->get_bool("auto_perspective"))
+        return;
     if (preferred_type == EType::Perspective) {
         if (!m_prevent_auto_type) {
             set_type(preferred_type);
@@ -135,6 +138,45 @@ void Camera::select_view(const std::string& direction)
     else if (direction == "plate") {
         look_at(m_target - 0.707 * m_distance * Vec3d::UnitY() + 0.707 * m_distance * Vec3d::UnitZ(), m_target, Vec3d::UnitY() + Vec3d::UnitZ());
         auto_type(EType::Perspective);
+    }
+}
+void Camera::select_view(ViewAngleType type)
+{
+    switch (type) {
+    case Slic3r::GUI::Camera::ViewAngleType::Iso: {
+        select_view("iso");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Top_Front: {
+        select_view("topfront");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Left: {
+        select_view("left");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Right: {
+        select_view("right");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Top_Plate:
+    case Slic3r::GUI::Camera::ViewAngleType::Top: {
+        select_view("top");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Bottom: {
+        select_view("bottom");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Front: {
+        select_view("front");
+        break;
+    }
+    case Slic3r::GUI::Camera::ViewAngleType::Rear: {
+        select_view("rear");
+        break;
+    }
+    default: break;
     }
 }
 
@@ -719,4 +761,3 @@ void Camera::update_target() {
 }
 } // GUI
 } // Slic3r
-

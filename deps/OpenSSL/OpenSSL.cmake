@@ -8,7 +8,7 @@ else()
     if(WIN32)
         set(_cross_arch "VC-WIN64A")
     elseif(APPLE)
-        set(_cross_arch "darwin64-arm64-cc")
+        set(_cross_arch "darwin64-${CMAKE_OSX_ARCHITECTURES}-cc")
 	endif()
 endif()
 

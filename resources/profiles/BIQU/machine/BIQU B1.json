@@ -5,8 +5,8 @@
     "nozzle_diameter": "0.4",
     "machine_tech": "FFF",
     "family": "BIQU",
-    "bed_model": "biqu_b1_buildplate_model.stl",
-    "bed_texture": "biqu_b1_buildplate_texture.png",
+    "bed_model": "BIQU_B1_buildplate_model.stl",
+    "bed_texture": "BIQU_B1_buildplate_texture.png",
     "hotend_model": "biqu_b1_hotend.stl",
     "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System"
 }

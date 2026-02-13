@@ -437,7 +437,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
                     wxString s1 = TmpModel["model"];
                     wxString s2 = OneSelect["model"];
                     if (s1.compare(s2) == 0) {
-                        m_ProfileJson["model"][m]["nozzle_selected"] = OneSelect["nozzle_diameter"];
+                        m_ProfileJson["model"][m]["nozzle_selected"] = m_ProfileJson["model"][m]["nozzle_diameter"];
                         break;
                     }
                 }
@@ -517,7 +517,7 @@ void GuideFrame::OnScriptMessage(wxWebViewEvent &evt)
         BOOST_LOG_TRIVIAL(trace) << "GuideFrame::OnScriptMessage;Error:" << e.what();
     }
 
-    //wxString strAll = m_ProfileJson.dump(-1,' ',false, json::error_handler_t::ignore);
+    wxString strAll = m_ProfileJson.dump(-1,' ',false, json::error_handler_t::ignore);
 }
 
 void GuideFrame::RunScript(const wxString &javascript)
@@ -776,11 +776,26 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
         if (config == enabled_vendors.end())
             return std::string();
 
+        const VendorProfile & printer_profile = preset_bundle->vendors[bundle_name];
         const std::map<std::string, std::set<std::string>>& model_maps = config->second;
         //for (const auto& vendor_profile : preset_bundle->vendors) {
         for (const auto& model_it: model_maps) {
             if (model_it.second.size() > 0) {
                 variant = *model_it.second.begin();
+                if (model_it.second.size() > 1) {
+                    if (printer_profile.models.size() > 0) {
+                        const VendorProfile::PrinterModel& printer_model = *std::find_if(printer_profile.models.begin(), printer_profile.models.end(),
+                            [id = model_it.first](auto& m) { return m.id == id; });
+                        for (auto& vt : printer_model.variants) {
+                            if (std::find(model_it.second.begin(), model_it.second.end(), vt.name) != model_it.second.end()) { variant = vt.name; break; }
+                        }
+                    }
+                    else if (variant != PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT){
+                        if (std::find(model_it.second.begin(), model_it.second.end(), PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT) != model_it.second.end())
+                            variant = PresetBundle::ORCA_DEFAULT_PRINTER_VARIANT;
+                    }
+                }
+
                 const auto config_old = old_enabled_vendors.find(bundle_name);
                 if (config_old == old_enabled_vendors.end())
                     return model_it.first;
@@ -823,13 +838,66 @@ bool GuideFrame::apply_config(AppConfig *app_config, PresetBundle *preset_bundle
     // Not switch filament
     //get_first_added_material_preset(AppConfig::SECTION_FILAMENTS, first_added_filament);
 
+    // For each @System filament, check if a vendor-specific override exists
+    // in the loaded profiles. If so, replace the @System variant with the
+    // override (e.g. replace "Generic ABS @System" with BBL "Generic ABS").
+    // When printers from the default bundle are also selected, keep @System
+    // too since those printers need it.
+    static const std::string system_suffix              = " @System";
+    auto                     it_default                 = enabled_vendors.find(PresetBundle::ORCA_DEFAULT_BUNDLE);
+    bool                     has_default_bundle_printer = it_default != enabled_vendors.end() && !it_default->second.empty();
+    bool                     has_filament_profiles      = m_ProfileJson.contains("filament");
+
+    // Check if any non-default vendor has selected printers
+    bool has_vendor_printer = false;
+    for (const auto& [vendor, models] : enabled_vendors) {
+        if (vendor != PresetBundle::ORCA_DEFAULT_BUNDLE && !models.empty()) {
+            has_vendor_printer = true;
+            break;
+        }
+    }
+
+    std::map<std::string, std::string> supplemented_filaments;
+    for (const auto& [name, value] : enabled_filaments) {
+        if (name.size() > system_suffix.size() &&
+            name.compare(name.size() - system_suffix.size(), system_suffix.size(), system_suffix) == 0) {
+            std::string short_name = name.substr(0, name.size() - system_suffix.size());
+            if (has_vendor_printer && has_filament_profiles && m_ProfileJson["filament"].contains(short_name)) {
+                supplemented_filaments[short_name] = value;
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Replacing @System filament: '" << name << "' -> '" << short_name << "'";
+                if (has_default_bundle_printer) {
+                    supplemented_filaments[name] = value;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Also keeping '" << name << "' for default bundle printers";
+                }
+                continue;
+            }
+        }
+        supplemented_filaments[name] = value;
+    }
+
     //update the app_config
-    app_config->set_section(AppConfig::SECTION_FILAMENTS, enabled_filaments);
+    app_config->set_section(AppConfig::SECTION_FILAMENTS, supplemented_filaments);
     app_config->set_vendors(m_appconfig_new);
 
     if (check_unsaved_preset_changes)
         preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::Enable,
                                     {preferred_model, preferred_variant, first_added_filament, std::string()});
+
+    // If the active filament is not in the wizard-selected filaments, switch to the first
+    // compatible wizard-selected filament. This handles the first-run case where load_presets
+    // falls back to "Generic PLA" even though the user selected a different filament.
+    bool active_filament_selected = supplemented_filaments.empty()
+        || supplemented_filaments.count(preset_bundle->filament_presets.front()) > 0;
+    if (!active_filament_selected) {
+        for (const auto& [filament_name, _] : supplemented_filaments) {
+            const Preset* preset = preset_bundle->filaments.find_preset(filament_name);
+            if (preset && preset->is_visible && preset->is_compatible) {
+                preset_bundle->filaments.select_preset_by_name(filament_name, true);
+                preset_bundle->filament_presets.front() = preset_bundle->filaments.get_selected_preset_name();
+                break;
+            }
+        }
+    }
 
     // Update the selections from the compatibilty.
     preset_bundle->export_selections(*app_config);

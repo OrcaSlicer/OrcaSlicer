@@ -1,0 +1,12 @@
+{
+    "type": "filament",
+    "name": "COEX TPE 30D @System",
+    "inherits": "COEX TPE 30D @base",
+    "from": "system",
+    "setting_id": "C0X30D20",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "3.5"
+    ],
+    "compatible_printers": []
+}

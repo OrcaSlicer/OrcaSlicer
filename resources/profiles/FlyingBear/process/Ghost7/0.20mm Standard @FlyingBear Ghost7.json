@@ -6,8 +6,8 @@
     "setting_id": "GP004",
     "instantiation": "true",
     "bottom_shell_layers": "3",
-    "overhang_1_4_speed": "50",
-    "overhang_2_4_speed": "50",
+    "overhang_1_4_speed": "0",
+    "overhang_2_4_speed": "40",
     "overhang_3_4_speed": "30",
     "top_shell_layers": "5",
     "top_shell_thickness": "1",
@@ -19,9 +19,9 @@
     "layer_height": "0.2",
     "print_settings_id": "0.20mm Standard @FlyingBear Ghost7",
     "sparse_infill_speed": "270",
-    "exclude_object": "1",
+    "exclude_object": "0",
     "internal_bridge_speed": "50",
-    "top_solid_infill_flow_ratio": "0.97",
+    "top_solid_infill_flow_ratio": "1",
     "compatible_printers": [
         "FlyingBear Ghost7 0.4 nozzle"
     ]

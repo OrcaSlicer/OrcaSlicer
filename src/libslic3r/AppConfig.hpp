@@ -24,6 +24,13 @@ using namespace nlohmann;
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_ALWAYS_ASK "always_ask"
 #define OPTION_PROJECT_LOAD_BEHAVIOUR_LOAD_GEOMETRY "load_geometry_only"
 
+#define SETTING_NETWORK_PLUGIN_VERSION "network_plugin_version"
+#define SETTING_NETWORK_PLUGIN_SKIPPED_VERSIONS "network_plugin_skipped_versions"
+#define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
+#define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
+#define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
+#define BAMBU_NETWORK_AGENT_VERSION_LEGACY  "01.10.01.01"
+
 #define SUPPORT_DARK_MODE
 //#define _MSW_DARK_MODE
 
@@ -94,7 +101,7 @@ public:
 		if (it == m_storage.end())
 			return false;
 		auto it2 = it->second.find(key);
-		if (it2 == it->second.end()) 
+		if (it2 == it->second.end())
 			return false;
 		value = it2->second;
 		return true;
@@ -280,6 +287,10 @@ public:
 
     void                save_custom_color_to_config(const std::vector<std::string> &colors);
     std::vector<std::string> get_custom_color_from_config();
+
+    void save_nozzle_volume_types_to_config(const std::string& printer_name, const std::string& nozzle_volume_types);
+    std::string get_nozzle_volume_types_from_config(const std::string& printer_name);
+
 	// reset the current print / filament / printer selections, so that
 	// the  PresetBundle::load_selections(const AppConfig &config) call will select
 	// the first non-default preset when called.
@@ -343,9 +354,24 @@ public:
     static const std::string SECTION_MATERIALS;
     static const std::string SECTION_EMBOSS_STYLE;
 
+    std::string get_network_plugin_version() const;
+    void set_network_plugin_version(const std::string& version);
+
+    std::vector<std::string> get_skipped_network_versions() const;
+    void add_skipped_network_version(const std::string& version);
+    bool is_network_version_skipped(const std::string& version) const;
+    void clear_skipped_network_versions();
+
+    bool is_network_update_prompt_disabled() const;
+    void set_network_update_prompt_disabled(bool disabled);
+
+    bool should_remind_network_update_later() const;
+    void set_remind_network_update_later(bool remind);
+    void clear_remind_network_update_later();
+
 private:
 	template<typename T>
-	bool get_3dmouse_device_numeric_value(const std::string &device_name, const char *parameter_name, T &out) const 
+	bool get_3dmouse_device_numeric_value(const std::string &device_name, const char *parameter_name, T &out) const
 	{
 	    std::string key = std::string("mouse_device:") + device_name;
 	    auto it = m_storage.find(key);
@@ -379,6 +405,8 @@ private:
 
 	std::vector<std::string>									m_filament_presets;
     std::vector<std::string>									m_filament_colors;
+	std::vector<std::string>									m_filament_multi_colors;
+	std::vector<std::string>									m_filament_color_types;
 
 	std::vector<PrinterCaliInfo>								m_printer_cali_infos;
 

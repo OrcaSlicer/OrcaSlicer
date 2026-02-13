@@ -1,0 +1,25 @@
+{
+    "type": "filament",
+    "name": "COEX TPE 60D @BBL X1",
+    "inherits": "COEX TPE 60D @base",
+    "from": "system",
+    "setting_id": "CX60DX03",
+    "instantiation": "true",
+    "compatible_printers": [
+        "Bambu Lab X1 0.4 nozzle",
+        "Bambu Lab X1 0.6 nozzle",
+        "Bambu Lab X1 0.8 nozzle"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "fan_min_speed": [
+        "100"
+    ],
+    "filament_flow_ratio": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "6.5"
+    ]
+}

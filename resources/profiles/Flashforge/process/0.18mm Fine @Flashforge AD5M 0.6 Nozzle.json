@@ -7,7 +7,7 @@
     "compatible_printers": [
         "Flashforge Adventurer 5M 0.6 Nozzle"
     ],
-    "filename_format": "{input_filename_base}.gcode",
+    "filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
     "post_process": "",
     "layer_height": "0.18",
     "infill_wall_overlap": "40%",

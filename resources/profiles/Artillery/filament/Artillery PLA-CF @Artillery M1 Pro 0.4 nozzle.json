@@ -26,7 +26,7 @@
         "14"
     ],
     "additional_cooling_fan_speed": [
-        "100"
+        "50"
     ],
     "filament_settings_id": [
         "Artillery PLA-CF @Artillery M1 Pro 0.4 nozzle"
@@ -34,11 +34,12 @@
     "filament_type": [
         "PLA-CF"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
-        "210"
+        "220"
     ],
     "nozzle_temperature_initial_layer": [
-        "210"
+        "220"
     ],
     "nozzle_temperature_range_high": [
         "240"
@@ -46,11 +47,12 @@
     "slow_down_layer_time": [
         "10"
     ],
+    "version": "2.1.2.2",
     "compatible_printers": [
         "Artillery M1 Pro 0.4 nozzle"
     ],
     "filament_retraction_length": [
-        "1.3"
+        "0.8"
     ],
     "filament_retraction_speed": [
         "30"

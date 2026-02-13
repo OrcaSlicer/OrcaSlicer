@@ -96,7 +96,7 @@ public:
     void        sys_color_changed();
     void        refresh();
 	Field*		get_field(const t_config_option_key& opt_key, int opt_index = -1) const;
-    Line *      get_line(const t_config_option_key &opt_key);
+    Line *      get_line(const t_config_option_key &opt_key, int opt_index = -1);
 	bool		set_value(const t_config_option_key& opt_key, const boost::any& value);
 	// BBS. Add is_extruder_og parameter.
 	ConfigOptionsGroupShp	new_optgroup(const wxString& title, const wxString& icon = wxEmptyString, int noncommon_label_width = -1, bool is_extruder_og = false);
@@ -114,6 +114,8 @@ public:
 			return *m_item_color;
 	}
     bool get_show() const { return m_show; }
+
+    std::map<std::string, std::string> m_opt_id_map;
 
 protected:
 	// Color of TreeCtrlItem. The wxColour will be updated only if the new wxColour pointer differs from the currently rendered one.
@@ -139,7 +141,7 @@ protected:
 
 	//BBS: GUI refactor
 	wxPanel*			m_top_panel;
-	wxStaticText* m_static_title;
+	ScalableButton* m_mode_icon; // ORCA m_static_title replacement
 	wxBoxSizer* m_main_sizer;
 	wxBoxSizer* m_top_sizer;
 	wxBoxSizer* m_top_left_sizer;
@@ -275,6 +277,7 @@ protected:
     m_highlighter;
 
 	DynamicPrintConfig 	m_cache_config;
+    std::vector<std::string> m_cache_options;
 
 
 	bool				m_page_switch_running = false;
@@ -300,7 +303,8 @@ public:
     // 3. propagate changed configuration to the Plater when (m_update_cnt == 0) only
     int                 m_update_cnt = 0;
 
-	SwitchButton *		m_mode_view = nullptr;
+    SwitchButton *m_mode_view = nullptr;
+    SwitchButton *m_extruder_switch = nullptr;
 
 public:
 	// BBS
@@ -329,8 +333,8 @@ public:
     void		update_btns_enabling();
     void		update_preset_choice();
     // Select a new preset, possibly delete the current one.
-	bool		select_preset(std::string preset_name = "", bool delete_current = false, const std::string& last_selected_ph_printer_name = "", bool force_select = false);
-	bool		may_discard_current_dirty_preset(PresetCollection* presets = nullptr, const std::string& new_printer_name = "", bool no_transfer = false);
+    bool select_preset(std::string preset_name = "", bool delete_current = false, const std::string &last_selected_ph_printer_name = "", bool force_select = false, bool force_no_transfer = false);
+	bool		may_discard_current_dirty_preset(PresetCollection* presets = nullptr, const std::string& new_printer_name = "", bool no_transfer = false, bool no_transfer_variant = false);
 
     virtual void    clear_pages();
     virtual void    update_description_lines();
@@ -367,7 +371,7 @@ public:
 	virtual void	update() = 0;
 	virtual void	toggle_options() = 0;
 	virtual void	init_options_list();
-    virtual void    update_custom_dirty() {}
+    virtual void    update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) {}
 	void			load_initial_data();
 	void			update_dirty();
 	//BBS update plater presets if update_plater_presets = true
@@ -384,7 +388,7 @@ public:
 
     Field*          get_field(const t_config_option_key &opt_key, Page** selected_page, int opt_index = -1);
     void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
-    void            toggle_line(const std::string &opt_key, bool toggle); // BBS: hide some line
+    void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
 	wxSizer*		description_line_widget(wxWindow* parent, ogStaticText** StaticText, wxString text = wxEmptyString);
 	bool			current_preset_is_dirty() const;
 	bool			saved_preset_is_dirty() const;
@@ -420,6 +424,9 @@ public:
     virtual const std::string&	get_custom_gcode(const t_config_option_key& opt_key);
     virtual void				set_custom_gcode(const t_config_option_key& opt_key, const std::string& value);
 
+    void        update_extruder_variants(int extruder_id = -1);
+    void        switch_excluder(int extruder_id = -1);
+
 protected:
 	void			create_line_with_widget(ConfigOptionsGroup* optgroup, const std::string& opt_key, const std::string& path, widget_t widget);
 	wxSizer*		compatible_widget_create(wxWindow* parent, PresetDependencies &deps);
@@ -434,6 +441,7 @@ protected:
 	void			update_preset_description_line();
 	void			update_frequently_changed_parameters();
 	void			set_tooltips_text();
+    void			filter_diff_option(std::vector<std::string> &options);
 
     ConfigManipulation m_config_manipulation;
     ConfigManipulation get_config_manipulation();
@@ -489,7 +497,7 @@ protected:
 
 	virtual void	reload_config();
 
-	virtual void	update_custom_dirty() override;
+	virtual void	update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 
 protected:
 	std::vector<std::string> m_keys;
@@ -515,7 +523,7 @@ public:
 protected:
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;
 	virtual void    notify_changed(ObjectBase* object) override;
-	virtual void	update_custom_dirty() override;
+	virtual void	update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 };
 
 class TabPrintObject : public TabPrintModel
@@ -546,7 +554,7 @@ public:
 	~TabPrintLayer() {}
 protected:
 	virtual void    notify_changed(ObjectBase* object) override;
-	virtual void    update_custom_dirty() override;
+	virtual void    update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) override;
 };
 
 class TabFilament : public Tab
@@ -572,7 +580,8 @@ public:
 	void		update_description_lines() override;
 	void		toggle_options() override;
 	void		update() override;
-	void		clear_pages() override;
+    void        init_options_list() override;
+    void        clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
 
     const std::string&	get_custom_gcode(const t_config_option_key& opt_key) override;
@@ -583,7 +592,7 @@ class TabPrinter : public Tab
 {
 private:
 	bool		m_use_silent_mode = false;
-	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key);
+	void		append_option_line(ConfigOptionsGroupShp optgroup, const std::string opt_key, const std::string& label_path = "");
 	bool		m_rebuild_kinematics_page = false;
 
 	ogStaticText*	m_fff_print_host_upload_description_line {nullptr};
@@ -601,6 +610,8 @@ public:
 	size_t		m_initial_extruders_count;
 	size_t		m_sys_extruders_count;
 	size_t		m_cache_extruder_count = 0;
+	std::vector<std::string> m_extruder_variant_list;
+	std::string m_base_preset_name;
 
     PrinterTechnology               m_printer_technology = ptFFF;
 
@@ -628,6 +639,8 @@ public:
 	void		msw_rescale() override;
 	bool 		supports_printer_technology(const PrinterTechnology /* tech */) const override { return true; }
 
+	void		set_extruder_volume_type(int extruder_id, NozzleVolumeType type);
+
 	wxSizer*	create_bed_shape_widget(wxWindow* parent);
 	void		cache_extruder_cnt(const DynamicPrintConfig* config = nullptr);
 	bool		apply_extruder_cnt_from_cache();
@@ -646,7 +659,6 @@ public:
 	void		reload_config() override;
 	void		toggle_options() override;
 	void		update() override;
-    void		init_options_list() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptSLA; }
 };
 

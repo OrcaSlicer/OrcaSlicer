@@ -1,0 +1,18 @@
+{
+    "type": "filament",
+    "name": "COEX PLA PRIME @System",
+    "inherits": "COEX PLA PRIME @base",
+    "from": "system",
+    "setting_id": "C0XPLA08",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "15"
+    ],
+    "filament_long_retractions_when_cut": [
+        "nil"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "nil"
+    ],
+    "compatible_printers": []
+}

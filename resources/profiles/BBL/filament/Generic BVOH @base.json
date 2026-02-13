@@ -4,5 +4,8 @@
     "inherits": "fdm_filament_bvoh",
     "from": "system",
     "filament_id": "GFS97",
-    "instantiation": "false"
+    "instantiation": "false",
+    "filament_adhesiveness_category": [
+        "797"
+    ]
 }

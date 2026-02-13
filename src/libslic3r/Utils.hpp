@@ -65,9 +65,13 @@
 #define CLI_OBJECT_COLLISION_IN_SEQ_PRINT   -63
 #define CLI_OBJECT_COLLISION_IN_LAYER_PRINT -64
 #define CLI_SPIRAL_MODE_INVALID_PARAMS      -65
+#define CLI_FILAMENT_CAN_NOT_MAP      -66
+#define CLI_ONLY_ONE_TPU_SUPPORTED      -67
+#define CLI_FILAMENTS_NOT_SUPPORTED_BY_EXTRUDER  -68
 
 #define CLI_SLICING_ERROR                  -100
 #define CLI_GCODE_PATH_CONFLICTS           -101
+#define CLI_GCODE_PATH_IN_UNPRINTABLE_AREA -102
 
 
 namespace boost { namespace filesystem { class directory_entry; }}
@@ -81,6 +85,7 @@ extern unsigned get_logging_level();
 extern void trace(unsigned int level, const char *message);
 // Format memory allocated, separate thousands by comma.
 extern std::string format_memsize_MB(size_t n);
+extern std::string format_memsize(size_t bytes, unsigned int decimals = 1);
 // Return string to be added to the boost::log output to inform about the current process memory allocation.
 // The string is non-empty if the loglevel >= info (3) or ignore_loglevel==true.
 // Latter is used to get the memory info from SysInfoDialog.
@@ -129,6 +134,29 @@ inline DataType round_divide(DataType dividend, DataType divisor) //!< Return di
     return (dividend + divisor / 2) / divisor;
 }
 
+template <typename From, typename To>
+std::vector<To> convert_vector(const std::vector<From>& src) {
+    std::vector<To> dst;
+    dst.reserve(src.size());
+    for (const auto& elem : src) {
+        if constexpr (std::is_signed_v<To>) {
+            if (elem > static_cast<From>(std::numeric_limits<To>::max())) {
+                throw std::overflow_error("Source value exceeds destination maximum");
+            }
+            if (elem < static_cast<From>(std::numeric_limits<To>::min())) {
+                throw std::underflow_error("Source value below destination minimum");
+            }
+        }
+        else {
+            if (elem < 0) {
+                throw std::invalid_argument("Negative value in source for unsigned destination");
+            }
+        }
+        dst.push_back(static_cast<To>(elem));
+    }
+    return dst;
+}
+
 // Set a path with GUI localization files.
 void set_local_dir(const std::string &path);
 // Return a full path to the localization directory.
@@ -141,6 +169,9 @@ const std::string& sys_shapes_dir();
 
 // Return a full path to the custom shapes gallery directory.
 std::string custom_shapes_dir();
+
+// Return a full path to the handy models directory.
+std::string handy_models_dir();
 
 // Set a path with shapes gallery files.
 void set_custom_gcodes_dir(const std::string &path);
@@ -178,6 +209,7 @@ extern size_t get_utf8_sequence_length(const char *seq, size_t size);
 extern local_encoded_string encode_path(const char *src);
 extern std::string decode_path(const char *src);
 extern std::string normalize_utf8_nfc(const char *src);
+extern std::vector<std::string> split_string(const std::string &str, char delimiter);
 
 // Safely rename a file even if the target exists.
 // On Windows, the file explorer (or anti-virus or whatever else) often locks the file
@@ -199,7 +231,7 @@ CopyFileResult copy_file_inner(const std::string &from, const std::string &to, s
 // of the source file before renaming.
 // Additional error info is passed in error message.
 extern CopyFileResult copy_file(const std::string &from, const std::string &to, std::string& error_message, const bool with_check = false);
-
+extern bool           copy_framework(const std::string &from, const std::string &to);
 // Compares two files if identical.
 extern CopyFileResult check_copy(const std::string& origin, const std::string& copy);
 

@@ -62,6 +62,7 @@ struct Option
     std::wstring group_local;
     std::wstring category;
     std::wstring category_local;
+    bool multi_category { false };
 
     std::string opt_key() const;
 };
@@ -100,10 +101,7 @@ class OptionsSearcher
 
     void append_options(DynamicPrintConfig *config, Preset::Type type, ConfigOptionMode mode);
 
-    void sort_options()
-    {
-        std::sort(options.begin(), options.end(), [](const Option &o1, const Option &o2) { return o1.label < o2.label; });
-    }
+    void sort_options();
     void sort_found()
     {
         std::sort(found.begin(), found.end(),

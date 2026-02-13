@@ -26,15 +26,14 @@ jobs:
       valid-cache: ${{ steps.cache_deps.outputs.cache-hit }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           lfs: 'true'
         
       - name: set outputs
         id: set_outputs
         env:
-          # todo: this is mad! refactor other build scripts to use same name
-          dep-folder-name: ${{ inputs.os == 'windows-latest' && '/OrcaSlicer_dep' || inputs.os == 'macos-14' && '' || inputs.os != 'macos-14' && '/destdir' || '' }}
+          dep-folder-name: ${{ inputs.os != 'orca-macos-arm64' && '/OrcaSlicer_dep' || '' }}
           output-cmd: ${{ inputs.os == 'windows-latest' && '$env:GITHUB_OUTPUT' || '"$GITHUB_OUTPUT"'}}
         run: |
           echo cache-key=${{ inputs.os }}-cache-orcaslicer_deps-build-${{ hashFiles('deps/**') }} >> ${{ env.output-cmd }}
@@ -42,7 +41,7 @@ jobs:
             
       - name: load cache
         id: cache_deps
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.set_outputs.outputs.cache-path }}
           key: ${{ steps.set_outputs.outputs.cache-key }}

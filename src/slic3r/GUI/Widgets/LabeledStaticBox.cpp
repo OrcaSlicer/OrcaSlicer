@@ -101,6 +101,13 @@ void LabeledStaticBox::SetBorderColor(StateColor const &color)
 void LabeledStaticBox::SetFont(wxFont set_font)
 {
     m_font = set_font;
+
+    int tW,tH,descent,externalLeading;
+    // empty label sets m_label_height as 0 that causes extra spacing at top
+    GetTextExtent(m_label.IsEmpty() ? "Orca" : m_label, &tW, &tH, &descent, &externalLeading, &m_font);
+    m_label_height = tH - externalLeading;
+    m_label_width  = tW;
+
     Refresh();
 }
 
@@ -153,7 +160,7 @@ void LabeledStaticBox::DrawBorderAndLabel(wxDC& dc)
     wxSize wSz = GetSize();
 
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    dc.SetPen(wxPen(border_color.colorForStates(state_handler.states()), m_border_width, wxSOLID));
+    dc.SetPen(wxPen(border_color.colorForStates(state_handler.states()), m_border_width, wxPENSTYLE_SOLID));
     dc.DrawRoundedRectangle( // Border
         std::max(0, m_pos.x),
         std::max(0, m_pos.y) + m_label_height * .5,

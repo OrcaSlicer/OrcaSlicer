@@ -100,6 +100,7 @@ private:
     std::string m_model_filename;
     // Print volume bounding box exteded with axes and model.
     BoundingBoxf3 m_extended_bounding_box;
+    BoundingBoxf3 m_printable_bounding_box;
     // Slightly expanded print bed polygon, for collision detection.
     //Polygon m_polygon;
     GLModel m_triangles;
@@ -115,6 +116,8 @@ private:
     //BBS: add part plate related logic
     Vec2d m_position{ Vec2d::Zero() };
     std::vector<Vec2d>  m_bed_shape;
+    std::vector<std::vector<Vec2d>> m_extruder_shapes;
+    std::vector<double> m_extruder_heights;
     bool m_is_dark = false;
 
 public:
@@ -126,8 +129,8 @@ public:
     //FIXME if the build volume max print height is updated, this function still returns zero
     // as this class does not use it, thus there is no need to update the UI.
     // BBS
-    bool set_shape(const Pointfs& printable_area, const double printable_height, const std::string& custom_model, bool force_as_custom = false,
-        const Vec2d& position = Vec2d::Zero(), bool with_reset = true);
+    bool set_shape(const Pointfs& printable_area, const double printable_height, std::vector<Pointfs> extruder_areas, std::vector<double> extruder_heights, const std::string& custom_model, bool force_as_custom = false,
+        const Vec2d position = Vec2d::Zero(), bool with_reset = true);
 
     void set_position(Vec2d& position);
     void set_axes_mode(bool origin);
@@ -146,6 +149,7 @@ public:
 
     // Bounding box around the print bed, axes and model, for rendering.
     const BoundingBoxf3& extended_bounding_box() const { return m_extended_bounding_box; }
+    const BoundingBoxf3 &printable_bounding_box() const { return m_printable_bounding_box; }
 
     // Check against an expanded 2d bounding box.
     //FIXME shall one check against the real build volume?
@@ -159,7 +163,8 @@ public:
 private:
     //BBS: add partplate related logic
     // Calculate an extended bounding box from axes and current model for visualization purposes.
-    BoundingBoxf3 calc_extended_bounding_box(bool consider_model_offset = true) const;
+    BoundingBoxf3 calc_printable_bounding_box() const;
+    BoundingBoxf3 calc_extended_bounding_box() const;
     void update_model_offset();
     //BBS: with offset
     void update_bed_triangles();

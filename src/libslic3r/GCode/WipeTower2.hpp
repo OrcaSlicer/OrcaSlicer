@@ -58,10 +58,18 @@ public:
 	std::vector<std::pair<float, float>> get_z_and_depth_pairs() const;
     float get_brim_width() const { return m_wipe_tower_brim_width_real; }
 	float get_wipe_tower_height() const { return m_wipe_tower_height; }
-
-
-
-
+    // ORCA: Match WipeTower API used by Print skirt/brim planning.
+    // Returned bounding box is in WIPE-TOWER-LOCAL coordinates (before placement on the bed).
+    // Include brim and y-shift to match what WT gcode actually prints.
+    BoundingBoxf get_bbx() const{
+        const float brim = m_wipe_tower_brim_width_real;
+        const Vec2d min(-brim, -brim + double(m_y_shift));
+        const Vec2d max(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim + double(m_y_shift));
+        return BoundingBoxf(min, max);
+    }
+    // WT2 doesn't currently compute a rib-origin compensation like WipeTower (m_rib_offset),
+    // so expose a zero offset for consistency purposes (to maintain API parity).
+    Vec2f get_rib_offset() const { return Vec2f::Zero(); }
 
 	// Switch to a next layer.
 	void set_layer(
@@ -179,6 +187,7 @@ private:
 	bool   m_semm               = true; // Are we using a single extruder multimaterial printer?
 	bool   m_enable_filament_ramming = true;
 	bool   m_is_mk4mmu3         = false;
+    int    m_wipe_tower_filament = 0;   // 1-based config value, 0 means auto
     Vec2f  m_wipe_tower_pos; 			// Left front corner of the wipe tower in mm.
 	float  m_wipe_tower_width; 			// Width of the wipe tower.
 	float  m_wipe_tower_depth 	= 0.f; 	// Depth of the wipe tower

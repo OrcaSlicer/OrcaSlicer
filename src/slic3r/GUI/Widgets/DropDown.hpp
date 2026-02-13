@@ -11,16 +11,38 @@
 #define DD_NO_TEXT          0x0002
 #define DD_STYLE_MASK       0x0003
 
+#define DD_ITEM_STYLE_SPLIT_ITEM  0x0001 // ----text----, text with horizontal line arounds
+#define DD_ITEM_STYLE_DISABLED    0x0002 // ----text----, text with horizontal line arounds
+
 wxDECLARE_EVENT(EVT_DISMISS, wxCommandEvent);
 
 class DropDown : public PopupWindow
 {
-    std::vector<wxString> &       texts;
-    std::vector<wxString> &       tips;
-    std::vector<wxBitmap> &     icons;
-    bool                          need_sync  = false;
-    int                         selection = -1;
-    int                         hover_item = -1;
+public:
+    struct Item
+    {
+        wxString text;
+        wxString text_static_tips;// display static tips for TextInput.eg.PrinterInfoBox
+        wxBitmap icon;
+        wxBitmap icon_textctrl;// display icon for TextInput.eg.PrinterInfoBox
+        void *   data{nullptr};
+        wxString group{};
+        wxString alias{};
+        wxString tip{};
+        int      flag{0};
+        int      style{ 0 };// the style of item
+    };
+
+private:
+    std::vector<Item> &items;
+    size_t             count = 0;
+    wxString           group;
+    bool               need_sync  = false;
+    int                selection  = -1;
+    int                hover_item = -1;
+
+    DropDown * subDropDown { nullptr };
+    DropDown * mainDropDown { nullptr };
 
     double radius = 0;
     bool   use_content_width = false;
@@ -38,6 +60,7 @@ class DropDown : public PopupWindow
     StateColor   selector_border_color;
     StateColor   selector_background_color;
     ScalableBitmap check_bitmap;
+    ScalableBitmap arrow_bitmap;
 
     bool pressedDown = false;
     boost::posix_time::ptime dismissTime;
@@ -45,19 +68,12 @@ class DropDown : public PopupWindow
     wxPoint                  dragStart;
 
 public:
-    DropDown(std::vector<wxString> &texts,
-             std::vector<wxString> &tips,
-             std::vector<wxBitmap> &icons);
-    
-    DropDown(wxWindow *     parent,
-             std::vector<wxString> &texts,
-             std::vector<wxString> &tips,
-             std::vector<wxBitmap> &icons,
-             long           style     = 0);
-    
-    void Create(wxWindow *     parent,
-             long           style     = 0);
-    
+    DropDown(std::vector<Item> &items);
+
+    DropDown(wxWindow *parent, std::vector<Item> &items, long style = 0);
+
+    void Create(wxWindow * parent, long style = 0);
+
 public:
     void Invalidate(bool clear = false);
 
@@ -82,13 +98,15 @@ public:
     void SetUseContentWidth(bool use, bool limit_max_content_width = false);
 
     void SetAlignIcon(bool align);
-    
+
 public:
     void Rescale();
 
     bool HasDismissLongTime();
-    
+
 protected:
+    void Dismiss() override;
+
     void OnDismiss() override;
 
 private:
@@ -96,6 +114,10 @@ private:
     void paintNow();
 
     void render(wxDC& dc);
+
+    int hoverIndex();
+
+    int selectedItem();
 
     friend class ComboBox;
     void messureSize();

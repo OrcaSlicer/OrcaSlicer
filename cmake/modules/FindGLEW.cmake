@@ -3,7 +3,7 @@
 
 # PrusaSlicer specifics:
 # This file is backported from CMake 3.15 distribution to behave uniformly
-# across all versions of CMake. It explicitly adds GLEW_STATIC complile 
+# across all versions of CMake. It explicitly adds GLEW_STATIC compile 
 # definition to static targets which is needed to prevent link errors.
 
 #[=======================================================================[.rst:
@@ -152,7 +152,7 @@ find_library(GLEW_STATIC_LIBRARY_RELEASE
              PATHS ENV GLEW_ROOT)
 
 find_library(GLEW_STATIC_LIBRARY_DEBUG
-             NAMES GLEWds glewd glewds glew32ds
+             NAMES GLEWds GLEWd glewd glewds glew32ds
              PATH_SUFFIXES lib lib64
              PATHS ENV GLEW_ROOT)
 
@@ -223,8 +223,13 @@ if(NOT TARGET GLEW::glew AND NOT GLEW_USE_STATIC_LIBS)
                         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${GLEW_INCLUDE_DIRS}")
 
   if(APPLE)
-    set_target_properties(GLEW::glew
-                          PROPERTIES INTERFACE_LINK_LIBRARIES OpenGL::GL)
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+      set_target_properties(GLEW::glew
+                            PROPERTIES INTERFACE_LINK_LIBRARIES "-framework OpenGL")
+    else()
+      set_target_properties(GLEW::glew
+                            PROPERTIES INTERFACE_LINK_LIBRARIES OpenGL::GL)
+    endif()
   endif()
 
   if(GLEW_SHARED_LIBRARY_RELEASE)
@@ -258,8 +263,13 @@ elseif(NOT TARGET GLEW::glew_s AND GLEW_USE_STATIC_LIBS)
   set_target_properties(GLEW::glew_s PROPERTIES INTERFACE_COMPILE_DEFINITIONS GLEW_STATIC)
 
   if(APPLE)
-    set_target_properties(GLEW::glew_s
-                          PROPERTIES INTERFACE_LINK_LIBRARIES OpenGL::GL)
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+      set_target_properties(GLEW::glew_s
+                            PROPERTIES INTERFACE_LINK_LIBRARIES "-framework OpenGL")
+    else()
+      set_target_properties(GLEW::glew_s
+                            PROPERTIES INTERFACE_LINK_LIBRARIES OpenGL::GL)
+    endif()
   endif()
 
   if(GLEW_STATIC_LIBRARY_RELEASE)
@@ -292,8 +302,13 @@ if(NOT TARGET GLEW::GLEW)
                         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${GLEW_INCLUDE_DIRS}")
 
   if(APPLE)
-    set_target_properties(GLEW::GLEW
-                          PROPERTIES INTERFACE_LINK_LIBRARIES OpenGL::GL)
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "4.0")
+      set_target_properties(GLEW::GLEW
+                            PROPERTIES INTERFACE_LINK_LIBRARIES "-framework OpenGL")
+    else()
+      set_target_properties(GLEW::GLEW
+                            PROPERTIES INTERFACE_LINK_LIBRARIES OpenGL::GL)
+    endif()
   endif()
 
   if(TARGET GLEW::glew)
