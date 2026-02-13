@@ -3047,17 +3047,41 @@ void MainFrame::init_menubar_as_editor()
     auto flowrate_menu = new wxMenu();
     append_menu_item(
         flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow rate test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(false, 1, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow rate test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(false, 2, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     flowrate_menu->AppendSeparator();
     append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowrate calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(true, 1, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowrate calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(true, 2, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     m_topbar->GetCalibMenu()->AppendSubMenu(flowrate_menu, _L("Flow rate"));
 
@@ -3164,19 +3188,43 @@ void MainFrame::init_menubar_as_editor()
     // Flowrate (with submenu)
     auto flowrate_menu = new wxMenu();
     append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 1"), _L("Flow rate test - Pass 1"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 1); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(false, 1, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(flowrate_menu, wxID_ANY, _L("Pass 2"), _L("Flow rate test - Pass 2"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(false, 2); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(false, 2, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_submenu(calib_menu,flowrate_menu,wxID_ANY,_L("Flow rate"),_L("Flow rate"),"",
                    [this]() {return m_plater->is_view3D_shown();; });
     flowrate_menu->AppendSeparator();
     append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (Recommended)"), _L("Orca YOLO flowrate calibration, 0.01 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 1); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(true, 1, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
     append_menu_item(flowrate_menu, wxID_ANY, _L("YOLO (perfectionist version)"), _L("Orca YOLO flowrate calibration, 0.005 step"),
-        [this](wxCommandEvent&) { if (m_plater) m_plater->calib_flowrate(true, 2); }, "", nullptr,
+        [this](wxCommandEvent&) { 
+            if (!m_flow_calib_dlg)
+                m_flow_calib_dlg = new Flow_Calibration_Dlg((wxWindow*)this, wxID_ANY, m_plater);
+            if (m_flow_calib_dlg->ShowModal() == wxID_OK && m_plater) {
+                m_plater->calib_flowrate(true, 2, m_flow_calib_dlg->get_selected_pattern());
+            }
+        }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Retraction test

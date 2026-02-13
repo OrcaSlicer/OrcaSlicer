@@ -180,5 +180,23 @@ protected:
     TextInput* m_tiJDEnd;
     Plater* m_plater;
 };
+
+class Flow_Calibration_Dlg : public DPIDialog
+{
+public:
+    Flow_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater);
+    ~Flow_Calibration_Dlg();
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+    
+    int get_selected_pattern() const { return m_selected_pattern; }
+
+protected:
+    virtual void on_start(wxCommandEvent& event);
+    virtual void on_pattern_changed(wxCommandEvent& event);
+
+    RadioGroup* m_rbPattern;
+    Plater* m_plater;
+    int m_selected_pattern;
+};
 }} // namespace Slic3r::GUI
 #endif

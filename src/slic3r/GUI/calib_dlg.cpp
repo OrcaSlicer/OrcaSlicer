@@ -1411,4 +1411,62 @@ void Cornering_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
     Fit();
 }
 
+// Flow_Calibration_Dlg
+//
+
+Flow_Calibration_Dlg::Flow_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
+    : DPIDialog(parent, id, _L("Flow Calibration"), wxDefaultPosition, parent->FromDIP(wxSize(-1, 200)), wxDEFAULT_DIALOG_STYLE), m_plater(plater), m_selected_pattern(1)
+{
+    SetBackgroundColour(*wxWHITE);
+    SetForegroundColour(wxColour("#363636"));
+    SetFont(Label::Body_14);
+
+    wxBoxSizer* v_sizer = new wxBoxSizer(wxVERTICAL);
+    SetSizer(v_sizer);
+
+    // Pattern Radio Group
+    auto labeled_box_pattern = new LabeledStaticBox(this, _L("Top layer pattern"));
+    auto pattern_box = new wxStaticBoxSizer(labeled_box_pattern, wxVERTICAL);
+
+    m_rbPattern = new RadioGroup(this, { _L("monotonic classic"), _L("monotonic lines ordered"), _L("archimedean chords ordered") }, wxVERTICAL);
+    // Set default selection to "monotonic lines ordered" (index 1)
+    m_rbPattern->SetSelection(1);
+    
+    pattern_box->Add(m_rbPattern, 0, wxALL | wxEXPAND, FromDIP(4));
+    v_sizer->Add(pattern_box, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    auto dlg_btns = new DialogButtons(this, {"OK"});
+    v_sizer->Add(dlg_btns, 0, wxEXPAND);
+
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Flow_Calibration_Dlg::on_start, this);
+
+    // Connect Events
+    m_rbPattern->Connect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Flow_Calibration_Dlg::on_pattern_changed), NULL, this);
+
+    wxGetApp().UpdateDlgDarkUI(this);
+
+    Layout();
+    Fit();
+}
+
+Flow_Calibration_Dlg::~Flow_Calibration_Dlg() {
+    // Disconnect Events
+    m_rbPattern->Disconnect(wxEVT_COMMAND_RADIOBOX_SELECTED, wxCommandEventHandler(Flow_Calibration_Dlg::on_pattern_changed), NULL, this);
+}
+
+void Flow_Calibration_Dlg::on_start(wxCommandEvent& event) {
+    m_selected_pattern = m_rbPattern->GetSelection();
+    EndModal(wxID_OK);
+}
+
+void Flow_Calibration_Dlg::on_pattern_changed(wxCommandEvent& event) {
+    m_selected_pattern = m_rbPattern->GetSelection();
+    event.Skip();
+}
+
+void Flow_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
+    this->Refresh();
+    Fit();
+}
+
 }} // namespace Slic3r::GUI
