@@ -14051,10 +14051,10 @@ msgid "The wiping tower can be used to clean up the residue on the nozzle and st
 msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la cámara en el interior de la boquilla, con el fin de evitar defectos de visuales al imprimir objetos."
 
 msgid "Internal ribs"
-msgstr ""
+msgstr "Refuerzos internos"
 
 msgid "Enable internal ribs to increase the stability of the prime tower."
-msgstr ""
+msgstr "Habilitar refuerzos internos para aumentar la estabilidad de la torre de purga."
 
 msgid "Purging volumes"
 msgstr "Volúmenes de purga"
