@@ -15385,13 +15385,13 @@ msgid "TPU is not supported for Flow Dynamics Auto-Calibration."
 msgstr "El filamento TPU no está soportado para la Auto-Calibración de Dinámicas de Flujo."
 
 msgid "Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing"
-msgstr ""
+msgstr "No se pueden imprimir varios filamentos con grandes diferencias de temperatura juntos. De lo contrario, el extrusor y la boquilla pueden obstruirse o dañarse durante la impresión"
 
 msgid "Sync AMS and nozzle information"
-msgstr ""
+msgstr "Sincronizar la información de AMS y de la boquilla"
 
 msgid "Calibration only supports cases where the left and right nozzle diameters are identical."
-msgstr ""
+msgstr "La calibración solo es compatible cuando los diámetros de las boquillas izquierda y derecha son idénticos."
 
 msgid "From k Value"
 msgstr "Desde el valor k"
@@ -15441,7 +15441,7 @@ msgstr "Editar Calibración de Dinámicas de Flujo"
 
 #, c-format, boost-format
 msgid "Within the same extruder, the name '%s' must be unique when the filament type, nozzle diameter, and nozzle flow are identical. Please choose a different name."
-msgstr ""
+msgstr "Dentro del mismo extrusor, el nombre '%s' debe ser único cuando el tipo de filamento, el diámetro de la boquilla y el flujo de boquilla sean idénticos. Por favor, elija un nombre diferente."
 
 msgid "New Flow Dynamic Calibration"
 msgstr "Nueva Calibración Dinámica del Flujo"
@@ -15450,10 +15450,10 @@ msgid "The filament must be selected."
 msgstr "Debe seleccionar el filamento."
 
 msgid "The extruder must be selected."
-msgstr ""
+msgstr "Debe seleccionar el extrusor."
 
 msgid "The nozzle must be selected."
-msgstr ""
+msgstr "Debe seleccionar la boquilla."
 
 msgid "Network lookup"
 msgstr "Búsqueda de red"
@@ -15515,7 +15515,7 @@ msgid "PA step: "
 msgstr "Incremento de PA: "
 
 msgid "Accelerations: "
-msgstr ""
+msgstr "Aceleraciones: "
 
 msgid "Speeds: "
 msgstr "Velocidades:"
@@ -15524,10 +15524,10 @@ msgid "Print numbers"
 msgstr "Imprimir números"
 
 msgid "Comma-separated list of printing accelerations"
-msgstr ""
+msgstr "Lista separada por comas de las aceleraciones de impresión"
 
 msgid "Comma-separated list of printing speeds"
-msgstr ""
+msgstr "Lista separada por comas de las velocidades de impresión"
 
 msgid ""
 "Please input valid values:\n"
