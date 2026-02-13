@@ -13526,18 +13526,18 @@ msgid "Maximum distance to move points in XY to try to achieve a smooth spiral. 
 msgstr "Distancia máxima a desplazar los puntos en XY para intentar conseguir una espiral suave. Si se expresa en %, se calculará en base al diámetro de la boquilla"
 
 msgid "Spiral starting flow ratio"
-msgstr ""
+msgstr "Factor de flujo inicial en espiral"
 
 #, no-c-format, no-boost-format
 msgid "Sets the starting flow ratio while transitioning from the last bottom layer to the spiral. Normally the spiral transition scales the flow ratio from 0% to 100% during the first loop which can in some cases lead to under extrusion at the start of the spiral."
-msgstr ""
+msgstr "Establece el Factor de flujo inicial al pasar de la última capa inferior a la espiral. Normalmente la transición de la espiral escala el flujo de 0% a 100% durante el primer bucle, lo que en algunos casos puede provocar subextrusión al inicio de la espiral."
 
 msgid "Spiral finishing flow ratio"
-msgstr ""
+msgstr "Factor de flujo final en espiral"
 
 #, no-c-format, no-boost-format
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
-msgstr ""
+msgstr "Establece el Factor de flujo al finalizar la espiral. Normalmente la transición de la espiral escala el flujo de 100% a 0% durante el último bucle, lo que en algunos casos puede provocar subextrusión al final de la espiral."
 
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, prime tower is required for smooth mode to wipe nozzle."
 msgstr ""
@@ -13570,7 +13570,7 @@ msgid "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL.
 msgstr "Insertar múltiples comandos de precalentamiento (por ejemplo, M104.1). Sólo útil para Prusa XL. Para otras impresoras, por favor ajústar a 1."
 
 msgid "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}."
-msgstr ""
+msgstr "G-code escrito en la parte superior del archivo de salida, antes de cualquier otro contenido. Útil para añadir metadatos que el firmware de la impresora lea desde las primeras líneas del archivo (por ejemplo, tiempo estimado de impresión, uso de filamento). Soporta marcadores como {print_time_sec} y {used_filament_length}."
 
 msgid "Start G-code"
 msgstr "G-Code inicial"
@@ -13600,7 +13600,7 @@ msgid "Purge remaining filament into prime tower."
 msgstr "Purgar el filamento restante en una torre"
 
 msgid "Enable filament ramming"
-msgstr ""
+msgstr "Habilitar compactación de filamento"
 
 msgid "No sparse layers (beta)"
 msgstr "Sin capas de baja densidad (beta)"
@@ -13672,10 +13672,10 @@ msgid "XY separation between an object and its support."
 msgstr "Separación XY entre un objeto y su soporte"
 
 msgid "Support/object first layer gap"
-msgstr ""
+msgstr "Separación soporte/objeto en la primera capa"
 
 msgid "XY separation between an object and its support at the first layer."
-msgstr ""
+msgstr "Separación XY entre un objeto y su soporte en la primera capa."
 
 msgid "Pattern angle"
 msgstr "Ángulo del patrón"
@@ -13696,10 +13696,10 @@ msgid "Only create support for critical regions including sharp tail, cantilever
 msgstr "Cree soportes sólo para las regiones críticas, como puntas afiladas, voladizos, etc."
 
 msgid "Ignore small overhangs"
-msgstr ""
+msgstr "Ignorar pequeños voladizos"
 
 msgid "Ignore small overhangs that possibly don't require support."
-msgstr ""
+msgstr "Ignorar pequeños voladizos que posiblemente no requieran soporte."
 
 msgid "Top Z distance"
 msgstr "Distancia Z superior"
@@ -13761,7 +13761,7 @@ msgstr "Espaciado de la interfaz superior"
 msgid ""
 "Spacing of interface lines. Zero means solid interface.\n"
 "Force using solid interface when support ironing is enabled."
-msgstr ""
+msgstr "Espaciado de las líneas de interfaz. Cero significa interfaz sólida.\nForzar el uso de interfaz sólida cuando el planchado de soportes esté activado."
 
 msgid "Bottom interface spacing"
 msgstr "Espaciado de la interfaz inferior"
@@ -13846,10 +13846,10 @@ msgid "Support will be generated for overhangs whose slope angle is below the th
 msgstr "Se generará un soporte para los voladizos cuyo ángulo de inclinación sea inferior al umbral."
 
 msgid "Threshold overlap"
-msgstr ""
+msgstr "Umbral de solapamiento"
 
 msgid "If threshold angle is zero, support will be generated for overhangs whose overlap is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support."
-msgstr ""
+msgstr "Si el ángulo umbral es cero, se generará soporte para los voladizos cuyo solapamiento sea inferior al umbral. Cuanto menor sea este valor, más pronunciado podrá ser el voladizo que se imprima sin soporte."
 
 msgid "Tree support branch angle"
 msgstr "Ángulo de las rama de soporte Árbol"
@@ -14009,18 +14009,18 @@ msgid "The number of top solid layers is increased when slicing if the thickness
 msgstr "El número de capas sólidas superiores se incrementa al laminar si el espesor calculado por las capas de la cubierta es más delgado que este valor. Esto puede evitar tener una cubierta demasiado fina cuando la altura de la capa es pequeña. 0 significa que este ajuste está desactivado y el grosor de la capa superior está absolutamente determinado por las capas de la cubierta superior"
 
 msgid "Top surface density"
-msgstr ""
+msgstr "Densidad de la superficie superior"
 
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr ""
+msgstr "Densidad de la capa superficial superior. Un valor de 100% crea una capa superior totalmente sólida y lisa. Reducir este valor produce una superficie superior texturada, según el patrón elegido. Un valor de 0% provocará que sólo se creen las paredes en la capa superior. Destinado a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión."
 
 msgid "Bottom surface density"
-msgstr ""
+msgstr "Densidad de la superficie inferior"
 
 msgid ""
 "Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
 "WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
+msgstr "Densidad de la capa superficial inferior. Destinada a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión.\nADVERTENCIA: Reducir este valor puede afectar negativamente la adherencia a la cama."
 
 msgid "Speed of travel which is faster and without extrusion."
 msgstr "Velocidad de desplazamiento más rápida y sin extrusión"
@@ -14081,7 +14081,7 @@ msgid "Wipe tower rotation angle with respect to X axis."
 msgstr "Ángulo de rotación con respecto al eje X."
 
 msgid "Brim width of prime tower, negative number means auto calculated width based on the height of prime tower."
-msgstr ""
+msgstr "Anchura del borde de adherencia de la torre de purga; un número negativo significa que la anchura se calculará automáticamente en función de la altura de la torre de purga."
 
 msgid "Stabilization cone apex angle"
 msgstr "Ángulo de vértice del cono de estabilización"
@@ -14114,32 +14114,32 @@ msgstr ""
 "Para los perímetros externos de la torre de purga se utiliza la velocidad del perímetro interno independientemente de este ajuste."
 
 msgid "Wall type"
-msgstr ""
+msgstr "Tipo de pared"
 
 msgid ""
 "Wipe tower outer wall type.\n"
 "1. Rectangle: The default wall type, a rectangle with fixed width and height.\n"
 "2. Cone: A cone with a fillet at the bottom to help stabilize the wipe tower.\n"
 "3. Rib: Adds four ribs to the tower wall for enhanced stability."
-msgstr ""
+msgstr "Tipo de pared externa de la torre de purga.\n1. Rectángulo: Tipo de pared por defecto, un rectángulo con ancho y altura fijos.\n2. Cono: Un cono con un chaflán en la base para ayudar a estabilizar la torre de purga.\n3. Costilla: Añade cuatro refuerzos a la pared de la torre para mejorar la estabilidad."
 
 msgid "Extra rib length"
-msgstr ""
+msgstr "Longitud extra del refuerzo"
 
 msgid "Positive values can increase the size of the rib wall, while negative values can reduce the size. However, the size of the rib wall can not be smaller than that determined by the cleaning volume."
-msgstr ""
+msgstr "Los valores positivos pueden aumentar el tamaño de la pared con refuerzo, mientras que los valores negativos pueden reducirlo. Sin embargo, el tamaño de la pared con refuerzo no puede ser menor que el determinado por el volumen de limpieza."
 
 msgid "Rib width"
-msgstr ""
+msgstr "Ancho del refuerzo"
 
 msgid "Rib width is always less than half the prime tower side length."
-msgstr ""
+msgstr "El ancho del refuerzo siempre es menor que la mitad de la longitud del lado de la torre de purga."
 
 msgid "Fillet wall"
-msgstr ""
+msgstr "Pared con chaflán"
 
 msgid "The wall of prime tower will fillet."
-msgstr ""
+msgstr "La pared de la torre de purga tendrá un chaflán."
 
 msgid "The extruder to use when printing perimeter of the wipe tower. Set to 0 to use the one that is available (non-soluble would be preferred)."
 msgstr "Extrusor usado para imprimir el perímetro de la torre de purga. Ajuste a 0 para usar el único disponible (no soluble preferentemente)."
@@ -14151,16 +14151,16 @@ msgid "This vector saves required volumes to change from/to each tool used on th
 msgstr "Este vector guarda los volúmenes necesarios para cambiar de/a cada cabezal utilizado en la torre de purga. Estos valores se utilizan para simplificar la creación de los volúmenes de purga completos a continuación."
 
 msgid "Skip points"
-msgstr ""
+msgstr "Omitir puntos"
 
 msgid "The wall of prime tower will skip the start points of wipe path."
-msgstr ""
+msgstr "La pared de la torre de purga omitirá los puntos de inicio de la trayectoria de limpieza."
 
 msgid "Infill gap"
-msgstr ""
+msgstr "Rellenar hueco"
 
 msgid "Infill gap."
-msgstr ""
+msgstr "Rellenar hueco."
 
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
 msgstr "La purga tras el cambio de filamento se realizará dentro de los rellenos de los objetos. Esto puede reducir la cantidad de residuos y disminuir el tiempo de impresión. Si los perímetros se imprimen con filamento transparente, el relleno de color mixto se verá en el exterior. No tendrá efecto, a menos que la torre de purga esté activada."
@@ -14290,7 +14290,7 @@ msgid "Minimum feature size"
 msgstr "Tamaño mínimo de la característica"
 
 msgid "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than than this value will be widened to the minimum wall width. It's expressed as a percentage over nozzle diameter."
-msgstr ""
+msgstr "Espesor mínimo de características delgadas. Las características del modelo que sean más finas que este valor no se imprimirán, mientras que las más gruesas que este valor se ampliarán hasta el ancho mínimo de perímetro. Se expresa como un porcentaje sobre el diámetro de la boquilla."
 
 msgid "Minimum wall length"
 msgstr "Longitud mínima de perímetro"
@@ -14356,13 +14356,13 @@ msgid "Export STL"
 msgstr "Exportar STL"
 
 msgid "Export the objects as single STL."
-msgstr ""
+msgstr "Exportar los objetos como un único STL."
 
 msgid "Export multiple STLs"
-msgstr ""
+msgstr "Exportar múltiples STL"
 
 msgid "Export the objects as multiple STLs to directory."
-msgstr ""
+msgstr "Exportar los objetos como múltiples STL a un directorio."
 
 msgid "Slice"
 msgstr "Laminar"
@@ -14503,40 +14503,40 @@ msgid "Skip some objects in this print."
 msgstr "Omitir algunos objetos en esta impresión"
 
 msgid "Clone Objects"
-msgstr ""
+msgstr "Clonar objetos"
 
 msgid "Clone objects in the load list."
-msgstr ""
+msgstr "Clonar objetos en la lista de carga."
 
 msgid "Load uptodate process/machine settings when using uptodate"
-msgstr ""
+msgstr "Cargar ajustes de proceso/máquina actualizados al usar 'uptodate'"
 
 msgid "Load uptodate process/machine settings from the specified file when using uptodate."
 msgstr "carga los ajustes actualizados de proceso/máquina desde el archivo especificado cuando se usa actualizar"
 
 msgid "Load uptodate filament settings when using uptodate"
-msgstr ""
+msgstr "Cargar ajustes de filamento actualizados al usar 'uptodate'"
 
 msgid "Load uptodate filament settings from the specified file when using uptodate."
-msgstr ""
+msgstr "Cargar los ajustes de filamento actualizados desde el archivo especificado al usar 'uptodate'."
 
 msgid "Downward machines check"
-msgstr ""
+msgstr "Comprobación de compatibilidad descendente"
 
 msgid "If enabled, check whether current machine downward compatible with the machines in the list."
-msgstr ""
+msgstr "Si está activado, comprobar si la máquina actual es compatible hacia atrás con las máquinas de la lista."
 
 msgid "downward machines settings"
-msgstr ""
+msgstr "Ajustes de compatibilidad descendente de máquinas"
 
 msgid "The machine settings list needs to do downward checking."
-msgstr ""
+msgstr "La lista de ajustes de la máquina debe realizar comprobaciones de compatibilidad hacia atrás."
 
 msgid "Load assemble list"
-msgstr ""
+msgstr "Cargar lista de ensamblaje"
 
 msgid "Load assemble object list from config file."
-msgstr ""
+msgstr "Cargar lista de objetos de ensamblaje desde un archivo de configuración."
 
 msgid "Data directory"
 msgstr "Directorio de datos"
@@ -14557,10 +14557,10 @@ msgid "Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5
 msgstr "Ajusta el nivel de registro de depuración. 0:fatal, 1:error, 2:advertencia, 3:información, 4:depuración, 5:rastreo\n"
 
 msgid "Enable timelapse for print"
-msgstr ""
+msgstr "Habilitar timelapse para impresión"
 
 msgid "If enabled, this slicing will be considered using timelapse."
-msgstr ""
+msgstr "Si está habilitado, este laminado se procesará teniendo en cuenta el timelapse."
 
 msgid "Load custom G-code"
 msgstr "Cargar G-Code personalizado"
@@ -14569,10 +14569,10 @@ msgid "Load custom G-code from json."
 msgstr "Cargar G-Code personalizado desde json."
 
 msgid "Load filament IDs"
-msgstr ""
+msgstr "Cargar IDs de filamento"
 
 msgid "Load filament IDs for each object."
-msgstr ""
+msgstr "Cargar IDs de filamento para cada objeto."
 
 msgid "Allow multiple colors on one plate"
 msgstr "Permitir múltiples colores en una bandeja"
