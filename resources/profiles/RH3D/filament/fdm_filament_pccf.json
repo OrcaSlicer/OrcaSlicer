@@ -1,0 +1,84 @@
+{
+    "type": "filament",
+    "name": "fdm_filament_pccf",
+    "inherits": "fdm_filament_common",
+    "from": "system",
+    "filament_id": "GFRH06",
+    "instantiation": "false",
+    "cool_plate_temp": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "90"
+    ],
+    "hot_plate_temp": [
+        "90"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "90"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "90"
+    ],
+    "chamber_temperature": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "10"
+    ],
+    "filament_max_volumetric_speed": [
+        "8"
+    ],
+    "filament_type": [
+        "PC-CF"
+    ],
+    "filament_density": [
+        "1.04"
+    ],
+    "filament_shrink": [
+        "99.85"
+    ],
+    "filament_flow_ratio": [
+        "0.9"
+    ],
+    "filament_cost": [
+        "40"
+    ],
+    "idle_temperature": "240",
+    "nozzle_temperature_initial_layer": [
+        "300"
+    ],
+    "fan_max_speed": [
+        "40"
+    ],
+    "fan_min_speed": [
+        "25"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "overhang_fan_speed": [
+        "60"
+    ],
+    "nozzle_temperature": [
+        "320"
+    ],
+    "temperature_vitrification": [
+        "140"
+    ],
+    "nozzle_temperature_range_low": [
+        "290"
+    ],
+    "nozzle_temperature_range_high": [
+        "330"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "slow_down_layer_time": [
+        "2"
+    ]
+}

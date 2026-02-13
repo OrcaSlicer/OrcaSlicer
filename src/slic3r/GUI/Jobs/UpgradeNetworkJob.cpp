@@ -57,7 +57,7 @@ void UpgradeNetworkJob::process(Ctl &ctl)
         return ctl.was_canceled();
     };
     int curr_percent = 0;
-    result = wxGetApp().download_plugin(name, package_name, 
+    result = wxGetApp().download_plugin(name, package_name,
         [this, &ctl, &curr_percent](int state, int percent, bool &cancel) {
             if (state == InstallStatusNormal) {
                 update_status(ctl, percent, _u8L("Downloading"));

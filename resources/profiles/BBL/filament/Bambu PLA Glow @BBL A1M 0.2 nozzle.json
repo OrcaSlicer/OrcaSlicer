@@ -1,0 +1,41 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Glow @BBL A1M 0.2 nozzle",
+    "inherits": "Bambu PLA Glow @base",
+    "from": "system",
+    "setting_id": "GFSA12_17",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "50"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "hot_plate_temp": [
+        "65"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "65"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "textured_plate_temp": [
+        "65"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "65"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 mini 0.2 nozzle"
+    ]
+}

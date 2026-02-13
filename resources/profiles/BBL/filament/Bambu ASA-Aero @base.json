@@ -31,7 +31,7 @@
         "1.5"
     ],
     "filament_type": [
-        "ASA-Aero"
+        "ASA-AERO"
     ],
     "filament_vendor": [
         "Bambu Lab"
@@ -41,6 +41,12 @@
     ],
     "filament_z_hop_types": [
         "Normal Lift"
+    ],
+    "filament_scarf_seam_type": [
+        "none"
+    ],
+    "impact_strength_z": [
+        "3.4"
     ],
     "nozzle_temperature": [
         "270"
@@ -56,8 +62,5 @@
     ],
     "slow_down_layer_time": [
         "5"
-    ],
-    "filament_scarf_seam_type": [
-        "none"
     ]
 }

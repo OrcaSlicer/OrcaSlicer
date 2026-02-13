@@ -3,6 +3,7 @@
 #include "libslic3r/Algorithm/LineSplit.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/PerimeterGenerator.hpp"
 #include "libslic3r/Point.hpp"
@@ -214,7 +215,7 @@ bool should_fuzzify(const FuzzySkinConfig& config, const int layer_id, const siz
 {
     const auto fuzziy_type = config.type;
 
-    if (fuzziy_type == FuzzySkinType::None) {
+    if (fuzziy_type == FuzzySkinType::None|| fuzziy_type == FuzzySkinType::Disabled_fuzzy) {
         return false;
     }
     if (!config.fuzzy_first_layer && layer_id <= 0) {

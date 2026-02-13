@@ -115,6 +115,11 @@ void TabButtonsListCtrl::SetSelection(int sel)
 
 void TabButtonsListCtrl::showNewTag(int sel, bool tag)
 {
+    if (m_pageButtons[sel]->GetShowNewTag() == tag)
+    {
+        return;
+    }
+
     m_pageButtons[sel]->ShowNewTag(tag);
     Refresh();
 }
@@ -190,6 +195,20 @@ void TabButtonsListCtrl::SetPaddingSize(const wxSize& size) {
     for (auto& btn : m_pageButtons) {
         btn->SetPaddingSize(size);
     }
+}
+
+void TabButtonsListCtrl::SetFooterText(const wxString& text)
+{
+    if (!m_footer_text) {
+        m_footer_text = new wxStaticText(this, wxID_ANY, text);
+        m_footer_text->SetForegroundColour(wxColour(128, 128, 128));
+        m_footer_text->SetFont(Label::Body_10);
+        int em = em_unit(this);
+        m_sizer->Add(m_footer_text, 0, wxALL, FromDIP(18)); // ORCA reduce / match left margin buttons on sidebars
+    } else {
+        m_footer_text->SetLabel(text);
+    }
+    m_sizer->Layout();
 }
 
 //#endif // _WIN32

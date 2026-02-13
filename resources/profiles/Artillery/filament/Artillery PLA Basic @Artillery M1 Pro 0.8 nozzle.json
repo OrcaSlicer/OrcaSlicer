@@ -27,5 +27,7 @@
     ],
     "compatible_printers": [
         "Artillery M1 Pro 0.8 nozzle"
-    ]
+    ],
+    "is_custom_defined": "0",
+    "version": "2.1.1.0"
 }

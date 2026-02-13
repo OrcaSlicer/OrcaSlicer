@@ -23,5 +23,6 @@
     "top_surface_speed": "140",
     "bridge_speed": "30",
     "overhang_3_4_speed": "25",
-    "overhang_4_4_speed": "5"
+    "overhang_4_4_speed": "5",
+    "tree_support_tip_diameter": "2"
 }

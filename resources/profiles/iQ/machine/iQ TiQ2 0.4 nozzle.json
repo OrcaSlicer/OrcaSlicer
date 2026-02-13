@@ -7,7 +7,8 @@
     "printer_settings_id": "iQ TiQ2 0.4 Nozzle",
     "printer_model": "TiQ2",
     "printer_variant": "0.4",
-    "change_filament_gcode": "G1 X32 Y0 F3000\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing\n",
+    "printer_notes": "Machine file version 1.1 20250812",
+    "change_filament_gcode": "G1 Z{layer_z+2} F900 ; safe distance while tool change\nG1 X32 Y3 F3000\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing\n",
     "deretraction_speed": [
         "30",
         "30"
@@ -61,8 +62,8 @@
         "70%"
     ],
     "retract_length_toolchange": [
-        "15",
-        "15"
+        "10",
+        "12"
     ],
     "retract_lift_above": [
         "0",

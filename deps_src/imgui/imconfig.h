@@ -153,6 +153,8 @@ namespace ImGui
 //    const wchar_t CustomSupportsMarker     = 0x1D;
 //    const wchar_t CustomSeamMarker         = 0x1E;
 //    const wchar_t MmuSegmentationMarker    = 0x1F;
+    //const wchar_t HorizontalHide           = 0xB1; // ORCA use FoldButtonIcon / UnfoldButtonIcon
+    //const wchar_t HorizontalShow           = 0xB2;
 
     // Do not forget use following letters only in wstring
     //BBS use 08xx to avoid unicode character which may be used
@@ -228,5 +230,7 @@ namespace ImGui
     const wchar_t OpenHoverDarkButton  = 0x085B;
 
     //    void MyFunction(const char* name, const MyMatrix44& v);
+
+    const wchar_t FilamentGreen     = 0x0850;
 }
 

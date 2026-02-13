@@ -1,0 +1,97 @@
+{
+    "type": "filament",
+    "name": "COEX PETG @base",
+    "inherits": "fdm_filament_pet",
+    "from": "system",
+    "filament_id": "CXPETB13",
+    "instantiation": "false",
+    "filament_vendor": [
+        "COEX 3D"
+    ],
+    "filament_cost": [
+        "33.00"
+    ],
+    "filament_density": [
+        "1.27"
+    ],
+    "filament_type": [
+        "PETG"
+    ],
+    "filament_notes": "IMPORTANT: Set travel speed to maximum your machine allows (200-500mm/s) to reduce stringing",
+    "nozzle_temperature": [
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "250"
+    ],
+    "bed_temperature": [
+        "80"
+    ],
+    "bed_temperature_initial_layer": [
+        "85"
+    ],
+    "temperature_vitrification": [
+        "70"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "filament_retraction_minimum_travel": [
+        "2"
+    ],
+    "filament_retract_before_wipe": [
+        "70%"
+    ],
+    "filament_retract_layer_change": [
+        "1"
+    ],
+    "filament_retract_when_changing_layer": [
+        "1"
+    ],
+    "filament_retraction_length": [
+        "4"
+    ],
+    "filament_retraction_speed": [
+        "30"
+    ],
+    "filament_deretraction_speed": [
+        "30"
+    ],
+    "filament_z_hop": [
+        "0.4"
+    ],
+    "filament_wipe": [
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "2"
+    ],
+    "fan_min_speed": [
+        "30"
+    ],
+    "fan_max_speed": [
+        "50"
+    ],
+    "disable_fan_first_layers": [
+        "2"
+    ],
+    "full_fan_speed_layer": [
+        "4"
+    ],
+    "slow_down_layer_time": [
+        "5"
+    ],
+    "slow_down_min_speed": [
+        "10"
+    ],
+    "enable_pressure_advance": [
+        "1"
+    ],
+    "pressure_advance": [
+        "0.045"
+    ],
+    "compatible_printers": [],
+    "compatible_printers_condition": "",
+    "compatible_prints": [],
+    "compatible_prints_condition": ""
+}

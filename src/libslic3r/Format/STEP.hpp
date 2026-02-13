@@ -87,14 +87,28 @@ private:
 class Step
 {
 public:
+    enum class Step_Status {
+        LOAD_SUCCESS,
+        LOAD_ERROR,
+        CANCEL,
+        MESH_SUCCESS,
+        MESH_ERROR
+    };
     Step(fs::path path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     Step(std::string path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
-    bool load();
+    ~Step();
+    Step_Status load();
     unsigned int get_triangle_num(double linear_defletion, double angle_defletion);
     unsigned int get_triangle_num_tbb(double linear_defletion, double angle_defletion);
     void clean_mesh_data();
+    Step_Status mesh(Model* model,
+                     bool& is_cancel,
+                     bool isSplitCompound,
+                     double linear_defletion = 0.003,
+                     double angle_defletion = 0.5);
 
     std::atomic<bool> m_stop_mesh;
+    void update_process(int load_stage, int current, int total, bool& cancel);
 private:
     std::string m_path;
     ImportStepProgressFn m_stepFn;

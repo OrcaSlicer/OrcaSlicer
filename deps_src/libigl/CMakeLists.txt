@@ -11,5 +11,7 @@ if(libigl_FOUND)
     target_link_libraries(libigl INTERFACE igl::core)
 else()
     message(STATUS "IGL NOT found, using bundled version...")
-    target_include_directories(libigl SYSTEM BEFORE INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(libigl SYSTEM BEFORE
+        INTERFACE
+            ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

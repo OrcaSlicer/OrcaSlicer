@@ -40,6 +40,7 @@
     "filament_type": [
         "ASA"
     ],
+    "is_custom_defined": "0",
     "nozzle_temperature": [
         "260"
     ],
@@ -111,5 +112,7 @@
     ],
     "cool_plate_temp_initial_layer": [
         "100"
-    ]
+    ],
+    "version": "2.1.2.2"
+
 }

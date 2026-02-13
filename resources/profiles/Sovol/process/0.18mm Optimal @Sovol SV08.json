@@ -112,5 +112,7 @@
     "wall_generator": "classic",
     "gcode_label_objects": "1",
     "slow_down_layers": "3",
-    "compatible_printers": []
+    "compatible_printers": [
+		"Sovol SV08 0.4 nozzle"
+	]
 }

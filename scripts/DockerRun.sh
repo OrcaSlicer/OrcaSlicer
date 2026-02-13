@@ -13,11 +13,11 @@ docker run \
   `# Some X installs will not have permissions to talk to sockets for shared memory` \
   --ipc host \
   `# Run as your workstations username to keep permissions the same` \
-  -u $USER \
+  -u "$USER" \
   `# Bind mount your home directory into the container for loading/saving files` \
-  -v $HOME:/home/$USER \
+  -v "$HOME:/home/$USER" \
   `# Pass the X display number to the container` \
-  -e DISPLAY=$DISPLAY \
+  -e DISPLAY="$DISPLAY" \
   `# It seems that libGL and dbus things need privileged mode` \
   --privileged=true \
   `# Attach tty for running orca slicer with command line things` \
@@ -25,5 +25,4 @@ docker run \
   `# Clean up after yourself` \
   --rm \
   `# Pass all parameters from this script to the orca slicer  ENTRYPOINT binary` \
-  orcaslicer $* 
-  
+  orcaslicer "$@"

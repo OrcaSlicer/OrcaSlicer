@@ -12,6 +12,7 @@
         "50"
     ],
     "filament_max_volumetric_speed": [
+        "1.6",
         "1.6"
     ],
     "hot_plate_temp": [

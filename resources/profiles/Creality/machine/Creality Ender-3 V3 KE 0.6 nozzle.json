@@ -1,6 +1,6 @@
 {
     "type": "machine",
-    "name": "Creality Ender-3 V3 KE 0.4 nozzle",
+    "name": "Creality Ender-3 V3 KE 0.6 nozzle",
     "inherits": "fdm_creality_common",
     "from": "system",
     "setting_id": "GM001",
@@ -11,7 +11,6 @@
     "printer_structure": "i3",
     "default_print_profile": "0.20mm Standard @Creality Ender3V3KE",
     "extruder_clearance_height_to_rod": "47",
-    "extruder_clearance_max_radius": "90",
     "extruder_clearance_radius": "90",
     "machine_load_filament_time": "11",
     "nozzle_diameter": [
@@ -83,10 +82,10 @@
         "0.4"
     ],
     "max_layer_height": [
-        "0.32"
+        "0.48"
     ],
     "min_layer_height": [
-        "0.08"
+        "0.12"
     ],
     "retraction_minimum_travel": [
         "2"

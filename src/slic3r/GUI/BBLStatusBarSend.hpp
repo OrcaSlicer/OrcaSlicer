@@ -86,6 +86,9 @@ public:
 
     void disable_cancel_button();
     void enable_cancel_button();
+
+    void    cancel();
+
 private:
     bool     m_show_error_info_state = false;
     bool     m_busy = false;
@@ -98,8 +101,8 @@ namespace GUI {
 using Slic3r::BBLStatusBarSend;
 }
 
-wxDECLARE_EVENT(EVT_SHOW_ERROR_INFO, wxCommandEvent);
-
+wxDECLARE_EVENT(EVT_SHOW_ERROR_INFO_SEND, wxCommandEvent);
+wxDECLARE_EVENT(EVT_SHOW_ERROR_FAIL_SEND, wxCommandEvent);
 } // namespace Slic3r
 
 #endif // BBLSTATUSBAR_HPP

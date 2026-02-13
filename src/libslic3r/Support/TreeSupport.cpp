@@ -1529,7 +1529,7 @@ void TreeSupport::generate_toolpaths()
                             need_infill &= area_group.need_infill;
                         std::shared_ptr<Fill> filler_support = std::shared_ptr<Fill>(Fill::new_from_type(layer_id == 0 ? ipConcentric : m_support_params.base_fill_pattern));
                         filler_support->set_bounding_box(bbox_object);
-                        filler_support->spacing = object_config.support_base_pattern_spacing.value * support_density;// constant spacing to align support infill lines
+                        filler_support->spacing = support_spacing * support_density; // constant spacing to align support infill lines
                         filler_support->angle = Geometry::deg2rad(object_config.support_angle.value);
 
                         Polygons loops = to_polygons(poly);

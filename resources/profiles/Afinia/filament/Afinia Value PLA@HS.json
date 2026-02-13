@@ -1,0 +1,40 @@
+{
+    "type": "filament",
+    "filament_id": "GFA00_01",
+    "setting_id": "GFSA00",
+    "name": "Afinia Value PLA@HS",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "fdm_filament_pla",
+    "filament_cost": [
+        "24.99"
+    ],
+    "filament_density": [
+        "1.26"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "21"
+    ],
+    "filament_vendor": [
+        "Afinia"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "nozzle_temperature": [
+        "190"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "190"
+    ],
+    "compatible_printers": [
+        "Afinia H+1(HS) 0.4 nozzle",
+        "Afinia H+1(HS) 0.6 nozzle"
+    ]
+}

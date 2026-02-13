@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "name": "0.24mm Draft @Tiertime UP600 HS",
-    "inherits": "fdm_process_tiertime_HS_common",
-    "from": "system",
     "setting_id": "GP027",
+    "name": "0.24mm Draft @Tiertime UP600 HS",
+    "from": "system",
     "instantiation": "true",
+    "inherits": "fdm_process_tiertime_HS_common",
     "layer_height": "0.24",
     "elefant_foot_compensation": "0.15",
     "bottom_shell_layers": "3",
@@ -27,4 +27,4 @@
     "compatible_printers": [
         "Tiertime UP600 HS 0.4 nozzle"
     ]
-}
+} 

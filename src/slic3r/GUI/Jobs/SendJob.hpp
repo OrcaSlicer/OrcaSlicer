@@ -3,6 +3,7 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/DeviceCore/DevStorage.h" 
 #include "Job.hpp"
 #include "PrintJob.hpp"
 
@@ -41,10 +42,12 @@ public:
 	std::string connection_type;
 
     bool        m_local_use_ssl_for_ftp{true};
-    bool        m_local_use_ssl_for_mqtt{true};
+    bool        m_local_use_ssl{true};
     bool        cloud_print_only { false };
     bool        has_sdcard { false };
     bool        task_use_ams { true };
+
+    DevStorage::SdcardState sdcard_state = DevStorage::SdcardState::NO_SDCARD;
 
     wxWindow*   m_parent{nullptr};
 

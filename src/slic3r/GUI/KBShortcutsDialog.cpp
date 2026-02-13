@@ -207,10 +207,12 @@ void KBShortcutsDialog::fill_shortcuts()
             { "?", L("Show keyboard shortcuts list") }
         };
         m_full_shortcuts.push_back({{_L("Global shortcuts"), ""}, global_shortcuts});
+        
+        bool swap_mouse_buttons = wxGetApp().app_config->get_bool("swap_mouse_buttons");
 
         Shortcuts plater_shortcuts = {
-            { L("Left mouse button"), L("Rotate View") },
-            { L("Right mouse button"), L("Pan View") },
+            { L("Left mouse button"), swap_mouse_buttons ? L("Pan View") : L("Rotate View") },
+            { L("Right mouse button"), swap_mouse_buttons ? L("Rotate View") : L("Pan View") },
             { L("Mouse wheel"), L("Zoom View") },
             { "A", L("Arrange all objects") },
             { shift + "A", L("Arrange objects on selected plates") },

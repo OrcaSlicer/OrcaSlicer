@@ -1,10 +1,10 @@
 {
     "type": "process",
-    "name": "0.20mm Standard @Tiertime UP400 Pro",
-    "inherits": "fdm_process_tiertime_common",
-    "from": "system",
     "setting_id": "GP001",
+    "name": "0.20mm Standard @Tiertime UP400 Pro",
+    "from": "system",
     "instantiation": "true",
+    "inherits": "fdm_process_tiertime_common",
     "layer_height": "0.2",
     "initial_layer_speed": "50",
     "initial_layer_infill_speed": "105",

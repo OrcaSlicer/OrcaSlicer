@@ -1,9 +1,11 @@
 {
-    "version": "1.0.0.1",
+    "version": "1.0.0.3",
     "nozzle_hrc": {
         "hardened_steel": 55,
         "stainless_steel": 20,
+        "tungsten_carbide": 85,
         "brass": 2,
+        "E3D": 55,
         "undefine": 0
     }
 }

@@ -100,10 +100,10 @@ inline std::string get_transform_string(int bytes)
 
 void SendJob::process(Ctl &ctl)
 {
-    BBL::PrintParams params;
+    PrintParams params;
     std::string msg;
     int curr_percent = 10;
-    NetworkAgent* m_agent = wxGetApp().getAgent();
+    NetworkAgent* agent = wxGetApp().getAgent();
     AppConfig* config = wxGetApp().app_config;
     int result = -1;
     std::string http_body;
@@ -164,8 +164,15 @@ void SendJob::process(Ctl &ctl)
     params.dev_id               = m_dev_id;
     params.project_name         = m_project_name + ".gcode.3mf";
     params.preset_name          = wxGetApp().preset_bundle->prints.get_selected_preset_name();
-    params.filename             = job_data._3mf_path.string();
+
+    if (wxGetApp().plater()->using_exported_file())
+        params.filename = wxGetApp().plater()->get_3mf_filename();
+    else
+        params.filename = job_data._3mf_path.string();
+
+
     params.config_filename      = job_data._3mf_config_path.string();
+
     params.plate_index          = curr_plate_idx;
     params.ams_mapping          = this->task_ams_mapping;
     params.connection_type      = this->connection_type;
@@ -176,7 +183,7 @@ void SendJob::process(Ctl &ctl)
     params.username = "bblp";
     params.password = m_access_code;
     params.use_ssl_for_ftp = m_local_use_ssl_for_ftp;
-    params.use_ssl_for_mqtt = m_local_use_ssl_for_mqtt;
+    params.use_ssl_for_mqtt = m_local_use_ssl;
     wxString error_text;
     std::string msg_text;
 
@@ -227,14 +234,14 @@ void SendJob::process(Ctl &ctl)
                         // update current percnet
                         if (stage >= 0 && stage <= (int) PrintingStageFinished) {
                             curr_percent = StagePercentPoint[stage];
-                            if ((stage == BBL::SendingPrintJobStage::PrintingStageUpload) &&
+                            if ((stage == SendingPrintJobStage::PrintingStageUpload) &&
                                 (code > 0 && code <= 100)) {
                                 curr_percent = (StagePercentPoint[stage + 1] - StagePercentPoint[stage]) * code / 100 + StagePercentPoint[stage];
                             }
                         }
 
-                        //get errors 
-                        if (code > 100 || code < 0 || stage == BBL::SendingPrintJobStage::PrintingStageERROR) {
+                        //get errors
+                        if (code > 100 || code < 0 || stage == SendingPrintJobStage::PrintingStageERROR) {
                             if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE) {
                                 m_plater->update_print_error_info(code, desc_file_too_large, info);
                             }
@@ -268,13 +275,13 @@ void SendJob::process(Ctl &ctl)
         else if (params.password.empty())
             params.comments = "no_password";
 
-        if (!params.password.empty() 
+        if (!params.password.empty()
             && !params.dev_ip.empty()
             && this->has_sdcard) {
             // try to send local with record
             BOOST_LOG_TRIVIAL(info) << "send_job: try to send gcode to printer";
             ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN"));
-            result = m_agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
+            result = agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
             if (result == BAMBU_NETWORK_ERR_FTP_UPLOAD_FAILED) {
                 params.comments = "upload_failed";
             } else {
@@ -290,13 +297,30 @@ void SendJob::process(Ctl &ctl)
             ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN"));
         }
     } else {
-        if (this->has_sdcard) {
-            ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN"));
-            result = m_agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
-        } else {
-            ctl.update_status(curr_percent, _u8L("An SD card needs to be inserted before sending to printer."));
-            return;
-        }
+          switch(this->sdcard_state) {
+                case DevStorage::SdcardState::NO_SDCARD:
+                    ctl.update_status(curr_percent, _u8L("Storage needs to be inserted before sending to printer."));
+                    return;
+                case DevStorage::SdcardState::HAS_SDCARD_ABNORMAL:
+                    if(this->has_sdcard) {
+                        // means the sdcard is abnormal but can be used option is enabled
+                         ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
+                         result = agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
+                        break;
+                    }
+                    ctl.update_status(curr_percent, _u8L("The Storage in the printer is abnormal. Please replace it with a normal Storage before sending to printer."));
+                    return;
+                case DevStorage::SdcardState::HAS_SDCARD_READONLY:
+                    ctl.update_status(curr_percent, _u8L("The Storage in the printer is read-only. Please replace it with a normal Storage before sending to printer."));
+                    return;
+                case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
+                    ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN"));
+                    result = agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);       
+                    break;
+                default:
+                    ctl.update_status(curr_percent, _u8L("Encountered an unknown error with the Storage status. Please try again."));
+                    return;
+            }
     }
 
     if (ctl.was_canceled()) {

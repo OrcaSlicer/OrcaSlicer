@@ -53,7 +53,7 @@ OG_CustomCtrl::OG_CustomCtrl(   wxWindow*            parent,
     // BBS: new font
     m_font = Label::Body_14;
     SetFont(m_font);
-    m_em_unit   = em_unit(m_parent);
+    m_em_unit = em_unit(m_parent);
     m_v_gap   = lround(1.2 * m_em_unit);
     m_v_gap2  = lround(0.8 * m_em_unit);
     m_h_gap   = lround(0.2 * m_em_unit);
@@ -597,7 +597,7 @@ void OG_CustomCtrl::msw_rescale()
     SetFont(m_font);
     m_em_unit   = em_unit(m_parent);
     m_v_gap     = lround(1.2 * m_em_unit);
-    m_v_gap2     = lround(0.8 * m_em_unit);
+    m_v_gap2    = lround(0.8 * m_em_unit);
     m_h_gap     = lround(0.2 * m_em_unit);
 
     //m_bmp_mode_sz = create_scaled_bitmap("mode_simple", this, wxOSX ? 10 : 12).GetSize();
@@ -931,7 +931,7 @@ wxCoord OG_CustomCtrl::CtrlLine::draw_text(wxDC &dc, wxPoint pos, const wxString
         } else {
             pos.y = pos.y + lround((height - size.y) / 2);
         }
-        if (width > 0)
+        if (width > 0 && is_main)
             rect_label = wxRect(pos, wxSize(size.x, size.y));
 
         wxColour old_clr = dc.GetTextForeground();
@@ -992,7 +992,7 @@ wxPoint OG_CustomCtrl::CtrlLine::draw_act_bmps(wxDC& dc, wxPoint pos, const wxBi
         pos.y += lround((height - get_bitmap_size(bmp_undo).GetHeight()) / 2);
     }
 #endif
-    wxCoord h_pos = pos.x;
+    wxCoord h_pos = pos.x - ctrl->m_h_gap;  // Orca: adjust position to the left
     wxCoord v_pos = pos.y;
 
 #ifndef DISABLE_UNDO_SYS

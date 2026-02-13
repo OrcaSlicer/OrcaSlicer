@@ -24,6 +24,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "format.hpp"
 #include "Tab.hpp"
 #include "wxExtensions.hpp"
@@ -64,10 +65,10 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     auto input_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxStaticText *label_top = new wxStaticText(this, wxID_ANY, from_u8((boost::format(_utf8(L("Save %s as"))) % into_u8(tab->title())).str()));
-    label_top->SetFont(::Label::Body_13);
+    label_top->SetFont(::Label::Body_14);
     label_top->SetForegroundColour(wxColour(38,46,48));
 
-    m_input_area = new RoundedRectangle(this, wxColor(172, 172, 172), wxDefaultPosition, wxSize(-1,-1), 3, 1);
+    m_input_area = new RoundedRectangle(this, StateColor::darkModeColorFor(wxColour("#DBDBDB")), wxDefaultPosition, wxSize(-1,-1), 3, 1);
     m_input_area->SetMinSize(wxSize(FromDIP(360), FromDIP(32)));
 
     wxBoxSizer *input_sizer_h = new wxBoxSizer(wxHORIZONTAL);
@@ -87,13 +88,14 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     m_valid_label = new wxStaticText(this, wxID_ANY, "");
     m_valid_label->SetForegroundColour(wxColor(255, 111, 0));
 
-    input_sizer->Add(label_top, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, BORDER_W);
-    input_sizer->Add(m_input_area, 0, wxEXPAND | wxLEFT | wxTOP | wxBOTTOM, BORDER_W);
-    input_sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT, BORDER_W);
+    input_sizer->Add(label_top, 0, wxEXPAND | wxLEFT, BORDER_W);
+    input_sizer->Add(m_input_area, 0, wxEXPAND | wxTOP, BORDER_W);
+    input_sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, BORDER_W);
 
 
     m_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     m_optgroup = new ConfigOptionsGroup(this, _L("Print Host upload"), m_config);
+    check_host_key_valid();
     build_printhost_settings(m_optgroup);
 
     auto dlg_btns = new DialogButtons(this, {"OK"});
@@ -123,8 +125,22 @@ PhysicalPrinterDialog::~PhysicalPrinterDialog()
 void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgroup)
 {
     m_optgroup->m_on_change = [this](t_config_option_key opt_key, boost::any value) {
-        if (opt_key == "host_type" || opt_key == "printhost_authorization_type")
+        // Special handling for printer_agent: convert fake enum index to string agent ID
+        if (opt_key == "printer_agent") {
+            try {
+                int selected_idx = boost::any_cast<int>(value);
+                auto agents = NetworkAgentFactory::get_registered_printer_agents();
+                if (selected_idx >= 0 && selected_idx < static_cast<int>(agents.size())) {
+                    m_config->set_key_value("printer_agent",
+                                          new ConfigOptionString(agents[selected_idx].id));
+                }
+            } catch (const boost::bad_any_cast&) {
+                // If value is not an int, ignore
+            }
             this->update();
+        } else if (opt_key == "host_type" || opt_key == "printhost_authorization_type") {
+            this->update();
+        }
         if (opt_key == "print_host")
             this->update_printhost_buttons();
         if (opt_key == "printhost_port")
@@ -134,6 +150,47 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     };
 
     m_optgroup->append_single_option_line("host_type");
+
+    // Build printer agent dropdown from registry (only if network agent is available)
+    if (wxGetApp().getAgent() != nullptr) {
+        auto agents = NetworkAgentFactory::get_registered_printer_agents();
+
+        if (!agents.empty()) {
+            // Create a fake enum option to force a Choice widget instead of TextCtrl
+            // (printer_agent is coString in config, but we need a dropdown)
+            ConfigOptionDef def;
+            def.type    = coEnum;
+            def.width   = Field::def_width_wider();
+            def.label   = L("Printer Agent");
+            def.tooltip = L("Select the network agent implementation for printer communication. "
+                            "Available agents are registered at startup.");
+            def.mode    = comAdvanced;
+
+            // Populate enum values and labels from registered agents
+            for (const auto& agent : agents) {
+                def.enum_values.push_back(agent.id);
+                def.enum_labels.push_back(agent.display_name);
+            }
+
+            // Resolve selected agent: use config value if valid, otherwise fall back to default
+            std::string selected_agent = m_config->opt_string("printer_agent");
+            auto it = std::find_if(agents.begin(), agents.end(), [&selected_agent](const auto& a) { return a.id == selected_agent; });
+            if (it == agents.end()) {
+                selected_agent = ORCA_PRINTER_AGENT_ID;
+                it = std::find_if(agents.begin(), agents.end(), [&selected_agent](const auto& a) { return a.id == selected_agent; });
+            }
+
+            if (it != agents.end()) {
+                size_t default_idx = std::distance(agents.begin(), it);
+                def.set_default_value(new ConfigOptionInt(static_cast<int>(default_idx)));
+            }
+
+            // Create and append the option line
+            auto agent_option = Option(def, "printer_agent");
+            Line agent_line   = m_optgroup->create_single_option_line(agent_option);
+            m_optgroup->append_line(agent_line);
+        }
+    }
 
     auto create_sizer_with_btn = [](wxWindow* parent, Button** btn, const std::string& icon_name, const wxString& label) {
         *btn = new Button(parent, label);
@@ -258,7 +315,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
         // For bbl printers, we build a fake option to control whether the original device tab should be used
         ConfigOptionDef def;
         def.type     = coBool;
-        def.width    = Field::def_width();
+        def.width    = Field::def_width_wider();
         def.label    = L("View print host webui in Device tab");
         def.tooltip  = L("Replace the BambuLab's device tab with print host webui");
         def.set_default_value(new ConfigOptionBool(false));
@@ -687,6 +744,31 @@ void PhysicalPrinterDialog::update_host_type(bool printer_change)
     }
 }
 
+void PhysicalPrinterDialog::update_printer_agent_type()
+{
+    if (m_config == nullptr)
+        return;
+
+    Field* agent_field = m_optgroup->get_field("printer_agent");
+    if (!agent_field)
+        return;
+
+    Choice* agent_choice = dynamic_cast<Choice*>(agent_field);
+    if (!agent_choice)
+        return;
+
+    // Sync selection with current config value
+    const std::string current_agent = m_config->opt_string("printer_agent");
+
+    auto agents = NetworkAgentFactory::get_registered_printer_agents();
+    for (size_t i = 0; i < agents.size(); ++i) {
+        if (agents[i].id == current_agent) {
+            agent_choice->set_value(i);
+            return;
+        }
+    }
+}
+
 void PhysicalPrinterDialog::update_printers()
 {
     wxBusyCursor wait;
@@ -726,10 +808,25 @@ void PhysicalPrinterDialog::on_dpi_changed(const wxRect& suggested_rect)
     Refresh();
 }
 
+void PhysicalPrinterDialog::check_host_key_valid()
+{
+    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
+    for (auto &key : keys) {
+        auto it = m_config->option<ConfigOptionString>(key);
+        if (!it) m_config->set_key_value(key, new ConfigOptionString(""));
+    }
+    return;
+}
+
 void PhysicalPrinterDialog::OnOK(wxEvent& event)
 {
-    wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name );
+    wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name);
     event.Skip();
+
+    // Defer printer agent switch to ensure preset save completes first
+    wxGetApp().CallAfter([] {
+        wxGetApp().switch_printer_agent();
+    });
 }
 
 }}    // namespace Slic3r::GUI

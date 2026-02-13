@@ -7,6 +7,7 @@
 #include "Widgets/TextInput.hpp"
 #include "Widgets/AMSControl.hpp"
 #include "Widgets/ProgressBar.hpp"
+#include "Widgets/HyperLink.hpp"
 #include "wxExtensions.hpp"
 #include "PresetComboBoxes.hpp"
 
@@ -49,6 +50,7 @@ enum CalibrationFilamentMode {
 enum CalibrationMethod {
     CALI_METHOD_MANUAL = 0,
     CALI_METHOD_AUTO,
+    CALI_METHOD_NEW_AUTO,
     CALI_METHOD_NONE,
 };
 
@@ -78,13 +80,14 @@ enum class CaliPageType {
 class FilamentComboBox : public wxPanel
 {
 public:
-    FilamentComboBox(wxWindow* parent, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);
+    FilamentComboBox(wxWindow* parent, int index, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize);
     ~FilamentComboBox() {};
 
     void set_select_mode(CalibrationFilamentMode mode);
     CalibrationFilamentMode get_select_mode() { return m_mode; }
     void load_tray_from_ams(int id, DynamicPrintConfig& tray);
     void update_from_preset();
+    int get_index() { return m_index; }
     int get_tray_id() { return m_tray_id; }
     bool is_bbl_filament() { return m_is_bbl_filamnet; }
     std::string get_tray_name() { return m_tray_name; }
@@ -98,7 +101,11 @@ public:
     virtual void SetValue(bool value, bool send_event = true);
     void msw_rescale();
 
+    void ShowPanel();
+    void HidePanel();
+
 protected:
+    int m_index{0};
     int m_tray_id { -1 };
     std::string m_tray_name;
     bool m_is_bbl_filamnet{ false };
@@ -134,7 +141,7 @@ private:
     void init_bitmaps();
     void create_wiki(wxWindow* parent);
 
-    Label* m_wiki_text;
+    HyperLink* m_wiki_text; // ORCA
     wxString  m_wiki_url;
     ScalableBitmap m_prev_bmp_normal;
     ScalableBitmap m_prev_bmp_hover;
@@ -160,7 +167,7 @@ protected:
     std::vector<Label*> m_text_steps;
 };
 
-class CaliPagePicture : public wxPanel 
+class CaliPagePicture : public wxPanel
 {
 public:
     CaliPagePicture(wxWindow* parent,
@@ -232,7 +239,7 @@ private:
     CaliPageActionType m_action_type;
 };
 
-class CaliPageSendingPanel : public wxPanel 
+class CaliPageSendingPanel : public wxPanel
 {
 public:
     CaliPageSendingPanel(wxWindow* parent,
@@ -277,7 +284,7 @@ protected:
     std::vector<CaliPageButton*> m_action_btns;
 };
 
-class CalibrationWizardPage : public wxPanel 
+class CalibrationWizardPage : public wxPanel
 {
 public:
     CalibrationWizardPage(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL);
@@ -308,9 +315,6 @@ public:
 
     virtual void set_cali_method(CalibrationMethod method) {
         m_cali_method = method;
-        if (method == CalibrationMethod::CALI_METHOD_MANUAL) {
-            set_cali_filament_mode(CalibrationFilamentMode::CALI_MODEL_SINGLE);
-        }
     }
 
     virtual void msw_rescale();

@@ -5,6 +5,7 @@
 #include <wx/button.h>
 #include <wx/statusbr.h>
 #include <wx/frame.h>
+#include <wx/statline.h>
 
 #include "GUI_App.hpp"
 

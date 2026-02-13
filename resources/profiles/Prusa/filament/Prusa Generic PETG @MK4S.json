@@ -14,11 +14,15 @@
     ],
     "default_filament_colour": "#FF8000",
     "fan_max_speed": "40",
-    "filament_cost": "27.82",
+    "filament_cost": [
+        "27.82"
+    ],
     "filament_end_gcode": [
         "; Filament-specific end gcode"
     ],
-    "filament_max_volumetric_speed": "12",
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
     "filament_minimal_purge_on_wipe_tower": "35",
     "filament_notes": [
         ""

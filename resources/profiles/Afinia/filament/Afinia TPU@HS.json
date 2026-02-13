@@ -1,0 +1,27 @@
+{
+    "type": "filament",
+    "name": "Afinia TPU@HS",
+    "inherits": "fdm_filament_tpu",
+    "from": "system",
+    "filament_id": "GFU01_01",
+    "instantiation": "true",
+    "filament_vendor": [
+        "Afinia"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230"
+    ],
+    "filament_cost": [
+        "41.99"
+    ],
+    "nozzle_temperature": [
+        "230"
+    ],
+    "compatible_printers": [
+        "Afinia H+1(HS) 0.4 nozzle",
+        "Afinia H+1(HS) 0.6 nozzle"
+    ]
+}

@@ -5,6 +5,7 @@
 #include <optional>
 #include <string_view>
 #include <boost/bimap.hpp>
+#include <wx/dc.h>
 #include <wx/font.h>
 #include "libslic3r/Emboss.hpp"
 
@@ -40,6 +41,8 @@ public:
 
     static bool is_italic(const wxFont &font);
     static bool is_bold(const wxFont &font);
+
+    static void get_suitable_font_size(int max_height, wxDC &dc);
 
     /// <summary>
     /// Set italic into wx font

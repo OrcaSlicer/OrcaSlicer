@@ -24,6 +24,9 @@
     "filament_scarf_gap": [
         "0%"
     ],
+    "impact_strength_z": [
+        "4.6"
+    ],
     "nozzle_temperature": [
         "230"
     ],

@@ -11,7 +11,9 @@
     ],
     "fan_max_speed": "15",
     "fan_min_speed": "15",
-    "filament_max_volumetric_speed": "36",
+    "filament_max_volumetric_speed": [
+        "36"
+    ],
     "nozzle_temperature": "270",
     "nozzle_temperature_initial_layer": "270",
     "slow_down_layer_time": "20"

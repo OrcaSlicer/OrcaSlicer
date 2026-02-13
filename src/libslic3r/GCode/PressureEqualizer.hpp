@@ -136,7 +136,6 @@ private:
             assert(avg_correction <= 1.00000001f);
             return avg_correction;
         }
-        float       time_corrected()  const { return time() * volumetric_correction_avg(); }
 
         GCodeLineType type;
 

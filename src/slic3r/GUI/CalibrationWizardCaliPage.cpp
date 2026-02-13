@@ -3,6 +3,8 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 
+#include "DeviceCore/DevManager.h"
+
 namespace Slic3r { namespace GUI {
 
 static const wxString NA_STR = _L("N/A");
@@ -100,10 +102,26 @@ void CalibrationCaliPage::set_cali_img()
 {
     if (m_cali_mode == CalibMode::Calib_PA_Line) {
         if (m_cali_method == CalibrationMethod::CALI_METHOD_MANUAL) {
-            m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_manual", 400));
+            CalibrationMethod method;
+            int               cali_stage    = 0;
+            CalibMode         obj_cali_mode = get_obj_calibration_mode(curr_obj, method, cali_stage);
+            set_pa_cali_image(cali_stage);
         }
-        else if (m_cali_method == CalibrationMethod::CALI_METHOD_AUTO) {
-            m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto", 400));
+        else if (m_cali_method == CalibrationMethod::CALI_METHOD_AUTO || m_cali_method == CalibrationMethod::CALI_METHOD_NEW_AUTO) {
+            if (curr_obj) {
+                std::string image_name = curr_obj->get_auto_pa_cali_thumbnail_img_str();
+                if (curr_obj->is_multi_extruders()) {
+                    if (m_cur_extruder_id == 0) {
+                        image_name += "_right";
+                    } else {
+                        image_name += "_left";
+                    }
+                }
+                m_picture_panel->set_bmp(ScalableBitmap(this, image_name, 400));
+            }
+            else {
+                m_picture_panel->set_bmp(ScalableBitmap(this, "fd_calibration_auto", 400));
+            }
         }
     }
     else if (m_cali_mode == CalibMode::Calib_Flow_Rate) {
@@ -146,7 +164,7 @@ void CalibrationCaliPage::update(MachineObject* obj)
         if (obj) {
             if (obj->print_status != "RUNNING") {
                 BOOST_LOG_TRIVIAL(info) << "on_show_cali_page - machine object status:"
-                                        << " dev_id = " << obj->dev_id
+                                        << " dev_id = " << obj->get_dev_id()
                                         << ", print_type = " << obj->printer_type
                                         << ", printer_status = " << obj->print_status
                                         << ", is_connected = " << obj->is_connected()
@@ -169,6 +187,11 @@ void CalibrationCaliPage::update(MachineObject* obj)
     // enable calibration when finished
     bool enable_cali = false;
     if (obj) {
+        if (obj->GetExtderSystem()->GetCurrentExtderId() != m_cur_extruder_id) {
+            m_cur_extruder_id = obj->GetExtderSystem()->GetCurrentExtderId();
+            set_cali_img();
+        }
+
         if (obj->print_error > 0) {
             StatusPanel* status_panel = Slic3r::GUI::wxGetApp().mainframe->m_monitor->get_status_panel();
             status_panel->obj = obj;
@@ -183,8 +206,8 @@ void CalibrationCaliPage::update(MachineObject* obj)
             return;
         }
 
-        if (m_cali_mode == CalibMode::Calib_PA_Line) {
-            if (m_cali_method == CalibrationMethod::CALI_METHOD_AUTO) {
+        if (m_cali_mode == CalibMode::Calib_PA_Line || m_cali_mode == CalibMode::Calib_Auto_PA_Line) {
+            if (m_cali_method == CalibrationMethod::CALI_METHOD_AUTO || m_cali_method == CalibrationMethod::CALI_METHOD_NEW_AUTO) {
                 if (get_obj_calibration_mode(obj) == m_cali_mode) {
                     if (obj->is_printing_finished()) {
                         if (obj->print_status == "FINISH") {
@@ -241,14 +264,13 @@ void CalibrationCaliPage::update(MachineObject* obj)
             } else if (m_cali_method == CalibrationMethod::CALI_METHOD_MANUAL) {
                 if (get_obj_calibration_mode(obj) == m_cali_mode && obj->is_printing_finished()) {
                     // use selected diameter, add a counter to timeout, add a warning tips when get result failed
-                    CalibUtils::emit_get_flow_ratio_calib_results(get_selected_calibration_nozzle_dia(obj));
                     enable_cali = true;
                 }
                 else {
                     enable_cali = false;
                 }
             } else {
-                assert(false);
+                //assert(false);
             }
             m_action_panel->enable_button(CaliPageActionType::CALI_ACTION_CALI_NEXT, enable_cali);
         } 
@@ -449,7 +471,7 @@ void CalibrationCaliPage::set_cali_method(CalibrationMethod method)
     manual_steps.Add(_L("Calibration2"));
     manual_steps.Add(_L("Record Factor"));
 
-    if (method == CalibrationMethod::CALI_METHOD_AUTO) {
+    if (method == CalibrationMethod::CALI_METHOD_AUTO || method == CalibrationMethod::CALI_METHOD_NEW_AUTO) {
         m_step_panel->set_steps_string(auto_steps);
         m_step_panel->set_steps(1);
     }
@@ -495,8 +517,8 @@ float CalibrationCaliPage::get_selected_calibration_nozzle_dia(MachineObject* ob
         return obj->cali_selected_nozzle_dia;
 
     // return default nozzle if nozzle diameter is set
-    if (obj->m_extder_data.extders[0].current_nozzle_diameter > 1e-3 && obj->m_extder_data.extders[0].current_nozzle_diameter < 10.0f)
-        return obj->m_extder_data.extders[0].current_nozzle_diameter;
+    if (obj->GetExtderSystem()->GetNozzleDiameter(0) > 1e-3 && obj->GetExtderSystem()->GetNozzleDiameter(0) < 10.0f)
+        return obj->GetExtderSystem()->GetNozzleDiameter(0);
 
     // return 0.4 by default
     return 0.4;
