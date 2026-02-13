@@ -1497,7 +1497,6 @@ void TreeSupport::generate_toolpaths()
                         fill_params.density = interface_density;
                         fill_params.dont_adjust = true;
                     }
-                    
                     if (area_group.type == SupportLayer::Roof1stLayer) {
                         // roof_1st_layer
                         fill_params.density = interface_density;
@@ -1798,7 +1797,6 @@ ExPolygons TreeSupport::get_avoidance(coordf_t radius, size_t obj_layer_nr)
     return m_ts_data->get_avoidance(radius, obj_layer_nr);
 #endif
 }
-
 ExPolygons TreeSupport::get_collision(coordf_t radius, size_t layer_nr)
 {
 #if USE_SUPPORT_3D
@@ -1815,7 +1813,6 @@ ExPolygons TreeSupport::get_collision(coordf_t radius, size_t layer_nr)
 #endif
     return ExPolygons();
 }
-
 Polygons TreeSupport::get_collision_polys(coordf_t radius, size_t layer_nr)
 {
 #if USE_SUPPORT_3D
@@ -2223,6 +2220,7 @@ void TreeSupport::draw_circles()
 
             }
         });
+
 
         if (with_lightning_infill)
         {

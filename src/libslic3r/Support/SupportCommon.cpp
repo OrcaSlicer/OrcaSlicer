@@ -1697,7 +1697,6 @@ void generate_support_toolpaths(
                         interface_as_base ? ExtrusionRole::erSupportMaterial : ExtrusionRole::erSupportMaterialInterface, interface_flow);
                 }
             };
-            
             const bool top_interfaces = config.support_interface_top_layers.value != 0;
             const bool bottom_interfaces = top_interfaces && config.support_interface_bottom_layers != 0;
             extrude_interface(top_contact_layer,    raft_layer ? InterfaceLayerType::RaftContact : top_interfaces ? InterfaceLayerType::TopContact : InterfaceLayerType::InterfaceAsBase);
@@ -1740,7 +1739,6 @@ void generate_support_toolpaths(
                 bool  sheath  = support_params.with_sheath;
                 bool  no_sort = false;
                 bool  done    = false;
-                
                 if (base_layer.layer->bottom_z < EPSILON) {
                     // Base flange (the 1st layer).
                     filler = filler_first_layer;
@@ -1762,7 +1760,6 @@ void generate_support_toolpaths(
                     tree_supports_generate_paths(base_layer.extrusions, base_layer.polygons_to_extrude(), flow, support_params2);
                     done = true;
                 }
-                
                 if (! done)
                     fill_expolygons_with_sheath_generate_paths(
                         // Destination
