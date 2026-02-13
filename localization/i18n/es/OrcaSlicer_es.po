@@ -12586,7 +12586,7 @@ msgid "Inherits profile"
 msgstr "Hereda el perfil"
 
 msgid "Name of parent profile."
-msgstr ""
+msgstr "Nombre del perfil padre."
 
 msgid "Interface shells"
 msgstr "Perímetros de interfaz"
