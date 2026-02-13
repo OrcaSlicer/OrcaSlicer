@@ -14961,10 +14961,10 @@ msgstr ""
 msgid ""
 "An object has enabled XY Size compensation which will not be used because it is also fuzzy skin painted.\n"
 "XY Size compensation cannot be combined with fuzzy skin painting."
-msgstr ""
+msgstr "Un objeto tiene activada la compensación de tamaño XY que no se utilizará porque también tiene piel difusa pintada.\nLa compensación de tamaño XY no puede combinarse con la pintura de piel difusa."
 
 msgid "Object name"
-msgstr ""
+msgstr "Nombre del objeto"
 
 msgid "Support: generate contact points"
 msgstr "Soporte: generando puntos de contacto"
