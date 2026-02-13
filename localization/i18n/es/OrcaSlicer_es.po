@@ -14973,7 +14973,7 @@ msgid "Loading of a model file failed."
 msgstr "Error en la carga del fichero de modelo."
 
 msgid "Meshing of a model file failed or no valid shape."
-msgstr ""
+msgstr "La generación de la malla del archivo del modelo falló o no hay una forma válida."
 
 msgid "The supplied file couldn't be read because it's empty"
 msgstr "El archivo proporcionado no puede ser leído debido a que está vacío"
@@ -15098,11 +15098,11 @@ msgstr "la creación un nuevo perfil ha fallado."
 
 #, c-format, boost-format
 msgid "The selected preset: %s is not found."
-msgstr ""
+msgstr "El perfil seleccionado: %s no ha sido encontrado."
 
 #, c-format, boost-format
 msgid "Could not find parameter: %s."
-msgstr ""
+msgstr "No se pudo encontrar el parámetro: %s."
 
 msgid "Are you sure to cancel the current calibration and return to the home page?"
 msgstr "¿Estás seguro que quiere cancelar la calibración y volver a la página de inicio?"
@@ -15128,7 +15128,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
-msgstr ""
+msgstr "Solo se guardará uno de los resultados con el mismo nombre: %s. ¿Está seguro de que desea sobrescribir los otros resultados?"
 
 #, c-format, boost-format
 msgid "There is already a historical calibration result with the same name: %s. Only one of the results with the same name is saved. Are you sure you want to override the historical result?"
@@ -15138,7 +15138,7 @@ msgstr "Ya existe un resultado de calibración anterior con el mismo nombre: %s.
 msgid ""
 "Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
 "Are you sure you want to override the historical result?"
-msgstr ""
+msgstr "Dentro del mismo extrusor, el nombre (%s) debe ser único cuando el tipo de filamento, el diámetro de la boquilla y el flujo de la boquilla sean los mismos.\n¿Está seguro de que desea sobrescribir el resultado histórico?"
 
 #, c-format, boost-format
 msgid "This machine type can only hold %d history results per nozzle. This result will not be saved."
