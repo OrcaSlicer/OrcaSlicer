@@ -106,6 +106,8 @@ enum FileType
 
     FT_SL1,
 
+    FT_DRC,
+
     FT_SIZE,
 };
 
@@ -340,6 +342,10 @@ public:
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }
     HMSQuery* get_hms_query() { return hms_query; }
     NetworkAgent* getAgent() { return m_agent; }
+
+    // Dynamic printer agent switching
+    void switch_printer_agent();
+
     FilamentColorCodeQuery* get_filament_color_code_query();
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
     bool is_gcode_viewer() const { return m_app_mode == EAppMode::GCodeViewer; }
@@ -501,6 +507,7 @@ public:
     void            start_sync_user_preset(bool with_progress_dlg = false);
     void            stop_sync_user_preset();
     void            start_http_server();
+    void            start_http_server(int port);
     void            stop_http_server();
     void            switch_staff_pick(bool on);
 
@@ -719,6 +726,9 @@ private:
 
     bool            config_wizard_startup();
 	void            check_updates(const bool verbose);
+
+    // select or add MachineObject
+    void            select_machine(const std::string& agent_id);
 
     bool                    m_init_app_config_from_older { false };
     bool                    m_datadir_redefined { false };

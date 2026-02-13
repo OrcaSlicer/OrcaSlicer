@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.3.0 Official Release\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-05 17:33+0800\n"
+"POT-Creation-Date: 2026-02-12 08:42+0800\n"
 "PO-Revision-Date: 2025-10-16 20:29+0300\n"
 "Last-Translator: \n"
 "Language-Team: Andylg <andylg@yandex.ru>\n"
@@ -15,8 +15,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 "X-Generator: Poedit 3.8\n"
 
 msgid ""
@@ -56,6 +56,14 @@ msgstr ""
 
 msgid "TPU is not supported by AMS."
 msgstr "Печать TPU с помощью AMS не поддерживается."
+
+msgid "AMS does not support 'Bambu Lab PET-CF'."
+msgstr ""
+
+msgid ""
+"Please cold pull before printing TPU to avoid clogging. You may use cold "
+"pull maintenance on the printer."
+msgstr ""
 
 msgid ""
 "Damp PVA will become flexible and get stuck inside AMS, please take care to "
@@ -107,9 +115,8 @@ msgstr "Сушка"
 msgid "Idle"
 msgstr "Простой"
 
-#, c-format, boost-format
-msgid "%d ℃"
-msgstr ""
+msgid "Model:"
+msgstr "Модель:"
 
 msgid "Serial:"
 msgstr "Серийный номер:"
@@ -302,8 +309,8 @@ msgstr "Удаление окрашенного участка"
 msgid "Painted using: Filament %1%"
 msgstr "Окрашено с использованием филамента %1%"
 
-msgid "Filament remapping finished."
-msgstr "Перераспределение филамента завершено."
+msgid "To:"
+msgstr ""
 
 msgid "Paint-on fuzzy skin"
 msgstr "Нарисовать нечеткую оболочку"
@@ -321,6 +328,13 @@ msgid "Remove fuzzy skin"
 msgstr ""
 
 msgid "Reset selection"
+msgstr ""
+
+msgid ""
+"Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
+msgstr ""
+
+msgid "Enable painted fuzzy skin for this object"
 msgstr ""
 
 msgid "Move"
@@ -507,6 +521,12 @@ msgstr "Угол наклона"
 msgid "Groove Angle"
 msgstr "Угол скоса"
 
+msgid "Cut position"
+msgstr "Положение сечения"
+
+msgid "Build Volume"
+msgstr "Область построения"
+
 msgid "Part"
 msgstr "Модель"
 
@@ -596,9 +616,6 @@ msgstr "Пропорция прорези в клипсе, связанная с
 msgid "Confirm connectors"
 msgstr "Подтвердить"
 
-msgid "Build Volume"
-msgstr "Область построения"
-
 msgid "Flip cut plane"
 msgstr "Перевернуть секущую плоскость"
 
@@ -611,9 +628,6 @@ msgstr "Сброс"
 #. TRN: This is an entry in the Undo/Redo stack. The whole line will be 'Edited: (name of whatever was edited)'.
 msgid "Edited"
 msgstr "Изменено"
-
-msgid "Cut position"
-msgstr "Положение сечения"
 
 msgid "Reset cutting plane"
 msgstr "Сброс позиции секущей плоскости"
@@ -920,6 +934,8 @@ msgstr "Шрифт \"%1%\" не может быть выбран."
 msgid "Operation"
 msgstr "Операция"
 
+#. TRN EmbossOperation
+#. ORCA
 msgid "Join"
 msgstr "Добавление"
 
@@ -1643,6 +1659,12 @@ msgstr "Неизвестная ошибка OrcaSlicer : %1%"
 msgid "Untitled"
 msgstr "Без названия"
 
+msgid "Reloading network plugin..."
+msgstr ""
+
+msgid "Downloading Network Plugin"
+msgstr ""
+
 msgid "Downloading Bambu Network Plug-in"
 msgstr "Загрузка сетевого плагина принтера Bambu"
 
@@ -1761,6 +1783,42 @@ msgid ""
 msgstr ""
 "Слишком старая версия Orca Slicer. Для корректной работы обновите программу "
 "до последней версии."
+
+msgid "Retrieving printer information, please try again later."
+msgstr ""
+
+msgid "Please try updating OrcaSlicer and then try again."
+msgstr ""
+
+msgid ""
+"The certificate has expired. Please check the time settings or update "
+"OrcaSlicer and try again."
+msgstr ""
+
+msgid ""
+"The certificate is no longer valid and the printing functions are "
+"unavailable."
+msgstr ""
+
+msgid ""
+"Internal error. Please try upgrading the firmware and OrcaSlicer version. If "
+"the issue persists, contact support."
+msgstr ""
+
+msgid ""
+"To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and "
+"Developer mode on your printer.\n"
+"\n"
+"Please go to your printer's settings and:\n"
+"1. Turn on LAN mode\n"
+"2. Enable Developer mode\n"
+"\n"
+"Developer mode allows the printer to work exclusively through local network "
+"access, enabling full functionality with OrcaSlicer."
+msgstr ""
+
+msgid "Network Plugin Restriction"
+msgstr ""
 
 msgid "Privacy Policy Update"
 msgstr "Обновление политики конфиденциальности"
@@ -1967,6 +2025,9 @@ msgstr "Тест допусков от Orca"
 msgid "3DBenchy"
 msgstr "3DBenchy"
 
+msgid "Cali Cat"
+msgstr ""
+
 msgid "Autodesk FDM Test"
 msgstr "FDM тест от Autodesk"
 
@@ -2029,22 +2090,28 @@ msgstr "Экспорт в один STL"
 msgid "Export as STLs"
 msgstr "Экспорт в отдельные STL"
 
+msgid "Export as one DRC"
+msgstr ""
+
+msgid "Export as DRCs"
+msgstr ""
+
 msgid "Reload from disk"
 msgstr "Перезагрузить с диска"
 
 msgid "Reload the selected parts from disk"
 msgstr "Перезагрузить выбранные модели с диска"
 
-msgid "Replace with STL"
-msgstr "Заменить на другую модель"
-
-msgid "Replace the selected part with new STL"
-msgstr "Заменить выбранную модель другой"
-
-msgid "Replace all with STL"
+msgid "Replace 3D file"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace the selected part with a new 3D file"
+msgstr ""
+
+msgid "Replace all with 3D files"
+msgstr ""
+
+msgid "Replace all selected parts with 3D files from folder"
 msgstr ""
 
 msgid "Change filament"
@@ -2258,6 +2325,12 @@ msgstr "Сделать копию"
 
 msgid "Simplify Model"
 msgstr "Упростить полигональную сетку"
+
+msgid "Subdivision mesh"
+msgstr ""
+
+msgid "(Lost color)"
+msgstr ""
 
 msgid "Center"
 msgstr "По центру"
@@ -2512,6 +2585,19 @@ msgstr[2] "Не удалось починить следующие модели"
 
 msgid "Repairing was canceled"
 msgstr "Ремонт был отменён"
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" will exceed 1 million faces after this subdivision, which may "
+"increase slicing time. Do you want to continue?"
+msgstr ""
+
+msgid "BambuStudio warning"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" part's mesh contains errors. Please repair it first."
+msgstr ""
 
 msgid "Additional process preset"
 msgstr "Доп. настройки профиля процесса"
@@ -2789,9 +2875,9 @@ msgid "Top"
 msgstr "Сверху"
 
 msgid ""
-"The fan controls the temperature during printing to improve print quality."
-"The system automatically adjusts the fan's switch and speed according to "
-"different printing materials."
+"The fan controls the temperature during printing to improve print "
+"quality.The system automatically adjusts the fan's switch and speed "
+"according to different printing materials."
 msgstr ""
 
 msgid ""
@@ -2818,6 +2904,10 @@ msgstr ""
 
 msgctxt "air_duct"
 msgid "Right(Filter)"
+msgstr ""
+
+msgctxt "air_duct"
+msgid "Left(Aux)"
 msgstr ""
 
 msgid "Hotend"
@@ -3113,6 +3203,21 @@ msgid ""
 "Storage before sending to printer."
 msgstr ""
 
+msgid "Thermal Preconditioning for first layer optimization"
+msgstr ""
+
+msgid "Remaining time: Calculating..."
+msgstr ""
+
+msgid ""
+"The heated bed's thermal preconditioning helps optimize the first layer "
+"print quality. Printing will start once preconditioning is complete."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Remaining time: %dmin%ds"
+msgstr ""
+
 msgid "Importing SLA archive"
 msgstr "Импорт SLA архива"
 
@@ -3322,8 +3427,14 @@ msgstr "Температура стола"
 msgid "Max volumetric speed"
 msgstr "Макс. объёмный расход"
 
+msgid "℃"
+msgstr "℃"
+
 msgid "Bed temperature"
 msgstr "Температура стола"
+
+msgid "mm³"
+msgstr "мм³"
 
 # Если короче - Запуск калибровки
 msgid "Start calibration"
@@ -3621,6 +3732,30 @@ msgstr ""
 "При обнаружении засорения сопла или истирания филамента, печать немедленно "
 "прекращается для экономии времени и материала."
 
+msgid "AMS Type"
+msgstr ""
+
+msgid "Switching"
+msgstr ""
+
+msgid "The printer is busy and cannot switch AMS type."
+msgstr ""
+
+msgid "Please unload all filament before switching."
+msgstr ""
+
+msgid ""
+"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgstr ""
+
+msgid "Arrange AMS Order"
+msgstr ""
+
+msgid ""
+"AMS ID will be reset. If you want a specific ID sequence, disconnect all AMS "
+"before resetting and connect them in the desired order after resetting."
+msgstr ""
+
 msgid "File"
 msgstr "Файл"
 
@@ -3643,6 +3778,14 @@ msgstr ""
 
 msgid "click here to see more info"
 msgstr "нажмите здесь, чтобы увидеть больше информации"
+
+msgid ""
+"The network plugin was installed but could not be loaded. Please restart the "
+"application."
+msgstr ""
+
+msgid "Restart Required"
+msgstr ""
 
 msgid "Please home all axes (click "
 msgstr "Пожалуйста, припаркуйте все оси в начало координат (нажав "
@@ -4019,7 +4162,7 @@ msgstr ""
 "seam_slope_start_height должна быть меньше высоты слоя.\n"
 "Значение сброшено на 0."
 
-#, fuzzy, c-format, boost-format
+#, fuzzy
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4238,7 +4381,7 @@ msgstr ""
 msgid "Measuring Surface"
 msgstr ""
 
-msgid "Thermal Preconditioning for first layer optimization"
+msgid "Calibrating the detection position of nozzle clumping"
 msgstr ""
 
 msgid "Unknown"
@@ -4293,8 +4436,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to "
-"avoid extruder clogging, it is not allowed to set the chamber temperature."
+"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order "
+"to avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr ""
 
 msgid ""
@@ -4380,6 +4523,9 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
+msgstr ""
+
+msgid "Proceed"
 msgstr ""
 
 msgid "Done"
@@ -4538,11 +4684,17 @@ msgstr "Высота слоя"
 msgid "Line Width"
 msgstr "Ширина экструзии"
 
+msgid "Actual Speed"
+msgstr ""
+
 msgid "Fan Speed"
 msgstr "Скорость вентилятора"
 
 msgid "Flow"
 msgstr "Поток"
+
+msgid "Actual Flow"
+msgstr ""
 
 msgid "Tool"
 msgstr "Инструмент"
@@ -4553,20 +4705,113 @@ msgstr "Время печати слоя"
 msgid "Layer Time (log)"
 msgstr "Время печати слоя (логарифмич.)"
 
+msgid "Noop"
+msgstr ""
+
+msgid "Retract"
+msgstr "Ретракт"
+
+msgid "Unretract"
+msgstr "Подача"
+
+msgid "Seam"
+msgstr "Шов"
+
+msgid "Tool Change"
+msgstr "Смена инструмента"
+
+msgid "Color Change"
+msgstr ""
+
+msgid "Pause Print"
+msgstr ""
+
+msgid "Travel"
+msgstr "Перемещения"
+
+msgid "Wipe"
+msgstr "Очистка"
+
+msgid "Extrude"
+msgstr ""
+
+msgid "Inner wall"
+msgstr "Внутренняя стенка"
+
+msgid "Outer wall"
+msgstr "Внешняя стенка"
+
+msgid "Overhang wall"
+msgstr "Нависающие стенка"
+
+msgid "Sparse infill"
+msgstr "Заполнение"
+
+msgid "Internal solid infill"
+msgstr "Сплошное заполнение"
+
+msgid "Top surface"
+msgstr "Верхняя поверхность"
+
+msgid "Bridge"
+msgstr "Мосты"
+
+msgid "Gap infill"
+msgstr "Заполнение пробелов"
+
+msgid "Skirt"
+msgstr "Юбка"
+
+msgid "Support interface"
+msgstr "Связующий слой"
+
+msgid "Prime tower"
+msgstr "Черновая башня"
+
+msgid "Bottom surface"
+msgstr "Нижняя поверхность"
+
+msgid "Internal bridge"
+msgstr ""
+
+msgid "Support transition"
+msgstr "Переход поддержки"
+
+msgid "Mixed"
+msgstr ""
+
+msgid "mm/s"
+msgstr "мм/с"
+
+msgid "Flow rate"
+msgstr "Скорость потока"
+
+msgid "mm³/s"
+msgstr "мм³/с"
+
+msgid "Fan speed"
+msgstr "Скорость вентилятора"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "Время"
+
+msgid "Actual speed profile"
+msgstr ""
+
+msgid "Speed: "
+msgstr "Скорость: "
+
 msgid "Height: "
 msgstr "Высота: "
 
 msgid "Width: "
 msgstr "Ширина: "
 
-msgid "Speed: "
-msgstr "Скорость: "
-
 msgid "Flow: "
 msgstr "Поток: "
-
-msgid "Layer Time: "
-msgstr "Время печати слоя: "
 
 msgid "Fan: "
 msgstr "Скорость вентилятора: "
@@ -4574,14 +4819,17 @@ msgstr "Скорость вентилятора: "
 msgid "Temperature: "
 msgstr "Температура: "
 
-msgid "Loading G-code"
-msgstr "Загрузка G-кода"
+msgid "Layer Time: "
+msgstr "Время печати слоя: "
 
-msgid "Generating geometry vertex data"
-msgstr "Генерация данных индекса вершин"
+msgid "Tool: "
+msgstr ""
 
-msgid "Generating geometry index data"
-msgstr "Генерация данных индекса геометрии"
+msgid "Color: "
+msgstr ""
+
+msgid "Actual Speed: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr "Статистика по всем столам"
@@ -4684,9 +4932,6 @@ msgstr "после"
 msgid "from"
 msgstr "с"
 
-msgid "Time"
-msgstr "Время"
-
 msgid "Usage"
 msgstr "Использование"
 
@@ -4699,6 +4944,9 @@ msgstr "Ширина экструзии (мм)"
 msgid "Speed (mm/s)"
 msgstr "Скорость (мм/с)"
 
+msgid "Actual Speed (mm/s)"
+msgstr ""
+
 msgid "Fan Speed (%)"
 msgstr "Скорость вентилятора (%)"
 
@@ -4708,23 +4956,14 @@ msgstr "Температура (°C)"
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Объёмный расход (мм³/с)"
 
-msgid "Travel"
-msgstr "Перемещения"
+msgid "Actual volumetric flow rate (mm³/s)"
+msgstr ""
 
 msgid "Seams"
 msgstr "Швы"
 
-msgid "Retract"
-msgstr "Ретракт"
-
-msgid "Unretract"
-msgstr "Подача"
-
 msgid "Filament Changes"
 msgstr "Смена филамента"
-
-msgid "Wipe"
-msgstr "Очистка"
 
 msgid "Options"
 msgstr "Параметры"
@@ -4753,9 +4992,6 @@ msgstr "Печать"
 msgid "Printer"
 msgstr "Принтер"
 
-msgid "Tool Change"
-msgstr "Смена инструмента"
-
 msgid "Time Estimation"
 msgstr "Оценка времени"
 
@@ -4774,11 +5010,11 @@ msgstr "Время подготовки"
 msgid "Model printing time"
 msgstr "Расчётное время печати"
 
-msgid "Switch to silent mode"
-msgstr "Переключиться на бесшумный режим"
+msgid "Show stealth mode"
+msgstr ""
 
-msgid "Switch to normal mode"
-msgstr "Переключиться на обычный режим"
+msgid "Show normal mode"
+msgstr ""
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the "
@@ -4989,7 +5225,10 @@ msgstr "Выйти из сборки"
 msgid "Return"
 msgstr "Назад"
 
-msgid "Toggle Axis"
+msgid "Canvas Toolbar"
+msgstr ""
+
+msgid "Fit camera to scene or selected object."
 msgstr ""
 
 msgid "Paint Toolbar"
@@ -5019,7 +5258,7 @@ msgstr "Объём:"
 msgid "Size:"
 msgstr "Размер:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -5037,6 +5276,10 @@ msgid "A G-code path goes beyond the plate boundaries."
 msgstr "Траектория перемещения в G-коде выходит за границы печатного стола."
 
 msgid "Not support printing 2 or more TPU filaments."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Tool %d"
 msgstr ""
 
 #, c-format, boost-format
@@ -5081,10 +5324,23 @@ msgstr ""
 msgid "The prime tower extends beyond the plate boundary."
 msgstr ""
 
+msgid ""
+"Prime tower position exceeded build plate boundaries and was repositioned to "
+"the nearest valid edge."
+msgstr ""
+
+msgid ""
+"Partial flushing volume set to 0. Multi-color printing may cause color "
+"mixing in models. Please redjust flushing settings."
+msgstr ""
+
 msgid "Click Wiki for help."
 msgstr ""
 
 msgid "Click here to regroup"
+msgstr ""
+
+msgid "Flushing Volume"
 msgstr ""
 
 msgid "Calibration step selection"
@@ -5097,6 +5353,9 @@ msgid "Bed leveling"
 msgstr "Выравнивание стола"
 
 msgid "High-temperature Heatbed Calibration"
+msgstr ""
+
+msgid "Nozzle clumping detection Calibration"
 msgstr ""
 
 # ??? О калибровке
@@ -5357,6 +5616,12 @@ msgstr "Экспорт всех моделей в один STL"
 msgid "Export all objects as STLs"
 msgstr "Экспорт всех моделей в отдельные STL"
 
+msgid "Export all objects as one DRC"
+msgstr ""
+
+msgid "Export all objects as DRCs"
+msgstr ""
+
 msgid "Export Generic 3MF"
 msgstr "Экспорт в общий 3MF"
 
@@ -5512,6 +5777,12 @@ msgstr "Помощь"
 msgid "Temperature Calibration"
 msgstr "Калибровка температуры"
 
+msgid "Max flowrate"
+msgstr "Макс. объёмный расход"
+
+msgid "Pressure advance"
+msgstr "Прогнозирование расхода"
+
 msgid "Pass 1"
 msgstr "Проход 1"
 
@@ -5536,17 +5807,8 @@ msgstr "YOLO (версия для перфекционистов)"
 msgid "Orca YOLO flowrate calibration, 0.005 step"
 msgstr "Калибровка скорости потока YOLO (шаг 0.005)"
 
-msgid "Flow rate"
-msgstr "Скорость потока"
-
-msgid "Pressure advance"
-msgstr "Прогнозирование расхода"
-
 msgid "Retraction test"
 msgstr "Тест ретракта"
-
-msgid "Max flowrate"
-msgstr "Макс. объёмный расход"
 
 msgid "Cornering"
 msgstr "Cornering"
@@ -6124,6 +6386,9 @@ msgstr "Остановить"
 msgid "Layer: N/A"
 msgstr "Слой: Н/Д"
 
+msgid "Click to view thermal preconditioning explanation"
+msgstr ""
+
 msgid "Clear"
 msgstr "Сбросить"
 
@@ -6167,6 +6432,9 @@ msgstr "Части принтера"
 msgid "Print Options"
 msgstr "Настройки печати"
 
+msgid "Safety Options"
+msgstr ""
+
 msgid "Lamp"
 msgstr "Свет"
 
@@ -6194,6 +6462,11 @@ msgstr ""
 msgid "The printer is busy with another print job."
 msgstr "Принтер занят другим заданием."
 
+msgid ""
+"When printing is paused, filament loading and unloading are only supported "
+"for external slots."
+msgstr ""
+
 msgid "Current extruder is busy changing filament."
 msgstr ""
 
@@ -6201,6 +6474,9 @@ msgid "Current slot has already been loaded."
 msgstr ""
 
 msgid "The selected slot is empty."
+msgstr ""
+
+msgid "Printer 2D mode does not support 3D calibration"
 msgstr ""
 
 msgid "Downloading..."
@@ -6226,6 +6502,9 @@ msgid ""
 msgstr ""
 "Пожалуйста, перед загрузкой или выгрузкой филамента, нагрейте сопло до "
 "температуры выше 170°C."
+
+msgid "Chamber temperature cannot be changed in cooling mode while printing."
+msgstr ""
 
 msgid ""
 "If the chamber temperature exceeds 40℃, the system will automatically switch "
@@ -6443,7 +6722,8 @@ msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "Версия файла 3MF новее, чем ваша текущая версия Orca Slicer."
 
 #, fuzzy
-msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
+msgid ""
+"Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 "Обновите Orca Slicer, чтобы включить все функции сохранённые в этом 3MF "
 "файле."
@@ -6511,8 +6791,8 @@ msgstr "Подробности"
 msgid "New printer config available."
 msgstr "Доступен новый профиль принтера."
 
-msgid "Wiki"
-msgstr "Wiki"
+msgid "Wiki Guide"
+msgstr ""
 
 msgid "Undo integration failed."
 msgstr "Не удалось отменить интеграцию."
@@ -6622,9 +6902,8 @@ msgstr "Диапазон"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
-"2.0.\n"
+"3.2.\n"
 msgstr ""
-"Приложение не может работать нормально, так как версия OpenGL ниже 2.0.\n"
 
 msgid "Please upgrade your graphics card driver."
 msgstr "Пожалуйста, обновите драйвер вашей видеокарты."
@@ -6711,15 +6990,6 @@ msgstr "Проверка первого слоя"
 msgid "Auto-recovery from step loss"
 msgstr "Автовосстановление после потери шагов"
 
-msgid "Open Door Detection"
-msgstr ""
-
-msgid "Notification"
-msgstr ""
-
-msgid "Pause printing"
-msgstr ""
-
 msgid "Store Sent Files on External Storage"
 msgstr ""
 
@@ -6739,16 +7009,28 @@ msgstr ""
 "Обнаружение накапливания на сопле материала в результате засорения/протечки "
 "сопла или других причин."
 
-msgid "Nozzle Type"
-msgstr "Тип сопла"
+msgid "Open Door Detection"
+msgstr ""
 
-msgid "Nozzle Flow"
+msgid "Notification"
+msgstr ""
+
+msgid "Pause printing"
+msgstr ""
+
+msgctxt "Nozzle Type"
+msgid "Type"
+msgstr ""
+
+msgctxt "Nozzle Diameter"
+msgid "Diameter"
+msgstr ""
+
+msgctxt "Nozzle Flow"
+msgid "Flow"
 msgstr ""
 
 msgid "Please change the nozzle settings on the printer."
-msgstr ""
-
-msgid "View wiki"
 msgstr ""
 
 msgid "Hardened Steel"
@@ -6760,10 +7042,25 @@ msgstr "Нержавеющая сталь"
 msgid "Tungsten Carbide"
 msgstr ""
 
+msgid "Brass"
+msgstr "Латунь"
+
 msgid "High flow"
 msgstr ""
 
 msgid "No wiki link available for this printer."
+msgstr ""
+
+msgid "Refreshing"
+msgstr ""
+
+msgid "Unavailable while heating maintenance function is on."
+msgstr ""
+
+msgid "Idel Heating Protection"
+msgstr ""
+
+msgid "Stops heating automatically after 5 mins of idle to ensure safety."
 msgstr ""
 
 msgid "Global"
@@ -6772,8 +7069,8 @@ msgstr "Общие"
 msgid "Objects"
 msgstr "Модели"
 
-msgid "Advance"
-msgstr "Расширенный"
+msgid "Show/Hide advanced parameters"
+msgstr ""
 
 msgid "Compare presets"
 msgstr "Сравнение профилей"
@@ -6894,6 +7191,9 @@ msgstr ""
 msgid "Right nozzle: %smm"
 msgstr ""
 
+msgid "Configuration incompatible"
+msgstr "Несовместимый профиль"
+
 msgid "Sync printer information"
 msgstr ""
 
@@ -6911,17 +7211,14 @@ msgstr ""
 msgid "Sync extruder infomation"
 msgstr ""
 
-msgid "Click to edit preset"
-msgstr "Нажмите, чтобы изменить профиль"
-
 msgid "Connection"
 msgstr "Подключиться"
 
-msgid "Sync info"
-msgstr ""
-
 msgid "Synchronize nozzle information and the number of AMS"
 msgstr ""
+
+msgid "Click to edit preset"
+msgstr "Нажмите, чтобы изменить профиль"
 
 msgid "Project Filaments"
 msgstr ""
@@ -6964,6 +7261,9 @@ msgid ""
 "There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
+msgstr ""
+
+msgid "Only filament color information has been synchronized from printer."
 msgstr ""
 
 msgid ""
@@ -7075,8 +7375,8 @@ msgstr "Рекомендуем вам обновить программу.\n"
 
 #, fuzzy, c-format, boost-format
 msgid ""
-"The 3MF file version %s is newer than %s's version %s, we suggest to "
-"upgrade your software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to upgrade "
+"your software."
 msgstr ""
 "Версия этого формата 3MF (%s) новее текущей версии %s (%s).\n"
 "Рекомендуется обновить программу."
@@ -7202,6 +7502,9 @@ msgstr "Модель слишком большая"
 msgid "Export STL file:"
 msgstr "Экспорт в STL файл:"
 
+msgid "Export Draco file:"
+msgstr ""
+
 msgid "Export AMF file:"
 msgstr "Экспорт в AMF файл:"
 
@@ -7261,7 +7564,7 @@ msgstr ""
 msgid "Directory for the replace wasn't selected"
 msgstr ""
 
-msgid "Replaced with STLs from directory:\n"
+msgid "Replaced with 3D files from directory:\n"
 msgstr ""
 
 #, boost-format
@@ -7400,6 +7703,9 @@ msgid ""
 msgstr ""
 "Не заданы ускорения для калибровки. Использовать значение ускорения по "
 "умолчанию "
+
+msgid "mm/s²"
+msgstr "мм/с²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr ""
@@ -7562,6 +7868,12 @@ msgstr "Оптимизация вращения"
 msgid ""
 "Printer not connected. Please go to the device page to connect %s before "
 "syncing."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"OrcaSlicer can't connect to %s. Please check if the printer is powered on "
+"and connected to the network."
 msgstr ""
 
 #, c-format, boost-format
@@ -7820,7 +8132,8 @@ msgstr "Загружать только геометрию"
 msgid "Load behaviour"
 msgstr ""
 
-msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
+msgid ""
+"Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 "Следует ли при открытии 3MF проекта загружать настройки принтера, филамента "
 "и процесса?"
@@ -7868,6 +8181,23 @@ msgstr ""
 "Если эта функция включена, Orca Slicer будет автоматически запоминать и "
 "переключать конфигурацию филамента/процесса для каждого принтера."
 
+msgid "Group user filament presets"
+msgstr ""
+
+msgid "Group user filament presets based on selection"
+msgstr ""
+
+# в Сохранение толщины вертикальной оболочки.
+# было Везде, но из-за условия совместимости изменено.... как тогда быть?
+msgid "All"
+msgstr "Все"
+
+msgid "By type"
+msgstr ""
+
+msgid "By vendor"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7887,13 +8217,23 @@ msgstr ""
 msgid "Pop up to select filament grouping mode"
 msgstr ""
 
-msgid "Behaviour"
+msgid "Quality level for Draco export"
 msgstr ""
 
-# в Сохранение толщины вертикальной оболочки.
-# было Везде, но из-за условия совместимости изменено.... как тогда быть?
-msgid "All"
-msgstr "Все"
+msgid "bits"
+msgstr ""
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco "
+"format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid "
+"lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher "
+"values preserve more detail at the cost of larger files."
+msgstr ""
+
+msgid "Behaviour"
+msgstr ""
 
 msgid "Auto flush after changing..."
 msgstr ""
@@ -7903,6 +8243,27 @@ msgstr ""
 
 msgid "Auto arrange plate after cloning"
 msgstr "Авторасстановка моделей при клонировании"
+
+msgid "Auto slice after changes"
+msgstr ""
+
+msgid ""
+"If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
+"settings change."
+msgstr ""
+
+msgid ""
+"Delay in seconds before auto slicing starts, allowing multiple edits to be "
+"grouped. Use 0 to slice immediately."
+msgstr ""
+
+msgid "Remove mixed temperature restriction"
+msgstr ""
+
+msgid ""
+"With this option enabled, you can print materials with a large temperature "
+"difference together."
+msgstr ""
 
 msgid "Touchpad"
 msgstr "Тачпад"
@@ -8023,20 +8384,65 @@ msgstr ""
 msgid "Update built-in Presets automatically."
 msgstr "Автоматически обновлять системные профили."
 
+msgid "Use encrypted file for token storage"
+msgstr ""
+
+msgid ""
+"Store authentication tokens in an encrypted file instead of the system "
+"keychain. (Requires restart)"
+msgstr ""
+
+msgid "Filament Sync Options"
+msgstr ""
+
+msgid "Filament sync mode"
+msgstr ""
+
+msgid ""
+"Choose whether sync updates both filament preset and color, or only color."
+msgstr ""
+
+msgid "Filament & Color"
+msgstr ""
+
+msgid "Color only"
+msgstr ""
+
 msgid "Network plugin"
 msgstr ""
 
 msgid "Enable network plugin"
 msgstr "Включить сетевой плагин"
 
-msgid "Use legacy network plugin"
+msgid "Network plugin version"
 msgstr ""
 
-msgid ""
-"Disable to use latest network plugin that supports new BambuLab firmwares."
+msgid "Select the network plugin version to use"
 msgstr ""
-"Отключите, чтобы использовать последний сетевой плагин, поддерживающий новые "
-"прошивки BambuLab."
+
+msgid "(Latest)"
+msgstr ""
+
+msgid "Network plugin switched successfully."
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Failed to load network plugin. Please restart the application."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"You've selected network plugin version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr ""
+
+msgid "Download Network Plugin"
+msgstr ""
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Сопоставление типов файлов с OrcaSlicer"
@@ -8050,6 +8456,12 @@ msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr ""
 "Если включено, OrcaSlicer назначается приложением по умолчанию для открытия "
 "файлов .3mf"
+
+msgid "Associate DRC files to OrcaSlicer"
+msgstr ""
+
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr ""
 
 #, fuzzy
 msgid "Associate STL files to OrcaSlicer"
@@ -8083,14 +8495,6 @@ msgstr "Режим разработчика"
 msgid "Skip AMS blacklist check"
 msgstr "Пропуск проверки материалов в AMS из файла чёрного списка"
 
-msgid "Remove mixed temperature restriction"
-msgstr ""
-
-msgid ""
-"With this option enabled, you can print materials with a large temperature "
-"difference together."
-msgstr ""
-
 msgid "Allow Abnormal Storage"
 msgstr ""
 
@@ -8116,6 +8520,24 @@ msgstr "отладка"
 
 msgid "trace"
 msgstr "трассировка"
+
+msgid "Network Plugin"
+msgstr ""
+
+msgid "Reload"
+msgstr ""
+
+msgid "Reload the network plugin without restarting the application"
+msgstr ""
+
+msgid "Network plugin reloaded successfully."
+msgstr ""
+
+msgid "Failed to reload network plugin. Please restart the application."
+msgstr ""
+
+msgid "Reload Failed"
+msgstr ""
 
 msgid "Debug"
 msgstr ""
@@ -8215,6 +8637,9 @@ msgstr "Добавить/удалить профиль"
 
 msgid "Edit preset"
 msgstr "Изменить профиль"
+
+msgid "Unspecified"
+msgstr ""
 
 msgid "Project-inside presets"
 msgstr "Профили внутри проекта"
@@ -8332,8 +8757,8 @@ msgstr "Опубликование отменено"
 msgid "Slicing Plate 1"
 msgstr "Нарезка стола 1"
 
-msgid "Packing data to 3MF"
-msgstr "Упаковка данных в 3mf"
+msgid "Packing data to 3mf"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "Перейти на страницу"
@@ -8347,6 +8772,9 @@ msgstr "Пользовательский профиль"
 
 msgid "Preset Inside Project"
 msgstr "Профиль внутри проекта"
+
+msgid "Detach from parent"
+msgstr ""
 
 msgid "Name is unavailable."
 msgstr "Имя недоступно."
@@ -8609,6 +9037,16 @@ msgid ""
 msgstr ""
 
 #, c-format, boost-format
+msgid ""
+"[ %s ] requires printing in a high-temperature environment.Please close the "
+"door."
+msgstr ""
+
+#, c-format, boost-format
+msgid "[ %s ] requires printing in a high-temperature environment."
+msgstr ""
+
+#, c-format, boost-format
 msgid "The filament on %s may soften. Please unload."
 msgstr ""
 
@@ -8621,16 +9059,22 @@ msgid ""
 "match."
 msgstr ""
 
-msgid "Cool"
+msgid "Install toolhead enhanced cooling fan to prevent filament softening."
 msgstr ""
 
-msgid "Engineering"
-msgstr ""
+msgid "Smooth Cool Plate"
+msgstr "Не нагреваемая гладкая пластина Bambu"
 
-msgid "High Temp"
-msgstr ""
+msgid "Engineering Plate"
+msgstr "Инженерная пластина"
 
-msgid "Cool(Supertack)"
+msgid "Smooth High Temp Plate"
+msgstr "Высокотемп. гладкая пластина"
+
+msgid "Textured PEI Plate"
+msgstr "Текстурированная PEI пластина"
+
+msgid "Cool Plate (Supertack)"
 msgstr ""
 
 msgid "Click here if you can't connect to the printer"
@@ -8663,6 +9107,11 @@ msgstr ""
 "Принтер выполняет команды. После их выполнения перезапустите процесс печати"
 
 msgid "AMS is setting up. Please try again later."
+msgstr ""
+
+msgid ""
+"Not all filaments used in slicing are mapped to the printer. Please check "
+"the mapping of filaments."
 msgstr ""
 
 msgid "Please do not mix-use the Ext with AMS."
@@ -8714,14 +9163,16 @@ msgid "This printer does not support printing all plates."
 msgstr "Принтер не поддерживает печать на всех типах печатных пластин"
 
 msgid ""
-"Please cold pull before printing TPU to avoid clogging. You may use cold "
-"pull maintenance on the printer."
-msgstr ""
-
-msgid "High chamber temperature is required. Please close the door."
+"The current firmware supports a maximum of 16 materials. You can either "
+"reduce the number of materials to 16 or fewer on the Preparation Page, or "
+"try updating the firmware. If you are still restricted after the update, "
+"please wait for subsequent firmware support."
 msgstr ""
 
 msgid "Please refer to Wiki before use->"
+msgstr ""
+
+msgid "Current firmware does not support file transfer to internal storage."
 msgstr ""
 
 msgid "Send to Printer storage"
@@ -8730,35 +9181,16 @@ msgstr ""
 msgid "Try to connect"
 msgstr ""
 
-msgid "click to retry"
+msgid "Internal Storage"
+msgstr ""
+
+msgid "External Storage"
 msgstr ""
 
 msgid "Upload file timeout, please check if the firmware version supports it."
 msgstr ""
 
-msgid ""
-"No available external storage was obtained. Please confirm and try again."
-msgstr ""
-
-msgid ""
-"Media capability acquisition timeout, please check if the firmware version "
-"supports it."
-msgstr ""
-
-msgid ""
-"Please check the network and try again, You can restart or update the "
-"printer if the issue persists."
-msgstr ""
-
-msgid "Sending..."
-msgstr ""
-
-msgid ""
-"File upload timed out. Please check if the firmware version supports this "
-"operation or verify if the printer is functioning properly."
-msgstr ""
-
-msgid "Sending failed, please try again!"
+msgid "Connection timed out, please check your network."
 msgstr ""
 
 msgid "Connection failed. Click the icon to retry"
@@ -8777,6 +9209,14 @@ msgid "The printer is required to be in the same LAN as Orca Slicer."
 msgstr "Принтер должен находиться в одной локальной сети с Orca Slicer."
 
 msgid "The printer does not support sending to printer storage."
+msgstr ""
+
+msgid "Sending..."
+msgstr ""
+
+msgid ""
+"File upload timed out. Please check if the firmware version supports this "
+"operation or verify if the printer is functioning properly."
 msgstr ""
 
 msgid "Slice ok."
@@ -8947,16 +9387,16 @@ msgstr ""
 "черновую башню?"
 
 msgid ""
+"A prime tower is required for clumping detection. There may be flaws on the "
+"model without prime tower. Are you sure you want to disable prime tower?"
+msgstr ""
+
+msgid ""
 "Enabling both precise Z height and the prime tower may cause the size of "
 "prime tower to increase. Do you still want to enable?"
 msgstr ""
 "Включение точной высоты Z и основной башни может привести к увеличению "
 "размера основной башни. Вы всё ещё хотите включить?"
-
-msgid ""
-"A prime tower is required for clumping detection. There may be flaws on the "
-"model without prime tower. Are you sure you want to disable prime tower?"
-msgstr ""
 
 msgid ""
 "Prime tower is required for clumping detection. There may be flaws on the "
@@ -9082,8 +9522,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "При записи таймлапса без видимости головы рекомендуется добавить «Черновая "
 "башня таймлапса».\n"
@@ -9169,9 +9609,6 @@ msgstr "символическое имя профиля"
 msgid "Line width"
 msgstr "Ширина экструзии"
 
-msgid "Seam"
-msgstr "Шов"
-
 msgid "Precision"
 msgstr "Точность"
 
@@ -9211,9 +9648,6 @@ msgstr ""
 "в процентах от ширины линии. Скорость 0 означает отсутствие замедления для "
 "диапазона степеней нависания"
 
-msgid "Bridge"
-msgstr "Мосты"
-
 msgid "Set speed for external and internal bridges"
 msgstr "Скорость печати внешних и внутренних мостов"
 
@@ -9242,17 +9676,11 @@ msgstr "Древовидная поддержка"
 msgid "Multimaterial"
 msgstr "Экструдер ММ"
 
-msgid "Prime tower"
-msgstr "Черновая башня"
-
 msgid "Filament for Features"
 msgstr "Филамент для элементов"
 
 msgid "Ooze prevention"
 msgstr "Предотвращение течи материала"
-
-msgid "Skirt"
-msgstr "Юбка"
 
 msgid "Special mode"
 msgstr "Специальные режимы"
@@ -9354,9 +9782,6 @@ msgstr ""
 "пластине. 0 означает, что филамент не поддерживает печать на этой печатной "
 "пластине."
 
-msgid "Engineering Plate"
-msgstr "Инженерная пластина"
-
 msgid ""
 "Bed temperature when the Engineering Plate is installed. A value of 0 means "
 "the filament does not support printing on the Engineering Plate."
@@ -9375,9 +9800,6 @@ msgstr ""
 "Температура стола при установленной гладкой PEI/высокотемпературный печатной "
 "пластине. 0 означает, что филамент не поддерживает печать на этой печатной "
 "пластине."
-
-msgid "Textured PEI Plate"
-msgstr "Текстурированная PEI пластина"
 
 msgid ""
 "Bed temperature when the Textured PEI Plate is installed. A value of 0 means "
@@ -9493,6 +9915,9 @@ msgstr "Аксессуары"
 
 msgid "Machine G-code"
 msgstr "G-код принтера"
+
+msgid "File header G-code"
+msgstr ""
 
 msgid "Machine start G-code"
 msgstr "Стартовый G-код принтера"
@@ -9642,6 +10067,15 @@ msgid_plural "Following presets will be deleted too."
 msgstr[0] "Следующий профиль также будет удалён."
 msgstr[1] "Следующие профили также будут удалены."
 msgstr[2] "Следующие профили также будут удалены."
+
+msgid ""
+"Are you sure to delete the selected preset?\n"
+"If the preset corresponds to a filament currently in use on your printer, "
+"please reset the filament information for that slot."
+msgstr ""
+"Вы уверены, что хотите удалить выбранный профиль? \n"
+"Если этот профиль используется в данный момент в вашем принтере, пожалуйста, "
+"сбросьте информацию о филаменте для этого слота."
 
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
@@ -9857,9 +10291,6 @@ msgstr "Обновление профиля"
 msgid "A new configuration package is available. Do you want to install it?"
 msgstr "Доступен новый пакет профилей. Установить его?"
 
-msgid "Configuration incompatible"
-msgstr "Несовместимый профиль"
-
 msgid "the configuration package is incompatible with the current application."
 msgstr "пакет профилей несовместим с текущим приложением."
 
@@ -9883,9 +10314,6 @@ msgstr "Обновления отсутствуют."
 
 msgid "The configuration is up to date."
 msgstr "Конфигурация актуальна."
-
-msgid "Open Wiki for more information >"
-msgstr ""
 
 msgid "OBJ file import color"
 msgstr "Импорт цветного obj-файла"
@@ -10095,6 +10523,9 @@ msgctxt "Sync_Nozzle_AMS"
 msgid "Cancel"
 msgstr ""
 
+msgid "Successfully synchronized filament color from printer."
+msgstr ""
+
 msgid "Successfully synchronized color and type of filament from printer."
 msgstr ""
 
@@ -10132,6 +10563,9 @@ msgid "For constant flow rate, hold %1% while dragging."
 msgstr ""
 "Для постоянного объёмного расхода удерживайте нажатой клавишу %1% при "
 "перетаскивании."
+
+msgid "ms"
+msgstr ""
 
 msgid "Total ramming"
 msgstr "Полный рэмминг"
@@ -10594,9 +11028,6 @@ msgstr "Модуль обрезки"
 msgid "Auto Fire Extinguishing System"
 msgstr ""
 
-msgid "Model:"
-msgstr "Модель:"
-
 msgid "Update firmware"
 msgstr "Обновить прошивку"
 
@@ -10763,38 +11194,8 @@ msgstr ""
 msgid " can not be placed in the "
 msgstr ""
 
-msgid "Inner wall"
-msgstr "Внутренняя стенка"
-
-msgid "Outer wall"
-msgstr "Внешняя стенка"
-
-msgid "Overhang wall"
-msgstr "Нависающие стенка"
-
-msgid "Sparse infill"
-msgstr "Заполнение"
-
-msgid "Internal solid infill"
-msgstr "Сплошное заполнение"
-
-msgid "Top surface"
-msgstr "Верхняя поверхность"
-
-msgid "Bottom surface"
-msgstr "Нижняя поверхность"
-
 msgid "Internal Bridge"
 msgstr "Внутренний мост"
-
-msgid "Gap infill"
-msgstr "Заполнение пробелов"
-
-msgid "Support interface"
-msgstr "Связующий слой"
-
-msgid "Support transition"
-msgstr "Переход поддержки"
 
 msgid "Multiple"
 msgstr "Множитель"
@@ -11277,7 +11678,7 @@ msgstr ""
 
 msgid ""
 "Filament shrinkage will not be used because filament shrinkage for the used "
-"filaments differs significantly."
+"filaments does not match."
 msgstr ""
 "Компенсация усадка материала не будет использоваться, поскольку усадка "
 "используемых материалов существенно отличается."
@@ -11384,6 +11785,12 @@ msgstr "Использовать сторонний хост печати"
 
 msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr "Позволяет управлять принтером BambuLab через сторонние хосты печати."
+
+msgid "Printer Agent"
+msgstr ""
+
+msgid "Select the network agent implementation for printer communication."
+msgstr ""
 
 msgid "Hostname, IP or URL"
 msgstr "Имя хоста, IP/URL-адрес"
@@ -11587,12 +11994,6 @@ msgstr ""
 
 msgid "Bed types supported by the printer."
 msgstr "Типы столов, поддерживаемые принтером."
-
-msgid "Smooth Cool Plate"
-msgstr "Не нагреваемая гладкая пластина Bambu"
-
-msgid "Smooth High Temp Plate"
-msgstr "Высокотемп. гладкая пластина"
 
 msgid "Default bed type"
 msgstr "Стандартная печатающая пластина"
@@ -11805,19 +12206,16 @@ msgid "External bridge density"
 msgstr "Плотность внешних мостов"
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. 100% means solid "
-"bridge. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
 "\n"
 "Lower density external bridges can help improve reliability as there is more "
 "space for air to circulate around the extruded bridge, improving its cooling "
-"speed."
-msgstr ""
-"Этот параметр управляет плотностью (расстоянием между линиями) внешних "
-"мостов. 100% означает сплошной мост. По умолчанию - 100%.\n"
+"speed. Minimum is 10%.\n"
 "\n"
-"Снижение плотности внешних мостов может повысить их надёжность, так как "
-"увеличивается пространство для циркуляции воздуха вокруг напечатанных линий "
-"моста, что улучшает его охлаждение."
+"Higher densities can produce smoother bridge surfaces, as overlapping lines "
+"provide additional support during printing. Maximum is 120%.\n"
+"Note: Bridge density that is too high can cause warping or overextrusion."
+msgstr ""
 
 msgid "Internal bridge density"
 msgstr "Плотность внутренних мостов"
@@ -12303,13 +12701,13 @@ msgid ""
 "If your current setup already works well, enabling it may be unnecessary and "
 "can cause the brim to fuse with upper layers."
 msgstr ""
-"Если этот параметр включен, кайма выравнивается по геометрии периметра первого слоя "
-"после применения компенсации «слоновьей стопы».\n"
+"Если этот параметр включен, кайма выравнивается по геометрии периметра "
+"первого слоя после применения компенсации «слоновьей стопы».\n"
 "Эта опция предназначена для случаев, когда «Компенсация слоновой стопы» "
 "существенно изменяет след первого слоя.\n"
 "\n"
-"Если ваша текущая настройка уже работает хорошо, ее включение может быть ненужным и "
-"может привести к слиянию кайма с верхними слоями."
+"Если ваша текущая настройка уже работает хорошо, ее включение может быть "
+"ненужным и может привести к слиянию кайма с верхними слоями."
 
 msgid "Brim ears"
 msgstr "Ушки каймы"
@@ -12433,9 +12831,6 @@ msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
 msgstr ""
 "Включение вытяжного вентилятора для лучшего охлаждения внутренней области "
 "принтера. G-код команда: M106 P3 S(0-255)"
-
-msgid "Fan speed"
-msgstr "Скорость вентилятора"
 
 msgid ""
 "Speed of exhaust fan during printing. This speed will override the speed in "
@@ -12800,8 +13195,7 @@ msgid ""
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
 "benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
-"consistent as the first extrusion of a new layer starts on a visible "
-"surface."
+"consistent as the first extrusion of a new layer starts on a visible surface."
 msgstr ""
 "Последовательность печати внутренних и внешних стенок\n"
 "\n"
@@ -13246,6 +13640,9 @@ msgstr ""
 "минимальной и максимальной скоростями вентилятора зависимости от времени "
 "печати слоя."
 
+msgid "s"
+msgstr "с"
+
 msgid "Default color"
 msgstr "Цвет по умолчанию"
 
@@ -13277,9 +13674,6 @@ msgid "Filament map to extruder"
 msgstr ""
 
 msgid "Filament map to extruder."
-msgstr ""
-
-msgid "filament mapping mode"
 msgstr ""
 
 msgid "Auto For Flush"
@@ -13414,7 +13808,8 @@ msgstr "Компенсация усадки по XY"
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
 "if you measure 94mm instead of 100mm). The part will be scaled in XY to "
-"compensate. Only the filament used for the perimeter is taken into account.\n"
+"compensate. For multi-material prints, ensure filament shrinkage matches "
+"across all used filaments\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
@@ -13585,6 +13980,9 @@ msgstr "Плотность"
 
 msgid "Filament density. For statistics only."
 msgstr "Плотность филамента. Используется только для статистики."
+
+msgid "g/cm³"
+msgstr "г/см³"
 
 msgid "The material type of filament."
 msgstr "Тип материала филамента."
@@ -13868,9 +14266,6 @@ msgstr ""
 msgid "0 (Simple connect)"
 msgstr "0 (без привязок)"
 
-msgid "Acceleration of outer walls."
-msgstr "Ускорение на наружных стенках."
-
 msgid "Acceleration of inner walls."
 msgstr "Ускорение на внутренних стенках."
 
@@ -13900,8 +14295,8 @@ msgid "mm/s² or %"
 msgstr "мм/с² или %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 "Ускорение на разреженном заполнении. Если задано в процентах, то значение "
 "вычисляться относительно ускорения по умолчанию."
@@ -14026,10 +14421,10 @@ msgstr "Полная скорость вентилятора на слое"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 "Скорость вентилятора будет линейно увеличиваться от нуля со слоя заданным "
 "параметром «Не включать вентилятор на первых» до заданной максимальной "
@@ -14103,6 +14498,40 @@ msgstr ""
 "плавным.\n"
 "Установите значение -1, чтобы отключить эту функцию."
 
+msgid "Ironing flow"
+msgstr "Поток разглаживания"
+
+msgid ""
+"Filament-specific override for ironing flow. This allows you to customize "
+"the ironing flow for each filament type. Too high value results in "
+"overextrusion on the surface."
+msgstr ""
+
+msgid "Ironing line spacing"
+msgstr "Расстояние между линиями разглаживания"
+
+msgid ""
+"Filament-specific override for ironing line spacing. This allows you to "
+"customize the spacing between ironing lines for each filament type."
+msgstr ""
+
+# ??? Граница без разглаживания
+msgid "Ironing inset"
+msgstr "Границы разглаживания"
+
+msgid ""
+"Filament-specific override for ironing inset. This allows you to customize "
+"the distance to keep from the edges when ironing for each filament type."
+msgstr ""
+
+msgid "Ironing speed"
+msgstr "Скорость разглаживания"
+
+msgid ""
+"Filament-specific override for ironing speed. This allows you to customize "
+"the print speed of ironing lines for each filament type."
+msgstr ""
+
 msgid ""
 "Randomly jitter while printing the wall, so that the surface has a rough "
 "look. This setting controls the fuzzy position."
@@ -14110,6 +14539,9 @@ msgstr ""
 "Случайное дрожание сопла при печати периметра для создания эффекта "
 "шероховатой поверхности. Эта настройка определяет, где будет применяться "
 "нечёткая оболочка."
+
+msgid "None (allow paint)"
+msgstr ""
 
 msgid "Contour"
 msgstr "Контур"
@@ -14363,6 +14795,19 @@ msgid ""
 msgstr ""
 "При включении, камера принтера будет проверять качество печати первого слоя."
 
+msgid "Power Loss Recovery"
+msgstr ""
+
+msgid ""
+"Choose how to control power loss recovery. When set to Printer "
+"configuration, the slicer will not emit power loss recovery G-code and will "
+"leave the printer's configuration unchanged. Applicable to Bambu Lab or "
+"Marlin 2 firmware based printers."
+msgstr ""
+
+msgid "Printer configuration"
+msgstr ""
+
 msgid "Nozzle type"
 msgstr "Тип сопла"
 
@@ -14384,9 +14829,6 @@ msgstr "Нержавеющая сталь"
 
 msgid "Tungsten carbide"
 msgstr ""
-
-msgid "Brass"
-msgstr "Латунь"
 
 msgid "Nozzle HRC"
 msgstr "Твердость сопла (HRC)"
@@ -14610,9 +15052,6 @@ msgstr ""
 "Подробности см. в Wiki. При установке шаблона стандартное направление "
 "заполнения игнорируется. Примечание: некоторые шаблоны заполнения (например, "
 "Gyroid) сами управляют поворотом; используйте с осторожностью."
-
-msgid "°"
-msgstr "°"
 
 msgid "Solid infill rotation template"
 msgstr "Поворот шаблона сплошного заполнения"
@@ -14918,9 +15357,6 @@ msgstr "Шаблон разглаживания"
 msgid "The pattern that will be used when ironing."
 msgstr "Шаблон по которому будет производиться разглаживание."
 
-msgid "Ironing flow"
-msgstr "Поток разглаживания"
-
 msgid ""
 "The amount of material to extrude during ironing. Relative to flow of normal "
 "layer height. Too high value results in overextrusion on the surface."
@@ -14928,15 +15364,8 @@ msgstr ""
 "Количество материала, которое необходимо выдавить во время разглаживания "
 "относительно потока при нормальной высоте слоя."
 
-msgid "Ironing line spacing"
-msgstr "Расстояние между линиями разглаживания"
-
 msgid "The distance between the lines of ironing."
 msgstr "Расстояние между линиями разглаживания."
-
-# ??? Граница без разглаживания
-msgid "Ironing inset"
-msgstr "Границы разглаживания"
 
 msgid ""
 "The distance to keep from the edges. A value of 0 sets this to half of the "
@@ -14944,9 +15373,6 @@ msgid ""
 msgstr ""
 "Расстояние в мм между областью разглаживания и краем модели. При значении 0 "
 "это значение равно половине диаметра сопла."
-
-msgid "Ironing speed"
-msgstr "Скорость разглаживания"
 
 msgid "Print speed of ironing lines."
 msgstr "Скорость разглаживания."
@@ -15248,6 +15674,9 @@ msgstr ""
 "\n"
 "Примечание: этот параметр отключает аппроксимацию дугами."
 
+msgid "mm³/s²"
+msgstr "мм³/с²"
+
 msgid "Smoothing segment length"
 msgstr "Длина сглаживающего сегмента"
 
@@ -15416,9 +15845,10 @@ msgid "Reduce infill retraction"
 msgstr "Уменьшать ретракт при заполнении"
 
 msgid ""
-"Don't retract when the travel is in infill area absolutely. That means the "
-"oozing can't been seen. This can reduce times of retraction for complex "
-"model and save printing time, but make slicing and G-code generating slower."
+"Don't retract when the travel is entirely within an infill area. That means "
+"the oozing can't been seen. This can reduce times of retraction for complex "
+"model and save printing time, but make slicing and G-code generating slower. "
+"Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
 "Отключение ретракта, когда перемещение происходит в зоне заполнения. Это "
 "означает, что подтеков не будет видно. Это может сократить время отвода для "
@@ -15466,6 +15896,9 @@ msgstr ""
 "Максимальная площадь отверстия в основании модели до его заполнения "
 "материалом конической геометрии. При 0 все отверстия в основании модели "
 "будут заполнены."
+
+msgid "mm²"
+msgstr "мм²"
 
 msgid "Detect overhang wall"
 msgstr "Обнаруживать нависающие периметры"
@@ -15774,12 +16207,6 @@ msgstr ""
 msgid "Bowden"
 msgstr "Боуден"
 
-msgid "Nozzle Volume Type"
-msgstr ""
-
-msgid "Default Nozzle Volume Type."
-msgstr ""
-
 msgid "Extra length on restart"
 msgstr "Доп. длина подачи перед возобновлением печати"
 
@@ -16006,8 +16433,8 @@ msgid "Role base wipe speed"
 msgstr "Скорость очистки по типу экструзии"
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -16304,9 +16731,11 @@ msgid ""
 "zero value."
 msgstr ""
 "Разница температур, которая будет применяться, когда экструдер не активен. "
-"Значение не используется, если для параметра «Температура "
-"ожидания» ('idle_temperature') в настройках филамента установлено ненулевое "
-"значение."
+"Значение не используется, если для параметра «Температура ожидания» "
+"('idle_temperature') в настройках филамента установлено ненулевое значение."
+
+msgid "∆℃"
+msgstr ""
 
 msgid "Preheat time"
 msgstr "Время преднагрева"
@@ -16331,6 +16760,13 @@ msgid ""
 msgstr ""
 "Задание нескольких команд преднагрева (например, M104.1). Полезно только для "
 "Prusa XL. Для других принтеров установите значение 1."
+
+msgid ""
+"G-code written at the very top of the output file, before any other content. "
+"Useful for adding metadata that printer firmware reads from the first lines "
+"of the file (e.g. estimated print time, filament usage). Supports "
+"placeholders like {print_time_sec} and {used_filament_length}."
+msgstr ""
 
 msgid "Start G-code"
 msgstr "Стартовый G-код"
@@ -16907,8 +17343,8 @@ msgstr "Вкл. контроль температуры"
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -17255,8 +17691,8 @@ msgstr ""
 msgid "Rib width"
 msgstr "Ширина ребра"
 
-msgid "Rib width."
-msgstr "Ширина ребра."
+msgid "Rib width is always less than half the prime tower side length."
+msgstr ""
 
 # ??? Скругление углов стенки
 msgid "Fillet wall"
@@ -17683,15 +18119,6 @@ msgstr "Актуальная версия"
 msgid "Update the config values of 3MF to latest."
 msgstr "Обновить значения профилей 3MF файла до актуальных."
 
-msgid "downward machines check"
-msgstr "проверка совместимости принтера"
-
-# ???
-msgid ""
-"check whether current machine downward compatible with the machines in the "
-"list."
-msgstr "проверка совместимости текущего принтера с принтерами из списка."
-
 # ???
 msgid "Load default filaments"
 msgstr "Загрузить материал по умолчанию"
@@ -17918,8 +18345,8 @@ msgid "Debug level"
 msgstr "Уровень отладки журнала"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
 "Задаёт параметр чувствительности записи событий в журнал.\n"
 "0: Критическая ошибка, 1: Ошибка, 2: Предупреждение, 3: Информация, 4: "
@@ -17995,17 +18422,17 @@ msgstr "Версия MakerLab"
 msgid "MakerLab version to generate this 3MF."
 msgstr "Версия MakerLab, использованная для создания этого 3mf-файла."
 
-msgid "metadata name list"
-msgstr "список имён метаданных"
+msgid "Metadata name list"
+msgstr ""
 
-msgid "metadata name list added into 3MF."
-msgstr "список имён метаданных добавляемых в 3MF."
+msgid "Metadata name list added into 3MF."
+msgstr ""
 
-msgid "metadata value list"
-msgstr "список значений метаданных"
+msgid "Metadata value list"
+msgstr ""
 
-msgid "metadata value list added into 3MF."
-msgstr "список значений метаданных добавляемых в 3MF."
+msgid "Metadata value list added into 3MF."
+msgstr ""
 
 msgid "Allow 3MF with newer version to be sliced"
 msgstr "Разрешить нарезку 3MF более новой версии"
@@ -18109,6 +18536,16 @@ msgstr ""
 "Вектор логического значения, указывающий, используется ли данный экструдер "
 "при печати."
 
+msgid "Number of extruders"
+msgstr "Количество экструдеров"
+
+msgid ""
+"Total number of extruders, regardless of whether they are used in the "
+"current print."
+msgstr ""
+"Общее количество экструдеров, независимо от того, используются ли они в "
+"текущей печати."
+
 msgid "Has single extruder MM priming"
 msgstr "Имеется предзарядка одиночного ММ экструдера"
 
@@ -18162,6 +18599,66 @@ msgstr "Общее количество слоёв"
 
 msgid "Number of layers in the entire print."
 msgstr "Количество слоёв всей печати."
+
+msgid "Print time (normal mode)"
+msgstr ""
+
+msgid ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as print_time."
+msgstr ""
+
+msgid ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as normal_print_time."
+msgstr ""
+
+msgid "Print time (silent mode)"
+msgstr ""
+
+msgid "Estimated print time when printed in silent mode."
+msgstr ""
+
+msgid ""
+"Total cost of all material used in the print. Calculated from filament_cost "
+"value in Filament Settings."
+msgstr ""
+
+msgid "Total wipe tower cost"
+msgstr ""
+
+msgid ""
+"Total cost of the material wasted on the wipe tower. Calculated from "
+"filament_cost value in Filament Settings."
+msgstr ""
+
+msgid "Wipe tower volume"
+msgstr ""
+
+msgid "Total filament volume extruded on the wipe tower."
+msgstr ""
+
+msgid "Used filament"
+msgstr "Использ. прутка"
+
+msgid "Total length of filament used in the print."
+msgstr ""
+
+msgid "Print time (seconds)"
+msgstr ""
+
+msgid ""
+"Total estimated print time in seconds. Replaced with actual value during "
+"post-processing."
+msgstr ""
+
+msgid "Filament length (meters)"
+msgstr ""
+
+msgid ""
+"Total filament length used in meters. Replaced with actual value during post-"
+"processing."
+msgstr ""
 
 msgid "Number of objects"
 msgstr "Количество моделей"
@@ -18286,16 +18783,6 @@ msgstr "Имя физического принтера"
 msgid "Name of the physical printer used for slicing."
 msgstr "Имя физического принтера, используемого для нарезки."
 
-msgid "Number of extruders"
-msgstr "Количество экструдеров"
-
-msgid ""
-"Total number of extruders, regardless of whether they are used in the "
-"current print."
-msgstr ""
-"Общее количество экструдеров, независимо от того, используются ли они в "
-"текущей печати."
-
 msgid "Layer number"
 msgstr "Номер слоя"
 
@@ -18419,8 +18906,8 @@ msgstr ""
 
 msgid "Unknown file format. Input file must have .3mf or .zip.amf extension."
 msgstr ""
-"Неизвестный формат файла. Входной файл должен иметь расширение *.3mf или *."
-"zip.amf."
+"Неизвестный формат файла. Входной файл должен иметь расширение *.3mf или "
+"*.zip.amf."
 
 msgid "load_obj: failed to parse"
 msgstr "load_obj: ошибка обработки"
@@ -18898,6 +19385,9 @@ msgstr ""
 msgid "Printing Parameters"
 msgstr "Параметры печати"
 
+msgid "- ℃"
+msgstr ""
+
 msgid "Synchronize nozzle and AMS information"
 msgstr ""
 
@@ -18911,6 +19401,9 @@ msgid ""
 msgstr ""
 
 msgid "AMS and nozzle information are synced"
+msgstr ""
+
+msgid "Nozzle Flow"
 msgstr ""
 
 msgid "Nozzle Info"
@@ -18959,9 +19452,6 @@ msgstr ""
 
 msgid "Sync AMS and nozzle information"
 msgstr ""
-
-msgid "Connecting to printer"
-msgstr "Подключение к принтеру"
 
 msgid ""
 "Calibration only supports cases where the left and right nozzle diameters "
@@ -19024,9 +19514,6 @@ msgstr ""
 
 msgid "New Flow Dynamic Calibration"
 msgstr "Новая калибровка динамики потока"
-
-msgid "Ok"
-msgstr "Ок"
 
 msgid "The filament must be selected."
 msgstr "Филамент должен быть выбран."
@@ -19111,12 +19598,6 @@ msgstr "Значения ускорений печати, вводимые че�
 msgid "Comma-separated list of printing speeds"
 msgstr "Значения скоростей печати, вводимые через запятую"
 
-msgid "Pressure Advance Guide"
-msgstr ""
-
-msgid "Adaptive Pressure Advance Guide"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
 "Start PA: >= 0.0\n"
@@ -19127,6 +19608,11 @@ msgstr ""
 "Начальный коэффициент PA: >= 0.0\n"
 "Конечный коэффициент PA: > Start PA\n"
 "Шаг коэффициента PA: >= 0.001)"
+
+msgid ""
+"Acceleration values must be greater than speed values.\n"
+"Please verify the inputs."
+msgstr ""
 
 msgid "Temperature calibration"
 msgstr "Калибровка температуры"
@@ -19164,13 +19650,10 @@ msgstr "Конечная температура: "
 msgid "Temp step: "
 msgstr "Шаг температуры: "
 
-msgid "Wiki Guide: Temperature Calibration"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
-"Start temp: <= 350\n"
-"End temp: >= 170\n"
+"Start temp: <= 500\n"
+"End temp: >= 155\n"
 "Start temp >= End temp + 5"
 msgstr ""
 
@@ -19182,9 +19665,6 @@ msgstr "Начальный объёмный расход: "
 
 msgid "End volumetric speed: "
 msgstr "Конечный объёмный расход: "
-
-msgid "Wiki Guide: Volumetric Speed Calibration"
-msgstr ""
 
 msgid ""
 "Please input valid values:\n"
@@ -19206,9 +19686,6 @@ msgstr "Начальная скорость: "
 msgid "End speed: "
 msgstr "Конечная скорость: "
 
-msgid "Wiki Guide: VFA"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19225,9 +19702,6 @@ msgstr "Начальная длина ретракта: "
 
 msgid "End retraction length: "
 msgstr "Конечная длина ретракта: "
-
-msgid "Wiki Guide: Retraction Calibration"
-msgstr ""
 
 # ??? Подбор
 msgid "Input shaping Frequency test"
@@ -19254,6 +19728,9 @@ msgstr "(начальное/конечное значение)"
 msgid "Frequency settings"
 msgstr "Задание частоты"
 
+msgid "Hz"
+msgstr ""
+
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr ""
 
@@ -19263,9 +19740,6 @@ msgstr "Затухание (Damp): "
 msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
-msgstr ""
-
-msgid "Wiki Guide: Input Shaping Calibration"
 msgstr ""
 
 msgid ""
@@ -19342,9 +19816,6 @@ msgstr ""
 msgid ""
 "RepRap detected: Jerk in mm/s.\n"
 "OrcaSlicer will convert the values to mm/min when necessary."
-msgstr ""
-
-msgid "Wiki Guide: Cornering Calibration"
 msgstr ""
 
 #, c-format, boost-format
@@ -19624,8 +20095,8 @@ msgstr ""
 "Хотите перезаписать его?"
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 "Мы переименуем профиль в \"Производитель Тип Серия @выбранный принтер\".\n"
@@ -19988,15 +20459,6 @@ msgstr[2] "Профили, указанные ниже, наследуются �
 msgid "Delete Preset"
 msgstr "Удалить профиль"
 
-msgid ""
-"Are you sure to delete the selected preset?\n"
-"If the preset corresponds to a filament currently in use on your printer, "
-"please reset the filament information for that slot."
-msgstr ""
-"Вы уверены, что хотите удалить выбранный профиль? \n"
-"Если этот профиль используется в данный момент в вашем принтере, пожалуйста, "
-"сбросьте информацию о филаменте для этого слота."
-
 msgid "Are you sure to delete the selected preset?"
 msgstr "Вы уверены, что хотите удалить выбранный профиль?"
 
@@ -20039,11 +20501,24 @@ msgstr "Изменить профиль"
 msgid "For more information, please check out Wiki"
 msgstr "Для получения более подробной информации посетите Wiki"
 
+msgid "Wiki"
+msgstr "Wiki"
+
 msgid "Collapse"
 msgstr "Свернуть"
 
 msgid "Daily Tips"
 msgstr "Ежедневные советы"
+
+msgid ""
+"The printer nozzle information has not been set.\n"
+"Please configure it before proceeding with the calibration."
+msgstr ""
+
+msgid ""
+"The nozzle type does not match the actual printer nozzle type.\n"
+"Please click the Sync button above and restart the calibration."
+msgstr ""
 
 #, c-format, boost-format
 msgid "nozzle size in preset: %d"
@@ -20088,6 +20563,12 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
+"The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
+"Flow Dynamics calibration."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
 "The currently selected nozzle diameter of %s extruder does not match the "
 "actual nozzle diameter.\n"
 "Please click the Sync button above and restart the calibration."
@@ -20106,11 +20587,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Automatic calibration only supports cases where the left and right nozzle "
-"diameters are identical."
-msgstr ""
-
-msgid ""
 "Unable to calibrate: maybe because the set calibration value range is too "
 "large, or the step is too small"
 msgstr ""
@@ -20122,6 +20598,11 @@ msgstr "Физический принтер"
 
 msgid "Print Host upload"
 msgstr "Загрузка на хост печати"
+
+msgid ""
+"Select the network agent implementation for printer communication. Available "
+"agents are registered at startup."
+msgstr ""
 
 msgid "Could not get a valid Printer Host reference"
 msgstr "Не удалось получить действительную ссылку на хост принтера"
@@ -20860,9 +21341,6 @@ msgstr ""
 msgid "Global settings"
 msgstr ""
 
-msgid "Learn more"
-msgstr ""
-
 msgid "(Sync with printer)"
 msgstr ""
 
@@ -21043,9 +21521,9 @@ msgid ""
 "overhangs?"
 msgstr ""
 "Порядок печати периметров «Сэндвич»\n"
-"Знаете ли вы, что можно использовать порядок печати периметров «Сэндвич» (т."
-"е. внутренний-внешний-внутренний) для повышения точности и согласованности "
-"слоёв, если у вашей модели не очень крутые нависания?"
+"Знаете ли вы, что можно использовать порядок печати периметров «Сэндвич» "
+"(т.е. внутренний-внешний-внутренний) для повышения точности и "
+"согласованности слоёв, если у вашей модели не очень крутые нависания?"
 
 #: resources/data/hints.ini: [hint:Chamber temperature]
 msgid ""
@@ -21413,6 +21891,102 @@ msgstr ""
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как "
 "ABS, повышение температуры подогреваемого стола может снизить эту "
 "вероятность?"
+
+#~ msgid "Filament remapping finished."
+#~ msgstr "Перераспределение филамента завершено."
+
+#~ msgid "Replace with STL"
+#~ msgstr "Заменить на другую модель"
+
+#~ msgid "Replace the selected part with new STL"
+#~ msgstr "Заменить выбранную модель другой"
+
+#~ msgid "Loading G-code"
+#~ msgstr "Загрузка G-кода"
+
+#~ msgid "Generating geometry vertex data"
+#~ msgstr "Генерация данных индекса вершин"
+
+#~ msgid "Generating geometry index data"
+#~ msgstr "Генерация данных индекса геометрии"
+
+#~ msgid "Switch to silent mode"
+#~ msgstr "Переключиться на бесшумный режим"
+
+#~ msgid "Switch to normal mode"
+#~ msgstr "Переключиться на обычный режим"
+
+#~ msgid ""
+#~ "The application cannot run normally because OpenGL version is lower than "
+#~ "2.0.\n"
+#~ msgstr ""
+#~ "Приложение не может работать нормально, так как версия OpenGL ниже 2.0.\n"
+
+#~ msgid "Nozzle Type"
+#~ msgstr "Тип сопла"
+
+#~ msgid "Advance"
+#~ msgstr "Расширенный"
+
+#~ msgid ""
+#~ "Disable to use latest network plugin that supports new BambuLab firmwares."
+#~ msgstr ""
+#~ "Отключите, чтобы использовать последний сетевой плагин, поддерживающий "
+#~ "новые прошивки BambuLab."
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "Упаковка данных в 3mf"
+
+#~ msgid ""
+#~ "Controls the density (spacing) of external bridge lines. 100% means solid "
+#~ "bridge. Default is 100%.\n"
+#~ "\n"
+#~ "Lower density external bridges can help improve reliability as there is "
+#~ "more space for air to circulate around the extruded bridge, improving its "
+#~ "cooling speed."
+#~ msgstr ""
+#~ "Этот параметр управляет плотностью (расстоянием между линиями) внешних "
+#~ "мостов. 100% означает сплошной мост. По умолчанию - 100%.\n"
+#~ "\n"
+#~ "Снижение плотности внешних мостов может повысить их надёжность, так как "
+#~ "увеличивается пространство для циркуляции воздуха вокруг напечатанных "
+#~ "линий моста, что улучшает его охлаждение."
+
+#~ msgid "Acceleration of outer walls."
+#~ msgstr "Ускорение на наружных стенках."
+
+#~ msgid "°"
+#~ msgstr "°"
+
+#~ msgid "Rib width."
+#~ msgstr "Ширина ребра."
+
+#~ msgid "downward machines check"
+#~ msgstr "проверка совместимости принтера"
+
+# ???
+#~ msgid ""
+#~ "check whether current machine downward compatible with the machines in "
+#~ "the list."
+#~ msgstr "проверка совместимости текущего принтера с принтерами из списка."
+
+#~ msgid "metadata name list"
+#~ msgstr "список имён метаданных"
+
+#~ msgid "metadata name list added into 3MF."
+#~ msgstr "список имён метаданных добавляемых в 3MF."
+
+#~ msgid "metadata value list"
+#~ msgstr "список значений метаданных"
+
+#~ msgid "metadata value list added into 3MF."
+#~ msgstr "список значений метаданных добавляемых в 3MF."
+
+#~ msgid "Connecting to printer"
+#~ msgstr "Подключение к принтеру"
+
+#~ msgid "Ok"
+#~ msgstr "Ок"
 
 #~ msgid "Junction Deviation calibration"
 #~ msgstr "Калибровка отклонения соединений"
@@ -22255,20 +22829,11 @@ msgstr ""
 #~ msgid "/"
 #~ msgstr "/"
 
-#~ msgid "℃"
-#~ msgstr "℃"
-
-#~ msgid "mm³"
-#~ msgstr "мм³"
-
 #~ msgid "Color Scheme"
 #~ msgstr "Цветовая схема"
 
 #~ msgid "Percent"
 #~ msgstr "%"
-
-#~ msgid "Used filament"
-#~ msgstr "Использ. прутка"
 
 #~ msgid "720p"
 #~ msgstr "720p"
@@ -22300,12 +22865,6 @@ msgstr ""
 #, c-format, boost-format
 #~ msgid "Ejecting of device %s(%s) has failed."
 #~ msgstr "Не удалось извлечь устройство %s(%s)."
-
-#~ msgid "mm/s²"
-#~ msgstr "мм/с²"
-
-#~ msgid "mm/s"
-#~ msgstr "мм/с"
 
 #~ msgid ""
 #~ "This option can be changed later in preferences, under 'Load Behaviour'."
@@ -22339,9 +22898,6 @@ msgstr ""
 #~ msgid "Total ramming time"
 #~ msgstr "Общее время рэмминга"
 
-#~ msgid "s"
-#~ msgstr "с"
-
 #~ msgid "Total rammed volume"
 #~ msgstr "Общий объём при рэмминге"
 
@@ -22356,9 +22912,6 @@ msgstr ""
 
 #~ msgid "resume"
 #~ msgstr "Продолжить"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Classic mode"
 #~ msgstr "Классический режим"
@@ -22377,12 +22930,6 @@ msgstr ""
 
 #~ msgid "Default filament color"
 #~ msgstr "Цвет материла по умолчанию"
-
-#~ msgid "mm³/s"
-#~ msgstr "мм³/с"
-
-#~ msgid "g/cm³"
-#~ msgstr "г/см³"
 
 #~ msgid "Rotate solid infill direction"
 #~ msgstr "Поворот сплошного заполнения"
@@ -22408,18 +22955,12 @@ msgstr ""
 #~ "Это наибольшая высота печатаемого слоя для этого экструдера, которая "
 #~ "используется для ограничения функции «Переменная высота слоёв»."
 
-#~ msgid "mm³/s²"
-#~ msgstr "мм³/с²"
-
 #~ msgid ""
 #~ "The lowest printable layer height for the extruder. Used to limit the "
 #~ "minimum layer height when adaptive layer height is enabled."
 #~ msgstr ""
 #~ "Это наименьшая высота печатаемого слоя для данного экструдера и в то же "
 #~ "время нижний предел для функции «Переменная высота слоёв»."
-
-#~ msgid "mm²"
-#~ msgstr "мм²"
 
 # ??? поверхности
 #~ msgid "Retract on top layer"

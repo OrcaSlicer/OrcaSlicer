@@ -25,24 +25,23 @@
         <control>pointing</control>
     </recommends>
     <screenshots>
-	    <screenshot type="default">
-		    <image>https://raw.githubusercontent.com/powpingdone/com.github.softfever.orcaslicer/master/images/1.png</image>
-		    <caption>A model ready to be sliced on a buildplate.</caption>
-	    </screenshot>
-	    <screenshot>
-		<image>https://raw.githubusercontent.com/powpingdone/com.github.softfever.orcaslicer/master/images/2.png
-	</image>
-	<caption>A calibration test ready to be printed out.</caption>
-	    </screenshot>
+        <screenshot type="default">
+            <image>https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/main/scripts/flatpak/images/1.png</image>
+            <caption>A model ready to be sliced on a buildplate.</caption>
+        </screenshot>
+        <screenshot>
+            <image>https://raw.githubusercontent.com/OrcaSlicer/OrcaSlicer/main/scripts/flatpak/images/2.png</image>
+            <caption>A calibration test ready to be printed out.</caption>
+        </screenshot>
     </screenshots>
     <description>
-	    <p>A powerful, free and open-source 3D printer slicer that features cutting-edge technology.</p>
+        <p>A powerful, free and open-source 3D printer slicer that features cutting-edge technology.</p>
     </description>
     <branding>
-	  <color type="primary" scheme_preference="light">#009688</color>
-	</branding>
+        <color type="primary" scheme_preference="light">#009688</color>
+    </branding>
     <releases>
-	    <release version="official"> <url>https://github.com/OrcaSlicer/OrcaSlicer/releases</url>
+        <release version="official"> <url>https://github.com/OrcaSlicer/OrcaSlicer/releases</url>
             <description>
                 <p>Official release: See Help > About Orca Slicer dialog for exact version information.</p>
             </description>

@@ -544,19 +544,19 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
                 if (file_name == L("Orca Cube"))
                     file_name = "OrcaCube_v2.3mf";
                 else if (file_name == L("Orca Tolerance Test"))
-                    file_name = "OrcaToleranceTest.stl";
+                    file_name = "OrcaToleranceTest.drc";
                 else if (file_name == L("3DBenchy"))
-                    file_name = "3DBenchy.3mf";
+                    file_name = "3DBenchy.drc";
                 else if (file_name == L("Cali Cat"))
-                    file_name = "calicat.stl";
+                    file_name = "calicat.drc";
                 else if (file_name == L("Autodesk FDM Test"))
-                    file_name = "ksr_fdmtest_v4.3mf";
+                    file_name = "ksr_fdmtest_v4.drc";
                 else if (file_name == L("Voron Cube"))
-                    file_name = "Voron_Design_Cube_v7.3mf";
+                    file_name = "Voron_Design_Cube_v7.drc";
                 else if (file_name == L("Stanford Bunny"))
-                    file_name = "Stanford_Bunny.3mf";
+                    file_name = "Stanford_Bunny.drc";
                 else if (file_name == L("Orca String Hell")) {
-                    file_name     = "Orca_stringhell.3mf";
+                    file_name     = "Orca_stringhell.drc";
                     is_stringhell = true;
                 } else
                     return;
@@ -857,6 +857,27 @@ void MenuFactory::append_menu_item_export_stl(wxMenu* menu, bool is_mulity_menu)
         return;
     append_menu_item(menu, wxID_ANY, _L("Export as STLs") + dots, "",
         [](wxCommandEvent&) { plater()->export_stl(false, true, true); }, "", nullptr,
+        []() {
+            const Selection& selection = plater()->canvas3D()->get_selection();
+            return selection.is_multiple_full_instance() || selection.is_multiple_full_object();
+        }, m_parent);
+}
+
+void MenuFactory::append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu)
+{
+    append_menu_item(menu, wxID_ANY, _L("Export as one DRC") + dots, "",
+        [](wxCommandEvent&) { plater()->export_stl(false, true, false, FT_DRC); }, "", nullptr,
+        [is_mulity_menu]() {
+            const Selection& selection = plater()->canvas3D()->get_selection();
+            if (is_mulity_menu)
+                return selection.is_multiple_full_instance() || selection.is_multiple_full_object();
+            else
+                return selection.is_single_full_instance() || selection.is_single_full_object();
+        }, m_parent);
+    if (!is_mulity_menu)
+        return;
+    append_menu_item(menu, wxID_ANY, _L("Export as DRCs") + dots, "",
+        [](wxCommandEvent&) { plater()->export_stl(false, true, true, FT_DRC); }, "", nullptr,
         []() {
             const Selection& selection = plater()->canvas3D()->get_selection();
             return selection.is_multiple_full_instance() || selection.is_multiple_full_object();
@@ -1282,6 +1303,7 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
 
     append_menu_item_reload_from_disk(menu);
     append_menu_item_export_stl(menu);
+    append_menu_item_export_drc(menu);
     // "Scale to print volume" makes a sense just for whole object
     append_menu_item_scale_selection_to_fit_print_volume(menu);
 
@@ -1327,6 +1349,8 @@ void MenuFactory::create_extra_object_menu()
     append_menu_item_fix_through_netfabb(&m_object_menu);
     // Object Simplify
     append_menu_item_simplify(&m_object_menu);
+    // Object Mesh Subdivision
+    append_menu_item_smooth_mesh(&m_object_menu);
     // merge to single part
     append_menu_item_merge_parts_to_single_part(&m_object_menu);
     // Object Center
@@ -1367,6 +1391,7 @@ void MenuFactory::create_extra_object_menu()
     append_menu_item_replace_with_stl(&m_object_menu);
     append_menu_item_replace_all_with_stl(&m_object_menu);
     append_menu_item_export_stl(&m_object_menu);
+    append_menu_item_export_drc(&m_object_menu);
 }
 
 void MenuFactory::create_bbl_assemble_object_menu()
@@ -1377,6 +1402,8 @@ void MenuFactory::create_bbl_assemble_object_menu()
     append_menu_item_fix_through_netfabb(&m_assemble_object_menu);
     // Object Simplify
     append_menu_item_simplify(&m_assemble_object_menu);
+    // Object Mesh Subdivision
+    append_menu_item_smooth_mesh(&m_assemble_object_menu);
     m_assemble_object_menu.AppendSeparator();
 }
 
@@ -1401,6 +1428,7 @@ void MenuFactory::create_part_menu()
     append_menu_item_delete(menu);
     append_menu_item_reload_from_disk(menu);
     append_menu_item_export_stl(menu);
+    append_menu_item_export_drc(menu);
     append_menu_item_fix_through_netfabb(menu);
     append_menu_items_mirror(menu);
     append_menu_item_merge_parts_to_single_part(menu);
@@ -1459,6 +1487,7 @@ void MenuFactory::create_bbl_part_menu()
     append_menu_item_edit_text(menu);
     append_menu_item_fix_through_netfabb(menu);
     append_menu_item_simplify(menu);
+    append_menu_item_smooth_mesh(menu);
     append_menu_item_center(menu);
     append_menu_item_drop(menu);
     append_menu_items_mirror(menu);
@@ -1490,6 +1519,7 @@ void MenuFactory::create_bbl_assemble_part_menu()
 
     append_menu_item_delete(menu);
     append_menu_item_simplify(menu);
+    append_menu_item_smooth_mesh(menu);
     menu->AppendSeparator();
 }
 
@@ -1782,6 +1812,7 @@ wxMenu* MenuFactory::multi_selection_menu()
         append_menu_item_change_filament(menu);
         menu->AppendSeparator();
         append_menu_item_export_stl(menu, true);
+        append_menu_item_export_drc(menu, true);
     }
     else {
         append_menu_item_center(menu);
@@ -1922,6 +1953,13 @@ void MenuFactory::append_menu_item_simplify(wxMenu* menu)
     wxMenuItem* menu_item = append_menu_item(menu, wxID_ANY, _L("Simplify Model"), "",
         [](wxCommandEvent&) { obj_list()->simplify(); }, "", menu,
         []() {return plater()->can_simplify(); }, m_parent);
+}
+
+void MenuFactory::append_menu_item_smooth_mesh(wxMenu *menu)
+{
+    wxMenuItem *menu_item = append_menu_item(
+        menu, wxID_ANY, _L("Subdivision mesh") + _L("(Lost color)"), "", [](wxCommandEvent &) { obj_list()->smooth_mesh(); }, "", menu, []() { return plater()->can_smooth_mesh(); },
+        m_parent);
 }
 
 void MenuFactory::append_menu_item_center(wxMenu* menu)

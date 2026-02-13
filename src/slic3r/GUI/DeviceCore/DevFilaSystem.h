@@ -53,6 +53,7 @@ public:
     wxColour        wx_color;
     bool            is_bbl;
     bool            is_exists = false;
+    bool            is_slot_placeholder = false;  // Orca: True for empty tray slots from pull-mode agents
     int             hold_count = 0;
     int             remain = 0;         // filament remain: 0 ~ 100
 

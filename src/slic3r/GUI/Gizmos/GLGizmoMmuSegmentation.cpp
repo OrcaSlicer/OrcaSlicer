@@ -679,23 +679,60 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     }
 
     ImGui::Separator();
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
 
-
+    // ORCA: Remap filaments section (Border only, Title in border). 
+    // Styled as a panel for visual grouping.
     if (m_imgui->button(m_desc.at("perform_remap"))) {
-        m_show_filament_remap_ui = !m_show_filament_remap_ui;
-        if (m_show_filament_remap_ui) {
-            // reset remap to identity on opening
-            m_extruder_remap.resize(m_extruders_colors.size());
-            for (size_t i = 0; i < m_extruder_remap.size(); ++i)
-                m_extruder_remap[i] = i;
+        m_show_remap_panel = !m_show_remap_panel;
+    }
+
+    if (m_show_remap_panel)
+    {
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        std::string title = into_u8(m_desc.at("perform_remap"));
+        float available_width = ImGui::GetContentRegionAvail().x;
+
+        // ORCA: Draw Background filled (consistent with Filaments section)
+        // Use static to remember height from previous frame so we can draw it behind.
+        static float remap_panel_high = 40.0f;
+        ImVec2 p_bg_min = ImGui::GetCursorScreenPos();
+        // Adjust background position: slight negative offset to align with padding, width fills available
+        // height from static variable.
+        draw_list->AddRectFilled({p_bg_min.x - 10.0f, p_bg_min.y - 7.0f}, {p_bg_min.x + available_width + ImGui::GetFrameHeight(), p_bg_min.y + remap_panel_high}, ImGui::GetColorU32(ImGuiCol_FrameBgActive, 1.0f), 5.0f);
+        
+        float start_y = ImGui::GetCursorPos().y;
+
+        // ORCA: Title as simple text - Removed as per request (redundant with button)
+        // m_imgui->text(title);
+
+        ImGui::BeginGroup();
+        // ORCA: Reduce vertical spacing within this group
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(m_imgui->scaled(0.4f), m_imgui->scaled(0.2f)));
+
+        render_filament_remap_ui(window_width, max_tooltip_width);
+
+        ImGui::PopStyleVar();
+        ImGui::EndGroup();
+
+        // ORCA: Update height for next frame fill
+        remap_panel_high = ImGui::GetCursorPos().y - start_y;
+
+        // ORCA: Add Remap and Cancel buttons (outside the panel)
+        ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.2f));
+        if (m_imgui->button(m_desc.at("remap"))) {
+            this->remap_filament_assignments();
+            // Reset mapping to identity after apply
+            for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
+        }
+        ImGui::SameLine();
+        if (m_imgui->button(m_desc.at("cancel_remap"))) {
+            // Reset mapping to identity
+            for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
         }
     }
-    
-    // Render filament swap UI if enabled
-    if (m_show_filament_remap_ui) {
-        ImGui::Separator();
-        render_filament_remap_ui(window_width, max_tooltip_width);
-    }
+
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.5f));
     ImGui::Separator();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
@@ -763,6 +800,9 @@ void GLGizmoMmuSegmentation::update_model_object()
         wxGetApp().obj_list()->update_info_items(obj_idx);
         wxGetApp().plater()->get_partplate_list().notify_instance_update(obj_idx, 0);
         m_parent.post_event(SimpleEvent(EVT_GLCANVAS_SCHEDULE_BACKGROUND_PROCESS));
+
+        // ORCA: Refresh cache
+        this->update_used_filaments();
     }
 }
 
@@ -825,6 +865,9 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
         this->init_extruders_data();
 
     this->init_model_triangle_selectors();
+
+    // ORCA: Refresh cache when model changes
+    this->update_used_filaments();
 }
 
 void GLGizmoMmuSegmentation::tool_changed(wchar_t old_tool, wchar_t new_tool)
@@ -1010,6 +1053,35 @@ void GLMmSegmentationGizmo3DScene::finalize_triangle_indices()
     }
 }
 
+// ORCA: Update the cache of used filaments (both base volume extruders and painted triangles)
+void GLGizmoMmuSegmentation::update_used_filaments()
+{
+    m_used_filaments.clear();
+
+    // Add base extruder IDs from volumes (unpainted areas)
+    for (int ext_id : m_volumes_extruder_idxs) {
+        // ext_id is 1-based (1 = Extruder 1), 0 = Default (usually maps to first available or object default)
+        // Here we assume 0 maps to index 0 (Extruder 1) for simplicity in display, 
+        // or we should check logic in init_model_triangle_selectors where it does:
+        // int extruder_idx = (mv->extruder_id() > 0) ? mv->extruder_id() - 1 : 0;
+        int idx = (ext_id > 0) ? ext_id - 1 : 0;
+        if (idx >= 0 && idx < m_extruders_colors.size())
+             m_used_filaments.insert((size_t)idx);
+    }
+
+    // Add painted states
+    for (const auto& selector : m_triangle_selectors) {
+        if (!selector) continue;
+        TriangleSelector::TriangleSplittingData data = selector->serialize();
+        std::vector<EnforcerBlockerType> states = TriangleSelector::extract_used_facet_states(data);
+        for (EnforcerBlockerType s : states) {
+             int idx = (int)s - (int)EnforcerBlockerType::Extruder1;
+             if (idx >= 0 && idx < m_extruders_colors.size())
+                 m_used_filaments.insert((size_t)idx);
+        }
+    }
+}
+
 void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float max_tooltip_width)
 {
     size_t n_extr = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
@@ -1017,18 +1089,34 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
     const ImVec2 max_label_size = ImGui::CalcTextSize("99", NULL, true);
     const ImVec2 button_size(max_label_size.x + m_imgui->scaled(0.5f), 0.f);
 
-    for (int src = 0; src < (int)n_extr; ++src) {
+    int displayed_count = 0;
+    const int max_per_line = 8;
+
+    // ORCA: Use m_used_filaments to show only relevant source filaments
+    for (size_t src : m_used_filaments) {
+        if (src >= n_extr) continue;
+
         const ColorRGBA &src_col = m_extruders_colors[src];          // keep for text contrast
         const ColorRGBA &dst_col = m_extruders_colors[m_extruder_remap[src]];
-        ImVec4 col_vec = ImGuiWrapper::to_ImVec4(dst_col);
+        
+        // ORCA: Button now shows the SOURCE color (per maintainer request)
+        // This keeps the UI stable until "Remap" is clicked.
+        ImVec4 col_vec = ImGuiWrapper::to_ImVec4(src_col);
 
-        if (src) ImGui::SameLine();
+        if (displayed_count > 0 && (displayed_count % max_per_line != 0))
+            ImGui::SameLine();
+        
         std::string btn_id = "##remap_src_" + std::to_string(src);
+        std::string pop_id = "popup_" + std::to_string(src);
         
         ImGuiColorEditFlags flags = ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoInputs |
                                     ImGuiColorEditFlags_NoLabel  | ImGuiColorEditFlags_NoPicker |
                                     ImGuiColorEditFlags_NoTooltip;
-        if (m_selected_extruder_idx != src) flags |= ImGuiColorEditFlags_NoBorder;
+        
+        // ORCA: Show border ONLY if the popup is open (visual feedback for active selection)
+        // Decoupled from m_selected_extruder_idx to prevent unwanted selection highlights.
+        if (!ImGui::IsPopupOpen(pop_id.c_str()))
+             flags |= ImGuiColorEditFlags_NoBorder;
         
         #ifdef __APPLE__
             ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGuiWrapper::COL_ORCA);
@@ -1047,8 +1135,9 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         #endif
 
         // overlay destination number with proper contrast calculation
+        // ORCA: Text still shows DESTINATION index, but contrast is against SOURCE color now.
         std::string dst_txt = std::to_string(m_extruder_remap[src] + 1);
-        float gray = 0.299f * dst_col.r() + 0.587f * dst_col.g() + 0.114f * dst_col.b();
+        float gray = 0.299f * src_col.r() + 0.587f * src_col.g() + 0.114f * src_col.b();
         ImVec2 txt_sz = ImGui::CalcTextSize(dst_txt.c_str());
         ImVec2 pos = ImGui::GetItemRectMin();
         ImVec2 size = ImGui::GetItemRectSize();
@@ -1062,8 +1151,35 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                 ImVec2(pos.x + (size.x - txt_sz.x) * 0.5f, pos.y + (size.y - txt_sz.y) * 0.5f),
                 IM_COL32(0,0,0,255), dst_txt.c_str());
 
+        // ORCA: Show NEW color as a small triangle in the corner if remapped
+        if (src != m_extruder_remap[src]) {
+            float s = m_imgui->scaled(0.55f);
+            float offset = m_imgui->scaled(0.15f); // Inset to avoid rounded corner clipping
+            ImVec2 p = ImVec2(pos.x + offset, pos.y + offset);
+            
+            // Contrast outline: White for dark backgrounds, Black for light backgrounds
+            // Use dst_col (new color) for outline contrast check? Or src_col?
+            // Usually outline is around the triangle (dst_col).
+            float dst_gray = 0.299f * dst_col.r() + 0.587f * dst_col.g() + 0.114f * dst_col.b();
+            ImU32 outline_col = (dst_gray * 255.f < 80.f) ? IM_COL32(255, 255, 255, 180) : IM_COL32(0, 0, 0, 180);
+
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            draw_list->AddTriangleFilled(
+                p,
+                ImVec2(p.x + s, p.y),
+                ImVec2(p.x, p.y + s),
+                ImGuiWrapper::to_ImU32(dst_col));
+            
+            // ORCA: Add a thin outline for better contrast when colors are similar
+            draw_list->AddTriangle(
+                p,
+                ImVec2(p.x + s, p.y),
+                ImVec2(p.x, p.y + s),
+                outline_col,
+                0.5f);
+        }
+
         // popup with possible destinations
-        std::string pop_id = "popup_" + std::to_string(src);
         if (clicked) {
             // Calculate popup position centered below the current button
             ImVec2 button_pos = ImGui::GetItemRectMin();
@@ -1079,15 +1195,19 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         // Apply popup styling before BeginPopup using standard Orca colors
         ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding, 4.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 1.0f);
-        ImGui::PushStyleColor(ImGuiCol_PopupBg, m_is_dark_mode ? ImGuiWrapper::COL_WINDOW_BG_DARK : ImGuiWrapper::COL_WINDOW_BG);
+        // ORCA: Use FrameBgActive for consistency and to ensure visibility of white filaments
+        ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGui::GetStyleColorVec4(ImGuiCol_FrameBgActive));
         ImGui::PushStyleColor(ImGuiCol_Border, m_is_dark_mode ? ImVec4(0.5f, 0.5f, 0.5f, 1.0f) : ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
         
         if (ImGui::BeginPopup(pop_id.c_str())) {
             
+            m_imgui->text(_L("To:"));
+
             for (int dst = 0; dst < (int)n_extr; ++dst) {
                 const ColorRGBA &dst_col_popup = m_extruders_colors[dst];
                 ImVec4 dst_vec = ImGuiWrapper::to_ImVec4(dst_col_popup);
-                if (dst) ImGui::SameLine();
+                if (dst > 0 && (dst % max_per_line != 0))
+                     ImGui::SameLine();
                 std::string dst_btn = "##dst_" + std::to_string(src) + "_" + std::to_string(dst);
                 
                 // Apply same styling to destination buttons
@@ -1142,18 +1262,9 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
         // Clean up popup styling (always pop, whether popup was open or not)
         ImGui::PopStyleColor(2); // PopupBg and Border
         ImGui::PopStyleVar(2);   // PopupRounding and PopupBorderSize
+        
+        displayed_count++;
     }
-
-    ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.3f));
-
-    if (m_imgui->button(m_desc.at("remap"))) {
-        remap_filament_assignments();
-        m_show_filament_remap_ui = false;
-    }
-
-    ImGui::SameLine();
-    if (m_imgui->button(m_desc.at("cancel_remap")))
-        m_show_filament_remap_ui = false;
 }
 
 void GLGizmoMmuSegmentation::remap_filament_assignments()
@@ -1193,21 +1304,46 @@ void GLGizmoMmuSegmentation::remap_filament_assignments()
     ModelObject* mo = m_c->selection_info()->model_object();
     if (!mo) return;
 
+    bool volume_extruder_changed = false;
+
     for (ModelVolume* mv : mo->volumes) {
         if (!mv->is_model_part()) continue;
         ++idx;
         TriangleSelectorGUI* ts = m_triangle_selectors[idx].get();
         if (!ts) continue;
+
+        // Remap painted triangles
         ts->remap_triangle_state(state_map);
         ts->request_update_render_data(true);
+
+        // ORCA: Remap base volume extruder as well if selected
+        int current_ext_id = mv->extruder_id();
+        int current_idx = (current_ext_id > 0) ? current_ext_id - 1 : 0;
+        
+        if (current_idx >= 0 && current_idx < m_extruder_remap.size()) {
+            size_t dest_idx = m_extruder_remap[current_idx];
+            if (dest_idx != current_idx) {
+                mv->config.set("extruder", (int)dest_idx + 1);
+                if (idx < m_volumes_extruder_idxs.size())
+                    m_volumes_extruder_idxs[idx] = (int)dest_idx + 1;
+                volume_extruder_changed = true;
+            }
+        }
+
         updated = true;
     }
 
     if (updated) {
-        wxGetApp().plater()->get_notification_manager()->push_notification(
-            _L("Filament remapping finished.").ToStdString());
+        // ORCA: Update renderer colors if base volume extruder changed
+        if (volume_extruder_changed)
+            this->update_triangle_selectors_colors();
+
+        // ORCA: Removed "Filament remapping finished" notification to reduce UI noise.
         update_model_object();
         m_parent.set_as_dirty();
+        
+        // ORCA: Refresh used filaments cache
+        this->update_used_filaments();
     }
 }
 
