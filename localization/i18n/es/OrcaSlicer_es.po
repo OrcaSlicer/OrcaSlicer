@@ -12179,7 +12179,7 @@ msgid "Whether to apply fuzzy skin on the first layer."
 msgstr "Aplicar o no superficie difusa en la primera capa"
 
 msgid "Fuzzy skin generator mode"
-msgstr ""
+msgstr "Modo generador de piel difusa"
 
 #, c-format, boost-format
 msgid ""
@@ -12191,18 +12191,24 @@ msgid ""
 "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can "
 "choose this number until this error is repeated."
 msgstr ""
+"Modo de generación de piel difusa. ¡Funciona solo con Arachne!\n"
+"Desplazamiento: Modo clásico en el que el patrón se forma desplazando la boquilla lateralmente respecto a la trayectoria original.\n"
+"Extrusión: Modo en que el patrón se forma por la cantidad de material extruido. Es un algoritmo rápido y directo sin vibraciones innecesarias de la boquilla que produce un patrón suave. Sin embargo, resulta más útil para formar paredes sueltas en toda la matriz.\n"
+"Combinado: Modo conjunto [Desplazamiento] + [Extrusión]. La apariencia de las paredes es similar al modo [Desplazamiento], pero no deja poros entre los perímetros.\n"
+"\n"
+"¡Atención! Los modos [Extrusión] y [Combinado] funcionan solo si el parámetro fuzzy_skin_thickness no supera el espesor del perímetro impreso. Al mismo tiempo, el ancho de extrusión para una capa determinada tampoco debe estar por debajo de un cierto umbral, que suele ser el 15–25%% de la altura de capa. Por lo tanto, el espesor máximo de piel difusa con un ancho de perímetro de 0,4 mm y una altura de capa de 0,2 mm será 0,4-(0,2*0,25)=±0,35 mm. Si introduce un valor mayor, se mostrará el error Flow::spacing() y el modelo no se podrá laminar. Puede ajustar este valor hasta que deje de producirse el error."
 
 msgid "Displacement"
-msgstr ""
+msgstr "Desplazamiento"
 
 msgid "Extrusion"
-msgstr ""
+msgstr "Extrusión"
 
 msgid "Combined"
 msgstr "Combinado"
 
 msgid "Fuzzy skin noise type"
-msgstr ""
+msgstr "Tipo de ruido de la piel difusa"
 
 msgid ""
 "Noise type to use for fuzzy skin generation:\n"
@@ -12212,6 +12218,12 @@ msgid ""
 "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates marble-like textures.\n"
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture."
 msgstr ""
+"Tipo de ruido a usar para la generación de la piel difusa:\n"
+"Clásico: Ruido aleatorio uniforme clásico.\n"
+"Perlin: Ruido Perlin, que ofrece una textura más coherente.\n"
+"Billow: Similar al ruido Perlin, pero más agrupado.\n"
+"Ridged Multifractal: Ruido con crestas afiladas y rasgos dentados. Crea texturas tipo mármol.\n"
+"Voronoi: Divide la superficie en celdas Voronoi y desplaza cada una por una cantidad aleatoria. Crea una textura enparches."
 
 msgid "Classic"
 msgstr "Clásico"
@@ -12229,22 +12241,22 @@ msgid "Voronoi"
 msgstr ""
 
 msgid "Fuzzy skin feature size"
-msgstr ""
+msgstr "Tamaño de característica de la piel difusa"
 
 msgid "The base size of the coherent noise features, in mm. Higher values will result in larger features."
-msgstr ""
+msgstr "El tamaño base de las características del ruido coherente, en mm. Valores mayores producen características más grandes."
 
 msgid "Fuzzy Skin Noise Octaves"
-msgstr ""
+msgstr "Octavas de ruido de la piel difusa"
 
 msgid "The number of octaves of coherent noise to use. Higher values increase the detail of the noise, but also increase computation time."
-msgstr ""
+msgstr "El número de octavas de ruido coherente a usar. Valores más altos aumentan el detalle del ruido, pero también incrementan el tiempo de cálculo."
 
 msgid "Fuzzy skin noise persistence"
-msgstr ""
+msgstr "Persistencia del ruido de piel difusa"
 
 msgid "The decay rate for higher octaves of the coherent noise. Lower values will result in smoother noise."
-msgstr ""
+msgstr "La tasa de decaimiento para las octavas superiores del ruido coherente. Valores más bajos producirán un ruido más suave."
 
 msgid "Filter out tiny gaps"
 msgstr "Filtrar pequeños huecos"
