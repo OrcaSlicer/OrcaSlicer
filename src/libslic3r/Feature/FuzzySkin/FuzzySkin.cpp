@@ -388,29 +388,8 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     continue;
                 }
 
-                bool        full_loop_fuzzified = true; //Global fuzzy skin or loop fully painted
-                const auto& junctions           = extrusion->junctions;
-                const auto& expolys             = r.second;
-
-                for (size_t i = 0; i < junctions.size(); ++i) {
-                    const auto& junction     = junctions[i];
-                    bool        point_inside = false;
-
-                    for (const auto& expoly : expolys) {
-                        if (expoly.contains(junction.p)) {
-                            point_inside = true;
-                            break;
-                        }
-                    }
-
-                    if (!point_inside) {
-                        full_loop_fuzzified = false;
-                        break;
-                    }
-                }
-
                 // Fuzzy splitted extrusion
-                if (full_loop_fuzzified) {
+                if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
                     // The entire polygon is fuzzified
                     fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
                     continue;
