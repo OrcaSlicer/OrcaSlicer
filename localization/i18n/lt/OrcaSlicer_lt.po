@@ -19750,3 +19750,7 @@ msgstr ""
 #, c-format, boost-format
 #~ msgid "Support: propagate branches at layer %d"
 #~ msgstr "Atramos: skleisti šakas sluoksnyje %d"
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "Cosmyx OrcaSlicer pleistras versijai %s"

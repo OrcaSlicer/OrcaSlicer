@@ -262,6 +262,13 @@ AboutDialog::AboutDialog()
         vesizer->Add(version, 0, wxRIGHT | wxALIGN_RIGHT, FromDIP(20));
         vesizer->AddSpacer(FromDIP(5));
         vesizer->Add(credits_string, 0, wxRIGHT | wxALIGN_RIGHT, FromDIP(20));
+        vesizer->AddSpacer(FromDIP(5));
+        wxString cosmyx_str = wxString::Format(_L("Cosmyx Patch for OrcaSlicer Version %s"), COSMYX_PATCH_VERSION);
+        wxStaticText* cosmyx_version = new wxStaticText(this, wxID_ANY, cosmyx_str, wxDefaultPosition, wxDefaultSize);
+        cosmyx_version->SetFont(_build_string_font);
+        cosmyx_version->SetForegroundColour(wxColour("#949494"));
+        cosmyx_version->SetBackgroundColour(wxColour("#FFFFFF"));
+        vesizer->Add(cosmyx_version, 0, wxRIGHT | wxALIGN_RIGHT, FromDIP(20));
         vesizer->Add(0, 0, 1, wxEXPAND, FromDIP(5));
     }
 

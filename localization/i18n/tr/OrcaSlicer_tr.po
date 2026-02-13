@@ -21113,3 +21113,7 @@ msgstr ""
 #~ "Lütfen geçerli değerleri girin:\n"
 #~ "başlangıç > 10 adım >= 0\n"
 #~ "bitiş > başlangıç + adım)"
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "OrcaSlicer için Cosmyx Yaması Sürüm %s"

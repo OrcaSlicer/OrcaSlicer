@@ -20147,3 +20147,7 @@ msgstr ""
 #~ "유효한 값을 입력하십시오:\n"
 #~ "시작 > 10 단계 >= 0\n"
 #~ "끝 > 시작 + 단계)"
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "Cosmyx OrcaSlicer 패치 버전 %s"

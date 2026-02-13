@@ -2805,6 +2805,10 @@ msgstr ""
 msgid "Version"
 msgstr ""
 
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr ""
+
 msgid "AMS Materials Setting"
 msgstr ""
 

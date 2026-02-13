@@ -21012,3 +21012,7 @@ msgstr ""
 #~ "inferiore a quella del primo layer di oltre questa soglia. Una "
 #~ "temperatura del piano troppo bassa degli altri layer può causare il "
 #~ "distacco dell'oggetto dal piatto."
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "Cosmyx Patch per OrcaSlicer Versione %s"

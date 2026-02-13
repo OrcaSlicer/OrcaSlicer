@@ -21606,3 +21606,7 @@ msgstr ""
 #~ "Veuillez saisir des valeurs valides :\n"
 #~ "Début > 10 intervalles >= 0\n"
 #~ "Fin > Début + Intervalle"
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "Cosmyx Patch pour OrcaSlicer Version %s"

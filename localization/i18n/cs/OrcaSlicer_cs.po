@@ -18973,3 +18973,7 @@ msgstr ""
 #~ "Zadejte prosím platné hodnoty:\n"
 #~ "start > 10 kroků >= 0\n"
 #~ "konec > začátek + krok)"
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "Cosmyx Patch pro OrcaSlicer Verze %s"

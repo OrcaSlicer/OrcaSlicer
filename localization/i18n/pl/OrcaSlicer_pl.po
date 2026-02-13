@@ -22095,3 +22095,7 @@ msgstr ""
 #~ "Proszę podać poprawne wartości:\n"
 #~ "start > 10 kroków >= 0\n"
 #~ "koniec > start + krok)"
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "Cosmyx Patch dla OrcaSlicer Wersja %s"

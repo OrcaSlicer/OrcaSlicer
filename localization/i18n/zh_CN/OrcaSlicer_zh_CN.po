@@ -17358,3 +17358,7 @@ msgstr ""
 #~ "填充图案通常被设计为自动处理旋转以确保正确打印并达到预期效果（例如，螺旋"
 #~ "体、立方体）。旋转当前的稀疏填充图案可能导致支撑不足。请谨慎操作并彻底检查"
 #~ "任何潜在的打印问题。您确定要启用此选项吗？"
+
+#, possible-c-format, possible-boost-format
+msgid "Cosmyx Patch for OrcaSlicer Version %s"
+msgstr "Cosmyx OrcaSlicer 补丁版本 %s"
