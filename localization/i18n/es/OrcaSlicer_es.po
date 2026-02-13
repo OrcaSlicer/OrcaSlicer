@@ -12125,31 +12125,31 @@ msgid "Ironing flow"
 msgstr "Flujo de alisado"
 
 msgid "Filament-specific override for ironing flow. This allows you to customize the ironing flow for each filament type. Too high value results in overextrusion on the surface."
-msgstr "Anulación específica por filamento para el flujo de alisado. Esto permite personalizar el flujo de alisado para cada tipo de filamento. Un valor demasiado alto resulta en sobreextrusión en la superficie."
+msgstr "Sobrescritura específica por filamento para el flujo de alisado. Esto permite personalizar el flujo de alisado para cada tipo de filamento. Un valor demasiado alto resulta en sobreextrusión en la superficie."
 
 msgid "Ironing line spacing"
 msgstr "Espaciado entre líneas de alisado"
 
 msgid "Filament-specific override for ironing line spacing. This allows you to customize the spacing between ironing lines for each filament type."
-msgstr "Anulación específica por filamento para el espaciado entre líneas de alisado. Esto permite personalizar el espaciado entre líneas de alisado para cada tipo de filamento."
+msgstr "Sobrescritura específica por filamento para el espaciado entre líneas de alisado. Esto permite personalizar el espaciado entre líneas de alisado para cada tipo de filamento."
 
 msgid "Ironing inset"
 msgstr "Margen de alisado"
 
 msgid "Filament-specific override for ironing inset. This allows you to customize the distance to keep from the edges when ironing for each filament type."
-msgstr "Anulación específica por filamento para el margen de alisado. Esto permite personalizar la distancia respecto a los bordes al alisar para cada tipo de filamento."
+msgstr "Sobrescritura específica por filamento para el margen de alisado. Esto permite personalizar la distancia respecto a los bordes al alisar para cada tipo de filamento."
 
 msgid "Ironing speed"
 msgstr "Velocidad de alisado"
 
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
-msgstr ""
+msgstr "Sobrescritura específica por filamento para la velocidad de alisado. Esto permite personalizar la velocidad de impresión de las líneas de alisado para cada tipo de filamento."
 
 msgid "Randomly jitter while printing the wall, so that the surface has a rough look. This setting controls the fuzzy position."
 msgstr "Sacudir ligeramente el cabezal de forma aleatoria cuando se imprime el perímetro externo, de modo que la superficie tenga un aspecto rugoso. Este ajuste controla la posición difusa"
 
 msgid "None (allow paint)"
-msgstr ""
+msgstr "Ninguno (permitir pintado)"
 
 msgid "Contour"
 msgstr "Contorno"
