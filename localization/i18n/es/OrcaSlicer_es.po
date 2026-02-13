@@ -3799,7 +3799,7 @@ msgstr ""
 "No: deshabilitar el generador de muros Arachne y establecer el modo [Desplazamiento] de la piel difusa."
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
-msgstr "El modo espiral solo funciona cuando los bucles de pared son 1, el soporte está desactivado, la detección de agrupamientos mediante sondeo está desactivada, las capas superiores de la carcasa son 0, la densidad de relleno disperso es 0 y el tipo de lapso de tiempo es tradicional."
+msgstr "El modo espiral solo funciona cuando los bucles de pared son 1, el soporte está desactivado, la detección de agrupamientos mediante sondeo está desactivada, las capas superiores de la carcasa son 0, la densidad de relleno es 0 y el tipo de lapso de tiempo es tradicional."
 
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr "Cuando imprima por objeto, las máquinas con estructura I3 no generará videos timelapse."
@@ -10769,16 +10769,16 @@ msgstr ""
 "El flujo real utilizado para voladizos se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Sparse infill flow ratio"
-msgstr "Ratio de flujo en relleno disperso"
+msgstr "Ratio de flujo en relleno"
 
 msgid ""
 "This factor affects the amount of material for sparse infill.\n"
 "\n"
 "The actual sparse infill flow used is calculated by multiplying this value by the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Este factor afecta la cantidad de material para el relleno disperso.\n"
+"Este factor afecta la cantidad de material para el relleno.\n"
 "\n"
-"El flujo real utilizado para el relleno disperso se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
+"El flujo real utilizado para el relleno se calcula multiplicando este valor por el ratio de flujo del filamento y, si está definido, por el ratio de flujo del objeto."
 
 msgid "Internal solid infill flow ratio"
 msgstr "Ratio de flujo en relleno sólido interno"
@@ -12465,34 +12465,34 @@ msgid "Automatically Combine sparse infill of several layers to print together t
 msgstr "Combinar automáticamente el relleno de baja densidad de varias capas para imprimirlas juntas y reducir el tiempo de impresión. El perímetro externo se sigue imprimiendo con la altura de capa original."
 
 msgid "Infill shift step"
-msgstr ""
+msgstr "Paso de desplazamiento de relleno"
 
 msgid "This parameter adds a slight displacement to each layer of infill to create a cross texture."
-msgstr ""
+msgstr "Este parámetro añade un ligero desplazamiento a cada capa de relleno para crear una textura cruzada."
 
 msgid "Sparse infill rotation template"
-msgstr ""
+msgstr "Plantilla de rotación del relleno"
 
 msgid "Rotate the sparse infill direction per layer using a template of angles. Enter comma-separated degrees (e.g., '0,30,60,90'). Angles are applied in order by layer and repeat when the list ends. Advanced syntax is supported: '+5' rotates +5° every layer; '+5#5' rotates +5° every 5 layers. See the Wiki for details. When a template is set, the standard infill direction setting is ignored. Note: some infill patterns (e.g., Gyroid) control rotation themselves; use with care."
-msgstr ""
+msgstr "Gire la dirección del relleno por capa usando una plantilla de ángulos. Introduzca grados separados por comas (p. ej., '0,30,60,90'). Los ángulos se aplican por capa en orden y se repiten cuando termina la lista. Se admite sintaxis avanzada: '+5' rota +5° cada capa; '+5#5' rota +5° cada 5 capas. Consulte la Wiki para más detalles. Cuando se establece una plantilla, se ignora el ajuste estándar de dirección del relleno. Nota: algunos patrones de relleno (p. ej., Gyroid) controlan la rotación por sí mismos; úselo con precaución."
 
 msgid "Solid infill rotation template"
-msgstr ""
+msgstr "Plantilla de rotación del relleno sólido"
 
 msgid "This parameter adds a rotation of solid infill direction to each layer according to the specified template. The template is a comma-separated list of angles in degrees, e.g. '0,90'. The first angle is applied to the first layer, the second angle to the second layer, and so on. If there are more layers than angles, the angles will be repeated. Note that not all solid infill patterns support rotation."
-msgstr ""
+msgstr "Este parámetro añade una rotación de la dirección del relleno sólido a cada capa según la plantilla especificada. La plantilla es una lista separada por comas de ángulos en grados, p. ej., '0,90'. El primer ángulo se aplica a la primera capa, el segundo a la segunda, y así sucesivamente. Si hay más capas que ángulos, los ángulos se repetirán. Tenga en cuenta que no todos los patrones de relleno sólido soportan rotación."
 
 msgid "Skeleton infill density"
-msgstr ""
+msgstr "Densidad del esqueleto del relleno"
 
 msgid "The remaining part of the model contour after removing a certain depth from the surface is called the skeleton. This parameter is used to adjust the density of this section. When two regions have the same sparse infill settings but different skeleton densities, their skeleton areas will develop overlapping sections. Default is as same as infill density."
-msgstr ""
+msgstr "La parte restante del contorno del modelo tras eliminar cierta profundidad de la superficie se denomina esqueleto. Este parámetro se usa para ajustar la densidad de esta sección. Cuando dos regiones tienen los mismos ajustes de relleno pero diferentes densidades de esqueleto, sus áreas de esqueleto pueden solaparse. El valor predeterminado es igual a la densidad de relleno."
 
 msgid "Skin infill density"
-msgstr ""
+msgstr "Densidad de la piel del relleno"
 
 msgid "The portion of the model's outer surface within a certain depth range is called the skin. This parameter is used to adjust the density of this section. When two regions have the same sparse infill settings but different skin densities, this area will not be split into two separate regions. Default is as same as infill density."
-msgstr ""
+msgstr "La porción de la superficie exterior del modelo dentro de un cierto rango de profundidad se llama piel. Este parámetro se usa para ajustar la densidad de esta sección. Cuando dos regiones tienen los mismos ajustes de relleno pero diferentes densidades de piel, esta área no se dividirá en dos regiones separadas. El valor predeterminado es igual a la densidad de relleno."
 
 msgid "Skin infill depth"
 msgstr "Profundidad de la capa superficial"
@@ -18280,9 +18280,9 @@ msgstr ""
 #~ msgstr ""
 #~ "Esta opción puede ayudar a reducir el acolchado en las superficies superiores de los modelos muy inclinados o curvados.\n"
 #~ "\n"
-#~ "Por defecto, los pequeños puentes internos se filtran y el relleno sólido interno se imprime directamente sobre el relleno disperso. Esto funciona bien en la mayoría de los casos, acelerando la impresión sin comprometer demasiado la calidad de la superficie superior.\n"
+#~ "Por defecto, los pequeños puentes internos se filtran y el relleno sólido interno se imprime directamente sobre el relleno. Esto funciona bien en la mayoría de los casos, acelerando la impresión sin comprometer demasiado la calidad de la superficie superior.\n"
 #~ "\n"
-#~ "Sin embargo, en modelos muy inclinados o curvados, especialmente cuando se utiliza una densidad de relleno disperso demasiado baja, esto puede dar lugar a la curvatura del relleno sólido no soportado, causando pillowing.\n"
+#~ "Sin embargo, en modelos muy inclinados o curvados, especialmente cuando se utiliza una densidad de relleno demasiado baja, esto puede dar lugar a la curvatura del relleno sólido no soportado, causando pillowing.\n"
 #~ "\n"
 #~ "Si se desactiva esta opción, se imprimirá la capa puente interna sobre el relleno sólido interno ligeramente sin soporte. Las opciones siguientes controlan la cantidad de filtrado, es decir, la cantidad de puentes internos creados.\n"
 #~ "\n"
@@ -20059,7 +20059,7 @@ msgstr ""
 #~ msgstr "No se puede conectar la impresora"
 
 #~ msgid "When sparse infill density is low, the internal solid infill or internal bridge may have no archor at the end of line. This cause falling and bad quality when printing internal solid infill. When enable this feature, loop paths will be added to the sparse fill of the lower layers for specific thickness, so that better archor can be provided for internal bridge. 0 means disable this feature"
-#~ msgstr "Cuando la densidad del relleno disperso es baja, es posible que el relleno sólido interno o el puente interno no tengan anclaje al final de la línea. Esto provoca colapsos y mala calidad al imprimir el relleno sólido interno. Cuando se habilita esta función, se añadirán rutas de bucle al relleno disperso de las capas inferiores para espesores específicos, de forma que se puedan proporcionar mejores anclajes para los puentes internos. 0 significa desactivar esta función"
+#~ msgstr "Cuando la densidad del relleno es baja, es posible que el relleno sólido interno o el puente interno no tengan anclaje al final de la línea. Esto provoca colapsos y mala calidad al imprimir el relleno sólido interno. Cuando se habilita esta función, se añadirán rutas de bucle al relleno de las capas inferiores para espesores específicos, de forma que se puedan proporcionar mejores anclajes para los puentes internos. 0 significa desactivar esta función"
 
 #~ msgid ""
 #~ "When using support material for the support interface, we recommend the following settings:\n"
