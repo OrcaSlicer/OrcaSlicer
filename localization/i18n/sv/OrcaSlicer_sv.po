@@ -18265,5 +18265,5 @@ msgstr ""
 #~ msgstr "Orientera modellen"
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx Patch för OrcaSlicer Version %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

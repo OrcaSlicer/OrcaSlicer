@@ -21711,5 +21711,5 @@ msgstr ""
 #~ "bei normalen Stützstrukturen erzeugt."
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx Patch für OrcaSlicer Version %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

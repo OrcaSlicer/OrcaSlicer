@@ -20105,5 +20105,5 @@ msgstr ""
 #~ msgstr "Правая кнопка мыши - сброс значения до системного по умолчанию."
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx патч для OrcaSlicer версии %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

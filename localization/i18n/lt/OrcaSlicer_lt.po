@@ -19752,5 +19752,5 @@ msgstr ""
 #~ msgstr "Atramos: skleisti šakas sluoksnyje %d"
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx OrcaSlicer pleistras versijai %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

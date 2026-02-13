@@ -22097,5 +22097,5 @@ msgstr ""
 #~ "koniec > start + krok)"
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx Patch dla OrcaSlicer Wersja %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

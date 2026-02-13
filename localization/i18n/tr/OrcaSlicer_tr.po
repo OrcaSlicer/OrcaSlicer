@@ -21115,5 +21115,5 @@ msgstr ""
 #~ "bitiş > başlangıç + adım)"
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "OrcaSlicer için Cosmyx Yaması Sürüm %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

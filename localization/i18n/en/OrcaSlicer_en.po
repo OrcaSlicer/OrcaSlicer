@@ -17191,5 +17191,5 @@ msgstr ""
 #~ "other layer may cause the model to break free from the build plate."
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx Patch for OrcaSlicer Version %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

@@ -20149,5 +20149,5 @@ msgstr ""
 #~ "끝 > 시작 + 단계)"
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx OrcaSlicer 패치 버전 %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

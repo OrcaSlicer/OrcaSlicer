@@ -17733,5 +17733,5 @@ msgstr ""
 #~ msgstr "モデルの向きを調整"
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx OrcaSlicer パッチバージョン %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

@@ -19832,5 +19832,5 @@ msgstr ""
 #~ msgstr "Falha na conexão local da impressora, por favor tente novamente."
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx Patch para OrcaSlicer Versão %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

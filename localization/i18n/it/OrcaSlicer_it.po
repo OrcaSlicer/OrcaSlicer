@@ -21014,5 +21014,5 @@ msgstr ""
 #~ "distacco dell'oggetto dal piatto."
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx Patch per OrcaSlicer Versione %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

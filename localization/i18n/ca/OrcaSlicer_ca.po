@@ -20187,5 +20187,5 @@ msgstr ""
 #~ msgstr "Final: "
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx Patch per a OrcaSlicer Versió %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""

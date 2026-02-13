@@ -17360,5 +17360,5 @@ msgstr ""
 #~ "任何潜在的打印问题。您确定要启用此选项吗？"
 
 #, possible-c-format, possible-boost-format
-msgid "Cosmyx Patch for OrcaSlicer Version %s"
-msgstr "Cosmyx OrcaSlicer 补丁版本 %s"
+msgid "Cosmyx Bundle version %s"
+msgstr ""
