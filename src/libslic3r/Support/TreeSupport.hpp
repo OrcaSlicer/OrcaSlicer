@@ -459,21 +459,6 @@ private:
      * \param contact_nodes The nodes to draw as support.
      */
     void draw_circles();
-    
-    /*!
-     * \brief Normalize interface IDs for interlaced supports.
-     *
-     * Reassigns sequential IDs to support layers when using
-     * RectilinearInterlaced, alternating (0,1,0,1,…) so consecutive
-     * interface layers never share orientation. Applies to all support
-     * area groups, including transition layers (e.g. TreeStrong
-     * body-to-interface), as well as top and bottom interfaces, so
-     * FillRectilinearInterlaced computes correct extrusion angles.
-     *
-     * \note Call after support layers are built and before toolpaths,
-     * so fillers use the normalized IDs.
-     */
-    void normalize_interface_ids();
 
     /*!
      * \brief Drops down the nodes of the tree support towards the build plate.
