@@ -6699,7 +6699,7 @@ msgid "Enabling traditional timelapse photography may cause surface imperfection
 msgstr "Activar la fotografía timelapse tradicional puede causar imperfecciones en la superficie. Se recomienda cambiar al modo suave."
 
 msgid "Smooth mode for timelapse is enabled, but the prime tower is off, which may cause print defects. Please enable the prime tower, re-slice and print again."
-msgstr "El modo suave para timelapse está activado, pero la torre de cebado está desactivada, lo que puede causar defectos de impresión. Habilite la torre de cebado, vuelva a laminar e imprima de nuevo."
+msgstr "El modo suave para timelapse está activado, pero la torre de purga está desactivada, lo que puede causar defectos de impresión. Habilite la torre de purga, vuelva a laminar e imprima de nuevo."
 
 msgid "Expand sidebar"
 msgstr "Expandir barra lateral"
