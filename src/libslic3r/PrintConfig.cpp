@@ -2587,6 +2587,46 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 15. });
 
+    def = this->add("filament_tower_interface_pre_extrusion_dist", coFloats);
+    def->label = L("Interface layer pre-extrusion distance");
+    def->tooltip = L("Pre-extrusion distance for prime tower interface layer (where different materials meet).");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 10. });
+
+    def = this->add("filament_tower_interface_pre_extrusion_length", coFloats);
+    def->label = L("Interface layer pre-extrusion length");
+    def->tooltip = L("Pre-extrusion length for prime tower interface layer (where different materials meet).");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 0. });
+
+    def = this->add("filament_tower_ironing_area", coFloats);
+    def->label = L("Tower ironing area");
+    def->tooltip = L("Ironing area for prime tower interface layer (where different materials meet).");
+    def->sidetext = L("mm²");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 4. });
+
+    def = this->add("filament_tower_interface_purge_volume", coFloats);
+    def->label = L("Interface layer purge length");
+    def->tooltip = L("Purge length for prime tower interface layer (where different materials meet).");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats { 20. });
+
+    def = this->add("filament_tower_interface_print_temp", coInts);
+    def->label = L("Interface layer print temperature");
+    def->tooltip = L("Print temperature for prime tower interface layer (where different materials meet). If set to -1, use max recommended nozzle temperature.");
+    def->sidetext = L("°C");
+    def->min = -1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts { -1 });
+
     def = this->add("filament_cooling_final_speed", coFloats);
     def->label = L("Speed of the last cooling move");
     def->tooltip = L("Cooling moves are gradually accelerating towards this speed.");
@@ -6405,6 +6445,18 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionBool(true));
 
     def      = this->add("prime_tower_flat_ironing", coBool);
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("enable_tower_interface_features", coBool);
+    def->label = L("Enable tower interface features");
+    def->tooltip = L("Enable optimized prime tower interface behavior when different materials meet.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("enable_tower_interface_cooldown_during_tower", coBool);
+    def->label = L("Cool down from interface boost during prime tower");
+    def->tooltip = L("When interface-layer temperature boost is active, set the nozzle back to print temperature at the start of the prime tower so it cools down during the tower.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

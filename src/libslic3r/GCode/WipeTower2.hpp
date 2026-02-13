@@ -31,7 +31,8 @@ public:
     WipeTower::ToolChangeResult construct_tcr(WipeTowerWriter2& writer,
                                    bool priming,
                                    size_t old_tool,
-								   bool is_finish) const;
+								   bool is_finish,
+                                   bool is_contact = false) const;
 
 	// x			-- x coordinates of wipe tower in mm ( left bottom corner )
 	// y			-- y coordinates of wipe tower in mm ( left bottom corner )
@@ -88,11 +89,13 @@ public:
 		m_layer_height			= layer_height;
 		m_depth_traversed  = 0.f;
         m_current_layer_finished = false;
+        m_prev_layer_had_interface = m_current_layer_has_interface;
 
 		
         // Advance m_layer_info iterator, making sure we got it right
 		while (!m_plan.empty() && m_layer_info->z < print_z - WT_EPSILON && m_layer_info+1 != m_plan.end())
 			++m_layer_info;
+        m_current_layer_has_interface = (m_layer_info != m_plan.end()) && (m_layer_info->toolchanges_depth() > WT_EPSILON);
 
 		//m_current_shape = (! this->is_first_layer() && m_current_shape == SHAPE_NORMAL) ? SHAPE_REVERSED : SHAPE_NORMAL;
         m_current_shape = SHAPE_NORMAL;
@@ -145,6 +148,7 @@ public:
         bool                is_soluble = false;
         int  			    temperature = 0;
         int  			    first_layer_temperature = 0;
+        int                 interface_print_temperature = 0;
         float               loading_speed = 0.f;
         float               loading_speed_start = 0.f;
         float               unloading_speed = 0.f;
@@ -168,6 +172,10 @@ public:
 		float               filament_minimal_purge_on_wipe_tower = 0.f;
         float               retract_length;
         float               retract_speed;
+        float               tower_interface_pre_extrusion_dist = 0.f;
+        float               tower_interface_pre_extrusion_length = 0.f;
+        float               tower_ironing_area = 4.f;
+        float               tower_interface_purge_length = 0.f;
     };
 
 private:
@@ -208,6 +216,11 @@ private:
 	float  m_perimeter_speed    = 0.f;
     float  m_first_layer_speed  = 0.f;
     size_t m_first_layer_idx    = size_t(-1);
+    bool   m_flat_ironing       = false;
+    bool   m_enable_tower_interface_features = false;
+    bool   m_enable_tower_interface_cooldown_during_tower = false;
+    bool   m_prev_layer_had_interface = false;
+    bool   m_current_layer_has_interface = false;
 
 	int m_wall_type;
     bool   m_used_fillet                  = true;
@@ -335,7 +348,8 @@ private:
 	void toolchange_Wipe(
 		WipeTowerWriter2 &writer,
 		const WipeTower::box_coordinates  &cleaning_box,
-		float wipe_volume);
+		float wipe_volume,
+        bool interface_layer);
 
 
     Polygon generate_support_rib_wall(WipeTowerWriter2&                 writer,

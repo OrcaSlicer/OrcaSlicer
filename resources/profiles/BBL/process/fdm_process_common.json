@@ -93,6 +93,8 @@
     "prime_tower_lift_height": "-1",
     "prime_tower_max_speed": "90",
     "prime_tower_flat_ironing": "0",
+    "enable_tower_interface_features": "0",
+    "enable_tower_interface_cooldown_during_tower": "0",
     "raft_layers": "0",
     "reduce_crossing_wall": "0",
     "reduce_infill_retraction": "1",
