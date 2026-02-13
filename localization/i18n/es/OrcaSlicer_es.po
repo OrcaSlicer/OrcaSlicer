@@ -12673,28 +12673,28 @@ msgid "The distance between the lines of ironing."
 msgstr "La distancia entre las líneas de alisado"
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
-msgstr ""
+msgstr "La distancia a mantener desde los bordes. Un valor de 0 la establece en la mitad del diámetro de la boquilla."
 
 msgid "Print speed of ironing lines."
 msgstr "Velocidad de impresión de las líneas de alisado."
 
 msgid "Ironing angle offset"
-msgstr ""
+msgstr "Desplazamiento del ángulo de alisado"
 
 msgid "The angle of ironing lines offset from the top surface."
-msgstr ""
+msgstr "El ángulo de desplazamiento de las líneas de alisado respecto a la superficie superior."
 
 msgid "Fixed ironing angle"
-msgstr ""
+msgstr "Ángulo de alisado fijo"
 
 msgid "Use a fixed absolute angle for ironing."
-msgstr ""
+msgstr "Usar un ángulo absoluto fijo para el alisado."
 
 msgid "This G-code is inserted at every layer change after the Z lift."
 msgstr "Esta parte de G-Code se inserta en cada cambio de capa después de levantar z."
 
 msgid "Clumping detection G-code"
-msgstr ""
+msgstr "G-code de detección de aglomeraciones"
 
 msgid "Supports silent mode"
 msgstr "Admite el modo silencioso"
@@ -12731,7 +12731,7 @@ msgid "Flow Compensation Model"
 msgstr "Modelo de compensación de flujo"
 
 msgid "Flow Compensation Model, used to adjust the flow for small infill areas. The model is expressed as a comma separated pair of values for extrusion length and flow correction factor. Each pair is on a separate line, followed by a semicolon, in the following format: \"1.234, 5.678;\""
-msgstr ""
+msgstr "Modelo de compensación de flujo, usado para ajustar el flujo en pequeñas áreas de relleno. El modelo se expresa como pares de valores separados por comas para la longitud de extrusión y el factor de corrección de flujo. Cada par va en una línea separada, seguido de un punto y coma, con el siguiente formato: \"1.234, 5.678;\""
 
 msgid "Maximum speed X"
 msgstr "Velocidad máxima en X"
@@ -13184,7 +13184,7 @@ msgid "Z-hop type"
 msgstr "Tipo de salto Z"
 
 msgid "Type of Z-hop."
-msgstr ""
+msgstr "Tipo de salto Z."
 
 msgid "Slope"
 msgstr "Pendiente"
@@ -13923,22 +13923,22 @@ msgid "This setting specifies whether to add infill inside large hollows of tree
 msgstr "Este ajuste especifica si se añade relleno dentro de los grandes huecos de los soportes de Árbol"
 
 msgid "Ironing Support Interface"
-msgstr ""
+msgstr "Alisado de la interfaz de soporte"
 
 msgid "Ironing is using small flow to print on same height of support interface again to make it more smooth. This setting controls whether support interface being ironed. When enabled, support interface will be extruded as solid too."
-msgstr ""
+msgstr "El alisado utiliza un flujo reducido para volver a imprimir a la misma altura de la interfaz de soporte y dejarla más lisa. Este ajuste controla si se alisa la interfaz de soporte. Cuando está activado, la interfaz de soporte también se extruirá como sólida."
 
 msgid "Support Ironing Pattern"
-msgstr ""
+msgstr "Patrón de alisado de soporte"
 
 msgid "Support Ironing flow"
-msgstr ""
+msgstr "Flujo de alisado de soporte"
 
 msgid "The amount of material to extrude during ironing. Relative to flow of normal support interface layer height. Too high value results in overextrusion on the surface."
-msgstr ""
+msgstr "La cantidad de material a extruir durante el alisado. Relativo al flujo de la altura de capa normal de la interfaz de soporte. Un valor demasiado alto provoca sobreextrusión en la superficie."
 
 msgid "Support Ironing line spacing"
-msgstr ""
+msgstr "Espaciado de las líneas de alisado de soporte"
 
 msgid "Activate temperature control"
 msgstr "Activar control de temperatura"
