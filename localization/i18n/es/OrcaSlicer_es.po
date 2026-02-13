@@ -12301,13 +12301,13 @@ msgid "Enable this to enable the camera on printer to check the quality of first
 msgstr "Active esta opción para que la cámara de la impresora compruebe la calidad de la primera capa"
 
 msgid "Power Loss Recovery"
-msgstr ""
+msgstr "Recuperación tras pérdida de energía"
 
 msgid "Choose how to control power loss recovery. When set to Printer configuration, the slicer will not emit power loss recovery G-code and will leave the printer's configuration unchanged. Applicable to Bambu Lab or Marlin 2 firmware based printers."
-msgstr ""
+msgstr "Elija cómo controlar la recuperación tras pérdida de energía. Si se establece en 'Configuración de la impresora', el laminador no emitirá G-code de recuperación y dejará la configuración de la impresora sin cambios. Aplicable a impresoras con firmware Bambu Lab o Marlin 2."
 
 msgid "Printer configuration"
-msgstr ""
+msgstr "Configuración de la impresora"
 
 msgid "Nozzle type"
 msgstr "Tipo de boquilla"
@@ -12325,7 +12325,7 @@ msgid "Stainless steel"
 msgstr "Acero inoxidable"
 
 msgid "Tungsten carbide"
-msgstr ""
+msgstr "Carburo de tungsteno"
 
 msgid "Nozzle HRC"
 msgstr "Dureza HRC de la boquilla"
