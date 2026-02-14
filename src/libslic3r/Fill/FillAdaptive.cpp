@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Surface.hpp"
 #include "../Geometry.hpp"
@@ -1354,7 +1354,7 @@ void Filler::_fill_surface_single(
                 if (l.a.x() != std::numeric_limits<coord_t>::max())
                     lines.push_back({ l.a, l.b });
             // Crop all polylines
-            append(all_polylines, intersection_pl(std::move(lines), boundary));
+            append(all_polylines, intersection_pl_2(std::move(lines), boundary));
         }
 //        assert(has_no_collinear_lines(all_polylines));        
 #else
@@ -1375,12 +1375,12 @@ void Filler::_fill_surface_single(
         multiline_fill(all_polylines, params, spacing);
 
         // Crop all polylines
-        all_polylines = intersection_pl(std::move(all_polylines), expolygon);
+        all_polylines = intersection_pl_2(std::move(all_polylines), to_polygons(expolygon));
 #endif
     }
 
     if (params.multiline == 1) {
-        // After intersection_pl some polylines with only one line are split into more lines
+        // After intersection_pl_2 some polylines with only one line are split into more lines
         for (Polyline& polyline : all_polylines) {
             // FIXME assert that all the points are collinear and in between the start and end point.
             if (polyline.points.size() > 2)
