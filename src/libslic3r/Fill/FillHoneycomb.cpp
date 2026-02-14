@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 
@@ -76,7 +76,7 @@ void FillHoneycomb::_fill_surface_single(
     // Apply multiline offset if needed
     multiline_fill(all_polylines, params, spacing);
 
-    all_polylines = intersection_pl(std::move(all_polylines), expolygon);
+    all_polylines = intersection_pl_2(std::move(all_polylines), to_polygons(expolygon));
     chain_or_connect_infill(std::move(all_polylines), expolygon, polylines_out, this->spacing, params);
 }
 
