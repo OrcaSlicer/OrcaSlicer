@@ -9288,6 +9288,61 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
     }
 }
 
+namespace {
+// Options in printer_options_with_variant_2 are stored as (normal,silent) pairs per printer variant.
+// Some legacy presets/projects carry a variant list but still store only one pair; normalize to avoid crashes.
+static void normalize_stride2_floats(ConfigOptionFloats &opt, size_t expected_size)
+{
+    auto &v = opt.values;
+    if (expected_size == 0) {
+        v.clear();
+        return;
+    }
+    if (v.empty()) {
+        // Fallback: keep behavior predictable instead of crashing. This should be rare.
+        v.resize(expected_size, 0.0);
+        return;
+    }
+
+    const double first  = v[0];
+    const double second = (v.size() >= 2) ? v[1] : first;
+
+    // Ensure we have at least one (normal,silent) pair to replicate.
+    if (v.size() < 2) {
+        v.resize(2, first);
+        v[1] = second;
+    }
+    // Keep pair alignment if some legacy preset produced odd length.
+    if (v.size() % 2 != 0)
+        v.push_back(second);
+
+    if (v.size() > expected_size) {
+        v.resize(expected_size);
+        return;
+    }
+
+    const size_t have_variants = v.size() / 2;
+    const size_t want_variants = expected_size / 2;
+    v.resize(expected_size);
+    for (size_t vi = have_variants; vi < want_variants; ++vi) {
+        v[vi * 2] = first;
+        if (vi * 2 + 1 < v.size())
+            v[vi * 2 + 1] = second;
+    }
+}
+
+static void log_normalize_legacy_vector_size(const char *fn, const std::string &key, int stride, size_t src_size, size_t dest_size, size_t expected_size,
+                                            size_t restore_n, int cur_variant_count, int target_variant_count, size_t cur_ids, size_t target_ids,
+                                            const ConfigOption *opt_src, const ConfigOption *opt_target)
+{
+    BOOST_LOG_TRIVIAL(debug) << fn << ": normalizing legacy vector size for key '" << key << "'"
+                             << " stride=" << stride << " src_size=" << src_size << " dest_size=" << dest_size << " expected=" << expected_size
+                             << " restore_index.size=" << restore_n << " cur_variants=" << cur_variant_count << " target_variants=" << target_variant_count
+                             << " cur_ids=" << cur_ids << " target_ids=" << target_ids << " cur_value=" << opt_src->serialize()
+                             << " target_value=" << opt_target->serialize();
+}
+} // namespace
+
 void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfig& new_config, const t_config_option_keys& keys, const std::set<std::string>& different_keys,
     std::string extruder_id_name, std::string extruder_variant_name, std::set<std::string>& key_set1, std::set<std::string>& key_set2)
 {
@@ -9310,7 +9365,10 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
 
     variant_index.resize(target_variant_count, -1);
     if (cur_variant_count == 0) {
-        variant_index[0] = 0;
+        // Defensive: target_variant_count may be 0 if the preset doesn't carry extruder_variant_name.
+        // In that case keep variant_index empty and let the downstream size checks produce a useful error.
+        if (!variant_index.empty())
+            variant_index[0] = 0;
     }
     else if ((cur_extruder_ids.size() > 0) && cur_variant_count != cur_extruder_ids.size()){
         //should not happen
@@ -9352,12 +9410,53 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
                     //nothing to do, keep the original one
                 }
                 else {
-                    ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
-                    const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_target);
                     int stride = 1;
                     if (key_set2.find(opt) != key_set2.end())
                         stride = 2;
-                    opt_vec_src->set_with_restore(opt_vec_dest, variant_index, stride);
+
+                    const size_t restore_n     = variant_index.size();
+                    const size_t expected_size = restore_n * size_t(stride);
+
+                    if (stride == 2) {
+                        // Options in key_set2 are machine limits stored as (normal,silent) pairs per printer variant.
+                        if (opt_src->type() != coFloats || opt_target->type() != coFloats)
+                            throw ConfigurationError((boost::format("%1%: key '%2%' is expected to be ConfigOptionFloats for stride=2.") % __FUNCTION__ % opt).str());
+
+                        auto *src_f = static_cast<ConfigOptionFloats*>(opt_src);
+                        ConfigOptionFloats rhs_tmp(*static_cast<const ConfigOptionFloats*>(opt_target));
+
+                        const size_t src_size  = src_f->values.size();
+                        const size_t dest_size = rhs_tmp.values.size();
+                        if (src_size != expected_size || dest_size != expected_size)
+                            log_normalize_legacy_vector_size(__FUNCTION__, opt, stride, src_size, dest_size, expected_size, restore_n, cur_variant_count,
+                                                             target_variant_count, cur_extruder_ids.size(), target_extruder_ids.size(), opt_src, opt_target);
+
+                        // Normalize src in-place so backup_values indexing is safe, normalize rhs via a temporary copy.
+                        normalize_stride2_floats(*src_f, expected_size);
+                        normalize_stride2_floats(rhs_tmp, expected_size);
+                        src_f->set_with_restore(&rhs_tmp, variant_index, stride);
+                    } else {
+                        ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
+
+                        const size_t src_size  = opt_vec_src->size();
+                        const size_t dest_size = static_cast<const ConfigOptionVectorBase*>(opt_target)->size();
+                        if (src_size != expected_size || dest_size != expected_size)
+                            log_normalize_legacy_vector_size(__FUNCTION__, opt, stride, src_size, dest_size, expected_size, restore_n, cur_variant_count,
+                                                             target_variant_count, cur_extruder_ids.size(), target_extruder_ids.size(), opt_src, opt_target);
+
+                        if (opt_vec_src->size() != expected_size)
+                            opt_vec_src->resize(expected_size, opt_target);
+
+                        // Normalize rhs via a cloned temporary (rhs itself is const).
+                        ConfigOptionUniquePtr rhs_owner(opt_target->clone());
+                        ConfigOptionVectorBase *rhs_vec = dynamic_cast<ConfigOptionVectorBase*>(rhs_owner.get());
+                        if (rhs_vec == nullptr)
+                            throw ConfigurationError((boost::format("%1%: key '%2%' is expected to be a vector option.") % __FUNCTION__ % opt).str());
+                        if (rhs_vec->size() != expected_size)
+                            rhs_vec->resize(expected_size, opt_target);
+
+                        opt_vec_src->set_with_restore(rhs_vec, variant_index, stride);
+                    }
                 }
             }
         }
