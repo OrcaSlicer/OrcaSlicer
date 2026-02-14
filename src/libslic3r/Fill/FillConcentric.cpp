@@ -87,7 +87,7 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
 
     if (params.density > 0.9999f && !params.dont_adjust) {
         coord_t                loops_count = std::max(bbox_size.x(), bbox_size.y()) / min_spacing + 1;
-        Polygons               polygons = offset(expolygon, float(min_spacing) / 2.f);
+        Polygons               polygons = offset_2(expolygon, float(min_spacing) / 2.f);
 
         double min_nozzle_diameter = *std::min_element(print_config->nozzle_diameter.values.begin(), print_config->nozzle_diameter.values.end());
         Arachne::WallToolPathsParams input_params;

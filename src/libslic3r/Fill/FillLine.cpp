@@ -58,7 +58,7 @@ void FillLine::_fill_surface_single(
         pts.push_back(it->a);
         pts.push_back(it->b);
     }
-    Polylines polylines = intersection_pl_2(std::move(polylines_src), offset(expolygon, scale_(0.02)));
+    Polylines polylines = intersection_pl_2(std::move(polylines_src), offset_2(expolygon, scale_(0.02)));
 
     // FIXME Vojtech: This is only performed for horizontal lines, not for the vertical lines!
     const float INFILL_OVERLAP_OVER_SPACING = 0.3f;

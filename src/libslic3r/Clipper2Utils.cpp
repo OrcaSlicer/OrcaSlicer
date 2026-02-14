@@ -213,4 +213,139 @@ ExPolygons offset2_ex_2(const ExPolygons& expolygons, double delta1, double delt
     return results;
 }
 
+// Helper function for raw offset
+static Clipper2Lib::Paths64 raw_offset_2(const Clipper2Lib::Paths64 &paths, double delta, 
+                                         Clipper2Lib::JoinType joinType, double miterLimit, 
+                                         Clipper2Lib::EndType endType = Clipper2Lib::EndType::Polygon)
+{
+    Clipper2Lib::ClipperOffset co(miterLimit, std::abs(delta * 0.005)); // Using same factor as Clipper1
+    Clipper2Lib::Paths64 out;
+    
+    for (const auto &path : paths) {
+        Clipper2Lib::Paths64 out_this;
+        co.Clear();
+        co.AddPath(path, joinType, endType);
+        co.Execute(delta, out_this);
+        out.insert(out.end(), out_this.begin(), out_this.end());
+    }
+    return out;
 }
+
+// Helper function for union
+template<class TResult, class TSubj>
+static TResult clipper_union_2(TSubj &&subject, Clipper2Lib::FillRule fillRule = Clipper2Lib::FillRule::NonZero)
+{
+    Clipper2Lib::Clipper64 clipper;
+    clipper.AddSubject(std::forward<TSubj>(subject));
+    TResult retval;
+    clipper.Execute(Clipper2Lib::ClipType::Union, fillRule, retval);
+    return retval;
+}
+
+// Helper function to remove outermost polygon
+template<typename Container>
+static void remove_outermost_polygon_2(Container &solution)
+{
+    if (!solution.empty()) solution.erase(solution.begin());
+}
+
+template<>
+void remove_outermost_polygon_2<Clipper2Lib::Paths64>(Clipper2Lib::Paths64 &solution)
+{
+    if (!solution.empty()) solution.erase(solution.begin());
+}
+
+// Expand paths function
+template<class TResult, typename PathsProvider>
+static TResult expand_paths_2(PathsProvider &&paths, double delta, 
+                               Clipper2Lib::JoinType joinType, double miterLimit)
+{
+    auto raw = raw_offset_2(std::forward<PathsProvider>(paths), delta, joinType, miterLimit);
+    return clipper_union_2<TResult>(raw);
+}
+
+// Shrink paths function
+template<class TResult, typename PathsProvider>
+static TResult shrink_paths_2(PathsProvider &&paths, double delta, 
+                               Clipper2Lib::JoinType joinType, double miterLimit)
+{
+    TResult out;
+    auto raw = raw_offset_2(std::forward<PathsProvider>(paths), -delta, joinType, miterLimit);
+    if (!raw.empty()) {
+        Clipper2Lib::Clipper64 clipper;
+        clipper.AddSubject(raw);
+        
+        auto rect = Clipper2Lib::GetBounds(raw);
+        Clipper2Lib::Path64 rect_path = {
+            Clipper2Lib::Point64(rect.left - 10, rect.bottom + 10),
+            Clipper2Lib::Point64(rect.right + 10, rect.bottom + 10),
+            Clipper2Lib::Point64(rect.right + 10, rect.top - 10),
+            Clipper2Lib::Point64(rect.left - 10, rect.top - 10)
+        };
+        clipper.AddSubject(Clipper2Lib::Paths64{rect_path});
+        
+        clipper.ReverseSolution(true);
+        clipper.Execute(Clipper2Lib::ClipType::Union, Clipper2Lib::FillRule::Negative, out);
+        remove_outermost_polygon_2(out);
+    }
+    return out;
+}
+
+// Offset paths function (main template)
+template<class TResult, typename PathsProvider>
+static TResult offset_paths_2(PathsProvider &&paths, double delta, Clipper2Lib::JoinType joinType, double miterLimit)
+{
+    return delta > 0 ?
+        expand_paths_2<TResult>(std::forward<PathsProvider>(paths), delta, joinType, miterLimit) :
+        shrink_paths_2<TResult>(std::forward<PathsProvider>(paths), -delta, joinType, miterLimit);
+}
+
+Polygons Paths64_to_Slic3rPolygons(const Clipper2Lib::Paths64& paths)
+{
+    Polygons polygons;
+    polygons.reserve(paths.size());
+    for (const auto& path : paths)
+        polygons.push_back(Path64_to_Slic3rPolygon(path));
+    return polygons;
+}
+
+Polygon Path64_to_Slic3rPolygon(const Clipper2Lib::Path64& path)
+{
+    Polygon poly;
+    poly.points.reserve(path.size());
+    for (const auto& p : path)
+        poly.points.emplace_back(coord_t(p.x), coord_t(p.y));
+    return poly;
+}
+
+Clipper2Lib::Paths64 Slic3rExPolygon_to_Paths64(const ExPolygon& expolygon)
+{
+    Clipper2Lib::Paths64 paths;
+    paths.reserve(1 + expolygon.holes.size());
+    
+    // Convert contour directly to avoid temporary vector
+    Clipper2Lib::Path64 contour_path;
+    contour_path.reserve(expolygon.contour.points.size());
+    for (const auto& p : expolygon.contour.points)
+        contour_path.emplace_back(p.x(), p.y());
+    paths.push_back(std::move(contour_path));
+    
+    // Convert holes directly
+    for (const auto& hole : expolygon.holes) {
+        Clipper2Lib::Path64 hole_path;
+        hole_path.reserve(hole.points.size());
+        for (const auto& p : hole.points)
+            hole_path.emplace_back(p.x(), p.y());
+        paths.push_back(std::move(hole_path));
+    }
+    
+    return paths;
+}
+
+Slic3r::Polygons offset_2(const Slic3r::ExPolygon& expolygon, double delta, Clipper2Lib::JoinType joinType, double miterLimit)
+{
+    auto paths = Slic3rExPolygon_to_Paths64(expolygon);
+    return Paths64_to_Slic3rPolygons(offset_paths_2<Clipper2Lib::Paths64>(paths, delta, joinType, miterLimit));
+}
+
+} // namespace Slic3r
