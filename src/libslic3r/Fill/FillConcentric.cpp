@@ -1,3 +1,4 @@
+#include "../ClipperUtils.hpp"
 #include "../Clipper2Utils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Surface.hpp"

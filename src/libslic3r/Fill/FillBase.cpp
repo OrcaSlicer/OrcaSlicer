@@ -2,6 +2,7 @@
 #include <numeric>
 
 #include <cmath>
+#include "../ClipperUtils.hpp"
 #include "../Clipper2Utils.hpp"
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
@@ -203,8 +204,8 @@ void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, Ex
 
     Flow new_flow = params.flow;
     ExPolygons unextruded_areas;
-    unextruded_areas = diff_ex(this->no_overlap_expolygons, union_ex(out->polygons_covered_by_spacing(10)));
-    ExPolygons gapfill_areas = union_ex(unextruded_areas);
+    unextruded_areas = diff_ex(this->no_overlap_expolygons, union_ex_2(out->polygons_covered_by_spacing(10)));
+    ExPolygons gapfill_areas = union_ex_2(unextruded_areas);
     if (!this->no_overlap_expolygons.empty())
         gapfill_areas = intersection_ex(gapfill_areas, this->no_overlap_expolygons);
 
@@ -213,7 +214,7 @@ void Fill::_create_gap_fill(const Surface* surface, const FillParams& params, Ex
         double max = 2. * new_flow.scaled_spacing();
         ExPolygons gaps_ex = diff_ex(
                                      opening_ex(gapfill_areas, float(min / 2.)),
-                                     offset2_ex(gapfill_areas, -float(max / 2.), float(max / 2. + ClipperSafetyOffset)));
+                                     offset2_ex_2(gapfill_areas, -float(max / 2.), float(max / 2. + ClipperSafetyOffset)));
         //BBS: sort the gap_ex to avoid mess travel
         Points ordering_points;
         ordering_points.reserve(gaps_ex.size());
@@ -883,7 +884,7 @@ static void export_infill_to_svg(
 {
     Polygons    polygons;
     std::transform(boundary.begin(), boundary.end(), std::back_inserter(polygons), [](auto &pts) { return Polygon(pts); });
-    ExPolygons  expolygons = union_ex(polygons);
+    ExPolygons  expolygons = union_ex_2(polygons);
     BoundingBox bbox = get_extents(polygons);
     bbox.offset(scale_(3.));
 
@@ -2144,7 +2145,7 @@ static void export_partial_infill_to_svg(const std::string &path, const Boundary
     BoundingBox bbox = get_extents(polygons);
     bbox.merge(get_extents(infill));
     ::Slic3r::SVG svg(path, bbox);
-    svg.draw(union_ex(polygons));
+    svg.draw(union_ex_2(polygons));
     svg.draw(infill, "blue");
     svg.draw(emitted, "darkblue");
     for (const ContourIntersectionPoint &cp : graph.map_infill_end_point_to_boundary)
