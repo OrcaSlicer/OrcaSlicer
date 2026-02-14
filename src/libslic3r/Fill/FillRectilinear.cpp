@@ -12,6 +12,7 @@
 #include <boost/math/constants/constants.hpp>
 
 #include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Geometry.hpp"
 #include "../Surface.hpp"
@@ -3021,13 +3022,13 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     multiline_fill(fill_lines, params, spacing);
  
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
-    ExPolygons contracted = offset_ex(surface->expolygon, -float(scale_(0.5 * this->spacing)));
+    ExPolygons contracted = offset_ex_2(ExPolygons{surface->expolygon}, -float(scale_(0.5 * this->spacing)));
     
     // if contraction results in empty polygon, use original surface
     const ExPolygon &intersection_surface = contracted.empty() ? surface->expolygon : contracted.front();
 
     // Intersect polylines with perimeter
-    fill_lines = intersection_pl(std::move(fill_lines), intersection_surface);
+    fill_lines = intersection_pl_2(std::move(fill_lines), to_polygons(intersection_surface));
 
     if ((params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb ) && params.multiline >1 )
     remove_overlapped(fill_lines, line_width);
@@ -3265,13 +3266,13 @@ bool FillRectilinear::fill_surface_trapezoidal(
     multiline_fill(polylines, params, spacing);
 
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
-    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * this->spacing)));
+    ExPolygons contracted = offset_ex_2(ExPolygons{expolygon}, -float(scale_(0.5 * this->spacing)));
 
     // if contraction results in empty polygon, use original surface
     const ExPolygon &intersection_surface = contracted.empty() ? expolygon : contracted.front();
 
     // Intersect polylines with offset expolygon
-    polylines = intersection_pl(std::move(polylines), intersection_surface);
+    polylines = intersection_pl_2(std::move(polylines), to_polygons(intersection_surface));
 
     // Remove very short segments that may cause connection issues
     const double minlength = scale_(0.8 * this->spacing);
@@ -3573,7 +3574,7 @@ Points sample_grid_pattern(const ExPolygons& expolygons, coord_t spacing, const 
 
 Points sample_grid_pattern(const Polygons& polygons, coord_t spacing, const BoundingBox& global_bounding_box)
 {
-    return sample_grid_pattern(union_ex(polygons), spacing, global_bounding_box);
+    return sample_grid_pattern(union_ex_2(polygons), spacing, global_bounding_box);
 }
 
 // Orca: Introduced FillMonotonicLines from Prusa slicer, inhereting from FillRectilinear
@@ -3782,7 +3783,7 @@ void FillLockedZag::fill_surface_locked_zag (const Surface *                    
     Surface   zig_surface       = *surface;
     // inner exps
     // inner union exps
-    ExPolygons zig_expas   = offset_ex({surface->expolygon}, -offset_threshold);
+    ExPolygons zig_expas   = offset_ex_2(ExPolygons{surface->expolygon}, -offset_threshold);
     ExPolygons cross_expas = diff_ex(surface->expolygon, zig_expas);
 
     bool       zig_get    = false;
@@ -3794,7 +3795,7 @@ void FillLockedZag::fill_surface_locked_zag (const Surface *                    
         while (it != flow_params.end()) {
             ExPolygons region_exp = union_safety_offset_ex(it->second);
 
-            Polylines polys = intersection_pl(polylines, region_exp);
+            Polylines polys = intersection_pl_2(polylines, to_polygons(region_exp));
             multi_width_polyline.emplace_back(polys, it->first);
             it++;
         }
@@ -3805,7 +3806,7 @@ void FillLockedZag::fill_surface_locked_zag (const Surface *                    
         ExPolygons region_exp = union_safety_offset_ex(it->second);
         ExPolygons exps       = intersection_ex(region_exp, zig_expas);
         zig_params.density    = it->first;
-        exps                  = intersection_ex(offset_ex(exps, overlap_threshold), surface->expolygon);
+        exps                  = intersection_ex(offset_ex_2(ExPolygons{exps}, overlap_threshold), surface->expolygon);
         for (ExPolygon &exp : exps) {
             zig_surface.expolygon = exp;
 
