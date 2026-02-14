@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 #include <cmath>
@@ -187,7 +187,7 @@ void FillGyroid::_fill_surface_single(
     // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);
 
-	polylines = intersection_pl(std::move(polylines), expolygon);
+	polylines = intersection_pl_2(std::move(polylines),to_polygons(expolygon));
 
     if (! polylines.empty()) {
 		// Remove very small bits, but be careful to not remove infill lines connecting thin walls!
