@@ -47,6 +47,8 @@ Polygons offset_2(const ExPolygon &expolygon, double delta,
                   Clipper2Lib::JoinType joinType = DefaultJoinType2, 
                   double miterLimit = DefaultMiterLimit2);
 
+Polygons union_pt_chained_outside_in_2(const Polygons &subject);
+
 // PolyTree utilities
 void SimplifyPolyTree(const Clipper2Lib::PolyPath64 *polytree, double epsilon, Clipper2Lib::PolyPath64 *result);
 

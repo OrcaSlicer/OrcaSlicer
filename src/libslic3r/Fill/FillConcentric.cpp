@@ -1,4 +1,3 @@
-#include "../ClipperUtils.hpp"
 #include "../Clipper2Utils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Surface.hpp"
@@ -35,13 +34,13 @@ void FillConcentric::_fill_surface_single(
 
     ExPolygons last { std::move(contracted) };
     while (! last.empty()) {
-        last = offset2_ex(last, -(distance + min_spacing/2), +min_spacing/2);
+        last = offset2_ex_2(last, -(distance + min_spacing/2), +min_spacing/2);
         append(loops, to_polygons(last));
     }
 
     // generate paths from the outermost to the innermost, to avoid
     // adhesion problems of the first central tiny loops
-    loops = union_pt_chained_outside_in(loops);
+    loops = union_pt_chained_outside_in_2(loops);
     
     // split paths using a nearest neighbor search
     size_t iPathFirst = polylines_out.size();

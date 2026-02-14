@@ -348,4 +348,39 @@ Slic3r::Polygons offset_2(const Slic3r::ExPolygon& expolygon, double delta, Clip
     return Paths64_to_Slic3rPolygons(offset_paths_2<Clipper2Lib::Paths64>(paths, delta, joinType, miterLimit));
 }
 
+
+static void traverse_pt_outside_in_2(const Clipper2Lib::PolyPath64* node, Polygons *retval)
+{
+    if (!node) return;
+    
+    // Add current polygon
+    retval->push_back(Path64_to_Slic3rPolygon(node->Polygon()));
+    
+    // Process children recursively
+    for (size_t i = 0; i < node->Count(); ++i) {
+        traverse_pt_outside_in_2((*node)[i], retval);
+    }
+}
+
+Polygons union_pt_chained_outside_in_2(const Polygons &subject)
+{
+    Polygons retval;
+    
+    // Perform union with EvenOdd fill rule
+    Clipper2Lib::Clipper64 clipper;
+    clipper.AddSubject(Slic3rPolygons_to_Paths64(subject));
+    
+    Clipper2Lib::PolyTree64 polytree;
+    clipper.Execute(Clipper2Lib::ClipType::Union, 
+                    Clipper2Lib::FillRule::EvenOdd, 
+                    polytree);
+    
+    // Traverse the polytree
+    for (size_t i = 0; i < polytree.Count(); ++i) {
+        traverse_pt_outside_in_2(polytree[i], &retval);
+    }
+    
+    return retval;
+}
+
 } // namespace Slic3r
