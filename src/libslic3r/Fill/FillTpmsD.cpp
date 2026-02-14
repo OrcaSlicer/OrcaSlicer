@@ -3,7 +3,7 @@
 #include <vector>
 //#include <cstddef>
 
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ShortestPath.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
@@ -133,7 +133,7 @@ void FillTpmsD::_fill_surface_single(
 	    // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);
 
-	polylines = intersection_pl(std::move(polylines), expolygon);
+	polylines = intersection_pl_2(std::move(polylines), to_polygons(expolygon));
 
     if (! polylines.empty()) {
 		// Remove very small bits, but be careful to not remove infill lines connecting thin walls!
