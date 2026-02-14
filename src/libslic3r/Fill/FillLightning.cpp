@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../Print.hpp"
 #include "../ShortestPath.hpp"
 #include "FillBase.hpp"
@@ -20,7 +20,7 @@ void Filler::_fill_surface_single(
     // Apply multiline offset if needed
     multiline_fill(fill_lines, params, spacing);
 
-    fill_lines = Slic3r::intersection_pl(std::move(fill_lines), expolygon);
+    fill_lines = Slic3r::intersection_pl_2(std::move(fill_lines), to_polygons(expolygon));
 
     chain_or_connect_infill(std::move(fill_lines), expolygon, polylines_out, this->spacing, params);
 }
