@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Surface.hpp"
 #include "../VariableWidth.hpp"
@@ -28,7 +28,7 @@ void FillConcentric::_fill_surface_single(
     }
 
     // Contract surface polygon by half line width to avoid excesive overlap with perimeter
-    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * (params.multiline - 1) * this->spacing )));
+    ExPolygons contracted = offset_ex_2(ExPolygons{expolygon}, -float(scale_(0.5 * (params.multiline - 1) * this->spacing )));
 
     Polygons loops = to_polygons(contracted);
 
