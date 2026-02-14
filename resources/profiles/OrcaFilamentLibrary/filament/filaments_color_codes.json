@@ -1,0 +1,277 @@
+{
+    "data": [
+        {
+            "fila_color_code": "00000",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "White",
+                "zh": "白色"
+            },
+            "fila_color": [
+                "#FFFFFFFF"
+            ]
+        },
+        {
+            "fila_color_code": "00001",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Black",
+                "zh": "黑色"
+            },
+            "fila_color": [
+                "#000000FF"
+            ]
+        },
+        {
+            "fila_color_code": "00002",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Grey",
+                "zh": "灰色"
+            },
+            "fila_color": [
+                "#808080FF"
+            ]
+        },
+        {
+            "fila_color_code": "00003",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Red",
+                "zh": "红色"
+            },
+            "fila_color": [
+                "#FF0000FF"
+            ]
+        },
+        {
+            "fila_color_code": "00004",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Orange",
+                "zh": "橙色"
+            },
+            "fila_color": [
+                "#FFA500FF"
+            ]
+        },
+        {
+            "fila_color_code": "00005",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Yellow",
+                "zh": "黄色"
+            },
+            "fila_color": [
+                "#FFFF00FF"
+            ]
+        },
+        {
+            "fila_color_code": "00006",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Green",
+                "zh": "绿色"
+            },
+            "fila_color": [
+                "#008000FF"
+            ]
+        },
+        {
+            "fila_color_code": "00007",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Blue",
+                "zh": "蓝色"
+            },
+            "fila_color": [
+                "#0000FFFF"
+            ]
+        },
+        {
+            "fila_color_code": "00008",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Purple",
+                "zh": "紫色"
+            },
+            "fila_color": [
+                "#800080FF"
+            ]
+        },
+        {
+            "fila_color_code": "00009",
+            "fila_id": "OGFL00",
+            "fila_color_type": "单色",
+            "fila_type": "PolyLite PLA",
+            "fila_color_name": {
+                "en": "Pink",
+                "zh": "粉色"
+            },
+            "fila_color": [
+                "#FFC0CBFF"
+            ]
+        },
+        {
+            "fila_color_code": "00010",
+            "fila_id": "OGFL03",
+            "fila_color_type": "单色",
+            "fila_type": "eSUN PLA+",
+            "fila_color_name": {
+                "en": "White",
+                "zh": "白色"
+            },
+            "fila_color": [
+                "#FFFFFFFF"
+            ]
+        },
+        {
+            "fila_color_code": "00011",
+            "fila_id": "OGFL03",
+            "fila_color_type": "单色",
+            "fila_type": "eSUN PLA+",
+            "fila_color_name": {
+                "en": "Black",
+                "zh": "黑色"
+            },
+            "fila_color": [
+                "#000000FF"
+            ]
+        },
+        {
+            "fila_color_code": "00012",
+            "fila_id": "OGFL03",
+            "fila_color_type": "单色",
+            "fila_type": "eSUN PLA+",
+            "fila_color_name": {
+                "en": "Red",
+                "zh": "红色"
+            },
+            "fila_color": [
+                "#FF0000FF"
+            ]
+        },
+        {
+            "fila_color_code": "00013",
+            "fila_id": "OGFL03",
+            "fila_color_type": "单色",
+            "fila_type": "eSUN PLA+",
+            "fila_color_name": {
+                "en": "Blue",
+                "zh": "蓝色"
+            },
+            "fila_color": [
+                "#0000FFFF"
+            ]
+        },
+        {
+            "fila_color_code": "00014",
+            "fila_id": "OGFL03",
+            "fila_color_type": "单色",
+            "fila_type": "eSUN PLA+",
+            "fila_color_name": {
+                "en": "Green",
+                "zh": "绿色"
+            },
+            "fila_color": [
+                "#008000FF"
+            ]
+        },
+        {
+            "fila_color_code": "00015",
+            "fila_id": "OGFL04",
+            "fila_color_type": "单色",
+            "fila_type": "Overture PLA",
+            "fila_color_name": {
+                "en": "White",
+                "zh": "白色"
+            },
+            "fila_color": [
+                "#FFFFFFFF"
+            ]
+        },
+        {
+            "fila_color_code": "00016",
+            "fila_id": "OGFL04",
+            "fila_color_type": "单色",
+            "fila_type": "Overture PLA",
+            "fila_color_name": {
+                "en": "Black",
+                "zh": "黑色"
+            },
+            "fila_color": [
+                "#1C1C1CFF"
+            ]
+        },
+        {
+            "fila_color_code": "00017",
+            "fila_id": "OGFL04",
+            "fila_color_type": "单色",
+            "fila_type": "Overture PLA",
+            "fila_color_name": {
+                "en": "Red",
+                "zh": "红色"
+            },
+            "fila_color": [
+                "#E60012FF"
+            ]
+        },
+        {
+            "fila_color_code": "00018",
+            "fila_id": "OGFL04",
+            "fila_color_type": "单色",
+            "fila_type": "Overture PLA",
+            "fila_color_name": {
+                "en": "Blue",
+                "zh": "蓝色"
+            },
+            "fila_color": [
+                "#0055A4FF"
+            ]
+        },
+        {
+            "fila_color_code": "00019",
+            "fila_id": "OGFL04",
+            "fila_color_type": "单色",
+            "fila_type": "Overture PLA",
+            "fila_color_name": {
+                "en": "Green",
+                "zh": "绿色"
+            },
+            "fila_color": [
+                "#00A651FF"
+            ]
+        },
+        {
+            "fila_color_code": "00020",
+            "fila_id": "OGFL04",
+            "fila_color_type": "单色",
+            "fila_type": "Overture PLA",
+            "fila_color_name": {
+                "en": "Yellow",
+                "zh": "黄色"
+            },
+            "fila_color": [
+                "#FFD100FF"
+            ]
+        }
+    ]
+}

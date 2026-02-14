@@ -836,14 +836,15 @@ PlaterPresetComboBox::PlaterPresetComboBox(wxWindow *parent, Preset::Type preset
         clr_picker->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
         clr_picker->SetToolTip(_L("Click to select filament color"));
         clr_picker->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
-            // Check if it's an official filament
+            // Check if it's an official filament from OrcaFilamentLibrary
             auto fila_type = Preset::remove_suffix_modified(GetValue().ToUTF8().data());
-            bool is_official = boost::algorithm::starts_with(fila_type, "Bambu");
+            // Get filament_id from filament_presets to check if it's an official filament
+            const std::string& preset_name = m_preset_bundle->filament_presets[m_filament_idx];
+            const Preset* selected_preset = m_collection->find_preset(preset_name);
+            bool is_official = selected_preset && !selected_preset->filament_id.empty();
+
             if (is_official) {
-                // Get filament_id from filament_presets
-                const std::string& preset_name = m_preset_bundle->filament_presets[m_filament_idx];
-                const Preset* selected_preset = m_collection->find_preset(preset_name);
-                wxString fila_id = selected_preset ? wxString::FromUTF8(selected_preset->filament_id) : "GFA00";
+                wxString fila_id = wxString::FromUTF8(selected_preset->filament_id);
                 FilamentColor fila_color = get_cur_color_info();
 
                 // Show filament picker dialog

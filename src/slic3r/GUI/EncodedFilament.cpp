@@ -1,6 +1,7 @@
 #include "EncodedFilament.hpp"
 
 #include "GUI_App.hpp"
+#include <boost/filesystem.hpp>
 
 namespace Slic3r
 {
@@ -13,8 +14,23 @@ static wxString _ColourToString(const wxColour& color)
 FilamentColorCodeQuery::FilamentColorCodeQuery()
 {
     m_fila_id2colors_map = new std::unordered_map<wxString, FilamentColorCodes*>;
-    m_fila_path = data_dir() + "/system/BBL/filament/filaments_color_codes.json";
-    LoadFromLocal();
+    // Try to load from OrcaFilamentLibrary first, then fallback to BBL
+    std::string orca_path = data_dir() + "/profiles/OrcaFilamentLibrary/filament/filaments_color_codes.json";
+    std::string bbl_path = data_dir() + "/system/BBL/filament/filaments_color_codes.json";
+
+    // Check if OrcaFilamentLibrary color codes file exists
+    if (boost::filesystem::exists(orca_path)) {
+        m_fila_path = orca_path;
+    } else if (boost::filesystem::exists(bbl_path)) {
+        m_fila_path = bbl_path;
+    } else {
+        BOOST_LOG_TRIVIAL(warning) << "FilamentColorCodeQuery: No filament color codes file found";
+        m_fila_path = "";
+    }
+
+    if (!m_fila_path.empty()) {
+        LoadFromLocal();
+    }
 }
 
 
