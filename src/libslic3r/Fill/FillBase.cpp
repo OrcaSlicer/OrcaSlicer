@@ -2,7 +2,6 @@
 #include <numeric>
 
 #include <cmath>
-#include "../ClipperUtils.hpp"
 #include "../Clipper2Utils.hpp"
 #include "../EdgeGrid.hpp"
 #include "../Geometry.hpp"
@@ -105,7 +104,7 @@ bool Fill::use_bridge_flow(const InfillPattern type)
 Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 {
     // Perform offset.
-    Slic3r::ExPolygons expp = offset_ex(surface->expolygon, float(scale_(this->overlap - 0.5 * this->spacing)));
+    Slic3r::ExPolygons expp = offset_ex_2(ExPolygons{surface->expolygon}, float(scale_(this->overlap - 0.5 * this->spacing)));
     // Create the infills for each of the regions.
     Polylines polylines_out;
     for (size_t i = 0; i < expp.size(); ++ i)
@@ -121,7 +120,7 @@ Polylines Fill::fill_surface(const Surface *surface, const FillParams &params)
 ThickPolylines Fill::fill_surface_arachne(const Surface* surface, const FillParams& params)
 {
     // Perform offset.
-    Slic3r::ExPolygons expp = offset_ex(surface->expolygon, float(scale_(this->overlap - 0.5 * this->spacing)));
+    Slic3r::ExPolygons expp = offset_ex_2(ExPolygons{surface->expolygon}, float(scale_(this->overlap - 0.5 * this->spacing)));
     // Create the infills for each of the regions.
     ThickPolylines thick_polylines_out;
     for (ExPolygon& expoly : expp)
