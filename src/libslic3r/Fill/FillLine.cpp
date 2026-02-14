@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ExPolygon.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
@@ -58,7 +58,7 @@ void FillLine::_fill_surface_single(
         pts.push_back(it->a);
         pts.push_back(it->b);
     }
-    Polylines polylines = intersection_pl(std::move(polylines_src), offset(expolygon, scale_(0.02)));
+    Polylines polylines = intersection_pl_2(std::move(polylines_src), offset(expolygon, scale_(0.02)));
 
     // FIXME Vojtech: This is only performed for horizontal lines, not for the vertical lines!
     const float INFILL_OVERLAP_OVER_SPACING = 0.3f;
@@ -80,7 +80,7 @@ void FillLine::_fill_surface_single(
         // offset the expolygon by max(min_spacing/2, extra)
         ExPolygon expolygon_off;
         {
-            ExPolygons expolygons_off = offset_ex(expolygon, this->_min_spacing/2);
+            ExPolygons expolygons_off = offset_ex_2(ExPolygons{expolygon}, this->_min_spacing/2);
             if (! expolygons_off.empty()) {
                 // When expanding a polygon, the number of islands could only shrink. Therefore the offset_ex shall generate exactly one expanded island for one input island.
                 assert(expolygons_off.size() == 1);
