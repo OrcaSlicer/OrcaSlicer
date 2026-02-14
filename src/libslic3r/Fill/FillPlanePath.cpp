@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 
@@ -126,7 +126,7 @@ void FillPlanePath::_fill_surface_single(
     multiline_fill(polylines, params, spacing);
 
     if (polyline.size() >= 2) {
-        polylines = intersection_pl(std::move(polylines), expolygon);
+        polylines = intersection_pl_2(std::move(polylines), to_polygons(expolygon));
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {
