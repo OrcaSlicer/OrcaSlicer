@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 #include <cmath>
@@ -208,7 +208,7 @@ void FillCrossHatch ::_fill_surface_single(
     // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);
 
-    polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
+    polylines = intersection_pl_2(std::move(polylines), to_polygons(expolygon));
 
     // --- remove small remains from gyroid infill
     if (!polylines.empty()) {
