@@ -1,4 +1,4 @@
-#include "../ClipperUtils.hpp"
+#include "../Clipper2Utils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 #include "FillBase.hpp"
@@ -277,7 +277,7 @@ void Fill3DHoneycomb::_fill_surface_single(
     multiline_fill(polylines, params, spacing);
 
     // clip pattern to boundaries, chain the clipped polylines
-    polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
+    polylines = intersection_pl_2(std::move(polylines), to_polygons(expolygon));
 
     if (! polylines.empty()) {
     // Remove very small bits, but be careful to not remove infill lines connecting thin walls!
