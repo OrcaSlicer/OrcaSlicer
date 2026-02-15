@@ -42,12 +42,26 @@ ExPolygons union_ex_2(const ExPolygons &expolygons);
 ExPolygons offset_ex_2(const ExPolygons &expolygons, double delta);
 ExPolygons offset2_ex_2(const ExPolygons &expolygons, double delta1, double delta2);
 
-// Offset functions for ExPolygon (returns Polygons)
+// Offset functions (returns Polygons)
 Polygons offset_2(const ExPolygon &expolygon, double delta, 
                   Clipper2Lib::JoinType joinType = DefaultJoinType2, 
                   double miterLimit = DefaultMiterLimit2);
 
+Polygons offset_2(const Polygons &polygons, double delta, 
+                  Clipper2Lib::JoinType joinType = DefaultJoinType2, 
+                  double miterLimit = DefaultMiterLimit2);
+
+// PolyTree utilities and chained ordering
 Polygons union_pt_chained_outside_in_2(const Polygons &subject);
+
+// Input polygons for shrinking shall be "normalized": There must be no overlap / intersections between the input polygons.
+inline Polygons shrink_2(const Polygons &polygons, double delta, 
+                         Clipper2Lib::JoinType joinType = DefaultJoinType2, 
+                         double miterLimit = DefaultMiterLimit2)
+{
+    assert(delta > 0);
+    return offset_2(polygons, -delta, joinType, miterLimit);
+}
 
 // PolyTree utilities
 void SimplifyPolyTree(const Clipper2Lib::PolyPath64 *polytree, double epsilon, Clipper2Lib::PolyPath64 *result);

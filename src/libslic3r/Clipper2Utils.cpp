@@ -309,6 +309,20 @@ Polygons Paths64_to_Slic3rPolygons(const Clipper2Lib::Paths64& paths)
     return polygons;
 }
 
+Polygons offset_2(const Polygons &polygons, double delta, 
+                  Clipper2Lib::JoinType joinType, double miterLimit)
+{
+    auto paths = Slic3rPolygons_to_Paths64(polygons);
+    return Paths64_to_Slic3rPolygons(offset_paths_2<Clipper2Lib::Paths64>(paths, delta, joinType, miterLimit));
+}
+
+Polygons offset_2(const ExPolygon &expolygon, double delta, 
+                  Clipper2Lib::JoinType joinType, double miterLimit)
+{
+    auto paths = Slic3rExPolygon_to_Paths64(expolygon);
+    return Paths64_to_Slic3rPolygons(offset_paths_2<Clipper2Lib::Paths64>(paths, delta, joinType, miterLimit));
+}
+
 Polygon Path64_to_Slic3rPolygon(const Clipper2Lib::Path64& path)
 {
     Polygon poly;
@@ -341,13 +355,6 @@ Clipper2Lib::Paths64 Slic3rExPolygon_to_Paths64(const ExPolygon& expolygon)
     
     return paths;
 }
-
-Slic3r::Polygons offset_2(const Slic3r::ExPolygon& expolygon, double delta, Clipper2Lib::JoinType joinType, double miterLimit)
-{
-    auto paths = Slic3rExPolygon_to_Paths64(expolygon);
-    return Paths64_to_Slic3rPolygons(offset_paths_2<Clipper2Lib::Paths64>(paths, delta, joinType, miterLimit));
-}
-
 
 static void traverse_pt_outside_in_2(const Clipper2Lib::PolyPath64* node, Polygons *retval)
 {
