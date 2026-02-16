@@ -86,6 +86,10 @@ struct PathVertex
     // Layer duration in seconds
     //
     float layer_duration{ 0.0f };
+    //
+    // Pressure advance value
+    //
+    float pressure_advance{ 0.0f };
 
     //
     // Return true if the segment is an extrusion move

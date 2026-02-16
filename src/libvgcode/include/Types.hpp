@@ -92,6 +92,7 @@ enum class EViewType : uint8_t
     LayerTimeLogarithmic,
     FanSpeed,
     Temperature,
+    PressureAdvance,
     Tool,
     COUNT
 };

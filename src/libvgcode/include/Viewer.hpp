@@ -169,6 +169,7 @@ public:
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
     // EViewType::Temperature
+    // EViewType::PressureAdvance
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear
@@ -185,6 +186,7 @@ public:
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
     // EViewType::Temperature
+    // EViewType::PressureAdvance
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear
