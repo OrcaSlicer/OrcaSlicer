@@ -1,39 +1,84 @@
 /*----ORCA UNIFIED STYLING FOR ALL CONTROLS----*/
 
-/*----GLOBAL VARIABLES ----*/
+/*////////////////////////////*/
+/*         VARIABLES          */
+/*////////////////////////////*/
+
+/*/// CONTROL VALUES ///*/
 :root {
 	--dialog-button-sizer-height : 62px; /*----32 + 15 * 2----*/
 	--dialog-button-gap          : 15px;
 }
 
-/*----GLOBAL COLORS ----*/
+/*/// COLORS ///*/
 :root { 
-	--main-color         : #009688;
-	--main-color-hover   : #26A69A;
-	--button-fg-light    : #FEFEFE;
-	--button-fg-text     : #262E30;
-	--button-fg-disabled : #6B6B6B;
-	--button-bg-normal   : #DFDFDF;
-	--button-bg-hover    : #D4D4D4;
-	--button-bg-disabled : var(--button-bg-normal);
-	--button-bg-alert    : #E14747;
+	--main-color			: #009688;
+	--main-color-hover		: #26A69A;
+	--main-color-fixed		: #009688;
+	--bg-color				: #FFFFFF;
+	--bg-color-secondary	: #F4F4F4;
+	--bg-color-alt			: #F0F0F0;
+	--fg-color-text			: #262E30;
+	--fg-color-label		: #363636;
+	--fg-color-disabled		: #ACACAC;
+	--focus-bg-item			: #BFE1DE;
+	--focus-bg-box			: #E5F0EE;
+	--border-color			: #DBDBDB;
+	--icon-color			: #7C8282;
+	--button-fg-light		: #FEFEFE;
+	--button-fg-text		: #262E30;
+	--button-fg-disabled	: #6B6B6B;
+	--button-bg-normal		: #DFDFDF;
+	--button-bg-hover		: #D4D4D4;
+	--button-bg-disabled	: var(--button-bg-normal);
+	--button-bg-alert		: #E14747;
 }
   
 @media (prefers-color-scheme: dark) { 
 :root {
-	--main-color         : #00675B;
-	--main-color-hover   : #008172;
-	--button-fg-light    : #FEFEFE;
-	--button-fg-text     : #EFEFF0;
-	--button-fg-disabled : #818183;
-	--button-bg-normal   : #3E3E45;
-	--button-bg-hover    : #4D4D54;
-	--button-bg-disabled : var(--button-bg-normal);
-	--button-bg-alert    : #E14747;
+	--main-color			: #00675B;
+	--main-color-hover		: #008172;
+	--main-color-fixed		: #009688;
+	--bg-color				: #2D2D31;
+	--bg-color-secondary	: #36363B;
+	--bg-color-alt			: #242428;
+	--fg-color-text			: #EFEFF0;
+	--fg-color-label		: #B2B3B5;
+	--fg-color-disabled		: #65656A;
+	--focus-bg-item			: #223C3C;
+	--focus-bg-box			: #283232;
+	--border-color			: #4A4A51;
+	--icon-color			: #949494;
+	--button-fg-light		: #FEFEFE;
+	--button-fg-text		: #EFEFF0;
+	--button-fg-disabled	: #818183;
+	--button-bg-normal		: #3E3E45;
+	--button-bg-hover		: #4D4D54;
+	--button-bg-disabled	: var(--button-bg-normal);
+	--button-bg-alert		: #E14747;
 }
 }
 
-/*----BUTTONS ----*/
+/*////////////////////////////*/
+/*           ICONS            */
+/*////////////////////////////*/
+
+:root {
+--icon-filter:
+	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><polygon points=".5 .5 5.5 7.5 5.5 13.5 9.5 15.5 9.5 7.5 14.5 .5 .5 .5"/><line x1="8.64" y1="4.5" x2="10.19" y2="2.34"/></g></svg>');
+--icon-search:
+	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5,2A4.505,4.505,0,0,0,2,6.5a.5.5,0,0,0,1,0A3.5,3.5,0,0,1,6.5,3a.5.5,0,0,0,0-1Z"/><path d="M14.854,14.146l-3.423-3.422a6.518,6.518,0,1,0-.707.707l3.422,3.423a.5.5,0,0,0,.708-.708ZM1,6.5A5.5,5.5,0,1,1,6.5,12,5.507,5.507,0,0,1,1,6.5Z"/></svg>');
+--icon-input-clear:
+	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><path d="M.76,7.32L4.91,2.82c.19-.21.46-.32.74-.32h8.86c.55,0,1,.45,1,1v9c0,.55-.45,1-1,1H5.64c-.28,0-.55-.12-.74-.32L.76,8.68c-.35-.38-.35-.97,0-1.35Z"/><line x1="12.5" y1="5.5" x2="7.5" y2="10.5"/><line x1="12.5" y1="10.5" x2="7.5" y2="5.5"/></g></svg>');
+--icon-combo-arrow:
+	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><polyline points="11.5 6.5 6.5 9.5 1.5 6.5" style="fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round"/></svg>'); 
+}
+
+/*////////////////////////////*/
+/*       UI COMPONENTS        */
+/*////////////////////////////*/
+
+/*/// BUTTONS ///*/
 /*----Values slightly different since renderer is different----*/
 /*----Currently no support for focus border----*/
 .ButtonTypeCompact   { font-size: 11px; padding: 0px 8px ; border-radius: 12px; line-height: 23px; height: 24px; text-align: center}
@@ -71,3 +116,92 @@
 .ButtonStyleAlert          { background: var(--button-bg-normal  ); color: var(--button-fg-text    )}
 .ButtonStyleAlert:hover    { background: var(--button-bg-alert   ); color: var(--button-fg-light   )}
 .ButtonStyleDisabled       { background: var(--button-bg-disabled); color: var(--button-fg-disabled)}
+
+/*/// COMBOBOX ///*/
+/*
+STRUCTURE
+	<div class="ComboBox NoLabel">
+		<div class="arrow-icon"></div>
+		<select id="filter-tags">
+			<option value="0" disabled selected hidden></option>
+			<option value="1">Checked</option>
+			<option value="2">Unchecked</option>
+		</select>
+	</div>
+OPTIONS
+	NoLabel : Hides label and just shows arrow icon
+*/
+.ComboBox {
+	position: relative;
+    background: inherit;
+}
+
+.ComboBox > select {
+    width: 120px;
+    background: inherit;
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+	appearance: none;
+    -webkit-appearance: none; /* Hide arrow */
+	font-size: 14px;
+    color: var(--fg-color-text);
+    padding: 4px 4px 4px 24px;
+}
+
+.ComboBox > .arrow-icon {
+    position: absolute;
+    width:  16px;
+    height: 16px;
+    left: 7px;
+    top:  50%;
+    transform: translateY(-50%);
+	mask-image: var(--icon-combo-arrow);
+	-webkit-mask-image: var(--icon-combo-arrow);
+	background-color: var(--icon-color);
+    pointer-events: none;
+}
+
+.ComboBox > select:focus {
+    outline: none;
+    background-color: var(--focus-bg-box);
+    border-color: var(--main-color);;
+}
+    
+.ComboBox > select:hover {
+    border-color: var(--main-color);;
+}
+
+.ComboBox.NoLabel > select {
+    width: 28px;
+	height: 28px;
+    padding: 4px;
+    color: transparent;
+	font-size: unset;
+}
+
+.ComboBox option {
+    background: var(--bg-color);
+}
+
+.ComboBox option:checked {
+    background: var(--focus-bg-item);
+}
+
+/*/// SCROLL BARS ///*/
+.thin-scroll::-webkit-scrollbar {
+	width: 10px;
+	height: 10px
+}
+
+.thin-scroll::-webkit-scrollbar-track {
+	background:  var(--bg-color-alt);
+}
+
+.thin-scroll::-webkit-scrollbar-thumb {
+	background:  var(--button-bg-normal);
+	border-radius: 5px;
+}
+
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+	background: var(--button-bg-hover);
+}

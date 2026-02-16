@@ -1,0 +1,20 @@
+{
+  "type": "filament",
+  "from": "system",
+  "instantiation": "false",
+  "name": "PolyTerra PLA @U1 base",
+  "filament_id": "37895926870",
+  "inherits": "fdm_filament_pla",
+  "filament_cost": [
+    "80"
+  ],
+  "filament_density": [
+    "1.31"
+  ],
+  "filament_max_volumetric_speed": [
+    "14.4"
+  ],
+  "default_filament_colour": [
+    ""
+  ]
+}

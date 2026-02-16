@@ -494,7 +494,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_main_panel->SetSizer(m_main_sizer);
     m_main_panel->Layout();
     page_sizer = new wxBoxSizer(wxVERTICAL);
-    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(25));
+    page_sizer->Add(m_main_panel, 1, wxALL | wxEXPAND, FromDIP(10)); // ORCA match margin with other tabs
 
     SetSizer(page_sizer);
     Layout();
@@ -653,7 +653,7 @@ void MultiMachineManagerPage::start_timer()
 
     m_flipping_timer->SetOwner(this);
     m_flipping_timer->Start(1000);
-    wxPostEvent(this, wxTimerEvent());
+    wxPostEvent(this, wxTimerEvent(*m_flipping_timer));
 }
 
 void MultiMachineManagerPage::update_page_number()

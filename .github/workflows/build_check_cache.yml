@@ -41,7 +41,7 @@ jobs:
             
       - name: load cache
         id: cache_deps
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.set_outputs.outputs.cache-path }}
           key: ${{ steps.set_outputs.outputs.cache-key }}

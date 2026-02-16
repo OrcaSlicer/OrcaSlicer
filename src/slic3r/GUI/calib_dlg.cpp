@@ -5,6 +5,7 @@
 #include <wx/dcgraph.h>
 #include "MainFrame.hpp"
 #include "Widgets/DialogButtons.hpp"
+#include "Widgets/HyperLink.hpp"
 #include <string>
 #include <vector>
 #include "libslic3r/PrintConfig.hpp"
@@ -173,22 +174,14 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    // Help links
-    auto help_sizer = new wxBoxSizer(wxVERTICAL);
-    auto help_link_pa = new wxHyperlinkCtrl(this, wxID_ANY, _L("Pressure Advance Guide"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/pressure-advance-calib");
-    help_link_pa->SetForegroundColour(wxColour("#1890FF"));
-    help_sizer->Add(help_link_pa, 0, wxALL, FromDIP(5));
-
-    auto help_link_apa = new wxHyperlinkCtrl(this, wxID_ANY, _L("Adaptive Pressure Advance Guide"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/adaptive-pressure-advance-calib");
-    help_link_apa->SetForegroundColour(wxColour("#1890FF"));
-    help_sizer->Add(help_link_apa, 0, wxALL, FromDIP(5));
-
-    v_sizer->Add(help_sizer, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/pressure-advance-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &PA_Calibration_Dlg::on_start, this);
 
@@ -283,6 +276,19 @@ void PA_Calibration_Dlg::on_start(wxCommandEvent& event) {
     m_params.print_numbers = m_cbPrintNum->GetValue();
     ParseStringValues(m_tiBMAccels->GetTextCtrl()->GetValue().ToStdString(), m_params.accelerations);
     ParseStringValues(m_tiBMSpeeds->GetTextCtrl()->GetValue().ToStdString(), m_params.speeds);
+
+    if (!m_params.accelerations.empty() && !m_params.speeds.empty()) {
+        // Guard against swapped inputs by ensuring acceleration magnitudes exceed speeds.
+        const double min_accel = *std::min_element(m_params.accelerations.begin(), m_params.accelerations.end());
+        const double max_speed = *std::max_element(m_params.speeds.begin(), m_params.speeds.end());
+        if (min_accel <= max_speed) {
+            MessageDialog msg_dlg(nullptr,
+                _L("Acceleration values must be greater than speed values.\nPlease verify the inputs."),
+                wxEmptyString, wxICON_WARNING | wxOK);
+            msg_dlg.ShowModal();
+            return;
+        }
+    }
 
     m_plater->calib_pa(m_params);
     EndModal(wxID_OK);
@@ -386,13 +392,14 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Temperature Calibration"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/temp-calib");
-    help_link->SetForegroundColour(wxColour("#1890FF"));
-    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/temp-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Temp_Calibration_Dlg::on_start, this);
 
@@ -407,15 +414,15 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
         unsigned long t = 0;
         if(!ti->GetTextCtrl()->GetValue().ToULong(&t))
             return;
-        if(t> 350 || t < 170){
-            MessageDialog msg_dlg(nullptr, wxString::Format(L"Supported range: 170%s - 350%s",
+        if(t> 500 || t < 155){
+            MessageDialog msg_dlg(nullptr, wxString::Format(L"Supported range: 170%s - 500%s",
                 _L("\u2103" /* °C */), _L("\u2103" /* °C */)),
                 wxEmptyString, wxICON_WARNING | wxOK);
             msg_dlg.ShowModal();
-            if(t > 350)
-                t = 350;
+            if(t > 500)
+                t = 500;
             else
-                t = 170;
+                t = 155;
         }
         t = (t / 5) * 5;
         ti->GetTextCtrl()->SetValue(std::to_string(t));
@@ -445,8 +452,8 @@ void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     read_long = m_tiStart->GetTextCtrl()->GetValue().ToULong(&start);
     read_long = read_long && m_tiEnd->GetTextCtrl()->GetValue().ToULong(&end);
 
-    if (!read_long || start > 350 || end < 170  || end > (start - 5)) {
-        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 350\nEnd temp: >= 170\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
+    if (!read_long || start > 500 || end < 155  || end > (start - 5)) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 500\nEnd temp: >= 155\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
@@ -565,13 +572,14 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Volumetric Speed Calibration"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/volumetric-speed-calib");
-    help_link->SetForegroundColour(wxColour("#1890FF"));
-    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/volumetric-speed-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &MaxVolumetricSpeed_Test_Dlg::on_start, this);
 
@@ -671,13 +679,14 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: VFA"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/vfa-calib");
-    help_link->SetForegroundColour(wxColour("#1890FF"));
-    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/vfa-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &VFA_Test_Dlg::on_start, this);
 
@@ -778,13 +787,14 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Retraction Calibration"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/retraction-calib");
-    help_link->SetForegroundColour(wxColour("#1890FF"));
-    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/retraction-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Retraction_Test_Dlg::on_start, this);
 
@@ -955,13 +965,14 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Input Shaping Calibration"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/input-shaping-calib");
-    help_link->SetForegroundColour(wxColour("#1890FF"));
-    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/input-shaping-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Input_Shaping_Freq_Test_Dlg::on_start, this);
 
@@ -1152,13 +1163,14 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Input Shaping Calibration"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/input-shaping-calib");
-    help_link->SetForegroundColour(wxColour("#1890FF"));
-    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/input-shaping-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Input_Shaping_Damp_Test_Dlg::on_start, this);
 
@@ -1343,13 +1355,14 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
     v_sizer->AddSpacer(FromDIP(5));
 
-    auto help_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki Guide: Cornering Calibration"),
-        "https://github.com/OrcaSlicer/OrcaSlicer/wiki/cornering-calib");
-    help_link->SetForegroundColour(wxColour("#1890FF"));
-    v_sizer->Add(help_link, 0, wxALL, FromDIP(10));
-
     auto dlg_btns = new DialogButtons(this, {"OK"});
-    v_sizer->Add(dlg_btns , 0, wxEXPAND);
+
+    auto bottom_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/cornering-calib");
+    bottom_sizer->Add(wiki, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
+    bottom_sizer->AddStretchSpacer();
+    bottom_sizer->Add(dlg_btns, 0, wxEXPAND);
+    v_sizer->Add(bottom_sizer, 0, wxEXPAND);
 
     dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &Cornering_Test_Dlg::on_start, this);
 
