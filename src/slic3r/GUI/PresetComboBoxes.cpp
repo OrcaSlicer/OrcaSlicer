@@ -46,6 +46,7 @@
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "../Utils/IPrinterAgent.hpp"
 
 // A workaround for a set of issues related to text fitting into gtk widgets:
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
@@ -498,7 +499,18 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
 {
     bool selected_in_ams      = false;
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
-    if (is_bbl_vendor_preset && !m_preset_bundle->filament_ams_list.empty()) {
+
+    // Also allow pull-mode printer agents (e.g., Moonraker) to show AMS filaments
+    bool has_pull_mode_agent = false;
+    auto* dev_manager = wxGetApp().getDeviceManager();
+    if (dev_manager) {
+        auto* agent = dev_manager->get_agent();
+        if (agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+            has_pull_mode_agent = true;
+        }
+    }
+
+    if ((is_bbl_vendor_preset || has_pull_mode_agent) && !m_preset_bundle->filament_ams_list.empty()) {
         bool dual_extruder   = (m_preset_bundle->filament_ams_list.begin()->first & 0x10000) == 0;
         set_label_marker(Append(dual_extruder ? _L("Left filaments") : _L("AMS filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         m_first_ams_filament = GetCount();
