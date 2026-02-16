@@ -43,6 +43,7 @@
     "head_wrap_detect_zone": [],
     "high_current_on_filament_swap": "0",
     "host_type": "octoprint",
+    "printer_agent": "moonraker",
 	"inherits": "fdm_machine_common",
 	"instantiation": "false",
     "layer_change_gcode": "SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num + 1}\n_MMU_UPDATE_HEIGHT",
