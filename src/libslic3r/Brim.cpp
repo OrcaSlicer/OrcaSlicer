@@ -955,12 +955,19 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
         ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
         
         // Assign the same merged brim to all objects that originally had brims
-        // This ensures that brims from multiple objects are properly connected
+        bool assigned = false;
+
         for (auto& [obj_id, _] : brimAreaMap) {
-            brimMap[obj_id] = merged_brim;
+            if (!assigned) {
+                brimMap[obj_id] = merged_brim;
+                assigned        = true;
+            } else {
+                brimMap[obj_id] = ExtrusionEntityCollection();
+            }
         }
+
         for (auto& [obj_id, _] : supportBrimAreaMap) {
-            supportBrimMap[obj_id] = merged_brim;
+            supportBrimMap[obj_id] = ExtrusionEntityCollection();
         }
     }
 }
