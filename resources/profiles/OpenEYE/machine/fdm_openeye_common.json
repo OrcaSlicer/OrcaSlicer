@@ -19,7 +19,7 @@
 	],
 	"default_print_profile": "0.20mm Standard @OpenEYE Peacock V2",
 	"deretraction_speed": [
-		"30"
+		"40"
 	],
     "disable_m73": "0",
     "emit_machine_limits_to_gcode": "0",
@@ -186,13 +186,13 @@
         "18"
     ],
     "retraction_length": [
-        "0.8"
+        "1"
     ],
     "retraction_minimum_travel": [
         "1"
     ],
     "retraction_speed": [
-        "30"
+        "40"
     ],
 	"scan_first_layer": "0",
 	"silent_mode": "0",
