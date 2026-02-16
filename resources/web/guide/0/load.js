@@ -7,7 +7,8 @@ function OnInit()
 
 	TargetPage=GetQueryString("target");
 	
-	//setTimeout("JumpToTarget()",20*1000);
+	// Fallback timeout in case the C++ -> JS signal fails (e.g., WebKit issues)
+	setTimeout("JumpToTarget()",20*1000);
 }
 
 function HandleStudio( pVal )

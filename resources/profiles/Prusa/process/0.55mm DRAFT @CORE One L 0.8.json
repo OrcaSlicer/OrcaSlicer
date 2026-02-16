@@ -1,0 +1,18 @@
+{
+    "type": "process",
+    "name": "0.55mm DRAFT @CORE One L 0.8",
+    "inherits": "0.55mm DRAFT @MK4S 0.8",
+    "from": "system",
+    "instantiation": "true",
+    "top_surface_speed": "2000",
+    "inner_wall_acceleration": "2500",
+    "internal_solid_infill_acceleration": "5000",
+    "sparse_infill_acceleration": "7000",
+    "travel_speed": "500",
+    "travel_acceleration": "6000",
+    "default_acceleration": "3000",
+    "support_interface_top_layers": "3",
+    "initial_layer_infill_speed": "55",
+    "initial_layer_speed": "45",
+    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE_L[^_a-zA-Z0-9].*/ and nozzle_diameter[0]==0.8 and printer_notes!~/.*HF_NOZZLE.*/"
+}

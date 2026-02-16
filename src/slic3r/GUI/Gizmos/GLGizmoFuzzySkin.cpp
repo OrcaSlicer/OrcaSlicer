@@ -128,8 +128,11 @@ void GLGizmoFuzzySkin::show_tooltip_information(float caption_max, float x, floa
 
 void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_limit)
 {
-    if (!m_c->selection_info()->model_object())
+    ModelObject *mo = m_c->selection_info()->model_object();
+    if (!mo)
         return;
+
+    const DynamicPrintConfig &obj_cfg = mo->config.get();
 
     const float approx_height = m_imgui->scaled(22.f);
     y = std::min(y, bottom_limit - approx_height);
@@ -320,7 +323,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset selection"), UndoRedo::SnapshotType::GizmoAction);
-        ModelObject         *mo  = m_c->selection_info()->model_object();
         int                  idx = -1;
         for (ModelVolume *mv : mo->volumes)
             if (mv->is_model_part()) {
@@ -331,6 +333,39 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
 
         update_model_object();
         m_parent.set_as_dirty();
+    }
+
+    const DynamicPrintConfig &glb_cfg                    = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const bool                has_object_fuzzy_override  = obj_cfg.option("fuzzy_skin");
+    const FuzzySkinType       effective_fuzzy_skin_state = has_object_fuzzy_override ? obj_cfg.opt_enum<FuzzySkinType>("fuzzy_skin")
+                                                                                     : glb_cfg.opt_enum<FuzzySkinType>("fuzzy_skin");
+    if (effective_fuzzy_skin_state == FuzzySkinType::Disabled_fuzzy) {
+        float font_size = ImGui::GetFontSize();
+        auto link_text = [&]() {
+            ImColor HyperColor = ImGuiWrapper::COL_ORCA;
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGuiWrapper::to_ImVec4(ColorRGB::WARNING()));
+            float parent_width = ImGui::GetContentRegionAvail().x;
+            m_imgui->text_wrapped(_L("Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"), parent_width);
+            ImGui::PopStyleColor();
+            ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
+            ImGui::Dummy(ImVec2(font_size * 1.8f, font_size * 1.3f));
+            ImGui::SameLine();
+            m_imgui->bold_text(_u8L("Enable painted fuzzy skin for this object"));
+            ImGui::PopStyleColor();
+            ImVec2 line_end = ImGui::GetItemRectMax();
+            line_end.y -= 2.0f;
+            ImVec2 line_start = line_end;
+            line_start.x = ImGui::GetItemRectMin().x;
+            ImGui::GetWindowDrawList()->AddLine(line_start, line_end, HyperColor);
+            if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)
+                && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                DynamicPrintConfig new_conf = obj_cfg;
+                new_conf.set_key_value("fuzzy_skin", new ConfigOptionEnum<FuzzySkinType>(FuzzySkinType::None));
+                mo->config.assign_config(new_conf);
+            }
+        };
+
+        link_text();
     }
     ImGui::PopStyleVar(2);
     GizmoImguiEnd();

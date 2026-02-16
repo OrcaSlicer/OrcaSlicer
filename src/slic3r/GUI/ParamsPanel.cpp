@@ -261,6 +261,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
         m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
+            if(wxGetApp().get_mode() == comDevelop) return; // prevent change on dev mode
             m_mode_view->SetValue(!m_mode_view->GetValue());
             wxCommandEvent evt(wxEVT_TOGGLEBUTTON, m_mode_view->GetId()); // ParamsPanel::OnToggled(evt)
             evt.SetEventObject(m_mode_view);

@@ -1,0 +1,10 @@
+{
+    "type": "filament",
+    "setting_id": "GFSA04",
+    "name": "QIDI ABS-GF @Qidi X-Max 4 0.8 nozzle",
+    "from": "system",
+    "instantiation": "true",
+    "inherits": "QIDI ABS-GF@X-Max 4-Series",
+    "pressure_advance": ["0.01"],
+	"compatible_printers": ["Qidi X-Max 4 0.8 nozzle"]
+}

@@ -29,7 +29,8 @@
     "inner_wall_acceleration": "3500",
     "outer_wall_acceleration": "2500",
     "bridge_acceleration": "1500",
-    "support_top_z_distance": "0.1",
+    "support_top_z_distance": "0.17",
+    "support_bottom_z_distance": "0.17",
     "compatible_printers": [
         "Prusa MINIIS 0.4 nozzle"
     ]

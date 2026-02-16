@@ -36,5 +36,10 @@
     "outer_wall_acceleration": "4000",
     "bridge_acceleration": "1500",
     "internal_solid_infill_acceleration": "3000",
-    "overhang_1_4_speed": "45"
+    "overhang_1_4_speed": "45",
+    "support_base_pattern_spacing": "2",
+    "support_top_z_distance": "0.22",
+    "support_bottom_z_distance": "0.22",
+    "support_bottom_interface_spacing": "0.22",
+    "support_interface_spacing": "0.25"
 }

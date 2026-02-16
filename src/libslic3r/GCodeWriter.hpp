@@ -61,7 +61,7 @@ public:
     std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
-    std::string enable_power_loss_recovery(bool enable);
+    std::string enable_power_loss_recovery(PowerLossRecoveryMode mode);
     // return false if this extruder was already selected
     bool        need_toolchange(unsigned int filament_id) const;
     std::string set_extruder(unsigned int filament_id);
@@ -168,6 +168,9 @@ public:
     //BBS: x, y offset for gcode generated
     double          m_x_offset{ 0 };
     double          m_y_offset{ 0 };
+
+    // Orca: slicing resolution in mm
+    double          m_resolution = 0.01;
     
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;

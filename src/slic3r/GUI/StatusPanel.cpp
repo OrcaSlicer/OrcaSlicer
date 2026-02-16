@@ -604,7 +604,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
                           std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
                           std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
 
-    m_button_partskip = new Button(progress_lr_panel, wxEmptyString, "print_control_partskip_disable", 0, 20, wxID_ANY);
+    m_button_partskip = new Button(progress_lr_panel, wxEmptyString, "print_control_partskip_disable", 0, 16, wxID_ANY); // ORCA match icon size
     m_button_partskip->Enable(false);
     m_button_partskip->Hide();
     m_button_partskip->SetBackgroundColor(white_bg);
@@ -2503,6 +2503,8 @@ StatusPanel::~StatusPanel()
 
 void StatusPanel::init_scaled_buttons()
 {
+    if (!m_project_task_panel) return;
+
     m_project_task_panel->init_scaled_buttons();
     m_bpButton_z_10->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_10->SetCornerRadius(0);

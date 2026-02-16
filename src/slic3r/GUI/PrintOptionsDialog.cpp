@@ -1153,11 +1153,8 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     change_nozzle_tips->SetFont(Label::Body_13);
     change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
-    m_wiki_link = new Label(single_panel, _L("View wiki"));
+    m_wiki_link = new HyperLink(single_panel, _L("Wiki Guide")); // ORCA
     m_wiki_link->SetFont(Label::Body_13);
-    m_wiki_link->SetForegroundColour(wxColour("#009688"));
-    m_wiki_link->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
-    m_wiki_link->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_ARROW); });
     m_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);
 
     h_tips_sizer->Add(change_nozzle_tips, 0, wxLEFT);
@@ -1267,11 +1264,8 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     multiple_change_nozzle_tips->SetFont(Label::Body_13);
     multiple_change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
-    multiple_wiki_link = new Label(multiple_panel, _L("View wiki"));
+    multiple_wiki_link = new HyperLink(multiple_panel, _L("Wiki Guide")); // ORCA
     multiple_wiki_link->SetFont(Label::Body_13);
-    multiple_wiki_link->SetForegroundColour(wxColour("#009688"));
-    multiple_wiki_link->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
-    multiple_wiki_link->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_ARROW); });
     multiple_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);
 
     wxSizer* multiple_change_tips_sizer = new wxBoxSizer(wxHORIZONTAL);
