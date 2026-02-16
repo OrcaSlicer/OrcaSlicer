@@ -928,15 +928,40 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (size_t iia = 0; iia < islands_area.size(); ++iia)
         islands_area[iia].translate(plate_shift);
 
-    for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
-        if (!iter->second.empty()) {
-            brimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));
-        };
+    // Orca:Collect all brims from both object and support maps
+    ExPolygons all_brims_merged;
+    
+    // Add all object brims
+    for (auto& [obj_id, brims] : brimAreaMap) {
+        if (!brims.empty()) {
+            expolygons_append(all_brims_merged, brims);
+        }
     }
-    for (auto iter = supportBrimAreaMap.begin(); iter != supportBrimAreaMap.end(); ++iter) {
-        if (!iter->second.empty()) {
-            supportBrimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));
-        };
+    
+    // Add all support brims
+    for (auto& [obj_id, brims] : supportBrimAreaMap) {
+        if (!brims.empty()) {
+            expolygons_append(all_brims_merged, brims);
+        }
+    }
+    
+    // Merge all brims together into a single continuous area
+    if (!all_brims_merged.empty()) {
+        all_brims_merged = union_ex(all_brims_merged);
+    }
+    
+    // Generate infill once for all merged brims
+    if (!all_brims_merged.empty()) {
+        ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
+        
+        // Assign the same merged brim to all objects that originally had brims
+        // This ensures that brims from multiple objects are properly connected
+        for (auto& [obj_id, _] : brimAreaMap) {
+            brimMap[obj_id] = merged_brim;
+        }
+        for (auto& [obj_id, _] : supportBrimAreaMap) {
+            supportBrimMap[obj_id] = merged_brim;
+        }
     }
 }
 
