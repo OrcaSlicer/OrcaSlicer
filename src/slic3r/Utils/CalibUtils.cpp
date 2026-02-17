@@ -1095,9 +1095,7 @@ void CalibUtils::calib_temptue(const CalibInfo &calib_info, wxString &error_mess
         nozzle_diameter = base_temp_tower_nozzle_diameter;
 
     const double nozzle_scale = nozzle_diameter / base_temp_tower_nozzle_diameter;
-    const double block_height = base_temp_tower_block_height * nozzle_scale;
-    if (std::abs(nozzle_scale - 1.0) > EPSILON)
-        model.objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+    const double block_height = base_temp_tower_block_height;
 
     // cut upper
     auto obj_bb      = model.objects[0]->bounding_box_exact();
@@ -1119,6 +1117,11 @@ void CalibUtils::calib_temptue(const CalibInfo &calib_info, wxString &error_mess
             cut_model(model, new_height, ModelObjectCutAttribute::KeepUpper);
         }
     }
+
+    if (std::abs(nozzle_scale - 1.0) > EPSILON)
+        model.objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+
+    model.objects[0]->ensure_on_bed();
 
     // edit preset
     DynamicPrintConfig print_config    = calib_info.print_prest->config;
