@@ -928,30 +928,24 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (size_t iia = 0; iia < islands_area.size(); ++iia)
         islands_area[iia].translate(plate_shift);
 
-    // Orca: Determine if multiple extruders are used across objects and supports to decide brim generation strategy.
-    std::set<unsigned int> used_extruders;
+    // Orca: Determine which extruders are actually used in the first layer
+    std::set<unsigned int> first_layer_extruders;
+
+    // Check object extruders used in first layer
     for (const auto& [obj_id, extruder] : objPrintVec) {
-        used_extruders.insert(extruder);
-    }
+        const PrintObject* object = print.get_object(obj_id);
 
-    for (const auto& [obj_id, _] : supportBrimAreaMap) {
-        const PrintObject* object           = print.get_object(obj_id);
-        unsigned int       support_extruder = object->config().support_filament;
-        if (support_extruder == 0) {
-            auto it = std::find_if(objPrintVec.begin(), objPrintVec.end(), [obj_id](const auto& pair) { return pair.first == obj_id; });
-            if (it != objPrintVec.end()) {
-                support_extruder = it->second;
-            }
-        }
-        if (support_extruder > 0) {
-            used_extruders.insert(support_extruder);
+        // Verify if this object actually prints on first layer
+        // (has slices on layer 0)
+        if (!object->layers().empty() && !object->layers().front()->lslices.empty()) {
+            first_layer_extruders.insert(extruder);
         }
     }
-    bool is_by_object = (print.config().print_sequence == PrintSequence::ByObject);
 
-    bool is_multimaterial = (used_extruders.size() > 1);
+    bool is_by_object                 = (print.config().print_sequence == PrintSequence::ByObject);
+    bool is_multimaterial_first_layer = (first_layer_extruders.size() > 1);
 
-    if (is_multimaterial || is_by_object) {
+    if (is_multimaterial_first_layer || is_by_object) {
         // Orca: Generate brims separately for each object when multiple extruders are used
         for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
             if (!iter->second.empty()) {

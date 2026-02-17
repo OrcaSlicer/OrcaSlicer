@@ -5002,7 +5002,7 @@ LayerResult GCode::process_layer(
             if (!brim.entities.empty())
                 objects_with_brim++;
         }
-        is_unified_brim = (objects_with_brim == 1);
+        is_unified_brim = (objects_with_brim == 1 && sequence_by_layer);
 
         if (is_unified_brim) {
             // Find the only object that has brim
