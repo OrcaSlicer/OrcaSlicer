@@ -928,46 +928,82 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (size_t iia = 0; iia < islands_area.size(); ++iia)
         islands_area[iia].translate(plate_shift);
 
-    // Orca: Collect all brims from both object and support maps
-    ExPolygons all_brims_merged;
-    
-    // Add all object brims
-    for (auto& [obj_id, brims] : brimAreaMap) {
-        if (!brims.empty()) {
-            expolygons_append(all_brims_merged, brims);
-        }
+    // Orca: Determine if multiple extruders are used across objects and supports to decide brim generation strategy.
+    std::set<unsigned int> used_extruders;
+    for (const auto& [obj_id, extruder] : objPrintVec) {
+        used_extruders.insert(extruder);
     }
-    
-    // Add all support brims
-    for (auto& [obj_id, brims] : supportBrimAreaMap) {
-        if (!brims.empty()) {
-            expolygons_append(all_brims_merged, brims);
-        }
-    }
-    
-    // Merge all brims together into a single continuous area
-    if (!all_brims_merged.empty()) {
-        all_brims_merged = union_ex(all_brims_merged);
-    }
-    
-    // Generate infill once for all merged brims
-    if (!all_brims_merged.empty()) {
-        ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
-        
-        // Assign the same merged brim to all objects that originally had brims
-        bool assigned = false;
 
-        for (auto& [obj_id, _] : brimAreaMap) {
-            if (!assigned) {
-                brimMap[obj_id] = merged_brim;
-                assigned        = true;
-            } else {
-                brimMap[obj_id] = ExtrusionEntityCollection();
+    for (const auto& [obj_id, _] : supportBrimAreaMap) {
+        const PrintObject* object           = print.get_object(obj_id);
+        unsigned int       support_extruder = object->config().support_filament;
+        if (support_extruder == 0) {
+            auto it = std::find_if(objPrintVec.begin(), objPrintVec.end(), [obj_id](const auto& pair) { return pair.first == obj_id; });
+            if (it != objPrintVec.end()) {
+                support_extruder = it->second;
+            }
+        }
+        if (support_extruder > 0) {
+            used_extruders.insert(support_extruder);
+        }
+    }
+
+    bool is_multimaterial = (used_extruders.size() > 1);
+
+    if (is_multimaterial) {
+        // Orca: Generate brims separately for each object when multiple extruders are used
+        for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
+            if (!iter->second.empty()) {
+                brimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));
+            };
+        }
+        for (auto iter = supportBrimAreaMap.begin(); iter != supportBrimAreaMap.end(); ++iter) {
+            if (!iter->second.empty()) {
+                supportBrimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));
+            };
+        }
+    } else {
+        // Orca: Collect all brims from both object and support maps
+        ExPolygons all_brims_merged;
+
+        // Add all object brims
+        for (auto& [obj_id, brims] : brimAreaMap) {
+            if (!brims.empty()) {
+                expolygons_append(all_brims_merged, brims);
             }
         }
 
-        for (auto& [obj_id, _] : supportBrimAreaMap) {
-            supportBrimMap[obj_id] = ExtrusionEntityCollection();
+        // Add all support brims
+        for (auto& [obj_id, brims] : supportBrimAreaMap) {
+            if (!brims.empty()) {
+                expolygons_append(all_brims_merged, brims);
+            }
+        }
+
+        // Merge all brims together into a single continuous area
+        if (!all_brims_merged.empty()) {
+            all_brims_merged = union_ex(all_brims_merged);
+        }
+
+        // Generate infill once for all merged brims
+        if (!all_brims_merged.empty()) {
+            ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
+
+            // Assign the same merged brim to all objects that originally had brims
+            bool assigned = false;
+
+            for (auto& [obj_id, _] : brimAreaMap) {
+                if (!assigned) {
+                    brimMap[obj_id] = merged_brim;
+                    assigned        = true;
+                } else {
+                    brimMap[obj_id] = ExtrusionEntityCollection();
+                }
+            }
+
+            for (auto& [obj_id, _] : supportBrimAreaMap) {
+                supportBrimMap[obj_id] = ExtrusionEntityCollection();
+            }
         }
     }
 }
