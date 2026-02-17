@@ -947,10 +947,11 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
             used_extruders.insert(support_extruder);
         }
     }
+    bool is_by_object = (print.config().print_sequence == PrintSequence::ByObject);
 
     bool is_multimaterial = (used_extruders.size() > 1);
 
-    if (is_multimaterial) {
+    if (is_multimaterial || is_by_object) {
         // Orca: Generate brims separately for each object when multiple extruders are used
         for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
             if (!iter->second.empty()) {
