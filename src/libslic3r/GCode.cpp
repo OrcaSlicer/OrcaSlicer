@@ -5010,22 +5010,16 @@ LayerResult GCode::process_layer(
                 if (!brim.entities.empty()) {
                     // Print the unified brim once before any object
                     this->set_origin(0., 0.);
-                    m_avoid_crossing_perimeters.use_external_mp();
 
                     for (const ExtrusionEntity* ee : brim.entities) {
                         gcode += this->extrude_entity(*ee, "brim", m_config.support_speed.value);
                     }
 
-                    m_avoid_crossing_perimeters.use_external_mp(false);
-                    m_avoid_crossing_perimeters.disable_once();
-
                     // Mark all objects as "brim already printed"
                     for (auto& [id, _] : print.m_brimMap) {
                         this->m_objsWithBrim.erase(id);
                     }
-                    for (auto& [id, _] : print.m_supportBrimMap) {
-                        this->m_objSupportsWithBrim.erase(id);
-                    }
+
                     break;
                 }
             }
