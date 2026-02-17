@@ -928,7 +928,7 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     for (size_t iia = 0; iia < islands_area.size(); ++iia)
         islands_area[iia].translate(plate_shift);
 
-    // Orca:Collect all brims from both object and support maps
+    // Orca: Collect all brims from both object and support maps
     ExPolygons all_brims_merged;
     
     // Add all object brims
