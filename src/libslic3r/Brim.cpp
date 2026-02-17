@@ -964,49 +964,49 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
             };
         }
     } else {
-        // Orca: Collect all brims from both object and support maps
+        // Orca: Unified brim mode (single material, non-sequential printing)
+        //  Collect all brim areas from both objects and supports
         ExPolygons all_brims_merged;
 
         // Add all object brims
         for (auto& [obj_id, brims] : brimAreaMap) {
-            if (!brims.empty()) {
+            if (!brims.empty())
                 expolygons_append(all_brims_merged, brims);
-            }
         }
 
         // Add all support brims
         for (auto& [obj_id, brims] : supportBrimAreaMap) {
-            if (!brims.empty()) {
+            if (!brims.empty())
                 expolygons_append(all_brims_merged, brims);
-            }
         }
 
-        // Merge all brims together into a single continuous area
         if (!all_brims_merged.empty()) {
+            // Merge all brims into a single continuous area
             all_brims_merged = union_ex(all_brims_merged);
-        }
 
-        // Generate infill once for all merged brims
-        if (!all_brims_merged.empty()) {
+            // Generate infill once for the merged brim area
             ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
 
-            // Assign the same merged brim to all objects that originally had brims
-            bool assigned = false;
+            // In unified mode, we need to assign the merged brim to ONLY ONE object
+            if (!objPrintVec.empty()) {
+                // Use the first object in the print order as the carrier for the unified brim
+                ObjectID first_object_id = objPrintVec[0].first;
 
-            for (auto& [obj_id, _] : brimAreaMap) {
-                if (!assigned) {
-                    brimMap[obj_id] = merged_brim;
-                    assigned        = true;
-                } else {
-                    brimMap[obj_id] = ExtrusionEntityCollection();
+                // Assign the merged brim to the first object only
+                for (auto& [obj_id, _] : brimAreaMap) {
+                    if (obj_id == first_object_id) {
+                        brimMap[obj_id] = merged_brim;
+                    } else {
+                        brimMap[obj_id] = ExtrusionEntityCollection(); // Empty for others
+                    }
                 }
-            }
 
-            for (auto& [obj_id, _] : supportBrimAreaMap) {
-                supportBrimMap[obj_id] = ExtrusionEntityCollection();
+                // Support brims are empty in unified mode (they are already merged into the main brim)
+                for (auto& [obj_id, _] : supportBrimAreaMap) {
+                    supportBrimMap[obj_id] = ExtrusionEntityCollection();
+                }
             }
         }
     }
 }
-
 } // namespace Slic3r
