@@ -1367,7 +1367,7 @@ msgid "Height of SVG."
 msgstr "Высота SVG."
 
 msgid "Lock/unlock the aspect ratio of the SVG."
-msgstr "Сохранять/разделять пропорции SVG."
+msgstr "Переключить сохранение пропорций SVG."
 
 msgid "Reset scale"
 msgstr "Сброс масштаба"
@@ -2732,7 +2732,7 @@ msgstr "Фильтровать"
 msgid ""
 "Enabling filtration redirects the right fan to filter gas, which may reduce "
 "cooling performance."
-msgstr "Включение фильтрации направляет вентилятор в канал с фильтром, что может снизить эффективность охлаждения."
+msgstr "Включение фильтрации направляет поток воздуха через канал с фильтром, что может снизить эффективность охлаждения."
 
 msgid ""
 "Enabling filtration during printing may reduce cooling and affect print "
@@ -2751,21 +2751,22 @@ msgid "Heating"
 msgstr "Нагрев"
 
 msgid "Exhaust"
-msgstr "Продувка"
+msgstr "Вытяжка"
 
+# Strong cooling mode is suitable for printing PLA/TPU materials. In this mode, the printouts will be fully cooled.
 msgid "Full Cooling"
-msgstr "Полное охлаждение"
+msgstr "Мощное охлаждение"
 
-# ??? Init – Iintialization?
+# AIR_DUCT_INIT – Initial mode, only used within mc | Может "Запуск"?
 msgid "Init"
-msgstr "Запуск"
+msgstr ""
 
 msgid "Chamber"
 msgstr "Камера"
 
 # ??? Внутренняя циркуляция
 msgid "Innerloop"
-msgstr ""
+msgstr "Рециркуляция"
 
 #. TRN To be shown in the main menu View->Top
 msgid "Top"
@@ -5666,13 +5667,10 @@ msgid "Synchronization"
 msgstr "Синхронизация"
 
 msgid "The device cannot handle more conversations. Please retry later."
-msgstr ""
-"Устройство не может обработать больше сообщений. Пожалуйста, повторите "
-"попытку позже."
+msgstr "Превышен лимит подключений к устройству. Повторите попытку позже."
 
 msgid "Player is malfunctioning. Please reinstall the system player."
-msgstr ""
-"Проигрыватель неисправен. Пожалуйста, переустановите системный проигрыватель."
+msgstr "Проигрыватель неисправен. Пожалуйста, переустановите системный проигрыватель."
 
 msgid "The player is not loaded, please click \"play\" button to retry."
 msgstr ""
@@ -6915,7 +6913,7 @@ msgid "Remove last filament"
 msgstr "Удалить последнюю катушку"
 
 msgid "Synchronize filament list from AMS"
-msgstr "Синхронизировать перечень материалов из AMS"
+msgstr "Синхронизировать материалы"
 
 msgid "Set filaments to use"
 msgstr "Выбрать материал"
@@ -7004,8 +7002,9 @@ msgstr "Развернуть боковую панель"
 msgid "Collapse sidebar"
 msgstr "Свернуть боковую панель"
 
+# Название кнопки на клавиатуре, на момент 2.3.2 используется в 5 местах в значении названия кнопки
 msgid "Tab"
-msgstr "Вкладка"
+msgstr "Tab"
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -11337,14 +11336,14 @@ msgstr ""
 "совпадает с основным."
 
 msgid "API Key / Password"
-msgstr "Ключ API / пароль"
+msgstr "API-ключ / пароль"
 
 msgid ""
 "Orca Slicer can upload G-code files to a printer host. This field should "
 "contain the API Key or the password required for authentication."
 msgstr ""
 "Orca Slicer может загружать файл G-кода на хост принтера. Это поле должно "
-"содержать ключ API или пароль, необходимые для проверки подлинности."
+"содержать API-ключ или пароль, необходимые для проверки подлинности."
 
 msgid "Name of the printer."
 msgstr "Название принтера."
@@ -14086,8 +14085,7 @@ msgid ""
 "Speed of gap infill. Gap usually has irregular line width and should be "
 "printed more slowly."
 msgstr ""
-"Скорость заполнения щелей. Из-за изменяющейся ширины "
-"линии и рекомендуется печатать медленнее."
+"Скорость заполнения щелей. Для надёжного заполнения рекомендуется печатать медленнее, поскольку ширина таких мест зачастую непостоянна и требует быстрого изменения потока."
 
 msgid "Precise Z height"
 msgstr "Точная высота по Z"
@@ -14545,9 +14543,11 @@ msgstr "Наследует профиль"
 msgid "Name of parent profile."
 msgstr "Имя родительского профиля."
 
+# Фактически отвечает за генерацию дна и крышки над и под окрашенной областью, проблема с терминологией
 msgid "Interface shells"
 msgstr "Связующие оболочки"
 
+# И тут прямо говорится, что полезно для печати прозрачными материалами. Без этой опции через прозрачный материал будет просвечивать шаблон заполнения, а первый слой нового материала может провиснуть.
 msgid ""
 "Force the generation of solid shells between adjacent materials/volumes. "
 "Useful for multi-extruder prints with translucent materials or manual "
@@ -14560,6 +14560,7 @@ msgstr ""
 msgid "Maximum width of a segmented region"
 msgstr "Глубина проникновения окрашенной области"
 
+# Переведено с фактическими ошибками, переписать с нуля
 msgid "Maximum width of a segmented region. Zero disables this feature."
 msgstr ""
 "Толщина той части модели, которая была окрашена инструментом "
@@ -14569,6 +14570,7 @@ msgstr ""
 msgid "Interlocking depth of a segmented region"
 msgstr "Глубина переплетения окрашенной области"
 
+# Переведено с фактическими ошибками, переписать с нуля
 msgid ""
 "Interlocking depth of a segmented region. It will be ignored if "
 "\"mmu_segmented_region_max_width\" is zero or if "
@@ -16030,10 +16032,10 @@ msgstr ""
 "Полезно использовать для смены материала вручную при комбинированной печати через общий экструдер, где для этого используются команды M600/PAUSE. Отключает выполнение «G-кода смены материала» в самом начале печати (обычно это не требуется, так как пруток уже заправлен). Команда смены инструмента (например, T0) будет пропускаться на протяжении всей печати."
 
 msgid "Purge in prime tower"
-msgstr "Очистка в черновую башню"
+msgstr "Прочистка в черновую башню"
 
 msgid "Purge remaining filament into prime tower."
-msgstr "Очистка сопла от остатков материала в черновую башню."
+msgstr "Прочистка сопла от остатков материала в черновую башню."
 
 msgid "Enable filament ramming"
 msgstr "Включить рэмминг прутка"
@@ -16182,6 +16184,7 @@ msgstr ""
 msgid "Ignore small overhangs"
 msgstr "Игнорировать небольшие нависания"
 
+# Возможно, стоит дополнить предупреждением о том, что функция не работает с древовидными поддержками (не работает нормально из-за бага)
 msgid "Ignore small overhangs that possibly don't require support."
 msgstr "Не печатать поддержки для небольших нависаний, которые могут обойтись без них."
 
@@ -16304,10 +16307,10 @@ msgid "Rectilinear Interlaced"
 msgstr "Чередующийся зигзаг"
 
 msgid "Base pattern spacing"
-msgstr "Плотность шаблона"
+msgstr "Отступ между линиями поддержки"
 
 msgid "Spacing between support lines."
-msgstr "Расстояние между линиями поддержки."
+msgstr "Расстояние между отдельными линиями поддержки."
 
 msgid "Normal Support expansion"
 msgstr "Горизонтальное расширение поддержки"
@@ -16859,11 +16862,11 @@ msgstr ""
 "1. Прямоугольник с фиксированной шириной и высотой. Установлено по "
 "умолчанию.\n"
 "2. Конус с выступом в нижней части для повышения устойчивости.\n"
-"3. Рёбра жёсткости, которые добавляются по четырём углам чернотой башни для "
+"3. Рёбра жёсткости, которые добавляются по четырём углам черновой башни для "
 "повышения устойчивости."
 
 msgid "Extra rib length"
-msgstr "Дополнительная длина ребра"
+msgstr "Вынос основания ребра"
 
 msgid ""
 "Positive values can increase the size of the rib wall, while negative values "
@@ -16885,7 +16888,7 @@ msgid "Fillet wall"
 msgstr "Скруглять углы"
 
 msgid "The wall of prime tower will fillet."
-msgstr "Скругление углов основной стенки черновой башни."
+msgstr "Скругление углов рёбер жёсткости черновой башни."
 
 msgid ""
 "The extruder to use when printing perimeter of the wipe tower. Set to 0 to "
@@ -16913,10 +16916,10 @@ msgid "The wall of prime tower will skip the start points of wipe path."
 msgstr "Создавать небольшие вырезы в местах потенциальных столкновений сопла со стенкой башни."
 
 msgid "Infill gap"
-msgstr "Плотность линий"
+msgstr "Отступ между линиями"
 
 msgid "Infill gap."
-msgstr "Плотность расположения линий сброса материала."
+msgstr "Управление плотностью расположения линий сброса материала."
 
 msgid ""
 "Purging after filament change will be done inside objects' infills. This may "
@@ -16924,7 +16927,7 @@ msgid ""
 "printed with transparent filament, the mixed color infill will be seen "
 "outside. It will not take effect, unless the prime tower is enabled."
 msgstr ""
-"Очистка сопла после смены материала будет производиться в заполнение модели. "
+"Прочистка сопла после смены материала будет производиться в заполнение модели. "
 "Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню."
 
 msgid ""
@@ -16932,7 +16935,7 @@ msgid ""
 "lower the amount of waste and decrease the print time. It will not take "
 "effect, unless the prime tower is enabled."
 msgstr ""
-"Очистка сопла после смены материала будет производиться в поддержку модели. "
+"Прочистка сопла после смены материала будет производиться в поддержку модели. "
 "Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню."
 
 msgid ""
@@ -20625,15 +20628,12 @@ msgstr "Каталог официальных цветов"
 msgid "More Colors"
 msgstr "Дополнительные цвета"
 
-# ??? несорт (ещё не добавлены разработчиками в файл en-локализации). Закомментированные – подвержены багу кодировки (#4042)
+# ??? Отсюда и далее – несорт (ещё не добавлены разработчиками в файл en-локализации). Закомментированные – подвержены багу кодировки (#4042)
+msgid "Please select at least two volumes."
+msgstr "Выберите хотя бы две модели."
+
 msgid "Actual speed profile"
 msgstr "График расчётной скорости"
-
-#msgid "Show table"
-#msgstr "Показать значения"
-
-#msgid "Hide table"
-#msgstr "Скрыть значения"
 
 # ??? забаганное отображение – UI не учитывает длину локализованных строк и переносит их. Пришлось ужать до предела, чтобы не выглядело вырвиглазно
 msgid "Replace 3D file"
@@ -20649,7 +20649,7 @@ msgid "Replace all selected parts with 3D files from folder"
 msgstr "Заменить все выбранные модели другими из папки"
 
 msgid "Fit camera to scene or selected object."
-msgstr " Поиск объекта"
+msgstr "Показать текущий объект"
 
 msgid "3D Navigator"
 msgstr "Навигатор видов"
@@ -20692,6 +20692,10 @@ msgstr "Скорость в точке: "
 
 msgid "Actual Speed (mm/s)"
 msgstr "Действительная скорость (мм/с)"
+
+# В расширенной таблице над горизонтальным ползунком
+msgid "Volumetric flow rate"
+msgstr "Объёмный расход"
 
 msgid "Actual volumetric flow rate (mm³/s)"
 msgstr "Действительный расход (мм³/с)"
@@ -20781,10 +20785,10 @@ msgid "Angle Deflection"
 msgstr "Угловое отклонение"
 
 msgid "Please input a valid value (0.001 < linear deflection < 0.1)"
-msgstr "Укажите допустимое значение (от 0.001 до 0.1)"
+msgstr "Укажите допустимое значение линейного отклонения (от 0.001 до 0.1)"
 
 msgid "Please input a valid value (0.01 < angle deflection < 1.0)"
-msgstr "Укажите допустимое значение (от 0.01 до 1.0)"
+msgstr "Укажите допустимое значение углового отклонения (от 0.01 до 1.0)"
 
 msgid "Split compound and compsolid into multiple objects"
 msgstr "Разделять модель из нескольких тел на части"
@@ -22466,9 +22470,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Отменить выбор"
-
-#~ msgid "Please select at least two volumes."
-#~ msgstr "Выберите хотя бы две модели."
 
 #~ msgid "Initialize failed (Device connection not ready)!"
 #~ msgstr "Ошибка инициализации (подключённое устройство не готово)!"
