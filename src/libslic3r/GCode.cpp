@@ -5008,7 +5008,7 @@ LayerResult GCode::process_layer(
             // Find the only object that has brim
             for (const auto& [obj_id, brim] : print.m_brimMap) {
                 if (!brim.entities.empty()) {
-                    // Print the unified brim ONCE before any object
+                    // Print the unified brim once before any object
                     this->set_origin(0., 0.);
                     m_avoid_crossing_perimeters.use_external_mp();
 

@@ -965,17 +965,10 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
         }
     } else {
         // Orca: Unified brim mode (single material, non-sequential printing)
-        //  Collect all brim areas from both objects and supports
         ExPolygons all_brims_merged;
 
         // Add all object brims
         for (auto& [obj_id, brims] : brimAreaMap) {
-            if (!brims.empty())
-                expolygons_append(all_brims_merged, brims);
-        }
-
-        // Add all support brims
-        for (auto& [obj_id, brims] : supportBrimAreaMap) {
             if (!brims.empty())
                 expolygons_append(all_brims_merged, brims);
         }
@@ -987,7 +980,7 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
             // Generate infill once for the merged brim area
             ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
 
-            // In unified mode, we need to assign the merged brim to ONLY ONE object
+            // In unified mode, we need to assign the merged brim to only one object
             if (!objPrintVec.empty()) {
                 // Use the first object in the print order as the carrier for the unified brim
                 ObjectID first_object_id = objPrintVec[0].first;
@@ -997,13 +990,8 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
                     if (obj_id == first_object_id) {
                         brimMap[obj_id] = merged_brim;
                     } else {
-                        brimMap[obj_id] = ExtrusionEntityCollection(); // Empty for others
+                        brimMap[obj_id] = ExtrusionEntityCollection();
                     }
-                }
-
-                // Support brims are empty in unified mode (they are already merged into the main brim)
-                for (auto& [obj_id, _] : supportBrimAreaMap) {
-                    supportBrimMap[obj_id] = ExtrusionEntityCollection();
                 }
             }
         }
