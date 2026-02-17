@@ -4495,14 +4495,13 @@ LayerResult GCode::process_layer(
 
             const int start_temp_int = static_cast<int>(std::lround(start_temp));
             const int end_temp_int = static_cast<int>(std::lround(end_temp));
-            const int direction = (end_temp_int >= start_temp_int) ? 1 : -1;
             const unsigned int total_temp_steps = static_cast<unsigned int>(std::max(1, std::abs(end_temp_int - start_temp_int) / temp_step_celsius));
             const unsigned int total_temp_levels = total_temp_steps + 1;
 
             const double step_height = max_print_z > EPSILON ? (static_cast<double>(max_print_z) / static_cast<double>(total_temp_levels)) : 1.0;
             const unsigned int level_index = std::min(total_temp_steps, static_cast<unsigned int>(std::floor(print_z / step_height)));
 
-            int target_temp = start_temp_int + direction * static_cast<int>(level_index * temp_step_celsius);
+            int target_temp = start_temp_int - static_cast<int>(level_index * temp_step_celsius);
             if (level_index >= total_temp_steps)
                 target_temp = end_temp_int;
 
