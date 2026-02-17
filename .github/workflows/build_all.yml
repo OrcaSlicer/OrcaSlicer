@@ -66,7 +66,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-          - os: orca-macos-arm64
+          - os: macos-14
             arch: arm64
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
@@ -166,6 +166,7 @@ jobs:
         bundle: OrcaSlicer-Linux-flatpak_${{ env.ver }}_${{ matrix.variant.arch }}.flatpak
         manifest-path: scripts/flatpak/io.github.softfever.OrcaSlicer.yml
         cache: true
+        cache-key: flatpak-builder-${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
     - name: Upload artifacts Flatpak

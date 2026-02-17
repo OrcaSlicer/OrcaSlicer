@@ -69,7 +69,7 @@ msgid ""
 "Please cold pull before printing TPU to avoid clogging. You may use cold "
 "pull maintenance on the printer."
 msgstr ""
-"Bitte führen Sie vor dem TPU Druck eine Kaltzug-Wartung am Drucker durchum "
+"Bitte führen Sie vor dem TPU Druck eine Kaltzug-Wartung am Drucker durch, um "
 "ein Verstopfen zu vermeiden."
 
 msgid ""
@@ -81,7 +81,7 @@ msgstr ""
 
 msgid "Damp PVA is flexible and may get stuck in extruder. Dry it before use."
 msgstr ""
-"Feuchtes PVA ist flexibel und kann im Extruder stecken bleiben.Bitte "
+"Feuchtes PVA ist flexibel und kann im Extruder stecken bleiben. Bitte "
 "trocknen Sie es vor der Verwendung."
 
 msgid ""
@@ -823,7 +823,7 @@ msgstr "Aufgemalte Naht bearbeiten"
 #. TRN - Input label. Be short as possible
 #. Select look of letter shape
 msgid "Font"
-msgstr "Schiftart"
+msgstr "Schriftart"
 
 msgid "Thickness"
 msgstr "Dicke"
@@ -1194,7 +1194,7 @@ msgid "Set text to face camera"
 msgstr "Setze Text zur Kamera"
 
 msgid "Orient the text towards the camera."
-msgstr "Ortne den Text zur Kamera aus."
+msgstr "Richte den Text zur Kamera aus."
 
 #, boost-format
 msgid "Font \"%1%\" can't be used. Please select another."
@@ -1881,7 +1881,7 @@ msgid "Select the language"
 msgstr "Sprache wählen"
 
 msgid "Language"
-msgstr "Spache"
+msgstr "Sprache"
 
 msgid "*"
 msgstr "*"
@@ -2495,7 +2495,7 @@ msgstr ""
 "Prozesseinstellungen der ausgewählten Objekte zu bearbeiten."
 
 msgid "Remove paint-on fuzzy skin"
-msgstr "Entferne die aufgemalte, fizzy Außenhaut"
+msgstr "Entferne die aufgemalte, fuzzy Außenhaut"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Lösche den Verbinder aus dem Objekt, das Teil des Schnitts ist."
@@ -2724,7 +2724,7 @@ msgid "Open Preferences."
 msgstr "Einstellungen."
 
 msgid "Open next tip."
-msgstr "Öffne nächsten Tip."
+msgstr "Öffne nächsten Tipp."
 
 msgid "Open Documentation in web browser."
 msgstr "Öffne Dokumentation im Webbrowser."
