@@ -7020,7 +7020,8 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
 }
 
 // Calculate the interpolated value for the current layer between start_value and end_value.
-// Step rounding value to make changes visible by generating layer groups with a value until the range is exceeded and it moves on to the next one.
+// Step will create equal layers steps from first to last value.
+// Step = 0 means gradual interpolation finishing at last value.
 float GCode::interpolate_value_across_layers(float start_value, float end_value, float step) const
 {
     if (m_layer_index <= 1) {
