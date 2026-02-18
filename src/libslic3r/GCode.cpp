@@ -7027,7 +7027,7 @@ float GCode::interpolate_value_across_layers(float start_value, float end_value,
         return start_value;
     }
     else {
-        bool use_steps = step > 0;
+        bool use_steps = step > 0.f;
         if (use_steps) {
             if (start_value > end_value) {
                 start_value += step;
@@ -7035,7 +7035,7 @@ float GCode::interpolate_value_across_layers(float start_value, float end_value,
                 end_value += step;
             }
         }
-        float ratio = (m_layer_index + 1.0f) / m_layer_count;
+        float ratio = m_layer_index / (m_layer_count - 1.f);
         float value = start_value + ratio * (end_value - start_value);
         if (use_steps) {
             value = trunc(value / step) * step;
