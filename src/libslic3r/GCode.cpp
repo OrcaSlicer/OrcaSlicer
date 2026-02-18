@@ -4478,36 +4478,7 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_Temp_Tower: {
-            // Adapt the temperature steps to current tower height (including any additional resize):
-            // split the full height into equal segments, one for each 5C step.
-            coordf_t max_print_z = 0.0;
-            for (ObjectID print_object_id : print.print_object_ids()) {
-                const PrintObject* print_object = print.get_object(print_object_id);
-                if (print_object != nullptr && !print_object->layers().empty())
-                    max_print_z = std::max(max_print_z, print_object->layers().back()->print_z);
-            }
-
-            const double start_temp = print.calib_params().start;
-            const double end_temp = print.calib_params().end;
-            constexpr int temp_step_celsius = 5;
-            const int temp_low = static_cast<int>(std::floor(std::min(start_temp, end_temp)));
-            const int temp_high = static_cast<int>(std::ceil(std::max(start_temp, end_temp)));
-
-            const int start_temp_int = static_cast<int>(std::lround(start_temp));
-            const int end_temp_int = static_cast<int>(std::lround(end_temp));
-            const unsigned int total_temp_steps = static_cast<unsigned int>(std::max(1, std::abs(end_temp_int - start_temp_int) / temp_step_celsius));
-            const unsigned int total_temp_levels = total_temp_steps + 1;
-
-            const double step_height = max_print_z > EPSILON ? (static_cast<double>(max_print_z) / static_cast<double>(total_temp_levels)) : 1.0;
-            const unsigned int level_index = std::min(total_temp_steps, static_cast<unsigned int>(std::floor(print_z / step_height)));
-
-            int target_temp = start_temp_int - static_cast<int>(level_index * temp_step_celsius);
-            if (level_index >= total_temp_steps)
-                target_temp = end_temp_int;
-
-            const int bounded_temp = std::clamp(target_temp, temp_low, temp_high);
-
-            gcode += writer().set_temperature(bounded_temp);
+            gcode += writer().set_temperature(this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start), static_cast<float>(print.calib_params().end), 5.0f));
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
@@ -7048,14 +7019,28 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
     }
 }
 
-// Calculate the interpolated value for the current layer between start_value and end_value
-float GCode::interpolate_value_across_layers(float start_value, float end_value) const {
-    if (m_layer_index == 1) {
+// Calculate the interpolated value for the current layer between start_value and end_value.
+// Step rounding value to make changes visible by generating layer groups with a value until the range is exceeded and it moves on to the next one.
+float GCode::interpolate_value_across_layers(float start_value, float end_value, float step) const
+{
+    if (m_layer_index <= 1) {
         return start_value;
-    } else {
-        float ratio = (m_layer_index - 2.0f) / (m_layer_count - 3.0f);
-        ratio = std::max(0.0f, std::min(1.0f, ratio)); // clamp
-        return start_value + ratio * (end_value - start_value);
+    }
+    else {
+        bool use_steps = step > 0;
+        if (use_steps) {
+            if (start_value > end_value) {
+                start_value += step;
+            } else {
+                end_value += step;
+            }
+        }
+        float ratio = (m_layer_index + 1.0f) / m_layer_count;
+        float value = start_value + ratio * (end_value - start_value);
+        if (use_steps) {
+            value = trunc(value / step) * step;
+        }
+        return value;
     }
 }
 
