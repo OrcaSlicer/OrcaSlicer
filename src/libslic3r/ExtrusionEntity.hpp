@@ -236,7 +236,7 @@ public:
     // Currently not used.
     void subtract_expolygons(const ExPolygons &collection, ExtrusionEntityCollection* retval) const;
     void clip_end(double distance);
-    void simplify(double tolerance);
+    virtual void simplify(double tolerance);
     double length() const override;
     ExtrusionRole role() const override { return m_role; }
     // Produce a list of 2D polygons covered by the extruded paths, offsetted by the extrusion width.
@@ -258,7 +258,7 @@ public:
     double total_volume() const override { return mm3_per_mm * unscale<double>(length()); }
 
     //BBS: add new simplifing method by fitting arc
-    void simplify_by_fitting_arc(double tolerance);
+    virtual void simplify_by_fitting_arc(double tolerance);
     //BBS:
     bool is_force_no_extrusion() const { return m_no_extrusion; }
     void set_force_no_extrusion(bool no_extrusion) { m_no_extrusion = no_extrusion; }
@@ -281,33 +281,104 @@ public:
     {
         double z_ratio{1.};
         double e_ratio{1.};
+
+        Slope(const double z, const double e) : z_ratio(z), e_ratio(e) {}
     };
 
-    Slope slope_begin;
-    Slope slope_end;
+    using Slopes = std::vector<Slope, PointsAllocator<Slope>>;
 
     ExtrusionPathSloped(const ExtrusionPath& rhs, const Slope& begin, const Slope& end)
-        : ExtrusionPath(rhs), slope_begin(begin), slope_end(end)
-    {}
-    ExtrusionPathSloped(ExtrusionPath&& rhs, const Slope& begin, const Slope& end)
-        : ExtrusionPath(std::move(rhs)), slope_begin(begin), slope_end(end)
-    {}
-    ExtrusionPathSloped(const Polyline& polyline, const ExtrusionPath& rhs, const Slope& begin, const Slope& end)
-        : ExtrusionPath(polyline, rhs), slope_begin(begin), slope_end(end)
-    {}
-    ExtrusionPathSloped(Polyline&& polyline, const ExtrusionPath& rhs, const Slope& begin, const Slope& end)
-        : ExtrusionPath(std::move(polyline), rhs), slope_begin(begin), slope_end(end)
-    {}
-
-    Slope interpolate(const double ratio) const
+        : ExtrusionPath(rhs)
     {
+        interpolate_segments(*this, begin, end);
+    }
+    ExtrusionPathSloped(ExtrusionPath&& rhs, const Slope& begin, const Slope& end)
+        : ExtrusionPath(std::move(rhs))
+    {
+        interpolate_segments(*this, begin, end);
+    }
+    ExtrusionPathSloped(const Polyline& polyline, const ExtrusionPath& rhs, const Slope& begin, const Slope& end)
+        : ExtrusionPath(polyline, rhs)
+    {
+        interpolate_segments(*this, begin, end);
+    }
+    ExtrusionPathSloped(Polyline&& polyline, const ExtrusionPath& rhs, const Slope& begin, const Slope& end)
+        : ExtrusionPath(std::move(polyline), rhs)
+    {
+        interpolate_segments(*this, begin, end);
+    }
+
+    ExtrusionPathSloped(const ExtrusionPath& rhs, const Slopes& slopes)
+        : ExtrusionPath(rhs), m_segments(slopes) { assert(size() == m_segments.size()); }
+    ExtrusionPathSloped(ExtrusionPath&& rhs, Slopes&& slopes)
+        : ExtrusionPath(std::move(rhs)), m_segments(std::move(slopes)) { assert(size() == m_segments.size()); }
+    ExtrusionPathSloped(const Polyline& polyline, const ExtrusionPath& rhs, const Slopes& slopes)
+        : ExtrusionPath(polyline, rhs), m_segments(slopes) { assert(size() == m_segments.size()); }
+    ExtrusionPathSloped(Polyline&& polyline, const ExtrusionPath& rhs, Slopes&& slopes)
+        : ExtrusionPath(std::move(polyline), rhs), m_segments(std::move(slopes)) { assert(size() == m_segments.size()); }
+
+    [[nodiscard]] const Slope& interpolate(const int segment_idx) const {
+        return m_segments[segment_idx];
+    }
+
+    [[nodiscard]] Slope interpolate(const double ratio) const
+    {
+        const auto& begin = slope_begin();
+        const auto& end   = slope_end();
         return {
-            lerp(slope_begin.z_ratio, slope_end.z_ratio, ratio),
-            lerp(slope_begin.e_ratio, slope_end.e_ratio, ratio),
+            lerp(begin.z_ratio, end.z_ratio, ratio),
+            lerp(begin.e_ratio, end.e_ratio, ratio),
         };
     }
 
-    bool is_flat() const { return is_approx(slope_begin.z_ratio, slope_end.z_ratio); }
+    [[nodiscard]] const Slope& slope_begin() const { return m_segments.front(); }
+    [[nodiscard]] const Slope& slope_end() const { return m_segments.back(); }
+    [[nodiscard]] bool         is_flat() const
+    {
+        return std::all_of(m_segments.begin(), m_segments.end(), [&b = slope_begin()](const Slope& s) { return is_approx(b.z_ratio, s.z_ratio); });
+    }
+
+    ExtrusionEntity* clone() const override { return new ExtrusionPathSloped(*this); }
+    // Create a new object, initialize it with this object using the move semantics.
+    ExtrusionEntity* clone_move() override { return new ExtrusionPathSloped(std::move(*this)); }
+
+    void reverse() override {
+        ExtrusionPath::reverse();
+        std::reverse(m_segments.begin(), m_segments.end());
+    }
+
+    void simplify(double tolerance) override
+    {
+        // Do nothing
+    }
+
+    void simplify_by_fitting_arc(double tolerance) override
+    {
+        // Do nothing
+    }
+
+private:
+    Slopes m_segments;
+
+    static void interpolate_segments(ExtrusionPathSloped& p, const Slope& begin, const Slope& end)
+    {
+        p.m_segments.emplace_back(begin);
+
+        const double total_length = p.polyline.length();
+        double       path_length  = 0.;
+        for (const Line& line : p.polyline.lines()) {
+            const double line_length = line.length();
+            path_length += line_length;
+
+            const double ratio = path_length / total_length;
+
+            p.m_segments.emplace_back(
+                lerp(begin.z_ratio, end.z_ratio, ratio),
+                lerp(begin.e_ratio, end.e_ratio, ratio)
+            );
+        }
+        p.m_segments.back() = end;
+    }
 };
 
 class ExtrusionPathOriented : public ExtrusionPath

@@ -7,6 +7,8 @@
 #include "SurfaceCollection.hpp"
 #include "ExtrusionEntityCollection.hpp"
 #include "BoundingBox.hpp"
+#include "PrintConfig.hpp"
+
 namespace Slic3r {
 
 class ExPolygon;
@@ -152,6 +154,10 @@ public:
     ExPolygons 				 lslices;
     ExPolygons 				 lslices_extrudable;  // BBS: the extrudable part of lslices used for tree support
     std::vector<BoundingBox> lslices_bboxes;
+
+    // Regions that is fuzzified, used for generating top surface fuzzify
+    // for config that does not have fuzzy skin, the corresponding ExPolygons will be empty
+    std::unordered_map<FuzzySkinConfig, ExPolygons> regions_by_fuzzify;
 
     // BBS
     ExPolygons              loverhangs;

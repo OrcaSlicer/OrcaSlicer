@@ -10,54 +10,6 @@
 #include "SurfaceCollection.hpp"
 
 namespace Slic3r {
-struct FuzzySkinConfig
-{
-    FuzzySkinType type;
-    coord_t       thickness;
-    coord_t       point_distance;
-    bool          fuzzy_first_layer;
-    NoiseType     noise_type;
-    double        noise_scale;
-    int           noise_octaves;
-    double        noise_persistence;
-    FuzzySkinMode mode;
-
-    bool operator==(const FuzzySkinConfig& r) const
-    {
-        return type == r.type
-            && thickness == r.thickness
-            && point_distance == r.point_distance
-            && fuzzy_first_layer == r.fuzzy_first_layer
-            && noise_type == r.noise_type
-            && noise_scale == r.noise_scale
-            && noise_octaves == r.noise_octaves
-            && noise_persistence == r.noise_persistence
-            && mode == r.mode;
-    }
-
-    bool operator!=(const FuzzySkinConfig& r) const { return !(*this == r); }
-};
-}
-
-namespace std {
-template<> struct hash<Slic3r::FuzzySkinConfig>
-{
-    size_t operator()(const Slic3r::FuzzySkinConfig& c) const noexcept
-    {
-        std::size_t seed = std::hash<Slic3r::FuzzySkinType>{}(c.type);
-        boost::hash_combine(seed, std::hash<coord_t>{}(c.thickness));
-        boost::hash_combine(seed, std::hash<coord_t>{}(c.point_distance));
-        boost::hash_combine(seed, std::hash<bool>{}(c.fuzzy_first_layer));
-        boost::hash_combine(seed, std::hash<Slic3r::NoiseType>{}(c.noise_type));
-        boost::hash_combine(seed, std::hash<double>{}(c.noise_scale));
-        boost::hash_combine(seed, std::hash<int>{}(c.noise_octaves));
-        boost::hash_combine(seed, std::hash<double>{}(c.noise_persistence));
-        return seed;
-    }
-};
-} // namespace std
-
-namespace Slic3r {
 
 class PerimeterGenerator {
 public:

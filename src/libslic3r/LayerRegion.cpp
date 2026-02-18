@@ -121,6 +121,13 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         g.process_arachne();
     else
         g.process_classic();
+
+    // Merge fuzzy regions to layer
+    auto& fuzzify_regions = this->layer()->regions_by_fuzzify;
+    for (auto& fuzzify : g.regions_by_fuzzify) {
+        // Merge regions by config
+        expolygons_append(fuzzify_regions[fuzzify.first], std::move(fuzzify.second));
+    }
 }
 
 #if 1
@@ -446,11 +453,14 @@ Surfaces expand_merge_surfaces(
         append(expansions, std::move(zone_expansions));
     }
 
+    ExPolygons cpy = src;
     std::vector<ExPolygon> expanded = merge_expansions_into_expolygons(std::move(src), std::move(expansions));
     //NOTE: The current regularization of the shells can create small unasigned regions in the object (E.G. benchy)
     // without the following closing operation, those regions will stay unfilled and cause small holes in the expanded surface.
     // look for narrow_ensure_vertical_wall_thickness_region_radius filter.
     expanded = closing_ex(expanded, closing_radius);
+    // Make sure the expanded surface fully covers the original region, otherwise we leave holes in surfaces
+    expanded = union_ex(expanded, std::move(cpy));
     // Trim the zones by the expanded expolygons.
     for (ExpansionZone& expansion_zone : expansion_zones)
         if (expansion_zone.expanded_into)

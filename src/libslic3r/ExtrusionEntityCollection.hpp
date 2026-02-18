@@ -113,6 +113,7 @@ public:
             this->entities.emplace_back(new ExtrusionPath(std::move(path)));
     }
     void replace(size_t i, const ExtrusionEntity &entity);
+    void replace(size_t i, ExtrusionEntity&& entity);
     void remove(size_t i);
     static ExtrusionEntityCollection chained_path_from(const ExtrusionEntitiesPtr &extrusion_entities, const Point &start_near, ExtrusionRole role = erMixed);
     ExtrusionEntityCollection chained_path_from(const Point &start_near, ExtrusionRole role = erMixed) const 

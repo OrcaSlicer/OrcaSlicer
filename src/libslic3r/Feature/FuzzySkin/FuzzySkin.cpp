@@ -67,7 +67,7 @@ static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinCo
 }
 
 // Thanks Cura developers for this function.
-void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkinConfig& cfg)
+static void fuzzy_polyline(Points& poly, bool closed, const coordf_t slice_z, const FuzzySkinConfig& cfg)
 {
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
@@ -111,7 +111,7 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
 }
 
 // Thanks Cura developers for this function.
-void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg)
+static void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg)
 {
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
@@ -183,17 +183,22 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
                                   scaled<coord_t>(region_config.fuzzy_skin_thickness.value),
                                   scaled<coord_t>(region_config.fuzzy_skin_point_distance.value),
                                   region_config.fuzzy_skin_first_layer,
+                                  region_config.fuzzy_skin_nonplanar,
                                   region_config.fuzzy_skin_noise_type,
                                   region_config.fuzzy_skin_scale,
                                   region_config.fuzzy_skin_octaves,
                                   region_config.fuzzy_skin_persistence,
                                   region_config.fuzzy_skin_mode};
-        auto&                 surfaces = regions[cfg];
-        for (const auto& surface : region->slices.surfaces) {
-            surfaces.push_back(&surface);
+        // Important: this line cannot be moved into the `if`, otherwise we have missing regions
+        auto& surfaces = regions[cfg];
+        if (cfg.fuzzify()) {
+            // We only keep the shape of regions that will be fuzzified
+            for (const auto& surface : region->slices.surfaces) {
+                surfaces.push_back(&surface);
+            }
         }
 
-        if (cfg.type != FuzzySkinType::None) {
+        if (cfg.fuzzify()) {
             g.has_fuzzy_skin = true;
             if (cfg.type != FuzzySkinType::External) {
                 g.has_fuzzy_hole = true;
@@ -211,7 +216,7 @@ void group_region_by_fuzzify(PerimeterGenerator& g)
     }
 }
 
-bool should_fuzzify(const FuzzySkinConfig& config, const int layer_id, const size_t loop_idx, const bool is_contour)
+static bool should_fuzzify(const FuzzySkinConfig& config, const int layer_id, const size_t loop_idx, const bool is_contour)
 {
     const auto fuzziy_type = config.type;
 
@@ -227,6 +232,28 @@ bool should_fuzzify(const FuzzySkinConfig& config, const int layer_id, const siz
     const bool fuzzify_holes    = fuzzify_contours && (fuzziy_type == FuzzySkinType::All || fuzziy_type == FuzzySkinType::AllWalls);
 
     return is_contour ? fuzzify_contours : fuzzify_holes;
+}
+
+static std::vector<std::pair<const FuzzySkinConfig&, const ExPolygons&>> find_affective_regions(
+    const std::unordered_map<FuzzySkinConfig, ExPolygons>& regions, const int layer_id, const size_t loop_idx, const bool is_contour,
+    const bool require_nonplanar = false)
+{
+    std::vector<std::pair<const FuzzySkinConfig&, const ExPolygons&>> fuzzified_regions;
+    fuzzified_regions.reserve(regions.size());
+    for (const auto& region : regions) {
+        if (require_nonplanar && !region.first.enable_nonplanar) {
+            continue;
+        }
+        if (should_fuzzify(region.first, layer_id, loop_idx, is_contour)) {
+            fuzzified_regions.emplace_back(region.first, region.second);
+        }
+    }
+    return fuzzified_regions;
+}
+
+static bool is_fully_clipped(const Algorithm::SplittedLine& l)
+{
+    return std::all_of(l.begin(), l.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; });
 }
 
 Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perimeter_generator, const size_t loop_idx, const bool is_contour)
@@ -248,13 +275,7 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
     }
 
     // Find all affective regions
-    std::vector<std::pair<const FuzzySkinConfig&, const ExPolygons&>> fuzzified_regions;
-    fuzzified_regions.reserve(regions.size());
-    for (const auto& region : regions) {
-        if (should_fuzzify(region.first, perimeter_generator.layer_id, loop_idx, is_contour)) {
-            fuzzified_regions.emplace_back(region.first, region.second);
-        }
-    }
+    const auto fuzzified_regions = find_affective_regions(regions, perimeter_generator.layer_id, loop_idx, is_contour);
     if (fuzzified_regions.empty()) {
         return polygon;
     }
@@ -289,13 +310,14 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
         }
 
         // Fuzzy splitted polygon
-        if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
+        if (is_fully_clipped(splitted)) {
             // The entire polygon is fuzzified
             fuzzy_polyline(fuzzified.points, true, slice_z, r.first);
         } else {
+            fuzzified.points.clear();
+
             Points segment;
             segment.reserve(splitted.size());
-            fuzzified.points.clear();
 
             const auto fuzzy_current_segment = [&segment, &fuzzified, &r, slice_z]() {
                 fuzzified.points.push_back(segment.front());
@@ -340,13 +362,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
             fuzzy_extrusion_line(extrusion->junctions, slice_z, config);
     } else {
         // Find all affective regions
-        std::vector<std::pair<const FuzzySkinConfig&, const ExPolygons&>> fuzzified_regions;
-        fuzzified_regions.reserve(regions.size());
-        for (const auto& region : regions) {
-            if (should_fuzzify(region.first, perimeter_generator.layer_id, extrusion->inset_idx, is_contour)) {
-                fuzzified_regions.emplace_back(region.first, region.second);
-            }
-        }
+        const auto fuzzified_regions = find_affective_regions(regions, perimeter_generator.layer_id, extrusion->inset_idx, is_contour);
         if (!fuzzified_regions.empty()) {
             // Split the loops into lines with different config, and fuzzy them separately
             for (const auto& r : fuzzified_regions) {
@@ -357,14 +373,15 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 }
 
                 // Fuzzy splitted extrusion
-                if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
+                if (is_fully_clipped(splitted)) {
                     // The entire polygon is fuzzified
                     fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
                 } else {
-                    const auto                              current_ext = extrusion->junctions;
+                    std::vector<Arachne::ExtrusionJunction> current_ext;
+                    std::swap(current_ext, extrusion->junctions);
+
                     std::vector<Arachne::ExtrusionJunction> segment;
                     segment.reserve(current_ext.size());
-                    extrusion->junctions.clear();
 
                     const auto fuzzy_current_segment = [&segment, &extrusion, &r, slice_z]() {
                         extrusion->junctions.push_back(segment.front());
@@ -398,6 +415,159 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     if (!segment.empty()) {
                         fuzzy_current_segment();
                     }
+                }
+            }
+        }
+    }
+}
+
+static void nonplanar_fuzzy_polyline(Points& poly, std::vector<double>& deviation, const coordf_t slice_z, const FuzzySkinConfig& cfg)
+{
+    std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
+
+    const double min_dist_between_points = cfg.point_distance * 3. / 4.; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    const double range_random_point_dist = cfg.point_distance / 2.;
+    double dist_left_over = random_value() * (min_dist_between_points / 2.); // the distance to be traversed on the line before making the first new point
+
+    deviation.clear();
+    deviation.reserve(poly.size());
+
+    Points out;
+    const auto put_next_point = [&out, &deviation, &noise, &cfg, slice_z](Point& p) {
+        out.emplace_back(p);
+        double r = noise->GetValue(unscale_(p.x()), unscale_(p.y()), slice_z) * cfg.thickness;
+        deviation.emplace_back(r);
+    };
+
+    Point* p0 = nullptr;
+    out.reserve(poly.size());
+    for (Point& p1 : poly) {
+        if (p0 == nullptr) {
+            // Skip the first point
+            p0 = &p1;
+            out.emplace_back(p1);
+            deviation.emplace_back(0);
+            continue;
+        }
+
+        // 'a' is the (next) new point between p0 and p1
+        Vec2d  p0p1      = (p1 - *p0).cast<double>();
+        double p0p1_size = p0p1.norm();
+        double p0pa_dist = dist_left_over;
+        for (; p0pa_dist < p0p1_size;
+            p0pa_dist += min_dist_between_points + random_value() * range_random_point_dist) {
+            Point pa = *p0 + (p0p1 * (p0pa_dist / p0p1_size)).cast<coord_t>();
+            put_next_point(pa);
+        }
+        dist_left_over = p0pa_dist - p0p1_size;
+        p0 = &p1;
+    }
+    if (out.back() != poly.back()) {
+        out.emplace_back(poly.back());
+        deviation.emplace_back(0);
+    } else {
+        deviation.back() = 0;
+    }
+    poly = std::move(out);
+}
+
+void apply_nonplanar_fuzzy_skin(Layer* layer)
+{
+    const auto& fuzzy_regions     = layer->regions_by_fuzzify;
+    const auto  fuzzified_regions = find_affective_regions(fuzzy_regions, layer->id(), 0, true, true);
+    if (fuzzified_regions.empty())
+        return;
+
+    const auto region_cnt = layer->region_count();
+    for (size_t i = 0; i < region_cnt; i++) {
+        const auto region = layer->get_region(i);
+
+        // Find out fills that can be fuzzified
+        for (auto entity : region->fills.entities) {
+            // Every fill should be ExtrusionEntityCollection
+            auto fill = static_cast<ExtrusionEntityCollection*>(entity);
+
+            for (size_t j = 0; j < fill->size(); j++) {
+                const auto single_entity = fill->entities[j];
+                // For each fill collection, we process the top surfaces only
+                if (single_entity->role() != erTopSolidInfill) {
+                    continue;
+                }
+
+                // And top surface fills should only be either `ExtrusionLoop` or `ExtrusionPath`
+                if (ExtrusionPath* path = dynamic_cast<ExtrusionPath*>(single_entity)) {
+
+                    Points poly = std::move(path->polyline.points);
+                    std::vector<double> deviation(poly.size(), 0);
+
+                    // Start fuzzifying the path
+                    if (fuzzy_regions.size() == 1) { // optimization
+                        // Fuzzy the entire path
+                        nonplanar_fuzzy_polyline(poly, deviation, layer->slice_z, fuzzy_regions.begin()->first);
+                    } else {
+                        // Split the path into lines with different config, and fuzzy them separately
+                        for (const auto& r : fuzzified_regions) {
+                            const auto splitted = Algorithm::split_line(poly, r.second, false);
+                            if (splitted.empty()) {
+                                // No intersection, skip
+                                continue;
+                            }
+
+                            // Fuzzy splitted extrusion
+                            if (is_fully_clipped(splitted)) {
+                                // The entire extrusion is fuzzified
+                                nonplanar_fuzzy_polyline(poly, deviation, layer->slice_z, r.first);
+                            } else {
+                                poly.clear();
+                                std::vector<double> current_deviation;
+                                std::swap(deviation, current_deviation);
+
+                                Points segment;
+                                segment.reserve(splitted.size());
+
+                                const auto fuzzy_current_segment = [&poly, &deviation, &segment, &r, slice_z = layer->slice_z]() {
+                                    std::vector<double> tmp;
+                                    nonplanar_fuzzy_polyline(segment, tmp, slice_z, r.first);
+                                    poly.insert(poly.end(), segment.begin(), segment.end());
+                                    deviation.insert(deviation.end(), tmp.begin(), tmp.end());
+                                    segment.clear();
+                                };
+
+                                for (const auto& p : splitted) {
+                                    if (p.clipped) {
+                                        segment.push_back(p.p);
+                                    } else {
+                                        if (segment.empty()) {
+                                            poly.push_back(p.p);
+                                            deviation.push_back(current_deviation[p.get_src_index()]);
+                                        } else {
+                                            segment.push_back(p.p);
+                                            fuzzy_current_segment();
+                                        }
+                                    }
+                                }
+                                if (!segment.empty()) {
+                                    // Finalize the extrusion
+                                    fuzzy_current_segment();
+                                }
+                            }
+                        }
+                    }
+
+                    // Convert deviation to ratio
+                    ExtrusionPathSloped::Slopes slopes;
+                    slopes.reserve(deviation.size());
+                    const double layer_height = scale_(path->height);
+                    for (double d : deviation) {
+                        const double ratio = d / layer_height + 1;
+                        slopes.emplace_back(ratio, ratio);
+                    }
+
+                    ExtrusionPathSloped sloped(Polyline(std::move(poly)), *path, std::move(slopes));
+                    fill->replace(j, std::move(sloped));
+                } else if (ExtrusionLoop* loop = dynamic_cast<ExtrusionLoop*>(single_entity)) {
+                } else {
+                    throw Slic3r::InvalidArgument("Unsupported extrusion entity type to fuzzify");
                 }
             }
         }
