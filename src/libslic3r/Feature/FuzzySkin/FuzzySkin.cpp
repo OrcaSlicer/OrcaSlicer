@@ -111,7 +111,7 @@ void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkin
 }
 
 // Thanks Cura developers for this function.
-void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg)
+void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg, bool closed)
 {
     std::unique_ptr<noise::module::Module> noise = get_noise_module(cfg);
 
@@ -124,9 +124,12 @@ void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice
     Arachne::ExtrusionJunctions out;
     out.reserve(ext_lines.size());
     for (auto& p1 : ext_lines) {
-        if (p0->p == p1.p) { // Connect endpoints.
-            out.emplace_back(p1.p, p1.w, p1.perimeter_index);
-            continue;
+        // Orca: only skip the first point for closed path, open path should not skip any point
+        if (closed) {
+            if (p0->p == p1.p) { // Connect endpoints.
+                out.emplace_back(p1.p, p1.w, p1.perimeter_index);
+                continue;
+            }
         }
 
         // 'a' is the (next) new point between p0 and p1
@@ -266,11 +269,11 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
             BoundingBox bbox = get_extents(perimeter_generator.slices->surfaces);
             bbox.offset(scale_(1.));
             ::Slic3r::SVG svg(debug_out_path("fuzzy_traverse_loops_%d_%d_%d_region_%d.svg", perimeter_generator.layer_id,
-                                             loop.is_contour ? 0 : 1, loop.depth, i)
+                                             is_contour ? 0 : 1, loop_idx, i)
                                   .c_str(),
                               bbox);
             svg.draw_outline(perimeter_generator.slices->surfaces);
-            svg.draw_outline(loop.polygon, "green");
+            svg.draw_outline(polygon, "green");
             svg.draw(r.second, "red", 0.5);
             svg.draw_outline(r.second, "red");
             svg.Close();
@@ -348,6 +351,35 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
             }
         }
         if (!fuzzified_regions.empty()) {
+ 
+#ifdef DEBUG_FUZZY
+            {
+                int i = 0;
+                for (const auto& r : fuzzified_regions) {
+                    BoundingBox bbox = get_extents(perimeter_generator.slices->surfaces);
+                    bbox.offset(scale_(1.));
+                    ::Slic3r::SVG svg(debug_out_path("fuzzy_traverse_loops_%d_%d_%d_region_%d.svg", perimeter_generator.layer_id,
+                                                     is_contour ? 0 : 1, extrusion->inset_idx, i)
+                                          .c_str(),
+                                      bbox);
+
+                    // Convert extrusion line to polygon for visualization
+                    Polygon extrusion_polygon;
+                    extrusion_polygon.points.reserve(extrusion->junctions.size());
+                    for (const auto& junction : extrusion->junctions) {
+                        extrusion_polygon.points.push_back(junction.p);
+                    }
+
+                    svg.draw_outline(perimeter_generator.slices->surfaces);
+                    svg.draw_outline(extrusion_polygon, "green");
+                    svg.draw(r.second, "red", 0.5);
+                    svg.draw_outline(r.second, "red");
+                    svg.Close();
+                    i++;
+                }
+            }
+#endif
+
             // Split the loops into lines with different config, and fuzzy them separately
             for (const auto& r : fuzzified_regions) {
                 const auto splitted = Algorithm::split_line(*extrusion, r.second, false);
@@ -360,6 +392,7 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                 if (std::all_of(splitted.begin(), splitted.end(), [](const Algorithm::SplitLineJunction& j) { return j.clipped; })) {
                     // The entire polygon is fuzzified
                     fuzzy_extrusion_line(extrusion->junctions, slice_z, r.first);
+                    continue;
                 } else {
                     const auto                              current_ext = extrusion->junctions;
                     std::vector<Arachne::ExtrusionJunction> segment;
@@ -367,11 +400,20 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     extrusion->junctions.clear();
 
                     const auto fuzzy_current_segment = [&segment, &extrusion, &r, slice_z]() {
-                        extrusion->junctions.push_back(segment.front());
-                        const auto back = segment.back();
-                        fuzzy_extrusion_line(segment, slice_z, r.first);
+                        // Orca: non fuzzy points to isolate fuzzy region
+                        const auto front = segment.front();
+                        const auto back  = segment.back();
+
+                        fuzzy_extrusion_line(segment, slice_z, r.first, false);
+                        // Orca: only add non fuzzy point if it's not in the extrusion closing point.
+                        if (extrusion->junctions.front().p != front.p) {
+                            extrusion->junctions.push_back(front);
+                        }
                         extrusion->junctions.insert(extrusion->junctions.end(), segment.begin(), segment.end());
-                        extrusion->junctions.push_back(back);
+                        // Orca: only add non fuzzy point if it's not in the extrusion closing point.
+                        if (extrusion->junctions.back().p != front.p) {
+                            extrusion->junctions.push_back(back);
+                        }
                         segment.clear();
                     };
 
@@ -397,6 +439,12 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
                     }
                     if (!segment.empty()) {
                         fuzzy_current_segment();
+                    }
+
+                    //Orca: ensure the loop is closed after fuzzy
+                    if (extrusion->junctions.front().p != extrusion->junctions.back().p) {
+                        extrusion->junctions.back().p = extrusion->junctions.front().p;
+                        extrusion->junctions.back().w = extrusion->junctions.front().w;
                     }
                 }
             }
