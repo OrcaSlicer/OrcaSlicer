@@ -291,9 +291,33 @@ std::string Ultimaker::test_auth() const {
 
 bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, ErrorFn error_fn, InfoFn info_fn) const
 {
+	/* 
+		TODO: delete this reference.
+		Reference to Http.hpp
+		Http& form_clear();
+		// Add a HTTP multipart form field
+		Http& form_add(const std::string &name, const std::string &contents);
+		// Add a HTTP multipart form file data contents, `name` is the name of the part
+		Http& form_add_file(const std::string &name, const boost::filesystem::path &path, boost::filesystem::ifstream::off_type offset = 0, size_t length = 0);
+		// Add a HTTP mime form field
+		Http& mime_form_add_text(std::string& name, std::string& value);
+		// Add a HTTP mime form file
+		Http& mime_form_add_file(std::string& name, const char* path);
+		// Same as above except also override the file's filename with a wstring type
+		Http& form_add_file(const std::wstring& name, const boost::filesystem::path& path, boost::filesystem::ifstream::off_type offset = 0, size_t length = 0);
+		// Same as above except also override the file's filename with a custom one
+		Http& form_add_file(const std::string &name, const boost::filesystem::path &path, const std::string &filename, boost::filesystem::ifstream::off_type offset = 0, size_t length = 0);
+	
+		jobname
+		file
+		owner
+		created_at
+	
+		*/
 	wxString connect_msg;
 	auto connectionType = connect(connect_msg);
 	if (connectionType == ConnectionType::error) {
+		BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: [upload] connectionType is of type error!");
 		error_fn(std::move(connect_msg));
 		return false;
 	}
@@ -302,20 +326,26 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 	bool dsf = (connectionType == ConnectionType::dsf);
 
 	auto upload_cmd = get_upload_url(upload_data.upload_path.string(), connectionType);
-	BOOST_LOG_TRIVIAL(info) << boost::format("Ultimaker: Uploading file %1%, filepath: %2%, post_action: %3%, command: %4%")
+	BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: Uploading file %1%, filepath: %2%, post_action: %3%, command: %4%")
 		% upload_data.source_path
 		% upload_data.upload_path
 		% int(upload_data.post_action)
 		% upload_cmd;
 
 	auto http = (dsf ? Http::put(std::move(upload_cmd)) : Http::post(std::move(upload_cmd)));
-	if (dsf) {
-		http.set_put_body(upload_data.source_path);
-	} else {
-		http.set_post_body(upload_data.source_path);
-	}
+	// if (dsf) {
+	// 	http.set_put_body(upload_data.source_path);
+	// } else {
+	// 	http.set_post_body(upload_data.source_path);
+	// }
+	http.form_add("jobname",upload_data.upload_path.string());
+	http.form_add_file("file", upload_data.source_path, upload_data.upload_path.string());
+	// http.form_add("owner","OrcaSlicer"); // TODO: remove this if unneeded
+	// http.form_add("created_at",???); // TODO: fill out
+
+	set_auth(http);
 	http.on_complete([&](std::string body, unsigned status) {
-			BOOST_LOG_TRIVIAL(debug) << boost::format("Ultimaker: File uploaded: HTTP %1%: %2%") % status % body;
+			BOOST_LOG_TRIVIAL(warning) << boost::format("Ultimaker: File uploaded: HTTP %1%: %2%") % status % body;
 
 			int err_code = dsf ? (status == 201 ? 0 : 1) : get_err_code_from_body(body);
 			if (err_code != 0) {
@@ -345,7 +375,7 @@ bool Ultimaker::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Erro
 			prorgess_fn(std::move(progress), cancel);
 			if (cancel) {
 				// Upload was canceled
-				BOOST_LOG_TRIVIAL(info) << "Ultimaker: Upload canceled";
+				BOOST_LOG_TRIVIAL(warning) << "Ultimaker: Upload canceled";
 				res = false;
 			}
 		})
@@ -427,18 +457,19 @@ void Ultimaker::disconnect(ConnectionType connectionType) const
 #pragma region Get Constants
 std::string Ultimaker::get_upload_url(const std::string &filename, ConnectionType connectionType) const
 {
-	// TODO: fix
+	// Fixed?
+	// TODO: figure out what connectionType even is.
     assert(connectionType != ConnectionType::error);
 
 	if (connectionType == ConnectionType::dsf) {
-		return (boost::format("%1%machine/file/gcodes/%2%")
+		return (boost::format("%1%/machine/file/gcodes/%2%")
 				% get_base_url()
 				% Http::url_encode(filename)).str();
 	} else {
-		return (boost::format("%1%rr_upload?name=0:/gcodes/%2%&%3%")
-				% get_base_url()
-				% Http::url_encode(filename)
-				% timestamp_str()).str();
+		return get_base_url()+"/print_job";
+				// % Http::url_encode(filename)
+				// % timestamp_str()).str();
+			// );
 	}
 }
 
@@ -487,7 +518,7 @@ std::string Ultimaker::timestamp_str() const
 	return std::string(buffer);
 }
 
-#pragma endregion Get Cconstants
+#pragma endregion Get Constants
 
 bool Ultimaker::start_print(wxString &msg, const std::string &filename, ConnectionType connectionType, bool simulationMode) const
 {
