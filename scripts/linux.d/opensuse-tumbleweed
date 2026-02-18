@@ -1,8 +1,10 @@
 #!/bin/bash
-# these are the Arch Linux specific build functions
+# these are the openSUSE Tumbleweed Linux specific build functions
 
 # Additional Dev packages for OrcaSlicer
 export REQUIRED_DEV_PACKAGES=(
+    autoconf
+    automake
     cmake
     curl
     dbus-1
@@ -17,15 +19,17 @@ export REQUIRED_DEV_PACKAGES=(
     gtk3-devel
     libcurl-devel
     libmspack-devel
-    libsecret-devel
-    libspnav-devel
     libopenssl-devel
     libquadmath-devel
+    libsecret-devel
+    libspnav-devel
+    libtool
+    nanum-fonts
     ninja
     texinfo
-    wget
     webkit2gtk3-minibrowser
     webkit2gtk3-devel
+    wget
     wayland-protocols-devel
 )
 
@@ -38,11 +42,11 @@ then
     done
 
     if [[ "${#NEEDED_PKGS[*]}" -gt 0 ]]; then
-        sudo zypper refresh && zypper in -y "${NEEDED_PKGS[@]}"
+        sudo zypper refresh && sudo zypper in -y "${NEEDED_PKGS[@]}"
     fi
     echo -e "done\n"
     exit 0
 fi
 
 export FOUND_GTK3_DEV
-FOUND_GTK3_DEV=$(zypper se -ix gtk3-devel)
+FOUND_GTK3_DEV=$(sudo zypper se -ix gtk3-devel)
