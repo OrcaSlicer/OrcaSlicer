@@ -12386,6 +12386,7 @@ void Plater::calib_pa(const Calib_Params& params)
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     print_config->set_key_value("overhang_reverse", new ConfigOptionBool(false));
+    print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     switch (params.mode) {
         case CalibMode::Calib_PA_Line:
@@ -13014,6 +13015,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     obj_cfg.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterAndInner));
     obj_cfg.set_key_value("brim_width", new ConfigOptionFloat(5.0));
     obj_cfg.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
+    obj_cfg.set_key_value("precise_z_height", new ConfigOptionBool(false));
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
@@ -13086,6 +13088,7 @@ void Plater::calib_retraction(const Calib_Params& params)
     obj->config.set_key_value("seam_position", new ConfigOptionEnum<SeamPosition>(spAligned));
     obj->config.set_key_value("wall_sequence", new ConfigOptionEnum<WallSequence>(WallSequence::InnerOuter));
     obj->config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
+    obj->config.set_key_value("precise_z_height", new ConfigOptionBool(false));
 
 
     changed_objects({ 0 });
@@ -13124,6 +13127,7 @@ void Plater::calib_VFA(const Calib_Params& params)
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
+    print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
@@ -13191,6 +13195,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     print_config->set_key_value("outer_wall_speed", new ConfigOptionFloat(200));
     print_config->set_key_value("default_acceleration", new ConfigOptionFloat(20000));
     print_config->set_key_value("outer_wall_acceleration", new ConfigOptionFloat(20000));
+    print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
@@ -13251,6 +13256,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     print_config->set_key_value("outer_wall_speed", new ConfigOptionFloat(200));
     print_config->set_key_value("default_acceleration", new ConfigOptionFloat(20000));
     print_config->set_key_value("outer_wall_acceleration", new ConfigOptionFloat(20000));
+    print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
@@ -13313,6 +13319,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     print_config->set_key_value("outer_wall_speed", new ConfigOptionFloat(200));
     print_config->set_key_value("default_acceleration", new ConfigOptionFloat(2000));
     print_config->set_key_value("outer_wall_acceleration", new ConfigOptionFloat(2000));
+    print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
