@@ -1492,6 +1492,16 @@ void PreferencesDialog::create_items()
                                                       SETTING_USE_ENCRYPTED_TOKEN_FILE);
     g_sizer->Add(item_token_storage);
 
+    //// ONLINE > Filament Sync Options
+    g_sizer->Add(create_item_title(_L("Filament Sync Options")), 1, wxEXPAND);
+
+    auto item_filament_sync_mode = create_item_combobox(
+        _L("Filament sync mode"),
+        _L("Choose whether sync updates both filament preset and color, or only color."),
+        "sync_ams_filament_mode",
+        {_L("Filament & Color"), _L("Color only")});
+    g_sizer->Add(item_filament_sync_mode);
+
     //// ONLINE > Network plugin
     g_sizer->Add(create_item_title(_L("Network plugin")), 1, wxEXPAND);
 
