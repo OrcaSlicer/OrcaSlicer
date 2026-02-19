@@ -4101,6 +4101,17 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
     assert(distance != 0.0f);
     float inv_distance = 1.0f / distance;
 
+    int extruder_id_for_limits = get_extruder_id(false);
+    if (extruder_id_for_limits < 0) {
+        if (filament_id >= 0 && static_cast<size_t>(filament_id) < m_filament_maps.size())
+            extruder_id_for_limits = m_filament_maps[filament_id];
+        else if (!m_filament_maps.empty())
+            extruder_id_for_limits = m_filament_maps.front();
+        else
+            extruder_id_for_limits = 0;
+    }
+    extruder_id_for_limits = std::max(0, extruder_id_for_limits);
+
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         TimeMachine& machine = m_time_processor.machines[i];
         if (!machine.enabled)
@@ -4167,7 +4178,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
             curr.abs_axis_feedrate[a] = std::abs(curr.axis_feedrate[a]);
             if (curr.abs_axis_feedrate[a] != 0.0f) {
-                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), get_extruder_id(true));
+                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), extruder_id_for_limits);
                 if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
             }
         }
@@ -4191,7 +4202,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         //BBS
         for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), get_extruder_id(true));
+            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), extruder_id_for_limits);
             if (acceleration * std::abs(delta_pos[a]) * inv_distance > axis_max_acceleration)
                 acceleration = axis_max_acceleration / (std::abs(delta_pos[a]) * inv_distance);
         }
@@ -4461,6 +4472,17 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
     assert(distance != 0.0f);
     float inv_distance = 1.0f / distance;
 
+    int extruder_id_for_limits = get_extruder_id(false);
+    if (extruder_id_for_limits < 0) {
+        if (filament_id >= 0 && static_cast<size_t>(filament_id) < m_filament_maps.size())
+            extruder_id_for_limits = m_filament_maps[filament_id];
+        else if (!m_filament_maps.empty())
+            extruder_id_for_limits = m_filament_maps.front();
+        else
+            extruder_id_for_limits = 0;
+    }
+    extruder_id_for_limits = std::max(0, extruder_id_for_limits);
+
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         TimeMachine& machine = m_time_processor.machines[i];
         if (!machine.enabled)
@@ -4525,7 +4547,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
             curr.abs_axis_feedrate[a] = std::abs(curr.axis_feedrate[a]);
             if (curr.abs_axis_feedrate[a] != 0.0f) {
-                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), get_extruder_id(true));
+                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), extruder_id_for_limits);
                 if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
             }
         }
@@ -4549,7 +4571,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
         //BBS
         for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), get_extruder_id(true));
+            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), extruder_id_for_limits);
             if (acceleration * std::abs(delta_pos[a]) * inv_distance > axis_max_acceleration)
                 acceleration = axis_max_acceleration / (std::abs(delta_pos[a]) * inv_distance);
         }
