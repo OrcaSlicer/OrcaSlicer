@@ -32,6 +32,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e
+          ls ${{ github.workspace }}/resources/profiles/Flashforge/machine | grep Artemis
           python3 ./scripts/orca_extra_profile_check.py 2>&1 | tee ${{ runner.temp }}/extra_json_check.log
           exit ${PIPESTATUS[0]}
 
