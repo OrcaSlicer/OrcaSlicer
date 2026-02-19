@@ -14,6 +14,7 @@ void Filler::_fill_surface_single(
     ExPolygon                      expolygon,
     Polylines                     &polylines_out)
 {
+    if (!generator) return;
     const Layer &layer      = generator->getTreesForLayer(this->layer_id);
     Polylines    fill_lines = layer.convertToLines(to_polygons(expolygon), scaled<coord_t>(0.5 * this->spacing - this->overlap));
 

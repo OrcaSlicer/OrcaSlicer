@@ -38,8 +38,8 @@
 #define AUFILE_GREY500 wxColour(158, 158, 158)
 #define AUFILE_GREY300 wxColour(238, 238, 238)
 #define AUFILE_GREY200 wxColour(248, 248, 248)
-#define AUFILE_BRAND wxColour(0, 150, 136)
-#define AUFILE_BRAND_TRANSPARENT wxColour("#E5F0EE") // ORCA color with %10 opacity
+#define AUFILE_BRAND wxColour(0, 174, 66)
+#define AUFILE_BRAND_TRANSPARENT wxColour(215, 232, 222)
 //#define AUFILE_PICTURES_SIZE wxSize(FromDIP(300), FromDIP(300))
 //#define AUFILE_PICTURES_PANEL_SIZE wxSize(FromDIP(300), FromDIP(340))
 #define AUFILE_PICTURES_SIZE wxSize(FromDIP(168), FromDIP(168))
@@ -67,7 +67,9 @@ private:
     AuxiliaryPanel*   m_auxiliary{nullptr};
     wxString   m_project_home_url;
     wxString   m_root_dir;
+    std::map<std::string, std::string> m_model_id_map;
     static inline int m_sequence_id = 8000;
+    json       m_last_payload = json::object();
 
     void show_info_editor(bool show);
     
@@ -79,9 +81,10 @@ public:
     
     void onWebNavigating(wxWebViewEvent& evt);
     void on_reload(wxCommandEvent& evt);
-    void on_size(wxSizeEvent &event);
+    void on_size(wxSizeEvent& event);
     void on_navigated(wxWebViewEvent& event);
-   
+    void OnNewWindow(wxWebViewEvent &evt);
+
     void msw_rescale();
     void update_model_data();
     void clear_model_info();
@@ -90,10 +93,13 @@ public:
     bool Show(bool show);
     void OnScriptMessage(wxWebViewEvent& evt);
     void RunScript(std::string content);
+    bool is_editing_page() const;
 
     std::map<std::string, std::vector<json>> Reload(wxString aux_path);
     std::string formatBytes(unsigned long bytes);
+    std::string get_model_id(std::string desgin_id);
     wxString to_base64(std::string path);
+    void save_project();
 };
 
 wxDECLARE_EVENT(EVT_PROJECT_RELOAD, wxCommandEvent);

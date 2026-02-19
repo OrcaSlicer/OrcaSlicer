@@ -1,14 +1,29 @@
 #include "StaticGroup.hpp"
+#include "Label.hpp"
 
 StaticGroup::StaticGroup(wxWindow *parent, wxWindowID id, const wxString &label)
     : LabeledStaticBox(parent, label)
 {
     SetBackgroundColour(*wxWHITE);
     SetForegroundColour("#CECECE");
+    borderColor_ = wxColour("#CECECE");
+#ifdef __WXMSW__
+    Bind(wxEVT_PAINT, &StaticGroup::OnPaint, this);
+#endif
 }
+
+bool StaticGroup::Show(bool show)
+{
+    bool ret = wxStaticBox::Show(show);
+    return ret;
+}
+
+void StaticGroup_layoutBadge(void * group, void * badge);
+
 
 void StaticGroup::ShowBadge(bool show)
 {
+#ifdef __WXMSW__
     if (show && badge.name() != "badge") {
         badge = ScalableBitmap(this, "badge", 18);
         Refresh();
@@ -16,6 +31,17 @@ void StaticGroup::ShowBadge(bool show)
         badge = ScalableBitmap{};
         Refresh();
     }
+#endif
+#ifdef __WXOSX__
+    if (show && badge == nullptr) {
+        badge = new ScalableButton(this, wxID_ANY, "badge", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 18);
+        badge->SetSize(badge->GetBestSize());
+        badge->SetBackgroundColour("#F7F7F7");
+        StaticGroup_layoutBadge(GetHandle(), badge->GetHandle());
+    }
+    if (badge && badge->IsShown() != show)
+        badge->Show(show);
+#endif
 }
 
 void StaticGroup::DrawBorderAndLabel(wxDC& dc)

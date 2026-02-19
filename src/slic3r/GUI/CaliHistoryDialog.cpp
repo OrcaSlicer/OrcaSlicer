@@ -13,6 +13,7 @@
 #include "Plater.hpp"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevNozzleRack.h"
 
 namespace Slic3r {
 namespace GUI {
@@ -22,16 +23,28 @@ namespace GUI {
 #define EDIT_HISTORY_DIALOG_INPUT_SIZE     wxSize(FromDIP(160), FromDIP(24))
 #define NEW_HISTORY_DIALOG_INPUT_SIZE      wxSize(FromDIP(250), FromDIP(24))
 #define HISTORY_WINDOW_ITEMS_COUNT         6
+#define MAX_HISTORY_ITEMS_NUM              100
 
 enum CaliColumnType : int {
     Cali_Name = 0,
     Cali_Filament,
+    Cali_Nozzle_ID,
     Cali_Nozzle,
     Cali_K_Value,
     Cali_Delete,
     Cali_Edit,
     Cali_Type_Count
 };
+
+static std::array<NozzleDiameterType, 4> nozzle_diameter_list = {NozzleDiameterType::NOZZLE_DIAMETER_0_2, NozzleDiameterType::NOZZLE_DIAMETER_0_4,
+                                                                 NozzleDiameterType::NOZZLE_DIAMETER_0_6, NozzleDiameterType::NOZZLE_DIAMETER_0_8};
+
+bool is_high_volume(const NozzleVolumeType& type)
+{
+    std::set<NozzleVolumeType> high_volume_type = {NozzleVolumeType::nvtHighFlow, NozzleVolumeType::nvtTPUHighFlow};
+
+    return high_volume_type.find(type) != high_volume_type.end();
+}
 
 bool support_nozzle_volume(const MachineObject* obj)
 {

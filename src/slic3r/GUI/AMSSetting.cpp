@@ -4,10 +4,13 @@
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevUpgrade.h"
+
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
 #include "slic3r/GUI/MsgDialog.hpp"
 
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
 #include "slic3r/GUI/Widgets/AnimaController.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
@@ -40,8 +43,8 @@ void AMSSetting::create()
     m_ams_type = new AMSSettingTypePanel(m_panel_body, this);
     m_ams_type->Show(false);
 
-    //m_ams_arrange_order = new AMSSettingArrangeAMSOrder(m_panel_body);
-    //m_ams_arrange_order->Show(false);
+    m_ams_arrange_order = new AMSSettingArrangeAMSOrder(m_panel_body);
+    m_ams_arrange_order->Show(false);
 
     m_panel_Insert_material = new wxPanel(m_panel_body, wxID_ANY, wxDefaultPosition, wxSize(-1, -1), wxTAB_TRAVERSAL);
     m_panel_Insert_material->SetBackgroundColour(*wxWHITE);
@@ -80,7 +83,7 @@ void AMSSetting::create()
 
     // tip line2
     m_tip_Insert_material_line2 = new Label(m_panel_Insert_material,
-        _L("Note: if a new filament is inserted during printing, the AMS will not automatically read any information until printing is completed.")
+        _L("Note: if a new filament is inserted during  printing, the AMS will not automatically read any information until printing is completed.")
     );
     m_tip_Insert_material_line2->SetFont(::Label::Body_13);
     m_tip_Insert_material_line2->SetForegroundColour(AMS_SETTING_GREY700);
@@ -125,7 +128,7 @@ void AMSSetting::create()
     m_sizer_starting_tip_inline = new wxBoxSizer(wxVERTICAL);
 
     m_tip_starting_line1 = new Label(m_panel_body,
-        _L("The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will roll the filament spools.")
+        _L("The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute.The reading process will roll filament spools.")
     );
     m_tip_starting_line1->SetFont(::Label::Body_13);
     m_tip_starting_line1->SetForegroundColour(AMS_SETTING_GREY700);
@@ -192,7 +195,7 @@ void AMSSetting::create()
     m_sizer_switch_filament_inline = new wxBoxSizer(wxVERTICAL);
 
     m_tip_switch_filament_line1 = new Label(m_panel_body,
-        _L("AMS will continue to another spool with matching filament properties automatically when current filament runs out.")
+        _L("AMS will continue to another spool with the same properties of filament automatically when current filament runs out")
     );
     m_tip_switch_filament_line1->SetFont(::Label::Body_13);
     m_tip_switch_filament_line1->SetForegroundColour(AMS_SETTING_GREY700);
@@ -264,6 +267,7 @@ void AMSSetting::create()
     m_sizerl_body->Add(m_sizer_switch_filament_tip, 0, wxEXPAND | wxTOP, FromDIP(12));
     m_sizerl_body->Add(m_sizer_air_print, 0, wxEXPAND | wxTOP, FromDIP(12));
     m_sizerl_body->Add(m_sizer_air_print_tip, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_sizerl_body->Add(m_ams_arrange_order, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(12));
     m_sizerl_body->Add(m_panel_img, 1, wxEXPAND | wxALL, FromDIP(5));
 
     m_panel_body->SetSizer(m_sizerl_body);
@@ -293,7 +297,7 @@ void AMSSetting::UpdateByObj(MachineObject* obj)
     update_ams_img(obj);
 
     m_ams_type->Update(obj);
-    //m_ams_arrange_order->Update(obj);
+    m_ams_arrange_order->Update(obj);
     update_insert_material_read_mode(obj);
     m_sizer_remain_block->Show(obj->is_support_update_remain);
     update_starting_read_mode(obj->GetFilaSystem()->IsDetectOnPowerupEnabled());
@@ -302,6 +306,8 @@ void AMSSetting::UpdateByObj(MachineObject* obj)
     update_air_printing_detection(obj);
 
     update_firmware_switching_status();// on fila_firmware_switch
+
+    Layout();
 }
 
 void AMSSetting::update_firmware_switching_status()
@@ -411,6 +417,12 @@ void AMSSetting::update_ams_img(MachineObject* obj_)
         return;
     }
 
+    const auto& print_jj = DevPrinterConfigUtil::get_json_from_config(obj_->printer_type, "print");
+    if (print_jj.contains("support_ams_settings_hide_image") && DevJsonValParser::GetVal<bool>(print_jj, "support_ams_settings_hide_image", false)) {
+        m_am_img->Hide();
+        return;
+    }
+
     std::string ams_icon_str = DevPrinterConfigUtil::get_printer_ams_img(obj_->printer_type);
     if (auto ams_switch = obj_->GetFilaSystem()->GetAmsFirmwareSwitch().lock();
         ams_switch->GetCurrentFirmwareIdxSel() == 1) {
@@ -423,9 +435,12 @@ void AMSSetting::update_ams_img(MachineObject* obj_)
     }
 
     if (ams_icon_str != m_ams_img_name) {
+        m_ams_img_name = ams_icon_str;
         m_am_img->SetBitmap(create_scaled_bitmap(ams_icon_str, nullptr, 126));
         m_am_img->Refresh();
     }
+
+    m_am_img->Show();
 }
 
 void AMSSetting::update_starting_read_mode(bool selected)
@@ -483,7 +498,8 @@ void AMSSetting::update_air_printing_detection(MachineObject* obj)
         return;
     }
 
-    if (obj->is_support_air_print_detection) {
+    //For A1 and A1 Min,air_print_detection in the AMS settings; for other printer, air_print_detection in the Print Options.
+    if (obj->is_support_air_print_detection && (DevPrinterConfigUtil::air_print_detection_position(obj->printer_type) == "ams_setting")) {
         m_checkbox_air_print->Show();
         m_title_air_print->Show();
         m_tip_air_print_line->Show();

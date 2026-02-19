@@ -1,0 +1,126 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 85A @BBL H2C",
+    "inherits": "Bambu TPU 85A @base",
+    "from": "system",
+    "setting_id": "GFSU04_05",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "100"
+    ],
+    "eng_plate_temp": [
+        "35"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_cost": [
+        "41.99"
+    ],
+    "filament_density": [
+        "1.22"
+    ],
+    "filament_deretraction_speed": [
+        "10",
+        "10"
+    ],
+    "filament_flow_ratio": [
+        "1",
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "2.2",
+        "2.2"
+    ],
+    "filament_ramming_volumetric_speed": [
+        "0.55",
+        "0.55"
+    ],
+    "filament_ramming_volumetric_speed_nc": [
+        "0.55",
+        "0.55"
+    ],
+    "filament_printable": [
+        "2"
+    ],
+    "filament_retraction_length": [
+        "1",
+        "1"
+    ],
+    "filament_retraction_speed": [
+        "10",
+        "10"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_pre_cooling_temperature": [
+        "195",
+        "195"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "185",
+        "185"
+    ],
+    "filament_ramming_travel_time": [
+        "20",
+        "20"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "20",
+        "20"
+    ],
+    "filament_retract_length_nc": [
+        "10",
+        "10"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "impact_strength_z": [
+        "88.7"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "nozzle_temperature": [
+        "225",
+        "225"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "225",
+        "225"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "temperature_vitrification": [
+        "40"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.6 nozzle",
+        "Bambu Lab H2C 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

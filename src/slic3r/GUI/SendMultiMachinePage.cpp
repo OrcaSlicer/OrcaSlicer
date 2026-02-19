@@ -267,6 +267,9 @@ SendMultiMachinePage::SendMultiMachinePage(Plater* plater)
     app_config = get_app_config();
 
     SetBackgroundColour(*wxWHITE);
+    // icon
+    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
+    SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -1345,6 +1348,12 @@ wxPanel* SendMultiMachinePage::create_page()
     m_tip_text->SetFont(::Label::Head_20);
     m_tip_text->Wrap(-1);
 
+    auto m_btn_bg_enable = StateColor(
+        std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed),
+        std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
+        std::pair<wxColour, int>(wxColour(0, 174, 66), StateColor::Normal)
+    );
+
     m_button_add = new Button(main_page, _L("Add"));
     m_button_add->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
@@ -1375,7 +1384,7 @@ wxPanel* SendMultiMachinePage::create_page()
     wxBoxSizer* title_print_option = create_item_title(_L("Printing Options"), main_page, "");
     wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed Leveling"), main_page, "", 50, "bed_leveling");
     wxBoxSizer* item_timelapse = create_item_checkbox(_L("Timelapse"), main_page, "", 50, "timelapse");
-    wxBoxSizer* item_flow_dy_ca = create_item_checkbox(_L("Flow Dynamic Calibration"), main_page, "", 50, "flow_cali");
+    wxBoxSizer* item_flow_dy_ca = create_item_checkbox(_L("Flow Dynamics Calibration"), main_page, "", 50, "flow_cali");
     sizer->Add(title_print_option, 0, wxEXPAND, 0);
     wxBoxSizer* options_sizer_v = new wxBoxSizer(wxHORIZONTAL);
     options_sizer_v->Add(item_bed_level, 0, wxLEFT, 0);
@@ -1395,6 +1404,9 @@ wxPanel* SendMultiMachinePage::create_page()
     sizer->AddSpacer(FromDIP(10));
 
     // add send button
+    btn_bg_enable = StateColor(std::pair<wxColour, int>(wxColour(27, 136, 68), StateColor::Pressed), std::pair<wxColour, int>(wxColour(61, 203, 115), StateColor::Hovered),
+        std::pair<wxColour, int>(wxColour(0, 174, 66), StateColor::Normal));
+
     m_button_send = new Button(main_page, _L("Send"));
     m_button_send->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_send->Bind(wxEVT_BUTTON, &SendMultiMachinePage::on_send, this);

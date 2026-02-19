@@ -1,0 +1,201 @@
+html,body
+{
+	background-color:#242428;
+}
+
+*
+{
+	border-color: #3E3E45;
+}
+
+
+.TextS1
+{
+	color:#efeff0;
+}
+
+.TextS2
+{
+	color:#F8F8F8;
+}
+
+.DropdownBG
+{
+	background: #3E3E45;
+}
+
+.DropdownHeaderBG
+{
+	background-color: #343436;
+}
+
+.DropdownFooter:hover {
+	background-color: #4a4a4d;
+}
+
+/*---字体----*/
+.ZScrol::-webkit-scrollbar-thumb {/*滚动条里面小方块*/
+    background-color: #939594;
+}
+
+.ZScrol::-webkit-scrollbar-track {/*滚动条里面轨道*/
+        background: #161817;
+}
+
+
+
+
+/*----Left Menu Button----*/
+#LogoutBtn:hover
+{
+	background: #243E30;
+	color: #efeff0;
+}
+
+.BtnItem
+{
+	color:#B3B3B5;
+}
+
+.BtnItem:hover
+{
+	color: #efeff0;
+	background-color: #243E30;
+}
+
+.BtnItem:hover .LeftIcon
+{
+	filter: brightness(300%);
+}
+
+.BtnItemSelected
+{
+	color: #efeff0;
+	background-color: #243E30;
+}
+
+.BtnItemSelected .LeftIcon
+{
+	filter: brightness(300%);
+}
+
+/*-----Right Top MenuBtn-----*/
+.MenuItem:hover
+{
+	border-color: #4CAA50;
+	background-color: #243E30;
+}
+
+#RecentClearAllBtn:hover
+{
+	color: #000;
+}
+
+#recnet_context_menu
+{
+	color: #efeff0;
+	background-color:#242428;
+	border: 0px;
+	box-shadow: 0px 0px 3px #DCDCDC;
+}
+
+.searchBtn img
+{
+	filter: brightness(78%);
+}
+
+
+/*----User Manual------*/
+.UG_DESC
+{
+	color:#818183;
+}
+
+/*----Recent Opened----*/
+.FileImg
+{
+	background-color:#575757;
+}
+
+/*---Staff PIck----*/
+.HotModelPiece
+{
+	background-color: #4C4C55;
+}
+
+#HotModel_RIGHT_Title
+{
+	color: #818183;
+}
+
+.HotModel_click_info img
+{
+	filter: invert(1);
+}
+
+.searchBar
+{
+	border: 1px solid #5C5C5C;
+	background-color: #242428;
+}
+
+.searchInputArea
+{
+}
+
+.searchInput
+{
+	background-color: #242428;
+	caret-color: white;
+	color: #FFFFFF;
+}
+
+.searchBtn img
+{
+	filter: invert(100%) brightness(100);
+}
+
+/*----Makerlab-----*/
+.MakerlabItem
+{
+	border: none;
+}
+
+/*---Print History----*/
+.PrintHistoryImg
+{
+	border: 1px solid #474747;
+	background-color: #575757;
+}
+
+#PrintHistory_Refresh_Btn
+{
+	filter: invert(80%) brightness(20);
+}
+
+/*-----Hide Button-----*/
+#HideBtn
+{
+	background-image: url('../img/arrow_light_left.svg');
+	border: 1px solid rgba(48, 48, 51, 1);
+	background-color: rgba(48, 48, 51, 1);
+}
+
+#HideBtn:hover
+{
+	background-color: rgba(70, 70, 71, 1);
+}
+
+
+/*wiki.css*/
+.topicBlock{
+	background-color: #242428;
+}
+
+.card{
+	background-color: #333337;
+}
+
+.topicCard{
+	background-color: #333337;
+}

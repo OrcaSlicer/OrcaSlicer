@@ -7,6 +7,13 @@
 #include "libslic3r_version.h"
 #include "../Utils/Http.hpp"
 
+#include <regex>
+#include <utility>
+
+#include <boost/chrono.hpp>
+#include <boost/beast/core/detail/base64.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -26,6 +33,16 @@ namespace GUI {
     wxDEFINE_EVENT(EVT_RESPONSE_MESSAGE, wxCommandEvent);
 
     #define LOGIN_INFO_UPDATE_TIMER_ID 10002
+
+    namespace {
+    bool IsBlankWebUrl(const wxString &url)
+    {
+        if (url.IsEmpty())
+            return true;
+        wxString lower = url.Lower();
+        return lower.StartsWith("about:blank");
+    }
+    }
 
     BEGIN_EVENT_TABLE(WebViewPanel, wxPanel)
     EVT_TIMER(LOGIN_INFO_UPDATE_TIMER_ID, WebViewPanel::OnFreshLoginStatus)
@@ -745,6 +762,18 @@ void WebViewPanel::RunScript(const wxString& javascript)
     WebView::RunScript(m_browser, javascript);
 }
 
+void WebViewPanel::RunScriptLeft(const wxString &javascript)
+{
+    // Remember the script we run in any case, so the next time the user opens
+    // the "Run Script" dialog box, it is shown there for convenient updating.
+    m_javascript = javascript;
+
+    if (!m_browserLeft) return;
+
+    WebView::RunScript(m_browserLeft, javascript);
+}
+
+
 void WebViewPanel::OnRunScriptString(wxCommandEvent& WXUNUSED(evt))
 {
     RunScript("setCount(345);");
@@ -875,6 +904,8 @@ void WebViewPanel::OnSelectAll(wxCommandEvent& WXUNUSED(evt))
     */
 void WebViewPanel::OnError(wxWebViewEvent& evt)
 {
+    //BOOST_LOG_TRIVIAL(info) << "HomePage OnError, Url = " << evt.GetURL() << " , Message: "<<evt.GetString();
+
 #define WX_ERROR_CASE(type) \
     case type: \
     category = #type; \
@@ -906,6 +937,392 @@ void WebViewPanel::OnError(wxWebViewEvent& evt)
     UpdateState();
 }
 
+void WebViewPanel::OpenMakerworldSearchPage(std::string KeyWord)
+{
+    if (KeyWord.empty()) return;
+
+    auto host = wxGetApp().get_model_http_url(wxGetApp().app_config->get_country_code());
+
+    wxString language_code = wxString::FromUTF8(GetStudioLanguage()).BeforeFirst('_');
+
+    m_online_LastUrl = (boost::format("%1%%2%/studio/webview/search?from=bambustudio&keyword=%3%&from_studio_home=true") % host % language_code.mb_str() % UrlEncode(KeyWord)).str();
+    SwitchWebContent("online");
+    //SwitchLeftMenu("online");
+}
+
+void WebViewPanel::SetMakerworldModelID(std::string ModelID)
+{
+    auto host = wxGetApp().get_model_http_url(wxGetApp().app_config->get_country_code());
+
+    wxString language_code = wxString::FromUTF8(GetStudioLanguage()).BeforeFirst('_');
+
+    if (ModelID != "")
+        m_online_LastUrl = (boost::format("%1%%2%/studio/webview?modelid=%3%&from=bambustudio") % host % language_code.mb_str() % ModelID).str();
+    else
+        m_online_LastUrl = (boost::format("%1%%2%/studio/webview?from=bambustudio") % host % language_code.mb_str()).str();
+}
+
+void WebViewPanel::SetPrintHistoryTaskID(int TaskID)
+{
+    auto host = wxGetApp().get_model_http_url(wxGetApp().app_config->get_country_code());
+
+    wxString language_code = wxString::FromUTF8(GetStudioLanguage()).BeforeFirst('_');
+
+    if (TaskID != 0)
+        m_print_history_LastUrl = (boost::format("%1%%2%/studio/print-history/%3%?from=bambustudio") % host % language_code.mb_str() % TaskID).str();
+    else
+        m_print_history_LastUrl = (boost::format("%1%%2%/studio/print-history?from=bambustudio") % host % language_code.mb_str()).str();
+}
+
+void WebViewPanel::SwitchWebContent(std::string modelname, int refresh)
+{
+    m_contentname = modelname;
+
+    bool show_online_toolbar = false;
+    CheckMenuNewTag();
+
+    wxString strlang = GetStudioLanguage();
+
+    if (modelname.compare("makersupply") == 0)
+    {
+        std::string strRegion = wxGetApp().app_config->get_country_code();
+        wxString    MakerSupplyUrl;
+        if (strRegion == "CN")
+            MakerSupplyUrl = "https://bambulab.tmall.com/category-1761686934.htm?from=bambustudio&from=mw_homepage_ms";
+        else
+            MakerSupplyUrl = "https://store.bambulab.com/collections/makers-supply?from=bambustudio&from=mw_homepage_ms";
+
+        wxLaunchDefaultBrowser(MakerSupplyUrl);
+    }
+    else if (modelname.compare("makerlab") == 0)
+    {
+        wxString FinalUrl;
+
+        if (!m_MakerLabFirst)
+        {
+            UpdateMakerlabStatus();
+        }
+        else {
+            if (m_MakerLab_LastUrl != "") m_browserML->LoadURL(m_MakerLab_LastUrl);
+        }
+
+        m_MakerLabFirst = true;
+        m_MakerLab_LastUrl = "";
+
+        SetWebviewShow("makerlab", true);
+        SetWebviewShow("online", false);
+        SetWebviewShow("right", false);
+        SetWebviewShow("printhistory", false);
+        SetWebviewShow("wiki", false);
+
+        // conf save
+        wxGetApp().app_config->set_str("homepage", "makerlab_clicked", "1");
+        wxGetApp().app_config->save();
+        wxGetApp().CallAfter([this] { ShowMenuNewTag("makerlab", "0"); });
+
+        show_online_toolbar = true;
+    } else if (modelname.compare("online") == 0) {
+
+        if (!m_onlinefirst) {
+            if (m_loginstatus == 1) {
+                UpdateMakerworldLoginStatus();
+            } else {
+                SetMakerworldPageLoginStatus(false);
+            }
+        } else {
+            if (m_online_LastUrl != "") {
+                m_browserMW->LoadURL(m_online_LastUrl);
+                BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << ": LoadURL " << m_online_LastUrl.ToStdString();
+                m_online_LastUrl = "";
+            } else {
+                std::string TmpNowUrl = m_browserMW->GetCurrentURL().ToStdString();
+                // If you click Online on the search page, navigate back to the Online page.
+                if (auto pos = TmpNowUrl.find("/search"); pos != std::string::npos){
+                    TmpNowUrl.erase(pos, 7);
+                }
+                if (auto pos = TmpNowUrl.find("&from_studio_home=true"); pos != std::string::npos) {
+                    TmpNowUrl.erase(pos, 22);
+                }
+                std::regex pattern("&keyword=[^&]*");
+                TmpNowUrl = std::regex_replace(TmpNowUrl, pattern, "");
+                if(TmpNowUrl != m_browserMW->GetCurrentURL().ToStdString()) {
+                    m_browserMW->LoadURL(TmpNowUrl); 
+                }
+            }
+        }
+
+        SetWebviewShow("online", true);
+        SetWebviewShow("makerlab", false);
+        SetWebviewShow("right", false);
+        SetWebviewShow("printhistory", false);
+        SetWebviewShow("wiki", false);
+        // conf save
+        wxGetApp().app_config->set_str("homepage", "online_clicked", "1");
+        wxGetApp().app_config->save();
+        wxGetApp().CallAfter([this] { ShowMenuNewTag("online", "0"); });
+
+        show_online_toolbar = true;
+    } else if (modelname.compare("printhistory") == 0) {
+
+        if (!m_printhistoryfirst)
+        {
+            NetworkAgent *agent = GUI::wxGetApp().getAgent();
+            if (agent == nullptr) return;
+
+            std::string BambuHost = agent->get_bambulab_host();
+            wxString    FinalUrl = m_print_history_LastUrl;
+            std::string newticket;
+            int         ret = agent->request_bind_ticket(&newticket);
+            if (ret == 0) {
+                GetJumpUrl(true, newticket, FinalUrl, FinalUrl);
+                m_browserPH->LoadURL(FinalUrl);
+
+                m_print_history_LastUrl = "";
+                m_printhistoryfirst     = true;
+            } else {
+                wxString UrlDisconnect = MakeDisconnectUrl("printhistory");
+                m_browserPH->LoadURL(UrlDisconnect);
+            }
+        } else {
+            if (m_print_history_LastUrl != "") {
+                m_browserPH->LoadURL(m_print_history_LastUrl);
+
+                m_print_history_LastUrl = "";
+            } else {
+
+            }
+        }
+
+        SetWebviewShow("online", false);
+        SetWebviewShow("right", false);
+        SetWebviewShow("printhistory", true);
+        SetWebviewShow("makerlab", false);
+        SetWebviewShow("wiki", false);
+
+    } else if (modelname.compare("manual") == 0){
+        wxString wikiUrl = wxString::Format("file://%s/web/homepage3/wiki.html", from_u8(resources_dir()));
+        wxString wiki_region_param;
+        if (!m_Region.empty())
+            wiki_region_param = wxString::Format("region=%s", from_u8(m_Region));
+        if (!wiki_region_param.empty())
+            wikiUrl = wxString::Format("file://%s/web/homepage3/wiki.html?%s", from_u8(resources_dir()), wiki_region_param);
+        if (strlang != "") {
+            if (!wiki_region_param.empty())
+                wikiUrl = wxString::Format("file://%s/web/homepage3/wiki.html?lang=%s&%s", from_u8(resources_dir()), strlang, wiki_region_param);
+            else
+                wikiUrl = wxString::Format("file://%s/web/homepage3/wiki.html?lang=%s", from_u8(resources_dir()), strlang);
+        }
+
+        if (!m_WikiFirst || m_Wiki_LastUrl != wikiUrl) {
+            if (m_browserWiki != nullptr)
+                m_browserWiki->LoadURL(wikiUrl);
+            m_Wiki_LastUrl = wikiUrl;
+            m_WikiFirst = true;
+        }
+
+        SetWebviewShow("wiki", true);
+        SetWebviewShow("online", false);
+        SetWebviewShow("right", false);
+        SetWebviewShow("printhistory", false);
+        SetWebviewShow("makerlab", false);
+
+    } else if (modelname.compare("home") == 0 || modelname.compare("recent") == 0 ) {
+        if (!m_browser) return;
+
+        json m_Res           = json::object();
+        m_Res["command"]     = "homepage_leftmenu_clicked";
+        m_Res["sequence_id"] = "10001";
+        m_Res["menu"]        = modelname;
+
+        // wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', false, json::error_handler_t::ignore));
+        wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
+
+        WebView::RunScript(m_browser, strJS);
+
+        SetWebviewShow("online", false);
+        SetWebviewShow("printhistory", false);
+        SetWebviewShow("right", true);
+        SetWebviewShow("makerlab", false);
+        SetWebviewShow("wiki", false);
+    }
+
+    SetOnlineToolbarVisible(show_online_toolbar);
+    GetSizer()->Layout();
+}
+
+void WebViewPanel::SwitchLeftMenu(std::string strMenu)
+{
+    if (!m_browserLeft) return;
+
+    json m_Res           = json::object();
+    m_Res["command"]     = "homepage_leftmenu_clicked";
+    m_Res["sequence_id"] = "10001";
+    m_Res["menu"]        = strMenu;
+
+    // wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', false, json::error_handler_t::ignore));
+    wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
+
+    WebView::RunScript(m_browserLeft, strJS);
+}
+
+void WebViewPanel::CheckMenuNewTag() {
+    std::string sClick = wxGetApp().app_config->get("homepage", "online_clicked");
+    if (sClick.compare("1")==0)
+        ShowMenuNewTag("online", "0");
+    else
+        ShowMenuNewTag("online", "1");
+
+
+    sClick = wxGetApp().app_config->get("homepage", "makerlab_clicked");
+    if (sClick.compare("1") == 0)
+        ShowMenuNewTag("makerlab", "0");
+    else
+        ShowMenuNewTag("makerlab", "1");
+}
+
+void WebViewPanel::ShowMenuNewTag(std::string menuname, std::string show)
+{
+    if (!m_browserLeft) return;
+
+    if (menuname != "online" && menuname != "makerlab") return;
+
+    json m_Res           = json::object();
+    m_Res["command"]     = "homepage_leftmenu_newtag";
+    m_Res["sequence_id"] = "10001";
+    m_Res["menu"]           = menuname;
+
+
+    if (show.compare("1") == 0)
+        m_Res["show"] = 1;
+    else
+        m_Res["show"] = 0;
+
+    wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
+    WebView::RunScript(m_browserLeft, strJS);
+}
+
+void WebViewPanel::SetLeftMenuShow(std::string menuname, int show)
+{
+    if (!m_browserLeft) return;
+
+    json m_Res           = json::object();
+    m_Res["command"]     = "homepage_leftmenu_show";
+    m_Res["sequence_id"] = "10001";
+    m_Res["menu"]        = menuname;
+    m_Res["show"] = show;
+
+    wxString strJS = wxString::Format("HandleStudio(%s)", m_Res.dump(-1, ' ', true));
+    WebView::RunScript(m_browserLeft, strJS);
+    WebView::RunScript(m_browser, strJS);
+}
+
+void WebViewPanel::SetLeftMenuWidth(int nWidth) {
+    m_browserLeft->SetSize(wxSize(FromDIP(nWidth), -1));
+    m_browserLeft->SetMinSize(wxSize(FromDIP(nWidth), -1));
+    m_browserLeft->SetMaxSize(wxSize(FromDIP(nWidth), -1));
+}
+
+void WebViewPanel::SetWebviewShow(wxString name, bool show)
+{
+    wxWebView *TmpWeb = nullptr;
+    if (name == "left")
+        TmpWeb = m_browserLeft;
+    else if (name == "right")
+        TmpWeb = m_browser;
+    else if (name == "online")
+        TmpWeb = m_browserMW;
+    else if (name == "printhistory")
+        TmpWeb = m_browserPH;
+    else if (name == "makerlab")
+        TmpWeb = m_browserML;
+    else if (name == "wiki")
+        TmpWeb = m_browserWiki;
+
+    if (TmpWeb != nullptr) {
+        if (show)
+            TmpWeb->Show();
+        else
+            TmpWeb->Hide();
+    }
+
+    if ((name == "online" || name == "makerlab") && m_online_container) {
+        const bool show_container =
+            (m_browserMW && m_browserMW->IsShown()) ||
+            (m_browserML && m_browserML->IsShown());
+        if (show_container)
+            m_online_container->Show();
+        else
+            m_online_container->Hide();
+    }
+}
+
+void WebViewPanel::SetOnlineToolbarVisible(bool visible)
+{
+    if (!m_online_toolbar_panel) return;
+
+    m_online_toolbar_panel->Show(visible);
+
+    if (!visible) {
+        if (m_online_back_btn) m_online_back_btn->Enable(false);
+        if (m_online_refresh_btn) m_online_refresh_btn->Enable(false);
+        if (m_online_open_browser_btn) m_online_open_browser_btn->Enable(false);
+    } else {
+        UpdateOnlineToolbarState();
+    }
+
+    if (m_online_container)
+        m_online_container->Layout();
+}
+
+void WebViewPanel::UpdateOnlineToolbarState()
+{
+    if (!m_online_toolbar_panel) return;
+
+    const bool on_online_tab   = m_contentname == "online";
+    const bool on_makerlab_tab = m_contentname == "makerlab";
+    wxWebView *active_webview  = nullptr;
+    if (on_online_tab)
+        active_webview = m_browserMW;
+    else if (on_makerlab_tab)
+        active_webview = m_browserML;
+
+    const bool has_webview         = active_webview != nullptr;
+    const bool can_show_open_button = (on_online_tab || on_makerlab_tab) && has_webview;
+
+
+    auto update_btn_state = [this](wxBitmapButton *btn, bool enable, const std::string &icon) {
+        if (!btn) return;
+        btn->Enable(enable);
+        const int px = m_online_toolbar_icon_px;
+        btn->SetBitmap(enable ? create_scaled_bitmap(icon, this, px)
+                              : create_scaled_bitmap(icon, this, px, false, "#c0babaff"));
+    };
+
+    bool can_go_back = false;
+    if (can_show_open_button)
+        can_go_back = active_webview->CanGoBack();
+
+    update_btn_state(m_online_back_btn, can_go_back, "mall_control_back");
+    if (m_online_refresh_btn)
+        m_online_refresh_btn->Enable(can_show_open_button);
+    if (m_online_open_browser_btn) {
+        bool has_url = false;
+        if (can_show_open_button) {
+            wxString url = active_webview->GetCurrentURL();
+            has_url      = !IsBlankWebUrl(url);
+        }
+        m_online_open_browser_btn->Enable(has_url);
+    }
+}
+
+std::string WebViewPanel::GetStudioLanguage()
+{
+    std::string strLanguage = wxGetApp().app_config->get("language");
+    boost::trim(strLanguage);
+    if (strLanguage.empty()) strLanguage = "en";
+
+    return strLanguage;
+}
 
 SourceViewDialog::SourceViewDialog(wxWindow* parent, wxString source) :
                   wxDialog(parent, wxID_ANY, "Source Code",

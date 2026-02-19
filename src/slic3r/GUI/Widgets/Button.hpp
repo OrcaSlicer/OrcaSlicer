@@ -43,6 +43,10 @@ class Button : public StaticBox
     bool isCenter    = true;
     bool vertical    = false;
 
+    bool m_left_corner_white = false;
+    bool m_right_corner_white = false;
+    bool grayed = false;
+
     wxTipWindow* tipWindow = nullptr;
 
     static const int buttonWidth = 200;
@@ -91,6 +95,14 @@ public:
 
     void Rescale();
 
+    void SetLeftCornerWhite(bool white = true) { m_left_corner_white = white; }
+    void SetRightCornerWhite(bool white = true) { m_right_corner_white = white; }
+
+    bool IsGrayed() { return grayed; }
+    void SetGrayed(bool gray) { grayed = gray; }
+
+    wxRect GetTextRect() const { return textSize; }
+
 protected:
 #ifdef __WIN32__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
@@ -106,6 +118,7 @@ private:
     void paintEvent(wxPaintEvent& evt);
 
     void render(wxDC& dc);
+    void renderWhiteCorners(wxDC &dc);
 
     void messureSize();
 

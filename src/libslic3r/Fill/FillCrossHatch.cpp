@@ -2,7 +2,7 @@
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
 #include <cmath>
-#include "FillBase.hpp"
+
 #include "FillCrossHatch.hpp"
 
 namespace Slic3r {
@@ -148,7 +148,7 @@ static Polylines generate_infill_layers(coordf_t z_height, double repeat_ratio, 
     Polylines result;
     coordf_t  trans_layer_size  = grid_size * 0.4;          // upper.
     coordf_t  repeat_layer_size = grid_size * repeat_ratio; // lower.
-    z_height                    += repeat_layer_size / 2 + trans_layer_size;   // offset to improve first few layer strength and reduce the risk of warpping.
+    z_height                    += repeat_layer_size / 2 ;   // offset to improve first few layer strength and reduce the risk of warpping.
     coordf_t  period            = trans_layer_size + repeat_layer_size;
     coordf_t  remains           = z_height - std::floor(z_height / period) * period;
     coordf_t  trans_z           = remains - repeat_layer_size; // put repeat layer first.
@@ -207,8 +207,8 @@ void FillCrossHatch ::_fill_surface_single(
 
     // Apply multiline offset if needed
     multiline_fill(polylines, params, spacing);
-
-    polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
+    
+    polylines = intersection_pl(polylines, to_polygons(expolygon));
 
     // --- remove small remains from gyroid infill
     if (!polylines.empty()) {
@@ -222,7 +222,10 @@ void FillCrossHatch ::_fill_surface_single(
     if (!polylines.empty()) {
         int infill_start_idx = polylines_out.size(); // only rotate what belongs to us.
         // connect lines
-        chain_or_connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
+        if (params.dont_connect() || polylines.size() <= 1)
+            append(polylines_out, chain_polylines(std::move(polylines)));
+        else
+            this->connect_infill(std::move(polylines), expolygon, polylines_out, this->spacing, params);
 
         // rotate back
         if (std::abs(infill_angle) >= EPSILON) {

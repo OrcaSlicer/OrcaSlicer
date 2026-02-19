@@ -1,13 +1,29 @@
 #pragma once
 #include <iostream>
 #include <ctime>
+#include <algorithm>
 
 #include "opencv2/opencv.hpp"
 #include "libslic3r/Color.hpp"
+
+namespace Slic3r {
+    class Model;
+    struct ObjDialogInOut;
+    struct VolumeColorInfo;
+}
+
 class QuantKMeans
 {
+    struct ClusterInfo
+    {
+        int       idx;
+        int       count;
+        cv::Vec3b center;
+    };
+
 public:
     int     m_alpha_thres;
+    bool    m_do_convert;
     cv::Mat m_flatten_labels;
     cv::Mat m_centers8UC3;
     QuantKMeans(int alpha_thres = 10) : m_alpha_thres(alpha_thres) {}
@@ -64,6 +80,7 @@ public:
                int                                color_space = 2)
     {
         cv::Mat image8UC3;
+        this->m_do_convert = true;
         convert_color_space(flatten_image8UC3, image8UC3, color_space);
 
         cv::Mat image32FC3(image8UC3.rows, 1, CV_32FC3);
@@ -139,6 +156,14 @@ public:
         }
 
         return uniqueImage.size();
+    }
+
+    int find_color_index(const cv::Vec3b &cur_color, const std::vector<cv::Vec3b> &uniqueImage)
+    {
+        for (int i = 0; i < uniqueImage.size(); i++) {
+            if (cur_color[0] == uniqueImage[i][0] && cur_color[1] == uniqueImage[i][1] && cur_color[2] == uniqueImage[i][2]) return i;
+        }
+        return -1;
     }
 
     bool is_in(const cv::Vec3b &cur_color, const std::vector<cv::Vec3b> &uniqueImage)
@@ -266,3 +291,13 @@ bool obj_color_deal_algo(std::vector<Slic3r::RGBA> &input_colors,
                          std::vector<int>&            cluster_labels_from_algo,
                          char &                     cluster_number,
                          int                        max_cluster);
+
+// Extract color information from the Model imported from 3MF and convert it to ObjDialogInOut format.
+// color_group_map: Mapping color group IDs to color arrays (e.g., ["#FF0000FF", "#00FF00FF"])
+// volume_color_data: Optional volume color data for multi - volume scenarios.
+// Returns whether color information was successfully extracted.
+bool extract_colors_to_obj_dialog(
+    Slic3r::Model* model,
+    const std::unordered_map<int, std::vector<std::string>>& color_group_map,
+    const std::unordered_map<int, Slic3r::VolumeColorInfo>& volume_color_data,
+    Slic3r::ObjDialogInOut& out);

@@ -29,6 +29,8 @@ namespace Slic3r
         MatchMode
     };
 
+    class FilamentGroupMultiNozzle;
+
     namespace FilamentGroupUtils
     {
         struct FlushTimeMachine
@@ -75,6 +77,7 @@ namespace Slic3r
             std::vector<FilamentGroupUtils::FilamentInfo> filament_info;
             std::vector<std::string> filament_ids;
             std::vector<std::set<int>> unprintable_filaments;
+            std::map<int, std::set<NozzleVolumeType>> unprintable_volumes;
         } model_info;
 
         struct GroupInfo {
@@ -116,6 +119,16 @@ namespace Slic3r
 
     };
 
+
+    class TimeEvaluator
+    {
+    public:
+        TimeEvaluator(const FilamentGroupContext::SpeedInfo& speed_info) : m_speed_info(speed_info) {}
+        double get_estimated_time(const std::vector<int>& filament_map) const;
+    private:
+        FilamentGroupContext::SpeedInfo m_speed_info;
+    };
+
     class FilamentGroup
     {
         using MemoryedGroup = FilamentGroupUtils::MemoryedGroup;
@@ -129,11 +142,15 @@ namespace Slic3r
     public:
         std::vector<int> calc_filament_group_for_match(int* cost = nullptr);
         std::vector<int> calc_filament_group_for_flush(int* cost = nullptr);
+        std::vector<int> calc_filament_group_for_tpu(int* cost = nullptr);
 
     private:
         std::vector<int> calc_min_flush_group(int* cost = nullptr);
         std::vector<int> calc_min_flush_group_by_enum(const std::vector<unsigned int>& used_filaments, int* cost = nullptr);
         std::vector<int> calc_min_flush_group_by_pam2(const std::vector<unsigned int>& used_filaments, int* cost = nullptr, int timeout_ms = 300);
+        std::vector<int> calc_min_flush_group_by_pam (const std::vector<unsigned int>& used_filaments, int* cost = nullptr, int timeout_ms = 300, int retry = 15);
+
+        std::map<int, int> rebuild_unprintables(const std::vector<unsigned int>& used_filaments, const std::map<int,int>& extruder_unprintables);
 
         std::unordered_map<int, std::vector<int>> try_merge_filaments();
         void rebuild_context(const std::unordered_map<int, std::vector<int>>& merged_filaments);
@@ -142,11 +159,29 @@ namespace Slic3r
     private:
         FilamentGroupContext ctx;
         std::vector<std::vector<int>> m_memoryed_groups;
+        friend FilamentGroupMultiNozzle;
 
     public:
         std::optional<std::function<bool(int, std::vector<int>&)>> get_custom_seq;
     };
 
+    class FilamentGroupMultiNozzle
+    {
+    public:
+        FilamentGroupMultiNozzle(const FilamentGroupContext& context) :m_context(context) {}
+    public:
+        std::vector<int> calc_filament_group_by_mcmf();
+        std::vector<int> calc_filament_group_by_pam();
+
+    private:
+        std::unordered_map<int, std::vector<int>> rebuild_nozzle_unprintables(const std::vector<unsigned int>& used_filaments, const std::unordered_map<int, std::vector<int>>& extruder_unprintables, const std::vector<int>& filament_volume_map);
+    private:
+        FilamentGroupContext m_context;
+    };
+
+    std::vector<int> calc_filament_group_for_manual_multi_nozzle(const std::vector<int>& filament_map_manual,const FilamentGroupContext& ctx);
+
+    std::vector<int> calc_filament_group_for_match_multi_nozzle(const FilamentGroupContext& ctx);
 
     class KMediods2
     {
@@ -192,6 +227,65 @@ namespace Slic3r
         std::vector<int>m_max_cluster_size;
 
         const int m_k = 2;
+        int m_elem_count;
+        int m_default_group_id{ 0 };
+        double memory_threshold{ 0 };
+    };
+
+    // non_zero_clusters
+    class KMediods
+    {
+    protected:
+        using MemoryedGroupHeap = FilamentGroupUtils::MemoryedGroupHeap;
+        using MemoryedGroup = FilamentGroupUtils::MemoryedGroup;
+    public:
+        KMediods(const int k, const int elem_count, const std::shared_ptr<FlushDistanceEvaluator>& evaluator, int default_group_id = 0) {
+            m_k = k;
+            m_evaluator = evaluator;
+            m_max_cluster_size = std::vector<int>(k, DEFAULT_CLUSTER_SIZE);
+            m_elem_count = elem_count;
+            m_default_group_id = default_group_id;
+        }
+        // set max group size
+        void set_max_cluster_size(const std::vector<int>& group_size) { m_max_cluster_size = group_size; }
+
+        void set_cluster_group_size(const std::vector<std::pair<std::set<int>,int>>& cluster_group_size);
+
+        // key stores elem, value stores the cluster id that the elem must be placed
+        void set_placable_limits(const std::unordered_map<int, std::vector<int>>& placable_limits) { m_placeable_limits = placable_limits; }
+
+        // key stores elem, value stores the cluster id that the elem cannot be placed
+        void set_unplacable_limits(const std::unordered_map<int, std::vector<int>>& unplacable_limits) { m_unplaceable_limits = unplacable_limits; }
+
+        void set_memory_threshold(double threshold) { memory_threshold = threshold; }
+        MemoryedGroupHeap get_memoryed_groups()const { return memoryed_groups; }
+
+        void do_clustering(const FilamentGroupContext& context, int timeout_ms = 100, int retry = 10);
+        std::vector<int> get_cluster_labels()const { return m_cluster_labels; }
+
+    protected:
+        bool have_enough_size(const std::vector<int>& cluster_size, const std::vector<std::pair<std::set<int>, int>>& cluster_group_size,int elem_count);
+        // calculate cluster distance
+        int calc_cost(const std::vector<int>& clusters, const std::vector<int>& cluster_centers, int cluster_id = -1);
+
+        std::vector<int> cluster_small_data(const FilamentGroupContext& context);
+        // get initial cluster center
+        std::vector<int>init_cluster_center(const std::unordered_map<int, std::vector<int>>& placeable_limits, const std::unordered_map<int, std::vector<int>>& unplaceable_limits, const std::vector<int>& cluster_size, const std::vector<std::pair<std::set<int>, int>>& cluster_group_size, int seed);
+        // assign each elem to the cluster
+        std::vector<int> assign_cluster_label(const std::vector<int>& center, const std::unordered_map<int, std::vector<int>>& placeable_limits, const std::unordered_map<int, std::vector<int>>& unplaceable_limits, const std::vector<int>& group_size, const std::vector<std::pair<std::set<int>, int>>& cluster_group_size);
+
+    protected:
+        MemoryedGroupHeap memoryed_groups;
+        std::shared_ptr<FlushDistanceEvaluator>m_evaluator;
+        std::unordered_map<int, std::vector<int>> m_unplaceable_limits; // 材料不允许分配到特定喷嘴
+        std::unordered_map<int, std::vector<int>> m_placeable_limits; // 材料必须分配到特定喷嘴
+        std::vector<int>m_max_cluster_size; // 每个喷嘴能够分配的最大耗材数量
+        std::vector<int>m_cluster_labels;  // 分配结果，细化到喷嘴id
+        std::vector<std::pair<std::set<int>,int>> m_cluster_group_size;
+        std::vector<int> m_nozzle_to_extruder;
+
+
+        int m_k;
         int m_elem_count;
         int m_default_group_id{ 0 };
         double memory_threshold{ 0 };

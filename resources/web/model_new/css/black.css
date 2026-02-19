@@ -1,0 +1,39 @@
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #F4F4F4;
+}
+
+
+.container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.addBtn {
+  background-color: #00AE42;
+  padding: 9px 18px;
+  box-sizing: border-box;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-block;
+  width: auto;
+  flex: 0 0 auto;
+  margin-top: 16px;
+}
+
+.addBtn label {
+  cursor: pointer;
+}
+
+.content {
+  color: #AAA;
+  text-align: center;
+  font-size: 14px;
+}

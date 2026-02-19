@@ -74,6 +74,10 @@ public:
 
     bool   use_firmware_retraction() const;
 
+    bool is_share_extruder() const { return m_share_extruder; }
+    double get_single_retracted_length() const { return m_retracted; }
+    double get_share_retracted_length() const { return m_share_retracted[extruder_id()]; }
+
 private:
     // Private constructor to create a key for a search in std::set.
     Extruder(unsigned int id) : m_id(id) {}

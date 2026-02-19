@@ -977,9 +977,9 @@ void StackImpl::reduce_noisy_snapshots(const std::string& new_name)
 	auto it_last = m_snapshots.end();
 	-- it_last; -- it_last;
 	assert(it_last != m_snapshots.begin() && (it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoNoAction || it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoWithAction));
-	if (it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoWithAction) {
-		for (-- it_last; it_last->snapshot_data.snapshot_type != SnapshotType::EnteringGizmo; -- it_last) {
-			if (it_last->snapshot_data.snapshot_type == SnapshotType::GizmoAction) {
+    if ( it_last->snapshot_data.snapshot_type == SnapshotType::LeavingGizmoWithAction) {
+        for (--it_last; it_last >= m_snapshots.begin() && it_last->snapshot_data.snapshot_type != SnapshotType::EnteringGizmo; --it_last) {
+            if (it_last->snapshot_data.snapshot_type == SnapshotType::GizmoAction) {
                 it_last->name = new_name;
                 auto it = it_last;
 				for (-- it; it->snapshot_data.snapshot_type == SnapshotType::GizmoAction; -- it) ;
@@ -1071,7 +1071,7 @@ bool StackImpl::has_redo_snapshot() const
 
 	// BBS: undo-redo until modify record
 	auto it = std::lower_bound(m_snapshots.begin(), m_snapshots.end(), Snapshot(m_active_snapshot_time));
-	for (; it != m_snapshots.end(); ++it) {
+	for (it; it != m_snapshots.end(); ++it) {
 		if (snapshot_modifies_project(*it))
 			return true;
 	}

@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="max-age=7200" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+    <title>Model</title>
+    <link rel="stylesheet" type="text/css" href="index.css" />
+    <link rel="stylesheet" type="text/css" href="css/navigation.css" />
+    <link rel="stylesheet" type="text/css" href="css/gallery.css" />
+    <script type="text/javascript" src="../include/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="../include/purify.min.js"></script>
+    <script type="text/javascript" src="../include/globalapi.js"></script>
+    <script type="text/javascript" src="js/navigation.js"></script>
+    <script type="text/javascript" src="js/gallery.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+    <script type="text/javascript" src="../data/text.js"></script>
+  </head>
+  <body>
+    <div class="topTool">
+      <div class="saveBtn trans" onclick="editorBtn()" tid='t128'>Edit</div>
+  </div>
+    <div class="container">
+      <div class="Navigation" id="sideNav">
+        <div class="rail"></div>
+        <div class="indicator"></div>
+        <ul>
+          <li class="nav-item active"><a href="#projectName" class="trans" tid="t129">Project information</a></li>
+          <li class="nav-item trans"><a href="#Accessories" class="trans" tid="t130">Accessories</a></li>
+          <li class="nav-item trans"><a href="#profileName" class="trans" tid="t131">Profile information</a></li>
+        </ul>
+      </div>
+
+      <div class="content">
+        <div id="info"></div>
+        <div id="projectGallery" style="margin-top:24px;"></div>
+
+        <div id="projectName" onClick="JumpToWeb()"></div>
+        <div id="projectAuthor"></div>
+        <hr>
+        <div class="content-group">
+          <div class="subTitle trans" tid="t132">Description</div>
+          <div class="text" id="projectDescription"></div>
+        </div>
+        <hr>
+
+        <div class="content-group" id="Accessories">
+          <div class="subTitle trans" tid="t130">Accessories</div>
+          <div class="comment" id="bom-accessories"></div>
+          <div class="accessory-list" id="bom-list">
+            <!-- <div class="attachment"><img src="img/icon_pdf.svg">3123213.pdf</div>
+            <div class="attachment"><img src="img/icon_pdf.svg">3123213.pdf</div>
+            <div class="attachment"><img src="img/icon_pdf.svg">3123213.pdf</div>
+            <div class="attachment"><img src="img/icon_pdf.svg">3123213.pdf</div> -->
+          </div>
+          <div class="comment" id="assembly-accessories"></div>
+          <div class="accessory-list" id="assembly-list"></div>
+          <div class="comment" id="other-accessories"></div>
+          <div class="accessory-list" id="other-list"></div>
+        </div>
+        <hr>
+
+        <div class="profileName trans" tid="t133">Profile Name: <label id="profileName"></label></div>
+        <div id="profileAuthor"></div>
+        <div id="profileGallery" style="margin-top:24px;"></div>
+        <div class="text" id="profileDescript">
+          
+        </div>
+      </div>
+
+    </div>
+  </body>
+</html>

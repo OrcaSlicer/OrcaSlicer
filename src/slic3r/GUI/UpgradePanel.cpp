@@ -9,7 +9,12 @@
 #include "libslic3r/Thread.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevNozzleSystem.h"
+#include "DeviceCore/DevUpgrade.h"
+
 #include "DeviceCore/DevManager.h"
+
+#include "DeviceTab/wgtDeviceNozzleRackUpdate.h"
 
 namespace Slic3r {
 namespace GUI {
@@ -26,6 +31,7 @@ static const std::unordered_map<wxString, wxString> ACCESSORY_DISPLAY_STR = {
     {"O2L_PCM", L("Cutting Module")},
     {"O2L_ACM", "Active Cutting Module"},
     {"O2L_UCM", "Ultrasonic Cutting Module"},
+    {"O2L-LFA", L("Rotary Attachment")},
     {"O2L-AFP", L("Auto Fire Extinguishing System")},
 };
 
@@ -164,6 +170,7 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     //}
 
     m_ams_content_sizer->Add(m_ams_info_sizer, 0, wxEXPAND, 0);
+    m_ams_content_sizer->Add(0, 0, 1, wxEXPAND, 0);
     m_ams_sizer->Add(m_ams_content_sizer, 1, wxEXPAND, 0);
 
     m_main_left_sizer->Add(m_ams_sizer, 0, wxEXPAND, 0);
@@ -216,6 +223,10 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     createLaserWidgets(m_main_left_sizer);
     createAirPumpWidgets(m_main_left_sizer);
     createExtinguishWidgets(m_main_left_sizer);
+    createRotaryWidgets(m_main_left_sizer);
+
+    // nozzle rack widgets
+    createNozzleRackWidgets(m_main_left_sizer);
 
     m_main_sizer->Add(m_main_left_sizer, 1, wxEXPAND, 0);
 
@@ -287,7 +298,47 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     m_button_upgrade_firmware->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(MachineInfoPanel::on_upgrade_firmware), NULL, this);
     wxGetApp().UpdateDarkUIWin(this);
 }
+void MachineInfoPanel::createNozzleRackWidgets(wxBoxSizer *main_left_sizer)
+{
+    // horizontal line above
+    m_nozzle_rack_line_above = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
+    m_nozzle_rack_line_above->SetBackgroundColour(wxColour(206, 206, 206));
+    main_left_sizer->Add(m_nozzle_rack_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
 
+    m_nozzle_rack_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    // left placeholder icon (keep consistent spacing with others)
+    m_nozzle_rack_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(200), FromDIP(200)));
+    m_nozzle_rack_img->SetBitmap(m_img_nozzle_rack.bmp());
+    m_nozzle_rack_sizer->Add(m_nozzle_rack_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+
+    // right content: label + update button
+    auto *content_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_nozzle_rack_text  = new wxStaticText(this, wxID_ANY, _L("Hotends on Rack"), wxDefaultPosition, wxDefaultSize, 0);
+    m_nozzle_rack_text->Wrap(-1);
+    m_nozzle_rack_text->SetFont(Label::Head_14);
+    content_sizer->Add(m_nozzle_rack_text, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT | wxLEFT, FromDIP(50));
+
+      m_nozzle_rack_update_btn = new Button(this, _L("Info"));
+    StateColor btn_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(200, 200, 200), StateColor::Pressed),
+                      std::pair<wxColour, int>(wxColour(240, 240, 240), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
+                      std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
+    StateColor btn_bd(std::pair<wxColour, int>(wxColour(200, 200, 200), StateColor::Disabled), std::pair<wxColour, int>(wxColour(150, 150, 150), StateColor::Enabled));
+    StateColor btn_text(std::pair<wxColour, int>(wxColour(150, 150, 150), StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 0, 0), StateColor::Enabled));
+    m_nozzle_rack_update_btn->SetBackgroundColor(btn_bg);
+    m_nozzle_rack_update_btn->SetBorderColor(btn_bd);
+    m_nozzle_rack_update_btn->SetTextColor(btn_text);
+    m_nozzle_rack_update_btn->SetFont(Label::Body_10.Bold());
+    m_nozzle_rack_update_btn->SetMinSize(wxSize(FromDIP(-1), FromDIP(24)));
+    m_nozzle_rack_update_btn->SetCornerRadius(FromDIP(12));
+    m_nozzle_rack_update_btn->Bind(wxEVT_BUTTON, &MachineInfoPanel::on_nozzle_rack_update, this);
+    content_sizer->Add(m_nozzle_rack_update_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(350));
+
+
+    m_nozzle_rack_sizer->Add(content_sizer, 1, wxEXPAND, 0);
+
+    main_left_sizer->Add(m_nozzle_rack_sizer, 0, wxEXPAND, 0);
+}
 
 wxPanel *MachineInfoPanel::create_caption_panel(wxWindow *parent)
 {
@@ -334,6 +385,7 @@ void MachineInfoPanel::createAirPumpWidgets(wxBoxSizer* main_left_sizer)
     m_air_pump_sizer->Add(m_air_pump_img, 0, wxALIGN_TOP | wxALL, FromDIP(5));
     m_air_pump_sizer->Add(content_sizer, 1, wxEXPAND, 0);
 
+    main_left_sizer->Add(m_air_pump_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
     main_left_sizer->Add(m_air_pump_sizer, 0, wxEXPAND, 0);
 }
 
@@ -401,6 +453,38 @@ void MachineInfoPanel::createExtinguishWidgets(wxBoxSizer* main_left_sizer)
 
     main_left_sizer->Add(m_extinguish_sizer, 0, wxEXPAND, 0);
 }
+
+void MachineInfoPanel::createRotaryWidgets(wxBoxSizer *main_left_sizer)
+{
+    m_rotary_line_above = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
+    m_rotary_line_above->SetBackgroundColour(wxColour(206, 206, 206));
+    main_left_sizer->Add(m_rotary_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
+
+    m_rotary_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(200), FromDIP(200)));
+    m_rotary_img->SetBitmap(m_img_rotary.bmp());
+
+    auto        panel_rotary    = new wxPanel(this);
+    wxBoxSizer *content_sizer_h = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer *content_sizer_v = new wxBoxSizer(wxVERTICAL);
+
+    m_rotary_version = new uiDeviceUpdateVersion(panel_rotary, wxID_ANY);
+
+    content_sizer_h->Add(m_rotary_version, 0, wxALIGN_CENTER, 0);
+    content_sizer_v->Add(content_sizer_h, 1, wxLEFT, 0);
+
+    panel_rotary->SetSizer(content_sizer_v);
+
+    m_laser_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_laser_sizer->Add(m_cutting_img, 0, wxALIGN_TOP | wxALL, FromDIP(5));
+    m_laser_sizer->Add(panel_rotary, 1, wxEXPAND, 0);
+
+    m_rotary_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_rotary_sizer->Add(m_rotary_img, 0, wxALIGN_TOP | wxALL, FromDIP(5));
+    m_rotary_sizer->Add(panel_rotary, 1, wxEXPAND, 0);
+
+    main_left_sizer->Add(m_rotary_sizer, 0, wxEXPAND, 0);
+}
+
 
 void MachineInfoPanel::msw_rescale()
 {
@@ -500,6 +584,11 @@ void MachineInfoPanel::update(MachineObject* obj)
 
     m_obj = obj;
     if (obj) {
+        auto upgrade_ptr = obj->GetUpgrade().lock();
+        if (!upgrade_ptr) {
+            return;
+        }
+
         this->Freeze();
         //update online status img
         m_panel_caption->Freeze();
@@ -537,8 +626,10 @@ void MachineInfoPanel::update(MachineObject* obj)
         // update
         update_air_pump(obj);
         update_cut(obj);
+        update_rotary(obj);
         update_laszer(obj);
         update_extinguish(obj);
+        update_nozzle_rack(obj);
 
         //update progress
         int upgrade_percent = obj->get_upgrade_percent();
@@ -657,6 +748,13 @@ void MachineInfoPanel::update_version_text(MachineObject* obj)
 
 void MachineInfoPanel::update_ams_ext(MachineObject *obj)
 {
+    auto upgrade_ptr   = obj->GetUpgrade().lock();
+    if (!upgrade_ptr) {
+        return;
+    }
+
+    const auto &new_version_list = upgrade_ptr->GetNewVersionList();
+
     bool has_hub_model = false;
 
     bool is_o_series = obj->is_series_o();

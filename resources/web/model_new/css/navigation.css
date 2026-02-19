@@ -1,0 +1,50 @@
+.Navigation {
+  position: sticky;
+  width: 190px;
+  padding-left: 16px; /* 左侧留给导轨 */
+}
+
+.Navigation .rail {
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: #EBEBEB; /* 浅灰导轨 */
+}
+
+.Navigation .indicator {
+  position: absolute;
+  left: 6px;
+  width: 6px;
+  background: #1f1f1f; /* 深色活动段 */
+  border-radius: 2px;
+  transition: top 0.25s ease, height 0.25s ease;
+}
+
+.Navigation ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.Navigation .nav-item {
+  padding: 3px 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.Navigation .nav-item a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.Navigation .nav-item.active {
+  font-weight: 700;
+}
+
+.Navigation .nav-item.active a {
+  text-decoration: underline;
+  text-decoration-color: #7bc043;
+  text-underline-offset: 4px;
+}

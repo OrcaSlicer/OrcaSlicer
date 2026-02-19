@@ -1,0 +1,91 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Basic @BBL H2C",
+    "inherits": "Bambu PETG Basic @base",
+    "from": "system",
+    "setting_id": "GFSG00_25",
+    "instantiation": "true",
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_flow_ratio": [
+        "0.97",
+        "0.97"
+    ],
+    "filament_max_volumetric_speed": [
+        "21",
+        "28"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "0.4"
+    ],
+    "filament_wipe": [
+        "1",
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "2",
+        "2"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "filament_z_hop": [
+        "0.2",
+        "0.2"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "Spiral Lift"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "210",
+        "210"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "1",
+        "1"
+    ],
+    "filament_retract_length_nc": [
+        "18",
+        "18"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "250",
+        "250"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245",
+        "245"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.6 nozzle",
+        "Bambu Lab H2C 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

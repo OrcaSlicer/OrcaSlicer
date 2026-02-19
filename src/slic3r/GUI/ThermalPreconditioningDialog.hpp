@@ -16,7 +16,7 @@ namespace GUI {
 class ThermalPreconditioningDialog : public wxDialog
 {
 public:
-    ThermalPreconditioningDialog(wxWindow *parent, std::string dev_id, const wxString &remaining_time);
+    ThermalPreconditioningDialog(wxWindow *parent, std::string dev_id, bool is_show_remain_time);
     ~ThermalPreconditioningDialog();
 
     void update_thermal_remaining_time();

@@ -1,0 +1,69 @@
+{
+    "type": "filament",
+    "name": "Generic PETG @BBL H2C 0.2 nozzle",
+    "inherits": "Generic PETG @base",
+    "from": "system",
+    "setting_id": "GFSG99_20",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1",
+        "1"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "215",
+        "215"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "1",
+        "1"
+    ],
+    "filament_retract_length_nc": [
+        "18",
+        "18"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "255",
+        "255"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "255",
+        "255"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "temperature_vitrification": [
+        "60"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.2 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

@@ -1,0 +1,73 @@
+{
+    "type": "filament",
+    "name": "Bambu Support For PA/PET @BBL H2C 0.4 nozzle",
+    "inherits": "Bambu Support For PA/PET @base",
+    "from": "system",
+    "setting_id": "GFSS03_08",
+    "instantiation": "true",
+    "chamber_temperatures": [
+        "60"
+    ],
+    "filament_flow_ratio": [
+        "1",
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "8",
+        "8"
+    ],
+    "filament_prime_volume": [
+        "30"
+    ],
+    "filament_prime_volume_nc": [
+        "30"
+    ],
+    "first_x_layer_fan_speed": [
+        "0"
+    ],
+    "filament_pre_cooling_temperature_nc": [
+        "240",
+        "240"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "filament_ramming_travel_time_nc": [
+        "1",
+        "1"
+    ],
+    "filament_change_length": [
+        "4"
+    ],
+    "filament_change_length_nc": [
+        "4"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "280",
+        "280"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "280",
+        "280"
+    ],
+    "retraction_distances_when_ec": [
+        "4",
+        "4"
+    ],
+    "temperature_vitrification": [
+        "75"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2C 0.4 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

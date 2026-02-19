@@ -1,0 +1,66 @@
+{
+    "type": "filament",
+    "name": "Bambu PETG Basic @BBL H2S 0.6 nozzle",
+    "inherits": "Bambu PETG Basic @base",
+    "from": "system",
+    "setting_id": "GFSG00_32",
+    "instantiation": "true",
+    "fan_min_speed": [
+        "20"
+    ],
+    "filament_max_volumetric_speed": [
+        "21",
+        "28"
+    ],
+    "filament_retraction_length": [
+        "0.4",
+        "0.4"
+    ],
+    "filament_wipe": [
+        "1",
+        "1"
+    ],
+    "filament_wipe_distance": [
+        "2",
+        "2"
+    ],
+    "filament_z_hop": [
+        "0.2",
+        "0.2"
+    ],
+    "filament_z_hop_types": [
+        "Spiral Lift",
+        "Spiral Lift"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "fan_max_speed": [
+        "60"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "nozzle_temperature": [
+        "245",
+        "245"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "245",
+        "245"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "compatible_printers": [
+        "Bambu Lab H2S 0.6 nozzle",
+        "Bambu Lab H2S 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ],
+    "filament_end_gcode": [
+        "; filament end gcode \n"
+    ]
+}

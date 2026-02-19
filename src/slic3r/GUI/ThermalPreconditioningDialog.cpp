@@ -12,10 +12,14 @@ BEGIN_EVENT_TABLE(ThermalPreconditioningDialog, wxDialog)
 EVT_BUTTON(wxID_OK, ThermalPreconditioningDialog::on_ok_clicked)
 END_EVENT_TABLE()
 
-ThermalPreconditioningDialog::ThermalPreconditioningDialog(wxWindow *parent, std::string dev_id, const wxString &remaining_time)
-    : wxDialog(parent, wxID_ANY, _L("Thermal Preconditioning for first layer optimization"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
+ThermalPreconditioningDialog::ThermalPreconditioningDialog(wxWindow *parent, std::string dev_id, bool is_show_remain_time)
+    : wxDialog(parent, wxID_ANY, _L("Thermal Preconditioning for first layer optimization"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
     , m_dev_id(dev_id)
 {
+    wxBitmap bitmap = create_scaled_bitmap("thermal_preconditioning_title", this, 16);
+    wxIcon   icon;
+    icon.CopyFromBitmap(bitmap);
+    SetIcon(icon);
     // Apply dark-mode-friendly background for the dialog
     SetBackgroundColour(StateColor::darkModeColorFor(wxColour(255, 255, 255)));
     create_ui();
@@ -23,11 +27,16 @@ ThermalPreconditioningDialog::ThermalPreconditioningDialog(wxWindow *parent, std
     this->Bind(wxEVT_TIMER, &ThermalPreconditioningDialog::on_timer, this);
     m_refresh_timer->Start(1000);
 
-    // Set remaining time
-    m_remaining_time_label->SetLabelText(_L("Remaining time: Calculating..."));
+    if (is_show_remain_time)
+    {
+        m_remaining_time_label->SetLabelText(_L("Remaining time: Calculating..."));
+    }
+    else
+    {
+        m_remaining_time_label->Hide();
+    }
 
-     Layout();
-    // Set dialog size and position
+    Layout();
     SetSize(wxSize(FromDIP(400), FromDIP(200)));
     wxGetApp().UpdateDlgDarkUI(this);
     CentreOnScreen();
@@ -99,7 +108,7 @@ void ThermalPreconditioningDialog::update_thermal_remaining_time()
     }
 
     if (m_remaining_time_label) m_remaining_time_label->SetLabelText(remaining_time);
-   
+
      Layout();
 }
 
@@ -111,6 +120,7 @@ void ThermalPreconditioningDialog::on_timer(wxTimerEvent &event) {
     if (IsShown() && m_obj && m_obj->stage_curr == 58) {
         update_thermal_remaining_time();
     } else {
+        EndModal(wxID_OK);
         m_refresh_timer->Stop();
     }
 }

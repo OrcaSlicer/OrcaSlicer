@@ -116,6 +116,12 @@ protected:
     wxStaticLine*          m_air_pump_line_above = nullptr;;
     uiDeviceUpdateVersion* m_air_pump_version = nullptr;
 
+    /* rotary attachment*/
+    wxBoxSizer            *m_rotary_sizer      = nullptr;
+    wxStaticBitmap        *m_rotary_img        = nullptr;
+    wxStaticLine          *m_rotary_line_above = nullptr;
+    uiDeviceUpdateVersion *m_rotary_version    = nullptr;
+
     /* cutting module info*/
     wxBoxSizer*            m_cutting_sizer = nullptr;
     wxStaticBitmap*        m_cutting_img = nullptr;
@@ -134,6 +140,12 @@ protected:
     wxStaticLine* m_extinguish_line_above = nullptr;;
     uiDeviceUpdateVersion* m_extinguish_version = nullptr;
 
+    /* nozzle_rack*/
+    wxStaticLine * m_nozzle_rack_line_above{nullptr};
+    wxStaticBitmap *m_nozzle_rack_img = nullptr;
+    wxBoxSizer   *m_nozzle_rack_sizer{nullptr};
+    wxStaticText *m_nozzle_rack_text{nullptr};
+
     /* upgrade widgets */
     wxBoxSizer*     m_upgrading_sizer;
     wxStaticText *  m_staticText_upgrading_info;
@@ -142,6 +154,7 @@ protected:
     wxStaticBitmap *m_upgrade_retry_img;
     wxStaticText *  m_staticText_release_note;
     Button *        m_button_upgrade_firmware;
+    Button *        m_nozzle_rack_update_btn;
 
     wxPanel* create_caption_panel(wxWindow *parent);
     AmsPanelHash             m_amspanel_list;
@@ -155,9 +168,11 @@ protected:
     ScalableBitmap m_img_cutting;
     ScalableBitmap m_img_laser;
     ScalableBitmap m_img_extinguish;
+    ScalableBitmap m_img_rotary;
     ScalableBitmap upgrade_gray_icon;
     ScalableBitmap upgrade_green_icon;
     ScalableBitmap upgrade_yellow_icon;
+    ScalableBitmap m_img_nozzle_rack;
     int last_status = -1;
     std::string last_status_str = "";
 
@@ -212,16 +227,23 @@ private:
     void createCuttingWidgets(wxBoxSizer* main_left_sizer);
     void createLaserWidgets(wxBoxSizer* main_left_sizer);
     void createExtinguishWidgets(wxBoxSizer* main_left_sizer);
+    void createNozzleRackWidgets(wxBoxSizer* main_left_sizer);
+    void createRotaryWidgets(wxBoxSizer *main_left_sizer);
 
     void update_air_pump(MachineObject* obj);
     void update_cut(MachineObject* obj);
     void update_laszer(MachineObject* obj);
     void update_extinguish(MachineObject* obj);
+    void update_rotary(MachineObject *obj);
+    void update_nozzle_rack(MachineObject *obj);
+    void on_nozzle_rack_update(wxCommandEvent &event);
 
     void show_air_pump(bool show = true);
     void show_cut(bool show = true);
     void show_laszer(bool show = true);
+    void show_rotary(bool show = true);
     void show_extinguish(bool show = true);
+    void show_nozzle_rack(bool show = true);
 };
 
 //enum UpgradeMode {

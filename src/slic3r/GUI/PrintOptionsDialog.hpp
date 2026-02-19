@@ -71,6 +71,12 @@ private:
     wxString GetString(float diameter) const { return wxString::FromDouble(diameter); };
 };
 
+class PrintOptionToast : public wxPopupWindow
+{
+public:
+    PrintOptionToast(wxWindow* parent, const wxString& text);
+};
+
 
 class PrintOptionsDialog : public DPIDialog
 {
@@ -90,9 +96,12 @@ protected:
     CheckBox* m_cb_filament_tangle;
     CheckBox* m_cb_nozzle_blob;
     CheckBox* m_cb_open_door;
+    CheckBox* m_cb_purify_air_at_print_end;
+    CheckBox *m_cb_non_visual_airprinting_detection;
     Label* text_first_layer;
     Label* text_ai_detections;
     Label* text_ai_detections_caption;
+    Label* text_non_visual_airprinting_detection;
     wxPanel          *ai_refine_panel;
     wxSizerItem *ai_detections_bottom_space;
     wxSizerItem *ai_monitoring_bottom_space;
@@ -133,6 +142,9 @@ protected:
     Label* text_nozzle_blob;
     Label* text_nozzle_blob_caption;
     Label* text_open_door;
+    Label* text_open_door_caption;
+    Label* text_purify_air;
+    Label* text_purify_air_context;
     StaticLine* line1;
     StaticLine* line2;
     StaticLine* line3;
@@ -141,11 +153,29 @@ protected:
     StaticLine* line6;
     StaticLine* line7;
     SwitchBoard* open_door_switch_board;
+    SwitchBoard *purify_air_switch_board;
     wxBoxSizer* create_settings_group(wxWindow* parent);
     wxPanel     *m_line;
 
+    Label* text_plate_build{nullptr};
+    Label* text_plate_build_caption{nullptr};
+    CheckBox* m_cb_plate_type{nullptr};
+    Label* text_plate_type{nullptr};
+    Label* text_plate_type_caption{nullptr};
+    CheckBox* m_cb_plate_align{nullptr};
+    Label* text_plate_align{nullptr};
+    Label* text_plate_align_caption{nullptr};
+
+    wxBoxSizer* m_snapshot_sizer {nullptr};
+    CheckBox* m_cb_snapshot_enable{nullptr};
+
 
     bool print_halt = false;
+
+    //print option toast
+    PrintOptionToast *m_print_option_toast{nullptr};
+    bool           m_print_option_disable{false};
+    wxTimer          *m_print_option_timer;
 
 public:
     PrintOptionsDialog(wxWindow* parent);
@@ -158,6 +188,9 @@ public:
     void update_purgechutepileup_detection_status();
     void update_nozzleclumping_detection_status();
     void update_airprinting_detection_status();
+    void update_purify_air_at_print_end(MachineObject *obj_);
+    void show_print_option_toast(const wxString &text);
+    void purify_air_bind_toast();
 
     MachineObject *obj { nullptr };
 
@@ -185,6 +218,7 @@ public:
 private:
     void UpdateOptionSavePrintFileToStorage(MachineObject *obj);
     void UpdateOptionOpenDoorCheck(MachineObject *obj);
+    void UpdateOptionSnapshot(MachineObject *obj);
 };
 
 }} // namespace Slic3r::GUI

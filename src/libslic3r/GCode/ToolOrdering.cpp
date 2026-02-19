@@ -7,6 +7,8 @@
 #include "GCode/ToolOrderUtils.hpp"
 #include "FilamentGroupUtils.hpp"
 #include "I18N.hpp"
+#include "Preset.hpp"
+#include "PresetBundle.hpp"
 
 // #define SLIC3R_DEBUG
 
@@ -23,6 +25,7 @@
 #include <unordered_map>
 
 #include <libslic3r.h>
+#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
 
@@ -1573,6 +1576,16 @@ bool WipingExtrusions::is_overriddable(const ExtrusionEntityCollection& eec, con
         return false;
 
     return true;
+}
+bool WipingExtrusions::is_obj_overriddable(const ExtrusionEntityCollection &eec, const PrintObject &object) const
+{
+    if (object.config().flush_into_objects)
+        return true;
+
+    if (object.config().flush_into_infill && eec.role() == erInternalInfill)
+        return true;
+
+    return false;
 }
 
 // BBS

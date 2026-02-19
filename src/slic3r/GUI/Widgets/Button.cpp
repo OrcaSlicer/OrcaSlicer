@@ -1,6 +1,7 @@
 #include "Button.hpp"
 #include "Label.hpp"
 
+#include <wx/dcclient.h>
 #include <wx/dcgraph.h>
 #include <wx/tipwin.h>
 #ifdef __APPLE__
@@ -30,8 +31,8 @@ Button::Button()
 {
     background_color = StateColor(
         std::make_pair(0xF0F0F1, (int) StateColor::Disabled),
-        std::make_pair(0x52c7b8, (int) StateColor::Hovered | StateColor::Checked),
-        std::make_pair(0x009688, (int) StateColor::Checked),
+        std::make_pair(0x37EE7C, (int) StateColor::Hovered | StateColor::Checked),
+        std::make_pair(0x00AE42, (int) StateColor::Checked),
         std::make_pair(*wxLIGHT_GREY, (int) StateColor::Hovered),
         std::make_pair(*wxWHITE, (int) StateColor::Normal));
     text_color       = StateColor(
@@ -148,10 +149,7 @@ bool Button::Enable(bool enable)
     return result;
 }
 
-void Button::SetCanFocus(bool canFocus) {
-    StaticBox::SetCanFocus(canFocus);
-    this->canFocus = canFocus;
-}
+void Button::SetCanFocus(bool canFocus) { this->canFocus = canFocus; }
 
 void Button::SetValue(bool state)
 {
@@ -171,84 +169,6 @@ void Button::SetVertical(bool vertical)
     messureSize();
 }
 
-//                           Background                                             Foreground                       Border on focus
-// Button Colors             0-Disabled 1-Pressed  2-Hover    3-Normal   4-Enabled  5-Disabled 6-Normal   7-Hover    8-Dark     9-Light
-wxString btn_regular[10]  = {"#DFDFDF", "#DFDFDF", "#D4D4D4", "#DFDFDF", "#DFDFDF", "#6B6A6A", "#262E30", "#262E30", "#009688", "#009688"};
-wxString btn_confirm[10]  = {"#DFDFDF", "#009688", "#26A69A", "#009688", "#009688", "#6B6A6A", "#FEFEFE", "#FEFEFE", "#22bfb0", "#00FFD4"};
-wxString btn_alert[10]    = {"#DFDFDF", "#DFDFDF", "#E14747", "#DFDFDF", "#DFDFDF", "#6B6A6A", "#262E30", "#FFFFFD", "#009688", "#009688"};
-wxString btn_disabled[10] = {"#DFDFDF", "#DFDFDF", "#DFDFDF", "#DFDFDF", "#DFDFDF", "#6B6A6A", "#6B6A6A", "#262E30", "#DFDFDF", "#DFDFDF"};
-
-void Button::SetStyle(const ButtonStyle style, const ButtonType type)
-{
-    if      (type == ButtonType::Compact) {
-        this->SetPaddingSize(FromDIP(wxSize(8,3)));
-        this->SetCornerRadius(this->FromDIP(8));
-        this->SetFont(Label::Body_10);
-    }
-    else if (type == ButtonType::Window) {
-        this->SetSize(FromDIP(wxSize(58,24)));
-        this->SetMinSize(FromDIP(wxSize(58,24)));
-        this->SetCornerRadius(this->FromDIP(12));
-        this->SetFont(Label::Body_12);
-    }
-    else if (type == ButtonType::Choice) {
-        this->SetMinSize(FromDIP(wxSize(100,32)));
-        this->SetPaddingSize(FromDIP(wxSize(12,8)));
-        this->SetCornerRadius(this->FromDIP(4));
-        this->SetFont(Label::Body_14);
-    }
-    else if (type == ButtonType::Parameter) {
-        this->SetMinSize(FromDIP(wxSize(120,26)));
-        this->SetSize(FromDIP(wxSize(120,26)));
-        this->SetCornerRadius(this->FromDIP(4));
-        this->SetFont(Label::Body_14);
-    }
-    else if (type == ButtonType::Expanded) {
-        this->SetMinSize(FromDIP(wxSize(-1,32)));
-        this->SetPaddingSize(FromDIP(wxSize(12,8)));
-        this->SetCornerRadius(this->FromDIP(4));
-        this->SetFont(Label::Body_14);
-    }
-
-    this->SetBorderWidth(this->FromDIP(1));
-
-    bool is_dark = StateColor::darkModeColorFor("#FFFFFF") != wxColour("#FFFFFF");
-
-    auto clr_arr = style == ButtonStyle::Regular  ? btn_regular  :
-                   style == ButtonStyle::Confirm  ? btn_confirm  :
-                   style == ButtonStyle::Alert    ? btn_alert    :
-                   style == ButtonStyle::Disabled ? btn_disabled :
-                                                    btn_regular  ;
-
-    auto bg_color = StateColor(
-        std::pair(wxColour(clr_arr[0]), (int)StateColor::Disabled),
-        std::pair(wxColour(clr_arr[1]), (int)StateColor::Pressed),
-        std::pair(wxColour(clr_arr[2]), (int)StateColor::Hovered),
-        std::pair(wxColour(clr_arr[3]), (int)StateColor::Normal),
-        std::pair(wxColour(clr_arr[4]), (int)StateColor::Enabled)
-    );
-    bg_color.setTakeFocusedAsHovered(false);
-    this->SetBackgroundColor(bg_color);
-    wxColour focus_clr = clr_arr[is_dark ? 8 : 9];
-    auto border_color = StateColor(
-        std::pair(wxColour(clr_arr[0]), (int)StateColor::Disabled),
-        std::pair(wxColour(clr_arr[2]), (int)(StateColor::Hovered | ~StateColor::Focused)),
-        std::pair(wxColour(focus_clr ), (int)StateColor::Focused),
-        std::pair(wxColour(clr_arr[3]), (int)StateColor::Normal)
-    );
-    border_color.setTakeFocusedAsHovered(false);
-    this->SetBorderColor(border_color);
-    this->SetTextColor(StateColor(
-        std::pair(wxColour(clr_arr[5]), (int)StateColor::Disabled),
-        std::pair(wxColour(clr_arr[7]), (int)StateColor::Hovered),
-        std::pair(wxColour(clr_arr[6]), (int)StateColor::Normal)
-    ));
-
-    m_has_style = true;
-    m_style = style;
-    m_type  = type;
-}
-
 void Button::Rescale()
 {
     if (this->active_icon.bmp().IsOk())
@@ -258,10 +178,6 @@ void Button::Rescale()
         this->inactive_icon.msw_rescale();
 
     messureSize();
-
-    if(m_has_style)
-        SetStyle(m_style, m_type);
-
     Refresh();
 }
 
@@ -280,6 +196,9 @@ void Button::paintEvent(wxPaintEvent& evt)
 void Button::render(wxDC& dc)
 {
     StaticBox::render(dc);
+    if (m_left_corner_white || m_right_corner_white) {
+        renderWhiteCorners(dc);
+    }
     int states = state_handler.states();
     wxSize size = GetSize();
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -375,6 +294,63 @@ void Button::render(wxDC& dc)
 #endif
         dc.DrawText(text, pt);
     }
+}
+
+void Button::renderWhiteCorners(wxDC& dc)
+{
+    wxSize size = GetSize();
+    int r = static_cast<int>(radius);
+    wxColor parent_bg_color = StaticBox::GetParentBackgroundColor(GetParent());
+    int states = state_handler.states();
+    wxColor bg_color = background_color.colorForStates(states);
+
+    auto drawWhiteCorners = [&](wxDC &dc) {
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(parent_bg_color));
+
+        if (m_left_corner_white) {
+            dc.DrawRectangle(0, 0, r, r);
+            dc.DrawRectangle(0, size.y - r, r, r);
+
+            dc.SetBrush(wxBrush(bg_color));
+            dc.DrawRoundedRectangle(0, 0, r * 2, r * 2, r);
+            dc.DrawRoundedRectangle(0, size.y - r * 2, r * 2, r * 2, r);
+        }
+
+        if (m_right_corner_white) {
+            dc.DrawRectangle(size.x - r, 0, r, r);
+            dc.DrawRectangle(size.x - r, size.y - r, r, r);
+
+            dc.SetBrush(wxBrush(bg_color));
+            dc.DrawRoundedRectangle(size.x - r * 2, 0, r * 2, r * 2, r);
+            dc.DrawRoundedRectangle(size.x - r * 2, size.y - r * 2, r * 2, r * 2, r);
+        }
+    };
+#ifdef __WXMSW__
+    auto renderWithAntialiasing = [&]() -> bool {
+        wxMemoryDC memdc(&dc);
+        if (!memdc.IsOk()) return false;
+
+        wxBitmap bmp(size.x, size.y);
+        memdc.SelectObject(bmp);
+        memdc.Blit({0, 0}, size, &dc, {0, 0});
+
+        wxGCDC gcdc(memdc);
+        if (!gcdc.IsOk()) return false;
+
+        drawWhiteCorners(gcdc);
+
+        memdc.SelectObject(wxNullBitmap);
+        dc.DrawBitmap(bmp, 0, 0);
+        return true;
+    };
+
+    if (!renderWithAntialiasing()) {
+        drawWhiteCorners(dc);
+    }
+#else
+    drawWhiteCorners(dc);
+#endif
 }
 
 void Button::messureSize()
