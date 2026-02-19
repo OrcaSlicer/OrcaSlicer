@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-05 17:33+0800\n"
+"POT-Creation-Date: 2026-02-12 08:42+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -52,6 +52,14 @@ msgstr ""
 msgid "TPU is not supported by AMS."
 msgstr ""
 
+msgid "AMS does not support 'Bambu Lab PET-CF'."
+msgstr ""
+
+msgid ""
+"Please cold pull before printing TPU to avoid clogging. You may use cold "
+"pull maintenance on the printer."
+msgstr ""
+
 msgid ""
 "Damp PVA will become flexible and get stuck inside AMS, please take care to "
 "dry it before use."
@@ -98,9 +106,8 @@ msgstr ""
 msgid "Idle"
 msgstr "待機中"
 
-#, c-format, boost-format
-msgid "%d ℃"
-msgstr ""
+msgid "Model:"
+msgstr "モデル"
 
 msgid "Serial:"
 msgstr "シリアル番号"
@@ -288,7 +295,7 @@ msgstr "塗った色を消去"
 msgid "Painted using: Filament %1%"
 msgstr "フィラメント %1%でペイントします"
 
-msgid "Filament remapping finished."
+msgid "To:"
 msgstr ""
 
 msgid "Paint-on fuzzy skin"
@@ -307,6 +314,13 @@ msgid "Remove fuzzy skin"
 msgstr ""
 
 msgid "Reset selection"
+msgstr ""
+
+msgid ""
+"Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
+msgstr ""
+
+msgid "Enable painted fuzzy skin for this object"
 msgstr ""
 
 msgid "Move"
@@ -493,6 +507,12 @@ msgstr ""
 msgid "Groove Angle"
 msgstr ""
 
+msgid "Cut position"
+msgstr "カットポジション"
+
+msgid "Build Volume"
+msgstr "ビルドボリューム"
+
 msgid "Part"
 msgstr "パーツ"
 
@@ -581,9 +601,6 @@ msgstr "半径に関係する空間の割合"
 msgid "Confirm connectors"
 msgstr ""
 
-msgid "Build Volume"
-msgstr "ビルドボリューム"
-
 msgid "Flip cut plane"
 msgstr "カット面の反転"
 
@@ -596,9 +613,6 @@ msgstr "リセット"
 #. TRN: This is an entry in the Undo/Redo stack. The whole line will be 'Edited: (name of whatever was edited)'.
 msgid "Edited"
 msgstr "編集済み"
-
-msgid "Cut position"
-msgstr "カットポジション"
 
 msgid "Reset cutting plane"
 msgstr "カット面をリセット"
@@ -894,6 +908,8 @@ msgstr "フォント\"%1%\"は選択できません。"
 msgid "Operation"
 msgstr "オペレーション"
 
+#. TRN EmbossOperation
+#. ORCA
 msgid "Join"
 msgstr "結合"
 
@@ -1604,6 +1620,12 @@ msgstr ""
 msgid "Untitled"
 msgstr "名称未設定"
 
+msgid "Reloading network plugin..."
+msgstr ""
+
+msgid "Downloading Network Plugin"
+msgstr ""
+
 msgid "Downloading Bambu Network Plug-in"
 msgstr "Bambuネットワークプラグインをダウンロード"
 
@@ -1712,6 +1734,42 @@ msgid ""
 msgstr ""
 "現在のOrca Slicerはバージョンが古いため使用できません、アップデートしてくださ"
 "い。"
+
+msgid "Retrieving printer information, please try again later."
+msgstr ""
+
+msgid "Please try updating OrcaSlicer and then try again."
+msgstr ""
+
+msgid ""
+"The certificate has expired. Please check the time settings or update "
+"OrcaSlicer and try again."
+msgstr ""
+
+msgid ""
+"The certificate is no longer valid and the printing functions are "
+"unavailable."
+msgstr ""
+
+msgid ""
+"Internal error. Please try upgrading the firmware and OrcaSlicer version. If "
+"the issue persists, contact support."
+msgstr ""
+
+msgid ""
+"To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and "
+"Developer mode on your printer.\n"
+"\n"
+"Please go to your printer's settings and:\n"
+"1. Turn on LAN mode\n"
+"2. Enable Developer mode\n"
+"\n"
+"Developer mode allows the printer to work exclusively through local network "
+"access, enabling full functionality with OrcaSlicer."
+msgstr ""
+
+msgid "Network Plugin Restriction"
+msgstr ""
 
 msgid "Privacy Policy Update"
 msgstr ""
@@ -1915,6 +1973,9 @@ msgstr ""
 msgid "3DBenchy"
 msgstr "3DBenchy"
 
+msgid "Cali Cat"
+msgstr ""
+
 msgid "Autodesk FDM Test"
 msgstr ""
 
@@ -1971,22 +2032,28 @@ msgstr "1つのSTLとしてエクスポート"
 msgid "Export as STLs"
 msgstr ""
 
+msgid "Export as one DRC"
+msgstr ""
+
+msgid "Export as DRCs"
+msgstr ""
+
 msgid "Reload from disk"
 msgstr "ディスクから再読込み"
 
 msgid "Reload the selected parts from disk"
 msgstr "選択したパーツをディスクから再読込み"
 
-msgid "Replace with STL"
-msgstr "STLに置き換え"
-
-msgid "Replace the selected part with new STL"
-msgstr "選択したパーツを新しいSTLに置換え"
-
-msgid "Replace all with STL"
+msgid "Replace 3D file"
 msgstr ""
 
-msgid "Replace all selected parts with STL from folder"
+msgid "Replace the selected part with a new 3D file"
+msgstr ""
+
+msgid "Replace all with 3D files"
+msgstr ""
+
+msgid "Replace all selected parts with 3D files from folder"
 msgstr ""
 
 msgid "Change filament"
@@ -2199,6 +2266,12 @@ msgstr "複製"
 
 msgid "Simplify Model"
 msgstr "モデルを簡略化"
+
+msgid "Subdivision mesh"
+msgstr ""
+
+msgid "(Lost color)"
+msgstr ""
 
 msgid "Center"
 msgstr "センター"
@@ -2424,6 +2497,19 @@ msgstr[0] "以下のオブジェクトを修復てきませんでした"
 
 msgid "Repairing was canceled"
 msgstr "修復は取消しました"
+
+#, c-format, boost-format
+msgid ""
+"\"%s\" will exceed 1 million faces after this subdivision, which may "
+"increase slicing time. Do you want to continue?"
+msgstr ""
+
+msgid "BambuStudio warning"
+msgstr ""
+
+#, c-format, boost-format
+msgid "\"%s\" part's mesh contains errors. Please repair it first."
+msgstr ""
 
 msgid "Additional process preset"
 msgstr "他のプリセット"
@@ -2696,9 +2782,9 @@ msgid "Top"
 msgstr "トップ"
 
 msgid ""
-"The fan controls the temperature during printing to improve print quality."
-"The system automatically adjusts the fan's switch and speed according to "
-"different printing materials."
+"The fan controls the temperature during printing to improve print "
+"quality.The system automatically adjusts the fan's switch and speed "
+"according to different printing materials."
 msgstr ""
 
 msgid ""
@@ -2725,6 +2811,10 @@ msgstr ""
 
 msgctxt "air_duct"
 msgid "Right(Filter)"
+msgstr ""
+
+msgctxt "air_duct"
+msgid "Left(Aux)"
 msgstr ""
 
 msgid "Hotend"
@@ -2999,6 +3089,21 @@ msgid ""
 "Storage before sending to printer."
 msgstr ""
 
+msgid "Thermal Preconditioning for first layer optimization"
+msgstr ""
+
+msgid "Remaining time: Calculating..."
+msgstr ""
+
+msgid ""
+"The heated bed's thermal preconditioning helps optimize the first layer "
+"print quality. Printing will start once preconditioning is complete."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Remaining time: %dmin%ds"
+msgstr ""
+
 msgid "Importing SLA archive"
 msgstr ""
 
@@ -3193,8 +3298,14 @@ msgstr "ベッド温度"
 msgid "Max volumetric speed"
 msgstr "最大体積速度"
 
+msgid "℃"
+msgstr ""
+
 msgid "Bed temperature"
 msgstr "ベッド温度"
+
+msgid "mm³"
+msgstr "mm³"
 
 msgid "Start calibration"
 msgstr "開始"
@@ -3462,6 +3573,30 @@ msgid ""
 "conserve time and filament."
 msgstr ""
 
+msgid "AMS Type"
+msgstr ""
+
+msgid "Switching"
+msgstr ""
+
+msgid "The printer is busy and cannot switch AMS type."
+msgstr ""
+
+msgid "Please unload all filament before switching."
+msgstr ""
+
+msgid ""
+"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+msgstr ""
+
+msgid "Arrange AMS Order"
+msgstr ""
+
+msgid ""
+"AMS ID will be reset. If you want a specific ID sequence, disconnect all AMS "
+"before resetting and connect them in the desired order after resetting."
+msgstr ""
+
 msgid "File"
 msgstr "ファイル"
 
@@ -3482,6 +3617,14 @@ msgstr "プラグインをインストールできませんでした。ご確認
 
 msgid "click here to see more info"
 msgstr "詳しくはこちら"
+
+msgid ""
+"The network plugin was installed but could not be loaded. Please restart the "
+"application."
+msgstr ""
+
+msgid "Restart Required"
+msgstr ""
 
 msgid "Please home all axes (click "
 msgstr "すべての軸を原点復帰してください（"
@@ -3815,7 +3958,6 @@ msgid ""
 "Reset to 0."
 msgstr ""
 
-#, c-format, boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
 "Reset to 50% of skin depth."
@@ -4025,7 +4167,7 @@ msgstr ""
 msgid "Measuring Surface"
 msgstr ""
 
-msgid "Thermal Preconditioning for first layer optimization"
+msgid "Calibrating the detection position of nozzle clumping"
 msgstr ""
 
 msgid "Unknown"
@@ -4080,8 +4222,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to "
-"avoid extruder clogging, it is not allowed to set the chamber temperature."
+"Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order "
+"to avoid extruder clogging, it is not allowed to set the chamber temperature."
 msgstr ""
 
 msgid ""
@@ -4161,6 +4303,9 @@ msgid "Retry (problem solved)"
 msgstr ""
 
 msgid "Stop Drying"
+msgstr ""
+
+msgid "Proceed"
 msgstr ""
 
 msgid "Done"
@@ -4309,11 +4454,17 @@ msgstr "積層ピッチ"
 msgid "Line Width"
 msgstr "押出線幅"
 
+msgid "Actual Speed"
+msgstr ""
+
 msgid "Fan Speed"
 msgstr "ファン回転速度"
 
 msgid "Flow"
 msgstr "流量"
+
+msgid "Actual Flow"
+msgstr ""
 
 msgid "Tool"
 msgstr "ツール"
@@ -4324,20 +4475,113 @@ msgstr "積層時間"
 msgid "Layer Time (log)"
 msgstr "積層時間 (Log)"
 
+msgid "Noop"
+msgstr ""
+
+msgid "Retract"
+msgstr "リトラクション"
+
+msgid "Unretract"
+msgstr "リトラクション回復"
+
+msgid "Seam"
+msgstr "継ぎ目"
+
+msgid "Tool Change"
+msgstr ""
+
+msgid "Color Change"
+msgstr ""
+
+msgid "Pause Print"
+msgstr ""
+
+msgid "Travel"
+msgstr "移動"
+
+msgid "Wipe"
+msgstr "拭き上げ"
+
+msgid "Extrude"
+msgstr ""
+
+msgid "Inner wall"
+msgstr "内壁"
+
+msgid "Outer wall"
+msgstr "外壁"
+
+msgid "Overhang wall"
+msgstr "オーバーハング"
+
+msgid "Sparse infill"
+msgstr "スパース インフィル"
+
+msgid "Internal solid infill"
+msgstr "内部ソリッド インフィル"
+
+msgid "Top surface"
+msgstr "トップ面"
+
+msgid "Bridge"
+msgstr "ブリッジ"
+
+msgid "Gap infill"
+msgstr "隙間インフィル"
+
+msgid "Skirt"
+msgstr "スカート"
+
+msgid "Support interface"
+msgstr "サポート接触面"
+
+msgid "Prime tower"
+msgstr "プライムタワー"
+
+msgid "Bottom surface"
+msgstr "底面"
+
+msgid "Internal bridge"
+msgstr ""
+
+msgid "Support transition"
+msgstr "サポート変換層"
+
+msgid "Mixed"
+msgstr ""
+
+msgid "mm/s"
+msgstr "mm/s"
+
+msgid "Flow rate"
+msgstr ""
+
+msgid "mm³/s"
+msgstr ""
+
+msgid "Fan speed"
+msgstr "回転速度"
+
+msgid "°C"
+msgstr "°C"
+
+msgid "Time"
+msgstr "時間"
+
+msgid "Actual speed profile"
+msgstr ""
+
+msgid "Speed: "
+msgstr "速度"
+
 msgid "Height: "
 msgstr "高度"
 
 msgid "Width: "
 msgstr "幅"
 
-msgid "Speed: "
-msgstr "速度"
-
 msgid "Flow: "
 msgstr "フロー"
-
-msgid "Layer Time: "
-msgstr "積層時間"
 
 msgid "Fan: "
 msgstr "ファン回転速度"
@@ -4345,14 +4589,17 @@ msgstr "ファン回転速度"
 msgid "Temperature: "
 msgstr "温度"
 
-msgid "Loading G-code"
-msgstr "G-codeを読み込み"
+msgid "Layer Time: "
+msgstr "積層時間"
 
-msgid "Generating geometry vertex data"
-msgstr "ジオメトリ頂点データを生成"
+msgid "Tool: "
+msgstr ""
 
-msgid "Generating geometry index data"
-msgstr "ジオメトリ・インデックス・データを生成"
+msgid "Color: "
+msgstr ""
+
+msgid "Actual Speed: "
+msgstr ""
 
 msgid "Statistics of All Plates"
 msgstr ""
@@ -4453,9 +4700,6 @@ msgstr "以上"
 msgid "from"
 msgstr ""
 
-msgid "Time"
-msgstr "時間"
-
 msgid "Usage"
 msgstr ""
 
@@ -4468,6 +4712,9 @@ msgstr "押出線幅(mm)"
 msgid "Speed (mm/s)"
 msgstr "速度 (mm/s)"
 
+msgid "Actual Speed (mm/s)"
+msgstr ""
+
 msgid "Fan Speed (%)"
 msgstr "ファン回転速度 (%)"
 
@@ -4477,23 +4724,14 @@ msgstr "温度 (°C)"
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "流量 (mm³/s)"
 
-msgid "Travel"
-msgstr "移動"
+msgid "Actual volumetric flow rate (mm³/s)"
+msgstr ""
 
 msgid "Seams"
 msgstr "継ぎ目"
 
-msgid "Retract"
-msgstr "リトラクション"
-
-msgid "Unretract"
-msgstr "リトラクション回復"
-
 msgid "Filament Changes"
 msgstr "フィラメント交換"
-
-msgid "Wipe"
-msgstr "拭き上げ"
 
 msgid "Options"
 msgstr "オプション"
@@ -4519,9 +4757,6 @@ msgstr "造形する"
 msgid "Printer"
 msgstr "プリンター"
 
-msgid "Tool Change"
-msgstr ""
-
 msgid "Time Estimation"
 msgstr "予測時間"
 
@@ -4540,11 +4775,11 @@ msgstr "準備時間"
 msgid "Model printing time"
 msgstr "モデル造形時間"
 
-msgid "Switch to silent mode"
-msgstr "サイレントモードに切り替える"
+msgid "Show stealth mode"
+msgstr ""
 
-msgid "Switch to normal mode"
-msgstr "通常モードに切り替え"
+msgid "Show normal mode"
+msgstr ""
 
 msgid ""
 "An object is placed in the left/right nozzle-only area or exceeds the "
@@ -4751,7 +4986,10 @@ msgstr "戻る"
 msgid "Return"
 msgstr "戻る"
 
-msgid "Toggle Axis"
+msgid "Canvas Toolbar"
+msgstr ""
+
+msgid "Fit camera to scene or selected object."
 msgstr ""
 
 msgid "Paint Toolbar"
@@ -4781,7 +5019,7 @@ msgstr "ボリューム"
 msgid "Size:"
 msgstr "サイズ:"
 
-#, c-format, boost-format
+#, boost-format
 msgid ""
 "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please "
 "separate the conflicted objects farther (%s <-> %s)."
@@ -4797,6 +5035,10 @@ msgid "A G-code path goes beyond the plate boundaries."
 msgstr "G-codeはプレートの境界を超えています。"
 
 msgid "Not support printing 2 or more TPU filaments."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Tool %d"
 msgstr ""
 
 #, c-format, boost-format
@@ -4841,10 +5083,23 @@ msgstr ""
 msgid "The prime tower extends beyond the plate boundary."
 msgstr ""
 
+msgid ""
+"Prime tower position exceeded build plate boundaries and was repositioned to "
+"the nearest valid edge."
+msgstr ""
+
+msgid ""
+"Partial flushing volume set to 0. Multi-color printing may cause color "
+"mixing in models. Please redjust flushing settings."
+msgstr ""
+
 msgid "Click Wiki for help."
 msgstr ""
 
 msgid "Click here to regroup"
+msgstr ""
+
+msgid "Flushing Volume"
 msgstr ""
 
 msgid "Calibration step selection"
@@ -4857,6 +5112,9 @@ msgid "Bed leveling"
 msgstr "ベッドレベリング"
 
 msgid "High-temperature Heatbed Calibration"
+msgstr ""
+
+msgid "Nozzle clumping detection Calibration"
 msgstr ""
 
 msgid "Calibration program"
@@ -5110,6 +5368,12 @@ msgstr ""
 msgid "Export all objects as STLs"
 msgstr ""
 
+msgid "Export all objects as one DRC"
+msgstr ""
+
+msgid "Export all objects as DRCs"
+msgstr ""
+
 msgid "Export Generic 3MF"
 msgstr "汎用3MF"
 
@@ -5262,6 +5526,12 @@ msgstr "ヘルプ"
 msgid "Temperature Calibration"
 msgstr ""
 
+msgid "Max flowrate"
+msgstr ""
+
+msgid "Pressure advance"
+msgstr ""
+
 msgid "Pass 1"
 msgstr ""
 
@@ -5286,16 +5556,7 @@ msgstr ""
 msgid "Orca YOLO flowrate calibration, 0.005 step"
 msgstr ""
 
-msgid "Flow rate"
-msgstr ""
-
-msgid "Pressure advance"
-msgstr ""
-
 msgid "Retraction test"
-msgstr ""
-
-msgid "Max flowrate"
 msgstr ""
 
 msgid "Cornering"
@@ -5829,6 +6090,9 @@ msgstr "中止"
 msgid "Layer: N/A"
 msgstr ""
 
+msgid "Click to view thermal preconditioning explanation"
+msgstr ""
+
 msgid "Clear"
 msgstr "クリア"
 
@@ -5869,6 +6133,9 @@ msgstr ""
 msgid "Print Options"
 msgstr "造型オプション"
 
+msgid "Safety Options"
+msgstr ""
+
 msgid "Lamp"
 msgstr "照明"
 
@@ -5896,6 +6163,11 @@ msgstr ""
 msgid "The printer is busy with another print job."
 msgstr "プリンターはビジーです。"
 
+msgid ""
+"When printing is paused, filament loading and unloading are only supported "
+"for external slots."
+msgstr ""
+
 msgid "Current extruder is busy changing filament."
 msgstr ""
 
@@ -5903,6 +6175,9 @@ msgid "Current slot has already been loaded."
 msgstr ""
 
 msgid "The selected slot is empty."
+msgstr ""
+
+msgid "Printer 2D mode does not support 3D calibration"
 msgstr ""
 
 msgid "Downloading..."
@@ -5925,6 +6200,9 @@ msgstr ""
 
 msgid ""
 "Please heat the nozzle to above 170°C before loading or unloading filament."
+msgstr ""
+
+msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr ""
 
 msgid ""
@@ -6123,7 +6401,8 @@ msgstr ""
 msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr ""
 
-msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
+msgid ""
+"Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr ""
 
 msgid "Current Version: "
@@ -6185,8 +6464,8 @@ msgstr "詳細"
 msgid "New printer config available."
 msgstr ""
 
-msgid "Wiki"
-msgstr "Wiki"
+msgid "Wiki Guide"
+msgstr ""
 
 msgid "Undo integration failed."
 msgstr "統合の取り消しに失敗しました。"
@@ -6289,8 +6568,8 @@ msgstr "範囲"
 
 msgid ""
 "The application cannot run normally because OpenGL version is lower than "
-"2.0.\n"
-msgstr "OpenGLのバージョンは2.0以下の為アプリケーションを実行できません\n"
+"3.2.\n"
+msgstr ""
 
 msgid "Please upgrade your graphics card driver."
 msgstr "パソコンのGPUドライバーを更新してください"
@@ -6374,15 +6653,6 @@ msgstr "1層目検査"
 msgid "Auto-recovery from step loss"
 msgstr "自動回復"
 
-msgid "Open Door Detection"
-msgstr ""
-
-msgid "Notification"
-msgstr ""
-
-msgid "Pause printing"
-msgstr ""
-
 msgid "Store Sent Files on External Storage"
 msgstr ""
 
@@ -6400,16 +6670,28 @@ msgstr ""
 msgid "Check if the nozzle is clumping by filament or other foreign objects."
 msgstr ""
 
-msgid "Nozzle Type"
-msgstr "ノズルタイプ"
+msgid "Open Door Detection"
+msgstr ""
 
-msgid "Nozzle Flow"
+msgid "Notification"
+msgstr ""
+
+msgid "Pause printing"
+msgstr ""
+
+msgctxt "Nozzle Type"
+msgid "Type"
+msgstr ""
+
+msgctxt "Nozzle Diameter"
+msgid "Diameter"
+msgstr ""
+
+msgctxt "Nozzle Flow"
+msgid "Flow"
 msgstr ""
 
 msgid "Please change the nozzle settings on the printer."
-msgstr ""
-
-msgid "View wiki"
 msgstr ""
 
 msgid "Hardened Steel"
@@ -6421,10 +6703,25 @@ msgstr ""
 msgid "Tungsten Carbide"
 msgstr ""
 
+msgid "Brass"
+msgstr "真鍮"
+
 msgid "High flow"
 msgstr ""
 
 msgid "No wiki link available for this printer."
+msgstr ""
+
+msgid "Refreshing"
+msgstr ""
+
+msgid "Unavailable while heating maintenance function is on."
+msgstr ""
+
+msgid "Idel Heating Protection"
+msgstr ""
+
+msgid "Stops heating automatically after 5 mins of idle to ensure safety."
 msgstr ""
 
 msgid "Global"
@@ -6433,8 +6730,8 @@ msgstr "全般"
 msgid "Objects"
 msgstr "OBJ"
 
-msgid "Advance"
-msgstr "高度な設定"
+msgid "Show/Hide advanced parameters"
+msgstr ""
 
 msgid "Compare presets"
 msgstr "プリセットを比較"
@@ -6555,6 +6852,9 @@ msgstr ""
 msgid "Right nozzle: %smm"
 msgstr ""
 
+msgid "Configuration incompatible"
+msgstr "構成ファイルは互換性がありません"
+
 msgid "Sync printer information"
 msgstr ""
 
@@ -6572,17 +6872,14 @@ msgstr ""
 msgid "Sync extruder infomation"
 msgstr ""
 
-msgid "Click to edit preset"
-msgstr "プリセットを編集"
-
 msgid "Connection"
 msgstr "接続"
 
-msgid "Sync info"
-msgstr ""
-
 msgid "Synchronize nozzle information and the number of AMS"
 msgstr ""
+
+msgid "Click to edit preset"
+msgstr "プリセットを編集"
 
 msgid "Project Filaments"
 msgstr ""
@@ -6624,6 +6921,9 @@ msgid ""
 "There are some unknown or incompatible filaments mapped to generic preset.\n"
 "Please update Orca Slicer or restart Orca Slicer to check if there is an "
 "update to system presets."
+msgstr ""
+
+msgid "Only filament color information has been synchronized from printer."
 msgstr ""
 
 msgid ""
@@ -6721,8 +7021,8 @@ msgstr "ソフトウェアをアップデートする必要があります。\n"
 
 #, fuzzy, c-format, boost-format
 msgid ""
-"The 3MF file version %s is newer than %s's version %s, we suggest to "
-"upgrade your software."
+"The 3MF file version %s is newer than %s's version %s, we suggest to upgrade "
+"your software."
 msgstr ""
 "3mfのバージョン%sは%sの%sより新しい為、ソフトウェアを更新してください。"
 
@@ -6731,9 +7031,8 @@ msgid ""
 "The 3MF file was generated by an old OrcaSlicer version, loading geometry "
 "data only."
 msgstr ""
-"3mfは古いバージョンのOrca Slicerで作成されています、ジオメトリーデータのみ"
-"読込みます。"
-
+"3mfは古いバージョンのOrca Slicerで作成されています、ジオメトリーデータのみ読"
+"込みます。"
 
 msgid "Invalid values found in the 3MF:"
 msgstr ""
@@ -6837,6 +7136,9 @@ msgstr "オブジェクトが大きすぎます"
 msgid "Export STL file:"
 msgstr "STLファイルをエクスポート:"
 
+msgid "Export Draco file:"
+msgstr ""
+
 msgid "Export AMF file:"
 msgstr ""
 
@@ -6891,7 +7193,7 @@ msgstr ""
 msgid "Directory for the replace wasn't selected"
 msgstr ""
 
-msgid "Replaced with STLs from directory:\n"
+msgid "Replaced with 3D files from directory:\n"
 msgstr ""
 
 #, boost-format
@@ -7024,6 +7326,9 @@ msgstr ""
 msgid ""
 "No accelerations provided for calibration. Use default acceleration value "
 msgstr ""
+
+msgid "mm/s²"
+msgstr "mm/s²"
 
 msgid "No speeds provided for calibration. Use default optimal speed "
 msgstr ""
@@ -7180,6 +7485,12 @@ msgstr "回転の最適化"
 msgid ""
 "Printer not connected. Please go to the device page to connect %s before "
 "syncing."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"OrcaSlicer can't connect to %s. Please check if the printer is powered on "
+"and connected to the network."
 msgstr ""
 
 #, c-format, boost-format
@@ -7427,7 +7738,8 @@ msgstr ""
 msgid "Load behaviour"
 msgstr ""
 
-msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
+msgid ""
+"Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr ""
 
 msgid "Maximum recent files"
@@ -7467,6 +7779,21 @@ msgid ""
 "each printer automatically."
 msgstr ""
 
+msgid "Group user filament presets"
+msgstr ""
+
+msgid "Group user filament presets based on selection"
+msgstr ""
+
+msgid "All"
+msgstr "すべて"
+
+msgid "By type"
+msgstr ""
+
+msgid "By vendor"
+msgstr ""
+
 msgid "Features"
 msgstr ""
 
@@ -7484,11 +7811,23 @@ msgstr ""
 msgid "Pop up to select filament grouping mode"
 msgstr ""
 
-msgid "Behaviour"
+msgid "Quality level for Draco export"
 msgstr ""
 
-msgid "All"
-msgstr "すべて"
+msgid "bits"
+msgstr ""
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco "
+"format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid "
+"lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher "
+"values preserve more detail at the cost of larger files."
+msgstr ""
+
+msgid "Behaviour"
+msgstr ""
 
 msgid "Auto flush after changing..."
 msgstr ""
@@ -7497,6 +7836,27 @@ msgid "Auto calculate flushing volumes when selected values changed"
 msgstr ""
 
 msgid "Auto arrange plate after cloning"
+msgstr ""
+
+msgid "Auto slice after changes"
+msgstr ""
+
+msgid ""
+"If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
+"settings change."
+msgstr ""
+
+msgid ""
+"Delay in seconds before auto slicing starts, allowing multiple edits to be "
+"grouped. Use 0 to slice immediately."
+msgstr ""
+
+msgid "Remove mixed temperature restriction"
+msgstr ""
+
+msgid ""
+"With this option enabled, you can print materials with a large temperature "
+"difference together."
 msgstr ""
 
 msgid "Touchpad"
@@ -7599,17 +7959,64 @@ msgstr "ユーザープリセットの自動同期 (プリンター/フィラメ
 msgid "Update built-in Presets automatically."
 msgstr ""
 
+msgid "Use encrypted file for token storage"
+msgstr ""
+
+msgid ""
+"Store authentication tokens in an encrypted file instead of the system "
+"keychain. (Requires restart)"
+msgstr ""
+
+msgid "Filament Sync Options"
+msgstr ""
+
+msgid "Filament sync mode"
+msgstr ""
+
+msgid ""
+"Choose whether sync updates both filament preset and color, or only color."
+msgstr ""
+
+msgid "Filament & Color"
+msgstr ""
+
+msgid "Color only"
+msgstr ""
+
 msgid "Network plugin"
 msgstr ""
 
 msgid "Enable network plugin"
 msgstr ""
 
-msgid "Use legacy network plugin"
+msgid "Network plugin version"
 msgstr ""
 
+msgid "Select the network plugin version to use"
+msgstr ""
+
+msgid "(Latest)"
+msgstr ""
+
+msgid "Network plugin switched successfully."
+msgstr ""
+
+msgid "Success"
+msgstr ""
+
+msgid "Failed to load network plugin. Please restart the application."
+msgstr ""
+
+#, c-format, boost-format
 msgid ""
-"Disable to use latest network plugin that supports new BambuLab firmwares."
+"You've selected network plugin version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr ""
+
+msgid "Download Network Plugin"
 msgstr ""
 
 msgid "Associate files to OrcaSlicer"
@@ -7621,6 +8028,12 @@ msgstr ".3mfファイルをOrca Slicerに関連付けます。"
 
 msgid "If enabled, sets OrcaSlicer as default application to open 3MF files."
 msgstr "デフォルトで.3mfファイルをOrca Slicerで開く"
+
+msgid "Associate DRC files to OrcaSlicer"
+msgstr ""
+
+msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
+msgstr ""
 
 #, fuzzy
 msgid "Associate STL files to OrcaSlicer"
@@ -7650,14 +8063,6 @@ msgstr "開発者モード"
 msgid "Skip AMS blacklist check"
 msgstr ""
 
-msgid "Remove mixed temperature restriction"
-msgstr ""
-
-msgid ""
-"With this option enabled, you can print materials with a large temperature "
-"difference together."
-msgstr ""
-
 msgid "Allow Abnormal Storage"
 msgstr ""
 
@@ -7683,6 +8088,24 @@ msgstr "デバッグ"
 
 msgid "trace"
 msgstr "トレース"
+
+msgid "Network Plugin"
+msgstr ""
+
+msgid "Reload"
+msgstr ""
+
+msgid "Reload the network plugin without restarting the application"
+msgstr ""
+
+msgid "Network plugin reloaded successfully."
+msgstr ""
+
+msgid "Failed to reload network plugin. Please restart the application."
+msgstr ""
+
+msgid "Reload Failed"
+msgstr ""
 
 msgid "Debug"
 msgstr ""
@@ -7782,6 +8205,9 @@ msgstr "プリセットの追加/削除"
 
 msgid "Edit preset"
 msgstr "プリセットを編集"
+
+msgid "Unspecified"
+msgstr ""
 
 msgid "Project-inside presets"
 msgstr "プロジェクト プリセット"
@@ -7894,8 +8320,8 @@ msgstr "公開は取り消しました"
 msgid "Slicing Plate 1"
 msgstr "プレート1をスライス"
 
-msgid "Packing data to 3MF"
-msgstr "データを構成中"
+msgid "Packing data to 3mf"
+msgstr ""
 
 msgid "Jump to webpage"
 msgstr "ウェブページに移動"
@@ -7909,6 +8335,9 @@ msgstr "ユーザープリセット"
 
 msgid "Preset Inside Project"
 msgstr "プロジェクト プリセット"
+
+msgid "Detach from parent"
+msgstr ""
 
 msgid "Name is unavailable."
 msgstr "名称は使用できません"
@@ -8160,6 +8589,16 @@ msgid ""
 msgstr ""
 
 #, c-format, boost-format
+msgid ""
+"[ %s ] requires printing in a high-temperature environment.Please close the "
+"door."
+msgstr ""
+
+#, c-format, boost-format
+msgid "[ %s ] requires printing in a high-temperature environment."
+msgstr ""
+
+#, c-format, boost-format
 msgid "The filament on %s may soften. Please unload."
 msgstr ""
 
@@ -8172,16 +8611,22 @@ msgid ""
 "match."
 msgstr ""
 
-msgid "Cool"
+msgid "Install toolhead enhanced cooling fan to prevent filament softening."
 msgstr ""
 
-msgid "Engineering"
+msgid "Smooth Cool Plate"
 msgstr ""
 
-msgid "High Temp"
+msgid "Engineering Plate"
+msgstr "エンジニアリングプレート"
+
+msgid "Smooth High Temp Plate"
 msgstr ""
 
-msgid "Cool(Supertack)"
+msgid "Textured PEI Plate"
+msgstr "PEIプレート"
+
+msgid "Cool Plate (Supertack)"
 msgstr ""
 
 msgid "Click here if you can't connect to the printer"
@@ -8210,6 +8655,11 @@ msgid ""
 msgstr "プリンターが指令を実行中です。実行終了してから造形を再開してください。"
 
 msgid "AMS is setting up. Please try again later."
+msgstr ""
+
+msgid ""
+"Not all filaments used in slicing are mapped to the printer. Please check "
+"the mapping of filaments."
 msgstr ""
 
 msgid "Please do not mix-use the Ext with AMS."
@@ -8258,14 +8708,16 @@ msgid "This printer does not support printing all plates."
 msgstr "プリンターが全てのプレートを造形することができません"
 
 msgid ""
-"Please cold pull before printing TPU to avoid clogging. You may use cold "
-"pull maintenance on the printer."
-msgstr ""
-
-msgid "High chamber temperature is required. Please close the door."
+"The current firmware supports a maximum of 16 materials. You can either "
+"reduce the number of materials to 16 or fewer on the Preparation Page, or "
+"try updating the firmware. If you are still restricted after the update, "
+"please wait for subsequent firmware support."
 msgstr ""
 
 msgid "Please refer to Wiki before use->"
+msgstr ""
+
+msgid "Current firmware does not support file transfer to internal storage."
 msgstr ""
 
 msgid "Send to Printer storage"
@@ -8274,35 +8726,16 @@ msgstr ""
 msgid "Try to connect"
 msgstr ""
 
-msgid "click to retry"
+msgid "Internal Storage"
+msgstr ""
+
+msgid "External Storage"
 msgstr ""
 
 msgid "Upload file timeout, please check if the firmware version supports it."
 msgstr ""
 
-msgid ""
-"No available external storage was obtained. Please confirm and try again."
-msgstr ""
-
-msgid ""
-"Media capability acquisition timeout, please check if the firmware version "
-"supports it."
-msgstr ""
-
-msgid ""
-"Please check the network and try again, You can restart or update the "
-"printer if the issue persists."
-msgstr ""
-
-msgid "Sending..."
-msgstr ""
-
-msgid ""
-"File upload timed out. Please check if the firmware version supports this "
-"operation or verify if the printer is functioning properly."
-msgstr ""
-
-msgid "Sending failed, please try again!"
+msgid "Connection timed out, please check your network."
 msgstr ""
 
 msgid "Connection failed. Click the icon to retry"
@@ -8322,6 +8755,14 @@ msgstr ""
 "このプリンターを使用するには、Orca Slicerを同一のLANで使用してください。"
 
 msgid "The printer does not support sending to printer storage."
+msgstr ""
+
+msgid "Sending..."
+msgstr ""
+
+msgid ""
+"File upload timed out. Please check if the firmware version supports this "
+"operation or verify if the printer is functioning properly."
 msgstr ""
 
 msgid "Slice ok."
@@ -8470,13 +8911,13 @@ msgstr ""
 "ワーを有効にしますか？"
 
 msgid ""
-"Enabling both precise Z height and the prime tower may cause the size of "
-"prime tower to increase. Do you still want to enable?"
+"A prime tower is required for clumping detection. There may be flaws on the "
+"model without prime tower. Are you sure you want to disable prime tower?"
 msgstr ""
 
 msgid ""
-"A prime tower is required for clumping detection. There may be flaws on the "
-"model without prime tower. Are you sure you want to disable prime tower?"
+"Enabling both precise Z height and the prime tower may cause the size of "
+"prime tower to increase. Do you still want to enable?"
 msgstr ""
 
 msgid ""
@@ -8576,8 +9017,8 @@ msgstr ""
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a "
 "\"Timelapse Wipe Tower\" \n"
-"by right-click the empty position of build plate and choose \"Add Primitive"
-"\"->\"Timelapse Wipe Tower\"."
+"by right-click the empty position of build plate and choose \"Add "
+"Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "ヘッド無しのタイムラプスビデオを録画する時に、「タイムラプスプライムタワー」"
 "を追加してください。プレートで右クリックして、「プリミティブを追加」→「タイム"
@@ -8660,9 +9101,6 @@ msgstr "シンボリック・プロファイル名"
 msgid "Line width"
 msgstr "押出線幅"
 
-msgid "Seam"
-msgstr "継ぎ目"
-
 msgid "Precision"
 msgstr "精度"
 
@@ -8701,9 +9139,6 @@ msgstr ""
 "オーバーハングを造形時の速度です。オーバーハングの角度が線幅に対する割合で表"
 "示します。0は減速無しで壁面の速度が使用されます。"
 
-msgid "Bridge"
-msgstr "ブリッジ"
-
 msgid "Set speed for external and internal bridges"
 msgstr ""
 
@@ -8731,17 +9166,11 @@ msgstr ""
 msgid "Multimaterial"
 msgstr ""
 
-msgid "Prime tower"
-msgstr "プライムタワー"
-
 msgid "Filament for Features"
 msgstr ""
 
 msgid "Ooze prevention"
 msgstr "垂れ出し抑止"
-
-msgid "Skirt"
-msgstr "スカート"
 
 msgid "Special mode"
 msgstr "特別モード"
@@ -8827,9 +9256,6 @@ msgid ""
 "means the filament does not support printing on the Textured Cool Plate."
 msgstr ""
 
-msgid "Engineering Plate"
-msgstr "エンジニアリングプレート"
-
 msgid ""
 "Bed temperature when the Engineering Plate is installed. A value of 0 means "
 "the filament does not support printing on the Engineering Plate."
@@ -8845,9 +9271,6 @@ msgid ""
 "installed. A value of 0 means the filament does not support printing on the "
 "Smooth PEI Plate/High Temp Plate."
 msgstr ""
-
-msgid "Textured PEI Plate"
-msgstr "PEIプレート"
 
 msgid ""
 "Bed temperature when the Textured PEI Plate is installed. A value of 0 means "
@@ -8957,6 +9380,9 @@ msgstr "アクセサリー"
 
 msgid "Machine G-code"
 msgstr "プリンタG-code"
+
+msgid "File header G-code"
+msgstr ""
 
 msgid "Machine start G-code"
 msgstr "プリンター開始G-code"
@@ -9092,6 +9518,12 @@ msgstr "%1% プリセット"
 msgid "Following preset will be deleted too."
 msgid_plural "Following presets will be deleted too."
 msgstr[0] "以下のプリセットも削除されます: "
+
+msgid ""
+"Are you sure to delete the selected preset?\n"
+"If the preset corresponds to a filament currently in use on your printer, "
+"please reset the filament information for that slot."
+msgstr ""
 
 #, boost-format
 msgid "Are you sure to %1% the selected preset?"
@@ -9291,9 +9723,6 @@ msgstr "構成の更新"
 msgid "A new configuration package is available. Do you want to install it?"
 msgstr "新しい構成パッケージが利用できます。インストールしますか？"
 
-msgid "Configuration incompatible"
-msgstr "構成ファイルは互換性がありません"
-
 msgid "the configuration package is incompatible with the current application."
 msgstr "構成パッケージが現在のアプリケーションと互換性がありません"
 
@@ -9317,9 +9746,6 @@ msgstr "利用可能なアップデートはありません"
 
 msgid "The configuration is up to date."
 msgstr "構成データが最新です"
-
-msgid "Open Wiki for more information >"
-msgstr ""
 
 msgid "OBJ file import color"
 msgstr ""
@@ -9522,6 +9948,9 @@ msgctxt "Sync_Nozzle_AMS"
 msgid "Cancel"
 msgstr ""
 
+msgid "Successfully synchronized filament color from printer."
+msgstr ""
+
 msgid "Successfully synchronized color and type of filament from printer."
 msgstr ""
 
@@ -9556,6 +9985,9 @@ msgstr ""
 #, boost-format
 msgid "For constant flow rate, hold %1% while dragging."
 msgstr "流量を一定にするには、%1% を押したままドラッグします。"
+
+msgid "ms"
+msgstr ""
 
 msgid "Total ramming"
 msgstr ""
@@ -9995,9 +10427,6 @@ msgstr ""
 msgid "Auto Fire Extinguishing System"
 msgstr ""
 
-msgid "Model:"
-msgstr "モデル"
-
 msgid "Update firmware"
 msgstr "ファームウェアを更新"
 
@@ -10155,38 +10584,8 @@ msgstr ""
 msgid " can not be placed in the "
 msgstr ""
 
-msgid "Inner wall"
-msgstr "内壁"
-
-msgid "Outer wall"
-msgstr "外壁"
-
-msgid "Overhang wall"
-msgstr "オーバーハング"
-
-msgid "Sparse infill"
-msgstr "スパース インフィル"
-
-msgid "Internal solid infill"
-msgstr "内部ソリッド インフィル"
-
-msgid "Top surface"
-msgstr "トップ面"
-
-msgid "Bottom surface"
-msgstr "底面"
-
 msgid "Internal Bridge"
 msgstr ""
-
-msgid "Gap infill"
-msgstr "隙間インフィル"
-
-msgid "Support interface"
-msgstr "サポート接触面"
-
-msgid "Support transition"
-msgstr "サポート変換層"
 
 msgid "Multiple"
 msgstr "複数"
@@ -10705,6 +11104,12 @@ msgstr ""
 msgid "Allow controlling BambuLab's printer through 3rd party print hosts."
 msgstr ""
 
+msgid "Printer Agent"
+msgstr ""
+
+msgid "Select the network agent implementation for printer communication."
+msgstr ""
+
 msgid "Hostname, IP or URL"
 msgstr "Hostname、IPまたはURL"
 
@@ -10882,12 +11287,6 @@ msgstr ""
 msgid "Bed types supported by the printer."
 msgstr "適応ベッド種類"
 
-msgid "Smooth Cool Plate"
-msgstr ""
-
-msgid "Smooth High Temp Plate"
-msgstr ""
-
 msgid "Default bed type"
 msgstr ""
 
@@ -11039,12 +11438,15 @@ msgid "External bridge density"
 msgstr ""
 
 msgid ""
-"Controls the density (spacing) of external bridge lines. 100% means solid "
-"bridge. Default is 100%.\n"
+"Controls the density (spacing) of external bridge lines. Default is 100%.\n"
 "\n"
 "Lower density external bridges can help improve reliability as there is more "
 "space for air to circulate around the extruded bridge, improving its cooling "
-"speed."
+"speed. Minimum is 10%.\n"
+"\n"
+"Higher densities can produce smoother bridge surfaces, as overlapping lines "
+"provide additional support during printing. Maximum is 120%.\n"
+"Note: Bridge density that is too high can cause warping or overextrusion."
 msgstr ""
 
 msgid "Internal bridge density"
@@ -11406,13 +11808,13 @@ msgid ""
 "If your current setup already works well, enabling it may be unnecessary and "
 "can cause the brim to fuse with upper layers."
 msgstr ""
-"有効にすると、ブリム は最初の層の周囲ジオメトリと位置合わせされます。 "
-"エレファント・フット・コンペンセーション適用後。\n"
-"このオプションは、象の足の補正が必要な場合を対象としています。 "
-"最初の層のフットプリントを大幅に変更します。\n"
+"有効にすると、ブリム は最初の層の周囲ジオメトリと位置合わせされます。 エレ"
+"ファント・フット・コンペンセーション適用後。\n"
+"このオプションは、象の足の補正が必要な場合を対象としています。 最初の層のフッ"
+"トプリントを大幅に変更します。\n"
 "\n"
-"現在の設定がすでにうまく機能している場合は、それを有効にする必要はないかもしれません。 "
-"ブリム が上位層と融合する可能性があります。"
+"現在の設定がすでにうまく機能している場合は、それを有効にする必要はないかもし"
+"れません。 ブリム が上位層と融合する可能性があります。"
 
 msgid "Brim ears"
 msgstr ""
@@ -11523,9 +11925,6 @@ msgstr ""
 
 msgid "Activate for better air filtration. G-code command: M106 P3 S(0-255)"
 msgstr ""
-
-msgid "Fan speed"
-msgstr "回転速度"
 
 msgid ""
 "Speed of exhaust fan during printing. This speed will override the speed in "
@@ -11799,8 +12198,7 @@ msgid ""
 "\n"
 "Use Outer/Inner for the same external wall quality and dimensional accuracy "
 "benefits of Inner/Outer/Inner option. However, the Z seams will appear less "
-"consistent as the first extrusion of a new layer starts on a visible "
-"surface."
+"consistent as the first extrusion of a new layer starts on a visible surface."
 msgstr ""
 
 msgid "Inner/Outer"
@@ -12088,6 +12486,9 @@ msgid ""
 "maximum fan speeds according to layer printing time."
 msgstr "パーツ冷却ファンは、積層造形時間がこの値より短い時に作動します。"
 
+msgid "s"
+msgstr "s"
+
 msgid "Default color"
 msgstr "デフォルト色"
 
@@ -12116,9 +12517,6 @@ msgid "Filament map to extruder"
 msgstr ""
 
 msgid "Filament map to extruder."
-msgstr ""
-
-msgid "filament mapping mode"
 msgstr ""
 
 msgid "Auto For Flush"
@@ -12232,7 +12630,8 @@ msgstr ""
 msgid ""
 "Enter the shrinkage percentage that the filament will get after cooling (94% "
 "if you measure 94mm instead of 100mm). The part will be scaled in XY to "
-"compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\n"
+"compensate. For multi-material prints, ensure filament shrinkage matches "
+"across all used filaments\n"
 "Be sure to allow enough space between objects, as this compensation is done "
 "after the checks."
 msgstr ""
@@ -12392,6 +12791,9 @@ msgstr "密度"
 
 msgid "Filament density. For statistics only."
 msgstr "フィラメント密度"
+
+msgid "g/cm³"
+msgstr ""
 
 msgid "The material type of filament."
 msgstr "フィラメント素材タイプ"
@@ -12629,9 +13031,6 @@ msgstr ""
 msgid "0 (Simple connect)"
 msgstr ""
 
-msgid "Acceleration of outer walls."
-msgstr ""
-
 msgid "Acceleration of inner walls."
 msgstr ""
 
@@ -12657,8 +13056,8 @@ msgid "mm/s² or %"
 msgstr "mm/s² 或は %"
 
 msgid ""
-"Acceleration of sparse infill. If the value is expressed as a percentage (e."
-"g. 100%), it will be calculated based on the default acceleration."
+"Acceleration of sparse infill. If the value is expressed as a percentage "
+"(e.g. 100%), it will be calculated based on the default acceleration."
 msgstr ""
 
 msgid ""
@@ -12763,10 +13162,10 @@ msgstr "最大回転速度の積層"
 
 msgid ""
 "Fan speed will be ramped up linearly from zero at layer "
-"\"close_fan_the_first_x_layers\" to maximum at layer \"full_fan_speed_layer"
-"\". \"full_fan_speed_layer\" will be ignored if lower than "
-"\"close_fan_the_first_x_layers\", in which case the fan will be running at "
-"maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
+"\"close_fan_the_first_x_layers\" to maximum at layer "
+"\"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower "
+"than \"close_fan_the_first_x_layers\", in which case the fan will be running "
+"at maximum allowed speed at layer \"close_fan_the_first_x_layers\" + 1."
 msgstr ""
 
 msgid "layer"
@@ -12806,12 +13205,48 @@ msgid ""
 "Set to -1 to disable it."
 msgstr ""
 
+msgid "Ironing flow"
+msgstr "アイロン時の流量比率"
+
+msgid ""
+"Filament-specific override for ironing flow. This allows you to customize "
+"the ironing flow for each filament type. Too high value results in "
+"overextrusion on the surface."
+msgstr ""
+
+msgid "Ironing line spacing"
+msgstr "アイロン時にライン間隔"
+
+msgid ""
+"Filament-specific override for ironing line spacing. This allows you to "
+"customize the spacing between ironing lines for each filament type."
+msgstr ""
+
+msgid "Ironing inset"
+msgstr ""
+
+msgid ""
+"Filament-specific override for ironing inset. This allows you to customize "
+"the distance to keep from the edges when ironing for each filament type."
+msgstr ""
+
+msgid "Ironing speed"
+msgstr "アイロン時の移動速度"
+
+msgid ""
+"Filament-specific override for ironing speed. This allows you to customize "
+"the print speed of ironing lines for each filament type."
+msgstr ""
+
 msgid ""
 "Randomly jitter while printing the wall, so that the surface has a rough "
 "look. This setting controls the fuzzy position."
 msgstr ""
 "この設定により、壁面を造形時にノズルがランダムで軽微な振動を加えます。これに"
 "より、表面にザラザラ感が出来上がります。"
+
+msgid "None (allow paint)"
+msgstr ""
 
 msgid "Contour"
 msgstr ""
@@ -12990,6 +13425,19 @@ msgid ""
 "layer."
 msgstr "カメラで1層目検査を有効にします"
 
+msgid "Power Loss Recovery"
+msgstr ""
+
+msgid ""
+"Choose how to control power loss recovery. When set to Printer "
+"configuration, the slicer will not emit power loss recovery G-code and will "
+"leave the printer's configuration unchanged. Applicable to Bambu Lab or "
+"Marlin 2 firmware based printers."
+msgstr ""
+
+msgid "Printer configuration"
+msgstr ""
+
 msgid "Nozzle type"
 msgstr "ノズルタイプ"
 
@@ -13011,9 +13459,6 @@ msgstr "ステンレススチール"
 
 msgid "Tungsten carbide"
 msgstr ""
-
-msgid "Brass"
-msgstr "真鍮"
 
 msgid "Nozzle HRC"
 msgstr "ノズルHRC"
@@ -13194,9 +13639,6 @@ msgid ""
 "rotation themselves; use with care."
 msgstr ""
 
-msgid "°"
-msgstr "°"
-
 msgid "Solid infill rotation template"
 msgstr ""
 
@@ -13359,8 +13801,8 @@ msgid ""
 "\"mmu_segmented_region_interlocking_depth\" is bigger than "
 "\"mmu_segmented_region_max_width\". Zero disables this feature."
 msgstr ""
-"セグメント化された領域の連動深さ。mmu_segmented_region_max_width \"が0"
-"か、\"mmu_segmented_region_interlocking_depth \"が "
+"セグメント化された領域の連動深さ。mmu_segmented_region_max_width \"が0か、"
+"\"mmu_segmented_region_interlocking_depth \"が "
 "\"mmu_segmented_region_max_width \"より大きい場合は無視される。ゼロはこの機能"
 "を無効にする。"
 
@@ -13446,30 +13888,18 @@ msgstr ""
 msgid "The pattern that will be used when ironing."
 msgstr ""
 
-msgid "Ironing flow"
-msgstr "アイロン時の流量比率"
-
 msgid ""
 "The amount of material to extrude during ironing. Relative to flow of normal "
 "layer height. Too high value results in overextrusion on the surface."
 msgstr "アイロン時の押出量です。通常流量の比率で決まります。"
 
-msgid "Ironing line spacing"
-msgstr "アイロン時にライン間隔"
-
 msgid "The distance between the lines of ironing."
 msgstr "アイロン時の線間隔です。"
-
-msgid "Ironing inset"
-msgstr ""
 
 msgid ""
 "The distance to keep from the edges. A value of 0 sets this to half of the "
 "nozzle diameter."
 msgstr ""
-
-msgid "Ironing speed"
-msgstr "アイロン時の移動速度"
 
 msgid "Print speed of ironing lines."
 msgstr "アイロン時の造形速度です。"
@@ -13711,6 +14141,9 @@ msgid ""
 "Note: this parameter disables arc fitting."
 msgstr ""
 
+msgid "mm³/s²"
+msgstr "mm³/s²"
+
 msgid "Smoothing segment length"
 msgstr ""
 
@@ -13846,8 +14279,8 @@ msgid "Reduce infill retraction"
 msgstr "ｲﾝﾌｨﾙのﾘﾄﾗｸｼｮﾝ低減"
 
 msgid ""
-"Don't retract when the travel is entirely within an infill area. That means the "
-"oozing can't been seen. This can reduce times of retraction for complex "
+"Don't retract when the travel is entirely within an infill area. That means "
+"the oozing can't been seen. This can reduce times of retraction for complex "
 "model and save printing time, but make slicing and G-code generating slower. "
 "Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr ""
@@ -13888,6 +14321,9 @@ msgid ""
 "Maximum area of a hole in the base of the model before it's filled by "
 "conical material. A value of 0 will fill all the holes in the model base."
 msgstr ""
+
+msgid "mm²"
+msgstr "mm²"
 
 msgid "Detect overhang wall"
 msgstr "オーバーハングを検出"
@@ -14140,12 +14576,6 @@ msgstr ""
 msgid "Bowden"
 msgstr "ボーデン"
 
-msgid "Nozzle Volume Type"
-msgstr ""
-
-msgid "Default Nozzle Volume Type."
-msgstr ""
-
 msgid "Extra length on restart"
 msgstr ""
 
@@ -14335,8 +14765,8 @@ msgid "Role base wipe speed"
 msgstr ""
 
 msgid ""
-"The wipe speed is determined by the speed of the current extrusion role. e."
-"g. if a wipe action is executed immediately following an outer wall "
+"The wipe speed is determined by the speed of the current extrusion role. "
+"e.g. if a wipe action is executed immediately following an outer wall "
 "extrusion, the speed of the outer wall extrusion will be utilized for the "
 "wipe action."
 msgstr ""
@@ -14562,6 +14992,9 @@ msgid ""
 "zero value."
 msgstr ""
 
+msgid "∆℃"
+msgstr ""
+
 msgid "Preheat time"
 msgstr ""
 
@@ -14578,6 +15011,13 @@ msgstr ""
 msgid ""
 "Insert multiple preheat commands (e.g. M104.1). Only useful for Prusa XL. "
 "For other printers, please set it to 1."
+msgstr ""
+
+msgid ""
+"G-code written at the very top of the output file, before any other content. "
+"Useful for adding metadata that printer firmware reads from the first lines "
+"of the file (e.g. estimated print time, filament usage). Supports "
+"placeholders like {print_time_sec} and {used_filament_length}."
 msgstr ""
 
 msgid "Start G-code"
@@ -15057,8 +15497,8 @@ msgstr ""
 
 msgid ""
 "Enable this option for automated chamber temperature control. This option "
-"activates the emitting of an M191 command before the \"machine_start_gcode"
-"\"\n"
+"activates the emitting of an M191 command before the "
+"\"machine_start_gcode\"\n"
 " which sets the chamber temperature and waits until it is reached. In "
 "addition, it emits an M141 command at the end of the print to turn off the "
 "chamber heater, if present.\n"
@@ -15301,7 +15741,7 @@ msgstr ""
 msgid "Rib width"
 msgstr ""
 
-msgid "Rib width."
+msgid "Rib width is always less than half the prime tower side length."
 msgstr ""
 
 msgid "Fillet wall"
@@ -15648,14 +16088,6 @@ msgstr "最新の状態です。"
 msgid "Update the config values of 3MF to latest."
 msgstr "3mfの構成値を更新"
 
-msgid "downward machines check"
-msgstr ""
-
-msgid ""
-"check whether current machine downward compatible with the machines in the "
-"list."
-msgstr ""
-
 msgid "Load default filaments"
 msgstr ""
 
@@ -15847,11 +16279,11 @@ msgid "Debug level"
 msgstr "デバッグ レベル"
 
 msgid ""
-"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:"
-"trace\n"
+"Sets debug logging level. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, "
+"5:trace\n"
 msgstr ""
-"デバッグロギングレベルを設定します。0:fatal、1:error、2:warning、3:info、4:"
-"debug、5:trace。\n"
+"デバッグロギングレベルを設定します。0:fatal、1:error、2:warning、3:info、"
+"4:debug、5:trace。\n"
 
 msgid "Enable timelapse for print"
 msgstr ""
@@ -16020,6 +16452,15 @@ msgstr ""
 "指定されたエクストルーダーがプリントで使用されるかどうかを示すブール値のベク"
 "トル。"
 
+msgid "Number of extruders"
+msgstr "エクストルーダー数"
+
+msgid ""
+"Total number of extruders, regardless of whether they are used in the "
+"current print."
+msgstr ""
+"現在のプリントで使用されているかどうかに関係ない、エクストルーダーの合計数。"
+
 msgid "Has single extruder MM priming"
 msgstr "シングルエクストルーダーのMMプライミングあり"
 
@@ -16066,6 +16507,66 @@ msgstr "トータルレイヤー数"
 
 msgid "Number of layers in the entire print."
 msgstr "全てのプリントのレイヤー数"
+
+msgid "Print time (normal mode)"
+msgstr ""
+
+msgid ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as print_time."
+msgstr ""
+
+msgid ""
+"Estimated print time when printed in normal mode (i.e. not in silent mode). "
+"Same as normal_print_time."
+msgstr ""
+
+msgid "Print time (silent mode)"
+msgstr ""
+
+msgid "Estimated print time when printed in silent mode."
+msgstr ""
+
+msgid ""
+"Total cost of all material used in the print. Calculated from filament_cost "
+"value in Filament Settings."
+msgstr ""
+
+msgid "Total wipe tower cost"
+msgstr ""
+
+msgid ""
+"Total cost of the material wasted on the wipe tower. Calculated from "
+"filament_cost value in Filament Settings."
+msgstr ""
+
+msgid "Wipe tower volume"
+msgstr ""
+
+msgid "Total filament volume extruded on the wipe tower."
+msgstr ""
+
+msgid "Used filament"
+msgstr "フィラメント使用量"
+
+msgid "Total length of filament used in the print."
+msgstr ""
+
+msgid "Print time (seconds)"
+msgstr ""
+
+msgid ""
+"Total estimated print time in seconds. Replaced with actual value during "
+"post-processing."
+msgstr ""
+
+msgid "Filament length (meters)"
+msgstr ""
+
+msgid ""
+"Total filament length used in meters. Replaced with actual value during post-"
+"processing."
+msgstr ""
 
 msgid "Number of objects"
 msgstr "オブジェクト数"
@@ -16182,15 +16683,6 @@ msgstr "物理プリンター名"
 
 msgid "Name of the physical printer used for slicing."
 msgstr "スライスに使用される物理プリンターの名前。"
-
-msgid "Number of extruders"
-msgstr "エクストルーダー数"
-
-msgid ""
-"Total number of extruders, regardless of whether they are used in the "
-"current print."
-msgstr ""
-"現在のプリントで使用されているかどうかに関係ない、エクストルーダーの合計数。"
 
 msgid "Layer number"
 msgstr "レイヤーナンバー"
@@ -16693,6 +17185,9 @@ msgstr ""
 msgid "Printing Parameters"
 msgstr ""
 
+msgid "- ℃"
+msgstr ""
+
 msgid "Synchronize nozzle and AMS information"
 msgstr ""
 
@@ -16706,6 +17201,9 @@ msgid ""
 msgstr ""
 
 msgid "AMS and nozzle information are synced"
+msgstr ""
+
+msgid "Nozzle Flow"
 msgstr ""
 
 msgid "Nozzle Info"
@@ -16746,9 +17244,6 @@ msgid ""
 msgstr ""
 
 msgid "Sync AMS and nozzle information"
-msgstr ""
-
-msgid "Connecting to printer"
 msgstr ""
 
 msgid ""
@@ -16810,9 +17305,6 @@ msgid ""
 msgstr ""
 
 msgid "New Flow Dynamic Calibration"
-msgstr ""
-
-msgid "Ok"
 msgstr ""
 
 msgid "The filament must be selected."
@@ -16898,17 +17390,16 @@ msgstr ""
 msgid "Comma-separated list of printing speeds"
 msgstr ""
 
-msgid "Pressure Advance Guide"
-msgstr ""
-
-msgid "Adaptive Pressure Advance Guide"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
 "Start PA: >= 0.0\n"
 "End PA: > Start PA\n"
 "PA step: >= 0.001"
+msgstr ""
+
+msgid ""
+"Acceleration values must be greater than speed values.\n"
+"Please verify the inputs."
 msgstr ""
 
 msgid "Temperature calibration"
@@ -16947,13 +17438,10 @@ msgstr ""
 msgid "Temp step: "
 msgstr ""
 
-msgid "Wiki Guide: Temperature Calibration"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
-"Start temp: <= 350\n"
-"End temp: >= 170\n"
+"Start temp: <= 500\n"
+"End temp: >= 155\n"
 "Start temp >= End temp + 5"
 msgstr ""
 
@@ -16964,9 +17452,6 @@ msgid "Start volumetric speed: "
 msgstr ""
 
 msgid "End volumetric speed: "
-msgstr ""
-
-msgid "Wiki Guide: Volumetric Speed Calibration"
 msgstr ""
 
 msgid ""
@@ -16985,9 +17470,6 @@ msgstr ""
 msgid "End speed: "
 msgstr ""
 
-msgid "Wiki Guide: VFA"
-msgstr ""
-
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -16999,9 +17481,6 @@ msgid "Start retraction length: "
 msgstr ""
 
 msgid "End retraction length: "
-msgstr ""
-
-msgid "Wiki Guide: Retraction Calibration"
 msgstr ""
 
 msgid "Input shaping Frequency test"
@@ -17028,6 +17507,9 @@ msgstr ""
 msgid "Frequency settings"
 msgstr ""
 
+msgid "Hz"
+msgstr ""
+
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr ""
 
@@ -17037,9 +17519,6 @@ msgstr ""
 msgid ""
 "Recommended: Set Damp to 0.\n"
 "This will use the printer's default or saved value."
-msgstr ""
-
-msgid "Wiki Guide: Input Shaping Calibration"
 msgstr ""
 
 msgid ""
@@ -17110,9 +17589,6 @@ msgstr ""
 msgid ""
 "RepRap detected: Jerk in mm/s.\n"
 "OrcaSlicer will convert the values to mm/min when necessary."
-msgstr ""
-
-msgid "Wiki Guide: Cornering Calibration"
 msgstr ""
 
 #, c-format, boost-format
@@ -17371,8 +17847,8 @@ msgid ""
 msgstr ""
 
 msgid ""
-"We would rename the presets as \"Vendor Type Serial @printer you selected"
-"\".\n"
+"We would rename the presets as \"Vendor Type Serial @printer you "
+"selected\".\n"
 "To add preset for more printers, please go to printer selection"
 msgstr ""
 
@@ -17678,12 +18154,6 @@ msgstr[0] ""
 msgid "Delete Preset"
 msgstr ""
 
-msgid ""
-"Are you sure to delete the selected preset?\n"
-"If the preset corresponds to a filament currently in use on your printer, "
-"please reset the filament information for that slot."
-msgstr ""
-
 msgid "Are you sure to delete the selected preset?"
 msgstr ""
 
@@ -17723,11 +18193,24 @@ msgstr "プリセットを編集"
 msgid "For more information, please check out Wiki"
 msgstr ""
 
+msgid "Wiki"
+msgstr "Wiki"
+
 msgid "Collapse"
 msgstr ""
 
 msgid "Daily Tips"
 msgstr "今日のヒント"
+
+msgid ""
+"The printer nozzle information has not been set.\n"
+"Please configure it before proceeding with the calibration."
+msgstr ""
+
+msgid ""
+"The nozzle type does not match the actual printer nozzle type.\n"
+"Please click the Sync button above and restart the calibration."
+msgstr ""
 
 #, c-format, boost-format
 msgid "nozzle size in preset: %d"
@@ -17772,6 +18255,12 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
+"The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
+"Flow Dynamics calibration."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
 "The currently selected nozzle diameter of %s extruder does not match the "
 "actual nozzle diameter.\n"
 "Please click the Sync button above and restart the calibration."
@@ -17790,11 +18279,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Automatic calibration only supports cases where the left and right nozzle "
-"diameters are identical."
-msgstr ""
-
-msgid ""
 "Unable to calibrate: maybe because the set calibration value range is too "
 "large, or the step is too small"
 msgstr ""
@@ -17803,6 +18287,11 @@ msgid "Physical Printer"
 msgstr ""
 
 msgid "Print Host upload"
+msgstr ""
+
+msgid ""
+"Select the network agent implementation for printer communication. Available "
+"agents are registered at startup."
 msgstr ""
 
 msgid "Could not get a valid Printer Host reference"
@@ -18430,9 +18919,6 @@ msgstr ""
 msgid "Global settings"
 msgstr ""
 
-msgid "Learn more"
-msgstr ""
-
 msgid "(Sync with printer)"
 msgstr ""
 
@@ -18915,6 +19401,44 @@ msgstr ""
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げること"
 "で、反りが発生する確率を下げることができることをご存知ですか？"
 
+#~ msgid "Replace with STL"
+#~ msgstr "STLに置き換え"
+
+#~ msgid "Replace the selected part with new STL"
+#~ msgstr "選択したパーツを新しいSTLに置換え"
+
+#~ msgid "Loading G-code"
+#~ msgstr "G-codeを読み込み"
+
+#~ msgid "Generating geometry vertex data"
+#~ msgstr "ジオメトリ頂点データを生成"
+
+#~ msgid "Generating geometry index data"
+#~ msgstr "ジオメトリ・インデックス・データを生成"
+
+#~ msgid "Switch to silent mode"
+#~ msgstr "サイレントモードに切り替える"
+
+#~ msgid "Switch to normal mode"
+#~ msgstr "通常モードに切り替え"
+
+#~ msgid ""
+#~ "The application cannot run normally because OpenGL version is lower than "
+#~ "2.0.\n"
+#~ msgstr "OpenGLのバージョンは2.0以下の為アプリケーションを実行できません\n"
+
+#~ msgid "Nozzle Type"
+#~ msgstr "ノズルタイプ"
+
+#~ msgid "Advance"
+#~ msgstr "高度な設定"
+
+#~ msgid "Packing data to 3MF"
+#~ msgstr "データを構成中"
+
+#~ msgid "°"
+#~ msgstr "°"
+
 #~ msgid "Adaptive layer height"
 #~ msgstr "アダプティブ積層ピッチ"
 
@@ -19264,17 +19788,11 @@ msgstr ""
 #~ msgid "/"
 #~ msgstr "/"
 
-#~ msgid "mm³"
-#~ msgstr "mm³"
-
 #~ msgid "Color Scheme"
 #~ msgstr "配色スキーム"
 
 #~ msgid "Percent"
 #~ msgstr "％"
-
-#~ msgid "Used filament"
-#~ msgstr "フィラメント使用量"
 
 #~ msgid "720p"
 #~ msgstr "720p"
@@ -19301,12 +19819,6 @@ msgstr ""
 #~ msgid "Ejecting of device %s(%s) has failed."
 #~ msgstr "デバイス %s(%s) の取出しが失敗しました"
 
-#~ msgid "mm/s²"
-#~ msgstr "mm/s²"
-
-#~ msgid "mm/s"
-#~ msgstr "mm/s"
-
 #~ msgid "Invalid number"
 #~ msgstr "無効な数字"
 
@@ -19322,9 +19834,6 @@ msgstr ""
 #~ msgid "Total ramming time"
 #~ msgstr "トータルラミング時間"
 
-#~ msgid "s"
-#~ msgstr "s"
-
 #~ msgid "Total rammed volume"
 #~ msgstr "合計ラミング容積"
 
@@ -19336,9 +19845,6 @@ msgstr ""
 
 #~ msgid "Shift+R"
 #~ msgstr "Shift+R"
-
-#~ msgid "°C"
-#~ msgstr "°C"
 
 #~ msgid "Compatible machine"
 #~ msgstr "対応機種"
@@ -19359,18 +19865,12 @@ msgstr ""
 #~ "最大積層ピッチ：この値は「アダプティブ積層ピッチ」が有効時に積層ピッチの最"
 #~ "大値です"
 
-#~ msgid "mm³/s²"
-#~ msgstr "mm³/s²"
-
 #~ msgid ""
 #~ "The lowest printable layer height for the extruder. Used to limit the "
 #~ "minimum layer height when adaptive layer height is enabled."
 #~ msgstr ""
 #~ "最小積層ピッチ：この値は「アダプティブ積層ピッチ」が有効時に積層ピッチの最"
 #~ "小値です"
-
-#~ msgid "mm²"
-#~ msgstr "mm²"
 
 #~ msgid ""
 #~ "Some amount of material in extruder is pulled back to avoid ooze during "

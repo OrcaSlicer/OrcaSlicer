@@ -1661,7 +1661,8 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         //m_tree->model->AddPreset(type, from_u8(presets->get_edited_preset().name), old_pt);
 
         // Collect dirty options.
-        const bool deep_compare = (type == Preset::TYPE_PRINTER || type == Preset::TYPE_SLA_MATERIAL);
+        const bool deep_compare = (type == Preset::TYPE_PRINTER ||
+                                   type == Preset::TYPE_FILAMENT || type == Preset::TYPE_SLA_MATERIAL);
         auto dirty_options = presets->current_dirty_options(deep_compare);
 
         // process changes of extruders count
@@ -1682,11 +1683,15 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         }
 
         for (const std::string& opt_key : dirty_options) {
-            const Search::Option& option = searcher.get_option(opt_key, type);
-            if (option.opt_key() != opt_key) {
-                // When founded option isn't the correct one.
-                // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
-                // because of they don't exist in searcher
+            const std::string lookup_key = get_pure_opt_key(opt_key);
+            Search::Option option = searcher.get_option(lookup_key, type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key)
+                option = searcher.get_option(opt_key, get_full_label(opt_key, new_config), type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key) {
+                // When the found option is not the requested one.
+                // This can happen for dirty_options such as:
+                // "default_print_profile", "printer_model", "printer_settings_id",
+                // because they do not exist in the searcher.
                 continue;
             }
 
@@ -2190,7 +2195,8 @@ void DiffPresetDialog::update_tree()
         }
 
         // Collect dirty options.
-        const bool deep_compare = (type == Preset::TYPE_PRINTER || type == Preset::TYPE_SLA_MATERIAL);
+        const bool deep_compare = (type == Preset::TYPE_PRINTER ||
+                                   type == Preset::TYPE_FILAMENT || type == Preset::TYPE_SLA_MATERIAL);
         auto dirty_options = type == Preset::TYPE_PRINTER && left_pt == ptFFF &&
                              left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size() < right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size() ?
                              presets->dirty_options(right_preset, left_preset, deep_compare) :
@@ -2229,13 +2235,15 @@ void DiffPresetDialog::update_tree()
             wxString left_val = get_string_value(opt_key, left_config);
             wxString right_val = get_string_value(opt_key, right_congig);
 
-            Search::Option option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
-            if (option.opt_key() != opt_key) {
-                // temporary solution, just for testing
-                m_tree->Append(opt_key, type, "Undef category", "Undef group", opt_key, left_val, right_val, "undefined"); // ORCA: use low resolution compatible icon
-                // When founded option isn't the correct one.
-                // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
-                // because of they don't exist in searcher
+            const std::string lookup_key = get_pure_opt_key(opt_key);
+            Search::Option option = searcher.get_option(lookup_key, type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key)
+                option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
+            if (get_pure_opt_key(option.opt_key()) != lookup_key) {
+                // When the found option is not the requested one.
+                // This can happen for dirty_options such as:
+                // "default_print_profile", "printer_model", "printer_settings_id",
+                // because they do not exist in the searcher.
                 continue;
             }
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,

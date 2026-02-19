@@ -1,6 +1,6 @@
 {
     "name": "Snapmaker",
-    "version": "02.03.01.20",
+    "version": "02.03.02.40",
     "force_update": "0",
     "description": "Snapmaker configurations",
     "machine_model_list": [
