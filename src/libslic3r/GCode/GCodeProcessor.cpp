@@ -4236,7 +4236,8 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
                     for (size_t i = 0; i < 3; i++)
                     {
                         if (jerk_v[i] > max_xyz_jerk_v[i]) {
-                            v_factor = std::min(v_factor, max_xyz_jerk_v[i] / jerk_v[i]);
+                            v_factor *= max_xyz_jerk_v[i] / jerk_v[i];
+                            jerk_v *= v_factor;
                             limited = true;
                         }
                     }
@@ -4274,7 +4275,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
                     float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
                     if (jerk > axis_max_jerk) {
-                        v_factor = std::min(v_factor, axis_max_jerk / jerk);
+                        v_factor *= axis_max_jerk / jerk;
                         limited = true;
                     }
                 }
@@ -4593,7 +4594,8 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
                     for (size_t i = 0; i < 3; i++)
                     {
                         if (jerk_v[i] > max_xyz_jerk_v[i]) {
-                            v_factor = std::min(v_factor, max_xyz_jerk_v[i] / jerk_v[i]);
+                            v_factor *= max_xyz_jerk_v[i] / jerk_v[i];
+                            jerk_v *= v_factor;
                             limited = true;
                         }
                     }
@@ -4631,7 +4633,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
                     float axis_max_jerk = get_axis_max_jerk(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
                     if (jerk > axis_max_jerk) {
-                        v_factor = std::min(v_factor, axis_max_jerk / jerk);
+                        v_factor *= axis_max_jerk / jerk;
                         limited = true;
                     }
                 }
