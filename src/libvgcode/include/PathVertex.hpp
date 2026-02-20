@@ -87,6 +87,7 @@ struct PathVertex
     //
     float layer_duration{ 0.0f };
     //
+    // ORCA: Add Pressure Advance visualization support
     // Pressure advance value
     //
     float pressure_advance{ 0.0f };

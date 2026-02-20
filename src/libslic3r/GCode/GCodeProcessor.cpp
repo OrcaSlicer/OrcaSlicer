@@ -1967,6 +1967,7 @@ void GCodeProcessor::register_commands()
         {"M702", [this](const GCodeReader::GCodeLine& line) { process_M702(line); }}, // Unload the current filament into the MK3 MMU2 unit at the end of print.
         {"M1020", [this](const GCodeReader::GCodeLine& line) { process_M1020(line); }}, // Select Tool
 
+// ORCA: Add Pressure Advance visualization support
         {"M900", [this](const GCodeReader::GCodeLine& line) { process_M900(line); }}, // Marlin: Set pressure advance
         {"M572", [this](const GCodeReader::GCodeLine& line) { process_M572(line); }}, // RepRapFirmware/Duet: Set pressure advance
 
@@ -3031,6 +3032,7 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
             process_SET_VELOCITY_LIMIT(line);
             return;
         }
+// ORCA: Add Pressure Advance visualization support
         if (boost::iequals(cmd, "SET_PRESSURE_ADVANCE"))
         {
             process_SET_PRESSURE_ADVANCE(line);
@@ -5158,6 +5160,7 @@ void GCodeProcessor::process_M106(const GCodeReader::GCodeLine& line)
     }
 }
 
+// ORCA: Add Pressure Advance visualization support
 void GCodeProcessor::process_M900(const GCodeReader::GCodeLine &line)
 {
     float pa_value = m_pressure_advance;
@@ -5727,6 +5730,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_travel_dist,
         m_fan_speed,
         m_extruder_temps[filament_id],
+// ORCA: Add Pressure Advance visualization support
         m_pressure_advance,
         { 0.0f, 0.0f }, // time
         static_cast<float>(m_layer_id), //layer_duration: set later
