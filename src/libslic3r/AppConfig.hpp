@@ -29,7 +29,12 @@ using namespace nlohmann;
 #define SETTING_NETWORK_PLUGIN_UPDATE_DISABLED "network_plugin_update_prompts_disabled"
 #define SETTING_NETWORK_PLUGIN_REMIND_LATER "network_plugin_remind_later"
 #define SETTING_USE_ENCRYPTED_TOKEN_FILE "use_encrypted_token_file"
-#define BAMBU_NETWORK_AGENT_VERSION_LEGACY  "01.10.01.01"
+
+#if defined(_WIN32) || defined(_WIN64)
+#define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.09"
+#else
+#define BAMBU_NETWORK_AGENT_VERSION_LEGACY "01.10.01.01"
+#endif
 
 #define SUPPORT_DARK_MODE
 //#define _MSW_DARK_MODE
