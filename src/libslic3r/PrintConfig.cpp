@@ -2398,6 +2398,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
 
+    def = this->add("machine_prepare_time", coFloat);
+    def->label = L("Prepare time override");
+    def->tooltip = L("Override the estimated prepare time (in seconds) added to the total print time. "
+                     "This is useful for printers where the start G-code calls macros (e.g. Klipper PRINT_START) "
+                     "that perform bed leveling, heating, etc., which the slicer cannot estimate from the G-code alone. "
+                     "Set to 0 to use the automatic estimate from the start G-code.");
+    def->sidetext = L("s");	// seconds, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
 
     def = this->add("support_object_skip_flush", coBool);
     def->set_default_value(new ConfigOptionBool(false));

@@ -556,7 +556,7 @@ void GCodeProcessor::TimeProcessor::reset()
     filament_load_times = 0.0f;
     filament_unload_times = 0.0f;
     machine_tool_change_time = 0.0f;
-
+    machine_prepare_time = 0.0f;
 
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         machines[i].reset();
@@ -1113,15 +1113,23 @@ void GCodeProcessor::run_post_process()
                     const TimeMachine&                  machine = m_time_processor.machines[i];
                     PrintEstimatedStatistics::ETimeMode mode    = static_cast<PrintEstimatedStatistics::ETimeMode>(i);
                     if (mode == PrintEstimatedStatistics::ETimeMode::Normal || machine.enabled) {
+                        // Apply prepare time override if set
+                        float prep_time = machine.prepare_time;
+                        float total_time = machine.time;
+                        if (m_time_processor.machine_prepare_time > 0.0f) {
+                            float delta = m_time_processor.machine_prepare_time - prep_time;
+                            prep_time = m_time_processor.machine_prepare_time;
+                            total_time += delta;
+                        }
                         char buf[128];
                         if (!s_IsBBLPrinter)
                             // Orca: compatibility with klipper_estimator
                             sprintf(buf, "; estimated printing time (%s mode) = %s\n",
                                     (mode == PrintEstimatedStatistics::ETimeMode::Normal) ? "normal" : "silent",
-                                    get_time_dhms(machine.time).c_str());
+                                    get_time_dhms(total_time).c_str());
                         else {
                             sprintf(buf, "; model printing time: %s; total estimated time: %s\n",
-                                    get_time_dhms(machine.time - machine.prepare_time).c_str(), get_time_dhms(machine.time).c_str());
+                                    get_time_dhms(total_time - prep_time).c_str(), get_time_dhms(total_time).c_str());
                         }
                         export_line.append_line(buf);
                     }
@@ -1130,10 +1138,13 @@ void GCodeProcessor::run_post_process()
                     const TimeMachine&                  machine = m_time_processor.machines[i];
                     PrintEstimatedStatistics::ETimeMode mode    = static_cast<PrintEstimatedStatistics::ETimeMode>(i);
                     if (mode == PrintEstimatedStatistics::ETimeMode::Normal || machine.enabled) {
+                        // Apply prepare time override if set
+                        float prep_time = (m_time_processor.machine_prepare_time > 0.0f)
+                            ? m_time_processor.machine_prepare_time : machine.prepare_time;
                         char buf[128];
                         sprintf(buf, "; estimated first layer printing time (%s mode) = %s\n",
                                 (mode == PrintEstimatedStatistics::ETimeMode::Normal) ? "normal" : "silent",
-                                get_time_dhms(machine.prepare_time).c_str());
+                                get_time_dhms(prep_time).c_str());
                         export_line.append_line(buf);
                         processed = true;
                     }
@@ -2239,6 +2250,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_time_processor.filament_load_times = static_cast<float>(config.machine_load_filament_time.value);
     m_time_processor.filament_unload_times = static_cast<float>(config.machine_unload_filament_time.value);
     m_time_processor.machine_tool_change_time = static_cast<float>(config.machine_tool_change_time.value);
+    m_time_processor.machine_prepare_time = static_cast<float>(config.machine_prepare_time.value);
 
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         float max_acceleration = get_option_value(m_time_processor.machine_limits.machine_max_acceleration_extruding, i);
@@ -2491,6 +2503,10 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     const ConfigOptionFloat* machine_tool_change_time = config.option<ConfigOptionFloat>("machine_tool_change_time");
     if (machine_tool_change_time != nullptr)
         m_time_processor.machine_tool_change_time = static_cast<float>(machine_tool_change_time->value);
+
+    const ConfigOptionFloat* machine_prepare_time = config.option<ConfigOptionFloat>("machine_prepare_time");
+    if (machine_prepare_time != nullptr)
+        m_time_processor.machine_prepare_time = static_cast<float>(machine_prepare_time->value);
 
     if (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfKlipper) {
         const ConfigOptionFloats* machine_max_acceleration_x = config.option<ConfigOptionFloats>("machine_max_acceleration_x");
@@ -5960,6 +5976,12 @@ void GCodeProcessor::update_estimated_times_stats()
         PrintEstimatedStatistics::Mode& data = m_result.print_statistics.modes[static_cast<size_t>(mode)];
         data.time = get_time(mode);
         data.prepare_time = get_prepare_time(mode);
+        // Apply user's prepare time override if set
+        if (m_time_processor.machine_prepare_time > 0.0f) {
+            float delta = m_time_processor.machine_prepare_time - data.prepare_time;
+            data.prepare_time = m_time_processor.machine_prepare_time;
+            data.time += delta;
+        }
         data.custom_gcode_times = get_custom_gcode_times(mode, true);
     };
 

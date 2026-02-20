@@ -1293,7 +1293,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
 
-    ((ConfigOptionFloat,               time_cost)) 
+    ((ConfigOptionFloat,               time_cost))
     ((ConfigOptionString,              layer_change_gcode))
     ((ConfigOptionString,              time_lapse_gcode))
     ((ConfigOptionString,              wrapping_detection_gcode))
@@ -1368,6 +1368,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               machine_load_filament_time))
     ((ConfigOptionFloat,               machine_tool_change_time))
     ((ConfigOptionFloat,               machine_unload_filament_time))
+    ((ConfigOptionFloat,               machine_prepare_time))
     ((ConfigOptionFloats,              filament_loading_speed))
     ((ConfigOptionFloats,              filament_loading_speed_start))
     ((ConfigOptionFloats,              filament_unloading_speed))
