@@ -336,13 +336,6 @@ msgstr "Внимание: нечёткая оболочка отключена, 
 msgid "Enable painted fuzzy skin for this object"
 msgstr "Включить нечёткую оболочку для модели"
 
-msgid ""
-"Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
-msgstr ""
-
-msgid "Enable painted fuzzy skin for this object"
-msgstr ""
-
 msgid "Move"
 msgstr "Перемещение"
 
@@ -2327,12 +2320,6 @@ msgstr "Сгладить сетку"
 msgid "(Lost color)"
 msgstr " (с потерей цвета)"
 
-msgid "Subdivision mesh"
-msgstr ""
-
-msgid "(Lost color)"
-msgstr ""
-
 msgid "Center"
 msgstr "По центру"
 
@@ -3428,14 +3415,8 @@ msgstr "Предел объёмного расхода"
 msgid "℃"
 msgstr "℃"
 
-msgid "℃"
-msgstr "℃"
-
 msgid "Bed temperature"
 msgstr "Подогрев покрытия стола"
-
-msgid "mm³"
-msgstr "мм³"
 
 msgid "mm³"
 msgstr "мм³"
@@ -3790,14 +3771,6 @@ msgstr "Сетевой плагин установлен, для его загр
 
 msgid "Restart Required"
 msgstr "Требуется перезапуск"
-
-msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
-"application."
-msgstr ""
-
-msgid "Restart Required"
-msgstr ""
 
 msgid "Please home all axes (click "
 msgstr "Пожалуйста, припаркуйте все оси в начало координат (нажав "
@@ -4533,9 +4506,6 @@ msgstr "Остановить сушку"
 msgid "Proceed"
 msgstr "Продолжить"
 
-msgid "Proceed"
-msgstr ""
-
 msgid "Done"
 msgstr "Готово"
 
@@ -4696,9 +4666,6 @@ msgstr "Ширина линии"
 msgid "Actual Speed"
 msgstr "Действительная скорость"
 
-msgid "Actual Speed"
-msgstr ""
-
 msgid "Fan Speed"
 msgstr "Охлаждение"
 
@@ -4707,9 +4674,6 @@ msgstr "Объёмный расход"
 
 msgid "Actual Flow"
 msgstr "Действительный расход"
-
-msgid "Actual Flow"
-msgstr ""
 
 msgid "Tool"
 msgstr "Инструмент"
@@ -5305,10 +5269,6 @@ msgid "Tool %d"
 msgstr "Инструмент %d"
 
 #, c-format, boost-format
-msgid "Tool %d"
-msgstr ""
-
-#, c-format, boost-format
 msgid ""
 "Filament %s is placed in the %s, but the generated G-code path exceeds the "
 "printable range of the %s."
@@ -5361,16 +5321,6 @@ msgid ""
 "mixing in models. Please redjust flushing settings."
 msgstr "Обнаружен нулевой объём прочистки сопла, что может вызвать смешивание цветов в цветной модели. Рекомендуется изменить настройки прочистки:"
 
-msgid ""
-"Prime tower position exceeded build plate boundaries and was repositioned to "
-"the nearest valid edge."
-msgstr ""
-
-msgid ""
-"Partial flushing volume set to 0. Multi-color printing may cause color "
-"mixing in models. Please redjust flushing settings."
-msgstr ""
-
 msgid "Click Wiki for help."
 msgstr "Подробнее на Wiki"
 
@@ -5379,9 +5329,6 @@ msgstr "Перегруппировать"
 
 msgid "Flushing Volume"
 msgstr "Объём прочистки"
-
-msgid "Flushing Volume"
-msgstr ""
 
 msgid "Calibration step selection"
 msgstr "Выбор шагов калибровки"
@@ -5397,9 +5344,6 @@ msgstr "Выравнивание нагретого стола"
 
 msgid "Nozzle clumping detection Calibration"
 msgstr "Калибровка обнаружения налипаний"
-
-msgid "Nozzle clumping detection Calibration"
-msgstr ""
 
 # ??? О калибровке
 msgid "Calibration program"
@@ -6432,9 +6376,6 @@ msgstr "Слой: –"
 msgid "Click to view thermal preconditioning explanation"
 msgstr "Просмотр подробностей преднагрева"
 
-msgid "Click to view thermal preconditioning explanation"
-msgstr ""
-
 msgid "Clear"
 msgstr "Сбросить"
 
@@ -6527,9 +6468,6 @@ msgstr "Выбранный слот пуст."
 msgid "Printer 2D mode does not support 3D calibration"
 msgstr ""
 
-msgid "Printer 2D mode does not support 3D calibration"
-msgstr ""
-
 msgid "Downloading..."
 msgstr "Загрузка..."
 
@@ -6554,9 +6492,6 @@ msgstr "Нагрейте экструдер до температуры выше
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "Температуру камеры нельзя изменить при печати в режиме «Охлаждение»."
-
-msgid "Chamber temperature cannot be changed in cooling mode while printing."
-msgstr ""
 
 msgid ""
 "If the chamber temperature exceeds 40℃, the system will automatically switch "
@@ -7074,9 +7009,6 @@ msgstr "Уведомление"
 msgid "Pause printing"
 msgstr "Пауза печати"
 
-msgid "Nozzle Type"
-msgstr "Материал сопла"
-
 msgctxt "Nozzle Diameter"
 msgid "Diameter"
 msgstr "Диаметр"
@@ -7096,9 +7028,6 @@ msgstr "Нержавеющая сталь"
 
 msgid "Tungsten Carbide"
 msgstr "Карбид вольфрама"
-
-msgid "Brass"
-msgstr "Латунь"
 
 msgid "Brass"
 msgstr "Латунь"
@@ -7256,9 +7185,6 @@ msgstr "Правый экструдер: %s мм"
 msgid "Configuration incompatible"
 msgstr "Несовместимый профиль"
 
-msgid "Configuration incompatible"
-msgstr "Несовместимый профиль"
-
 msgid "Sync printer information"
 msgstr "Информация о синхронизации с принтером"
 
@@ -7284,9 +7210,6 @@ msgstr "Синхронизировать информацию о соплах и
 
 msgid "Click to edit preset"
 msgstr "Изменить профиль"
-
-msgid "Click to edit preset"
-msgstr "Нажмите, чтобы изменить профиль"
 
 msgid "Project Filaments"
 msgstr "Материалы проекта"
@@ -7332,9 +7255,6 @@ msgstr "Имеется несколько неизвестных/несовме�
 
 msgid "Only filament color information has been synchronized from printer."
 msgstr "Синхронизирована только информация о цвете материала."
-
-msgid "Only filament color information has been synchronized from printer."
-msgstr ""
 
 msgid ""
 "Filament type and color information have been synchronized, but slot "
@@ -7565,9 +7485,6 @@ msgstr "Экспорт в файл STL:"
 
 msgid "Export Draco file:"
 msgstr "Экспорт в файл Draco:"
-
-msgid "Export Draco file:"
-msgstr ""
 
 msgid "Export AMF file:"
 msgstr "Экспорт в файл AMF:"
@@ -7941,12 +7858,6 @@ msgstr "Не удалось подключиться к %s. Проверьте �
 
 #, c-format, boost-format
 msgid ""
-"OrcaSlicer can't connect to %s. Please check if the printer is powered on "
-"and connected to the network."
-msgstr ""
-
-#, c-format, boost-format
-msgid ""
 "The currently connected printer on the device page is not %s. Please switch "
 "to %s before syncing."
 msgstr "Подключённый принтер на вкладке «Принтер» не %s. Переключитесь на %s перед синхронизацией."
@@ -8252,9 +8163,6 @@ msgstr "Если включено, программа будет запомин�
 msgid "Group user filament presets"
 msgstr "Группировка пользовательских материалов"
 
-msgid "Group user filament presets based on selection"
-msgstr "Режим группировки материалов, добавленных пользователем."
-
 # в Сохранение толщины вертикальной оболочки.
 # было Везде, но из-за условия совместимости изменено.... как тогда быть?
 msgid "All"
@@ -8265,23 +8173,6 @@ msgstr "Тип материала"
 
 msgid "By vendor"
 msgstr "Производитель"
-
-msgid "Group user filament presets"
-msgstr ""
-
-msgid "Group user filament presets based on selection"
-msgstr ""
-
-# в Сохранение толщины вертикальной оболочки.
-# было Везде, но из-за условия совместимости изменено.... как тогда быть?
-msgid "All"
-msgstr "Все"
-
-msgid "By type"
-msgstr ""
-
-msgid "By vendor"
-msgstr ""
 
 msgid "Features"
 msgstr "Возможности"
@@ -8350,27 +8241,6 @@ msgid ""
 "With this option enabled, you can print materials with a large temperature "
 "difference together."
 msgstr "Активировать возможность совместной печати разными материалами с большим перепадом температур."
-
-msgid "Auto slice after changes"
-msgstr ""
-
-msgid ""
-"If enabled, OrcaSlicer will re-slice automatically whenever slicing-related "
-"settings change."
-msgstr ""
-
-msgid ""
-"Delay in seconds before auto slicing starts, allowing multiple edits to be "
-"grouped. Use 0 to slice immediately."
-msgstr ""
-
-msgid "Remove mixed temperature restriction"
-msgstr ""
-
-msgid ""
-"With this option enabled, you can print materials with a large temperature "
-"difference together."
-msgstr ""
 
 msgid "Touchpad"
 msgstr "Тачпад"
@@ -8509,30 +8379,6 @@ msgstr "Цвет и материал"
 
 msgid "Color only"
 msgstr "Цвет"
-
-msgid "Use encrypted file for token storage"
-msgstr ""
-
-msgid ""
-"Store authentication tokens in an encrypted file instead of the system "
-"keychain. (Requires restart)"
-msgstr ""
-
-msgid "Filament Sync Options"
-msgstr ""
-
-msgid "Filament sync mode"
-msgstr ""
-
-msgid ""
-"Choose whether sync updates both filament preset and color, or only color."
-msgstr ""
-
-msgid "Filament & Color"
-msgstr ""
-
-msgid "Color only"
-msgstr ""
 
 msgid "Network plugin"
 msgstr "Сетевой плагин"
@@ -9170,22 +9016,12 @@ msgid "[ %s ] requires printing in a high-temperature environment."
 msgstr "[%s] требует прогретой среды."
 
 #, c-format, boost-format
-msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
-"door."
-msgstr ""
-
-#, c-format, boost-format
-msgid "[ %s ] requires printing in a high-temperature environment."
-msgstr ""
-
-#, c-format, boost-format
 msgid "The filament on %s may soften. Please unload."
 msgstr "Материал в %s может размягчиться. Выгрузите его."
 
 #, c-format, boost-format
 msgid "The filament on %s is unknown and may soften. Please set filament."
-msgstr ""
+msgstr "Материал в %s не распознан и может размягчиться. Настройте материал."
 
 msgid ""
 "Unable to automatically match to suitable filament. Please click to manually "
@@ -9354,14 +9190,6 @@ msgid ""
 "File upload timed out. Please check if the firmware version supports this "
 "operation or verify if the printer is functioning properly."
 msgstr "Превышено время ожидания отправки файла. Убедитесь, что прошивка поддерживает эту функцию, и что принтер работает нормально."
-
-msgid "Sending..."
-msgstr ""
-
-msgid ""
-"File upload timed out. Please check if the firmware version supports this "
-"operation or verify if the printer is functioning properly."
-msgstr ""
 
 msgid "Slice ok."
 msgstr "Нарезка завершена."
@@ -10045,9 +9873,6 @@ msgstr "Вставка G-кода"
 msgid "File header G-code"
 msgstr "G-код заголовка файла"
 
-msgid "File header G-code"
-msgstr ""
-
 msgid "Machine start G-code"
 msgstr "G-код перед началом печати"
 
@@ -10652,9 +10477,6 @@ msgstr "Отмена"
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "Цвет материала успешно синхронизирован с принтером."
-
-msgid "Successfully synchronized filament color from printer."
-msgstr ""
 
 msgid "Successfully synchronized color and type of filament from printer."
 msgstr "Тип и цвет материала успешно синхронизированы с принтером."
@@ -13996,9 +13818,6 @@ msgstr "Плотность материала. Используется при �
 msgid "g/cm³"
 msgstr "г/см³"
 
-msgid "g/cm³"
-msgstr "г/см³"
-
 msgid "The material type of filament."
 msgstr "Обозначение состава материала."
 
@@ -14549,40 +14368,6 @@ msgid ""
 "the print speed of ironing lines for each filament type."
 msgstr "Замещение общего ограничения скорости разглаживания. Позволяет ограничить скорость движения при разглаживании отдельно для каждого материала."
 
-msgid "Ironing flow"
-msgstr "Поток разглаживания"
-
-msgid ""
-"Filament-specific override for ironing flow. This allows you to customize "
-"the ironing flow for each filament type. Too high value results in "
-"overextrusion on the surface."
-msgstr ""
-
-msgid "Ironing line spacing"
-msgstr "Расстояние между линиями разглаживания"
-
-msgid ""
-"Filament-specific override for ironing line spacing. This allows you to "
-"customize the spacing between ironing lines for each filament type."
-msgstr ""
-
-# ??? Граница без разглаживания
-msgid "Ironing inset"
-msgstr "Границы разглаживания"
-
-msgid ""
-"Filament-specific override for ironing inset. This allows you to customize "
-"the distance to keep from the edges when ironing for each filament type."
-msgstr ""
-
-msgid "Ironing speed"
-msgstr "Скорость разглаживания"
-
-msgid ""
-"Filament-specific override for ironing speed. This allows you to customize "
-"the print speed of ironing lines for each filament type."
-msgstr ""
-
 msgid ""
 "Randomly jitter while printing the wall, so that the surface has a rough "
 "look. This setting controls the fuzzy position."
@@ -14591,9 +14376,6 @@ msgstr ""
 
 msgid "None (allow paint)"
 msgstr "Вручную"
-
-msgid "None (allow paint)"
-msgstr ""
 
 msgid "Contour"
 msgstr "Контур"
@@ -14837,21 +14619,8 @@ msgstr "Управление восстановлением печати пос�
 msgid "Printer configuration"
 msgstr "По умолчанию"
 
-msgid "Power Loss Recovery"
-msgstr ""
-
-msgid ""
-"Choose how to control power loss recovery. When set to Printer "
-"configuration, the slicer will not emit power loss recovery G-code and will "
-"leave the printer's configuration unchanged. Applicable to Bambu Lab or "
-"Marlin 2 firmware based printers."
-msgstr ""
-
-msgid "Printer configuration"
-msgstr ""
-
 msgid "Nozzle type"
-msgstr "Тип сопла"
+msgstr "Материал сопла"
 
 msgid ""
 "The metallic material of nozzle. This determines the abrasive resistance of "
@@ -15085,7 +14854,6 @@ msgid ""
 "rotation themselves; use with care."
 msgstr ""
 "Позволяет вручную переопределить угол шаблона заполнения на каждом слое по заданному правилу – зацикленному списку углов, разделённых запятыми (например \"0,30,60,90\"). \n\nРасширенный синтаксис (подробнее на Вики):\n±5 – поворот с шагом в 5°\n±5/10 – равномерный поворот на 5° каждые 10 слоёв\n±5#10 – поворот групп из 10 слоёв с шагом в 5°\n±5/10% – равномерный поворот на 5° каждые 10% высоты модели\n\nВнимание: некоторые шаблоны строго зависят от угла, используйте с осторожностью."
-
 
 msgid "Solid infill rotation template"
 msgstr "Правило поворота шаблона заполнения"
@@ -15682,9 +15450,6 @@ msgstr ""
 "equalizer).\n"
 "\n"
 "Примечание: при ненулевом значении отключает аппроксимацию дугами."
-
-msgid "mm³/s²"
-msgstr "мм³/с²"
 
 msgid "mm³/s²"
 msgstr "мм³/с²"
@@ -19285,9 +19050,6 @@ msgstr "Информация об экструдере и AMS синхрониз
 msgid "Nozzle Flow"
 msgstr "Расход сопла"
 
-msgid "Nozzle Flow"
-msgstr ""
-
 msgid "Nozzle Info"
 msgstr ""
 
@@ -19492,11 +19254,6 @@ msgid ""
 "Acceleration values must be greater than speed values.\n"
 "Please verify the inputs."
 msgstr "Значения ускорений должны быть больше ограничений скорости. Проверьте введённые значения."
-
-msgid ""
-"Acceleration values must be greater than speed values.\n"
-"Please verify the inputs."
-msgstr ""
 
 msgid "Temperature calibration"
 msgstr "Калибровка температуры"
@@ -20387,9 +20144,6 @@ msgstr "Подробности читайте на сайте"
 msgid "Wiki"
 msgstr "Wiki"
 
-msgid "Wiki"
-msgstr "Wiki"
-
 msgid "Collapse"
 msgstr "Свернуть"
 
@@ -20455,13 +20209,6 @@ msgid ""
 "The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
 "Flow Dynamics calibration."
 msgstr "В данный момент %sэкструдер не поддерживает калибровку динамики потока, так как в нём установлено сопло с диаметром 0.2 мм."
-
-# подставляется "левый/правый"
-#, c-format, boost-format
-msgid ""
-"The nozzle diameter of %sextruder is 0.2mm which does not support automatic "
-"Flow Dynamics calibration."
-msgstr ""
 
 #, c-format, boost-format
 msgid ""
@@ -21955,9 +21702,6 @@ msgstr ""
 #~ "2.0.\n"
 #~ msgstr ""
 #~ "Приложение не может работать нормально, так как версия OpenGL ниже 2.0.\n"
-
-#~ msgid "Nozzle Type"
-#~ msgstr "Тип сопла"
 
 #~ msgid "Advance"
 #~ msgstr "Расширенный"
