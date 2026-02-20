@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrcaCloud Login</title>
+    <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: #ffffff;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --text-tertiary: #6e6e73;
+            --border-color: #d2d2d7;
+            --accent-color: #009688;
+            --accent-hover: #00796b;
+            --error-color: #d32f2f;
+            --success-color: #388e3c;
+            --google-color: #4285f4;
+            --apple-color: #000000;
+            --github-color: #24292e;
+            --input-bg: #f5f5f7;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #1d1d1f;
+                --bg-card: #2d2d2f;
+                --text-primary: #f5f5f7;
+                --text-secondary: #a1a1a6;
+                --text-tertiary: #86868b;
+                --border-color: #424245;
+                --input-bg: #3a3a3c;
+                --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 32px;
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header .logo {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .tab-container {
+            display: flex;
+            background: var(--input-bg);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .tab.active {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        .form-container {
+            margin-bottom: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0, 150, 136, 0.1);
+        }
+
+        .input-group input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .input-group.error input {
+            border-color: var(--error-color);
+        }
+
+        .input-group .error-text {
+            font-size: 12px;
+            color: var(--error-color);
+            margin-top: 4px;
+            display: none;
+        }
+
+        .input-group.error .error-text {
+            display: block;
+        }
+
+        .confirm-password-group {
+            display: none;
+            margin-bottom: 16px;
+        }
+
+        .confirm-password-group.visible {
+            display: block;
+        }
+
+        .primary-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        .primary-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .primary-btn:active {
+            transform: scale(0.98);
+        }
+
+        .primary-btn:disabled {
+            background: var(--text-tertiary);
+            cursor: not-allowed;
+        }
+
+        .forgot-link {
+            display: block;
+            text-align: center;
+            color: var(--accent-color);
+            font-size: 13px;
+            text-decoration: none;
+            margin-top: 12px;
+            cursor: pointer;
+        }
+
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .divider span {
+            padding: 0 16px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .providers {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .provider-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 24px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .provider-btn:hover {
+            border-color: var(--text-tertiary);
+            background: var(--input-bg);
+        }
+
+        .provider-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .provider-btn.google:hover {
+            border-color: var(--google-color);
+        }
+
+        .provider-btn.apple:hover {
+            border-color: var(--apple-color);
+        }
+
+        .provider-btn.github:hover {
+            border-color: var(--github-color);
+        }
+
+        .message {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .message.error {
+            display: block;
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--error-color);
+            border: 1px solid rgba(211, 47, 47, 0.2);
+        }
+
+        .message.success {
+            display: block;
+            background: rgba(56, 142, 60, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(56, 142, 60, 0.2);
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 10;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .loading-overlay {
+                background: rgba(45, 45, 47, 0.95);
+            }
+        }
+
+        .loading-overlay.visible {
+            display: flex;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+
+        .back-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .reset-view {
+            display: none;
+        }
+
+        .reset-view.visible {
+            display: block;
+        }
+
+        .auth-view {
+            display: block;
+        }
+
+        .auth-view.hidden {
+            display: none;
+        }
+
+        .reset-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        #debug {
+            margin-top: 20px;
+            font-size: 10px;
+            color: var(--text-tertiary);
+            text-align: left;
+            width: 100%;
+            white-space: pre-wrap;
+            display: none;
+            max-height: 150px;
+            overflow-y: auto;
+            background: var(--input-bg);
+            padding: 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <!-- Auth View (Sign In / Sign Up) -->
+        <div id="auth-view" class="auth-view">
+            <div class="header">
+                <svg class="logo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="64" height="64" rx="14" fill="#009688"/>
+                    <path d="M32 16C23.163 16 16 23.163 16 32C16 40.837 23.163 48 32 48C40.837 48 48 40.837 48 32C48 23.163 40.837 16 32 16ZM32 44C25.373 44 20 38.627 20 32C20 25.373 25.373 20 32 20C38.627 20 44 25.373 44 32C44 38.627 38.627 44 32 44Z" fill="white"/>
+                    <circle cx="32" cy="32" r="6" fill="white"/>
+                </svg>
+                <h1>OrcaCloud</h1>
+                <p id="header-subtitle">Sign in to sync your settings</p>
+            </div>
+
+            <div class="tab-container">
+                <button class="tab active" data-mode="signin" onclick="setMode('signin')">Sign In</button>
+                <button class="tab" data-mode="signup" onclick="setMode('signup')">Sign Up</button>
+            </div>
+
+            <form id="auth-form" class="form-container" onsubmit="handleSubmit(event)">
+                <div class="input-group" id="email-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
+                    <span class="error-text" id="email-error"></span>
+                </div>
+
+                <div class="input-group" id="password-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+                    <span class="error-text" id="password-error"></span>
+                </div>
+
+                <div class="input-group confirm-password-group" id="confirm-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" placeholder="Confirm your password" autocomplete="new-password">
+                    <span class="error-text" id="confirm-error"></span>
+                </div>
+
+                <button type="submit" class="primary-btn" id="submit-btn">Sign In</button>
+            </form>
+
+            <a class="forgot-link" id="forgot-link" onclick="showResetView()">Forgot password?</a>
+
+            <div class="divider"><span>or continue with</span></div>
+
+            <div class="providers">
+                <button class="provider-btn google" onclick="handleOAuthProvider('google')">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    Continue with Google
+                </button>
+
+                <button class="provider-btn apple" onclick="handleOAuthProvider('apple')">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="currentColor"/>
+                    </svg>
+                    Continue with Apple
+                </button>
+
+                <button class="provider-btn github" onclick="handleOAuthProvider('github')">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.604-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" fill="currentColor"/>
+                    </svg>
+                    Continue with GitHub
+                </button>
+            </div>
+        </div>
+
+        <!-- Reset Password View -->
+        <div id="reset-view" class="reset-view">
+            <a class="back-link" onclick="hideResetView()">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Back to sign in
+            </a>
+
+            <div class="header">
+                <h1>Reset Password</h1>
+            </div>
+
+            <p class="reset-description">
+                Enter your email address and we'll send you a link to reset your password.
+            </p>
+
+            <form id="reset-form" class="form-container" onsubmit="handleResetSubmit(event)">
+                <div class="input-group" id="reset-email-group">
+                    <label for="reset-email">Email</label>
+                    <input type="email" id="reset-email" placeholder="you@example.com" autocomplete="email" required>
+                    <span class="error-text" id="reset-email-error"></span>
+                </div>
+
+                <button type="submit" class="primary-btn" id="reset-btn">Send Reset Link</button>
+            </form>
+        </div>
+
+        <!-- Message Display -->
+        <div id="message" class="message"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay">
+            <div class="spinner"></div>
+            <span class="loading-text" id="loading-text">Signing in...</span>
+        </div>
+
+        <!-- Debug Output -->
+        <div id="debug"></div>
+    </div>
+
+    <script>
+        // Configuration (populated from C++ via get_login_cmd)
+        let config = {
+            backend_url: '',
+            apikey: '',
+            pkce: null
+        };
+
+        // State
+        let currentMode = 'signin'; // 'signin' | 'signup'
+
+        // Debug logging
+        function log(msg) {
+            console.log(msg);
+            var d = document.getElementById('debug');
+            if (d) {
+                // Uncomment the next line to show debug panel
+                // d.style.display = 'block';
+                d.innerText += new Date().toISOString().substr(11, 8) + ' ' + msg + '\n';
+                d.scrollTop = d.scrollHeight;
+            }
+        }
+
+        // Send message to C++ via JavaScript bridge
+        function sendMessage(cmd, data) {
+            log('Sending: ' + cmd);
+            var msg = JSON.stringify({ command: cmd, data: data || {} });
+            try {
+                if (window.wx) {
+                    window.wx.postMessage(msg);
+                } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.wx) {
+                    window.webkit.messageHandlers.wx.postMessage(msg);
+                } else {
+                    log('Error: No bridge found (wx or webkit)');
+                }
+            } catch (e) {
+                log('Send error: ' + e.toString());
+            }
+        }
+
+        // Handle messages from C++
+        window.addEventListener('message', function(event) {
+            log('Received message');
+            var msg = event.data;
+            if (typeof msg === 'string') {
+                try {
+                    msg = JSON.parse(msg);
+                } catch (e) {
+                    log('Parse error: ' + e.toString());
+                    return;
+                }
+            }
+
+            log('Message action: ' + (msg.action || msg.command || 'unknown'));
+
+            // Handle login config from C++ (received once on page load)
+            if (msg.action === 'login_config') {
+                handleLoginConfig(msg);
+                return;
+            }
+        });
+
+        // Tab switching
+        function setMode(mode) {
+            currentMode = mode;
+            clearMessage();
+            clearErrors();
+
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(function(tab) {
+                tab.classList.toggle('active', tab.dataset.mode === mode);
+            });
+
+            // Update form
+            var confirmGroup = document.getElementById('confirm-group');
+            var submitBtn = document.getElementById('submit-btn');
+            var forgotLink = document.getElementById('forgot-link');
+            var subtitle = document.getElementById('header-subtitle');
+            var passwordInput = document.getElementById('password');
+
+            if (mode === 'signup') {
+                confirmGroup.classList.add('visible');
+                submitBtn.textContent = 'Create Account';
+                forgotLink.style.display = 'none';
+                subtitle.textContent = 'Create your account';
+                passwordInput.autocomplete = 'new-password';
+            } else {
+                confirmGroup.classList.remove('visible');
+                submitBtn.textContent = 'Sign In';
+                forgotLink.style.display = 'block';
+                subtitle.textContent = 'Sign in to sync your settings';
+                passwordInput.autocomplete = 'current-password';
+            }
+        }
+
+        // Form submission - calls Supabase directly
+        async function handleSubmit(e) {
+            e.preventDefault();
+            clearMessage();
+            clearErrors();
+
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value;
+
+            // Validate email
+            if (!isValidEmail(email)) {
+                showFieldError('email', 'Please enter a valid email address');
+                return;
+            }
+
+            // Validate password
+            if (password.length < 6) {
+                showFieldError('password', 'Password must be at least 6 characters');
+                return;
+            }
+
+            if (currentMode === 'signup') {
+                var confirmPassword = document.getElementById('confirm-password').value;
+                if (password !== confirmPassword) {
+                    showFieldError('confirm', 'Passwords do not match');
+                    return;
+                }
+                await handlePasswordSignup(email, password);
+            } else {
+                await handlePasswordLogin(email, password);
+            }
+        }
+
+        // Password login - direct Supabase call
+        async function handlePasswordLogin(email, password) {
+            if (!config.backend_url || !config.apikey) {
+                showMessage('Configuration not loaded. Please try again.', 'error');
+                return;
+            }
+
+            showLoading('Signing in...');
+
+            try {
+                var url = config.backend_url + '/auth/v1/token?grant_type=password';
+                var response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': config.apikey
+                    },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+
+                var data = await response.json();
+
+                if (response.ok && data.access_token) {
+                    // Success - send tokens to C++
+                    sendUserLogin(data);
+                } else {
+                    hideLoading();
+                    var errorMsg = data.error_description || data.msg || data.error || 'Login failed';
+                    showMessage(errorMsg, 'error');
+                }
+            } catch (err) {
+                hideLoading();
+                log('Login error: ' + err.toString());
+                showMessage('Network error. Please check your connection.', 'error');
+            }
+        }
+
+        // Password signup - direct Supabase call
+        async function handlePasswordSignup(email, password) {
+            if (!config.backend_url || !config.apikey) {
+                showMessage('Configuration not loaded. Please try again.', 'error');
+                return;
+            }
+
+            showLoading('Creating account...');
+
+            try {
+                var url = config.backend_url + '/auth/v1/signup';
+                var response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': config.apikey
+                    },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+
+                var data = await response.json();
+
+                if (response.ok) {
+                    if (data.access_token) {
+                        // Auto-confirmed - send tokens to C++
+                        sendUserLogin(data);
+                    } else {
+                        // Email verification required
+                        hideLoading();
+                        showMessage('Account created! Please check your email to verify your account.', 'success');
+                    }
+                } else {
+                    hideLoading();
+                    var errorMsg = data.error_description || data.msg || data.error || 'Signup failed';
+                    showMessage(errorMsg, 'error');
+                }
+            } catch (err) {
+                hideLoading();
+                log('Signup error: ' + err.toString());
+                showMessage('Network error. Please check your connection.', 'error');
+            }
+        }
+
+        // Password reset - direct Supabase call
+        async function handleResetSubmit(e) {
+            e.preventDefault();
+            clearMessage();
+
+            var email = document.getElementById('reset-email').value.trim();
+
+            if (!isValidEmail(email)) {
+                document.getElementById('reset-email-group').classList.add('error');
+                document.getElementById('reset-email-error').textContent = 'Please enter a valid email address';
+                return;
+            }
+
+            if (!config.backend_url || !config.apikey) {
+                showMessage('Configuration not loaded. Please try again.', 'error');
+                return;
+            }
+
+            showLoading('Sending reset link...');
+
+            try {
+                var url = config.backend_url + '/auth/v1/recover';
+                var response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': config.apikey
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+
+                hideLoading();
+
+                // Supabase returns 200 even if email doesn't exist (for security)
+                if (response.ok) {
+                    showMessage('Password reset email sent. Please check your inbox.', 'success');
+                } else {
+                    showMessage('Failed to send reset email. Please try again.', 'error');
+                }
+            } catch (err) {
+                hideLoading();
+                log('Reset error: ' + err.toString());
+                showMessage('Network error. Please check your connection.', 'error');
+            }
+        }
+
+        // Send successful login to C++ (unified for all auth methods)
+        function sendUserLogin(data) {
+            var user = data.user || {};
+            var userMeta = user.user_metadata || {};
+
+            sendMessage('user_login', {
+                token: data.access_token,
+                refresh_token: data.refresh_token || '',
+                user_id: user.id || '',
+                username: userMeta.preferred_username || user.email || '',
+                name: userMeta.full_name || userMeta.name || user.email || '',
+                nickname: userMeta.preferred_username || userMeta.name || '',
+                avatar: userMeta.avatar_url || '',
+                state: config.pkce ? config.pkce.state : ''
+            });
+        }
+
+        // OAuth provider click - builds URL directly using stored config
+        function handleOAuthProvider(provider) {
+            log('OAuth provider: ' + provider);
+
+            if (!config.backend_url || !config.pkce) {
+                showMessage('Configuration not loaded. Please try again.', 'error');
+                return;
+            }
+
+            showLoading('Connecting to ' + provider.charAt(0).toUpperCase() + provider.slice(1) + '...');
+
+            var pkce = config.pkce;
+
+            // Construct Supabase Authorize URL
+            var url = config.backend_url + '/auth/v1/authorize';
+            var params = new URLSearchParams();
+
+            params.append('provider', provider);
+            params.append('code_challenge', pkce.code_challenge);
+            params.append('code_challenge_method', pkce.code_challenge_method);
+            params.append('redirect_uri', pkce.redirect_uri);
+            params.append('state', pkce.state);
+            params.append('response_type', 'code');
+
+            var fullUrl = url + '?' + params.toString();
+
+            document.getElementById('loading-text').textContent = 'Opening browser for secure login...';
+
+            // Request C++ to open this URL in system browser
+            sendMessage('thirdparty_login', { url: fullUrl });
+
+            // Show message after a delay
+            setTimeout(function() {
+                hideLoading();
+                showMessage('Browser opened. Complete login there, then this window will close automatically.', 'success');
+            }, 2000);
+        }
+
+        // Handle login config from C++ (received once on page load)
+        function handleLoginConfig(msg) {
+            log('Received login config');
+
+            // Store config for all auth methods
+            config.backend_url = msg.backend_url || config.backend_url;
+            config.apikey = msg.apikey || config.apikey;
+            config.pkce = msg.pkce || config.pkce;
+
+            log('Config stored: backend_url=' + config.backend_url);
+        }
+
+        // View switching
+        function showResetView() {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('reset-view').classList.add('visible');
+            clearMessage();
+            document.getElementById('reset-email').value = document.getElementById('email').value;
+        }
+
+        function hideResetView() {
+            document.getElementById('auth-view').classList.remove('hidden');
+            document.getElementById('reset-view').classList.remove('visible');
+            clearMessage();
+        }
+
+        // Loading state
+        function showLoading(text) {
+            document.getElementById('loading').classList.add('visible');
+            document.getElementById('loading-text').textContent = text || 'Loading...';
+            disableForm(true);
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('visible');
+            disableForm(false);
+        }
+
+        function disableForm(disabled) {
+            document.querySelectorAll('input, button').forEach(function(el) {
+                el.disabled = disabled;
+            });
+        }
+
+        // Messages
+        function showMessage(text, type) {
+            var msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+        }
+
+        function clearMessage() {
+            var msg = document.getElementById('message');
+            msg.textContent = '';
+            msg.className = 'message';
+        }
+
+        // Field errors
+        function showFieldError(field, message) {
+            var groupId = field + '-group';
+            var errorId = field + '-error';
+            var group = document.getElementById(groupId);
+            var error = document.getElementById(errorId);
+            if (group) group.classList.add('error');
+            if (error) error.textContent = message;
+        }
+
+        function clearErrors() {
+            document.querySelectorAll('.input-group').forEach(function(group) {
+                group.classList.remove('error');
+            });
+            document.querySelectorAll('.error-text').forEach(function(error) {
+                error.textContent = '';
+            });
+        }
+
+        // Validation
+        function isValidEmail(email) {
+            var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            log('Window loaded');
+            // Request login config from C++ to get backend URL and API key
+            setTimeout(function() {
+                sendMessage('get_login_cmd');
+            }, 300);
+        };
+    </script>
+</body>
+</html>

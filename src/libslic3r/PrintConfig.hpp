@@ -41,6 +41,7 @@ enum class FuzzySkinType {
     External,
     All,
     AllWalls,
+    Disabled_fuzzy,
 };
 
 enum class FuzzySkinMode {
@@ -159,7 +160,7 @@ enum SupportMaterialPattern {
 };
 
 enum SupportMaterialStyle {
-    smsDefault, smsGrid, smsSnug, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic,
+    smsDefault, smsGrid, smsSnug, smsTreeOrganic, smsTreeSlim, smsTreeStrong, smsTreeHybrid,
 };
 
 enum LongRectrationLevel
@@ -935,6 +936,13 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               support_expansion))
     ((ConfigOptionFloat,               support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
+
+    // Orca: a flag enabling the ability to override flow ratios
+    ((ConfigOptionBool,     set_other_flow_ratios))
+    // Orca: support-related flow ratios (available for overriding, if set_other_flow_ratios is enabled)
+    ((ConfigOptionFloat,    support_flow_ratio))
+    ((ConfigOptionFloat,    support_interface_flow_ratio))
+
     // BBS
     //((ConfigOptionBool,                independent_support_layer_height))
     // Orca internal thick bridge
@@ -1021,8 +1029,6 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
-
-
 )
 
 // This object is mapped to Perl as Slic3r::Config::PrintRegion.
@@ -1162,8 +1168,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                small_area_infill_flow_compensation))
     ((ConfigOptionEnum<WallDirection>,  wall_direction))
 
-    // Orca: flow ratios
-    ((ConfigOptionBool,                 set_other_flow_ratios))
+    // Orca: other flow ratios (available for overriding, if set_other_flow_ratios is enabled)
     ((ConfigOptionFloat,                first_layer_flow_ratio))
     ((ConfigOptionFloat,                outer_wall_flow_ratio))
     ((ConfigOptionFloat,                inner_wall_flow_ratio))
@@ -1171,8 +1176,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                sparse_infill_flow_ratio))
     ((ConfigOptionFloat,                internal_solid_infill_flow_ratio))
     ((ConfigOptionFloat,                gap_fill_flow_ratio))
-    ((ConfigOptionFloat,                support_flow_ratio))
-    ((ConfigOptionFloat,                support_interface_flow_ratio))
 
     // Orca: seam slopes
     ((ConfigOptionEnum<SeamScarfType>,  seam_slope_type))
@@ -1318,6 +1321,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloats,              retract_restart_extra))
     ((ConfigOptionFloats,              retract_restart_extra_toolchange))
     ((ConfigOptionFloats,              retraction_speed))
+    ((ConfigOptionString,              file_start_gcode))
     ((ConfigOptionString,              machine_start_gcode))
     ((ConfigOptionStrings,             filament_start_gcode))
     ((ConfigOptionBool,                single_extruder_multi_material))
@@ -1372,6 +1376,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInts,                filament_cooling_moves))
     ((ConfigOptionFloats,              filament_cooling_initial_speed))
     ((ConfigOptionFloats,              filament_minimal_purge_on_wipe_tower))
+    ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_dist))
+    ((ConfigOptionFloats,              filament_tower_interface_pre_extrusion_length))
+    ((ConfigOptionFloats,              filament_tower_ironing_area))
+    ((ConfigOptionFloats,              filament_tower_interface_purge_volume))
+    ((ConfigOptionInts,                filament_tower_interface_print_temp))
     ((ConfigOptionFloats,              filament_cooling_final_speed))
     ((ConfigOptionStrings,             filament_ramming_parameters))
     ((ConfigOptionBools,               filament_multitool_ramming))
@@ -1501,6 +1510,8 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionPercent,            prime_tower_infill_gap))
     ((ConfigOptionBool,               prime_tower_skip_points))
     ((ConfigOptionBool,               prime_tower_flat_ironing))
+    ((ConfigOptionBool,               enable_tower_interface_features))
+    ((ConfigOptionBool,               enable_tower_interface_cooldown_during_tower))
     ((ConfigOptionFloat,              wipe_tower_bridging))
     ((ConfigOptionPercent,            wipe_tower_extra_flow))
     ((ConfigOptionFloats,             flush_volumes_matrix))

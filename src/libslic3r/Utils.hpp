@@ -170,6 +170,9 @@ const std::string& sys_shapes_dir();
 // Return a full path to the custom shapes gallery directory.
 std::string custom_shapes_dir();
 
+// Return a full path to the handy models directory.
+std::string handy_models_dir();
+
 // Set a path with shapes gallery files.
 void set_custom_gcodes_dir(const std::string &path);
 // Return a full path to the system shapes gallery directory.

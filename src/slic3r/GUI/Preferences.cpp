@@ -6,6 +6,7 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/Format/DRC.hpp"
 #include <wx/language.h>
 #include "OG_CustomCtrl.hpp"
 #include "wx/graphics.h"
@@ -15,6 +16,7 @@
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/RadioGroup.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include "DownloadProgressDialog.hpp"
 
 #ifdef __WINDOWS__
@@ -749,6 +751,58 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
     return sizer_row;
 }
 
+wxBoxSizer* PreferencesDialog::create_item_draco(wxString title, wxString side_label, wxString tooltip)
+{
+    wxBoxSizer* sizer_input = new wxBoxSizer(wxHORIZONTAL);
+
+    auto input_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE, wxST_NO_AUTORESIZE);
+    input_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    input_title->SetFont(::Label::Body_14);
+    input_title->SetToolTip(tooltip);
+    input_title->Wrap(DESIGN_TITLE_SIZE.x);
+    input_title->SetToolTip(tooltip);
+
+    auto input = new ::TextInput(m_parent, wxEmptyString, side_label, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
+                        std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(app_config->get("drc_bits"));
+    wxTextValidator validator(wxFILTER_DIGITS);
+    input->SetToolTip(tooltip);
+    input->GetTextCtrl()->SetValidator(validator);
+
+    sizer_input->AddSpacer(FromDIP(DESIGN_LEFT_MARGIN));
+    sizer_input->Add(input_title, 0, wxALIGN_CENTER_VERTICAL);
+    sizer_input->Add(input      , 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+
+    std::function<void()> set_draco_bits = [this, input]() {
+        long drc_bits = DRC_BITS_DEFAULT;
+        input->GetTextCtrl()->GetValue().ToLong(&drc_bits);
+        if (drc_bits > DRC_BITS_MAX) {
+            drc_bits = DRC_BITS_MAX;
+            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
+        } else if (drc_bits < DRC_BITS_MIN && drc_bits != 0) {
+            drc_bits = DRC_BITS_MIN;
+            input->GetTextCtrl()->SetValue(std::to_string(drc_bits));
+        }
+
+        app_config->set("drc_bits", std::to_string(drc_bits));
+        app_config->save();
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [set_draco_bits](wxCommandEvent& e) {
+        set_draco_bits();
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [set_draco_bits](wxFocusEvent& e) {
+        set_draco_bits();
+        e.Skip();
+    });
+
+    return sizer_input;
+}
+
 wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tooltip, std::string param)
 {
     wxBoxSizer* m_sizer_checkbox = new wxBoxSizer(wxHORIZONTAL);
@@ -861,6 +915,15 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
              } else {
                  wxGetApp().disassociate_files(L"3mf");
              }
+        }
+
+        if (param == "associate_drc") {
+            bool pbool = app_config->get("associate_drc") == "true" ? true : false;
+            if (pbool) {
+                wxGetApp().associate_files(L"drc");
+            } else {
+                wxGetApp().disassociate_files(L"drc");
+            }
         }
 
         if (param == "associate_stl") {
@@ -1305,6 +1368,13 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_pop_up_filament_map_dialog);
 #endif
 
+    auto item_draco_bits = create_item_draco(_L("Quality level for Draco export"),
+        _L("bits"),
+        _L("Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+           "0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+           "Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."));
+    g_sizer->Add(item_draco_bits);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
@@ -1327,11 +1397,17 @@ void PreferencesDialog::create_items()
     auto item_auto_arrange     = create_item_checkbox(_L("Auto arrange plate after cloning"), "", "auto_arrange");
     g_sizer->Add(item_auto_arrange);
 
+    //// CONTROL > Slicing
+    g_sizer->Add(create_item_title(_L("Slicing")), 1, wxEXPAND);
+
     auto item_auto_reslice = create_item_auto_reslice(
         _L("Auto slice after changes"),
         _L("If enabled, OrcaSlicer will re-slice automatically whenever slicing-related settings change."),
         _L("Delay in seconds before auto slicing starts, allowing multiple edits to be grouped. Use 0 to slice immediately."));
     g_sizer->Add(item_auto_reslice);
+
+    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
+    g_sizer->Add(item_mix_print_high_low_temperature);
  
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
@@ -1411,6 +1487,21 @@ void PreferencesDialog::create_items()
     auto item_system_sync      = create_item_checkbox(_L("Update built-in Presets automatically."), "", "sync_system_preset");
     g_sizer->Add(item_system_sync);
 
+    auto item_token_storage    = create_item_checkbox(_L("Use encrypted file for token storage"),
+                                                      _L("Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"),
+                                                      SETTING_USE_ENCRYPTED_TOKEN_FILE);
+    g_sizer->Add(item_token_storage);
+
+    //// ONLINE > Filament Sync Options
+    g_sizer->Add(create_item_title(_L("Filament Sync Options")), 1, wxEXPAND);
+
+    auto item_filament_sync_mode = create_item_combobox(
+        _L("Filament sync mode"),
+        _L("Choose whether sync updates both filament preset and color, or only color."),
+        "sync_ams_filament_mode",
+        {_L("Filament & Color"), _L("Color only")});
+    g_sizer->Add(item_filament_sync_mode);
+
     //// ONLINE > Network plugin
     g_sizer->Add(create_item_title(_L("Network plugin")), 1, wxEXPAND);
 
@@ -1433,11 +1524,11 @@ void PreferencesDialog::create_items()
 
     std::string current_version = app_config->get_network_plugin_version();
     if (current_version.empty()) {
-        current_version = BBL::get_latest_network_version();
+        current_version = get_latest_network_version();
     }
     int current_selection = 0;
 
-    m_available_versions = BBL::get_all_available_versions();
+    m_available_versions = get_all_available_versions();
 
     for (size_t i = 0; i < m_available_versions.size(); i++) {
         const auto& ver = m_available_versions[i];
@@ -1468,7 +1559,7 @@ void PreferencesDialog::create_items()
             std::string new_version = selected_ver.version;
             std::string old_version = app_config->get_network_plugin_version();
             if (old_version.empty()) {
-                old_version = BBL::get_latest_network_version();
+                old_version = get_latest_network_version();
             }
 
             app_config->set(SETTING_NETWORK_PLUGIN_VERSION, new_version);
@@ -1542,6 +1633,9 @@ void PreferencesDialog::create_items()
     auto item_associate_3mf    = create_item_checkbox(_L("Associate 3MF files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open 3MF files.") , "associate_3mf");
     g_sizer->Add(item_associate_3mf);
 
+    auto item_associate_drc = create_item_checkbox(_L("Associate DRC files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open DRC files."), "associate_drc");
+    g_sizer->Add(item_associate_drc);
+
     auto item_associate_stl    = create_item_checkbox(_L("Associate STL files to OrcaSlicer"), _L("If enabled, sets OrcaSlicer as default application to open STL files.") , "associate_stl");
     g_sizer->Add(item_associate_stl);
 
@@ -1580,9 +1674,6 @@ void PreferencesDialog::create_items()
 
     auto item_ams_blacklist    = create_item_checkbox(_L("Skip AMS blacklist check"), "", "skip_ams_blacklist_check");
     g_sizer->Add(item_ams_blacklist);
-
-    auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
-    g_sizer->Add(item_mix_print_high_low_temperature);
 
     g_sizer->Add(create_item_title(_L("Storage")), 1, wxEXPAND);
     auto item_allow_abnormal_storage = create_item_checkbox(_L("Allow Abnormal Storage"), _L("This allows the use of Storage that is marked as abnormal by the Printer.\nUse at your own risk, can cause issues!"), "allow_abnormal_storage");

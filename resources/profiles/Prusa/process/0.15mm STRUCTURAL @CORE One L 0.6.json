@@ -1,0 +1,22 @@
+{
+    "type": "process",
+    "name": "0.15mm STRUCTURAL @CORE One L 0.6",
+    "inherits": "0.15mm STRUCTURAL @MK4S 0.6",
+    "from": "system",
+    "instantiation": "true",
+    "inner_wall_speed": "80",
+    "overhang_2_4_speed": "30",
+    "overhang_3_4_speed": "70%",
+    "travel_speed": "500",
+    "travel_acceleration": "6000",
+    "default_acceleration": "3000",
+    "support_interface_top_layers": "3",
+    "initial_layer_infill_speed": "70",
+    "initial_layer_speed": "45",
+    "internal_solid_infill_acceleration": "4000",
+    "sparse_infill_acceleration": "6000",
+    "compatible_printers_condition": "printer_notes=~/.*PRINTER_MODEL_COREONE_L[^_a-zA-Z0-9].*/ and nozzle_diameter[0]==0.6",
+    "inner_wall_acceleration": "2500",
+    "outer_wall_acceleration": "1500",
+    "top_surface_acceleration": "2000"
+}

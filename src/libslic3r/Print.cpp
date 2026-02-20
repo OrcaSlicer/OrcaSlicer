@@ -317,6 +317,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_tower_brim_width"
             || opt_key == "prime_tower_skip_points"
             || opt_key == "prime_tower_flat_ironing"
+            || opt_key == "enable_tower_interface_features"
             || opt_key == "first_layer_print_sequence"
             || opt_key == "other_layers_print_sequence"
             || opt_key == "other_layers_print_sequence_nums" 
@@ -324,6 +325,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"
             || opt_key == "filament_adhesiveness_category"
+            || opt_key == "filament_tower_interface_pre_extrusion_dist"
+            || opt_key == "filament_tower_interface_pre_extrusion_length"
+            || opt_key == "filament_tower_ironing_area"
+            || opt_key == "filament_tower_interface_purge_volume"
+            || opt_key == "filament_tower_interface_print_temp"
             || opt_key == "wipe_tower_bridging"
             || opt_key == "wipe_tower_extra_flow"
             || opt_key == "wipe_tower_no_sparse_layers"
@@ -518,6 +524,12 @@ std::vector<unsigned int> Print::extruders(bool conside_custom_gcode) const
                     extruders.push_back((unsigned int)(item.extruder - 1));
             }
         }
+    }
+
+    // If a wipe tower filament is explicitly set, ensure it participates in tool ordering.
+    if (has_wipe_tower() && config().wipe_tower_filament != 0 && extruders.size() > 1) {
+        assert(config().wipe_tower_filament > 0 && config().wipe_tower_filament < int(config().nozzle_diameter.size()));
+        extruders.emplace_back(config().wipe_tower_filament - 1); // config value is 1-based
     }
 
     sort_remove_duplicates(extruders);
@@ -1194,7 +1206,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         }
     }
 
-    if (m_config.print_sequence == PrintSequence::ByObject && m_objects.size() > 1) {
+    if (m_config.print_sequence == PrintSequence::ByObject && (m_objects.size() > 1 || m_objects[0]->instances().size() > 1)) {
         if (m_config.timelapse_type == TimelapseType::tlSmooth)
             return {L("Smooth mode of timelapse is not supported when \"by object\" sequence is enabled.")};
 
@@ -1571,7 +1583,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
     const ConfigOptionDef* bed_type_def = print_config_def.get("curr_bed_type");
     assert(bed_type_def != nullptr);
 
-	    if (is_BBL_printer()) {
+    // ORCA: check if bed type is compatible with all selected filaments
+    if (is_BBL_printer() || m_config.support_multi_bed_types.value) {
 	    const t_config_enum_values* bed_type_keys_map = bed_type_def->enum_keys_map;
 	    for (unsigned int extruder_id : extruders) {
 	        const ConfigOptionInts* bed_temp_opt = m_config.option<ConfigOptionInts>(get_bed_temp_key(m_config.curr_bed_type));
@@ -1757,7 +1770,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         }
     }
     if (!this->has_same_shrinkage_compensations()){
-        warning->string = L("Filament shrinkage will not be used because filament shrinkage for the used filaments differs significantly.");
+        warning->string = L("Filament shrinkage will not be used because filament shrinkage for the used filaments does not match.");
         warning->opt_key = "";
     }
     return {};
