@@ -1315,6 +1315,8 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
         != m_objects.end();
 
     // Custom layering is not allowed for tree supports as of now.
+    // Few are tryng to implement it so the following code will be commented
+    /*
     for (size_t print_object_idx = 0; print_object_idx < m_objects.size(); ++ print_object_idx)
         if (const PrintObject &print_object = *m_objects[print_object_idx];
             print_object.has_support_material() && is_tree(print_object.config().support_type.value) && (print_object.config().support_style.value == smsTreeOrganic || 
@@ -1325,7 +1327,7 @@ StringObjectException Print::validate(StringObjectException *warning, Polygons* 
                 if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
                     return {_u8L("Variable layer height is not supported with Organic supports.") };
         }
-
+       */
     if (this->has_wipe_tower() && ! m_objects.empty()) {
         // Make sure all extruders use same diameter filament and have the same nozzle diameter
         // EPSILON comparison is used for nozzles and 10 % tolerance is used for filaments
