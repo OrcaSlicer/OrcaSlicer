@@ -38,7 +38,7 @@ bool is_not_3dimensional_part(const TriangleMesh &mesh)
     const Vec3d size = bbox.size();
     const double min_dim = std::min(size.x(), std::min(size.y(), size.z()));
     const double max_dim = std::max(size.x(), std::max(size.y(), size.z()));
-    if (min_dim <= EPSILON || max_dim <= EPSILON)
+    if (min_dim <= EPSILON)
         return true;
 
     const double volume = std::abs(its_volume(mesh.its));
