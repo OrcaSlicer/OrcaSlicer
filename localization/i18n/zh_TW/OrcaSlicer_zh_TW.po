@@ -6913,7 +6913,7 @@ msgstr "重新整理中"
 msgid "Unavailable while heating maintenance function is on."
 msgstr "加熱維護功能啟用時無法使用。"
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr "閒置加熱保護"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."

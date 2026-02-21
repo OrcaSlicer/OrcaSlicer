@@ -7289,7 +7289,7 @@ msgstr ""
 "No disponible mientras la función de mantenimiento de calentamiento esté "
 "activa."
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr "Protección de calentamiento en reposo"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."

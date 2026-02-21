@@ -7306,7 +7306,7 @@ msgstr "Erneuern"
 msgid "Unavailable while heating maintenance function is on."
 msgstr "Nicht verfügbar während die Heizungswartungsfunktion aktiviert ist."
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr "Heizungs Schutz im Leerlauf"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."

@@ -7230,7 +7230,7 @@ msgid "Unavailable while heating maintenance function is on."
 msgstr ""
 "Indisponível enquanto a função de manutenção do aquecimento estiver ativada."
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr ""
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."

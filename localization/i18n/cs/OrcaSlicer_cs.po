@@ -7349,7 +7349,7 @@ msgstr "Obnovuji"
 msgid "Unavailable while heating maintenance function is on."
 msgstr "Není k dispozici, pokud je aktivní funkce údržby ohřevu."
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr "Ochrana zahřívání při nečinnosti"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."

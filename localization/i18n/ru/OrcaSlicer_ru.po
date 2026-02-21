@@ -7251,7 +7251,7 @@ msgid "Unavailable while heating maintenance function is on."
 msgstr ""
 
 # Очепятка, Idle Heating
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr "Защита от пассивного перегрева"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."

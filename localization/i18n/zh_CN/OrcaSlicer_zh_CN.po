@@ -6828,7 +6828,7 @@ msgstr "清爽"
 msgid "Unavailable while heating maintenance function is on."
 msgstr "加热维护功能开启时不可用。"
 
-msgid "Idel Heating Protection"
+msgid "Idle Heating Protection"
 msgstr "怠速加热保护"
 
 msgid "Stops heating automatically after 5 mins of idle to ensure safety."
