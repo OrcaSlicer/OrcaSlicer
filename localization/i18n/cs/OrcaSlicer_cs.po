@@ -5590,7 +5590,7 @@ msgstr ""
 
 msgid ""
 "Partial flushing volume set to 0. Multi-color printing may cause color "
-"mixing in models. Please redjust flushing settings."
+"mixing in models. Please readjust flushing settings."
 msgstr ""
 "Objem částečného proplachu nastaven na 0. Při vícebarevném tisku může "
 "docházet k míchání barev v modelech. Prosím, nastavte znovu parametry "
