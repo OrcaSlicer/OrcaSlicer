@@ -4837,7 +4837,7 @@ msgstr "實際速度（mm/s）"
 msgid "Fan Speed (%)"
 msgstr "風扇速度（%）"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "溫度（℃）"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -6350,8 +6350,8 @@ msgid "Layer: %d/%d"
 msgstr "%d/%d 層"
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
-msgstr "請在進料或退料之前將噴嘴加熱至 170°C 以上。"
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
+msgstr "請在進料或退料之前將噴嘴加熱至 170℃ 以上。"
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "列印時無法在冷卻模式下變更列印設備內部溫度。"
@@ -20557,8 +20557,8 @@ msgstr ""
 
 #, fuzzy
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr "推薦的最小溫度低於 190 度或推薦的最大溫度高於 300 度。\n"
 
 #~ msgid ""

@@ -5163,7 +5163,7 @@ msgstr "Skutečná rychlost (mm/s)"
 msgid "Fan Speed (%)"
 msgstr "Rychlost ventilátoru (%)"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "Teplota (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -6738,7 +6738,7 @@ msgid "Layer: %d/%d"
 msgstr "Vrstva: %d/%d"
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "Před zaváděním nebo vyjímáním filamentu prosím zahřejte trysku na více než "
 "170 °C."
@@ -24254,7 +24254,7 @@ msgstr ""
 #~ "Ano - přepnout na přímočarý vzor automaticky\n"
 #~ "Ne - automaticky resetovat hustotu na výchozí ne 100% hodnotu"
 
-#~ msgid "Please heat the nozzle to above 170°C before loading filament."
+#~ msgid "Please heat the nozzle to above 170℃ before loading filament."
 #~ msgstr "Před vložením filamentu zahřejte trysku na více než 170 stupňů."
 
 #~ msgid "Show G-code window"
