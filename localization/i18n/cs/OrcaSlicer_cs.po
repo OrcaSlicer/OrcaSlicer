@@ -1695,14 +1695,14 @@ msgstr "OrcaSlicer obdržel neošetřenou výjimku: %1%"
 msgid "Untitled"
 msgstr "Bez názvu"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr "Znovu načítání síťového pluginu..."
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr "Stahování síťového pluginu"
 
 msgid "Downloading Bambu Network Plug-in"
-msgstr "Stahování Bambu Network Plug-in"
+msgstr "Stahování Bambu Network Plugin"
 
 msgid "Login information expired. Please login again."
 msgstr "Platnost přihlašovacích údajů vypršela. Přihlaste se prosím znovu."
@@ -1878,7 +1878,7 @@ msgstr ""
 "Vývojářský režim umožňuje tiskárně fungovat výhradně přes místní síť a "
 "umožňuje plnou kompatibilitu s OrcaSlicer."
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr "Omezení síťového pluginu"
 
 msgid "Privacy Policy Update"
@@ -3917,8 +3917,8 @@ msgid "Calibration"
 msgstr "Kalibrace"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr ""
 "Nepodařilo se stáhnout zásuvný modul. Zkontrolujte nastavení firewallu a "
 "software VPN, ověřte a zkuste to znovu.Stažení pluginu se nezdařilo. "
@@ -3935,7 +3935,7 @@ msgid "Click here to see more info"
 msgstr "Kliknutím sem zobrazíte více informací"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
+"The network plug-in was installed but could not be loaded. Please restart the "
 "application."
 msgstr ""
 "Síťový plugin byl nainstalován, ale nepodařilo se jej načíst. Restartujte "
@@ -7958,7 +7958,7 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Vyřešte prosím chyby slicování a publikujte znovu."
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are unavailable."
 msgstr ""
 "Síťový plug-in nebyl detekován. Funkce související se sítí nejsou k "
 "dispozici.Nebyl detekován síťový modul plug-in. Funkce související se sítí "
@@ -8794,33 +8794,33 @@ msgstr "Filament & barva"
 msgid "Color only"
 msgstr "Pouze barva"
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr "Síťový plugin"
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr "Povolit síťový plugin"
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr "Verze síťového pluginu"
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr "Zvolte verzi síťového pluginu k použití"
 
 msgid "(Latest)"
 msgstr "(Nejnovější)"
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr "Síťový plugin byl úspěšně přepnut."
 
 msgid "Success"
 msgstr "Úspěch"
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr "Nepodařilo se načíst síťový plugin. Restartujte prosím aplikaci."
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
@@ -8832,7 +8832,7 @@ msgstr ""
 "\n"
 "Poznámka: Po instalaci může být nutné aplikaci restartovat."
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr "Stáhnout síťový plugin"
 
 msgid "Associate files to OrcaSlicer"
@@ -8919,19 +8919,19 @@ msgstr "Ladit"
 msgid "trace"
 msgstr "Stopa"
 
-msgid "Network Plugin"
+msgid "Network Plug-in"
 msgstr "Síťový plugin"
 
 msgid "Reload"
 msgstr "Obnovit"
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr "Obnovte síťový plugin bez restartování aplikace"
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr "Síťový plugin byl úspěšně obnoven."
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr "Nepodařilo se obnovit síťový plugin. Restartujte prosím aplikaci."
 
 msgid "Reload Failed"
@@ -15771,7 +15771,7 @@ msgstr "Označování objektů"
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
 "object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
+"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
 "setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Povolte tuto možnost pro přidání komentářů do G-kódu, které označí tiskové "

@@ -1615,10 +1615,10 @@ msgstr "OrcaSlicer 捕捉到一个未处理的异常：%1%"
 msgid "Untitled"
 msgstr "未命名"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr "正在重新加载网络插件..."
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr "正在下载网络插件"
 
 msgid "Downloading Bambu Network Plug-in"
@@ -1773,7 +1773,7 @@ msgstr ""
 "\n"
 "开发者模式允许打印机仅通过局域网访问工作，从而实现与 OrcaSlicer 的完整功能。"
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr "网络插件限制"
 
 msgid "Privacy Policy Update"
@@ -3639,8 +3639,8 @@ msgid "Calibration"
 msgstr "校准"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr "插件下载失败。请检查您的防火墙设置和vpn软件,检查后重试。"
 
 msgid ""
@@ -3655,7 +3655,7 @@ msgid "Click here to see more info"
 msgstr "点击这里查看更多信息"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
+"The network plug-in was installed but could not be loaded. Please restart the "
 "application."
 msgstr "网络插件已安装但无法加载。请重新启动应用程序。"
 
@@ -7368,7 +7368,7 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "请解决切片错误后再重新发布。"
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are unavailable."
 msgstr "未检测到网络插件。网络相关功能不可用。"
 
 msgid ""
@@ -8117,33 +8117,33 @@ msgstr "耗材丝及颜色"
 msgid "Color only"
 msgstr "仅颜色"
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr "网络插件"
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr "启用网络插件"
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr "网络插件版本"
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr "选择要使用的网络插件版本"
 
 msgid "(Latest)"
 msgstr "（最新的）"
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr "网络插件切换成功。"
 
 msgid "Success"
 msgstr "成功"
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr "无法加载网络插件。请重新启动应用程序。"
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
@@ -8152,7 +8152,7 @@ msgstr ""
 "您已选择网络插件版本 %s。 您想立即下载并安装此版本吗？ 注意：安装后应用程序可"
 "能需要重新启动。"
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr "下载网络插件"
 
 msgid "Associate files to OrcaSlicer"
@@ -8222,19 +8222,19 @@ msgstr "调试"
 msgid "trace"
 msgstr "跟踪"
 
-msgid "Network Plugin"
+msgid "Network Plug-in"
 msgstr "网络插件"
 
 msgid "Reload"
 msgstr "重新加载"
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr "重新加载网络插件而不重新启动应用程序"
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr "网络插件已成功重新加载。"
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr "无法重新加载网络插件。请重新启动应用程序。"
 
 msgid "Reload Failed"
@@ -14141,7 +14141,7 @@ msgstr "标注模型"
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
 "object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
+"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
 "setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 "启用此选项，将在G-code中添加注释，标记打印移动属于哪个对象，这对Octoprint "

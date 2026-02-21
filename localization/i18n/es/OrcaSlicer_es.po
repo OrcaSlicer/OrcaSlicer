@@ -1684,16 +1684,16 @@ msgstr "OrcaSlicer recibió una notificación de excepción no controlada: %1%"
 msgid "Untitled"
 msgstr "Sin título"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr "Recargando el complemento de red..."
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr "Descarga del complemento de red"
 
 # msgid "OrcaSlicer got an unhandled exception: %1%"
 # msgstr "OrcaSlicer obtuvo una excepción no manejada: %1%"
 msgid "Downloading Bambu Network Plug-in"
-msgstr "Descargando el plug-in de Red de Bambu Lab"
+msgstr "Descarga del complemento de red Bambu Network"
 
 msgid "Login information expired. Please login again."
 msgstr "La sesión ha caducado. Por favor, inicie sesión de nuevo."
@@ -1866,7 +1866,7 @@ msgstr ""
 "través del acceso a la red local, lo que habilita todas las funciones con "
 "OrcaSlicer."
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr "Restricción del complemento de red"
 
 msgid "Privacy Policy Update"
@@ -3881,8 +3881,8 @@ msgid "Calibration"
 msgstr "Calibración"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr ""
 "Fallo al descargar el complemento. Por favor, compruebe el cortafuegos y la "
 "vpn, e inténtelo de nuevo."
@@ -3897,7 +3897,7 @@ msgid "Click here to see more info"
 msgstr "Presiona aquí para mostrar más información"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
+"The network plug-in was installed but could not be loaded. Please restart the "
 "application."
 msgstr ""
 "El complemento de red se instaló, pero no se pudo cargar. Reinicie la "
@@ -7885,7 +7885,7 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Por favor, resuelva los errores de laminado y publique de nuevo."
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are unavailable."
 msgstr ""
 "Complemento de red no detectado. Características de red no disponibles."
 
@@ -8728,33 +8728,33 @@ msgstr "Filamento y color"
 msgid "Color only"
 msgstr "Solo color"
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr "Plugin de red"
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr "Activar el plugin de red"
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr "Versión del plugin de red"
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr "Seleccione la versión del plugin de red a usar"
 
 msgid "(Latest)"
 msgstr "(Última)"
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr "Plugin de red cambiado con éxito."
 
 msgid "Success"
 msgstr "Éxito"
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr "Error al cargar el plugin de red. Por favor, reinicie la aplicación."
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
@@ -8766,7 +8766,7 @@ msgstr ""
 "\n"
 "Nota: La aplicación puede necesitar reiniciarse después de la instalación."
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr "Descargar plugin de red"
 
 msgid "Associate files to OrcaSlicer"
@@ -8845,19 +8845,19 @@ msgstr "depurar"
 msgid "trace"
 msgstr "traza"
 
-msgid "Network Plugin"
+msgid "Network Plug-in"
 msgstr "Plugin de red"
 
 msgid "Reload"
 msgstr "Recargar"
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr "Recargar el plugin de red sin reiniciar la aplicación"
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr "Plugin de red recargado con éxito."
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr "Error al recargar el plugin de red. Por favor, reinicie la aplicación."
 
 msgid "Reload Failed"
@@ -15581,7 +15581,7 @@ msgstr "Etiquetar objetos"
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
 "object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
+"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
 "setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Habilite esta opción para añadir comentarios en el G-Code etiquetando los "
@@ -24683,10 +24683,10 @@ msgstr ""
 #~ msgid "Test Storage Download:"
 #~ msgstr "Prueba de Descarga de Almacenamiento:"
 
-#~ msgid "Test plugin download"
+#~ msgid "Test plug-in download"
 #~ msgstr "Prueba de descarga de plugin"
 
-#~ msgid "Test Plugin Download:"
+#~ msgid "Test Plug-in Download:"
 #~ msgstr "Prueba de Descarga de Plugin:"
 
 #~ msgid "Test Storage Upload"
@@ -26227,9 +26227,6 @@ msgstr ""
 #~ "¿Desactivar automáticamente la ralentización del voladizo?\n"
 #~ "Sí - Activar Arachne y desactivar la ralentización del voladizo\n"
 #~ "No - No utilizar Arachne para esta impresión"
-
-#~ msgid "Downloading Bambu Network plug-in"
-#~ msgstr "Descargando el complemento Bambu Network"
 
 #~ msgid ""
 #~ "Extrusion compensation calibration is not supported when using Textured "

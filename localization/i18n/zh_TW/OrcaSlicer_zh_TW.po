@@ -1618,10 +1618,10 @@ msgstr "Orca Slicer 遭遇到一個未處理的例外：%1%"
 msgid "Untitled"
 msgstr "未命名"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr "正在重新載入網路外掛程式..."
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr "正在下載網路外掛程式"
 
 msgid "Downloading Bambu Network Plug-in"
@@ -1778,7 +1778,7 @@ msgstr ""
 "\n"
 "開發者模式允許列印設備僅透過區域網路存取運作，以實現 OrcaSlicer 的完整功能。"
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr "網路外掛程式限制"
 
 msgid "Privacy Policy Update"
@@ -3669,8 +3669,8 @@ msgid "Calibration"
 msgstr "校正"
 
 msgid ""
-"Failed to download the plug-in. Please check your firewall settings and vpn "
-"software, check and retry."
+"Failed to download the plug-in. Please check your firewall settings and VPN "
+"software and retry."
 msgstr "外掛程式下載失敗。請檢查您的防火牆設定和 VPN 軟體，檢查後重試。"
 
 msgid ""
@@ -3685,7 +3685,7 @@ msgid "Click here to see more info"
 msgstr "點擊這裡查看更多資訊"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
+"The network plug-in was installed but could not be loaded. Please restart the "
 "application."
 msgstr "網路外掛程式已安裝但無法載入。請重新啟動應用程式。"
 
@@ -7454,7 +7454,7 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "請解決切片錯誤後再重新發布。"
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are unavailable."
 msgstr "未偵測到網路外掛程式。網路相關功能不可用。"
 
 msgid ""
@@ -8208,33 +8208,33 @@ msgstr "線材與顏色"
 msgid "Color only"
 msgstr "僅顏色"
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr "網路外掛程式"
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr "啟用網路外掛程式"
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr "網路外掛程式版本"
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr "選擇要使用的網路外掛程式版本"
 
 msgid "(Latest)"
 msgstr "（最新版）"
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr "網路外掛程式切換成功。"
 
 msgid "Success"
 msgstr "成功"
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr "無法載入網路外掛程式。請重新啟動應用程式。"
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
@@ -8246,7 +8246,7 @@ msgstr ""
 "\n"
 "注意：安裝後應用程式可能需要重新啟動。"
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr "下載網路外掛程式"
 
 msgid "Associate files to OrcaSlicer"
@@ -8316,19 +8316,19 @@ msgstr "除錯"
 msgid "trace"
 msgstr "跟蹤"
 
-msgid "Network Plugin"
+msgid "Network Plug-in"
 msgstr "網路外掛程式"
 
 msgid "Reload"
 msgstr "重新載入"
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr "重新載入網路外掛程式而無需重新啟動應用程式"
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr "網路外掛程式重新載入成功。"
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr "無法重新載入網路外掛程式。請重新啟動應用程式。"
 
 msgid "Reload Failed"
@@ -14259,7 +14259,7 @@ msgstr "標註物件"
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
 "object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
+"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
 "setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 "啟用此選項可將註解新增至 G-code 中，標記列印移動及其所屬物件，這對於 "

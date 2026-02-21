@@ -1671,10 +1671,10 @@ msgstr "Неизвестная ошибка OrcaSlicer : %1%"
 msgid "Untitled"
 msgstr "Без названия"
 
-msgid "Reloading network plugin..."
+msgid "Reloading network plug-in..."
 msgstr "Перезагрузка сетевого плагина..."
 
-msgid "Downloading Network Plugin"
+msgid "Downloading Network Plug-in"
 msgstr "Загрузка сетевого плагина"
 
 msgid "Downloading Bambu Network Plug-in"
@@ -1842,7 +1842,7 @@ msgstr ""
 "Режим разработчика позволяет принтеру работать изолированно от облачных "
 "сервисов и использовать все его возможности через OrcaSlicer."
 
-msgid "Network Plugin Restriction"
+msgid "Network Plug-in Restriction"
 msgstr "Ограничение сетевого плагина"
 
 msgid "Privacy Policy Update"
@@ -3872,7 +3872,7 @@ msgid "Click here to see more info"
 msgstr "Подробнее о проблеме"
 
 msgid ""
-"The network plugin was installed but could not be loaded. Please restart the "
+"The network plug-in was installed but could not be loaded. Please restart the "
 "application."
 msgstr ""
 "Сетевой плагин установлен, для его загрузки требуется перезапуск приложения."
@@ -7838,7 +7838,7 @@ msgid "Please resolve the slicing errors and publish again."
 msgstr "Пожалуйста, устраните ошибки нарезки и попробуйте опубликовать снова."
 
 msgid ""
-"Network Plug-in is not detected. Network related features are unavailable."
+"The network plug-in was not detected. Network related features are unavailable."
 msgstr "Сетевой плагин не обнаружен. Сетевые функции недоступны."
 
 msgid ""
@@ -8664,33 +8664,33 @@ msgstr "Цвет и материал"
 msgid "Color only"
 msgstr "Цвет"
 
-msgid "Network plugin"
+msgid "Network plug-in"
 msgstr "Сетевой плагин"
 
-msgid "Enable network plugin"
+msgid "Enable network plug-in"
 msgstr "Включить сетевой плагин"
 
-msgid "Network plugin version"
+msgid "Network plug-in version"
 msgstr "Версия сетевого плагина"
 
-msgid "Select the network plugin version to use"
+msgid "Select the network plug-in version to use"
 msgstr "Выберите версию сетевого плагина для загрузки"
 
 msgid "(Latest)"
 msgstr "(новейшая)"
 
-msgid "Network plugin switched successfully."
+msgid "Network plug-in switched successfully."
 msgstr "Сетевой плагин успешно переключён."
 
 msgid "Success"
 msgstr "Успех"
 
-msgid "Failed to load network plugin. Please restart the application."
+msgid "Failed to load network plug-in. Please restart the application."
 msgstr "Для загрузки сетевого плагина требуется перезапуск приложения."
 
 #, c-format, boost-format
 msgid ""
-"You've selected network plugin version %s.\n"
+"You've selected network plug-in version %s.\n"
 "\n"
 "Would you like to download and install this version now?\n"
 "\n"
@@ -8700,7 +8700,7 @@ msgstr ""
 "\n"
 "Загрузить и установить её? Возможно, потребуется перезагрузка приложения."
 
-msgid "Download Network Plugin"
+msgid "Download Network Plug-in"
 msgstr "Загрузить сетевой плагин"
 
 msgid "Associate files to OrcaSlicer"
@@ -8772,19 +8772,19 @@ msgstr "отладка"
 msgid "trace"
 msgstr "трассировка"
 
-msgid "Network Plugin"
+msgid "Network Plug-in"
 msgstr "Сетевой плагин"
 
 msgid "Reload"
 msgstr "Перезагрузить"
 
-msgid "Reload the network plugin without restarting the application"
+msgid "Reload the network plug-in without restarting the application"
 msgstr "Перезагрузить плагин без перезапуска приложения."
 
-msgid "Network plugin reloaded successfully."
+msgid "Network plug-in reloaded successfully."
 msgstr "Плагин успешно перезагружен."
 
-msgid "Failed to reload network plugin. Please restart the application."
+msgid "Failed to reload network plug-in. Please restart the application."
 msgstr ""
 "Не удалось перезагрузить сетевой плагин. Требуется перезапуск приложения."
 
@@ -11208,7 +11208,7 @@ msgstr "Обновление сетевого плагина"
 msgid ""
 "Click OK to update the Network plug-in when Orca Slicer launches next time."
 msgstr ""
-"Нажмите OK, чтобы обновить сетевой плагин при следующем запуске Orca Slicer."
+"Нажмите OK, чтобы обновить сетевой плагин при следующем запуске OrcaSlicer."
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
@@ -15500,7 +15500,7 @@ msgstr "Помечать модели"
 msgid ""
 "Enable this to add comments into the G-code labeling print moves with what "
 "object they belong to, which is useful for the Octoprint CancelObject "
-"plugin. This settings is NOT compatible with Single Extruder Multi Material "
+"plug-in. This setting is NOT compatible with Single Extruder Multi Material "
 "setup and Wipe into Object / Wipe into Infill."
 msgstr ""
 "Отвечает за присвоение уникальных меток или названий каждой модели или "
@@ -22801,7 +22801,7 @@ msgstr ""
 #~ msgstr "Расширенный"
 
 #~ msgid ""
-#~ "Disable to use latest network plugin that supports new BambuLab firmwares."
+#~ "Disable to use latest network plug-in that supports new BambuLab firmwares."
 #~ msgstr ""
 #~ "Отключите, чтобы использовать последний сетевой плагин, поддерживающий "
 #~ "новые прошивки BambuLab."
