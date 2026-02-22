@@ -124,7 +124,7 @@ static void set_option_value(ConfigOptionFloats& option, size_t id, float value)
 static float get_option_value(const ConfigOptionFloats& option, size_t id)
 {
     return option.values.empty() ? 0.0f :
-        ((id < option.values.size()) ? static_cast<float>(option.values[id]) : static_cast<float>(option.values.back()));
+        ((id < option.values.size()) ? static_cast<float>(option.values[id]) : static_cast<float>(option.values.front()));
 }
 
 static float estimated_acceleration_distance(float initial_rate, float target_rate, float acceleration)
