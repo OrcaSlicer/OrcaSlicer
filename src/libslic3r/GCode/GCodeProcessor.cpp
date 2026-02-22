@@ -5847,6 +5847,7 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
         const float vx = std::max(jd * acc_x * 2.5f, 0.f);
         const float vy = std::max(jd * acc_y * 2.5f, 0.f);
 
+        // Jerk = sqrt(2.5 * jd * acc) as per Marlin's junction deviation implementation
         jx = std::sqrt(vx);
         jy = std::sqrt(vy);
     }
