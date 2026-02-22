@@ -5824,6 +5824,11 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
     const float  jz         = get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, id);
     const float  machine_jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
 
+    // early exit: Junction Deviation is only supported by Marlin firmware
+    if (m_flavor != gcfMarlinFirmware || machine_jd <= 0.0f) {
+        return Vec3f(jx, jy, jz);
+    }
+
     // default junction deviation:
     const float default_jd = [this]() -> float {
         if (!m_print)
@@ -5836,21 +5841,19 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
 
     // If default_jd is specified (>0), use the smaller of machine_jd and default_jd.
     const float jd = (default_jd > 0.0f) ? std::min(machine_jd, default_jd) : machine_jd;
- 
-    if (jd > 0.0f) {
-        // Use per-axis acceleration when available; fall back to generic acceleration.
-        // If axis-specific acceleration not provided (zero), use general acceleration
-        const PrintEstimatedStatistics::ETimeMode emode = static_cast<PrintEstimatedStatistics::ETimeMode>(id);
-        const float acc_x = (get_axis_max_acceleration(emode, X) > 0.0f) ? get_axis_max_acceleration(emode, X) : get_acceleration(emode);
-        const float acc_y = (get_axis_max_acceleration(emode, Y) > 0.0f) ? get_axis_max_acceleration(emode, Y) : get_acceleration(emode);
-        
-        const float vx = std::max(jd * acc_x * 2.5f, 0.f);
-        const float vy = std::max(jd * acc_y * 2.5f, 0.f);
 
-        // Jerk = sqrt(2.5 * jd * acc) as per Marlin's junction deviation implementation
-        jx = std::sqrt(vx);
-        jy = std::sqrt(vy);
-    }
+    // Use per-axis acceleration when available; fall back to generic acceleration.
+    // If axis-specific acceleration not provided (zero), use general acceleration
+    const PrintEstimatedStatistics::ETimeMode emode = static_cast<PrintEstimatedStatistics::ETimeMode>(id);
+    const float acc_x = (get_axis_max_acceleration(emode, X) > 0.0f) ? get_axis_max_acceleration(emode, X) : get_acceleration(emode);
+    const float acc_y = (get_axis_max_acceleration(emode, Y) > 0.0f) ? get_axis_max_acceleration(emode, Y) : get_acceleration(emode);
+
+    const float vx = std::max(jd * acc_x * 2.5f, 0.0f);
+    const float vy = std::max(jd * acc_y * 2.5f, 0.0f);
+
+    // Jerk = sqrt(2.5 * jd * acc) as per Marlin's junction deviation implementation
+    jx = std::sqrt(vx);
+    jy = std::sqrt(vy);
 
     return Vec3f(jx, jy, jz);
 }
