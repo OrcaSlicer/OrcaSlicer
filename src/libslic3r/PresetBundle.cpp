@@ -2184,13 +2184,27 @@ void PresetBundle::set_num_filaments(unsigned int n, std::vector<std::string> ne
         filament_presets.resize(n);
     }
     ConfigOptionStrings* filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
+    //ORCA: Resize additional arrays to prevent out-of-bounds access
+    //filament_color->resize(n);
+    //ams_multi_color_filment.resize(n);
+    ConfigOptionStrings* filament_multi_color = project_config.option<ConfigOptionStrings>("filament_multi_colour");
+    ConfigOptionStrings* filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
+    ConfigOptionInts* filament_map = project_config.option<ConfigOptionInts>("filament_map");
+
     filament_color->resize(n);
+    filament_multi_color->resize(n);
+    filament_color_type->resize(n);
+    filament_map->values.resize(n, 1);
     ams_multi_color_filment.resize(n);
     // BBS set new filament color to new_color
     if (old_filament_count < n) {
         if (!new_colors.empty()) {
             for (int i = old_filament_count; i < n; i++) {
+                //ORCA: Update additional arrays with new colors
+                //filament_color->values[i] = new_colors[i - old_filament_count];
                 filament_color->values[i] = new_colors[i - old_filament_count];
+                filament_multi_color->values[i] = new_colors[i - old_filament_count];
+                filament_color_type->values[i] = "1"; // default color type
             }
         }
     }
@@ -2751,8 +2765,20 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
 void PresetBundle::update_filament_multi_color()
 {
     std::vector<std::string> exsit_multi_colors;
+    //ORCA: Fix array size mismatch when slot is empty
+    size_t i = 0;
+    auto filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     for (auto &fil_item : ams_multi_color_filment){
-        if (fil_item.empty()) break;
+        //if (fil_item.empty()) break;
+        if (fil_item.empty()) {
+            if (filament_color && i < filament_color->values.size() && !filament_color->values[i].empty()) {
+                exsit_multi_colors.push_back(filament_color->values[i]);
+            } else {
+                exsit_multi_colors.push_back("#CECECE");
+            }
+            i++;
+            continue;
+        }
         if (fil_item.size() == 1)
             exsit_multi_colors.push_back(fil_item[0]);
         else {
@@ -2763,6 +2789,7 @@ void PresetBundle::update_filament_multi_color()
             colors.erase(colors.size() - 1); // remove last space
             exsit_multi_colors.push_back(colors);
         }
+        i++;
     }
     ConfigOptionStrings *filament_multi_colour = project_config.option<ConfigOptionStrings>("filament_multi_colour");
     filament_multi_colour->resize(exsit_multi_colors.size());
