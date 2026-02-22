@@ -5830,30 +5830,30 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
     }
 
     // default junction deviation:
-    const float default_jd = [this]() -> float {
-        if (!m_print)
-            return 0.0f;
+    const ConfigOptionFloat* opt = nullptr;
 
-        const auto&              config = m_print->full_print_config();
-        const ConfigOptionFloat* opt    = config.option<ConfigOptionFloat>("default_junction_deviation");
-        return opt ? opt->value : 0.0f;
-    }();
+    if (m_print) {
+        const auto& config = m_print->full_print_config();
+        opt                = config.option<ConfigOptionFloat>("default_junction_deviation");
+    }
+
+    const float default_jd = opt ? opt->value : 0.0f;
 
     // If default_jd is specified (>0), use the smaller of machine_jd and default_jd.
     const float jd = (default_jd > 0.0f) ? std::min(machine_jd, default_jd) : machine_jd;
 
     // Use per-axis acceleration when available; fall back to generic acceleration.
     // If axis-specific acceleration not provided (zero), use general acceleration
-    const PrintEstimatedStatistics::ETimeMode emode = static_cast<PrintEstimatedStatistics::ETimeMode>(id);
-    const float acc_x = (get_axis_max_acceleration(emode, X) > 0.0f) ? get_axis_max_acceleration(emode, X) : get_acceleration(emode);
-    const float acc_y = (get_axis_max_acceleration(emode, Y) > 0.0f) ? get_axis_max_acceleration(emode, Y) : get_acceleration(emode);
-
-    const float vx = std::max(jd * acc_x * 2.5f, 0.0f);
-    const float vy = std::max(jd * acc_y * 2.5f, 0.0f);
+    const PrintEstimatedStatistics::ETimeMode emode       = static_cast<PrintEstimatedStatistics::ETimeMode>(id);
+    const float                               max_acc_x   = get_axis_max_acceleration(emode, X);
+    const float                               max_acc_y   = get_axis_max_acceleration(emode, Y);
+    const float                               generic_acc = get_acceleration(emode);
+    const float                               acc_x       = max_acc_x > 0.0f ? max_acc_x : generic_acc;
+    const float                               acc_y       = max_acc_y > 0.0f ? max_acc_y : generic_acc;
 
     // Jerk = sqrt(2.5 * jd * acc) as per Marlin's junction deviation implementation
-    jx = std::sqrt(vx);
-    jy = std::sqrt(vy);
+    jx = std::sqrt(jd * acc_x * 2.5f);
+    jy = std::sqrt(jd * acc_y * 2.5f);
 
     return Vec3f(jx, jy, jz);
 }
