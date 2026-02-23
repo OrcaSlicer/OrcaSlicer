@@ -2743,7 +2743,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_pa_processor = std::make_unique<AdaptivePAProcessor>(*this, tool_ordering.all_extruders());
 
     // Emit machine envelope limits for the Marlin firmware.
-    this->print_machine_envelope(file, print, initial_extruder_id);
+    this->print_machine_envelope(file, print);
 
     // Disable fan.
     if (m_config.auxiliary_fan.value && print.config().close_fan_the_first_x_layers.get_at(initial_extruder_id)) {
@@ -3808,23 +3808,22 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
 
 // Print the machine envelope G-code for the Marlin firmware based on the "machine_max_xxx" parameters.
 // Do not process this piece of G-code by the time estimator, it already knows the values through another sources.
-void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print, int extruder_id)
+void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print)
 {
-    int matched_machine_limit_idx = get_extruder_id(extruder_id) * 2;
     const auto flavor = print.config().gcode_flavor.value;
     if ((flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfRepRapFirmware) &&
         print.config().emit_machine_limits_to_gcode.value == true) {
         int factor = flavor == gcfRepRapFirmware ? 60 : 1; // RRF M203 and M566 are in mm/min
         file.write_format("M201 X%d Y%d Z%d E%d\n",
-            int(print.config().machine_max_acceleration_x.values[matched_machine_limit_idx] + 0.5),
-            int(print.config().machine_max_acceleration_y.values[matched_machine_limit_idx] + 0.5),
-            int(print.config().machine_max_acceleration_z.values[matched_machine_limit_idx] + 0.5),
-            int(print.config().machine_max_acceleration_e.values[matched_machine_limit_idx] + 0.5));
+            int(print.config().machine_max_acceleration_x.values.front() + 0.5),
+            int(print.config().machine_max_acceleration_y.values.front() + 0.5),
+            int(print.config().machine_max_acceleration_z.values.front() + 0.5),
+            int(print.config().machine_max_acceleration_e.values.front() + 0.5));
         file.write_format("M203 X%d Y%d Z%d E%d\n",
-            int(print.config().machine_max_speed_x.values[matched_machine_limit_idx] * factor + 0.5),
-            int(print.config().machine_max_speed_y.values[matched_machine_limit_idx] * factor + 0.5),
-            int(print.config().machine_max_speed_z.values[matched_machine_limit_idx] * factor + 0.5),
-            int(print.config().machine_max_speed_e.values[matched_machine_limit_idx] * factor + 0.5));
+            int(print.config().machine_max_speed_x.values.front() * factor + 0.5),
+            int(print.config().machine_max_speed_y.values.front() * factor + 0.5),
+            int(print.config().machine_max_speed_z.values.front() * factor + 0.5),
+            int(print.config().machine_max_speed_e.values.front() * factor + 0.5));
 
         // Now M204 - acceleration. This one is quite hairy thanks to how Marlin guys care about
         // Legacy Marlin should export travel acceleration the same as printing acceleration.
@@ -4883,7 +4882,10 @@ LayerResult GCode::process_layer(
             if (print.config().print_sequence == PrintSequence::ByObject) {
                 filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
             } else {
-                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
+                
+                // PrintSequence::ByLayer to use global ordering ( per object ordering ) if intra-layer order PrintOrder::AsObjectList is specified while keeping behaviour of PrintSequence::ByLayer
+                const std::vector<const PrintInstance*>* ordering_for_filament = (print.config().print_order == PrintOrder::AsObjectList && ordering != nullptr) ? ordering: &new_ordering;
+                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering_for_filament, single_object_instance_idx);
             }
         }
     }

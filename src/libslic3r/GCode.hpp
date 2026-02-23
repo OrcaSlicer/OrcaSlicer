@@ -640,7 +640,7 @@ private:
     double      calc_max_volumetric_speed(const double layer_height, const double line_width, const std::string co_str);
     std::string _extrude(const ExtrusionPath &path, std::string description = "", double speed = -1);
     bool _needSAFC(const ExtrusionPath &path);
-    void print_machine_envelope(GCodeOutputStream& file, Print& print, int extruder_id);
+    void print_machine_envelope(GCodeOutputStream& file, Print& print);
     void _print_first_layer_bed_temperature(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);
     void _print_first_layer_extruder_temperatures(GCodeOutputStream &file, Print &print, const std::string &gcode, unsigned int first_printing_extruder_id, bool wait);
     // On the first printing layer. This flag triggers first layer speeds.
