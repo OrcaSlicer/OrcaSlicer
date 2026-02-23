@@ -5570,7 +5570,7 @@ float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeM
     }
 }
 
-float GCodeProcessor::get_get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
+float GCodeProcessor::get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
     if (axis != X && axis != Y && axis != Z && axis != E)
         return 0.0f;
@@ -5592,7 +5592,7 @@ float GCodeProcessor::get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode
     const size_t id = static_cast<size_t>(mode);
     const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
     if (m_flavor == gcfMarlinFirmware && jd > 0.0f) {
-        return get_get_axis_max_jerk_with_jd(mode, axis);
+        return get_axis_max_jerk_with_jd(mode, axis);
     }
 
     switch (axis)
@@ -5623,9 +5623,9 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
     }
     else
     {
-        jx = get_get_axis_max_jerk_with_jd(mode, X);
-        jy = get_get_axis_max_jerk_with_jd(mode, Y);
-        jz = get_get_axis_max_jerk_with_jd(mode, Z);
+        jx = get_axis_max_jerk_with_jd(mode, X);
+        jy = get_axis_max_jerk_with_jd(mode, Y);
+        jz = get_axis_max_jerk_with_jd(mode, Z);
     }
 
     return Vec3f(jx, jy, jz);
