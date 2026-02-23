@@ -4913,8 +4913,8 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr "Ventiliatoriaus greitis (%)"
 
-msgid "Temperature (°C)"
-msgstr "Temperatūra (°C)"
+msgid "Temperature (℃)"
+msgstr "Temperatūra (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tūrinis srautas (mm³/s)"
@@ -6442,7 +6442,7 @@ msgstr "Sluoksnis: %d/%d"
 
 #, fuzzy
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "Prašome prieš įtraukiant ar išstumiant giją įkaitinti purkštuką virš 170 "
 "laipsnių."
@@ -21742,8 +21742,8 @@ msgstr ""
 
 #, fuzzy
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
 #~ "Rekomenduojama minimali temperatūra yra žemesnė nei 190 laipsnių arba "
 #~ "maksimali temperatūra aukštesnė nei 300 laipsnių.\n"
