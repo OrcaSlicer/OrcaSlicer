@@ -4882,7 +4882,10 @@ LayerResult GCode::process_layer(
             if (print.config().print_sequence == PrintSequence::ByObject) {
                 filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
             } else {
-                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, &new_ordering, single_object_instance_idx);
+                
+                // PrintSequence::ByLayer to use global ordering ( per object ordering ) if intra-layer order PrintOrder::AsObjectList is specified while keeping behaviour of PrintSequence::ByLayer
+                const std::vector<const PrintInstance*>* ordering_for_filament = (print.config().print_order == PrintOrder::AsObjectList && ordering != nullptr) ? ordering: &new_ordering;
+                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering_for_filament, single_object_instance_idx);
             }
         }
     }
