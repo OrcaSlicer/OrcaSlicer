@@ -61,11 +61,11 @@ public:
 	float get_wipe_tower_height() const { return m_wipe_tower_height; }
     // ORCA: Match WipeTower API used by Print skirt/brim planning.
     // Returned bounding box is in WIPE-TOWER-LOCAL coordinates (before placement on the bed).
-    // Include brim and y-shift to match what WT gcode actually prints.
-    BoundingBoxf get_bbx() const{
+    // Keep this as the nominal tower footprint (including brim), without dynamic y_shift.
+    BoundingBoxf get_bbx() const {
         const float brim = m_wipe_tower_brim_width_real;
-        const Vec2d min(-brim, -brim + double(m_y_shift));
-        const Vec2d max(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim + double(m_y_shift));
+        const Vec2d min(-brim, -brim);
+        const Vec2d max(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim);
         return BoundingBoxf(min, max);
     }
     // WT2 doesn't currently compute a rib-origin compensation like WipeTower (m_rib_offset),
