@@ -420,7 +420,7 @@ msgstr "Относительно части"
 msgid "Size"
 msgstr "Размер"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "Сохранять пропорции"
 
 msgid "Planar"
@@ -684,7 +684,7 @@ msgstr "Соединение"
 msgid "Cut by Plane"
 msgstr "Разрез по плоскости"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr "При разрезании образовались открытые рёбра. Хотите исправить это сейчас?"
 
 msgid "Repairing model object"
@@ -2180,31 +2180,31 @@ msgstr "Объединить с"
 msgid "Select All"
 msgstr "Выбрать всё"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "Выбрать все модели на текущем столе"
 
 msgid "Delete All"
 msgstr "Удалить всё"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "Удаление всех моделей на текущем столе"
 
 msgid "Arrange"
 msgstr "Расставить"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "Расстановка моделей на текущем столе"
 
 msgid "Reload All"
 msgstr "Перезагрузить всё"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "Перезагрузить всё с диска"
 
 msgid "Auto Rotate"
 msgstr "Положить всё на стол"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "Положить все модели на текущем столе"
 
 msgid "Delete Plate"
@@ -2515,7 +2515,8 @@ msgstr "Добавление диапазона высот слоёв"
 msgid "Invalid numeric."
 msgstr "Неправильное числовое значение."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "одна ячейка может быть скопирована только в одну или несколько ячеек одного и того же столбца"
 
 msgid "Copying multiple cells is not supported."
@@ -3506,7 +3507,7 @@ msgstr "Не удалось загрузить плагин. Пожалуйст�
 msgid "Failed to install the plug-in. Please check whether it is blocked or deleted by anti-virus software."
 msgstr "Не удалось установить плагин. Пожалуйста, проверьте, не заблокирован ли он или не удалён антивирусом."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "Подробнее о проблеме"
 
 msgid "The network plugin was installed but could not be loaded. Please restart the application."
@@ -3977,7 +3978,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr "Калибровка смещения сопла"
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr "Измерение кривизны разогретого стола"
 
 msgid "Auto Check: Quick Release Lever"
@@ -4702,7 +4703,7 @@ msgstr "Изменить размер инструмента"
 msgid "Sequence"
 msgstr "Последовательность"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr "Выбрать модель"
 
 msgid "part selection"
@@ -4711,7 +4712,7 @@ msgstr "Выбрать часть"
 msgid "number keys"
 msgstr "(цифры)"
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr "Быстро переназначить цвет"
 
 msgid "Following objects are laid over the boundary of plate or exceeds the height limit:\n"
@@ -4929,7 +4930,7 @@ msgid "Only the object being edited is visible."
 msgstr "При редактировании другие модели скрываются."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid "PLA and PETG filaments detected in the mixture. Adjust parameters according to the Wiki to ensure print quality."
@@ -6162,7 +6163,7 @@ msgstr "Синхронизация результатов печати. Повт
 msgid "Upload failed\n"
 msgstr "Ошибка отправки\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "не удалось получить instance_id\n"
 
 msgid ""
@@ -7110,13 +7111,14 @@ msgstr "Сохранение проекта"
 msgid "Importing Model"
 msgstr "Импортирование модели"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "подготовка 3MF файла..."
 
 msgid "Download failed, unknown file format."
 msgstr "Не удалось загрузить, неизвестный формат файла."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "скачивание проекта..."
 
 msgid "Download failed, File size exception."
@@ -7930,10 +7932,10 @@ msgstr "PRE host: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Хост принтера"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "кнопка сохранения отладки"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "сохранить настройки отладки"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8222,7 +8224,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "отправка завершена"
 
 msgid "Error code"
@@ -9770,7 +9772,7 @@ msgstr "Перемещение выбранного на 10 мм по оси X+"
 msgid "Movement step set to 1 mm"
 msgstr "Зафиксировать шаг перемещения на 1 мм"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "Клавиши 1-9: задать пруток для модели/части модели"
 
 msgid "Camera view - Default"
@@ -15890,7 +15892,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Покрытие"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "положение прутка"
 
 msgid "Filament For Calibration"
@@ -17431,7 +17433,7 @@ msgstr "История заданий пуста!"
 msgid "Upgrading"
 msgstr "Обновление"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "синхронизация"
 
 msgid "Printing Finish"

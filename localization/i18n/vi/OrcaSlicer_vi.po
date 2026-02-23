@@ -431,7 +431,7 @@ msgstr "Tọa độ phần"
 msgid "Size"
 msgstr "Kích thước"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "tỷ lệ đồng đều"
 
 msgid "Planar"
@@ -689,7 +689,7 @@ msgstr "Connector"
 msgid "Cut by Plane"
 msgstr "Cắt bằng mặt phẳng"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "cạnh non-manifold được tạo bởi công cụ cắt, bạn có muốn sửa ngay không?"
 
@@ -2226,31 +2226,31 @@ msgstr ""
 msgid "Select All"
 msgstr "Chọn tất cả"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "chọn tất cả vật thể trên plate hiện tại"
 
 msgid "Delete All"
 msgstr "Xóa tất cả"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "xóa tất cả vật thể trên plate hiện tại"
 
 msgid "Arrange"
 msgstr "Sắp xếp"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "sắp xếp plate hiện tại"
 
 msgid "Reload All"
 msgstr "Tải lại tất cả"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "tải lại tất cả từ ổ đĩa"
 
 msgid "Auto Rotate"
 msgstr "Tự động xoay"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "tự động xoay plate hiện tại"
 
 msgid "Delete Plate"
@@ -2559,7 +2559,8 @@ msgstr "Thêm phạm vi chiều cao"
 msgid "Invalid numeric."
 msgstr "Số không hợp lệ."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "một ô chỉ có thể sao chép vào một hoặc nhiều ô trong cùng cột"
 
 msgid "Copying multiple cells is not supported."
@@ -3681,7 +3682,7 @@ msgstr ""
 "Cài đặt plug-in thất bại. Vui lòng kiểm tra xem nó có bị chặn hoặc xóa bởi "
 "phần mềm diệt virus không."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "nhấn vào đây để xem thêm thông tin"
 
 msgid ""
@@ -4214,7 +4215,7 @@ msgstr ""
 msgid "Nozzle offset calibration"
 msgstr ""
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr ""
 
 msgid "Auto Check: Quick Release Lever"
@@ -4944,7 +4945,7 @@ msgstr "Tăng/giảm vùng chỉnh sửa"
 msgid "Sequence"
 msgstr "Trình tự"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr "chọn vật thể"
 
 msgid "part selection"
@@ -4953,7 +4954,7 @@ msgstr "chọn phần"
 msgid "number keys"
 msgstr "phím số"
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr "phím số có thể nhanh chóng đổi màu của vật thể"
 
 msgid ""
@@ -5185,7 +5186,7 @@ msgid "Only the object being edited is visible."
 msgstr "Chỉ vật thể đang được chỉnh sửa là hiển thị."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 
 msgid ""
@@ -6447,7 +6448,7 @@ msgstr "Đang đồng bộ kết quả in. Vui lòng thử lại sau vài giây.
 msgid "Upload failed\n"
 msgstr "Tải lên thất bại\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "lấy instance_id thất bại\n"
 
 msgid ""
@@ -7483,13 +7484,14 @@ msgstr "Lưu dự án"
 msgid "Importing Model"
 msgstr "Đang nhập model"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "chuẩn bị file 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "Tải xuống thất bại, định dạng file không xác định."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "đang tải dự án xuống..."
 
 msgid "Download failed, File size exception."
@@ -8371,10 +8373,10 @@ msgstr "Máy chủ PRE: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Máy chủ sản phẩm"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "nút lưu gỡ lỗi"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "lưu cài đặt gỡ lỗi"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -8663,7 +8665,7 @@ msgid ""
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
 msgstr ""
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "gửi hoàn tất"
 
 msgid "Error code"
@@ -10476,7 +10478,7 @@ msgstr "Di chuyển lựa chọn 10 mm theo hướng X dương"
 msgid "Movement step set to 1 mm"
 msgstr "Bước di chuyển được đặt thành 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "bàn phím 1-9: đặt filament cho đối tượng/phần"
 
 msgid "Camera view - Default"
@@ -18629,7 +18631,7 @@ msgstr ""
 msgid "Plate Type"
 msgstr "Loại bàn"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "vị trí filament"
 
 msgid "Filament For Calibration"
@@ -20460,7 +20462,7 @@ msgstr "Không có tác vụ lịch sử!"
 msgid "Upgrading"
 msgstr "Đang nâng cấp"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "đang đồng bộ"
 
 msgid "Printing Finish"

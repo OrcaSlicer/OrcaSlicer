@@ -455,7 +455,7 @@ msgstr "Coordenadas de la pieza"
 msgid "Size"
 msgstr "Tamaño"
 
-msgid "uniform scale"
+msgid "Uniform scale"
 msgstr "escala uniforme"
 
 msgid "Planar"
@@ -715,7 +715,7 @@ msgstr "Conector"
 msgid "Cut by Plane"
 msgstr "Corte por Plano"
 
-msgid "non-manifold edges be caused by cut tool, do you want to fix it now?"
+msgid "Non-manifold edges be caused by cut tool, do you want to fix it now?"
 msgstr ""
 "La operación de corte ha resultado en bordes no plegados, ¿Desea repararlos "
 "ahora?"
@@ -2310,31 +2310,31 @@ msgstr "Fusionar con"
 msgid "Select All"
 msgstr "Seleccionar Todo"
 
-msgid "select all objects on current plate"
+msgid "Select all objects on the current plate"
 msgstr "Seleccionar todos los objetos de la bandeja actual"
 
 msgid "Delete All"
 msgstr "Borrar todo"
 
-msgid "delete all objects on current plate"
+msgid "Delete all objects on the current plate"
 msgstr "Eliminar todos los objetos de la bandeja actual"
 
 msgid "Arrange"
 msgstr "Organizar"
 
-msgid "arrange current plate"
+msgid "Arrange current plate"
 msgstr "organizar la bandeja actual"
 
 msgid "Reload All"
 msgstr "Recargar todo"
 
-msgid "reload all from disk"
+msgid "Reload all from disk"
 msgstr "Recargar todo desde disco"
 
 msgid "Auto Rotate"
 msgstr "Rotación Automática"
 
-msgid "auto rotate current plate"
+msgid "Auto rotate current plate"
 msgstr "auto rotar la bandeja actual"
 
 msgid "Delete Plate"
@@ -2660,7 +2660,8 @@ msgstr "Añadir rango de altura"
 msgid "Invalid numeric."
 msgstr "Numérico inválido."
 
-msgid "one cell can only be copied to one or multiple cells in the same column"
+#, fuzzy
+msgid "One cell can only be copied to one or more cells in the same column."
 msgstr ""
 "una celda sólo puede copiarse en una o varias celdas de la misma columna"
 
@@ -3876,7 +3877,7 @@ msgstr ""
 "Fallo al instalar el complemento. Por favor, compruebe si ha sido bloqueado o "
 "borrado por un antivirus."
 
-msgid "click here to see more info"
+msgid "Click here to see more info"
 msgstr "Presiona aquí para mostrar más información"
 
 msgid ""
@@ -4436,7 +4437,7 @@ msgstr "Medir la precisión del movimiento"
 msgid "Nozzle offset calibration"
 msgstr "Calibración del desplazamiento de la boquilla"
 
-msgid "high temperature auto bed leveling"
+msgid "High temperature auto bed leveling"
 msgstr "Nivelación automática de la cama a alta temperatura"
 
 msgid "Auto Check: Quick Release Lever"
@@ -5207,7 +5208,7 @@ msgstr "Incrementar/disminuir el área de edición"
 msgid "Sequence"
 msgstr "Secuencia"
 
-msgid "object selection"
+msgid "Object selection"
 msgstr "Selección de objetos"
 
 msgid "part selection"
@@ -5216,7 +5217,7 @@ msgstr "Selección de partes"
 msgid "number keys"
 msgstr "Teclas numéricas"
 
-msgid "number keys can quickly change the color of objects"
+msgid "Number keys can quickly change the color of objects"
 msgstr "Las teclas numéricas pueden cambiar rápidamente el color de los objetos"
 
 msgid ""
@@ -5463,7 +5464,7 @@ msgid "Only the object being edited is visible."
 msgstr "Sólo es visible el objeto que se está editando."
 
 #, c-format, boost-format
-msgid "filaments %s cannot be printed directly on the surface of this plate."
+msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr ""
 "Los filamentos %s no pueden imprimirse directamente en la superficie de esta "
 "bandeja."
@@ -6782,7 +6783,7 @@ msgstr ""
 msgid "Upload failed\n"
 msgstr "Carga fallida\n"
 
-msgid "obtaining instance_id failed\n"
+msgid "Obtaining instance_id failed\n"
 msgstr "Error al obtener instance_id \n"
 
 msgid ""
@@ -7880,13 +7881,14 @@ msgstr "Guardar proyecto"
 msgid "Importing Model"
 msgstr "Importando modelo"
 
-msgid "prepare 3MF file..."
+#, fuzzy
+msgid "Preparing 3MF file..."
 msgstr "Preparar el archivo 3MF..."
 
 msgid "Download failed, unknown file format."
 msgstr "Descarga fallida; formato de archivo desconocido."
 
-msgid "downloading project..."
+msgid "Downloading project..."
 msgstr "Descargando proyecto..."
 
 msgid "Download failed, File size exception."
@@ -8848,10 +8850,10 @@ msgstr "PRE host: api-pre.bambu-lab.com/v1"
 msgid "Product host"
 msgstr "Cliente de producto"
 
-msgid "debug save button"
+msgid "Debug save button"
 msgstr "botón de guardar la depuración"
 
-msgid "save debug settings"
+msgid "Save debug settings"
 msgstr "guardar los ajustes de depuración"
 
 msgid "DEBUG settings have been saved successfully!"
@@ -9156,7 +9158,7 @@ msgstr ""
 "*Modo automático: Compruebe la calibración antes de imprimir. Omitir si no es "
 "necesario."
 
-msgid "send completed"
+msgid "Send complete"
 msgstr "Envío completo"
 
 msgid "Error code"
@@ -11133,7 +11135,7 @@ msgstr "Mover la selección 10 mm en dirección X positiva"
 msgid "Movement step set to 1 mm"
 msgstr "Paso de movimiento configurado a 1 mm"
 
-msgid "keyboard 1-9: set filament for object/part"
+msgid "Keyboard 1-9: set filament for object/part"
 msgstr "teclado 1-9: ajustar el filamento para el objeto/pieza"
 
 msgid "Camera view - Default"
@@ -19790,7 +19792,7 @@ msgstr "Información de boquilla"
 msgid "Plate Type"
 msgstr "Tipo de Bandeja"
 
-msgid "filament position"
+msgid "Filament position"
 msgstr "Posición de filamento"
 
 msgid "Filament For Calibration"
@@ -21786,7 +21788,7 @@ msgstr "Sin tareas históricas"
 msgid "Upgrading"
 msgstr "Actualizando"
 
-msgid "syncing"
+msgid "Syncing"
 msgstr "Sincronizando"
 
 msgid "Printing Finish"

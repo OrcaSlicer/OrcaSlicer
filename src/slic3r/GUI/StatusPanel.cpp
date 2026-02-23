@@ -5891,7 +5891,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
                 if (ret == -1)
                     error_info += _L("Upload failed\n").ToUTF8().data();
                 else
-                    error_info += _L("obtaining instance_id failed\n").ToUTF8().data();
+                    error_info += _L("Obtaining instance_id failed\n").ToUTF8().data();
                 if (!error_info.empty()) { BOOST_LOG_TRIVIAL(info) << error_info; }
 
                 dlg_info = new MessageDialog(this,
