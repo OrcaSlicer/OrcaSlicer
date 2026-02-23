@@ -5570,19 +5570,29 @@ float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeM
     }
 }
 
+float GCodeProcessor::get_get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
+{
+    if (axis != X && axis != Y && axis != Z && axis != E)
+        return 0.0f;
+
+    const size_t id = static_cast<size_t>(mode);
+    const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
+    if (jd <= 0.0f)
+        return 0.0f;
+
+    const float axis_max_acc = get_axis_max_acceleration(mode, axis);
+    const float generic_acc = get_acceleration(mode);
+    const float effective_acc = axis_max_acc > 0.0f ? axis_max_acc : generic_acc;
+
+    return std::sqrt(jd * effective_acc * 2.5f);
+}
+
 float GCodeProcessor::get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
     const size_t id = static_cast<size_t>(mode);
     const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
-    if (m_flavor == gcfMarlinFirmware && jd > 0.0f && (axis == X || axis == Y || axis == Z)) {
-        const Vec3f xyz_jerk = get_xyz_max_jerk(mode);
-        switch (axis)
-        {
-        case X: { return xyz_jerk.x(); }
-        case Y: { return xyz_jerk.y(); }
-        case Z: { return xyz_jerk.z(); }
-        default: { break; }
-        }
+    if (m_flavor == gcfMarlinFirmware && jd > 0.0f) {
+        return get_get_axis_max_jerk_with_jd(mode, axis);
     }
 
     switch (axis)
@@ -5613,20 +5623,9 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
     }
     else
     {
-        // Use per-axis acceleration when available; fall back to generic acceleration.
-        // If axis-specific acceleration not provided (zero), use general acceleration
-        const float max_acc_x = get_axis_max_acceleration(mode, X);
-        const float max_acc_y = get_axis_max_acceleration(mode, Y);
-        const float max_acc_z = get_axis_max_acceleration(mode, Z);
-        const float generic_acc = get_acceleration(mode);
-        const float acc_x = max_acc_x > 0.0f ? max_acc_x : generic_acc;
-        const float acc_y = max_acc_y > 0.0f ? max_acc_y : generic_acc;
-        const float acc_z = max_acc_z > 0.0f ? max_acc_z : generic_acc;
-
-        // Jerk = sqrt(2.5 * jd * acc) as per Marlin's junction deviation implementation
-        jx = std::sqrt(jd * acc_x * 2.5f);
-        jy = std::sqrt(jd * acc_y * 2.5f);
-        jz = std::sqrt(jd * acc_z * 2.5f);
+        jx = get_get_axis_max_jerk_with_jd(mode, X);
+        jy = get_get_axis_max_jerk_with_jd(mode, Y);
+        jz = get_get_axis_max_jerk_with_jd(mode, Z);
     }
 
     return Vec3f(jx, jy, jz);
