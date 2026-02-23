@@ -196,6 +196,9 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    if (get("filaments_area_preferred_count").empty())
+        set("filaments_area_preferred_count", "10");
+
     if (get("use_perspective_camera").empty())
         set_bool("use_perspective_camera", true);
 
