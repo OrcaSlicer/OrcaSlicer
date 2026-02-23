@@ -4780,7 +4780,7 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr "Ventilátor fordulatszám (%)"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "Hőmérséklet (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -6279,7 +6279,7 @@ msgstr ""
 
 #, fuzzy
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 "Kérjük, melegítsd a fúvókát 170 fok fölé a filament betöltése vagy kihúzása "
 "előtt."
@@ -19899,8 +19899,8 @@ msgstr ""
 
 #, fuzzy
 #~ msgid ""
-#~ "The recommended minimum temperature is less than 190°C or the recommended "
-#~ "maximum temperature is greater than 300°C.\n"
+#~ "The recommended minimum temperature is less than 190℃ or the recommended "
+#~ "maximum temperature is greater than 300℃.\n"
 #~ msgstr ""
 #~ "Az ajánlott minimum hőmérséklet kevesebb, mint 190 fok, vagy az ajánlott "
 #~ "maximális hőmérséklet nagyobb, mint 300 fok.\n"

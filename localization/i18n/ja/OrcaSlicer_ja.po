@@ -4718,8 +4718,8 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr "ファン回転速度 (%)"
 
-msgid "Temperature (°C)"
-msgstr "温度 (°C)"
+msgid "Temperature (℃)"
+msgstr "温度 (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "流量 (mm³/s)"
@@ -6199,7 +6199,7 @@ msgid "Layer: %d/%d"
 msgstr ""
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
@@ -20291,7 +20291,7 @@ msgstr ""
 #~ "はい - 直線パターンに切り替えます\n"
 #~ "いいえ - 充填密度をリセットします"
 
-#~ msgid "Please heat the nozzle to above 170°C before loading filament."
+#~ msgid "Please heat the nozzle to above 170℃ before loading filament."
 #~ msgstr ""
 #~ "フィラメントをロードする前に、ノズル温度を170℃以上に加熱してください"
 

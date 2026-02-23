@@ -4617,7 +4617,7 @@ msgstr ""
 msgid "Fan Speed (%)"
 msgstr ""
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr ""
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -6093,7 +6093,7 @@ msgid "Layer: %d/%d"
 msgstr ""
 
 msgid ""
-"Please heat the nozzle to above 170°C before loading or unloading filament."
+"Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr ""
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
