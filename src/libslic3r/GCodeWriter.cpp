@@ -29,7 +29,8 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
     this->config.apply(print_config, true);
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
     bool use_mach_limits = print_config.gcode_flavor.value == gcfMarlinLegacy || print_config.gcode_flavor.value == gcfMarlinFirmware ||
-                           print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware;
+                           print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware ||
+                           is_griffin_flavor(print_config.gcode_flavor.value);
     m_max_acceleration = std::lrint(use_mach_limits ? print_config.machine_max_acceleration_extruding.values.front() : 0);
     m_max_travel_acceleration = static_cast<unsigned int>(
         std::round((use_mach_limits && supports_separate_travel_acceleration(print_config.gcode_flavor.value)) ?
@@ -74,7 +75,9 @@ std::string GCodeWriter::preamble()
         FLAVOR_IS(gcfTeacup) ||
         FLAVOR_IS(gcfRepetier) ||
         FLAVOR_IS(gcfSmoothie) ||
-        FLAVOR_IS(gcfKlipper))
+        FLAVOR_IS(gcfKlipper) ||
+        FLAVOR_IS(gcfGriffin) ||
+        FLAVOR_IS(gcfCheetah))
     {
         if (this->config.use_relative_e_distances) {
             gcode << "M83 ; use relative distances for extrusion\n";
@@ -247,8 +250,13 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
             jerk = m_max_jerk_x;
         if (m_max_jerk_y > 0 && jerk > m_max_jerk_y)
             jerk = m_max_jerk_y;
-        
+
         gcode << "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=" << jerk;
+    } else if (FLAVOR_IS(gcfCheetah)) {
+        // Cheetah uses M215 with real jerk in m/s^3 (value * 1000)
+        double jerk_x = jerk * 1000.0;
+        double jerk_y = jerk * 1000.0;
+        gcode << "M215 X" << jerk_x << " Y" << jerk_y;
     } else {
         double jerk_x = jerk;
         double jerk_y = jerk;
@@ -257,7 +265,7 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
             jerk_x = m_max_jerk_x;
         if (m_max_jerk_y > 0 && jerk > m_max_jerk_y)
             jerk_y = m_max_jerk_y;
-        
+
         gcode << "M205 X" << jerk_x << " Y" << jerk_y;
     }
       

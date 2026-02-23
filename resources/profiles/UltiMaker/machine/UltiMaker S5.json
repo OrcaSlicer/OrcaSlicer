@@ -1,0 +1,12 @@
+{
+    "type": "machine_model",
+    "name": "UltiMaker S5",
+    "model_id": "UltiMaker-S5",
+    "nozzle_diameter": "0.4",
+    "machine_tech": "FFF",
+    "family": "UltiMaker",
+    "bed_model": "",
+    "bed_texture": "",
+    "hotend_model": "",
+    "default_materials": "Generic PLA @System;Generic PETG @System;Generic ABS @System"
+}

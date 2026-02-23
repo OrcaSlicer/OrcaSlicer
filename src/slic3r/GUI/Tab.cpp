@@ -4356,6 +4356,14 @@ void TabPrinter::build_fff()
 
         optgroup->append_single_option_line("printer_structure", "printer_basic_information_advanced#printer-structure");
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
+        // Griffin/Cheetah specific settings
+        optgroup->append_single_option_line("prime_blob_enable");
+        optgroup->append_single_option_line("extruder_prime_pos_x");
+        optgroup->append_single_option_line("extruder_prime_pos_y");
+        optgroup->append_single_option_line("extruder_prime_pos_z");
+        optgroup->append_single_option_line("machine_heated_build_volume");
+        optgroup->append_single_option_line("build_volume_temperature");
+        optgroup->append_single_option_line("machine_nozzle_id");
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
@@ -4772,7 +4780,8 @@ void TabPrinter::build_unregular_pages(bool from_initial_build/* = false*/)
 {
     size_t		n_before_extruders = 2;			//	Count of pages before Extruder pages
     auto        flavor = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
-    bool		is_marlin_flavor = (flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfKlipper || flavor == gcfRepRapFirmware);
+    bool		is_marlin_flavor = (flavor == gcfMarlinLegacy || flavor == gcfMarlinFirmware || flavor == gcfKlipper || flavor == gcfRepRapFirmware
+                                     || is_griffin_flavor(flavor));
 
     /* ! Freeze/Thaw in this function is needed to avoid call OnPaint() for erased pages
      * and be cause of application crash, when try to change Preset in moment,
@@ -5208,6 +5217,18 @@ void TabPrinter::toggle_options()
 
         auto gcf = m_config->option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor")->value;
         toggle_line("enable_power_loss_recovery", is_BBL_printer || gcf == gcfMarlinFirmware);
+
+        // Griffin/Cheetah specific settings: only show when Griffin or Cheetah flavor is selected
+        bool is_griffin = is_griffin_flavor(gcf);
+        toggle_line("prime_blob_enable", is_griffin);
+        bool prime_blob = is_griffin && m_config->opt_bool("prime_blob_enable");
+        toggle_line("extruder_prime_pos_x", prime_blob);
+        toggle_line("extruder_prime_pos_y", prime_blob);
+        toggle_line("extruder_prime_pos_z", prime_blob);
+        toggle_line("machine_heated_build_volume", is_griffin);
+        bool heated_volume = is_griffin && m_config->opt_bool("machine_heated_build_volume");
+        toggle_line("build_volume_temperature", heated_volume);
+        toggle_line("machine_nozzle_id", is_griffin);
     }
     
 
@@ -5325,8 +5346,8 @@ void TabPrinter::toggle_options()
         bool silent_mode = m_config->opt_bool("silent_mode");
         int  max_field   = silent_mode ? 2 : 1;
         for (int i = 0; i < max_field; ++i)
-            toggle_option("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper, i);
-        toggle_line("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper);
+            toggle_option("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper && !is_griffin_flavor(gcf), i);
+        toggle_line("machine_max_acceleration_travel", gcf != gcfMarlinLegacy && gcf != gcfKlipper && !is_griffin_flavor(gcf));
         for (int i = 0; i < max_field; ++i)
             toggle_option("machine_max_junction_deviation", gcf == gcfMarlinFirmware, i);
         toggle_line("machine_max_junction_deviation", gcf == gcfMarlinFirmware);

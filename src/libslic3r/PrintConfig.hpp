@@ -32,9 +32,10 @@ namespace Slic3r {
 
 enum GCodeFlavor : unsigned char {
     gcfMarlinLegacy, gcfKlipper, gcfRepRapFirmware, gcfMarlinFirmware, gcfRepRapSprinter, gcfRepetier, gcfTeacup, gcfMakerWare, gcfSailfish, gcfMach3, gcfMachinekit,
-    gcfSmoothie, gcfNoExtrusion
+    gcfSmoothie, gcfGriffin, gcfCheetah, gcfNoExtrusion
 };
 
+inline bool is_griffin_flavor(GCodeFlavor f) { return f == gcfGriffin || f == gcfCheetah; }
 
 enum class FuzzySkinType {
     None,
@@ -1292,6 +1293,15 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                gcode_add_line_number))
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
+
+    // Griffin/Cheetah specific settings
+    ((ConfigOptionBool,                prime_blob_enable))
+    ((ConfigOptionFloat,               extruder_prime_pos_x))
+    ((ConfigOptionFloat,               extruder_prime_pos_y))
+    ((ConfigOptionFloat,               extruder_prime_pos_z))
+    ((ConfigOptionBool,                machine_heated_build_volume))
+    ((ConfigOptionInt,                 build_volume_temperature))
+    ((ConfigOptionString,              machine_nozzle_id))
 
     ((ConfigOptionFloat,               time_cost)) 
     ((ConfigOptionString,              layer_change_gcode))

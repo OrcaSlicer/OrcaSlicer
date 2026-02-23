@@ -151,6 +151,8 @@ static t_config_enum_values s_keys_map_GCodeFlavor {
     { "smoothie",       gcfSmoothie },
     { "mach3",          gcfMach3 },
     { "machinekit",     gcfMachinekit },
+    { "griffin",         gcfGriffin },
+    { "cheetah",         gcfCheetah },
     { "no-extrusion",   gcfNoExtrusion }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(GCodeFlavor)
@@ -3594,6 +3596,8 @@ void PrintConfigDef::init_fff_params()
     //def->enum_values.push_back("teacup");
     //def->enum_values.push_back("makerware");
     def->enum_values.push_back("marlin2");
+    def->enum_values.push_back("griffin");
+    def->enum_values.push_back("cheetah");
     //def->enum_values.push_back("sailfish");
     //def->enum_values.push_back("mach3");
     //def->enum_values.push_back("machinekit");
@@ -3607,6 +3611,8 @@ void PrintConfigDef::init_fff_params()
     //def->enum_labels.push_back("Teacup");
     //def->enum_labels.push_back("MakerWare (MakerBot)");
     def->enum_labels.push_back("Marlin 2");
+    def->enum_labels.push_back("Griffin");
+    def->enum_labels.push_back("Cheetah");
     //def->enum_labels.push_back("Sailfish (MakerBot)");
     //def->enum_labels.push_back("Mach3/LinuxCNC");
     //def->enum_labels.push_back("Machinekit");
@@ -3615,6 +3621,57 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->readonly = false;
     def->set_default_value(new ConfigOptionEnum<GCodeFlavor>(gcfMarlinLegacy));
+
+    // Griffin/Cheetah specific settings
+    def = this->add("prime_blob_enable", coBool);
+    def->label = L("Prime blob");
+    def->tooltip = L("Enable the prime blob (G280) for Griffin/Cheetah firmware. "
+                   "This performs a firmware-controlled priming maneuver at a designated position.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("extruder_prime_pos_x", coFloat);
+    def->label = L("Prime position X");
+    def->tooltip = L("X coordinate for the prime blob position.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("extruder_prime_pos_y", coFloat);
+    def->label = L("Prime position Y");
+    def->tooltip = L("Y coordinate for the prime blob position.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("extruder_prime_pos_z", coFloat);
+    def->label = L("Prime position Z");
+    def->tooltip = L("Z coordinate for the prime blob position.");
+    def->sidetext = L("mm");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.0));
+
+    def = this->add("machine_heated_build_volume", coBool);
+    def->label = L("Heated build volume");
+    def->tooltip = L("Enable this if the printer has a heated build volume (enclosure). "
+                   "For Griffin/Cheetah, the temperature is set via the file header, not via G-code commands.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("build_volume_temperature", coInt);
+    def->label = L("Build volume temperature");
+    def->tooltip = L("Target temperature for the heated build volume.");
+    def->sidetext = L("\u00B0C");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("machine_nozzle_id", coString);
+    def->label = L("Nozzle ID");
+    def->tooltip = L("Nozzle identifier string for Griffin header metadata (e.g. \"AA 0.4\").");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString(""));
 
     def          = this->add("pellet_modded_printer", coBool);
     def->label   = L("Pellet Modded Printer");

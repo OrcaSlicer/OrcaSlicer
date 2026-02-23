@@ -8,6 +8,18 @@
         {
             "name": "UltiMaker 2",
             "sub_path": "machine/UltiMaker 2.json"
+        },
+        {
+            "name": "UltiMaker S3",
+            "sub_path": "machine/UltiMaker S3.json"
+        },
+        {
+            "name": "UltiMaker S5",
+            "sub_path": "machine/UltiMaker S5.json"
+        },
+        {
+            "name": "UltiMaker S7",
+            "sub_path": "machine/UltiMaker S7.json"
         }
     ],
     "process_list": [
@@ -26,6 +38,18 @@
         {
             "name": "0.25mm Draft @UltiMaker 2",
             "sub_path": "process/0.25mm Darft @UltiMaker 2.json"
+        },
+        {
+            "name": "0.20mm Standard @UltiMaker S3",
+            "sub_path": "process/0.20mm Standard @UltiMaker S3.json"
+        },
+        {
+            "name": "0.20mm Standard @UltiMaker S5",
+            "sub_path": "process/0.20mm Standard @UltiMaker S5.json"
+        },
+        {
+            "name": "0.20mm Standard @UltiMaker S7",
+            "sub_path": "process/0.20mm Standard @UltiMaker S7.json"
         }
     ],
     "filament_list": [],
@@ -37,6 +61,18 @@
         {
             "name": "UltiMaker 2 0.4 nozzle",
             "sub_path": "machine/UltiMaker 2 0.4 nozzle.json"
+        },
+        {
+            "name": "UltiMaker S3 0.4 nozzle",
+            "sub_path": "machine/UltiMaker S3 0.4 nozzle.json"
+        },
+        {
+            "name": "UltiMaker S5 0.4 nozzle",
+            "sub_path": "machine/UltiMaker S5 0.4 nozzle.json"
+        },
+        {
+            "name": "UltiMaker S7 0.4 nozzle",
+            "sub_path": "machine/UltiMaker S7 0.4 nozzle.json"
         }
     ]
 }
