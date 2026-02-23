@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Elegoo Rapid PLA+ @System",
+    "inherits": "Elegoo Rapid PLA+ @base",
+    "from": "system",
+    "setting_id": "OGFSE05_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}

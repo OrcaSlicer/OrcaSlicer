@@ -1,0 +1,9 @@
+{
+    "type": "filament",
+    "name": "Elegoo Rapid PETG @System",
+    "inherits": "Elegoo Rapid PETG @base",
+    "from": "system",
+    "setting_id": "OGFSE01_00",
+    "instantiation": "true",
+    "compatible_printers": []
+}
