@@ -124,7 +124,7 @@ static void set_option_value(ConfigOptionFloats& option, size_t id, float value)
 static float get_option_value(const ConfigOptionFloats& option, size_t id)
 {
     return option.values.empty() ? 0.0f :
-        ((id < option.values.size()) ? static_cast<float>(option.values[id]) : static_cast<float>(option.values.back()));
+        ((id < option.values.size()) ? static_cast<float>(option.values[id]) : static_cast<float>(option.values.front()));
 }
 
 static float estimated_acceleration_distance(float initial_rate, float target_rate, float acceleration)
@@ -1259,7 +1259,7 @@ void GCodeProcessor::run_post_process()
                     // line inserter
                     [tool_number, this](unsigned int id, const std::vector<float>& time_diffs) {
                         const int temperature = int(m_layer_id != 1 ? m_filament_nozzle_temp[tool_number] :
-                                                                    m_filament_nozzle_temp_first_layer[tool_number]);
+                                                                         m_filament_nozzle_temp_first_layer[tool_number]);
                         // Orca: M104.1 for XL printers, I can't find the documentation for this so I copied the C++ comments from
                         // Prusa-Firmware-Buddy here
                         /**
@@ -1730,6 +1730,10 @@ void GCodeProcessor::register_commands()
         {"M566", [this](const GCodeReader::GCodeLine& line) { process_M566(line); }}, // Set allowable instantaneous speed change
         {"M702", [this](const GCodeReader::GCodeLine& line) { process_M702(line); }}, // Unload the current filament into the MK3 MMU2 unit at the end of print.
         {"M1020", [this](const GCodeReader::GCodeLine& line) { process_M1020(line); }}, // Select Tool
+
+// ORCA: Add Pressure Advance visualization support
+        {"M900", [this](const GCodeReader::GCodeLine& line) { process_M900(line); }}, // Marlin: Set pressure advance
+        {"M572", [this](const GCodeReader::GCodeLine& line) { process_M572(line); }}, // RepRapFirmware/Duet: Set pressure advance
 
         {"T", [this](const GCodeReader::GCodeLine& line) { process_T(line); }}, // Select Tool
         {"SYNC", [this](const GCodeReader::GCodeLine& line) { process_SYNC(line); }}, // SYNC TIME
@@ -2790,6 +2794,12 @@ void GCodeProcessor::process_gcode_line(const GCodeReader::GCodeLine& line, bool
         if (boost::iequals(cmd, "SET_VELOCITY_LIMIT"))
         {
             process_SET_VELOCITY_LIMIT(line);
+            return;
+        }
+// ORCA: Add Pressure Advance visualization support
+        if (boost::iequals(cmd, "SET_PRESSURE_ADVANCE"))
+        {
+            process_SET_PRESSURE_ADVANCE(line);
             return;
         }
     }
@@ -3931,7 +3941,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
             curr.abs_axis_feedrate[a] = std::abs(curr.axis_feedrate[a]);
             if (curr.abs_axis_feedrate[a] != 0.0f) {
-                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
                 if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
             }
         }
@@ -3955,7 +3965,7 @@ void GCodeProcessor::process_G1(const std::array<std::optional<double>, 4>& axes
 
         //BBS
         for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
             if (acceleration * std::abs(delta_pos[a]) * inv_distance > axis_max_acceleration)
                 acceleration = axis_max_acceleration / (std::abs(delta_pos[a]) * inv_distance);
         }
@@ -4289,7 +4299,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
             curr.abs_axis_feedrate[a] = std::abs(curr.axis_feedrate[a]);
             if (curr.abs_axis_feedrate[a] != 0.0f) {
-                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+                float axis_max_feedrate = get_axis_max_feedrate(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
                 if (axis_max_feedrate != 0.0f) min_feedrate_factor = std::min<float>(min_feedrate_factor, axis_max_feedrate / curr.abs_axis_feedrate[a]);
             }
         }
@@ -4313,7 +4323,7 @@ void GCodeProcessor::process_VG1(const GCodeReader::GCodeLine& line)
 
         //BBS
         for (unsigned char a = X; a <= E; ++a) {
-            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a), m_extruder_id);
+            float axis_max_acceleration = get_axis_max_acceleration(static_cast<PrintEstimatedStatistics::ETimeMode>(i), static_cast<Axis>(a));
             if (acceleration * std::abs(delta_pos[a]) * inv_distance > axis_max_acceleration)
                 acceleration = axis_max_acceleration / (std::abs(delta_pos[a]) * inv_distance);
         }
@@ -4914,6 +4924,37 @@ void GCodeProcessor::process_M106(const GCodeReader::GCodeLine& line)
     }
 }
 
+// ORCA: Add Pressure Advance visualization support
+void GCodeProcessor::process_M900(const GCodeReader::GCodeLine &line)
+{
+    float pa_value = m_pressure_advance;
+    line.has_value('K', pa_value);
+    m_pressure_advance = std::max(0.0f, pa_value);
+    // BOOST_LOG_TRIVIAL(debug) << "M900 command: PA set to " << m_pressure_advance;
+}
+
+void GCodeProcessor::process_M572(const GCodeReader::GCodeLine &line)
+{
+    float pa_value = m_pressure_advance;
+    line.has_value('S', pa_value);
+    m_pressure_advance = std::max(0.0f, pa_value);
+    // BOOST_LOG_TRIVIAL(debug) << "M572 command: PA set to " << m_pressure_advance;
+}
+
+void GCodeProcessor::process_SET_PRESSURE_ADVANCE(const GCodeReader::GCodeLine& line)
+{
+    std::regex regex(R"(SET_PRESSURE_ADVANCE\s+(?:.*\s+)?ADVANCE\s*=\s*([\d.]+))");
+    std::smatch matches;
+
+    if (std::regex_search(line.raw(), matches, regex) && matches.size() > 1) {
+        float pa_value = 0;
+        try {
+            pa_value = std::stof(matches[1].str());
+        } catch (...) {}
+        m_pressure_advance = std::max(0.0f, pa_value);
+    }
+}
+
 void GCodeProcessor::process_M107(const GCodeReader::GCodeLine& line)
 {
     m_fan_speed = 0.0f;
@@ -5016,18 +5057,17 @@ void GCodeProcessor::process_M201(const GCodeReader::GCodeLine& line)
 {
     // see http://reprap.org/wiki/G-code#M201:_Set_max_printing_acceleration
     float factor = ((m_flavor != gcfRepRapSprinter && m_flavor != gcfRepRapFirmware) && m_units == EUnits::Inches) ? INCHES_TO_MM : 1.0f;
-    int indx_limit = m_time_processor.machine_limits.machine_max_acceleration_x.size() / 2;
-    for (size_t index = 0; index < indx_limit; index += 2) {
-        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-            if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
-                if (line.has_x()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, index + i, line.x() * factor);
 
-                if (line.has_y()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, index + i, line.y() * factor);
+    // Write to index i (0=Normal, 1=Stealth) — matches get_axis_max_acceleration's read pattern.
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
+            if (line.has_x()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, i, line.x() * factor);
 
-                if (line.has_z()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, index + i, line.z() * factor);
+            if (line.has_y()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, i, line.y() * factor);
 
-                if (line.has_e()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, index + i, line.e() * factor);
-            }
+            if (line.has_z()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, i, line.z() * factor);
+
+            if (line.has_e()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, i, line.e() * factor);
         }
     }
 }
@@ -5042,23 +5082,20 @@ void GCodeProcessor::process_M203(const GCodeReader::GCodeLine& line)
     // http://smoothieware.org/supported-g-codes
     float factor = (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfSmoothie || m_flavor == gcfKlipper) ? 1.0f : MMMIN_TO_MMSEC;
 
-    //BBS:
-    int indx_limit = m_time_processor.machine_limits.machine_max_speed_x.size() / 2;
-    for (size_t index = 0; index < indx_limit; index += 2) {
-        for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
-            if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
-                if (line.has_x())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_x, index + i, line.x() * factor);
+    // Write to index i (0=Normal, 1=Stealth) — matches get_axis_max_feedrate's read pattern.
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
+            if (line.has_x())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_x, i, line.x() * factor);
 
-                if (line.has_y())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_y, index + i, line.y() * factor);
+            if (line.has_y())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_y, i, line.y() * factor);
 
-                if (line.has_z())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_z, index + i, line.z() * factor);
+            if (line.has_z())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_z, i, line.z() * factor);
 
-                if (line.has_e())
-                    set_option_value(m_time_processor.machine_limits.machine_max_speed_e, index + i, line.e() * factor);
-            }
+            if (line.has_e())
+                set_option_value(m_time_processor.machine_limits.machine_max_speed_e, i, line.e() * factor);
         }
     }
 }
@@ -5453,6 +5490,8 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
         m_travel_dist,
         m_fan_speed,
         m_extruder_temps[filament_id],
+// ORCA: Add Pressure Advance visualization support
+        m_pressure_advance,
         { 0.0f, 0.0f }, // time
         static_cast<float>(m_layer_id), //layer_duration: set later
         std::max<unsigned int>(1, m_layer_id) - 1,
@@ -5499,28 +5538,31 @@ float GCodeProcessor::minimum_travel_feedrate(PrintEstimatedStatistics::ETimeMod
     return std::max(feedrate, get_option_value(m_time_processor.machine_limits.machine_min_travel_rate, static_cast<size_t>(mode)));
 }
 
-float GCodeProcessor::get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int extruder_id) const
+// Machine limit arrays hold 2 values: [0]=Normal, [1]=Stealth. Index by mode only.
+// BambuStudio used extruder_id*2+mode to support per-nozzle limits, but OrcaSlicer
+// never ported that system (filament_map_2 / get_config_idx_for_filament), so the
+// extruder_id offset was always wrong: uninitialized extruder (255) or extruder > 0
+// would overshoot the array and fall back to values.back() (stealth limits).
+float GCodeProcessor::get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
-    int matched_pos = extruder_id * 2;
     switch (axis)
     {
-    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_x, matched_pos + static_cast<size_t>(mode)); }
-    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_y, matched_pos + static_cast<size_t>(mode)); }
-    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_z, matched_pos + static_cast<size_t>(mode)); }
-    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_e, matched_pos + static_cast<size_t>(mode)); }
+    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_x, static_cast<size_t>(mode)); }
+    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_y, static_cast<size_t>(mode)); }
+    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_z, static_cast<size_t>(mode)); }
+    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_speed_e, static_cast<size_t>(mode)); }
     default: { return 0.0f; }
     }
 }
 
-float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int extruder_id) const
+float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
-    int matched_pos = extruder_id * 2;
     switch (axis)
     {
-    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, matched_pos + static_cast<size_t>(mode)); }
-    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, matched_pos + static_cast<size_t>(mode)); }
-    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, matched_pos + static_cast<size_t>(mode)); }
-    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, matched_pos + static_cast<size_t>(mode)); }
+    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, static_cast<size_t>(mode)); }
+    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_y, static_cast<size_t>(mode)); }
+    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_z, static_cast<size_t>(mode)); }
+    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_acceleration_e, static_cast<size_t>(mode)); }
     default: { return 0.0f; }
     }
 }
@@ -5539,9 +5581,45 @@ float GCodeProcessor::get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode
 
 Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const
 {
-    return Vec3f(get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, static_cast<size_t>(mode)),
-        get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, static_cast<size_t>(mode)),
-        get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, static_cast<size_t>(mode)));
+    // Default values from config
+    const size_t id         = static_cast<size_t>(mode);
+    float        jx         = get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, id);
+    float        jy         = get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, id);
+    const float  jz         = get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, id);
+    const float  machine_jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
+
+    // early exit: Junction Deviation is only supported by Marlin firmware
+    if (m_flavor != gcfMarlinFirmware || machine_jd <= 0.0f) {
+        return Vec3f(jx, jy, jz);
+    }
+
+    // default junction deviation:
+    const ConfigOptionFloat* opt = nullptr;
+
+    if (m_print) {
+        const auto& config = m_print->full_print_config();
+        opt                = config.option<ConfigOptionFloat>("default_junction_deviation");
+    }
+
+    const float default_jd = opt ? opt->value : 0.0f;
+
+    // If default_jd is specified (>0), use the smaller of machine_jd and default_jd.
+    const float jd = (default_jd > 0.0f) ? std::min(machine_jd, default_jd) : machine_jd;
+
+    // Use per-axis acceleration when available; fall back to generic acceleration.
+    // If axis-specific acceleration not provided (zero), use general acceleration
+    const PrintEstimatedStatistics::ETimeMode emode       = static_cast<PrintEstimatedStatistics::ETimeMode>(id);
+    const float                               max_acc_x   = get_axis_max_acceleration(emode, X);
+    const float                               max_acc_y   = get_axis_max_acceleration(emode, Y);
+    const float                               generic_acc = get_acceleration(emode);
+    const float                               acc_x       = max_acc_x > 0.0f ? max_acc_x : generic_acc;
+    const float                               acc_y       = max_acc_y > 0.0f ? max_acc_y : generic_acc;
+
+    // Jerk = sqrt(2.5 * jd * acc) as per Marlin's junction deviation implementation
+    jx = std::sqrt(jd * acc_x * 2.5f);
+    jy = std::sqrt(jd * acc_y * 2.5f);
+
+    return Vec3f(jx, jy, jz);
 }
 
 float GCodeProcessor::get_retract_acceleration(PrintEstimatedStatistics::ETimeMode mode) const
@@ -5897,4 +5975,3 @@ int GCodeProcessor::get_extruder_id(bool force_initialize)const
 }
 
 } /* namespace Slic3r */
-

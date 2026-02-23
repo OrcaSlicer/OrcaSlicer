@@ -5423,7 +5423,7 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
             }
 
             version_info.url           = prefer_release ? best_release_url : best_pre_url;
-            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string();
+            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string_sf();
             version_info.description   = prefer_release ? best_release_content : best_pre_content;
             version_info.force_upgrade = false;
 
@@ -5508,11 +5508,15 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         }
         else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
-            MessageDialog msg_dlg(nullptr,
-                _L("Bambu Lab has implemented a signature verification check in their network plugin that restricts "
-                   "third-party software from communicating with your printer.\n\n"
-                   "As a result, some printing functions are unavailable in OrcaSlicer."),
-                _L("Network Plugin Restriction"), wxAPPLY | wxOK);
+            MessageDialog
+                msg_dlg(nullptr,
+                        _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
+                           "Please go to your printer's settings and:\n"
+                           "1. Turn on LAN mode\n"
+                           "2. Enable Developer mode\n\n"
+                           "Developer mode allows the printer to work exclusively through local network access, "
+                           "enabling full functionality with OrcaSlicer."),
+                        _L("Network Plugin Restriction"), wxAPPLY | wxOK);
             m_show_error_msgdlg = true;
             msg_dlg.ShowModal();
             m_show_error_msgdlg = false;

@@ -414,15 +414,15 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
         unsigned long t = 0;
         if(!ti->GetTextCtrl()->GetValue().ToULong(&t))
             return;
-        if(t> 350 || t < 170){
-            MessageDialog msg_dlg(nullptr, wxString::Format(L"Supported range: 170%s - 350%s",
+        if(t> 500 || t < 155){
+            MessageDialog msg_dlg(nullptr, wxString::Format(L"Supported range: 170%s - 500%s",
                 _L("\u2103" /* °C */), _L("\u2103" /* °C */)),
                 wxEmptyString, wxICON_WARNING | wxOK);
             msg_dlg.ShowModal();
-            if(t > 350)
-                t = 350;
+            if(t > 500)
+                t = 500;
             else
-                t = 170;
+                t = 155;
         }
         t = (t / 5) * 5;
         ti->GetTextCtrl()->SetValue(std::to_string(t));
@@ -452,8 +452,8 @@ void Temp_Calibration_Dlg::on_start(wxCommandEvent& event) {
     read_long = m_tiStart->GetTextCtrl()->GetValue().ToULong(&start);
     read_long = read_long && m_tiEnd->GetTextCtrl()->GetValue().ToULong(&end);
 
-    if (!read_long || start > 350 || end < 170  || end > (start - 5)) {
-        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 350\nEnd temp: >= 170\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
+    if (!read_long || start > 500 || end < 155  || end > (start - 5)) {
+        MessageDialog msg_dlg(nullptr, _L("Please input valid values:\nStart temp: <= 500\nEnd temp: >= 155\nStart temp >= End temp + 5"), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
@@ -921,9 +921,9 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
     // Y axis frequencies
     auto y_freq_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto start_y_text = new wxStaticText(this, wxID_ANY, y_axis_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
-    m_tiFreqStartY = new TextInput(this, std::to_string(15) , "Hz", "", wxDefaultPosition, ti_size);
+    m_tiFreqStartY = new TextInput(this, std::to_string(15) , _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqStartY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
-    m_tiFreqEndY =   new TextInput(this, std::to_string(110), "Hz", "", wxDefaultPosition, ti_size);
+    m_tiFreqEndY =   new TextInput(this, std::to_string(110), _L("Hz"), "", wxDefaultPosition, ti_size);
     m_tiFreqEndY->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
 
     y_freq_sizer->Add(start_y_text  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
