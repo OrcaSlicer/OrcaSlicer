@@ -5572,12 +5572,25 @@ float GCodeProcessor::get_axis_max_acceleration(PrintEstimatedStatistics::ETimeM
 
 float GCodeProcessor::get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const
 {
+    const size_t id = static_cast<size_t>(mode);
+    const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
+    if (m_flavor == gcfMarlinFirmware && jd > 0.0f && (axis == X || axis == Y || axis == Z)) {
+        const Vec3f xyz_jerk = get_xyz_max_jerk(mode);
+        switch (axis)
+        {
+        case X: { return xyz_jerk.x(); }
+        case Y: { return xyz_jerk.y(); }
+        case Z: { return xyz_jerk.z(); }
+        default: { break; }
+        }
+    }
+
     switch (axis)
     {
-    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, static_cast<size_t>(mode)); }
-    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, static_cast<size_t>(mode)); }
-    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, static_cast<size_t>(mode)); }
-    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_e, static_cast<size_t>(mode)); }
+    case X: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, id); }
+    case Y: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, id); }
+    case Z: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, id); }
+    case E: { return get_option_value(m_time_processor.machine_limits.machine_max_jerk_e, id); }
     default: { return 0.0f; }
     }
 }
@@ -5588,7 +5601,7 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
     const size_t id = static_cast<size_t>(mode);
     float jx = 0.0f;
     float jy = 0.0f;
-    const float jz = get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, id); // Classij Z jerk is used to simplify calculation.
+    float jz = 0.0f;
     const float jd = get_option_value(m_time_processor.machine_limits.machine_max_junction_deviation, id);
 
     // Classic Jerk: Junction Deviation is only supported by Marlin firmware when using a JD value grater than 0.
@@ -5596,6 +5609,7 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
     {
         jx = get_option_value(m_time_processor.machine_limits.machine_max_jerk_x, id);
         jy = get_option_value(m_time_processor.machine_limits.machine_max_jerk_y, id);
+        jz = get_option_value(m_time_processor.machine_limits.machine_max_jerk_z, id);
     }
     else
     {
@@ -5603,13 +5617,16 @@ Vec3f GCodeProcessor::get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode)
         // If axis-specific acceleration not provided (zero), use general acceleration
         const float max_acc_x = get_axis_max_acceleration(mode, X);
         const float max_acc_y = get_axis_max_acceleration(mode, Y);
+        const float max_acc_z = get_axis_max_acceleration(mode, Z);
         const float generic_acc = get_acceleration(mode);
         const float acc_x = max_acc_x > 0.0f ? max_acc_x : generic_acc;
         const float acc_y = max_acc_y > 0.0f ? max_acc_y : generic_acc;
+        const float acc_z = max_acc_z > 0.0f ? max_acc_z : generic_acc;
 
         // Jerk = sqrt(2.5 * jd * acc) as per Marlin's junction deviation implementation
         jx = std::sqrt(jd * acc_x * 2.5f);
         jy = std::sqrt(jd * acc_y * 2.5f);
+        jz = std::sqrt(jd * acc_z * 2.5f);
     }
 
     return Vec3f(jx, jy, jz);
