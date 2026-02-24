@@ -1254,7 +1254,7 @@ bool GLCanvas3D::init()
     // Controls the display of object names directly over the object
     m_labels.show(wxGetApp().app_config->get_bool("show_labels"));
     // Controls the color coding of overhang surfaces
-    m_slope.globalUse(wxGetApp().app_config->get_bool("show_labels"));
+    m_slope.globalUse(wxGetApp().app_config->get_bool("show_overhang"));
 
     BOOST_LOG_TRIVIAL(info) <<__FUNCTION__<< " enter";
     glsafe(::glClearColor(1.0f, 1.0f, 1.0f, 1.0f));
@@ -3272,8 +3272,12 @@ void GLCanvas3D::on_char(wxKeyEvent& evt)
 #else /* __APPLE__ */
         case WXK_CONTROL_A:
 #endif /* __APPLE__ */
-            if (!is_in_painting_mode && !m_layers_editing.is_enabled())
-                post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
+            if (!is_in_painting_mode && !m_layers_editing.is_enabled()) {
+                if (evt.ShiftDown())
+                    post_event(SimpleEvent(EVT_GLCANVAS_SELECT_ALL));
+                else
+                    post_event(SimpleEvent(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL));
+            }
         break;
 #ifdef __APPLE__
         case 'c':

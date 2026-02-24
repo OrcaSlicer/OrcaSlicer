@@ -972,6 +972,25 @@ public:
         return add_wipe_point(Vec2f(x, y));
     }
 
+    void spiral_flat_ironing(const Vec2f &center, float area, float step_length, float feedrate)
+    {
+        float edge_length = std::sqrt(area);
+        Vec2f box_max     = center + Vec2f{step_length, step_length};
+        Vec2f box_min     = center - Vec2f{step_length, step_length};
+        int   n           = std::ceil(edge_length / step_length / 2.f);
+        if (n <= 0)
+            return;
+        while (n--) {
+            travel(box_max.x(), m_current_pos.y(), feedrate);
+            travel(m_current_pos.x(), box_max.y(), feedrate);
+            travel(box_min.x(), m_current_pos.y(), feedrate);
+            travel(m_current_pos.x(), box_min.y(), feedrate);
+
+            box_max += Vec2f{step_length, step_length};
+            box_min -= Vec2f{step_length, step_length};
+        }
+    }
+
         	// Extrude with an explicitely provided amount of extrusion.
     WipeTowerWriter2& extrude_arc_explicit(ArcSegment& arc,
                                           float       f             = 0.f,
@@ -1200,7 +1219,8 @@ private:
 WipeTower::ToolChangeResult WipeTower2::construct_tcr(WipeTowerWriter2& writer,
                                                      bool priming,
                                                      size_t old_tool,
-                                                     bool is_finish) const
+                                                     bool is_finish,
+                                                     bool is_contact) const
 {
     WipeTower::ToolChangeResult result;
     result.priming      = priming;
@@ -1215,6 +1235,7 @@ WipeTower::ToolChangeResult WipeTower2::construct_tcr(WipeTowerWriter2& writer,
     result.extrusions   = std::move(writer.extrusions());
     result.wipe_path    = std::move(writer.wipe_path());
     result.is_finish_first = is_finish;
+    result.is_contact = is_contact;
     // ORCA: Always initialize the tool_change_start_pos with a valid position
     // to avoid undefined variable travel on X in Gcode.cpp function std::string WipeTowerIntegration::post_process_wipe_tower_moves
     result.tool_change_start_pos = result.start_pos;  // always valid fallback
@@ -1250,7 +1271,10 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_used_fillet(config.wipe_tower_fillet_wall), 
     m_rib_width(config.wipe_tower_rib_width), 
     m_extra_rib_length(config.wipe_tower_extra_rib_length),
-    m_wall_type((int)config.wipe_tower_wall_type)
+    m_wall_type((int)config.wipe_tower_wall_type),
+    m_flat_ironing(config.prime_tower_flat_ironing.value),
+    m_enable_tower_interface_features(config.enable_tower_interface_features.value),
+    m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
 {
     // Read absolute value of first layer speed, if given as percentage,
     // it is taken over following default. Speeds from config are not
@@ -1317,6 +1341,16 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].temperature = config.nozzle_temperature.get_at(idx);
     m_filpar[idx].first_layer_temperature = config.nozzle_temperature_initial_layer.get_at(idx);
     m_filpar[idx].filament_minimal_purge_on_wipe_tower = config.filament_minimal_purge_on_wipe_tower.get_at(idx);
+    {
+        int interface_temp = config.filament_tower_interface_print_temp.get_at(idx);
+        if (interface_temp == -1)
+            interface_temp = config.nozzle_temperature_range_high.get_at(idx);
+        m_filpar[idx].interface_print_temperature = interface_temp;
+    }
+    m_filpar[idx].tower_interface_pre_extrusion_dist = config.filament_tower_interface_pre_extrusion_dist.get_at(idx);
+    m_filpar[idx].tower_interface_pre_extrusion_length = config.filament_tower_interface_pre_extrusion_length.get_at(idx);
+    m_filpar[idx].tower_ironing_area = config.filament_tower_ironing_area.get_at(idx);
+    m_filpar[idx].tower_interface_purge_length = config.filament_tower_interface_purge_volume.get_at(idx);
 
     // If this is a single extruder MM printer, we will use all the SE-specific config values.
     // Otherwise, the defaults will be used to turn off the SE stuff.
@@ -1440,11 +1474,11 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
         toolchange_Load(writer, cleaning_box); // Prime the tool.
         if (idx_tool + 1 == tools.size()) {
             // Last tool should not be unloaded, but it should be wiped enough to become of a pure color.
-            toolchange_Wipe(writer, cleaning_box, wipe_volumes[tools[idx_tool-1]][tool]);
+            toolchange_Wipe(writer, cleaning_box, wipe_volumes[tools[idx_tool-1]][tool], false);
         } else {
             // Ram the hot material out of the melt zone, retract the filament into the cooling tubes and let it cool.
             //writer.travel(writer.x(), writer.y() + m_perimeter_width, 7200);
-            toolchange_Wipe(writer, cleaning_box , 20.f);
+            toolchange_Wipe(writer, cleaning_box , 20.f, false);
             WipeTower::box_coordinates box = cleaning_box;
             box.translate(0.f, writer.y() - cleaning_box.ld.y() + m_perimeter_width);
             toolchange_Unload(writer, box , m_filpar[m_current_tool].material, m_filpar[m_current_tool].first_layer_temperature, m_filpar[tools[idx_tool + 1]].first_layer_temperature);
@@ -1472,7 +1506,7 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
                           "\n\n");
         }
 
-        results.emplace_back(construct_tcr(writer, true, old_tool, true));
+        results.emplace_back(construct_tcr(writer, true, old_tool, true, false));
     }
 
     m_old_temperature = -1; // If the priming is turned off in config, the temperature changing commands will not actually appear
@@ -1487,6 +1521,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
 
     float wipe_area = 0.f;
 	float wipe_volume = 0.f;
+    bool interface_layer = m_enable_tower_interface_features && m_current_layer_has_interface;
 	
 	// Finds this toolchange info
 	if (tool != (unsigned int)(-1))
@@ -1501,6 +1536,12 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
 	else {
 		// Otherwise we are going to Unload only. And m_layer_info would be invalid.
 	}
+    if (interface_layer && tool != (unsigned int)(-1) && tool < m_filpar.size()) {
+        float extra_purge_length = m_filpar[tool].tower_interface_purge_length;
+        if (extra_purge_length > 0.f) {
+            wipe_volume += extra_purge_length * m_filpar[tool].filament_area;
+        }
+    }
 
     WipeTower::box_coordinates cleaning_box(
 		Vec2f(m_perimeter_width / 2.f, m_perimeter_width / 2.f),
@@ -1542,7 +1583,27 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
         toolchange_Change(writer, tool, m_filpar[tool].material); // Change the tool, set a speed override for soluble and flex materials.
         toolchange_Load(writer, cleaning_box);
         writer.travel(writer.x(), writer.y()-m_perimeter_width); // cooling and loading were done a bit down the road
-        toolchange_Wipe(writer, cleaning_box, wipe_volume);     // Wipe the newly loaded filament until the end of the assigned wipe area.
+        int base_temp = is_first_layer() ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature;
+        if (interface_layer) {
+            int interface_temp = m_filpar[tool].interface_print_temperature;
+            if (interface_temp > 0 && interface_temp != base_temp)
+                writer.set_extruder_temp(interface_temp, true);
+            if (m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
+                writer.set_extruder_temp(base_temp, false);
+            float pre_dist = m_filpar[tool].tower_interface_pre_extrusion_dist;
+            float pre_len = m_filpar[tool].tower_interface_pre_extrusion_length;
+            if (pre_dist > 0.f && pre_len > 0.f) {
+                float target_x = writer.x() + pre_dist;
+                target_x = std::max(cleaning_box.ld.x(), std::min(cleaning_box.rd.x(), target_x));
+                writer.extrude_explicit(target_x, writer.y(), pre_len, 600.f);
+            }
+        }
+        toolchange_Wipe(writer, cleaning_box, wipe_volume, interface_layer);     // Wipe the newly loaded filament until the end of the assigned wipe area.
+        if (interface_layer) {
+            int interface_temp = m_filpar[tool].interface_print_temperature;
+            if (!m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
+                writer.set_extruder_temp(base_temp, false);
+        }
         writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End) + "\n");
         ++ m_num_tool_changes;
     } else
@@ -1564,7 +1625,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
     if (m_current_tool < m_used_filament_length.size())
         m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
 
-    return construct_tcr(writer, false, old_tool, false);
+    return construct_tcr(writer, false, old_tool, false, interface_layer);
 }
 
 
@@ -1854,7 +1915,8 @@ void WipeTower2::toolchange_Load(
 void WipeTower2::toolchange_Wipe(
 	WipeTowerWriter2 &writer,
 	const WipeTower::box_coordinates  &cleaning_box,
-	float wipe_volume)
+	float wipe_volume,
+    bool interface_layer)
 {
 	// Increase flow on first layer, slow down print.
     writer.set_extrusion_flow(m_extrusion_flow * (is_first_layer() ? 1.18f : 1.f))
@@ -1884,6 +1946,9 @@ void WipeTower2::toolchange_Wipe(
         m_left_to_right = !m_left_to_right;
     }
     
+    const bool do_ironing = m_flat_ironing && (!interface_layer || !m_enable_tower_interface_features);
+    const float ironing_area = m_filpar[m_current_tool].tower_ironing_area;
+
     // now the wiping itself:
 	for (int i = 0; true; ++i)	{
 		if (i!=0) {
@@ -1898,6 +1963,11 @@ void WipeTower2::toolchange_Wipe(
             writer.extrude(xr - (i % 4 == 0 ? 0 : 1.5f*line_width), writer.y(), wipe_speed);
 		else
             writer.extrude(xl + (i % 4 == 1 ? 0 : 1.5f*line_width), writer.y(), wipe_speed);
+
+        if (i == 0 && do_ironing && ironing_area > 0.f) {
+            writer.travel(writer.x(), writer.y(), 600.f);
+            writer.spiral_flat_ironing(writer.pos(), ironing_area, m_perimeter_width, 10.f * 60.f);
+        }
 
         if (writer.y()+float(EPSILON) > cleaning_box.lu.y()-0.5f*line_width)
             break;		// in case next line would not fit
@@ -1943,10 +2013,12 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
         .set_y_shift(m_y_shift - (m_current_shape == SHAPE_REVERSED ? m_layer_info->toolchanges_depth() : 0.f));
 
 
-	// Slow down on the 1st layer.
+    // Slow down on the 1st layer.
     // If spare layers are excluded -> if 1 or less toolchange has been done, it must be still the first layer, too. So slow down.
     bool first_layer = is_first_layer() || (m_num_tool_changes <= 1 && m_no_sparse_layers);
     float                      feedrate      = first_layer ? m_first_layer_speed * 60.f : std::min(m_wipe_tower_max_purge_speed * 60.f, m_infill_speed * 60.f);
+    if (m_enable_tower_interface_features && m_prev_layer_had_interface)
+        feedrate = std::min(feedrate, 20.f * 60.f);
     float current_depth = m_layer_info->depth - m_layer_info->toolchanges_depth();
     WipeTower::box_coordinates fill_box(Vec2f(m_perimeter_width, m_layer_info->depth-(current_depth-m_perimeter_width)),
                              m_wipe_tower_width - 2 * m_perimeter_width, current_depth-m_perimeter_width);
@@ -2077,7 +2149,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
         m_current_height += m_layer_info->height;
     }
 
-    return construct_tcr(writer, false, old_tool, true);
+    return construct_tcr(writer, false, old_tool, true, false);
 }
 
 // Static method to get the radius and x-scaling of the stabilizing cone base.
@@ -2245,6 +2317,7 @@ static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
 {
     assert(first.new_tool == second.initial_tool);
     WipeTower::ToolChangeResult out = first;
+    out.is_contact = first.is_contact || second.is_contact;
     if (first.end_pos != second.start_pos)
         out.gcode += "G1 X" + Slic3r::float_to_string_decimal_point(second.start_pos.x(), 3)
                      + " Y" + Slic3r::float_to_string_decimal_point(second.start_pos.y(), 3)
