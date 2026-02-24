@@ -19921,7 +19921,7 @@ msgstr ""
 "Lütfen kapatıp tekrar deneyin."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Yazıcı ve yazıcıya ait tüm filament ve işlem ön ayarları.\n"

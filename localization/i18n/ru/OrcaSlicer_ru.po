@@ -20374,7 +20374,7 @@ msgstr ""
 "Закройте его и повторите попытку."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Экспортируется профиль принтера, а также профили пластиковых нитей\n"

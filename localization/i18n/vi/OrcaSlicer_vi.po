@@ -19580,7 +19580,7 @@ msgstr ""
 "Vui lòng đóng nó và thử lại."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Máy in và tất cả cài đặt sẵn filament&&quy trình thuộc về máy in.\n"

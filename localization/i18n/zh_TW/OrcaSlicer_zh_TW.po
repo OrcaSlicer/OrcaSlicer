@@ -18957,7 +18957,7 @@ msgstr ""
 "請關閉它並重試。"
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "列印設備及所有屬於該列印設備的線材和處理預設設定。 \n"

@@ -21228,7 +21228,7 @@ msgstr ""
 "Zavřete jej prosím a zkuste to znovu."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Tiskárna a všechny filamentové a procesní předvolby, které patří k "
