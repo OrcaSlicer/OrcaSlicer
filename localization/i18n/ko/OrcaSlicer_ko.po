@@ -19203,7 +19203,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "프린터와 프린터에 속한 모든 필라멘트 및 프로세스 사전 설정.\n"

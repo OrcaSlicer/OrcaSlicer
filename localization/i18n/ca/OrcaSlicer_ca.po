@@ -19992,10 +19992,10 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
-"La Impressora i tots els perfils de filament&processament que pertanyen a la "
+"Impressora i tots els perfils de filament i de procés que pertanyen a la "
 "impressora.\n"
 "Es pot compartir amb altres persones."
 

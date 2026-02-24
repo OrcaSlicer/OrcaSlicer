@@ -921,7 +921,7 @@ msgstr "Grąžinti šriftą į pradinę būseną."
 
 #, boost-format
 msgid "Font \"%1%\" can't be selected."
-msgstr "Nepavyksta pasirinkti \"%1%\" šrifto ."
+msgstr "Nepavyksta pasirinkti \"%1%\" šrifto."
 
 msgid "Operation"
 msgstr "Operacija"
@@ -20020,7 +20020,7 @@ msgstr ""
 "Uždarykite jį ir bandykite dar kartą."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Spausdintuvo ir visų spausdintuvui priklausančių gijų ir procesų išankstinės "

@@ -19841,7 +19841,7 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Принтер і всі нитки та налаштування процесу, які належать принтеру.\n"

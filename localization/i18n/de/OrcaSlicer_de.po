@@ -20918,7 +20918,7 @@ msgstr ""
 "Bitte schließen Sie es und versuchen Sie es erneut."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Drucker und alle Filament- und Prozessvoreinstellungen, die zum Drucker "
