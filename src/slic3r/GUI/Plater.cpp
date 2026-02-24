@@ -10680,7 +10680,7 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
                     : MessageDialog(parent,
                                     _L("The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
                                        "After syncing, software can optimize printing time and filament usage when slicing.\n"
-                                       "Would you like to sync now ?"),
+                                       "Would you like to sync now?"),
                                     _L("Warning"), 0)
                 {
                     add_button(wxID_YES, true, _L("Sync now"));

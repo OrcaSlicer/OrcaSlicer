@@ -2758,7 +2758,7 @@ msgstr ""
 
 msgid ""
 "The fan controls the temperature during printing to improve print "
-"quality.The system automatically adjusts the fan's switch and speed "
+"quality. The system automatically adjusts the fan's switch and speed "
 "according to different printing materials."
 msgstr ""
 
@@ -3560,7 +3560,7 @@ msgid "Please unload all filament before switching."
 msgstr ""
 
 msgid ""
-"AMS type switching needs firmware update, taking about 30s. Switch now ?"
+"AMS type switching needs firmware update, taking about 30s. Switch now?"
 msgstr ""
 
 msgid "Arrange AMS Order"
@@ -7230,7 +7230,7 @@ msgid ""
 "connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when "
 "slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -8550,7 +8550,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid ""
-"[ %s ] requires printing in a high-temperature environment.Please close the "
+"[ %s ] requires printing in a high-temperature environment. Please close the "
 "door."
 msgstr ""
 
@@ -8938,7 +8938,7 @@ msgid ""
 "ensure proper printing and achieve their intended effects (e.g., Gyroid, "
 "Cubic). Rotating the current sparse infill pattern may lead to insufficient "
 "support. Please proceed with caution and thoroughly check for any potential "
-"printing issues.Are you sure you want to enable this option?"
+"printing issues. Are you sure you want to enable this option?"
 msgstr ""
 
 msgid ""
