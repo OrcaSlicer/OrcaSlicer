@@ -4517,6 +4517,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("disable_heater_after_last_use", coBool);
+    def->label = L("Disable heater after last use");
+    def->tooltip = L("Turn off the heater of an extruder after it is used for the last time in a print. "
+                     "This saves energy on toolchanger setups where inactive tools would otherwise remain heated.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("filename_format", coString);
     def->label = L("Filename format");
     def->tooltip = L("Users can define the project file name when exporting.");

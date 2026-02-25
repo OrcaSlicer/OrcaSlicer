@@ -530,6 +530,7 @@ private:
     } m_placeholder_parser_integration;
 
     OozePrevention                      m_ooze_prevention;
+    const ToolOrdering*                 m_tool_ordering = nullptr;
     Wipe                                m_wipe;
     AvoidCrossingPerimeters             m_avoid_crossing_perimeters;
     RetractWhenCrossingPerimeters       m_retract_when_crossing_perimeters;

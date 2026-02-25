@@ -951,9 +951,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
             //BBS
             {
-                //BBS: current position and fan_speed is unclear after interting change_filament_gcode
                 check_add_eol(toolchange_gcode_str);
-                toolchange_gcode_str += ";_FORCE_RESUME_FAN_SPEED\n";
                 gcodegen.writer().set_current_position_clear(false);
                 // BBS: check whether custom gcode changes the z position. Update if changed
                 double temp_z_after_tool_change;
@@ -974,6 +972,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         else {
             // We have informed the m_writer about the current extruder_id, we can ignore the generated G-code.
         }
+
+        // Resume fan speed after tool change so it applies to the new tool
+        toolchange_gcode_str += ";_FORCE_RESUME_FAN_SPEED\n";
 
         if (need_travel_after_change_filament_gcode) {
             // move to start_pos for wiping after toolchange
@@ -3248,6 +3249,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
+                m_tool_ordering = &tool_ordering;
                 m_printed_objects.emplace_back(&object);
                 this->process_layers(print, tool_ordering, collect_layers_to_print(object), *print_object_instance_sequential_active - object.instances().data(), file,
                                      prime_extruder);
@@ -3328,6 +3330,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             }
 
             tool_ordering.cal_most_used_extruder(print.config());
+            m_tool_ordering = &tool_ordering;
 
             // Process all layers of all objects (non-sequential mode) with a parallel pipeline:
             // Generate G-code, run the filters (vase mode, cooling buffer), run the G-code analyser
@@ -3463,6 +3466,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
     file.write("\n");
 
+    m_tool_ordering = nullptr;
     print.throw_if_canceled();
 }
 
@@ -7440,6 +7444,22 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (m_ooze_prevention.enable && m_writer.filament() != nullptr)
         gcode += m_ooze_prevention.pre_toolchange(*this);
 
+    // Turn off heater if this extruder won't be used again
+    if (m_config.disable_heater_after_last_use.value && m_tool_ordering != nullptr && m_writer.filament() != nullptr) {
+        unsigned int old_extruder_id = m_writer.filament()->id();
+        coordf_t last_z = m_tool_ordering->last_print_z_for_extruder(old_extruder_id);
+        if (last_z >= 0 && print_z >= last_z - EPSILON) {
+            // This is the last layer for this extruder - turn off its heater
+            if (m_config.gcode_flavor == gcfRepRapFirmware) {
+                // RepRapFirmware uses G10 with S (active) and R (standby) — set both to 0
+                gcode += "G10 P" + std::to_string(old_extruder_id) + " S0 R0 ; disable heater after last use\n";
+            } else {
+                gcode += m_writer.set_temperature(0, false, old_extruder_id);
+                gcode += "; disable heater after last use\n";
+            }
+        }
+    }
+
     // BBS
     float new_retract_length = m_config.retraction_length.get_at(new_filament_id);
     float new_retract_length_toolchange = m_config.retract_length_toolchange.get_at(new_filament_id);
@@ -7609,9 +7629,6 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         //BBS
         {
-            //BBS: gcode writer doesn't know where the extruder is and whether fan speed is changed after inserting tool change gcode
-            //Set this flag so that normal lift will be used the first time after tool change.
-            gcode += ";_FORCE_RESUME_FAN_SPEED\n";
             m_writer.set_current_position_clear(false);
             //BBS: check whether custom gcode changes the z position. Update if changed
             double temp_z_after_tool_change;
@@ -7637,6 +7654,10 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     else {
         // user provided his own toolchange gcode, no need to do anything
     }
+
+    // Resume fan speed after tool change so it applies to the new tool
+    if (!change_filament_gcode.empty() && !(m_config.manual_filament_change.value && m_toolchange_count == 1))
+        gcode += ";_FORCE_RESUME_FAN_SPEED\n";
 
     // Set the temperature if the wipe tower didn't (not needed for non-single extruder MM)
     if (m_config.single_extruder_multi_material && !m_config.enable_prime_tower) {

@@ -926,6 +926,17 @@ void ToolOrdering::collect_extruder_statistics(bool prime_multi_material)
         m_all_printing_extruders.emplace_back(m_first_printing_extruder);
         m_first_printing_extruder = m_all_printing_extruders.front();
     }
+
+    // Pre-compute the last print_z for each extruder (iterating forward, last assignment wins).
+    m_last_print_z_per_extruder.clear();
+    for (const auto &lt : m_layer_tools)
+        for (unsigned int extruder_id : lt.extruders)
+            m_last_print_z_per_extruder[extruder_id] = lt.print_z;
+}
+
+coordf_t ToolOrdering::last_print_z_for_extruder(unsigned int extruder_id) const {
+    auto it = m_last_print_z_per_extruder.find(extruder_id);
+    return (it != m_last_print_z_per_extruder.end()) ? it->second : -1.;
 }
 
 void ToolOrdering::cal_most_used_extruder(const PrintConfig &config)
