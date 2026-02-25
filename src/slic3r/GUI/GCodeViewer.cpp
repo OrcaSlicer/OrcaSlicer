@@ -3875,6 +3875,14 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ::sprintf(buf, "%d", m_print_statistics.total_filament_changes);
         imgui.text(buf);
 
+        //display tool change times
+        ImGui::Dummy({window_padding, window_padding});
+        ImGui::SameLine();
+        imgui.text(_u8L("Tool changes") + ":");
+        ImGui::SameLine();
+        ::sprintf(buf, "%d", m_print_statistics.total_extruder_changes);
+        imgui.text(buf);
+
         //BBS display cost
         ImGui::Dummy({ window_padding, window_padding });
         ImGui::SameLine();
