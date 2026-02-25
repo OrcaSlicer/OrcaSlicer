@@ -3674,7 +3674,7 @@ msgid "Choose a file to import bed texture from (PNG/SVG):"
 msgstr "Выберите файл для импорта текстуры стола из PNG/SVG:"
 
 msgid "Choose an STL file to import bed model from:"
-msgstr "Выберите STL файл для импорта формы стола из:"
+msgstr "Выберите файл STL для импорта модели стола:"
 
 msgid "Bed Shape"
 msgstr "Форма стола"
@@ -13714,7 +13714,7 @@ msgid "Staggered inner seams"
 msgstr "Смещение внутренних швов"
 
 msgid "This option causes the inner seams to be shifted backwards based on their depth, forming a zigzag pattern."
-msgstr "Ступенчато смещает швы внутренних периметров, улучшая прочность и герметичность шва."
+msgstr "Ступенчато смещает швы внутренних периметров, улучшая прочность и герметичность стыка."
 
 msgid "Seam gap"
 msgstr "Зазор шва"
@@ -13801,21 +13801,25 @@ msgstr "Косой шов для внутренних периметров"
 msgid "Use scarf joint for inner walls as well."
 msgstr "Использовать косой шов и для внутренних периметров."
 
+# Адаптивная скорость очистки, местная скорость очистки, локальная скорость очистки, скорость очистки по типу линии
 msgid "Role base wipe speed"
-msgstr "Скорость очистки по типу линии"
+msgstr "Местная скорость очистки"
 
 msgid "The wipe speed is determined by the speed of the current extrusion role. e.g. if a wipe action is executed immediately following an outer wall extrusion, the speed of the outer wall extrusion will be utilized for the wipe action."
-msgstr "Выбирать скорость очистки на основе скорости печати текущего типа линии. Например, если очистка происходит после печати внешнего периметра, скорость движения очистки будет как у периметра."
+msgstr "Выбирать скорость очистки перед холостым перемещением на основе скорости печати последней линии. Например, если очистка происходит после печати внешнего периметра, скорость движения очистки будет как у периметра."
 
+# Это точно не очистка в привычном понимании, судя по работе функции. Возможно, ошибка в оригинале. | ВНИМАНИЕ: несмотря на название и официальное описание на Вики, фактически создаваемое движение направлено не внутрь, а в направлении шва!!! То есть, к точке начала линии. Это отчётливо видно, если поставить зазор шва в 1 и более мм и нарисовать его на ровной стенке. Это приводит к дополнительной задержке хотэнда над швом, так как траектория меняется на ≈90° (движение к точке начала линии и только потом перескок на внутренний периметр). | Возможно, разработчики вслепую портировали функцию из бамбу студио. | UPD: похоже на то, коммит 2a478ab4f9bdc1bc1fbc9dfadbb717df6e5a38a9, порт кода из Bambu Studio 1.7.4. | Судя по всему, эта настройка пришла из Cura/SuperSlicer: https://github.com/bambulab/BambuStudio/issues/1247#issuecomment-1424942133 (функция coasting, "накат")|| Очистка перед швом, сброс давления перед швом
 msgid "Wipe on loops"
-msgstr "Очистка в периметры"
+msgstr "Сброс давления в конце периметра"
 
 msgid "To minimize the visibility of the seam in a closed loop extrusion, a small inward movement is executed before the extruder leaves the loop."
-msgstr "Чтобы минимизировать видимость шва при экструзии по замкнутому контуру, перед выходом экструдера из контура выполняется небольшое движение внутрь."
+msgstr "Использовать зазор шва для холостого движения по нему с отключённой подачей материала. Отключение подачи компенсируется естественным вытеканием материала из сопла, что позволяет сбросить избыток давления в конце печати периметра и снизить заметность шва.\n\nВнимание: приём предназначен для работы в паре с увеличенным зазором шва и требует его настройки. Слишком маленький зазор может ухудшить результат.\n\nПримечание: при отключении настройки зазор не будет заполняться остатками материала, что также может уменьшить заметность шва в сочетании с быстрым переходом к внутренним периметрам."
 
+# Подворот начала линии на шве, упреждающая подача перед внешним периметром, заглубление подачи ..., смещённая подача
 msgid "Wipe before external loop"
-msgstr "Очистка перед печатью внешнего периметра"
+msgstr "Смещённая подача перед внешним периметром"
 
+# Внимание: настройка полезна только при печати периметров навстречу или снаружи внутрь, так как при печати изнутри наружу слайсер генерирует паразитный рывок экструдера для создания "подворота" и упреждающей подачи, хотя подачи при печати периметров в таком порядке не происходит (контекст для перевода)
 msgid ""
 "To minimize visibility of potential overextrusion at the start of an external perimeter when printing with Outer/Inner or Inner/Outer/Inner wall print order, the de-retraction is performed slightly on the inside from the start of the external perimeter. That way any potential over extrusion is hidden from the outside surface.\n"
 "\n"
@@ -13823,13 +13827,14 @@ msgid ""
 msgstr ""
 "Выполнять подачу материала перед печатью внешнего периметра заранее с небольшим смещением внутрь модели, чтобы скрыть возможную переэкструзию в начале периметра и устранить выпирающий шов.\n"
 "\n"
-"Полезно при порядке печати периметров «Снаружи внутрь» или «Навстречу», где начало внешнего периметра совпадает точкой подачи материала."
+"Полезно для снижения переэкструзии на шве при печати периметров «Снаружи внутрь» или «Навстречу», когда начало внешнего периметра совпадает с подачей материала после отката.\nВнимание: при порядке «Изнутри наружу» упреждающей подачи не происходит, однако смещение для неё всё равно создаётся, что приводит к ненужному рывку при переходе от внутреннего периметра к внешнему."
 
 msgid "Wipe speed"
 msgstr "Скорость очистки"
 
+# based on the travel speed setting above – ошибка, эта настройка вообще в другом разделе и на другой вкладке.
 msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Скорость движения очистки определяется текущей настройкой. Можно указать процент от скорости холостых перемещений или ограничить её настройкой выше. Значение по умолчанию – 80%."
+msgstr "Скорость возвратного движения при очистке. Можно указать процент от скорости холостых перемещений или ограничить её настройкой выше. Значение по умолчанию – 80%."
 
 msgid "Skirt distance"
 msgstr "Смещение юбки"
@@ -16553,13 +16558,13 @@ msgstr ""
 "Чтобы добавить профиль для других принтеров, перейдите к выбору принтера."
 
 msgid "Create Printer/Nozzle"
-msgstr "Создать принтер/сопло"
+msgstr "Создание принтера/сопла"
 
 msgid "Create Printer"
-msgstr "принтер"
+msgstr "Принтер"
 
 msgid "Create Nozzle for Existing Printer"
-msgstr "сопло для принтера"
+msgstr "Сопло для принтера"
 
 msgid "Create from Template"
 msgstr "Создать из шаблона"
@@ -19065,7 +19070,6 @@ msgstr ""
 #~ "For a high speed, high flow direct drive printer (like the Bambu lab or Voron) this value is usually not needed. However it can provide some marginal benefit in certain cases where feature speeds vary greatly. For example, when there are aggressive slowdowns due to overhangs. In these cases a high value of around 300-350mm³/s² is recommended as this allows for just enough smoothing to assist pressure advance achieve a smoother flow transition.\n"
 #~ "\n"
 #~ "For slower printers without pressure advance, the value should be set much lower. A value of 10-15mm³/s² is a good starting point for direct drive extruders and 5-10mm³/s² for Bowden style.\n"
-
 #~ "\n"
 #~ "This feature is known as Pressure Equalizer in Prusa slicer.\n"
 #~ "\n"
