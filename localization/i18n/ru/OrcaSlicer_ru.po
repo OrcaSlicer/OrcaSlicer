@@ -2792,7 +2792,7 @@ msgid "Parts"
 msgstr "Основной"
 
 msgid "Aux"
-msgstr "Вспомогательный"
+msgstr "Вспом."
 
 # FAN_HEAT_BREAK_1_IDX
 msgid "Nozzle1"
@@ -2805,7 +2805,7 @@ msgid "Heat"
 msgstr "Нагрев"
 
 msgid "Fan"
-msgstr "Вентилятор"
+msgstr "Вент."
 
 msgid "Idling..."
 msgstr "Простой..."
@@ -3224,6 +3224,7 @@ msgstr "Темп. экструдера"
 msgid "Bed Temperature"
 msgstr "Подогрев покрытий стола"
 
+# Может просто "Предел расхода"?
 msgid "Max volumetric speed"
 msgstr "Предел объёмного расхода"
 
@@ -3649,6 +3650,7 @@ msgstr "Удалить"
 msgid "Not found:"
 msgstr "Не найдено:"
 
+# Используется в 7 местах
 msgid "Model"
 msgstr "3D-модель"
 
@@ -4264,9 +4266,9 @@ msgid ""
 "YES for %s%%, \n"
 "NO for %s %s."
 msgstr ""
-"Это %s%% или %s %s?\n"
-"ДА для %s%%, \n"
-"НЕТ для %s %s."
+"Имелось ввиду %s%%? (введено %s %s)\n"
+"Да – изменить на %s%%\n"
+"Нет – оставить %s %s."
 
 #, boost-format
 msgid "Invalid input format. Expected vector of dimensions in the following format: \"%1%\""
@@ -4395,9 +4397,9 @@ msgstr "Нижняя поверхность"
 msgid "Internal bridge"
 msgstr "Внутренний мост"
 
-# Не проверено
+# Подложка связующего слоя
 msgid "Support transition"
-msgstr "Переход поддержки"
+msgstr "Переходный слой"
 
 # Не проверено
 msgid "Mixed"
@@ -4412,8 +4414,9 @@ msgstr "Объёмный расход"
 msgid "mm³/s"
 msgstr "мм³/с"
 
+# Костыль для обхода переноса одной буквы на строку – 0хлаждение, пока попробуем просто обдув. "Скорость вентилятора" тут не очень уместно, т.к. отображается в просмотре кода не в % (косяк орки) а в единицах, + длинная строка растягивает панель свойств линии.
 msgid "Fan speed"
-msgstr "Охлаждение"
+msgstr "Обдув"
 
 msgid "°C"
 msgstr "°C"
@@ -4438,7 +4441,7 @@ msgid "Flow: "
 msgstr "Расход: "
 
 msgid "Fan: "
-msgstr "Скорость вентилятора: "
+msgstr "Охлаждение: "
 
 msgid "Temperature: "
 msgstr "Температура: "
@@ -4449,8 +4452,9 @@ msgstr "Время печати слоя: "
 msgid "Tool: "
 msgstr "Инструмент: "
 
+# Обозначение номера материала
 msgid "Color: "
-msgstr "Цвет: "
+msgstr "Материал: "
 
 msgid "Actual Speed: "
 msgstr "Скорость в точке: "
@@ -4597,7 +4601,7 @@ msgid "Options"
 msgstr "Параметры"
 
 msgid "travel"
-msgstr "перемещения"
+msgstr "Перемещения"
 
 msgid "Extruder"
 msgstr "Экструдер"
@@ -5648,7 +5652,7 @@ msgid "Group files by month, recent first."
 msgstr "Группировать файлы по месяцам (по убыванию)"
 
 msgid "Show all files, recent first."
-msgstr "Показать все файлы (недавние первые)"
+msgstr "Показать все файлы (сначала новые)"
 
 msgid "Timelapse"
 msgstr "Таймлапсы"
@@ -5917,12 +5921,12 @@ msgstr "Имя не должно заканчиваться пробелом."
 msgid "The name is not allowed to exceed 32 characters."
 msgstr "Имя файла не должно превышать 32 символа."
 
-# не длинно?
+# Очень мало места
 msgid "Bind with Pin Code"
-msgstr "Привязать с пин-кодом"
+msgstr "Через пин-код"
 
 msgid "Bind with Access Code"
-msgstr "Привязать с кодом доступа"
+msgstr "Через код доступа"
 
 msgctxt "Quit_Switching"
 msgid "Quit"
@@ -6197,7 +6201,7 @@ msgstr "Статус"
 
 msgctxt "Firmware"
 msgid "Update"
-msgstr ""
+msgstr "Обновление"
 
 msgid "Assistant(HMS)"
 msgstr ""
@@ -6206,7 +6210,7 @@ msgid "Don't show again"
 msgstr "Больше не показывать"
 
 msgid "Go to"
-msgstr "Перейти к вкладке"
+msgstr "На вкладку"
 
 msgid "Later"
 msgstr "Позже"
@@ -7280,9 +7284,10 @@ msgstr "Оптимизация вращения"
 msgid "Printer not connected. Please go to the device page to connect %s before syncing."
 msgstr "Принтер не подключён. Перед запуском синхронизации необходимо подключить %s на вкладке «Принтер»."
 
+# В переменную добавляется пробел
 #, c-format, boost-format
 msgid "OrcaSlicer can't connect to %s. Please check if the printer is powered on and connected to the network."
-msgstr "Не удалось подключиться к %s. Проверьте питание принтера и его подключение к сети."
+msgstr "Не удалось подключиться к%s. Проверьте питание принтера и его подключение к сети."
 
 #, c-format, boost-format
 msgid "The currently connected printer on the device page is not %s. Please switch to %s before syncing."
@@ -7762,7 +7767,7 @@ msgid "Network plugin switched successfully."
 msgstr "Сетевой плагин успешно переключён."
 
 msgid "Success"
-msgstr ""
+msgstr "Успех"
 
 msgid "Failed to load network plugin. Please restart the application."
 msgstr "Для загрузки сетевого плагина требуется перезапуск приложения."
@@ -8777,13 +8782,13 @@ msgid "Top/bottom shells"
 msgstr "Горизонтальные оболочки сверху/снизу"
 
 msgid "Initial layer speed"
-msgstr "Ограничения скоростей движения на первом слое"
+msgstr "Ограничения скоростей на первом слое"
 
 msgid "Other layers speed"
-msgstr "Ограничения скоростей движения на других слоях"
+msgstr "Ограничения скоростей на других слоях"
 
 msgid "Overhang speed"
-msgstr "Ограничения скоростей движения на нависаниях"
+msgstr "Ограничения скоростей на нависаниях"
 
 msgid "This is the speed for various overhang degrees. Overhang degrees are expressed as a percentage of line width. 0 speed means no slowing down for the overhang degree range and wall speed is used"
 msgstr "Максимальная скорость движения головы (относительно стола) при печати нависаний (степень нависаний указана в процентах от ширины линии). 0 – использовать скорость периметров."
@@ -8919,22 +8924,22 @@ msgid "Volumetric speed limitation"
 msgstr "Ограничение объёмного расхода"
 
 msgid "Cooling for specific layer"
-msgstr "Обдув определенного слоя"
+msgstr "Обдув определённого слоя"
 
 msgid "Part cooling fan"
 msgstr "Вентилятор обдува модели"
 
 msgid "Min fan speed threshold"
-msgstr "Порог мин. скорости вентилятора"
+msgstr "Минимальный обдув слоя"
 
 msgid "Part cooling fan speed will start to run at min speed when the estimated layer time is no longer than the layer time in setting. When layer time is shorter than threshold, fan speed is interpolated between the minimum and maximum fan speed according to layer printing time"
-msgstr "Вентилятор для охлаждения моделей начнёт работать с минимальной скоростью, когда расчётное время печати слоя не превышает заданное время печати слоя. Если время печати слоя меньше порогового значения, скорость вентилятора интерполируется между минимальной и максимальной скоростью вентилятора в зависимости от времени печати слоя."
+msgstr "Настройка зависимости охлаждения от времени печати слоя.\n\nЕсли слой печатается быстрее указанного времени, обдув активируется с заданной скоростью и автоматически усиливается при дальнейшем снижении времени слоя (вплоть до максимального значения, заданного ниже).\n\nПримечание: указанный здесь процент скорости берётся за основу при включении «Постоянного обдува»."
 
 msgid "Max fan speed threshold"
-msgstr "Порог макс. скорости вентилятора"
+msgstr "Максимальный обдув слоя"
 
 msgid "Part cooling fan speed will be max when the estimated layer time is shorter than the setting value"
-msgstr "Скорость вентилятора для охлаждения детали будет максимальной, если расчётное время печати слоя меньше установленного значения."
+msgstr "Настройка зависимости охлаждения от времени печати слоя.\n\nВремя печати слоя, при котором интенсивность обдува становится максимальной. Печать при более низком времени слоя может привести к перегреву детали и вызвать дефекты, поэтому его рекомендуется ограничить настройкой «Замедлять печать для охлаждения слоёв»."
 
 msgid "Auxiliary part cooling fan"
 msgstr "Вспомогательный вентилятор"
@@ -8942,9 +8947,11 @@ msgstr "Вспомогательный вентилятор"
 msgid "Exhaust fan"
 msgstr "Вытяжной вентилятор"
 
+# Тут речь именно про скорость вентилятора, т.к. вытяжка напрямую не охлаждает модель 
 msgid "During print"
 msgstr "Скорость вентилятора во время печати"
 
+# Тут речь именно про скорость вентилятора, т.к. вытяжка напрямую не охлаждает модель
 msgid "Complete print"
 msgstr "Скорость вентилятора после завершения печати"
 
@@ -9096,7 +9103,7 @@ msgid "Layer height limits"
 msgstr "Ограничение высоты слоя"
 
 msgid "Z-Hop"
-msgstr "Подъём оси Z"
+msgstr "Подъём головы при откате"
 
 msgid "Retraction when switching material"
 msgstr "Откат при смене материала"
@@ -10482,7 +10489,7 @@ msgid "Bed exclude area"
 msgstr "Область исключения"
 
 msgid "Unprintable area in XY plane. For example, X1 Series printers use the front left corner to cut filament during filament change. The area is expressed as polygon by points in following format: \"XxY, XxY, ...\""
-msgstr "Непечатаемая область в плоскости XY. Например, в принтерах серии X1 передний левый угол используется для обрезания материала при его замене. Область выражается в виде многоугольника по точкам в следующем формате: \"XxY, XxY, ...\""
+msgstr "Непечатаемая область в плоскости XY. Например, в принтерах серии X1 передний левый угол используется для обрезки прутка при его замене. Область выражается в виде многоугольника по точкам в следующем формате: \"XxY, XxY, ...\""
 
 msgid "Bed custom texture"
 msgstr "Пользовательская текстура стола"
@@ -10494,7 +10501,7 @@ msgid "Elephant foot compensation"
 msgstr "Компенсация «слоновьей ноги»"
 
 msgid "Shrinks the initial layer on build plate to compensate for elephant foot effect."
-msgstr "Сужает контур первого слоя на заданное значение для компенсации эффекта слоновьей ноги."
+msgstr "Сужает контур первого слоя на заданное значение для компенсации дефекта слоновьей ноги."
 
 msgid "Elephant foot compensation layers"
 msgstr "Компенсирующих слоёв «слоновьей ноги»"
@@ -10506,7 +10513,7 @@ msgid "layers"
 msgstr "слой(-я)"
 
 msgid "Slicing height for each layer. Smaller layer height means more accurate and more printing time."
-msgstr "Высота каждого слоя. Чем меньше значение, тем лучше качество, но требуется больше времени для печати, и наоборот."
+msgstr "Высота каждого слоя. Чем меньше, тем выше качество поверхности и затраты времени (и наоборот)."
 
 msgid "Printable height"
 msgstr "Высота печати"
@@ -10692,7 +10699,7 @@ msgid "The number of bottom solid layers is increased when slicing if the thickn
 msgstr "Минимальная толщина оболочки снизу в мм. Если толщина оболочки, рассчитанная по количеству сплошных слоёв снизу, меньше этого значения, количество сплошных слоёв снизу будет автоматически увеличено при нарезке, для удовлетворения минимальной толщины оболочки. Это позволяет избежать слишком тонкой оболочки при небольшой высоте слоя. 0 означает, что этот параметр отключён, а толщина оболочки снизу полностью задаётся количеством сплошных слоёв снизу."
 
 msgid "Apply gap fill"
-msgstr "Заполнять щели"
+msgstr "Заполнение щелей"
 
 msgid ""
 "Enables gap fill for the selected solid surfaces. The minimum gap length that will be filled can be controlled from the filter out tiny gaps option below.\n"
@@ -10712,7 +10719,7 @@ msgstr ""
 "\n"
 "Режимы:\n"
 "1. Везде (щели в сплошном заполнении и верхних/нижних поверхностях)\n"
-"2. На поверхностях (щели в верхних и нижних поверхностях)\n"
+"2. Поверхности (щели в верхних и нижних поверхностях)\n"
 "3. Нигде (отключить заполнение щелей)\n"
 "\n"
 "Внимание: классический генератор дополнительно заполняет щели между периметрами. Чтобы пропускать даже такие щели, ограничьте «Минимальный размер щели» большим числом (например, 999999).\n"
@@ -10723,7 +10730,7 @@ msgid "Everywhere"
 msgstr "Везде"
 
 msgid "Top and bottom surfaces"
-msgstr "На поверхностях"
+msgstr "Поверхности"
 
 msgid "Nowhere"
 msgstr "Нигде"
@@ -10735,25 +10742,23 @@ msgid "Enable this option to allow adjustment of the part cooling fan speed for 
 msgstr "Включите, чтобы можно было настроить скорость вентилятора охлаждения моделей для нависаний, внутренних и внешних мостов. Настройка скорости вентилятора для этих элементов может повысить общее качество печати и снизить коробление нависаний и мостов."
 
 msgid "Overhangs and external bridges fan speed"
-msgstr "Скорость вентилятора для нависаний и внешних мостов"
+msgstr "Обдув нависаний и внешних мостов"
 
-# ???? Обратите внимание, эта скорость вентилятора не может быть ниже минимального значения, указанного в настройках выше. Если слой печатается слишком быстро (меньше минимального времени слоя), скорость вентилятора автоматически повысится до максимально допустимого значения.
+# В оригинальной строке ошибка – скорость может быть меньше минимальной в пороге мин. скорости и не меняется, если время слоя проходит по порогу и не требует наращивания интенсивности охлаждения. НО! Как только время слоя проходит порог, интенсивность охлаждения повышается до мин. значения и далее интерполируется пропорционально общему повышению охлаждения.
 msgid ""
 "Use this part cooling fan speed when printing bridges or overhang walls with an overhang threshold that exceeds the value set in the 'Overhangs cooling threshold' parameter above. Increasing the cooling specifically for overhangs and bridges can improve the overall print quality of these features.\n"
 "\n"
 "Please note, this fan speed is clamped on the lower end by the minimum fan speed threshold set above. It is also adjusted upwards up to the maximum fan speed threshold when the minimum layer time threshold is not met."
-msgstr ""
-"Данная настройка регулирует скорость вентилятора обдува модели только для участков, где угол нависания превышает значение, заданное в параметре «Порог включения обдува на нависаниях». Увеличение скорости вентилятора для таких участков улучшает качество их печати.\n"
-"\n"
-"Обратите внимание: эта скорость не может быть ниже значения «Порог минимальной скорости вентилятора», заданного выше. Если слой печатается слишком быстро (меньше минимального времени слоя), скорость вентилятора автоматически повысится до значения «Порог максимальной скорости вентилятора»."
+msgstr "Интенсивность охлаждения мостов и нависаний. Усиленное охлаждение помогает улучшить качество печати этих элементов.\n\n"
+"Внимание: охлаждение будет автоматически усиливаться в случае необходимости повысить интенсивность обдува всего слоя (зависимость охлаждения от времени слоя настраивается выше)."
 
 msgid "Overhang cooling activation threshold"
-msgstr "Порог нависания для включения обдува"
+msgstr "Мин. вынос нависающей линии для обдува"
 
 # ??? скорость вентилятора для нависающих элементов
 #, no-c-format, no-boost-format
 msgid "When the overhang exceeds this specified threshold, force the cooling fan to run at the 'Overhang Fan Speed' set below. This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer beneath it. Setting this value to 0% forces the cooling fan to run for all outer walls, regardless of the overhang degree."
-msgstr "Когда величина нависающего элемента превышает указанное пороговое значение, принудительно включается вентилятор охлаждения модели со скоростью, указанной ниже в параметре «Скорость вентилятора для нависаний и внешних мостов». Значение указывается в процентах и показывает, какая часть ширины линии не поддерживается слоем снизу. Если установить значение 0%, вентилятор будет работать для всех внешних стенок, независимо от угла нависания."
+msgstr "Принудительно включать вентилятор для обдува линий, выступающих относительно опоры на заданный процент своей ширины (и более). 0% – охлаждать все внешние периметры независимо от степени их нависания.\n\nПримечание: интенсивность охлаждения задаётся в настройке «Обдув нависаний и внешних мостов»."
 
 msgid "External bridge infill direction"
 msgstr "Угол внешних мостов"
@@ -10844,14 +10849,13 @@ msgid ""
 "\n"
 "The actual top surface flow used is calculated by multiplying this value with the filament flow ratio, and if set, the object's flow ratio."
 msgstr ""
-"Влияет на общее количество материала для печати заполнения верхних слоёв. Можно немного уменьшить, чтобы получить более гладкую поверхность.\n"
+"Влияет на общее количество материала для печати заполнения верхних слоёв. Можно немного уменьшить, чтобы получить более гладкую и равномерную поверхность.\n"
 "\n"
 "Фактический поток для заполнения верхней поверхности рассчитывается путём умножения этого значения на поток материала и общий поток модели (если он задан)."
 
 msgid "Bottom surface flow ratio"
 msgstr "Поток нижней поверхности"
 
-# ???1
 msgid ""
 "This factor affects the amount of material for bottom solid infill.\n"
 "\n"
@@ -11237,7 +11241,7 @@ msgid "As object list"
 msgstr "По списку"
 
 msgid "Slow printing down for better layer cooling"
-msgstr "Замедлять печать для лучшего охлаждения слоёв"
+msgstr "Замедлять печать для охлаждения слоёв"
 
 msgid "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \"Max fan speed threshold\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details."
 msgstr "Включите эту опцию для разрешения замедления скорости печати в зависимости от времени печати слоя, чтобы слой мог охлаждаться дольше. Это позволяет улучшить качество охлаждения острых концов и мелких деталей."
@@ -11424,8 +11428,8 @@ msgid "Line pattern of top surface infill."
 msgstr ""
 "Шаблон заполнения верхней поверхности.\n"
 "\n"
-"🞄 Аккуратный зигзаг: лучше зигзага сохраняет однородность\n"
-"  поверхности при наличии отверстий.\n"
+"🞄 Аккуратный зигзаг: лучше зигзага (см. ниже) сохраняет\n"
+"  однородность поверхности при наличии отверстий.\n"
 "🞄 Аккуратная штриховка: идентичен предыдущему, но состоит из\n"
 "  отдельных штрихов.\n"
 "🞄 Зигзаг: самый простой вариант обхода отверстий.\n"
@@ -11469,8 +11473,8 @@ msgid "Line pattern of bottom surface infill, not bridge infill."
 msgstr ""
 "Шаблон заполнения нижней поверхности, кроме мостов.\n"
 "\n"
-"🞄 Аккуратный зигзаг: лучше зигзага сохраняет однородность\n"
-"  поверхности при наличии отверстий.\n"
+"🞄 Аккуратный зигзаг: лучше зигзага (см. ниже) сохраняет\n"
+"  однородность поверхности при наличии отверстий.\n"
 "🞄 Аккуратная штриховка: идентичен предыдущему, но состоит из\n"
 "  отдельных штрихов.\n"
 "🞄 Зигзаг: самый простой вариант обхода отверстий.\n"
@@ -11490,8 +11494,8 @@ msgid "Line pattern of internal solid infill. if the detect narrow internal soli
 msgstr ""
 "Шаблон печати внутреннего сплошного заполнения.\n"
 "\n"
-"🞄 Аккуратный зигзаг: лучше зигзага сохраняет однородность\n"
-"  поверхности при наличии отверстий.\n"
+"🞄 Аккуратный зигзаг: лучше зигзага (см. ниже) сохраняет\n"
+"  однородность поверхности при наличии отверстий.\n"
 "🞄 Аккуратная штриховка: идентичен предыдущему, но состоит из\n"
 "  отдельных штрихов.\n"
 "🞄 Зигзаг: самый простой вариант обхода отверстий.\n"
@@ -11504,7 +11508,7 @@ msgstr ""
 "  не создаёт горизонтального шва.\n"
 "🞄 Спиральная октаграмма: декоративный шаблон.\n"
 "\n"
-"Внимание: при включении настройки «Обнаружение узкой области сплошного заполнения» для заполнения узких мест будут использоваться эквидистанты."
+"Внимание: при включении «Оптимизации заполнения узких мест» в узких участках для заполнения будут использоваться эквидистанты."
 
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина линии для внешнего периметра. Можно указать процент от диаметра сопла."
@@ -11768,7 +11772,7 @@ msgid "Keep fan always on"
 msgstr "Постоянный обдув"
 
 msgid "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping."
-msgstr "Если включено, вентилятор охлаждения модели вместо полной остановки будет поддерживать минимальную скорость (указанную выше), чтобы сократить частоту его запуска и остановки."
+msgstr "Если включено, вместо отключения вентилятор охлаждения модели будет поддерживать минимальную скорость (указанную выше), чтобы сократить частоту его запуска и остановки."
 
 msgid "Don't slow down outer walls"
 msgstr "Не замедляться на внешних периметрах"
@@ -11900,7 +11904,7 @@ msgid "When enabled, the extrusion flow is limited by the smaller of the fitted 
 msgstr ""
 "Регулирует значение максимального расхода при печати тонких и узких линий для достижения оптимальной линейной скорости. По сути, ограничивает расход материала в случаях, когда завышенная скорость движения сопла не позволяет выходящему из него расплаву надёжно сплавляться с предыдущим слоем.\n"
 "\n"
-"Внимание: пока работает только у преднастроенных производителем профилей материалов."
+"Внимание: требует настройки модели расхода и пока работает только у преднастроенных производителем профилей материалов."
 
 msgid "Max volumetric speed multinomial coefficients"
 msgstr "Коэффициенты расчёта максимального расхода"
@@ -12354,7 +12358,7 @@ msgid "Initial layer height"
 msgstr "Высота первого слоя"
 
 msgid "Height of initial layer. Making initial layer height to be thick slightly can improve build plate adhesion."
-msgstr "Высота первого слоя. Незначительное увеличение толщины первого слоя может улучшить сцепление со столом."
+msgstr "Высота первого слоя. Небольшое увеличение высоты снижает вероятность отрыва детали от неровной поверхности стола."
 
 msgid "Speed of initial layer except the solid infill part."
 msgstr "Общее ограничение скорости движения головы (относительно стола) при печати элементов первого слоя (кроме сплошного заполнения)."
@@ -12396,7 +12400,7 @@ msgid "layer"
 msgstr "слой"
 
 msgid "Support interface fan speed"
-msgstr "Скорость вентилятора на связующем слое"
+msgstr "Обдув связующего слоя"
 
 # ?????  Установите значение -1, чтобы запретить переопределять этот параметр.
 msgid ""
@@ -12411,7 +12415,7 @@ msgstr ""
 "Если включена опция «Не включать вентилятор на первых» слоях, то она перекрывает эту настройку."
 
 msgid "Internal bridges fan speed"
-msgstr "Скорость вентилятора для внутренних мостов"
+msgstr "Обдув внутренних мостов"
 
 msgid ""
 "The part cooling fan speed used for all internal bridges. Set to -1 to use the overhang fan speed settings instead.\n"
@@ -12423,7 +12427,7 @@ msgstr ""
 "Снижение охлаждения внутренних мостов помогает уменьшить усадку детали, вызванную паразитным охлаждением внутренней поверхности в течение длительного времени."
 
 msgid "Ironing fan speed"
-msgstr "Скорость вентилятора при разглаживании"
+msgstr "Обдув разглаживания"
 
 # ошибка в исходной строке – -1 не отключает охлаждение, а заставляет скорость испльзовать ту же скорость, что была на слое. 0 же явно отключает охлад.
 msgid ""
@@ -12449,7 +12453,7 @@ msgid "Ironing inset"
 msgstr "Сужение границ"
 
 msgid "Filament-specific override for ironing inset. This allows you to customize the distance to keep from the edges when ironing for each filament type."
-msgstr "Замещение общего сужения границ разглаживания. Позволяет настроить сужение границ относительно края поверхности отдельно для каждого материала."
+msgstr "Замещение общего сужения границ области разглаживания. Позволяет настроить сужение области отдельно для каждого материала."
 
 # "Разглаживание" явно задано в заголовке раздела
 msgid "Ironing speed"
@@ -12519,6 +12523,7 @@ msgstr "Смещение"
 msgid "Extrusion"
 msgstr "Экструзия"
 
+# Тянется из "Тип юбки" и "Метод создания нечёткой оболочки"
 msgid "Combined"
 msgstr "Совместный"
 
@@ -12656,7 +12661,7 @@ msgid "Tungsten carbide"
 msgstr "Карбид вольфрама"
 
 msgid "Nozzle HRC"
-msgstr "Твердость сопла (HRC)"
+msgstr "Твёрдость сопла (HRC)"
 
 msgid "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing."
 msgstr "Твёрдость сопел. 0 - отключение контроля сопел на твёрдость при нарезке."
@@ -13011,13 +13016,13 @@ msgid "No ironing"
 msgstr "Отключено"
 
 msgid "Top surfaces"
-msgstr "Все верхние поверхности"
+msgstr "Поверхности"
 
 msgid "Topmost surface"
-msgstr "Самая верхняя поверхность"
+msgstr "Верхний слой"
 
 msgid "All solid layer"
-msgstr "Все сплошные поверхности"
+msgstr "Сплошные слои"
 
 msgid "Ironing Pattern"
 msgstr "Шаблон разглаживания"
@@ -13032,7 +13037,7 @@ msgid "The distance between the lines of ironing."
 msgstr "Интервал линий разглаживания."
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
-msgstr "Расстояние в мм между областью разглаживания и краем модели. При значении 0 это значение равно половине диаметра сопла."
+msgstr "Сужение области разглаживания (в мм).\n0 – смещать на радиус сопла (∅/2)."
 
 msgid "Print speed of ironing lines."
 msgstr "Скорость разглаживания."
@@ -13311,11 +13316,12 @@ msgstr ""
 msgid "The lowest printable layer height for the extruder. Used to limit the minimum layer height when enable adaptive layer height."
 msgstr "Минимальная высота слоя для печати этим экструдером. Используется в качестве ограничения при использовании адаптивной высоты слоя."
 
+# В оригинале ошибка – это не минимальная скорость печати (так как она может быть ещё меньше, например при разглаживании или печати мостов) – это именно крайний лимит снижения скорости при попытке растянуть печать слоя до нужного времени. То есть, ниже этой скорости более быстрые перемещения замедляться не будут.
 msgid "Min print speed"
-msgstr "Минимальная скорость печати"
+msgstr "Предел замедления"
 
 msgid "The minimum print speed to which the printer slows down to maintain the minimum layer time defined above when the slowdown for better layer cooling is enabled."
-msgstr "Минимальная скорость печати, до которой принтер замедлится, чтобы попытаться сохранить минимальное время слоя, указанное выше, если включена опция «Замедлять печать для лучшего охлаждения слоёв»."
+msgstr "Ограничение замедления печати. Если активна настройка «Замедлять печать для охлаждения слоёв», то замедление вплоть до этой скорости будет использоваться в качестве крайней меры при попытке уложиться в нужное время слоя (время настраивается выше)."
 
 msgid "The diameter of nozzle."
 msgstr "Диаметр сопла."
@@ -13506,7 +13512,7 @@ msgid "Travel distance threshold"
 msgstr "Порог перемещения для отката"
 
 msgid "Only trigger retraction when the travel distance is longer than this threshold."
-msgstr "Откат будет срабатывать только в том случае, если длина холостого перемещения превысит этот порог."
+msgstr "Отключить откат при холостых перемещениях на расстояние ниже указанного значения."
 
 msgid "Retract amount before wipe"
 msgstr "Величина отката перед очисткой"
@@ -13545,7 +13551,7 @@ msgid "Retraction distance when extruder change"
 msgstr "Длина отката перед сменой экструдера"
 
 msgid "Z-hop height"
-msgstr "Высота поднятия оси Z"
+msgstr "Высота подъёма"
 
 msgid "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing."
 msgstr "При каждом откате печатная голова немного приподнимается, создавая зазор между соплом и моделью. Это предотвращает столкновение сопла с моделью при перемещении. Использование спирального подъёма может помочь сократить образование \"паутины\"."
@@ -13563,10 +13569,10 @@ msgid "If this value is positive, Z-hop will only come into effect when Z is abo
 msgstr "Если указать положительное значение, ось Z будет подниматься только выше (после) заданной здесь высоты (высота считается от стола). Таким образом вы можете отключить подъём оси Z при печати на первых слоях (в начале печати)."
 
 msgid "Z-hop type"
-msgstr "Тип подъёма оси Z"
+msgstr "Тип подъёма"
 
 msgid "Type of Z-hop."
-msgstr "Тип подъёма оси Z."
+msgstr "Тип траектории подъёма головы при откате."
 
 msgid "Slope"
 msgstr "Наклонный"
@@ -13581,34 +13587,37 @@ msgid "Traveling angle for Slope and Spiral Z-hop type. Setting it to 90° resul
 msgstr "Угол для наклонного и спирального подъёма оси Z. 90° – «обычный» подъём."
 
 msgid "Only lift Z above"
-msgstr "Приподнимать ось Z только выше"
+msgstr "Приподнимать не ниже"
 
 msgid "If you set this to a positive value, Z lift will only take place above the specified absolute Z."
 msgstr "Если указать положительное значение, ось Z будет подниматься только выше (после) заданной здесь высоты (высота считается от стола). Таким образом вы можете отключить подъём оси Z при печати первых слоёв."
 
 msgid "Only lift Z below"
-msgstr "Приподнимать ось Z только ниже"
+msgstr "Приподнимать не выше"
 
 msgid "If you set this to a positive value, Z lift will only take place below the specified absolute Z."
 msgstr "Если указать положительное значение, ось Z будет подниматься только ниже (до) заданной здесь высоты (высота считается от стола). Таким образом вы можете запретить подъём оси Z выше установленной высоты."
 
 msgid "On surfaces"
-msgstr "На поверхностях"
+msgstr "Область применения"
 
+# Нигде нет пояснений, что это за подъём, и за что отвечают его режимы.
 msgid "Enforce Z-Hop behavior. This setting is impacted by the above settings (Only lift Z above/below)."
-msgstr "Принудительное поднятие оси Z. На этот параметр влияют указанные выше параметры (Приподнимать ось Z только выше/ниже)."
+msgstr "Выбор поверхностей, при печати которых следует приподнимать голову перед совершением холостого перемещения. Этот приём позволяет избежать случайных столкновений и следов подтёков на печатаемом слое.\n\n• Везде: приподнимать на всех слоях; помогает избежать столкновений\n  при переэкструзии и печати материалами, склонными к деформации.\n• Поверхности: приподнимать только при печати лицевых\n  горизонтальных поверхностей, помогает улучшить внешний вид.\n• Первый слой: приподнимать только у стола, помогает избежать\n  столкновений с локальной переэкструзией на первом слое.\n• Первый слой и поверхности: приподнимать и у стола, и на\n  горизонтальных поверхностях.\n\nВнимание: работа этой функции может быть ограничена определённой высотой в настройках «Приподнимать не ниже» и «Приподнимать не выше»."
 
 msgid "All Surfaces"
 msgstr "Везде"
 
+# Возможно, кто-то предложит лучший вариант в 1 слово, который бы сюда поместился. "Крышка" и "Верхние сплошные слои" не подходят, т.к. ими называется совокупность нескольких слоёв над заполнением. Просто "Верхние слои" – вводит в заблуждение, т.к. речь идёт именно о горизонтальных поверхностях, а не о последних слоях печати. В любом случае, в подсказке есть пояснение.
 msgid "Top Only"
-msgstr "Только на верхней"
+msgstr "Поверхности"
 
+# Ошибка в оригинале – при использовании подложки нижняя поверхность смещается над столом, и подъём там не совершается (зато работает на 1-м слое подложки). + костыль с тонким пробелом, чтобы текст не срезался.
 msgid "Bottom Only"
-msgstr "Только на нижней"
+msgstr "Первый слой"
 
 msgid "Top and Bottom"
-msgstr "На верхней и нижней"
+msgstr "Первый слой и поверхности"
 
 msgid "Direct Drive"
 msgstr "Прямой (Direct)"
@@ -13765,10 +13774,10 @@ msgid "Use scarf joint for inner walls as well."
 msgstr "Использовать косой шов и для внутренних периметров."
 
 msgid "Role base wipe speed"
-msgstr "Скорость очистки по типу экструзии"
+msgstr "Скорость очистки по типу линии"
 
 msgid "The wipe speed is determined by the speed of the current extrusion role. e.g. if a wipe action is executed immediately following an outer wall extrusion, the speed of the outer wall extrusion will be utilized for the wipe action."
-msgstr "Скорость очистки будет определяться скоростью текущего типа экструзии, т.е. если операция очистки выполняется сразу после экструзии внешнего периметра, то для очистки используется скорость экструзии внешнего периметра."
+msgstr "Выбирать скорость очистки на основе скорости печати текущего типа линии. Например, если очистка происходит после печати внешнего периметра, скорость движения очистки будет как у периметра."
 
 msgid "Wipe on loops"
 msgstr "Очистка в периметры"
@@ -13841,6 +13850,7 @@ msgstr "Тип юбки"
 msgid "Combined - single skirt for all objects, Per object - individual object skirt."
 msgstr "Выбор типа печатаемой юбки - одна общая для всех моделей или отдельные юбки для каждой модели."
 
+# Отдельный (антоним к "совместный")
 msgid "Per object"
 msgstr "Для каждой модели"
 
@@ -14210,7 +14220,7 @@ msgid ""
 msgstr ""
 "Стиль и форма создаваемой поддержки.\n"
 "\n"
-"Стиль «Сетка» создаёт более устойчивую поддержку (по умолчанию). Стиль «Аккуратный» экономит материал и уменьшает образование дефектов на моделях.\n"
+"Стиль «Сетка» создаёт более устойчивую поддержку (по умолчанию). Стиль «Аккуратные» экономит материал и уменьшает образование дефектов на моделях.\n"
 "\n"
 "Для древовидной поддержки, при стройном и органическом стиле происходит более агрессивное объединение ветвей и экономия материала (по умолчанию органический). В то время как гибридный стиль создаёт структуру, схожую с обычную поддержкой при больших плоских нависаниях."
 
@@ -17556,7 +17566,7 @@ msgstr "Не удалось загрузить информацию о проп�
 
 #, c-format, boost-format
 msgid "/%d Selected"
-msgstr "/%d выбрано"
+msgstr "из %d выбрано"
 
 msgid "Nothing selected"
 msgstr "Ничего не выбрано"
@@ -17565,23 +17575,23 @@ msgid "Over 64 objects in single plate"
 msgstr "Выбрано более 64 объектов на стол"
 
 msgid "The current print job cannot be skipped"
-msgstr "Текущее задание невозможно пропустить"
+msgstr "Текущую печать невозможно пропустить"
 
 msgid "Skipping all objects."
-msgstr "Пропуск всех объектов."
+msgstr "Исключение всех объектов."
 
 msgid "The printing job will be stopped. Continue?"
-msgstr "Задание на печать будет остановлено. Продолжить?"
+msgstr "Печать будет остановлена. Продолжить?"
 
 #, c-format, boost-format
 msgid "Skipping %d objects."
-msgstr "Пропуск объектов: %d"
+msgstr "Исключаемых объектов: %d"
 
 msgid "This action cannot be undone. Continue?"
 msgstr "Это действие необратимо. Продолжить?"
 
 msgid "Skipping objects."
-msgstr "Пропуск объектов."
+msgstr "Исключение объектов."
 
 msgid "Continue"
 msgstr "Продолжить"
@@ -17760,6 +17770,18 @@ msgstr "Температура при прочистке"
 
 msgid "Print temperature for prime tower interface layer (where different materials meet). If set to -1, use max recommended nozzle temperature."
 msgstr "Целевая температура при печати слоёв прочистки в черновой башне (место контакта разных материалов).\n\nПри значении -1 используется максимальная рекомендуемая температура."
+
+msgid "Enable tower interface features"
+msgstr "Улучшенная адгезия"
+
+msgid "Enable optimized prime tower interface behavior when different materials meet."
+msgstr "Использовать приёмы улучшения адгезии, такие как повышение температуры при прочистке, разглаживание задранных кончиков или упреждающая подача материала (задаются в настройках материала: Многоцвет → Черновая башня). Предназначены для печати башни плохо спекающимися материалами."
+
+msgid "Cool down from interface boost during prime tower"
+msgstr "Ранний сброс температуры"
+
+msgid "When interface-layer temperature boost is active, set the nozzle back to print temperature at the start of the prime tower so it cools down during the tower."
+msgstr "Изменения температуры при прочистке будут сбрасываться в процессе печати башни. Поскольку температура нагревателя не может меняться мгновенно, это должно обеспечить время на её стабилизацию к началу основной печати."
 
 #: resources/data/hints.ini: [hint:Precise wall]
 msgid ""
