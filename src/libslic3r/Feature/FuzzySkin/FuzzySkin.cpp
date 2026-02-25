@@ -226,8 +226,9 @@ bool should_fuzzify(const FuzzySkinConfig& config, const int layer_id, const siz
         return false;
     }
 
-    const bool fuzzify_contours = loop_idx == 0 || fuzziy_type == FuzzySkinType::AllWalls;
-    const bool fuzzify_holes    = fuzzify_contours && (fuzziy_type == FuzzySkinType::All || fuzziy_type == FuzzySkinType::AllWalls);
+    const bool fuzzify_contours = (loop_idx == 0 && fuzziy_type != FuzzySkinType::Hole) || fuzziy_type == FuzzySkinType::AllWalls;
+    const bool fuzzify_holes    = (fuzziy_type == FuzzySkinType::Hole || fuzziy_type == FuzzySkinType::All || fuzziy_type == FuzzySkinType::AllWalls)
+                                  && (loop_idx == 0 || fuzziy_type == FuzzySkinType::AllWalls);
 
     return is_contour ? fuzzify_contours : fuzzify_holes;
 }
