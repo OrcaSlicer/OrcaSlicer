@@ -1671,6 +1671,17 @@ void PrintObject::detect_surfaces_type()
                     // BOOST_LOG_TRIVIAL(trace) << "Detecting solid surfaces for region " << region_id << " and layer " << layer->print_z;
                     Layer       *layer  = m_layers[idx_layer];
                     LayerRegion *layerm = layer->m_regions[region_id];
+
+                    // ORCA: Fix for issue #11207 - preserve cross-region bridges from make_perimeters
+                    Surfaces preserved_bridges;
+                    if (this->num_printing_regions() > 1) {
+                        for (const Surface &s : layerm->fill_surfaces.surfaces) {
+                            if (s.surface_type == stBottomBridge) {
+                                preserved_bridges.push_back(s);
+                            }
+                        }
+                    }
+
                     // comparison happens against the *full* slices (considering all regions)
                     // unless internal shells are requested
                     Layer       *upper_layer = (idx_layer + 1 < this->layer_count()) ? m_layers[idx_layer + 1] : nullptr;
@@ -1729,7 +1740,7 @@ void PrintObject::detect_surfaces_type()
                                 opening_ex(
                                     diff_ex(
                                         intersection(layerm_slices_surfaces, lower_layer->lslices), // supported
-                                        lower_layer->m_regions[region_id]->slices.surfaces,
+                                        to_expolygons(lower_layer->m_regions[region_id]->slices.surfaces),
                                         ApplySafetyOffset::Yes),
                                     offset),
                                 stBottom);
@@ -1870,6 +1881,18 @@ void PrintObject::detect_surfaces_type()
 
                     surfaces_append(surfaces_out, std::move(top));
                     surfaces_append(surfaces_out, std::move(bottom));
+
+                    // ORCA: Fix for issue #11207 - restore cross-region bridges that were marked in make_perimeters
+                    if (!preserved_bridges.empty()) {
+                        // Remove any overlapping bottom surfaces and replace with our preserved bridges
+                        Surfaces surfaces_without_bottom;
+                        for (const Surface &s : surfaces_out) {
+                            if (s.surface_type != stBottom && s.surface_type != stBottomBridge)
+                                surfaces_without_bottom.push_back(s);
+                        }
+                        surfaces_out = std::move(surfaces_without_bottom);
+                        surfaces_append(surfaces_out, std::move(preserved_bridges));
+                    }
 
         //            Slic3r::debugf "  layer %d has %d bottom, %d top and %d internal surfaces\n",
         //                $layerm->layer->id, scalar(@bottom), scalar(@top), scalar(@internal) if $Slic3r::debug;

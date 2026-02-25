@@ -528,8 +528,42 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
     std::vector<ExpansionZone> expansion_zones{
         ExpansionZone{std::move(shells), expansion_params_into_solid_infill},
         ExpansionZone{std::move(sparse), expansion_params_into_sparse_infill},
-        ExpansionZone{std::move(top_expolygons), expansion_params_into_solid_infill},
     };
+
+    // ORCA: Fix for issue #11207 - add same-layer adjacent regions' surfaces to expansion zones
+    // for cross-region bridges (a region entirely unsupported by ANY material below).
+    if (std::any_of(this->fill_surfaces.surfaces.begin(), this->fill_surfaces.surfaces.end(),
+            [](const Surface &s) { return s.surface_type == stBottomBridge; })) {
+        const Layer *lower = this->layer()->lower_layer;
+        bool is_cross_region = false;
+        if (lower != nullptr) {
+            // Find our region index to check same-region area in the lower layer
+            size_t region_id = 0;
+            for (const LayerRegion *lr : this->layer()->regions()) {
+                if (lr == this) break;
+                region_id++;
+            }
+            if (region_id < lower->regions().size()) {
+                double current_area_val = area(to_expolygons(this->slices.surfaces));
+                double lower_same_area  = area(to_expolygons(lower->get_region(region_id)->slices.surfaces));
+                is_cross_region = current_area_val > 0 && lower_same_area < sqr(scale_(0.1));
+            }
+        }
+        if (is_cross_region) {
+            ExPolygons adjacent_surfaces;
+            for (const LayerRegion *other : this->layer()->regions()) {
+                if (other == this) continue;
+                for (const ExPolygon &ep : other->fill_expolygons)
+                    adjacent_surfaces.push_back(ep);
+            }
+            adjacent_surfaces = union_ex(adjacent_surfaces);
+            if (!adjacent_surfaces.empty())
+                expansion_zones.push_back(ExpansionZone{std::move(adjacent_surfaces), expansion_params_into_solid_infill});
+        }
+    }
+
+    // Add top surfaces zone LAST (will be popped at line 558)
+    expansion_zones.push_back(ExpansionZone{std::move(top_expolygons), expansion_params_into_solid_infill});
 
     SurfaceCollection bridges;
     {
@@ -754,8 +788,12 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
                 if (idx_island == -1) {
 				    BOOST_LOG_TRIVIAL(trace) << "Bridge did not fall into the source region!";
                 } else {
-                    // Found an island, to which this bridge region belongs. Trim it,
-                    polys = intersection(polys, fill_boundaries_ex[idx_island]);
+                    // ORCA: Fix for issue #11207 - don't trim cross-region bridges to current region
+                    // Cross-region bridges (stBottomBridge) need to extend into adjacent region for anchoring
+                    if (bridges[i].surface_type != stBottomBridge) {
+                        // Found an island, to which this bridge region belongs. Trim it,
+                        polys = intersection(polys, fill_boundaries_ex[idx_island]);
+                    }
                 }
                 bridge_bboxes.push_back(get_extents(polys));
                 bridges_grown.push_back(std::move(polys));
@@ -896,11 +934,18 @@ void LayerRegion::process_external_surfaces(const Layer *lower_layer, const Poly
             if (s1.is_top())
                 // Trim the top surfaces by the bottom surfaces. This gives the priority to the bottom surfaces.
                 polys = diff(polys, bottom_polygons);
-            surfaces_append(
-                new_surfaces,
-                // Don't use a safety offset as fill_boundaries were already united using the safety offset.
-                intersection_ex(polys, fill_boundaries),
-                s1);
+
+            // ORCA: Fix for issue #11207 - don't clip cross-region bridges to fill_boundaries
+            // Cross-region bridges need to extend beyond current region to anchor on lower layer
+            ExPolygons final_polys;
+            if (s1.surface_type == stBottomBridge) {
+                // Cross-region bridge - don't clip, keep full expanded area
+                final_polys = to_expolygons(polys);
+            } else {
+                // Normal surface - clip to fill_boundaries
+                final_polys = intersection_ex(polys, fill_boundaries);
+            }
+            surfaces_append(new_surfaces, std::move(final_polys), s1);
         }
     }
     
@@ -955,7 +1000,9 @@ void LayerRegion::prepare_fill_surfaces()
     }
     if (this->region().config().bottom_shell_layers == 0) {
         for (Surface &surface : this->fill_surfaces.surfaces)
-            if (surface.is_bottom()) // (surface.surface_type == stBottom)
+            // ORCA: Fix for issue #11207 - preserve stBottomBridge even when bottom_shell_layers=0
+            // Cross-region bridges need to stay as bridges for proper anchoring
+            if (surface.surface_type == stBottom)  // Only convert stBottom, not stBottomBridge
                 surface.surface_type = stInternal;
     }
 
