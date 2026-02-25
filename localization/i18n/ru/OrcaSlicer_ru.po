@@ -2757,7 +2757,10 @@ msgstr "Рециркуляция"
 msgid "Top"
 msgstr "Сверху"
 
-msgid "The fan controls the temperature during printing to improve print quality.The system automatically adjusts the fan's switch and speed according to different printing materials."
+msgid ""
+"The fan controls the temperature during printing to improve print "
+"quality. The system automatically adjusts the fan's switch and speed "
+"according to different printing materials."
 msgstr "В процессе печати вентилятор управляет температурой внутри камеры для улучшения качества печати. Система автоматически регулирует положение заслонки и скорость вентилятора для создания нужных условий печати разными материалами."
 
 msgid "Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air."
@@ -3484,8 +3487,9 @@ msgstr "Принтер занят и пока не может изменить �
 msgid "Please unload all filament before switching."
 msgstr "Перед сменой необходимо извлечь все материалы."
 
-msgid "AMS type switching needs firmware update, taking about 30s. Switch now ?"
-msgstr "Смена типа AMS требует обновления прошивки"
+msgid ""
+"AMS type switching needs firmware update, taking about 30s. Switch now?"
+msgstr "Смена типа AMS требует обновления прошивки (займёт около 30 секунд). Продолжить?"
 
 msgid "Arrange AMS Order"
 msgstr "Упорядочить AMS"
@@ -4441,7 +4445,7 @@ msgid "Flow: "
 msgstr "Расход: "
 
 msgid "Fan: "
-msgstr "Охлаждение: "
+msgstr "Обдув: "
 
 msgid "Temperature: "
 msgstr "Температура: "
@@ -4582,8 +4586,8 @@ msgstr "Действительная скорость (мм/с)"
 msgid "Fan Speed (%)"
 msgstr "Скорость вентилятора (%)"
 
-msgid "Temperature (°C)"
-msgstr "Температура (°C)"
+msgid "Temperature (℃)"
+msgstr "Температура (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Объёмный расход (мм³/с)"
@@ -6060,8 +6064,8 @@ msgstr "Слой: %s"
 msgid "Layer: %d/%d"
 msgstr "Слой: %d/%d"
 
-msgid "Please heat the nozzle to above 170°C before loading or unloading filament."
-msgstr "Нагрейте экструдер до температуры выше 170°C перед загрузкой или выгрузкой прутка."
+msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
+msgstr "Нагрейте экструдер до температуры выше 170℃ перед загрузкой или выгрузкой прутка."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "Температуру камеры нельзя изменить при печати в режиме «Охлаждение»."
@@ -7081,7 +7085,7 @@ msgstr ""
 msgid ""
 "The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
 "After syncing, software can optimize printing time and filament usage when slicing.\n"
-"Would you like to sync now ?"
+"Would you like to sync now?"
 msgstr ""
 
 msgid "Sync now"
@@ -8314,7 +8318,9 @@ msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Ple
 msgstr "Требования к твёрдости у выбранного материала (%s) превышают возможности %s(%s). Проверьте настройки профиля принтера или материала и попробуйте ещё раз."
 
 #, c-format, boost-format
-msgid "[ %s ] requires printing in a high-temperature environment.Please close the door."
+msgid ""
+"[ %s ] requires printing in a high-temperature environment. Please close the "
+"door."
 msgstr "[%s] требует прогретой среды для печати: необходимо закрыть дверцу."
 
 #, c-format, boost-format
@@ -8656,8 +8662,9 @@ msgstr "Включение этой опции приведёт к измене�
 msgid "Are you sure you want to enable this option?"
 msgstr "Вы действительно хотите включить эту опцию?"
 
-msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues.Are you sure you want to enable this option?"
-msgstr "Узоры заполнения обычно разработаны так, чтобы автоматически обрабатывать поворот для обеспечения правильной печати и достижения желаемого эффекта (например, «гироид», «куб»). Поворот текущего узора заполнения может привести к недостаточной поддержке. Будьте осторожны и тщательно проверьте наличие возможных проблем с печатью. Вы уверены, что хотите включить эту опцию?"
+# Слайсер дописывает "Вы действительно хотите включить эту опцию?" в следующей строчке. Т.е. последнее предложение переводить не нужно, оно дублируется.
+msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
+msgstr "Шаблоны заполнения обычно разработаны так, чтобы автоматически обрабатывать поворот для обеспечения правильной печати и достижения желаемого эффекта (например, «гироид», «куб»). Поворот текущего узора заполнения может привести к недостаточной поддержке. Будьте осторожны и тщательно проверьте наличие возможных проблем с печатью."
 
 msgid ""
 "Layer height is too small.\n"
@@ -16758,7 +16765,7 @@ msgstr ""
 "Закройте её и повторите попытку."
 
 msgid ""
-"Printer and all the filament&&process presets that belongs to the printer.\n"
+"Printer and all the filament and process presets that belongs to the printer.\n"
 "Can be shared with others."
 msgstr ""
 "Экспортируется профиль принтера, а также профили материалов\n"
@@ -18242,8 +18249,8 @@ msgstr ""
 #~ msgid "The AMS will estimate Bambu filament's remaining capacity after the filament info is updated. During printing, remaining capacity will be updated automatically."
 #~ msgstr "AMS считывает информацию о материале Bambu и рассчитывает его остаточную ёмкость на катушке. Остаточная ёмкость обновляется автоматически в процессе печати."
 
-#~ msgid "The recommended minimum temperature is less than 190°C or the recommended maximum temperature is greater than 300°C.\n"
-#~ msgstr "Минимально рекомендуемая температура меньше 190 градусов или максимально рекомендуемая температура выше 300 градусов.\n"
+#~ msgid "The recommended minimum temperature is less than 190℃ or the recommended maximum temperature is greater than 300°C.\n"
+#~ msgstr "Минимально рекомендуемая температура меньше 190℃ или максимально рекомендуемая температура выше 300℃.\n"
 
 #~ msgid "Spiral mode only works when wall loops is 1, support is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 #~ msgstr "Режим «Спиральной вазы» работает только в том случае, если количество петель стен равно 1, поддержка отключена, количество верхних слоев оболочки равно 0, плотность разреженного заполнения равна 0, а тип покадровой съемки — традиционный."
@@ -19024,13 +19031,13 @@ msgstr ""
 #~ msgid ""
 #~ "This parameter smooths out sudden extrusion rate changes that happen when the printer transitions from printing a high flow (high speed/larger width) extrusion to a lower flow (lower speed/smaller width) extrusion and vice versa.\n"
 #~ "\n"
-#~ "It defines the maximum rate by which the extruded volumetric flow in mm3/sec can change over time. Higher values mean higher extrusion rate changes are allowed, resulting in faster speed transitions.\n"
+#~ "It defines the maximum rate by which the extruded volumetric flow in mm³/sec can change over time. Higher values mean higher extrusion rate changes are allowed, resulting in faster speed transitions.\n"
 #~ "\n"
 #~ "A value of 0 disables the feature.\n"
 #~ "\n"
-#~ "For a high speed, high flow direct drive printer (like the Bambu lab or Voron) this value is usually not needed. However it can provide some marginal benefit in certain cases where feature speeds vary greatly. For example, when there are aggressive slowdowns due to overhangs. In these cases a high value of around 300-350mm3/s2 is recommended as this allows for just enough smoothing to assist pressure advance achieve a smoother flow transition.\n"
+#~ "For a high speed, high flow direct drive printer (like the Bambu lab or Voron) this value is usually not needed. However it can provide some marginal benefit in certain cases where feature speeds vary greatly. For example, when there are aggressive slowdowns due to overhangs. In these cases a high value of around 300-350mm³/s² is recommended as this allows for just enough smoothing to assist pressure advance achieve a smoother flow transition.\n"
 #~ "\n"
-#~ "For slower printers without pressure advance, the value should be set much lower. A value of 10-15mm3/s2 is a good starting point for direct drive extruders and 5-10mm3/s2 for Bowden style.\n"
+#~ "For slower printers without pressure advance, the value should be set much lower. A value of 10-15mm³/s² is a good starting point for direct drive extruders and 5-10mm³/s² for Bowden style.\n"
 #~ "\n"
 #~ "This feature is known as Pressure Equalizer in Prusa slicer.\n"
 #~ "\n"
