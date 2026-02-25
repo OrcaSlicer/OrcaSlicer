@@ -91,6 +91,9 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
         return _u8L("Layer Time");
 else if (view_type == libvgcode::EViewType::LayerTimeLogarithmic)
         return _u8L("Layer Time (log)");
+// ORCA: Add Pressure Advance visualization support
+    else if (view_type == libvgcode::EViewType::PressureAdvance)
+        return _u8L("Pressure Advance");
     return "";
 }
 
@@ -394,7 +397,12 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWrapper::text(text);
                 });
                 append_table_row(_u8L("Temperature"), [&vertex, &buff]() {
-                    sprintf(buff, ("%.0f " + _u8L("°C")).c_str(), vertex.temperature);
+                    sprintf(buff, ("%.0f " + _u8L("\u2103" /* °C */)).c_str(), vertex.temperature);
+                    ImGuiWrapper::text(std::string(buff));
+                });
+// ORCA: Add Pressure Advance visualization support
+                append_table_row(_u8L("Pressure Advance"), [&vertex, &buff]() {
+                    sprintf(buff, "%.4f", vertex.pressure_advance);
                     ImGuiWrapper::text(std::string(buff));
                 });
                 append_table_row(_u8L("Time"), [viewer, &vertex, &buff, vertex_id]() {
@@ -605,6 +613,11 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                 }
                 case libvgcode::EViewType::ActualSpeed: {
                     sprintf(buf, "%s %s%.1f", buf, _u8L("Actual Speed: ").c_str(), vertex.actual_feedrate);
+                    break;
+                }
+// ORCA: Add Pressure Advance visualization support
+                case libvgcode::EViewType::PressureAdvance: {
+                    sprintf(buf, "%s %s%.4f", buf, _u8L("PA: ").c_str(), vertex.pressure_advance);
                     break;
                 }
 
@@ -1024,6 +1037,8 @@ void GCodeViewer::update_by_mode(ConfigOptionMode mode)
     view_type_items.push_back(libvgcode::EViewType::LayerTimeLogarithmic);
     view_type_items.push_back(libvgcode::EViewType::FanSpeed);
     view_type_items.push_back(libvgcode::EViewType::Temperature);
+// ORCA: Add Pressure Advance visualization support
+    view_type_items.push_back(libvgcode::EViewType::PressureAdvance);
     //if (mode == ConfigOptionMode::comDevelop) {
     //    view_type_items.push_back(EViewType::Tool);
     //}
@@ -2250,6 +2265,8 @@ void GCodeViewer::render_toolpaths()
             add_range_property_row("speed range", m_viewer.get_color_range(libvgcode::EViewType::Speed).get_range());
             add_range_property_row("fan speed range", m_viewer.get_color_range(libvgcode::EViewType::FanSpeed).get_range());
             add_range_property_row("temperature range", m_viewer.get_color_range(libvgcode::EViewType::Temperature).get_range());
+// ORCA: Add Pressure Advance visualization support
+            add_range_property_row("pressure advance range", m_viewer.get_color_range(libvgcode::EViewType::PressureAdvance).get_range());
             add_range_property_row("volumetric rate range", m_viewer.get_color_range(libvgcode::EViewType::VolumetricFlowRate).get_range());
             add_range_property_row("layer time linear range", m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLinear).get_range());
             add_range_property_row("layer time logarithmic range", m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLogarithmic).get_range());
@@ -3497,7 +3514,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         break;
     }
     case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan Speed (%)")); break; }
-    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (°C)")); break; }
+    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (\u2103)"/* °C */)); break; }
+// ORCA: Add Pressure Advance visualization support
+    case libvgcode::EViewType::PressureAdvance:{ imgui.title(_u8L("Pressure Advance")); break; }
     case libvgcode::EViewType::VolumetricFlowRate:
         { imgui.title(_u8L("Volumetric flow rate (mm³/s)")); break; }
     case libvgcode::EViewType::ActualVolumetricFlowRate:
@@ -3674,6 +3693,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     }
     case libvgcode::EViewType::FanSpeed:                 { append_range(m_viewer.get_color_range(libvgcode::EViewType::FanSpeed), 0); break; }
     case libvgcode::EViewType::Temperature:              { append_range(m_viewer.get_color_range(libvgcode::EViewType::Temperature), 0); break; }
+// ORCA: Add Pressure Advance visualization support
+    case libvgcode::EViewType::PressureAdvance:          { append_range(m_viewer.get_color_range(libvgcode::EViewType::PressureAdvance), 3); break; }
     case libvgcode::EViewType::LayerTimeLinear:          { append_range(m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLinear), true); break; }
     case libvgcode::EViewType::LayerTimeLogarithmic:     { append_range(m_viewer.get_color_range(libvgcode::EViewType::LayerTimeLogarithmic), true); break; }
     case libvgcode::EViewType::VolumetricFlowRate:       { append_range(m_viewer.get_color_range(libvgcode::EViewType::VolumetricFlowRate), 2); break; }
