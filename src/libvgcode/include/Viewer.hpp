@@ -169,6 +169,8 @@ public:
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
     // EViewType::Temperature
+    // ORCA: Add Pressure Advance visualization support
+    // EViewType::PressureAdvance
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear
@@ -185,6 +187,8 @@ public:
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
     // EViewType::Temperature
+    // ORCA: Add Pressure Advance visualization support
+    // EViewType::PressureAdvance
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear

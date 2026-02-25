@@ -2159,9 +2159,9 @@ void PrintConfigDef::init_fff_params()
                      "You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
                      "\n\nThe final object flow ratio is this value multiplied by the filament flow ratio.");
     def->mode = comAdvanced;
-    def->max = 2;
-    def->min = 0.01;
-    def->set_default_value(new ConfigOptionFloat(1));
+    def->max = 2.f;
+    def->min = 0.01f;
+    def->set_default_value(new ConfigOptionFloat(1.f));
 
     def = this->add("enable_pressure_advance", coBools);
     def->label = L("Enable pressure advance");
@@ -2590,7 +2590,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_tower_interface_pre_extrusion_dist", coFloats);
     def->label = L("Interface layer pre-extrusion distance");
     def->tooltip = L("Pre-extrusion distance for prime tower interface layer (where different materials meet).");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
@@ -2598,7 +2598,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_tower_interface_pre_extrusion_length", coFloats);
     def->label = L("Interface layer pre-extrusion length");
     def->tooltip = L("Pre-extrusion length for prime tower interface layer (where different materials meet).");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
@@ -2606,7 +2606,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_tower_ironing_area", coFloats);
     def->label = L("Tower ironing area");
     def->tooltip = L("Ironing area for prime tower interface layer (where different materials meet).");
-    def->sidetext = L("mm²");
+    def->sidetext = L(u8"mm²");	// square milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 4. });
@@ -2614,7 +2614,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_tower_interface_purge_volume", coFloats);
     def->label = L("Interface layer purge length");
     def->tooltip = L("Purge length for prime tower interface layer (where different materials meet).");
-    def->sidetext = L("mm");
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 20. });
@@ -2622,7 +2622,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_tower_interface_print_temp", coInts);
     def->label = L("Interface layer print temperature");
     def->tooltip = L("Print temperature for prime tower interface layer (where different materials meet). If set to -1, use max recommended nozzle temperature.");
-    def->sidetext = L("°C");
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = -1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { -1 });
@@ -3051,9 +3051,10 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Speed");
     def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0;
+    def->min = 0.f;
+    def->max = 0.5f;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloat(0));
+    def->set_default_value(new ConfigOptionFloat(0.f));
 
     def = this->add("outer_wall_jerk", coFloat);
     def->label = L("Outer wall");
@@ -3248,7 +3249,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L("Filament-specific override for ironing line spacing. This allows you to customize the spacing "
                      "between ironing lines for each filament type.");
-    def->sidetext = "mm";
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
     def->mode = comAdvanced;
@@ -3260,7 +3261,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Quality");
     def->tooltip = L("Filament-specific override for ironing inset. This allows you to customize the distance to keep "
                      "from the edges when ironing for each filament type.");
-    def->sidetext = "mm";
+    def->sidetext = L("mm");	// milimeters, CIS languages need translation
     def->min = 0;
     def->max = 100;
     def->mode = comAdvanced;
@@ -3272,7 +3273,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Speed");
     def->tooltip = L("Filament-specific override for ironing speed. This allows you to customize the print speed "
                      "of ironing lines for each filament type.");
-    def->sidetext = "mm/s";
+    def->sidetext = L("mm/s");	// milimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
     def->nullable = true;
@@ -3312,10 +3313,10 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Others");
     def->tooltip = L("The average distance between the random points introduced on each line segment.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0;
-    def->max = 5;
+    def->min = 0.01f; // point distance cannot be 0! Otherwise we get infinite loop + OOM due to infinite line division.
+    def->max = 5.f;
     def->mode = comSimple;
-    def->set_default_value(new ConfigOptionFloat(0.3));
+    def->set_default_value(new ConfigOptionFloat(0.3f));
 
     def = this->add("fuzzy_skin_first_layer", coBool);
     def->label = L("Apply fuzzy skin to first layer");
@@ -3375,7 +3376,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Others");
     def->tooltip = L("The base size of the coherent noise features, in mm. Higher values will result in larger features.");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0.1;
+    def->min = 0.1f;
     def->max = 500;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1.0));
@@ -3393,7 +3394,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Fuzzy skin noise persistence");
     def->category = L("Others");
     def->tooltip = L("The decay rate for higher octaves of the coherent noise. Lower values will result in smoother noise.");
-    def->min = 0.01;
+    def->min = 0.01f;
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.5));
@@ -4205,10 +4206,10 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Machine limits");
     def->tooltip = L("Maximum junction deviation (M205 J, only apply if JD > 0 for Marlin Firmware\nIf your Marlin 2 printer uses Classic Jerk set this value to 0.)");
     def->sidetext = L("mm");	// milimeters, CIS languages need translation
-    def->min = 0;
-    def->max = 1;
+    def->min = 0.f;
+    def->max = 0.5f;
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionFloats { 0.01});
+    def->set_default_value(new ConfigOptionFloats{ 0.01f });
 
     // M205 S... [mm/sec]
     def = this->add("machine_min_extruding_rate", coFloats);
@@ -9288,6 +9289,61 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
     }
 }
 
+namespace {
+// Options in printer_options_with_variant_2 are stored as (normal,silent) pairs per printer variant.
+// Some legacy presets/projects carry a variant list but still store only one pair; normalize to avoid crashes.
+static void normalize_stride2_floats(ConfigOptionFloats &opt, size_t expected_size)
+{
+    auto &v = opt.values;
+    if (expected_size == 0) {
+        v.clear();
+        return;
+    }
+    if (v.empty()) {
+        // Fallback: keep behavior predictable instead of crashing. This should be rare.
+        v.resize(expected_size, 0.0);
+        return;
+    }
+
+    const double first  = v[0];
+    const double second = (v.size() >= 2) ? v[1] : first;
+
+    // Ensure we have at least one (normal,silent) pair to replicate.
+    if (v.size() < 2) {
+        v.resize(2, first);
+        v[1] = second;
+    }
+    // Keep pair alignment if some legacy preset produced odd length.
+    if (v.size() % 2 != 0)
+        v.push_back(second);
+
+    if (v.size() > expected_size) {
+        v.resize(expected_size);
+        return;
+    }
+
+    const size_t have_variants = v.size() / 2;
+    const size_t want_variants = expected_size / 2;
+    v.resize(expected_size);
+    for (size_t vi = have_variants; vi < want_variants; ++vi) {
+        v[vi * 2] = first;
+        if (vi * 2 + 1 < v.size())
+            v[vi * 2 + 1] = second;
+    }
+}
+
+static void log_normalize_legacy_vector_size(const char *fn, const std::string &key, int stride, size_t src_size, size_t dest_size, size_t expected_size,
+                                            size_t restore_n, int cur_variant_count, int target_variant_count, size_t cur_ids, size_t target_ids,
+                                            const ConfigOption *opt_src, const ConfigOption *opt_target)
+{
+    BOOST_LOG_TRIVIAL(debug) << fn << ": normalizing legacy vector size for key '" << key << "'"
+                             << " stride=" << stride << " src_size=" << src_size << " dest_size=" << dest_size << " expected=" << expected_size
+                             << " restore_index.size=" << restore_n << " cur_variants=" << cur_variant_count << " target_variants=" << target_variant_count
+                             << " cur_ids=" << cur_ids << " target_ids=" << target_ids << " cur_value=" << opt_src->serialize()
+                             << " target_value=" << opt_target->serialize();
+}
+} // namespace
+
 void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfig& new_config, const t_config_option_keys& keys, const std::set<std::string>& different_keys,
     std::string extruder_id_name, std::string extruder_variant_name, std::set<std::string>& key_set1, std::set<std::string>& key_set2)
 {
@@ -9310,7 +9366,10 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
 
     variant_index.resize(target_variant_count, -1);
     if (cur_variant_count == 0) {
-        variant_index[0] = 0;
+        // Defensive: target_variant_count may be 0 if the preset doesn't carry extruder_variant_name.
+        // In that case keep variant_index empty and let the downstream size checks produce a useful error.
+        if (!variant_index.empty())
+            variant_index[0] = 0;
     }
     else if ((cur_extruder_ids.size() > 0) && cur_variant_count != cur_extruder_ids.size()){
         //should not happen
@@ -9352,12 +9411,53 @@ void DynamicPrintConfig::update_non_diff_values_to_base_config(DynamicPrintConfi
                     //nothing to do, keep the original one
                 }
                 else {
-                    ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
-                    const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_target);
                     int stride = 1;
                     if (key_set2.find(opt) != key_set2.end())
                         stride = 2;
-                    opt_vec_src->set_with_restore(opt_vec_dest, variant_index, stride);
+
+                    const size_t restore_n     = variant_index.size();
+                    const size_t expected_size = restore_n * size_t(stride);
+
+                    if (stride == 2) {
+                        // Options in key_set2 are machine limits stored as (normal,silent) pairs per printer variant.
+                        if (opt_src->type() != coFloats || opt_target->type() != coFloats)
+                            throw ConfigurationError((boost::format("%1%: key '%2%' is expected to be ConfigOptionFloats for stride=2.") % __FUNCTION__ % opt).str());
+
+                        auto *src_f = static_cast<ConfigOptionFloats*>(opt_src);
+                        ConfigOptionFloats rhs_tmp(*static_cast<const ConfigOptionFloats*>(opt_target));
+
+                        const size_t src_size  = src_f->values.size();
+                        const size_t dest_size = rhs_tmp.values.size();
+                        if (src_size != expected_size || dest_size != expected_size)
+                            log_normalize_legacy_vector_size(__FUNCTION__, opt, stride, src_size, dest_size, expected_size, restore_n, cur_variant_count,
+                                                             target_variant_count, cur_extruder_ids.size(), target_extruder_ids.size(), opt_src, opt_target);
+
+                        // Normalize src in-place so backup_values indexing is safe, normalize rhs via a temporary copy.
+                        normalize_stride2_floats(*src_f, expected_size);
+                        normalize_stride2_floats(rhs_tmp, expected_size);
+                        src_f->set_with_restore(&rhs_tmp, variant_index, stride);
+                    } else {
+                        ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
+
+                        const size_t src_size  = opt_vec_src->size();
+                        const size_t dest_size = static_cast<const ConfigOptionVectorBase*>(opt_target)->size();
+                        if (src_size != expected_size || dest_size != expected_size)
+                            log_normalize_legacy_vector_size(__FUNCTION__, opt, stride, src_size, dest_size, expected_size, restore_n, cur_variant_count,
+                                                             target_variant_count, cur_extruder_ids.size(), target_extruder_ids.size(), opt_src, opt_target);
+
+                        if (opt_vec_src->size() != expected_size)
+                            opt_vec_src->resize(expected_size, opt_target);
+
+                        // Normalize rhs via a cloned temporary (rhs itself is const).
+                        ConfigOptionUniquePtr rhs_owner(opt_target->clone());
+                        ConfigOptionVectorBase *rhs_vec = dynamic_cast<ConfigOptionVectorBase*>(rhs_owner.get());
+                        if (rhs_vec == nullptr)
+                            throw ConfigurationError((boost::format("%1%: key '%2%' is expected to be a vector option.") % __FUNCTION__ % opt).str());
+                        if (rhs_vec->size() != expected_size)
+                            rhs_vec->resize(expected_size, opt_target);
+
+                        opt_vec_src->set_with_restore(rhs_vec, variant_index, stride);
+                    }
                 }
             }
         }
@@ -9668,13 +9768,13 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         case coFloatOrPercent:
         {
             auto *fopt = static_cast<const ConfigOptionFloat*>(opt);
-            out_of_range = fopt->value < optdef->min || fopt->value > optdef->max;
+            out_of_range = !optdef->is_value_valid(fopt->value);
             break;
         }
         case coFloats:
         case coPercents:
             for (double v : static_cast<const ConfigOptionVector<double>*>(opt)->values)
-                if (v < optdef->min || v > optdef->max) {
+                if (!optdef->is_value_valid(v)) {
                     out_of_range = true;
                     break;
                 }
@@ -9682,12 +9782,12 @@ std::map<std::string, std::string> validate(const FullPrintConfig &cfg, bool und
         case coInt:
         {
             auto *iopt = static_cast<const ConfigOptionInt*>(opt);
-            out_of_range = iopt->value < optdef->min || iopt->value > optdef->max;
+            out_of_range = !optdef->is_value_valid(iopt->value);
             break;
         }
         case coInts:
             for (int v : static_cast<const ConfigOptionVector<int>*>(opt)->values)
-                if (v < optdef->min || v > optdef->max) {
+                if (!optdef->is_value_valid(v)) {
                     out_of_range = true;
                     break;
                 }
